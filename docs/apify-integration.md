@@ -189,6 +189,16 @@ storing a copy of a string just creates a second handle on it. An import that
 fails reports itself and leaves the remote URL in place rather than discarding a
 run that has already been paid for.
 
+Two paths do the import. `run_apify_actor` walks its dataset preview for URLs
+into Apify's key-value storage — every actor names its file field differently
+(`downloadedFileUrl`, `screenshotUrl`, …), so it is the URL's shape that
+identifies a produced file — and imports up to five of them, returned as
+`files` with an `asset_url` each. `get_apify_key_value_record` imports a binary
+record on read. Both give storage URLs; keeping one in the asset library is
+`save_asset({name, source: asset_url})`, which copies host-side. The model is
+told so in the result, because the alternative it reaches for otherwise is
+`read_asset` → 600 KB of base64 → `save_asset`.
+
 Every result carries provenance: actor id, run id, retrieval time, dataset and
 key-value store ids, status, and cost. It carries no token and no actor input,
 since an input can hold something a user typed.

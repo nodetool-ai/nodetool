@@ -28,10 +28,12 @@ import {
   parseWithTypeCoercion,
   zodToJsonSchema,
   type ImageRegion,
-  type JsonSchema
+  type JsonSchema,
+  type ProcessingContext
 } from "@nodetool-ai/runtime";
 import type { Asset as AssetRow } from "@nodetool-ai/models";
-import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes, safeFetch } from "@nodetool-ai/runtime";
+import { mimeForPath } from "../sandbox-media-ref.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import type {
   CapabilityExport,
@@ -267,6 +269,60 @@ const getAsset: CapabilityExport = {
   }
 };
 
+/** Largest file `save_asset` copies from a `source`, in bytes. */
+const MAX_SOURCE_BYTES = 100 * 1024 * 1024;
+
+/**
+ * Read the bytes behind a `save_asset` source. An http(s) URL goes through
+ * `safeFetch` (SSRF-screened, capped); everything else — a `/api/storage/`
+ * key, an `asset://` URI, a data URI — is what `loadMediaRefBytes` already
+ * resolves for `read_asset`, so the two agree on what a ref means.
+ */
+async function readSourceBytes(
+  context: ProcessingContext,
+  source: string
+): Promise<
+  { bytes: Uint8Array; contentType?: string } | { error: string }
+> {
+  if (source.startsWith("http://") || source.startsWith("https://")) {
+    const response = await safeFetch(source);
+    if (!response.ok) {
+      return { error: `Fetching ${source} failed with HTTP ${response.status}.` };
+    }
+    const declared = Number(response.headers.get("content-length") ?? "");
+    if (Number.isFinite(declared) && declared > MAX_SOURCE_BYTES) {
+      return {
+        error: `${source} is ${declared} bytes, past the ${MAX_SOURCE_BYTES}-byte limit.`
+      };
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > MAX_SOURCE_BYTES) {
+      return {
+        error: `${source} is ${bytes.byteLength} bytes, past the ${MAX_SOURCE_BYTES}-byte limit.`
+      };
+    }
+    const header = response.headers.get("content-type");
+    const contentType = header?.split(";")[0]?.trim();
+    return contentType
+      ? { bytes, contentType }
+      : { bytes };
+  }
+  let bytes: Uint8Array | null = null;
+  try {
+    bytes = await loadMediaRefBytes({ uri: source }, context);
+  } catch {
+    // Reported below as not found; the message names the forms that work.
+  }
+  if (!bytes) {
+    return {
+      error:
+        `Source not found: ${source}. Pass the asset_url or /api/storage/ ` +
+        `key a tool returned, an asset:// URI, or an http(s) URL.`
+    };
+  }
+  return { bytes };
+}
+
 const saveAsset: CapabilityExport = {
   spec: saveAssetSpec,
   impl: async (run, params) => {
@@ -283,25 +339,56 @@ const saveAsset: CapabilityExport = {
           error: "name is required and must be a string"
         };
       }
+      const source = params.source;
       const hasText = isString(content);
       const hasBinary = isString(contentBase64) && contentBase64;
-      if (!hasText && !hasBinary) {
+      const hasSource = isString(source) && source.trim() !== "";
+      const supplied = [hasText, hasBinary, hasSource].filter(Boolean).length;
+      if (supplied === 0) {
         return {
           success: false,
           error:
-            "Either `content` (text) or `content_base64` (binary) is required"
+            "One of `content` (text), `content_base64` (binary) or `source` " +
+            "(an asset_url, /api/storage/ key, asset:// URI or http(s) URL " +
+            "to copy) is required"
+        };
+      }
+      if (supplied > 1) {
+        return {
+          success: false,
+          error:
+            "`content`, `content_base64` and `source` are mutually exclusive"
         };
       }
 
-      const data = hasBinary
-        ? new Uint8Array(Buffer.from(contentBase64, "base64"))
-        : new TextEncoder().encode(content as string);
-      const mime =
-        isString(contentTypeArg) && contentTypeArg
-          ? contentTypeArg
-          : hasBinary
-            ? "application/octet-stream"
-            : "text/plain";
+      let data: Uint8Array;
+      let mime: string;
+      if (hasSource) {
+        // The bytes already exist somewhere the host can read — copy them
+        // here instead of having the caller read them to base64 and pass
+        // them back, which is what a model does when this path is missing.
+        const fetched = await readSourceBytes(context, source.trim());
+        if ("error" in fetched) {
+          return { success: false, error: fetched.error };
+        }
+        data = fetched.bytes;
+        mime =
+          isString(contentTypeArg) && contentTypeArg
+            ? contentTypeArg
+            : (fetched.contentType ??
+              mimeForPath(source) ??
+              "application/octet-stream");
+      } else {
+        data = hasBinary
+          ? new Uint8Array(Buffer.from(contentBase64, "base64"))
+          : new TextEncoder().encode(content as string);
+        mime =
+          isString(contentTypeArg) && contentTypeArg
+            ? contentTypeArg
+            : hasBinary
+              ? "application/octet-stream"
+              : "text/plain";
+      }
 
       // Prefer the model interface (DB + storage). This is what the chat
       // UI surfaces in the asset browser and what other tools can reference
