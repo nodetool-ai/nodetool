@@ -1213,6 +1213,12 @@ function createRuntimeContext(opts: {
     ...opts,
     secretResolver: getSecret,
     storage: tempAdapter,
+    // `asset://<id>.<ext>` references (chat attachments, @-mentions, prior
+    // turns) resolve through the asset store, not the temp store. Without it
+    // the only path left is an HTTP hop to `/api/storage`, which authorizes by
+    // `x-user-id` and 404s for every user but `1` — the reference then reached
+    // the provider verbatim and died in the SSRF guard.
+    assetStorage: getAssetAdapter(),
     workspaceStorage: workspaceAdapter,
     authToken: opts.authToken,
     tempUrlResolver: createTempUrlResolver(tempAdapter, storagePath)
@@ -2102,6 +2108,7 @@ export class UnifiedWebSocketRunner {
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
+  private statsPrimeTimer: NodeJS.Timeout | null = null;
   private chatRequestSeq = 0;
   /**
    * Aborts the in-flight chat/inference turn. The seq counter above only filters
@@ -2444,10 +2451,7 @@ export class UnifiedWebSocketRunner {
     log.info("Client connected", { userId: this.userId });
 
     this.startHeartbeat();
-    // Only broadcast system stats in development — unnecessary overhead in production
-    if (process.env.NODE_ENV !== "production") {
-      this.startStatsBroadcast();
-    }
+    this.startStatsBroadcast();
     this.registerObserver();
   }
 
@@ -8985,11 +8989,15 @@ export class UnifiedWebSocketRunner {
     };
     // Fire an initial sample ~1s after connect so the sampler has a delta to
     // report — then keep emitting on a regular cadence.
-    setTimeout(send, 1000);
+    this.statsPrimeTimer = setTimeout(send, 1000);
     this.statsTimer = setInterval(send, 5_000);
   }
 
   private stopStatsBroadcast(): void {
+    if (this.statsPrimeTimer) {
+      clearTimeout(this.statsPrimeTimer);
+      this.statsPrimeTimer = null;
+    }
     if (this.statsTimer) {
       clearInterval(this.statsTimer);
       this.statsTimer = null;

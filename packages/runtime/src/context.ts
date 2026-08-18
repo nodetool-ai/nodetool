@@ -1285,6 +1285,14 @@ export class ProcessingContext {
   /** Storage adapter (optional, for asset handling). */
   readonly storage: StorageAdapter | null;
   /**
+   * Asset storage adapter — where user assets (`asset://<id>.<ext>`) live.
+   * Separate from {@link storage}, which servers point at the *temp* store:
+   * without this, an `asset://` reference could only be resolved over HTTP
+   * through `/api/storage`, which authorizes by `x-user-id` and 404s for
+   * anyone but user `1`. Null falls back to {@link storage}.
+   */
+  readonly assetStorage: StorageAdapter | null;
+  /**
    * Workspace storage adapter — the agent's working directory abstracted
    * behind {@link StorageAdapter}. Tools that read/write/list files use
    * this adapter so the same code paths work locally (FS-backed) and in
@@ -1381,6 +1389,7 @@ export class ProcessingContext {
     persistOutputAssets?: boolean;
     cache?: CacheAdapter;
     storage?: StorageAdapter | null;
+    assetStorage?: StorageAdapter | null;
     workspaceStorage?: StorageAdapter | null;
     onMessage?: (msg: ProcessingMessage) => void;
     variables?: Record<string, unknown>;
@@ -1424,6 +1433,7 @@ export class ProcessingContext {
     this.persistOutputAssets = opts.persistOutputAssets ?? true;
     this.cache = opts.cache ?? new MemoryCache();
     this.storage = opts.storage ?? null;
+    this.assetStorage = opts.assetStorage ?? null;
     this.workspaceStorage = opts.workspaceStorage ?? null;
     if (opts.onMessage) {
       this._messageListeners.add(opts.onMessage);
@@ -1482,6 +1492,7 @@ export class ProcessingContext {
       persistOutputAssets: this.persistOutputAssets,
       cache: this.cache,
       storage: this.storage,
+      assetStorage: this.assetStorage,
       workspaceStorage: this.workspaceStorage,
       variables: { ...this._variables },
       environment: { ...this.environment },
@@ -2524,12 +2535,20 @@ export class ProcessingContext {
     const trimmed = assetId.trim();
     const attempts: string[] = [];
 
-    const tryStorageUri = async (uri: string): Promise<Uint8Array | null> => {
-      if (!this.storage) {
-        return null;
-      }
+    // Assets live in the asset store; `this.storage` is the *temp* store on
+    // server paths. Probe the asset adapter first and keep the temp adapter as
+    // the fallback so runtime-materialized refs still resolve.
+    const adapters = [this.assetStorage, this.storage].filter(
+      (adapter, index, all): adapter is StorageAdapter =>
+        adapter !== null && all.indexOf(adapter) === index
+    );
+
+    const tryStorageUri = async (
+      adapter: StorageAdapter,
+      uri: string
+    ): Promise<Uint8Array | null> => {
       try {
-        const retrieved = await this.storage.retrieve(uri);
+        const retrieved = await adapter.retrieve(uri);
         if (retrieved) {
           return retrieved;
         }
@@ -2598,9 +2617,11 @@ export class ProcessingContext {
 
     // A concrete storage URI / http URL handed in directly.
     if (trimmed.includes("://") && !trimmed.startsWith("asset://")) {
-      const direct = await tryStorageUri(trimmed);
-      if (direct) {
-        return { bytes: direct, attempts };
+      for (const adapter of adapters) {
+        const direct = await tryStorageUri(adapter, trimmed);
+        if (direct) {
+          return { bytes: direct, attempts };
+        }
       }
       if (/^https?:\/\//.test(trimmed)) {
         try {
@@ -2617,7 +2638,7 @@ export class ProcessingContext {
       }
     }
 
-    if (this.storage) {
+    for (const adapter of adapters) {
       // Keys assets are written under: `<userId>/<id>.<ext>` (uploads — the
       // current owner-prefixed layout), `<id>.<ext>` (the flat legacy layout)
       // and `assets/<id>` (runtime-materialized refs). The owner-prefixed key
@@ -2631,7 +2652,7 @@ export class ProcessingContext {
           keys.unshift(`${this.userId}/${candidate}`);
         }
         for (const key of keys) {
-          const bytes = await tryStorageUri(this.storage.uriForKey(key));
+          const bytes = await tryStorageUri(adapter, adapter.uriForKey(key));
           if (bytes) {
             return { bytes, attempts };
           }
@@ -2652,7 +2673,7 @@ export class ProcessingContext {
           prefix: string
         ): Promise<Uint8Array | null> => {
           try {
-            const listing = await this.storage!.list(prefix);
+            const listing = await adapter.list(prefix);
             const bareEndsWithThumb = bareId.endsWith("_thumb");
             const match = listing.entries.find((entry) => {
               const key = entry.key;
@@ -2672,7 +2693,7 @@ export class ProcessingContext {
               return !isThumb || bareEndsWithThumb;
             });
             if (match) {
-              return await tryStorageUri(match.uri);
+              return await tryStorageUri(adapter, match.uri);
             }
           } catch (error) {
             attempts.push(
@@ -2738,9 +2759,11 @@ export class ProcessingContext {
         }
         const uri = metadata.uri;
         if (isString(uri)) {
-          const bytes = await tryStorageUri(uri);
-          if (bytes) {
-            return { bytes, attempts };
+          for (const adapter of adapters) {
+            const bytes = await tryStorageUri(adapter, uri);
+            if (bytes) {
+              return { bytes, attempts };
+            }
           }
         }
       } catch (error) {
@@ -2914,7 +2937,12 @@ export class ProcessingContext {
       const { bytes } = await this.resolveAssetBytes(uri);
       return bytes;
     }
-    return this.storage ? await this.storage.retrieve(uri) : null;
+    for (const adapter of [this.assetStorage, this.storage]) {
+      if (!adapter) continue;
+      const bytes = await adapter.retrieve(uri);
+      if (bytes) return bytes;
+    }
+    return null;
   }
 
   /**
@@ -2966,6 +2994,17 @@ export class ProcessingContext {
     const isResolvableUri = (uri: string): boolean =>
       RESOLVABLE_URI_RE.test(uri);
 
+    // An `asset://` reference that cannot be dereferenced must not reach the
+    // provider: providers `fetch` a non-data URI, and the SSRF guard then
+    // rejects `asset://…` with "Refusing to fetch unsafe URL", which fails the
+    // whole turn on a message the user cannot fix. Replace the block with a
+    // note the model can act on instead — a stale attachment in the history
+    // must not break every later turn in the thread.
+    const unresolvedNote = (kind: string, uri: string): MessageContent => ({
+      type: "text",
+      text: `[attached ${kind} could not be loaded: ${uri}]`
+    });
+
     const resolvePart = async (
       part: MessageContent
     ): Promise<MessageContent[]> => {
@@ -2987,7 +3026,7 @@ export class ProcessingContext {
             }
           ];
         }
-        return [part];
+        return [unresolvedNote("image", part.image.uri)];
       }
       if (
         part.type === "audio" &&
@@ -3007,7 +3046,7 @@ export class ProcessingContext {
             }
           ];
         }
-        return [part];
+        return [unresolvedNote("audio", part.audio.uri)];
       }
       if (
         part.type === "video" &&
@@ -3027,7 +3066,7 @@ export class ProcessingContext {
             }
           ];
         }
-        return [part];
+        return [unresolvedNote("video", part.video.uri)];
       }
       if (part.type === "text" && part.text.includes("asset://")) {
         // First split out image / audio mentions into their own blocks; what

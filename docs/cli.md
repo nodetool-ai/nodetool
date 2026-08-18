@@ -1356,9 +1356,9 @@ nodetool agent run -p anthropic -m claude-sonnet-5 --objective "Research AI tren
 # Or pipe the objective
 echo "Research AI trends" | nodetool agent run -p anthropic -m claude-sonnet-5
 
-# Narrow the toolbelt
+# Bound the run
 nodetool agent run -p openai -m gpt-5.4-mini -o "Summarize the README" \
-  --tools read_file,write_file
+  --max-steps 10 --max-iterations 8
 
 # Aggregate a failed run into one report
 nodetool agent diagnose <job_id>

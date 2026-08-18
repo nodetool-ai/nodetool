@@ -42,7 +42,7 @@ Click the model chip in the composer to open the model picker. Available models 
 - **Cloud models** -- OpenAI GPT, Anthropic Claude, Google Gemini (requires API keys)
 - **Local models** -- Ollama, LM Studio models (requires local installation)
 
-Configure providers in **Settings > Providers**. See [Models & Providers](models-and-providers.md).
+Configure providers in **Settings > Models & Providers**. See [Models & Providers](models-and-providers.md).
 
 ---
 
