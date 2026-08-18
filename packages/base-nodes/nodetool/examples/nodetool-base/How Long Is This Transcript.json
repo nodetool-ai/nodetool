@@ -66,7 +66,7 @@
           },
           "language": "en",
           "prompt": "",
-          "temperature": 0.0
+          "temperature": 0
         },
         "ui_properties": {
           "position": {
@@ -83,10 +83,12 @@
       },
       {
         "id": "ct",
-        "type": "nodetool.text.CountTokens",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": "",
-          "encoding": "cl100k_base"
+          "code": "import { count } from \"@nodetool-ai/sandbox-tokens\";\nreturn { output: await count(String(inputs.text ?? \"\"), inputs.encoding ?? \"cl100k_base\") };",
+          "packages": [
+            "@nodetool-ai/sandbox-tokens"
+          ]
         },
         "ui_properties": {
           "position": {
@@ -98,7 +100,10 @@
           "selectable": true,
           "title": "4  Count tokens"
         },
-        "dynamic_properties": {},
+        "dynamic_properties": {
+          "text": "",
+          "encoding": "cl100k_base"
+        },
         "dynamic_outputs": {}
       },
       {

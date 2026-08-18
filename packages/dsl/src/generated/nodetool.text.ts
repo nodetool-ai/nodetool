@@ -3,20 +3,6 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { AudioRef, TextRef, FolderRef } from "../types.js";
 
-// Count Tokens — nodetool.text.CountTokens
-export type CountTokensInputs = {
-  text?: Connectable<string>;
-  encoding?: Connectable<"cl100k_base" | "p50k_base" | "r50k_base">;
-};
-
-export interface CountTokensOutputs {
-  output: number;
-}
-
-export function countTokens(inputs: CountTokensInputs): DslNode<CountTokensOutputs, "output"> {
-  return createNode("nodetool.text.CountTokens", inputs, { outputNames: ["output"], defaultOutput: "output" });
-}
-
 // Automatic Speech Recognition — nodetool.text.AutomaticSpeechRecognition
 export type AutomaticSpeechRecognitionInputs = {
   model?: Connectable<unknown>;
@@ -154,20 +140,6 @@ export interface ConcatOutputs {
 
 export function concat(inputs?: ConcatInputs): DslNode<ConcatOutputs, "output"> {
   return createNode("nodetool.text.Concat", inputs ?? {}, { outputNames: ["output"], defaultOutput: "output" });
-}
-
-// Join — nodetool.text.Join
-export type JoinInputs = {
-  strings?: Connectable<string[]>;
-  separator?: Connectable<string>;
-};
-
-export interface JoinOutputs {
-  output: string;
-}
-
-export function join(inputs: JoinInputs): DslNode<JoinOutputs, "output"> {
-  return createNode("nodetool.text.Join", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Collect Text — nodetool.text.Collect

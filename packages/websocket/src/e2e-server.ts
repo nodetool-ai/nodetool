@@ -39,6 +39,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { createTestUiServer } from "./test-ui-server.js";
+import { refreshSandboxCatalog } from "./sandbox-catalog.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -76,6 +77,13 @@ async function main(): Promise<void> {
   initTestDb();
   await initMasterKey();
   fakeAllProviders();
+
+  // The shipped sandbox packs, so a Code node in an example workflow can
+  // import one. `createTestUiServer` registers built-in nodes without loading
+  // packs, which leaves no catalog on the process — and a Code node that
+  // declares `packages` then fails with "Sandbox packages are not available in
+  // this process" rather than running the way it does on the real server.
+  await refreshSandboxCatalog();
 
   let registry: NodeRegistry | null = null;
 

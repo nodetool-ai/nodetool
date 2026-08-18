@@ -17,6 +17,7 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-markdown` | marked | guest | compiler admits it |
 | `@nodetool-ai/sandbox-qr` | uqr | guest | compiler admits it |
 | `@nodetool-ai/sandbox-subtitle` | subtitle | host | stream internals |
+| `@nodetool-ai/sandbox-tokens` | js-tiktoken | host | megabytes of BPE ranks |
 | `@nodetool-ai/sandbox-color` | culori | guest | compiler admits it |
 | `@nodetool-ai/sandbox-decimal` | decimal.js | guest | compiler admits it |
 | `@nodetool-ai/sandbox-expr` | expr-eval | host | bundle uses Function |

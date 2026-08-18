@@ -1,8 +1,5 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function countTokens(inputs) {
-  return createNode("nodetool.text.CountTokens", inputs, { outputNames: ["output"], defaultOutput: "output" });
-}
 function automaticSpeechRecognition(inputs) {
   return createNode("nodetool.text.AutomaticSpeechRecognition", inputs, { outputNames: ["text"], defaultOutput: "text" });
 }
@@ -30,9 +27,6 @@ function filterRegexString(inputs) {
 function concat(inputs) {
   return createNode("nodetool.text.Concat", inputs ?? {}, { outputNames: ["output"], defaultOutput: "output" });
 }
-function join(inputs) {
-  return createNode("nodetool.text.Join", inputs, { outputNames: ["output"], defaultOutput: "output" });
-}
 function collect(inputs) {
   return createNode("nodetool.text.Collect", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
@@ -46,11 +40,9 @@ export {
   automaticSpeechRecognition,
   collect,
   concat,
-  countTokens,
   embedding,
   filterRegexString,
   filterString,
-  join,
   loadTextAssets,
   loadTextFolder,
   prompt,

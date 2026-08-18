@@ -82,50 +82,6 @@ function embeddingParams(text: string, dimensions: number): EmbeddingParams {
   return params;
 }
 
-/** Output handles CountTokensNode.process() emits. */
-type CountTokensNodeOutputs = {
-  output: number;
-};
-
-export class CountTokensNode extends BaseNode {
-  static readonly nodeType = "nodetool.text.CountTokens";
-  static readonly retrySafe = true;
-  static readonly cacheTtl = "forever";
-  static readonly title = "Count Tokens";
-  static readonly description =
-    "Counts the number of tokens in text using tiktoken.\n    text, tokens, count, encoding";
-  static readonly metadataOutputTypes = {
-    output: "int"
-  };
-  static readonly inputFields: string[] = ["text"];
-
-  @prop({ type: "str", default: "", title: "Text" })
-  declare text: any;
-
-  @prop({
-    type: "enum",
-    default: "cl100k_base",
-    title: "Encoding",
-    description: "The tiktoken encoding to use for token counting",
-    values: ["cl100k_base", "p50k_base", "r50k_base"]
-  })
-  declare encoding: any;
-
-  async process(): Promise<CountTokensNodeOutputs> {
-    const text = String(this.text ?? "");
-    if (!text) {
-      return { output: 0 };
-    }
-    const encodingName = String(this.encoding ?? "cl100k_base") as
-      | "cl100k_base"
-      | "p50k_base"
-      | "r50k_base";
-    const { getEncoding } = await import("js-tiktoken");
-    const encoder = getEncoding(encodingName);
-    return { output: encoder.encode(text).length };
-  }
-}
-
 /** Output handles AutomaticSpeechRecognitionNode.process() emits. */
 type AutomaticSpeechRecognitionNodeOutputs = {
   text: string;
@@ -818,6 +774,11 @@ export class FilterRegexStringNode extends BaseNode {
   }
 }
 
+// nodetool.text.CountTokens was removed; tiktoken now reaches the sandbox as
+// the @nodetool-ai/sandbox-tokens host pack. nodetool.text.Join was removed
+// too — it was `list.join(sep)`. Old workflows are rewritten to
+// nodetool.code.Code on load — see NODE_TYPE_MIGRATIONS in @nodetool-ai/protocol.
+
 /** Output handles ConcatTextNode.process() emits. */
 type ConcatTextNodeOutputs = {
   output: string;
@@ -848,45 +809,6 @@ export class ConcatTextNode extends BaseNode {
         .map((value) => String(value ?? ""))
         .join("")
     };
-  }
-}
-
-/** Output handles JoinTextNode.process() emits. */
-type JoinTextNodeOutputs = {
-  output: string;
-};
-
-export class JoinTextNode extends BaseNode {
-  static readonly nodeType = "nodetool.text.Join";
-  static readonly retrySafe = true;
-  static readonly cacheTtl = "forever";
-  static readonly title = "Join";
-  static readonly description =
-    "Joins a list of strings into a single string using a specified separator.\n    text, join, combine, concatenate, merge, list";
-  static readonly metadataOutputTypes = {
-    output: "str"
-  };
-
-  @prop({
-    type: "list[str]",
-    default: [],
-    title: "Strings",
-    description: "The list of strings to join."
-  })
-  declare strings: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Separator",
-    description: "Separator between items."
-  })
-  declare separator: any;
-
-  async process(): Promise<JoinTextNodeOutputs> {
-    const list = Array.isArray(this.strings) ? this.strings : [];
-    const sep = String(this.separator ?? "");
-    return { output: list.map((s: unknown) => String(s ?? "")).join(sep) };
   }
 }
 
@@ -1041,7 +963,6 @@ export class TemplateTextNode extends BaseNode {
 }
 
 export const TEXT_EXTRA_NODES = tagAsServer([
-  CountTokensNode,
   AutomaticSpeechRecognitionNode,
   EmbeddingTextNode,
   SaveTextFileNode,
@@ -1051,7 +972,6 @@ export const TEXT_EXTRA_NODES = tagAsServer([
   FilterStringNode,
   FilterRegexStringNode,
   ConcatTextNode,
-  JoinTextNode,
   CollectTextNode,
   PromptNode,
   TemplateTextNode

@@ -2,14 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { ConcatTextNode } from "@nodetool-ai/text-nodes";
 
-describe("CountTokensNode", () => {
-  it("counts tokens with the requested tiktoken encoding", async () => {
-    const { CountTokensNode } = await import("@nodetool-ai/text-nodes");
-    const node = new CountTokensNode();
-    node.assign({ text: "hello world", encoding: "cl100k_base" });
-    expect((await node.process()).output).toBe(2);
-  });
-});
+// CountTokensNode is gone — tiktoken reaches the sandbox as the
+// @nodetool-ai/sandbox-tokens host pack, covered by
+// packages/agents/tests/host-modules.test.ts.
 
 describe("AutomaticSpeechRecognitionNode platforms", () => {
   it("is available in the production cloud (node + workers + edge)", async () => {

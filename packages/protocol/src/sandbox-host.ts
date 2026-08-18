@@ -235,6 +235,13 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     library: "subtitle",
     description: "Parse and write SRT and WebVTT captions.",
     exports: ["parse", "stringify"]
+  },
+  tokens: {
+    id: "tokens",
+    packName: "@nodetool-ai/sandbox-tokens",
+    library: "js-tiktoken",
+    description: "Count, encode, and decode LLM tokens with tiktoken.",
+    exports: ["count", "encode", "decode"]
   }
 } as const;
 

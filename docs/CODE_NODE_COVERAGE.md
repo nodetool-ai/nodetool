@@ -20,7 +20,7 @@ prefilled.
 
 ## The mechanism already exists
 
-Snippets are already virtual nodes. `web/src/config/codeSnippets.ts` holds 182
+Snippets are already virtual nodes. `web/src/config/codeSnippets.ts` holds 183
 of them; `snippetMetadata.ts` turns each into a `NodeMetadata` under
 `nodetool.<category>.<snippet_id>`, `useMetadata.ts` merges them into the
 catalog the node menu reads, and `instantiatePaletteNode.ts` drops a Code node
@@ -165,13 +165,21 @@ equivalent code; the node class is a second implementation of the same thing.
 `HasLength` is the one text node in this class without a snippet; **Measure
 Length** returns chars/words/lines and the comparison is one more expression.
 
-The 14 that stay as classes: `Prompt` and `Template` (variable editors,
+The 12 that stay as classes: `Prompt` and `Template` (variable editors,
 `{{var}}` substitution UI), `Concat` (dynamic-input card), `Collect` (streaming
-fold), `Embedding`, `CountTokens` (js-tiktoken), `AutomaticSpeechRecognition`,
+fold), `Embedding`, `AutomaticSpeechRecognition`,
 `SaveText`, `SaveTextFile`, `LoadTextAssets`,
 `LoadTextFolder` (asset system), `FilterString`, `FilterRegexString` (stream
 operators). HTML-to-text conversion moved to the `@nodetool-ai/sandbox-html`
 sandbox pack's `toText` export.
+
+`CountTokens` was on that list and is not any more. It was kept because
+js-tiktoken is a real library, which is the same reason cheerio and exceljs
+were kept — and the answer for those turned out to be a host pack, not a node
+class. `@nodetool-ai/sandbox-tokens` is that pack: one encoding's BPE ranks are
+several megabytes, far past the 1 MB guest-bundle cap, so it runs on the host
+behind `count` / `encode` / `decode`. A saved graph is rewritten to a Code node
+importing it. `Join` went too — it was `list.join(sep)`.
 
 ### `nodetool.list` — removed (was 1 of 4)
 
@@ -348,7 +356,7 @@ and the change reads as a regression.
 
 ## Related
 
-- `web/src/config/codeSnippets.ts` — the 182 snippets, and where new ones go.
+- `web/src/config/codeSnippets.ts` — the 183 snippets, and where new ones go.
 - `scripts/verify-snippets.mts` — runs snippet code through the real sandbox.
 - `web/src/config/snippetMetadata.ts` — snippet → `NodeMetadata`, and where
   per-snippet output typing would go.
