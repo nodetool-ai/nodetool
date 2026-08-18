@@ -274,6 +274,9 @@ Code node when the step is data shaping, parsing, formatting, arithmetic or
 string work — it replaces a chain of small nodes. Use a specialized node when
 the step wraps a model, a device, or an external service.
 
+- Before writing a body from scratch, call \`list_js_scripts\`: a saved script
+  already does the job when one matches, and a script carrying \`palette\` is
+  one of the user's own custom nodes.
 - **Inputs** are dynamic: any property you pass that is not \`code\` or
   \`packages\` becomes an input handle, and the body reads it off the
   \`inputs\` object.

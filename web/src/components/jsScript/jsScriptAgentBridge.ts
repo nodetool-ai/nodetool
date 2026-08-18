@@ -15,6 +15,7 @@
 import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
 import type {
   JsScriptDocument,
+  JsScriptPalette,
   JsScriptPort,
   JsScriptRunOutcome,
   JsScriptTestCase,
@@ -47,6 +48,8 @@ export interface JsScriptMetaInput {
   description?: string;
   secrets?: string[];
   timeoutSeconds?: number;
+  /** Menu placement; `null` takes the script back out of the node menu. */
+  palette?: JsScriptPalette | null;
 }
 
 /** Operations the live JsScriptSurface exposes to the agent tooling layer. */

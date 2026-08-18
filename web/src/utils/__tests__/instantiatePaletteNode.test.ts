@@ -29,6 +29,12 @@ jest.mock("../../components/node/codeNodeUi", () => ({
 }));
 
 import { findSnippetByNodeType } from "../../config/snippetMetadata";
+import { materializeJsScriptNode } from "@nodetool-ai/node-sdk/js-script-materialize";
+import {
+  customNodeType,
+  setCustomNodeScripts,
+  type CustomNodeScript
+} from "../../config/customNodeMetadata";
 import { CODE_GEN_PALETTE_NODE_TYPE } from "../../config/codeGenPaletteMetadata";
 import useMetadataStore from "../../stores/MetadataStore";
 import useCodeGenDialogStore from "../../stores/CodeGenDialogStore";
@@ -341,5 +347,70 @@ describe("instantiatePaletteNode", () => {
 
     expect(createNode).toHaveBeenCalledWith(metadata, { x: 5, y: 5 });
     expect(result.afterAdd).toBeUndefined();
+  });
+});
+
+describe("custom nodes", () => {
+  const script: CustomNodeScript = {
+    id: "abc-123",
+    name: "Invoice number",
+    version: 7,
+    document: {
+      description: "Formats our invoice numbers",
+      code: 'await output("formatted", inputs.raw);',
+      inputs: [{ name: "raw", type: "str" }],
+      outputs: [{ name: "formatted", type: "str" }],
+      packages: [{ specifier: "@nodetool-ai/sandbox-yaml" }],
+      secrets: ["MY_KEY"],
+      timeoutSeconds: 45,
+      palette: { category: "My API" }
+    }
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockFindSnippet.mockReturnValue(undefined);
+    setCustomNodeScripts([script]);
+    (useMetadataStore.getState as jest.Mock).mockReturnValue({
+      getMetadata: jest.fn().mockReturnValue(makeMetadata("nodetool.code.Code"))
+    });
+  });
+
+  afterEach(() => setCustomNodeScripts([]));
+
+  it("materializes the script the way the link hook does", () => {
+    const createNode = makeCreateNode();
+    const result = instantiatePaletteNode(
+      makeMetadata(customNodeType(script)),
+      { x: 1, y: 2 },
+      createNode
+    );
+
+    // The link hook calls the same helper, so equality here is what keeps a
+    // dropped node and a linked node identical.
+    const expected = materializeJsScriptNode(script.document, {
+      id: script.id,
+      version: script.version
+    });
+
+    expect(result.node.type).toBe("nodetool.code.Code");
+    expect(result.node.data.properties).toEqual(expected.properties);
+    expect(result.node.data.title).toBe("Invoice number");
+    expect(result.node.data.codeNodeMode).toBe("custom");
+    expect(result.afterAdd!.dynamic_inputs).toEqual(expected.dynamic_inputs);
+    expect(result.afterAdd!.dynamic_outputs).toEqual(expected.dynamic_outputs);
+    expect(result.afterAdd!.dynamic_properties).toEqual({ raw: "" });
+  });
+
+  it("pins the version the menu offered", () => {
+    const result = instantiatePaletteNode(
+      makeMetadata(customNodeType(script)),
+      { x: 0, y: 0 },
+      makeCreateNode()
+    );
+    expect(result.node.data.properties?.script).toEqual({
+      id: "abc-123",
+      version: 7
+    });
   });
 });

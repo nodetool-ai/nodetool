@@ -58,6 +58,7 @@ import useOnboardingStore, { startRouteFor } from "./stores/OnboardingStore";
 import { useSettingsStore } from "./stores/SettingsStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata, prefetchMetadata } from "./serverState/useMetadata";
+import { useCustomNodeMetadata } from "./serverState/useCustomNodeMetadata";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
@@ -544,6 +545,16 @@ const root = ReactDOM.createRoot(rootElement);
  * route. "Snap to Grid" toggles the editor setting, and the setting is mirrored
  * back so the View menu checkbox matches whichever surface changed it.
  */
+/**
+ * Merges the user's custom nodes (JS scripts flagged for the node menu) into
+ * the metadata store. It lives here because the hook needs the tRPC provider,
+ * which the app root renders.
+ */
+const CustomNodeMetadataBridge = () => {
+  useCustomNodeMetadata();
+  return null;
+};
+
 const MenuNavigationBridge = () => {
   const snapToGrid = useSettingsStore((state) => state.settings.snapToGrid);
   const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
@@ -638,6 +649,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
           <MobileClassProvider>
             <MenuProvider>
               <MenuNavigationBridge />
+              <CustomNodeMetadataBridge />
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
                   {status === "pending" && !isDevTestRoute && (

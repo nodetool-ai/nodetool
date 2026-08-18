@@ -32,11 +32,13 @@ const SCRIPT_REF_PROPERTIES = {
 
 const DOCUMENT_DESCRIPTION =
   "A JsScriptDocument: {schemaVersion: 1, description, code, inputs, " +
-  "outputs, packages, secrets, timeoutSeconds, tests}. Ports are " +
+  "outputs, packages, secrets, timeoutSeconds, tests, palette?}. Ports are " +
   "{name, type}; a test is {name, inputs, expect?, expectedStreamed?}. " +
   "The body is top-level statements (no `export`, no `function run`). " +
   "Outputs leave through `await emit(name, value)` and " +
-  "`await output(name, value)` — never through `return`.";
+  "`await output(name, value)` — never through `return`. " +
+  "`palette: {category}` exposes the script in the user's node menu as a " +
+  "custom node under that category; omit it for a plain library script.";
 
 const DOCUMENT_FIELD: JsonSchema = {
   type: "object",
@@ -140,9 +142,10 @@ export const listJsScriptsSpec: CapabilitySpec = {
   name: "list_js_scripts",
   description:
     "List the caller's JS scripts, most recently updated first: id, name, " +
-    "description, and declared input/output ports. The description says what " +
-    "a script does — this is how you pick one to run. Start here when the " +
-    "user names a script but not its id.",
+    "description, declared input/output ports, and `palette` — set when the " +
+    "user saved the script as one of their custom nodes. The description " +
+    "says what a script does — this is how you pick one to run. Start here " +
+    "when the user names a script but not its id.",
   inputSchema: LIST_JS_SCRIPTS_SCHEMA,
   category: "read",
   userMessage: () => "Listing JS scripts"
