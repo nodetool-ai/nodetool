@@ -49,7 +49,7 @@ import {
   type ModelDownloadUpdate,
   type PythonBridge
 } from "@nodetool-ai/runtime";
-import { initMasterKey } from "@nodetool-ai/security";
+import { deriveKey, getMasterKey, initMasterKey } from "@nodetool-ai/security";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 import { serverModelInterfaces } from "./unified-websocket-runner.js";
 import {
@@ -79,7 +79,12 @@ import fastifyCors from "@fastify/cors";
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import { packWebSocketMessage } from "./messagepack.js";
-import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool-ai/auth";
+import {
+  SupabaseAuthProvider,
+  LocalAuthProvider,
+  DelegatedTokenProvider,
+  isDelegatedToken
+} from "@nodetool-ai/auth";
 import {
   fastifyTRPCPlugin,
   type FastifyTRPCPluginOptions
@@ -136,6 +141,7 @@ import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
 import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
 import kieWebhookRoute from "./routes/kie-webhook.js";
+import { createIntegrationRoutes } from "./routes/integrations.js";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -845,6 +851,31 @@ if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
   );
 }
 
+// Messaging integrations (Telegram, later Discord). The service token is what
+// enables the surface: without it there are no integration routes and no
+// delegated tokens to verify.
+const integrationServiceToken = process.env["NODETOOL_INTEGRATION_TOKEN"];
+const integrationsEnabled = Boolean(
+  integrationServiceToken && integrationServiceToken.length >= 16
+);
+if (integrationServiceToken && !integrationsEnabled) {
+  log.warn(
+    "NODETOOL_INTEGRATION_TOKEN is shorter than 16 characters and was " +
+      "ignored; the /api/integrations routes are not registered."
+  );
+}
+
+// Delegated tokens are signed with a key derived from the master key, so
+// rotating the master key revokes every outstanding one. Derived lazily: a
+// server that never mints one never reads the key.
+let cachedDelegatedKey: Buffer | null = null;
+const delegatedSigningKey = (): Buffer =>
+  (cachedDelegatedKey ??= deriveKey(getMasterKey(), "nodetool-delegated-token"));
+
+const delegatedProvider = integrationsEnabled
+  ? new DelegatedTokenProvider(delegatedSigningKey)
+  : null;
+
 app.decorateRequest("userId", null);
 app.decorateRequest("authToken", null);
 
@@ -908,6 +939,19 @@ app.addHook("onRequest", async (req, reply) => {
         searchParams
       )
     : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
+
+  // Delegated tokens (a messaging bridge acting as the linked user) are
+  // checked first, and only when they announce themselves by prefix. Anything
+  // else — including a delegated token that is expired or tampered with —
+  // falls through to the configured provider, which rejects it.
+  if (delegatedProvider && token && isDelegatedToken(token)) {
+    const delegated = await delegatedProvider.verifyToken(token);
+    if (delegated.ok) {
+      req.userId = delegated.userId ?? null;
+      req.authToken = token;
+      return;
+    }
+  }
 
   if (supabaseMode) {
     if (!token) {
@@ -1306,6 +1350,12 @@ await app.register(falPricingEstimateRoute);
 await app.register(kieCreditsRoute);
 await app.register(kiePricingRoute);
 await app.register(kieWebhookRoute);
+// Messaging-integration identity routes (`/api/integrations/:provider/*`).
+// The plugin registers nothing unless NODETOOL_INTEGRATION_TOKEN is set, so a
+// server without it answers 404 on every one of these paths.
+await app.register(
+  createIntegrationRoutes({ signingKey: delegatedSigningKey, enforceAuth })
+);
 // Trigger webhook ingestion (`POST /api/webhooks/:token`). Registered here
 // because Fastify routes must exist before `app.listen`; the plugin reaches the
 // wakeup service and dispatcher started below through module accessors.

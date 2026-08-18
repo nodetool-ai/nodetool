@@ -36,7 +36,7 @@ export function isNonEmptyString<T>(value: T): value is T & string {
 }
 
 /** Whether a wire value arrived as a real number. */
-function isFiniteNumber<T>(value: T): value is T & number {
+export function isFiniteNumber<T>(value: T): value is T & number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
