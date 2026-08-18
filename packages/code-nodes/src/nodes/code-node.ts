@@ -168,16 +168,38 @@ const NO_TOOLS_GLOBALS = {
 } satisfies Record<string, unknown>;
 
 let agentsModulePromise: Promise<AgentsModule | null> | null = null;
+let injectedAgentsModule: AgentsModule | null = null;
 
 /**
- * The agents package index, loaded lazily and hidden from bundlers.
- * `importHidden` answers `null` off Node, so a browser bundle never resolves
- * the toolbelt's server-only dependencies. Hosts where the bare specifier is
- * not resolvable at runtime (the packaged Electron backend inlines workspace
- * packages instead of staging them in `_modules/`) degrade the same way the
- * browser does unless they inject a belt via {@link setCodeNodeTools}.
+ * Hand the Code node the agents package a host already holds.
+ *
+ * The bare specifier below resolves in a workspace checkout and in the CLI,
+ * and resolves nowhere in the bundled backend: `bundle-backend.mjs` inlines
+ * every workspace package into `server.mjs` and stages only third-party
+ * externals, so `node_modules/@nodetool-ai/agents` does not exist in the
+ * packaged desktop app or in the Docker/Fly image. Without this, a Code node
+ * body in production runs with no toolbelt (`nodetool.capabilities()` is `{}`,
+ * `tools.yt_dlp` is missing) and cannot import
+ * `@nodetool-ai/sandbox-nodetool/*` at all.
+ *
+ * The server calls this at bootstrap with the copy esbuild already inlined,
+ * which also keeps the run on one module instance — a staged second copy would
+ * carry its own capability registry.
+ */
+export function setCodeNodeAgentsModule(mod: AgentsModule | null): void {
+  injectedAgentsModule = mod;
+  agentsModulePromise = null;
+}
+
+/**
+ * The agents package index: the injected one, else loaded lazily and hidden
+ * from bundlers. `importHidden` answers `null` off Node, so a browser bundle
+ * never resolves the toolbelt's server-only dependencies, and a host that
+ * neither injects nor can resolve the specifier degrades the same way —
+ * no belt, no capability modules.
  */
 function loadAgentsModule(): Promise<AgentsModule | null> {
+  if (injectedAgentsModule) return Promise.resolve(injectedAgentsModule);
   if (!agentsModulePromise) {
     agentsModulePromise = importHidden<AgentsModule>(
       "@nodetool-ai/agents"

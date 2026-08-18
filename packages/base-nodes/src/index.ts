@@ -127,7 +127,10 @@ export {
   LoadCSVAssetsNode,
   DATA_NODES
 } from "@nodetool-ai/data-nodes/nodes/data";
-export { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
+export {
+  CodeNode,
+  setCodeNodeAgentsModule
+} from "@nodetool-ai/code-nodes/nodes/code-node";
 export {
   LoadAudioAssetsNode,
   LoadAudioFileNode,

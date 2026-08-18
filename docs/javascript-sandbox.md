@@ -558,6 +558,7 @@ it around every tool- and plan-approval round trip.
 | `setTimeout is not defined` | Deleted deliberately. Use `sleep`, `Promise.all` or `parallelMap` |
 | A bare identifier is a `ReferenceError` in a Code node | Node inputs live on `inputs`, not in the global scope |
 | `nodetool.*` throws naming a tool | The host has no toolbelt (browser runner, no context) or that tool is not on the belt |
+| A Code node has an empty `nodetool.capabilities()` and cannot import `@nodetool-ai/sandbox-nodetool/*` | The host never called `setCodeNodeAgentsModule`. The node resolves `@nodetool-ai/agents` by bare specifier, which resolves in a checkout and nowhere in the bundled backend (esbuild inlines the workspace packages into `server.mjs`); `packages/websocket/src/server.ts` hands over the inlined copy at bootstrap |
 | A CPU-bound loop outlives its cancellation | The signal ends `runInSandbox`, but the guest loop still runs to the execution timeout |
 
 ## Extending it
