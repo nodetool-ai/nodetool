@@ -1213,6 +1213,12 @@ function createRuntimeContext(opts: {
     ...opts,
     secretResolver: getSecret,
     storage: tempAdapter,
+    // `asset://<id>.<ext>` references (chat attachments, @-mentions, prior
+    // turns) resolve through the asset store, not the temp store. Without it
+    // the only path left is an HTTP hop to `/api/storage`, which authorizes by
+    // `x-user-id` and 404s for every user but `1` — the reference then reached
+    // the provider verbatim and died in the SSRF guard.
+    assetStorage: getAssetAdapter(),
     workspaceStorage: workspaceAdapter,
     authToken: opts.authToken,
     tempUrlResolver: createTempUrlResolver(tempAdapter, storagePath)

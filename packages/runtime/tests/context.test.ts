@@ -1398,6 +1398,73 @@ describe("ProcessingContext – asset helper methods", () => {
     }
   });
 
+  it("resolveMessageMediaUris resolves an asset:// image through assetStorage when storage holds the temp store", async () => {
+    // The server points `storage` at the temp store and assets live elsewhere.
+    // Before `assetStorage` existed the reference could only be chased over
+    // HTTP through `/api/storage`, which 404s for anyone but user `1`.
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    const assetStorage = new InMemoryStorageAdapter();
+    await assetStorage.store("u1/abc.png", pngBytes, "image/png");
+
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      userId: "u1",
+      storage: new InMemoryStorageAdapter(),
+      assetStorage,
+      fetchFn: async () => new Response("not found", { status: 404 })
+    });
+
+    const resolved = await ctx.resolveMessageMediaUris([
+      {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image: { uri: "asset://abc.png", mimeType: "image/png" }
+          }
+        ]
+      }
+    ]);
+
+    const parts = resolved[0].content as Array<Record<string, any>>;
+    expect(parts[0].image.uri).toBe(
+      `data:image/png;base64,${Buffer.from(pngBytes).toString("base64")}`
+    );
+  });
+
+  it("resolveMessageMediaUris replaces an unresolvable asset:// image with a note", async () => {
+    // Handing `asset://…` to a provider makes it `fetch` the reference, which
+    // the SSRF guard rejects and the whole turn fails.
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      userId: "u1",
+      storage: new InMemoryStorageAdapter(),
+      fetchFn: async () => new Response("not found", { status: 404 })
+    });
+
+    const resolved = await ctx.resolveMessageMediaUris([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "recreate this image" },
+          {
+            type: "image_url",
+            image: { uri: "asset://missing.png", mimeType: "image/png" }
+          }
+        ]
+      }
+    ]);
+
+    const parts = resolved[0].content as Array<Record<string, any>>;
+    expect(parts).toEqual([
+      { type: "text", text: "recreate this image" },
+      {
+        type: "text",
+        text: "[attached image could not be loaded: asset://missing.png]"
+      }
+    ]);
+  });
+
   it("resolveMessageMediaUris dereferences asset:// video URIs to data URIs", async () => {
     const root = await mkdtemp(join(tmpdir(), "nodetool-resolve-asset-video-"));
     try {
