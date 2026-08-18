@@ -20,7 +20,10 @@ import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
 import ModelsRightSidebar from "./ModelsRightSidebar";
 import LocalModelsHero from "./LocalModelsHero";
+import GoalFilterChips from "./GoalFilterChips";
 import ModelOnboarding from "../onboarding/ModelOnboarding";
+import HardwareCard from "../onboarding/HardwareCard";
+import { useHardwareProfile } from "../onboarding/useHardwareProfile";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
@@ -173,7 +176,8 @@ const ModelListIndex: React.FC = () => {
     modelSearchTerm, setModelSearchTerm,
     scope, setScope,
     source, setSource,
-    sourceInitialized, setSourceInitialized
+    sourceInitialized, setSourceInitialized,
+    setSelectedGoal
   } = useModelManagerStore(
     useShallow((state) => ({
       selectedModelType: state.selectedModelType,
@@ -185,9 +189,11 @@ const ModelListIndex: React.FC = () => {
       source: state.source,
       setSource: state.setSource,
       sourceInitialized: state.sourceInitialized,
-      setSourceInitialized: state.setSourceInitialized
+      setSourceInitialized: state.setSourceInitialized,
+      setSelectedGoal: state.setSelectedGoal
     }))
   );
+  const hardwareProfile = useHardwareProfile();
   const { activeWorker } = useWorkers();
   const workerName = activeWorker?.profile_name ?? activeWorker?.id ?? null;
   const { cacheStatuses, cachePending, cacheVersion, ensureStatuses } =
@@ -255,8 +261,9 @@ const ModelListIndex: React.FC = () => {
       setScope(nextScope);
       setModelSearchTerm("");
       setSelectedModelType("All");
+      setSelectedGoal(null);
     },
-    [scope, setScope, setModelSearchTerm, setSelectedModelType]
+    [scope, setScope, setModelSearchTerm, setSelectedModelType, setSelectedGoal]
   );
 
   const handleSourceChange = useCallback(
@@ -272,13 +279,15 @@ const ModelListIndex: React.FC = () => {
       setSourceInitialized(true);
       setModelSearchTerm("");
       setSelectedModelType("All");
+      setSelectedGoal(null);
     },
     [
       source,
       setSource,
       setSourceInitialized,
       setModelSearchTerm,
-      setSelectedModelType
+      setSelectedModelType,
+      setSelectedGoal
     ]
   );
 
@@ -509,6 +518,12 @@ const ModelListIndex: React.FC = () => {
 
         <Box className="content">
           <LocalModelsHero models={allModels ?? []} />
+          {source === "recommended" && (
+            <Box sx={{ mb: 2 }}>
+              <HardwareCard profile={hardwareProfile} />
+            </Box>
+          )}
+          <GoalFilterChips />
           {isFetching && (
             <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: Z_INDEX.raised }}>
               <LoadingSpinner size="small" />
@@ -646,6 +661,7 @@ const ModelListIndex: React.FC = () => {
                         showModelStats={true}
                         compatibility={compatibility}
                         isCheckingCache={isCheckingCache}
+                        fitBudgetGb={hardwareProfile.budgetGb}
                       />
                     </Box>
                   );

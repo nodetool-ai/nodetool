@@ -67,18 +67,19 @@ export const TIER_LABELS = {
  * explicit VRAM value that takes precedence.
  */
 export const useHardwareProfile = (): HardwareProfile => {
-  const stats = useSystemStatsStore((state) => state.stats);
+  // Scalar selectors: total VRAM/RAM are stable across the 5s stats ticks, so
+  // subscribers (including the whole model list) don't re-render per tick.
+  const vramTotalGb = useSystemStatsStore(
+    (state) => state.stats?.vram_total_gb ?? null
+  );
+  const ramTotalGb = useSystemStatsStore(
+    (state) => state.stats?.memory_total_gb ?? null
+  );
   const override = useModelManagerStore((state) => state.vramOverrideGb);
 
   return useMemo(() => {
-    const vramGb =
-      stats?.vram_total_gb != null && stats.vram_total_gb > 0
-        ? stats.vram_total_gb
-        : null;
-    const ramGb =
-      stats?.memory_total_gb != null && stats.memory_total_gb > 0
-        ? stats.memory_total_gb
-        : null;
+    const vramGb = vramTotalGb != null && vramTotalGb > 0 ? vramTotalGb : null;
+    const ramGb = ramTotalGb != null && ramTotalGb > 0 ? ramTotalGb : null;
 
     let budgetGb: number | null;
     let budgetSource: BudgetSource;
@@ -105,5 +106,5 @@ export const useHardwareProfile = (): HardwareProfile => {
       isManual: budgetSource === "manual",
       classify: (minVramGb: number) => classifyFit(minVramGb, budgetGb)
     };
-  }, [stats, override]);
+  }, [vramTotalGb, ramTotalGb, override]);
 };

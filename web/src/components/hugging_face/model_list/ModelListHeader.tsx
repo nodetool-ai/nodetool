@@ -36,6 +36,7 @@ interface ModelListHeaderProps {
 }
 
 const SORT_OPTIONS: { value: ModelSortField; label: string }[] = [
+  { value: "fit", label: "Best fit" },
   { value: "name", label: "Name" },
   { value: "size", label: "Size" },
   { value: "downloads", label: "Downloads" },
