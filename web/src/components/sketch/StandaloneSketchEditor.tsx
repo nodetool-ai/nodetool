@@ -22,6 +22,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { css } from "@emotion/react";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -143,21 +144,10 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
       void save();
     }, [save]);
 
-    useEffect(() => {
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
-          return;
-        }
-        if (event.key.toLowerCase() !== "s") {
-          return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        void save();
-      };
-      window.addEventListener("keydown", handleKeyDown, true);
-      return () => window.removeEventListener("keydown", handleKeyDown, true);
-    }, [save]);
+    // allowInInputs: Cmd/Ctrl+S must save from anywhere in the editor, including
+    // its name field — the old capture-phase listener had no focus check.
+    useGlobalCombo("control+s", handleSave, { allowInInputs: true });
+    useGlobalCombo("meta+s", handleSave, { allowInInputs: true });
 
     const handleExportPng = () => {
       editorRef.current?.exportPng();

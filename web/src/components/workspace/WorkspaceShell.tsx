@@ -173,6 +173,11 @@ const WorkspaceShell = () => {
                   key={tab.id}
                   className="tab-layer"
                   style={isActive ? ACTIVE_TAB_STYLE : INACTIVE_TAB_STYLE}
+                  // Every tab stays mounted so its editor state survives a
+                  // switch. `inert` keeps the hidden ones out of focus and the
+                  // a11y tree — and `canTakeFocus` reads it, so a background
+                  // tab's search box can never steal a keystroke.
+                  inert={!isActive}
                 >
                   <TabContent tab={tab} active={isActive} />
                 </div>

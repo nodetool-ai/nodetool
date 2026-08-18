@@ -214,6 +214,9 @@ export function useEditorKeyboardShortcuts(
       }
     };
 
+    // Not on the dispatcher: this is the sketch editor's own action registry —
+    // capture phase (to beat the canvas), keyup for arrow-nudge batching, and a
+    // suspend flag the store has no equivalent for.
     window.addEventListener("keydown", keydownHandler, true);
     window.addEventListener("keyup", keyupHandler, true);
 

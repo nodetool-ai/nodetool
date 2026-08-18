@@ -89,3 +89,41 @@ export const isEditableElement = (
 export const isTextInputActive = (): boolean =>
   isEditableElement(document.activeElement);
 
+
+/**
+ * Whether an element is a sane target to *move* focus to programmatically.
+ *
+ * Focus-moving handlers (type-to-focus search boxes, "press / to search") run
+ * from a global key listener, so every mounted instance sees every keystroke —
+ * including instances sitting in a hidden workspace tab. Those must not steal
+ * focus from whatever the user is actually looking at.
+ */
+export const canTakeFocus = (node: Element | null | undefined): boolean => {
+  if (!(node instanceof HTMLElement)) {
+    return false;
+  }
+  if (!node.isConnected) {
+    return false;
+  }
+  if (node.hidden || node.closest("[hidden]") !== null) {
+    return false;
+  }
+  // Inactive workspace tabs stay mounted and are marked `inert`
+  // (WorkspaceShell.tsx). Nothing inside one may take focus.
+  if (node.closest("[inert]") !== null) {
+    return false;
+  }
+  if (node.closest('[aria-hidden="true"]') !== null) {
+    return false;
+  }
+  if (
+    (node instanceof HTMLInputElement ||
+      node instanceof HTMLTextAreaElement ||
+      node instanceof HTMLButtonElement ||
+      node instanceof HTMLSelectElement) &&
+    node.disabled
+  ) {
+    return false;
+  }
+  return true;
+};

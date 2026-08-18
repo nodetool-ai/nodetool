@@ -9,6 +9,7 @@
  * full-screen by {@link PackagesPage} (title/back live in the page hero).
  */
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 
@@ -207,24 +208,13 @@ function PackageManager() {
   const showSearch = !model.isThirdParty && !model.notice;
   const showChips = showSearch && model.chips.length > 0;
 
-  // "/" focuses the search box (unless the user is already typing somewhere).
-  useEffect(() => {
-    if (!showSearch) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
-      const el = document.activeElement;
-      const typing =
-        el instanceof HTMLElement &&
-        (el.tagName === "INPUT" ||
-          el.tagName === "TEXTAREA" ||
-          el.isContentEditable);
-      if (typing) return;
-      e.preventDefault();
-      searchRef.current?.focus();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showSearch]);
+  // "/" focuses the search box. The store owns the gate — it skips while
+  // anything editable is focused and when the box cannot take focus (e.g. this
+  // Package Manager tab is open but inert in the background).
+  useGlobalCombo("/", () => searchRef.current?.focus(), {
+    active: showSearch,
+    target: () => searchRef.current
+  });
 
   return (
     <Box

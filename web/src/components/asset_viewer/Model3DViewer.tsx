@@ -11,6 +11,7 @@ import React, {
   useMemo,
   memo
 } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { Asset } from "../../stores/ApiTypes";
 import type { SelectChangeEvent } from "../ui_primitives";
 import {
@@ -588,17 +589,12 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     }
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isFullscreen) {
-        exitFullscreen();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isFullscreen, exitFullscreen]);
+  // allowInInputs: the old document listener fired regardless of focus.
+  useGlobalCombo("escape", exitFullscreen, {
+    active: isFullscreen,
+    allowInInputs: true,
+    preventDefault: false
+  });
 
   const handleResetCamera = useCallback(() => {
     setResetCameraTrigger((prev) => prev + 1);

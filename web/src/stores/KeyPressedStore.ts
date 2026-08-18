@@ -12,10 +12,15 @@
 
 import { create } from "zustand";
 import { useMemo, useEffect, useContext, useRef } from "react";
+import type { RefObject } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
-import { isEditableElement } from "../utils/browser";
+import {
+  canTakeFocus,
+  isEditableElement,
+  isTextInputActive
+} from "../utils/browser";
 import { useCanvasChatDockStore } from "./CanvasChatDockStore";
 
 // Allowed key combinations for HTMLTextAreaElement
@@ -36,7 +41,7 @@ type ComboScope = "global" | "canvas";
 
 interface ComboOptions {
   preventDefault?: boolean;
-  callback?: () => void;
+  callback?: (event?: KeyboardEvent) => void;
   active?: boolean;
   /**
    * Where the combo should fire.
@@ -45,6 +50,20 @@ interface ComboOptions {
    *   like the command menu).
    */
   scope?: ComboScope;
+  /**
+   * Fire even while the user is typing in an input/textarea/contentEditable.
+   * Off by default: every combo goes through the shared focus gate
+   * (`isTextInputActive`), so a shortcut cannot eat a keystroke meant for a
+   * text field. Turn it on only for keys that must work *inside* a field
+   * (Escape closing a modal, Cmd+Enter submitting).
+   */
+  allowInInputs?: boolean;
+  /**
+   * The element this combo acts on. When given, the combo is skipped unless
+   * `canTakeFocus(target)` holds — an instance living in an inert/hidden
+   * workspace tab never fires. Pass a getter so a ref can be read lazily.
+   */
+  target?: () => Element | null | undefined;
 }
 
 // Module-level variables and functions
@@ -101,6 +120,72 @@ const registerComboCallback = (
       comboCallbacks.delete(normalizedCombo);
     }
   };
+};
+
+type TypeToFocusRegistration = {
+  token: symbol;
+  getInput: () => HTMLInputElement | HTMLTextAreaElement | null;
+  onKey: (key: string) => void;
+};
+
+// Stacked like combos: the most recently registered (topmost) search box wins.
+const typeToFocusRegistrations: TypeToFocusRegistration[] = [];
+
+/**
+ * "Start typing anywhere to search": a printable key with no modifier, while
+ * nothing editable is focused, focuses `inputRef` and forwards the key.
+ *
+ * This is the one place that decides *when* it is allowed to pull focus. Every
+ * mounted instance sees every keystroke — including instances in an inert
+ * background workspace tab — so the gate is `!isTextInputActive() &&
+ * canTakeFocus(input)`, not "is my own input focused".
+ */
+const registerTypeToFocus = (
+  inputRef: RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
+  onKey: (key: string) => void
+): (() => void) => {
+  const registration: TypeToFocusRegistration = {
+    token: Symbol("type-to-focus"),
+    getInput: () => inputRef.current,
+    onKey
+  };
+  typeToFocusRegistrations.push(registration);
+  return () => {
+    const index = typeToFocusRegistrations.findIndex(
+      (r) => r.token === registration.token
+    );
+    if (index !== -1) {
+      typeToFocusRegistrations.splice(index, 1);
+    }
+  };
+};
+
+// Returns true when the keystroke was consumed to focus a search box.
+const executeTypeToFocus = (event: KeyboardEvent | undefined): boolean => {
+  if (!event || typeToFocusRegistrations.length === 0) {
+    return false;
+  }
+  const isPrintable =
+    event.key.length === 1 &&
+    /[a-zA-Z0-9]/.test(event.key) &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey;
+  if (!isPrintable || isTextInputActive()) {
+    return false;
+  }
+  for (let i = typeToFocusRegistrations.length - 1; i >= 0; i--) {
+    const { getInput, onKey } = typeToFocusRegistrations[i];
+    const input = getInput();
+    if (!canTakeFocus(input)) {
+      continue;
+    }
+    event.preventDefault();
+    input?.focus();
+    onKey(event.key);
+    return true;
+  }
+  return false;
 };
 
 const unregisterComboCallback = (combo: string) => {
@@ -171,6 +256,10 @@ const executeComboCallbacks = (
     activeElement.blur();
   }
 
+  if (executeTypeToFocus(event)) {
+    return;
+  }
+
   const options = resolveComboRegistration(pressedKeysString);
 
   if (!options) {
@@ -198,7 +287,18 @@ const executeComboCallbacks = (
       (event?.target instanceof Element &&
         isWorkflowEditorElement(event.target)));
 
-  if (isInputFocused && options.scope !== "global") {
+  // --- Shared focus gate ---
+  // One predicate for every combo, so no registration has to remember it.
+  // A combo that moves or acts on a specific element only fires when that
+  // element can actually take focus (not inside an inert/hidden tab layer).
+  if (options.target && !canTakeFocus(options.target())) {
+    return;
+  }
+  // Typing wins over shortcuts. `isInputFocused` is `isTextInputActive()`
+  // widened to the event target, and the block below is the shared rule:
+  // a registration leaves it only by opting in (`allowInInputs`/`scope:
+  // "global"`) or by matching one of the documented exceptions.
+  if (isInputFocused && options.scope !== "global" && !options.allowInInputs) {
     // --- Input Focus Handling ---
     // Combos registered with scope: "global" bypass this entirely and fire
     // regardless of focus. Everything else falls through the existing rules.
@@ -264,7 +364,7 @@ const executeComboCallbacks = (
   }
   
   // Execute the callback
-  options.callback?.();
+  options.callback?.(event);
   
   // After executing a combo, clear non-modifier keys to prevent stuck keys
   // This is important because keyup events may not fire reliably, especially on macOS
@@ -508,13 +608,19 @@ export const useKeyPressed = <T>(selector: (state: KeyPressedState) => T) =>
 // Update useCombo to import KeyboardContext from new location
 const useCombo = (
   combo: string[],
-  callback: () => void,
+  callback: (event?: KeyboardEvent) => void,
   preventDefault: boolean = true,
   active: boolean = true,
-  options?: { scope?: ComboScope }
+  options?: {
+    scope?: ComboScope;
+    allowInInputs?: boolean;
+    target?: () => Element | null | undefined;
+  }
 ) => {
   const keyboardActive = useContext(KeyboardContext);
   const scope = options?.scope;
+  const allowInInputs = options?.allowInInputs;
+  const target = options?.target;
   const memoizedCombo = useMemo(
     () =>
       combo
@@ -536,12 +642,58 @@ const useCombo = (
       return;
     }
     return registerComboCallback(memoizedCombo, {
-      callback: () => callbackRef.current(),
+      callback: (event) => callbackRef.current(event),
       preventDefault,
       active,
-      scope
+      scope,
+      allowInInputs,
+      target
     });
-  }, [memoizedCombo, preventDefault, active, keyboardActive, scope]);
+  }, [
+    memoizedCombo,
+    preventDefault,
+    active,
+    keyboardActive,
+    scope,
+    allowInInputs,
+    target
+  ]);
+};
+
+/**
+ * Register a global shortcut, independent of {@link KeyboardContext}.
+ *
+ * `useCombo` only binds inside a KeyboardProvider (the workflow editor
+ * surfaces). Everything else — dialogs, the package manager, the asset viewer —
+ * uses this: same dispatcher, same focus gate, no provider required.
+ */
+const useGlobalCombo = (
+  combo: string,
+  callback: (event?: KeyboardEvent) => void,
+  options: Omit<ComboOptions, "callback"> & { active?: boolean } = {}
+) => {
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+  const {
+    active = true,
+    preventDefault = true,
+    allowInInputs,
+    scope,
+    target
+  } = options;
+
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+    return registerComboCallback(combo, {
+      callback: (event) => callbackRef.current(event),
+      preventDefault,
+      allowInInputs,
+      scope,
+      target
+    });
+  }, [combo, active, preventDefault, allowInInputs, scope, target]);
 };
 
 const toggleConversationCallback = () => {
@@ -558,6 +710,8 @@ export {
   useKeyPressedStore,
   initKeyListeners,
   useCombo,
+  useGlobalCombo,
   registerComboCallback,
+  registerTypeToFocus,
   unregisterComboCallback
 };

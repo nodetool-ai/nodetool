@@ -8,6 +8,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent
 } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import {
   useReactFlow,
   Background,
@@ -532,6 +533,12 @@ const ReactFlowWrapper = ({
     };
   }, [cancelPlacement]);
 
+  // Escape cancels an in-flight node placement.
+  useGlobalCombo("escape", cancelPlacement, {
+    active: Boolean(pendingNodeType),
+    preventDefault: false
+  });
+
   useEffect(() => {
     if (!pendingNodeType) {
       if (ghostRafRef.current !== null) {
@@ -541,12 +548,6 @@ const ReactFlowWrapper = ({
       setGhostPosition(null);
       return;
     }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        cancelPlacement();
-      }
-    };
 
     const handleMouseMove = (event: MouseEvent) => {
       const { clientX, clientY } = event;
@@ -561,10 +562,8 @@ const ReactFlowWrapper = ({
     const previousCursor = document.body.style.cursor;
     document.body.style.cursor = "crosshair";
 
-    window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("mousemove", handleMouseMove);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousemove", handleMouseMove);
       if (ghostRafRef.current !== null) {
         cancelAnimationFrame(ghostRafRef.current);

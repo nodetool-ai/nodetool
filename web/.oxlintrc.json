@@ -1,6 +1,7 @@
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "react", "react-hooks", "oxc"],
+  "jsPlugins": ["./tools/oxlint/keyboard.ts"],
   "categories": {
     "correctness": "error"
   },
@@ -14,7 +15,8 @@
     "react/jsx-key": "warn",
     "typescript/no-unnecessary-parameter-property-assignment": "warn",
     "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn"
+    "react-hooks/exhaustive-deps": "warn",
+    "keyboard/no-window-key-listener": "warn"
   },
   "ignorePatterns": [
     "dist/**",
@@ -39,6 +41,12 @@
       ],
       "rules": {
         "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["src/stores/KeyPressedStore.ts", "src/hooks/useKeyPressed*.ts"],
+      "rules": {
+        "keyboard/no-window-key-listener": "off"
       }
     },
     {

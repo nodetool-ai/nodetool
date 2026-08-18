@@ -42,6 +42,7 @@ export const integerEditor: Editor = (
 
   editor.addEventListener("change", onChange);
   editor.addEventListener("blur", onChange);
+  // Element-scoped: bound to this Tabulator cell editor, never window.
   editor.addEventListener("keydown", onKeyDown);
 
   onRendered(() => {
@@ -87,6 +88,7 @@ export const floatEditor: Editor = (
 
   editor.addEventListener("change", onChange);
   editor.addEventListener("blur", onChange);
+  // Element-scoped: bound to this Tabulator cell editor, never window.
   editor.addEventListener("keydown", onKeyDown);
 
   onRendered(() => {
