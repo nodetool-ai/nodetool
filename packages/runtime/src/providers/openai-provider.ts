@@ -896,6 +896,10 @@ export class OpenAIProvider extends BaseProvider {
       };
     }
 
+    if (content.type === "video") {
+      throw new Error("video input is not supported by openai");
+    }
+
     const c = content as MessageImageContent;
     const imageUrl = c.image.uri
       ? await this.uriToBase64(c.image.uri)

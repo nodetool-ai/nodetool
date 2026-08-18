@@ -51,7 +51,6 @@ import { useMediaReadiness, type PendingMediaHandler } from "../mediaReadiness";
 import type {
   AppCastDoc,
   DocDemoCast,
-  JsScriptCastDoc,
   SketchDocCast
 } from "./docCastTypes";
 import { disposeDocState, docStateAt, seedDocState } from "./docReplay";

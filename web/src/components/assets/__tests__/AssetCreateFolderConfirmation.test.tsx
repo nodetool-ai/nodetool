@@ -4,7 +4,6 @@
  * therefore put the name field above the viewport, leaving only Cancel and
  * Create Folder on screen (#5004).
  */
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";

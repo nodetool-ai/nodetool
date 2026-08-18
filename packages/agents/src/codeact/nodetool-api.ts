@@ -49,6 +49,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "critique_image",
     "compare_images",
     "score_image_adherence",
+    "understand_video",
     "ffmpeg",
     "yt_dlp"
   ],
@@ -695,6 +696,17 @@ const nodetool = (() => {
             __merge(__model(model), { image: image, brief: brief })
           )
         ),
+      /**
+       * Read a video with a multimodal chat model (Gemini reads video
+       * natively). Returns \`{text}\` — the model's answer to \`prompt\`.
+       */
+      understandVideo: (video, prompt, model, opts) =>
+        __need("understand_video")(
+          __merge(
+            opts,
+            __merge(__model(model), { video: video, prompt: prompt })
+          )
+        ),
       /** Run ffmpeg on workspace files. \`args\` is argv after the binary name. */
       ffmpeg: (args, opts) => __need("ffmpeg")(__merge(opts, { args: args })),
       /** Download a video with yt-dlp. */
@@ -1096,6 +1108,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`scoreAdherence(image, brief, visionModel, {questions})\`. The judge takes a
   VISION chat model — \`pick("generate_message")\` on a vision-capable one, not
   the image model that generated the picture.
+  \`understandVideo(video, prompt, videoModel, {max_tokens})\` reads a whole clip
+  with a model that takes video (Gemini) and answers \`prompt\` as \`{text}\` —
+  describe it, summarize it, or pull the on-screen text out.
   Host binaries: \`ffmpeg(args, {output_file, timeout_seconds})\` runs ffmpeg
   in the workspace (no shell); \`downloadVideo(url, outputFile, {format,
   timeout_seconds})\` downloads with yt-dlp. Browse pages with

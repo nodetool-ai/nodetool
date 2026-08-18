@@ -102,6 +102,12 @@ The bottom panel docks runtime diagnostics and secondary workflow tools. Drag it
 
 ![Bottom Panel](assets/screenshots/editor-bottom-panel.png)
 
+Its header also carries a live readout of the **server's** CPU and memory use,
+next to the node and edge counts. The figures come from the `system_stats`
+frame the server pushes every 5s (see
+[WebSocket API](websocket-api.md#system_stats)); on a desktop install that is
+your own machine, and on a hosted install it is the box your workflows run on.
+
 ### Logs
 
 Raw logs from the current run. Filter by level (`debug`, `info`, `warn`, `error`) and search.
@@ -169,7 +175,6 @@ A stack of toggles along the right canvas edge:
 - **Inspector** — open / close the right panel.
 - **Run as App** — jump to the Mini-App view for this workflow.
 - **Notifications** — pending warnings and agent messages.
-- **System Stats** — inline CPU/RAM preview.
 
 ![Right Side Buttons](assets/screenshots/screenshot-placeholder.svg)
 

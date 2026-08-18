@@ -76,9 +76,9 @@ Collections group related assets for use in RAG (Retrieval-Augmented Generation)
 
 ### Creating Collections
 
-1. Open the **Collections** panel from the left sidebar
-2. Click **New Collection** and give it a name
-3. Drag assets from the Asset Explorer into the collection
+1. Open **Collections** from the app menu
+2. Click **Create Collection**, give it a name, and choose an embedding model
+3. Drag files from your computer onto the collection tile to index them
 
 ### Using Collections in Workflows
 

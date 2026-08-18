@@ -3,11 +3,11 @@
  * on the packaged surface and blocked the Fly deploy of 2868cffe.
  *
  * `UnifiedWebSocketRunner` starts two wall-clock timers on every connection —
- * a stats broadcast (first sample ~1s after connect, then every 5s, outside
- * `NODE_ENV=production`) and a 25s heartbeat ping. Neither has anything to do
- * with the run, but a relay driver that records them puts them in the stream
- * at whatever position the run's own duration happens to put them, which
- * shifts every later entry in the channel and mismatches the golden. Whether
+ * a stats broadcast (first sample ~1s after connect, then every 5s) and a 25s
+ * heartbeat ping. Neither has anything to do with the run, but a relay driver
+ * that records them puts them in the stream at whatever position the run's own
+ * duration happens to put them, which shifts every later entry in the channel
+ * and mismatches the golden. Whether
  * a run is long enough for that is a coin flip, which is why it took until
  * 2868cffe to fail.
  *

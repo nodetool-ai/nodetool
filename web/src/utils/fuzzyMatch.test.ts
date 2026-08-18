@@ -80,6 +80,18 @@ describe("fuzzyScore", () => {
       expect(score).toBeGreaterThan(0);
       expect(score).toBeLessThan(0.5);
     });
+
+    it("corrects a typo of one word inside a longer text", () => {
+      const score = fuzzyScore("imgae", "convert an image to png");
+      expect(score).toBeGreaterThan(0);
+      expect(score).toBeLessThan(0.5);
+    });
+
+    it("corrects a substituted character the text does not contain", () => {
+      const score = fuzzyScore("imzge", "an image file");
+      expect(score).toBeGreaterThan(0);
+      expect(score).toBeLessThan(0.5);
+    });
   });
 
   describe("no match", () => {

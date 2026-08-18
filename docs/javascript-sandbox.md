@@ -500,7 +500,9 @@ What an action gets on top of the standard surface:
 - **`nodetool.*`** — the platform as objects (`workflows`, `graph()`, `nodes`,
   `agents`, `models`, `media`, `assets`, `jobs`, `collections`, `web`, `memory`,
   and the rest), each method wrapping a belt tool. A method whose backing tool
-  is absent throws naming it.
+  is absent throws naming it. `nodetool.media.understandVideo(video, prompt,
+  model)` is the video half of the judging methods: it hands a whole clip to a
+  model that reads video (Gemini) and answers `prompt` as `{text}`.
 - **`openWorkflow(id)`** — when the belt carries the `ui_*` document tools, a
   graph object model whose synchronous mutators queue operations against a local
   mirror, replayed through the same tool contract by `await wf.commit()`.
