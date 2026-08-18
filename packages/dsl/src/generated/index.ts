@@ -10,7 +10,6 @@ export * as libAudio from "./lib.audio.js";
 export * as libBrowser from "./lib.browser.js";
 export * as libCharts from "./lib.charts.js";
 export * as libComfy from "./lib.comfy.js";
-export * as libGoogle from "./lib.google.js";
 export * as libGrid from "./lib.grid.js";
 export * as libImage from "./lib.image.js";
 export * as libImageChannel from "./lib.image.channel.js";
