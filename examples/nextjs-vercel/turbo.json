@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  // The root `build` task hashes `src/**` and captures `dist/**` — neither
+  // exists in a Next.js app. Without this override, edits to `app/` or `lib/`
+  // do not change the task hash (stale cache replays a green build), and the
+  // real output in `.next/` is never cached at all ("no output files found").
+  "tasks": {
+    "build": {
+      "inputs": [
+        "app/**",
+        "lib/**",
+        "next.config.mjs",
+        "next-env.d.ts",
+        "tsconfig.json",
+        "package.json"
+      ],
+      "outputs": [".next/**", "!.next/cache/**"]
+    }
+  }
+}
