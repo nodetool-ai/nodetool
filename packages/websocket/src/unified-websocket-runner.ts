@@ -169,6 +169,8 @@ import {
   registerBuiltinTools,
   getGoogleWorkspaceTools,
   registerGoogleWorkspaceTools,
+  getApifyTools,
+  getSerpApiTools,
   toolForCapabilityName,
   gateTools,
   capabilityFromTool,
@@ -5579,9 +5581,38 @@ export class UnifiedWebSocketRunner {
     const runNodeTool = new RunNodeTool((nodeType, inputs) =>
       this.runSingleNode(nodeType, inputs, userId, threadId)
     );
+    // The permission gate the belt is wrapped in below. Built before the belt
+    // because the Apify tools carry it into their own run: in discovery mode
+    // the actor policy asks this gate to approve an actor the install has not
+    // allowlisted, so the user sees that question in the same place as every
+    // other permission prompt. The session allow-set is shared per thread so
+    // "Allow for this chat" sticks.
+    const sessionAllow =
+      this.chatSessionAllow.get(threadId) ?? new Set<string>();
+    this.chatSessionAllow.set(threadId, sessionAllow);
+    // A gated call inside a code action parks the guest program until the user
+    // answers, and the gate stops the clock for exactly that long — the wait is
+    // the user's, not the program's, and charged to the action's wall clock it
+    // would kill the very program that asked.
+    const codeactClock = createSandboxClock();
+    const chatGate: PermissionGateOptions = {
+      mode: permissionMode,
+      sessionAllow,
+      requestApproval: async (
+        request: ApprovalRequest
+      ): Promise<ApprovalDecision> =>
+        this.requestToolApproval(threadId, request),
+      clock: codeactClock
+    };
+    const gatedRun = (context: ProcessingContext): CapabilityRun =>
+      createCapabilityRun({ context, gate: chatGate });
     const rawToolbelt: Tool[] = [
       ...getAgentToolbelt(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
+      // Apify and SerpAPI have no `nodetool.*` namespace, so the belt is how
+      // a chat discovers them (`nodetool.searchTools("apify")`) at all.
+      ...getApifyTools(gatedRun),
+      ...getSerpApiTools(gatedRun),
       ...getAllMcpTools({
         registry: this.nodeRegistry,
         providers: chatProviders,
@@ -5602,25 +5633,7 @@ export class UnifiedWebSocketRunner {
 
     // Wrap the toolbelt in the permission gate. The wrapper is transparent
     // except for `process()`, so the chat loop AND any `run_subtask` child
-    // loop inherit gating by simply calling `tool.process()`. The session
-    // allow-set is shared per thread so "Allow for this chat" sticks.
-    const sessionAllow =
-      this.chatSessionAllow.get(threadId) ?? new Set<string>();
-    this.chatSessionAllow.set(threadId, sessionAllow);
-    // A gated call inside a code action parks the guest program until the user
-    // answers, and the gate stops the clock for exactly that long — the wait is
-    // the user's, not the program's, and charged to the action's wall clock it
-    // would kill the very program that asked.
-    const codeactClock = createSandboxClock();
-    const chatGate: PermissionGateOptions = {
-      mode: permissionMode,
-      sessionAllow,
-      requestApproval: async (
-        request: ApprovalRequest
-      ): Promise<ApprovalDecision> =>
-        this.requestToolApproval(threadId, request),
-      clock: codeactClock
-    };
+    // loop inherit gating by simply calling `tool.process()`.
     const baseTools = gateTools(dedupedToolbelt, chatGate);
 
     // Inject the recursive-decomposition primitive (ungated — it spawns a

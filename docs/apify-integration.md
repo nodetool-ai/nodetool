@@ -28,7 +28,11 @@ this existed keeps working.
 
 Eight capabilities in the `apify` namespace. They are agent tools and sandbox
 imports at the same time — one spec behind both — so nothing can drift between
-what a model is told and what guest code can call.
+what a model is told and what guest code can call. The chat belt and the MCP
+bridge carry them through `getApifyTools()`
+(`packages/agents/src/tools/external-capability-tools.ts`), which is what
+makes `nodetool.searchTools("apify")` find them: the search reads the belt,
+and a module reachable only by import is invisible to it.
 
 | Capability | Does | Class |
 |---|---|---|

@@ -157,6 +157,12 @@ export {
   getGoogleWorkspaceTools,
   registerGoogleWorkspaceTools
 } from "./tools/google-workspace-tools.js";
+export {
+  APIFY_TOOL_NAMES,
+  SERPAPI_TOOL_NAMES,
+  getApifyTools,
+  getSerpApiTools
+} from "./tools/external-capability-tools.js";
 
 export { getMediaTools } from "./tools/media-tools.js";
 export { CREATIVE_CRITIQUE_TOOL_NAMES } from "./tools/creative-critique-tools.js";
