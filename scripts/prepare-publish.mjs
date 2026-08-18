@@ -19,9 +19,29 @@ import { resolve, relative } from "node:path";
 import { parseArgs } from "node:util";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const PACKAGES_DIR = resolve(ROOT, "packages");
+
+/**
+ * Roots holding packages that publish to npm. Sandbox packs are deliberately
+ * excluded: they ship inside the app bundle, never to the registry.
+ */
+const PACKAGE_ROOTS = ["packages", "reliability"];
 
 const PRIVATE_PACKAGES = new Set(["fal-codegen", "kie-codegen", "replicate-codegen"]);
+
+/** Every package.json under PACKAGE_ROOTS, as absolute paths. */
+function packageJsonPaths() {
+  const found = [];
+  for (const root of PACKAGE_ROOTS) {
+    const dir = resolve(ROOT, root);
+    if (!existsSync(dir)) continue;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || PRIVATE_PACKAGES.has(entry.name)) continue;
+      const p = resolve(dir, entry.name, "package.json");
+      if (existsSync(p)) found.push(p);
+    }
+  }
+  return found;
+}
 
 const { values } = parseArgs({
   options: {
@@ -42,10 +62,7 @@ public package.json files, preparing them for npm publish.
 
 // Build a map of package name -> version from all packages in the monorepo
 const versionMap = new Map();
-for (const dir of readdirSync(PACKAGES_DIR, { withFileTypes: true })) {
-  if (!dir.isDirectory()) continue;
-  const pkgPath = resolve(PACKAGES_DIR, dir.name, "package.json");
-  if (!existsSync(pkgPath)) continue;
+for (const pkgPath of packageJsonPaths()) {
   try {
     const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
     if (pkg.name && pkg.version) versionMap.set(pkg.name, pkg.version);
@@ -58,13 +75,7 @@ const DEP_FIELDS = ["dependencies", "optionalDependencies", "peerDependencies"];
 
 let totalChanges = 0;
 
-for (const dir of readdirSync(PACKAGES_DIR, { withFileTypes: true })) {
-  if (!dir.isDirectory()) continue;
-  if (PRIVATE_PACKAGES.has(dir.name)) continue;
-
-  const pkgPath = resolve(PACKAGES_DIR, dir.name, "package.json");
-  if (!existsSync(pkgPath)) continue;
-
+for (const pkgPath of packageJsonPaths()) {
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
   if (pkg.private) continue;
 

@@ -37,7 +37,6 @@
     "packages/config",
     "packages/deploy",
     "packages/compute",
-    "packages/elevenlabs-nodes",
     "packages/kie-codegen",
     "packages/kie-nodes",
     "packages/model-pricing",
