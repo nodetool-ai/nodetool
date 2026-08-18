@@ -588,9 +588,8 @@ describe("extractModels()", () => {
     });
   });
 
-  // The behaviours below were not pinned before the extractor was rewritten.
-  // They are what the original code did, not necessarily what it should do —
-  // the split(":", 2) truncation in particular is a reported bug.
+  // What the extractor does, not what it should do: the cases below pin
+  // behavior nothing asserted before, including one known bug.
   describe("scan order and scope", () => {
     it("should scan the model field, then the root level, then arrays", () => {
       const result = extractModels({
@@ -735,7 +734,9 @@ describe("extractModels()", () => {
   });
 
   describe("llama_cpp id parsing", () => {
-    it("should drop everything after the second colon (BUG: see PR body)", () => {
+    // BUG: a GGUF path with a colon in it silently loses its tail. Pinned as-is
+    // so the rewrite is behavior-preserving; fixing it is a separate change.
+    it("should drop everything after the second colon", () => {
       const result = extractModels({
         graph: {
           nodes: [
