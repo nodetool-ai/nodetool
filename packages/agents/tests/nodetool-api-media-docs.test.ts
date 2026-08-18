@@ -24,7 +24,8 @@ const CRITIQUE_TOOLS = [
   "generate_image",
   "critique_image",
   "compare_images",
-  "score_image_adherence"
+  "score_image_adherence",
+  "understand_video"
 ].map(toolDef);
 
 const PIPELINE_TOOLS = ["generate_image"].map(toolDef);
@@ -99,6 +100,12 @@ function createFakeRouter(opts: { imageBytes?: "tiny" | "png" } = {}) {
           type: "comparison",
           winner: args["images"] ? (args["images"] as string[])[1] : null,
           matches: []
+        });
+      case "understand_video":
+        return JSON.stringify({
+          text: "A fox crosses a snowfield.",
+          provider: args["provider"],
+          model: args["model"]
         });
       case "score_image_adherence":
         return JSON.stringify({
@@ -204,6 +211,29 @@ describe("nodetool.media judging", () => {
         model: "gpt-5.4-mini",
         images: ["a.png", "b.png"],
         brief: "a fox"
+      }
+    });
+  });
+
+  it("reads a video with a multimodal model", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(CRITIQUE_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const r = await nodetool.media.understandVideo("asset://clip1.mp4",
+         "What happens?", "gemini/gemini-3-pro", { max_tokens: 400 });
+       return r.text;`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toBe("A fox crosses a snowfield.");
+    expect(calls[0]).toMatchObject({
+      name: "understand_video",
+      args: {
+        provider: "gemini",
+        model: "gemini-3-pro",
+        video: "asset://clip1.mp4",
+        prompt: "What happens?",
+        max_tokens: 400
       }
     });
   });
@@ -364,6 +394,7 @@ describe("nodetool.documents", () => {
     expect(section).toContain("nodetool.media");
     expect(section).toContain("nodetool.documents");
     expect(section).toContain("scoreAdherence(");
+    expect(section).toContain("understandVideo(");
     expect(section).toContain("pdfToMarkdown(");
     expect(buildNodetoolApiPromptSection(["web_search"])).not.toContain(
       "nodetool.documents"

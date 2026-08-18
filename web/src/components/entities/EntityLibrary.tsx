@@ -184,9 +184,7 @@ const EntityLibraryInternal: React.FC = () => {
     <FlexColumn gap={SPACING.md} sx={{ p: 2, width: "100%" }}>
       <FlexRow align="center" justify="space-between">
         <FlexColumn gap={0}>
-          <Text sx={{ fontWeight: 700, fontSize: "var(--fontSizeBig)" }}>
-            Entities
-          </Text>
+          <Text size="big">Entities</Text>
           <Caption>Reusable characters, locations, styles, and props</Caption>
         </FlexColumn>
         <EditorButton

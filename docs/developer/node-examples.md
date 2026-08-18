@@ -327,13 +327,6 @@ class MyAudioGen(HuggingFacePipelineNode):
 - `preload_model()` loads the model, `move_to_device()` places it on the
   accelerator, and `process()` (or `gen_process()`) runs inference. Use
   `run_pipeline_in_thread()` so long-running inference doesn't block the event loop.
-- **After adding or changing a node, regenerate the package metadata** so the app
-  can discover it:
-
-  ```bash
-  nodetool package scan
-  ```
-
 - To make a model usable outside the node graph (e.g. via an agent or the
   generation API), implement the matching method on the package's
   [local provider](../providers.md#provider-capabilities) — e.g. `text_to_audio()`

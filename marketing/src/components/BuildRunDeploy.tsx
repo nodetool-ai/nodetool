@@ -45,30 +45,30 @@ export default function BuildRunDeploy() {
       <div className="scroll-fade grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card
           step="01"
-          title="Build your canvas"
+          title="Describe the outcome"
           icon={<Workflow className="h-6 w-6" />}
           accent="blue"
-          description="Drag in models, edits, and files, then connect them. Every model from every provider sits on the same canvas."
+          description="Tell the agent what you want to make — a campaign, a trailer, a set of product shots. That's the whole first step. (Prefer to wire it yourself? It's the same canvas.)"
         >
           <BuildVisual />
         </Card>
 
         <Card
           step="02"
-          title="Run it with your own keys"
+          title="Watch it build and run"
           icon={<PlayCircle className="h-6 w-6" />}
           accent="fuchsia"
-          description="Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate. Pay providers directly. Watch results stream in."
+          description="The agent chooses the models, tools, and steps, builds the workflow on your canvas, and runs it in front of you — generation, editing, and assembly chained into a finished piece, on your own keys at provider prices."
         >
           <RunVisual />
         </Card>
 
         <Card
           step="03"
-          title="Edit and finish"
+          title="Take control"
           icon={<Wand2 className="h-6 w-6" />}
           accent="amber"
-          description="Send the image or clip straight into the built-in editors. Crop, mask, cut, and arrange on the timeline. Nothing to export, no second app to open."
+          description="Inspect any step, swap a model, change an input, and run again from there. Refine the result in the built-in editors, then save the workflow and reuse it for the next job."
         >
           <EditVisual />
         </Card>

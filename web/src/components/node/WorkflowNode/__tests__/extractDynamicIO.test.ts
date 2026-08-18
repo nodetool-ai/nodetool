@@ -4,7 +4,6 @@ import {
   OUTPUT_TYPE_MAP,
   type DynamicIOSource
 } from "../WorkflowLoader.helpers";
-import { stub } from "../../../../test-utils/doubles";
 import { WORKFLOW_NODE_TYPE } from "../WorkflowLoader";
 import { Workflow } from "../../../../stores/ApiTypes";
 

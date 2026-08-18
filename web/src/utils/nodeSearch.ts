@@ -81,6 +81,7 @@ const addCandidateBoost = (
 // together when the metadata changes, so they share a single hash check.
 let globalPrefixTree: PrefixTreeSearch | null = null;
 let globalBM25Index: BM25Index | null = null;
+let globalSearchEntries: SearchEntry[] | null = null;
 let globalIndexesHash: string = "";
 
 // WeakMap memo so we don't re-hash the metadata array on every keystroke
@@ -111,32 +112,48 @@ function computeNodesHash(nodes: NodeMetadata[]): string {
 }
 
 /**
- * Build (or reuse) both the prefix tree and BM25 index for the given node
- * set. Hashing and `formatNodeDocumentation` parsing happen once per
- * rebuild — both indexes consume the same parsed extras.
+ * Build (or reuse) the prefix tree, the BM25 index and the fuzzy search
+ * entries for the given node set. Hashing and `formatNodeDocumentation`
+ * parsing happen once per rebuild — all three consume the same parsed pass.
  */
 function ensureIndexes(nodes: NodeMetadata[]) {
   const nodesHash = computeNodesHash(nodes);
   if (
     globalPrefixTree &&
     globalBM25Index &&
+    globalSearchEntries &&
     globalIndexesHash === nodesHash
   ) {
-    return { prefixTree: globalPrefixTree, bm25: globalBM25Index };
+    return {
+      prefixTree: globalPrefixTree,
+      bm25: globalBM25Index,
+      entries: globalSearchEntries
+    };
   }
 
   const extras = new Map<
     string,
     { description: string; tags: string; useCases: string }
   >();
+  const entries: SearchEntry[] = [];
   for (const node of nodes) {
     const { description, tags, useCases } = formatNodeDocumentation(
       node.description
     );
+    const tagsText = tags.join(", ");
     extras.set(node.node_type, {
       description,
-      tags: tags.join(", "),
+      tags: tagsText,
       useCases: useCases.raw
+    });
+    entries.push({
+      title: node.title,
+      node_type: node.node_type,
+      namespace: node.namespace,
+      description,
+      use_cases: useCases.raw,
+      tags: tagsText,
+      metadata: node
     });
   }
 
@@ -146,8 +163,9 @@ function ensureIndexes(nodes: NodeMetadata[]) {
 
   globalPrefixTree = prefixTree;
   globalBM25Index = bm25;
+  globalSearchEntries = entries;
   globalIndexesHash = nodesHash;
-  return { prefixTree, bm25 };
+  return { prefixTree, bm25, entries };
 }
 
 function ensureBM25Index(nodes: NodeMetadata[]): BM25Index {
@@ -158,21 +176,9 @@ function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
   return ensureIndexes(nodes).prefixTree;
 }
 
-const createSearchEntries = (nodes: NodeMetadata[]): SearchEntry[] =>
-  nodes.map((node: NodeMetadata) => {
-    const { description, tags, useCases } = formatNodeDocumentation(
-      node.description
-    );
-    return {
-      title: node.title,
-      node_type: node.node_type,
-      namespace: node.namespace,
-      description,
-      use_cases: useCases.raw,
-      tags: tags.join(", "),
-      metadata: node
-    };
-  });
+function ensureSearchEntries(nodes: NodeMetadata[]): SearchEntry[] {
+  return ensureIndexes(nodes).entries;
+}
 
 const MIN_RESULTS_BEFORE_FUZZY = 100;
 const MIN_FUZZY_QUERY_LENGTH = 3;
@@ -327,7 +333,7 @@ export function rankSearchNodes(
   if (term.trim().length >= MIN_FUZZY_QUERY_LENGTH && ranked.length < MIN_RESULTS_BEFORE_FUZZY) {
     mergeCandidateBoosts(
       candidateBoosts,
-      collectFuzzyCandidateBoosts(createSearchEntries(nodes), expandedSearchTerms)
+      collectFuzzyCandidateBoosts(ensureSearchEntries(nodes), expandedSearchTerms)
     );
     ranked = rankNodeMetadata(nodes, expandedSearchTerms, {
       boostedNodeTypes,

@@ -10,7 +10,6 @@
 
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
 import { isWebGPUAvailable, createRuntime } from "../rendering/initWebGPU";
-import type { LayerEffect } from "../types";
 
 describe("WebGPU initialization", () => {
   describe("isWebGPUAvailable", () => {
