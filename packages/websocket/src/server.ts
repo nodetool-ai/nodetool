@@ -696,11 +696,12 @@ const serverOptions = {
   logger: false,
   // tRPC's httpBatchLink encodes all batched procedure names into a single
   // URL path segment joined with commas (e.g. `/trpc/foo,bar,baz`). Fastify's
-  // default `maxParamLength` of 100 rejects larger batches with a 404 — bump
-  // it so batches up to ~50 procedures route correctly.
+  // default `maxParamLength` of 100 rejects larger batches with a 404, and 2000
+  // was not enough either: one model-picker mount produced a ~2900 char path.
+  // The clients cap a batch at 20 procedures (`maxItems`); this is the backstop.
   routerOptions: {
     ignoreTrailingSlash: true,
-    maxParamLength: 2000
+    maxParamLength: 8000
   },
   genReqId: (req: {
     headers: Record<string, string | string[] | undefined>;
