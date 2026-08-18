@@ -22,38 +22,15 @@ trap {
     exit 1
 }
 
-# Check for conda environment - try multiple detection methods
-$CondaActive = $false
-
-# Method 1: Check CONDA_PREFIX environment variable
+# Conda is optional — only Python nodes need it, and the backend starts
+# without Python support when no environment is active (server.ts warns and
+# continues). Mirrors scripts/electron-dev.sh, which has no conda check.
 if ($env:CONDA_PREFIX) {
-    $CondaActive = $true
+    Write-Host "Detected conda environment: $($env:CONDA_DEFAULT_ENV)"
+} else {
+    Write-Host "No conda environment active - Python nodes will be unavailable. Run 'conda activate <env>' first to enable them." -ForegroundColor Yellow
 }
 
-# Method 2: Check CONDA_DEFAULT_ENV environment variable
-if (-not $CondaActive -and $env:CONDA_DEFAULT_ENV -and $env:CONDA_DEFAULT_ENV -ne "base") {
-    $CondaActive = $true
-}
-
-# Method 3: Try to run 'conda info' and check if there's an active env
-if (-not $CondaActive) {
-    try {
-        $CondaInfo = & conda info --envs 2>$null | Select-String "\*"
-        if ($CondaInfo) {
-            $CondaActive = $true
-        }
-    } catch {
-        # conda not in PATH or command failed
-    }
-}
-
-if (-not $CondaActive) {
-    Write-Error "ERROR: No active conda environment detected."
-    Write-Host "Activate your conda environment first, e.g. 'conda activate nodetool'." -ForegroundColor Yellow
-    exit 1
-}
-
-Write-Host "Detected conda environment: $($env:CONDA_DEFAULT_ENV)"
 Write-Host "Starting web Vite server on $WebDevServerUrl..."
 
 # Start-Process, not Start-Job: under Windows PowerShell 5.1 a job runs in a
