@@ -74,6 +74,7 @@ import {
   sandboxPackageListTool
 } from "../capabilities/packs.js";
 import { GRAPH_DSL_PACKAGE, withGraphDslPackage } from "./graph-dsl-package.js";
+import { FLOW_PACKAGE, withFlowPackage } from "./flow-package.js";
 import {
   FABRIC_PACKAGE,
   FABRIC_PROMPT_SECTION,
@@ -228,8 +229,6 @@ export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "web_search",
   "search_nodes",
   "run_search",
-  "google_news",
-  "google_images",
   "asset_search",
   "grep",
   "glob",
@@ -363,6 +362,7 @@ export class CodeActExecutor {
   private readonly sandboxPackages: string[];
   /** Whether the graph DSL pack is among them — the prompt section turns on it. */
   private readonly withGraphDsl: boolean;
+  private readonly withFlow: boolean;
   private readonly withFabric: boolean;
   /** The run whose capability modules an action may import, when a host has one. */
   private readonly capabilityRun?: CapabilityRun;
@@ -400,15 +400,19 @@ export class CodeActExecutor {
     // Authoring a graph is a package, not a builder: a belt that can save,
     // validate and run a workflow gets the DSL pack on its allowlist, provided
     // this machine installed it.
-    this.sandboxPackages = withFabricPackage(
-      withGraphDslPackage(
-        this.sandboxPackages,
-        this.tools.map((t) => t.name),
+    this.sandboxPackages = withFlowPackage(
+      withFabricPackage(
+        withGraphDslPackage(
+          this.sandboxPackages,
+          this.tools.map((t) => t.name),
+          this.context.sandboxModuleCatalog
+        ),
         this.context.sandboxModuleCatalog
       ),
       this.context.sandboxModuleCatalog
     );
     this.withGraphDsl = this.sandboxPackages.includes(GRAPH_DSL_PACKAGE);
+    this.withFlow = this.sandboxPackages.includes(FLOW_PACKAGE);
     this.withFabric = this.sandboxPackages.includes(FABRIC_PACKAGE);
 
     // A session that allows packages can read what they document. The prompt
@@ -489,7 +493,8 @@ export class CodeActExecutor {
 
     const nodetoolApiSection = withNodetoolApi
       ? buildNodetoolApiPromptSection(toolNames, {
-          graphDsl: this.withGraphDsl
+          graphDsl: this.withGraphDsl,
+          nativeFlow: this.withFlow
         })
       : "";
     const extraSections: string[] = [];

@@ -1,7 +1,7 @@
 /**
  * What survives of the three agent-facing search tools after the port to the
  * `web` capability module (`../capabilities/web.ts`): the configuration
- * predicate. `web_search`, `google_news` and `google_images` reach a belt
+ * predicate. `web_search` reaches a belt
  * through the registry now, by name.
  */
 

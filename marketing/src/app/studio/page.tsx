@@ -25,10 +25,6 @@ const ModelManagerSection = dynamic(
   () => import("../../components/ModelManagerSection"),
   { ssr: true }
 );
-const FeaturesSection = dynamic(
-  () => import("../../components/FeaturesSection"),
-  { ssr: true }
-);
 const EditionsCompareSection = dynamic(
   () => import("../../components/EditionsCompareSection"),
   { ssr: true }
@@ -364,8 +360,36 @@ export default function StudioPage() {
         {/* Model manager */}
         <ModelManagerSection />
 
-        {/* Generic features (still relevant for Studio) */}
-        <FeaturesSection />
+        {/* Everything else NodeTool does lives on the main and agents pages —
+            this page stays on its one question: why run it locally? */}
+        <section className="rhythm-section py-16">
+          <div className={sectionContainer}>
+            <div className="mx-auto max-w-3xl rounded-2xl border border-slate-800/80 bg-slate-950/60 p-8 text-center">
+              <h2 className="text-2xl md:text-3xl font-bold text-white">
+                The full workspace, running locally.
+              </h2>
+              <p className="mt-4 text-slate-400 leading-relaxed">
+                Studio is not a lite edition. The canvas, the agent, and the
+                built-in editors — storyboard, script, timeline, sketch, and
+                mini apps — all ship in the desktop app.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium">
+                <a
+                  href="/#how-title"
+                  className="text-amber-300 hover:text-amber-200 underline underline-offset-2"
+                >
+                  See how NodeTool works →
+                </a>
+                <a
+                  href="/agents"
+                  className="text-amber-300 hover:text-amber-200 underline underline-offset-2"
+                >
+                  How the agent uses it →
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Editions compare — Studio highlighted */}
         <EditionsCompareSection

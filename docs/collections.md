@@ -12,16 +12,16 @@ description: "Group documents into indexable collections for RAG workflows in No
 
 ## Opening Collections
 
-Navigate to **Collections** from the left sidebar, or go directly to `/collections`. The explorer shows every collection you've created with counts of documents and the last time they were indexed.
+Open **Collections** from the app menu, or go directly to `/collections`. The explorer shows every collection you've created with its document count, embedding model, and ingestion workflow.
 
 ---
 
 ## Creating a Collection
 
-1. Click **New Collection** in the top-right.
-2. Give it a name and an optional description.
-3. (Optional) Associate a default embedding model.
-4. Drag documents into the collection — or import a folder from the Asset Explorer.
+1. Click **Create Collection**.
+2. Give it a name.
+3. Choose an embedding model. Both fields are required.
+4. Drag files from your computer onto the collection tile to index them.
 
 ![New Collection](assets/screenshots/screenshot-placeholder.svg)
 
@@ -42,12 +42,11 @@ Unsupported formats are stored but not indexed — still handy for reference ins
 
 ## Managing Documents
 
-Click a collection tile to open its details. You can:
+Each collection is a tile in the explorer. From the tile you can:
 
-- **Add** documents by drag-and-drop or the **Upload** button.
-- **Remove** documents from the collection (doesn't delete the underlying asset).
-- **Re-index** after adding new documents or changing the embedding model.
-- **Preview** any document inline with the built-in viewer.
+- **Index** documents by dropping files onto it. Progress and any per-file errors are reported inline.
+- **Change the ingestion workflow** that processes dropped files.
+- **Delete** the collection and everything indexed in it.
 
 ![Collection Details](assets/screenshots/collections-explorer.png)
 
@@ -57,9 +56,9 @@ Click a collection tile to open its details. You can:
 
 Collections shine in RAG pipelines:
 
-1. Add an **IndexDocuments** or **HybridSearch** node to your workflow.
+1. Add an index node (`vector.IndexString`, `vector.IndexTextChunk`, `vector.IndexAggregatedText`, `vector.IndexImage`, `vector.IndexEmbedding`) or a query node (`vector.QueryText`, `vector.QueryImage`, `vector.HybridSearch`) to your workflow.
 2. Connect the collection to its `collection` input — the node menu will suggest the selector.
-3. Run the workflow. The first run indexes the collection (embeddings + keyword index); subsequent runs reuse the index.
+3. Run the workflow. Index nodes write into the collection; query nodes read from it.
 
 See the full pattern in the [Cookbook → RAG]({{ '/cookbook/patterns#pattern-4-rag-retrieval-augmented-generation' | relative_url }}).
 
@@ -67,12 +66,9 @@ See the full pattern in the [Cookbook → RAG]({{ '/cookbook/patterns#pattern-4-
 
 ## Indexing Options
 
-By default a collection uses the embedding model set in **Settings → Default Models**. Override per-collection from its settings:
+A collection's embedding model is chosen when you create it and is recorded on the collection. Its ingestion workflow — the workflow that runs over each dropped file — can be changed from the collection tile.
 
-- **Embedding model** — any embedding model from HuggingFace, OpenAI, Gemini, Cohere.
-- **Chunk size** — tokens per passage (default: 512).
-- **Overlap** — tokens shared between chunks (default: 64).
-- **Hybrid** — enable BM25 alongside vector search for better recall on proper nouns.
+Chunking is the ingestion workflow's business, not a collection setting. The default splitter chunks at 2000 characters with 1000 characters of overlap.
 
 ![Collection Settings](assets/screenshots/screenshot-placeholder.svg)
 

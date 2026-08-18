@@ -7,7 +7,7 @@ This file is the single source of truth for agents working in this repository:
 architecture, commands, harnesses, and linter-like rules. `CLAUDE.md` is a macro
 that points here — never put content there.
 
-> _Last updated: 2026-08-13._ When the architecture, commands, or rules below
+> _Last updated: 2026-08-17._ When the architecture, commands, or rules below
 > drift from the codebase, update this file in the same PR.
 
 > **Canonical standards live in [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md).**
@@ -242,10 +242,10 @@ exactly one of them:
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-58 trees is 522 pairs, and 258 of them are already at zero — so a rule still
+58 trees is 522 pairs, and 246 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
 fifty-five packages, and those fifty-five are ratcheted today rather than after
-the last one lands. Six rules are at zero everywhere and sit in the enforced
+the last one lands. Seven rules are at zero everywhere and sit in the enforced
 config's top-level `rules`; the rest are enforced per-path, one override block
 per rule listing the trees at zero for it.
 
@@ -300,26 +300,27 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 6974 | 10 / 58 |
-| `no-unsafe-dictionary-type` | 4225 | 10 / 58 |
-| `no-unknown-parameters` | 1884 | 14 / 58 |
-| `no-module-mocking` | 1428 | 55 / 58 |
-| `no-known-value-widening` | 658 | 17 / 58 |
-| `no-runtime-typeof` | 505 | 20 / 58 |
-| `no-hand-written-any` | 302 | 44 / 58 |
-| `no-unknown-returns` | 191 | 42 / 58 |
-| `no-chained-type-assertions` | 44 | 46 / 58 |
+| `require-safety-comment-for-type-assertion` | 7008 | 11 / 58 |
+| `no-unsafe-dictionary-type` | 4269 | 11 / 58 |
+| `no-unknown-parameters` | 1918 | 14 / 58 |
+| `no-module-mocking` | 1457 | 55 / 58 |
+| `no-known-value-widening` | 672 | 17 / 58 |
+| `no-runtime-typeof` | 500 | 21 / 58 |
+| `no-implicit-return-type` | 448 | 30 / 58 |
+| `no-unknown-returns` | 232 | 41 / 58 |
+| `no-chained-type-assertions` | 49 | 46 / 58 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,428 findings but zero in 55 of 58 trees: it is
+`no-module-mocking` is 1,457 findings but zero in 55 of 58 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Ten trees are at zero on all nine rules: `packages/auth`,
-`packages/base-nodes`, `packages/chat`, `packages/config`,
-`packages/model-pricing`, `packages/nodes-utils`, `packages/reve-nodes`,
-`packages/sdk`, `packages/security`, `packages/workflow-runner`.
+a boundary get named. Eleven trees are at zero on all nine rules:
+`packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/config`,
+`packages/document-nodes`, `packages/model-pricing`, `packages/nodes-utils`,
+`packages/reve-nodes`, `packages/sdk`, `packages/security`,
+`packages/workflow-runner`.
 
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps
@@ -407,7 +408,7 @@ pair does not finish in one PR and only ratchets when it reaches zero; the
 prompt says to bound it to one directory and report the before/after count
 rather than imply the win is already held.
 
-A rule can also stall short of zero. `no-unknown-returns` went 604 → 191 (the
+A rule can also stall short of zero. `no-unknown-returns` went 604 → 232 (the
 predicate consolidation above put twenty back); what
 is left is one thing said many ways — a node output, an app-state slot, a
 stream item — for which NodeTool has no named type, plus the `Tool.process`
@@ -1499,7 +1500,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships thirty-six packs in
+global — the `data.*` namespace is gone. NodeTool ships thirty-seven packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box:
 
@@ -1540,7 +1541,8 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host |
 | `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host |
 | `@nodetool-ai/sandbox-twilio` | NodeTool's Twilio helper | host |
-| `@nodetool-ai/sandbox-apify` | NodeTool's Apify helper | host |
+| `@nodetool-ai/sandbox-dsl` | NodeTool's generated graph builder | guest |
+| `@nodetool-ai/sandbox-flow` | NodeTool's generated node callables | guest |
 
 **guest** means the compiler bundles the library into QuickJS. **host** means it
 runs where the sandbox runs — needed when the library wants Node builtins or a
@@ -1548,16 +1550,73 @@ DOM, when it carries a limit the guest could not enforce on itself (zip's
 50 MB inflation cap), or when the code is NodeTool's own and a config-only pack
 therefore cannot ship it.
 
-The last five are that case: they replace the S3, Notion, Supabase, Twilio and
-Apify nodes. Each builds an authenticated request — `-aws` signs one with
-SigV4 — and **none of them sends it**. The guest passes what comes back to its
-own `fetch`, so the run's fetch cap and SSRF guard still apply. Credentials
+The last two are authored guest code rather than a library: `-dsl` builds a
+workflow graph, `-flow` calls nodes as typed async functions
+(docs/dsl-native-flow-design.md). Both are generated from `packages/dsl` and
+rebuilt by `npm run build:sandbox-dsl` / `build:sandbox-flow`.
+
+### Native flow: call nodes from sandboxed code
+
+A third way to run nodes, next to `WorkflowRunner` and the graph DSL: guest
+code in the QuickJS sandbox calls a node as a typed async function and writes
+the control flow in plain JavaScript. `await` is the edge, a variable is the
+wire, `Promise.all` is the fan-out — no graph, no edges, no runner.
+
+```js
+// Code node `packages` property: ["@nodetool-ai/sandbox-flow"]
+import "@nodetool-ai/sandbox-nodetool/flow";   // mounts the bridge (body-side, required)
+import { concat } from "@nodetool-ai/sandbox-flow/nodetool.text";
+
+const r = await concat({ a: inputs.left, b: inputs.right });
+await output("joined", r.output);
+```
+
+One module per node namespace (69 namespaces, 440 nodes), generated by the
+same `npm run codegen` pass as the graph DSL and shipped as the
+`sandbox-flow` pack. Streaming-output nodes carry `.stream(inputs)` — an
+async iterable over cursor calls; early `break` closes the stream and runs
+node cleanup. Errors reject the call; `try`/`catch` is the supervisor.
+
+Each call bridges to the host's registry/invoke path through the
+`@nodetool-ai/sandbox-nodetool/flow` capability module (`invoke_node`,
+`open_node_stream`/`take_node_stream`/`close_node_stream`), so every
+invocation passes the per-call permission gate, bills through the invoking
+run's `ProcessingContext`, and is bounded by a recursion depth cap of 4 and
+16 concurrently open streams per run. v1 limits: streaming *inputs* accept
+arrays only (no live guest-produced streams), and the body must import the
+capability module itself for the facade to mount — the pack's `SKILL.md`
+states the exact declarations.
+
+The host backend is `packages/dsl/src/flow/` (internal; `@nodetool-ai/dsl/flow`
+exists for the hidden import, not as a public surface — programs that must
+open in the editor, be validated, or run on the server still build a graph).
+The capability implementation is `packages/agents/src/capabilities/flow.ts`.
+Diffs touching either run the `dsl-native-flow` harness selfcheck via
+`nodetool harness gate`. Design and pivot record:
+[docs/dsl-native-flow-design.md](docs/dsl-native-flow-design.md).
+
+The `-aws`, `-notion`, `-supabase` and `-twilio` packs are the host
+case: they replace the S3, Notion, Supabase and Twilio nodes. Each
+builds an authenticated request — `-aws` signs one with SigV4 — and **none of
+them sends it**. The guest passes what comes back to its own `fetch`, so the
+run's fetch cap and SSRF guard still apply. Credentials
 come from `nodetool.secrets.get(name)`, which a Code node can narrow to the
 names it declares in its `secrets` property. A host pack's manifest entry is
 `{"kind": "host", "host": "<id>"}`, and the id resolves only through NodeTool's
 own `SANDBOX_HOST_MODULES` table, which pins the one package allowed to declare
 it — a third-party pack can never bring host code. The implementations live in
 `packages/agents/src/host-modules/`, with every safety limit inside them.
+
+**Apify is not one of them any more.** A `-apify` pack of exactly this shape
+existed and was removed: the request-builder pattern requires the guest to hold
+the credential (`nodetool.secrets.get("APIFY_API_TOKEN")`) and to do its own
+fetching and polling, which is the wrong trade for a service that runs
+third-party code, on third-party machines, against a URL a model chose, and
+bills for it. Apify is now a **capability module**
+(`@nodetool-ai/sandbox-nodetool/apify`): the token never leaves the host, every
+actor passes an allowlist and a session budget, actor inputs are SSRF-screened,
+cancellation aborts the remote run, and files it produces become NodeTool
+assets. See [docs/apify-integration.md](docs/apify-integration.md).
 
 The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
 `DownloadFile`, `Browser` and `SpiderCrawl` are the `fetch` capability plus

@@ -15,7 +15,11 @@
  */
 
 import { GRAPH_JSON_PRELUDE } from "../graph-dsl-core.js";
-import { GRAPH_DSL_PROMPT_SECTION } from "./graph-dsl-package.js";
+import {
+  GRAPH_DSL_PACKAGE,
+  GRAPH_DSL_PROMPT_SECTION
+} from "./graph-dsl-package.js";
+import { FLOW_PACKAGE, FLOW_PROMPT_SECTION } from "./flow-package.js";
 
 /** Namespace → the belt tools that light it up (any one is enough). */
 export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
@@ -48,7 +52,9 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "critique_image",
     "compare_images",
     "score_image_adherence",
+    "understand_video",
     "ffmpeg",
+    "ffprobe",
     "yt_dlp"
   ],
   documents: [
@@ -60,8 +66,6 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   web: [
     "web_search",
-    "google_news",
-    "google_images",
     "http_request",
     "download_file",
     "browser",
@@ -694,8 +698,21 @@ const nodetool = (() => {
             __merge(__model(model), { image: image, brief: brief })
           )
         ),
+      /**
+       * Read a video with a multimodal chat model (Gemini reads video
+       * natively). Returns \`{text}\` — the model's answer to \`prompt\`.
+       */
+      understandVideo: (video, prompt, model, opts) =>
+        __need("understand_video")(
+          __merge(
+            opts,
+            __merge(__model(model), { video: video, prompt: prompt })
+          )
+        ),
       /** Run ffmpeg on workspace files. \`args\` is argv after the binary name. */
       ffmpeg: (args, opts) => __need("ffmpeg")(__merge(opts, { args: args })),
+      /** Read a media file's format and streams with ffprobe. */
+      ffprobe: (path, opts) => __need("ffprobe")(__merge(opts, { path: path })),
       /** Download a video with yt-dlp. */
       downloadVideo: (url, outputFile, opts) =>
         __need("yt_dlp")(__merge(opts, { url: url, output_file: outputFile }))
@@ -725,20 +742,26 @@ const nodetool = (() => {
     web: {
       /**
        * Search the web. \`web_search\` routes across the configured backends
-       * host-side; \`opts.provider\` pins one — "default", "openai", "google"
-       * (grounded/Gemini), "dataforseo".
+       * host-side; \`opts.provider\` pins one — "default", "serpapi",
+       * "dataforseo", "brave", "apify", "openai", "google" (grounded/Gemini).
        */
       search: (query, opts) =>
         __need("web_search")(
           __webArgs(opts, { google: "gemini" }, "query", query)
         ),
+      /** News articles. One \`web_search\` with search_type: "news". */
       news: (query, opts) =>
-        __need("google_news")(
-          __webArgs(opts, { google: "serpapi" }, "keyword", query)
+        __need("web_search")(
+          __merge(__webArgs(opts, { google: "serpapi" }, "query", query), {
+            search_type: "news"
+          })
         ),
+      /** Image results. One \`web_search\` with search_type: "images". */
       images: (query, opts) =>
-        __need("google_images")(
-          __webArgs(opts, { google: "serpapi" }, "keyword", query)
+        __need("web_search")(
+          __merge(__webArgs(opts, { google: "serpapi" }, "query", query), {
+            search_type: "images"
+          })
         ),
       /** One HTTP request; returns the response body as text. */
       fetch: (url, opts) => __need("http_request")(__merge(opts, { url: url })),
@@ -1095,8 +1118,13 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`scoreAdherence(image, brief, visionModel, {questions})\`. The judge takes a
   VISION chat model — \`pick("generate_message")\` on a vision-capable one, not
   the image model that generated the picture.
+  \`understandVideo(video, prompt, videoModel, {max_tokens})\` reads a whole clip
+  with a model that takes video (Gemini) and answers \`prompt\` as \`{text}\` —
+  describe it, summarize it, or pull the on-screen text out.
   Host binaries: \`ffmpeg(args, {output_file, timeout_seconds})\` runs ffmpeg
-  in the workspace (no shell); \`downloadVideo(url, outputFile, {format,
+  in the workspace (no shell, workspace paths only, no URL inputs);
+  \`ffprobe(path)\` reads a file's format and streams before you decide what to
+  run; \`downloadVideo(url, outputFile, {format,
   timeout_seconds})\` downloads with yt-dlp. Browse pages with
   \`nodetool.web.browse(url)\`.`
   },
@@ -1312,6 +1340,63 @@ interface NodetoolApiPromptOptions {
    * the allowlist and the catalog.
    */
   graphDsl?: boolean;
+  /**
+   * Whether this session can call nodes directly with
+   * `@nodetool-ai/sandbox-flow` — the pack is installed and on the
+   * allowlist. The caller decides it (`withFlowPackage`).
+   */
+  nativeFlow?: boolean;
+}
+
+/**
+ * The rule for choosing between the three ways a turn makes node work happen.
+ * Rendered only for the surfaces this session actually has, so it never sends
+ * the model at a pack that is not installed.
+ *
+ * It exists because the surfaces answer different questions and a model that
+ * knows all three still picks by habit: a chat turn asked to "run a pipeline
+ * that generates an image and removes its background" authored a graph, saved
+ * it, never ran it, and then — asked to do it "without a graph" — bent
+ * `media.editImage` into a background remover instead of calling the
+ * `RemoveBackground` node it had already found.
+ */
+function surfaceChoiceSection(
+  options: NodetoolApiPromptOptions,
+  names: ReadonlySet<string>
+): string {
+  if (!options.nativeFlow && !options.graphDsl) return "";
+  const bullets: string[] = [];
+  if (names.has("generate_image")) {
+    bullets.push(`- \`nodetool.media.*\` — ONE generation with a picked model: an image, a
+  video, speech, a transcript. The short path when a verb there does exactly
+  what was asked. It has no verb for most node work, and stretching one to
+  cover a node — an edit prompt in place of a background remover, an
+  upscaler, a converter — produces something other than the node the user
+  meant.`);
+  }
+  if (options.nativeFlow) {
+    bullets.push(`- **Native flow** (\`${FLOW_PACKAGE}\`) — the user wants the RESULT:
+  "run", "generate", "then", "for each". Any node in the registry, several in
+  a row, in this action. Nothing is saved and nothing opens in the editor.`);
+  }
+  if (options.graphDsl) {
+    bullets.push(`- **Graph DSL** (\`${GRAPH_DSL_PACKAGE}\`) — the user wants the WORKFLOW:
+  something saved, opened in the editor, re-run later, or handed to someone
+  else. Authoring it does not run it — \`nodetool.workflows.run(id, params)\`
+  does.`);
+  }
+  const closer = options.nativeFlow
+    ? `
+
+When the ask is to do the work and the user never mentioned a workflow, run
+the nodes and report what came out. Reaching for a graph there leaves the
+user with an artifact they did not ask for and the work still undone.`
+    : "";
+  return `# Which surface runs the work
+
+Pick by what the user asked for, not by what the last turn used.
+
+${bullets.join("\n")}${closer}`;
 }
 
 export function buildNodetoolApiPromptSection(
@@ -1342,7 +1427,10 @@ available, and the two cannot disagree. A module this session does not mount
 fails the action by name, before any code runs.`,
     active.map((entry) => entry.doc).join("\n")
   ];
+  const choice = surfaceChoiceSection(options, names);
+  if (choice) sections.push(choice);
   if (options.graphDsl) sections.push(GRAPH_DSL_PROMPT_SECTION);
+  if (options.nativeFlow) sections.push(FLOW_PROMPT_SECTION);
   if (names.has("find_model") && names.has("generate_image")) {
     sections.push(MEDIA_EXAMPLE);
   }

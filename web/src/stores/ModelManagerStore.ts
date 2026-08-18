@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type ModelSortField = "name" | "size" | "downloads" | "likes";
+export type ModelSortField = "name" | "size" | "downloads" | "likes" | "fit";
 export type ModelSortDirection = "asc" | "desc";
 /** Which model cache the manager is browsing: the local FS or an attached worker. */
 export type ModelScope = "local" | "worker";
@@ -38,6 +38,11 @@ interface ModelManagerState {
    * `null` means "use whatever was detected".
    */
   vramOverrideGb: number | null;
+  /**
+   * Active goal filter (`MODEL_GOALS` id from `modelFit.ts`), narrowing the
+   * list to models that serve it. `null` means "all goals".
+   */
+  selectedGoal: string | null;
   setIsOpen: (isOpen: boolean) => void;
   setModelSearchTerm: (term: string) => void;
   setSelectedModelType: (type: string) => void;
@@ -49,6 +54,7 @@ interface ModelManagerState {
   setSource: (source: ModelSource) => void;
   setSourceInitialized: (initialized: boolean) => void;
   setVramOverrideGb: (gb: number | null) => void;
+  setSelectedGoal: (goal: string | null) => void;
 }
 
 export const useModelManagerStore = create<ModelManagerState>()(
@@ -64,6 +70,7 @@ export const useModelManagerStore = create<ModelManagerState>()(
       source: "installed",
       sourceInitialized: false,
       vramOverrideGb: null,
+      selectedGoal: null,
       setIsOpen: (isOpen) => set({ isOpen }),
       setModelSearchTerm: (term) => set({ modelSearchTerm: term }),
       setSelectedModelType: (type) => set({ selectedModelType: type }),
@@ -78,7 +85,8 @@ export const useModelManagerStore = create<ModelManagerState>()(
       setSource: (source) => set({ source }),
       setSourceInitialized: (initialized) =>
         set({ sourceInitialized: initialized }),
-      setVramOverrideGb: (gb) => set({ vramOverrideGb: gb })
+      setVramOverrideGb: (gb) => set({ vramOverrideGb: gb }),
+      setSelectedGoal: (goal) => set({ selectedGoal: goal })
     }),
     {
       name: "model-manager",

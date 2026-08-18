@@ -136,7 +136,7 @@ describe("SERP tool factory", () => {
     it("throws when required credentials missing", async () => {
       const ctx = makeContext({ SERP_PROVIDER: "apify" }); // No APIFY_API_KEY
       await expect(createSearchTool(ctx)).rejects.toThrow(
-        "APIFY_API_KEY is required"
+        "APIFY_API_TOKEN is required"
       );
     });
   });

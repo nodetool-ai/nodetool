@@ -10,7 +10,7 @@
  * The list is empty now. The eight workflow-document `ui_*` schemas became the
  * `ui` capability module, and the nine provider-specific duplicates were
  * retired outright — the media four deleted, the search five converted to the
- * backend functions `web_search` / `google_news` / `google_images` call.
+ * backend functions the `web_search` capability calls.
  *
  * The reverse direction is asserted too: where a deprecated `Tool` subclass
  * still stands in front of a capability, its wire identity and description

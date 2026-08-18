@@ -108,8 +108,6 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Search
   "web_search",
-  "google_news",
-  "google_images",
 
   // Creative critique (VLM judging + taste memory)
   "critique_image",
@@ -117,6 +115,9 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "score_image_adherence",
   "record_style_preference",
   "get_style_profile",
+
+  // Video understanding (a multimodal chat model reads a whole clip)
+  "understand_video",
 
   // Web
   "browser",
@@ -126,6 +127,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Host media binaries
   "ffmpeg",
+  "ffprobe",
   "yt_dlp",
 
   // Email
@@ -152,9 +154,9 @@ export function getBuiltinTools(): Tool[] {
 /**
  * The built-ins an agent gets. The nine provider-specific duplicates this set
  * used to subtract are gone: the media four were deleted, and the five search
- * backends became plain functions `web_search` / `google_news` /
- * `google_images` route to host-side. Every host therefore assembles the same
- * belt, and there is nothing left to exclude.
+ * backends became plain functions that the single `web_search` capability
+ * routes to host-side. Every host therefore assembles the same belt, and
+ * there is nothing left to exclude.
  */
 export function getAgentToolbelt(): Tool[] {
   return getBuiltinTools();

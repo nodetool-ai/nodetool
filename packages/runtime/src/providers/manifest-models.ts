@@ -195,6 +195,24 @@ export function inferVideoTasks(name: string, id: string): string[] {
   ) {
     return ["video_to_video"];
   }
+  // Video upscalers/enhancers (Topaz, SeedVR, FlashVSR, …) transform a source
+  // clip, but their ids never spell out "video-to-video", so without this they
+  // fall through to the generator branch and show up in the text/image-to-video
+  // pickers with no video input.
+  if (
+    matchesAny(
+      hay,
+      "upscal",
+      "super-resolution",
+      "super resolution",
+      "superres",
+      "seedvr",
+      "vsr",
+      "enhancer"
+    )
+  ) {
+    return ["video_to_video"];
+  }
   if (matchesAny(hay, "text-to-video", "text to video", "texttovideo")) {
     tasks.push("text_to_video");
   }

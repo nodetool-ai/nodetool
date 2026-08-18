@@ -33,13 +33,10 @@ import type { SupervisorHandle } from "../../src/supervisor.js";
 
 export type { CorrelationLineage, NodeDescriptor, Edge, MessageEnvelope };
 
-export const FLAG = "NODETOOL_USE_CORRELATION";
-
 /**
- * Run a workflow under `NODETOOL_USE_CORRELATION=1` (or `0`, if `flagOff`),
- * resolve executors from the supplied map keyed by node id, and return the
- * runner result plus the per-handle captured envelopes for any node id
- * declared with `captureFrom`.
+ * Run a workflow, resolve executors from the supplied map keyed by node id,
+ * and return the runner result plus the per-handle captured envelopes for any
+ * node id declared with `captureFrom`.
  */
 export interface RunOptions {
   nodes: NodeDescriptor[];
@@ -53,8 +50,6 @@ export interface RunOptions {
    * and let the harness install the capture executor.
    */
   captureFrom?: Record<string, string[]>;
-  /** Pre-set the flag value; defaults to "1". */
-  flag?: "0" | "1";
   /** Optional runtime params. */
   params?: Record<string, unknown>;
   jobId?: string;
@@ -103,43 +98,33 @@ function installCaptureExecutors(opts: RunOptions): {
 }
 
 export async function runWorkflow(opts: RunOptions): Promise<RunWithCapture> {
-  const originalFlag = process.env[FLAG];
-  process.env[FLAG] = opts.flag ?? "1";
-  try {
-    const { executors, captured } = installCaptureExecutors(opts);
-    const runner = new WorkflowRunner(opts.jobId ?? "conformance", {
-      resolveExecutor: (node) => {
-        const exec = executors[node.id];
-        if (exec) return exec;
-        // Input/constant nodes are dispatched by the runner from properties;
-        // their executor is never invoked. Return a no-op shell so initialize
-        // doesn't trip on missing executors.
-        if (
-          node.type.startsWith("nodetool.input.") ||
-          node.type.startsWith("nodetool.constant.")
-        ) {
-          return {
-            async process() {
-              return {};
-            }
-          };
-        }
-        throw new Error(`No executor registered for node id "${node.id}"`);
-      },
-      supervisor: opts.supervisor
-    });
-    const result = await runner.run(
-      { job_id: opts.jobId ?? "conformance", params: opts.params ?? {} },
-      { nodes: opts.nodes, edges: opts.edges }
-    );
-    return { result, captured };
-  } finally {
-    if (originalFlag === undefined) {
-      delete process.env[FLAG];
-    } else {
-      process.env[FLAG] = originalFlag;
-    }
-  }
+  const { executors, captured } = installCaptureExecutors(opts);
+  const runner = new WorkflowRunner(opts.jobId ?? "conformance", {
+    resolveExecutor: (node) => {
+      const exec = executors[node.id];
+      if (exec) return exec;
+      // Input/constant nodes are dispatched by the runner from properties;
+      // their executor is never invoked. Return a no-op shell so initialize
+      // doesn't trip on missing executors.
+      if (
+        node.type.startsWith("nodetool.input.") ||
+        node.type.startsWith("nodetool.constant.")
+      ) {
+        return {
+          async process() {
+            return {};
+          }
+        };
+      }
+      throw new Error(`No executor registered for node id "${node.id}"`);
+    },
+    supervisor: opts.supervisor
+  });
+  const result = await runner.run(
+    { job_id: opts.jobId ?? "conformance", params: opts.params ?? {} },
+    { nodes: opts.nodes, edges: opts.edges }
+  );
+  return { result, captured };
 }
 
 /**

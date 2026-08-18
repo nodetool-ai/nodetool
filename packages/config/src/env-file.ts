@@ -16,9 +16,12 @@
  * `${VAR}` interpolation.
  */
 
+/** Environment variable names to their values, as a `.env` file spells them. */
+export type EnvPairs = Record<string, string>;
+
 /** Parse the text of a `.env` file into key/value pairs. */
-export function parseEnvFile(content: string) {
-  const result: Record<string, string> = {};
+export function parseEnvFile(content: string): EnvPairs {
+  const pairs: [string, string][] = [];
   for (const rawLine of content.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (line === "" || line.startsWith("#")) continue;
@@ -34,9 +37,9 @@ export function parseEnvFile(content: string) {
     if (key === "") continue;
 
     const rawValue = stripInlineComment(withoutExport.slice(eq + 1));
-    result[key] = unquoteValue(rawValue);
+    pairs.push([key, unquoteValue(rawValue)]);
   }
-  return result;
+  return Object.fromEntries(pairs);
 }
 
 function stripInlineComment(raw: string): string {
@@ -83,10 +86,7 @@ type FsApi = {
  * existing values. Missing files are tolerated silently. Returns the parsed
  * pairs (empty when the file is absent).
  */
-export function loadEnvFile(
-  fs: FsApi,
-  file: string
-): Record<string, string> {
+export function loadEnvFile(fs: FsApi, file: string): EnvPairs {
   if (!fs.existsSync(file)) return {};
   const parsed = parseEnvFile(fs.readFileSync(file, "utf8"));
   for (const [key, value] of Object.entries(parsed)) {

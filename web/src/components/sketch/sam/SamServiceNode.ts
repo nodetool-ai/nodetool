@@ -27,8 +27,11 @@ import {
   SAM_INLINE_IMAGE_MAX_BYTES
 } from "./SamService";
 import type { SegmentBackend } from "../types";
-import { getNodeExecutor } from "./NodeExecutor";
-import type { GraphNode, GraphEdge } from "./NodeExecutor";
+import {
+  runInlineGraphJob,
+  type GraphNode,
+  type GraphEdge
+} from "../../../lib/workflow/runInlineGraphJob";
 import { resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
 import { normalizeSamMasks } from "./normalizeSamMasks";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
@@ -244,9 +247,12 @@ export class SamServiceNode implements SamService {
       throw new DOMException("Aborted", "AbortError");
     }
 
-    const executor = getNodeExecutor();
     const graph = await this.buildGraph(resizedUrl, request, scale);
-    const result = await executor.execute(graph, {}, signal);
+    const result = await runInlineGraphJob({
+      graph,
+      signal,
+      workflowId: `sketch-segmentation-${Date.now()}`
+    });
 
     if (!result.success) {
       throw new Error(result.error ?? "Segmentation failed");

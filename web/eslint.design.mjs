@@ -174,10 +174,13 @@ export const noRestrictedImports = [
   },
 ];
 
-// Design-token guards: discourage hardcoded values that have a named token.
+// Design-token guards: forbid hardcoded values that have a named token.
 // See docs/DESIGN.md and ui_primitives/tokens.ts.
+// `fontWeight` is the only category left here, and it is at zero across
+// `web/src` — including the paths `designTokenIgnores` skips — so it is locked
+// in at `error` like every other migrated category in this file.
 export const noRestrictedSyntax = [
-  "warn",
+  "error",
   // NOTE: Motion (transition/animation timing) is NOT handled here. It graduated
   // to the dedicated `design-tokens/motion-tokens` custom rule below, which — like
   // spacingTokensRule — also covers `animation`/`animationDelay`/`transitionDuration`
@@ -211,8 +214,15 @@ export const noRestrictedSyntax = [
   // and docs/DESIGN.md §6.
   {
     // fontWeight: 700 / "bold" / 300 → only 400/500/600 (FONT_WEIGHT.*).
-    selector:
+    //
+    // An esquery regex attribute (`[value=/…/]`) only tests *string* values, so
+    // the regex catches `fontWeight: "bold"` and `"700"` but never a numeric
+    // `fontWeight: 700`. The two range selectors cover the numeric literals.
+    selector: [
+      "Property[key.name='fontWeight'] > Literal[value<400]",
+      "Property[key.name='fontWeight'] > Literal[value>600]",
       "Property[key.name='fontWeight'] > Literal[value=/^(100|200|300|700|800|900|bold|bolder|lighter)$/]",
+    ].join(", "),
     message:
       "Use FONT_WEIGHT.normal/medium/semibold (400/500/600). 700/bold/300 are not sanctioned weights. See docs/DESIGN.md §1.",
   },

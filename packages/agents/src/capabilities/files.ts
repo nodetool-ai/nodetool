@@ -19,20 +19,16 @@
  * namespaces".
  */
 
-import {
-  access,
-  lstat,
-  readFile,
-  readdir,
-  realpath,
-  stat,
-  writeFile
-} from "node:fs/promises";
-import { dirname, isAbsolute, join, relative } from "node:path";
+import { access, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import type { TodoItem, TodoStatus, TodoUpdate } from "@nodetool-ai/protocol";
 import { Tool } from "../tools/base-tool.js";
+import {
+  isEditTargetWithinRoot,
+  isRealPathWithinRoot
+} from "../workspace-paths.js";
 import {
   isNonBlankString,
   isNumber,
@@ -518,57 +514,6 @@ function hasNestedQuantifier(pattern: string): boolean {
     justClosedQuantifiedGroup = false;
   }
   return false;
-}
-
-/**
- * True when `candidate`'s real (symlink-resolved) path stays within the real
- * workspace root. `resolveWorkspacePath` only checks containment lexically, so
- * an in-workspace symlink pointing outside the root (e.g. unpacked from an
- * imported bundle) would otherwise be dereferenced and leak host files. Returns
- * false when either path cannot be resolved (broken/dangling link).
- */
-async function isRealPathWithinRoot(
-  root: string,
-  candidate: string
-): Promise<boolean> {
-  try {
-    const realRoot = await realpath(root);
-    const realCandidate = await realpath(candidate);
-    if (realCandidate === realRoot) return true;
-    const rel = relative(realRoot, realCandidate);
-    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Like {@link isRealPathWithinRoot} but tolerant of a not-yet-created target:
- * when the candidate does not exist, its parent directory is realpath-checked
- * instead, so creating a file under a symlinked-out directory is still blocked.
- */
-async function isEditTargetWithinRoot(
-  root: string,
-  candidate: string
-): Promise<boolean> {
-  if (await isRealPathWithinRoot(root, candidate)) return true;
-  // Candidate may not exist yet (create path) — check its parent.
-  const parent = dirname(candidate);
-  if (parent === candidate) return false;
-  try {
-    // lstat, NOT access: access() follows symlinks, so a DANGLING in-workspace
-    // symlink (target outside the root and not yet created) would look absent
-    // and fall through to the parent check, allowing a create that follows the
-    // link outside the workspace. lstat stats the link itself, so it succeeds
-    // and we treat the path as existing-but-out-of-root.
-    await lstat(candidate);
-    // It exists (as a real file or a symlink) but failed the realpath
-    // containment check above → outside the root.
-    return false;
-  } catch {
-    // Truly does not exist; the containing directory must be inside the root.
-    return isRealPathWithinRoot(root, parent);
-  }
 }
 
 /**

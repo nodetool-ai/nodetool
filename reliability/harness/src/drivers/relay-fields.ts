@@ -63,10 +63,10 @@ export const RELAY_ONLY_WORKFLOW_ID_TYPES: ReadonlySet<string> = new Set([
  * The rest are the relay's own timers and observers, which fire on wall-clock
  * cadence rather than on anything the run does
  * (`unified-websocket-runner.ts`): `system_stats` ~1s after connect and every
- * 5s after (outside `NODE_ENV=production`), `ping` every 25s, `pong` in reply
- * to a client ping, `resource_change` whenever a model or resource event
- * lands. Whether one of them interleaves into a run depends on how long the
- * run happens to take, so recording them makes the stream non-deterministic —
+ * 5s after, `ping` every 25s, `pong` in reply to a client ping,
+ * `resource_change` whenever a model or resource event lands. Whether one of
+ * them interleaves into a run depends on how long the run happens to take, so
+ * recording them makes the stream non-deterministic —
  * a `system_stats` landing mid-run is what failed `linear-text-pipeline` on
  * the packaged surface in Ring 1 (run 31619279663), which in turn blocked
  * the Fly deploy of 2868cffe. They are all outbound *control* frames in the

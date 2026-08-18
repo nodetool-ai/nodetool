@@ -257,6 +257,9 @@ export {
   reducedMotion
 } from "./tokens";
 
+// Shared styles for the sidebar document list panels
+export { listPanelStyles } from "./listPanelStyles";
+
 // Keyboard activation for non-native-button click targets
 export { activateOnKey } from "./keyboardActivation";
 

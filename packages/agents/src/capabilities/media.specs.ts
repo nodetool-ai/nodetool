@@ -14,6 +14,10 @@ import { isString } from "../utils/type-guards.js";
 
 export const MAX_COMPARE_IMAGES = 8;
 
+export const DEFAULT_VIDEO_PROMPT = "Describe this video in detail.";
+export const DEFAULT_UNDERSTAND_VIDEO_TOKENS = 1500;
+export const MAX_UNDERSTAND_VIDEO_TOKENS = 8192;
+
 export const GENERATE_IMAGE_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
@@ -260,6 +264,50 @@ export const SCORE_ADHERENCE_SCHEMA: JsonSchema = {
   required: ["provider", "model", "image", "brief"]
 };
 
+export const UNDERSTAND_VIDEO_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    provider: {
+      type: "string" as const,
+      description:
+        "Provider id of a chat model that reads video, e.g. gemini (find_model)."
+    },
+    model: { type: "string" as const, description: "Model id." },
+    video: {
+      type: "string" as const,
+      description: "Video to read: asset id, asset:// URI, URL, or data URI."
+    },
+    prompt: {
+      type: "string" as const,
+      description: `What to ask about the video. Default: "${DEFAULT_VIDEO_PROMPT}"`
+    },
+    max_tokens: {
+      type: "integer" as const,
+      minimum: 1,
+      maximum: MAX_UNDERSTAND_VIDEO_TOKENS,
+      description:
+        `Answer length cap. Default ${DEFAULT_UNDERSTAND_VIDEO_TOKENS}, ` +
+        `max ${MAX_UNDERSTAND_VIDEO_TOKENS}.`
+    }
+  },
+  required: ["provider", "model", "video"]
+};
+
+export const understandVideoSpec: CapabilitySpec = {
+  name: "understand_video",
+  description:
+    "Send a video plus an instruction to a multimodal chat model (Gemini " +
+    "reads video natively) and return the model's answer as text. Use it to " +
+    "describe or summarize a clip, answer questions about what happens in " +
+    "it, or extract on-screen text. Takes the whole video, not sampled " +
+    "frames — for a single still use critique_image instead.",
+  inputSchema: UNDERSTAND_VIDEO_SCHEMA,
+  // Unlisted in `TOOL_PERMISSION_CATEGORIES`, so the gate classes it
+  // `external` — the same category the vision judges carry.
+  category: "external",
+  userMessage: () => "Reading a video with a multimodal model"
+};
+
 export const generateImageSpec: CapabilitySpec = {
   name: "generate_image",
   description:
@@ -404,7 +452,9 @@ export const FFMPEG_SCHEMA: JsonSchema = {
       type: "array" as const,
       items: { type: "string" as const },
       description:
-        "ffmpeg arguments after the binary name. Paths are workspace-relative. " +
+        "ffmpeg arguments after the binary name. Paths are workspace-relative " +
+        "and cannot escape it; inputs may only open local files, so a URL is " +
+        "refused — download it first. " +
         "Example: [\"-i\", \"in.mp4\", \"-vf\", \"scale=1280:-2\", \"out.mp4\"]."
     },
     output_file: {
@@ -426,14 +476,46 @@ export const ffmpegSpec: CapabilitySpec = {
   name: "ffmpeg",
   description:
     "Run ffmpeg on workspace files. Pass argv after the binary name " +
-    "(no shell). Paths are workspace-relative. Install ffmpeg if the " +
-    "binary is missing. Use output_file to persist the result as an asset.",
+    "(no shell). Paths are workspace-relative and confined to the " +
+    "workspace; inputs open local files only (no URLs, pipes, or device " +
+    "files). Install ffmpeg if the binary is missing. Use output_file to " +
+    "persist the result as an asset.",
   inputSchema: FFMPEG_SCHEMA,
   category: "execute",
   userMessage: (params) => {
     const out =
       isString(params["output_file"]) ? params["output_file"] : "";
     return out ? `Running ffmpeg → ${out}` : "Running ffmpeg";
+  }
+};
+
+export const FFPROBE_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    path: {
+      type: "string" as const,
+      description:
+        "Workspace-relative media file to inspect. Cannot escape the workspace."
+    },
+    timeout_seconds: {
+      type: "number" as const,
+      description: "Wall-clock timeout. Default 30, max 120."
+    }
+  },
+  required: ["path"]
+};
+
+export const ffprobeSpec: CapabilitySpec = {
+  name: "ffprobe",
+  description:
+    "Read a media file's format and streams with ffprobe: duration, size, " +
+    "bit rate, and per-stream codec/resolution/frame rate/channels. Takes a " +
+    "workspace path, not argv. Use it before ffmpeg to decide what to do.",
+  inputSchema: FFPROBE_SCHEMA,
+  category: "execute",
+  userMessage: (params) => {
+    const target = isString(params["path"]) ? params["path"] : "a file";
+    return `Inspecting ${target}`;
   }
 };
 
@@ -465,9 +547,11 @@ export const YT_DLP_SCHEMA: JsonSchema = {
 export const ytDlpSpec: CapabilitySpec = {
   name: "yt_dlp",
   description:
-    "Download a video with yt-dlp into the workspace. Requires an http(s) " +
-    "URL. Install yt-dlp (and ffmpeg for merge/transcode) if the binary is " +
-    "missing. Returns the output path and an asset handle when possible.",
+    "Download a video with yt-dlp into the workspace. Requires a public " +
+    "http(s) URL — internal and loopback addresses are refused — and writes " +
+    "only inside the workspace, up to 2 GiB. Install yt-dlp (and ffmpeg for " +
+    "merge/transcode) if the binary is missing. Returns the output path and " +
+    "an asset handle when possible.",
   inputSchema: YT_DLP_SCHEMA,
   category: "external",
   userMessage: (params) => {
@@ -490,6 +574,8 @@ export const mediaSpecs: readonly CapabilitySpec[] = [
   critiqueImageSpec,
   compareImagesSpec,
   scoreImageAdherenceSpec,
+  understandVideoSpec,
   ffmpegSpec,
+  ffprobeSpec,
   ytDlpSpec
 ];

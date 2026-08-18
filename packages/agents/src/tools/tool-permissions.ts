@@ -51,8 +51,16 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   grep: "read",
   // --- read: web & document reads ---
   web_search: "read",
-  google_news: "read",
-  google_images: "read",
+  // Apify inspection. Reading the store, an actor record, an input schema, or
+  // a dataset a run already produced has no side effect and spends nothing —
+  // only `run_apify_actor` and `abort_apify_run` act, and those are left
+  // unlisted so the gate classes them `external`.
+  search_apify_actors: "read",
+  get_apify_actor: "read",
+  get_apify_actor_schema: "read",
+  get_apify_run: "read",
+  get_apify_dataset_items: "read",
+  get_apify_key_value_record: "read",
   take_screenshot: "read",
   extract_pdf_text: "read",
   extract_pdf_tables: "read",
@@ -202,6 +210,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   debug_app: "execute",
   start_background_job: "execute",
   ffmpeg: "execute",
+  ffprobe: "execute",
 
   // --- external: third-party side effects ---
   browser: "external",

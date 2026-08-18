@@ -57,7 +57,6 @@ const deriveInlineJobName = (graph: InlineGraph): string => {
   return custom || metadataTitle || node.type?.split(".").pop() || "";
 };
 
-/** Result shape consumed by sketch `WebSocketNodeExecutor`. */
 interface InlineGraphJobResult {
   success: boolean;
   outputs: Record<string, unknown>;

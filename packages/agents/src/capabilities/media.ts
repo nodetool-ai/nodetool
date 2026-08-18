@@ -30,8 +30,20 @@ import {
   HostBinaryMissingError,
   clampTimeoutSeconds,
   mimeFromFilename,
-  runHostBinary
+  runHostBinary,
+  type RunHostBinaryOptions
 } from "../host-binaries.js";
+import {
+  MAX_DOWNLOAD_BYTES,
+  buildYtDlpArgv,
+  confineArgvToWorkspace,
+  hardenFfmpegArgv,
+  refuseFlagLikeValue
+} from "../host-binary-guard.js";
+import {
+  assertFetchUrlAllowed,
+  assertResolvedHostAllowed
+} from "../network-guard.js";
 import { encodeBase64 as encodeMediaBase64 } from "../sandbox-bytes.js";
 import {
   DEFAULT_MIME,
@@ -62,9 +74,14 @@ import {
   critiqueImageSpec,
   compareImagesSpec,
   scoreImageAdherenceSpec,
+  understandVideoSpec,
   ffmpegSpec,
+  ffprobeSpec,
   ytDlpSpec,
+  DEFAULT_UNDERSTAND_VIDEO_TOKENS,
+  DEFAULT_VIDEO_PROMPT,
   MAX_COMPARE_IMAGES,
+  MAX_UNDERSTAND_VIDEO_TOKENS,
   GENERATE_IMAGE_SCHEMA,
   EDIT_IMAGE_SCHEMA,
   GENERATE_VIDEO_SCHEMA,
@@ -75,7 +92,8 @@ import {
   READ_MEDIA_BYTES_SCHEMA,
   CRITIQUE_IMAGE_SCHEMA,
   COMPARE_IMAGES_SCHEMA,
-  SCORE_ADHERENCE_SCHEMA
+  SCORE_ADHERENCE_SCHEMA,
+  UNDERSTAND_VIDEO_SCHEMA
 } from "./media.specs.js";
 
 export {
@@ -90,7 +108,8 @@ export {
   READ_MEDIA_BYTES_SCHEMA,
   CRITIQUE_IMAGE_SCHEMA,
   COMPARE_IMAGES_SCHEMA,
-  SCORE_ADHERENCE_SCHEMA
+  SCORE_ADHERENCE_SCHEMA,
+  UNDERSTAND_VIDEO_SCHEMA
 } from "./media.specs.js";
 
 const MAX_INLINE_TEXT_PREVIEW = 500;
@@ -636,8 +655,8 @@ function parseJudgeModelArgs(
   return { provider, model };
 }
 
-/** Normalize an image source so the context media resolver can inline it. */
-function normalizeImageSource(source: string): string {
+/** Normalize a media source so the context media resolver can inline it. */
+function normalizeMediaSource(source: string): string {
   const trimmed = source.trim();
   if (
     trimmed.startsWith("data:") ||
@@ -654,7 +673,14 @@ function normalizeImageSource(source: string): string {
 function imagePart(source: string): MessageContent {
   return {
     type: "image_url",
-    image: { type: "image", uri: normalizeImageSource(source) }
+    image: { type: "image", uri: normalizeMediaSource(source) }
+  };
+}
+
+function videoPart(source: string): MessageContent {
+  return {
+    type: "video",
+    video: { type: "video", uri: normalizeMediaSource(source) }
   };
 }
 
@@ -678,7 +704,8 @@ function messageText(message: Message): string {
 async function judgeCall(
   context: ProcessingContext,
   m: JudgeModelArgs,
-  content: MessageContent[]
+  content: MessageContent[],
+  maxTokens: number = JUDGE_MAX_TOKENS
 ): Promise<string> {
   const result = (await context.runProviderPrediction({
     provider: m.provider,
@@ -686,7 +713,7 @@ async function judgeCall(
     model: m.model,
     params: {
       messages: [{ role: "user", content }] satisfies Message[],
-      max_tokens: JUDGE_MAX_TOKENS,
+      max_tokens: maxTokens,
       temperature: 0
     }
   })) as Message;
@@ -1022,6 +1049,52 @@ const scoreImageAdherence: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// understand_video
+// ---------------------------------------------------------------------------
+
+/**
+ * Read a video with a multimodal chat model.
+ *
+ * The video rides as a `video` content part next to the instruction; the
+ * context's media resolver inlines an `asset://` URI and the provider decides
+ * whether the bytes go inline or through its files API.
+ */
+const understandVideo: CapabilityExport = {
+  spec: understandVideoSpec,
+  impl: async (run, params) => {
+    const m = parseJudgeModelArgs(params);
+    if ("error" in m) return m;
+    const video = params["video"];
+    if (!isNonEmptyString(video)) {
+      return { error: "video is required" };
+    }
+    const promptParam = params["prompt"];
+    const prompt = isNonBlankString(promptParam)
+      ? promptParam
+      : DEFAULT_VIDEO_PROMPT;
+    const requested = Number(params["max_tokens"]);
+    const maxTokens =
+      Number.isFinite(requested) && requested > 0
+        ? Math.min(Math.floor(requested), MAX_UNDERSTAND_VIDEO_TOKENS)
+        : DEFAULT_UNDERSTAND_VIDEO_TOKENS;
+
+    try {
+      const text = await judgeCall(
+        run.context,
+        m,
+        [textPart(prompt), videoPart(video)],
+        maxTokens
+      );
+      return { text, provider: m.provider, model: m.model };
+    } catch (e) {
+      return {
+        error: `understand_video failed: ${e instanceof Error ? e.message : String(e)}`
+      };
+    }
+  }
+};
+
 /**
  * The gated read behind a media reference.
  *
@@ -1139,17 +1212,25 @@ const ffmpeg: CapabilityExport = {
       argv.push(outputFile);
     }
 
+    const refusal = await confineArgvToWorkspace(argv, workspace);
+    if (refusal) return refusal;
+    const hardened = hardenFfmpegArgv(argv);
+    if ("error" in hardened) return hardened;
+
+    const persistTarget =
+      outputFile ||
+      [...argv].reverse().find((item) => item && !item.startsWith("-")) ||
+      "";
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 180, 600) * 1000;
+    const runOptions: RunHostBinaryOptions = { cwd: workspace, timeoutMs };
+    // Only a known output path can be watched for size; without one the
+    // wall clock and the capture cap are the run's bounds.
+    if (persistTarget) {
+      runOptions.artifactPath = persistTarget;
+    }
     try {
-      const result = await runHostBinary("ffmpeg", argv, {
-        cwd: workspace,
-        timeoutMs
-      });
-      const persistTarget =
-        outputFile ||
-        [...argv].reverse().find((item) => item && !item.startsWith("-")) ||
-        "";
+      const result = await runHostBinary("ffmpeg", hardened.argv, runOptions);
       const persisted =
         result.exitCode === 0 && persistTarget
           ? await persistWorkspaceFile(run.context, persistTarget)
@@ -1172,6 +1253,62 @@ const ffmpeg: CapabilityExport = {
   }
 };
 
+/**
+ * ffprobe with an argv NodeTool writes, not the caller.
+ *
+ * Everything a caller can say is one workspace path, so the whole boundary is
+ * the confinement check — there is no flag surface to guard, and no way to ask
+ * ffprobe to open a socket.
+ */
+const ffprobe: CapabilityExport = {
+  spec: ffprobeSpec,
+  impl: async (run, params) => {
+    const workspace = requireWorkspaceDir(run.context);
+    if (!isString(workspace)) return workspace;
+    const target = params["path"];
+    if (!isNonBlankString(target)) {
+      return { error: "path is required" };
+    }
+    const refusal = await confineArgvToWorkspace([target.trim()], workspace);
+    if (refusal) return refusal;
+
+    const timeoutMs =
+      clampTimeoutSeconds(params["timeout_seconds"], 30, 120) * 1000;
+    try {
+      const result = await runHostBinary(
+        "ffprobe",
+        [
+          "-v",
+          "error",
+          "-print_format",
+          "json",
+          "-show_format",
+          "-show_streams",
+          target.trim()
+        ],
+        { cwd: workspace, timeoutMs }
+      );
+      if (result.exitCode !== 0) {
+        return {
+          error: `ffprobe failed: ${result.stderr.trim() || `exit ${result.exitCode}`}`
+        };
+      }
+      const parsed: unknown = JSON.parse(result.stdout);
+      if (!isObjectLike(parsed)) {
+        return { error: "ffprobe returned no readable JSON" };
+      }
+      return { path: target.trim(), ...parsed };
+    } catch (e) {
+      if (e instanceof HostBinaryMissingError) {
+        return { error: e.message };
+      }
+      return {
+        error: `ffprobe failed: ${e instanceof Error ? e.message : String(e)}`
+      };
+    }
+  }
+};
+
 const DEFAULT_YT_DLP_OUTPUT = "downloads/yt-dlp/%(id)s.%(ext)s";
 
 const ytDlp: CapabilityExport = {
@@ -1183,13 +1320,16 @@ const ytDlp: CapabilityExport = {
     if (!isNonBlankString(url)) {
       return { error: "url is required" };
     }
+    // The downloader opens its own sockets from inside the server, so an
+    // http(s) check alone leaves the metadata service and every internal
+    // host reachable. Same guard the sandbox fetch bridge uses, plus the
+    // resolution step a hostname needs.
     try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return { error: "url must be an http(s) URL" };
-      }
-    } catch {
-      return { error: `invalid url: ${url}` };
+      assertFetchUrlAllowed(url);
+      await assertResolvedHostAllowed(url, "yt_dlp");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { error: message.replace(/^fetch: /, "yt_dlp: ") };
     }
 
     const outputFile = isNonBlankString(params["output_file"])
@@ -1200,6 +1340,15 @@ const ytDlp: CapabilityExport = {
       : "";
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 300, 900) * 1000;
+
+    // The template is the caller's, so it escapes the workspace as easily as
+    // an ffmpeg path does. `format` reaches yt-dlp as a selector, never a path.
+    const refusal = await confineArgvToWorkspace([outputFile], workspace);
+    if (refusal) return refusal;
+    const flagLike =
+      refuseFlagLikeValue(outputFile, "output_file") ??
+      (format ? refuseFlagLikeValue(format, "format") : undefined);
+    if (flagLike) return flagLike;
 
     const outDir = path.dirname(outputFile);
     if (outDir && outDir !== ".") {
@@ -1216,18 +1365,11 @@ const ytDlp: CapabilityExport = {
       }
     }
 
-    const argv = [
-      "--no-playlist",
-      "--no-warnings",
-      "--print",
-      "after_move:filepath",
-      "-o",
-      outputFile
-    ];
+    const download: Parameters<typeof buildYtDlpArgv>[0] = { url, outputFile };
     if (format) {
-      argv.push("-f", format);
+      download.format = format;
     }
-    argv.push(url);
+    const argv = buildYtDlpArgv(download);
 
     try {
       const result = await runHostBinary("yt-dlp", argv, {
@@ -1235,6 +1377,22 @@ const ytDlp: CapabilityExport = {
         timeoutMs
       });
       const printed = result.stdout.trim().split("\n").filter(Boolean).at(-1);
+      // `--print after_move:filepath` names the finished file. Nothing printed
+      // on a clean exit means nothing was written — which is what an aborted
+      // over-cap download looks like, since `--print` silences the reason.
+      if (result.exitCode === 0 && !printed) {
+        return {
+          success: false,
+          url,
+          error:
+            `yt-dlp wrote no file. The download may have passed the ` +
+            `${MAX_DOWNLOAD_BYTES}-byte limit, or the URL carried nothing to ` +
+            `download.`,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          exit_code: result.exitCode
+        };
+      }
       const produced =
         printed && !printed.startsWith("http")
           ? path.isAbsolute(printed)
@@ -1280,7 +1438,9 @@ export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   critiqueImage,
   compareImages,
   scoreImageAdherence,
+  understandVideo,
   ffmpeg,
+  ffprobe,
   ytDlp
 ];
 
@@ -1301,6 +1461,7 @@ export {
   critiqueImage,
   compareImages,
   scoreImageAdherence,
+  understandVideo,
   ffmpeg,
   ytDlp
 };

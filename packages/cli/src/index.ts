@@ -193,15 +193,11 @@ async function autoEnable(key: string, tools: string[]): Promise<void> {
 }
 
 await Promise.all([
-  autoEnable("SERPAPI_API_KEY", [
-    "google_search",
-    "google_news",
-    "google_images"
-  ]),
+  autoEnable("SERPAPI_API_KEY", ["google_search", "web_search"]),
   // `generate_image` / `generate_speech` are not here: they route by the model
   // they are given, so an OpenAI key is not what makes them usable.
   autoEnable("OPENAI_API_KEY", ["web_search"]),
-  autoEnable("DATA_FOR_SEO_LOGIN", ["web_search", "google_news"]),
+  autoEnable("DATA_FOR_SEO_LOGIN", ["web_search"]),
   autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
 ]);
 

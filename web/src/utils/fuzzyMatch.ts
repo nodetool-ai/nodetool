@@ -17,10 +17,41 @@
  * slightly higher, so "Add" beats "Add Column" for the query "add".
  */
 
-const isWordChar = (ch: string): boolean => /[a-z0-9]/i.test(ch);
+// Char-code test rather than a regex: this runs once per character of every
+// candidate text, for every node in the catalog, on every keystroke.
+const isWordCharCode = (code: number): boolean =>
+  (code >= 97 && code <= 122) || // a-z
+  (code >= 48 && code <= 57) || // 0-9
+  (code >= 65 && code <= 90); // A-Z
+
+const isWordChar = (ch: string): boolean => isWordCharCode(ch.charCodeAt(0));
 
 const atWordBoundary = (text: string, index: number): boolean =>
   index === 0 || !isWordChar(text[index - 1]);
+
+/** Set of characters in `s[from, to)`, hashed into a 32-bit mask. */
+const charMask = (s: string, from: number, to: number): number => {
+  let mask = 0;
+  for (let i = from; i < to; i++) {
+    mask |= 1 << (s.charCodeAt(i) & 31);
+  }
+  return mask;
+};
+
+const popcount = (n: number): number => {
+  let bits = n - ((n >>> 1) & 0x55555555);
+  bits = (bits & 0x33333333) + ((bits >>> 2) & 0x33333333);
+  return (((bits + (bits >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24;
+};
+
+// Three rotating rows of the DP table, reused across calls — a typo pass over
+// the catalog runs this tens of thousands of times per keystroke, and a fresh
+// row per iteration was most of its cost. Sharing them is safe because the
+// function is synchronous and never re-enters, and it fully rewrites a row
+// before reading it.
+let dpTwoAgo: number[] = [];
+let dpOneAgo: number[] = [];
+let dpCurrent: number[] = [];
 
 /**
  * Optimal string alignment distance (Levenshtein plus adjacent
@@ -38,9 +69,14 @@ const editDistanceWithinBudget = (
   if (Math.abs(al - bl) > max) {
     return max + 1;
   }
-  let twoAgo: number[] = [];
-  let oneAgo = new Array<number>(bl + 1);
-  let current = new Array<number>(bl + 1);
+  if (dpOneAgo.length < bl + 1) {
+    dpTwoAgo = new Array<number>(bl + 1);
+    dpOneAgo = new Array<number>(bl + 1);
+    dpCurrent = new Array<number>(bl + 1);
+  }
+  let twoAgo = dpTwoAgo;
+  let oneAgo = dpOneAgo;
+  let current = dpCurrent;
   for (let j = 0; j <= bl; j++) {
     oneAgo[j] = j;
   }
@@ -70,9 +106,10 @@ const editDistanceWithinBudget = (
     if (rowMin > max) {
       return max + 1;
     }
+    const recycled = twoAgo;
     twoAgo = oneAgo;
     oneAgo = current;
-    current = new Array<number>(bl + 1);
+    current = recycled;
   }
   return oneAgo[bl];
 };
@@ -90,18 +127,56 @@ const typoScore = (q: string, t: string): number => {
   if (budget === 0) {
     return 0;
   }
+
+  // A character of `q` that the candidate does not contain costs at least one
+  // edit to remove, so a candidate missing more than `budget` of them cannot
+  // be within budget. `charMask` hashes characters into 32 bits, which only
+  // ever makes the test more permissive (collisions hide a missing
+  // character), so the exact DP still decides everything it lets through.
+  const qMask = charMask(q, 0, q.length);
+
   let best = 0;
-  for (const unit of [t, ...t.split(/[^a-z0-9]+/)]) {
-    if (unit.length === 0 || Math.abs(unit.length - q.length) > budget) {
-      continue;
+  const consider = (unit: string, unitMask: number): void => {
+    if (popcount(qMask & ~unitMask) > budget) {
+      return;
     }
     const dist = editDistanceWithinBudget(q, unit, budget);
     if (dist > budget) {
-      continue;
+      return;
     }
     const similarity = 1 - dist / Math.max(q.length, unit.length);
     if (similarity > best) {
       best = similarity;
+    }
+  };
+
+  if (Math.abs(t.length - q.length) <= budget) {
+    consider(t, charMask(t, 0, t.length));
+  }
+
+  // Walk the word spans in place. Splitting on a regex would allocate an
+  // array of every word in the text for every candidate on every keystroke,
+  // and nearly all of those words are rejected by the length or mask test
+  // anyway.
+  let wordStart = -1;
+  let wordMask = 0;
+  for (let i = 0; i <= t.length; i++) {
+    if (i < t.length) {
+      const code = t.charCodeAt(i);
+      if (isWordCharCode(code)) {
+        if (wordStart === -1) {
+          wordStart = i;
+          wordMask = 0;
+        }
+        wordMask |= 1 << (code & 31);
+        continue;
+      }
+    }
+    if (wordStart !== -1) {
+      if (Math.abs(i - wordStart - q.length) <= budget) {
+        consider(t.slice(wordStart, i), wordMask);
+      }
+      wordStart = -1;
     }
   }
   return 0.5 * best;

@@ -587,4 +587,205 @@ describe("extractModels()", () => {
       expect(result).toHaveLength(0);
     });
   });
+
+  // What the extractor does, not what it should do: the cases below pin
+  // behavior nothing asserted before, including one known bug.
+  describe("scan order and scope", () => {
+    it("should scan the model field, then the root level, then arrays", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            {
+              data: {
+                loras: [{ type: "hf.lora", repo_id: "org/from-array" }],
+                model: { type: "hf.model", repo_id: "org/from-model-field" },
+                type: "language_model",
+                provider: "ollama",
+                id: "llama3:8b"
+              }
+            }
+          ]
+        }
+      });
+      expect(result.map((m) => m.repo_id ?? m.id)).toEqual([
+        "org/from-model-field",
+        "llama3:8b",
+        "org/from-array"
+      ]);
+    });
+
+    it("should reach HF references inside an array-valued model field", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            { data: { model: [{ type: "hf.lora", repo_id: "org/in-array" }] } }
+          ]
+        }
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].repo_id).toBe("org/in-array");
+    });
+
+    it("should ignore an Ollama reference nested in an array", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            {
+              data: {
+                items: [
+                  { type: "language_model", provider: "ollama", id: "llama3" }
+                ]
+              }
+            }
+          ]
+        }
+      });
+      expect(result).toHaveLength(0);
+    });
+
+    it("should ignore a llama_cpp reference at the root level", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            {
+              data: {
+                type: "language_model",
+                provider: "llama_cpp",
+                id: "org/model:file.gguf"
+              }
+            }
+          ]
+        }
+      });
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("deduplication keys", () => {
+    it("should treat a null path the same as a missing one", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            { data: { model: { type: "hf.model", repo_id: "org/m" } } },
+            {
+              data: {
+                model: {
+                  type: "hf.model",
+                  repo_id: "org/m",
+                  path: null,
+                  variant: null
+                }
+              }
+            }
+          ]
+        }
+      });
+      expect(result).toHaveLength(1);
+    });
+
+    it("should dedupe a llama_cpp model against the same hf.gguf download", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            {
+              data: {
+                model: {
+                  type: "language_model",
+                  provider: "llama_cpp",
+                  id: "org/gguf:model.gguf"
+                }
+              }
+            },
+            {
+              data: {
+                model: {
+                  type: "hf.gguf",
+                  repo_id: "org/gguf",
+                  path: "model.gguf"
+                }
+              }
+            }
+          ]
+        }
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].type).toBe("hf.gguf");
+    });
+
+    it("should keep an Ollama and an HF model that share an id string apart", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            {
+              data: {
+                model: {
+                  type: "language_model",
+                  provider: "ollama",
+                  id: "org/m"
+                }
+              }
+            },
+            { data: { model: { type: "hf.model", repo_id: "org/m" } } }
+          ]
+        }
+      });
+      expect(result).toHaveLength(2);
+    });
+  });
+
+  describe("llama_cpp id parsing", () => {
+    // BUG: a GGUF path with a colon in it silently loses its tail. Pinned as-is
+    // so the rewrite is behavior-preserving; fixing it is a separate change.
+    it("should drop everything after the second colon", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            {
+              data: {
+                model: {
+                  type: "language_model",
+                  provider: "llama_cpp",
+                  id: "org/model:nested:file.gguf"
+                }
+              }
+            }
+          ]
+        }
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].repo_id).toBe("org/model");
+      expect(result[0].path).toBe("nested");
+    });
+
+    it("should skip a llama_cpp id that is not a string", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            {
+              data: {
+                model: { type: "language_model", provider: "llama_cpp", id: 42 }
+              }
+            }
+          ]
+        }
+      });
+      expect(result).toHaveLength(0);
+    });
+
+    it("should accept a non-string Ollama id, which llama_cpp rejects", () => {
+      const result = extractModels({
+        graph: {
+          nodes: [
+            {
+              data: {
+                model: { type: "language_model", provider: "ollama", id: 42 }
+              }
+            }
+          ]
+        }
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].provider).toBe("ollama");
+    });
+  });
 });

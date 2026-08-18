@@ -111,10 +111,19 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
  * - `nodetool.code.Code` — the sandboxed (QuickJS WASM) JavaScript node only.
  *   Admitting it by name rather than whole-listing `nodetool.code` keeps any
  *   future node in that namespace out of the cloud until it is reviewed.
+ * - `lib.video.download.YtDlpDownload` — the one node of the otherwise-trimmed
+ *   `lib.video.download` namespace. Bringing a clip in from a URL is the first
+ *   step of most video work, and the cloud image ships `yt-dlp` on PATH
+ *   (Dockerfile, /opt/venv), so the node runs there as it does locally. The
+ *   same binary already backs the `yt_dlp` capability, which cloud users reach
+ *   from chat and from the Code node — the node is the graph-shaped surface on
+ *   the same thing.
  */
 export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
   // Sandboxed code only.
-  "nodetool.code.Code"
+  "nodetool.code.Code",
+  // Media in from a URL; the binary ships in the cloud image.
+  "lib.video.download.YtDlpDownload"
 ];
 
 /**

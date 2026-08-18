@@ -11,9 +11,11 @@ office-doc tooling, local model runtimes) that is powerful but "nerdy" — it
 dilutes the creative mission and balloons the support surface. The cloud profile
 drops it.
 
-> **One exception:** the **sandboxed Code node** (`nodetool.code.Code`, QuickJS
-> WASM JavaScript) is kept. It is the intentional power-user escape hatch, and
-> it is admitted by name rather than by namespace.
+> **Two exceptions,** both admitted by name rather than by namespace: the
+> **sandboxed Code node** (`nodetool.code.Code`, QuickJS WASM JavaScript), the
+> intentional power-user escape hatch; and the **yt-dlp downloader**
+> (`lib.video.download.YtDlpDownload`), because bringing a clip in from a URL
+> starts most video work and the cloud image ships `yt-dlp` on PATH.
 
 ## How it's enabled
 
@@ -148,7 +150,8 @@ Admitting it by name rather than whole-listing the namespace keeps any future
 - **Data/docs:** `nodetool.data` (dataframes), `nodetool.document`, `lib.pdf`,
   `lib.markdown`, `lib.html`, `lib.charts`
 - **System/automation:** `lib.os`, `nodetool.workspace`,
-  `nodetool.triggers`, `lib.browser`, `lib.video.download`
+  `nodetool.triggers`, `lib.browser`, `lib.video.download` (except
+  `YtDlpDownload`, kept by name)
 - **Databases/cloud/integrations:** `lib.sqlite`, `lib.http`, `lib.graphql`,
   `lib.mail`, `lib.secret`, `lib.comfy`
 - **Messaging:** `messaging.discord`, `messaging.telegram`
@@ -163,7 +166,9 @@ The namespace is kept. The product surface is the standard Agent plus
 Classifier, Extractor, Summarizer, CreateThread, and EnhancePrompt.
 Specialist tool-agent nodes were removed. ffmpeg, yt-dlp, and browser
 are CodeAct capabilities (`nodetool.media.ffmpeg`,
-`nodetool.media.downloadVideo`, `nodetool.web.browse`).
+`nodetool.media.downloadVideo`, `nodetool.web.browse`) — the same binaries the
+image installs, reached from chat and from the Code node instead of from an
+agent node.
 
 ## Maintenance
 

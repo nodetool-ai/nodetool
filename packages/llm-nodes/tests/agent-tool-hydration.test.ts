@@ -15,8 +15,10 @@ describe("retired tool names", () => {
     ["openai_web_search", "web_search"],
     ["google_grounded_search", "web_search"],
     ["dataforseo_search", "web_search"],
-    ["dataforseo_news", "google_news"],
-    ["dataforseo_images", "google_images"],
+    ["dataforseo_news", "web_search"],
+    ["dataforseo_images", "web_search"],
+    ["google_news", "web_search"],
+    ["google_images", "web_search"],
     ["image_generation", "generate_image"],
     ["openai_image_generation", "generate_image"],
     ["google_image_generation", "generate_image"],
@@ -28,7 +30,7 @@ describe("retired tool names", () => {
 
   it("hydrates a saved stub into a runnable tool", () => {
     const hydrated = hydrateBuiltinAgentTool({ name: "dataforseo_news" });
-    expect(hydrated.name).toBe("google_news");
+    expect(hydrated.name).toBe("web_search");
     expect(typeof (hydrated as { process?: unknown }).process).toBe("function");
   });
 

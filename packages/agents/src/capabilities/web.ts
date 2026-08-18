@@ -7,9 +7,9 @@
  * all seven from `web.specs.ts` by name.
  *
  * The provider-specific backends are plain functions, not tools. They have no
- * wire name of their own: `web_search`, `google_news` and `google_images`
- * choose one host-side, so a model picks a capability and the host picks the
- * provider behind it.
+ * wire name of their own: the single `web_search` capability chooses one
+ * host-side, so a model picks a capability and the host picks the provider
+ * behind it.
  *
  * `htmlToText` and `requestSignal` live here rather than in the tool files
  * they came from, because those files now import *from* this module; the old
@@ -25,7 +25,14 @@ import {
   type JsonSchema,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
-import type { SerpProvider } from "../tools/serp-providers/index.js";
+import type {
+  SerpProvider,
+  SerpProviderType
+} from "../tools/serp-providers/index.js";
+import {
+  createSerpProvider,
+  serpProviderConfigured
+} from "../tools/serp-providers/index.js";
 import type {
   CapabilityExport,
   CapabilityImpl,
@@ -35,8 +42,6 @@ import type {
 import { stripElement, stripTags, stripToFixpoint } from "./html-text.js";
 import {
   webSearchSpec,
-  googleNewsSpec,
-  googleImagesSpec,
   browserSpec,
   takeScreenshotSpec,
   downloadFileSpec,
@@ -100,12 +105,26 @@ export async function serpApiConfigured(
   return Boolean(fromCtx ?? process.env.SERPAPI_API_KEY);
 }
 
+/** What a caller asked to search over. */
+export type SearchType = "web" | "news" | "images";
+
+/** Parse the `search_type` argument, defaulting to `web`. */
+function readSearchType(value: unknown): SearchType | undefined {
+  if (value === undefined || value === null || value === "") return "web";
+  const text = String(value);
+  return text === "web" || text === "news" || text === "images"
+    ? text
+    : undefined;
+}
+
 /** One interchangeable backing service behind a search capability. */
 interface SearchBackend {
   /** The value the `backend` param takes to pin this backend. */
   name: string;
   /** The secret(s) that make it usable, for error messages. */
   requires: string;
+  /** The search types it can answer. Others skip it while routing. */
+  supports: ReadonlySet<SearchType>;
   isConfigured(context: ProcessingContext): Promise<boolean>;
   run(context: ProcessingContext): Promise<unknown>;
 }
@@ -119,18 +138,34 @@ async function runFirstConfiguredBackend(
   toolName: string,
   context: ProcessingContext,
   backends: SearchBackend[],
-  pinnedRaw: unknown
+  pinnedRaw: unknown,
+  searchType: SearchType = "web"
 ): Promise<unknown> {
+  // A backend that cannot answer this kind of search is not a candidate. Doing
+  // this first means the "nothing is configured" message lists only backends
+  // that could have served the call, instead of telling someone searching for
+  // images to go and set a key that would not have helped.
+  const capable = backends.filter((b) => b.supports.has(searchType));
+
   // `default` always means the tool's own first backend.
   const pinned =
     pinnedRaw === undefined || pinnedRaw === null || pinnedRaw === ""
       ? undefined
       : String(pinnedRaw) === "default"
-        ? backends[0].name
+        ? capable[0]?.name
         : String(pinnedRaw);
   if (pinned !== undefined) {
-    const backend = backends.find((b) => b.name === pinned);
+    const backend = capable.find((b) => b.name === pinned);
     if (!backend) {
+      const known = backends.find((b) => b.name === pinned);
+      if (known) {
+        throw new Error(
+          `${toolName}: backend "${pinned}" does not support ` +
+            `search_type "${searchType}" — use one of ` +
+            capable.map((b) => b.name).join(", ") +
+            "."
+        );
+      }
       throw new Error(
         `${toolName}: unknown backend "${pinned}" — one of ` +
           backends.map((b) => b.name).join(", ") +
@@ -147,12 +182,13 @@ async function runFirstConfiguredBackend(
   }
 
   const unconfigured: string[] = [];
-  for (const backend of backends) {
+  for (const backend of capable) {
     if (await backend.isConfigured(context)) return backend.run(context);
     unconfigured.push(`${backend.name} needs ${backend.requires}`);
   }
   throw new Error(
-    `${toolName}: no search backend is configured — ` +
+    `${toolName}: no search backend is configured for search_type ` +
+      `"${searchType}" — ` +
       unconfigured.join("; ") +
       "."
   );
@@ -223,12 +259,24 @@ function domainOf(link: string | null | undefined): string {
 }
 
 /**
- * Web search, modeled on Claude Code's `WebSearch` tool: a `query` plus
- * optional `allowed_domains` / `blocked_domains` filters. Routes host-side
- * across the configured backends — SerpAPI, then OpenAI web search, then
- * Gemini grounded search, then DataForSEO. Providers that have a built-in
- * web search (`supportsNativeWebSearch`) render a tool of this name as their
- * own server-side search instead of calling this implementation.
+ * Web, news, and image search over every configured backend.
+ *
+ * This is the whole search surface. It used to be three capabilities —
+ * `web_search`, `google_news`, `google_images` — which was three wire names,
+ * three schemas and three routing tables for one question with a parameter on
+ * it, and it left two of the four SERP providers (Brave, Apify) reachable from
+ * no tool at all. `search_type` replaced the split, and the backend list is now
+ * the full set, so anything the SERP factory can build is reachable from an
+ * agent and from sandbox code.
+ *
+ * Result shapes are preserved across that merge on purpose: `web` returns the
+ * formatted string it always did, `news` and `images` return the
+ * `{success, results}` records they always did. The consumers — the chat UI's
+ * result parser most of all — read shapes, not tool names.
+ *
+ * Not every backend serves every type. A backend that cannot is skipped while
+ * routing and named as the reason when it was pinned, rather than quietly
+ * answering an image search with web results.
  *
  * The optional `provider` is the SERP client `createSearchTool` injects; with
  * none, the SerpAPI backend calls the HTTP endpoint directly.
@@ -242,7 +290,14 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
       (params.keyword as string | undefined);
     if (!query) return "Error: query is required";
 
-    const numResults = (params.num_results as number) ?? 10;
+    const searchType = readSearchType(params.search_type);
+    if (searchType === undefined) {
+      return `Error: unknown search_type "${String(params.search_type)}" — one of web, news, images.`;
+    }
+
+    const numResults =
+      (params.num_results as number | undefined) ??
+      (searchType === "images" ? 20 : 10);
     const allowed = (params.allowed_domains as string[] | undefined) ?? [];
     const blocked = (params.blocked_domains as string[] | undefined) ?? [];
     // `allowed_domains` is pushed into the query itself so the engine narrows
@@ -278,13 +333,85 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
       }>
     ) => formatSearchResults(raw.filter((r) => keep(r.link)));
 
+    /** Filter a news/image record list on the same domain rules. */
+    const keepRecords = (records: Array<Record<string, unknown>>) =>
+      records.filter((r) => keep((r.link as string | null) ?? null));
+
+    /** A SERP-factory backend: build the client, search, format. */
+    const serpFactoryBackend = (
+      name: SerpProviderType,
+      requires: string
+    ): SearchBackend => ({
+      name,
+      requires,
+      supports: new Set<SearchType>(["web"]),
+      isConfigured: (ctx) => serpProviderConfigured(name, ctx),
+      run: async (ctx) => {
+        const client = await createSerpProvider(name, ctx);
+        const results = await client.search(effectiveQuery, { numResults });
+        return formatFiltered(
+          results.map((r) => ({
+            title: r.title ?? null,
+            link: r.url ?? null,
+            snippet: r.snippet ?? null
+          }))
+        );
+      }
+    });
+
     const backends: SearchBackend[] = [
       {
         name: "serpapi",
         requires: "SERPAPI_API_KEY",
+        supports: new Set<SearchType>(["web", "news", "images"]),
         isConfigured: async (ctx) =>
           provider !== undefined || serpApiConfigured(ctx),
         run: async (ctx) => {
+          if (searchType === "news") {
+            const data = (await serpApiFetch({
+              engine: "google_news",
+              q: effectiveQuery,
+              api_key: await getSerpApiKey(ctx),
+              num: numResults
+            })) as Record<string, unknown>;
+            const newsResults = (data.news_results ?? []) as Array<
+              Record<string, unknown>
+            >;
+            return {
+              success: true,
+              results: keepRecords(
+                newsResults.map((r) => ({
+                  title: r.title ?? null,
+                  link: r.link ?? null,
+                  snippet: r.snippet ?? null,
+                  date: r.date ?? null,
+                  source: (r.source as Record<string, unknown>)?.name ?? null
+                }))
+              )
+            };
+          }
+          if (searchType === "images") {
+            const data = (await serpApiFetch({
+              engine: "google_images",
+              q: effectiveQuery,
+              api_key: await getSerpApiKey(ctx),
+              num: numResults
+            })) as Record<string, unknown>;
+            const imagesResults = (data.images_results ?? []) as Array<
+              Record<string, unknown>
+            >;
+            return {
+              success: true,
+              results: keepRecords(
+                imagesResults.map((r) => ({
+                  title: r.title ?? null,
+                  link: r.link ?? null,
+                  original: r.original ?? null,
+                  thumbnail: r.thumbnail ?? null
+                }))
+              )
+            };
+          }
           let raw: Array<{
             title: string | null;
             link: string | null;
@@ -320,8 +447,83 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
         }
       },
       {
+        name: "dataforseo",
+        requires: DATAFORSEO_REQUIRES,
+        supports: new Set<SearchType>(["web", "news", "images"]),
+        isConfigured: async (ctx) => {
+          const { dataForSeoConfigured } =
+            await import("../tools/dataseo-tools.js");
+          return dataForSeoConfigured(ctx);
+        },
+        run: async (ctx) => {
+          if (searchType === "news") {
+            const { dataForSeoNews } = await import("../tools/dataseo-tools.js");
+            const result = unwrapBackendResult(
+              await dataForSeoNews(ctx, { keyword: effectiveQuery, num_results: numResults })
+            );
+            const items = (result.results ?? []) as Array<
+              Record<string, unknown>
+            >;
+            return {
+              success: true,
+              results: keepRecords(
+                items.map((r) => ({
+                  title: r.title ?? null,
+                  link: r.url ?? null,
+                  snippet: r.snippet ?? null,
+                  date: r.published_at ?? null,
+                  source: r.source ?? null
+                }))
+              )
+            };
+          }
+          if (searchType === "images") {
+            const { dataForSeoImages } =
+              await import("../tools/dataseo-tools.js");
+            const result = unwrapBackendResult(
+              await dataForSeoImages(ctx, { keyword: effectiveQuery, num_results: numResults })
+            );
+            const items = (result.results ?? []) as Array<
+              Record<string, unknown>
+            >;
+            return {
+              success: true,
+              results: keepRecords(
+                items.map((r) => ({
+                  title: r.title ?? null,
+                  link: r.source_url ?? null,
+                  original: r.image_url ?? null,
+                  thumbnail: null
+                }))
+              )
+            };
+          }
+          const { dataForSeoSearch } =
+            await import("../tools/dataseo-tools.js");
+          const result = unwrapBackendResult(
+            await dataForSeoSearch(ctx, {
+              keyword: effectiveQuery,
+              num_results: numResults
+            })
+          );
+          const results = (result.results ?? []) as Array<
+            Record<string, unknown>
+          >;
+          return formatFiltered(
+            results.map((r) => ({
+              title: (r.title as string) ?? null,
+              link: (r.url as string) ?? null,
+              snippet: (r.snippet as string) ?? null
+            }))
+          );
+        }
+      },
+      serpFactoryBackend("brave", "BRAVE_API_KEY"),
+      serpFactoryBackend("apify", "APIFY_API_TOKEN"),
+      {
         name: "openai",
         requires: "OPENAI_API_KEY",
+        supports: new Set<SearchType>(["web"]),
         isConfigured: async (ctx) => {
           const { openAiSearchConfigured } =
             await import("../tools/openai-tools.js");
@@ -338,6 +540,7 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
       {
         name: "gemini",
         requires: "GEMINI_API_KEY",
+        supports: new Set<SearchType>(["web"]),
         isConfigured: async (ctx) => {
           const { geminiSearchConfigured } =
             await import("../tools/google-tools.js");
@@ -361,35 +564,6 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
             .join("\n\n");
           return `${text}\n\nSources:\n\n${sourceLines}`;
         }
-      },
-      {
-        name: "dataforseo",
-        requires: DATAFORSEO_REQUIRES,
-        isConfigured: async (ctx) => {
-          const { dataForSeoConfigured } =
-            await import("../tools/dataseo-tools.js");
-          return dataForSeoConfigured(ctx);
-        },
-        run: async (ctx) => {
-          const { dataForSeoSearch } =
-            await import("../tools/dataseo-tools.js");
-          const result = unwrapBackendResult(
-            await dataForSeoSearch(ctx, {
-              keyword: effectiveQuery,
-              num_results: numResults
-            })
-          );
-          const results = (result.results ?? []) as Array<
-            Record<string, unknown>
-          >;
-          return formatFiltered(
-            results.map((r) => ({
-              title: (r.title as string) ?? null,
-              link: (r.url as string) ?? null,
-              snippet: (r.snippet as string) ?? null
-            }))
-          );
-        }
       }
     ];
 
@@ -397,7 +571,8 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
       WEB_SEARCH_TOOL_NAME,
       context,
       backends,
-      params.backend
+      params.backend,
+      searchType
     );
   };
 }
@@ -405,161 +580,6 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
 const webSearch: CapabilityExport = {
   spec: webSearchSpec,
   impl: webSearchImpl()
-};
-
-// ---------------------------------------------------------------------------
-// google_news
-// ---------------------------------------------------------------------------
-
-const googleNews: CapabilityExport = {
-  spec: googleNewsSpec,
-  impl: async (run, params) => {
-    const keyword = params.keyword as string | undefined;
-    if (!keyword) return { error: "keyword is required" };
-
-    const numResults = (params.num_results as number) ?? 10;
-
-    const backends: SearchBackend[] = [
-      {
-        name: "serpapi",
-        requires: "SERPAPI_API_KEY",
-        isConfigured: serpApiConfigured,
-        run: async (ctx) => {
-          const apiKey = await getSerpApiKey(ctx);
-          const data = (await serpApiFetch({
-            engine: "google_news",
-            q: keyword,
-            api_key: apiKey,
-            num: numResults
-          })) as Record<string, unknown>;
-          const newsResults = (data.news_results ?? []) as Array<
-            Record<string, unknown>
-          >;
-          const results = newsResults.map((r) => ({
-            title: r.title ?? null,
-            link: r.link ?? null,
-            snippet: r.snippet ?? null,
-            date: r.date ?? null,
-            source: (r.source as Record<string, unknown>)?.name ?? null
-          }));
-          return { success: true, results };
-        }
-      },
-      {
-        name: "dataforseo",
-        requires: DATAFORSEO_REQUIRES,
-        isConfigured: async (ctx) => {
-          const { dataForSeoConfigured } =
-            await import("../tools/dataseo-tools.js");
-          return dataForSeoConfigured(ctx);
-        },
-        run: async (ctx) => {
-          const { dataForSeoNews } = await import("../tools/dataseo-tools.js");
-          const result = unwrapBackendResult(
-            await dataForSeoNews(ctx, {
-              keyword,
-              num_results: numResults
-            })
-          );
-          const items = (result.results ?? []) as Array<
-            Record<string, unknown>
-          >;
-          const results = items.map((r) => ({
-            title: r.title ?? null,
-            link: r.url ?? null,
-            snippet: r.snippet ?? null,
-            date: r.published_at ?? null,
-            source: r.source ?? null
-          }));
-          return { success: true, results };
-        }
-      }
-    ];
-
-    return runFirstConfiguredBackend(
-      "google_news",
-      run.context,
-      backends,
-      params.backend
-    );
-  }
-};
-
-// ---------------------------------------------------------------------------
-// google_images
-// ---------------------------------------------------------------------------
-
-const googleImages: CapabilityExport = {
-  spec: googleImagesSpec,
-  impl: async (run, params) => {
-    const keyword = params.keyword as string | undefined;
-    if (!keyword) return { error: "keyword is required" };
-
-    const numResults = (params.num_results as number) ?? 20;
-
-    const backends: SearchBackend[] = [
-      {
-        name: "serpapi",
-        requires: "SERPAPI_API_KEY",
-        isConfigured: serpApiConfigured,
-        run: async (ctx) => {
-          const apiKey = await getSerpApiKey(ctx);
-          const data = (await serpApiFetch({
-            engine: "google_images",
-            q: keyword,
-            api_key: apiKey,
-            num: numResults
-          })) as Record<string, unknown>;
-          const imagesResults = (data.images_results ?? []) as Array<
-            Record<string, unknown>
-          >;
-          const results = imagesResults.map((r) => ({
-            title: r.title ?? null,
-            link: r.link ?? null,
-            original: r.original ?? null,
-            thumbnail: r.thumbnail ?? null
-          }));
-          return { success: true, results };
-        }
-      },
-      {
-        name: "dataforseo",
-        requires: DATAFORSEO_REQUIRES,
-        isConfigured: async (ctx) => {
-          const { dataForSeoConfigured } =
-            await import("../tools/dataseo-tools.js");
-          return dataForSeoConfigured(ctx);
-        },
-        run: async (ctx) => {
-          const { dataForSeoImages } =
-            await import("../tools/dataseo-tools.js");
-          const result = unwrapBackendResult(
-            await dataForSeoImages(ctx, {
-              keyword,
-              num_results: numResults
-            })
-          );
-          const items = (result.results ?? []) as Array<
-            Record<string, unknown>
-          >;
-          const results = items.map((r) => ({
-            title: r.title ?? null,
-            link: r.source_url ?? null,
-            original: r.image_url ?? null,
-            thumbnail: null
-          }));
-          return { success: true, results };
-        }
-      }
-    ];
-
-    return runFirstConfiguredBackend(
-      "google_images",
-      run.context,
-      backends,
-      params.backend
-    );
-  }
 };
 
 // ---------------------------------------------------------------------------
@@ -881,8 +901,6 @@ const httpRequest: CapabilityExport = {
 /** Every web capability, in the order the tool files declared them. */
 export const WEB_CAPABILITIES: readonly CapabilityExport[] = [
   webSearch,
-  googleNews,
-  googleImages,
   browser,
   takeScreenshot,
   httpRequest,
@@ -896,8 +914,6 @@ export const module: CapabilityModule = {
 
 export {
   webSearch,
-  googleNews,
-  googleImages,
   browser,
   takeScreenshot,
   httpRequest,

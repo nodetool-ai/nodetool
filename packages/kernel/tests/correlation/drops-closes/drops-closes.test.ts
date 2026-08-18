@@ -28,9 +28,6 @@ import {
 
 describe("drops-closes — outputs.drop emits lineage_done downstream", () => {
   it("a filter that drops some keys announces lineage_done on the downstream inbox", async () => {
-    // Use a side capture: hook into the runner to grab the downstream inbox.
-    const seenDone: Array<{ edge: string; key: string }> = [];
-
     // We can't easily reach into private state from the harness; instead
     // build the runner inline and read its inbox state after run.
     let downstreamInbox: NodeInbox | null = null;
@@ -75,47 +72,36 @@ describe("drops-closes — outputs.drop emits lineage_done downstream", () => {
       dataEdge("filt", "value", "sink", "value", "eFilt")
     ];
 
-    const orig = process.env.NODETOOL_USE_CORRELATION;
-    process.env.NODETOOL_USE_CORRELATION = "1";
-    try {
-      const runner = new WorkflowRunner("drops-job", {
-        resolveExecutor: (node) => {
-          if (node.type.startsWith("nodetool.input.")) {
-            return {
-              async process() {
-                return {};
-              }
-            };
-          }
-          if (node.id === "fe") return foreachNode();
-          if (node.id === "filt") return filterNode((v) => (v as number) % 2 === 0);
-          if (node.id === "sink") return sinkExec;
-          throw new Error(`No executor for ${node.id}`);
+    const runner = new WorkflowRunner("drops-job", {
+      resolveExecutor: (node) => {
+        if (node.type.startsWith("nodetool.input.")) {
+          return {
+            async process() {
+              return {};
+            }
+          };
         }
-      });
-      const result = await runner.run(
-        { job_id: "drops-job", params: {} },
-        { nodes, edges }
-      );
-      expect(result.status).toBe("completed");
-      expect(downstreamInbox).not.toBeNull();
-      const inbox = downstreamInbox as NodeInbox;
-      // Filter dropped odd indices 1 and 3 — corresponding to fe:items
-      // tokens 0 (value=1) and 2 (value=3). lineage_done should be
-      // recorded for the downstream edge at those keys.
-      expect(inbox.isEdgeDoneFor("eFilt", "fe:items=0")).toBe(true);
-      expect(inbox.isEdgeDoneFor("eFilt", "fe:items=2")).toBe(true);
-      // Kept keys (1 and 3) should NOT be marked done.
-      expect(inbox.isEdgeDoneFor("eFilt", "fe:items=1")).toBe(false);
-      expect(inbox.isEdgeDoneFor("eFilt", "fe:items=3")).toBe(false);
-    } finally {
-      if (orig === undefined) {
-        delete process.env.NODETOOL_USE_CORRELATION;
-      } else {
-        process.env.NODETOOL_USE_CORRELATION = orig;
+        if (node.id === "fe") return foreachNode();
+        if (node.id === "filt") return filterNode((v) => (v as number) % 2 === 0);
+        if (node.id === "sink") return sinkExec;
+        throw new Error(`No executor for ${node.id}`);
       }
-      expect(seenDone.length).toBe(0); // suppress unused-var
-    }
+    });
+    const result = await runner.run(
+      { job_id: "drops-job", params: {} },
+      { nodes, edges }
+    );
+    expect(result.status).toBe("completed");
+    expect(downstreamInbox).not.toBeNull();
+    const inbox = downstreamInbox as NodeInbox;
+    // Filter dropped odd indices 1 and 3 — corresponding to fe:items
+    // tokens 0 (value=1) and 2 (value=3). lineage_done should be
+    // recorded for the downstream edge at those keys.
+    expect(inbox.isEdgeDoneFor("eFilt", "fe:items=0")).toBe(true);
+    expect(inbox.isEdgeDoneFor("eFilt", "fe:items=2")).toBe(true);
+    // Kept keys (1 and 3) should NOT be marked done.
+    expect(inbox.isEdgeDoneFor("eFilt", "fe:items=1")).toBe(false);
+    expect(inbox.isEdgeDoneFor("eFilt", "fe:items=3")).toBe(false);
   });
 });
 
@@ -162,37 +148,27 @@ describe("drops-closes — source EOS synthesizes lineage_scope_closed", () => {
       dataEdge("fe", "output", "c", "input_item", "eFe")
     ];
 
-    const orig = process.env.NODETOOL_USE_CORRELATION;
-    process.env.NODETOOL_USE_CORRELATION = "1";
-    try {
-      const runner = new WorkflowRunner("close-job", {
-        resolveExecutor: (node) => {
-          if (node.type.startsWith("nodetool.input.")) {
-            return { async process() { return {}; } };
-          }
-          if (node.id === "fe") return foreachNode();
-          if (node.id === "c") return captureInbox;
-          throw new Error(`No executor for ${node.id}`);
+    const runner = new WorkflowRunner("close-job", {
+      resolveExecutor: (node) => {
+        if (node.type.startsWith("nodetool.input.")) {
+          return { async process() { return {}; } };
         }
-      });
-      const result = await runner.run(
-        { job_id: "close-job", params: {} },
-        { nodes, edges }
-      );
-      expect(result.status).toBe("completed");
-      expect(downstream).not.toBeNull();
-      // The runner synthesizes scope_closed for fe:items on the outgoing
-      // edge (empty parent_lineage).
-      expect(
-        (downstream as NodeInbox).isScopeClosedFor("eFe", "", "fe:items")
-      ).toBe(true);
-    } finally {
-      if (orig === undefined) {
-        delete process.env.NODETOOL_USE_CORRELATION;
-      } else {
-        process.env.NODETOOL_USE_CORRELATION = orig;
+        if (node.id === "fe") return foreachNode();
+        if (node.id === "c") return captureInbox;
+        throw new Error(`No executor for ${node.id}`);
       }
-    }
+    });
+    const result = await runner.run(
+      { job_id: "close-job", params: {} },
+      { nodes, edges }
+    );
+    expect(result.status).toBe("completed");
+    expect(downstream).not.toBeNull();
+    // The runner synthesizes scope_closed for fe:items on the outgoing
+    // edge (empty parent_lineage).
+    expect(
+      (downstream as NodeInbox).isScopeClosedFor("eFe", "", "fe:items")
+    ).toBe(true);
   });
 
   it("a populated ForEach still emits scope_closed once it finishes", async () => {
@@ -237,34 +213,24 @@ describe("drops-closes — source EOS synthesizes lineage_scope_closed", () => {
       dataEdge("fe", "output", "c", "input_item", "eFe2")
     ];
 
-    const orig = process.env.NODETOOL_USE_CORRELATION;
-    process.env.NODETOOL_USE_CORRELATION = "1";
-    try {
-      const runner = new WorkflowRunner("close2", {
-        resolveExecutor: (node) => {
-          if (node.type.startsWith("nodetool.input.")) {
-            return { async process() { return {}; } };
-          }
-          if (node.id === "fe") return foreachNode();
-          if (node.id === "c") return cap;
-          throw new Error(`No executor for ${node.id}`);
+    const runner = new WorkflowRunner("close2", {
+      resolveExecutor: (node) => {
+        if (node.type.startsWith("nodetool.input.")) {
+          return { async process() { return {}; } };
         }
-      });
-      const result = await runner.run(
-        { job_id: "close2", params: {} },
-        { nodes, edges }
-      );
-      expect(result.status).toBe("completed");
-      expect(
-        (downstream as NodeInbox).isScopeClosedFor("eFe2", "", "fe:items")
-      ).toBe(true);
-    } finally {
-      if (orig === undefined) {
-        delete process.env.NODETOOL_USE_CORRELATION;
-      } else {
-        process.env.NODETOOL_USE_CORRELATION = orig;
+        if (node.id === "fe") return foreachNode();
+        if (node.id === "c") return cap;
+        throw new Error(`No executor for ${node.id}`);
       }
-    }
+    });
+    const result = await runner.run(
+      { job_id: "close2", params: {} },
+      { nodes, edges }
+    );
+    expect(result.status).toBe("completed");
+    expect(
+      (downstream as NodeInbox).isScopeClosedFor("eFe2", "", "fe:items")
+    ).toBe(true);
   });
 });
 

@@ -63,6 +63,7 @@ import {
   type SandboxLimits,
   type RunSandboxOptions,
   type RunSandboxResult,
+  type SandboxCapabilityMount,
   type SandboxInputTake
 } from "@nodetool-ai/agents/js-sandbox";
 import { importHidden } from "@nodetool-ai/config";
@@ -167,16 +168,38 @@ const NO_TOOLS_GLOBALS = {
 } satisfies Record<string, unknown>;
 
 let agentsModulePromise: Promise<AgentsModule | null> | null = null;
+let injectedAgentsModule: AgentsModule | null = null;
 
 /**
- * The agents package index, loaded lazily and hidden from bundlers.
- * `importHidden` answers `null` off Node, so a browser bundle never resolves
- * the toolbelt's server-only dependencies. Hosts where the bare specifier is
- * not resolvable at runtime (the packaged Electron backend inlines workspace
- * packages instead of staging them in `_modules/`) degrade the same way the
- * browser does unless they inject a belt via {@link setCodeNodeTools}.
+ * Hand the Code node the agents package a host already holds.
+ *
+ * The bare specifier below resolves in a workspace checkout and in the CLI,
+ * and resolves nowhere in the bundled backend: `bundle-backend.mjs` inlines
+ * every workspace package into `server.mjs` and stages only third-party
+ * externals, so `node_modules/@nodetool-ai/agents` does not exist in the
+ * packaged desktop app or in the Docker/Fly image. Without this, a Code node
+ * body in production runs with no toolbelt (`nodetool.capabilities()` is `{}`,
+ * `tools.yt_dlp` is missing) and cannot import
+ * `@nodetool-ai/sandbox-nodetool/*` at all.
+ *
+ * The server calls this at bootstrap with the copy esbuild already inlined,
+ * which also keeps the run on one module instance — a staged second copy would
+ * carry its own capability registry.
+ */
+export function setCodeNodeAgentsModule(mod: AgentsModule | null): void {
+  injectedAgentsModule = mod;
+  agentsModulePromise = null;
+}
+
+/**
+ * The agents package index: the injected one, else loaded lazily and hidden
+ * from bundlers. `importHidden` answers `null` off Node, so a browser bundle
+ * never resolves the toolbelt's server-only dependencies, and a host that
+ * neither injects nor can resolve the specifier degrades the same way —
+ * no belt, no capability modules.
  */
 function loadAgentsModule(): Promise<AgentsModule | null> {
+  if (injectedAgentsModule) return Promise.resolve(injectedAgentsModule);
   if (!agentsModulePromise) {
     agentsModulePromise = importHidden<AgentsModule>(
       "@nodetool-ai/agents"
@@ -736,8 +759,38 @@ export class CodeNode extends BaseNode {
       globals: await this.sandboxGlobals(context),
       limits: this.sandboxLimits(envelope),
       onProgress: this.progressSink(context),
-      modules: this.resolveModules(envelope, context)
+      modules: this.resolveModules(envelope, context),
+      capabilities: await this.resolveCapabilities(code, context)
     };
+  }
+
+  /**
+   * NodeTool's own guest modules (`@nodetool-ai/sandbox-nodetool/*`) for the
+   * namespaces this body imports, or nothing when it imports none.
+   *
+   * They are not packs, so they are not declared in `packages`: the host
+   * decides what a run can reach, and for this node the host already made that
+   * decision when it gave the body the `tools.*` / `nodetool.*` belt. The run
+   * is therefore ungated, exactly as the belt is — a second, stricter door on
+   * the import path would mean one call is gated and the same call through
+   * `tools.*` is not. It is the wiring `mountJsScriptSandbox` builds for a JS
+   * script, over the Code node's own module resolution.
+   */
+  private async resolveCapabilities(
+    code: string,
+    context: ProcessingContext | undefined
+  ): Promise<SandboxCapabilityMount | undefined> {
+    if (!context) return undefined;
+    const mod = await loadAgentsModule();
+    if (!mod) return undefined;
+    const mounted = await mod.mountCapabilityModules(
+      code,
+      mod.ungatedCapabilityRun(context)
+    );
+    if (!mounted.ok) {
+      throw new Error(mounted.error.replace("The action imports", "The code imports"));
+    }
+    return mounted.mount;
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
@@ -954,7 +1007,10 @@ export class CodeNode extends BaseNode {
     `;
 
     const result = await runInSandbox({
-      ...(await this.sandboxOptions("", envelope, context)),
+      // The body itself, not the rewritten one: `code` is overridden below,
+      // but the options are also what decide which platform modules this run
+      // mounts, and that answer is read off the imports the user wrote.
+      ...(await this.sandboxOptions(envelope.code, envelope, context)),
       code: wrappedBody
     });
 

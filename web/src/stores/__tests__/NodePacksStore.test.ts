@@ -1,5 +1,5 @@
 import useNodePacksStore from "../NodePacksStore";
-import { installGlobal, removeGlobal } from "../../test-utils/doubles";
+import { installGlobal } from "../../test-utils/doubles";
 
 
 const AVAILABLE = [

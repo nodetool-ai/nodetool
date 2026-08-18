@@ -192,8 +192,6 @@ export function dockerDeploymentGetServerUrl(d: DockerDeployment): string {
   return `http://${d.host}:${hostPort}`;
 }
 
-export type SelfHostedDeployment = DockerDeployment;
-
 // ============================================================================
 // Main Configuration Schemas
 // ============================================================================

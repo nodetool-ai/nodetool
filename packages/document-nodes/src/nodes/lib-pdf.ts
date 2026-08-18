@@ -70,7 +70,7 @@ export class PdfExtractTextNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "str" };
 
   @prop(PDF_INPUT)
-  declare pdf: any;
+  declare pdf: DocumentRefLike;
 
   @prop({
     type: "int",
@@ -89,10 +89,7 @@ export class PdfExtractTextNode extends BaseNode {
   declare end_page: any;
 
   async process(context?: ProcessingContext): Promise<PdfExtractTextNodeOutputs> {
-    const result = await parsePdf(
-      (this.pdf ?? {}) as DocumentRefLike,
-      context
-    );
+    const result = await parsePdf(this.pdf ?? {}, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
@@ -123,7 +120,7 @@ export class PdfExtractMarkdownNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "str" };
 
   @prop(PDF_INPUT)
-  declare pdf: any;
+  declare pdf: DocumentRefLike;
 
   @prop({
     type: "int",
@@ -142,10 +139,7 @@ export class PdfExtractMarkdownNode extends BaseNode {
   declare end_page: any;
 
   async process(context?: ProcessingContext): Promise<PdfExtractMarkdownNodeOutputs> {
-    const result = await parsePdf(
-      (this.pdf ?? {}) as DocumentRefLike,
-      context
-    );
+    const result = await parsePdf(this.pdf ?? {}, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
@@ -319,6 +313,20 @@ export class PdfExtractMarkdownNode extends BaseNode {
   }
 }
 
+/** One table detected on a page, header row split from the body. */
+type ExtractedTable = {
+  page: number;
+  header: string[];
+  rows: string[][];
+  columns: number;
+  total_rows: number;
+};
+
+/** Output handles PdfExtractTablesNode.process() emits. */
+type PdfExtractTablesNodeOutputs = {
+  output: ExtractedTable[];
+};
+
 export class PdfExtractTablesNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractTables";
   static readonly title = "PDF Extract Tables";
@@ -329,7 +337,7 @@ export class PdfExtractTablesNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "list[dict]" };
 
   @prop(PDF_INPUT)
-  declare pdf: any;
+  declare pdf: DocumentRefLike;
 
   @prop({
     type: "int",
@@ -357,18 +365,17 @@ export class PdfExtractTablesNode extends BaseNode {
   })
   declare y_tolerance: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const result = await parsePdf(
-      (this.pdf ?? {}) as DocumentRefLike,
-      context
-    );
+  async process(
+    context?: ProcessingContext
+  ): Promise<PdfExtractTablesNodeOutputs> {
+    const result = await parsePdf(this.pdf ?? {}, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
       result.pages.length
     );
     const yTolerance = Number(this.y_tolerance ?? 3);
-    const tables: Record<string, unknown>[] = [];
+    const tables: ExtractedTable[] = [];
 
     for (let pageIdx = start; pageIdx <= end; pageIdx++) {
       const page = result.pages[pageIdx];
@@ -480,6 +487,21 @@ export class PdfExtractTablesNode extends BaseNode {
   }
 }
 
+/** One text span. `color` is always null — liteparse does not expose it. */
+type StyledTextSpan = {
+  page: number;
+  text: string;
+  font: string;
+  size: number;
+  color: null;
+  bbox: { x0: number; y0: number; x1: number; y1: number };
+};
+
+/** Output handles PdfExtractStyledTextNode.process() emits. */
+type PdfExtractStyledTextNodeOutputs = {
+  output: StyledTextSpan[];
+};
+
 export class PdfExtractStyledTextNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractStyledText";
   static readonly title = "PDF Extract Styled Text";
@@ -490,7 +512,7 @@ export class PdfExtractStyledTextNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "list[dict]" };
 
   @prop(PDF_INPUT)
-  declare pdf: any;
+  declare pdf: DocumentRefLike;
 
   @prop({
     type: "int",
@@ -508,17 +530,16 @@ export class PdfExtractStyledTextNode extends BaseNode {
   })
   declare end_page: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const result = await parsePdf(
-      (this.pdf ?? {}) as DocumentRefLike,
-      context
-    );
+  async process(
+    context?: ProcessingContext
+  ): Promise<PdfExtractStyledTextNodeOutputs> {
+    const result = await parsePdf(this.pdf ?? {}, context);
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
       result.pages.length
     );
-    const spans: Record<string, unknown>[] = [];
+    const spans: StyledTextSpan[] = [];
 
     for (let i = start; i <= end; i++) {
       const page = result.pages[i];
@@ -561,7 +582,7 @@ export class PdfScreenshotNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "list[image]" };
 
   @prop(PDF_INPUT)
-  declare pdf: any;
+  declare pdf: DocumentRefLike;
 
   @prop({
     type: "int",
@@ -599,10 +620,7 @@ export class PdfScreenshotNode extends BaseNode {
       import("sharp")
     ]);
     const sharp = sharpModule.default;
-    const pdfBuffer = await resolvePdfBuffer(
-      (this.pdf ?? {}) as DocumentRefLike,
-      context
-    );
+    const pdfBuffer = await resolvePdfBuffer(this.pdf ?? {}, context);
     const dpi = Number(this.dpi ?? 150);
     const scale = dpi / 72;
 
@@ -662,7 +680,7 @@ export class PdfToppmNode extends BaseNode {
   static readonly requiredRuntimes = ["pdftoppm"];
 
   @prop(PDF_INPUT)
-  declare pdf: any;
+  declare pdf: DocumentRefLike;
 
   @prop({
     type: "int",
@@ -718,10 +736,7 @@ export class PdfToppmNode extends BaseNode {
     const path = await import("node:path");
     const execFileAsync = promisify(execFile);
 
-    const pdfBuffer = await resolvePdfBuffer(
-      (this.pdf ?? {}) as DocumentRefLike,
-      context
-    );
+    const pdfBuffer = await resolvePdfBuffer(this.pdf ?? {}, context);
     const dpi = Number(this.dpi ?? 150);
     const scaleTo = Number(this.scale_to ?? 0);
     const format = String(this.format ?? "png").toLowerCase();
@@ -805,7 +820,7 @@ export class PdfExtractOcrNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "str" };
 
   @prop(PDF_INPUT)
-  declare pdf: any;
+  declare pdf: DocumentRefLike;
 
   @prop({
     type: "int",
@@ -843,10 +858,7 @@ export class PdfExtractOcrNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<PdfExtractOcrNodeOutputs> {
     const { LiteParse } = await import("@llamaindex/liteparse");
-    const pdfBuffer = await resolvePdfBuffer(
-      (this.pdf ?? {}) as DocumentRefLike,
-      context
-    );
+    const pdfBuffer = await resolvePdfBuffer(this.pdf ?? {}, context);
     const ocrLanguage = String(this.ocr_language ?? "en");
     const dpi = Number(this.dpi ?? 150);
     const parser = new LiteParse({ ocrEnabled: true, ocrLanguage, dpi });

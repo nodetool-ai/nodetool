@@ -1213,6 +1213,12 @@ function createRuntimeContext(opts: {
     ...opts,
     secretResolver: getSecret,
     storage: tempAdapter,
+    // `asset://<id>.<ext>` references (chat attachments, @-mentions, prior
+    // turns) resolve through the asset store, not the temp store. Without it
+    // the only path left is an HTTP hop to `/api/storage`, which authorizes by
+    // `x-user-id` and 404s for every user but `1` — the reference then reached
+    // the provider verbatim and died in the SSRF guard.
+    assetStorage: getAssetAdapter(),
     workspaceStorage: workspaceAdapter,
     authToken: opts.authToken,
     tempUrlResolver: createTempUrlResolver(tempAdapter, storagePath)
@@ -1321,6 +1327,20 @@ a family differ per surface, so \`nodetool.searchTools\` rather than guessing na
 has no way to create a storyboard, script, timeline, sketch, or 3D scene from
 nothing: when none is open, name the one you need and ask the user to open or
 create it, instead of falling back to a workflow that approximates it.
+
+# Doing node work without a workflow
+A workflow is an artifact the user keeps. When they asked for the RESULT —
+"generate an image", "run a pipeline that does X then Y" — call the nodes
+directly: import the namespaces you need from \`@nodetool-ai/sandbox-flow\`
+and \`await\` each node in one action. \`await\` is the edge, a variable is the
+wire, and the user gets what they asked for in the turn they asked for it.
+Nothing is saved and nothing opens in the editor.
+- \`nodetool.media.*\` stays the shortest path for a single generation it has a
+  verb for. A node it has no verb for — background removal, upscaling, a
+  format conversion — is a flow call, never a media verb bent to fit.
+- Build a workflow instead when the user wants the WORKFLOW: something to open
+  in the editor, re-run later, or hand to someone else. Authoring one does not
+  run it, and answering "do this" with a saved id leaves the work undone.
 
 # Building workflows
 You author the graph yourself, in an \`execute_code\` action. Drive this loop:
@@ -2102,6 +2122,7 @@ export class UnifiedWebSocketRunner {
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
+  private statsPrimeTimer: NodeJS.Timeout | null = null;
   private chatRequestSeq = 0;
   /**
    * Aborts the in-flight chat/inference turn. The seq counter above only filters
@@ -2444,10 +2465,7 @@ export class UnifiedWebSocketRunner {
     log.info("Client connected", { userId: this.userId });
 
     this.startHeartbeat();
-    // Only broadcast system stats in development — unnecessary overhead in production
-    if (process.env.NODE_ENV !== "production") {
-      this.startStatsBroadcast();
-    }
+    this.startStatsBroadcast();
     this.registerObserver();
   }
 
@@ -8985,11 +9003,15 @@ export class UnifiedWebSocketRunner {
     };
     // Fire an initial sample ~1s after connect so the sampler has a delta to
     // report — then keep emitting on a regular cadence.
-    setTimeout(send, 1000);
+    this.statsPrimeTimer = setTimeout(send, 1000);
     this.statsTimer = setInterval(send, 5_000);
   }
 
   private stopStatsBroadcast(): void {
+    if (this.statsPrimeTimer) {
+      clearTimeout(this.statsPrimeTimer);
+      this.statsPrimeTimer = null;
+    }
     if (this.statsTimer) {
       clearInterval(this.statsTimer);
       this.statsTimer = null;

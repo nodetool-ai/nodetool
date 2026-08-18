@@ -19,8 +19,6 @@ const toolDef = (name: string) => ({
 
 const WEB_TOOLS = [
   "web_search",
-  "google_news",
-  "google_images",
   "http_request",
   "download_file",
   "browser",
@@ -123,12 +121,12 @@ describe("nodetool.web", () => {
       args: { query: "fox", backend: "openai" }
     });
     expect(calls[3]).toMatchObject({
-      name: "google_news",
-      args: { keyword: "fox", backend: "serpapi" }
+      name: "web_search",
+      args: { query: "fox", backend: "serpapi", search_type: "news" }
     });
     expect(calls[4]).toMatchObject({
-      name: "google_images",
-      args: { keyword: "fox", backend: "dataforseo" }
+      name: "web_search",
+      args: { query: "fox", backend: "dataforseo", search_type: "images" }
     });
   });
 
@@ -157,8 +155,8 @@ describe("nodetool.web", () => {
     );
     expect(obs.ok).toBe(true);
     expect(calls[0]).toMatchObject({
-      name: "google_images",
-      args: { keyword: "red fox", num_results: 4 }
+      name: "web_search",
+      args: { query: "red fox", num_results: 4, search_type: "images" }
     });
     expect(calls[1]).toMatchObject({
       name: "http_request",

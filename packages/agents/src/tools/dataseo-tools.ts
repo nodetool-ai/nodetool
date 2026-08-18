@@ -1,6 +1,6 @@
 /**
- * The DataForSEO backends behind the routed `web_search`, `google_news` and
- * `google_images` capabilities.
+ * The DataForSEO backends behind the routed `web_search` capability — its
+ * web, news, and image search types.
  *
  * These are not tools. `capabilities/web.ts` picks the first configured backend
  * and calls the functions below; the model never sees a `dataforseo_*` name,

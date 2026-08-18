@@ -287,7 +287,7 @@ Some models require HuggingFace authentication:
 1. Create a HuggingFace account at [https://huggingface.co](https://huggingface.co)
 2. Generate an access token at [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
 3. Set your token in NodeTool:
-   - **Desktop App**: Settings → Providers → HuggingFace Token
+   - **Desktop App**: Settings → Models & Providers → HuggingFace Token
    - **Environment Variable**: `HF_TOKEN=your_token_here`
 
 ### Gated Models
@@ -455,7 +455,7 @@ HTTPError: 401 Client Error: Unauthorized
 ```
 Solutions:
 - Generate a new token at https://huggingface.co/settings/tokens
-- Set token in Settings → Providers → HuggingFace Token
+- Set token in Settings → Models & Providers → HuggingFace Token
 - Accept model terms on HuggingFace Hub for gated models
 - Ensure token has appropriate permissions
 

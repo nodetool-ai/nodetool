@@ -101,7 +101,7 @@ export class SaveDocumentFileNode extends BaseNode {
     title: "Document",
     description: "The document to save"
   })
-  declare document: any;
+  declare document: DocumentRefLike;
 
   @prop({
     type: "str",
@@ -109,7 +109,7 @@ export class SaveDocumentFileNode extends BaseNode {
     title: "Folder",
     description: "Folder where the file will be saved"
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "str",
@@ -117,18 +117,20 @@ export class SaveDocumentFileNode extends BaseNode {
     title: "Filename",
     description: "Name of the file to save. Supports strftime format codes."
   })
-  declare filename: any;
+  declare filename: string;
+
+  /** Destination path — set on the instance, not declared as a `@prop`. */
+  declare path?: string;
 
   async process(): Promise<SaveDocumentFileNodeOutputs> {
-    const document = (this.document ?? this.document ?? {}) as DocumentRefLike;
-    const p = String((this as any).path ?? "");
-    const full = toFilePath(p);
+    const document = this.document ?? {};
+    const full = toFilePath(this.path ?? "");
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     await fs.mkdir(path.dirname(full), { recursive: true });
     if (document.data) {
       await fs.writeFile(full, asBytes(document.data));
-    } else if (typeof document.text === "string") {
+    } else if (document.text != null) {
       await fs.writeFile(full, document.text, "utf8");
     } else if (document.uri) {
       await fs.copyFile(toFilePath(document.uri), full);
@@ -138,6 +140,15 @@ export class SaveDocumentFileNode extends BaseNode {
     return { output: full };
   }
 }
+
+/** A document found on disk, addressed by its `file://` URI. */
+type ListedDocument = { uri: string };
+
+/** Output handles ListDocumentsNode emits. */
+type ListDocumentsNodeOutputs = {
+  document: ListedDocument;
+  documents: ListedDocument[];
+};
 
 export class ListDocumentsNode extends BaseNode {
   static readonly nodeType = "nodetool.document.ListDocuments";
@@ -182,8 +193,8 @@ export class ListDocumentsNode extends BaseNode {
   })
   declare recursive: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const collected: Record<string, unknown>[] = [];
+  async process(): Promise<ListDocumentsNodeOutputs> {
+    const collected: ListedDocument[] = [];
     for await (const item of this._listDocuments()) {
       collected.push(item.document);
     }
@@ -193,7 +204,7 @@ export class ListDocumentsNode extends BaseNode {
     };
   }
 
-  private async *_listDocuments(): AsyncGenerator<{ document: { uri: string } }> {
+  private async *_listDocuments(): AsyncGenerator<{ document: ListedDocument }> {
     const folder = String(this.folder ?? this.folder ?? ".");
     const pattern = String(this.pattern ?? this.pattern ?? "*");
     const recursive = Boolean(this.recursive ?? this.recursive ?? false);
@@ -232,8 +243,8 @@ export class ListDocumentsNode extends BaseNode {
     }
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const collected: Record<string, unknown>[] = [];
+  async *genProcess(): AsyncGenerator<Partial<ListDocumentsNodeOutputs>> {
+    const collected: ListedDocument[] = [];
     for await (const item of this._listDocuments()) {
       collected.push(item.document);
       yield { document: item.document };

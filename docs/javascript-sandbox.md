@@ -500,7 +500,23 @@ What an action gets on top of the standard surface:
 - **`nodetool.*`** — the platform as objects (`workflows`, `graph()`, `nodes`,
   `agents`, `models`, `media`, `assets`, `jobs`, `collections`, `web`, `memory`,
   and the rest), each method wrapping a belt tool. A method whose backing tool
-  is absent throws naming it.
+  is absent throws naming it. `nodetool.media.understandVideo(video, prompt,
+  model)` is the video half of the judging methods: it hands a whole clip to a
+  model that reads video (Gemini) and answers `prompt` as `{text}`.
+- **`nodetool.media.ffmpeg` / `ffprobe` / `downloadVideo`** — the host binaries.
+  `ffprobe(path)` reads a file's format and streams; `ffmpeg(args)` takes argv,
+  and that argv is bounded on the way out: every path is resolved against the
+  workspace and refused when it lands outside (symlinks resolved), inputs may
+  open local files only (`-protocol_whitelist file,crypto,data` before every
+  `-i`, plus a token scan for `://`, `concat:`, `pipe:`, `/dev/…`), and the run
+  is bounded on wall clock, captured output, artifact size, and how many host
+  binaries may run at once. Fetch what you need with `downloadVideo` or
+  `fetch`, then pass the local path. `downloadVideo` carries its own boundary:
+  the URL must be public (loopback, link-local and the private ranges are
+  refused, by literal and by DNS answer), the download is capped at 2 GiB, and
+  the run ignores config files — yt-dlp reads `yt-dlp.conf` from its working
+  directory, which is the workspace guest code writes, and that file can ask
+  for `--exec`.
 - **`openWorkflow(id)`** — when the belt carries the `ui_*` document tools, a
   graph object model whose synchronous mutators queue operations against a local
   mirror, replayed through the same tool contract by `await wf.commit()`.
@@ -556,6 +572,7 @@ it around every tool- and plan-approval round trip.
 | `setTimeout is not defined` | Deleted deliberately. Use `sleep`, `Promise.all` or `parallelMap` |
 | A bare identifier is a `ReferenceError` in a Code node | Node inputs live on `inputs`, not in the global scope |
 | `nodetool.*` throws naming a tool | The host has no toolbelt (browser runner, no context) or that tool is not on the belt |
+| A Code node has an empty `nodetool.capabilities()` and cannot import `@nodetool-ai/sandbox-nodetool/*` | The host never called `setCodeNodeAgentsModule`. The node resolves `@nodetool-ai/agents` by bare specifier, which resolves in a checkout and nowhere in the bundled backend (esbuild inlines the workspace packages into `server.mjs`); `packages/websocket/src/server.ts` hands over the inlined copy at bootstrap |
 | A CPU-bound loop outlives its cancellation | The signal ends `runInSandbox`, but the guest loop still runs to the execution timeout |
 
 ## Extending it

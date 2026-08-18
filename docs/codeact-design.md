@@ -125,8 +125,8 @@ provider transcript only carries `execute_code`.
    schema (`await tools.browse({url: string, timeout?: number})` + first
    sentence of the description) — and only for the **resident** set. The
    high-traffic tools nearly every step reaches for (the whole search family
-   — `web_search`, `search_nodes`, `run_search`, `google_news`,
-   `google_images`, `asset_search`, `grep`, `glob` — plus the Claude-agent
+   — `web_search`, `search_nodes`, `run_search`, `asset_search`, `grep`,
+   `glob` — plus the Claude-agent
    file set (`read_file`, `write_file`, `edit_file`, `list_directory`),
    browser, HTTP, memory, `run_subtask` — `CODEACT_RESIDENT_TOOL_NAMES`,
    overridable per executor) stay fully documented; once the belt exceeds `CODEACT_DEFER_THRESHOLD` (16),
@@ -273,7 +273,7 @@ Two shrinks keep the belt to capabilities a model cannot write itself:
   covers them through the provider-agnostic `generate_image` /
   `generate_speech`. The provider-specific search names went the same way,
   but their implementations stayed: they are the backends `web_search` /
-  `google_news` / `google_images` route to, now plain functions rather than
+  the single `web_search` capability routes to, now plain functions rather than
   tools.
 
 ## Evaluation

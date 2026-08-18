@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { Message } from "@nodetool-ai/protocol";
+import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
@@ -31,6 +31,7 @@ import {
   generateVideo,
   scoreImageAdherence,
   transcribeAudio,
+  understandVideo,
   ffmpeg,
   ytDlp
 } from "../src/capabilities/media.js";
@@ -80,7 +81,9 @@ describe("media and style capability modules", () => {
       "critique_image",
       "compare_images",
       "score_image_adherence",
+      "understand_video",
       "ffmpeg",
+      "ffprobe",
       "yt_dlp"
     ]);
     const style = await loadCapabilityModule("style");
@@ -109,6 +112,7 @@ describe("wire identity: a Tool built from the spec", () => {
     [critiqueImage, toolForCapabilityName("critique_image")],
     [compareImages, toolForCapabilityName("compare_images")],
     [scoreImageAdherence, toolForCapabilityName("score_image_adherence")],
+    [understandVideo, toolForCapabilityName("understand_video")],
     [ffmpeg, toolForCapabilityName("ffmpeg")],
     [ytDlp, toolForCapabilityName("yt_dlp")],
     [recordStylePreference, toolForCapabilityName("record_style_preference")],
@@ -207,6 +211,116 @@ describe("critique_image through the adapter", () => {
   });
 });
 
+describe("understand_video through the adapter", () => {
+  function partsOf(predict: ReturnType<typeof vi.fn>): MessageContent[] {
+    const call = predict.mock.calls[0]?.[0] as {
+      params: { messages: Message[]; max_tokens: number };
+      provider: string;
+      model: string;
+      capability: string;
+    };
+    const content = call.params.messages[0].content;
+    if (!Array.isArray(content)) throw new Error("expected content parts");
+    return content;
+  }
+
+  it("sends the prompt and a video part, and returns the answer text", async () => {
+    const predict = vi.fn(async () => ({
+      role: "assistant",
+      content: "A fox crosses a snowfield."
+    }));
+    const result = (await asTool(understandVideo).process(
+      makeContext(predict),
+      {
+        provider: "gemini",
+        model: "gemini-3-pro",
+        video: "asset://clip-1.mp4",
+        prompt: "What happens?"
+      }
+    )) as Record<string, unknown>;
+
+    expect(result).toEqual({
+      text: "A fox crosses a snowfield.",
+      provider: "gemini",
+      model: "gemini-3-pro"
+    });
+    expect(partsOf(predict)).toEqual([
+      { type: "text", text: "What happens?" },
+      { type: "video", video: { type: "video", uri: "asset://clip-1.mp4" } }
+    ]);
+  });
+
+  it("normalizes a bare asset id and defaults the prompt", async () => {
+    const predict = vi.fn(async () => ({
+      role: "assistant",
+      content: "ok"
+    }));
+    await asTool(understandVideo).process(makeContext(predict), {
+      provider: "gemini",
+      model: "gemini-3-pro",
+      video: " clip-1 "
+    });
+    expect(partsOf(predict)).toEqual([
+      { type: "text", text: "Describe this video in detail." },
+      { type: "video", video: { type: "video", uri: "asset://clip-1" } }
+    ]);
+  });
+
+  it("caps max_tokens and defaults it when absent", async () => {
+    const maxTokensOf = async (params: Record<string, unknown>) => {
+      const predict = vi.fn(async () => ({ role: "assistant", content: "ok" }));
+      await asTool(understandVideo).process(makeContext(predict), {
+        provider: "gemini",
+        model: "gemini-3-pro",
+        video: "clip-1",
+        ...params
+      });
+      const call = predict.mock.calls[0][0] as {
+        params: { max_tokens: number };
+      };
+      return call.params.max_tokens;
+    };
+    expect(await maxTokensOf({})).toBe(1500);
+    expect(await maxTokensOf({ max_tokens: 400 })).toBe(400);
+    expect(await maxTokensOf({ max_tokens: 100000 })).toBe(8192);
+  });
+
+  it("requires provider, model and video, pointing at find_model", async () => {
+    const predict = vi.fn();
+    const noModel = (await asTool(understandVideo).process(
+      makeContext(predict),
+      { provider: "gemini", video: "clip-1" }
+    )) as Record<string, unknown>;
+    expect(String(noModel["error"])).toMatch(/find_model/);
+
+    const noProvider = (await asTool(understandVideo).process(
+      makeContext(predict),
+      { model: "gemini-3-pro", video: "clip-1" }
+    )) as Record<string, unknown>;
+    expect(String(noProvider["error"])).toMatch(/find_model/);
+
+    const noVideo = (await asTool(understandVideo).process(
+      makeContext(predict),
+      { provider: "gemini", model: "gemini-3-pro" }
+    )) as Record<string, unknown>;
+    expect(noVideo).toEqual({ error: "video is required" });
+    expect(predict).not.toHaveBeenCalled();
+  });
+
+  it("reports a provider failure as an error", async () => {
+    const predict = vi.fn(async () => {
+      throw new Error("no video support");
+    });
+    const result = (await asTool(understandVideo).process(
+      makeContext(predict),
+      { provider: "gemini", model: "gemini-3-pro", video: "clip-1" }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toBe(
+      "understand_video failed: no video support"
+    );
+  });
+});
+
 describe("style capabilities through the adapter", () => {
   function makeMemory(over: Partial<LongTermMemory>): LongTermMemory {
     return {
@@ -286,6 +400,64 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       { workspaceDir: "/tmp" } as unknown as ProcessingContext,
       { url: "file:///etc/passwd" }
     )) as Record<string, unknown>;
-    expect(String(result["error"])).toMatch(/http\(s\)/);
+    expect(String(result["error"])).toMatch(/unsupported scheme/);
+  });
+
+  // The guard is unit-tested in host-binary-guard.test.ts; these pin that the
+  // capability actually calls it, and refuses before anything is spawned.
+  it("ffmpeg refuses a path outside the workspace", async () => {
+    const result = (await asTool(ffmpeg).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { args: ["-i", "/etc/passwd", "out.wav"] }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/outside the workspace/);
+  });
+
+  it("ffmpeg refuses a network input", async () => {
+    const result = (await asTool(ffmpeg).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { args: ["-i", "http://169.254.169.254/latest/meta-data/", "out.txt"] }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/Only workspace files are readable/);
+  });
+
+  it("ffmpeg refuses an output_file that escapes the workspace", async () => {
+    const result = (await asTool(ffmpeg).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { args: ["-i", "in.mp4"], output_file: "../../etc/cron.d/x" }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/outside the workspace/);
+  });
+
+  it.each([
+    ["http://169.254.169.254/latest/meta-data/", /internal\/private address/],
+    ["http://localhost:7777/api/workflows", /localhost/],
+    ["http://10.0.0.5/internal.mp4", /internal\/private address/],
+    ["http://[::ffff:127.0.0.1]/x.mp4", /internal\/private address/]
+  ])("yt_dlp refuses %s", async (url, expected) => {
+    const result = (await asTool(ytDlp).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { url }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(expected);
+  });
+
+  it("yt_dlp refuses a format that would be read as an option", async () => {
+    const result = (await asTool(ytDlp).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { url: "https://example.com/v", format: "--exec" }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/cannot start with/);
+  });
+
+  it("yt_dlp refuses an output template that escapes the workspace", async () => {
+    const result = (await asTool(ytDlp).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      {
+        url: "https://example.com/v",
+        output_file: "../../root/.ssh/authorized_keys"
+      }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/outside the workspace/);
   });
 });

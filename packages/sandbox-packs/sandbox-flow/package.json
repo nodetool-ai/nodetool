@@ -1,0 +1,391 @@
+{
+  "name": "@nodetool-ai/sandbox-flow",
+  "version": "0.7.0-rc.36",
+  "description": "Call NodeTool nodes as typed async functions inside the sandbox, one importable module per node namespace",
+  "license": "MIT",
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "file": "sandbox/index.js"
+      },
+      {
+        "name": "gemini.audio",
+        "kind": "js",
+        "file": "sandbox/generated/gemini.audio.js"
+      },
+      {
+        "name": "gemini.image",
+        "kind": "js",
+        "file": "sandbox/generated/gemini.image.js"
+      },
+      {
+        "name": "gemini.text",
+        "kind": "js",
+        "file": "sandbox/generated/gemini.text.js"
+      },
+      {
+        "name": "gemini.video",
+        "kind": "js",
+        "file": "sandbox/generated/gemini.video.js"
+      },
+      {
+        "name": "kie.dynamic_schema",
+        "kind": "js",
+        "file": "sandbox/generated/kie.dynamic_schema.js"
+      },
+      {
+        "name": "lib.audio",
+        "kind": "js",
+        "file": "sandbox/generated/lib.audio.js"
+      },
+      {
+        "name": "lib.browser",
+        "kind": "js",
+        "file": "sandbox/generated/lib.browser.js"
+      },
+      {
+        "name": "lib.charts",
+        "kind": "js",
+        "file": "sandbox/generated/lib.charts.js"
+      },
+      {
+        "name": "lib.comfy",
+        "kind": "js",
+        "file": "sandbox/generated/lib.comfy.js"
+      },
+      {
+        "name": "lib.google",
+        "kind": "js",
+        "file": "sandbox/generated/lib.google.js"
+      },
+      {
+        "name": "lib.grid",
+        "kind": "js",
+        "file": "sandbox/generated/lib.grid.js"
+      },
+      {
+        "name": "lib.image",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.js"
+      },
+      {
+        "name": "lib.image.channel",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.channel.js"
+      },
+      {
+        "name": "lib.image.color",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.color.js"
+      },
+      {
+        "name": "lib.image.color_grading",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.color_grading.js"
+      },
+      {
+        "name": "lib.image.draw",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.draw.js"
+      },
+      {
+        "name": "lib.image.effects",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.effects.js"
+      },
+      {
+        "name": "lib.image.enhance",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.enhance.js"
+      },
+      {
+        "name": "lib.image.filter",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.filter.js"
+      },
+      {
+        "name": "lib.image.keyer",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.keyer.js"
+      },
+      {
+        "name": "lib.image.mask",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.mask.js"
+      },
+      {
+        "name": "lib.image.warp",
+        "kind": "js",
+        "file": "sandbox/generated/lib.image.warp.js"
+      },
+      {
+        "name": "lib.mail",
+        "kind": "js",
+        "file": "sandbox/generated/lib.mail.js"
+      },
+      {
+        "name": "lib.nlp",
+        "kind": "js",
+        "file": "sandbox/generated/lib.nlp.js"
+      },
+      {
+        "name": "lib.pdf",
+        "kind": "js",
+        "file": "sandbox/generated/lib.pdf.js"
+      },
+      {
+        "name": "lib.secret",
+        "kind": "js",
+        "file": "sandbox/generated/lib.secret.js"
+      },
+      {
+        "name": "lib.sqlite",
+        "kind": "js",
+        "file": "sandbox/generated/lib.sqlite.js"
+      },
+      {
+        "name": "lib.svg",
+        "kind": "js",
+        "file": "sandbox/generated/lib.svg.js"
+      },
+      {
+        "name": "lib.video.download",
+        "kind": "js",
+        "file": "sandbox/generated/lib.video.download.js"
+      },
+      {
+        "name": "messaging.discord",
+        "kind": "js",
+        "file": "sandbox/generated/messaging.discord.js"
+      },
+      {
+        "name": "messaging.telegram",
+        "kind": "js",
+        "file": "sandbox/generated/messaging.telegram.js"
+      },
+      {
+        "name": "mistral.embeddings",
+        "kind": "js",
+        "file": "sandbox/generated/mistral.embeddings.js"
+      },
+      {
+        "name": "mistral.text",
+        "kind": "js",
+        "file": "sandbox/generated/mistral.text.js"
+      },
+      {
+        "name": "mistral.vision",
+        "kind": "js",
+        "file": "sandbox/generated/mistral.vision.js"
+      },
+      {
+        "name": "nodetool.agents",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.agents.js"
+      },
+      {
+        "name": "nodetool.audio",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.audio.js"
+      },
+      {
+        "name": "nodetool.audio.realtime",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.audio.realtime.js"
+      },
+      {
+        "name": "nodetool.audio.synth",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.audio.synth.js"
+      },
+      {
+        "name": "nodetool.code",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.code.js"
+      },
+      {
+        "name": "nodetool.compare",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.compare.js"
+      },
+      {
+        "name": "nodetool.constant",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.constant.js"
+      },
+      {
+        "name": "nodetool.control",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.control.js"
+      },
+      {
+        "name": "nodetool.creative",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.creative.js"
+      },
+      {
+        "name": "nodetool.data",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.data.js"
+      },
+      {
+        "name": "nodetool.document",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.document.js"
+      },
+      {
+        "name": "nodetool.fake",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.fake.js"
+      },
+      {
+        "name": "nodetool.generators",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.generators.js"
+      },
+      {
+        "name": "nodetool.image",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.image.js"
+      },
+      {
+        "name": "nodetool.input",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.input.js"
+      },
+      {
+        "name": "nodetool.model3d",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.model3d.js"
+      },
+      {
+        "name": "nodetool.output",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.output.js"
+      },
+      {
+        "name": "nodetool.script",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.script.js"
+      },
+      {
+        "name": "nodetool.sketch",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.sketch.js"
+      },
+      {
+        "name": "nodetool.text",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.text.js"
+      },
+      {
+        "name": "nodetool.timeline",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.timeline.js"
+      },
+      {
+        "name": "nodetool.triggers",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.triggers.js"
+      },
+      {
+        "name": "nodetool.variable",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.variable.js"
+      },
+      {
+        "name": "nodetool.video",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.video.js"
+      },
+      {
+        "name": "nodetool.workflows.base_node",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.workflows.base_node.js"
+      },
+      {
+        "name": "nodetool.workflows.subgraph",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.workflows.subgraph.js"
+      },
+      {
+        "name": "nodetool.workflows.workflow_node",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.workflows.workflow_node.js"
+      },
+      {
+        "name": "openai.agents",
+        "kind": "js",
+        "file": "sandbox/generated/openai.agents.js"
+      },
+      {
+        "name": "openai.audio",
+        "kind": "js",
+        "file": "sandbox/generated/openai.audio.js"
+      },
+      {
+        "name": "openai.image",
+        "kind": "js",
+        "file": "sandbox/generated/openai.image.js"
+      },
+      {
+        "name": "openai.text",
+        "kind": "js",
+        "file": "sandbox/generated/openai.text.js"
+      },
+      {
+        "name": "vector",
+        "kind": "js",
+        "file": "sandbox/generated/vector.js"
+      },
+      {
+        "name": "xai.image",
+        "kind": "js",
+        "file": "sandbox/generated/xai.image.js"
+      },
+      {
+        "name": "xai.text",
+        "kind": "js",
+        "file": "sandbox/generated/xai.text.js"
+      },
+      {
+        "name": "xai.vision",
+        "kind": "js",
+        "file": "sandbox/generated/xai.vision.js"
+      }
+    ],
+    "internal": [
+      "sandbox/guest-core.js"
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-flow"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md",
+    "sandbox"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "flow",
+    "workflow"
+  ]
+}
