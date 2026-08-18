@@ -485,6 +485,21 @@ describe("DockerDeployer", () => {
         "deploying"
       );
       expect(mockStateManager.writeState).toHaveBeenCalled();
+
+      const created = vi
+        .mocked(fs.mkdirSync)
+        .mock.calls.map(([dir]) => String(dir).replace(/^.*nodetool_data/, ""));
+      expect(created).toEqual(
+        expect.arrayContaining([
+          "/workspace",
+          "/workspace/data",
+          "/workspace/assets",
+          "/workspace/temp",
+          "/workspace/proxy",
+          "/workspace/acme",
+          "/hf-cache"
+        ])
+      );
     });
 
     it("should set status to error on failure", async () => {
@@ -689,7 +704,7 @@ describe("DockerDeployer with port 7777", () => {
   });
 });
 
-describe("BaseSSHDeployer common behavior", () => {
+describe("DockerDeployer construction", () => {
   it("should create state manager when not provided", () => {
     const deployment = makeDockerDeployment();
     const deployer = new DockerDeployer("auto-state", deployment);
