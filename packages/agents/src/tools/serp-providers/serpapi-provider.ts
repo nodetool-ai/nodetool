@@ -1,44 +1,27 @@
 /**
  * SerpAPI provider implementation.
  *
- * Port of src/nodetool/agents/serp_providers/serp_api_provider.py
+ * The narrow half of the SerpAPI surface: one query, one engine, normalised to
+ * the `SearchResult` shape every SERP provider answers with, so `web_search`
+ * does not care which backend this install configured.
  *
- * Wraps the SerpAPI HTTP API and normalises results into the common
- * SearchResult shape.
+ * The general half is the `serpapi` capability module — every engine, its
+ * parameters discovered from SerpAPI's own table. Both go through
+ * {@link SerpApiClient}, so there is one place that holds the key and one place
+ * that scrubs it out of an error.
  */
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
-
-interface SerpApiParams {
-  engine: string;
-  q?: string;
-  api_key: string;
-  num?: number;
-  gl?: string;
-  hl?: string;
-  [key: string]: string | number | undefined;
-}
-
-async function serpApiFetch(params: SerpApiParams): Promise<unknown> {
-  const url = new URL("https://serpapi.com/search");
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined) url.searchParams.set(k, String(v));
-  }
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`SerpAPI request failed (${res.status}): ${text}`);
-  }
-  return res.json();
-}
+import { SerpApiClient } from "../../serpapi/client.js";
+import { isRecord, isString } from "../../utils/type-guards.js";
 
 export class SerpApiProvider implements SerpProvider {
-  private readonly apiKey: string;
+  private readonly client: SerpApiClient;
   private readonly gl: string;
   private readonly hl: string;
 
   constructor(apiKey: string, gl = "us", hl = "en") {
-    this.apiKey = apiKey;
+    this.client = new SerpApiClient(apiKey);
     this.gl = gl;
     this.hl = hl;
   }
@@ -47,41 +30,29 @@ export class SerpApiProvider implements SerpProvider {
     query: string,
     options?: SearchOptions
   ): Promise<SearchResult[]> {
-    const numResults = options?.numResults ?? 10;
-    const engine = options?.engine ?? "google";
+    const data = await this.searchRaw(query, options);
+    const organic = isRecord(data) ? data.organic_results : undefined;
+    if (!Array.isArray(organic)) return [];
 
-    const data = (await serpApiFetch({
-      engine,
-      q: query,
-      api_key: this.apiKey,
-      num: numResults,
-      gl: this.gl,
-      hl: options?.language ?? this.hl
-    })) as Record<string, unknown>;
-
-    const organicResults = (data.organic_results ?? []) as Array<
-      Record<string, unknown>
-    >;
-
-    return organicResults.map((r, i) => ({
-      title: String(r.title ?? ""),
-      url: String(r.link ?? ""),
-      snippet: String(r.snippet ?? ""),
-      position: (r.position as number) ?? i + 1
+    return organic.filter(isRecord).map((result, index) => ({
+      title: isString(result.title) ? result.title : "",
+      url: isString(result.link) ? result.link : "",
+      snippet: isString(result.snippet) ? result.snippet : "",
+      position:
+        typeof result.position === "number" ? result.position : index + 1
     }));
   }
 
-  async searchRaw(query: string, options?: SearchOptions): Promise<unknown> {
-    const numResults = options?.numResults ?? 10;
-    const engine = options?.engine ?? "google";
-
-    return serpApiFetch({
-      engine,
+  async searchRaw(
+    query: string,
+    options?: SearchOptions
+  ): Promise<Record<string, unknown>> {
+    return this.client.search(options?.engine ?? "google", {
       q: query,
-      api_key: this.apiKey,
-      num: numResults,
+      num: options?.numResults ?? 10,
       gl: this.gl,
-      hl: options?.language ?? this.hl
+      hl: options?.language ?? this.hl,
+      ...(options?.location === undefined ? {} : { location: options.location })
     });
   }
 }

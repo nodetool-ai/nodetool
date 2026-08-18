@@ -357,7 +357,7 @@ sec(
 sec(
   "SERPAPI_API_KEY",
   "Search",
-  "SerpAPI API key for web search. Get yours at https://serpapi.com/manage-api-key"
+  "SerpAPI API key. Powers web search and the SerpAPI engine capability — Google and its verticals (news, images, scholar, maps, jobs, flights, trends), Bing, DuckDuckGo, YouTube, Amazon, eBay, Walmart, Yelp, and the rest of its catalog. Get yours at https://serpapi.com/manage-api-key"
 );
 sec(
   "APIFY_API_TOKEN",
