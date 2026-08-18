@@ -1618,6 +1618,18 @@ actor passes an allowlist and a session budget, actor inputs are SSRF-screened,
 cancellation aborts the remote run, and files it produces become NodeTool
 assets. See [docs/apify-integration.md](docs/apify-integration.md).
 
+**Google Workspace is a capability module too**
+(`@nodetool-ai/sandbox-nodetool/google`), and the only Drive/Gmail/Docs/Sheets/
+Calendar surface — the fourteen `lib.google.*` nodes are gone. It authenticates
+with the token the user's Google sign-in returns rather than an API key, which
+the host resolves and refreshes; a guest never sees it. Its twenty calls are the
+fourteen the nodes made plus six they never offered — get one Drive file, get
+one Gmail message, list labels, create a spreadsheet, list calendars, delete an
+event — and a missing or revoked credential comes back as `{error}` telling the
+user to sign in again. A server with no Google login offers none of
+it — see `NODETOOL_GOOGLE_WORKSPACE` in
+[docs/configuration.md](docs/configuration.md).
+
 The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
 `DownloadFile`, `Browser` and `SpiderCrawl` are the `fetch` capability plus
 `-html`; `lib.excel.*` is `-xlsx`; `lib.ocr.*` is `-ocr`; and

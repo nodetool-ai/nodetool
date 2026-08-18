@@ -2,10 +2,10 @@
  * Availability gate for the Google Workspace integration (Drive, Gmail, Docs,
  * Sheets, Calendar).
  *
- * Those tools and nodes authenticate with the Google access token the user's
- * Supabase Google login hands back — there is no API key to paste. A local
- * install has no login, so the integration would only ever surface an error;
- * it is hidden there instead.
+ * The `google` capability module authenticates with the Google access token the
+ * user's Supabase Google login hands back — there is no API key to paste. A
+ * local install has no login, so the integration would only ever surface an
+ * error; it is hidden there instead.
  *
  * Set `NODETOOL_GOOGLE_WORKSPACE=1` to force it on (useful when a local server
  * points at a hosted Supabase project), or `0` to force it off.
@@ -18,10 +18,7 @@ function isSupabaseAuthMode(): boolean {
   );
 }
 
-/** Node namespace holding the Google Workspace nodes. */
-export const GOOGLE_WORKSPACE_NAMESPACE = "lib.google";
-
-/** Whether Google Workspace tools and nodes should be offered. */
+/** Whether the Google Workspace capabilities should be offered. */
 export function isGoogleWorkspaceEnabled(): boolean {
   const override = process.env["NODETOOL_GOOGLE_WORKSPACE"]?.trim();
   if (override === "1" || override === "true") return true;
