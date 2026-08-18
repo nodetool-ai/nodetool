@@ -1,6 +1,7 @@
 {
     "appId": "ai.nodetool.NodeTool",
     "productName": "Nodetool",
+    "npmRebuild": false,
     "directories": {
         "output": "dist",
         "buildResources": "resources"

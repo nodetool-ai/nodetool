@@ -11,7 +11,9 @@ $WebServerPid = $null
 
 function Cleanup {
     if ($WebServerPid) {
-        Stop-Process -Id $WebServerPid -Force -ErrorAction SilentlyContinue
+        # /T kills the whole tree — stopping only npm.cmd would orphan the
+        # Vite node child it spawned.
+        & taskkill /PID $WebServerPid /T /F 2>$null | Out-Null
     }
 }
 
@@ -54,13 +56,16 @@ if (-not $CondaActive) {
 Write-Host "Detected conda environment: $($env:CONDA_DEFAULT_ENV)"
 Write-Host "Starting web Vite server on $WebDevServerUrl..."
 
-$WebJob = Start-Job -ScriptBlock {
-    param($Url)
-    Set-Location web
-    npm run dev
-} -ArgumentList $WebDevServerUrl
+# Start-Process, not Start-Job: under Windows PowerShell 5.1 a job runs in a
+# separate process rooted at the user's home directory, so `Set-Location web`
+# fails there and Vite never starts — silently, because nothing reads the
+# job's error stream. -NoNewWindow shares this console, so Vite's output and
+# any startup error stay visible.
+$WebDir = Join-Path $PSScriptRoot "..\web"
+$WebProc = Start-Process -FilePath "npm.cmd" -ArgumentList "run", "dev" `
+    -WorkingDirectory $WebDir -NoNewWindow -PassThru
 
-$WebServerPid = $WebJob.Id
+$WebServerPid = $WebProc.Id
 
 Write-Host "Waiting for Vite server..."
 $MaxAttempts = 300
