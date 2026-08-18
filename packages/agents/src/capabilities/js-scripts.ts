@@ -8,7 +8,7 @@
  * — or a Code node body, or a CodeAct action, through the same belt — finds
  * one, reads it, saves it, checks it, runs it, and regression-tests it:
  *
- *   list_js_scripts    — id, name, description, ports (the discovery surface)
+ *   list_js_scripts    — id, name, description, ports, palette (discovery)
  *   get_js_script      — the full document
  *   save_js_script     — create or update, validated first, CAS on update
  *   validate_js_script — the static check, inline or by id
@@ -317,6 +317,7 @@ const listJsScripts: CapabilityExport = {
         description: doc.description,
         inputs: doc.inputs,
         outputs: doc.outputs,
+        palette: doc.palette ?? null,
         updated_at: row.updated_at
       };
     });
