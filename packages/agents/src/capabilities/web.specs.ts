@@ -11,6 +11,25 @@
 import type { CapabilitySpec } from "./types.js";
 import { WEB_SEARCH_TOOL_NAME, type JsonSchema } from "@nodetool-ai/runtime";
 
+/**
+ * Every search backend `web_search` can route to, in preference order.
+ *
+ * Order is the routing order when nothing is pinned, and it is deliberate:
+ * the dedicated SERP services come first because they answer a search with
+ * search results, while `openai` and `gemini` answer it with a model's prose
+ * about the results and are the fallback when no SERP key is configured.
+ */
+export const SEARCH_BACKEND_NAMES = [
+  "serpapi",
+  "dataforseo",
+  "brave",
+  "apify",
+  "openai",
+  "gemini"
+] as const;
+
+export type SearchBackendName = (typeof SEARCH_BACKEND_NAMES)[number];
+
 export const WEB_SEARCH_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -29,9 +48,24 @@ export const WEB_SEARCH_SCHEMA: JsonSchema = {
       items: { type: "string" },
       description: "Never include results from these domains."
     },
+    search_type: {
+      type: "string",
+      enum: ["web", "news", "images"],
+      default: "web",
+      description:
+        "What to search. `web` returns pages, `news` returns articles with " +
+        "dates and sources, `images` returns image URLs. Not every backend " +
+        "serves every type; the call says so rather than silently " +
+        "returning web results."
+    },
+    num_results: {
+      type: "integer",
+      description: "How many results to return.",
+      default: 10
+    },
     backend: {
       type: "string",
-      enum: ["serpapi", "openai", "gemini", "dataforseo"],
+      enum: [...SEARCH_BACKEND_NAMES],
       description:
         "Pin one search backend instead of routing to the first " +
         "configured one."
@@ -43,12 +77,14 @@ export const WEB_SEARCH_SCHEMA: JsonSchema = {
 export const webSearchSpec: CapabilitySpec = {
   name: WEB_SEARCH_TOOL_NAME,
   description:
-    "Search the web and use the results to inform responses. Returns up-to-date " +
-    "information for current events and recent data beyond the model's training " +
-    "cutoff. Each result includes the title, URL, and snippet. Optionally scope " +
-    "results with allowed_domains (only these domains) or blocked_domains " +
-    "(never these domains). Runs on the first configured backend; `backend` " +
-    "pins one.",
+    "Search the web and use the results to inform responses. Returns " +
+    "up-to-date information for current events and recent data beyond the " +
+    "model's training cutoff. Set search_type to `news` for dated articles " +
+    "or `images` for image results; the default `web` returns pages with a " +
+    "title, URL, and snippet. Optionally scope results with allowed_domains " +
+    "(only these domains) or blocked_domains (never these domains). Runs on " +
+    "the first configured backend — SerpAPI, DataForSEO, Brave, Apify, then " +
+    "OpenAI or Gemini native search; `backend` pins one.",
   inputSchema: WEB_SEARCH_SCHEMA,
   category: "read",
   userMessage: (params) => {
@@ -58,76 +94,6 @@ export const webSearchSpec: CapabilitySpec = {
       "something";
     const msg = `Searching the web for '${query}'`;
     return msg.length > 80 ? "Searching the web" : msg;
-  }
-};
-
-export const googleNewsSpec: CapabilitySpec = {
-  name: "google_news",
-  description:
-    "Search Google News to retrieve live news articles. Runs on the first " +
-    "configured backend (SerpAPI, then DataForSEO); `backend` pins one.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      keyword: {
-        type: "string",
-        description: "The keyword to search for in Google News."
-      },
-      num_results: {
-        type: "integer",
-        description: "Number of news results to retrieve.",
-        default: 10
-      },
-      backend: {
-        type: "string",
-        enum: ["serpapi", "dataforseo"],
-        description:
-          "Pin one search backend instead of routing to the first " +
-          "configured one."
-      }
-    },
-    required: ["keyword"]
-  },
-  category: "read",
-  userMessage: (params) => {
-    const keyword = (params.keyword as string) ?? "something";
-    const msg = `Searching Google News for '${keyword}'...`;
-    return msg.length > 80 ? "Searching Google News..." : msg;
-  }
-};
-
-export const googleImagesSpec: CapabilitySpec = {
-  name: "google_images",
-  description:
-    "Search Google Images to retrieve image results. Runs on the first " +
-    "configured backend (SerpAPI, then DataForSEO); `backend` pins one.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      keyword: {
-        type: "string",
-        description: "Keyword for image search."
-      },
-      num_results: {
-        type: "integer",
-        description: "Number of image results to retrieve.",
-        default: 20
-      },
-      backend: {
-        type: "string",
-        enum: ["serpapi", "dataforseo"],
-        description:
-          "Pin one search backend instead of routing to the first " +
-          "configured one."
-      }
-    },
-    required: ["keyword"]
-  },
-  category: "read",
-  userMessage: (params) => {
-    const keyword = (params.keyword as string) ?? "something";
-    const msg = `Searching Google Images for '${keyword}'...`;
-    return msg.length > 80 ? "Searching Google Images..." : msg;
   }
 };
 
@@ -264,8 +230,6 @@ export const httpRequestSpec: CapabilitySpec = {
 /** Every spec this module declares, in declaration order. */
 export const webSpecs: readonly CapabilitySpec[] = [
   webSearchSpec,
-  googleNewsSpec,
-  googleImagesSpec,
   browserSpec,
   takeScreenshotSpec,
   downloadFileSpec,

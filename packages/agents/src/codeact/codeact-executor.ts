@@ -229,8 +229,6 @@ export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "web_search",
   "search_nodes",
   "run_search",
-  "google_news",
-  "google_images",
   "asset_search",
   "grep",
   "glob",

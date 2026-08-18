@@ -511,10 +511,10 @@ describe("DataForSeoProvider (extended)", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  GoogleNewsTool                                                     */
+/*  web_search — news                                                  */
 /* ------------------------------------------------------------------ */
 
-describe("GoogleNewsTool", () => {
+describe("web_search with search_type: news", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -542,10 +542,11 @@ describe("GoogleNewsTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
-      const tool = toolForCapabilityName("google_news");
+      const tool = toolForCapabilityName("web_search");
       const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
       const result = (await tool.process(ctx, {
-        keyword: "breaking news",
+        query: "breaking news",
+        search_type: "news",
         num_results: 5
       })) as {
         success: boolean;
@@ -564,10 +565,10 @@ describe("GoogleNewsTool", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  GoogleImagesTool                                                   */
+/*  web_search — images                                                */
 /* ------------------------------------------------------------------ */
 
-describe("GoogleImagesTool", () => {
+describe("web_search with search_type: images", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -593,10 +594,11 @@ describe("GoogleImagesTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
-      const tool = toolForCapabilityName("google_images");
+      const tool = toolForCapabilityName("web_search");
       const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
       const result = (await tool.process(ctx, {
-        keyword: "cats",
+        query: "cats",
+        search_type: "images",
         num_results: 5
       })) as {
         success: boolean;

@@ -46,7 +46,7 @@ const SEARCH_RELATED_SETTINGS = new Set([
   "DATA_FOR_SEO_LOGIN",
   "DATA_FOR_SEO_PASSWORD",
   "BRAVE_API_KEY",
-  "APIFY_API_KEY"
+  "APIFY_API_TOKEN"
 ]);
 
 /**
@@ -201,7 +201,7 @@ const SETTING_LINKS: Record<string, string> = {
   SERPAPI_API_KEY: "https://serpapi.com/manage-api-key",
   DATA_FOR_SEO_LOGIN: "https://app.dataforseo.com/api-dashboard",
   BRAVE_API_KEY: "https://api-dashboard.search.brave.com/",
-  APIFY_API_KEY: "https://console.apify.com/account/integrations",
+  APIFY_API_TOKEN: "https://console.apify.com/account/integrations",
   KIMI_API_KEY: "https://platform.moonshot.ai/console/api-keys",
   DASHSCOPE_API_KEY:
     "https://modelstudio.console.alibabacloud.com/?tab=playground#/api-key",
@@ -221,7 +221,7 @@ const SETTING_BUTTON_TITLES: Record<string, string> = {
   SERPAPI_API_KEY: "Get SerpAPI API Key",
   DATA_FOR_SEO_LOGIN: "Get DataForSEO Credentials",
   BRAVE_API_KEY: "Get Brave API Key",
-  APIFY_API_KEY: "Get Apify API Key",
+  APIFY_API_TOKEN: "Get Apify API Token",
   KIMI_API_KEY: "Get Moonshot API Key",
   DASHSCOPE_API_KEY: "Get Alibaba Cloud API Key",
   AKI_API_KEY: "Get AKI.IO API Key"
@@ -240,7 +240,7 @@ const SETTING_TOOLTIPS: Record<string, string> = {
   SERPAPI_API_KEY: "Go to SerpAPI key management page",
   DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard",
   BRAVE_API_KEY: "Go to Brave Search API dashboard",
-  APIFY_API_KEY: "Go to Apify console integrations page",
+  APIFY_API_TOKEN: "Go to Apify console integrations page",
   KIMI_API_KEY: "Go to Moonshot (Kimi) platform API keys page",
   DASHSCOPE_API_KEY: "Go to Alibaba Cloud Model Studio API keys page",
   AKI_API_KEY: "Go to AKI.IO to sign up and get your API key"

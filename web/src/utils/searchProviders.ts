@@ -55,9 +55,9 @@ export const SEARCH_PROVIDER_CONFIGS: Record<SerpProviderId, SearchProviderConfi
     id: "apify",
     label: "Apify",
     description: "Reliable Google search scraping via Apify actors.",
-    credentialFields: ["APIFY_API_KEY"],
+    credentialFields: ["APIFY_API_TOKEN"],
     getApiKeyUrl: "https://console.apify.com/account/integrations",
-    getApiKeyLabel: "Get Apify API Key"
+    getApiKeyLabel: "Get Apify API Token"
   }
 };
 
@@ -74,8 +74,7 @@ export const SUGGESTED_SERP_PROVIDER: SerpProviderId = "brave";
  */
 export const SEARCH_PROVIDER_TOOL_NAMES = new Set([
   "google_search",
-  "google_news",
-  "google_images"
+  "web_search"
 ]);
 
 type SettingGetter = (envVar: string) => string | undefined;

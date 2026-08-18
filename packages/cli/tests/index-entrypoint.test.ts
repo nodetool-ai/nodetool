@@ -183,15 +183,10 @@ describe("autoEnable logic", () => {
     }
 
     vi.stubEnv("SERPAPI_API_KEY", "test-key");
-    await autoEnable("SERPAPI_API_KEY", [
-      "google_search",
-      "google_news",
-      "google_images"
-    ]);
+    await autoEnable("SERPAPI_API_KEY", ["google_search", "web_search"]);
 
     expect(enabledTools).toContain("google_search");
-    expect(enabledTools).toContain("google_news");
-    expect(enabledTools).toContain("google_images");
+    expect(enabledTools).toContain("web_search");
   });
 
   it("does not enable tools when env var is empty", async () => {
@@ -207,7 +202,7 @@ describe("autoEnable logic", () => {
     }
 
     vi.stubEnv("SERPAPI_API_KEY", "");
-    await autoEnable("SERPAPI_API_KEY", ["google_search", "google_news"]);
+    await autoEnable("SERPAPI_API_KEY", ["google_search", "web_search"]);
 
     // Empty string is falsy, so tools should not be enabled
     expect(enabledTools).toEqual([]);
@@ -244,10 +239,10 @@ describe("autoEnable logic", () => {
     }
 
     vi.stubEnv("SERPAPI_API_KEY", "key");
-    await autoEnable("SERPAPI_API_KEY", ["google_search", "google_news"]);
+    await autoEnable("SERPAPI_API_KEY", ["google_search", "web_search"]);
 
     expect(enabledTools.filter((t) => t === "google_search").length).toBe(1);
-    expect(enabledTools).toContain("google_news");
+    expect(enabledTools).toContain("web_search");
   });
 
   it("multiple autoEnable calls accumulate tools", async () => {

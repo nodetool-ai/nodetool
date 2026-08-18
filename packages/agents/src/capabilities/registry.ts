@@ -20,6 +20,7 @@ import {
   type PermissionCategory
 } from "./types.js";
 import { agentsSpecs } from "./agents.specs.js";
+import { apifySpecs } from "./apify.specs.js";
 import { appsSpecs } from "./apps.specs.js";
 import { assetsSpecs } from "./assets.specs.js";
 import { codeSpecs } from "./code.specs.js";
@@ -78,7 +79,8 @@ const MODULES: Readonly<Record<string, Loader>> = {
   flow: () => import("./flow.js").then((m) => m.module),
   "js-scripts": () => import("./js-scripts.js").then((m) => m.module),
   packs: () => import("./packs.js").then((m) => m.module),
-  ui: () => import("./ui.js").then((m) => m.module)
+  ui: () => import("./ui.js").then((m) => m.module),
+  apify: () => import("./apify.js").then((m) => m.module)
 };
 
 /**
@@ -115,7 +117,8 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "flow",
   "js-scripts",
   "packs",
-  "ui"
+  "ui",
+  "apify"
 ];
 
 /**
@@ -157,7 +160,8 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   flow: flowSpecs,
   "js-scripts": jsScriptsSpecs,
   packs: packsSpecs,
-  ui: uiSpecs
+  ui: uiSpecs,
+  apify: apifySpecs
 };
 
 const SPEC_BY_NAME: ReadonlyMap<string, CapabilitySpec> = new Map(

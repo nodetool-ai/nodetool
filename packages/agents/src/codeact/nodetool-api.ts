@@ -66,8 +66,6 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   web: [
     "web_search",
-    "google_news",
-    "google_images",
     "http_request",
     "download_file",
     "browser",
@@ -744,20 +742,26 @@ const nodetool = (() => {
     web: {
       /**
        * Search the web. \`web_search\` routes across the configured backends
-       * host-side; \`opts.provider\` pins one — "default", "openai", "google"
-       * (grounded/Gemini), "dataforseo".
+       * host-side; \`opts.provider\` pins one — "default", "serpapi",
+       * "dataforseo", "brave", "apify", "openai", "google" (grounded/Gemini).
        */
       search: (query, opts) =>
         __need("web_search")(
           __webArgs(opts, { google: "gemini" }, "query", query)
         ),
+      /** News articles. One \`web_search\` with search_type: "news". */
       news: (query, opts) =>
-        __need("google_news")(
-          __webArgs(opts, { google: "serpapi" }, "keyword", query)
+        __need("web_search")(
+          __merge(__webArgs(opts, { google: "serpapi" }, "query", query), {
+            search_type: "news"
+          })
         ),
+      /** Image results. One \`web_search\` with search_type: "images". */
       images: (query, opts) =>
-        __need("google_images")(
-          __webArgs(opts, { google: "serpapi" }, "keyword", query)
+        __need("web_search")(
+          __merge(__webArgs(opts, { google: "serpapi" }, "query", query), {
+            search_type: "images"
+          })
         ),
       /** One HTTP request; returns the response body as text. */
       fetch: (url, opts) => __need("http_request")(__merge(opts, { url: url })),

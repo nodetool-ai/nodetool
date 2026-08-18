@@ -1500,7 +1500,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships thirty-eight packs in
+global — the `data.*` namespace is gone. NodeTool ships thirty-seven packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box:
 
@@ -1541,7 +1541,6 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host |
 | `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host |
 | `@nodetool-ai/sandbox-twilio` | NodeTool's Twilio helper | host |
-| `@nodetool-ai/sandbox-apify` | NodeTool's Apify helper | host |
 | `@nodetool-ai/sandbox-dsl` | NodeTool's generated graph builder | guest |
 | `@nodetool-ai/sandbox-flow` | NodeTool's generated node callables | guest |
 
@@ -1596,8 +1595,8 @@ Diffs touching either run the `dsl-native-flow` harness selfcheck via
 `nodetool harness gate`. Design and pivot record:
 [docs/dsl-native-flow-design.md](docs/dsl-native-flow-design.md).
 
-The `-aws`, `-notion`, `-supabase`, `-twilio` and `-apify` packs are the host
-case: they replace the S3, Notion, Supabase, Twilio and Apify nodes. Each
+The `-aws`, `-notion`, `-supabase` and `-twilio` packs are the host
+case: they replace the S3, Notion, Supabase and Twilio nodes. Each
 builds an authenticated request — `-aws` signs one with SigV4 — and **none of
 them sends it**. The guest passes what comes back to its own `fetch`, so the
 run's fetch cap and SSRF guard still apply. Credentials
@@ -1607,6 +1606,17 @@ names it declares in its `secrets` property. A host pack's manifest entry is
 own `SANDBOX_HOST_MODULES` table, which pins the one package allowed to declare
 it — a third-party pack can never bring host code. The implementations live in
 `packages/agents/src/host-modules/`, with every safety limit inside them.
+
+**Apify is not one of them any more.** A `-apify` pack of exactly this shape
+existed and was removed: the request-builder pattern requires the guest to hold
+the credential (`nodetool.secrets.get("APIFY_API_TOKEN")`) and to do its own
+fetching and polling, which is the wrong trade for a service that runs
+third-party code, on third-party machines, against a URL a model chose, and
+bills for it. Apify is now a **capability module**
+(`@nodetool-ai/sandbox-nodetool/apify`): the token never leaves the host, every
+actor passes an allowlist and a session budget, actor inputs are SSRF-screened,
+cancellation aborts the remote run, and files it produces become NodeTool
+assets. See [docs/apify-integration.md](docs/apify-integration.md).
 
 The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
 `DownloadFile`, `Browser` and `SpiderCrawl` are the `fetch` capability plus

@@ -89,14 +89,6 @@ const LOADERS: Readonly<Record<string, Loader>> = {
     const mod = await import("./twilio.js");
     return { request: mod.request };
   },
-  apify: async () => {
-    const mod = await import("./apify.js");
-    return {
-      startRun: mod.startRun,
-      runStatus: mod.runStatus,
-      datasetItems: mod.datasetItems
-    };
-  },
   docx: async () => {
     const mod = await import("./docx.js");
     return { build: mod.build };

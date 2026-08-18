@@ -143,13 +143,6 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     description: "Build an authenticated Twilio API request.",
     exports: ["request"]
   },
-  apify: {
-    id: "apify",
-    packName: "@nodetool-ai/sandbox-apify",
-    library: "NodeTool's Apify helper",
-    description: "Build the start, poll, and dataset requests of an Apify run.",
-    exports: ["startRun", "runStatus", "datasetItems"]
-  },
   docx: {
     id: "docx",
     packName: "@nodetool-ai/sandbox-docx",

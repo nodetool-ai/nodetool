@@ -4,7 +4,7 @@ import { isObjectLike, isString } from "../../../../utils/typePredicates";
  * `SearchResultItem[]` the UI can render. Tools in this repo return results in
  * three different forms:
  *
- *  - `google_news` / `google_images`: `{ results: [{ title, link, snippet, ... }] }`
+ *  - `web_search` with search_type news/images: `{ results: [{ title, link, snippet, ... }] }`
  *  - SERP-style providers: a bare array of result objects
  *  - `google_search`: a numbered plain-text block (`"1. Title\n   url\n   snippet"`)
  *
