@@ -362,6 +362,35 @@ These size one process's buffer. Getting a reconnect to the process that *holds*
 the run is a separate concern; see
 [Multi-instance deployments](websocket-api.md#multi-instance-deployments).
 
+## Backend Bundle Targeting
+
+These configure the build, not the server. The packaged Electron backend is one
+bundled `server.mjs` plus a flat `_modules/` directory staged by
+[`scripts/bundle-backend.mjs`](../scripts/bundle-backend.mjs). Some staged
+dependencies ship prebuilt binaries for every OS and architecture in a single
+package; staging all of them wastes disk in a single-target artifact, so the
+staging step prunes them to one target.
+
+- `NODETOOL_BUNDLE_PLATFORM` — the platform to keep prebuilds for. Defaults to
+  `process.platform` (`darwin`, `linux`, `win32`).
+- `NODETOOL_BUNDLE_ARCH` — the architecture to keep prebuilds for. Defaults to
+  `process.arch` (`x64`, `arm64`).
+
+Set both only when cross-building — staging on one machine for another target.
+A build for the host needs neither.
+
+```bash
+NODETOOL_BUNDLE_PLATFORM=win32 NODETOOL_BUNDLE_ARCH=x64 node scripts/bundle-backend.mjs
+```
+
+[`scripts/verify-backend-bundle.mjs`](../scripts/verify-backend-bundle.mjs)
+reads the same two variables and resolves the `@seydx/node-av-<platform>-<arch>`
+binary it expects to find staged (`node-av-win32-<arch>-msvc` on Windows), so a
+verification run must be given the target the staging run used. When no prebuild
+matches the target, staging warns and leaves every prebuild in place rather than
+pruning the artifact down to nothing — a mis-set variable costs size, never a
+missing binary.
+
 ## Environment Variables Index
 
 ![API Settings](assets/screenshots/settings-api-keys.png)
@@ -444,6 +473,7 @@ the run is a separate concern; see
 | `NODETOOL_CONTAINER_RUNTIME` | Container runtime the self-hosted deploy tooling drives | no | `docker` or `podman`; any other value is ignored. Unset, a local target probes for `docker` then `podman` and falls back to `docker`, and a remote target resolves the same way in the shell it runs. Set `NODETOOL_CONTAINER_RUNTIME=podman` on a host with both installed. See [Deployment](deployment.md) |
 | `NODETOOL_WORKER_TOKEN` | Worker bearer token for admin endpoints | yes | Rotate regularly |
 | `NODETOOL_ADMIN_TOKEN` | Admin bearer token the `nodetool deploy` user and database subcommands send to a remote deployment | yes | Equivalent to their `--token` flag, which wins when both are set. Without either, an interactive shell prompts for it and a non-interactive one exits `1`. See [Deployment](deployment.md) |
+| `NODETOOL_BUNDLE_PLATFORM` / `NODETOOL_BUNDLE_ARCH` | Target the backend-bundle staging and verification scripts prune prebuilt binaries to | no | Build-time only, not read by the server. Default to `process.platform` / `process.arch`; set both only when cross-building. See [Backend bundle targeting](#backend-bundle-targeting) |
 
 Use `nodetool settings show` to view resolved values and verify the merge order.
 
