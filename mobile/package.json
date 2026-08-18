@@ -63,7 +63,7 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-syntax-highlighter": "^16.1.1",
     "uuid": "14.0.1",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
