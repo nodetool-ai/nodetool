@@ -17,8 +17,9 @@
  *    negotiated capability; Python worker tests for iteration, chunk,
  *    forward, aggregate, dropped keys.
  *
- * Until those land, `NODETOOL_USE_CORRELATION=1` is opt-in only. PR 5
- * (default flip) is gated on PR 4b.
+ * Correlation is already the only TypeScript scheduling path (PR 5). Until
+ * 4a/4b land, a workflow whose Python nodes carry no `input_mode` /
+ * `output_correlation` metadata fails correlation analysis at load time.
  */
 
 import { describe, it } from "vitest";
@@ -29,5 +30,5 @@ describe("bridge — Python stdio correlation (blocked on PR 4a/4b)", () => {
   it.todo("LineageScopeClosed serializes/deserializes round-trip");
   it.todo("worker handshake advertises protocol_version + capabilities");
   it.todo("protocol version mismatch fails with a clear diagnostic");
-  it.todo("workers without the correlation capability run legacy scheduler only");
+  it.todo("workers without the correlation capability fail analysis at load");
 });

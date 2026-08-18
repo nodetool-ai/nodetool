@@ -1,5 +1,5 @@
 /**
- * PR 2 tests — envelope propagation behind NODETOOL_USE_CORRELATION.
+ * PR 2 tests — envelope propagation.
  *
  * Asserts:
  *  - MessageEnvelope carries correlation_lineage and source_edge_id.

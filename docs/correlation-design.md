@@ -1,6 +1,6 @@
 # Automatic Message Correlation: Replacing `sync_mode`
 
-Status: **Default-on for the TypeScript scheduler.** Correlation-aware scheduling is now the only kernel scheduling path; the `NODETOOL_USE_CORRELATION` rollout flag and user-facing `sync_mode` selection have been removed. The Python stdio bridge work (PR 4a/4b) is still outstanding — Python-backed nodes must declare explicit `input_mode` / `output_correlation` metadata via the bridge to participate, and workflows whose Python nodes lack that metadata will fail correlation analysis at load time.
+Status: **Default-on for the TypeScript scheduler.** Correlation-aware scheduling is now the only kernel scheduling path; the rollout flag and user-facing `sync_mode` selection have been removed. The Python stdio bridge work (PR 4a/4b) is still outstanding — Python-backed nodes must declare explicit `input_mode` / `output_correlation` metadata via the bridge to participate, and workflows whose Python nodes lack that metadata will fail correlation analysis at load time.
 
 | PR  | Description                                            | Status         |
 | --- | ------------------------------------------------------ | -------------- |
