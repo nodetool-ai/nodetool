@@ -34,9 +34,9 @@ export default function ChatUISection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            An agent that <br />
+            An agent with <br />
             <span className="text-white">
-              does the work
+              a real toolbelt
             </span>
           </motion.h2>
 
@@ -47,10 +47,13 @@ export default function ChatUISection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            The chat isn&apos;t a help panel — it&apos;s an agent with the whole
-            app as its toolbelt: anything you can click in any editor, it can
-            do. Ask in plain English and it builds the workflow, runs it, and
-            leaves behind something you can inspect, edit, and rerun.
+            A chatbot answers in text. This agent works with the studio&apos;s
+            own capabilities: it builds and runs workflows, invokes models,
+            edits on the timeline and the sketch canvas, and works with your
+            assets — anything you can click in any editor, it can do. It
+            isn&apos;t agent <em>or</em> workflow: the agent plans and
+            orchestrates, and the workflow it leaves behind makes the process
+            visible, editable, and yours to run again.
           </motion.p>
         </div>
 

@@ -45,30 +45,30 @@ export default function BuildRunDeploy() {
       <div className="scroll-fade grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card
           step="01"
-          title="Build your canvas"
+          title="Describe the outcome"
           icon={<Workflow className="h-6 w-6" />}
           accent="blue"
-          description="Drag in models, edits, and files, then connect them. Every model from every provider sits on the same canvas."
+          description="A campaign, a trailer, a set of product shots — say what you want and the agent plans the steps and builds the workflow from real models, editors, and tools. You can also build it by hand: it's the same canvas."
         >
           <BuildVisual />
         </Card>
 
         <Card
           step="02"
-          title="Run it with your own keys"
+          title="Watch it run to a finished piece"
           icon={<PlayCircle className="h-6 w-6" />}
           accent="fuchsia"
-          description="Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate. Pay providers directly. Watch results stream in."
+          description="The workflow doesn't stop at a model answer. It chains generation, editing, and assembly — image, video, audio, and text — on your own provider keys, at provider prices, and streams results in as it goes."
         >
           <RunVisual />
         </Card>
 
         <Card
           step="03"
-          title="Edit and finish"
+          title="Inspect, edit, run again"
           icon={<Wand2 className="h-6 w-6" />}
           accent="amber"
-          description="Send the image or clip straight into the built-in editors. Crop, mask, cut, and arrange on the timeline. Nothing to export, no second app to open."
+          description="No black box: the process is on the canvas. See every step, swap the model, change one parameter, and run from there. Refine the result in the built-in editors, then save the workflow and reuse it for the next piece."
         >
           <EditVisual />
         </Card>

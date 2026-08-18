@@ -510,6 +510,13 @@ export default function CreativesPage() {
                   choose NodeTool
                 </span>
               </h2>
+              <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                The agent does the assembling, and what it leaves behind is a
+                process you can open, tweak, and run again. The second
+                variation costs minutes, not another afternoon — and when a
+                step looks wrong, you change that step instead of starting
+                over.
+              </p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

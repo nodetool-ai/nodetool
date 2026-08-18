@@ -202,7 +202,9 @@ export default function MarketingSegmentPage() {
                 Automation tools compete on integrations and speed. Creative
                 tools compete on the polish of a single asset. Campaigns need
                 both: a workflow that runs at volume and still looks on-brand
-                every time.
+                every time. The agent orchestrates the production; you keep
+                the process on screen, edit any step, and rerun it for the
+                next product or market.
               </p>
             </motion.div>
 

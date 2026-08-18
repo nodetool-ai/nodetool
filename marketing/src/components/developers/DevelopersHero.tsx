@@ -42,12 +42,13 @@ export default function DevelopersHero() {
           transition={{ duration: 0.25, delay: 0.05 }}
           className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
         >
-          TypeScript-first, async Node.js under the hood, the same open-source
-          codebase that ships Studio and Cloud. Write a custom node, drive the
-          canvas from a CLI, generate workflows in code — or point Claude Code
-          at the MCP server and let an agent do it: every editor action is
-          also a tool, with validators and debug harnesses built for the agent
-          loop.
+          One execution layer instead of a stack of provider SDKs and
+          hand-rolled orchestration: the same open-source, TypeScript-first
+          runtime powers the visual canvas, the agent, and your code. Write a
+          custom node, drive the canvas from a CLI, generate workflows in
+          code — or point Claude Code at the MCP server and let an agent do
+          it: every editor action is also a tool, with validators and debug
+          harnesses built for the agent loop.
         </motion.p>
 
         {/* Feature Pills */}

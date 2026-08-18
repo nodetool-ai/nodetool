@@ -26,6 +26,7 @@ import CommunitySection from "../components/CommunitySection";
 import ContactSection from "../components/ContactSection";
 import ComparisonSection from "../components/ComparisonSection";
 import UseCasesShowcase from "../components/UseCasesShowcase";
+import WaysInSection from "../components/WaysInSection";
 import FaqBlock from "../components/FaqBlock";
 import JsonLd from "../components/JsonLd";
 import { demoVideoSchema } from "../lib/siteSchema";
@@ -298,7 +299,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* How it works (Build / Run / Edit) — the 3-step mental model */}
+        {/* How it works (Describe / Run / Inspect) — the 3-step mental model */}
         <section aria-labelledby="how-title" className="rhythm-section pt-4">
           <div className={`${sectionContainer}`}>
             <BuildRunDeploy />
@@ -307,6 +308,12 @@ export default function Home() {
 
         {/* Concrete proof right after the mental model: a complete, runnable workflow */}
         <UseCasesShowcase />
+
+        {/* Why the agent here is more than a chatbot — the toolbelt */}
+        <ChatUISection />
+
+        {/* Route by intent once the core story has landed */}
+        <WaysInSection />
 
         {/* Position vs. the alternatives — answers the status-quo block up top */}
         <ComparisonSection reducedMotion={reducedMotion} />
@@ -341,9 +348,6 @@ export default function Home() {
 
         {/* Asset Manager — companion to the canvas story */}
         <AssetManagerSection />
-
-        {/* Alternate interface: drive workflows by chat (payoff after canvas) */}
-        <ChatUISection />
 
         {/* Local model library — supports the "runs on your machine" claim above */}
         <ModelManagerSection />
@@ -417,12 +421,13 @@ export default function Home() {
               id="closing-cta-title"
               className="text-3xl md:text-4xl font-bold tracking-tight text-white"
             >
-              Put every model on one canvas.
+              Describe the next piece. Keep the process.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Start the next piece and finish it in the same place. Free, open
-              source, and yours to run: download Studio, or try Cloud in the
-              browser with nothing to install.
+              Tell the agent what you want, watch the workflow run, and keep a
+              process you can edit and reuse. Free, open source, and yours to
+              run: download Studio, or try Cloud in the browser with nothing
+              to install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
