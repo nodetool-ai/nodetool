@@ -1,0 +1,89 @@
+# Narrative
+
+What the site says, in what order, and why. `PRODUCT.md` covers brand, users, and
+design principles; this file covers the message. When homepage copy and this file
+disagree, one of them is wrong — fix both in the same change.
+
+## Positioning line
+
+**Describe the piece. Keep the workflow.**
+
+The hero claim is not the feature list and not the category label. It is the
+trade every competitor loses: a closed tool generates behind glass and hands you
+a file; NodeTool's agent generates *and* hands you the graph that made it —
+a normal, inspectable file you can open, rewire, and run again.
+
+"The agent-first creative workspace" stays as the category descriptor in
+`<title>`, meta descriptions, and schema. It is accurate and it is what people
+search for. It is not the H1: it names a category instead of a benefit.
+
+## Message hierarchy
+
+Everything below the hero earns its place by advancing one of three claims, in
+this order of importance:
+
+1. **The agent builds something you own.** Not chat that tells you what to do,
+   and not a black box that returns a render. Show the graph appearing, the node
+   being edited, the run resuming from the middle.
+2. **One canvas, generation through finish.** Image, video, audio, text, plus
+   the editors — storyboard, timeline, sketch, script — so a piece never leaves
+   the workspace to be finished.
+3. **Independence.** Your keys, your files, your models, AGPL-3.0, local option.
+   Stated as fact, never as a pitch.
+
+Provider lists, node counts, tool counts, and architecture belong under those
+claims, not next to them.
+
+## Order of the page
+
+Hero → the status quo (the pain, once, briefly) → the demo → use cases with real
+output → the three claims above → proof → comparisons → download.
+
+The pain section comes before any feature because the features only mean
+something against it. Comparisons come late: a reader who is convinced does not
+need them, and a reader who is not will scroll to them.
+
+## Audience
+
+The front door speaks to **creatives and small teams** — filmmakers, designers,
+marketers, content studios — who want production output without becoming ML
+engineers or paying a credit tax.
+
+Technical depth is the back door, not the doorway: `/developers`, `/agents`, the
+CLI and SDK pages. Keeping it off the homepage is what stops the site reading as
+neither-for-artists-nor-for-engineers.
+
+## Cost and status, stated early
+
+Two things a reader must not have to hunt for, because vagueness here reads as a
+trap:
+
+- **Cost.** "Studio is free. You pay providers directly, at their published
+  prices. Local models are free after the download." Never imply a NodeTool
+  credit exists.
+- **Cloud.** Studio is the full product; Cloud is the zero-install preview and is
+  in alpha. Say "alpha" wherever Cloud is offered as an entry point. A "start in
+  seconds" claim that lands a reader in an alpha is a claim we lose.
+
+## Proof
+
+The weakest part of the story, and not a copy problem. What closes the gap:
+end-to-end project pages with the finished piece, its workflow file, and its
+real cost; community workflows and mini-apps surfaced on the homepage; short
+user quotes about time saved or control regained.
+
+Until those exist, do not compensate with adjectives. A missing testimonial is
+better than a manufactured superlative.
+
+## Phrasing rules
+
+Beyond [docs/WRITING_STYLE.md](../docs/WRITING_STYLE.md), which applies here too:
+
+- "Workspace" or "studio", not "workflow builder" — the latter undersells the
+  editors and puts us in the n8n bracket.
+- "Every major model, your keys" instead of a fourteen-name provider list. Name
+  providers where a reader is checking for a specific one (pricing, model pages).
+- Concrete over categorical: "a Seedance run that costs $0.18 on KIE costs $0.18
+  here" beats "no markup".
+- No "seamless", "powerful", "unlock", "empower". If a sentence survives its own
+  deletion, delete it.
