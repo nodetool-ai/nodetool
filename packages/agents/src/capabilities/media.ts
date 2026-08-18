@@ -62,9 +62,13 @@ import {
   critiqueImageSpec,
   compareImagesSpec,
   scoreImageAdherenceSpec,
+  understandVideoSpec,
   ffmpegSpec,
   ytDlpSpec,
+  DEFAULT_UNDERSTAND_VIDEO_TOKENS,
+  DEFAULT_VIDEO_PROMPT,
   MAX_COMPARE_IMAGES,
+  MAX_UNDERSTAND_VIDEO_TOKENS,
   GENERATE_IMAGE_SCHEMA,
   EDIT_IMAGE_SCHEMA,
   GENERATE_VIDEO_SCHEMA,
@@ -75,7 +79,8 @@ import {
   READ_MEDIA_BYTES_SCHEMA,
   CRITIQUE_IMAGE_SCHEMA,
   COMPARE_IMAGES_SCHEMA,
-  SCORE_ADHERENCE_SCHEMA
+  SCORE_ADHERENCE_SCHEMA,
+  UNDERSTAND_VIDEO_SCHEMA
 } from "./media.specs.js";
 
 export {
@@ -90,7 +95,8 @@ export {
   READ_MEDIA_BYTES_SCHEMA,
   CRITIQUE_IMAGE_SCHEMA,
   COMPARE_IMAGES_SCHEMA,
-  SCORE_ADHERENCE_SCHEMA
+  SCORE_ADHERENCE_SCHEMA,
+  UNDERSTAND_VIDEO_SCHEMA
 } from "./media.specs.js";
 
 const MAX_INLINE_TEXT_PREVIEW = 500;
@@ -636,8 +642,8 @@ function parseJudgeModelArgs(
   return { provider, model };
 }
 
-/** Normalize an image source so the context media resolver can inline it. */
-function normalizeImageSource(source: string): string {
+/** Normalize a media source so the context media resolver can inline it. */
+function normalizeMediaSource(source: string): string {
   const trimmed = source.trim();
   if (
     trimmed.startsWith("data:") ||
@@ -654,7 +660,14 @@ function normalizeImageSource(source: string): string {
 function imagePart(source: string): MessageContent {
   return {
     type: "image_url",
-    image: { type: "image", uri: normalizeImageSource(source) }
+    image: { type: "image", uri: normalizeMediaSource(source) }
+  };
+}
+
+function videoPart(source: string): MessageContent {
+  return {
+    type: "video",
+    video: { type: "video", uri: normalizeMediaSource(source) }
   };
 }
 
@@ -678,7 +691,8 @@ function messageText(message: Message): string {
 async function judgeCall(
   context: ProcessingContext,
   m: JudgeModelArgs,
-  content: MessageContent[]
+  content: MessageContent[],
+  maxTokens: number = JUDGE_MAX_TOKENS
 ): Promise<string> {
   const result = (await context.runProviderPrediction({
     provider: m.provider,
@@ -686,7 +700,7 @@ async function judgeCall(
     model: m.model,
     params: {
       messages: [{ role: "user", content }] satisfies Message[],
-      max_tokens: JUDGE_MAX_TOKENS,
+      max_tokens: maxTokens,
       temperature: 0
     }
   })) as Message;
@@ -1022,6 +1036,52 @@ const scoreImageAdherence: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// understand_video
+// ---------------------------------------------------------------------------
+
+/**
+ * Read a video with a multimodal chat model.
+ *
+ * The video rides as a `video` content part next to the instruction; the
+ * context's media resolver inlines an `asset://` URI and the provider decides
+ * whether the bytes go inline or through its files API.
+ */
+const understandVideo: CapabilityExport = {
+  spec: understandVideoSpec,
+  impl: async (run, params) => {
+    const m = parseJudgeModelArgs(params);
+    if ("error" in m) return m;
+    const video = params["video"];
+    if (!isNonEmptyString(video)) {
+      return { error: "video is required" };
+    }
+    const promptParam = params["prompt"];
+    const prompt = isNonBlankString(promptParam)
+      ? promptParam
+      : DEFAULT_VIDEO_PROMPT;
+    const requested = Number(params["max_tokens"]);
+    const maxTokens =
+      Number.isFinite(requested) && requested > 0
+        ? Math.min(Math.floor(requested), MAX_UNDERSTAND_VIDEO_TOKENS)
+        : DEFAULT_UNDERSTAND_VIDEO_TOKENS;
+
+    try {
+      const text = await judgeCall(
+        run.context,
+        m,
+        [textPart(prompt), videoPart(video)],
+        maxTokens
+      );
+      return { text, provider: m.provider, model: m.model };
+    } catch (e) {
+      return {
+        error: `understand_video failed: ${e instanceof Error ? e.message : String(e)}`
+      };
+    }
+  }
+};
+
 /**
  * The gated read behind a media reference.
  *
@@ -1280,6 +1340,7 @@ export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   critiqueImage,
   compareImages,
   scoreImageAdherence,
+  understandVideo,
   ffmpeg,
   ytDlp
 ];
@@ -1301,6 +1362,7 @@ export {
   critiqueImage,
   compareImages,
   scoreImageAdherence,
+  understandVideo,
   ffmpeg,
   ytDlp
 };

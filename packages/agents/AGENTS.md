@@ -969,8 +969,10 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   one ranked model; `find`/`list` for the long form; `forProvider(provider)`
   for one provider's own catalog), and `nodetool.media`
   (`generateImage/editImage/generateVideo/animateImage/speak/transcribe/embed`
-  plus the judge loop `critique/compare/scoreAdherence`, each taking a
-  pick/find result or `"provider/model_id"`), `nodetool.nodes`
+  plus the judge loop `critique/compare/scoreAdherence` and
+  `understandVideo(video, prompt, model)`, which hands a whole clip to a model
+  that reads video and answers as text — each taking a pick/find result or
+  `"provider/model_id"`), `nodetool.nodes`
   (`search/info/list` — the graph builder's discovery half),
   `nodetool.documents` (convert, PDF text/tables, markdown↔pdf),
   `nodetool.apps` (`build/debug`), `nodetool.agents` (`run(prompt)` spawns a
