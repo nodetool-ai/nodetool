@@ -37,9 +37,9 @@ const marketingBenefits = [
     icon: Zap,
   },
   {
-    title: "Brand consistency, built in",
+    title: "Brand constraints, built into the workflow",
     description:
-      "Set a palette, a tone of voice, or a product shot once, and every asset the workflow produces follows it. There is no need to re-brief for each output.",
+      "Encode your palette, tone, references, and product shots into the workflow once, so every generation starts from the same brand constraints instead of a fresh brief.",
     icon: Palette,
   },
 ];
