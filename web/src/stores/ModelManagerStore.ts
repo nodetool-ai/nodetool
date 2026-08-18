@@ -43,6 +43,11 @@ interface ModelManagerState {
    * list to models that serve it. `null` means "all goals".
    */
   selectedGoal: string | null;
+  /**
+   * Active weight-format filter (`MODEL_FORMATS` id from `modelFormat.ts`),
+   * narrowing the list to models carrying it. `null` means "all formats".
+   */
+  selectedFormat: string | null;
   setIsOpen: (isOpen: boolean) => void;
   setModelSearchTerm: (term: string) => void;
   setSelectedModelType: (type: string) => void;
@@ -55,6 +60,7 @@ interface ModelManagerState {
   setSourceInitialized: (initialized: boolean) => void;
   setVramOverrideGb: (gb: number | null) => void;
   setSelectedGoal: (goal: string | null) => void;
+  setSelectedFormat: (format: string | null) => void;
 }
 
 export const useModelManagerStore = create<ModelManagerState>()(
@@ -71,6 +77,7 @@ export const useModelManagerStore = create<ModelManagerState>()(
       sourceInitialized: false,
       vramOverrideGb: null,
       selectedGoal: null,
+      selectedFormat: null,
       setIsOpen: (isOpen) => set({ isOpen }),
       setModelSearchTerm: (term) => set({ modelSearchTerm: term }),
       setSelectedModelType: (type) => set({ selectedModelType: type }),
@@ -86,7 +93,8 @@ export const useModelManagerStore = create<ModelManagerState>()(
       setSourceInitialized: (initialized) =>
         set({ sourceInitialized: initialized }),
       setVramOverrideGb: (gb) => set({ vramOverrideGb: gb }),
-      setSelectedGoal: (goal) => set({ selectedGoal: goal })
+      setSelectedGoal: (goal) => set({ selectedGoal: goal }),
+      setSelectedFormat: (format) => set({ selectedFormat: format })
     }),
     {
       name: "model-manager",

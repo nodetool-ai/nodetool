@@ -6,22 +6,24 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import {
   Card,
   Caption,
-  Chip,
   EditorButton,
   FlexColumn,
   FlexRow,
   Text, BORDER_RADIUS } from "../../ui_primitives";
+import type { UnifiedModel } from "../../../stores/ApiTypes";
+import type { HardwareProfile } from "../onboarding/useHardwareProfile";
+import HardwareCard from "../onboarding/HardwareCard";
+import LocalModelsHero from "./LocalModelsHero";
 
-const SUPPORTED_FORMATS = [
-  { label: "GGUF", primary: true },
-  { label: "ONNX" },
-  { label: "Safetensors" },
-  { label: "PyTorch" },
-  { label: "TensorRT" },
-  { label: "MLX" }
-];
+interface ModelsRightSidebarProps {
+  models: UnifiedModel[];
+  hardwareProfile: HardwareProfile;
+}
 
-const ModelsRightSidebar: React.FC = () => {
+const ModelsRightSidebar: React.FC<ModelsRightSidebarProps> = ({
+  models,
+  hardwareProfile
+}) => {
   const theme = useTheme();
 
   return (
@@ -35,44 +37,9 @@ const ModelsRightSidebar: React.FC = () => {
         overflowX: "hidden"
       }}
     >
-      <Card
-        variant="outlined"
-        padding="normal"
-        sx={{
-          borderRadius: BORDER_RADIUS.lg,
-          border: `1px solid ${theme.vars.palette.divider}`
-        }}
-      >
-        <Text size="small" weight={600} sx={{ marginBottom: "0.75rem" }}>
-          Supported Formats
-        </Text>
-        <FlexRow gap={0.5} sx={{ flexWrap: "wrap" }}>
-          {SUPPORTED_FORMATS.map((fmt) => (
-            <Chip
-              key={fmt.label}
-              label={fmt.label}
-              compact
-              variant={fmt.primary ? "filled" : "outlined"}
-              color={fmt.primary ? "success" : "default"}
-              sx={{
-                fontSize: theme.fontSizeSmaller,
-                fontWeight: 500,
-                height: 22,
-                ...(fmt.primary
-                  ? {
-                      backgroundColor: `rgba(${theme.vars.palette.success.mainChannel} / 0.16)`,
-                      color: theme.vars.palette.success.main,
-                      borderColor: `rgba(${theme.vars.palette.success.mainChannel} / 0.4)`
-                    }
-                  : {
-                      borderColor: theme.vars.palette.divider,
-                      color: theme.vars.palette.text.secondary
-                    })
-              }}
-            />
-          ))}
-        </FlexRow>
-      </Card>
+      <LocalModelsHero models={models} />
+
+      <HardwareCard profile={hardwareProfile} />
 
       <Card
         variant="outlined"

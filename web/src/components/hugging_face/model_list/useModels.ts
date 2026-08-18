@@ -18,6 +18,7 @@ import { isHfModel } from "../../../utils/hfCache";
 import { isLocalProvider } from "../../../utils/providerDisplay";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { compareModelsByFit, goalsForModel } from "./modelFit";
+import { formatsForModel } from "./modelFormat";
 import { useHardwareProfile } from "../onboarding/useHardwareProfile";
 
 /**
@@ -144,6 +145,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   );
   const source = useModelManagerStore((state) => state.source);
   const selectedGoal = useModelManagerStore((state) => state.selectedGoal);
+  const selectedFormat = useModelManagerStore((state) => state.selectedFormat);
   const recommendedCatalog = useMetadataStore((state) => state.recommendedModels);
   const { budgetGb } = useHardwareProfile();
 
@@ -236,6 +238,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
       if (selectedGoal && !goalsForModel(model).has(selectedGoal)) {
         return false;
       }
+      if (selectedFormat && !formatsForModel(model).has(selectedFormat)) {
+        return false;
+      }
       if (
         maxModelSizeGB &&
         model.size_on_disk &&
@@ -253,6 +258,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     modelSearchTerm,
     selectedModelType,
     selectedGoal,
+    selectedFormat,
     maxModelSizeGB,
     sortField,
     sortDirection,
@@ -307,6 +313,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
         if (selectedGoal && !goalsForModel(model).has(selectedGoal)) {
           return false;
         }
+        if (selectedFormat && !formatsForModel(model).has(selectedFormat)) {
+          return false;
+        }
         if (
           maxModelSizeGB &&
           model.size_on_disk &&
@@ -324,7 +333,14 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     });
 
     return types;
-  }, [allModels, source, modelSearchTerm, selectedGoal, maxModelSizeGB]);
+  }, [
+    allModels,
+    source,
+    modelSearchTerm,
+    selectedGoal,
+    selectedFormat,
+    maxModelSizeGB
+  ]);
 
   const modelCountsByType = useMemo(() => {
     const counts: Record<string, number> = {};

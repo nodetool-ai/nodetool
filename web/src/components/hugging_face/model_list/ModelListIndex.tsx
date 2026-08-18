@@ -19,10 +19,9 @@ import { IconForType } from "../../../config/IconForType";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
 import ModelsRightSidebar from "./ModelsRightSidebar";
-import LocalModelsHero from "./LocalModelsHero";
 import GoalFilterChips from "./GoalFilterChips";
+import FormatFilterChips from "./FormatFilterChips";
 import ModelOnboarding from "../onboarding/ModelOnboarding";
-import HardwareCard from "../onboarding/HardwareCard";
 import { useHardwareProfile } from "../onboarding/useHardwareProfile";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
@@ -177,7 +176,8 @@ const ModelListIndex: React.FC = () => {
     scope, setScope,
     source, setSource,
     sourceInitialized, setSourceInitialized,
-    setSelectedGoal
+    setSelectedGoal,
+    setSelectedFormat
   } = useModelManagerStore(
     useShallow((state) => ({
       selectedModelType: state.selectedModelType,
@@ -190,7 +190,8 @@ const ModelListIndex: React.FC = () => {
       setSource: state.setSource,
       sourceInitialized: state.sourceInitialized,
       setSourceInitialized: state.setSourceInitialized,
-      setSelectedGoal: state.setSelectedGoal
+      setSelectedGoal: state.setSelectedGoal,
+      setSelectedFormat: state.setSelectedFormat
     }))
   );
   const hardwareProfile = useHardwareProfile();
@@ -262,8 +263,16 @@ const ModelListIndex: React.FC = () => {
       setModelSearchTerm("");
       setSelectedModelType("All");
       setSelectedGoal(null);
+      setSelectedFormat(null);
     },
-    [scope, setScope, setModelSearchTerm, setSelectedModelType, setSelectedGoal]
+    [
+      scope,
+      setScope,
+      setModelSearchTerm,
+      setSelectedModelType,
+      setSelectedGoal,
+      setSelectedFormat
+    ]
   );
 
   const handleSourceChange = useCallback(
@@ -280,6 +289,7 @@ const ModelListIndex: React.FC = () => {
       setModelSearchTerm("");
       setSelectedModelType("All");
       setSelectedGoal(null);
+      setSelectedFormat(null);
     },
     [
       source,
@@ -287,7 +297,8 @@ const ModelListIndex: React.FC = () => {
       setSourceInitialized,
       setModelSearchTerm,
       setSelectedModelType,
-      setSelectedGoal
+      setSelectedGoal,
+      setSelectedFormat
     ]
   );
 
@@ -517,13 +528,8 @@ const ModelListIndex: React.FC = () => {
         </Box>
 
         <Box className="content">
-          <LocalModelsHero models={allModels ?? []} />
-          {source === "recommended" && (
-            <Box sx={{ mb: 2 }}>
-              <HardwareCard profile={hardwareProfile} />
-            </Box>
-          )}
           <GoalFilterChips />
+          <FormatFilterChips />
           {isFetching && (
             <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: Z_INDEX.raised }}>
               <LoadingSpinner size="small" />
@@ -744,7 +750,10 @@ const ModelListIndex: React.FC = () => {
         </Box>
 
         <Box className="right-sidebar">
-          <ModelsRightSidebar />
+          <ModelsRightSidebar
+            models={allModels ?? []}
+            hardwareProfile={hardwareProfile}
+          />
         </Box>
           </>
         )}

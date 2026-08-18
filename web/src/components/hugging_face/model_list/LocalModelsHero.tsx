@@ -55,8 +55,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
       sx={{
         borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${theme.vars.palette.divider}`,
-        backgroundColor: theme.vars.palette.background.paper,
-        marginBottom: "1.25rem"
+        backgroundColor: theme.vars.palette.background.paper
       }}
     >
       <FlexRow gap={2} align="center" sx={{ flexWrap: "wrap" }}>
