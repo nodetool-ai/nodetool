@@ -408,6 +408,7 @@ missing binary.
 | `HF_TOKEN` / `FAL_API_KEY` / `REPLICATE_API_TOKEN` | HuggingFace-family providers | yes | Optional per workflow |
 | `OLLAMA_API_URL` | Local Ollama base URL | no | Default `http://127.0.0.1:11434` |
 | `NODETOOL_INTEGRATION_TOKEN` | Service token for messaging-bridge integrations (Telegram bot) | yes | ≥16 chars. Enables `/api/integrations/:provider/*` (account linking + delegated tokens); unset, those routes do not exist. Set the same value on the bridge process. See [telegram-bot-design.md](telegram-bot-design.md) §5 |
+| `TELEGRAM_BOT_USERNAME` | Bot username for the Telegram link deep link | no | Without the `@`. When set, Settings → Integrations renders `t.me/<username>?start=<code>` links; unset, the UI shows the bare code for manual `/start` entry |
 | `NODETOOL_GOOGLE_WORKSPACE` | Force the Google Workspace integration (Drive, Gmail, Docs, Sheets, Calendar) on or off | no | `1`/`true` on, `0`/`false` off. Unset follows Supabase auth mode — the `google` capability signs in with the token a Google login returns, so a local install with no login hides it instead of offering an integration that can only error. Set `1` on a local server pointed at a hosted Supabase project |
 | `DB_PATH` / `DATABASE_URL` | Database connection | no | Set only one. `DB_PATH` configures SQLite; `DATABASE_URL` supports PostgreSQL (`postgres://`, `postgresql://`) and SQLite (`file:`, `sqlite:`) |
 | `NODETOOL_STORAGE_BACKEND` | Storage backend (`file`, `s3`, `supabase`) | no | Default `file`. Selected explicitly — not auto-detected from credentials |

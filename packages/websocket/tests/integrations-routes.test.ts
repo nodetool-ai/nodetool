@@ -14,6 +14,7 @@ import { DelegatedTokenProvider } from "@nodetool-ai/auth";
 import { ExternalIdentity, Thread, initTestDb } from "@nodetool-ai/models";
 
 import { createIntegrationRoutes } from "../src/routes/integrations.js";
+import { LinkCodeStore } from "../src/lib/link-codes.js";
 
 const SERVICE_TOKEN = "integration-service-token-0123456789";
 const SIGNING_KEY = Buffer.from("0123456789abcdef0123456789abcdef", "utf-8");
@@ -24,10 +25,16 @@ interface BuildOptions {
   enforceAuth?: boolean;
   serviceToken?: string | null;
   now?: () => number;
+  linkCodes?: LinkCodeStore;
 }
 
 async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
-  const { enforceAuth = true, serviceToken = SERVICE_TOKEN, now } = options;
+  const {
+    enforceAuth = true,
+    serviceToken = SERVICE_TOKEN,
+    now,
+    linkCodes
+  } = options;
   if (serviceToken === null) {
     delete process.env.NODETOOL_INTEGRATION_TOKEN;
   } else {
@@ -38,7 +45,8 @@ async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
     createIntegrationRoutes({
       signingKey: () => SIGNING_KEY,
       enforceAuth,
-      now
+      now,
+      linkCodes
     })
   );
   await app.ready();
@@ -320,6 +328,106 @@ describe("integration routes", () => {
       payload: { external_id: "tg-1" }
     });
     expect(res.statusCode).toBe(404);
+  });
+
+  /**
+   * The web-initiated direction (design §5): the settings page mints the code
+   * while signed in, so the code — not the bridge — names the NodeTool user,
+   * and the bridge supplies the external account that pressed Start.
+   */
+  describe("a web-minted deep-link code", () => {
+    it("links the code's user to the external account the bridge names", async () => {
+      const linkCodes = new LinkCodeStore();
+      app = await buildApp({ linkCodes });
+      const { code } = linkCodes.mintForUser("telegram", "user-web");
+
+      const complete = await app.inject({
+        method: "POST",
+        url: "/api/integrations/telegram/link/complete",
+        headers: auth(),
+        payload: { external_id: "tg-9", code }
+      });
+      expect(complete.statusCode).toBe(200);
+      expect(complete.json()).toEqual({ linked: true });
+
+      const stored = await ExternalIdentity.findByExternal("telegram", "tg-9");
+      expect(stored!.user_id).toBe("user-web");
+    });
+
+    it("ignores a user_id the bridge sends — the code decides who links", async () => {
+      const linkCodes = new LinkCodeStore();
+      app = await buildApp({ linkCodes });
+      const { code } = linkCodes.mintForUser("telegram", "user-web");
+
+      const complete = await app.inject({
+        method: "POST",
+        url: "/api/integrations/telegram/link/complete",
+        headers: auth(),
+        payload: { external_id: "tg-9", code, user_id: "someone-else" }
+      });
+      expect(complete.statusCode).toBe(200);
+
+      const stored = await ExternalIdentity.findByExternal("telegram", "tg-9");
+      expect(stored!.user_id).toBe("user-web");
+    });
+
+    it("is single-use like any other code", async () => {
+      const linkCodes = new LinkCodeStore();
+      app = await buildApp({ linkCodes });
+      const { code } = linkCodes.mintForUser("telegram", "user-web");
+
+      const payload = { external_id: "tg-9", code };
+      const first = await app.inject({
+        method: "POST",
+        url: "/api/integrations/telegram/link/complete",
+        headers: auth(),
+        payload
+      });
+      expect(first.statusCode).toBe(200);
+
+      const second = await app.inject({
+        method: "POST",
+        url: "/api/integrations/telegram/link/complete",
+        headers: auth(),
+        payload
+      });
+      expect(second.statusCode).toBe(410);
+    });
+
+    it("refuses a code minted for another provider", async () => {
+      const linkCodes = new LinkCodeStore();
+      app = await buildApp({ linkCodes });
+      const { code } = linkCodes.mintForUser("discord", "user-web");
+
+      const complete = await app.inject({
+        method: "POST",
+        url: "/api/integrations/telegram/link/complete",
+        headers: auth(),
+        payload: { external_id: "tg-9", code }
+      });
+      expect(complete.statusCode).toBe(400);
+      expect(await ExternalIdentity.findByExternal("telegram", "tg-9")).toBeNull();
+    });
+
+    it("still requires user_id when the code came from the bridge", async () => {
+      app = await buildApp();
+      const start = await app.inject({
+        method: "POST",
+        url: "/api/integrations/telegram/link/start",
+        headers: auth(),
+        payload: { external_id: "tg-1" }
+      });
+      const { code } = start.json() as { code: string };
+
+      const complete = await app.inject({
+        method: "POST",
+        url: "/api/integrations/telegram/link/complete",
+        headers: auth(),
+        payload: { external_id: "tg-1", code }
+      });
+      expect(complete.statusCode).toBe(400);
+      expect(await ExternalIdentity.findByExternal("telegram", "tg-1")).toBeNull();
+    });
   });
 
   /**

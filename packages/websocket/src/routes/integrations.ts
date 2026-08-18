@@ -13,8 +13,9 @@
  * token scoped to them. Tenant isolation is then the server's usual rules.
  */
 
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import { z } from "zod";
 
 import { mintDelegatedToken } from "@nodetool-ai/auth";
 import { ExternalIdentity } from "@nodetool-ai/models";
@@ -23,6 +24,7 @@ import {
   integrationExternalIdBodySchema,
   integrationLinkCompleteBodySchema
 } from "../http-body-schemas.js";
+import { LinkCodeStore, sharedLinkCodes } from "../lib/link-codes.js";
 
 /** Platforms the identity layer accepts. `provider` is data, not a route. */
 const ALLOWED_PROVIDERS = ["telegram", "discord"] as const;
@@ -30,17 +32,17 @@ const ALLOWED_PROVIDERS = ["telegram", "discord"] as const;
 /** A service token shorter than this is refused rather than trusted. */
 const MIN_SERVICE_TOKEN_LENGTH = 16;
 
-/** How long a link code stays usable. */
-const LINK_CODE_TTL_MS = 10 * 60 * 1000;
-
 /** Lifetime of a minted delegated token. */
 const DELEGATED_TOKEN_TTL_SECONDS = 60 * 60;
 
-interface PendingLink {
-  provider: string;
-  externalId: string;
-  expiresAtMs: number;
-}
+/**
+ * `/link/complete` body. `user_id` is required only for a bot-minted code:
+ * a web-minted code already carries the user who was signed in when it was
+ * created, and that user wins over anything the bridge sends.
+ */
+const linkCompleteBodySchema = integrationLinkCompleteBodySchema.extend({
+  user_id: z.string().min(1).optional()
+});
 
 export interface IntegrationRoutesOptions {
   /**
@@ -56,6 +58,12 @@ export interface IntegrationRoutesOptions {
   enforceAuth: boolean;
   /** Injected clock, so code expiry is testable without waiting. */
   now?: () => number;
+  /**
+   * The link-code store. Defaults to the process-wide one the tRPC router also
+   * uses, which is what lets a deep link minted in the browser be redeemed
+   * here. Tests pass their own.
+   */
+  linkCodes?: LinkCodeStore;
 }
 
 /** Whether the request carries the configured service token. */
@@ -98,6 +106,9 @@ export function createIntegrationRoutes(
   options: IntegrationRoutesOptions
 ): FastifyPluginAsync {
   const now = options.now ?? Date.now;
+  const linkCodes =
+    options.linkCodes ??
+    (options.now ? new LinkCodeStore({ now: options.now }) : sharedLinkCodes);
 
   return async (app) => {
     const serviceToken = process.env["NODETOOL_INTEGRATION_TOKEN"];
@@ -106,20 +117,6 @@ export function createIntegrationRoutes(
       // every path answers 404 rather than 401.
       return;
     }
-
-    /**
-     * Codes minted by `/link/start` and not yet consumed. In-memory is
-     * deliberate for v1: a code lives ten minutes and losing one on restart
-     * costs the user a second `/link`, not data.
-     */
-    const pendingLinks = new Map<string, PendingLink>();
-
-    const prune = (): void => {
-      const cutoff = now();
-      for (const [code, pending] of pendingLinks) {
-        if (pending.expiresAtMs <= cutoff) pendingLinks.delete(code);
-      }
-    };
 
     /** Common preamble: service token, then provider. */
     const authorize = (
@@ -150,14 +147,10 @@ export function createIntegrationRoutes(
         return;
       }
 
-      prune();
-      const code = randomBytes(24).toString("base64url");
-      const expiresAtMs = now() + LINK_CODE_TTL_MS;
-      pendingLinks.set(code, {
+      const { code, expiresAtMs } = linkCodes.mintForExternalAccount(
         provider,
-        externalId: body.data.external_id,
-        expiresAtMs
-      });
+        body.data.external_id
+      );
 
       reply.send({
         code,
@@ -172,7 +165,7 @@ export function createIntegrationRoutes(
         const provider = authorize(req, reply);
         if (!provider) return;
 
-        const body = integrationLinkCompleteBodySchema.safeParse(req.body);
+        const body = linkCompleteBodySchema.safeParse(req.body);
         if (!body.success) {
           reply
             .status(400)
@@ -180,32 +173,48 @@ export function createIntegrationRoutes(
           return;
         }
 
-        prune();
-        const pending = pendingLinks.get(body.data.code);
+        const pending = linkCodes.consume(body.data.code);
         if (!pending) {
           reply
             .status(410)
             .send({ error: "This link code has expired or was already used" });
           return;
         }
-        // Single use: consumed whether or not it matches, so a guessed code
-        // cannot be probed against several accounts.
-        pendingLinks.delete(body.data.code);
 
-        if (
-          pending.provider !== provider ||
-          pending.externalId !== body.data.external_id
-        ) {
+        if (pending.provider !== provider) {
           reply
             .status(400)
             .send({ error: "This link code was issued for a different account" });
           return;
         }
 
+        // A web-minted code carries the user who was signed in when it was
+        // created; the bridge supplies the external account it belongs to.
+        // A bot-minted code is the mirror image, and the browser that redeems
+        // it is what names the user.
+        let userId: string;
+        if (pending.kind === "user") {
+          userId = pending.userId;
+        } else {
+          if (pending.externalId !== body.data.external_id) {
+            reply.status(400).send({
+              error: "This link code was issued for a different account"
+            });
+            return;
+          }
+          if (!body.data.user_id) {
+            reply
+              .status(400)
+              .send({ error: "external_id, code and user_id are required" });
+            return;
+          }
+          userId = body.data.user_id;
+        }
+
         await ExternalIdentity.link({
           provider,
           externalId: body.data.external_id,
-          userId: body.data.user_id
+          userId
         });
         reply.send({ linked: true });
       }

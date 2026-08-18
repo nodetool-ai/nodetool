@@ -8,6 +8,7 @@ import { customProvidersRouter } from "./routers/custom-providers.js";
 import { creditsRouter } from "./routers/credits.js";
 import { extensionRouter } from "./routers/extension.js";
 import { filesRouter } from "./routers/files.js";
+import { integrationsRouter } from "./routers/integrations.js";
 import { jobsRouter } from "./routers/jobs.js";
 import { jsScriptsRouter } from "./routers/js-scripts.js";
 import { triggersRouter } from "./routers/triggers.js";
@@ -45,6 +46,7 @@ export const appRouter = router({
   extension: extensionRouter,
   files: filesRouter,
   fonts: fontsRouter,
+  integrations: integrationsRouter,
   jobs: jobsRouter,
   jsScripts: jsScriptsRouter,
   triggers: triggersRouter,
