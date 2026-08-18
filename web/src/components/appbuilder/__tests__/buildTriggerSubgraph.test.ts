@@ -2,7 +2,7 @@
  * buildTriggerSubgraph turns a trigger input into the minimal browser-runnable
  * downstream subgraph, with live UI values injected onto input nodes.
  */
-import type { AppInstanceState, BindingRef } from "@nodetool-ai/app-runtime";
+import type { BindingRef } from "@nodetool-ai/app-runtime";
 import { stub } from "../../../test-utils/doubles";
 
 import { buildTriggerSubgraph } from "../runtime/buildTriggerSubgraph";

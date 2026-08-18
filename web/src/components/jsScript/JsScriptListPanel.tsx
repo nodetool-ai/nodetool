@@ -1,7 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -21,51 +19,11 @@ import {
   ToolbarIconButton,
   Tooltip,
   TruncatedText,
-  MOTION,
-  SPACING
+  SPACING,
+  listPanelStyles
 } from "../ui_primitives";
 
 const DEFAULT_NAME = "Untitled JS script";
-
-const styles = (theme: Theme) =>
-  css({
-    height: "100%",
-    minHeight: 0,
-    ".jsscript-search": {
-      paddingBottom: theme.spacing(1)
-    },
-    ".jsscript-list": {
-      minHeight: 0,
-      overflowY: "auto",
-      paddingRight: theme.spacing(0.5)
-    },
-    ".jsscript-item": {
-      width: "100%",
-      border: 0,
-      borderRadius: theme.rounded.md,
-      backgroundColor: "transparent",
-      color: theme.vars.palette.text.primary,
-      cursor: "pointer",
-      padding: theme.spacing(1),
-      textAlign: "left",
-      transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover
-      },
-      "&:focus-visible": {
-        outline: `2px solid ${theme.vars.palette.primary.main}`,
-        outlineOffset: -2
-      },
-      "&.active": {
-        backgroundColor: theme.vars.palette.action.selected
-      }
-    },
-    ".jsscript-icon": {
-      flexShrink: 0,
-      color: theme.vars.palette.text.secondary,
-      fontSize: 20
-    }
-  });
 
 export const CreateJsScriptButton = memo(function CreateJsScriptButton() {
   const createJsScript = useCreateJsScript();
@@ -159,8 +117,8 @@ const JsScriptListPanel = () => {
   );
 
   return (
-    <FlexColumn fullHeight fullWidth gap={0} css={styles(theme)}>
-      <div className="jsscript-search">
+    <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
+      <div className="list-panel-search">
         <CategorySearchBar
           value={filterValue}
           onChange={setFilterValue}
@@ -202,19 +160,19 @@ const JsScriptListPanel = () => {
           />
         </FlexColumn>
       ) : (
-        <FlexColumn className="jsscript-list" gap={SPACING.xs}>
+        <FlexColumn className="list-panel-list" gap={SPACING.xs}>
           {scripts.map((script) => (
             <button
               key={script.id}
               type="button"
-              className={`jsscript-item ${
+              className={`list-panel-item ${
                 script.id === activeScriptId ? "active" : ""
               }`}
               onClick={() => handleOpen(script.id, script.name)}
               aria-current={script.id === activeScriptId ? "page" : undefined}
             >
               <FlexRow align="center" gap={1} fullWidth>
-                <DataObjectOutlinedIcon className="jsscript-icon" />
+                <DataObjectOutlinedIcon className="list-panel-icon" />
                 <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
                   <TruncatedText
                     component="span"

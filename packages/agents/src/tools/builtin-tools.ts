@@ -118,6 +118,9 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "record_style_preference",
   "get_style_profile",
 
+  // Video understanding (a multimodal chat model reads a whole clip)
+  "understand_video",
+
   // Web
   "browser",
   "take_screenshot",

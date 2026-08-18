@@ -37,9 +37,9 @@ const marketingBenefits = [
     icon: Zap,
   },
   {
-    title: "Brand consistency, built in",
+    title: "Brand constraints, built into the workflow",
     description:
-      "Set a palette, a tone of voice, or a product shot once, and every asset the workflow produces follows it. There is no need to re-brief for each output.",
+      "Encode your palette, tone, references, and product shots into the workflow once, so every generation starts from the same brand constraints instead of a fresh brief.",
     icon: Palette,
   },
 ];
@@ -202,7 +202,9 @@ export default function MarketingSegmentPage() {
                 Automation tools compete on integrations and speed. Creative
                 tools compete on the polish of a single asset. Campaigns need
                 both: a workflow that runs at volume and still looks on-brand
-                every time.
+                every time. The agent orchestrates the production; you keep
+                the process on screen, edit any step, and rerun it for the
+                next product or market.
               </p>
             </motion.div>
 

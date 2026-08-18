@@ -54,7 +54,7 @@ The server is configured via environment variables:
 | `ANTHROPIC_API_KEY` | — | Anthropic API key |
 | `OPENAI_API_KEY` | — | OpenAI API key |
 | `GEMINI_API_KEY` | — | Google Gemini API key |
-| `OLLAMA_API_URL` | `http://localhost:11434` | Ollama server URL |
+| `OLLAMA_API_URL` | `http://127.0.0.1:11434` | Ollama server URL |
 
 ## Health Check
 

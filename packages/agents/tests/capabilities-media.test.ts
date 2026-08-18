@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { Message } from "@nodetool-ai/protocol";
+import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
@@ -31,6 +31,7 @@ import {
   generateVideo,
   scoreImageAdherence,
   transcribeAudio,
+  understandVideo,
   ffmpeg,
   ytDlp
 } from "../src/capabilities/media.js";
@@ -80,6 +81,7 @@ describe("media and style capability modules", () => {
       "critique_image",
       "compare_images",
       "score_image_adherence",
+      "understand_video",
       "ffmpeg",
       "yt_dlp"
     ]);
@@ -109,6 +111,7 @@ describe("wire identity: a Tool built from the spec", () => {
     [critiqueImage, toolForCapabilityName("critique_image")],
     [compareImages, toolForCapabilityName("compare_images")],
     [scoreImageAdherence, toolForCapabilityName("score_image_adherence")],
+    [understandVideo, toolForCapabilityName("understand_video")],
     [ffmpeg, toolForCapabilityName("ffmpeg")],
     [ytDlp, toolForCapabilityName("yt_dlp")],
     [recordStylePreference, toolForCapabilityName("record_style_preference")],
@@ -204,6 +207,116 @@ describe("critique_image through the adapter", () => {
       brief: "a portrait"
     })) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/did not return parseable JSON/);
+  });
+});
+
+describe("understand_video through the adapter", () => {
+  function partsOf(predict: ReturnType<typeof vi.fn>): MessageContent[] {
+    const call = predict.mock.calls[0]?.[0] as {
+      params: { messages: Message[]; max_tokens: number };
+      provider: string;
+      model: string;
+      capability: string;
+    };
+    const content = call.params.messages[0].content;
+    if (!Array.isArray(content)) throw new Error("expected content parts");
+    return content;
+  }
+
+  it("sends the prompt and a video part, and returns the answer text", async () => {
+    const predict = vi.fn(async () => ({
+      role: "assistant",
+      content: "A fox crosses a snowfield."
+    }));
+    const result = (await asTool(understandVideo).process(
+      makeContext(predict),
+      {
+        provider: "gemini",
+        model: "gemini-3-pro",
+        video: "asset://clip-1.mp4",
+        prompt: "What happens?"
+      }
+    )) as Record<string, unknown>;
+
+    expect(result).toEqual({
+      text: "A fox crosses a snowfield.",
+      provider: "gemini",
+      model: "gemini-3-pro"
+    });
+    expect(partsOf(predict)).toEqual([
+      { type: "text", text: "What happens?" },
+      { type: "video", video: { type: "video", uri: "asset://clip-1.mp4" } }
+    ]);
+  });
+
+  it("normalizes a bare asset id and defaults the prompt", async () => {
+    const predict = vi.fn(async () => ({
+      role: "assistant",
+      content: "ok"
+    }));
+    await asTool(understandVideo).process(makeContext(predict), {
+      provider: "gemini",
+      model: "gemini-3-pro",
+      video: " clip-1 "
+    });
+    expect(partsOf(predict)).toEqual([
+      { type: "text", text: "Describe this video in detail." },
+      { type: "video", video: { type: "video", uri: "asset://clip-1" } }
+    ]);
+  });
+
+  it("caps max_tokens and defaults it when absent", async () => {
+    const maxTokensOf = async (params: Record<string, unknown>) => {
+      const predict = vi.fn(async () => ({ role: "assistant", content: "ok" }));
+      await asTool(understandVideo).process(makeContext(predict), {
+        provider: "gemini",
+        model: "gemini-3-pro",
+        video: "clip-1",
+        ...params
+      });
+      const call = predict.mock.calls[0][0] as {
+        params: { max_tokens: number };
+      };
+      return call.params.max_tokens;
+    };
+    expect(await maxTokensOf({})).toBe(1500);
+    expect(await maxTokensOf({ max_tokens: 400 })).toBe(400);
+    expect(await maxTokensOf({ max_tokens: 100000 })).toBe(8192);
+  });
+
+  it("requires provider, model and video, pointing at find_model", async () => {
+    const predict = vi.fn();
+    const noModel = (await asTool(understandVideo).process(
+      makeContext(predict),
+      { provider: "gemini", video: "clip-1" }
+    )) as Record<string, unknown>;
+    expect(String(noModel["error"])).toMatch(/find_model/);
+
+    const noProvider = (await asTool(understandVideo).process(
+      makeContext(predict),
+      { model: "gemini-3-pro", video: "clip-1" }
+    )) as Record<string, unknown>;
+    expect(String(noProvider["error"])).toMatch(/find_model/);
+
+    const noVideo = (await asTool(understandVideo).process(
+      makeContext(predict),
+      { provider: "gemini", model: "gemini-3-pro" }
+    )) as Record<string, unknown>;
+    expect(noVideo).toEqual({ error: "video is required" });
+    expect(predict).not.toHaveBeenCalled();
+  });
+
+  it("reports a provider failure as an error", async () => {
+    const predict = vi.fn(async () => {
+      throw new Error("no video support");
+    });
+    const result = (await asTool(understandVideo).process(
+      makeContext(predict),
+      { provider: "gemini", model: "gemini-3-pro", video: "clip-1" }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toBe(
+      "understand_video failed: no video support"
+    );
   });
 });
 

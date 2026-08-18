@@ -81,8 +81,8 @@ export default function SiteFooter() {
               </span>
             </a>
             <p className="mt-3 max-w-xs text-sm text-slate-300">
-              The open creative AI workspace. Every model, your keys, your
-              canvas.
+              The open, agent-first creative workspace. Describe the work. The
+              agent builds the process. You keep the workflow.
             </p>
           </div>
 

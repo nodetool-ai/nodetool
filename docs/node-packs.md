@@ -26,7 +26,7 @@ A Node Pack can include any combination of:
 ### Open the Package Manager
 
 1. Launch the desktop app
-2. Go to **Tools > Packs** to open the Package Manager
+2. Open **Package Manager** from the app menu
 
 ### Browse and Search
 

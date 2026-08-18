@@ -34,9 +34,9 @@ export default function ChatUISection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            An agent that <br />
+            The agent doesn&apos;t just answer. <br />
             <span className="text-white">
-              does the work
+              It leaves the work behind.
             </span>
           </motion.h2>
 
@@ -47,11 +47,23 @@ export default function ChatUISection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            The chat isn&apos;t a help panel — it&apos;s an agent with the whole
-            app as its toolbelt: anything you can click in any editor, it can
-            do. Ask in plain English and it builds the workflow, runs it, and
-            leaves behind something you can inspect, edit, and rerun.
+            A chatbot leaves you a transcript. This agent has the whole studio
+            as its toolbelt — it builds the actual workflow on your canvas,
+            runs it in front of you, and every decision becomes part of the
+            canvas. Inspect it, change it, rerun it, or reuse it for the next
+            job.
           </motion.p>
+
+          <motion.a
+            href="/agents"
+            initial={false}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.25, delay: 0.08 }}
+            className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-300 transition-colors hover:text-emerald-200 focus-ring"
+          >
+            How agents and workflows work together →
+          </motion.a>
         </div>
 
         <motion.div

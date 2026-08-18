@@ -56,7 +56,7 @@ const proPoints = [
   {
     icon: Zap,
     title: "Start in 30 seconds",
-    body: "Sign in, open a workflow, and press run. No installer, no drivers, nothing to set up beyond a browser tab.",
+    body: "Sign in and describe what you want to make. Start from the agent, an existing workflow, or a blank canvas — no installer, no drivers, nothing beyond a browser tab.",
   },
   {
     icon: Globe,
@@ -65,8 +65,8 @@ const proPoints = [
   },
   {
     icon: Users,
-    title: "Built for teams",
-    body: "Share workflows, hand over prompts, and work on agents together in one shared workspace.",
+    title: "Share what you build",
+    body: "Export a workflow as a single portable bundle — the graph plus its assets — and anyone can import and run it. Deeper team features are part of the alpha roadmap.",
   },
   {
     icon: KeyRound,

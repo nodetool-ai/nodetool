@@ -1,7 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import {
@@ -40,79 +38,8 @@ import {
   ToolbarIconButton,
   TruncatedText,
   Tooltip,
-  MOTION,
-  SPACING,
-  getSpacingPx
+  listPanelStyles
 } from "../ui_primitives";
-
-const styles = (theme: Theme) =>
-  css({
-    height: "100%",
-    minHeight: 0,
-    ".script-search": {
-      paddingBottom: theme.spacing(1)
-    },
-    ".script-list": {
-      minHeight: 0,
-      overflowY: "auto",
-      paddingRight: theme.spacing(0.5)
-    },
-    ".script-item": {
-      width: "100%",
-      border: 0,
-      borderRadius: theme.rounded.md,
-      backgroundColor: "transparent",
-      color: theme.vars.palette.text.primary,
-      cursor: "pointer",
-      padding: theme.spacing(1),
-      textAlign: "left",
-      transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover
-      },
-      "&:focus-visible": {
-        outline: `2px solid ${theme.vars.palette.primary.main}`,
-        outlineOffset: -2
-      },
-      "&.active": {
-        backgroundColor: theme.vars.palette.action.selected
-      }
-    },
-    ".script-icon": {
-      flexShrink: 0,
-      color: theme.vars.palette.text.secondary,
-      fontSize: 20
-    },
-    ".rename-input": {
-      width: "100%",
-      background: "transparent",
-      border: `1px solid ${theme.vars.palette.primary.main}`,
-      borderRadius: theme.rounded.sm,
-      color: "inherit",
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      fontSize: "var(--fontSizeSmall)",
-      fontWeight: 600,
-      outline: "none"
-    },
-    ".date-header-row": {
-      width: "100%",
-      padding: `0 ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xs)} 0`,
-      display: "flex",
-      alignItems: "flex-end",
-      borderBottom: "1px solid var(--palette-divider)"
-    },
-    ".date-header": {
-      fontSize: theme.fontSizeSmaller,
-      flexShrink: 0,
-      padding: 0,
-      lineHeight: 1.1,
-      width: "100%",
-      textAlign: "right",
-      letterSpacing: "0.02em",
-      textTransform: "uppercase",
-      whiteSpace: "nowrap"
-    }
-  });
 
 interface ScriptListItemProps {
   id: string;
@@ -173,9 +100,9 @@ const ScriptListItem = memo(function ScriptListItem({
 
   if (editing) {
     return (
-      <div className={`script-item ${active ? "active" : ""}`}>
+      <div className={`list-panel-item ${active ? "active" : ""}`}>
         <FlexRow align="center" gap={1} fullWidth>
-          <RecordVoiceOverOutlinedIcon className="script-icon" />
+          <RecordVoiceOverOutlinedIcon className="list-panel-icon" />
           <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
             <input
               className="rename-input"
@@ -196,14 +123,14 @@ const ScriptListItem = memo(function ScriptListItem({
   return (
     <button
       type="button"
-      className={`script-item ${active ? "active" : ""}`}
+      className={`list-panel-item ${active ? "active" : ""}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
       aria-current={active ? "page" : undefined}
     >
       <FlexRow align="center" gap={1} fullWidth>
-        <RecordVoiceOverOutlinedIcon className="script-icon" />
+        <RecordVoiceOverOutlinedIcon className="list-panel-icon" />
         <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
           <TruncatedText
             component="span"
@@ -412,7 +339,7 @@ const ScriptListPanel = () => {
   }, [setActions, clearActions, handleDuplicate, handleRequestDelete]);
 
   return (
-    <FlexColumn fullHeight fullWidth gap={0} css={styles(theme)}>
+    <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
       <ConfirmDialog
         open={itemToDelete !== null}
         onClose={() => setItemToDelete(null)}
@@ -422,7 +349,7 @@ const ScriptListPanel = () => {
         confirmText="Delete"
         cancelText="Cancel"
       />
-      <div className="script-search">
+      <div className="list-panel-search">
         <CategorySearchBar
           ref={searchRef}
           value={filterValue}
@@ -465,7 +392,7 @@ const ScriptListPanel = () => {
           />
         </FlexColumn>
       ) : (
-        <FlexColumn className="script-list" gap={0.5}>
+        <FlexColumn className="list-panel-list" gap={0.5}>
           {(() => {
             let currentGroup = "";
             return scripts.map((script) => {

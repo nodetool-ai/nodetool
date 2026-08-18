@@ -176,7 +176,7 @@ const styles = (theme: Theme) =>
     ".cost-total-value": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeNormal,
-      fontWeight: 700,
+      fontWeight: 600,
       color: theme.vars.palette.text.primary,
       fontVariantNumeric: "tabular-nums"
     },

@@ -36,7 +36,8 @@ echo "Research the latest AI trends" | \
 - `-p, --provider <id>` — Provider id (required)
 - `-m, --model <id>` — Model id (required)
 - `-w, --workspace <path>` — Workspace dir for file tools (default: cwd)
-- `--tools <list>` — Comma-separated tool names that narrow the belt
+- `--max-iterations <n>` — Action rounds per step (default 15; raise for `claude_agent_sdk`)
+- `--max-steps <n>` — Steps allowed in the run (default 50)
 - `--json` — Emit each agent event as a JSON line on **stderr**
 - `-v, --verbose` — Include low-level chunk and other events in the trace
 
@@ -53,16 +54,8 @@ nodetool agent run -p openai -m gpt-5.4-mini \
 The agent gets the default toolbelt: files, search, browser, PDF, vision,
 critique, thread memory, assets, todo, plus the platform tools — workflows,
 nodes, jobs, apps, models, and media generation. This is the same belt the chat
-agent and the MCP bridge assemble, so the surfaces cannot drift.
-
-`--tools` narrows the belt to the names you list. An unknown name is an error
-that names it and prints what is available:
-
-```bash
-nodetool agent run -p openai -m gpt-5.4-mini \
-  --tools read_file,write_file,web_search \
-  -o "Summarize the README"
-```
+agent and the MCP bridge assemble, so the surfaces cannot drift. The belt is not
+narrowable from the command line — `nodetool agent run` has no `--tools` flag.
 
 ### `nodetool agent diagnose`
 
