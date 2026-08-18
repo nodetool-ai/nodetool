@@ -155,10 +155,10 @@ describe("code is node-level trimmed; text is whole-listed minus file I/O", () =
     }
   });
 
-  it("keeps the yt-dlp downloader without its namespace", () => {
-    // The cloud image ships yt-dlp on PATH, so the node runs there. Admitting
-    // it by name must not drag the rest of the automation surface in with it.
-    expect(isCloudNodeType("lib.video.download.YtDlpDownload")).toBe(true);
+  it("drops the yt-dlp downloader along with its namespace", () => {
+    // It was allowlisted by name once; pulling media from arbitrary sites is
+    // not something a managed multi-tenant server does on a user's behalf.
+    expect(isCloudNodeType("lib.video.download.YtDlpDownload")).toBe(false);
     expect(isCloudNodeType("lib.video.download.SomethingElse")).toBe(false);
     expect(isCloudNodeType("lib.browser.WebFetch")).toBe(false);
   });

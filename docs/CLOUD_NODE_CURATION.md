@@ -11,11 +11,9 @@ office-doc tooling, local model runtimes) that is powerful but "nerdy" — it
 dilutes the creative mission and balloons the support surface. The cloud profile
 drops it.
 
-> **Two exceptions,** both admitted by name rather than by namespace: the
+> **One exception,** admitted by name rather than by namespace: the
 > **sandboxed Code node** (`nodetool.code.Code`, QuickJS WASM JavaScript), the
-> intentional power-user escape hatch; and the **yt-dlp downloader**
-> (`lib.video.download.YtDlpDownload`), because bringing a clip in from a URL
-> starts most video work and the cloud image ships `yt-dlp` on PATH.
+> intentional power-user escape hatch.
 
 ## How it's enabled
 
@@ -150,8 +148,7 @@ Admitting it by name rather than whole-listing the namespace keeps any future
 - **Data/docs:** `nodetool.data` (dataframes), `nodetool.document`, `lib.pdf`,
   `lib.markdown`, `lib.html`, `lib.charts`
 - **System/automation:** `lib.os`, `nodetool.workspace`,
-  `nodetool.triggers`, `lib.browser`, `lib.video.download` (except
-  `YtDlpDownload`, kept by name)
+  `nodetool.triggers`, `lib.browser`, `lib.video.download`
 - **Databases/cloud/integrations:** `lib.sqlite`, `lib.http`, `lib.graphql`,
   `lib.mail`, `lib.secret`, `lib.comfy`
 - **Messaging:** `messaging.discord`, `messaging.telegram`
@@ -164,11 +161,32 @@ Admitting it by name rather than whole-listing the namespace keeps any future
 
 The namespace is kept. The product surface is the standard Agent plus
 Classifier, Extractor, Summarizer, CreateThread, and EnhancePrompt.
-Specialist tool-agent nodes were removed. ffmpeg, yt-dlp, and browser
-are CodeAct capabilities (`nodetool.media.ffmpeg`,
-`nodetool.media.downloadVideo`, `nodetool.web.browse`) — the same binaries the
-image installs, reached from chat and from the Code node instead of from an
-agent node.
+Specialist tool-agent nodes were removed. ffmpeg and browser are CodeAct
+capabilities (`nodetool.media.ffmpeg`, `nodetool.web.browse`) — the same
+binaries the image installs, reached from chat and from the Code node instead
+of from an agent node. yt-dlp is not: see below.
+
+## yt-dlp
+
+`lib.video.download.YtDlpDownload` was allowlisted by name, and the `yt_dlp`
+capability behind `nodetool.media.downloadVideo()` was on every belt. Both are
+off under the cloud profile.
+
+A managed multi-tenant server pulling media from arbitrary sites on a user's
+behalf is a different product from a downloader running on that user's own
+machine, and datacenter egress is what those sites block first — so the node
+offered cloud users a button that mostly returns an extractor error.
+
+The node goes through the same registry prune as everything else. The
+capability is dropped from the belt by `isYtDlpEnabled()`
+([`packages/agents/src/yt-dlp-gate.ts`](../packages/agents/src/yt-dlp-gate.ts)),
+which reads the same two env vars `isCloudProfileActive` reads, so chat and the
+Code node cannot route around the node's absence:
+`nodetool.media.downloadVideo()` throws the prelude's "not in this toolbelt"
+error. The capability itself refuses too, for a host that resolves it by name.
+
+The binary stays in the image: `docker-compose.yml` self-hosting runs the same
+image with `NODETOOL_NODE_PROFILE=full`, and that install keeps both surfaces.
 
 ## Maintenance
 
