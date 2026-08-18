@@ -7,6 +7,9 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "nodetool-telegram": "dist/cli.js"
+  },
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
