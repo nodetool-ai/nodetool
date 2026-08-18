@@ -103,7 +103,7 @@ Each property role has a type-aware picker:
 
 Models from cloud providers (OpenAI, Anthropic, Google, etc.) appear in the manager based on your configured API keys. These don't require downloading -- they run remotely when you use them in workflows.
 
-Configure API keys in **Settings > Providers**. See [Models & Providers](models-and-providers.md) for setup details.
+Configure API keys in **Settings > Models & Providers**. See [Models & Providers](models-and-providers.md) for setup details.
 
 ---
 

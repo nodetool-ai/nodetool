@@ -190,7 +190,7 @@ Error: Required input 'prompt' is not connected
 ```
 Error: Model not found: 'gpt-5.6'
 ```
-→ Check API key configuration in Settings → Providers
+→ Check API key configuration in Settings → Models & Providers
 
 ```
 Error: CUDA out of memory
