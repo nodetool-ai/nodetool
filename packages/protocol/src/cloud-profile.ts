@@ -111,19 +111,20 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
  * - `nodetool.code.Code` — the sandboxed (QuickJS WASM) JavaScript node only.
  *   Admitting it by name rather than whole-listing `nodetool.code` keeps any
  *   future node in that namespace out of the cloud until it is reviewed.
- * - `lib.video.download.YtDlpDownload` — the one node of the otherwise-trimmed
- *   `lib.video.download` namespace. Bringing a clip in from a URL is the first
- *   step of most video work, and the cloud image ships `yt-dlp` on PATH
- *   (Dockerfile, /opt/venv), so the node runs there as it does locally. The
- *   same binary already backs the `yt_dlp` capability, which cloud users reach
- *   from chat and from the Code node — the node is the graph-shaped surface on
- *   the same thing.
+ *
+ * `lib.video.download.YtDlpDownload` used to sit here. It is out: a managed
+ * multi-tenant server pulling media from arbitrary sites on a user's behalf is
+ * a different product from a downloader running on that user's own machine,
+ * and datacenter egress is what the sites it targets block first — so the node
+ * offered cloud users a button that mostly returns an extractor error. The
+ * `yt_dlp` capability is gated on the same profile (see `isYtDlpEnabled` in
+ * `@nodetool-ai/agents`), so chat and the Code node do not route around the
+ * node's absence. Both come back under `NODETOOL_NODE_PROFILE=full`, which is
+ * what a self-hosted install of the same image runs.
  */
 export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
   // Sandboxed code only.
-  "nodetool.code.Code",
-  // Media in from a URL; the binary ships in the cloud image.
-  "lib.video.download.YtDlpDownload"
+  "nodetool.code.Code"
 ];
 
 /**

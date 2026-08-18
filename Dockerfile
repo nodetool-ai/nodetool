@@ -91,7 +91,7 @@ ENV NODE_ENV=production \
 # Beyond ca-certificates/curl (health check, downloads), this bakes in the
 # CLIs that agent skill nodes (execute_bash) and document/video nodes shell
 # out to at runtime, so containers don't fail or install tools on every run:
-#   ffmpeg            — FFmpeg + yt-dlp downloader agents, video nodes
+#   ffmpeg            — FFmpeg agents/capabilities, video nodes
 #   git               — Git agent
 #   poppler-utils     — PDF agents, pdf-to-image nodes (pdftoppm/pdftotext)
 #   qpdf              — PDF agents (split/merge/optimize/check)
@@ -134,8 +134,10 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
 # chrome-launcher (browser_* agent tools) locates the system Chromium.
 ENV CHROME_PATH=/usr/bin/chromium
 
-# Python tool venv on PATH for every execute_bash call: yt-dlp for the
-# downloader agent plus the PDF stack the PDF agent's prompt references.
+# Python tool venv on PATH for every execute_bash call: the PDF stack the PDF
+# agent's prompt references, plus yt-dlp. The cloud profile drops the yt-dlp
+# node and capability (docs/CLOUD_NODE_CURATION.md), but a self-hosted install
+# runs this same image with NODETOOL_NODE_PROFILE=full and keeps both.
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir \
        yt-dlp pypdf pdfplumber pypdfium2 reportlab \

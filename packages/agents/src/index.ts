@@ -142,11 +142,13 @@ export {
 } from "./tools/tool-registry.js";
 export {
   BUILTIN_TOOL_NAMES,
+  availableBuiltinToolNames,
   getBuiltinTools,
   getAgentToolbelt,
   registerBuiltinTools,
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";
+export { isYtDlpEnabled } from "./yt-dlp-gate.js";
 export {
   GOOGLE_WORKSPACE_TOOL_NAMES,
   getGoogleWorkspaceTools,
