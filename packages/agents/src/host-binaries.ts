@@ -103,6 +103,12 @@ export function mimeFromFilename(filePath: string): string {
   return EXT_MIME[ext] ?? "application/octet-stream";
 }
 
+/**
+ * Whole seconds in `[1, max]`, or `fallback` when `raw` states no usable
+ * duration. The floor is 1, not 0: truncating a sub-second request to 0 would
+ * reach `runHostBinary` as `setTimeout(kill, 0)` and SIGTERM the child on the
+ * next tick.
+ */
 export function clampTimeoutSeconds(
   raw: unknown,
   fallback: number,
@@ -110,5 +116,5 @@ export function clampTimeoutSeconds(
 ): number {
   const n = isNumber(raw) ? raw : fallback;
   if (!Number.isFinite(n) || n <= 0) return fallback;
-  return Math.min(Math.floor(n), max);
+  return Math.min(Math.max(Math.floor(n), 1), max);
 }

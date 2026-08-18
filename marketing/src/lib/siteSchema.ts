@@ -75,7 +75,7 @@ export const organizationSchema: JsonLdObject = {
 export const demoVideoSchema: JsonLdObject = {
   "@context": "https://schema.org",
   "@type": "VideoObject",
-  name: "NodeTool — the open creative AI workspace (demo)",
+  name: "NodeTool — the open, agent-first creative workspace (demo)",
   description:
     "A walkthrough of NodeTool: connecting image, video, audio, and text models from every major provider on one visual canvas, using your own keys.",
   thumbnailUrl: "https://nodetool.ai/preview.png",

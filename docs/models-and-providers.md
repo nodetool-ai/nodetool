@@ -206,14 +206,14 @@ Access these models through NodeTool's **generic nodes**:
 3. **For 3D**: Use `nodetool.model3d.TextTo3D` or `nodetool.model3d.ImageTo3D`
 4. **For Music**: Use kie.ai-backed Suno nodes (Suno Generate, Extend, Cover)
 5. **Select Provider**: Click the model dropdown in the node properties
-6. **Configure API**: Add provider API keys in `Settings → Providers`
+6. **Configure API**: Add provider API keys in `Settings → Models & Providers`
 
 **Access via kie.ai (recommended for broad model support):**
 Many of these models are available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers.
-- Configure using `KIE_API_KEY` in `Settings → Providers`
+- Configure using `KIE_API_KEY` in `Settings → Models & Providers`
 
 **Access via fal.ai:**
-- Configure using `FAL_API_KEY` in `Settings → Providers`
+- Configure using `FAL_API_KEY` in `Settings → Models & Providers`
 
 
 > **Cost Considerations**: Cloud models typically charge per generation. Check each provider's pricing before extensive use. Local models are free after download but require capable hardware.
@@ -238,7 +238,7 @@ Many of these models are available through [kie.ai](https://kie.ai/), an AI prov
    - <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [OpenAI](https://platform.openai.com) – GPT, Whisper, Sora
    - <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [Anthropic](https://www.anthropic.com) – Claude models
    - <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [Google](https://ai.google.dev) – Gemini models
-2. In NodeTool, go to **Settings → Providers**
+2. In NodeTool, go to **Settings → Models & Providers**
 3. Paste your API key
 4. Select the provider when using AI nodes
 

@@ -13,10 +13,15 @@
 // declare each `@nodetool-ai/*` package its source imports. Packages outside
 // the closure (e.g. the private *-codegen build tools) are not shipped and are
 // intentionally not checked.
+//
+// An import a package satisfies with its own `declare module "…"` needs no
+// dependency: that names a facade the host mounts inside the QuickJS guest, not
+// a package npm installs.
 
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 // Production entrypoints bundled into the Docker image (the Dockerfile build
 // stage esbuilds this workspace via scripts/bundle-backend.mjs --profile
@@ -30,14 +35,6 @@ const packagesDir = join(repoRoot, "packages");
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".mjs", ".cjs", ".jsx"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", "build", "__tests__", "tests", "test", "coverage"]);
 const TEST_FILE = /\.(test|spec)\.[cm]?[jt]sx?$/;
-
-// Capture the specifier from static imports/exports, dynamic import(), and require().
-const SPECIFIER_PATTERNS = [
-  /(?:import|export)\s[^'"]*?\bfrom\s*['"]([^'"]+)['"]/g,
-  /\bimport\s*['"]([^'"]+)['"]/g,
-  /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-  /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g
-];
 
 /** Reduce a specifier like `@nodetool-ai/code-nodes/nodes/code` to `@nodetool-ai/code-nodes`. */
 function workspacePackageName(specifier) {
@@ -69,17 +66,17 @@ async function collectSourceFiles(dir) {
   return files;
 }
 
-function importedWorkspacePackages(source) {
-  const found = new Set();
-  for (const pattern of SPECIFIER_PATTERNS) {
-    pattern.lastIndex = 0;
-    let match;
-    while ((match = pattern.exec(source)) !== null) {
-      const name = workspacePackageName(match[1]);
-      if (name) found.add(name);
-    }
-  }
-  return found;
+/**
+ * Imported specifiers and ambient module declarations, read by the TypeScript
+ * scanner: a specifier written in a comment, in a prompt example, or in a
+ * snippet of guest code inside a template literal is not an import.
+ */
+function scanSpecifiers(source) {
+  const scan = ts.preProcessFile(source, /* readImportFiles */ true, /* detectJavaScriptImports */ true);
+  return {
+    imported: scan.importedFiles.map((file) => file.fileName),
+    ambient: scan.ambientExternalModules ?? []
+  };
 }
 
 // Load every workspace manifest under packages/.
@@ -122,11 +119,20 @@ const violations = [];
 for (const name of closure) {
   const { dir, prodDeps } = manifests.get(name);
   const sourceFiles = await collectSourceFiles(join(dir, "src"));
-  const missing = new Map(); // dep -> example file
+  const scans = [];
+  // Declared by the package itself, so never resolved from node_modules.
+  const ambient = new Set();
   for (const file of sourceFiles) {
-    const source = await readFile(file, "utf8");
-    for (const dep of importedWorkspacePackages(source)) {
-      if (dep === name || prodDeps.has(dep)) continue;
+    const scan = scanSpecifiers(await readFile(file, "utf8"));
+    scans.push({ file, imported: scan.imported });
+    for (const specifier of scan.ambient) ambient.add(specifier);
+  }
+  const missing = new Map(); // dep -> example file
+  for (const { file, imported } of scans) {
+    for (const specifier of imported) {
+      if (ambient.has(specifier)) continue;
+      const dep = workspacePackageName(specifier);
+      if (!dep || dep === name || prodDeps.has(dep)) continue;
       if (!missing.has(dep)) missing.set(dep, file.slice(repoRoot.length + 1));
     }
   }

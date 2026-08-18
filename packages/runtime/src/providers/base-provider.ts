@@ -1595,6 +1595,18 @@ export abstract class BaseProvider {
       }
     }
 
+    // A reference scheme reaching a provider means the caller never
+    // dereferenced it (see `ProcessingContext.resolveMessageMediaUris`). Say
+    // that, instead of handing `asset://…` to `fetch` and reporting the SSRF
+    // guard's "Refusing to fetch unsafe URL" — which names neither the asset
+    // nor the real cause.
+    if (uri.startsWith("asset://") || uri.startsWith("package://")) {
+      throw new Error(
+        `Unresolved asset reference reached the model provider: ${uri}. ` +
+          `The asset bytes could not be loaded from storage.`
+      );
+    }
+
     return uri;
   }
 }

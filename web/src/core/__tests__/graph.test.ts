@@ -161,6 +161,22 @@ describe("graph utilities", () => {
       expect(result[2]).toContain("grandchild2");
       expect(result[3]).toEqual(["greatgrandchild"]);
     });
+
+    // Large enough that a per-node scan of the edge list shows up as a slow
+    // test rather than passing unnoticed.
+    it("layers a 10 000 node chain", () => {
+      const length = 10000;
+      const nodes = Array.from({ length }, (_, i) => createNode(`n${i}`));
+      const edges = Array.from({ length: length - 1 }, (_, i) =>
+        createEdge(`n${i}`, `n${i + 1}`)
+      );
+
+      const result = topologicalSort(edges, nodes);
+
+      expect(result).toHaveLength(length);
+      expect(result[0]).toEqual(["n0"]);
+      expect(result[length - 1]).toEqual([`n${length - 1}`]);
+    });
   });
 
   describe("subgraph", () => {

@@ -49,6 +49,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   run_search: "read",
   run_subtask: "read",
   todo_write: "read",
+  understand_video: "external",
   write_file: "write",
   // Google Workspace: none is listed in `TOOL_PERMISSION_CATEGORIES`, so the
   // map's conservative default classes them `external`. Carried over as-is.

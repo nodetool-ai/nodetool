@@ -189,7 +189,7 @@ lazy implementation table disagree.
 | `apps` | `debug_app` |
 | `code` | `validate_code`, `run_code`, `test_code` |
 | `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
-| `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `critique_image`, `compare_images`, `score_image_adherence` |
+| `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video` |
 | `timelines` | `list_timelines`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `edit_timeline`, `validate_timeline` |
 | `sketches` | `list_sketches`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `edit_sketch`, `validate_sketch` |
 | `storyboards` | `list_storyboards`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard` |

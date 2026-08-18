@@ -1,5 +1,5 @@
 import useRuntimePackagesStore from "../RuntimePackagesStore";
-import { installGlobal, removeGlobal } from "../../test-utils/doubles";
+import { installGlobal } from "../../test-utils/doubles";
 
 
 const STATUSES = [

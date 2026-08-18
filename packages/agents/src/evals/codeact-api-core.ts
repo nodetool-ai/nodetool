@@ -1130,6 +1130,22 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
+      "understand_video",
+      "Read a video with a multimodal chat model.",
+      { provider: s, model: s, video: s, prompt: s },
+      (params) => {
+        world.model(params["provider"], params["model"], "vision");
+        const asset = world.asset(params["video"]);
+        const prompt =
+          str(params["prompt"]) || "Describe this video in detail.";
+        return {
+          text: `${prompt} — ${asset.name} shows ${asset.prompt ?? asset.content}`,
+          provider: str(params["provider"]),
+          model: str(params["model"])
+        };
+      }
+    ),
+    tool(
       "ffmpeg",
       "Run ffmpeg on workspace files.",
       {

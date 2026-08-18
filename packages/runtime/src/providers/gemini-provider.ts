@@ -2,6 +2,7 @@ import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 import { sniffAudioMime } from "./audio-mime.js";
+import { sniffVideoMime } from "./video-mime.js";
 import { safeFetch } from "./safe-url.js";
 import {
   isBoolean,
@@ -23,6 +24,7 @@ import type {
   MessageAudioContent,
   MessageImageContent,
   MessageTextContent,
+  MessageVideoContent,
   ProviderStreamItem,
   ProviderTool,
   StreamingAudioChunk,
@@ -35,6 +37,21 @@ import type {
 import { WEB_SEARCH_TOOL_NAME } from "./types.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const GEMINI_UPLOAD_BASE = `${GEMINI_API_BASE.replace(
+  "/v1beta",
+  ""
+)}/upload/v1beta/files`;
+
+/**
+ * Largest payload sent as `inlineData`. Gemini caps a generateContent request
+ * at 20 MB total; anything above this goes through the Files API instead, which
+ * leaves room for the rest of the request.
+ */
+export const GEMINI_INLINE_VIDEO_MAX_BYTES = 19 * 1024 * 1024;
+
+/** Polls of `files/{name}` before an uploaded file is declared stuck. */
+const GEMINI_FILE_MAX_POLLS = 60;
+const GEMINI_FILE_POLL_INTERVAL_MS = 2_000;
 
 /** Drop `; charset=…`/`; codecs=…` parameters from a Content-Type header. */
 function stripMimeParams(value: string | null): string | undefined {
@@ -56,6 +73,17 @@ function geminiAudioMime(mime: string | undefined): string {
 
 interface GeminiProviderOptions {
   fetchFn?: typeof fetch;
+  /** Delay between Files API polls — overridden in tests to run them back to back. */
+  sleepFn?: (ms: number) => Promise<void>;
+}
+
+/** A file record returned by the Gemini Files API. */
+interface GeminiFile {
+  name?: string;
+  uri?: string;
+  mimeType?: string;
+  state?: string;
+  error?: { message?: string };
 }
 
 /** A Gemini content part. */
@@ -63,6 +91,7 @@ interface GeminiPart {
   text?: string;
   thought?: boolean;
   inlineData?: { mimeType: string; data: string };
+  fileData?: { mimeType: string; fileUri: string };
   functionCall?: {
     id?: string;
     name: string;
@@ -546,6 +575,7 @@ export class GeminiProvider extends BaseProvider {
 
   readonly apiKey: string;
   private _fetch: typeof fetch;
+  private _sleep: (ms: number) => Promise<void>;
 
   constructor(
     secrets: { GEMINI_API_KEY?: string },
@@ -560,6 +590,9 @@ export class GeminiProvider extends BaseProvider {
 
     this.apiKey = apiKey;
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+    this._sleep =
+      options.sleepFn ??
+      ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   }
 
   getContainerEnv() {
@@ -738,7 +771,155 @@ export class GeminiProvider extends BaseProvider {
       };
     }
 
+    if (content.type === "video") {
+      return await this.videoContentToGeminiPart(
+        (content as MessageVideoContent).video
+      );
+    }
+
     return { text: "[unsupported content type]" };
+  }
+
+  /**
+   * Source a video's bytes the way the image and audio branches do, then send
+   * them inline when small enough and through the Files API when not.
+   */
+  private async videoContentToGeminiPart(
+    video: MessageVideoContent["video"]
+  ): Promise<GeminiPart> {
+    let bytes: Buffer;
+    let mimeType = video.mimeType;
+
+    const parseVideoDataUri = (uri: string): Buffer => {
+      const idx = uri.indexOf(",");
+      if (idx < 0) throw new Error("Invalid video data URI");
+      const header = uri.slice(5, idx);
+      mimeType = mimeType ?? stripMimeParams(header.split(";base64")[0]);
+      return Buffer.from(uri.slice(idx + 1), "base64");
+    };
+
+    if (
+      isNonEmptyString(video.data) ||
+      (video.data instanceof Uint8Array && video.data.length > 0)
+    ) {
+      if (isString(video.data)) {
+        bytes = video.data.startsWith("data:")
+          ? parseVideoDataUri(video.data)
+          : Buffer.from(video.data, "base64");
+      } else {
+        bytes = Buffer.from(video.data);
+      }
+    } else if (video.uri) {
+      const resolvedUri = video.uri.startsWith("data:")
+        ? video.uri
+        : await this.resolveUri(video.uri);
+      if (resolvedUri.startsWith("data:")) {
+        bytes = parseVideoDataUri(resolvedUri);
+      } else {
+        const resp = await safeFetch(resolvedUri, undefined, 5, this._fetch);
+        if (!resp.ok) throw new Error(`Failed to fetch video: ${resp.status}`);
+        mimeType =
+          stripMimeParams(resp.headers.get("content-type")) ?? mimeType;
+        bytes = Buffer.from(await resp.arrayBuffer());
+      }
+    } else {
+      bytes = Buffer.alloc(0);
+    }
+
+    const resolvedMime = mimeType ?? sniffVideoMime(bytes);
+
+    if (bytes.length > GEMINI_INLINE_VIDEO_MAX_BYTES) {
+      const fileUri = await this.uploadFileToGemini(bytes, resolvedMime);
+      return { fileData: { mimeType: resolvedMime, fileUri } };
+    }
+
+    return {
+      inlineData: { mimeType: resolvedMime, data: bytes.toString("base64") }
+    };
+  }
+
+  /**
+   * Upload bytes with the Files API resumable protocol and wait until the file
+   * is ACTIVE — Gemini rejects a `fileData` part that references a file still
+   * being processed. Returns the file's uri.
+   */
+  private async uploadFileToGemini(
+    bytes: Uint8Array,
+    mimeType: string
+  ): Promise<string> {
+    const startResp = await this._fetch(
+      `${GEMINI_UPLOAD_BASE}?key=${this.apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "X-Goog-Upload-Protocol": "resumable",
+          "X-Goog-Upload-Command": "start",
+          "X-Goog-Upload-Header-Content-Length": String(bytes.length),
+          "X-Goog-Upload-Header-Content-Type": mimeType,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          file: { display_name: `nodetool-upload.${mimeType.split("/")[1]}` }
+        })
+      }
+    );
+    if (!startResp.ok) {
+      const errText = await startResp.text();
+      throw new Error(
+        `Gemini file upload failed to start ${startResp.status}: ${errText}`
+      );
+    }
+    const uploadUrl = startResp.headers.get("x-goog-upload-url");
+    if (!uploadUrl) {
+      throw new Error("Gemini file upload returned no X-Goog-Upload-URL");
+    }
+
+    const uploadResp = await this._fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        "Content-Length": String(bytes.length),
+        "X-Goog-Upload-Offset": "0",
+        "X-Goog-Upload-Command": "upload, finalize"
+      },
+      body: new Blob([new Uint8Array(bytes) as Uint8Array<ArrayBuffer>], {
+        type: mimeType
+      })
+    });
+    if (!uploadResp.ok) {
+      const errText = await uploadResp.text();
+      throw new Error(
+        `Gemini file upload failed ${uploadResp.status}: ${errText}`
+      );
+    }
+
+    const uploaded = (await uploadResp.json()) as { file?: GeminiFile };
+    let file = uploaded.file;
+    if (!file?.name || !file.uri) {
+      throw new Error("Gemini file upload returned no file record");
+    }
+    const fileUri = file.uri;
+    const fileName = file.name;
+
+    for (let poll = 0; poll < GEMINI_FILE_MAX_POLLS; poll++) {
+      if (file?.state === "ACTIVE") return fileUri;
+      if (file?.state === "FAILED") {
+        throw new Error(
+          `Gemini file processing failed: ${file.error?.message ?? "unknown error"}`
+        );
+      }
+      await this._sleep(GEMINI_FILE_POLL_INTERVAL_MS);
+      const pollResp = await this._fetch(`${GEMINI_API_BASE}/${fileName}`, {
+        headers: { "x-goog-api-key": this.apiKey }
+      });
+      if (!pollResp.ok) {
+        const errText = await pollResp.text();
+        throw new Error(`Gemini file poll failed ${pollResp.status}: ${errText}`);
+      }
+      file = (await pollResp.json()) as GeminiFile;
+    }
+
+    if (file?.state === "ACTIVE") return fileUri;
+    throw new Error(`Gemini file ${fileName} did not become ACTIVE in time`);
   }
 
   /**

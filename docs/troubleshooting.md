@@ -248,7 +248,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 
 **Cause 3: HuggingFace rate limiting**
 - **Fix:** Wait a few minutes and retry
-- **For frequent downloads:** Add a HuggingFace token in **Settings → Providers** to increase rate limits
+- **For frequent downloads:** Add a HuggingFace token in **Settings → Models & Providers** to increase rate limits
 - **Get a token:** Create one at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
 
 **Cause 4: Corrupted download**
