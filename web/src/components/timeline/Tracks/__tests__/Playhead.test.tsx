@@ -8,7 +8,6 @@
  * live time pushes, and that those pushes don't trigger a component render.
  */
 
-import React from "react";
 import { act, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 
