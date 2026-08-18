@@ -14,6 +14,9 @@ export type {
   CapabilityGate,
   CapabilityLoaders,
   ClientToolRouter,
+  SecretPrompt,
+  SecretPromptRequest,
+  SecretPromptStatus,
   SubAgentRuntime,
   PermissionCategory
 } from "./types.js";

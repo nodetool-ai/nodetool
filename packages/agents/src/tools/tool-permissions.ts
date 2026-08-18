@@ -70,6 +70,14 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   serpapi_search: "read",
   get_serpapi_account: "read",
   get_serpapi_locations: "read",
+  // NodeTool's own configuration. Reading a setting or checking which
+  // credentials exist has no side effect; `list_secrets` never carries a
+  // value. `set_setting` and `request_secret` are left unlisted so the gate
+  // classes them `external` — one changes how this install behaves, and the
+  // other interrupts the user with a dialog.
+  list_settings: "read",
+  get_setting: "read",
+  list_secrets: "read",
   take_screenshot: "read",
   extract_pdf_text: "read",
   extract_pdf_tables: "read",

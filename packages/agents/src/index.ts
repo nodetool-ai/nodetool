@@ -115,6 +115,9 @@ export type {
   CapabilityGate,
   CapabilityLoaders,
   ClientToolRouter,
+  SecretPrompt,
+  SecretPromptRequest,
+  SecretPromptStatus,
   SubAgentRuntime,
   CapabilityRunSource,
   CreateCapabilityRunOptions
