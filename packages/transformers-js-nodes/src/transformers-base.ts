@@ -1,5 +1,4 @@
 import { promises as fs } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { tmpdir } from "node:os";
@@ -9,6 +8,7 @@ import {
   importOptionalModule
 } from "@nodetool-ai/config";
 import { parseWavBytes } from "@nodetool-ai/audio-nodes";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const execFileP = promisify(execFile);
@@ -241,74 +241,34 @@ export type ImageRefLike = {
   uri?: string;
   data?: Uint8Array | string;
   mimeType?: string;
+  asset_id?: string | null;
+  type?: string;
+  width?: number;
+  height?: number;
 };
 
 export type AudioRefLike = {
   uri?: string;
   data?: Uint8Array | string;
   mimeType?: string;
+  asset_id?: string | null;
+  type?: string;
 };
 
-function decodeBase64Data(data: Uint8Array | string | undefined): Uint8Array {
-  if (!data) return new Uint8Array();
-  if (data instanceof Uint8Array) return data;
-  return Uint8Array.from(Buffer.from(data, "base64"));
-}
-
-function uriToFilePath(uri: string): string {
-  if (uri.startsWith("file://")) {
-    try {
-      return fileURLToPath(new URL(uri));
-    } catch {
-      return uri.slice("file://".length);
-    }
-  }
-  return uri;
-}
-
 /**
- * Resolve a media ref to raw bytes, consulting (in order):
- * 1. inline `data` (base64 string or Uint8Array)
- * 2. `context.storage` for opaque URIs managed by the runtime
- * 3. `file://` URIs read from disk
- * 4. `http(s)://` URIs fetched over the network
- * 5. `data:` URIs (base64 inline)
+ * Resolve a media ref to raw bytes through the runtime's canonical resolver,
+ * so these nodes accept every ref shape the rest of NodeTool emits: inline
+ * `data`, raw-RGBA buffers from an upstream GPU op, `asset://` and
+ * `package://` references, a bare `asset_id`, storage URIs, `data:` URIs,
+ * absolute paths, and `http(s)` URLs.
  */
 export async function loadMediaBytes(
   ref: ImageRefLike | AudioRefLike | undefined,
   context?: ProcessingContext
 ): Promise<Uint8Array> {
   if (!ref || typeof ref !== "object") return new Uint8Array();
-  // A zero-length Uint8Array is still truthy, so check length explicitly —
-  // otherwise an empty inline buffer would shadow a perfectly good `uri`.
-  const hasInlineData =
-    ref.data instanceof Uint8Array ? ref.data.length > 0 : Boolean(ref.data);
-  if (hasInlineData) return decodeBase64Data(ref.data);
-  const uri = ref.uri ?? "";
-  if (!uri) return new Uint8Array();
-
-  if (context?.storage) {
-    const stored = await context.storage.retrieve(uri);
-    if (stored !== null && stored !== undefined) {
-      return new Uint8Array(stored);
-    }
-  }
-
-  if (uri.startsWith("file://")) {
-    return new Uint8Array(await fs.readFile(uriToFilePath(uri)));
-  }
-  if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    const response = await fetch(uri);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${uri}: ${response.status}`);
-    }
-    return new Uint8Array(await response.arrayBuffer());
-  }
-  if (uri.startsWith("data:")) {
-    const payload = uri.split(",", 2)[1] ?? "";
-    return Uint8Array.from(Buffer.from(payload, "base64"));
-  }
-  return new Uint8Array();
+  const bytes = await loadMediaRefBytes(ref, context);
+  return bytes ?? new Uint8Array();
 }
 
 /** Convert raw image bytes into a Transformers.js RawImage instance. */
