@@ -83,6 +83,7 @@ describe("media and style capability modules", () => {
       "score_image_adherence",
       "understand_video",
       "ffmpeg",
+      "ffprobe",
       "yt_dlp"
     ]);
     const style = await loadCapabilityModule("style");
@@ -400,5 +401,42 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       { url: "file:///etc/passwd" }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/http\(s\)/);
+  });
+
+  // The guard is unit-tested in host-binary-guard.test.ts; these pin that the
+  // capability actually calls it, and refuses before anything is spawned.
+  it("ffmpeg refuses a path outside the workspace", async () => {
+    const result = (await asTool(ffmpeg).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { args: ["-i", "/etc/passwd", "out.wav"] }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/outside the workspace/);
+  });
+
+  it("ffmpeg refuses a network input", async () => {
+    const result = (await asTool(ffmpeg).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { args: ["-i", "http://169.254.169.254/latest/meta-data/", "out.txt"] }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/Only workspace files are readable/);
+  });
+
+  it("ffmpeg refuses an output_file that escapes the workspace", async () => {
+    const result = (await asTool(ffmpeg).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { args: ["-i", "in.mp4"], output_file: "../../etc/cron.d/x" }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/outside the workspace/);
+  });
+
+  it("yt_dlp refuses an output template that escapes the workspace", async () => {
+    const result = (await asTool(ytDlp).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      {
+        url: "https://example.com/v",
+        output_file: "../../root/.ssh/authorized_keys"
+      }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/outside the workspace/);
   });
 });

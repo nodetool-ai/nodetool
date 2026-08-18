@@ -202,6 +202,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   debug_app: "execute",
   start_background_job: "execute",
   ffmpeg: "execute",
+  ffprobe: "execute",
 
   // --- external: third-party side effects ---
   browser: "external",

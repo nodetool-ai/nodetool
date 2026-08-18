@@ -972,7 +972,11 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   plus the judge loop `critique/compare/scoreAdherence` and
   `understandVideo(video, prompt, model)`, which hands a whole clip to a model
   that reads video and answers as text — each taking a pick/find result or
-  `"provider/model_id"`), `nodetool.nodes`
+  `"provider/model_id"`; plus the host binaries `ffprobe(path)`, `ffmpeg(args)`
+  and `downloadVideo(url, outputFile)`, whose argv is confined to the workspace
+  and to local-file inputs by `src/host-binary-guard.ts` and bounded on wall
+  clock, captured output, artifact size and concurrency by
+  `src/host-binaries.ts`), `nodetool.nodes`
   (`search/info/list` — the graph builder's discovery half),
   `nodetool.documents` (convert, PDF text/tables, markdown↔pdf),
   `nodetool.apps` (`build/debug`), `nodetool.agents` (`run(prompt)` spawns a

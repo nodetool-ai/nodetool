@@ -32,6 +32,10 @@ import {
   mimeFromFilename,
   runHostBinary
 } from "../host-binaries.js";
+import {
+  confineArgvToWorkspace,
+  hardenFfmpegArgv
+} from "../host-binary-guard.js";
 import { encodeBase64 as encodeMediaBase64 } from "../sandbox-bytes.js";
 import {
   DEFAULT_MIME,
@@ -64,6 +68,7 @@ import {
   scoreImageAdherenceSpec,
   understandVideoSpec,
   ffmpegSpec,
+  ffprobeSpec,
   ytDlpSpec,
   DEFAULT_UNDERSTAND_VIDEO_TOKENS,
   DEFAULT_VIDEO_PROMPT,
@@ -1199,17 +1204,23 @@ const ffmpeg: CapabilityExport = {
       argv.push(outputFile);
     }
 
+    const refusal = await confineArgvToWorkspace(argv, workspace);
+    if (refusal) return refusal;
+    const hardened = hardenFfmpegArgv(argv);
+    if ("error" in hardened) return hardened;
+
+    const persistTarget =
+      outputFile ||
+      [...argv].reverse().find((item) => item && !item.startsWith("-")) ||
+      "";
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 180, 600) * 1000;
     try {
-      const result = await runHostBinary("ffmpeg", argv, {
+      const result = await runHostBinary("ffmpeg", hardened.argv, {
         cwd: workspace,
-        timeoutMs
+        timeoutMs,
+        ...(persistTarget ? { artifactPath: persistTarget } : {})
       });
-      const persistTarget =
-        outputFile ||
-        [...argv].reverse().find((item) => item && !item.startsWith("-")) ||
-        "";
       const persisted =
         result.exitCode === 0 && persistTarget
           ? await persistWorkspaceFile(run.context, persistTarget)
@@ -1227,6 +1238,62 @@ const ffmpeg: CapabilityExport = {
       }
       return {
         error: `ffmpeg failed: ${e instanceof Error ? e.message : String(e)}`
+      };
+    }
+  }
+};
+
+/**
+ * ffprobe with an argv NodeTool writes, not the caller.
+ *
+ * Everything a caller can say is one workspace path, so the whole boundary is
+ * the confinement check — there is no flag surface to guard, and no way to ask
+ * ffprobe to open a socket.
+ */
+const ffprobe: CapabilityExport = {
+  spec: ffprobeSpec,
+  impl: async (run, params) => {
+    const workspace = requireWorkspaceDir(run.context);
+    if (!isString(workspace)) return workspace;
+    const target = params["path"];
+    if (!isNonBlankString(target)) {
+      return { error: "path is required" };
+    }
+    const refusal = await confineArgvToWorkspace([target.trim()], workspace);
+    if (refusal) return refusal;
+
+    const timeoutMs =
+      clampTimeoutSeconds(params["timeout_seconds"], 30, 120) * 1000;
+    try {
+      const result = await runHostBinary(
+        "ffprobe",
+        [
+          "-v",
+          "error",
+          "-print_format",
+          "json",
+          "-show_format",
+          "-show_streams",
+          target.trim()
+        ],
+        { cwd: workspace, timeoutMs }
+      );
+      if (result.exitCode !== 0) {
+        return {
+          error: `ffprobe failed: ${result.stderr.trim() || `exit ${result.exitCode}`}`
+        };
+      }
+      const parsed: unknown = JSON.parse(result.stdout);
+      if (!isObjectLike(parsed)) {
+        return { error: "ffprobe returned no readable JSON" };
+      }
+      return { path: target.trim(), ...parsed };
+    } catch (e) {
+      if (e instanceof HostBinaryMissingError) {
+        return { error: e.message };
+      }
+      return {
+        error: `ffprobe failed: ${e instanceof Error ? e.message : String(e)}`
       };
     }
   }
@@ -1260,6 +1327,11 @@ const ytDlp: CapabilityExport = {
       : "";
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 300, 900) * 1000;
+
+    // The template is the caller's, so it escapes the workspace as easily as
+    // an ffmpeg path does. `format` reaches yt-dlp as a selector, never a path.
+    const refusal = await confineArgvToWorkspace([outputFile], workspace);
+    if (refusal) return refusal;
 
     const outDir = path.dirname(outputFile);
     if (outDir && outDir !== ".") {
@@ -1342,6 +1414,7 @@ export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   scoreImageAdherence,
   understandVideo,
   ffmpeg,
+  ffprobe,
   ytDlp
 ];
 

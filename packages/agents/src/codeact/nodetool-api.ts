@@ -54,6 +54,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "score_image_adherence",
     "understand_video",
     "ffmpeg",
+    "ffprobe",
     "yt_dlp"
   ],
   documents: [
@@ -712,6 +713,8 @@ const nodetool = (() => {
         ),
       /** Run ffmpeg on workspace files. \`args\` is argv after the binary name. */
       ffmpeg: (args, opts) => __need("ffmpeg")(__merge(opts, { args: args })),
+      /** Read a media file's format and streams with ffprobe. */
+      ffprobe: (path, opts) => __need("ffprobe")(__merge(opts, { path: path })),
       /** Download a video with yt-dlp. */
       downloadVideo: (url, outputFile, opts) =>
         __need("yt_dlp")(__merge(opts, { url: url, output_file: outputFile }))
@@ -1115,7 +1118,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   with a model that takes video (Gemini) and answers \`prompt\` as \`{text}\` —
   describe it, summarize it, or pull the on-screen text out.
   Host binaries: \`ffmpeg(args, {output_file, timeout_seconds})\` runs ffmpeg
-  in the workspace (no shell); \`downloadVideo(url, outputFile, {format,
+  in the workspace (no shell, workspace paths only, no URL inputs);
+  \`ffprobe(path)\` reads a file's format and streams before you decide what to
+  run; \`downloadVideo(url, outputFile, {format,
   timeout_seconds})\` downloads with yt-dlp. Browse pages with
   \`nodetool.web.browse(url)\`.`
   },

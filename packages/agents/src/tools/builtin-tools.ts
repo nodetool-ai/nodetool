@@ -129,6 +129,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Host media binaries
   "ffmpeg",
+  "ffprobe",
   "yt_dlp",
 
   // Email

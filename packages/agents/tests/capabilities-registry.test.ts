@@ -109,6 +109,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   start_background_job: "execute",
   transcribe_audio: "write",
   ffmpeg: "execute",
+  ffprobe: "execute",
   yt_dlp: "external",
   validate_workflow: "read",
   vector_batch_index: "write",
