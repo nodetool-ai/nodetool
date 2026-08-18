@@ -70,6 +70,16 @@ const DOCUMENT_TRPC_ROUTER = {
   application: "applications"
 } satisfies Record<SyncedDocumentType, string>;
 
+/**
+ * List-shaped procedures beyond `list` a document change must refetch. The
+ * node menu's custom nodes come from `jsScripts.palette`, so saving a script
+ * has to reach it too.
+ */
+const DOCUMENT_EXTRA_PROCEDURES: Partial<Record<SyncedDocumentType, string[]>> =
+  {
+    jsscript: ["palette"]
+  };
+
 const isSyncedDocumentType = (value: string): value is SyncedDocumentType =>
   value in DOCUMENT_TRPC_ROUTER;
 
@@ -160,7 +170,11 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   }
 
   if (isSyncedDocumentType(resource_type)) {
-    invalidateTrpcProcedure(DOCUMENT_TRPC_ROUTER[resource_type], "list");
+    const trpcRouter = DOCUMENT_TRPC_ROUTER[resource_type];
+    invalidateTrpcProcedure(trpcRouter, "list");
+    for (const procedure of DOCUMENT_EXTRA_PROCEDURES[resource_type] ?? []) {
+      invalidateTrpcProcedure(trpcRouter, procedure);
+    }
     handleDocumentResourceChange(resource_type, {
       event,
       id: resource.id,

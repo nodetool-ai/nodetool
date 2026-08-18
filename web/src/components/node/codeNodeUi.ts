@@ -16,6 +16,18 @@ export function isSnippetCodeNode(
 }
 
 /**
+ * A Code node materialized from one of the user's saved scripts. It is a
+ * regular Code node — its body is visible and its title is its own — so this
+ * only tells the UI where the node came from.
+ */
+export function isCustomCodeNode(
+  nodeType: string,
+  data: Pick<NodeData, "codeNodeMode">
+): boolean {
+  return isCodeNode(nodeType) && data.codeNodeMode === "custom";
+}
+
+/**
  * Monaco language id for a code node's `code` property, derived from its
  * node_type. The Code node runs JavaScript in a sandbox; any other node with an
  * inline `code` property falls back to plain text.

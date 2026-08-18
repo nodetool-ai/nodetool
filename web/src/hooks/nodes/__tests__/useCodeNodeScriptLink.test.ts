@@ -15,6 +15,7 @@ jest.mock("../../../trpc/client", () => ({
     jsScripts: {
       get: { useQuery: jest.fn() },
       create: { useMutation: jest.fn() },
+      update: { useMutation: jest.fn() },
       documentVersions: { create: { useMutation: jest.fn() } }
     }
   }
@@ -39,7 +40,7 @@ const mockFindNode = jest.fn(() => ({ id: "node-1", data: nodeData }));
 const createVersion = jest.fn(async () => ({ version: 7 }));
 interface CreateScriptInput {
   name: string;
-  document: typeof scriptDocument;
+  document: typeof scriptDocument & { palette?: { category: string } };
 }
 const createScript = jest.fn(async (input: CreateScriptInput) => ({
   id: "new-script",
@@ -51,8 +52,10 @@ const versionsGet = jest.fn(async () => ({ document: scriptDocument }));
 const scriptGet = jest.fn(async () => ({
   id: "s1",
   name: "Shout",
-  document: scriptDocument
+  document: scriptDocument,
+  updatedAt: "2026-08-18T00:00:00Z"
 }));
+const updateScript = jest.fn(async () => ({ id: "s1" }));
 
 const data = (properties: Record<string, unknown> = {}): NodeData =>
   ({ properties }) as NodeData;
@@ -70,8 +73,9 @@ describe("useCodeNodeScriptLink", () => {
     nodeData = { properties: {} };
     asMock(trpc.useUtils).mockReturnValue({
       jsScripts: {
-        get: { fetch: scriptGet },
+        get: { fetch: scriptGet, invalidate: jest.fn() },
         list: { invalidate: jest.fn() },
+        palette: { invalidate: jest.fn() },
         documentVersions: {
           list: { fetch: versionsList },
           get: { fetch: versionsGet }
@@ -83,6 +87,9 @@ describe("useCodeNodeScriptLink", () => {
     });
     asMock(trpc.jsScripts.create.useMutation).mockReturnValue({
       mutateAsync: createScript
+    });
+    asMock(trpc.jsScripts.update.useMutation).mockReturnValue({
+      mutateAsync: updateScript
     });
     asMock(trpc.jsScripts.documentVersions.create.useMutation).mockReturnValue({ mutateAsync: createVersion });
   });
@@ -201,6 +208,65 @@ describe("useCodeNodeScriptLink", () => {
       id: "new-script",
       version: 7
     });
+  });
+
+  it("saves an extracted script into the node menu when given a category", async () => {
+    nodeData = stub<Partial<NodeData>>({
+      properties: { code: "await output('out', 1);" },
+      dynamic_outputs: { out: { type: "int" } }
+    });
+    const { result } = renderHook(() =>
+      useCodeNodeScriptLink("node-1", data())
+    );
+
+    await act(async () => {
+      await result.current.extractToScript("Invoice number", "My API");
+    });
+
+    expect(createScript.mock.calls[0][0].document.palette).toEqual({
+      category: "My API"
+    });
+  });
+
+  it("leaves an extracted script out of the menu when no category is given", async () => {
+    const { result } = renderHook(() =>
+      useCodeNodeScriptLink("node-1", data())
+    );
+
+    await act(async () => {
+      await result.current.extractToScript("Extracted");
+    });
+
+    expect(createScript.mock.calls[0][0].document.palette).toBeUndefined();
+  });
+
+  it("adds the linked script to the menu without touching the node", async () => {
+    const { result } = renderHook(() =>
+      useCodeNodeScriptLink("node-1", data({ script: { id: "s1", version: 2 } }))
+    );
+
+    await act(async () => {
+      await result.current.addToPalette("My API");
+    });
+
+    expect(updateScript).toHaveBeenCalledWith({
+      id: "s1",
+      document: { ...scriptDocument, palette: { category: "My API" } },
+      baseUpdatedAt: "2026-08-18T00:00:00Z"
+    });
+    expect(mockUpdateNodeData).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when an unlinked node is asked to add its script", async () => {
+    const { result } = renderHook(() =>
+      useCodeNodeScriptLink("node-1", data())
+    );
+
+    await act(async () => {
+      await result.current.addToPalette("My API");
+    });
+
+    expect(updateScript).not.toHaveBeenCalled();
   });
 
   it("detaches by dropping the link and keeping the body", () => {

@@ -18,6 +18,7 @@ export * from "./code-analysis.js";
 export * from "./code-body.js";
 export * from "./code-node-validation.js";
 export * from "./js-script-link.js";
+export * from "./js-script-materialize.js";
 export * from "./graph-validation.js";
 export * from "./workflow-interface.js";
 export * from "./workflow-document-tools.js";

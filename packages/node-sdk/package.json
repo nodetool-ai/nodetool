@@ -45,6 +45,12 @@
       "import": "./dist/code-body.js",
       "default": "./dist/code-body.js"
     },
+    "./js-script-materialize": {
+      "nodetool-dev": "./src/js-script-materialize.ts",
+      "types": "./dist/js-script-materialize.d.ts",
+      "import": "./dist/js-script-materialize.js",
+      "default": "./dist/js-script-materialize.js"
+    },
     "./cost-estimate": {
       "types": "./dist/cost-estimate.d.ts",
       "import": "./dist/cost-estimate.js",

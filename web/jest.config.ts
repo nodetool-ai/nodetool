@@ -34,6 +34,8 @@ export default {
     // pull the heavy barrel (pack-loader, registry) into jsdom.
     "^@nodetool-ai/node-sdk/code-body$":
       "<rootDir>/../packages/node-sdk/src/code-body.ts",
+    "^@nodetool-ai/node-sdk/js-script-materialize$":
+      "<rootDir>/../packages/node-sdk/src/js-script-materialize.ts",
     "^@nodetool-ai/node-sdk/cost-estimate$":
       "<rootDir>/../packages/node-sdk/src/cost-estimate.ts",
     "^@nodetool-ai/node-sdk/pricing-params$":
