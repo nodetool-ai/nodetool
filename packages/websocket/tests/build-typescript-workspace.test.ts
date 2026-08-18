@@ -4,9 +4,11 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import {
+  DEFAULT_TSC_HEAP_MB,
   getTypeScriptBuildCommand,
   prepareTypeScriptWorkspaceBuild,
-  pruneOrphanedDistOutputs
+  pruneOrphanedDistOutputs,
+  typeScriptBuildEnv,
 } from "../../../scripts/build-typescript-workspace.mjs";
 
 describe("prepareTypeScriptWorkspaceBuild", () => {
@@ -42,7 +44,8 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
       process.execPath,
       [resolve(import.meta.dirname, "../../../node_modules/typescript/bin/tsc"), "--build"],
       {
-        cwd: workspaceDir
+        cwd: workspaceDir,
+        env: typeScriptBuildEnv(),
       }
     );
     await expect(readFile(join(workspaceDir, "tsconfig.tsbuildinfo"), "utf8")).resolves.toBe(
@@ -86,6 +89,20 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
     expect(getTypeScriptBuildCommand(repoRoot)).toEqual({
       command: process.execPath,
       args: [resolve(repoRoot, "node_modules", "typescript", "bin", "tsc"), "--build"]
+    });
+  });
+
+  it("raises the tsc heap unless NODE_OPTIONS already sets one", () => {
+    expect(typeScriptBuildEnv({ NODE_OPTIONS: undefined })).toEqual({
+      NODE_OPTIONS: `--max-old-space-size=${DEFAULT_TSC_HEAP_MB}`,
+    });
+    expect(
+      typeScriptBuildEnv({ NODE_OPTIONS: "--conditions=nodetool-dev --max-old-space-size=4096" })
+    ).toEqual({
+      NODE_OPTIONS: "--conditions=nodetool-dev --max-old-space-size=4096",
+    });
+    expect(typeScriptBuildEnv({ NODETOOL_TSC_HEAP_MB: "12288", NODE_OPTIONS: undefined })).toMatchObject({
+      NODE_OPTIONS: "--max-old-space-size=12288",
     });
   });
 });

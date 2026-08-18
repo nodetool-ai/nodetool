@@ -258,16 +258,20 @@ async function checkPythonEnvironmentExists(): Promise<boolean> {
   }
 }
 
-function assertActivatedCondaEnvironmentForDevMode(): void {
-  if (process.env.CONDA_PREFIX && process.env.CONDA_PREFIX.trim().length > 0) {
+// Conda is optional in dev mode: only Python nodes need it, and the backend
+// spawn already degrades ("Backend will start without Python support" in
+// server.ts) when no environment is active.
+function logCondaEnvironmentForDevMode(): void {
+  const prefix = process.env.CONDA_PREFIX?.trim();
+  if (prefix) {
+    logMessage(`Using active conda environment: ${prefix}`);
     return;
   }
-
-  const message =
-    "Electron dev mode requires an activated conda environment. " +
-    "Please run `conda activate <env>` before starting `npm run electron:dev`.";
-  dialog.showErrorBox("Conda Environment Required", message);
-  throw new Error(message);
+  logMessage(
+    "No conda environment active — Python nodes will be unavailable. " +
+      "Run `conda activate <env>` before `npm run electron:dev` to enable them.",
+    "warn",
+  );
 }
 
 async function waitForWebDevServerReady(
@@ -349,8 +353,7 @@ async function initialize(): Promise<void> {
       setupAutoUpdater();
     } else {
       logMessage("Running in Electron dev mode");
-      assertActivatedCondaEnvironmentForDevMode();
-      logMessage(`Using active conda environment: ${process.env.CONDA_PREFIX}`);
+      logCondaEnvironmentForDevMode();
     }
 
     assert(mainWindow, "MainWindow is not initialized");

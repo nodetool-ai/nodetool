@@ -5,7 +5,7 @@
   "description": "Next.js app that runs NodeTool workflows server-side on Cloudflare Workers (via OpenNext).",
   "scripts": {
     "dev": "next dev --port 3003",
-    "build": "opennextjs-cloudflare build",
+    "build": "next build",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "lint": "next lint",

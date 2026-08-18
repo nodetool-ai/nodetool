@@ -130,6 +130,7 @@
     "typecheck:web": "npm run typecheck --workspace=web",
     "typecheck:electron": "npm run typecheck --workspace=electron",
     "typecheck:mobile": "tsc --build packages/protocol && npm --prefix mobile run typecheck",
+    "typecheck:examples": "npm run typecheck --workspace=examples/chat_app --workspace=examples/nextjs-vercel --workspace=examples/nextjs-cloudflare",
     "test": "npm run test:web && npm run test:electron && npm run test:mobile",
     "test:all": "turbo run test",
     "test:web": "npm test --workspace=web",

@@ -11,6 +11,47 @@ const path = require("path");
 // rebuilding native modules.
 const NODE_RUNTIME_VERSION = "22.22.1";
 
+/** All platforms electron-builder can target; used when prefetching every arch. */
+const ALL_NODE_RUNTIME_TARGETS = [
+  { platform: "darwin", arch: "arm64" },
+  { platform: "darwin", arch: "x64" },
+  { platform: "win32", arch: "x64" },
+  { platform: "linux", arch: "x64" },
+];
+
+/**
+ * Default fetch targets for the host OS. Matches what `npm run build` in electron
+ * needs locally; release CI calls electron-builder per runner and after-pack
+ * self-heals any missing target via an explicit `platform-arch` arg.
+ */
+function hostNodeRuntimeTargets(platform, arch) {
+  if (platform === "darwin") {
+    return [
+      { platform: "darwin", arch: "arm64" },
+      { platform: "darwin", arch: "x64" },
+    ];
+  }
+  const normalizedArch = arch === "arm64" ? "arm64" : "x64";
+  return [{ platform, arch: normalizedArch }];
+}
+
+/**
+ * Resolve which Node runtime archives to download.
+ * argv: CLI args after node/script (e.g. ["darwin-arm64"]).
+ */
+function resolveNodeRuntimeTargets({ argv = [], env = {}, platform, arch } = {}) {
+  if (argv.length > 0) {
+    return argv.map((a) => {
+      const [targetPlatform, targetArch] = a.split("-");
+      return { platform: targetPlatform, arch: targetArch };
+    });
+  }
+  if (env.NODETOOL_FETCH_ALL_NODE_RUNTIMES === "1") {
+    return ALL_NODE_RUNTIME_TARGETS;
+  }
+  return hostNodeRuntimeTargets(platform, arch);
+}
+
 /** Node executable filename for a platform. */
 function nodeBinaryName(platform) {
   return platform === "win32" ? "node.exe" : "node";
@@ -67,6 +108,9 @@ function dawnKeepFiles(platform, arch) {
 
 module.exports = {
   NODE_RUNTIME_VERSION,
+  ALL_NODE_RUNTIME_TARGETS,
+  hostNodeRuntimeTargets,
+  resolveNodeRuntimeTargets,
   nodeBinaryName,
   nodeArchive,
   npmDirInArchive,

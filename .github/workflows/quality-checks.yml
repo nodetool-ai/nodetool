@@ -234,8 +234,16 @@ jobs:
           #   6. `npm run build:sandbox-flow:check` — the same, for
           #      `@nodetool-ai/sandbox-flow`: the guest copy of the native flow
           #      surface (packages/dsl/src/flow/generated plus its guest core).
+          #   7. `npm run typecheck:examples` — `tsc --noEmit` over the three
+          #      example apps (chat_app, nextjs-vercel, nextjs-cloudflare).
+          #      They compile against the live tRPC router and SDK types, so
+          #      this is what fails a PR that prunes an API procedure an
+          #      example still calls (threads.create in #4448 shipped exactly
+          #      that break). Deliberately typecheck only — the full
+          #      `next build`s cost minutes each and belong to deploys, not
+          #      the PR gate.
           - check: typecheck
-            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check
+            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples
             mobile-deps: "true"
             extra-apt: ""
             is-test: "false"
