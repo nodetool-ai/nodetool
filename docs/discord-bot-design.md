@@ -9,94 +9,131 @@
 
 ## 1. Summary
 
-A Discord bot that gives Discord users access to NodeTool's unified agent loop: mention the bot (or DM it), it opens a Discord thread, and every message in that thread becomes a turn in a persistent NodeTool chat thread — with streaming text, visible tool activity, and generated files delivered back as Discord attachments.
+A Discord bot that gives Discord users access to NodeTool's unified agent loop, **multi-tenant from the start**: each Discord user links their own NodeTool account once (`/nodetool link`), and from then on every DM to the bot is a turn in that user's own chat threads — their tools, their assets, their secrets, their budget. Streaming text, visible tool activity, and generated files come back into the DM.
 
-The bot is a **bridge process, not a second agent runtime**. It ships as `packages/discord` (`@nodetool-ai/discord`), depends on `@nodetool-ai/sdk` and `discord.js`, and talks to a running NodeTool server over the existing `/ws` chat protocol. It owns exactly two translations: Discord events → `chat_message` commands, and `ProcessingMessage` frames → Discord messages. Everything else — the agent loop, tools, permissions, thread persistence, cost tracking, credit gating — is the server's, unchanged.
+**v1 is DM-only.** Guild channels and threads are deferred, because a shared channel has no single owner: whose account runs the turn, whose budget pays, and whose assets the agent may read all become ambiguous the moment a second person can type into the conversation. A DM has exactly one human, so conversation ownership, billing, and data isolation are all the same trivial statement: everything belongs to the linked account of the person in the DM. Guild support returns later on top of the same identity layer (§12, phase 4).
+
+The bot is a **bridge process, not a second agent runtime**. It ships as `packages/discord` (`@nodetool-ai/discord`), depends on `@nodetool-ai/sdk` and `discord.js`, and talks to a running NodeTool server over the existing `/ws` chat protocol. It owns exactly two translations: Discord DMs → `chat_message` commands, and `ProcessingMessage` frames → Discord messages. The agent loop, tools, permissions, thread persistence, per-user cost tracking, and credit gating are the server's, unchanged. The one server-side addition this design requires is the identity layer in §5: an external-identity table and two routes for linking and delegated tokens.
 
 ## 2. Design goals
 
 - **D1. Zero new agent surface.** The bot reaches the same `UnifiedWebSocketRunner` chat path the web UI uses (`chat_message` / `resume_chat` over `/ws`). No forked loop, no second toolbelt assembly, no drift.
-- **D2. One conversation, one thread, both sides.** A Discord thread maps 1:1 to a NodeTool thread row, so the conversation is resumable from the web UI, the CLI, and Discord alike, and survives bot restarts.
-- **D3. Small dependency cone.** The bot process needs no database, no secret store, no native modules — `@nodetool-ai/sdk` + `discord.js` + `ws`. It can run on a different machine than the server.
-- **D4. Fail visible, recover silent.** A dropped WebSocket resumes the in-flight turn via `resume_chat {thread_id, last_seq}`; a dead server produces one status message in the Discord thread, not silence.
-- **D5. Headlessly drivable.** Both translations are pure modules exercised by a fake-Discord/fake-socket harness ([docs/HARNESS_FIRST.md](HARNESS_FIRST.md)); the gateway connection is the only part a test cannot own.
+- **D2. Tenant isolation is the server's, not the bot's.** Every turn runs on a token scoped to the sender's NodeTool user, so thread history, assets, memories, secrets, and the credit gate isolate per user by the server's existing rules. The bot never enforces isolation itself — it only presents the right identity.
+- **D3. The bot holds no user credentials.** One service token identifies the bot to the server; per-user access is a short-lived delegated token the server mints per connection from its own Discord↔user mapping. A compromised bot host leaks the service token (revocable, mints nothing without the server) — not a store of user tokens.
+- **D4. One conversation, one thread, both sides.** A DM maps to NodeTool threads owned by the linked user, so conversations are resumable from the web UI, the CLI, and Discord alike, and survive bot restarts — the bot keeps no conversation state.
+- **D5. Small dependency cone.** The bot process needs no database, no secret store, no native modules — `@nodetool-ai/sdk` + `discord.js` + `ws`. It can run on a different machine than the server.
+- **D6. Fail visible, recover silent.** A dropped WebSocket resumes the in-flight turn via `resume_chat {thread_id, last_seq}`; a dead server produces one status message in the DM, not silence.
+- **D7. Headlessly drivable.** The frame renderer, DM routing, and link flow are pure modules exercised by a fake-Discord/fake-socket harness ([docs/HARNESS_FIRST.md](HARNESS_FIRST.md)); the gateway connection is the only part a test cannot own.
 
-Non-goals for v1: voice channels, Discord embeds/components as an app UI, per-Discord-user NodeTool accounts (see §10), and replacing the `messaging.discord.DiscordBotTrigger` workflow node (see §11).
+Non-goals for v1: guild channels, threads, and @mentions (phase 4); voice channels; Discord embeds/components as an app UI; per-guild configuration.
 
 ## 3. Architecture
 
 ```
-Discord Gateway (wss)                       NodeTool server (:7777)
+Discord Gateway (wss)                        NodeTool server
         │                                            │
         ▼                                            │
 ┌──────────────────┐    InboundTurn    ┌──────────────────────┐
 │ DiscordAdapter   │ ────────────────▶ │ TurnRouter           │
-│ (discord.js)     │                   │  one ChatSocket per  │
-│  mention/DM/     │ ◀──────────────── │  active conversation │
-│  thread routing  │    RenderPlan     └──────────┬───────────┘
-└──────────────────┘                              │ chat_message /
-        ▲                                         │ resume_chat
+│ (discord.js)     │                   │  per-user ChatSocket │
+│  DM routing,     │ ◀──────────────── │  + delegated token   │
+│  slash commands  │    RenderPlan     └──────────┬───────────┘
+└──────────────────┘                              │
+        ▲                                         │ chat_message / resume_chat
         │ send / edit / attach          ┌─────────▼───────────┐
         └───────────────────────────────│ @nodetool-ai/sdk    │
                                         │ ChatSocket (/ws,    │
                                         │ msgpack, ?token=)   │
                                         └─────────────────────┘
+
+Identity (server-side, §5):
+  bot ── service token ──▶ POST /api/integrations/discord/token ──▶ delegated user token
+  user ── /nodetool link ──▶ one-time URL ──▶ signed-in web session ──▶ external_identities row
 ```
 
-One Node.js process, three modules:
+One Node.js bridge process, four modules:
 
-- **DiscordAdapter** (`src/discord-adapter.ts`) — owns the `discord.js` client. Decides which messages are for the bot, opens threads, strips mentions, downloads attachments, and executes `RenderPlan`s (send, edit, attach, typing). All Discord API knowledge lives here.
-- **TurnRouter** (`src/turn-router.ts`) — owns the conversation table and one `ChatSocket` per conversation with an in-flight turn. Serializes turns per conversation (a second message while a turn runs is queued, mirroring the server's own `chatTurnRegistry` per-thread lock), forwards frames to the renderer, and handles reconnect/resume.
+- **DiscordAdapter** (`src/discord-adapter.ts`) — owns the `discord.js` client. Accepts DMs and slash commands, rejects everything else, downloads attachments, and executes `RenderPlan`s (send, edit, attach, typing). All Discord API knowledge lives here.
+- **IdentityClient** (`src/identity-client.ts`) — resolves a Discord user id to a delegated NodeTool token via the server's integration routes (§5), with an in-memory cache keyed by token expiry. Also drives the link/unlink flows.
+- **TurnRouter** (`src/turn-router.ts`) — owns one `ChatSocket` per Discord user with an in-flight turn, authenticated with that user's delegated token. Serializes turns per conversation (a second message while a turn runs is queued, mirroring the server's own `chatTurnRegistry` per-thread lock), forwards frames to the renderer, and handles reconnect/resume — including re-minting an expired delegated token before reconnecting.
 - **FrameRenderer** (`src/frame-renderer.ts`) — pure function domain: folds `ProcessingMessage` frames (`chunk`, `tool_call_update`, `message`, `output_update`, `error`, `job_update`) into a `RenderPlan` (create/edit/finalize/attach operations), applying Discord's 2000-char limit and an edit-rate throttle. No I/O.
 
-This is claude-pipe's bus/adapter/loop split with the agent loop replaced by a socket: claude-pipe's `AgentLoop.processMessage` + `publishProgress` become TurnRouter + FrameRenderer, and its `Channel` interface (`send`, `editMessage`, `sendFile`) becomes the `RenderPlan` executor on DiscordAdapter.
+This is claude-pipe's bus/adapter/loop split with the agent loop replaced by a socket, plus an identity module claude-pipe never needed (it is single-user by construction).
 
 ## 4. Conversation model
 
-### Identity
+### Activation
 
-The conversation key is the Discord channel the reply lands in: a bot-opened thread id, a foreign thread id the bot was mentioned in, or a DM channel id. The NodeTool `thread_id` is derived, not stored: `discord-<discordChannelId>`.
+The bot answers exactly two things:
 
-This works because the server creates threads lazily from client-supplied ids (`ensureThreadExists` in `packages/websocket/src/unified-websocket-runner.ts`): the first `chat_message` with `thread_id: "discord-123..."` creates the row, every later one — from this process or a restarted one — resumes it with full history reloaded server-side. The bot therefore needs **no persistent state of its own**; the only local state is the in-memory set of thread ids this process opened (for reply-without-mention routing) plus the set of already-context-seeded conversations, both rebuilt lazily after a restart (a bot-owned thread is also recognizable by `ThreadChannel.ownerId`).
+1. **DMs from linked users** — every message is a turn.
+2. **Slash commands** — `/nodetool link` and `/nodetool status` work for anyone; the rest require a linked account.
 
-Thread titles: after the first turn, the bot calls `trpc.threads.update` to set the NodeTool thread title to the Discord thread name, so the conversation is findable in the web UI's thread list.
+A DM from an unlinked user gets one reply: what the bot is, and a `/nodetool link` prompt. Guild messages — including @mentions — are ignored in v1; a guild @mention gets a single ephemeral-style pointer to DM the bot, at most once per user per day, so the bot is discoverable without being noisy. An optional `allowUsers` list further restricts who may even link, for closed deployments.
 
-### Activation (who the bot answers)
+### Thread identity
 
-Same rules as claude-pipe's Discord channel, which they fit well:
+A DM is a long-lived channel, not one conversation, so the DM maps to a **sequence** of NodeTool threads: the derived id is `discord-<dmChannelId>-<n>`, where `n` starts at 1 and `/nodetool new` increments it. The current `n` is recoverable without bot-side state: on the first turn after a restart, the bot lists the user's threads via tRPC (`threads.list`, filtered by the `discord-<dmChannelId>-` prefix on ids) and resumes the highest `n`.
 
-1. **DMs** — always (subject to the user allowlist).
-2. **@mention in a guild text channel** — opens a public thread anchored on the triggering message (name = first line of the message, ≤90 chars), replies there. Falls back to replying in-channel when thread creation is denied.
-3. **Any message in a bot-opened thread** — no mention needed.
-4. **@mention inside a foreign thread** — joins that thread as the conversation.
+The server creates thread rows lazily from client-supplied ids (`ensureThreadExists` in `packages/websocket/src/unified-websocket-runner.ts`), always under the authenticated user — so the thread belongs to the linked account and appears in that user's web-UI thread list. Thread ids are globally unique across users, though, so a purely channel-derived id would let one tenant occupy an id another tenant's derivation produces (a user can be re-linked, and DM channel ids are not secret). The derived id therefore includes a short hash of the NodeTool user id — `discord-<dmChannelId>-<uid8>-<n>` — making cross-tenant id collision structurally impossible rather than merely unlikely.
 
-Everything else is ignored, as are all bot-authored messages (including its own).
+Because a DM has one human and the server-side thread has the full history, there is **no context seeding** — the claude-pipe channel-history block exists to import a shared channel's conversation, which v1 does not have.
 
-### Context seeding
+Thread titles: after the first turn, the bot calls `trpc.threads.update` (as the user, on the delegated token) to set a title from the first message, so the conversation is findable in the web UI.
 
-When a conversation starts from a mention (case 2 or 4), the bot fetches up to 30 preceding messages (excluding its own), and prepends them once as a `[Channel context — recent messages]` block. Follow-ups never re-send history — the server-side thread already has it. Seeded conversation ids are tracked in memory; the worst case after a restart is one duplicate context block, which is acceptable.
+## 5. Identity: linking and delegated tokens
 
-### Multi-user threads
+This is the one part of the design that adds server surface. It lives in `packages/websocket` (routes) and `packages/models` (table), kept deliberately provider-generic so a later Slack or Telegram bridge reuses it.
 
-Discord threads are multi-party while a NodeTool thread has one user column. v1 keeps the shared thread and disambiguates inside the turn: when the sender differs from the previous turn's sender, the content is prefixed `[Discord user <displayName>]: `. This matches how the conversation actually reads in the channel and costs nothing.
+### Data model
 
-## 5. Turn lifecycle
+```sql
+external_identities (
+  id            TEXT PRIMARY KEY,
+  provider      TEXT NOT NULL,          -- "discord"
+  external_id   TEXT NOT NULL,          -- Discord user id
+  user_id       TEXT NOT NULL,          -- NodeTool user
+  linked_at     TEXT NOT NULL,
+  UNIQUE(provider, external_id)
+)
+```
 
-Inbound, per triggering Discord message:
+One NodeTool user may link several Discord accounts; one Discord account maps to exactly one NodeTool user.
 
-1. Allowlist checks (user id, then channel id / parent channel id — DMs skip the channel check). Denied guild messages are ignored silently; denied slash commands get an ephemeral refusal.
-2. Resolve conversation (open thread if needed), build content: strip the bot mention, optional context block, optional sender prefix, attachment section (§7).
-3. `TurnRouter.submit(conversation, content)`. If a turn is already running for this conversation the message queues; queue depth is capped (default 3), overflow gets a "still working on the previous message" reply.
-4. The router ensures a connected `ChatSocket` and sends:
+### Link flow (`/nodetool link`)
+
+1. The bot calls `POST /api/integrations/discord/link/start {external_id}` with its **service token** (`NODETOOL_INTEGRATION_TOKEN`, a dedicated static token the server recognizes as the Discord integration — not a user token). The server stores a one-time link code (10-minute TTL) and returns a URL.
+2. The bot DMs the user the URL. The user opens it, signs in to NodeTool normally (Supabase mode: their real account; local mode: user "1"), and confirms "Link Discord account `<name>`?" on a minimal confirmation page.
+3. Confirming writes the `external_identities` row. The pending code is single-use; an unconfirmed code expires.
+4. `/nodetool unlink` deletes the row (bot-initiated, service token, scoped to that `external_id`), and the same page offers unlink to the signed-in user.
+
+The user's browser session does the authentication, so the bot never sees a password, an OAuth code, or a long-lived user credential.
+
+### Delegated tokens
+
+Per connection, the bot exchanges identity for access: `POST /api/integrations/discord/token {external_id}` with the service token returns `{token, expires_at, user_id}` — a short-lived (1 h) token that authenticates as the linked user on `/ws`, `/trpc`, and asset URLs. Unlinked `external_id` → 404, and the bot renders the link prompt.
+
+Implementation slots into the existing `AuthProvider` seam: delegated tokens are signed server-side (HMAC over `user_id` + expiry with the master key from `@nodetool-ai/security`) and verified by a `DelegatedTokenProvider` chained before the configured provider, so no token table and no cleanup job. Revocation is coarse but sufficient: unlinking removes the mapping, so no new tokens mint, and outstanding ones die within the hour; rotating the master key kills them instantly.
+
+The integration routes are enabled only when `NODETOOL_INTEGRATION_TOKEN` is set; a server without it exposes none of this surface.
+
+## 6. Turn lifecycle
+
+Inbound, per DM:
+
+1. `IdentityClient.resolve(discordUserId)` → delegated token (cached until near expiry) or the link prompt.
+2. Build content: message text plus the attachment section (§8).
+3. `TurnRouter.submit(user, conversation, content)`. If a turn is already running for this conversation the message queues; queue depth is capped (default 3), overflow gets a "still working on the previous message" reply.
+4. The router ensures a connected `ChatSocket` for this user and sends:
 
 ```ts
 socket.send({
-  threadId: conv.nodeToolThreadId,
+  threadId: conv.currentThreadId,     // discord-<dm>-<uid8>-<n>
   text: content,
-  provider: config.provider,        // optional; server default otherwise
-  model: config.model,
+  provider: prefs.provider,           // per-user override or server default
+  model: prefs.model,
   agentMode: true,
-  permissionMode: "auto"            // §8
+  permissionMode: "auto"              // §9
 });
 ```
 
@@ -109,7 +146,7 @@ Outbound, per frame (all folding in FrameRenderer, all I/O in DiscordAdapter):
 | `tool_call_update` / `tool_call` | one **status line** message (`🔧 web_search — "quickjs sandbox"`), edited in place per tool; replaced by the stream message when text starts; `✅`/`❌` on completion |
 | `task_update`, `planning_update`, `node_update` | folded into the status line (latest wins), never separate messages |
 | `message` (final assistant) | finalize: edit the stream message to the final content's tail chunk, send remaining chunks; render markdown as-is (Discord speaks it) |
-| `output_update` / saved assets | fetch via the message's asset/temp URL, attach as Discord files (≤ 10 MB each; larger files become a link to the server's asset URL) |
+| `output_update` / saved assets | fetch via the delegated token, attach as Discord files (≤ 10 MB each; larger files become a link to the server's asset URL) |
 | `error` | replace status/stream with `⚠️ <message>`; the turn ends |
 | `job_update` (workflow-target runs) | status line only |
 
@@ -117,65 +154,62 @@ Rate discipline: edits are throttled per conversation (1500 ms) and coalesced; D
 
 ### Interrupt and disconnect
 
-- A `🛑`/`❌` reaction by the requesting user on the stream or status message (or `/nodetool stop`) sends `stop(threadId)`; the server emits `generation_stopped`, rendered as `⏹ stopped`.
-- On socket drop mid-turn: reconnect with backoff (the SDK's `ChatSocket` already does this), then `resume_chat {thread_id, last_seq}` replays missed frames into the same renderer state. Only after resume also fails does the thread get one `⚠️ lost connection to NodeTool` message.
+- A `🛑`/`❌` reaction on the stream or status message (or `/nodetool stop`) sends `stop(threadId)`; the server emits `generation_stopped`, rendered as `⏹ stopped`. In a DM the reactor is necessarily the owner, so no permission check is needed.
+- On socket drop mid-turn: re-mint the delegated token if expired, reconnect with backoff (the SDK's `ChatSocket` already does this), then `resume_chat {thread_id, last_seq}` replays missed frames into the same renderer state. Only after resume also fails does the DM get one `⚠️ lost connection to NodeTool` message.
 
-## 6. Slash commands
+## 7. Slash commands
 
-Registered once via the REST API (`PUT /applications/:id/commands`), handled entirely in the bot — they never reach the LLM:
+Registered once via the REST API (`PUT /applications/:id/commands`), handled entirely in the bot — they never reach the LLM. Discord's 3-second interaction deadline is met by `deferReply()` before any server round-trip.
 
 | Command | Effect |
 |---|---|
-| `/nodetool ask prompt:<text>` | start a conversation from a slash command (deferred reply becomes the thread starter) |
-| `/nodetool new` | rotate this Discord thread onto a fresh NodeTool thread id (suffix `-2`, `-3`, …) |
+| `/nodetool link` / `/nodetool unlink` | account linking (§5) |
+| `/nodetool new` | rotate this DM onto a fresh NodeTool thread |
 | `/nodetool stop` | cancel the in-flight turn |
-| `/nodetool model [id]` | show or set the per-conversation model override |
-| `/nodetool workflow <id> [params]` | run a turn with `workflow_target: "workflow"` against a saved workflow — the server's workflow-chatbot path |
-| `/nodetool status` | bot → server connectivity, provider/model in effect, queue depth |
+| `/nodetool model [id]` | show or set this user's model override (stored server-side in the user's settings via tRPC, so it survives bot restarts) |
+| `/nodetool workflow <id> [params]` | run a turn with `workflow_target: "workflow"` against one of **the user's own** saved workflows — the server's workflow-chatbot path enforces ownership |
+| `/nodetool status` | bot → server connectivity, link state, provider/model in effect, queue depth |
 
-Discord's 3-second interaction deadline is met by `deferReply()` before any server round-trip.
-
-## 7. Attachments
+## 8. Attachments
 
 **Inbound:** Discord attachments arrive as CDN URLs. Images are passed as image content parts on the chat message (the server's `resolveContentForProvider` fetches and inlines them for the provider). Non-image files are described in the content (`[Attached file: report.pdf, 1.2 MB, <url>]`) so the agent can fetch them with its own `download_file`/`http_request` tools under the server's SSRF guard. The bot itself never proxies file bytes inbound.
 
-**Outbound:** asset references on the final message and `output_update` frames are fetched from the server (authenticated) and attached. Over Discord's upload limit, the bot posts the asset's server URL instead — useful only where users can reach the server, so it is stated plainly rather than pretended around: `📎 too large for Discord: <url>`.
+**Outbound:** asset references on the final message and `output_update` frames are fetched from the server on the delegated token and attached. Over Discord's upload limit, the bot posts the asset's server URL instead — useful only where users can reach the server, so it is stated plainly rather than pretended around: `📎 too large for Discord: <url>`.
 
-## 8. Security and access control
+## 9. Security and access control
 
-- **Server credential.** The bot holds one NodeTool bearer token (`NODETOOL_API_TOKEN`, appended as `?token=` on the upgrade — the path `ChatSocket` already implements). Against a local-mode server on the same host, localhost trust makes the token optional; against anything reachable by others, `STATIC_AUTH_TOKEN` on the server is required and the docs say so. All Discord traffic maps to that one NodeTool user.
-- **Discord allowlists.** `allowUsers` (Discord user ids) and `allowChannels` (channel/parent ids; DMs exempt from the channel list). Empty list = allow all, matching claude-pipe — but the default generated config ships with `allowUsers` populated by the installing user, because this bot reaches an agent with write/execute tools.
-- **Permission mode.** Turns run with `permission_mode: "auto"`: there is no interactive approver on this surface, and the server's `default` mode would park every write/execute tool on a `tool_approval_request` forever. This is the single most consequential setting and sits at the top of the config with a comment. A later phase can map approval requests onto Discord buttons and switch to `default` (§12, phase 3).
-- **Prompt injection.** Channel context blocks and messages from non-allowlisted co-participants in a thread are untrusted input to an agent holding real tools. v1's mitigations: the allowlist gates who can *trigger* a turn at all, the context block is labeled as quoted channel history, and the bot never acts on Discord content itself. This is the standing residual risk of `auto` mode and is documented, not hidden.
-- **Secrets.** The bot's env carries exactly two tokens (Discord, NodeTool). Provider API keys stay in the server's secret store.
+- **Tenant isolation** is delegated-token deep, not bot deep (D2): thread listing, asset fetches, workflow runs, collections, secrets, the credit gate, and cost attribution all execute server-side as the linked user. The bot contains no cross-tenant code path to get wrong.
+- **Credentials.** The bot's env carries two secrets: the Discord bot token and the NodeTool service token. Per-user tokens are short-lived, in-memory only (D3). Provider API keys stay in the server's secret store, per user.
+- **Server exposure.** Multi-tenant means the server runs in Supabase (or another enforcing) auth mode; the integration routes refuse to start-link when the server is in local single-user mode with localhost trust, because "link any Discord user to user 1" is not linking. Local mode remains supported for the personal-deployment case, where every DM is user "1" and the link command replies "this server is single-user; you're already in".
+- **Permission mode.** Turns run with `permission_mode: "auto"`: there is no interactive approver on this surface, and the server's `default` mode would park every write/execute tool on a `tool_approval_request` forever. In the multi-tenant frame this is materially safer than in a shared-account design — the tools act on the sender's own data under the sender's own budget — but it is still the most consequential setting and sits at the top of the config with a comment. Phase 3 maps approval requests onto Discord buttons and makes the mode configurable.
+- **Prompt injection.** DM-only v1 removes the channel-history and co-participant injection vectors entirely: every byte the agent sees was typed or attached by the account owner it acts as. The residual risks are the ones NodeTool already owns server-side (fetched web content, attachment contents).
+- **Abuse.** Linking is the admission gate (optionally allowlisted); per-user rate limiting beyond the turn queue is the server's credit gate doing its normal job. The link URL is the one phishing-shaped artifact, so the confirmation page names the Discord account being linked and the code is single-use with a 10-minute TTL.
 
-## 9. Configuration
+## 10. Configuration
 
-Env-first, with an optional `discord-bot.json` for the list-valued settings:
+Bridge process, env-first:
 
 ```
 DISCORD_BOT_TOKEN            required
 DISCORD_APPLICATION_ID       required once, for slash-command registration
 NODETOOL_API_URL             default http://127.0.0.1:7777
-NODETOOL_API_TOKEN           required unless the server trusts this host
-NODETOOL_BOT_PROVIDER/MODEL  optional server-side default override
+NODETOOL_INTEGRATION_TOKEN   required (the bot's service token; also set on the server)
 ```
 
 ```jsonc
-// discord-bot.json
+// discord-bot.json (optional)
 {
-  "allowUsers": ["<discord user id>"],
-  "allowChannels": [],
-  "useThreads": true,
-  "threadAutoArchiveMinutes": 1440,
+  "allowUsers": [],            // Discord ids allowed to link; empty = anyone
   "editThrottleMs": 1500,
   "maxQueuedTurns": 3
 }
 ```
 
-Gateway intents: `Guilds`, `GuildMessages`, `DirectMessages`, `MessageContent` (+ `Partials.Channel` for DMs). `MessageContent` is a privileged intent the operator enables in the Discord developer portal; the setup doc walks through it.
+Gateway intents: `DirectMessages`, `MessageContent`, `Guilds` (for slash commands) + `Partials.Channel` (DM channels arrive partial). `MessageContent` is a privileged intent the operator enables in the Discord developer portal; the setup doc walks through it.
 
-## 10. Package layout and entry points
+Server: `NODETOOL_INTEGRATION_TOKEN` enables the `/api/integrations/discord/*` routes (§5).
+
+## 11. Package layout and entry points
 
 ```
 packages/discord/
@@ -185,34 +219,38 @@ packages/discord/
     index.ts            # startDiscordBot(config), stopDiscordBot — the programmatic surface
     config.ts           # env + json loading, zod-validated at the boundary
     discord-adapter.ts
+    identity-client.ts
     turn-router.ts
     frame-renderer.ts   # pure: frames → RenderPlan
     chunk.ts            # 2000-char markdown-aware splitter (port of claude-pipe text-chunk)
     register-commands.ts
-  tests/                # vitest: renderer folding, chunker, routing, resume replay
+  tests/                # vitest: renderer folding, chunker, routing, link flow, resume replay
 ```
 
-Two ways to run it:
+Server-side additions land in their owning packages: `external_identities` in `packages/models`, the integration routes and `DelegatedTokenProvider` wiring in `packages/websocket` / `packages/auth`.
+
+Two ways to run the bridge:
 
 - `npx @nodetool-ai/discord` (a `bin` in the package) for standalone deployment next to any server.
 - `nodetool discord serve` / `nodetool discord register-commands` in the CLI — thin wrappers over `startDiscordBot`, consistent with how the CLI fronts the other harnesses. Command registration is explicitly separate from serving, as in claude-pipe: it is a deploy step, not a boot step.
 
-The dependency-cone rule (D3) is enforced structurally: `packages/discord` references only `packages/sdk` in its tsconfig, so an import of `@nodetool-ai/agents` or `@nodetool-ai/models` fails the build.
+The dependency-cone rule (D5) is enforced structurally: `packages/discord` references only `packages/sdk` in its tsconfig, so an import of `@nodetool-ai/agents` or `@nodetool-ai/models` fails the build.
 
-Later, the Electron app can host the bot in-process (a Settings → Integrations toggle holding the Discord token via `keytar`), since `startDiscordBot` is just a function against `http://127.0.0.1:7777`. That is desktop work and out of this design's scope.
+## 12. Alternatives considered
 
-## 11. Alternatives considered
-
-- **In-process agent loop** (import `processChat` + `createChatCodeActSession`, the way `packages/cli/src/stdin.ts` does). Rejected: the bot would own the DB, secret store, toolbelt assembly, and native modules, duplicate the server's credit gate and turn registry, and its conversations would be invisible to the web UI unless it re-implemented persistence. The CLI pays those costs because it *is* a local runtime; a bot should not.
-- **OpenAI-compatible endpoint** (`POST /v1/chat/completions`). Rejected: it is a stateless provider passthrough — no threads, no agent toolbelt, no tool streaming. Fine for "LLM in Discord", useless for "NodeTool agents in Discord".
-- **Finishing `messaging.discord.DiscordBotTrigger` instead.** The existing node is a stub (token validation only; the Gateway connection is explicitly not implemented). A workflow trigger answers a different question — "start *this workflow* when a Discord message arrives" — and per [triggers-design.md](triggers-design.md), that belongs in `trigger_registrations` + the dispatcher, not in a graph node holding a Gateway socket open. This design deliberately does not touch it; a later `discord_message` trigger kind could share the bot's Gateway connection, with the bot posting trigger inputs the way the webhook route does.
+- **In-process agent loop** (import `processChat` + `createChatCodeActSession`, the way `packages/cli/src/stdin.ts` does). Rejected: the bot would own the DB, secret store, toolbelt assembly, and native modules, duplicate the server's credit gate and turn registry, and — fatally for multi-tenancy — would have to re-implement per-user isolation the server already enforces.
+- **OpenAI-compatible endpoint** (`POST /v1/chat/completions`). Rejected: a stateless provider passthrough — no threads, no agent toolbelt, no per-user anything.
+- **Bot-side token store** (bot keeps long-lived per-user tokens after linking). Rejected for D3: it turns the bridge into a credential vault, needs encrypted storage and revocation plumbing, and breaks the stateless-bridge property. The service-token + delegated-token exchange keeps all credentials and the identity mapping on the server.
+- **Guild channels with per-thread ownership in v1** (thread belongs to whoever @mentioned the bot; co-participants' messages run on the starter's account, or fragment into per-sender threads). Deferred: both ownership rules are defensible and both are surprising — one bills the starter for other people's prompts, the other splits one visible conversation into invisible parallel contexts. DM-only sidesteps the decision until the identity layer is proven; phase 4 makes it deliberately.
+- **Finishing `messaging.discord.DiscordBotTrigger` instead.** The existing node is a stub (token validation only; the Gateway connection is explicitly not implemented). A workflow trigger answers a different question — "start *this workflow* when a Discord message arrives" — and per [triggers-design.md](triggers-design.md), that belongs in `trigger_registrations` + the dispatcher, not in a graph node holding a Gateway socket open. A later `discord_message` trigger kind could share the bot's Gateway connection.
 - **Discord embeds/components as the primary render surface.** Plain markdown messages first: the agent's output is markdown, Discord renders markdown, and embeds impose their own length/field limits that fight streaming. Components return for the approval flow (phase 3), where buttons are the right shape.
 
-## 12. Phasing
+## 13. Phasing
 
-1. **Bridge core** — package, config, adapter (mention/DM/thread routing, allowlists), router, renderer, chunker; streaming edits + tool status line; final message + error rendering; reconnect/resume; `register-commands` + `/nodetool ask|new|stop|status`. Vitest suites for renderer/chunker/router against a scripted fake socket and fake adapter; a `discord-bridge` entry in the harness registry whose selfcheck runs those suites keylessly.
-2. **Files and workflows** — inbound image parts + file descriptions, outbound asset attachments, `/nodetool workflow`, `/nodetool model`, thread-title sync via tRPC.
-3. **Approvals** — render `tool_approval_request` as Discord buttons (allow / allow for chat / deny), answer with `tool_approval_response`, and make `permission_mode` configurable per deployment. This retires the `auto`-mode caveat in §8 for operators who want it.
-4. **Trigger sharing** — expose the Gateway connection to a `discord_message` trigger kind (separate design, per triggers-design.md).
+1. **Identity + bridge core** — `external_identities`, link/token routes, `DelegatedTokenProvider`; package, config, DM routing, router, renderer, chunker; streaming edits + tool status line; final message + error rendering; reconnect/resume with token re-mint; `register-commands` + `/nodetool link|unlink|new|stop|status`. Vitest suites for renderer/chunker/router/link-flow against a scripted fake socket and fake adapter; a `discord-bridge` entry in the harness registry whose selfcheck runs those suites keylessly.
+2. **Files, workflows, preferences** — inbound image parts + file descriptions, outbound asset attachments, `/nodetool workflow`, `/nodetool model` persisted server-side, thread-title sync via tRPC.
+3. **Approvals** — render `tool_approval_request` as Discord buttons (allow / allow for chat / deny), answer with `tool_approval_response`, make `permission_mode` configurable. Retires the `auto`-mode caveat in §9 for operators who want it.
+4. **Guild support** — @mention activation, bot-owned threads, context seeding, and an explicit conversation-ownership rule, on top of the proven identity layer. This is where the deferred ownership decision from §12 is made.
+5. **Trigger sharing** — expose the Gateway connection to a `discord_message` trigger kind (separate design, per triggers-design.md).
 
-Phase 1 is the deliverable that makes everything after it iterable: from there, a change to the renderer is a unit test, not a live Discord session.
+Phase 1 is the deliverable that makes everything after it iterable: from there, a change to the renderer or the link flow is a unit test, not a live Discord session.
