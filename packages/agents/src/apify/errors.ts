@@ -82,7 +82,7 @@ export class ApifyError extends Error {
     message: string,
     options: ApifyErrorOptions = {}
   ) {
-    super(message, options.cause === undefined ? {} : { cause: options.cause });
+    super(message, { cause: options.cause });
     this.name = "ApifyError";
     this.kind = kind;
     if (options.status !== undefined) this.status = options.status;
@@ -105,14 +105,15 @@ export class ApifyError extends Error {
    * HTTP body, which is where a token echoed back in a request dump would sit.
    */
   toResult(): Record<string, unknown> {
-    return {
+    const result: Record<string, unknown> = {
       ok: false,
       error: this.message,
-      error_kind: this.kind,
-      ...(this.status === undefined ? {} : { status: this.status }),
-      ...(this.actorId === undefined ? {} : { actor_id: this.actorId }),
-      ...(this.runId === undefined ? {} : { run_id: this.runId })
+      error_kind: this.kind
     };
+    if (this.status !== undefined) result.status = this.status;
+    if (this.actorId !== undefined) result.actor_id = this.actorId;
+    if (this.runId !== undefined) result.run_id = this.runId;
+    return result;
   }
 }
 

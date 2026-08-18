@@ -105,13 +105,9 @@ export async function runActor(
   assertActorInputUrlsArePublic(options.input);
 
   const clamped = ledger.clampRunOptions({
-    ...(options.timeoutSecs === undefined
-      ? {}
-      : { timeoutSecs: options.timeoutSecs }),
-    ...(options.memoryMbytes === undefined
-      ? {}
-      : { memoryMbytes: options.memoryMbytes }),
-    ...(options.maxItems === undefined ? {} : { maxItems: options.maxItems })
+    timeoutSecs: options.timeoutSecs,
+    memoryMbytes: options.memoryMbytes,
+    maxItems: options.maxItems
   });
 
   ledger.reserveRun(actorId);
@@ -122,10 +118,8 @@ export async function runActor(
       input: options.input,
       timeoutSecs: clamped.timeoutSecs,
       maxItems: clamped.maxItems,
-      ...(clamped.memoryMbytes === undefined
-        ? {}
-        : { memoryMbytes: clamped.memoryMbytes }),
-      ...(options.build === undefined ? {} : { build: options.build })
+      memoryMbytes: clamped.memoryMbytes,
+      build: options.build
     },
     hooks.signal
   );
@@ -179,9 +173,11 @@ export async function waitForRun(
       );
     }
 
-    await delay(interval, undefined, {
-      ...(hooks.signal === undefined ? {} : { signal: hooks.signal })
-    }).catch(() => undefined);
+    // Never rejects: an abort here is handled by the check at the top of the
+    // loop, which also aborts the actor.
+    await delay(interval, undefined, { signal: hooks.signal }).catch(
+      () => undefined
+    );
     interval = Math.min(interval * 1.5, MAX_POLL_INTERVAL_MS);
 
     run = await client.getRun(run.id, hooks.signal);
@@ -227,16 +223,10 @@ export function provenanceOf(
     actor_id: toCanonicalActorId(actorId),
     run_id: run.id,
     retrieved_at: new Date().toISOString(),
-    ...(run.defaultDatasetId === undefined
-      ? {}
-      : { dataset_id: run.defaultDatasetId }),
-    ...(run.defaultKeyValueStoreId === undefined
-      ? {}
-      : { key_value_store_id: run.defaultKeyValueStoreId }),
+    dataset_id: run.defaultDatasetId,
+    key_value_store_id: run.defaultKeyValueStoreId,
     status: run.status,
-    ...(run.usageTotalUsd === undefined
-      ? {}
-      : { cost_usd: run.usageTotalUsd })
+    cost_usd: run.usageTotalUsd
   };
 }
 

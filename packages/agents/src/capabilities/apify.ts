@@ -204,7 +204,7 @@ const searchApifyActors: CapabilityExport = {
         {
           query,
           limit,
-          ...(isString(params.category) ? { category: params.category } : {})
+          category: isString(params.category) ? params.category : undefined
         },
         signalOf(run)
       );
@@ -238,15 +238,14 @@ const getApifyActor: CapabilityExport = {
       const verdict = decideActor(policy, actorId);
       const shipped = catalogActor(actorId);
 
-      return {
+      const result: Record<string, unknown> = {
         ok: true,
         ...summarizeActor(actor),
-        runnable: verdict.decision,
-        ...(verdict.decision === "allow"
-          ? {}
-          : { runnable_reason: verdict.reason }),
-        ...(shipped === undefined ? {} : { cost_hint: shipped.costHint })
+        runnable: verdict.decision
       };
+      if (verdict.decision !== "allow") result.runnable_reason = verdict.reason;
+      if (shipped !== undefined) result.cost_hint = shipped.costHint;
+      return result;
     })
 };
 
@@ -327,17 +326,16 @@ const runApifyActor: CapabilityExport = {
           actorId,
           input,
           waitForFinish,
-          ...(params.timeout_seconds === undefined
-            ? {}
-            : { timeoutSecs: readInteger(params.timeout_seconds, 300) }),
-          ...(params.max_items === undefined
-            ? {}
-            : { maxItems: readInteger(params.max_items, 1000) })
+          timeoutSecs:
+            params.timeout_seconds === undefined
+              ? undefined
+              : readInteger(params.timeout_seconds, 300),
+          maxItems:
+            params.max_items === undefined
+              ? undefined
+              : readInteger(params.max_items, 1000)
         },
-        {
-          ...(signalOf(run) === undefined ? {} : { signal: signalOf(run) }),
-          approve: approverFor(run)
-        }
+        { signal: signalOf(run), approve: approverFor(run) }
       );
 
       if (!waitForFinish) {
@@ -388,11 +386,9 @@ const runApifyActor: CapabilityExport = {
           : {
               dataset: summarizeDataset({
                 items: dataset.items,
-                ...(dataset.total === undefined ? {} : { total: dataset.total }),
+                total: dataset.total,
                 offset: dataset.offset,
-                ...(actorRun.defaultDatasetId === undefined
-                  ? {}
-                  : { datasetId: actorRun.defaultDatasetId })
+                datasetId: actorRun.defaultDatasetId
               })
             }),
         budget: {
@@ -469,7 +465,7 @@ const getApifyDatasetItems: CapabilityExport = {
           limit,
           offset,
           clean: true,
-          ...(fields === undefined || fields.length === 0 ? {} : { fields })
+          fields: fields === undefined || fields.length === 0 ? undefined : fields
         },
         signalOf(run)
       );
@@ -478,7 +474,7 @@ const getApifyDatasetItems: CapabilityExport = {
         dataset_id: datasetId,
         ...summarizeDataset({
           items: page.items,
-          ...(page.total === undefined ? {} : { total: page.total }),
+          total: page.total,
           offset: page.offset,
           datasetId
         })

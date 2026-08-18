@@ -19,6 +19,17 @@ import { catalogActor, type CatalogActor } from "./catalog.js";
 import { toCanonicalActorId } from "./client.js";
 
 /** Longest description text kept on any summarized object. */
+/**
+ * Drop `readonly` so a summary can be assembled field by field.
+ *
+ * The results here are optional-heavy by nature — an actor record may carry any
+ * subset of a dozen fields — and the alternative is a conditional spread per
+ * field, which `anti-slop/no-conditional-empty-object-spread` bans for hiding
+ * the omission inside an empty object. Building the value and adding what is
+ * present says the same thing in the open.
+ */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
 const MAX_DESCRIPTION_CHARS = 240;
 
 /** Items returned inline by default; the rest stay in the dataset. */
@@ -75,38 +86,41 @@ export function summarizeActor(item: Record<string, unknown>): ActorSummary {
       ? `${username}/${name}`
       : toCanonicalActorId(isString(item.id) ? item.id : "");
   const shipped: CatalogActor | undefined = catalogActor(id);
+
+  const summary: Mutable<ActorSummary> = {
+    id,
+    url: `https://apify.com/${id}`,
+    shipped: shipped !== undefined
+  };
+
+  const title = clip(item.title);
+  if (title !== undefined) summary.title = title;
+
+  const description = clip(item.description);
+  if (description !== undefined) summary.description = description;
+
+  const publisher = isString(item.userFullName) ? item.userFullName : username;
+  if (publisher !== undefined) summary.publisher = publisher;
+
+  const totalRuns = finite(item.totalRuns);
+  if (totalRuns !== undefined) summary.total_runs = totalRuns;
+
+  const monthlyUsers = finite(item.totalUsers30Days);
+  if (monthlyUsers !== undefined) summary.monthly_users = monthlyUsers;
+
+  const rating = finite(item.actorReviewRating);
+  if (rating !== undefined) summary.rating = rating;
+
+  if (isString(item.pricingModel)) summary.pricing_model = item.pricingModel;
+
   const categories = Array.isArray(item.categories)
     ? item.categories.filter(isString).slice(0, 5)
-    : undefined;
+    : [];
+  if (categories.length > 0) summary.categories = categories;
 
-  return {
-    id,
-    ...(clip(item.title) === undefined ? {} : { title: clip(item.title) }),
-    ...(clip(item.description) === undefined
-      ? {}
-      : { description: clip(item.description) }),
-    ...(isString(item.userFullName) || username !== undefined
-      ? { publisher: isString(item.userFullName) ? item.userFullName : username }
-      : {}),
-    ...(finite(item.totalRuns) === undefined
-      ? {}
-      : { total_runs: finite(item.totalRuns) }),
-    ...(finite(item.totalUsers30Days) === undefined
-      ? {}
-      : { monthly_users: finite(item.totalUsers30Days) }),
-    ...(finite(item.actorReviewRating) === undefined
-      ? {}
-      : { rating: finite(item.actorReviewRating) }),
-    ...(isString(item.pricingModel) ? { pricing_model: item.pricingModel } : {}),
-    ...(categories === undefined || categories.length === 0
-      ? {}
-      : { categories }),
-    url: `https://apify.com/${id}`,
-    shipped: shipped !== undefined,
-    ...(shipped === undefined
-      ? {}
-      : { nodetool_capability: shipped.capability })
-  };
+  if (shipped !== undefined) summary.nodetool_capability = shipped.capability;
+
+  return summary;
 }
 
 /** One input field, flattened out of the actor's schema. */
@@ -164,10 +178,20 @@ export function simplifyInputSchema(
   const all: SchemaField[] = Object.entries(schema.properties).map(
     ([name, raw]) => {
       const property = isRecord(raw) ? raw : {};
+      const field: Mutable<SchemaField> = {
+        name,
+        type: isString(property.type) ? property.type : "string",
+        required: required.has(name)
+      };
+
+      const description = clip(property.description ?? property.title);
+      if (description !== undefined) field.description = description;
+
       const fallback = property.default ?? property.prefill;
-      const enumValues = Array.isArray(property.enum)
-        ? property.enum.slice(0, 20)
-        : undefined;
+      if (fallback !== undefined) field.default = fallback;
+
+      if (Array.isArray(property.enum)) field.enum = property.enum.slice(0, 20);
+
       const items = isRecord(property.items)
         ? isString(property.items.type)
           ? property.items.type
@@ -175,17 +199,9 @@ export function simplifyInputSchema(
         : isString(property.nestedType)
           ? property.nestedType
           : undefined;
-      return {
-        name,
-        type: isString(property.type) ? property.type : "string",
-        required: required.has(name),
-        ...(clip(property.description ?? property.title) === undefined
-          ? {}
-          : { description: clip(property.description ?? property.title) }),
-        ...(fallback === undefined ? {} : { default: fallback }),
-        ...(enumValues === undefined ? {} : { enum: enumValues }),
-        ...(items === undefined ? {} : { items })
-      };
+      if (items !== undefined) field.items = items;
+
+      return field;
     }
   );
 
@@ -193,17 +209,14 @@ export function simplifyInputSchema(
   const fields = all.slice(0, MAX_SCHEMA_FIELDS);
   const omitted = all.length - fields.length;
 
-  return {
-    actor_id: id,
-    ...(clip(schema.title) === undefined ? {} : { title: clip(schema.title) }),
-    fields,
-    ...(omitted > 0
-      ? {
-          omitted_fields: omitted,
-          full_schema_url: `https://apify.com/${id}/input-schema`
-        }
-      : {})
-  };
+  const result: Mutable<ActorInputSchema> = { actor_id: id, fields };
+  const title = clip(schema.title);
+  if (title !== undefined) result.title = title;
+  if (omitted > 0) {
+    result.omitted_fields = omitted;
+    result.full_schema_url = `https://apify.com/${id}/input-schema`;
+  }
+  return result;
 }
 
 /**
@@ -278,13 +291,14 @@ export function summarizeDataset(page: {
     );
   }
 
-  return {
+  const summary: Mutable<DatasetSummary> = {
     items,
-    ...(page.total === undefined ? {} : { total: page.total }),
     offset: page.offset,
-    has_more: hasMore,
-    ...(notes.length === 0 ? {} : { note: notes.join(" ") })
+    has_more: hasMore
   };
+  if (page.total !== undefined) summary.total = page.total;
+  if (notes.length > 0) summary.note = notes.join(" ");
+  return summary;
 }
 
 /**

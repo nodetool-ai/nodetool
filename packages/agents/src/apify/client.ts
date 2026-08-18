@@ -27,7 +27,12 @@
 
 import { setTimeout as delay } from "node:timers/promises";
 
-import { ApifyError, asApifyError, type ApifyErrorKind } from "./errors.js";
+import {
+  ApifyError,
+  asApifyError,
+  type ApifyErrorKind,
+  type ApifyErrorOptions
+} from "./errors.js";
 import { isNonBlankString, isRecord, isString } from "../utils/type-guards.js";
 
 /** The public API root. Not configurable: it is also the SSRF answer. */
@@ -144,6 +149,14 @@ function redact(text: string, token: string): string {
   return safe.replace(/\bapify_api_[A-Za-z0-9]{10,}\b/g, "«redacted»");
 }
 
+/** Drop `readonly` so an options bag can be filled in field by field. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
+/** Wait, waking early if the caller's signal fires. Never rejects. */
+async function sleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
+  await delay(ms, undefined, { signal }).catch(() => undefined);
+}
+
 /**
  * Whether the caller's signal has fired *now*.
  *
@@ -161,10 +174,10 @@ function isAborted(signal: AbortSignal | undefined): boolean {
 function readErrorBody(body: unknown): { type?: string; message?: string } {
   if (!isRecord(body) || !isRecord(body.error)) return {};
   const { type, message } = body.error;
-  return {
-    ...(isString(type) ? { type } : {}),
-    ...(isString(message) ? { message } : {})
-  };
+  const parsed: { type?: string; message?: string } = {};
+  if (isString(type)) parsed.type = type;
+  if (isString(message)) parsed.message = message;
+  return parsed;
 }
 
 export class ApifyClient {
@@ -239,20 +252,21 @@ export class ApifyClient {
           .catch(() => undefined);
         const { type, message } = readErrorBody(body);
         const retryAfter = Number(response.headers?.get?.("retry-after") ?? "");
+        const options: Mutable<ApifyErrorOptions> = {
+          status: response.status,
+          ...context
+        };
+        if (type !== undefined) options.apifyType = type;
+        if (Number.isFinite(retryAfter) && retryAfter > 0) {
+          options.retryAfterSeconds = retryAfter;
+        }
         lastError = new ApifyError(
           kindForStatus(response.status, type),
           redact(
             message ?? `Apify request failed with HTTP ${response.status}`,
             this.#token
           ),
-          {
-            status: response.status,
-            ...(type === undefined ? {} : { apifyType: type }),
-            ...(Number.isFinite(retryAfter) && retryAfter > 0
-              ? { retryAfterSeconds: retryAfter }
-              : {}),
-            ...context
-          }
+          options
         );
       } catch (e) {
         // A cancelled *outer* run must not be mistaken for a hung request: the
@@ -279,9 +293,7 @@ export class ApifyClient {
         lastError.retryAfterSeconds !== undefined
           ? lastError.retryAfterSeconds * 1000
           : this.#retryBaseMs * 2 ** (attempt - 1);
-      await delay(backoff, undefined, {
-        ...(signal === undefined ? {} : { signal })
-      }).catch(() => undefined);
+      await sleep(backoff, signal);
     }
     throw lastError ?? new ApifyError("network", "Apify request failed", context);
   }
@@ -474,12 +486,10 @@ export class ApifyClient {
     const totalHeader = Number(
       response.headers?.get?.("x-apify-pagination-total") ?? ""
     );
-    return {
-      items: Array.isArray(body) ? body : [],
-      ...(Number.isFinite(totalHeader) ? { total: totalHeader } : {}),
-      offset,
-      limit
-    };
+    const page: { items: unknown[]; total?: number; offset: number; limit: number } =
+      { items: Array.isArray(body) ? body : [], offset, limit };
+    if (Number.isFinite(totalHeader)) page.total = totalHeader;
+    return page;
   }
 
   /**

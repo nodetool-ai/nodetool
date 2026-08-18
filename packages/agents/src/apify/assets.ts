@@ -112,9 +112,7 @@ export async function importActorFile(
   options: { outputFile?: string; signal?: AbortSignal } = {}
 ): Promise<ImportedFile> {
   try {
-    const response = await safeFetch(url, {
-      ...(options.signal === undefined ? {} : { signal: options.signal })
-    });
+    const response = await safeFetch(url, { signal: options.signal });
     if (!response.ok) {
       throw new ApifyError(
         "asset_download_failed",
@@ -129,22 +127,16 @@ export async function importActorFile(
     const persisted = await persistBinaryOutput(context, bytes, {
       contentType,
       uiPrefix: "apify",
-      ...(options.outputFile === undefined
-        ? {}
-        : { outputFile: options.outputFile })
+      outputFile: options.outputFile
     });
 
     return {
       source_url: url,
       content_type: contentType,
       size_bytes: bytes.byteLength,
-      ...(persisted.kind === undefined ? {} : { kind: persisted.kind }),
-      ...(persisted.asset_url === undefined
-        ? {}
-        : { asset_url: persisted.asset_url }),
-      ...(persisted.output_file === undefined
-        ? {}
-        : { output_file: persisted.output_file })
+      kind: persisted.kind,
+      asset_url: persisted.asset_url,
+      output_file: persisted.output_file
     };
   } catch (e) {
     return {
@@ -173,21 +165,15 @@ export async function importActorBytes(
     const persisted = await persistBinaryOutput(context, bytes, {
       contentType,
       uiPrefix: "apify",
-      ...(options.outputFile === undefined
-        ? {}
-        : { outputFile: options.outputFile })
+      outputFile: options.outputFile
     });
     return {
       source_url: label,
       content_type: contentType,
       size_bytes: bytes.byteLength,
-      ...(persisted.kind === undefined ? {} : { kind: persisted.kind }),
-      ...(persisted.asset_url === undefined
-        ? {}
-        : { asset_url: persisted.asset_url }),
-      ...(persisted.output_file === undefined
-        ? {}
-        : { output_file: persisted.output_file })
+      kind: persisted.kind,
+      asset_url: persisted.asset_url,
+      output_file: persisted.output_file
     };
   } catch (e) {
     return {

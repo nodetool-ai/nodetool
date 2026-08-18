@@ -303,20 +303,20 @@ export class ApifyBudgetLedger {
     timeoutSecs?: number;
     memoryMbytes?: number;
     maxItems?: number;
-  }): { timeoutSecs: number; memoryMbytes?: number; maxItems: number } {
+  }): {
+    timeoutSecs: number;
+    memoryMbytes: number | undefined;
+    maxItems: number;
+  } {
     return {
       timeoutSecs: Math.min(
         options.timeoutSecs ?? this.budget.maxRunSeconds,
         this.budget.maxRunSeconds
       ),
-      ...(options.memoryMbytes === undefined
-        ? {}
-        : {
-            memoryMbytes: Math.min(
-              options.memoryMbytes,
-              this.budget.maxMemoryMb
-            )
-          }),
+      memoryMbytes:
+        options.memoryMbytes === undefined
+          ? undefined
+          : Math.min(options.memoryMbytes, this.budget.maxMemoryMb),
       maxItems: Math.min(
         options.maxItems ?? this.budget.maxItems,
         this.budget.maxItems
