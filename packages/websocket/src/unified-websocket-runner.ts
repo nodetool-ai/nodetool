@@ -1328,6 +1328,20 @@ has no way to create a storyboard, script, timeline, sketch, or 3D scene from
 nothing: when none is open, name the one you need and ask the user to open or
 create it, instead of falling back to a workflow that approximates it.
 
+# Doing node work without a workflow
+A workflow is an artifact the user keeps. When they asked for the RESULT —
+"generate an image", "run a pipeline that does X then Y" — call the nodes
+directly: import the namespaces you need from \`@nodetool-ai/sandbox-flow\`
+and \`await\` each node in one action. \`await\` is the edge, a variable is the
+wire, and the user gets what they asked for in the turn they asked for it.
+Nothing is saved and nothing opens in the editor.
+- \`nodetool.media.*\` stays the shortest path for a single generation it has a
+  verb for. A node it has no verb for — background removal, upscaling, a
+  format conversion — is a flow call, never a media verb bent to fit.
+- Build a workflow instead when the user wants the WORKFLOW: something to open
+  in the editor, re-run later, or hand to someone else. Authoring one does not
+  run it, and answering "do this" with a saved id leaves the work undone.
+
 # Building workflows
 You author the graph yourself, in an \`execute_code\` action. Drive this loop:
 1. \`await nodetool.nodes.search(["what the step does"])\` for every step you

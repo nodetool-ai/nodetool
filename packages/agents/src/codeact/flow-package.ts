@@ -53,20 +53,32 @@ export const FLOW_PROMPT_SECTION = `# Calling nodes directly (native flow)
 
 Run a node as a typed async function with \`${FLOW_PACKAGE}\`: one generated
 function per node type, taking that node's real inputs and resolving to its
-outputs record. Use it when you want the node's value in this action —
-branches, loops, retries, and fan-out are plain JavaScript. When the result
-must be a saved, editable workflow, author a graph instead.
+outputs record. This is how a turn *does* node work. "Generate an image, then
+remove its background" is two calls in one action — branches, loops, retries
+and fan-out are plain JavaScript.
 
 \`\`\`js
 import "@nodetool-ai/sandbox-nodetool/flow"; // mounts the bridge — required
-import { concat } from "${FLOW_PACKAGE}/nodetool.text";
+import { textToImage, removeBackground } from "${FLOW_PACKAGE}/nodetool.image";
 
-const joined = await concat({ a: "hi ", b: "there" });   // {output: "hi there"}
-const many = await Promise.all(items.map((b) => concat({ a: "» ", b })));
+const model = await nodetool.models.pick("text_to_image");
+const shot = await textToImage({ prompt: "a red fox in snow", model: model.ref });
+state.cutout = (await removeBackground({ image: shot.output })).output;
+return { generated: true };
 \`\`\`
 
 - The bare capability import must appear in the body — without it every flow
   call fails saying the bridge is not mounted.
+- The export name is the node class in camelCase:
+  \`nodetool.image.RemoveBackground\` is \`removeBackground\`,
+  \`nodetool.constant.Integer\` is \`integer\`, and a reserved word takes a
+  trailing underscore (\`if_\`).
+- An input you leave out runs the node's own default. A \`*_model\` input is
+  the one worth always setting: pass \`(await nodetool.models.pick(task)).ref\`
+  so the node runs on a model this install has.
+- Outputs come back keyed by slot — \`r.output\` is the default one. Feed one
+  node's output straight into the next call. A media output is a ref that can
+  carry inline bytes: keep it in \`state\`, never return it as the observation.
 - A streaming-output node also carries \`.stream(inputs)\`, an async iterable
   of partial outputs; early \`break\` closes the stream and runs node cleanup.
 - Errors reject the call — \`try\`/\`catch\` is the supervisor. Stream-typed
