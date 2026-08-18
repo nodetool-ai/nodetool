@@ -54,6 +54,7 @@ import {
   type SettingsSection
 } from "../../stores/SettingsPageStore";
 import { isFunction } from "../../utils/typePredicates";
+import { NumberSetting } from "./NumberSetting";
 
 // Tab indices. Models, Collections, Workspaces, and the Package Manager now
 // live as standalone full-screen pages reachable from the logo menu.
@@ -392,18 +393,18 @@ function SettingsPage() {
     [setSnapToGrid]
   );
 
-  const handleGridSnapChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setGridSnap(Number(e.target.value));
+  const handleLargeRunThresholdChange = useCallback(
+    (value: number) => {
+      updateSettings({ largeRunThreshold: value });
     },
-    [setGridSnap]
+    [updateSettings]
   );
 
-  const handleConnectionSnapChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setConnectionSnap(Number(e.target.value));
+  const handleAudioBufferMsChange = useCallback(
+    (value: number) => {
+      updateSettings({ audioBufferMs: value });
     },
-    [setConnectionSnap]
+    [updateSettings]
   );
 
   const handlePanControlsChange = useCallback(
@@ -780,59 +781,34 @@ function SettingsPage() {
                         search={generalSearch}
                         keywords="execution large-run threshold"
                       >
-                        <TextInput
-                          type="number"
-                          autoComplete="off"
-                          slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                        <NumberSetting
                           id="large-run-threshold-input"
                           label="Large-Run Threshold"
                           value={settings.largeRunThreshold ?? 5}
-                          onChange={(e) =>
-                            updateSettings({
-                              largeRunThreshold: Math.max(
-                                1,
-                                Number(e.target.value) || 1
-                              )
-                            })
-                          }
-                          variant="standard"
-                          size="small"
+                          onCommit={handleLargeRunThresholdChange}
+                          min={1}
+                          max={100}
+                          fallback={5}
                           disabled={!(settings.confirmLargeRun ?? true)}
+                          description="Warn when a run would execute more than this many model/provider nodes (LLM, image, audio, API, etc.)."
                         />
-                        <Text className="description">
-                          Warn when a run would execute more than this many
-                          model/provider nodes (LLM, image, audio, API, etc.).
-                        </Text>
                       </SearchItem>
 
                       <SearchItem
                         search={generalSearch}
                         keywords="audio buffer latency realtime synth playback dropout"
                       >
-                        <TextInput
-                          type="number"
-                          autoComplete="off"
-                          slotProps={{ htmlInput: { min: 20, max: 1000, step: 10 } }}
+                        <NumberSetting
                           id="audio-buffer-ms-input"
                           label="Audio Buffer (ms)"
                           value={settings.audioBufferMs ?? 100}
-                          onChange={(e) =>
-                            updateSettings({
-                              audioBufferMs: Math.min(
-                                1000,
-                                Math.max(20, Number(e.target.value) || 100)
-                              )
-                            })
-                          }
-                          variant="standard"
-                          size="small"
+                          onCommit={handleAudioBufferMsChange}
+                          min={20}
+                          max={1000}
+                          step={10}
+                          fallback={100}
+                          description="Playback buffer for realtime audio (modular synth patches). Lower values reduce knob-to-ear latency; higher values prevent dropouts when the editor is busy."
                         />
-                        <Text className="description">
-                          Playback buffer for realtime audio (modular synth
-                          patches). Lower values reduce knob-to-ear latency;
-                          higher values prevent dropouts when the editor is
-                          busy.
-                        </Text>
                       </SearchItem>
 
                       <SearchItem
@@ -932,42 +908,33 @@ function SettingsPage() {
                         search={generalSearch}
                         keywords="canvas navigation grid snap precision"
                       >
-                        <TextInput
-                          type="number"
-                          autoComplete="off"
-                          slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                        <NumberSetting
                           id="grid-snap-input"
                           label="Grid Snap Precision"
                           value={settings.gridSnap}
-                          onChange={handleGridSnapChange}
+                          onCommit={setGridSnap}
+                          min={1}
+                          max={100}
+                          fallback={25}
                           disabled={!settings.snapToGrid}
-                          variant="standard"
-                          size="small"
+                          description="Grid size used when Snap to Grid is on. The canvas grid is drawn every 25 units."
                         />
-                        <Text className="description">
-                          Grid size used when Snap to Grid is on. The canvas grid
-                          is drawn every 25 units.
-                        </Text>
                       </SearchItem>
 
                       <SearchItem
                         search={generalSearch}
                         keywords="canvas navigation connection snap range"
                       >
-                        <TextInput
-                          type="number"
-                          autoComplete="off"
-                          slotProps={{ htmlInput: { min: 5, max: 30 } }}
+                        <NumberSetting
                           id="connection-snap-input"
                           label="Connection Snap Range"
                           value={settings.connectionSnap}
-                          onChange={handleConnectionSnapChange}
-                          variant="standard"
-                          size="small"
+                          onCommit={setConnectionSnap}
+                          min={5}
+                          max={30}
+                          fallback={20}
+                          description="Snap distance for connecting nodes."
                         />
-                        <Text className="description">
-                          Snap distance for connecting nodes.
-                        </Text>
                       </SearchItem>
                     </div>
 
