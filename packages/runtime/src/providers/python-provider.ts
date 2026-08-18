@@ -19,7 +19,8 @@ import type {
   ProviderStreamItem,
   StreamingAudioChunk,
   TextToImageParams,
-  ImageToImageParams
+  ImageToImageParams,
+  TextToSpeechParams
 } from "./types.js";
 import type { PythonBridgeBase } from "../python-bridge-base.js";
 import { isString } from "../type-predicates.js";
@@ -82,7 +83,30 @@ export class PythonProvider extends BaseProvider {
   }
 
   async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return this._getModels("tts") as Promise<TTSModel[]>;
+    const models = await this._getModels("tts");
+    return models.map((raw) => {
+      const model = raw as Record<string, unknown>;
+      return {
+        id: String(model.id ?? ""),
+        name: String(model.name ?? model.id ?? ""),
+        provider: String(model.provider ?? this._pythonProviderId),
+        voices: Array.isArray(model.voices)
+          ? model.voices.map(String)
+          : undefined,
+        capabilities: Array.isArray(model.capabilities)
+          ? model.capabilities.map(String)
+          : undefined,
+        languages: Array.isArray(model.languages)
+          ? model.languages.map(String)
+          : undefined,
+        sampleRate:
+          typeof model.sample_rate === "number" ? model.sample_rate : undefined,
+        requiresReferenceText:
+          typeof model.requires_reference_text === "boolean"
+            ? model.requires_reference_text
+            : undefined
+      };
+    });
   }
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
@@ -211,18 +235,22 @@ export class PythonProvider extends BaseProvider {
     );
   }
 
-  async *textToSpeech(args: {
-    text: string;
-    model: string;
-    voice?: string;
-    speed?: number;
-    audioFormat?: string;
-  }): AsyncGenerator<StreamingAudioChunk> {
+  async *textToSpeech(
+    args: TextToSpeechParams
+  ): AsyncGenerator<StreamingAudioChunk> {
     for await (const audioBytes of this._bridge.providerTTS(
       this._pythonProviderId,
       args.text,
       args.model,
-      { voice: args.voice, speed: args.speed, secrets: this._secrets }
+      {
+        voice: args.voice,
+        speed: args.speed,
+        reference_audio: args.referenceAudio,
+        reference_text: args.referenceText,
+        language: args.language,
+        instructions: args.instructions,
+        secrets: this._secrets
+      }
     )) {
       // audioBytes is a msgpack-decoded Uint8Array — generally a view into a
       // larger buffer at a non-zero byteOffset. `new Int16Array(bytes.buffer)`

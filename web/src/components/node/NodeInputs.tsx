@@ -12,6 +12,10 @@ import { findOutputHandle } from "../../utils/handleUtils";
 import { normalizeDynamicSlot } from "../../utils/dynamicSlots";
 import { inferredCodeInputNamesFromData } from "../../utils/codeNodeHandles";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
+import {
+  isPropertyConditionSatisfied,
+  shouldRenderProperty
+} from "./propertyVisibility";
 
 const rootCss = css({
   marginTop: "1em",
@@ -109,6 +113,10 @@ const NodeInput: React.FC<NodeInputProps> = memo(
         isDynamicProperty={isDynamicProperty}
         data={data}
         isConnected={isConnected}
+        conditionalUnavailable={
+          isConnected &&
+          !isPropertyConditionSatisfied(property, data?.properties)
+        }
       />
     );
   },
@@ -194,10 +202,14 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
     return map;
   }, [tabableProperties]);
 
-  const allInputs = useMemo(() => properties.map((property, index) => {
+  const allInputs = useMemo(() => properties.flatMap((property, index) => {
+    const isConnected = connectedHandleSet.has(property.name);
+    if (!shouldRenderProperty(property, data?.properties, isConnected)) {
+      return [];
+    }
     const finalTabIndex = tabIndexMap.get(property.name) ?? -1;
 
-    return (
+    return [(
       <NodeInput
         key={property.name + id}
         id={id}
@@ -209,9 +221,9 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
         showFields={showFields}
         showHandle={showHandle}
         tabIndex={finalTabIndex}
-        isConnected={connectedHandleSet.has(property.name)}
+        isConnected={isConnected}
       />
-    );
+    )];
   }), [properties, tabIndexMap, connectedHandleSet, id, nodeType, layout, data, showFields, showHandle]);
 
   const dynamicInputs = useMemo(
