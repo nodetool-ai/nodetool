@@ -150,6 +150,10 @@ const LOADERS: Readonly<Record<string, Loader>> = {
   subtitle: async () => {
     const mod = await import("./subtitle.js");
     return { parse: mod.parse, stringify: mod.stringify };
+  },
+  tokens: async () => {
+    const mod = await import("./tokens.js");
+    return { count: mod.count, encode: mod.encode, decode: mod.decode };
   }
 };
 

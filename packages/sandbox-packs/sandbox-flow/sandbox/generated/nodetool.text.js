@@ -1,8 +1,5 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { callNode, streamNode } from "../guest-core.js";
-function countTokens(inputs) {
-  return callNode("nodetool.text.CountTokens", inputs);
-}
 function automaticSpeechRecognition(inputs) {
   return callNode("nodetool.text.AutomaticSpeechRecognition", inputs);
 }
@@ -42,9 +39,6 @@ filterRegexString.stream = function(inputs) {
 function concat(inputs) {
   return callNode("nodetool.text.Concat", inputs ?? {});
 }
-function join(inputs) {
-  return callNode("nodetool.text.Join", inputs);
-}
 function collect(inputs) {
   return callNode("nodetool.text.Collect", inputs);
 }
@@ -58,11 +52,9 @@ export {
   automaticSpeechRecognition,
   collect,
   concat,
-  countTokens,
   embedding,
   filterRegexString,
   filterString,
-  join,
   loadTextAssets,
   loadTextFolder,
   prompt,

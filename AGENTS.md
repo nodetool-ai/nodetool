@@ -1500,7 +1500,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships thirty-seven packs in
+global — the `data.*` namespace is gone. NodeTool ships thirty-eight packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box:
 
@@ -1511,6 +1511,7 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-markdown` | marked | guest |
 | `@nodetool-ai/sandbox-qr` | uqr | guest |
 | `@nodetool-ai/sandbox-subtitle` | subtitle | host |
+| `@nodetool-ai/sandbox-tokens` | js-tiktoken | host |
 | `@nodetool-ai/sandbox-color` | culori | guest |
 | `@nodetool-ai/sandbox-decimal` | decimal.js | guest |
 | `@nodetool-ai/sandbox-expr` | expr-eval | host |

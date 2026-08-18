@@ -99,14 +99,14 @@ describe("flow codegen output", () => {
   test("inputs carry plain values, not Connectable handles", () => {
     const content = readFlow("nodetool.text.ts");
     expect(content).not.toContain("Connectable<");
-    expect(content).toContain("encoding?: \"cl100k_base\"");
+    expect(content).toContain('filter_type?: "contains"');
   });
 
   test("a call delegates to the guest runtime with its node type", () => {
     const content = readFlow("nodetool.text.ts");
     expect(content).toContain('from "../guest-core.js"');
     expect(content).toContain(
-      'return callNode<CountTokensOutputs>("nodetool.text.CountTokens", inputs);'
+      'return callNode<FilterStringOutputs>("nodetool.text.FilterString", inputs);'
     );
   });
 

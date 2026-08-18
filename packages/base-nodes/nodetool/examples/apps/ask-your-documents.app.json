@@ -608,9 +608,10 @@
           {
             "id": "join_context",
             "parent_id": null,
-            "type": "nodetool.text.Join",
+            "type": "nodetool.code.Code",
             "data": {
-              "separator": "\n\n----------\n\n"
+              "code": "const list = Array.isArray(inputs.strings) ? inputs.strings : [];\nreturn { output: list.map(v => String(v ?? \"\")).join(String(inputs.separator ?? \"\")) };",
+              "packages": []
             },
             "ui_properties": {
               "selected": false,
@@ -623,8 +624,22 @@
               "selectable": true,
               "title": "Merge passages"
             },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
+            "dynamic_properties": {
+              "separator": "\n\n----------\n\n"
+            },
+            "dynamic_outputs": {},
+            "dynamic_inputs": {
+              "strings": {
+                "type": {
+                  "type": "list",
+                  "type_args": [
+                    {
+                      "type": "str"
+                    }
+                  ]
+                }
+              }
+            }
           },
           {
             "id": "rag_prompt",

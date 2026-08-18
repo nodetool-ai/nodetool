@@ -28,7 +28,6 @@ export {
   VARIABLE_NODES
 } from "@nodetool-ai/core-nodes/nodes/variable";
 export {
-  CountTokensNode,
   AutomaticSpeechRecognitionNode,
   EmbeddingTextNode,
   SaveTextFileNode,
@@ -38,7 +37,6 @@ export {
   FilterStringNode,
   FilterRegexStringNode,
   ConcatTextNode,
-  JoinTextNode,
   CollectTextNode,
   PromptNode,
   TemplateTextNode,

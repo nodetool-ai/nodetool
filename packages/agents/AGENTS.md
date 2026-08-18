@@ -278,7 +278,8 @@ body; there is no `data.*` namespace any more. Two kinds:
   `-csv` (papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser),
   `-xlsx` (exceljs), `-zip` (fflate), `-diff` (diff), `-ocr` (tesseract.js),
   `-tfjs` (TensorFlow.js and its model zoo), `-docx` (docx), `-mammoth`
-  (mammoth), `-epub` (epub2), `-pptx` (office-text-extractor). These are the
+  (mammoth), `-epub` (epub2), `-pptx` (office-text-extractor), `-tokens`
+  (js-tiktoken). These are the
   libraries the guest cannot hold — Node builtins, a DOM, a file path instead of
   a buffer, a limit the guest could not enforce on itself, or state that has to
   outlive a run. Four more are NodeTool's own code rather than a library: `-aws`
