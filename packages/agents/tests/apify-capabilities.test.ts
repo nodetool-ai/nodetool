@@ -121,12 +121,13 @@ describe("registration", () => {
 
 describe("credentials", () => {
   it("reports a missing token as a setting to change, not a stack trace", async () => {
+    // With discovery off, a search answers from the shipped catalog without
+    // needing a token at all — the token check belongs to the calls that
+    // actually reach Apify.
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith().invoke("search_apify_actors", {
       query: "crawler"
     })) as Record<string, unknown>;
-    // Discovery is off by default, so this answers from the shipped catalog
-    // without needing a token at all — the token check belongs to the calls
-    // that actually reach Apify.
     expect(result.ok).toBe(true);
 
     const needsToken = (await runWith().invoke("get_apify_run", {
@@ -138,6 +139,9 @@ describe("credentials", () => {
   });
 
   it("never hands the token to guest code", async () => {
+    // Allowlist mode keeps the search on the shipped catalog, so this needs
+    // no network; what it proves is about the guest's view, not the store.
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const run = runWith({ APIFY_API_TOKEN: TOKEN });
     const specifier = sandboxCapabilitySpecifier("apify");
     const observed = await action(
@@ -160,6 +164,7 @@ describe("credentials", () => {
   });
 
   it("accepts the legacy APIFY_API_KEY so an upgrade does not break", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith({ APIFY_API_KEY: TOKEN }).invoke(
       "get_apify_actor_schema",
       { actor_id: "someone/not-allowed" }
@@ -185,6 +190,7 @@ describe("permissions", () => {
   });
 
   it("answers a search from the shipped catalog when discovery is off", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
       "search_apify_actors",
       { query: "maps" }
@@ -199,6 +205,7 @@ describe("permissions", () => {
   });
 
   it("refuses to inspect an actor it would never run", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
       "get_apify_actor_schema",
       { actor_id: "someone/sketchy" }
@@ -208,6 +215,7 @@ describe("permissions", () => {
   });
 
   it("refuses to run an actor off the allowlist", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
       "run_apify_actor",
       { actor_id: "someone/sketchy", input: {} }

@@ -52,8 +52,10 @@ afterEach(() => {
 });
 
 describe("policy modes", () => {
-  it("defaults to allowlist, not to open access", () => {
-    expect(apifyPolicyFromEnv({}).mode).toBe("allowlist");
+  it("defaults to discovery: shipped actors run, others ask, nothing is open", () => {
+    const policy = apifyPolicyFromEnv({});
+    expect(policy.mode).toBe("discovery");
+    expect(decideActor(policy, "someone/unknown").decision).toBe("ask");
   });
 
   it("allows every shipped actor by default", () => {
@@ -64,7 +66,7 @@ describe("policy modes", () => {
   });
 
   it("refuses an unknown actor in allowlist mode and lists what is allowed", () => {
-    const policy = apifyPolicyFromEnv({});
+    const policy = apifyPolicyFromEnv({ NODETOOL_APIFY_MODE: "allowlist" });
     const verdict = decideActor(policy, "someone/sketchy-scraper");
     expect(verdict.decision).toBe("deny");
     expect(verdict.decision === "deny" && verdict.reason).toContain(
@@ -101,15 +103,18 @@ describe("policy modes", () => {
   });
 
   it("only reports discovery for the modes that have it", () => {
-    expect(allowsDiscovery(apifyPolicyFromEnv({}))).toBe(false);
+    expect(allowsDiscovery(apifyPolicyFromEnv({}))).toBe(true);
     expect(
-      allowsDiscovery(apifyPolicyFromEnv({ NODETOOL_APIFY_MODE: "discovery" }))
-    ).toBe(true);
+      allowsDiscovery(apifyPolicyFromEnv({ NODETOOL_APIFY_MODE: "allowlist" }))
+    ).toBe(false);
+    expect(
+      allowsDiscovery(apifyPolicyFromEnv({ NODETOOL_APIFY_MODE: "disabled" }))
+    ).toBe(false);
   });
 
-  it("falls back to allowlist for an unrecognized mode", () => {
+  it("falls back to discovery for an unrecognized mode", () => {
     expect(apifyPolicyFromEnv({ NODETOOL_APIFY_MODE: "yolo" }).mode).toBe(
-      "allowlist"
+      "discovery"
     );
   });
 });

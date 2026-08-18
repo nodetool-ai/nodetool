@@ -103,8 +103,8 @@ Four modes, set with `NODETOOL_APIFY_MODE`:
 | Mode | Store search | Runs |
 |---|---|---|
 | `disabled` | — | nothing |
-| `allowlist` **(default)** | the shipped catalog only | allowlisted actors |
-| `discovery` | the whole store | allowlisted directly; anything else asks the user |
+| `allowlist` | the shipped catalog only | allowlisted actors |
+| `discovery` **(default)** | the whole store | allowlisted directly; anything else asks the user |
 | `unrestricted` | the whole store | anything |
 
 `NODETOOL_APIFY_ALLOWED_ACTORS` is a comma-separated list **added to** the
