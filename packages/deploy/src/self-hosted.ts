@@ -22,8 +22,6 @@ import {
 import {
   DeploymentStatus,
   DockerDeployment,
-  SelfHostedDeployment,
-  SSHConfig,
   dockerDeploymentGetServerUrl,
   imageConfigFullName
 } from "./deployment-config.js";
@@ -287,24 +285,21 @@ export class LocalExecutor {
 }
 
 // ---------------------------------------------------------------------------
-// BaseSSHDeployer (abstract)
+// DockerDeployer
 // ---------------------------------------------------------------------------
 
 /**
- * Base class for SSH-based deployments.
- *
- * Type parameter `T` is the concrete deployment configuration type
- * (e.g. DockerDeployment).
+ * Deployer for Docker-based self-hosted deployments, over SSH or locally.
  */
-export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
+export class DockerDeployer {
   readonly deploymentName: string;
-  readonly deployment: T;
+  readonly deployment: DockerDeployment;
   readonly stateManager: StateManager;
   readonly isLocalhost: boolean;
 
   constructor(
     deploymentName: string,
-    deployment: T,
+    deployment: DockerDeployment,
     stateManager?: StateManager
   ) {
     this.deploymentName = deploymentName;
@@ -315,7 +310,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
 
   // ---- Logging -----------------------------------------------------------
 
-  protected log(results: Record<string, unknown>, message: string): void {
+  private log(results: Record<string, unknown>, message: string): void {
     const steps = results["steps"];
     if (Array.isArray(steps)) {
       steps.push(message);
@@ -325,12 +320,12 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
 
   // ---- Executor ----------------------------------------------------------
 
-  protected getExecutor(): Executor {
+  private getExecutor(): Executor {
     if (this.isLocalhost) {
       return new LocalExecutor();
     }
 
-    const sshConfig = (this.deployment as { ssh?: SSHConfig }).ssh;
+    const sshConfig = this.deployment.ssh;
     if (!sshConfig) {
       throw new Error(
         `SSH configuration is required for remote host: ${this.deployment.host}`
@@ -360,7 +355,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
   /**
    * Use an executor within a callback, ensuring proper open/close lifecycle.
    */
-  protected async withExecutor<R>(
+  private async withExecutor<R>(
     fn: (executor: Executor) => Promise<R>
   ): Promise<R> {
     const executor = this.getExecutor();
@@ -383,35 +378,9 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
     }
   }
 
-  // ---- Content upload ----------------------------------------------------
-
-  protected async uploadContent(
-    ssh: Executor,
-    content: string,
-    remotePath: string
-  ): Promise<void> {
-    if (this.isLocalhost) {
-      const expanded = remotePath.startsWith("~")
-        ? expandUser(remotePath)
-        : remotePath;
-      const dir = path.dirname(expanded);
-      fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(expanded, content, "utf-8");
-    } else {
-      // Remote upload via base64 to avoid shell escaping issues
-      const b64Content = Buffer.from(content, "utf-8").toString("base64");
-      const dirName = path.posix.dirname(remotePath);
-      await ssh.execute(`mkdir -p ${safeShellQuote(dirName)}`, true);
-      await ssh.execute(
-        `echo ${b64Content} | base64 -d > ${safeShellQuote(remotePath)}`,
-        true
-      );
-    }
-  }
-
   // ---- Directory creation ------------------------------------------------
 
-  protected async createDirectories(
+  private async createDirectories(
     ssh: Executor,
     results: Record<string, unknown>
   ): Promise<void> {
@@ -424,9 +393,8 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
     await ssh.mkdir(`${workspacePath}/data`, 0o755, true);
     await ssh.mkdir(`${workspacePath}/assets`, 0o755, true);
     await ssh.mkdir(`${workspacePath}/temp`, 0o755, true);
-
-    // Deployment-specific directories
-    await this.createSpecificDirectories(ssh, workspacePath);
+    await ssh.mkdir(`${workspacePath}/proxy`, 0o755, true);
+    await ssh.mkdir(`${workspacePath}/acme`, 0o755, true);
 
     const hfCachePath = expandUser(this.deployment.paths.hf_cache);
     await ssh.mkdir(hfCachePath, 0o755, true);
@@ -435,7 +403,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
 
   // ---- Container runtime helpers -----------------------------------------
 
-  protected resolveLocalRuntimeCommand(): string {
+  private resolveLocalRuntimeCommand(): string {
     const override = process.env["NODETOOL_CONTAINER_RUNTIME"];
     if (override === "docker" || override === "podman") return override;
 
@@ -454,16 +422,16 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
     return "docker";
   }
 
-  protected runtimeCommandForShell(): string {
+  private runtimeCommandForShell(): string {
     const override = process.env["NODETOOL_CONTAINER_RUNTIME"];
     if (override === "docker" || override === "podman") return override;
     if (this.isLocalhost) return this.resolveLocalRuntimeCommand();
     return "$((command -v docker >/dev/null 2>&1 && echo docker) || (command -v podman >/dev/null 2>&1 && echo podman) || echo docker)";
   }
 
-  protected containerGenerator(runtimeCommand?: string): DockerRunGenerator {
+  private containerGenerator(runtimeCommand?: string): DockerRunGenerator {
     const cmd = runtimeCommand ?? this.runtimeCommandForShell();
-    const d = this.deployment as DockerDeployment;
+    const d = this.deployment;
     const converted: DockerRunSelfHostedDeployment = {
       image: d.image,
       container: d.container,
@@ -486,52 +454,20 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
     return new DockerRunGenerator(converted, cmd);
   }
 
-  protected containerName(): string {
+  private containerName(): string {
     return this.containerGenerator().getContainerName();
   }
 
   /**
    * Return host port for direct app mode (matches DockerRunGenerator).
    */
-  protected appHostPort(): number {
-    const container = (this.deployment as DockerDeployment).container;
+  private appHostPort(): number {
+    const container = this.deployment.container;
     if (container && container.port === 7777) return 8000;
     return container?.port ?? 8000;
   }
 
-  // ---- Abstract methods --------------------------------------------------
-
-  protected abstract createSpecificDirectories(
-    ssh: Executor,
-    workspacePath: string
-  ): Promise<void>;
-
-  abstract plan(): Promise<DeployPlan>;
-  abstract apply(opts?: { dryRun?: boolean }): Promise<DeployResult | DeployPlan>;
-  abstract destroy(): Promise<DeployResult>;
-  abstract status(): Promise<DeployStatus>;
-  abstract logs(opts?: {
-    service?: string;
-    follow?: boolean;
-    tail?: number;
-  }): Promise<string>;
-}
-
-// ---------------------------------------------------------------------------
-// DockerDeployer
-// ---------------------------------------------------------------------------
-
-/**
- * Deployer for Docker-based self-hosted deployments.
- */
-export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
-  protected async createSpecificDirectories(
-    ssh: Executor,
-    workspacePath: string
-  ): Promise<void> {
-    await ssh.mkdir(`${workspacePath}/proxy`, 0o755, true);
-    await ssh.mkdir(`${workspacePath}/acme`, 0o755, true);
-  }
+  // ---- Deployment operations ---------------------------------------------
 
   async plan(): Promise<DeployPlan> {
     const plan: DeployPlan = {
@@ -1031,7 +967,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
   }
 
   private pushImageToRemote(image: string): void {
-    const sshConfig = (this.deployment as { ssh?: SSHConfig }).ssh;
+    const sshConfig = this.deployment.ssh;
     if (!sshConfig) {
       throw new Error("SSH configuration required to push image.");
     }
