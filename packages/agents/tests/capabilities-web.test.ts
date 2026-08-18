@@ -63,6 +63,9 @@ const BACKEND_ENV_KEYS = [
   "GEMINI_API_KEY",
   "DATA_FOR_SEO_LOGIN",
   "DATA_FOR_SEO_PASSWORD",
+  "BRAVE_API_KEY",
+  "APIFY_API_TOKEN",
+  "APIFY_API_KEY",
   "BROWSER_URL"
 ] as const;
 const envStash: Record<string, string | undefined> = {};
@@ -102,8 +105,6 @@ describe("web capability module", () => {
 describe("wire compatibility: a Tool built from the spec", () => {
   const pairs: Array<[Tool, string]> = [
     [toolForCapabilityName("web_search"), "web_search"],
-    [toolForCapabilityName("google_news"), "google_news"],
-    [toolForCapabilityName("google_images"), "google_images"],
     [toolForCapabilityName("browser"), "browser"],
     [toolForCapabilityName("take_screenshot"), "take_screenshot"],
     [toolForCapabilityName("http_request"), "http_request"],
@@ -187,11 +188,35 @@ describe("behaviour through toolFromCapability", () => {
     expect(String(result.error)).toContain("BROWSER_URL");
   });
 
-  it("names every unconfigured backend when google_news has none", async () => {
+  it("names every unconfigured backend when a news search has none", async () => {
     const context = makeContext();
-    const tool = asTool(byName("google_news"));
-    await expect(tool.process(context, { keyword: "otters" })).rejects.toThrow(
-      /no search backend is configured/
-    );
+    const tool = asTool(byName("web_search"));
+    await expect(
+      tool.process(context, { query: "otters", search_type: "news" })
+    ).rejects.toThrow(/no search backend is configured for search_type "news"/);
+  });
+
+  it("refuses a backend that cannot serve the requested search type", async () => {
+    const context = makeContext();
+    const tool = asTool(byName("web_search"));
+    // Brave answers web searches only, so pinning it for images must say so
+    // rather than quietly returning pages.
+    await expect(
+      tool.process(context, {
+        query: "otters",
+        search_type: "images",
+        backend: "brave"
+      })
+    ).rejects.toThrow(/does not support search_type "images"/);
+  });
+
+  it("rejects an unknown search type by name", async () => {
+    const context = makeContext();
+    const tool = asTool(byName("web_search"));
+    const result = await tool.process(context, {
+      query: "otters",
+      search_type: "videos"
+    });
+    expect(String(result)).toContain('unknown search_type "videos"');
   });
 });

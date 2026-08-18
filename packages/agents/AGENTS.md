@@ -281,11 +281,14 @@ body; there is no `data.*` namespace any more. Two kinds:
   (mammoth), `-epub` (epub2), `-pptx` (office-text-extractor). These are the
   libraries the guest cannot hold — Node builtins, a DOM, a file path instead of
   a buffer, a limit the guest could not enforce on itself, or state that has to
-  outlive a run. Five more are NodeTool's own code rather than a library: `-aws`
-  (SigV4 signing), `-notion`, `-supabase`, `-twilio` and `-apify` build an
+  outlive a run. Four more are NodeTool's own code rather than a library: `-aws`
+  (SigV4 signing), `-notion`, `-supabase` and `-twilio` build an
   authenticated request and return it; the guest sends it with its own `fetch`,
   so the fetch cap and the SSRF guard still apply. They replace the
-  S3/Notion/Supabase/Twilio/Apify nodes.
+  S3/Notion/Supabase/Twilio nodes. Apify was a fifth and is not: handing the
+  guest a token to fetch and poll with is the wrong shape for a paid service
+  running third-party code, so it became the `apify` capability module instead
+  (`docs/apify-integration.md`).
 
 ### Host modules (`src/host-modules/`)
 
@@ -983,10 +986,10 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `run_subtask` child with a fresh context; fan out via
   `nodetool.batch(prompts, (p) => nodetool.agents.run(p))`), the single-node harness on `nodetool.nodes.run(type,
   inputs)`, `nodetool.web` (the outside world:
-  `search(query, {provider})`, `news` and `images` call the routed search
-  tools — `web_search`/`google_news`/`google_images` pick the first configured
-  backend host-side, and `provider` pins one: `"default"`, `"openai"`,
-  `"google"`, `"dataforseo"` — plus
+  `search(query, {provider})`, `news` and `images` are all one routed
+  `web_search` with a `search_type`, which picks the first configured
+  backend host-side; `provider` pins one: `"default"`, `"serpapi"`,
+  `"dataforseo"`, `"brave"`, `"apify"`, `"openai"`, `"google"` — plus
   `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
   (`save/list/update/remove` over `thread_memory_*`), `nodetool.shared`
   (`list/read/publish` over `list_shared`/`read_shared`/`share_result` — the
@@ -1023,9 +1026,12 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   through the provider-agnostic `generate_image` / `generate_speech`. The
   search five — `openai_web_search`, `google_grounded_search`,
   `dataforseo_search`, `dataforseo_news`, `dataforseo_images` — were never
-  duplicates at all: they are the backends `web_search` / `google_news` /
-  `google_images` route to, so they became plain functions with no wire name
-  (`backend` still pins one). `getAgentToolbelt()`
+  duplicates at all: they are the backends the single `web_search` capability
+  routes to, so they became plain functions with no wire name
+  (`backend` still pins one). `google_news` and `google_images` later folded
+  into it too, as `search_type: "news" | "images"` — three wire names and three
+  routing tables for one question with a parameter on it, which also left
+  Brave and Apify reachable from no tool at all. `getAgentToolbelt()`
   (`src/tools/builtin-tools.ts`) therefore returns what `getBuiltinTools()`
   returns; a saved AgentNode naming a retired tool resolves to its replacement
   through `RETIRED_TOOL_NAMES` in `@nodetool-ai/llm-nodes`.

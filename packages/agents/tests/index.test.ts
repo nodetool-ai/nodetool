@@ -34,8 +34,6 @@ describe("agents index exports", () => {
       "download_file",
       "http_request",
       "web_search",
-      "google_news",
-      "google_images",
       "browser",
       "take_screenshot"
     ]) {

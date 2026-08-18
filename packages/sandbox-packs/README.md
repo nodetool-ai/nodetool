@@ -47,7 +47,6 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host | first-party, so a pack cannot bring it |
 | `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host | first-party |
 | `@nodetool-ai/sandbox-twilio` | NodeTool's Twilio helper | host | first-party |
-| `@nodetool-ai/sandbox-apify` | NodeTool's Apify helper | host | first-party |
 
 **Guest** means the M3 compiler bundles the library into the QuickJS guest and
 the pack ships that manifest entry (`{"kind": "js", "npm": "…"}`). **Host**

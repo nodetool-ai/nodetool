@@ -889,8 +889,8 @@ capability already covers each" held for the media four (`image_generation`,
 which `generate_image` / `generate_speech` cover and which were deleted. It did
 not hold for `openai_web_search`, `google_grounded_search` and the three
 `dataforseo_*`: `capabilities/web.ts` constructed those very classes as the
-openai, gemini and dataforseo backends of `web_search` / `google_news` /
-`google_images`. They were not duplicates of the routed capability, they were
+openai, gemini and dataforseo backends of `web_search`. They were not
+duplicates of the routed capability, they were
 the inside of it, and deleting them would have deleted three search backends.
 They became plain async functions the capability calls — one wire name fewer,
 one implementation unchanged. Read a pinned exception's reason as a claim to

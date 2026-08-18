@@ -29,12 +29,6 @@ export interface BridgePack {
 
 export const BRIDGE_PACKS: readonly BridgePack[] = [
   {
-    specifier: "@nodetool-ai/sandbox-apify",
-    packName: "@nodetool-ai/sandbox-apify",
-    library: "NodeTool's Apify helper",
-    runs: "host"
-  },
-  {
     specifier: "@nodetool-ai/sandbox-aws",
     packName: "@nodetool-ai/sandbox-aws",
     library: "NodeTool's SigV4 signer",

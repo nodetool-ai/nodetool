@@ -360,9 +360,17 @@ sec(
   "SerpAPI API key for web search. Get yours at https://serpapi.com/manage-api-key"
 );
 sec(
+  "APIFY_API_TOKEN",
+  "Search",
+  "Apify API token. Powers the Apify actor capability (crawling, browser automation, structured extraction, maps, social, media, screenshots, transcripts) and Apify-backed web search. Get yours at https://console.apify.com/account/integrations"
+);
+// The name this install shipped first. Still read as a fallback everywhere the
+// token is resolved, so an existing configuration keeps working; new setups
+// should use APIFY_API_TOKEN, which is what Apify's own docs call it.
+sec(
   "APIFY_API_KEY",
   "Search",
-  "Apify API key for web search via Google Search Scraper. Get yours at https://console.apify.com/account/integrations"
+  "Deprecated alias for APIFY_API_TOKEN. Existing installs keep working; set APIFY_API_TOKEN for new ones."
 );
 sec(
   "BRAVE_API_KEY",

@@ -52,6 +52,48 @@ async function getSecret(
   return (resolver?.getSecret?.(key) ?? null) || process.env[key] || null;
 }
 
+/**
+ * The secrets each provider needs, for the "is this usable?" check and for the
+ * error message when it is not.
+ *
+ * Declared next to the factory that reads them so the two cannot drift: a
+ * provider added to the switch below without an entry here would be invisible
+ * to routing, which fails as a silently-skipped backend rather than an error.
+ */
+export const SERP_PROVIDER_SECRETS: Readonly<
+  Record<SerpProviderType, readonly string[]>
+> = {
+  serpapi: ["SERPAPI_API_KEY"],
+  dataforseo: ["DATA_FOR_SEO_LOGIN", "DATA_FOR_SEO_PASSWORD"],
+  brave: ["BRAVE_API_KEY"],
+  apify: ["APIFY_API_TOKEN", "APIFY_API_KEY"]
+};
+
+/**
+ * Whether every secret `type` needs is present.
+ *
+ * Apify is the one provider with two acceptable names: `APIFY_API_TOKEN` is
+ * what Apify's own docs call it and what the rest of NodeTool's Apify layer
+ * reads, while `APIFY_API_KEY` is what this install shipped first. Either
+ * satisfies it, so upgrading does not silently turn search off.
+ */
+export async function serpProviderConfigured(
+  type: SerpProviderType,
+  resolver?: SecretResolver
+): Promise<boolean> {
+  const names = SERP_PROVIDER_SECRETS[type];
+  if (type === "apify") {
+    for (const name of names) {
+      if (await getSecret(name, resolver)) return true;
+    }
+    return false;
+  }
+  for (const name of names) {
+    if (!(await getSecret(name, resolver))) return false;
+  }
+  return true;
+}
+
 export async function createSerpProvider(
   providerType: string,
   resolver?: SecretResolver
@@ -94,10 +136,12 @@ export async function createSerpProvider(
     }
 
     case "apify": {
-      const key = await getSecret("APIFY_API_KEY", resolver);
+      const key =
+        (await getSecret("APIFY_API_TOKEN", resolver)) ??
+        (await getSecret("APIFY_API_KEY", resolver));
       if (!key) {
         throw new Error(
-          "APIFY_API_KEY is required for Apify provider. Set it as an environment variable or via settings."
+          "APIFY_API_TOKEN is required for the Apify provider. Set it as an environment variable or via settings."
         );
       }
       return new (await import("./apify-provider.js")).ApifyProvider(key);

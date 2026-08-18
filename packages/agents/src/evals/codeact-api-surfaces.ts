@@ -1248,10 +1248,25 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     // -- web --------------------------------------------------------------
     tool(
       "web_search",
-      "Search the web (routes across configured backends host-side).",
-      obj({ query: S, backend: S, max_results: N }, ["query"]),
+      "Search the web (routes across configured backends host-side). " +
+        "search_type picks web, news, or images.",
+      obj({ query: S, backend: S, search_type: S, max_results: N }, ["query"]),
       (params) => {
         const query = str(params["query"]);
+        // One tool, three search types — the shape the real capability has
+        // since the google_news / google_images wrappers folded into it.
+        if (str(params["search_type"]) === "news") {
+          return {
+            query,
+            results: [
+              {
+                title: "NodeTool 4.2 lands the CodeAct sandbox",
+                url: "https://news.example.dev/nodetool-4-2",
+                published: "2026-07-02"
+              }
+            ]
+          };
+        }
         const ranked = WEB_PAGES.map((page) => ({
           title: page.title,
           url: page.url,
@@ -1262,21 +1277,6 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           .slice(0, num(params["max_results"], 5));
         return { query, results: ranked };
       }
-    ),
-    tool(
-      "google_news",
-      "News search.",
-      obj({ keyword: S }, ["keyword"]),
-      (params) => ({
-        keyword: str(params["keyword"]),
-        results: [
-          {
-            title: "NodeTool 4.2 lands the CodeAct sandbox",
-            url: "https://news.example.dev/nodetool-4-2",
-            published: "2026-07-02"
-          }
-        ]
-      })
     ),
     tool(
       "http_request",

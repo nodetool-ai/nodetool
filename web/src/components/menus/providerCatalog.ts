@@ -394,7 +394,7 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://serpapi.com/"
   },
   {
-    key: "APIFY_API_KEY",
+    key: "APIFY_API_TOKEN",
     name: "Apify",
     description: "Web search via Apify Google Search Scraper.",
     section: "search",

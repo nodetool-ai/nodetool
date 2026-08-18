@@ -26,7 +26,10 @@ const BACKEND_ENV_KEYS = [
   "OPENAI_API_KEY",
   "GEMINI_API_KEY",
   "DATA_FOR_SEO_LOGIN",
-  "DATA_FOR_SEO_PASSWORD"
+  "DATA_FOR_SEO_PASSWORD",
+  "BRAVE_API_KEY",
+  "APIFY_API_TOKEN",
+  "APIFY_API_KEY"
 ] as const;
 const envStash: Record<string, string | undefined> = {};
 
@@ -212,11 +215,11 @@ describe("WebSearchTool", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  GoogleNewsTool                                                    */
+/*  web_search — news                                                 */
 /* ------------------------------------------------------------------ */
 
-describe("GoogleNewsTool", () => {
-  const tool = toolForCapabilityName("google_news");
+describe("web_search with search_type: news", () => {
+  const tool = toolForCapabilityName("web_search");
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   afterEach(() => {
@@ -239,7 +242,8 @@ describe("GoogleNewsTool", () => {
     });
 
     const result = (await tool.process(ctx, {
-      keyword: "AI"
+      query: "AI",
+      search_type: "news"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -260,46 +264,44 @@ describe("GoogleNewsTool", () => {
   it("refuses a missing query, naming it, without reaching a backend", async () => {
     const ctx = makeContext({ SERPAPI_API_KEY: "k" });
     fetchSpy = stubFetch({});
-    const result = (await tool.process(ctx, {})) as Record<string, unknown>;
     // The key is configured, so an unguarded call would spend a real request.
-    expect(result.error).toEqual(expect.stringContaining("keyword"));
+    const result = await tool.process(ctx, { search_type: "news" });
+    expect(String(result)).toContain("query");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("throws when API key is missing", async () => {
     const ctx = makeContext({});
-    await expect(tool.process(ctx, { keyword: "test" })).rejects.toThrow(
-      "SERPAPI_API_KEY"
-    );
+    await expect(
+      tool.process(ctx, { query: "test", search_type: "news", backend: "serpapi" })
+    ).rejects.toThrow("SERPAPI_API_KEY");
   });
 
-  it("userMessage returns news search description", () => {
-    expect(tool.userMessage({ keyword: "AI" })).toBe(
-      "Searching Google News for 'AI'..."
-    );
-  });
-
-  it("userMessage truncates long queries", () => {
-    const longQuery = "a".repeat(200);
-    expect(tool.userMessage({ keyword: longQuery })).toBe(
-      "Searching Google News..."
-    );
-  });
-
-  it("has correct provider tool shape", () => {
-    const pt = tool.toProviderTool();
-    expect(pt.name).toBe("google_news");
-    expect(pt.description).toBeTruthy();
-    expect(pt.inputSchema).toBeDefined();
+  it("applies blocked_domains to news results", async () => {
+    const ctx = makeContext({ SERPAPI_API_KEY: "k" });
+    fetchSpy = stubFetch({
+      news_results: [
+        { title: "Keep", link: "https://good.com/a", snippet: "" },
+        { title: "Drop", link: "https://spam.com/a", snippet: "" }
+      ]
+    });
+    const result = (await tool.process(ctx, {
+      query: "AI",
+      search_type: "news",
+      blocked_domains: ["spam.com"]
+    })) as Record<string, unknown>;
+    const results = result.results as Array<Record<string, unknown>>;
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe("Keep");
   });
 });
 
 /* ------------------------------------------------------------------ */
-/*  GoogleImagesTool                                                  */
+/*  web_search — images                                               */
 /* ------------------------------------------------------------------ */
 
-describe("GoogleImagesTool", () => {
-  const tool = toolForCapabilityName("google_images");
+describe("web_search with search_type: images", () => {
+  const tool = toolForCapabilityName("web_search");
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   afterEach(() => {
@@ -327,7 +329,8 @@ describe("GoogleImagesTool", () => {
     });
 
     const result = (await tool.process(ctx, {
-      keyword: "cute animals"
+      query: "cute animals",
+      search_type: "images"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
@@ -344,20 +347,15 @@ describe("GoogleImagesTool", () => {
     expect(calledUrl).toContain("engine=google_images");
   });
 
-  it("refuses a missing query, naming it, without reaching a backend", async () => {
-    const ctx = makeContext({ SERPAPI_API_KEY: "k" });
-    fetchSpy = stubFetch({});
-    const result = (await tool.process(ctx, {})) as Record<string, unknown>;
-    // The key is configured, so an unguarded call would spend a real request.
-    expect(result.error).toEqual(expect.stringContaining("keyword"));
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
   it("throws when API key is missing", async () => {
     const ctx = makeContext({});
-    await expect(tool.process(ctx, { keyword: "test" })).rejects.toThrow(
-      "SERPAPI_API_KEY"
-    );
+    await expect(
+      tool.process(ctx, {
+        query: "test",
+        search_type: "images",
+        backend: "serpapi"
+      })
+    ).rejects.toThrow("SERPAPI_API_KEY");
   });
 
   it("handles empty images_results", async () => {
@@ -365,28 +363,16 @@ describe("GoogleImagesTool", () => {
     fetchSpy = stubFetch({ images_results: [] });
 
     const result = (await tool.process(ctx, {
-      keyword: "nothing"
+      query: "nothing",
+      search_type: "images"
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.results).toEqual([]);
   });
 
-  it("userMessage returns image search description", () => {
-    expect(tool.userMessage({ keyword: "sunset" })).toBe(
-      "Searching Google Images for 'sunset'..."
-    );
-  });
-
-  it("userMessage truncates long queries", () => {
-    const longQuery = "a".repeat(200);
-    expect(tool.userMessage({ keyword: longQuery })).toBe(
-      "Searching Google Images..."
-    );
-  });
-
   it("has correct provider tool shape", () => {
     const pt = tool.toProviderTool();
-    expect(pt.name).toBe("google_images");
+    expect(pt.name).toBe("web_search");
     expect(pt.inputSchema).toBeDefined();
   });
 });
@@ -496,8 +482,9 @@ describe("search backend routing", () => {
       tool.process(ctx, { query: "fox", backend: "openai" })
     ).rejects.toThrow(/openai.*OPENAI_API_KEY/);
     await expect(
-      toolForCapabilityName("google_news").process(ctx, {
-        keyword: "fox",
+      toolForCapabilityName("web_search").process(ctx, {
+        query: "fox",
+        search_type: "news",
         backend: "dataforseo"
       })
     ).rejects.toThrow(/DATA_FOR_SEO_LOGIN and DATA_FOR_SEO_PASSWORD/);
@@ -508,7 +495,9 @@ describe("search backend routing", () => {
     const ctx = makeContext({ SERPAPI_API_KEY: "serp" });
     await expect(
       tool.process(ctx, { query: "fox", backend: "bing" })
-    ).rejects.toThrow(/unknown backend "bing".*serpapi, openai, gemini, dataforseo/);
+    ).rejects.toThrow(
+      /unknown backend "bing".*serpapi, dataforseo, brave, apify, openai, gemini/
+    );
   });
 
   it('backend "default" means the tool\'s own first backend', async () => {
@@ -539,8 +528,8 @@ describe("search backend routing", () => {
     expect(String(fetchSpy.mock.calls[0][0])).toContain("serpapi.com");
   });
 
-  it("google_news routes to DataForSEO and keeps its result shape", async () => {
-    const tool = toolForCapabilityName("google_news");
+  it("a news search routes to DataForSEO and keeps its result shape", async () => {
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
@@ -567,10 +556,10 @@ describe("search backend routing", () => {
         }
       ]
     });
-    const result = (await tool.process(ctx, { keyword: "fox" })) as Record<
-      string,
-      unknown
-    >;
+    const result = (await tool.process(ctx, {
+      query: "fox",
+      search_type: "news"
+    })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.results).toEqual([
       {
@@ -583,8 +572,8 @@ describe("search backend routing", () => {
     ]);
   });
 
-  it("google_images routes to DataForSEO and keeps its result shape", async () => {
-    const tool = toolForCapabilityName("google_images");
+  it("an image search routes to DataForSEO and keeps its result shape", async () => {
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
@@ -610,10 +599,10 @@ describe("search backend routing", () => {
         }
       ]
     });
-    const result = (await tool.process(ctx, { keyword: "fox" })) as Record<
-      string,
-      unknown
-    >;
+    const result = (await tool.process(ctx, {
+      query: "fox",
+      search_type: "images"
+    })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.results).toEqual([
       {
@@ -629,7 +618,7 @@ describe("search backend routing", () => {
     const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({});
     await expect(tool.process(ctx, { query: "fox" })).rejects.toThrow(
-      /no search backend is configured.*SERPAPI_API_KEY.*OPENAI_API_KEY.*GEMINI_API_KEY.*DATA_FOR_SEO_LOGIN/
+      /no search backend is configured.*SERPAPI_API_KEY.*DATA_FOR_SEO_LOGIN.*BRAVE_API_KEY.*APIFY_API_TOKEN.*OPENAI_API_KEY.*GEMINI_API_KEY/
     );
   });
 });
