@@ -9,6 +9,7 @@
  */
 
 import { readFileSync } from "node:fs";
+import { trimTrailingSlashes } from "./strings.js";
 import { z } from "zod";
 
 /** Fully resolved bridge configuration. */
@@ -179,7 +180,7 @@ export function loadConfig(options: LoadConfigOptions = {}): TelegramBotConfig {
 
   return {
     botToken: envParsed.data.TELEGRAM_BOT_TOKEN,
-    apiUrl: envParsed.data.NODETOOL_API_URL.replace(/\/+$/, ""),
+    apiUrl: trimTrailingSlashes(envParsed.data.NODETOOL_API_URL),
     integrationToken: envParsed.data.NODETOOL_INTEGRATION_TOKEN,
     webhookUrl: envParsed.data.TELEGRAM_WEBHOOK_URL,
     webhookSecret: envParsed.data.TELEGRAM_WEBHOOK_SECRET,

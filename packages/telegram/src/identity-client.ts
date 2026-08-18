@@ -13,6 +13,8 @@
  */
 
 /** How long before a token's stated expiry it stops being served from cache. */
+import { trimTrailingSlashes } from "./strings.js";
+
 export const TOKEN_EXPIRY_SLACK_MS = 5 * 60 * 1000;
 
 /** The identity layer's provider column for this bridge. */
@@ -129,7 +131,7 @@ export class IdentityClient {
   private readonly cache = new Map<string, CacheEntry>();
 
   constructor(options: IdentityClientOptions) {
-    this.apiUrl = options.apiUrl.replace(/\/+$/, "");
+    this.apiUrl = trimTrailingSlashes(options.apiUrl);
     this.integrationToken = options.integrationToken;
     this.fetchImpl = options.fetch;
     this.provider = options.provider ?? TELEGRAM_PROVIDER;

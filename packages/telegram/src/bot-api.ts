@@ -7,6 +7,8 @@
  */
 
 /** Base URL of the Bot API. Overridable so tests never resolve a real host. */
+import { trimTrailingSlashes } from "./strings.js";
+
 export const TELEGRAM_API_BASE = "https://api.telegram.org";
 
 /** Max upload the Bot API accepts from a bot. */
@@ -128,7 +130,7 @@ export class BotApi {
   constructor(options: BotApiOptions) {
     this.botToken = options.botToken;
     this.fetchImpl = options.fetch;
-    this.baseUrl = (options.baseUrl ?? TELEGRAM_API_BASE).replace(/\/+$/, "");
+    this.baseUrl = trimTrailingSlashes(options.baseUrl ?? TELEGRAM_API_BASE);
   }
 
   /** Call a Bot API method with a JSON body. */
