@@ -18,7 +18,15 @@
  * uses when it can afford a DNS round trip.
  */
 
-import { lookup as dnsLookup } from "node:dns/promises";
+import { importNodeBuiltin } from "@nodetool-ai/config";
+
+/** The slice of `node:dns/promises` the default resolver uses. */
+interface DnsPromises {
+  lookup: (
+    host: string,
+    options: { all: true }
+  ) => Promise<Array<{ address: string }>>;
+}
 
 /** True if the first two octets of an IPv4 address fall in a blocked range. */
 function isBlockedV4(a: number, b: number): boolean {
@@ -176,5 +184,19 @@ export async function assertResolvedHostAllowed(
 /** How {@link assertResolvedHostAllowed} turns a hostname into addresses. */
 export type HostResolver = (host: string) => Promise<string[]>;
 
-const defaultResolver: HostResolver = async (host) =>
-  (await dnsLookup(host, { all: true })).map((entry) => entry.address);
+/**
+ * `node:dns` is loaded through `importNodeBuiltin`, never imported at the top
+ * level: this module is reachable from `js-sandbox.ts`, which the browser
+ * workflow-runner bundles. A static `node:dns/promises` import broke that
+ * bundle outright — the harness aliases `node:dns` to an empty stub, and
+ * `node:dns/promises` then resolved to a path inside that file.
+ *
+ * Off Node there is no resolver, and a caller that cannot resolve treats the
+ * name the way an unresolvable one is treated: the literal check has already
+ * run, and whoever opens the socket reports the rest.
+ */
+const defaultResolver: HostResolver = async (host) => {
+  const dns = await importNodeBuiltin<DnsPromises>("node:dns/promises");
+  if (!dns) return [];
+  return (await dns.lookup(host, { all: true })).map((entry) => entry.address);
+};
