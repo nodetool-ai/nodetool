@@ -38,9 +38,18 @@ Write-Host "Starting web Vite server on $WebDevServerUrl..."
 # fails there and Vite never starts — silently, because nothing reads the
 # job's error stream. -NoNewWindow shares this console, so Vite's output and
 # any startup error stay visible.
+$WebUri = [Uri]$WebDevServerUrl
 $WebDir = Join-Path $PSScriptRoot "..\web"
-$WebProc = Start-Process -FilePath "npm.cmd" -ArgumentList "run", "dev" `
-    -WorkingDirectory $WebDir -NoNewWindow -PassThru
+$WebProc = Start-Process -FilePath "npm.cmd" -ArgumentList @(
+    "run",
+    "dev",
+    "--",
+    "--host",
+    $WebUri.Host,
+    "--port",
+    "$($WebUri.Port)",
+    "--strictPort"
+) -WorkingDirectory $WebDir -NoNewWindow -PassThru
 
 $WebServerPid = $WebProc.Id
 
