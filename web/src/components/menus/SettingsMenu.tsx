@@ -44,6 +44,7 @@ import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
 import BrowserExtensionSettingsMenu from "./BrowserExtensionSettingsMenu";
 import VaultsSettings from "./VaultsSettings";
+import ConnectedAccountsSettings from "../settings/ConnectedAccountsSettings";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -531,6 +532,10 @@ function SettingsPage() {
     ];
     return [
       { category: "Configuration", items: configItems },
+      {
+        category: "Accounts",
+        items: [{ id: "connected-accounts", label: "Connected Accounts" }]
+      },
       ...(isLocalhost
         ? [
             {
@@ -1086,6 +1091,16 @@ function SettingsPage() {
                     Folders
                   </Text>
                   <FoldersSettings />
+
+                  {/* Messaging bridges: link a Telegram/Discord account. */}
+                  <Text
+                    size="big"
+                    id="connected-accounts"
+                    className="settings-heading"
+                  >
+                    Connected Accounts
+                  </Text>
+                  <ConnectedAccountsSettings />
 
                   {/* Servers (localhost only): MCP + Browser Extension. */}
                   {isLocalhost && (

@@ -2723,6 +2723,42 @@ export const migrations: MigrationDef[] = [
     async down() {
       // no-op: dropping columns is unsafe across dialects and versions
     }
+  },
+
+  // ── Create external_identities ──────────────────────────────────────
+  // Messaging-platform accounts bound to NodeTool users. `provider` is a
+  // column, so a second adapter adds a string rather than a table.
+  {
+    version: "20260818_000000",
+    name: "create_external_identities",
+    createsTables: ["external_identities"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS external_identities (
+          id TEXT PRIMARY KEY,
+          provider TEXT NOT NULL,
+          external_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          linked_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_external_identity_provider_external
+        ON external_identities (provider, external_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_external_identity_user
+        ON external_identities (user_id)
+      `);
+    },
+    async down(db) {
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_external_identity_provider_external"
+      );
+      await db.execute("DROP INDEX IF EXISTS idx_external_identity_user");
+      await db.execute("DROP TABLE IF EXISTS external_identities");
+    }
   }
 ];
 

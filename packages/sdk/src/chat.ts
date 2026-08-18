@@ -116,7 +116,13 @@ interface StopCommand {
   data: { thread_id: string };
 }
 
-type ChatCommand = ChatMessageCommand | StopCommand;
+/** Outbound `resume_chat` command: replay a thread's frames after `last_seq`. */
+interface ResumeChatCommand {
+  command: "resume_chat";
+  data: { thread_id: string; last_seq: number };
+}
+
+type ChatCommand = ChatMessageCommand | StopCommand | ResumeChatCommand;
 
 export interface SendChatMessageOptions {
   threadId: string;
@@ -126,6 +132,13 @@ export interface SendChatMessageOptions {
   agentMode?: boolean;
   tools?: string[] | null;
   collections?: string[] | null;
+  /**
+   * Whether the turn's tool calls run, ask, or are blocked — `"auto"` runs
+   * everything, `"default"` parks actions on an approval request, `"plan"`
+   * blocks them. Omitted leaves the server's default (`"default"`), which
+   * needs a surface that can answer approvals.
+   */
+  permissionMode?: "plan" | "default" | "auto" | null;
 }
 
 export interface ChatSocketOptions {
@@ -285,7 +298,8 @@ export class ChatSocket {
         provider: opts.provider ?? null,
         agent_mode: opts.agentMode ?? false,
         tools: opts.tools ?? null,
-        collections: opts.collections ?? null
+        collections: opts.collections ?? null,
+        permission_mode: opts.permissionMode ?? null
       }
     });
   }
@@ -293,6 +307,18 @@ export class ChatSocket {
   /** Send a `stop` command for the given thread. */
   stop(threadId: string): void {
     this.sendCommand({ command: "stop", data: { thread_id: threadId } });
+  }
+
+  /**
+   * Reattach to a thread's in-flight turn after a disconnect: the server
+   * replays every frame it stamped after `lastSeq`, so a dropped socket costs
+   * no output and no second inference.
+   */
+  resume(threadId: string, lastSeq: number): void {
+    this.sendCommand({
+      command: "resume_chat",
+      data: { thread_id: threadId, last_seq: lastSeq }
+    });
   }
 
   private setState(state: ConnectionState): void {

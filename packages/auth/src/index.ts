@@ -3,6 +3,15 @@ export { TokenType, AuthProvider, type AuthResult } from "./auth-provider.js";
 export { LocalAuthProvider } from "./providers/local-provider.js";
 export { StaticTokenProvider } from "./providers/static-token-provider.js";
 export {
+  DelegatedTokenProvider,
+  mintDelegatedToken,
+  isDelegatedToken,
+  DELEGATED_TOKEN_PREFIX,
+  type DelegatedTokenProviderOptions,
+  type DelegatedSigningKey,
+  type MintedDelegatedToken
+} from "./providers/delegated-token-provider.js";
+export {
   MultiUserAuthProvider,
   type MultiUserAuthProviderOptions
 } from "./providers/multi-user-provider.js";
