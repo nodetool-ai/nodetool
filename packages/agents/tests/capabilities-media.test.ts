@@ -400,7 +400,7 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       { workspaceDir: "/tmp" } as unknown as ProcessingContext,
       { url: "file:///etc/passwd" }
     )) as Record<string, unknown>;
-    expect(String(result["error"])).toMatch(/http\(s\)/);
+    expect(String(result["error"])).toMatch(/unsupported scheme/);
   });
 
   // The guard is unit-tested in host-binary-guard.test.ts; these pin that the
@@ -427,6 +427,27 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       { args: ["-i", "in.mp4"], output_file: "../../etc/cron.d/x" }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/outside the workspace/);
+  });
+
+  it.each([
+    ["http://169.254.169.254/latest/meta-data/", /internal\/private address/],
+    ["http://localhost:7777/api/workflows", /localhost/],
+    ["http://10.0.0.5/internal.mp4", /internal\/private address/],
+    ["http://[::ffff:127.0.0.1]/x.mp4", /internal\/private address/]
+  ])("yt_dlp refuses %s", async (url, expected) => {
+    const result = (await asTool(ytDlp).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { url }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(expected);
+  });
+
+  it("yt_dlp refuses a format that would be read as an option", async () => {
+    const result = (await asTool(ytDlp).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { url: "https://example.com/v", format: "--exec" }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/cannot start with/);
   });
 
   it("yt_dlp refuses an output template that escapes the workspace", async () => {

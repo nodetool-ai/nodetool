@@ -34,9 +34,16 @@ import {
   type RunHostBinaryOptions
 } from "../host-binaries.js";
 import {
+  MAX_DOWNLOAD_BYTES,
+  buildYtDlpArgv,
   confineArgvToWorkspace,
-  hardenFfmpegArgv
+  hardenFfmpegArgv,
+  refuseFlagLikeValue
 } from "../host-binary-guard.js";
+import {
+  assertFetchUrlAllowed,
+  assertResolvedHostAllowed
+} from "../network-guard.js";
 import { encodeBase64 as encodeMediaBase64 } from "../sandbox-bytes.js";
 import {
   DEFAULT_MIME,
@@ -1313,13 +1320,16 @@ const ytDlp: CapabilityExport = {
     if (!isNonBlankString(url)) {
       return { error: "url is required" };
     }
+    // The downloader opens its own sockets from inside the server, so an
+    // http(s) check alone leaves the metadata service and every internal
+    // host reachable. Same guard the sandbox fetch bridge uses, plus the
+    // resolution step a hostname needs.
     try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return { error: "url must be an http(s) URL" };
-      }
-    } catch {
-      return { error: `invalid url: ${url}` };
+      assertFetchUrlAllowed(url);
+      await assertResolvedHostAllowed(url, "yt_dlp");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { error: message.replace(/^fetch: /, "yt_dlp: ") };
     }
 
     const outputFile = isNonBlankString(params["output_file"])
@@ -1335,6 +1345,10 @@ const ytDlp: CapabilityExport = {
     // an ffmpeg path does. `format` reaches yt-dlp as a selector, never a path.
     const refusal = await confineArgvToWorkspace([outputFile], workspace);
     if (refusal) return refusal;
+    const flagLike =
+      refuseFlagLikeValue(outputFile, "output_file") ??
+      (format ? refuseFlagLikeValue(format, "format") : undefined);
+    if (flagLike) return flagLike;
 
     const outDir = path.dirname(outputFile);
     if (outDir && outDir !== ".") {
@@ -1351,18 +1365,11 @@ const ytDlp: CapabilityExport = {
       }
     }
 
-    const argv = [
-      "--no-playlist",
-      "--no-warnings",
-      "--print",
-      "after_move:filepath",
-      "-o",
-      outputFile
-    ];
+    const download: Parameters<typeof buildYtDlpArgv>[0] = { url, outputFile };
     if (format) {
-      argv.push("-f", format);
+      download.format = format;
     }
-    argv.push(url);
+    const argv = buildYtDlpArgv(download);
 
     try {
       const result = await runHostBinary("yt-dlp", argv, {
@@ -1370,6 +1377,22 @@ const ytDlp: CapabilityExport = {
         timeoutMs
       });
       const printed = result.stdout.trim().split("\n").filter(Boolean).at(-1);
+      // `--print after_move:filepath` names the finished file. Nothing printed
+      // on a clean exit means nothing was written — which is what an aborted
+      // over-cap download looks like, since `--print` silences the reason.
+      if (result.exitCode === 0 && !printed) {
+        return {
+          success: false,
+          url,
+          error:
+            `yt-dlp wrote no file. The download may have passed the ` +
+            `${MAX_DOWNLOAD_BYTES}-byte limit, or the URL carried nothing to ` +
+            `download.`,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          exit_code: result.exitCode
+        };
+      }
       const produced =
         printed && !printed.startsWith("http")
           ? path.isAbsolute(printed)

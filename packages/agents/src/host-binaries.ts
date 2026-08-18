@@ -54,19 +54,32 @@ export function maxConcurrentHostBinaries(): number {
 let running = 0;
 const waiting: Array<() => void> = [];
 
-/** Take a slot, waiting behind the queue when every slot is busy. */
+/**
+ * Take a slot, waiting behind the queue when every slot is busy.
+ *
+ * A waiter does not increment on wake: the releasing run *hands over* its
+ * slot, so the count never dips between the two. Decrementing first and
+ * letting the waiter re-increment leaves a window — between resolving the
+ * waiter's promise and its continuation running — in which the count reads one
+ * below the truth, and a caller arriving inside it would take a slot the woken
+ * waiter is also about to take. No test here reproduces that interleaving; the
+ * hand-off removes the window rather than relying on it staying unreachable.
+ */
 async function acquireSlot(): Promise<void> {
   if (running < maxConcurrentHostBinaries()) {
     running++;
     return;
   }
   await new Promise<void>((resolve) => waiting.push(resolve));
-  running++;
 }
 
 function releaseSlot(): void {
+  const next = waiting.shift();
+  if (next) {
+    next();
+    return;
+  }
   running--;
-  waiting.shift()?.();
 }
 
 /** Append to a captured stream, stopping at the cap. */

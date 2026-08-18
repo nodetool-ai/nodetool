@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -73,36 +73,74 @@ describe("runHostBinary", () => {
     }
   }, 30_000);
 
+  // Concurrency is measured from what the children themselves record, not from
+  // wall-clock windows: each appends a line when it starts and another when it
+  // stops, so the peak is a prefix sum over an ordered log and cannot be
+  // distorted by a loaded machine's scheduling.
+  const busyChild = (log: string, ms: number): string[] => [
+    "-e",
+    `const fs=require('fs');fs.appendFileSync(${JSON.stringify("LOGPATH")}` +
+      `.replace('LOGPATH',${JSON.stringify(log)}),'S\\n');` +
+      `setTimeout(()=>fs.appendFileSync(${JSON.stringify(log)},'E\\n'),${ms});`
+  ];
+
+  async function peakConcurrency(log: string): Promise<number> {
+    const events = (await readFile(log, "utf8")).trim().split("\n");
+    let live = 0;
+    let peak = 0;
+    for (const event of events) {
+      live += event === "S" ? 1 : -1;
+      peak = Math.max(peak, live);
+    }
+    return peak;
+  }
+
   it("runs no more host binaries at once than the concurrency cap", async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    const log = path.join(cwd, "events.log");
     const cap = maxConcurrentHostBinaries();
     try {
-      // Each child reports the window it occupied; overlapping windows beyond
-      // the cap would mean the semaphore let extra spawns through.
-      const runs = await Promise.all(
+      await writeFile(log, "");
+      await Promise.all(
         Array.from({ length: cap + 3 }, () =>
-          runHostBinary(
-            process.execPath,
-            [
-              "-e",
-              "const s=Date.now();setTimeout(()=>" +
-                "process.stdout.write(s+' '+Date.now()),200);"
-            ],
-            { cwd, timeoutMs: 30_000 }
-          )
+          runHostBinary(process.execPath, busyChild(log, 150), {
+            cwd,
+            timeoutMs: 30_000
+          })
         )
       );
-      const windows = runs.map((r) => {
-        const [start, end] = r.stdout.trim().split(" ").map(Number);
-        return { start: start as number, end: end as number };
-      });
-      const peak = Math.max(
-        ...windows.map(
-          (w) =>
-            windows.filter((o) => o.start < w.end && w.start < o.end).length
-        )
+      expect(await peakConcurrency(log)).toBeLessThanOrEqual(cap);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("holds the cap when callers arrive while a slot is being handed over", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    const log = path.join(cwd, "events.log");
+    const cap = maxConcurrentHostBinaries();
+    try {
+      await writeFile(log, "");
+      // Callers keep arriving while the queue drains — the window in which a
+      // released slot has been given up but the waiter it woke has not yet
+      // taken it.
+      const running = Array.from({ length: cap + 2 }, () =>
+        runHostBinary(process.execPath, busyChild(log, 120), {
+          cwd,
+          timeoutMs: 30_000
+        })
       );
-      expect(peak).toBeLessThanOrEqual(cap);
+      for (let i = 0; i < 8; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        running.push(
+          runHostBinary(process.execPath, busyChild(log, 120), {
+            cwd,
+            timeoutMs: 30_000
+          })
+        );
+      }
+      await Promise.all(running);
+      expect(await peakConcurrency(log)).toBeLessThanOrEqual(cap);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }

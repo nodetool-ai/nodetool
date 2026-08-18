@@ -511,7 +511,12 @@ What an action gets on top of the standard surface:
   `-i`, plus a token scan for `://`, `concat:`, `pipe:`, `/dev/…`), and the run
   is bounded on wall clock, captured output, artifact size, and how many host
   binaries may run at once. Fetch what you need with `downloadVideo` or
-  `fetch`, then pass the local path.
+  `fetch`, then pass the local path. `downloadVideo` carries its own boundary:
+  the URL must be public (loopback, link-local and the private ranges are
+  refused, by literal and by DNS answer), the download is capped at 2 GiB, and
+  the run ignores config files — yt-dlp reads `yt-dlp.conf` from its working
+  directory, which is the workspace guest code writes, and that file can ask
+  for `--exec`.
 - **`openWorkflow(id)`** — when the belt carries the `ui_*` document tools, a
   graph object model whose synchronous mutators queue operations against a local
   mirror, replayed through the same tool contract by `await wf.commit()`.

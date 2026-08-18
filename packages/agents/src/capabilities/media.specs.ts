@@ -547,9 +547,11 @@ export const YT_DLP_SCHEMA: JsonSchema = {
 export const ytDlpSpec: CapabilitySpec = {
   name: "yt_dlp",
   description:
-    "Download a video with yt-dlp into the workspace. Requires an http(s) " +
-    "URL. Install yt-dlp (and ffmpeg for merge/transcode) if the binary is " +
-    "missing. Returns the output path and an asset handle when possible.",
+    "Download a video with yt-dlp into the workspace. Requires a public " +
+    "http(s) URL — internal and loopback addresses are refused — and writes " +
+    "only inside the workspace, up to 2 GiB. Install yt-dlp (and ffmpeg for " +
+    "merge/transcode) if the binary is missing. Returns the output path and " +
+    "an asset handle when possible.",
   inputSchema: YT_DLP_SCHEMA,
   category: "external",
   userMessage: (params) => {
