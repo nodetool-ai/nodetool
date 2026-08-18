@@ -38,6 +38,7 @@ import { modelsSpecs } from "./models.specs.js";
 import { nodesSpecs } from "./nodes.specs.js";
 import { packsSpecs } from "./packs.specs.js";
 import { scriptsSpecs } from "./scripts.specs.js";
+import { serpApiSpecs } from "./serpapi.specs.js";
 import { sharedSpecs } from "./shared.specs.js";
 import { sketchesSpecs } from "./sketches.specs.js";
 import { storyboardsSpecs } from "./storyboards.specs.js";
@@ -80,7 +81,8 @@ const MODULES: Readonly<Record<string, Loader>> = {
   "js-scripts": () => import("./js-scripts.js").then((m) => m.module),
   packs: () => import("./packs.js").then((m) => m.module),
   ui: () => import("./ui.js").then((m) => m.module),
-  apify: () => import("./apify.js").then((m) => m.module)
+  apify: () => import("./apify.js").then((m) => m.module),
+  serpapi: () => import("./serpapi.js").then((m) => m.module)
 };
 
 /**
@@ -118,7 +120,8 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "js-scripts",
   "packs",
   "ui",
-  "apify"
+  "apify",
+  "serpapi"
 ];
 
 /**
@@ -161,7 +164,8 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   "js-scripts": jsScriptsSpecs,
   packs: packsSpecs,
   ui: uiSpecs,
-  apify: apifySpecs
+  apify: apifySpecs,
+  serpapi: serpApiSpecs
 };
 
 const SPEC_BY_NAME: ReadonlyMap<string, CapabilitySpec> = new Map(

@@ -61,6 +61,15 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   get_apify_run: "read",
   get_apify_dataset_items: "read",
   get_apify_key_value_record: "read",
+  // SerpAPI. Every one of these reads: listing engines and reading an engine's
+  // parameter table are keyless page reads, and a search spends a plan credit
+  // without changing anything on the other side — the same class `web_search`
+  // sits in, which is the same SerpAPI call with the engine picked for it.
+  list_serpapi_engines: "read",
+  get_serpapi_engine_schema: "read",
+  serpapi_search: "read",
+  get_serpapi_account: "read",
+  get_serpapi_locations: "read",
   take_screenshot: "read",
   extract_pdf_text: "read",
   extract_pdf_tables: "read",

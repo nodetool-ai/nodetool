@@ -1618,6 +1618,20 @@ actor passes an allowlist and a session budget, actor inputs are SSRF-screened,
 cancellation aborts the remote run, and files it produces become NodeTool
 assets. See [docs/apify-integration.md](docs/apify-integration.md).
 
+**SerpAPI is a capability module** (`@nodetool-ai/sandbox-nodetool/serpapi`),
+and the engine list is discovered rather than declared. SerpAPI is one endpoint
+whose `engine` parameter selects which of ~120 contracts applies — Google and
+its verticals, Bing, Baidu, DuckDuckGo, Yandex, Naver, YouTube, Amazon, eBay,
+Walmart, Yelp, TripAdvisor, the app stores — so `list_serpapi_engines` and
+`get_serpapi_engine_schema` read SerpAPI's own engine table and an engine it
+ships tomorrow is callable with no diff here. `serpapi_search` runs any of them;
+the key stays on the host, `api_key` and `output` are refused from a caller, and
+the parameter bag is checked against the engine's contract before the call —
+SerpAPI *ignores* an unknown parameter, so a typo is otherwise a billed search
+that answers a different question. `web_search` stays what it is: one query
+against whichever `SERP_PROVIDER` this install configured. See
+[docs/serpapi-integration.md](docs/serpapi-integration.md).
+
 **Google Workspace is a capability module too**
 (`@nodetool-ai/sandbox-nodetool/google`), and the only Drive/Gmail/Docs/Sheets/
 Calendar surface — the fourteen `lib.google.*` nodes are gone. It authenticates
