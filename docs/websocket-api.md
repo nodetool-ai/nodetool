@@ -562,6 +562,37 @@ Streams incremental text/media content from a node.
 | `node_id` | `string \| null` | Node UUID |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
 
+### `system_stats`
+
+Reports the **server's** CPU and memory load. Unlike every message above, this
+is not tied to a run: the server samples on a wall-clock cadence and pushes to
+every connected socket — one frame ~1s after connect (long enough for the CPU
+delta to mean something), then every 5s — whether or not a workflow is running.
+Clients that record a run's frame stream should drop it as connection control,
+alongside `ping`/`pong` and `resource_change`.
+
+```json
+{
+  "type": "system_stats",
+  "stats": {
+    "cpu_percent": 23.4,
+    "memory_percent": 61.2,
+    "memory_used": 10522669056,
+    "memory_total": 17179869184,
+    "memory_used_gb": 9.8,
+    "memory_total_gb": 16.0
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `cpu_percent` | `number` | Whole-machine CPU use, 0–100, from the delta since the previous sample |
+| `memory_percent` | `number` | Used memory as a percentage of total |
+| `memory_used` / `memory_total` | `number` | Bytes |
+| `memory_used_gb` / `memory_total_gb` | `number` | The same figures in GB |
+| `vram_total_gb` / `vram_used_gb` | `number \| null` | Present only when the host samples a GPU; the default sampler omits them |
+
 ## Value Types
 
 Output values are typically objects with a `type` discriminator:
