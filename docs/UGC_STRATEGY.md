@@ -17,6 +17,11 @@ mechanism (we have no credit currency and no engagement budget), but it can copy
 a high-cadence template engine, a distinctive shareable artifact, and a creator program that pays
 in things an open-source BYOK tool actually has.
 
+**Constraint: zero cash budget.** Nothing below assumes ad spend, paid creators, or cash
+bounties. Every incentive in this plan is one we can grant at no marginal cost: attribution,
+featuring, early access, and shipping a creator's work inside the product. The spend is team
+time — mostly the weekly template and its demo clip.
+
 ## 1. What Higgsfield did
 
 The [Product Growth teardown](https://www.productgrowth.blog/p/higgsfield-growth-teardown),
@@ -74,7 +79,7 @@ link, and the partner tier pays in access and featuring, not only cash.
 | Preset (click-to-video) | Example workflow / example mini app, installable in one click | Exists — 61 example workflows, curated app bundles, `/apps/*` landing pages |
 | Preset engine (10/day, cull losers) | Trend-reactive template cadence with kill criteria | Missing — examples ship with releases, not with trends |
 | Paid-per-engagement creator pool | No equivalent: no credit currency, no engagement budget | Do not copy (it is also the part that blew up) |
-| Credits as creator compensation | Template bounties (cash), featuring, early access, roadmap voice | Adapt |
+| Credits as creator compensation | Featuring, attribution, early access, roadmap voice — no cash | Adapt |
 | Affiliate on subscriptions | Only viable where a paid surface exists (cloud); dormant until then | Defer |
 | Soul ID persistent personas | Workflows that hold a character/identity constant across outputs | Template category, not a feature build |
 | The output video as the artifact | The output **plus the canvas** — the node graph is visually distinctive and no competitor can show one | Our edge |
@@ -116,18 +121,23 @@ keys." This is Krea's insight (the tool on screen is the content) fused with Hig
 
 ### 4.3 Creator program, adapted
 
-Two tiers, mirroring the OpenArt/Higgsfield split but paying in what we have:
+Two tiers, mirroring the OpenArt/Higgsfield split, paid entirely in non-cash currency:
 
 - **Partners** (apply, curated, size-blind like Higgsfield's): early access to releases, featured
   placement on the site and example gallery with attribution and a link, a direct channel to the
   team, and their templates shipped as named examples ("the *X* workflow by *creator*"). For an
-  audience of makers, having your workflow ship inside the product is compensation Higgsfield
-  cannot offer.
-- **Template bounties** (open, transactional): a posted list of wanted templates (trend effects,
-  model showcases, persistent-character series), fixed cash per accepted submission, acceptance
-  judged on quality bar + `nodetool validate` passing + a rendered demo clip — never on
-  engagement metrics. Pay within 14 days, publicly stated. Both rules are direct corrections of
-  the two failure modes Forbes documented.
+  audience of makers, having your workflow ship inside the product — with a permanent link on its
+  `/apps/*` page — is compensation Higgsfield cannot offer at any price.
+- **Template wanted-list** (open, contribution-based): a public list of templates we want (trend
+  effects, model showcases, persistent-character series), run like open-source issues. An
+  accepted submission — judged on a published quality bar + `nodetool validate` passing + a
+  rendered demo clip, never on engagement metrics — ships as a named example with attribution
+  and gets featured across our channels. This is the OSS contribution loop applied to templates:
+  the same motivation that produces pull requests produces presets, and it costs review time,
+  not money.
+
+The quality-gated acceptance rule is the direct correction of Higgsfield's failure mode:
+engagement-metered rewards selected for shock content. We reward acceptance, not reach.
 
 ### 4.4 Persistent characters as a template category
 
@@ -138,7 +148,9 @@ subscription-locked persona tools.
 
 ### 4.5 What we explicitly do not do
 
-- **No engagement-metered payouts.** That mechanism selected for shock content at Higgsfield.
+- **No paid creators, no cash bounties, no ad spend.** There is no budget, and Higgsfield's
+  trajectory shows the paid version is also the dangerous one: engagement-metered payouts
+  selected for shock content, and late payments burned the channel.
 - **No affiliate program yet.** Recurring-commission affiliates need a metered subscription to
   commission; revisit only when a paid cloud surface has stable pricing.
 - **No inauthentic amplification.** One suspended X account costs more reach than a botnet buys.
@@ -148,8 +160,8 @@ subscription-locked persona tools.
 Per template: installs (example install endpoint already exists —
 `POST /api/applications/examples/:slug/install`), landing-page sessions (`/apps/*` is already in
 Search Console per SEO_STRATEGY §0.10), and tracked social pickups. Per program: accepted
-bounties, partner-attributed templates shipped, and share of new-user sessions that start from a
-template versus a blank canvas. North star: **weekly count of publicly posted
+wanted-list submissions, partner-attributed templates shipped, and share of new-user sessions
+that start from a template versus a blank canvas. North star: **weekly count of publicly posted
 "made with NodeTool" clips we did not make ourselves.**
 
 ## 6. First 90 days
@@ -158,7 +170,7 @@ template versus a blank canvas. North star: **weekly count of publicly posted
    repeatable checklist; write the creator enablement kit (format spec from §4.2, caption block,
    asset pack).
 2. **Weeks 3–6:** ship weekly templates; open partner applications with the size-blind criteria;
-   post the first bounty list (5 templates, fixed price, published quality bar).
+   post the first wanted-list (5 templates, published quality bar, attribution promise).
 3. **Weeks 7–12:** first partner-authored template ships as a named example; publish the
    PixVerse-style "what converted" playbook to partners from our own template metrics; review
    kill list; decide whether cadence moves from weekly toward 2–3/week.
