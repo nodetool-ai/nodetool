@@ -40,7 +40,7 @@ export async function resolveDocumentBytes(
     return Buffer.from(bytes);
   }
 
-  const uri = typeof ref.uri === "string" ? ref.uri : "";
+  const uri = ref.uri ?? "";
   if (uri && !/^[a-z][a-z0-9+.-]*:\/\//i.test(uri) && !uri.startsWith("data:")) {
     try {
       return await fs.readFile(expandUser(uri));
