@@ -15,8 +15,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runHostBinary } from "../src/host-binaries.js";
 import {
   FFMPEG_PROTOCOL_WHITELIST,
+  MAX_DOWNLOAD_BYTES,
+  buildYtDlpArgv,
   confineArgvToWorkspace,
-  hardenFfmpegArgv
+  hardenFfmpegArgv,
+  refuseFlagLikeValue
 } from "../src/host-binary-guard.js";
 
 let workspace = "";
@@ -60,11 +63,27 @@ describe("confineArgvToWorkspace", () => {
     );
   });
 
-  it("refuses a path buried in a filter token", async () => {
-    // The whole token resolves, so no filter-syntax parsing is needed.
-    expect(await refusal(["-vf", "subtitles=../outside/secret.txt"])).toContain(
+  it.each([
+    // ffmpeg resolves the path inside the token against its own cwd, so the
+    // whole token resolving inside the workspace is the wrong question:
+    // `<ws>/subtitles=../../etc/passwd` normalizes to `<ws>/etc/passwd`, while
+    // ffmpeg opens `../../etc/passwd`.
+    "subtitles=../../etc/passwd",
+    "subtitles=../outside/secret.txt",
+    "drawtext=fontfile=/etc/passwd"
+  ])("refuses the path buried in %s", async (token) => {
+    expect(await refusal(["-vf", token])).toContain(
       "resolves outside the workspace"
     );
+  });
+
+  it("passes a filter value that names no path", async () => {
+    expect(await refusal(["-vf", "scale=1280:-2,fps=30"])).toBe("");
+  });
+
+  it("allows an output whose directories do not exist yet", async () => {
+    // yt-dlp's default template is two levels deep and creates as it goes.
+    expect(await refusal(["downloads/yt-dlp/%(id)s.%(ext)s"])).toBe("");
   });
 
   it("refuses an in-workspace symlink that points out", async () => {
@@ -176,4 +195,53 @@ describe.skipIf(!hasFfmpeg)("the hardened argv against real ffmpeg", () => {
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toContain("not on whitelist");
   }, 90_000);
+});
+
+describe("buildYtDlpArgv", () => {
+  it("ignores config files, clears post-processing, and ends the options", () => {
+    const argv = buildYtDlpArgv({
+      url: "https://example.com/watch?v=1",
+      outputFile: "downloads/%(id)s.%(ext)s"
+    });
+    expect(argv).toEqual([
+      "--ignore-config",
+      "--no-exec",
+      "--no-playlist",
+      "--no-warnings",
+      "--max-filesize",
+      String(MAX_DOWNLOAD_BYTES),
+      "--print",
+      "after_move:filepath",
+      "-o",
+      "downloads/%(id)s.%(ext)s",
+      "--",
+      "https://example.com/watch?v=1"
+    ]);
+  });
+
+  it("passes a format selector before the end-of-options marker", () => {
+    const argv = buildYtDlpArgv({
+      url: "https://example.com/v",
+      outputFile: "out.mp4",
+      format: "bestaudio"
+    });
+    expect(argv.slice(-4)).toEqual([
+      "-f",
+      "bestaudio",
+      "--",
+      "https://example.com/v"
+    ]);
+  });
+});
+
+describe("refuseFlagLikeValue", () => {
+  it("refuses a value that would be read as an option", () => {
+    expect(refuseFlagLikeValue("--exec", "format")).toEqual({
+      error: expect.stringContaining("format cannot start with")
+    });
+  });
+
+  it("passes an ordinary value", () => {
+    expect(refuseFlagLikeValue("bestvideo+bestaudio", "format")).toBeUndefined();
+  });
 });

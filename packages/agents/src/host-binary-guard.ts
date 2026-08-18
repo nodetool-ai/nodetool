@@ -33,7 +33,7 @@
 
 import path from "node:path";
 
-import { isEditTargetWithinRoot } from "./workspace-paths.js";
+import { isCreatableWithinRoot } from "./workspace-paths.js";
 
 /** What every `-i` gets: local files, plus the two openers that read bytes we already hold. */
 export const FFMPEG_PROTOCOL_WHITELIST = "file,crypto,data";
@@ -58,6 +58,13 @@ const DENIED_TOKENS: readonly string[] = [
   "/sys/"
 ];
 
+/**
+ * yt-dlp's download ceiling. It is the binary's own `--max-filesize`, which —
+ * unlike ffmpeg's `-fs` — aborts before writing: measured against yt-dlp
+ * 2026.07.04, a 20 MB file under `--max-filesize 1M` produced no output file.
+ */
+export const MAX_DOWNLOAD_BYTES = 2 * 1024 * 1024 * 1024;
+
 /** An argument the caller must not set: it would widen rule 1. */
 const RESERVED_FLAGS: readonly string[] = ["-protocol_whitelist"];
 
@@ -71,15 +78,41 @@ function deniedToken(arg: string): string | undefined {
   return DENIED_TOKENS.find((token) => lowered.includes(token));
 }
 
+/** Where a filtergraph or an option value ends and the next one begins. */
+const VALUE_SEPARATORS = /[=:,;[\]'"\s|]+/;
+
+/**
+ * The strings in one argument that ffmpeg could open as a file.
+ *
+ * The argument itself is always one, but it is not the only one: ffmpeg
+ * resolves a path *inside* a filter token against its own working directory,
+ * so `subtitles=../../etc/passwd` opens `../../etc/passwd` while the whole
+ * token resolves to `<workspace>/etc/passwd` — inside the workspace, and the
+ * wrong question. Splitting on the filtergraph separators asks the right one.
+ *
+ * A part is only a candidate when it carries a separator or names the parent
+ * directory; `scale=1280:-2` yields nothing, which is why filter *values* do
+ * not have to be understood to be judged.
+ */
+function pathCandidates(arg: string): string[] {
+  const candidates = [arg];
+  for (const part of arg.split(VALUE_SEPARATORS)) {
+    if (part === "" || part === arg) continue;
+    if (part.includes("/") || part === "..") candidates.push(part);
+  }
+  return candidates;
+}
+
 /**
  * Refuse argv that reaches past the workspace, or `undefined` when every
  * argument stays inside it.
  *
  * Flags are skipped: a leading `-` is ffmpeg's option marker, so such an
  * argument is never a path, and a file named `-x` is unusable by ffmpeg
- * anyway. Everything else is resolved against the workspace root — an absolute
- * path, a `..` chain, and a path buried in a filter token all land outside it
- * the same way.
+ * anyway. Everything else — and every path-shaped piece of it, see
+ * {@link pathCandidates} — is resolved against the workspace root, so an
+ * absolute path, a `..` chain, and a path inside a filter token all land
+ * outside it the same way.
  */
 export async function confineArgvToWorkspace(
   argv: readonly string[],
@@ -96,13 +129,15 @@ export async function confineArgvToWorkspace(
       };
     }
     if (arg === "" || arg.startsWith("-")) continue;
-    const resolved = path.resolve(workspace, arg);
-    if (!(await isEditTargetWithinRoot(workspace, resolved))) {
-      return {
-        error:
-          `"${arg}" resolves outside the workspace. Paths are ` +
-          `workspace-relative and cannot escape it.`
-      };
+    for (const candidate of pathCandidates(arg)) {
+      const resolved = path.resolve(workspace, candidate);
+      if (!(await isCreatableWithinRoot(workspace, resolved))) {
+        return {
+          error:
+            `"${candidate}" resolves outside the workspace. Paths are ` +
+            `workspace-relative and cannot escape it.`
+        };
+      }
     }
   }
   return undefined;
@@ -134,4 +169,62 @@ export function hardenFfmpegArgv(
     hardened.push(arg);
   }
   return { argv: hardened };
+}
+
+
+/**
+ * The argv `yt_dlp` spawns.
+ *
+ * Three of these flags are the boundary rather than configuration:
+ *
+ * - **`--ignore-config`** is the one that matters most. yt-dlp reads a
+ *   *portable* config file — `yt-dlp.conf` in its working directory — and its
+ *   working directory is the workspace, which guest code writes freely. A
+ *   guest that writes `--exec "curl … | sh"` into that file and then calls this
+ *   capability gets arbitrary command execution as the server. Reproduced
+ *   against yt-dlp 2026.07.04, and refused with this flag.
+ * - **`--no-exec`** clears any post-processing command from a source
+ *   `--ignore-config` does not cover.
+ * - **`--`** ends the options, so a URL cannot be read as a flag.
+ *
+ * `--max-filesize` is the disk bound, and `--no-playlist` keeps one URL to one
+ * download.
+ */
+export function buildYtDlpArgv(options: {
+  url: string;
+  outputFile: string;
+  format?: string;
+  maxBytes?: number;
+}): string[] {
+  const argv = [
+    "--ignore-config",
+    "--no-exec",
+    "--no-playlist",
+    "--no-warnings",
+    "--max-filesize",
+    String(options.maxBytes ?? MAX_DOWNLOAD_BYTES),
+    "--print",
+    "after_move:filepath",
+    "-o",
+    options.outputFile
+  ];
+  if (options.format) {
+    argv.push("-f", options.format);
+  }
+  argv.push("--", options.url);
+  return argv;
+}
+
+/**
+ * Refuse a value that would arrive as another flag rather than as the value of
+ * the option it follows. `label` names the field in the refusal.
+ */
+export function refuseFlagLikeValue(
+  value: string,
+  label: string
+): ArgvRefusal | undefined {
+  if (!value.startsWith("-")) return undefined;
+  return {
+    error: `${label} cannot start with "-": it would be read as an option, not a value.`
+  };
 }
