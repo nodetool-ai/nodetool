@@ -242,10 +242,10 @@ exactly one of them:
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-58 trees is 522 pairs, and 258 of them are already at zero — so a rule still
+58 trees is 522 pairs, and 246 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
 fifty-five packages, and those fifty-five are ratcheted today rather than after
-the last one lands. Six rules are at zero everywhere and sit in the enforced
+the last one lands. Seven rules are at zero everywhere and sit in the enforced
 config's top-level `rules`; the rest are enforced per-path, one override block
 per rule listing the trees at zero for it.
 
@@ -300,26 +300,27 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 6974 | 10 / 58 |
-| `no-unsafe-dictionary-type` | 4225 | 10 / 58 |
-| `no-unknown-parameters` | 1884 | 14 / 58 |
-| `no-module-mocking` | 1428 | 55 / 58 |
-| `no-known-value-widening` | 658 | 17 / 58 |
-| `no-runtime-typeof` | 505 | 20 / 58 |
-| `no-hand-written-any` | 302 | 44 / 58 |
-| `no-unknown-returns` | 191 | 42 / 58 |
-| `no-chained-type-assertions` | 44 | 46 / 58 |
+| `require-safety-comment-for-type-assertion` | 7008 | 11 / 58 |
+| `no-unsafe-dictionary-type` | 4269 | 11 / 58 |
+| `no-unknown-parameters` | 1918 | 14 / 58 |
+| `no-module-mocking` | 1457 | 55 / 58 |
+| `no-known-value-widening` | 672 | 17 / 58 |
+| `no-runtime-typeof` | 500 | 21 / 58 |
+| `no-implicit-return-type` | 448 | 30 / 58 |
+| `no-unknown-returns` | 232 | 41 / 58 |
+| `no-chained-type-assertions` | 49 | 46 / 58 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,428 findings but zero in 55 of 58 trees: it is
+`no-module-mocking` is 1,457 findings but zero in 55 of 58 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Ten trees are at zero on all nine rules: `packages/auth`,
-`packages/base-nodes`, `packages/chat`, `packages/config`,
-`packages/model-pricing`, `packages/nodes-utils`, `packages/reve-nodes`,
-`packages/sdk`, `packages/security`, `packages/workflow-runner`.
+a boundary get named. Eleven trees are at zero on all nine rules:
+`packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/config`,
+`packages/document-nodes`, `packages/model-pricing`, `packages/nodes-utils`,
+`packages/reve-nodes`, `packages/sdk`, `packages/security`,
+`packages/workflow-runner`.
 
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps
@@ -407,7 +408,7 @@ pair does not finish in one PR and only ratchets when it reaches zero; the
 prompt says to bound it to one directory and report the before/after count
 rather than imply the win is already held.
 
-A rule can also stall short of zero. `no-unknown-returns` went 604 → 191 (the
+A rule can also stall short of zero. `no-unknown-returns` went 604 → 232 (the
 predicate consolidation above put twenty back); what
 is left is one thing said many ways — a node output, an app-state slot, a
 stream item — for which NodeTool has no named type, plus the `Tool.process`
