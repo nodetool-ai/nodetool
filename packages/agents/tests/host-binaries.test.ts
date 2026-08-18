@@ -4,7 +4,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   HostBinaryMissingError,
+  MAX_CAPTURED_BYTES,
   clampTimeoutSeconds,
+  maxConcurrentHostBinaries,
   mimeFromFilename,
   runHostBinary
 } from "../src/host-binaries.js";
@@ -22,6 +24,89 @@ describe("runHostBinary", () => {
       await rm(cwd, { recursive: true, force: true });
     }
   });
+
+  it("stops capturing output at the cap instead of buying the whole stream", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      // Two megabytes of stderr — an ffmpeg -loglevel debug run, in miniature.
+      const result = await runHostBinary(
+        process.execPath,
+        [
+          "-e",
+          "const line='x'.repeat(1024)+'\\n';" +
+            "for (let i=0;i<2048;i++) process.stderr.write(line);"
+        ],
+        { cwd, timeoutMs: 30_000 }
+      );
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr.length).toBe(MAX_CAPTURED_BYTES);
+      expect(result.truncated).toBe(true);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("kills a run whose artifact passes the size cap", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    try {
+      const result = await runHostBinary(
+        process.execPath,
+        [
+          "-e",
+          "const fs=require('fs');const b=Buffer.alloc(64*1024,1);" +
+            "const s=fs.createWriteStream('big.bin');" +
+            "const t=setInterval(()=>s.write(b),5);" +
+            "setTimeout(()=>{clearInterval(t);s.end();},30000);"
+        ],
+        {
+          cwd,
+          timeoutMs: 30_000,
+          artifactPath: "big.bin",
+          maxArtifactBytes: 256 * 1024
+        }
+      );
+      expect(result.exitCode).toBe(124);
+      expect(result.stderr).toContain("passed the");
+      expect(result.stderr).toContain("output limit");
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("runs no more host binaries at once than the concurrency cap", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
+    const cap = maxConcurrentHostBinaries();
+    try {
+      // Each child reports the window it occupied; overlapping windows beyond
+      // the cap would mean the semaphore let extra spawns through.
+      const runs = await Promise.all(
+        Array.from({ length: cap + 3 }, () =>
+          runHostBinary(
+            process.execPath,
+            [
+              "-e",
+              "const s=Date.now();setTimeout(()=>" +
+                "process.stdout.write(s+' '+Date.now()),200);"
+            ],
+            { cwd, timeoutMs: 30_000 }
+          )
+        )
+      );
+      const windows = runs.map((r) => {
+        const [start, end] = r.stdout.trim().split(" ").map(Number);
+        return { start: start as number, end: end as number };
+      });
+      const peak = Math.max(
+        ...windows.map(
+          (w) =>
+            windows.filter((o) => o.start < w.end && w.start < o.end).length
+        )
+      );
+      expect(peak).toBeLessThanOrEqual(cap);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  }, 60_000);
 
   it("names a missing binary", async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));

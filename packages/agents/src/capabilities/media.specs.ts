@@ -452,7 +452,9 @@ export const FFMPEG_SCHEMA: JsonSchema = {
       type: "array" as const,
       items: { type: "string" as const },
       description:
-        "ffmpeg arguments after the binary name. Paths are workspace-relative. " +
+        "ffmpeg arguments after the binary name. Paths are workspace-relative " +
+        "and cannot escape it; inputs may only open local files, so a URL is " +
+        "refused — download it first. " +
         "Example: [\"-i\", \"in.mp4\", \"-vf\", \"scale=1280:-2\", \"out.mp4\"]."
     },
     output_file: {
@@ -474,14 +476,46 @@ export const ffmpegSpec: CapabilitySpec = {
   name: "ffmpeg",
   description:
     "Run ffmpeg on workspace files. Pass argv after the binary name " +
-    "(no shell). Paths are workspace-relative. Install ffmpeg if the " +
-    "binary is missing. Use output_file to persist the result as an asset.",
+    "(no shell). Paths are workspace-relative and confined to the " +
+    "workspace; inputs open local files only (no URLs, pipes, or device " +
+    "files). Install ffmpeg if the binary is missing. Use output_file to " +
+    "persist the result as an asset.",
   inputSchema: FFMPEG_SCHEMA,
   category: "execute",
   userMessage: (params) => {
     const out =
       isString(params["output_file"]) ? params["output_file"] : "";
     return out ? `Running ffmpeg → ${out}` : "Running ffmpeg";
+  }
+};
+
+export const FFPROBE_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    path: {
+      type: "string" as const,
+      description:
+        "Workspace-relative media file to inspect. Cannot escape the workspace."
+    },
+    timeout_seconds: {
+      type: "number" as const,
+      description: "Wall-clock timeout. Default 30, max 120."
+    }
+  },
+  required: ["path"]
+};
+
+export const ffprobeSpec: CapabilitySpec = {
+  name: "ffprobe",
+  description:
+    "Read a media file's format and streams with ffprobe: duration, size, " +
+    "bit rate, and per-stream codec/resolution/frame rate/channels. Takes a " +
+    "workspace path, not argv. Use it before ffmpeg to decide what to do.",
+  inputSchema: FFPROBE_SCHEMA,
+  category: "execute",
+  userMessage: (params) => {
+    const target = isString(params["path"]) ? params["path"] : "a file";
+    return `Inspecting ${target}`;
   }
 };
 
@@ -540,5 +574,6 @@ export const mediaSpecs: readonly CapabilitySpec[] = [
   scoreImageAdherenceSpec,
   understandVideoSpec,
   ffmpegSpec,
+  ffprobeSpec,
   ytDlpSpec
 ];

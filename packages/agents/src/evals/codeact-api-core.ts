@@ -1163,6 +1163,33 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
+      "ffprobe",
+      "Read a media file's format and streams with ffprobe.",
+      { path: s, timeout_seconds: { type: "number" } },
+      (params) => {
+        const target = str(params["path"]);
+        return {
+          path: target,
+          format: {
+            filename: target,
+            format_name: "mov,mp4,m4a",
+            duration: "12.500000",
+            size: "1048576"
+          },
+          streams: [
+            {
+              codec_type: "video",
+              codec_name: "h264",
+              width: 1920,
+              height: 1080,
+              r_frame_rate: "30/1"
+            },
+            { codec_type: "audio", codec_name: "aac", channels: 2 }
+          ]
+        };
+      }
+    ),
+    tool(
       "yt_dlp",
       "Download a video with yt-dlp.",
       {
