@@ -735,8 +735,22 @@ virtual secret key `GOOGLE_ACCESS_TOKEN`, which `getSecret` routes to
 They are not in `BUILTIN_TOOL_CLASSES`. A server without a login can never
 produce a token, so the chat toolbelt adds them only when
 `isGoogleWorkspaceEnabled()` (`@nodetool-ai/config`) is true — Supabase auth
-mode, or `NODETOOL_GOOGLE_WORKSPACE=1`. The matching `lib.google.*` nodes are
-filtered out of `/api/nodes/metadata` under the same condition.
+mode, or `NODETOOL_GOOGLE_WORKSPACE=1`.
+
+The fourteen `lib.google.*` nodes are gone. Each wrapped a call this module
+already makes, on the same sign-in token, and the module makes six more no node
+ever offered: get one Drive file, get one Gmail message, list labels, create a
+spreadsheet, list calendars, delete an event. The capability is the only Google
+surface now, and it is two things at once — an agent tool and a guest import.
+
+```js
+// Code node `packages`: nothing to declare — capability modules are mounted
+// by the host, not installed as packs.
+import { drive_search, gmail_send_message } from "@nodetool-ai/sandbox-nodetool/google";
+
+const { files } = await drive_search({ query: "name contains 'invoice'" });
+await gmail_send_message({ to: "a@b.c", subject: "Invoices", body: String(files.length) });
+```
 
 ```ts
 import {

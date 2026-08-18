@@ -295,7 +295,8 @@ now covers this ground from inside a Code node. `ForEachRow` and
 | `nodetool.image.*` `nodetool.audio.*` `nodetool.video.*` `nodetool.model3d.*` `lib.image.*` `lib.audio.*` `lib.grid.*` `nodetool.sketch/timeline/script` | content cards and bespoke editors; sharp/canvas/ffmpeg |
 | `lib.nlp.*` (7) | compromise, AFINN, stemmers, TF-IDF — real libraries |
 | `lib.pdf` `lib.charts` | PDF text extraction and page rasterization, and a chart renderer |
-| `lib.mail` `lib.google` `lib.apple` `messaging.*` | IMAP/SMTP, an OAuth session, AppleScript, and long-lived bot connections — none of them a `fetch` call |
+| `lib.mail` `lib.apple` `messaging.*` | IMAP/SMTP, AppleScript, and long-lived bot connections — none of them a `fetch` call |
+| `lib.google` | **Removed.** Drive, Gmail, Docs, Sheets and Calendar are the `google` capability module: `import { drive_search } from "@nodetool-ai/sandbox-nodetool/google"`. The OAuth session stays host-side — the guest never holds the token. |
 | `lib.s3` `lib.supabase` `lib.notion` `lib.twilio` `apify.*` `search.*` `messaging.*.SendMessage` `lib.mail.SendEmail` | **Removed.** Each was one authenticated HTTP call, so each is a Code node now: `fetch`, `nodetool.secrets.get(name)`, and the auth-helper packs (`@nodetool-ai/sandbox-aws` for SigV4, `-notion`, `-supabase`, `-twilio`, `-apify`). `lib.mail.SendEmail` went with them and has no guest path — SMTP is not HTTP; a script sends mail through an HTTP email API. |
 | `lib.docx` `lib.epub` `lib.pptx` `lib.convert` | **Removed.** Reading and building these formats is what the `-docx`, `-mammoth`, `-epub` and `-pptx` packs offer a script. |
 | `lib.browser` `lib.sqlite` | CDP, and the database path a script needs |

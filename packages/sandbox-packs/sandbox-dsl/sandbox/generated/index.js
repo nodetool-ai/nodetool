@@ -9,7 +9,6 @@ import * as libAudio from "./lib.audio.js";
 import * as libBrowser from "./lib.browser.js";
 import * as libCharts from "./lib.charts.js";
 import * as libComfy from "./lib.comfy.js";
-import * as libGoogle from "./lib.google.js";
 import * as libGrid from "./lib.grid.js";
 import * as libImage from "./lib.image.js";
 import * as libImageChannel from "./lib.image.channel.js";
@@ -95,7 +94,6 @@ export {
   libBrowser,
   libCharts,
   libComfy,
-  libGoogle,
   libGrid,
   libImage,
   libImageChannel,

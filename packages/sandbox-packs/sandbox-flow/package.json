@@ -58,11 +58,6 @@
         "file": "sandbox/generated/lib.comfy.js"
       },
       {
-        "name": "lib.google",
-        "kind": "js",
-        "file": "sandbox/generated/lib.google.js"
-      },
-      {
         "name": "lib.grid",
         "kind": "js",
         "file": "sandbox/generated/lib.grid.js"

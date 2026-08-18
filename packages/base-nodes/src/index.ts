@@ -378,23 +378,6 @@ export {
   LIB_SQLITE_NODES
 } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
 export {
-  GoogleDriveSearchLibNode,
-  GoogleDriveReadFileLibNode,
-  GoogleDriveCreateFileLibNode,
-  GoogleGmailSearchLibNode,
-  GoogleGmailSendLibNode,
-  GoogleGmailModifyLabelsLibNode,
-  GoogleDocsReadLibNode,
-  GoogleDocsCreateLibNode,
-  GoogleDocsAppendLibNode,
-  GoogleSheetsReadLibNode,
-  GoogleSheetsAppendLibNode,
-  GoogleSheetsUpdateLibNode,
-  GoogleCalendarListEventsLibNode,
-  GoogleCalendarCreateEventLibNode,
-  LIB_GOOGLE_NODES
-} from "@nodetool-ai/integration-nodes/nodes/lib-google";
-export {
   BitcrushNode,
   CompressNode,
   DistortionNode,
@@ -505,7 +488,6 @@ import { LIB_MAIL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
 import { LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 import { LIB_PDF_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
-import { LIB_GOOGLE_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-google";
 import { KIE_DYNAMIC_NODES } from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
 import { VECTOR_NODES } from "@nodetool-ai/core-nodes/nodes/vector";
 import { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
@@ -572,7 +554,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
-  ...LIB_GOOGLE_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
   ...GEMINI_NODES,
