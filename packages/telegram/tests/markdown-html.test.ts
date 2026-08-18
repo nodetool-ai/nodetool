@@ -118,3 +118,20 @@ describe("markdownToTelegramHtml", () => {
     );
   });
 });
+
+describe("adversarial input (CodeQL js/polynomial-redos regressions)", () => {
+  it("handles a fence-like line with a long space run in linear time", () => {
+    // The old FENCE_LINE regex (`…\s*([^\s`~]*)\s*$`) was quadratic on
+    // exactly this shape — a space run followed by a character the info
+    // token cannot contain (measured ~1.8 s at 40k spaces; 200k would hang).
+    const md = "```" + " ".repeat(200_000) + "`\nprose";
+    const result = markdownToTelegramHtml(md);
+    expect(result.ok).toBe(true);
+  });
+
+  it("still refuses a fence info string with inner whitespace", () => {
+    const result = markdownToTelegramHtml("``` foo bar\ntext");
+    // Not a fence, so no unclosed block: the line is prose.
+    expect(result.ok).toBe(true);
+  });
+});

@@ -21,7 +21,29 @@ export type TelegramHtmlResult =
 /** URL schemes allowed on a link. Anything else renders as its label. */
 const SAFE_SCHEMES = new Set(["http:", "https:", "tg:", "mailto:"]);
 
-const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})\s*([^\s`~]*)\s*$/;
+// The info string is validated in code rather than the regex: the
+// \s*([^\s`~]*)\s* form is quadratic on trailing whitespace
+// (CodeQL js/polynomial-redos), while (.*)$ is linear.
+const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+
+/**
+ * Parse a fence delimiter line. Returns null for lines that are not a fence,
+ * including a fence-like line whose info string carries whitespace, backticks,
+ * or tildes — the same lines the previous single-token regex refused.
+ */
+function parseFenceLine(
+  line: string
+): { readonly marker: string; readonly info: string } | null {
+  const match = FENCE_LINE.exec(line);
+  if (match === null) {
+    return null;
+  }
+  const info = match[2].trim();
+  if (/[\s`~]/.test(info)) {
+    return null;
+  }
+  return { marker: match[1], info };
+}
 
 /** Escape the three characters Telegram's HTML mode reserves. */
 export function escapeHtml(text: string): string {
@@ -59,19 +81,19 @@ function splitBlocks(markdown: string): Block[] | null {
   };
 
   for (const line of lines) {
-    const match = FENCE_LINE.exec(line);
+    const fence = parseFenceLine(line);
     if (code === null) {
-      if (match !== null) {
+      if (fence !== null) {
         flushProse();
         code = [];
-        marker = match[1][0];
-        language = match[2];
+        marker = fence.marker[0];
+        language = fence.info;
         continue;
       }
       prose.push(line);
       continue;
     }
-    if (match !== null && match[1][0] === marker) {
+    if (fence !== null && fence.marker[0] === marker) {
       blocks.push({ kind: "code", text: code.join("\n"), language });
       code = null;
       continue;

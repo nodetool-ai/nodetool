@@ -124,3 +124,19 @@ describe("splitOnce", () => {
     expect(stripWhitespace(head + rest)).toBe(stripWhitespace(text));
   });
 });
+
+describe("adversarial input (CodeQL js/polynomial-redos regressions)", () => {
+  it("tokenizes '<' followed by a long space run in linear time", () => {
+    // The old TAG regex (`^<\s*(\/?)\s*…`) was quadratic on exactly this
+    // shape — a space run that then FAILS to match a tag name (measured
+    // ~8 s at 80k spaces; 200k would hang the suite).
+    const text = `<${" ".repeat(200_000)}!`;
+    const chunks = chunkText(text, 3800);
+    expect(chunks.join("").replace(/\s+/g, "")).toBe(text.replace(/\s+/g, ""));
+  });
+
+  it("treats a spaced tag as text, not markup", () => {
+    const chunks = chunkText("a < b>c</ b>d", 3800);
+    expect(chunks).toEqual(["a < b>c</ b>d"]);
+  });
+});

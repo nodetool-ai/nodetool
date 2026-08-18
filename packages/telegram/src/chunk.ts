@@ -48,7 +48,10 @@ interface MarkupState {
 const EMPTY_STATE: MarkupState = { fence: null, tags: [] };
 
 const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
-const TAG = /^<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)(\s[^<>]*)?>/;
+// No whitespace tolerated after "<" or "/": Telegram's HTML mode rejects it,
+// our converter never emits it, and the adjacent-\s* ambiguity it needed is
+// quadratic on adversarial input (CodeQL js/polynomial-redos).
+const TAG = /^<(\/?)([a-zA-Z][a-zA-Z0-9]*)(\s[^<>]*)?>/;
 const ENTITY = /^&(#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[a-zA-Z][a-zA-Z0-9]{1,31});/;
 
 function fenceMarker(openingLine: string): string {
