@@ -13,6 +13,7 @@ import { Tooltip, MOTION, BORDER_RADIUS, reducedMotion } from "../ui_primitives"
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { isNumber } from "../../utils/typePredicates";
+import { canTakeFocus, isTextInputActive } from "../../utils/browser";
 
 
 const styles = (theme: Theme) =>
@@ -349,10 +350,13 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // See SearchInput: never steal a keystroke from another editable field
+      // or from a host that cannot take focus (an inactive workspace tab).
       const shouldHandleEvent =
         document.activeElement === inputRef.current ||
         (focusOnTyping &&
-          !document.activeElement?.classList.contains("search-input"));
+          !isTextInputActive() &&
+          canTakeFocus(inputRef.current));
 
       if (!shouldHandleEvent) {return;}
 

@@ -15,7 +15,9 @@ jest.mock("../../ui_primitives", () => ({
 
 // No modifier keys held during these tests.
 jest.mock("../../../stores/KeyPressedStore", () => ({
-  useKeyPressedStore: () => false
+  useKeyPressedStore: Object.assign(() => false, {
+    getState: () => ({ isKeyPressed: () => false })
+  })
 }));
 
 const renderWithTheme = (ui: React.ReactElement) =>
@@ -136,5 +138,54 @@ describe("SearchInput", () => {
     );
 
     expect(screen.getByTestId("search-input-field")).toHaveFocus();
+  });
+
+  describe("focusOnTyping", () => {
+    it("pulls focus in when nothing editable is focused", () => {
+      renderWithTheme(
+        <SearchInput onSearchChange={jest.fn()} focusSearchInput={false} focusOnTyping />
+      );
+      const input = screen.getByTestId("search-input-field");
+      expect(document.activeElement).not.toBe(input);
+
+      fireEvent.keyDown(window, { key: "a" });
+
+      expect(document.activeElement).toBe(input);
+    });
+
+    it("leaves focus in another input the user is typing into", () => {
+      const other = document.createElement("input");
+      document.body.appendChild(other);
+      renderWithTheme(
+        <SearchInput onSearchChange={jest.fn()} focusSearchInput={false} focusOnTyping />
+      );
+      other.focus();
+
+      const event = new KeyboardEvent("keydown", { key: "a", cancelable: true });
+      window.dispatchEvent(event);
+
+      expect(document.activeElement).toBe(other);
+      expect(event.defaultPrevented).toBe(false);
+      document.body.removeChild(other);
+    });
+
+    it("stays quiet inside an inert host (an inactive workspace tab)", () => {
+      const host = document.createElement("div");
+      host.setAttribute("inert", "");
+      document.body.appendChild(host);
+      render(
+        <ThemeProvider theme={mockTheme}>
+          <SearchInput onSearchChange={jest.fn()} focusSearchInput={false} focusOnTyping />
+        </ThemeProvider>,
+        { container: host }
+      );
+
+      const event = new KeyboardEvent("keydown", { key: "a", cancelable: true });
+      window.dispatchEvent(event);
+
+      expect(document.activeElement).toBe(document.body);
+      expect(event.defaultPrevented).toBe(false);
+      document.body.removeChild(host);
+    });
   });
 });

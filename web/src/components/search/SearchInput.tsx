@@ -9,6 +9,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { isMac } from "../../utils/platform";
+import { canTakeFocus, isTextInputActive } from "../../utils/browser";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 
@@ -185,10 +186,16 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const isFocused = document.activeElement === inputRef.current;
+      // Typing elsewhere focuses this input only when the user is not already
+      // in another editable field and this input can actually take focus.
+      // A hidden or inert host (an inactive workspace tab) must never steal
+      // the keystroke: focus() would be a no-op and the letter would be lost.
       const shouldHandleEvent =
-        document.activeElement === inputRef.current ||
+        isFocused ||
         (focusOnTyping &&
-          !document.activeElement?.classList.contains("search-input"));
+          !isTextInputActive() &&
+          canTakeFocus(inputRef.current));
 
       if (!shouldHandleEvent) { return; }
 
