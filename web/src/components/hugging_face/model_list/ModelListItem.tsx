@@ -17,8 +17,19 @@ import { formatBytes } from "../../../utils/modelFormatting";
 import { getModelUrl } from "../../../utils/providerDisplay";
 import type { ModelCompatibilityResult } from "./useModelCompatibility";
 import ModelCompatibilityDialog from "./ModelCompatibilityDialog";
+import { classifyModelFit, estimateRequiredGb } from "./modelFit";
+import type { FitLevel } from "../onboarding/onboardingCatalog";
 
 const IMPORTANT_TAGS = new Set(["gguf", "mlx"]);
+
+const FIT_CHIP: Record<
+  Exclude<FitLevel, "unknown">,
+  { color: "success" | "warning" | "error"; label: (requiredGb: number) => string }
+> = {
+  fits: { color: "success", label: () => "Fits your machine" },
+  tight: { color: "warning", label: () => "Tight fit" },
+  over: { color: "error", label: (gb) => `Needs ~${Math.ceil(gb)} GB` }
+};
 
 const ModelListItem: React.FC<
   ModelComponentProps & {
@@ -27,6 +38,11 @@ const ModelListItem: React.FC<
     compatibility?: ModelCompatibilityResult;
     isCheckingCache?: boolean;
     onSelect?: () => void;
+    /**
+     * Memory budget (GB) to grade the model's size against; null/undefined
+     * hides the fit badge.
+     */
+    fitBudgetGb?: number | null;
   }
 > = ({
   model,
@@ -37,7 +53,8 @@ const ModelListItem: React.FC<
   compactView = false,
   showFileExplorerButton = true,
   compatibility,
-  isCheckingCache = false
+  isCheckingCache = false,
+  fitBudgetGb = null
 }) => {
   const baseId = model.repo_id || model.id;
   const downloadId = model.path ? `${baseId}/${model.path}` : baseId;
@@ -49,6 +66,11 @@ const ModelListItem: React.FC<
     [model.tags]
   );
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const fit = useMemo(
+    () => classifyModelFit(model, fitBudgetGb),
+    [model, fitBudgetGb]
+  );
 
   const handleOpenDialog = useCallback(() => {
     setDialogOpen(true);
@@ -221,6 +243,23 @@ const ModelListItem: React.FC<
                       component="span"
                     />
                   </TextLink>
+                </Tooltip>
+              )}
+              {fit !== "unknown" && (
+                <Tooltip
+                  title={`Estimated from the model's ${formatBytes(
+                    model.size_on_disk ?? 0
+                  )} size against your ${fitBudgetGb} GB memory budget (set it under Get Started).`}
+                  delay={400}
+                >
+                  <Chip
+                    label={FIT_CHIP[fit].label(estimateRequiredGb(model) ?? 0)}
+                    size="small"
+                    component="span"
+                    color={FIT_CHIP[fit].color}
+                    variant="outlined"
+                    sx={{ height: 20, fontSize: theme.vars.fontSizeSmaller, cursor: "help" }}
+                  />
                 </Tooltip>
               )}
               {compatibility && compatibilityCounts.total > 0 && (

@@ -17,6 +17,8 @@ import { openInExplorer, openOllamaPath } from "../../../utils/fileExplorer";
 import { isHfModel } from "../../../utils/hfCache";
 import { isLocalProvider } from "../../../utils/providerDisplay";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { compareModelsByFit, goalsForModel } from "./modelFit";
+import { useHardwareProfile } from "../onboarding/useHardwareProfile";
 
 /**
  * HuggingFace Hub pipeline tags, shown as the fixed category list when browsing
@@ -91,10 +93,15 @@ export const isManageableModel = (model: UnifiedModel): boolean => {
 const sortModels = (
   models: UnifiedModel[],
   field: ModelSortField,
-  direction: ModelSortDirection
+  direction: ModelSortDirection,
+  budgetGb: number | null = null
 ): UnifiedModel[] => {
   const sorted = [...models].sort((a, b) => {
     switch (field) {
+      case "fit":
+        // Best-fit-first is already the "ascending" order; the direction
+        // toggle below flips it like any other field.
+        return compareModelsByFit(a, b, budgetGb);
       case "name": {
         const nameA = (a.name || a.id || "").toLowerCase();
         const nameB = (b.name || b.id || "").toLowerCase();
@@ -136,7 +143,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     (state) => state.addNotification
   );
   const source = useModelManagerStore((state) => state.source);
+  const selectedGoal = useModelManagerStore((state) => state.selectedGoal);
   const recommendedCatalog = useMetadataStore((state) => state.recommendedModels);
+  const { budgetGb } = useHardwareProfile();
 
   const {
     data: rawModels,
@@ -224,6 +233,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
 
       if (!matchesText) {return false;}
       if (!typeMatches) {return false;}
+      if (selectedGoal && !goalsForModel(model).has(selectedGoal)) {
+        return false;
+      }
       if (
         maxModelSizeGB &&
         model.size_on_disk &&
@@ -234,15 +246,17 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
       return true;
     };
     const filtered = allModels?.filter(filterModel) || [];
-    return sortModels(filtered, sortField, sortDirection);
+    return sortModels(filtered, sortField, sortDirection, budgetGb);
   }, [
     allModels,
     source,
     modelSearchTerm,
     selectedModelType,
+    selectedGoal,
     maxModelSizeGB,
     sortField,
-    sortDirection
+    sortDirection,
+    budgetGb
   ]);
 
   const modelTypes = useMemo(() => {
@@ -290,6 +304,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
           model.repo_id?.toLowerCase().includes(searchTerm);
 
         if (!matchesText) {return false;}
+        if (selectedGoal && !goalsForModel(model).has(selectedGoal)) {
+          return false;
+        }
         if (
           maxModelSizeGB &&
           model.size_on_disk &&
@@ -307,7 +324,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     });
 
     return types;
-  }, [allModels, source, modelSearchTerm, maxModelSizeGB]);
+  }, [allModels, source, modelSearchTerm, selectedGoal, maxModelSizeGB]);
 
   const modelCountsByType = useMemo(() => {
     const counts: Record<string, number> = {};
