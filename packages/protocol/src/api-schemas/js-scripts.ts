@@ -57,6 +57,17 @@ export const jsScriptTestCase = z.object({
 });
 export type JsScriptTestCase = z.infer<typeof jsScriptTestCase>;
 
+/**
+ * Menu placement for a script its owner exposed as a custom node. Absent means
+ * the script stays a library script; the node's title, description and ports
+ * come from the document itself, so `category` is the only knob here.
+ */
+export const jsScriptPalette = z.object({
+  /** Free-text grouping under the `user` namespace, e.g. "Text", "My API". */
+  category: z.string()
+});
+export type JsScriptPalette = z.infer<typeof jsScriptPalette>;
+
 export const jsScriptDocument = z.object({
   schemaVersion: z.literal(JS_SCRIPT_SCHEMA_VERSION),
   /** What the script does — how an agent picks one out of a list. */
@@ -74,7 +85,9 @@ export const jsScriptDocument = z.object({
     .positive()
     .max(JS_SCRIPT_MAX_TIMEOUT_SECONDS)
     .default(JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS),
-  tests: z.array(jsScriptTestCase).default([])
+  tests: z.array(jsScriptTestCase).default([]),
+  /** Set to expose the script in the node menu as a custom node. */
+  palette: jsScriptPalette.optional()
 });
 export type JsScriptDocument = z.infer<typeof jsScriptDocument>;
 
@@ -205,6 +218,25 @@ export function validateJsScriptDocument(
           message: `test "${testCase.name}" expects a stream from undeclared output "${entry.name}"`
         });
       }
+    }
+  }
+
+  if (doc.palette) {
+    if (doc.palette.category.trim() === "") {
+      issues.push({
+        severity: "error",
+        code: "js_script_palette_category",
+        message: "the palette category is empty"
+      });
+    }
+    if (doc.outputs.length === 0) {
+      issues.push({
+        severity: "warning",
+        code: "js_script_palette_no_outputs",
+        message:
+          "the script is exposed in the node menu but declares no outputs, " +
+          "so the node has no handles to connect"
+      });
     }
   }
 

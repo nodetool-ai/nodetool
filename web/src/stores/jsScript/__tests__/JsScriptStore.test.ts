@@ -88,6 +88,24 @@ describe("JsScriptStore", () => {
     expect(store().getScript(ID)).toBe(before);
   });
 
+  it("exposes the script in the node menu and takes it back out", () => {
+    store().ensureScript(ID);
+    store().setPalette(ID, { category: "My API" });
+    expect(store().getScript(ID)?.document.palette).toEqual({
+      category: "My API"
+    });
+
+    const before = store().getScript(ID);
+    store().setPalette(ID, { category: "My API" });
+    expect(store().getScript(ID)).toBe(before);
+
+    store().setPalette(ID, null);
+    expect(store().getScript(ID)?.document).not.toHaveProperty("palette");
+    const hidden = store().getScript(ID);
+    store().setPalette(ID, null);
+    expect(store().getScript(ID)).toBe(hidden);
+  });
+
   it("undo restores the previous document and redo reapplies it", () => {
     store().ensureScript(ID);
     store().setCode(ID, "first");

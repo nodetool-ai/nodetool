@@ -7,6 +7,9 @@
  *
  * Procedures:
  *   list             (query)    — JsScriptListItem[]
+ *   palette          (query)    — the caller's custom nodes, each with the
+ *                                  version pinned for it (writes a snapshot
+ *                                  when the newest one no longer matches)
  *   get              (query)    — JsScriptResponse
  *   create           (mutation) — JsScriptResponse
  *   update           (mutation) — JsScriptResponse (CAS via baseUpdatedAt)
@@ -70,6 +73,11 @@ const updateInput = patchJsScriptInput.and(
 
 const okOutput = z.object({ ok: z.literal(true) });
 
+/** One custom node: the script's response shape plus the version pinned for it. */
+const jsScriptPaletteItem = jsScriptResponse.extend({
+  version: z.number().int()
+});
+
 function toListItem(script: JsScript) {
   const doc = script.toDocument();
   return {
@@ -111,6 +119,28 @@ function parseVersionDocument(raw: unknown): JsonValue {
   }
 }
 
+/** A stored document, comparable across the SQLite (text) and Postgres (json) columns. */
+function documentText(raw: unknown): string {
+  return isString(raw) ? raw : JSON.stringify(raw);
+}
+
+/**
+ * The version number that pins a script's current content: the newest snapshot
+ * when it already matches, else a fresh one. Mirrors what the Code node's link
+ * hook does before it materializes a script onto a node.
+ */
+async function pinCurrentVersion(script: JsScript): Promise<number> {
+  const [newest] = await JsScriptVersion.listForScript(script.id, { limit: 1 });
+  if (newest && documentText(newest.document) === documentText(script.document)) {
+    return newest.version;
+  }
+  const created = await JsScriptVersion.snapshot(script, {
+    saveType: "autosave",
+    name: "Pinned for the node menu"
+  });
+  return created.version;
+}
+
 async function loadOwned(
   ctxUserId: string | null,
   id: string
@@ -132,6 +162,34 @@ export const jsScriptsRouter = router({
         ? await JsScript.listByProject(input.projectId, ctx.userId)
         : await JsScript.listByUser(ctx.userId);
       return items.map(toListItem);
+    }),
+
+  /**
+   * The caller's custom nodes: every script whose document carries `palette`,
+   * each with the whole document and the version that pins it. The node menu
+   * needs the ports to build metadata, the body to materialize a dropped node
+   * without a second round trip, and the version number to record on the
+   * placed node as provenance.
+   *
+   * Pinning is why this query writes: a placed node keeps the version it was
+   * dropped at, so the menu can only hand out a version whose document is what
+   * the user is looking at. It snapshots at most once per content change of an
+   * exposed script — a script whose newest snapshot already matches gets that
+   * number back.
+   */
+  palette: protectedProcedure
+    .output(z.array(jsScriptPaletteItem))
+    .query(async ({ ctx }) => {
+      const items = await JsScript.listByUser(ctx.userId);
+      const exposed = items.filter(
+        (script) => script.toDocument().palette !== undefined
+      );
+      return Promise.all(
+        exposed.map(async (script) => ({
+          ...jsScriptResponse.parse(script.toResponse()),
+          version: await pinCurrentVersion(script)
+        }))
+      );
     }),
 
   get: protectedProcedure

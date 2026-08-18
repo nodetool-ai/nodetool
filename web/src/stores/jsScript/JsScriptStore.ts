@@ -30,6 +30,7 @@ import {
 export type JsScriptDocument = jsScripts.JsScriptDocument;
 export type JsScriptPort = jsScripts.JsScriptPort;
 export type JsScriptTestCase = jsScripts.JsScriptTestCase;
+export type JsScriptPalette = jsScripts.JsScriptPalette;
 
 /** Default and ceiling mirrored from the protocol schema. */
 export const JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS = 30;
@@ -116,6 +117,8 @@ interface JsScriptStoreState {
   setSecrets: (scriptId: string, secrets: string[]) => void;
   setTimeoutSeconds: (scriptId: string, timeoutSeconds: number) => void;
   setTests: (scriptId: string, tests: JsScriptTestCase[]) => void;
+  /** Expose the script in the node menu, or (with null) stop exposing it. */
+  setPalette: (scriptId: string, palette: JsScriptPalette | null) => void;
 
   setLastRun: (scriptId: string, outcome: JsScriptRunOutcome | null) => void;
   setLastTest: (scriptId: string, report: JsScriptTestReport | null) => void;
@@ -359,6 +362,26 @@ export const useJsScriptStore = create<JsScriptStoreState>((set, get) => ({
   setTests: (scriptId, tests) =>
     set((state) =>
       withScript(state, scriptId, (entry) => withDocument(entry, { tests }))
+    ),
+
+  setPalette: (scriptId, palette) =>
+    set((state) =>
+      withScript(
+        state,
+        scriptId,
+        (entry) => {
+          if (palette === null) {
+            if (entry.document.palette === undefined) return entry;
+            const document = { ...entry.document };
+            delete document.palette;
+            return { ...entry, document };
+          }
+          return entry.document.palette?.category === palette.category
+            ? entry
+            : { ...entry, document: { ...entry.document, palette } };
+        },
+        { coalesceKey: "palette" }
+      )
     ),
 
   setLastRun: (scriptId, outcome) =>

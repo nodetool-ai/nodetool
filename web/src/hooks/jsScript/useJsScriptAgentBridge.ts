@@ -119,6 +119,9 @@ export const useJsScriptAgentBridge = (scriptId: string): void => {
         if (meta.timeoutSeconds !== undefined) {
           store().setTimeoutSeconds(scriptId, meta.timeoutSeconds);
         }
+        if (meta.palette !== undefined) {
+          store().setPalette(scriptId, meta.palette);
+        }
         return snapshot();
       },
       setTests: (tests) => {
