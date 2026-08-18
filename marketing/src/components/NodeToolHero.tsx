@@ -42,9 +42,10 @@ export default function NodeToolHero() {
               node-based
             </a>{" "}
             canvas for image, video, audio, and text, where every editor is a
-            tool an agent can drive. Say what you want and the agent builds the
-            workflow and runs it — on every major model, with your own keys, at
-            provider prices.
+            tool an agent can drive. Describe what you want to make; the agent
+            builds the workflow and runs it with the right models and tools —
+            and the whole process stays open for you to inspect, edit, and
+            reuse. Every major model, your own keys, provider prices.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
