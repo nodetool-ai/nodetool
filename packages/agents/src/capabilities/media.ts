@@ -30,7 +30,8 @@ import {
   HostBinaryMissingError,
   clampTimeoutSeconds,
   mimeFromFilename,
-  runHostBinary
+  runHostBinary,
+  type RunHostBinaryOptions
 } from "../host-binaries.js";
 import {
   confineArgvToWorkspace,
@@ -1215,12 +1216,14 @@ const ffmpeg: CapabilityExport = {
       "";
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 180, 600) * 1000;
+    const runOptions: RunHostBinaryOptions = { cwd: workspace, timeoutMs };
+    // Only a known output path can be watched for size; without one the
+    // wall clock and the capture cap are the run's bounds.
+    if (persistTarget) {
+      runOptions.artifactPath = persistTarget;
+    }
     try {
-      const result = await runHostBinary("ffmpeg", hardened.argv, {
-        cwd: workspace,
-        timeoutMs,
-        ...(persistTarget ? { artifactPath: persistTarget } : {})
-      });
+      const result = await runHostBinary("ffmpeg", hardened.argv, runOptions);
       const persisted =
         result.exitCode === 0 && persistTarget
           ? await persistWorkspaceFile(run.context, persistTarget)
