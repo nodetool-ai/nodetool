@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/preview.png",
-        alt: "NodeTool — the open creative AI workspace",
+        alt: "NodeTool — the open, agent-first creative workspace",
       },
     ],
     locale: "en_US",

@@ -263,6 +263,10 @@ export default function Home() {
         {/* Name the pain before showing the fix — the demo answers this block */}
         <StatusQuoSection />
 
+        {/* The core differentiator, right after the problem: the agent leaves
+            an executable, editable process behind — not a transcript */}
+        <ChatUISection />
+
         {/* Demo video — surface the product immediately after the hero */}
         <section id="demo-video" aria-label="NodeTool Demo" className="rhythm-section relative scroll-mt-24">
           <div className={`${sectionContainer}`}>
@@ -308,9 +312,6 @@ export default function Home() {
 
         {/* Concrete proof right after the mental model: a complete, runnable workflow */}
         <UseCasesShowcase />
-
-        {/* Why the agent here is more than a chatbot — the toolbelt */}
-        <ChatUISection />
 
         {/* Route by intent once the core story has landed */}
         <WaysInSection />
