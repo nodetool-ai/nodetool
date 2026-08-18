@@ -262,16 +262,24 @@ function unescapeHtml(text: string): string {
   });
 }
 
-/** Flatten one parameter's documentation HTML to the text a model reads. */
+/**
+ * Flatten one parameter's documentation HTML to the text a model reads.
+ *
+ * Entities are decoded first and tags are stripped until the string stops
+ * changing, rather than in one pass. A single pass is incomplete sanitization:
+ * `<<b>script>` survives it as `<script`, and decoding afterwards would turn
+ * `&lt;script&gt;` back into markup this function claims to have removed.
+ */
 export function htmlToText(html: string): string {
-  return unescapeHtml(
-    html
-      .replace(/<br\s*\/?>/gi, " ")
-      .replace(/<\/(p|div|li)>/gi, " ")
-      .replace(/<[^>]+>/g, "")
-  )
-    .replace(/\s+/g, " ")
-    .trim();
+  let text = unescapeHtml(html)
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|div|li)>/gi, " ");
+  let previous = "";
+  while (text !== previous) {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, "");
+  }
+  return text.replace(/\s+/g, " ").trim();
 }
 
 function readParameters(

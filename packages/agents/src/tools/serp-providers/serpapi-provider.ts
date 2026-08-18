@@ -47,12 +47,13 @@ export class SerpApiProvider implements SerpProvider {
     query: string,
     options?: SearchOptions
   ): Promise<Record<string, unknown>> {
-    return this.client.search(options?.engine ?? "google", {
+    const params: Record<string, string | number> = {
       q: query,
       num: options?.numResults ?? 10,
       gl: this.gl,
-      hl: options?.language ?? this.hl,
-      ...(options?.location === undefined ? {} : { location: options.location })
-    });
+      hl: options?.language ?? this.hl
+    };
+    if (options?.location !== undefined) params.location = options.location;
+    return this.client.search(options?.engine ?? "google", params);
   }
 }

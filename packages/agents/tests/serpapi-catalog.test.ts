@@ -94,6 +94,17 @@ describe("parsing SerpAPI's own engine table", () => {
     expect(q.description).not.toMatch(/<[a-z]/i);
     expect(q.description).toContain("author:");
     expect(htmlToText("a<br>b <code>c</code>&amp;d")).toBe("a b c&d");
+    // No `<` survives, whichever way it was smuggled in: nested or malformed
+    // constructs defeat a single stripping pass, and markup that arrived
+    // entity-encoded defeats stripping that runs before decoding.
+    for (const smuggled of [
+      "<<b>script>alert(1)<</b>/script>",
+      "&lt;script&gt;alert(1)&lt;/script&gt;",
+      "&#60;script&#62;alert(1)"
+    ]) {
+      expect(htmlToText(smuggled)).not.toContain("<");
+      expect(htmlToText(smuggled)).toContain("alert(1)");
+    }
   });
 
   it("marks the parameters SerpAPI hides rather than dropping them", () => {

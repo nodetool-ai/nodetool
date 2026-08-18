@@ -202,24 +202,27 @@ const getSerpApiEngineSchema: CapabilityExport = {
 
       const parameters = engine.parameters
         .filter((parameter) => includeHidden || !parameter.hidden)
-        .map((parameter) => ({
-          name: parameter.name,
-          label: parameter.label,
-          description: parameter.description,
-          required: parameter.required,
-          group: parameter.group,
-          ...(parameter.type === undefined ? {} : { type: parameter.type }),
-          ...(parameter.options === undefined
-            ? {}
-            : { options: parameter.options.map((option) => option.value) })
-        }));
+        .map((parameter) => {
+          const described: Record<string, unknown> = {
+            name: parameter.name,
+            label: parameter.label,
+            description: parameter.description,
+            required: parameter.required,
+            group: parameter.group
+          };
+          if (parameter.type !== undefined) described.type = parameter.type;
+          if (parameter.options !== undefined) {
+            described.options = parameter.options.map((option) => option.value);
+          }
+          return described;
+        });
 
       return {
         ok: true,
         engine: engine.engine,
         name: engine.label,
         playground_url: engine.playgroundUrl,
-        required: parameters
+        required: engine.parameters
           .filter((parameter) => parameter.required)
           .map((parameter) => parameter.name),
         parameters,
@@ -267,10 +270,11 @@ const serpApiSearch: CapabilityExport = {
         : undefined;
       // `summarizeSearch` clamps `maxItems` itself, so this only supplies the
       // default; the ceiling lives next to the trimming it bounds.
-      const summary = summarizeSearch(body, {
-        ...(fields === undefined || fields.length === 0 ? {} : { fields }),
+      const trim: { fields?: readonly string[]; maxItems: number } = {
         maxItems: readInteger(params.max_items, DEFAULT_MAX_ITEMS)
-      });
+      };
+      if (fields !== undefined && fields.length > 0) trim.fields = fields;
+      const summary = summarizeSearch(body, trim);
 
       return {
         ok: true,
