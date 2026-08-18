@@ -50,7 +50,8 @@ export default function StatusQuoSection() {
                 shouldn&apos;t take five tools.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Stop exporting. Start finishing.
+                Stop exporting. Start finishing. One canvas, your keys, and a
+                workflow file that is yours to keep when the piece is done.
               </p>
               <a
                 href="#differences"
