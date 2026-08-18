@@ -55,6 +55,24 @@ describe("resident toolbelt", () => {
     expect(CHAT_AGENT_SYSTEM_PROMPT).toContain("tools.debug_app({document})");
   });
 
+  it("sends do-the-work asks to the flow pack, not to a saved graph", () => {
+    // A turn asked to "run a pipeline: generate an image, then remove its
+    // background" authored a workflow, saved it, and never ran it; asked to
+    // do it without a graph, it bent `media.editImage` into a background
+    // remover instead of calling the node.
+    const section = CHAT_AGENT_SYSTEM_PROMPT.split(
+      "# Doing node work without a workflow"
+    )[1];
+    expect(section).toBeDefined();
+    expect(section).toContain("@nodetool-ai/sandbox-flow");
+    expect(section).toContain("background removal");
+    expect(section).toContain("Authoring one does not");
+    // The routing rule is stated before the authoring loop it routes away from.
+    expect(
+      CHAT_AGENT_SYSTEM_PROMPT.indexOf("# Doing node work without a workflow")
+    ).toBeLessThan(CHAT_AGENT_SYSTEM_PROMPT.indexOf("# Building workflows"));
+  });
+
   it("describes every resource kind, not just workflows", () => {
     const section = CHAT_AGENT_SYSTEM_PROMPT.split("# NodeTool resources")[1];
     expect(section).toBeDefined();

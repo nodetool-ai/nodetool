@@ -15,8 +15,11 @@
  */
 
 import { GRAPH_JSON_PRELUDE } from "../graph-dsl-core.js";
-import { GRAPH_DSL_PROMPT_SECTION } from "./graph-dsl-package.js";
-import { FLOW_PROMPT_SECTION } from "./flow-package.js";
+import {
+  GRAPH_DSL_PACKAGE,
+  GRAPH_DSL_PROMPT_SECTION
+} from "./graph-dsl-package.js";
+import { FLOW_PACKAGE, FLOW_PROMPT_SECTION } from "./flow-package.js";
 
 /** Namespace → the belt tools that light it up (any one is enough). */
 export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
@@ -1336,6 +1339,57 @@ interface NodetoolApiPromptOptions {
   nativeFlow?: boolean;
 }
 
+/**
+ * The rule for choosing between the three ways a turn makes node work happen.
+ * Rendered only for the surfaces this session actually has, so it never sends
+ * the model at a pack that is not installed.
+ *
+ * It exists because the surfaces answer different questions and a model that
+ * knows all three still picks by habit: a chat turn asked to "run a pipeline
+ * that generates an image and removes its background" authored a graph, saved
+ * it, never ran it, and then — asked to do it "without a graph" — bent
+ * `media.editImage` into a background remover instead of calling the
+ * `RemoveBackground` node it had already found.
+ */
+function surfaceChoiceSection(
+  options: NodetoolApiPromptOptions,
+  names: ReadonlySet<string>
+): string {
+  if (!options.nativeFlow && !options.graphDsl) return "";
+  const bullets: string[] = [];
+  if (names.has("generate_image")) {
+    bullets.push(`- \`nodetool.media.*\` — ONE generation with a picked model: an image, a
+  video, speech, a transcript. The short path when a verb there does exactly
+  what was asked. It has no verb for most node work, and stretching one to
+  cover a node — an edit prompt in place of a background remover, an
+  upscaler, a converter — produces something other than the node the user
+  meant.`);
+  }
+  if (options.nativeFlow) {
+    bullets.push(`- **Native flow** (\`${FLOW_PACKAGE}\`) — the user wants the RESULT:
+  "run", "generate", "then", "for each". Any node in the registry, several in
+  a row, in this action. Nothing is saved and nothing opens in the editor.`);
+  }
+  if (options.graphDsl) {
+    bullets.push(`- **Graph DSL** (\`${GRAPH_DSL_PACKAGE}\`) — the user wants the WORKFLOW:
+  something saved, opened in the editor, re-run later, or handed to someone
+  else. Authoring it does not run it — \`nodetool.workflows.run(id, params)\`
+  does.`);
+  }
+  const closer = options.nativeFlow
+    ? `
+
+When the ask is to do the work and the user never mentioned a workflow, run
+the nodes and report what came out. Reaching for a graph there leaves the
+user with an artifact they did not ask for and the work still undone.`
+    : "";
+  return `# Which surface runs the work
+
+Pick by what the user asked for, not by what the last turn used.
+
+${bullets.join("\n")}${closer}`;
+}
+
 export function buildNodetoolApiPromptSection(
   toolNames: Iterable<string>,
   options: NodetoolApiPromptOptions = {}
@@ -1364,6 +1418,8 @@ available, and the two cannot disagree. A module this session does not mount
 fails the action by name, before any code runs.`,
     active.map((entry) => entry.doc).join("\n")
   ];
+  const choice = surfaceChoiceSection(options, names);
+  if (choice) sections.push(choice);
   if (options.graphDsl) sections.push(GRAPH_DSL_PROMPT_SECTION);
   if (options.nativeFlow) sections.push(FLOW_PROMPT_SECTION);
   if (names.has("find_model") && names.has("generate_image")) {
