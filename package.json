@@ -176,7 +176,9 @@
     "screenshots:force": "npm run build:packages && npm run screenshots:force --workspace=web",
     "setup:codex": "bash scripts/setup-codex.sh",
     "build:sandbox-dsl": "node packages/sandbox-packs/sandbox-dsl/scripts/build.mjs",
-    "build:sandbox-dsl:check": "node packages/sandbox-packs/sandbox-dsl/scripts/build.mjs --check"
+    "build:sandbox-dsl:check": "node packages/sandbox-packs/sandbox-dsl/scripts/build.mjs --check",
+    "build:sandbox-flow": "node packages/sandbox-packs/sandbox-flow/scripts/build.mjs",
+    "build:sandbox-flow:check": "node packages/sandbox-packs/sandbox-flow/scripts/build.mjs --check"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

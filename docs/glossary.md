@@ -176,7 +176,7 @@ NodeTool's TypeScript API (`@nodetool-ai/dsl`) for building workflows in code ra
 A collection of related nodes bundled together. Install node packs to add new capabilities to NodeTool (e.g., additional model providers or data processing tools).
 
 ### API Key
-A secret string that authenticates you with a cloud AI provider. You get API keys from provider dashboards (OpenAI, Anthropic, Google, etc.) and enter them in NodeTool's **Settings → Providers** panel.
+A secret string that authenticates you with a cloud AI provider. You get API keys from provider dashboards (OpenAI, Anthropic, Google, etc.) and enter them in NodeTool's **Settings → Models & Providers** panel.
 
 ### WebSocket
 A communication protocol that allows real-time, bidirectional data flow between NodeTool's frontend and backend. This is what enables live streaming of workflow results and chat responses.

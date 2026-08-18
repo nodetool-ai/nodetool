@@ -43,12 +43,26 @@ console.log(result); // { output: string }
 Regenerate the node factories after node changes:
 
 ```bash
-npm run codegen         # rewrite src/generated/ from the node registry
-npm run codegen:check   # exit 1 when src/generated/ no longer matches it
+npm run codegen         # rewrite both generated trees from the node registry
+npm run codegen:check   # exit 1 when either tree no longer matches it
 ```
 
 `codegen:check` runs in CI, so a node that is renamed or deleted cannot leave a
-factory behind in the DSL.
+factory behind in the DSL. Pass `--graph` or `--flow` to work on one tree.
+
+## Native flow (internal)
+
+`src/flow/` calls a node as an async function — registry resolve, secret
+injection, `process()`, outputs — with no graph and no `WorkflowRunner`. It is
+**not** exported from this package. The public surface is the sandbox pack
+`@nodetool-ai/sandbox-flow`, whose guest modules are generated into
+`src/flow/generated/` by the same codegen pass and reach this code through the
+`@nodetool-ai/sandbox-nodetool/flow` capability module. Two files here are
+guest-only: `src/flow/guest-core.ts` (the call bridge the generated modules
+import) and the generated tree itself — the pack build transforms them to
+JavaScript, and nothing on the host imports either.
+
+See [docs/dsl-native-flow-design.md](../../docs/dsl-native-flow-design.md).
 
 ## Links
 

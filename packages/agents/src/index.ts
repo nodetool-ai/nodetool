@@ -253,6 +253,13 @@ export type {
   GuestHelperName
 } from "./js-sandbox.js";
 
+// Mounting NodeTool's own guest modules (`@nodetool-ai/sandbox-nodetool/*`)
+// for one body. The Code node calls this through its hidden import of this
+// package, the way it already loads the toolbelt.
+export { mountCapabilityModules } from "./codeact/capability-modules.js";
+export type { CapabilityModuleMount } from "./codeact/capability-modules.js";
+export { ungatedCapabilityRun } from "./capabilities/invoke.js";
+
 // Code Node authoring: the sandbox capability manifest and prompt rendering
 export {
   getSandboxManifest,

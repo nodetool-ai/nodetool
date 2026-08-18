@@ -27,12 +27,7 @@ import DashboardFooter from "./DashboardFooter";
 import { useStartTrackChat } from "../../hooks/useStartTrackChat";
 import { openSettingsTab } from "../workspace/openPageTab";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
-import {
-  Box,
-  BORDER_RADIUS,
-  SPACING,
-  getSpacingPx
-} from "../ui_primitives";
+import { Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -189,75 +184,83 @@ const Portal: React.FC = () => {
       <div className="dashboard-scroll">
         <main>
           <DashboardDownloads />
-          <DashboardHero
-            mode={mode}
-            onStart={handleStart}
-            onOpenEmptyCanvas={handleCreateNewWorkflow}
-            onOpenSettings={handleOpenSettings}
-          />
-          {/* A returning user's own work leads — agent sessions first, then
+          {/* Which page this is depends on the workflow list. Rendering one
+              order and then swapping to the other showed the same sections
+              twice over, so the page below the downloads banner waits for the
+              answer instead. */}
+          {mode === "pending" ? null : (
+            <>
+              <DashboardHero
+                mode={mode}
+                onStart={handleStart}
+                onOpenEmptyCanvas={handleCreateNewWorkflow}
+                onOpenSettings={handleOpenSettings}
+              />
+              {/* A returning user's own work leads — agent sessions first, then
               workflows — with the checklist and task activity in a rail
               beside it. A first-run user has no work yet, so the material
               that teaches them leads instead. */}
-          {mode === "returning" ? (
-            <div css={[wrapStyles(theme), columnStyles(theme)]}>
-              <div className="dash-main">
-                <DashboardColumn>
-                  <DashboardAgentSessions
-                    onNewSession={handleNewAgentSession}
+              {mode === "returning" ? (
+                <div css={[wrapStyles(theme), columnStyles(theme)]}>
+                  <div className="dash-main">
+                    <DashboardColumn>
+                      <DashboardAgentSessions
+                        onNewSession={handleNewAgentSession}
+                      />
+                      <DashboardWorkflows
+                        workflows={sortedWorkflows}
+                        isLoading={isLoadingWorkflows}
+                        onOpenWorkflow={handleOpenWorkflow}
+                        onCreateNew={handleCreateNewWorkflow}
+                      />
+                      <DashboardDocuments />
+                      <DashboardTemplates />
+                      <DashboardTutorials variant="compact" />
+                    </DashboardColumn>
+                  </div>
+                  <aside className="dash-rail">
+                    <div className="dash-rail-panel">
+                      <GettingStartedChecklist
+                        variant="inline"
+                        hasConfiguredProvider={hasConfiguredProvider}
+                        onConnectProvider={handleConnectProvider}
+                        onOpenTemplates={handleOpenTemplates}
+                        onCreateWorkflow={handleCreateNewWorkflow}
+                      />
+                    </div>
+                    <DashboardActivity
+                      workflows={sortedWorkflows}
+                      onOpenWorkflow={handleOpenWorkflow}
+                    />
+                  </aside>
+                </div>
+              ) : (
+                <>
+                  <GettingStartedChecklist
+                    hasConfiguredProvider={hasConfiguredProvider}
+                    onConnectProvider={handleConnectProvider}
+                    onOpenTemplates={handleOpenTemplates}
+                    onCreateWorkflow={handleCreateNewWorkflow}
                   />
+                  <DashboardTutorials />
+                  <DashboardTemplates />
                   <DashboardWorkflows
                     workflows={sortedWorkflows}
                     isLoading={isLoadingWorkflows}
                     onOpenWorkflow={handleOpenWorkflow}
                     onCreateNew={handleCreateNewWorkflow}
                   />
-                  <DashboardDocuments />
-                  <DashboardTemplates />
-                  <DashboardTutorials variant="compact" />
-                </DashboardColumn>
-              </div>
-              <aside className="dash-rail">
-                <div className="dash-rail-panel">
-                  <GettingStartedChecklist
-                    variant="inline"
-                    hasConfiguredProvider={hasConfiguredProvider}
-                    onConnectProvider={handleConnectProvider}
-                    onOpenTemplates={handleOpenTemplates}
-                    onCreateWorkflow={handleCreateNewWorkflow}
-                  />
-                </div>
-                <DashboardActivity
-                  workflows={sortedWorkflows}
-                  onOpenWorkflow={handleOpenWorkflow}
-                />
-              </aside>
-            </div>
-          ) : (
-            <>
-              <GettingStartedChecklist
-                hasConfiguredProvider={hasConfiguredProvider}
-                onConnectProvider={handleConnectProvider}
-                onOpenTemplates={handleOpenTemplates}
-                onCreateWorkflow={handleCreateNewWorkflow}
-              />
-              <DashboardTutorials />
-              <DashboardTemplates />
-              <DashboardWorkflows
-                workflows={sortedWorkflows}
-                isLoading={isLoadingWorkflows}
-                onOpenWorkflow={handleOpenWorkflow}
-                onCreateNew={handleCreateNewWorkflow}
-              />
-              {/* Empty for a genuinely new user, but a user who started with a
+                  {/* Empty for a genuinely new user, but a user who started with a
                   sketch or a video has no workflows and still has work here. */}
-              <DashboardDocuments />
+                  <DashboardDocuments />
+                </>
+              )}
+              <DashboardFooter
+                workflowCount={sortedWorkflows.length}
+                onGettingStarted={handleOpenTemplates}
+              />
             </>
           )}
-          <DashboardFooter
-            workflowCount={sortedWorkflows.length}
-            onGettingStarted={handleOpenTemplates}
-          />
         </main>
       </div>
     </Box>

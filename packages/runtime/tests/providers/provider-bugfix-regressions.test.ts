@@ -180,6 +180,19 @@ describe("Gemini – media URI handling", () => {
     expect(part.inlineData).toEqual({ mimeType: "image/png", data: "QUJD" });
   });
 
+  it("names the unresolved asset instead of reporting an unsafe fetch", async () => {
+    const fetchFn = vi.fn();
+    const provider = geminiWithFetch(fetchFn);
+
+    await expect(
+      (provider as any).messageContentToGeminiPart({
+        type: "image_url",
+        image: { type: "image", uri: "asset://abc.png" }
+      })
+    ).rejects.toThrow(/Unresolved asset reference.*asset:\/\/abc\.png/);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
   it("resolves file:// audio URIs through resolveUri", async () => {
     const fetchFn = vi.fn();
     const provider = geminiWithFetch(fetchFn);

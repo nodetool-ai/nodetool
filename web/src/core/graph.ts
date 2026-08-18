@@ -16,6 +16,25 @@ import { COMMENT_NODE_TYPE } from "../constants/nodeTypes";
  * ELK loads dynamically: NodeStore reaches this module, so a static import put
  * all 1.4 MB of `elk.bundled.js` on the boot path. Keep it inside `autoLayout`.
  */
+const NO_TARGETS: string[] = [];
+
+/**
+ * Group edge targets by source. Both traversals below need it: without one,
+ * every node they visit rescans the whole edge list.
+ */
+function targetsBySource(edges: Edge[]): Map<string, string[]> {
+  const outgoing = new Map<string, string[]>();
+  for (const edge of edges) {
+    const targets = outgoing.get(edge.source);
+    if (targets) {
+      targets.push(edge.target);
+    } else {
+      outgoing.set(edge.source, [edge.target]);
+    }
+  }
+  return outgoing;
+}
+
 export function topologicalSort(
   edges: Edge[],
   nodes: Node<NodeData>[]
@@ -25,8 +44,6 @@ export function topologicalSort(
   }
 
   const indegree: Record<string, number> = {};
-  edges = [...edges];
-
   nodes.forEach((node) => {
     indegree[node.id] = 0;
   });
@@ -34,6 +51,7 @@ export function topologicalSort(
   edges.forEach((edge) => {
     indegree[edge.target]++;
   });
+  const outgoing = targetsBySource(edges);
 
   const queue: string[] = [];
   Object.keys(indegree).forEach((nodeId) => {
@@ -42,33 +60,28 @@ export function topologicalSort(
 
   // Each entry is a layer of nodes with no remaining incoming edges.
   const sortedNodes: string[][] = [];
+  // Read head instead of `shift()`, which is O(queue length) per node.
+  let head = 0;
 
-  while (queue.length) {
+  while (head < queue.length) {
     const levelNodes: string[] = [];
+    const levelEnd = queue.length;
 
-    for (let i = 0, len = queue.length; i < len; i++) {
-      const n = queue.shift()!;
+    while (head < levelEnd) {
+      const n = queue[head++];
       levelNodes.push(n);
 
-      for (const edge of [...edges]) {
-        if (edge.source === n) {
-          const index = edges.indexOf(edge);
-          if (index > -1) {
-            edges.splice(index, 1);
-          }
-          indegree[edge.target]--;
-          if (indegree[edge.target] === 0) {
-            queue.push(edge.target);
-          }
+      for (const target of outgoing.get(n) ?? NO_TARGETS) {
+        indegree[target]--;
+        if (indegree[target] === 0) {
+          queue.push(target);
         }
       }
     }
     sortedNodes.push(levelNodes);
   }
 
-  const totalNodes = nodes.length;
-  const processedNodes = sortedNodes.flat().length;
-  if (processedNodes < totalNodes) {
+  if (head < nodes.length) {
     console.warn("Graph contains at least one cycle", { edges, nodes });
   }
 
@@ -95,6 +108,8 @@ export function subgraph(
   const stack: string[] = [startNode.id];
   const result: Result = { edges: [], nodes: [] };
 
+  const outgoing = targetsBySource(edges);
+
   while (stack.length) {
     const currentNodeId = stack.pop()!;
 
@@ -108,11 +123,9 @@ export function subgraph(
       break;
     }
 
-    for (const edge of edges) {
-      if (edge.source === currentNodeId) {
-        if (!visited.has(edge.target)) {
-          stack.push(edge.target);
-        }
+    for (const target of outgoing.get(currentNodeId) ?? NO_TARGETS) {
+      if (!visited.has(target)) {
+        stack.push(target);
       }
     }
   }

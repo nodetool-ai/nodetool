@@ -44,7 +44,8 @@ const SHIPPED_PACKS = [
   "sandbox-csv",
   "sandbox-xml",
   "sandbox-zip",
-  "sandbox-dsl"
+  "sandbox-dsl",
+  "sandbox-flow"
 ];
 
 let cached: SandboxModuleCatalog | undefined;
