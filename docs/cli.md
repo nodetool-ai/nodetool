@@ -508,6 +508,122 @@ nodetool apps import-bundle my.app.json
 nodetool apps import-bundle my.app.json --project my-project --json
 ```
 
+### `nodetool app`
+
+Where `nodetool apps` moves finished apps around, `nodetool app` runs one and
+builds one. Both subcommands are headless — no browser, no editor — and both
+write a debug bundle under `nodetool-debug/`.
+
+#### `nodetool app debug <application_id_or_file>`
+
+Run a mini app the way the web runtime would: validate every widget binding
+against the workflows it binds, seed input defaults, apply params, replay a
+scripted interaction sequence, execute the workflows on the kernel, fold the
+streamed messages into the app's reactive values, and report what each widget
+ends up showing.
+
+The target is an application id (read from the applications table), an
+`ApplicationBundle` JSON file (self-contained — operations reference bundle
+keys, so it runs without a database), or a workflow id/file carrying a legacy
+`app_doc`.
+
+**Options:**
+
+- `--params <json>` — reactive values applied before interactions, keyed by input
+  name. A `resource:<binding id>` key seeds that collection with an array of items.
+- `--interact <json>` — scripted steps: `set`, `change`, `click`, `run` (by
+  operation id), `cancel`, `seedResource`.
+- `--no-run` — static wiring check only; never execute a workflow.
+- `--out <dir>` — bundle directory (default `nodetool-debug/app-<id>-<timestamp>`).
+- `--timeout <ms>` — per-run timeout.
+- `--json` — print the full `AppDebugReport` to stdout.
+
+**Examples:**
+
+```bash
+# Static wiring check — no provider calls, no workflow execution
+nodetool app debug my.app.json --no-run
+
+nodetool app debug <application_id> --params '{"prompt":"hi"}'
+nodetool app debug <application_id> --interact \
+  '[{"set":{"key":"prompt","value":"hi"}},{"run":"draft"}]'
+```
+
+The verdict catches what a workflow-only run cannot: a widget bound to a token
+the workflow has no input, output, node, or variable for, one naming an
+operation the document never declares, an unknown widget type, a display widget
+that never received a value, an app no interaction ever ran, an operation that
+overran its timeout, and a click or change on a widget its own `visibleWhen` /
+`disabledWhen` hides or disables — that step fails and names the condition.
+Every declared operation runs, not just the first, and state is keyed per
+operation.
+
+The report lists what it did not simulate under `notSimulated`: layout, styling,
+focus, and scroll, since nothing renders a DOM; the stored resource collections,
+since a run reads the seeded in-memory provider rather than the database; and
+reactive subgraph runs, where the browser reruns one input's downstream subgraph
+and the harness runs the whole workflow.
+
+#### `nodetool app build <prompt_or_spec_file>`
+
+Turn a prompt, or a hand-written `spec.json`, into a verified
+`ApplicationBundle`. Six stages run in order: **spec** pins what the app must
+do, **plan** builds one workflow per operation, **author** places and wires the
+widgets through the real `ui_app_*` tool contract, **check** validates the
+wiring, **run** replays every interaction on the kernel, and **judge** asks a
+model whether each interaction achieved what was asked. Everything still wrong
+at the end of a pass becomes one complaint, and the next round edits the
+document rather than rebuilding it.
+
+Plan, author, and judge each call a model, and run executes real workflows, so a
+build spends money and takes minutes.
+
+**Options:**
+
+- `-p, --provider <name>` / `-m, --model <id>` — the builder's provider and model.
+- `--judge-model <provider/model>` — model that judges each interaction (env
+  `NODETOOL_APP_JUDGE_MODEL`). Defaults to a configured model other than the
+  builder's, because a model grading its own work is the weakest reviewer available.
+- `--workflow <id>` — pin an existing workflow instead of planning one
+  (repeatable, in operation order).
+- `--max-repairs <n>` — repair rounds after the first pass (default `3`).
+- `--cost-cap <usd>` — ceiling on build spend (default `2`).
+- `--timeout <ms>` — wall clock for the whole build (default `600000`).
+- `--out <dir>` — bundle directory (default `nodetool-debug/app-build-<slug>-<timestamp>`).
+- `--json` — print the full `BuildReport` to stdout.
+- `--no-judge` — skip the judge stage. The verdict's `notSimulated` then says
+  nothing scored the app.
+- `--watch` — re-build on spec-file change and print a diff of the verdict
+  (spec-file targets only). Every save spends money.
+- `--supervise`, `--max-decisions <n>`, `--max-retries <n>`,
+  `--supervisor-cost-cap <usd>`, `--supervisor-model <provider/model>` — the
+  same flags described under [Supervised runs](#supervised-runs). They apply to
+  the Run stage, whose interactions execute on the kernel; `buildApp` itself is
+  never supervised.
+
+**Examples:**
+
+```bash
+nodetool app build "an app that drafts a note from a prompt" \
+  -p anthropic -m claude-sonnet-5
+
+nodetool app build spec.json -p openai -m gpt-5.4-mini --json
+
+# Bind an existing workflow instead of planning one
+nodetool app build "..." -p anthropic -m claude-sonnet-5 --workflow <id>
+
+# Structural check only, one repair round, tight cap
+nodetool app build spec.json -p anthropic -m claude-sonnet-5 \
+  --no-judge --max-repairs 1 --cost-cap 1.00
+```
+
+The bundle holds `report.json`, `report.md`, `spec.json`,
+`interactions/<name>/run-N.messages.jsonl` per replayed run, and — only for a
+green build — `app.bundle.json`, the deliverable. The loop fails closed: an
+exhausted budget, an issue that reappears after being fixed, or a cancelled
+signal ends the build as failed with the reason named, and there is no bundle
+behind a failed verdict. Exit code is `0` only when `verdict.ok`.
+
 ## Editor Documents
 
 Timelines, sketches, and JS scripts each get the same three commands:
@@ -1286,6 +1402,131 @@ The output names each affected workspace and the commands to run:
 Suggested commands:
   npm run test --workspace=packages/cli
 ```
+
+### `nodetool harness`
+
+The machine-readable inventory behind harness-first engineering: every headless
+harness in the repo, every product surface with the code paths it owns, and
+which harnesses cover which surface. Shipping a new surface means adding it to
+the registry with its harness — or with its debt written down.
+
+**Subcommands:** `list`, `audit`, `gate`
+
+#### `nodetool harness list`
+
+List every harness and its capabilities. Takes `--json` to print the registry.
+
+```bash
+nodetool harness list
+nodetool harness list --json
+```
+
+Each entry names the harness, its kind, what it covers, and how to invoke it:
+
+```
+  affected           meta      Changed-file → workspace mapping
+                     nodetool affected [--base main] [json, no-db]
+
+  packs-compile      static    Sandbox npm module compiler (bundle, scan, probe, cache) and the shipped bridge packs
+                     nodetool packs compile [--json] [--force] [json, no-db]
+```
+
+#### `nodetool harness audit`
+
+Audit surface coverage. A surface with no harness must carry a written gap note;
+one without it fails the audit.
+
+**Options:** `--json`, and `--strict` to exit non-zero while any gap remains.
+
+```bash
+nodetool harness audit
+nodetool harness audit --strict
+```
+
+Covered surfaces list their harnesses; gaps print the note that justifies them:
+
+```
+  ok   sandbox-packages     packs-compile, validate
+  GAP  electron-shell       Electron shell (windows, IPC, menus, auto-update)
+
+Documented gaps:
+
+  electron-shell: Covered by Jest unit tests only. A harness would boot the
+  packaged shell headlessly (Playwright's Electron driver), assert the IPC
+  surface, and reuse backend-smoke for the server half.
+```
+
+#### `nodetool harness gate [files...]`
+
+Map a diff onto surfaces by path and run the selfcheck of every harness covering
+a touched surface. The diff selects the checks, not the author. Harnesses that
+need a target or a key are printed as manual work rather than silently skipped.
+
+**Options:**
+
+- `--base <ref>` — diff against a git ref instead of the working tree.
+- `--all` — ignore the diff and run every selfcheck.
+- `--expensive` — include the expensive selfchecks (bundle staging and friends).
+- `--dry-run` — print the plan without running anything.
+- `--json` — print the plan, and the results unless `--dry-run`.
+- `--strict` — exit non-zero when the diff touches a surface no harness covers.
+
+```bash
+nodetool harness gate --base main
+nodetool harness gate --dry-run packages/base-nodes/src/text.ts
+nodetool harness gate --all --expensive
+```
+
+The plan names the surfaces the diff touched before it runs anything:
+
+```
+1 changed file(s) touch 1 surface(s):
+  workflow-execution   (1 file(s))
+
+Manual harnesses (need a target/key — run yourself):
+  debug              nodetool debug <id|file> [--browser --trace --watch --supervise]
+
+3 selfcheck(s) to run
+```
+
+### `nodetool packs compile`
+
+Compile every npm-backed sandbox module of every installed pack. A pack can
+declare a guest module by npm dependency name instead of authoring code
+(`{"name": ".", "kind": "js", "npm": "js-yaml"}`); this builds it — esbuild
+bundles the dependency with no externals, a scope-aware scan rejects free
+references to globals the guest lacks, and a capability-free QuickJS probe
+imports the bundle to prove it initializes. Results are cached by content
+digest, never by version.
+
+The server compiles during its own catalog refresh and Electron compiles after
+an install, so reach for this to warm the cache or to diagnose one pack.
+
+**Options:**
+
+- `--json` — print the compile report as JSON.
+- `--force` — recompile and re-probe even when the cache has an answer.
+- `--pack-search-path <dir>` — search this `node_modules` root (repeatable).
+
+```bash
+nodetool packs compile
+nodetool packs compile --json
+nodetool packs compile --force
+```
+
+Each module reports its source dependency and bundled size:
+
+```
+  ok   @nodetool-ai/sandbox-markdown ← marked — 66101 bytes
+  ok   @nodetool-ai/sandbox-yaml ← js-yaml — 103863 bytes
+
+10 compiled, 0 skipped.
+```
+
+Everything that stops a module short of admission is a named skip, not an
+error: `npm-module-builtin-import` (the dependency needs `node:*`),
+`npm-module-unresolved`, `npm-module-too-large` (1 MB cap),
+`npm-module-forbidden-global`, and `npm-module-probe-failed`.
 
 ### `nodetool eval <suite>`
 
