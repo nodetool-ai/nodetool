@@ -295,6 +295,30 @@ export const viewImageSpec: CapabilitySpec = {
   userMessage: (params) => `Viewing image ${String(params["image_id"] ?? "")}`
 };
 
+export const updateAssetSpec: CapabilitySpec = {
+  name: "update_asset",
+  description:
+    "Rename one of your assets, or move it into a different folder. Pass " +
+    'parent_id to move it; the folder must be yours, must be a folder, and ' +
+    "must not sit under the asset itself. Content type and bytes cannot be " +
+    "changed here — replace the asset instead.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      asset_id: { type: "string", description: "The asset to update" },
+      name: { type: "string", description: "New display name" },
+      parent_id: {
+        type: "string",
+        description:
+          "Id of the destination folder. Your user id names the top-level Home folder."
+      }
+    },
+    required: ["asset_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Updating asset ${params["asset_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const assetsSpecs: readonly CapabilitySpec[] = [
   listAssetsSpec,
@@ -304,5 +328,6 @@ export const assetsSpecs: readonly CapabilitySpec[] = [
   assetSearchSpec,
   assetListSpec,
   listImagesSpec,
-  viewImageSpec
+  viewImageSpec,
+  updateAssetSpec
 ];

@@ -41,6 +41,17 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       };
     }
     static findById = vi.fn();
+
+    // Mirrors the real `deleteOwned`: ownership, the row, and the version
+    // cascade in one call, so this double stays honest about what the route
+    // now delegates. The route no longer does any of it itself.
+    static async deleteOwned(userId: string, id: string): Promise<boolean> {
+      const row = (await StubTimelineSequence.findById(id)) as StubTimelineSequence | null;
+      if (!row || row.user_id !== userId) return false;
+      await row.delete();
+      await StubTimelineSequenceVersion.deleteForTimeline(id);
+      return true;
+    }
     static listByUser = vi.fn();
     static listByProject = vi.fn();
     // `update` is retained as the spy the assertions inspect; the atomic

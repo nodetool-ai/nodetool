@@ -81,7 +81,8 @@ describe("assets capability module", () => {
       "asset_search",
       "asset_list",
       "list_images",
-      "view_image"
+      "view_image",
+      "update_asset"
     ]);
   });
 

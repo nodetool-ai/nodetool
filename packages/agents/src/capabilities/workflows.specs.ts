@@ -60,6 +60,51 @@ export const CREATE_WORKFLOW_SCHEMA: JsonSchema = {
   required: ["name", "graph"]
 };
 
+export const UPDATE_WORKFLOW_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow to update. You must own it."
+    },
+    graph: {
+      type: "object",
+      description:
+        "The replacement graph, in the same shape create_workflow takes. Omit to leave the stored graph alone."
+    },
+    name: { type: "string", description: "New workflow name" },
+    description: { type: "string", description: "New description" },
+    tags: {
+      type: "array",
+      items: { type: "string" },
+      description: "Replacement tag list"
+    },
+    expected_updated_at: {
+      type: "string",
+      description:
+        "The updated_at you last read. The write is refused when the workflow changed since then. Omit to overwrite whatever is stored now."
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const SET_WORKFLOW_ACCESS_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow. You must own it."
+    },
+    access: {
+      type: "string",
+      enum: ["private", "public"],
+      description:
+        'Set "public" to publish the workflow to anyone who has the link, "private" to withdraw it.'
+    }
+  },
+  required: ["workflow_id", "access"]
+};
+
 export const RUN_WORKFLOW_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -217,6 +262,56 @@ export const createWorkflowSpec: CapabilitySpec = {
   userMessage: (params) => `Creating workflow '${params["name"]}'`
 };
 
+export const updateWorkflowSpec: CapabilitySpec = {
+  name: "update_workflow",
+  description:
+    "Update a workflow you own: its graph, name, description or tags. A " +
+    "replacement graph is checked the way create_workflow checks one, so an " +
+    "unregistered provider or an unknown model id is returned as an error " +
+    "rather than saved. Pass expected_updated_at to refuse the write if " +
+    "someone else changed the workflow since you read it.",
+  inputSchema: UPDATE_WORKFLOW_SCHEMA,
+  category: "write",
+  userMessage: (params) => `Updating workflow ${params["workflow_id"]}`
+};
+
+export const deleteWorkflowSpec: CapabilitySpec = {
+  name: "delete_workflow",
+  description:
+    "Delete a workflow you own, together with the collaborator grants and " +
+    "share links pointing at it. A workflow you do not own is reported as " +
+    "missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      workflow_id: {
+        type: "string",
+        description: "The ID of the workflow to delete. You must own it."
+      }
+    },
+    required: ["workflow_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting workflow ${params["workflow_id"]}`
+};
+
+export const setWorkflowAccessSpec: CapabilitySpec = {
+  name: "set_workflow_access",
+  description:
+    "Publish a workflow you own, or withdraw it. A public workflow is " +
+    'readable by anyone who has its id, so "public" discloses the graph and ' +
+    "everything written into it outside your account.",
+  inputSchema: SET_WORKFLOW_ACCESS_SCHEMA,
+  // Publishing reaches outside the account, which is what `external` classes.
+  // It is not a `write`: the gate must ask even where an ordinary local write
+  // would not, and the disclosure cannot be taken back from whoever read it.
+  category: "external",
+  userMessage: (params) =>
+    params["access"] === "public"
+      ? `Publishing workflow ${params["workflow_id"]}`
+      : `Making workflow ${params["workflow_id"]} private`
+};
+
 export const runWorkflowCapabilitySpec: CapabilitySpec = {
   name: "run_workflow",
   description:
@@ -360,6 +455,9 @@ export const workflowsSpecs: readonly CapabilitySpec[] = [
   listWorkflowsSpec,
   getWorkflowSpec,
   createWorkflowSpec,
+  updateWorkflowSpec,
+  deleteWorkflowSpec,
+  setWorkflowAccessSpec,
   runWorkflowCapabilitySpec,
   debugWorkflowSpec,
   resolveWorkflowEscalationSpec,

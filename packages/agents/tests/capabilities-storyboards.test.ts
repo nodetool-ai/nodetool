@@ -198,7 +198,8 @@ describe("storyboards capability module", () => {
       "revise_storyboard_clip",
       "assemble_storyboard_timeline",
       "edit_storyboard",
-      "extract_script_from_storyboard"
+      "extract_script_from_storyboard",
+      "delete_storyboard"
     ]);
   });
 

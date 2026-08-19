@@ -93,6 +93,46 @@ export class Asset extends DBModel {
     return rows.map((row) => new Asset(row));
   }
 
+  /**
+   * Why `parentId` may not become this asset's parent, or null when it may.
+   *
+   * A message rather than a throw: the models layer has no HTTP error
+   * vocabulary, and the two callers want different shapes — the tRPC route
+   * raises INVALID_INPUT, the sandbox capability returns `{error}`. Sharing
+   * the *rule* is what matters, because the rule is what keeps the tree a
+   * tree: without the ancestor walk, moving a folder under its own descendant
+   * detaches that whole subtree from Home, where nothing can reach it again.
+   */
+  static async validateParent(
+    userId: string,
+    asset: Asset,
+    parentId: string
+  ): Promise<string | null> {
+    // The synthetic "Home" folder is the user id itself and has no row.
+    if (parentId === userId) return null;
+    if (parentId === asset.id) return "An asset cannot be its own parent";
+
+    const parent = await Asset.find(userId, parentId);
+    if (!parent) return "Parent folder not found";
+    if (parent.content_type !== "folder") return "Parent must be a folder";
+
+    // Walk up from the new parent: reaching the asset means the move would put
+    // it under one of its own descendants.
+    const seen = new Set<string>([parentId]);
+    let currentId: string | null = parent.parent_id ?? null;
+    while (currentId && currentId !== userId) {
+      if (currentId === asset.id) {
+        return "Cannot move an asset into one of its own descendants";
+      }
+      if (seen.has(currentId)) break; // pre-existing cycle; nothing more to learn
+      seen.add(currentId);
+      const ancestor: Asset | null = await Asset.find(userId, currentId);
+      if (!ancestor) break;
+      currentId = ancestor.parent_id ?? null;
+    }
+    return null;
+  }
+
   /** List assets in a folder. */
   static async paginate(
     userId: string,

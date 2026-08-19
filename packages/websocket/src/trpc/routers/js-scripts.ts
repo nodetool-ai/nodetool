@@ -271,11 +271,10 @@ export const jsScriptsRouter = router({
     .input(idInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
-      const script = await loadOwned(ctx.userId, input.id);
-      await script.delete();
-      // Belt-and-braces with the FK cascade: version rows outliving their
-      // script would be unreachable garbage.
-      await JsScriptVersion.deleteForScript(input.id);
+      // Ownership, the row, and its version rows are one operation on the
+      // model, shared with the sandbox's `delete_js_script` capability.
+      await loadOwned(ctx.userId, input.id);
+      await JsScript.deleteOwned(ctx.userId, input.id);
       return { ok: true as const };
     }),
 

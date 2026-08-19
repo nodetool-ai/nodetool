@@ -49,6 +49,7 @@ import {
   assetListSpec,
   listImagesSpec,
   viewImageSpec,
+  updateAssetSpec,
   DEFAULT_LIMIT,
   MAX_LIMIT,
   LIST_ASSETS_SCHEMA,
@@ -883,6 +884,49 @@ const viewImage: CapabilityExport = {
 };
 
 /** Every asset capability, in the order `getAllMcpTools` offered them. */
+/**
+ * Rename or re-file one of the caller's own assets.
+ *
+ * Deliberately narrow. `Asset.find` is user-scoped, so another user's asset
+ * reads as missing; a move goes through `Asset.validateParent`, the same rule
+ * the tRPC route applies, so a run cannot detach a subtree by moving a folder
+ * under its own descendant. Content type is not settable: the stored file name
+ * is derived from it, so changing it without re-uploading the bytes would
+ * leave the asset pointing at a file nobody wrote.
+ */
+const updateAsset: CapabilityExport = {
+  spec: updateAssetSpec,
+  impl: async (run, params) => {
+    const { Asset } = await import("@nodetool-ai/models");
+    const userId = userIdOf(run.context);
+    const assetId = String(params["asset_id"]);
+    const asset = await Asset.find(userId, assetId);
+    if (!asset) return { error: `Asset ${assetId} was not found.` };
+
+    let touched = false;
+    if (isString(params["name"]) && params["name"]) {
+      asset.name = params["name"];
+      touched = true;
+    }
+    if (isString(params["parent_id"]) && params["parent_id"]) {
+      const problem = await Asset.validateParent(
+        userId,
+        asset,
+        params["parent_id"]
+      );
+      if (problem) return { error: problem };
+      asset.parent_id = params["parent_id"];
+      touched = true;
+    }
+    if (!touched) {
+      return { error: "Nothing to update — pass name or parent_id." };
+    }
+
+    await asset.save();
+    return assetRecord(asset);
+  }
+};
+
 export const ASSET_CAPABILITIES: readonly CapabilityExport[] = [
   listAssets,
   getAsset,
@@ -891,7 +935,8 @@ export const ASSET_CAPABILITIES: readonly CapabilityExport[] = [
   assetSearch,
   assetList,
   listImages,
-  viewImage
+  viewImage,
+  updateAsset
 ];
 
 export const module: CapabilityModule = {
@@ -907,5 +952,6 @@ export {
   assetSearch,
   assetList,
   listImages,
-  viewImage
+  viewImage,
+  updateAsset
 };

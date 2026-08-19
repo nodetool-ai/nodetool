@@ -54,8 +54,12 @@ const baseImageAsset: Asset = {
 const mockUseSettingsStore = useSettingsStore as jest.MockedFunction<typeof useSettingsStore>;
 
 describe("AssetItem", () => {
+  const originalMatchMedia = window.matchMedia;
   beforeEach(() => {
     mockUseSettingsStore.mockReturnValue(4);  // Return assetItemSize directly
+  });
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
   });
   it("renders name and filetype info", () => {
     renderWithTheme(
@@ -75,6 +79,41 @@ describe("AssetItem", () => {
     );
     fireEvent.click(screen.getAllByLabelText(baseImageAsset.id)[0]);
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the asset on a single tap when the pointer is coarse", () => {
+    const onDoubleClick = jest.fn();
+    // jsdom has no matchMedia; a coarse pointer is what a phone reports.
+    window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+      matches: query.includes("pointer: coarse")
+    })) as unknown as typeof window.matchMedia;
+    renderWithTheme(
+      <AssetItem
+        asset={baseImageAsset}
+        onDoubleClick={onDoubleClick}
+        showDeleteButton={false}
+      />
+    );
+    fireEvent.click(screen.getAllByLabelText(baseImageAsset.id)[0]);
+    expect(onDoubleClick).toHaveBeenCalledWith(baseImageAsset);
+  });
+
+  it("leaves opening to the double click when the pointer is fine", () => {
+    const onDoubleClick = jest.fn();
+    window.matchMedia = jest.fn().mockImplementation(() => ({
+      matches: false
+    })) as unknown as typeof window.matchMedia;
+    renderWithTheme(
+      <AssetItem
+        asset={baseImageAsset}
+        onDoubleClick={onDoubleClick}
+        showDeleteButton={false}
+      />
+    );
+    fireEvent.click(screen.getAllByLabelText(baseImageAsset.id)[0]);
+    expect(onDoubleClick).not.toHaveBeenCalled();
+    fireEvent.doubleClick(screen.getAllByLabelText(baseImageAsset.id)[0]);
+    expect(onDoubleClick).toHaveBeenCalledWith(baseImageAsset);
   });
 
   it("paints an SVG from get_url, not a raster thumb", () => {

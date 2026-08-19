@@ -213,50 +213,20 @@ async function getAllAssetsRecursive(
 }
 
 /**
- * Reject a `parent_id` that would corrupt the folder tree: a missing parent,
- * a non-folder parent, the asset itself, or any of its own descendants. A
- * cycle can't be walked out of later — every recursive helper would loop —
- * so it has to be refused at write time.
+ * Refuse a parent that would break the asset tree.
+ *
+ * The rule itself lives on the model, shared with the sandbox's
+ * `update_asset` capability, so the two surfaces cannot disagree about what a
+ * legal move is. This wrapper only turns the answer into an HTTP error.
  */
 async function assertValidParent(
   userId: string,
   asset: AssetModel,
   parentId: string
 ): Promise<void> {
-  // The synthetic "Home" folder is the user id itself and has no row.
-  if (parentId === userId) return;
-
-  if (parentId === asset.id) {
-    throwApiError(
-      ApiErrorCode.INVALID_INPUT,
-      "An asset cannot be its own parent"
-    );
-  }
-
-  const parent = await Asset.find(userId, parentId);
-  if (!parent) {
-    throwApiError(ApiErrorCode.INVALID_INPUT, "Parent folder not found");
-  }
-  if (parent.content_type !== "folder") {
-    throwApiError(ApiErrorCode.INVALID_INPUT, "Parent must be a folder");
-  }
-
-  // Walk up from the new parent: reaching the asset means the move would put
-  // it under one of its own descendants.
-  const seen = new Set<string>([parentId]);
-  let currentId: string | null = parent.parent_id ?? null;
-  while (currentId && currentId !== userId) {
-    if (currentId === asset.id) {
-      throwApiError(
-        ApiErrorCode.INVALID_INPUT,
-        "Cannot move an asset into one of its own descendants"
-      );
-    }
-    if (seen.has(currentId)) break; // pre-existing cycle; nothing more to learn
-    seen.add(currentId);
-    const ancestor: AssetModel | null = await Asset.find(userId, currentId);
-    if (!ancestor) break;
-    currentId = ancestor.parent_id ?? null;
+  const problem = await Asset.validateParent(userId, asset, parentId);
+  if (problem) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, problem);
   }
 }
 

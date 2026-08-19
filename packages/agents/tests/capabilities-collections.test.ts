@@ -127,7 +127,9 @@ describe("collections module shape", () => {
       "vector_hybrid_search",
       "vector_recursive_split_and_index",
       "vector_markdown_split_and_index",
-      "vector_batch_index"
+      "vector_batch_index",
+      "create_collection",
+      "delete_collection"
     ]);
   });
 });

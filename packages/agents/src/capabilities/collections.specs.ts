@@ -261,6 +261,52 @@ export const vectorBatchIndexSpec: CapabilitySpec = {
   }
 };
 
+export const createCollectionSpec: CapabilitySpec = {
+  name: "create_collection",
+  description:
+    "Create an empty vector collection to index documents into. The " +
+    "collection records you as its owner, so other users of this install " +
+    "cannot delete it. Pick the embedding model with find_model when you " +
+    "need one other than the default.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      name: {
+        type: "string",
+        description:
+          "Collection name. No path separators, control characters or surrounding whitespace."
+      },
+      embedding_model: {
+        type: "string",
+        description: "Embedding model id, e.g. all-minilm:latest"
+      },
+      embedding_provider: {
+        type: "string",
+        description: "Provider serving the embedding model, e.g. ollama"
+      }
+    },
+    required: ["name"]
+  },
+  category: "write",
+  userMessage: (params) => `Creating collection ${params["name"]}`
+};
+
+export const deleteCollectionSpec: CapabilitySpec = {
+  name: "delete_collection",
+  description:
+    "Delete a vector collection and everything indexed in it. Irreversible. " +
+    "A collection owned by another user is refused.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      name: { type: "string", description: "The collection to delete" }
+    },
+    required: ["name"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting collection ${params["name"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const collectionsSpecs: readonly CapabilitySpec[] = [
   listCollectionsSpec,
@@ -270,5 +316,7 @@ export const collectionsSpecs: readonly CapabilitySpec[] = [
   vectorHybridSearchSpec,
   vectorRecursiveSplitAndIndexSpec,
   vectorMarkdownSplitAndIndexSpec,
-  vectorBatchIndexSpec
+  vectorBatchIndexSpec,
+  createCollectionSpec,
+  deleteCollectionSpec
 ];
