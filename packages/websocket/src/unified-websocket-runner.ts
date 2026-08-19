@@ -1510,6 +1510,9 @@ export function focusedUiToolNames(
  */
 const GUEST_TOOL_PREFIX = "tools.";
 
+/** Threads whose codeact `state` this connection keeps between turns. */
+const MAX_CODEACT_STATE_THREADS = 8;
+
 /** Recover the plain tool name from a `tools.<name>` slip. */
 export function normalizeToolCallName(name: string): string {
   return name.startsWith(GUEST_TOOL_PREFIX)
@@ -2165,6 +2168,38 @@ export class UnifiedWebSocketRunner {
    * 11 is what switches the guest onto `run.invoke`.
    */
   private chatCapabilityRun: CapabilityRun | null = null;
+  /**
+   * CodeAct `state` per thread, so a turn can reuse what the previous turn
+   * produced. A session is built per turn; without this, a model that parked a
+   * generated video in `state` read `undefined` on the follow-up question and
+   * regenerated it — twice, in the session this fixes. Bounded: the oldest
+   * thread's state is dropped past {@link MAX_CODEACT_STATE_THREADS}, and a
+   * turn with no thread id gets a throwaway object.
+   */
+  private readonly codeactStateByThread = new Map<
+    string,
+    Record<string, unknown>
+  >();
+
+  /** The `state` object this turn's codeact session reads and writes. */
+  private codeactStateFor(threadId: string | null): Record<string, unknown> {
+    if (!threadId) return {};
+    const existing = this.codeactStateByThread.get(threadId);
+    if (existing) {
+      // Re-insert so the eviction below drops the least recently used thread.
+      this.codeactStateByThread.delete(threadId);
+      this.codeactStateByThread.set(threadId, existing);
+      return existing;
+    }
+    const fresh: Record<string, unknown> = {};
+    this.codeactStateByThread.set(threadId, fresh);
+    while (this.codeactStateByThread.size > MAX_CODEACT_STATE_THREADS) {
+      const oldest = this.codeactStateByThread.keys().next().value;
+      if (oldest === undefined) break;
+      this.codeactStateByThread.delete(oldest);
+    }
+    return fresh;
+  }
   /** The run built for the last chat turn — what PR 11 hands to the sandbox. */
   getChatCapabilityRun(): CapabilityRun | null {
     return this.chatCapabilityRun;
@@ -5858,7 +5893,8 @@ export class UnifiedWebSocketRunner {
         context: ctx,
         signal,
         clock: codeactClock,
-        capabilityRun: this.chatCapabilityRun ?? undefined
+        capabilityRun: this.chatCapabilityRun ?? undefined,
+        state: this.codeactStateFor(threadId || null)
       });
       providerToolSchemas.push(codeactSession.providerTool);
       providerToolSchemas.push(...directSchemas);

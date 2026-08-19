@@ -147,7 +147,7 @@ describe("GenerateImageTool", () => {
       model: "m",
       prompt: "p"
     })) as { error?: string };
-    expect(r.error).toBe("text_to_image failed: upstream 500");
+    expect(r.error).toContain("text_to_image failed for openai:m — upstream 500");
   });
 
   it("passes output_file through to workspace storage", async () => {
@@ -300,7 +300,9 @@ describe("GenerateVideoTool", () => {
       model: "m",
       prompt: "p"
     })) as { error?: string };
-    expect(r.error).toBe("text_to_video failed: boom-str");
+    // The message names the model, so a wrong-direction pick is legible.
+    expect(r.error).toContain("text_to_video failed for p:m — boom-str");
+    expect(r.error).toContain('find_model({capability: "text_to_video"})');
   });
 });
 
@@ -531,7 +533,9 @@ describe("GenerateSpeechTool", () => {
       makeContext({ getProvider, streamProviderPrediction }),
       { provider: "openai", model: "tts", text: "hi" }
     )) as { error?: string };
-    expect(r.error).toBe("text_to_speech failed: stream setup failed");
+    expect(r.error).toContain(
+      "text_to_speech failed for openai:tts — stream setup failed"
+    );
   });
 });
 
