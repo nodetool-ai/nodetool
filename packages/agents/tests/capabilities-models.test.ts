@@ -10,7 +10,8 @@ import type {
   ImageModel,
   LanguageModel,
   ProcessingContext,
-  ProviderId
+  ProviderId,
+  VideoModel
 } from "@nodetool-ai/runtime";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
@@ -39,6 +40,18 @@ class FakeImageProvider extends BaseProvider {
     super(id);
   }
   override async getAvailableImageModels(): Promise<ImageModel[]> {
+    return this.models;
+  }
+}
+
+class FakeVideoProvider extends BaseProvider {
+  constructor(
+    id: ProviderId,
+    private readonly models: VideoModel[]
+  ) {
+    super(id);
+  }
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return this.models;
   }
 }
@@ -172,6 +185,81 @@ describe("find_model through the adapter", () => {
       model_hint: ["FLUX.1-dev"]
     })) as { results: { model_id: string }[] };
     expect(byHint.results[0].model_id).toBe("black-forest-labs/FLUX.1-dev");
+  });
+
+  it("does not offer an image-to-video model for text_to_video", async () => {
+    // A live session picked `.../image-to-video` for a text-to-video call and
+    // the provider answered 422. One video list serves both directions, so the
+    // capability has to filter it.
+    const fal = new FakeVideoProvider("fal_ai" as ProviderId, [
+      {
+        id: "alibaba/happy-horse/image-to-video",
+        name: "Happy Horse Image To Video",
+        provider: "fal_ai",
+        supportedTasks: ["image_to_video"]
+      } as VideoModel,
+      {
+        id: "alibaba/happy-horse/text-to-video",
+        name: "Happy Horse Text To Video",
+        provider: "fal_ai",
+        supportedTasks: ["text_to_video"]
+      } as VideoModel
+    ]);
+    const tool = asTool(findModel, { fal_ai: fal });
+
+    const t2v = (await tool.process(ctx, {
+      capability: "text_to_video"
+    })) as { total: number; results: { model_id: string }[] };
+    expect(t2v.results.map((r) => r.model_id)).toEqual([
+      "alibaba/happy-horse/text-to-video"
+    ]);
+
+    // The query used to pull the wrong direction back in: "fast" (or any word
+    // both ids carry) matched the image-to-video endpoint first.
+    const queried = (await tool.process(ctx, {
+      capability: "text_to_video",
+      query: "happy horse"
+    })) as { results: { model_id: string }[] };
+    expect(queried.results.map((r) => r.model_id)).toEqual([
+      "alibaba/happy-horse/text-to-video"
+    ]);
+
+    const i2v = (await tool.process(ctx, {
+      capability: "image_to_video"
+    })) as { results: { model_id: string }[] };
+    expect(i2v.results.map((r) => r.model_id)).toEqual([
+      "alibaba/happy-horse/image-to-video"
+    ]);
+  });
+
+  it("says so when every video model declares another direction", async () => {
+    const tool = asTool(findModel, {
+      fal_ai: new FakeVideoProvider("fal_ai" as ProviderId, [
+        {
+          id: "topaz/upscale",
+          name: "Topaz Upscale",
+          provider: "fal_ai",
+          supportedTasks: ["video_to_video"]
+        } as VideoModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_video"
+    })) as { total: number; note: string };
+    expect(result.total).toBe(0);
+    expect(result.note).toMatch(/none declares text_to_video/);
+  });
+
+  it("keeps a model that declares no tasks at all", async () => {
+    const tool = asTool(findModel, {
+      fal_ai: new FakeVideoProvider("fal_ai" as ProviderId, [
+        { id: "some/clip", name: "Some Clip", provider: "fal_ai" } as VideoModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_video"
+    })) as { total: number };
+    expect(result.total).toBe(1);
   });
 
   it("reports a missed search instead of ranking an unrelated model first", async () => {

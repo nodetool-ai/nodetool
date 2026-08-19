@@ -122,6 +122,29 @@ interface MediaModelArgs {
   model: string;
 }
 
+/**
+ * A provider rejection, with the model that was called in it.
+ *
+ * "text_to_video failed: Unprocessable Entity" told a live session nothing:
+ * the model it had picked was an image-to-video endpoint, and the message
+ * named neither the model nor the way out. `find_model` now filters by
+ * direction, and when a provider still refuses, the error says which model to
+ * re-pick.
+ */
+function predictionError(
+  capability: string,
+  m: MediaModelArgs,
+  e: unknown
+): { error: string } {
+  const detail = e instanceof Error ? e.message : String(e);
+  return {
+    error:
+      `${capability} failed for ${m.provider}:${m.model} — ${detail}. ` +
+      `If the model does not do ${capability}, pick another with ` +
+      `find_model({capability: "${capability}"}).`
+  };
+}
+
 function parseModelArgs(
   params: Record<string, unknown>
 ): MediaModelArgs | { error: string } {
@@ -203,9 +226,7 @@ const generateImage: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `text_to_image failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("text_to_image", m, e);
     }
   }
 };
@@ -252,9 +273,7 @@ const editImage: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `image_to_image failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("image_to_image", m, e);
     }
   }
 };
@@ -296,9 +315,7 @@ const generateVideo: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `text_to_video failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("text_to_video", m, e);
     }
   }
 };
@@ -341,9 +358,7 @@ const animateImage: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `image_to_video failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("image_to_video", m, e);
     }
   }
 };
@@ -541,9 +556,7 @@ const generateSpeech: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `text_to_speech failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("text_to_speech", m, e);
     }
   }
 };

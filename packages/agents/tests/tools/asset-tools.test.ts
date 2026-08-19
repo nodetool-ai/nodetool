@@ -114,7 +114,7 @@ describe("SaveAssetTool", () => {
 
     expect(result.success).toBe(true);
     expect(result.asset_id).toBe("abc123");
-    expect(result.asset_uri).toBe("asset://abc123");
+    expect(result.asset_uri).toBe("asset://abc123.png");
     expect(calls).toHaveLength(1);
     expect(calls[0].contentType).toBe("image/png");
     expect(Array.from(calls[0].content)).toEqual([1, 2, 3, 4]);

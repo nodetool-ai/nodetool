@@ -78,8 +78,11 @@ Rules:
   does not persist. Assign each expensive result to \`state\` immediately
   (\`state.video = state.video ?? await nodetool.media.generateVideo(prompt, model)\`),
   then continue. The next action must reuse what \`state\` already holds —
-  never re-run generate, speak, or fetch. Write a large literal into \`state\`
-  in the action that builds it. If that action fails, patch the copy in
+  never re-run generate, speak, or fetch. A chat turn keeps its thread's
+  \`state\`, so an earlier turn's results may still be there; read it
+  defensively (\`state.video?.asset_uri\`) instead of assuming a key exists,
+  and re-derive what is missing rather than throwing on \`undefined\`.
+  Write a large literal into \`state\` in the action that builds it. If that action fails, patch the copy in
   \`state\` (\`state.doc.type = "screenplay"\`) and retry — do not emit the
   literal a second time.
 - Keep observations small. \`return\` a compact summary (counts, ids, the few

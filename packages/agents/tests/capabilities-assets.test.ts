@@ -183,6 +183,40 @@ describe("assets capabilities against the database", () => {
     expect(read.content).toBe("# hello");
   });
 
+  it("returns an asset_uri that carries the file extension", async () => {
+    let created = 1;
+    // `asset://<id>` alone types nothing: a chat embed of a saved mp4 rendered
+    // as an image and showed a blank tile.
+    // The library path: a context that persists through `createAsset`.
+    const ctx = makeContext({
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async () => ({ id: `as_${created++}` })
+    });
+    const saved = (await asTool("save_asset", ctx).process(ctx, {
+      name: "panda.mp4",
+      content_base64: Buffer.from([0, 1, 2, 3]).toString("base64"),
+      content_type: "video/mp4"
+    })) as Record<string, unknown>;
+    expect(saved.success).toBe(true);
+    expect(saved.asset_uri).toBe(`asset://${String(saved.asset_id)}.mp4`);
+
+    // No extension on the name — the content type still names one.
+    const unnamed = (await asTool("save_asset", ctx).process(ctx, {
+      name: "panda clip",
+      content_base64: Buffer.from([0, 1, 2, 3]).toString("base64"),
+      content_type: "video/mp4"
+    })) as Record<string, unknown>;
+    expect(unnamed.asset_uri).toBe(`asset://${String(unnamed.asset_id)}.mp4`);
+
+    // Neither names one — no suffix is better than a wrong one.
+    const opaque = (await asTool("save_asset", ctx).process(ctx, {
+      name: "blob",
+      content_base64: Buffer.from([0, 1, 2, 3]).toString("base64"),
+      content_type: "application/x-thing"
+    })) as Record<string, unknown>;
+    expect(opaque.asset_uri).toBe(`asset://${String(opaque.asset_id)}`);
+  });
+
   it("copies a stored file into the library from a /api/storage/ source, without base64", async () => {
     // The regression: a tool downloaded a video to storage and returned its
     // asset_url; the model's only way to make it a library asset was

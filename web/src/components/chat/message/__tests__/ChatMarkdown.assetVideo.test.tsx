@@ -19,6 +19,13 @@ jest.mock("../../../../trpc/client", () => ({
 jest.mock("../../../../hooks/useResolvedMediaUri");
 import { mockAssetUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
 
+// The map the component sees: `jest.mock` above swapped the module the
+// component imports, and reaching the manual mock by its own path hands this
+// suite a second copy of it.
+const { mockAssetContentTypes } = jest.requireMock(
+  "../../../../hooks/useResolvedMediaUri"
+) as typeof import("../../../../hooks/__mocks__/useResolvedMediaUri");
+
 /**
  * react-markdown is ESM-only; this mock handles markdown images `![](src)`
  * and links `[label](href)` and forwards them to `components.img` / `components.a`.
@@ -116,6 +123,7 @@ const renderMarkdown = (content: string) =>
 describe("ChatMarkdown asset video", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAssetContentTypes.clear();
   });
 
   it("renders an asset:// mp4 markdown image as a video player", () => {
@@ -135,6 +143,45 @@ describe("ChatMarkdown asset video", () => {
       { key: "51f0fcd92a05488caf261eb22bbf98df.mp4" },
       expect.anything()
     );
+  });
+
+  it("types an extension-less asset:// by its content type", () => {
+    // `save_asset` returned `asset://<id>` with no suffix, and the embed
+    // rendered as an <img> with an mp4 behind it — a blank tile in chat.
+    mockUseQuery.mockReturnValue({ data: undefined });
+    mockAssetContentTypes.set("9c936089c3d0471a90aa5443f6f46665", "video/mp4");
+
+    const { container } = renderMarkdown(
+      "![Skateboarding Red Panda](asset://9c936089c3d0471a90aa5443f6f46665)"
+    );
+
+    const video = container.querySelector("video") as HTMLVideoElement;
+    expect(video).not.toBeNull();
+    expect(video).toHaveAttribute(
+      "src",
+      mockAssetUrl("9c936089c3d0471a90aa5443f6f46665")
+    );
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("types an extension-less audio asset by its content type", () => {
+    mockUseQuery.mockReturnValue({ data: undefined });
+    mockAssetContentTypes.set("narration1", "audio/mpeg");
+
+    const { container } = renderMarkdown("![Narration](asset://narration1)");
+
+    expect(container.querySelector("audio")).not.toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("still renders an extension-less image asset as an image", () => {
+    mockUseQuery.mockReturnValue({ data: undefined });
+    mockAssetContentTypes.set("pic1", "image/png");
+
+    const { container } = renderMarkdown("![Pic](asset://pic1)");
+
+    expect(container.querySelector("img")).not.toBeNull();
+    expect(container.querySelector("video")).toBeNull();
   });
 
   it("renders an https mp4 markdown image as a video player", () => {
