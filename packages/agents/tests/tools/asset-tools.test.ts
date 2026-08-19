@@ -115,9 +115,25 @@ describe("SaveAssetTool", () => {
     expect(result.success).toBe(true);
     expect(result.asset_id).toBe("abc123");
     expect(result.asset_uri).toBe("asset://abc123.png");
+    expect(result.url).toBe("asset://abc123.png");
     expect(calls).toHaveLength(1);
     expect(calls[0].contentType).toBe("image/png");
     expect(Array.from(calls[0].content)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("returns an embeddable video URI with the mp4 extension", async () => {
+    const ctx = {
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: vi.fn(async () => ({ id: "clip1" }))
+    } as unknown as ProcessingContext;
+    const bytes = new Uint8Array([0, 0, 0, 1]);
+    const result = (await saveAssetTool().process(ctx, {
+      name: "reel.mp4",
+      content_base64: Buffer.from(bytes).toString("base64"),
+      content_type: "video/mp4"
+    })) as Record<string, unknown>;
+    expect(result.asset_uri).toBe("asset://clip1.mp4");
+    expect(result.url).toBe("asset://clip1.mp4");
   });
 
   it("prefers createAsset over storage for text content too", async () => {

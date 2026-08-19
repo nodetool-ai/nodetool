@@ -39,7 +39,8 @@ const resolve = (source: MediaLocator): string | undefined => {
 
 export const resolveStaticMediaUri = realResolveStaticMediaUri;
 
-export const useResolvedMediaUri = resolve;
+/** Content type pinned for a whole `asset://…` locator in tests. */
+const contentTypeByLocator = new Map<string, string>();
 
 /**
  * Content type a test wants an asset id to resolve to, so a suite can exercise
@@ -48,8 +49,21 @@ export const useResolvedMediaUri = resolve;
  */
 export const mockAssetContentTypes = new Map<string, string>();
 
+/** Pin a content type for an `asset://` locator in tests. */
+export const mockAssetContentType = (locator: string, mime: string): void => {
+  contentTypeByLocator.set(locator, mime);
+};
+
+export const resetMockAssetContentTypes = (): void => {
+  contentTypeByLocator.clear();
+  mockAssetContentTypes.clear();
+};
+
+const locatorUri = (source: MediaLocator): string | undefined =>
+  typeof source === "string" ? source : (source?.uri ?? undefined);
+
 const assetIdOf = (source: MediaLocator): string | undefined => {
-  const uri = typeof source === "string" ? source : (source?.uri ?? undefined);
+  const uri = locatorUri(source);
   const declared = typeof source === "object" ? source?.asset_id : undefined;
   if (declared) return declared;
   if (!uri?.startsWith("asset://")) return undefined;
@@ -59,12 +73,18 @@ const assetIdOf = (source: MediaLocator): string | undefined => {
 export const useResolvedMedia = (
   source: MediaLocator
 ): { url: string | undefined; contentType: string | undefined } => {
+  const uri = locatorUri(source);
   const id = assetIdOf(source);
   return {
     url: resolve(source),
-    contentType: id ? mockAssetContentTypes.get(id) : undefined
+    contentType:
+      (uri ? contentTypeByLocator.get(uri) : undefined) ??
+      (id ? mockAssetContentTypes.get(id) : undefined)
   };
 };
+
+export const useResolvedMediaUri = (source: MediaLocator): string | undefined =>
+  useResolvedMedia(source).url;
 
 export const useResolvedMediaUris = (
   sources: MediaLocator[]

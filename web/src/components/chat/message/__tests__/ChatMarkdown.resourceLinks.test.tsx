@@ -5,6 +5,18 @@ import { ThemeProvider } from "@mui/material/styles";
 import ChatMarkdown from "../ChatMarkdown";
 import mockTheme from "../../../../__mocks__/themeMock";
 
+const mockUseQuery = jest.fn();
+
+jest.mock("../../../../trpc/client", () => ({
+  trpc: {
+    storage: {
+      signUrl: {
+        useQuery: (...args: unknown[]) => mockUseQuery(...args)
+      }
+    }
+  }
+}));
+
 /**
  * react-markdown is ESM-only and globally mocked as a passthrough, which would
  * never reach the `a` override. This stand-in does the one thing the branch
@@ -81,6 +93,10 @@ const renderMarkdown = (content: string) =>
   );
 
 describe("ChatMarkdown resource links", () => {
+  beforeEach(() => {
+    mockUseQuery.mockReturnValue({ data: undefined });
+  });
+
   it("renders a resource link as a chip", () => {
     renderMarkdown("Added [Beach intro](storyboard://sb_1) to the board.");
 

@@ -428,15 +428,17 @@ const saveAsset: CapabilityExport = {
               // Non-fatal: the asset is still saved via createAsset.
             }
           }
+          // With the extension: a chat embed of `asset://<id>` alone has no
+          // way to tell a video from an image and renders it as one, which
+          // is how a saved mp4 came back as a broken image. `generate_*`
+          // already returns the suffixed form.
+          const savedUri = `asset://${asset.id}${assetUriSuffix(name, mime)}`;
           return {
             success: true,
             name,
             asset_id: asset.id,
-            // With the extension: a chat embed of `asset://<id>` alone has no
-            // way to tell a video from an image and renders it as one, which
-            // is how a saved mp4 came back as a broken image. `generate_*`
-            // already returns the suffixed form.
-            asset_uri: `asset://${asset.id}${assetUriSuffix(name, mime)}`,
+            asset_uri: savedUri,
+            url: savedUri,
             content_type: mime,
             size: data.byteLength
           };
