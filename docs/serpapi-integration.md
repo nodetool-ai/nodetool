@@ -134,6 +134,7 @@ would make every checked call demand the one field a caller must never set.
 |---|---|
 | Capability specs (descriptions, schemas, classes) | `packages/agents/src/capabilities/serpapi.specs.ts` |
 | Capability implementations | `packages/agents/src/capabilities/serpapi.ts` |
+| Belt tools (chat runner, MCP bridge) | `packages/agents/src/tools/external-capability-tools.ts` |
 | HTTP client — the only holder of the key | `packages/agents/src/serpapi/client.ts` |
 | Engine catalog and its parser | `packages/agents/src/serpapi/catalog.ts` |
 | Response trimming and parameter checking | `packages/agents/src/serpapi/normalize.ts` |

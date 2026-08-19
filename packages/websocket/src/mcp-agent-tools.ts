@@ -37,6 +37,8 @@ import {
   getAgentToolbelt,
   getAllMcpTools,
   getGoogleWorkspaceTools,
+  getApifyTools,
+  getSerpApiTools,
   permissionCategoryFor,
   toolForCapabilityName,
   UNGATED,
@@ -329,6 +331,10 @@ function collectBridgedTools(
     // Google Workspace runs on the token from the user's Google sign-in, so it
     // only exists on deployments that have a login — same gate the runner uses.
     ...(isGoogleWorkspaceEnabled() ? getGoogleWorkspaceTools() : []),
+    // Apify and SerpAPI: same belt the chat runner offers. Ungated here, as
+    // every bridged tool is — this surface has no approval prompt to show.
+    ...getApifyTools(),
+    ...getSerpApiTools(),
     // Timelines have no REST route (the API is tRPC-only), so this capability
     // reads a loader off the run instead of fetching, and `getAllMcpTools`
     // cannot build it.

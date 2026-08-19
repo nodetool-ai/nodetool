@@ -98,7 +98,10 @@ export function apifyPolicyFromEnv(
   env: NodeJS.ProcessEnv = process.env
 ): ApifyPolicy {
   const raw = (env.NODETOOL_APIFY_MODE ?? "").trim().toLowerCase();
-  const mode = (MODES.has(raw) ? raw : "allowlist") as ApifyPolicyMode;
+  // Discovery is the default: the shipped catalog runs directly, and any
+  // other actor asks the user through the ordinary permission gate before it
+  // spends anything. An operator narrows it with `allowlist` or `disabled`.
+  const mode = (MODES.has(raw) ? raw : "discovery") as ApifyPolicyMode;
   const extra = (env.NODETOOL_APIFY_ALLOWED_ACTORS ?? "")
     .split(",")
     .map((id) => toCanonicalActorId(id).trim())
@@ -170,8 +173,8 @@ export function decideActor(
     reason:
       `${id} is not on this install's Apify allowlist. Allowed actors: ` +
       `${[...policy.allowlist].sort().join(", ")}. An operator can add one ` +
-      "with NODETOOL_APIFY_ALLOWED_ACTORS, or set NODETOOL_APIFY_MODE=discovery " +
-      "to approve actors per run."
+      "with NODETOOL_APIFY_ALLOWED_ACTORS, or unset NODETOOL_APIFY_MODE " +
+      "(default: discovery) to approve actors per run."
   };
 }
 

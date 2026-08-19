@@ -1231,8 +1231,12 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "assets",
     doc: `- \`nodetool.assets\` — \`list({content_type, limit})\`, \`search(query)\`,
   \`images({query, limit})\` (image handles — pass an id to \`view_image\`),
-  \`get(assetId)\` (the row — no bytes), \`save(name, {content_base64,
-  content_type})\`, \`read(nameOrUri)\` (an \`asset://\` URI, an asset id, a
+  \`get(assetId)\` (the row — no bytes), \`save(name, {content |
+  content_base64 | source, content_type})\` — \`source\` is the asset_url or
+  /api/storage/ key another tool returned, an \`asset://\` URI, or an http(s)
+  URL, copied host-side: to keep a file download_file or run_apify_actor
+  produced, pass its \`asset_url\` as \`source\`; never \`read()\` it to base64
+  first. \`read(nameOrUri)\` (an \`asset://\` URI, an asset id, a
   /api/storage/ key, or a stored file name → \`{content, content_base64}\`).
   To edit a generated image, pass the generation result to \`image.*\` and
   save with \`nodetool.media.toImage(handle).\``

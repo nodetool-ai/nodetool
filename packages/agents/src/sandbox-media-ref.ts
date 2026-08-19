@@ -118,7 +118,7 @@ function extForMime(mime: string): string {
   return MIME_TO_EXT[mime.toLowerCase()] ?? "bin";
 }
 
-function mimeForPath(path: string): string | undefined {
+export function mimeForPath(path: string): string | undefined {
   const match = /\.([A-Za-z0-9]+)(?:[?#].*)?$/.exec(path);
   return match ? EXT_TO_MIME[match[1].toLowerCase()] : undefined;
 }
