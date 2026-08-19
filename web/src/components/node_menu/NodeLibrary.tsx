@@ -2,19 +2,21 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { DocsHelpLink, Text, thinScrollbarStyles, MOTION, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  DocsHelpLink,
+  Text,
+  thinScrollbarStyles,
+  MOTION,
+  FONT_WEIGHT,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -28,7 +30,8 @@ import { rankSearchNodes } from "../../utils/nodeSearch";
 import {
   filterNodesForCategory,
   NODE_SUBCATEGORIES,
-  getNodeSubcategory
+  getNodeSubcategory,
+  getTopLevelCategory
 } from "../../config/quickAccessCategories";
 import type { NodeCategoryId } from "../../stores/PanelStore";
 import type { NodeMetadata } from "../../stores/ApiTypes";
@@ -424,7 +427,11 @@ const NodeLibrary = memo<NodeLibraryProps>(
             Node library
           </Text>
           <span className="nl-count">{nodes.length}</span>
-          <DocsHelpLink topic="nodes" label="Node reference" />
+          <DocsHelpLink
+            topic="nodes"
+            label="Node reference"
+            description={getTopLevelCategory("nodes").description}
+          />
         </div>
 
         <div className="nl-search">
@@ -451,7 +458,11 @@ const NodeLibrary = memo<NodeLibraryProps>(
 
         <div className="nl-body">
           <div className="nl-browse">
-            <nav className="nl-rail" role="tablist" aria-label="Node categories">
+            <nav
+              className="nl-rail"
+              role="tablist"
+              aria-label="Node categories"
+            >
               {NODE_SUBCATEGORIES.map((sub) => (
                 <button
                   key={sub.id}

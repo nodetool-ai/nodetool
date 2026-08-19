@@ -1,4 +1,5 @@
 import {
+  LEFT_PANEL_GROUPS,
   LEFT_PANEL_TOP_LEVEL,
   NODE_SUBCATEGORIES,
   filterNodesForCategory,
@@ -36,19 +37,50 @@ describe("quickAccessCategories", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
     expect(ids).toEqual([
       "nodes",
+      "favorites",
+      "history",
+      "settings",
       "workflows",
+      "apps",
       "chats",
       "sketches",
-      "timelines",
-      "storyboards",
       "scripts",
+      "storyboards",
+      "timelines",
       "jsscripts",
-      "apps",
-      "settings",
-      "history",
-      "favorites",
       "assets",
       "library"
+    ]);
+  });
+
+  it("groups workflow tools, global objects, editors, and resources", () => {
+    expect(
+      LEFT_PANEL_GROUPS.map((group) => ({
+        id: group.id,
+        placement: group.placement,
+        views: group.categories.map((category) => category.id)
+      }))
+    ).toEqual([
+      {
+        id: "workflow-tools",
+        placement: "top",
+        views: ["nodes", "favorites", "history", "settings"]
+      },
+      {
+        id: "main-objects",
+        placement: "top",
+        views: ["workflows", "apps", "chats"]
+      },
+      {
+        id: "editors",
+        placement: "top",
+        views: ["sketches", "scripts", "storyboards", "timelines", "jsscripts"]
+      },
+      {
+        id: "resources",
+        placement: "bottom",
+        views: ["assets", "library"]
+      }
     ]);
   });
 
@@ -69,7 +101,7 @@ describe("quickAccessCategories", () => {
     ]);
   });
 
-  it("\"all\" subcategory accepts every node", () => {
+  it('"all" subcategory accepts every node', () => {
     const all = [
       meta("nodetool.image.Resize", "image"),
       meta("openai.agents.Foo", "str"),

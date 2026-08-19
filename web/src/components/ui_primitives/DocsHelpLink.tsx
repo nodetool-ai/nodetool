@@ -7,13 +7,15 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { IconButton, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { docsLink, type DocsTopic } from "../../config/docsLinks";
-import { MOTION } from "./tokens";
+import { MOTION, reducedMotion } from "./tokens";
 
 export interface DocsHelpLinkProps {
   /** Documentation page this surface maps to. */
   topic: DocsTopic;
   /** What the tooltip names, e.g. "Workflows" → "Workflows documentation". */
   label: string;
+  /** Short explanation shown before the documentation action. */
+  description?: string;
   size?: "small" | "medium";
   tooltipPlacement?: "top" | "bottom" | "left" | "right";
   className?: string;
@@ -23,6 +25,7 @@ const styles = (theme: Theme) =>
   css({
     color: theme.vars.palette.text.disabled,
     transition: `color ${MOTION.normal}`,
+    ...reducedMotion({ transition: MOTION.none }),
     "&:hover": {
       color: theme.vars.palette.primary.main,
       backgroundColor: theme.vars.palette.action.hover
@@ -36,16 +39,20 @@ const styles = (theme: Theme) =>
 const DocsHelpLinkInternal: React.FC<DocsHelpLinkProps> = ({
   topic,
   label,
+  description,
   size = "small",
   tooltipPlacement = "bottom",
   className
 }) => {
   const theme = useTheme();
   const title = `${label} documentation`;
+  const tooltipTitle = description
+    ? `${description} Open documentation.`
+    : title;
 
   return (
     <Tooltip
-      title={title}
+      title={tooltipTitle}
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement={tooltipPlacement}
     >
@@ -58,7 +65,6 @@ const DocsHelpLinkInternal: React.FC<DocsHelpLinkProps> = ({
         target="_blank"
         rel="noopener noreferrer"
         aria-label={title}
-        tabIndex={-1}
         onClick={(event: React.MouseEvent) => event.stopPropagation()}
       >
         <HelpOutlineIcon fontSize={size === "medium" ? "medium" : "small"} />

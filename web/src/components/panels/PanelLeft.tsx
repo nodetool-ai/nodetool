@@ -2,12 +2,24 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
 import {
-  useMediaQuery
-} from "@mui/material";
-import { ToolbarIconButton, FlexColumn, Box, Z_INDEX, SPACING, getSpacingPx } from "../ui_primitives";
+  BORDER_RADIUS,
+  Box,
+  Divider,
+  FlexColumn,
+  FlexRow,
+  MOTION,
+  MobileBottomSheet,
+  SPACING,
+  ScrollArea,
+  ToolbarIconButton,
+  Tooltip,
+  Z_INDEX,
+  getSpacingPx,
+  thinScrollbarStyles
+} from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import { BORDER_RADIUS } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -19,7 +31,9 @@ import {
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
-import TimelineListPanel, { CreateTimelineButton } from "../timeline/TimelineListPanel";
+import TimelineListPanel, {
+  CreateTimelineButton
+} from "../timeline/TimelineListPanel";
 import SketchListPanel, { CreateSketchButton } from "../sketch/SketchListPanel";
 import StoryboardListPanel, {
   CreateStoryboardButton
@@ -49,9 +63,10 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { PAGE_TAB_TITLES } from "../workspace/pageTabs";
 import {
   LEFT_PANEL_TOP_LEVEL,
+  LEFT_PANEL_GROUPS,
+  WORKFLOW_OUTPUT_DESCRIPTION,
   getTopLevelCategory
 } from "../../config/quickAccessCategories";
-import type { LeftPanelTopLevelCategory } from "../../config/quickAccessCategories";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -63,7 +78,6 @@ import {
 } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
-import { ScrollArea, Tooltip, MobileBottomSheet, MOTION } from "../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 
@@ -157,9 +171,19 @@ const styles = (
       paddingBottom: getSpacingPx(SPACING.lg), // was 10px
 
       "& .toolbar-divider": {
-        height: "1px",
-        margin: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`, // was 8px 10px
-        backgroundColor: theme.vars.palette.divider
+        flexShrink: 0
+      },
+
+      "& .quick-access-top": {
+        flex: 1,
+        minHeight: 0,
+        overflowX: "hidden",
+        overflowY: "auto",
+        ...thinScrollbarStyles(theme)
+      },
+
+      "& .quick-access-bottom, & .quick-access-group": {
+        flexShrink: 0
       },
 
       "& .MuiIconButton-root, .MuiButton-root": {
@@ -218,7 +242,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   showAppMenu = false,
   hiddenViews
 }: {
-  activeView: string;
+  activeView: LeftPanelView;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
   showAppMenu?: boolean;
@@ -227,8 +251,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
   const currentWorkflow = useWorkflowManager((state) =>
     state.currentWorkflowId
-      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
-        null
+      ? (state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
+        null)
       : null
   );
 
@@ -249,7 +273,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       {showAppMenu && (
         <>
           <RailAppMenu />
-          <div className="toolbar-divider" aria-hidden />
+          <Divider className="toolbar-divider" sx={{ mx: SPACING.lg }} />
         </>
       )}
       <QuickAccessSidebar
@@ -258,8 +282,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         hiddenViews={hiddenViews}
         labelOverrides={labelOverrides}
       />
-      <div style={{ flexGrow: 1 }} />
-      <div className="toolbar-divider" aria-hidden />
+      <Divider className="toolbar-divider" sx={{ mx: SPACING.lg }} />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
         <ToolbarIconButton
@@ -280,7 +303,7 @@ const PanelContent = memo(function PanelContent({
   handlePanelToggle,
   isMobile = false
 }: {
-  activeView: string;
+  activeView: LeftPanelView;
   activeNodeCategory: NodeCategoryId;
   setActiveNodeCategory: (id: NodeCategoryId) => void;
   handlePanelToggle: (view: LeftPanelView) => void;
@@ -290,12 +313,17 @@ const PanelContent = memo(function PanelContent({
   const path = useLocation().pathname;
   const currentWorkflow = useWorkflowManager((state) =>
     state.currentWorkflowId
-      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
-        null
+      ? (state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
+        null)
       : null
   );
   const setVisibility = usePanelStore((state) => state.setVisibility);
   const closePanel = useCallback(() => setVisibility(false), [setVisibility]);
+  const activeCategory = getTopLevelCategory(activeView);
+  const headlineDescription =
+    activeView === "assets" && currentWorkflow
+      ? WORKFLOW_OUTPUT_DESCRIPTION
+      : activeCategory.description;
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   // The asset library is a workspace tab like the other manager pages, not a
@@ -332,7 +360,13 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          {!isMobile && <PanelHeadline title="History" docsTopic="nodes" />}
+          {!isMobile && (
+            <PanelHeadline
+              title="History"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
+            />
+          )}
           <HistoryTilesPanel />
         </FlexColumn>
       )}
@@ -345,7 +379,13 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          {!isMobile && <PanelHeadline title="Favorites" docsTopic="nodes" />}
+          {!isMobile && (
+            <PanelHeadline
+              title="Favorites"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
+            />
+          )}
           <ScrollArea fullHeight>
             <FavoritesTiles showEmpty hideHeader />
           </ScrollArea>
@@ -363,7 +403,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title={currentWorkflow ? "Workflow Output" : "Assets"}
-              docsTopic="assets"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={
                 <Tooltip
                   title="Open the global asset library"
@@ -397,7 +438,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Library"
-              docsTopic="assets"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={
                 <Tooltip title="Open in full page" placement="right-start">
                   <ToolbarIconButton
@@ -428,7 +470,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Workflows"
-              docsTopic="workflows"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={<CreateWorkflowButton />}
             />
           )}
@@ -449,7 +492,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Chats"
-              docsTopic="chat"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={<CreateChatButton />}
             />
           )}
@@ -468,7 +512,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Sketches"
-              docsTopic="sketches"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={<CreateSketchButton />}
             />
           )}
@@ -487,7 +532,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Timelines"
-              docsTopic="timelines"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={<CreateTimelineButton />}
             />
           )}
@@ -506,7 +552,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Storyboards"
-              docsTopic="storyboards"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={<CreateStoryboardButton />}
             />
           )}
@@ -525,7 +572,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Scripts"
-              docsTopic="scripts"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={<CreateScriptButton />}
             />
           )}
@@ -544,6 +592,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="JS Scripts"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={<CreateJsScriptButton />}
             />
           )}
@@ -562,7 +612,8 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Apps"
-              docsTopic="apps"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
               actions={
                 <>
                   <CreateApplicationFromWorkflowButton />
@@ -583,7 +634,13 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          {!isMobile && <PanelHeadline title="Settings" docsTopic="workflows" />}
+          {!isMobile && (
+            <PanelHeadline
+              title="Settings"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
+            />
+          )}
           <ScrollArea fullHeight>
             <WorkflowForm workflow={currentWorkflow} onClose={closePanel} />
           </ScrollArea>
@@ -653,6 +710,14 @@ const mobileHeaderExtrasStyles = (theme: Theme) =>
     padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
     overflowX: "auto",
     WebkitOverflowScrolling: "touch",
+    "& .mobile-tab-group": {
+      flexShrink: 0
+    },
+    "& .mobile-tab-group + .mobile-tab-group": {
+      marginLeft: getSpacingPx(SPACING.xs),
+      paddingLeft: getSpacingPx(SPACING.md),
+      borderLeft: `1px solid ${theme.vars.palette.divider}`
+    },
     "& .tab-button": {
       flexShrink: 0,
       padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 6px 10px
@@ -722,15 +787,20 @@ const MobilePanelLeft: React.FC<{
     [onViewChange]
   );
 
-  const categories = useMemo<readonly LeftPanelTopLevelCategory[]>(
-    () => LEFT_PANEL_TOP_LEVEL.filter((cat) => !hiddenViews?.includes(cat.id)),
+  const categoryGroups = useMemo(
+    () =>
+      LEFT_PANEL_GROUPS.map((group) => ({
+        ...group,
+        categories: group.categories.filter(
+          (category) => !hiddenViews?.includes(category.id)
+        )
+      })).filter((group) => group.categories.length > 0),
     [hiddenViews]
   );
 
   const CreateAction = MOBILE_CREATE_ACTIONS[activeView];
 
-  const launcherTitle =
-    getTopLevelCategory(activeView)?.label ?? "Workflows";
+  const launcherTitle = getTopLevelCategory(activeView).label;
 
   return (
     <>
@@ -755,21 +825,31 @@ const MobilePanelLeft: React.FC<{
         ariaLabel="Workflows, sketches, timelines, and assets panel"
         headerExtras={
           <div css={mobileHeaderExtrasStyles(theme)}>
-            {categories.map((cat) => (
-              <Tooltip
-                key={cat.id}
-                title={cat.label}
-                placement="bottom"
-                delay={TOOLTIP_ENTER_DELAY}
+            {categoryGroups.map((group) => (
+              <FlexRow
+                key={group.id}
+                className="mobile-tab-group"
+                gap={SPACING.xs}
               >
-                <ToolbarIconButton
-                  className={`tab-button ${activeView === cat.id ? "active" : ""}`}
-                  onClick={() => handleSheetViewChange(cat.id)}
-                  ariaLabel={cat.label}
-                  tabIndex={-1}
-                  icon={cat.icon}
-                />
-              </Tooltip>
+                {group.categories.map((category) => (
+                  <Tooltip
+                    key={category.id}
+                    title={category.label}
+                    placement="bottom"
+                    delay={TOOLTIP_ENTER_DELAY}
+                  >
+                    <ToolbarIconButton
+                      className={`tab-button ${
+                        activeView === category.id ? "active" : ""
+                      }`}
+                      onClick={() => handleSheetViewChange(category.id)}
+                      ariaLabel={category.label}
+                      tabIndex={-1}
+                      icon={category.icon}
+                    />
+                  </Tooltip>
+                ))}
+              </FlexRow>
             ))}
 
             <Box sx={{ flex: 1 }} />
@@ -825,7 +905,10 @@ const PanelLeft: React.FC = () => {
       activeTabType === "workflow" &&
       activeTabMode === "edit");
   const hasHeader = !isStandaloneMode;
-  const panelLeftStyles = useMemo(() => styles(theme, hasHeader, false), [theme, hasHeader]);
+  const panelLeftStyles = useMemo(
+    () => styles(theme, hasHeader, false),
+    [theme, hasHeader]
+  );
 
   const {
     ref: panelRef,

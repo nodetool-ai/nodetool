@@ -16,23 +16,15 @@
 import React from "react";
 import { stub } from "../../../test-utils/doubles";
 import "@testing-library/jest-dom/jest-globals";
-import {
-  describe,
-  expect,
-  it,
-  jest
-} from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import PanelHeadline from "../PanelHeadline";
 import mockTheme from "../../../__mocks__/themeMock";
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={mockTheme}>
-      {component}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
 describe("PanelHeadline", () => {
@@ -44,14 +36,18 @@ describe("PanelHeadline", () => {
     });
 
     it("renders with panel-headline class", () => {
-      const { container } = renderWithTheme(<PanelHeadline title="Test Title" />);
+      const { container } = renderWithTheme(
+        <PanelHeadline title="Test Title" />
+      );
 
       const headline = container.querySelector(".panel-headline");
       expect(headline).toBeInTheDocument();
     });
 
     it("renders title with headline-title class", () => {
-      const { container } = renderWithTheme(<PanelHeadline title="Test Title" />);
+      const { container } = renderWithTheme(
+        <PanelHeadline title="Test Title" />
+      );
 
       const title = container.querySelector(".headline-title");
       expect(title).toBeInTheDocument();
@@ -59,7 +55,9 @@ describe("PanelHeadline", () => {
     });
 
     it("renders as span with h6 variant", () => {
-      const { container } = renderWithTheme(<PanelHeadline title="Test Title" />);
+      const { container } = renderWithTheme(
+        <PanelHeadline title="Test Title" />
+      );
 
       const title = container.querySelector("span.headline-title");
       expect(title).toBeInTheDocument();
@@ -69,9 +67,7 @@ describe("PanelHeadline", () => {
   describe("actions prop", () => {
     it("renders actions when provided", () => {
       const actions = <button data-testid="action-button">Action</button>;
-      renderWithTheme(
-        <PanelHeadline title="Test Title" actions={actions} />
-      );
+      renderWithTheme(<PanelHeadline title="Test Title" actions={actions} />);
 
       const actionButton = screen.getByTestId("action-button");
       expect(actionButton).toBeInTheDocument();
@@ -89,7 +85,9 @@ describe("PanelHeadline", () => {
     });
 
     it("does not render actions container when actions not provided", () => {
-      const { container } = renderWithTheme(<PanelHeadline title="Test Title" />);
+      const { container } = renderWithTheme(
+        <PanelHeadline title="Test Title" />
+      );
 
       const actionsContainer = container.querySelector(".headline-actions");
       expect(actionsContainer).not.toBeInTheDocument();
@@ -127,6 +125,29 @@ describe("PanelHeadline", () => {
     });
   });
 
+  describe("documentation help", () => {
+    it("shows the panel description on the existing documentation link", async () => {
+      const user = userEvent.setup();
+      renderWithTheme(
+        <PanelHeadline
+          title="Workflows"
+          docsTopic="workflows"
+          description="Open, create, and manage workflows."
+        />
+      );
+
+      await user.hover(
+        screen.getByRole("link", { name: "Workflows documentation" })
+      );
+
+      expect(
+        await screen.findByText(
+          "Open, create, and manage workflows. Open documentation."
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("title content", () => {
     it("renders simple text title", () => {
       renderWithTheme(<PanelHeadline title="Simple Title" />);
@@ -135,7 +156,7 @@ describe("PanelHeadline", () => {
     });
 
     it("renders title with special characters", () => {
-      const specialTitle = "Title with <Special> & \"Characters\"";
+      const specialTitle = 'Title with <Special> & "Characters"';
       renderWithTheme(<PanelHeadline title={specialTitle} />);
 
       expect(screen.getByText(specialTitle)).toBeInTheDocument();
@@ -172,7 +193,9 @@ describe("PanelHeadline", () => {
 
   describe("memoization", () => {
     it("is memoized with React.memo", () => {
-      const { rerender } = renderWithTheme(<PanelHeadline title="Test Title" />);
+      const { rerender } = renderWithTheme(
+        <PanelHeadline title="Test Title" />
+      );
 
       // Rerender with same props
       rerender(
