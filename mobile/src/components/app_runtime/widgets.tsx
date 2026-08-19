@@ -12,8 +12,10 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   Linking,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -21,7 +23,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   type StyleProp,
   type TextStyle,
 } from "react-native";
@@ -821,14 +826,85 @@ const PDFWidget: React.FC<WidgetProps> = (widget) => {
 };
 
 /**
+ * A full-screen pager over the gallery's images. Horizontal paging is the whole
+ * point: a tile grid at phone size shows thumbnails, and swiping through them at
+ * full width is how the images are actually looked at. Paging is the platform's
+ * own (`pagingEnabled`), so the swipe follows the finger and settles on a page.
+ */
+const GalleryViewer: React.FC<{
+  uris: string[];
+  initialIndex: number;
+  onClose: () => void;
+}> = ({ uris, initialIndex, onClose }) => {
+  const { width, height } = useWindowDimensions();
+  const [index, setIndex] = useState(initialIndex);
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const page = Math.round(event.nativeEvent.contentOffset.x / width);
+      setIndex(Math.min(Math.max(page, 0), uris.length - 1));
+    },
+    [uris.length, width]
+  );
+  return (
+    <Modal
+      visible
+      transparent={false}
+      animationType="fade"
+      onRequestClose={onClose}
+      supportedOrientations={["portrait", "landscape"]}
+    >
+      <View style={styles.viewer}>
+        <FlatList
+          data={uris}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          initialScrollIndex={initialIndex}
+          getItemLayout={(_, i) => ({
+            length: width,
+            offset: width * i,
+            index: i,
+          })}
+          keyExtractor={(uri, i) => `${uri}-${i}`}
+          onMomentumScrollEnd={onScroll}
+          testID="gallery-pager"
+          renderItem={({ item }) => (
+            <Image
+              testID="gallery-page"
+              accessibilityRole="image"
+              source={{ uri: item }}
+              style={{ width, height }}
+              resizeMode="contain"
+            />
+          )}
+        />
+        <View style={styles.viewerBar}>
+          <Text style={styles.viewerCount}>{`${index + 1} / ${uris.length}`}</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Close gallery"
+            onPress={onClose}
+            style={styles.viewerClose}
+          >
+            <Text style={styles.viewerCloseText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+/**
  * A tiled grid of a bound array of media refs. Unlike the three cards above this
  * one renders for real: the tiles are the same `Image` the `Image` widget draws.
+ * Tapping a tile opens `GalleryViewer`, where the images are swiped through.
  */
 const GalleryWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
   const tileSize = numOr(widget.props.tileSize, 120);
   const uris = useMediaUris(asItems(value));
+  const [openedAt, setOpenedAt] = useState<number | null>(null);
 
   if (uris.length === 0) {
     return (
@@ -843,19 +919,37 @@ const GalleryWidget: React.FC<WidgetProps> = (widget) => {
       <FieldLabel text={str(widget.props.label)} colors={colors} />
       <View style={styles.tileGrid}>
         {uris.map((uri, index) => (
-          <Image
+          <TouchableOpacity
             key={`${uri}-${index}`}
             testID="gallery-tile"
-            accessibilityRole="image"
-            source={{ uri }}
-            style={[
-              styles.tile,
-              { width: tileSize, height: tileSize, borderColor: colors.border },
-            ]}
-            resizeMode="cover"
-          />
+            accessibilityRole="imagebutton"
+            accessibilityLabel={`Image ${index + 1} of ${uris.length}`}
+            disabled={widget.disabled}
+            onPress={() => setOpenedAt(index)}
+          >
+            <Image
+              accessibilityRole="image"
+              source={{ uri }}
+              style={[
+                styles.tile,
+                {
+                  width: tileSize,
+                  height: tileSize,
+                  borderColor: colors.border,
+                },
+              ]}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
         ))}
       </View>
+      {openedAt !== null && (
+        <GalleryViewer
+          uris={uris}
+          initialIndex={openedAt}
+          onClose={() => setOpenedAt(null)}
+        />
+      )}
     </View>
   );
 };
@@ -2474,6 +2568,36 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  viewer: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  viewerBar: {
+    position: "absolute",
+    top: 44,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+  },
+  // The backdrop is black in either theme, so the bar is light, not themed.
+  viewerCount: {
+    fontSize: 14,
+    color: "#fff",
+  },
+  viewerClose: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  viewerCloseText: {
+    fontSize: 14,
+    color: "#fff",
   },
   cellInput: {
     fontSize: 14,
