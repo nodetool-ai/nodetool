@@ -28,6 +28,8 @@ import { isString } from "../type-predicates.js";
 type PythonProviderOptions = Record<string, unknown> & {
   _id: string;
   _bridge: PythonBridgeBase;
+  /** Provider id understood by the Python worker when the public id is aliased. */
+  _bridgeProviderId?: string;
 };
 
 export class PythonProvider extends BaseProvider {
@@ -57,10 +59,11 @@ export class PythonProvider extends BaseProvider {
       return;
     }
 
-    const { _id, _bridge, ...rawSecrets } = providerIdOrOptions;
+    const { _id, _bridge, _bridgeProviderId, ...rawSecrets } =
+      providerIdOrOptions;
     super(_id);
     this._bridge = _bridge;
-    this._pythonProviderId = _id;
+    this._pythonProviderId = _bridgeProviderId ?? _id;
     this._secrets = Object.fromEntries(
       Object.entries(rawSecrets).filter(
         (entry): entry is [string, string] => typeof entry[1] === "string"
@@ -122,11 +125,18 @@ export class PythonProvider extends BaseProvider {
   }
 
   private async _getModels(modelType: string): Promise<unknown[]> {
-    return this._bridge.getProviderModels(
+    const models = await this._bridge.getProviderModels(
       this._pythonProviderId,
       modelType,
       this._secrets
     );
+    // The public provider id may be an alias (notably `huggingface-local`) so
+    // selections route back through this bridge adapter instead of colliding
+    // with a built-in remote provider that uses the worker's original id.
+    return models.map((model) => ({
+      ...model,
+      provider: this.provider
+    }));
   }
 
   // ── Chat completion ───────────────────────────────────────────────

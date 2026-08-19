@@ -362,14 +362,24 @@ export async function registerPythonProviders(
   const providers = await bridge.listProviders();
   const registered: string[] = [];
   for (const info of providers) {
-    if (listRegisteredProviderIds().includes(info.id)) continue;
+    const existingIds = listRegisteredProviderIds();
+    // The TypeScript runtime already owns `huggingface` for the hosted
+    // Inference API, while the Python worker uses the same id for local model
+    // execution. Keep both available under stable public ids and retain the
+    // worker id separately for bridge calls.
+    const publicId =
+      info.id === "huggingface" && existingIds.includes(info.id)
+        ? "huggingface-local"
+        : info.id;
+    if (existingIds.includes(publicId)) continue;
     const secrets: Record<string, string> = {};
-    registerProvider(info.id, PythonProvider as any, {
+    registerProvider(publicId, PythonProvider as any, {
       _bridge: bridge,
-      _id: info.id,
+      _id: publicId,
+      _bridgeProviderId: info.id,
       ...secrets
     });
-    registered.push(info.id);
+    registered.push(publicId);
   }
   return registered;
 }
