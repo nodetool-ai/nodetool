@@ -15,7 +15,7 @@ import { useCodeNodeScriptLink } from "../../hooks/nodes/useCodeNodeScriptLink";
 import type { NodeData } from "../../stores/NodeData";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 import { EditorButton, NodeSelect, NodeMenuItem } from "../editor_ui";
-import { Caption, FlexRow, GAP, SPACING } from "../ui_primitives";
+import { Box, Caption, FlexRow, GAP, SPACING } from "../ui_primitives";
 import SaveToMyNodesDialog from "./SaveToMyNodesDialog";
 import { isCustomCodeNode } from "../node/codeNodeUi";
 
@@ -27,6 +27,10 @@ interface CodeNodeScriptLinkProps {
 
 const NEW_SCRIPT_NAME = "Extracted from a Code node";
 const DEFAULT_CATEGORY = "My Nodes";
+
+// EditorButton pins its height, so a label that wraps spills over the toolbar
+// below it. The row wraps instead; each button stays one line.
+const BUTTON_SX = { whiteSpace: "nowrap", flex: "0 0 auto" } as const;
 
 const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
   id,
@@ -94,29 +98,47 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
         align="center"
         justify="space-between"
         gap={GAP.tight}
+        wrap
         sx={{ px: SPACING.xs }}
       >
-        <Caption>
+        <Caption
+          sx={{
+            flex: "1 1 auto",
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }}
+          title={`${linkedName ?? link.id} v${link.version}`}
+        >
           {`${isCustomCodeNode(nodeType, data) ? "My node" : "Linked to"} ${
             linkedName ?? link.id
           } v${link.version}`}
         </Caption>
-        <FlexRow gap={GAP.tight}>
+        <FlexRow gap={GAP.tight} wrap justify="flex-end">
           <EditorButton
             density="compact"
             disabled={busy}
+            sx={BUTTON_SX}
+            title="Re-pin this node to the script's current content"
             onClick={() => void guard("re-pin the script", updateToLatest)}
           >
-            Update to latest
+            Update
           </EditorButton>
           <EditorButton
             density="compact"
             disabled={busy}
+            sx={BUTTON_SX}
             onClick={() => setSaveOpen(true)}
           >
             Add to My Nodes
           </EditorButton>
-          <EditorButton density="compact" disabled={busy} onClick={detach}>
+          <EditorButton
+            density="compact"
+            disabled={busy}
+            sx={BUTTON_SX}
+            onClick={detach}
+          >
             Detach
           </EditorButton>
         </FlexRow>
@@ -126,34 +148,41 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
   }
 
   return (
-    <FlexRow align="center" gap={GAP.tight} sx={{ px: SPACING.xs }}>
-      <NodeSelect
-        density="compact"
-        displayEmpty
-        value=""
-        disabled={busy}
-        onChange={(event) => onPick(String(event.target.value ?? ""))}
-        renderValue={() => "Link script"}
-        aria-label="Link script"
-      >
-        {(scripts.data ?? []).map((script) => (
-          <NodeMenuItem key={script.id} value={script.id}>
-            {script.name}
-          </NodeMenuItem>
-        ))}
-      </NodeSelect>
+    <FlexRow align="center" gap={GAP.tight} wrap sx={{ px: SPACING.xs }}>
+      {/* NodeSelect is fullWidth, so it needs a bounded box of its own —
+          otherwise it eats the row and pushes the buttons out of the node. */}
+      <Box sx={{ flex: "1 1 96px", minWidth: 96, maxWidth: 160 }}>
+        <NodeSelect
+          density="compact"
+          displayEmpty
+          value=""
+          disabled={busy}
+          onChange={(event) => onPick(String(event.target.value ?? ""))}
+          renderValue={() => "Link script"}
+          aria-label="Link script"
+        >
+          {(scripts.data ?? []).map((script) => (
+            <NodeMenuItem key={script.id} value={script.id}>
+              {script.name}
+            </NodeMenuItem>
+          ))}
+        </NodeSelect>
+      </Box>
       <EditorButton
         density="compact"
         disabled={busy}
+        sx={BUTTON_SX}
+        title="Lift this node's body into a new script"
         onClick={() =>
           void guard("extract the script", () => extractToScript(NEW_SCRIPT_NAME))
         }
       >
-        Extract to script
+        Extract
       </EditorButton>
       <EditorButton
         density="compact"
         disabled={busy}
+        sx={BUTTON_SX}
         onClick={() => setSaveOpen(true)}
       >
         Save to My Nodes
