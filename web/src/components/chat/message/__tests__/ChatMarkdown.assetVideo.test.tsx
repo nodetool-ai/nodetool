@@ -16,6 +16,9 @@ jest.mock("../../../../trpc/client", () => ({
   }
 }));
 
+jest.mock("../../../../hooks/useResolvedMediaUri");
+import { mockAssetUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
+
 /**
  * react-markdown is ESM-only; this mock handles markdown images `![](src)`
  * and links `[label](href)` and forwards them to `components.img` / `components.a`.
@@ -101,8 +104,7 @@ jest.mock("../../../../lib/chat/openResource", () => ({
 import ChatMarkdown from "../ChatMarkdown";
 
 const ASSET_URI = "asset://51f0fcd92a05488caf261eb22bbf98df.mp4";
-const SIGNED_URL =
-  "http://localhost:7777/api/storage/user-1/51f0fcd92a05488caf261eb22bbf98df.mp4?sig=test";
+const RESOLVED_URL = mockAssetUrl("51f0fcd92a05488caf261eb22bbf98df.mp4");
 
 const renderMarkdown = (content: string) =>
   render(
@@ -117,23 +119,22 @@ describe("ChatMarkdown asset video", () => {
   });
 
   it("renders an asset:// mp4 markdown image as a video player", () => {
-    mockUseQuery.mockReturnValue({ data: { url: SIGNED_URL } });
+    mockUseQuery.mockReturnValue({ data: undefined });
 
     const { container } = renderMarkdown(
       `![Beach Scene at Sunset](${ASSET_URI})`
     );
 
-    expect(mockUseQuery).toHaveBeenCalledWith(
-      { key: "51f0fcd92a05488caf261eb22bbf98df.mp4" },
-      expect.objectContaining({ enabled: true })
-    );
-
     const video = container.querySelector("video") as HTMLVideoElement;
     expect(video).not.toBeNull();
-    expect(video).toHaveAttribute("src", SIGNED_URL);
+    expect(video).toHaveAttribute("src", RESOLVED_URL);
     expect(video).toHaveAttribute("controls");
     expect(video).toHaveAttribute("aria-label", "Beach Scene at Sunset");
     expect(container.querySelector("img")).toBeNull();
+    expect(mockUseQuery).not.toHaveBeenCalledWith(
+      { key: "51f0fcd92a05488caf261eb22bbf98df.mp4" },
+      expect.anything()
+    );
   });
 
   it("renders an https mp4 markdown image as a video player", () => {
@@ -149,15 +150,13 @@ describe("ChatMarkdown asset video", () => {
 
   it("renders an asset:// audio markdown image as an audio player", () => {
     const audioUri = "asset://abc123.mp3";
-    const signedAudio =
-      "http://localhost:7777/api/storage/user-1/abc123.mp3?sig=test";
-    mockUseQuery.mockReturnValue({ data: { url: signedAudio } });
+    mockUseQuery.mockReturnValue({ data: undefined });
 
     const { container } = renderMarkdown(`![Narration](${audioUri})`);
 
     const audio = container.querySelector("audio") as HTMLAudioElement;
     expect(audio).not.toBeNull();
-    expect(audio).toHaveAttribute("src", signedAudio);
+    expect(audio).toHaveAttribute("src", mockAssetUrl("abc123.mp3"));
     expect(audio).toHaveAttribute("aria-label", "Narration");
     expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector("video")).toBeNull();
