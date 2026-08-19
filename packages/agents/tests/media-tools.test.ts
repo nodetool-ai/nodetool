@@ -88,6 +88,62 @@ describe("model-arg validation (shared across tools)", () => {
     })) as { error?: string };
     expect(r.error).toContain("model must be a non-empty string");
   });
+
+  it("generate_video accepts a find_model ref as model", async () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const runProviderPrediction = vi.fn().mockResolvedValue(bytes);
+    const createAsset = vi.fn().mockResolvedValue({ id: "v-ref" });
+    const tool = generateVideoTool();
+    const r = (await tool.process(
+      makeContext({ runProviderPrediction, createAsset }),
+      {
+        prompt: "a giraffe",
+        model: {
+          type: "video_model",
+          provider: "openai",
+          id: "sora-2",
+          name: "Sora 2"
+        }
+      }
+    )) as { error?: string; type?: string };
+    expect(r.error).toBeUndefined();
+    expect(r.type).toBe("video");
+    expect(runProviderPrediction.mock.calls[0][0]).toMatchObject({
+      provider: "openai",
+      model: "sora-2",
+      capability: "text_to_video"
+    });
+  });
+
+  it("generate_video accepts a find_model hit nested under model", async () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const runProviderPrediction = vi.fn().mockResolvedValue(bytes);
+    const createAsset = vi.fn().mockResolvedValue({ id: "v-hit" });
+    const tool = generateVideoTool();
+    const r = (await tool.process(
+      makeContext({ runProviderPrediction, createAsset }),
+      {
+        prompt: "a giraffe",
+        model: {
+          provider: "fal",
+          model_id: "hailuo-02/pro/text-to-video",
+          name: "Hailuo",
+          ref: {
+            type: "video_model",
+            provider: "fal",
+            id: "hailuo-02/pro/text-to-video",
+            name: "Hailuo"
+          }
+        }
+      }
+    )) as { error?: string; type?: string };
+    expect(r.error).toBeUndefined();
+    expect(r.type).toBe("video");
+    expect(runProviderPrediction.mock.calls[0][0]).toMatchObject({
+      provider: "fal",
+      model: "hailuo-02/pro/text-to-video"
+    });
+  });
 });
 
 /* ---------------- GenerateImageTool ---------------- */

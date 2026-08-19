@@ -29,9 +29,10 @@ import {
 } from "@nodetool-ai/protocol";
 
 import { extractErrorPayload, toTransferable } from "../codeact/tool-api.js";
+import { coerceCapabilityArgs } from "./args.js";
 import { listCapabilityModules, loadCapabilityModule } from "./registry.js";
 import type { CapabilityRun } from "./types.js";
-import { isRecord, isString } from "../utils/type-guards.js";
+import { isString } from "../utils/type-guards.js";
 
 /** Raised when a call breaks the capability module contract. */
 export class SandboxCapabilityError extends Error {
@@ -107,10 +108,12 @@ export function createCapabilityDispatcher(
           `${moduleKey}: ${found.spec.name} was called with a non-list argument`
         );
       }
-      const first = (args as unknown[])[0] ?? {};
-      if (!isRecord(first)) {
+      let record: Record<string, unknown>;
+      try {
+        record = coerceCapabilityArgs(found.spec, args as unknown[]);
+      } catch (error) {
         throw new SandboxCapabilityError(
-          `${moduleKey}: ${found.spec.name} takes one arguments object`
+          `${moduleKey}: ${error instanceof Error ? error.message : String(error)}`
         );
       }
       // Plain data out, exactly as the belt bridge hands it over, so the two
@@ -118,7 +121,7 @@ export function createCapabilityDispatcher(
       // an `{error}` payload, which is a failure to throw on rather than a
       // value to compute with. A gate refusal arrives that way.
       const value = toTransferable(
-        await run.invoke(found.spec.name, first as Record<string, unknown>)
+        await run.invoke(found.spec.name, record)
       );
       const failure = extractErrorPayload(value);
       if (failure !== null) {

@@ -23,11 +23,13 @@ export const GENERATE_IMAGE_SCHEMA: JsonSchema = {
   properties: {
     provider: {
       type: "string" as const,
-      description: "Provider id from find_model."
+      description:
+        "Provider id from find_model. Optional when `model` is a find_model hit or its `.ref`."
     },
     model: {
       type: "string" as const,
-      description: "Model id from find_model."
+      description:
+        "Model id from find_model, or the whole find_model hit / `.ref` object."
     },
     prompt: { type: "string" as const, description: "Text prompt." },
     output_file: {
@@ -48,11 +50,13 @@ export const EDIT_IMAGE_SCHEMA: JsonSchema = {
   properties: {
     provider: {
       type: "string" as const,
-      description: "Provider id from find_model."
+      description:
+        "Provider id from find_model. Optional when `model` is a find_model hit or its `.ref`."
     },
     model: {
       type: "string" as const,
-      description: "Model id from find_model."
+      description:
+        "Model id from find_model, or the whole find_model hit / `.ref` object."
     },
     input_file: {
       type: "string" as const,
@@ -78,8 +82,16 @@ export const EDIT_IMAGE_SCHEMA: JsonSchema = {
 export const GENERATE_VIDEO_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
-    provider: { type: "string" as const },
-    model: { type: "string" as const },
+    provider: {
+      type: "string" as const,
+      description:
+        "Provider id from find_model. Optional when `model` is a find_model hit or its `.ref`."
+    },
+    model: {
+      type: "string" as const,
+      description:
+        "Model id from find_model, or the whole find_model hit / `.ref` object."
+    },
     prompt: { type: "string" as const },
     output_file: {
       type: "string" as const,
@@ -331,7 +343,7 @@ export const editImageSpec: CapabilitySpec = {
 export const generateVideoSpec: CapabilitySpec = {
   name: "generate_video",
   description:
-    "Generate a video from a text prompt using a provider+model selected via find_model (capability=text_to_video). Result is saved as an asset (asset:// URI returned).",
+    "Generate a video from a text prompt using a provider+model selected via find_model (capability=text_to_video). Pass find_model's hit or its `.ref` as `model`, or `{provider, model}` strings. Result is saved as an asset (asset:// URI returned).",
   inputSchema: GENERATE_VIDEO_SCHEMA,
   category: "write",
   userMessage: (params) =>
