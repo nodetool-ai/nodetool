@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 
 import React, { useState } from "react";
 import { useRouteError } from "react-router-dom";
-import { ThemeProvider } from "@mui/material";
 import { CopyButton, Text, EditorButton, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -204,89 +203,87 @@ const ErrorBoundary: React.FC = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box css={errorBoundaryStyles(theme)}>
-        <Box className="hero">
-          <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
-          <Text className="heading">Something went wrong</Text>
-          <Text className="subtext">
-            An unexpected error occurred. You can try reloading the page. If
-            this keeps happening, please reach out so we can fix it.
-          </Text>
-        </Box>
+    <Box css={errorBoundaryStyles(theme)}>
+      <Box className="hero">
+        <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
+        <Text className="heading">Something went wrong</Text>
+        <Text className="subtext">
+          An unexpected error occurred. You can try reloading the page. If
+          this keeps happening, please reach out so we can fix it.
+        </Text>
+      </Box>
 
-        <Box className="actions">
-          <Box className="button-row">
-            <EditorButton
-              variant="contained"
-              size="large"
-              onClick={() => window.location.reload()}
-              className="reload-button"
-            >
-              Reload page
-            </EditorButton>
-            <EditorButton
-              variant="outlined"
-              size="large"
-              onClick={handleReport}
-              className="copy-error-button"
-            >
-              Report a bug
-            </EditorButton>
-            <EditorButton
-              variant="outlined"
-              size="large"
-              onClick={handleCopy}
-              className="copy-error-button"
-            >
-              {copied ? "Copied!" : "Copy error"}
-            </EditorButton>
-          </Box>
-          <Box className="contact-row">
-            <a
-              href="https://discord.gg/GQqBKAWD"
-              className="contact-link"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Join our Discord
-            </a>
-            <a href="mailto:hello@nodetool.ai" className="contact-link">
-              Email hello@nodetool.ai
-            </a>
-          </Box>
-        </Box>
-
-        <Box className="details-section">
+      <Box className="actions">
+        <Box className="button-row">
           <EditorButton
-            className="details-toggle"
-            disableRipple
-            onClick={() => setShowDetails((prev) => !prev)}
+            variant="contained"
+            size="large"
+            onClick={() => window.location.reload()}
+            className="reload-button"
           >
-            {showDetails ? "Hide details ▲" : "Show details ▼"}
+            Reload page
           </EditorButton>
-
-          {showDetails && (
-            <>
-              <Text className="error-summary">
-                {errorMessage}
-              </Text>
-              <Box className="stack-wrapper">
-                <CopyButton
-                  value={stackTrace}
-                  tooltipPlacement="top"
-                  buttonSize="medium"
-                  sx={{ position: "absolute", top: 6, right: 6, zIndex: Z_INDEX.raised }}
-                />
-                <Text component="pre" className="error-stack-trace">
-                  {stackTrace}
-                </Text>
-              </Box>
-            </>
-          )}
+          <EditorButton
+            variant="outlined"
+            size="large"
+            onClick={handleReport}
+            className="copy-error-button"
+          >
+            Report a bug
+          </EditorButton>
+          <EditorButton
+            variant="outlined"
+            size="large"
+            onClick={handleCopy}
+            className="copy-error-button"
+          >
+            {copied ? "Copied!" : "Copy error"}
+          </EditorButton>
+        </Box>
+        <Box className="contact-row">
+          <a
+            href="https://discord.gg/GQqBKAWD"
+            className="contact-link"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Join our Discord
+          </a>
+          <a href="mailto:hello@nodetool.ai" className="contact-link">
+            Email hello@nodetool.ai
+          </a>
         </Box>
       </Box>
-    </ThemeProvider>
+
+      <Box className="details-section">
+        <EditorButton
+          className="details-toggle"
+          disableRipple
+          onClick={() => setShowDetails((prev) => !prev)}
+        >
+          {showDetails ? "Hide details ▲" : "Show details ▼"}
+        </EditorButton>
+
+        {showDetails && (
+          <>
+            <Text className="error-summary">
+              {errorMessage}
+            </Text>
+            <Box className="stack-wrapper">
+              <CopyButton
+                value={stackTrace}
+                tooltipPlacement="top"
+                buttonSize="medium"
+                sx={{ position: "absolute", top: 6, right: 6, zIndex: Z_INDEX.raised }}
+              />
+              <Text component="pre" className="error-stack-trace">
+                {stackTrace}
+              </Text>
+            </Box>
+          </>
+        )}
+      </Box>
+    </Box>
   );
 };
 

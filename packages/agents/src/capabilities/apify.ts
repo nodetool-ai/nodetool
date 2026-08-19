@@ -392,22 +392,11 @@ const runApifyActor: CapabilityExport = {
               )
             );
 
-      return {
+      const result = {
         ok: true,
         status: actorRun.status,
         run_id: actorRun.id,
         provenance,
-        ...(files === undefined
-          ? {}
-          : {
-              files,
-              files_note:
-                `${files.length} file(s) from the dataset were imported ` +
-                `(at most ${MAX_FILES_PER_RUN} per run). Each has an ` +
-                "asset_url; to keep one in the asset library, call " +
-                "save_asset({name, source: asset_url}) — do not read it to " +
-                "base64 first."
-            }),
         ...(dataset === undefined
           ? {
               note:
@@ -428,6 +417,22 @@ const runApifyActor: CapabilityExport = {
           runs_allowed: ledger.budget.maxRuns,
           session_cost_usd: Number(ledger.costUsd.toFixed(4))
         }
+      };
+
+      // The file fields are added only when the run produced files, so a run
+      // without any does not carry an empty `files` key.
+      if (files === undefined) {
+        return result;
+      }
+      return {
+        ...result,
+        files,
+        files_note:
+          `${files.length} file(s) from the dataset were imported ` +
+          `(at most ${MAX_FILES_PER_RUN} per run). Each has an ` +
+          "asset_url; to keep one in the asset library, call " +
+          "save_asset({name, source: asset_url}) — do not read it to " +
+          "base64 first."
       };
     })
 };

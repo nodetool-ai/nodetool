@@ -10,7 +10,6 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import useAuth from "../../stores/useAuth";
 import {
   SearchInput,
-  TextInput,
   LabeledSwitch,
   SelectField,
   Text,

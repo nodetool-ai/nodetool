@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useRef, useState, memo } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import Public from "@mui/icons-material/Public";
 import Folder from "@mui/icons-material/Folder";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { registerTypeToFocus } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
@@ -13,7 +13,6 @@ import { Tooltip, MOTION, BORDER_RADIUS, reducedMotion } from "../ui_primitives"
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { isNumber } from "../../utils/typePredicates";
-import { canTakeFocus, isTextInputActive } from "../../utils/browser";
 
 
 const styles = (theme: Theme) =>
@@ -165,10 +164,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState("");
-  const isControlOrMetaPressed = useKeyPressedStore(
-    (state) => state.isKeyPressed("control") || state.isKeyPressed("meta")
-  );
-
   // Global search state and hooks
   const isGlobalSearchMode = useAssetGridStore(
     (state) => state.isGlobalSearchMode
@@ -348,48 +343,32 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // See SearchInput: never steal a keystroke from another editable field
-      // or from a host that cannot take focus (an inactive workspace tab).
-      const shouldHandleEvent =
-        document.activeElement === inputRef.current ||
-        (focusOnTyping &&
-          !isTextInputActive() &&
-          canTakeFocus(inputRef.current));
-
-      if (!shouldHandleEvent) {return;}
-
+  // Element-scoped: clearing acts on the field the user is typing in.
+  const handleInputKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
-        isControlOrMetaPressed
+        (event.ctrlKey || event.metaKey)
       ) {
         event.preventDefault();
         clearSearch();
-        return;
       }
+    },
+    [clearSearch]
+  );
 
-      if (focusOnTyping) {
-        if (isControlOrMetaPressed) {return;}
-        if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
-          if (document.activeElement !== inputRef.current) {
-            event.preventDefault();
-            inputRef.current?.focus();
-            setLocalSearchTerm(event.key);
-            debouncedSetSearchTerm(event.key);
-          }
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    focusOnTyping,
-    isControlOrMetaPressed,
-    debouncedSetSearchTerm,
-    clearSearch
-  ]);
+  // Type anywhere to search. The store decides whether this input may pull
+  // focus (nothing editable focused AND canTakeFocus), so a copy of this
+  // component in an inert background tab never steals the keystroke.
+  useEffect(() => {
+    if (!focusOnTyping) {
+      return;
+    }
+    return registerTypeToFocus(inputRef, (key) => {
+      setLocalSearchTerm(key);
+      debouncedSetSearchTerm(key);
+    });
+  }, [focusOnTyping, debouncedSetSearchTerm]);
 
   const effectivePlaceholder = isGlobalSearchMode
     ? "Search all assets..."
@@ -438,6 +417,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         placeholder={effectivePlaceholder}
         value={localSearchTerm}
         onChange={handleInputChange}
+        onKeyDown={handleInputKeyDown}
         autoCorrect="off"
         autoCapitalize="none"
         spellCheck="false"

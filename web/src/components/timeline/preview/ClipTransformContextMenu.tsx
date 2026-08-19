@@ -58,6 +58,9 @@ const ClipTransformContextMenu: React.FC<ClipTransformContextMenuProps> = ({
         onClose();
       }
     };
+    // Not on the dispatcher: capture phase + stopPropagation is load-bearing —
+    // this menu must swallow Escape before the editor beneath it (which still
+    // listens in capture phase) sees it.
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [open, onClose]);

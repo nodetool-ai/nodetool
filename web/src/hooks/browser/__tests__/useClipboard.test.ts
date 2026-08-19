@@ -31,16 +31,10 @@ const invalidClipboardData = JSON.stringify({
 });
 
 describe("useClipboard", () => {
-  let originalNavigator: Navigator;
-  let originalWindow: Window & typeof globalThis;
-
   beforeEach(() => {
     jest.clearAllMocks();
     mockSessionState.clipboardData = null;
     mockSessionState.isClipboardValid = false;
-
-    originalNavigator = { ...navigator };
-    originalWindow = { ...window };
 
     Object.defineProperty(navigator, "clipboard", {
       value: {

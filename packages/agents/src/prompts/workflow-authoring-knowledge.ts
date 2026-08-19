@@ -285,6 +285,17 @@ the step wraps a model, a device, or an external service.
 - Sandbox API inside the body: \`fetch\`, \`workspace.*\`, \`crypto.*\`,
   \`format.*\`, \`image.*\`, \`parallelMap\`, \`sleep\`, \`progress\`,
   \`nodetool.secrets.get\`, plus core JavaScript.
+- **The toolbelt is in there too**, as \`tools.<name>(args)\` and the
+  \`nodetool.*\` object model — the same server-side belt an \`execute_code\`
+  action has, minus the browser-only \`ui_*\` tools. A call you ran in an
+  action (\`tools.run_apify_actor\`, \`nodetool.web.search\`, …) runs the same
+  way inside a body. \`__toolNames\` is the belt this host actually carries,
+  and a name it lacks throws saying so.
+- **Never paste a value you fetched while authoring into a body.** The node has
+  to fetch it when it runs — a URL, id or result frozen into the code makes a
+  workflow that returns the same stale answer forever and looks like it works.
+  If the call you need is not available, say that; do not substitute a
+  hard-coded result for it.
 
 \`\`\`js
 import { stringInput } from "@nodetool-ai/sandbox-dsl/nodetool.input";

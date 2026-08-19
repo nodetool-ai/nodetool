@@ -64,6 +64,59 @@ runs will clobber each other. These rules come straight from shipped bug fixes:
   must guard before recording (`getRuns(workflowId)`), otherwise it steals focus
   from a live run.
 
+## Keyboard
+
+`KeyPressedStore` is the keyboard dispatcher. **Only the store listens on
+`window`.** Components register what they want:
+
+```typescript
+useGlobalCombo("escape", closeDialog, { active: open, allowInInputs: true });
+useCombo(["control", "s"], save);           // inside a KeyboardProvider
+registerTypeToFocus(inputRef, (key) => setSearch(key));
+```
+
+- `useCombo` binds only inside a `KeyboardProvider` (the workflow editor
+  surfaces). Everywhere else use `useGlobalCombo` — same dispatcher, same gate,
+  no provider needed.
+- **Every combo goes through one focus gate.** It is skipped while anything
+  editable is focused, unless the registration passes `allowInInputs: true` (for
+  keys that must work *inside* a field — Escape closing a modal, Cmd+S saving).
+  Pass `target: () => ref.current` for a combo that acts on one element; the
+  gate then also requires `canTakeFocus(target)`.
+- **Every focus-moving handler passes `isTextInputActive` + `canTakeFocus`**
+  (`utils/browser.ts`). `registerTypeToFocus` is that rule packaged: a printable
+  key, no modifier, nothing editable focused, and the input can take focus.
+- **Inactive workspace tabs stay mounted and are `inert`**
+  (`components/workspace/WorkspaceTabLayer.tsx`, pinned by
+  `WorkspaceTabLayer.test.tsx`). A component must never assume it
+  is the only mounted instance of itself — a Model Manager sitting in a
+  background tab used to pull focus off every keystroke typed anywhere in the
+  app. `canTakeFocus` returns false inside an `[inert]` subtree, which is what
+  stops it.
+
+`keyboard/no-window-key-listener` (`web/tools/oxlint/keyboard.ts`, wired through
+`web/.oxlintrc.json`) flags `window`/`document` `keydown`/`keyup`/`keypress`
+listeners. It ships as **warn**, not error, because nine files have not moved
+yet — the count is the backlog, the way the root `AGENTS.md` tracks anti-slop
+pairs. A listener bound to a specific DOM node (a canvas, a cell editor) is not
+in scope and is not flagged.
+
+| File | Why it has not moved |
+|---|---|
+| `components/timeline/Tracks/TracksRegion.tsx` | arrow-nudge batch closes on keyup |
+| `components/content/Help/KeyboardShortcutsView.tsx` | visualizes physical keys; needs every key in capture phase |
+| `components/sketch/useEditorKeyboardShortcuts.ts` | sketch action registry: capture phase, keyup, own suspend flag |
+| `components/sketch/shortcuts/springLoadedModifiers.ts` | hold-to-engage modifier; needs keyup |
+| `components/sketch/sketchCanvasHooks/useKeyboardModifiers.ts` | modifier-hold state on both edges |
+| `components/sketch/tools/ShapeTool.ts` | reads Shift/Alt on both edges mid-drag |
+| `components/sketch/SketchCanvasContextMenu.tsx` | capture + `stopPropagation` must swallow Escape before the editor |
+| `components/sketch/TransformContextMenu.tsx` | same |
+| `components/timeline/preview/ClipTransformContextMenu.tsx` | same |
+
+The store dispatches combos on **keydown only**, which is what blocks six of
+those nine. Giving `registerComboCallback` a keyup edge is the change that would
+close most of this backlog.
+
 ## Testing
 
 ```bash

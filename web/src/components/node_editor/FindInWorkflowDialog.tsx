@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useEffect, useMemo, useRef, useCallback } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 
 import {
   Text,
@@ -255,56 +256,18 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       };
     }, [isOpen, closeFind]);
 
-    useEffect(() => {
-      if (!isOpen) {
-        return;
-      }
-
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          closeFind();
-          return;
-        }
-
-        if (event.key === "Enter") {
-          event.preventDefault();
-          if (event.shiftKey) {
-            navigatePrevious();
-          } else {
-            navigateNext();
-          }
-          return;
-        }
-
-        if (event.key === "ArrowDown") {
-          event.preventDefault();
-          navigateNext();
-          return;
-        }
-
-        if (event.key === "ArrowUp") {
-          event.preventDefault();
-          navigatePrevious();
-          return;
-        }
-
-        if (event.key.toLowerCase() === "f" && (event.ctrlKey || event.metaKey)) {
-          event.preventDefault();
-          return;
-        }
-      };
-
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [
-      isOpen,
-      closeFind,
-      navigateNext,
-      navigatePrevious,
-      results.length,
-      goToSelected
-    ]);
+    // The find field holds focus while these fire, so every binding is
+    // allowInInputs — the same "always on while the dialog is open" gate the
+    // window listener had.
+    const inInputs = { active: isOpen, allowInInputs: true } as const;
+    useGlobalCombo("escape", closeFind, inInputs);
+    useGlobalCombo("enter", navigateNext, inInputs);
+    useGlobalCombo("enter+shift", navigatePrevious, inInputs);
+    useGlobalCombo("arrowdown", navigateNext, inInputs);
+    useGlobalCombo("arrowup", navigatePrevious, inInputs);
+    // Swallow the browser's own Find while ours is open.
+    useGlobalCombo("control+f", () => undefined, inInputs);
+    useGlobalCombo("f+meta", () => undefined, inInputs);
 
     const handleInputChange = useCallback(
       (event: React.ChangeEvent<HTMLInputElement>) => {

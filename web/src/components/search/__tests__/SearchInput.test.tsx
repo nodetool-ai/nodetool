@@ -4,6 +4,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import SearchInput from "../SearchInput";
 import mockTheme from "../../../__mocks__/themeMock";
+import { initKeyListeners } from "../../../stores/KeyPressedStore";
 
 // Tooltip pulls in heavy theme overrides we don't need for these unit tests.
 jest.mock("../../ui_primitives", () => ({
@@ -13,12 +14,8 @@ jest.mock("../../ui_primitives", () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
-// No modifier keys held during these tests.
-jest.mock("../../../stores/KeyPressedStore", () => ({
-  useKeyPressedStore: Object.assign(() => false, {
-    getState: () => ({ isKeyPressed: () => false })
-  })
-}));
+// focusOnTyping now goes through registerTypeToFocus, so these tests drive the
+// real store: initKeyListeners attaches the one window listener it owns.
 
 const renderWithTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
@@ -141,6 +138,16 @@ describe("SearchInput", () => {
   });
 
   describe("focusOnTyping", () => {
+    let detachKeys: () => void;
+
+    beforeEach(() => {
+      detachKeys = initKeyListeners();
+    });
+
+    afterEach(() => {
+      detachKeys();
+    });
+
     it("pulls focus in when nothing editable is focused", () => {
       renderWithTheme(
         <SearchInput onSearchChange={jest.fn()} focusSearchInput={false} focusOnTyping />
