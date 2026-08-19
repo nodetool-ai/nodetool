@@ -3314,6 +3314,10 @@ export class ProcessingContext {
         model: req.model,
         voice: params.voice as string | undefined,
         speed: params.speed as number | undefined,
+        referenceAudio: params.reference_audio as Uint8Array | undefined,
+        referenceText: params.reference_text as string | undefined,
+        language: params.language as string | undefined,
+        instructions: params.instructions as string | undefined,
         audioFormat: params.audioFormat as string | undefined
       });
       this.emitPrediction("completed", req, id, null, undefined, startedAt);
@@ -3392,7 +3396,11 @@ export class ProcessingContext {
           text: String(params.text ?? ""),
           model: req.model,
           voice: params.voice as string | undefined,
-          speed: params.speed as number | undefined
+          speed: params.speed as number | undefined,
+          referenceAudio: params.reference_audio as Uint8Array | undefined,
+          referenceText: params.reference_text as string | undefined,
+          language: params.language as string | undefined,
+          instructions: params.instructions as string | undefined
         })) {
           yield item;
         }

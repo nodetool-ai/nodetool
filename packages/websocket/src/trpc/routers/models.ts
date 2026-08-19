@@ -79,6 +79,10 @@ const unifiedModelSchema = z.object({
   image: z.string().nullish(),
   supports_tools: z.boolean().nullish(),
   voices: z.array(z.string()).nullish(),
+  capabilities: z.array(z.string()).nullish(),
+  languages: z.array(z.string()).nullish(),
+  sample_rate: z.number().nullish(),
+  requires_reference_text: z.boolean().nullish(),
   durations: z.array(z.number()).nullish(),
   resolutions: z.array(z.string()).nullish(),
   aspect_ratios: z.array(z.string()).nullish()
@@ -742,6 +746,10 @@ function toUnifiedModel(
     name: string;
     provider: string;
     voices?: string[];
+    capabilities?: string[];
+    languages?: string[];
+    sampleRate?: number;
+    requiresReferenceText?: boolean;
     supportedTasks?: string[];
     durations?: number[];
     resolutions?: string[];
@@ -759,6 +767,10 @@ function toUnifiedModel(
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
     tags: [model.provider],
     voices: model.voices ?? null,
+    capabilities: model.capabilities ?? null,
+    languages: model.languages ?? null,
+    sample_rate: model.sampleRate ?? null,
+    requires_reference_text: model.requiresReferenceText ?? null,
     supported_tasks: model.supportedTasks ?? null,
     durations: model.durations ?? null,
     resolutions: model.resolutions ?? null,

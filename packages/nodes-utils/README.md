@@ -35,7 +35,7 @@ npm install @nodetool-ai/nodes-utils
 | `folderPathOf` | function | Read a folder property (path, `file://` URI or folder ref) |
 | `SAVE_TO_WORKSPACE_TITLE` | const | Title every save node shows on the workspace toggle |
 | `SAVE_TO_WORKSPACE_DESCRIPTION` | const | Description every save node shows on the workspace toggle |
-| `HIDDEN_WHEN_SAVING_TO_WORKSPACE` | const | `json_schema_extra` that hides the folder field while the toggle is on |
+| `VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE` | const | `json_schema_extra` (`visible_when`) that shows the folder field only while the toggle is off |
 
 ## Usage
 

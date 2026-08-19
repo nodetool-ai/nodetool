@@ -99,6 +99,10 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
         provider: model.provider,
         name: model.name || "",
         voices: model.voices || [],
+        capabilities: model.capabilities ?? undefined,
+        languages: model.languages ?? undefined,
+        sample_rate: model.sample_rate ?? null,
+        requires_reference_text: model.requires_reference_text ?? false,
         selected_voice:
           model.voices && model.voices.length > 0 ? model.voices[0] : ""
       };
@@ -123,6 +127,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
         currentSelectedModelDetails?.name ||
         (typeof value === "object" ? value?.name ?? "" : "");
       const modelToPass = {
+        ...(typeof value === "object" ? value : {}),
         type: "tts_model" as const,
         id: modelId,
         provider: baseProvider,
@@ -141,7 +146,14 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
       value
     ]
   );
-  const hasVoices = availableVoices.length > 0;
+  const capabilities =
+    currentSelectedModelDetails?.capabilities ??
+    (typeof value === "object" ? value.capabilities : undefined);
+  // Capability-aware models opt in explicitly. Values produced by older
+  // providers have no capability list, so retain their established picker.
+  const hasVoices =
+    availableVoices.length > 0 &&
+    (!Array.isArray(capabilities) || capabilities.includes("preset_voice"));
   const voiceOptions = useMemo(
     () => availableVoices.map((voice) => ({ value: voice, label: voice })),
     [availableVoices]

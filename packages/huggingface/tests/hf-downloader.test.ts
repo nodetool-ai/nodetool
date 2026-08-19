@@ -9,7 +9,8 @@ import {
   hfCacheRoot,
   hfRepoCacheDir,
   hfHubFileUrl,
-  HF_ENDPOINT
+  HF_ENDPOINT,
+  wrapFetch
 } from "../src/hf-downloader.js";
 import * as path from "node:path";
 import * as os from "node:os";
@@ -170,5 +171,51 @@ describe("hfHubFileUrl", () => {
     expect(() => hfHubFileUrl("org/repo", "f.txt", "main", "unknown")).toThrow(
       "Unsupported repoType"
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// progress fetch
+// ---------------------------------------------------------------------------
+
+describe("wrapFetch", () => {
+  it("counts JSON repository files as downloaded bytes", async () => {
+    const body = JSON.stringify({ voice: "M1", values: [1, 2, 3] });
+    const deltas: number[] = [];
+    const wrapped = wrapFetch(
+      async () =>
+        new Response(body, {
+          headers: { "content-type": "application/json" }
+        }),
+      { onProgress: (delta) => deltas.push(delta) }
+    );
+
+    const response = await wrapped(
+      "https://huggingface.co/Supertone/supertonic-3/resolve/main/voice.json"
+    );
+    await response.arrayBuffer();
+
+    expect(deltas.reduce((sum, delta) => sum + delta, 0)).toBe(
+      new TextEncoder().encode(body).byteLength
+    );
+  });
+
+  it("does not count paths-info metadata responses", async () => {
+    const deltas: number[] = [];
+    const wrapped = wrapFetch(
+      async () =>
+        new Response(JSON.stringify([{ path: "voice.json", size: 42 }]), {
+          headers: { "content-type": "application/json" }
+        }),
+      { onProgress: (delta) => deltas.push(delta) }
+    );
+
+    const response = await wrapped(
+      "https://huggingface.co/api/models/Supertone/supertonic-3/paths-info/main",
+      { method: "POST" }
+    );
+    await response.json();
+
+    expect(deltas).toEqual([]);
   });
 });

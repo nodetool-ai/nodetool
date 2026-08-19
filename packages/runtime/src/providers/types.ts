@@ -52,6 +52,23 @@ export interface TTSModel {
   name: string;
   provider: ProviderId;
   voices?: string[];
+  capabilities?: string[];
+  languages?: string[];
+  sampleRate?: number;
+  requiresReferenceText?: boolean;
+}
+
+export interface TextToSpeechParams {
+  text: string;
+  model: string;
+  voice?: string;
+  speed?: number;
+  referenceAudio?: Uint8Array;
+  referenceText?: string;
+  language?: string;
+  instructions?: string;
+  /** Requested output container; raw-PCM providers may ignore this hint. */
+  audioFormat?: string;
 }
 
 export interface MusicModel {

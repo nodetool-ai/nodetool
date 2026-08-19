@@ -385,6 +385,10 @@ export interface TTSModelValue {
   name: string;
   voices: string[];
   selected_voice: string;
+  capabilities?: string[];
+  languages?: string[];
+  sample_rate?: number | null;
+  requires_reference_text?: boolean;
 }
 
 export interface MusicModelValue {

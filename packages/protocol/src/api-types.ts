@@ -1265,6 +1265,11 @@ export interface TTSModel {
   path?: string | null;
   voices?: string[];
   selected_voice?: string;
+  /** Optional feature flags such as voice_cloning or language_selection. */
+  capabilities?: string[];
+  languages?: string[];
+  sample_rate?: number | null;
+  requires_reference_text?: boolean;
 }
 
 export interface ASRModel {
@@ -1349,6 +1354,14 @@ export interface UnifiedModel {
   supports_tools?: boolean | null;
   /** Voice IDs supported by this model. Only meaningful for TTS models. */
   voices?: string[] | null;
+  /** Optional feature flags advertised by TTS models. */
+  capabilities?: string[] | null;
+  /** Supported language codes/names advertised by TTS models. */
+  languages?: string[] | null;
+  /** Native output sample rate advertised by a TTS model. */
+  sample_rate?: number | null;
+  /** Whether cloning requires a transcript of the reference recording. */
+  requires_reference_text?: boolean | null;
   /** Allowed clip durations (seconds). Only meaningful for video models. */
   durations?: number[] | null;
   /** Allowed output resolutions (e.g. "720p"). Only meaningful for video models. */
