@@ -18,6 +18,19 @@ export type ModelSelectorModel = (
   | VideoModel
 ) & { execution?: ModelExecutionAvailability | null };
 
+const UNKNOWN_MODEL_EXECUTION: ModelExecutionAvailability = {
+  kind: "unavailable",
+  state: "unavailable",
+  label: "Unavailable",
+  reason: "Execution availability was not reported by this server."
+};
+
+export function executionForDisplay(
+  model: Pick<ModelSelectorModel, "execution">
+): ModelExecutionAvailability {
+  return model.execution ?? UNKNOWN_MODEL_EXECUTION;
+}
+
 type NormalizedModelMeta = {
   sizeB?: number; // billions of params
   sizeBucket?: "1-2B" | "3-7B" | "8-15B" | "16-34B" | "35-70B" | "70B+";

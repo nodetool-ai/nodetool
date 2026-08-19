@@ -49,9 +49,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   const isHuggingFace = model.type?.startsWith("hf") ?? false;
   const isOllama = model.type === "llama_model";
   const downloaded = model.downloaded ?? false;
-  const executionReady = model.execution
-    ? model.execution.state === "ready"
-    : downloaded;
+  const executionReady = model.execution?.state === "ready";
   const canDownload = model.execution?.state !== "unavailable";
   const canShowExplorerButton = Boolean(
     handleShowInExplorer && showFileExplorerButton

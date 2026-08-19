@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Box, Chip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -177,7 +177,9 @@ const ModelListIndex: React.FC = () => {
     source, setSource,
     sourceInitialized, setSourceInitialized,
     setSelectedGoal,
-    setSelectedFormat
+    setSelectedFormat,
+    selectedAvailability,
+    setSelectedAvailability
   } = useModelManagerStore(
     useShallow((state) => ({
       selectedModelType: state.selectedModelType,
@@ -191,7 +193,9 @@ const ModelListIndex: React.FC = () => {
       sourceInitialized: state.sourceInitialized,
       setSourceInitialized: state.setSourceInitialized,
       setSelectedGoal: state.setSelectedGoal,
-      setSelectedFormat: state.setSelectedFormat
+      setSelectedFormat: state.setSelectedFormat,
+      selectedAvailability: state.selectedAvailability,
+      setSelectedAvailability: state.setSelectedAvailability
     }))
   );
   const hardwareProfile = useHardwareProfile();
@@ -210,6 +214,7 @@ const ModelListIndex: React.FC = () => {
   const {
     modelTypes,
     filteredModels,
+    availabilityCounts,
     allModels,
     isLoading,
     isFetching,
@@ -264,6 +269,7 @@ const ModelListIndex: React.FC = () => {
       setSelectedModelType("All");
       setSelectedGoal(null);
       setSelectedFormat(null);
+      setSelectedAvailability("all");
     },
     [
       scope,
@@ -271,7 +277,8 @@ const ModelListIndex: React.FC = () => {
       setModelSearchTerm,
       setSelectedModelType,
       setSelectedGoal,
-      setSelectedFormat
+      setSelectedFormat,
+      setSelectedAvailability
     ]
   );
 
@@ -290,6 +297,7 @@ const ModelListIndex: React.FC = () => {
       setSelectedModelType("All");
       setSelectedGoal(null);
       setSelectedFormat(null);
+      setSelectedAvailability("all");
     },
     [
       source,
@@ -298,7 +306,8 @@ const ModelListIndex: React.FC = () => {
       setModelSearchTerm,
       setSelectedModelType,
       setSelectedGoal,
-      setSelectedFormat
+      setSelectedFormat,
+      setSelectedAvailability
     ]
   );
 
@@ -530,6 +539,34 @@ const ModelListIndex: React.FC = () => {
         <Box className="content">
           <GoalFilterChips />
           <FormatFilterChips />
+          {source === "installed" && (
+            <FlexRow gap={1} sx={{ mb: 1, flexWrap: "wrap" }}>
+              {([
+                ["all", "All"],
+                ["ready", "Ready"],
+                ["download_required", "Download required"],
+                ["unavailable", "Unavailable"]
+              ] as const).map(([value, label]) => (
+                <Chip
+                  key={value}
+                  label={`${label} ${availabilityCounts[value]}`}
+                  size="small"
+                  color={
+                    value === "unavailable"
+                      ? "default"
+                      : value === "download_required"
+                        ? "warning"
+                        : value === "ready"
+                          ? "success"
+                          : "default"
+                  }
+                  variant={selectedAvailability === value ? "filled" : "outlined"}
+                  onClick={() => setSelectedAvailability(value)}
+                  clickable
+                />
+              ))}
+            </FlexRow>
+          )}
           {isFetching && (
             <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: Z_INDEX.raised }}>
               <LoadingSpinner size="small" />

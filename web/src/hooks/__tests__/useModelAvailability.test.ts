@@ -39,7 +39,14 @@ describe("useModelAvailability", () => {
     mockIsApiKeySet.mockReturnValue(true);
 
     const { result } = renderHook(() => useModelAvailability());
-    const check = result.current({ provider: "openai" });
+    const check = result.current({
+      provider: "openai",
+      execution: {
+        kind: "api",
+        state: "ready",
+        label: "API"
+      }
+    });
 
     expect(check.available).toBe(true);
     expect(check.providerEnabled).toBe(true);
@@ -130,5 +137,12 @@ describe("useModelAvailability", () => {
     });
 
     expect(check.available).toBe(true);
+  });
+
+  it("treats missing execution metadata as unavailable", () => {
+    const { result } = renderHook(() => useModelAvailability());
+    const check = result.current({ provider: "ollama" });
+
+    expect(check.available).toBe(false);
   });
 });

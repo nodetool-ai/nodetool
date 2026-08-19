@@ -29,6 +29,7 @@ import type { ModelCompatibilityResult } from "./useModelCompatibility";
 import ModelCompatibilityDialog from "./ModelCompatibilityDialog";
 import { classifyModelFit, estimateRequiredGb } from "./modelFit";
 import type { FitLevel } from "../onboarding/onboardingCatalog";
+import { executionForDisplay } from "../../../utils/modelNormalization";
 
 const IMPORTANT_TAGS = new Set(["gguf", "mlx"]);
 
@@ -81,16 +82,7 @@ const ModelListItem: React.FC<
     [model.tags]
   );
   const [dialogOpen, setDialogOpen] = useState(false);
-  const execution = model.execution ?? {
-    kind: "local" as const,
-    state: model.downloaded
-      ? ("ready" as const)
-      : ("download_required" as const),
-    label: "Local" as const,
-    reason: model.downloaded
-      ? "Runs on this device."
-      : "Download the model files before using it locally."
-  };
+  const execution = executionForDisplay(model);
 
   const fit = useMemo(
     () => classifyModelFit(model, fitBudgetGb),
@@ -223,6 +215,8 @@ const ModelListItem: React.FC<
                   label={execution.label}
                   size="small"
                   component="span"
+                  tabIndex={0}
+                  aria-label={`${execution.label}: ${execution.reason ?? execution.label}`}
                   color={
                     execution.kind === "api"
                       ? "info"

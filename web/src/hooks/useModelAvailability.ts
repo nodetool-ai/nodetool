@@ -34,9 +34,7 @@ export const useModelAvailability = (): ((
       const normKey = /gemini|google/i.test(provider) ? "gemini" : provider;
       const providerEnabled = enabledProviders?.[normKey] !== false;
       const hasKey = env ? isApiKeySet(env) : true;
-      const executionReady = model.execution
-        ? model.execution.state === "ready"
-        : true;
+      const executionReady = model.execution?.state === "ready";
       return {
         available: providerEnabled && hasKey && executionReady,
         providerEnabled,

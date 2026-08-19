@@ -22,17 +22,13 @@ import FavoriteStar from "./FavoriteStar";
 import DefaultModelPin from "./DefaultModelPin";
 import RecommendedDownloadRow from "./shared/RecommendedDownloadRow";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import {
-  isLocalProvider,
-  isCloudProvider,
-  isHuggingFaceInferenceProvider
-} from "../../utils/providerDisplay";
 import { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import type { UnifiedModel } from "../../stores/ApiTypes";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useModelAvailability } from "../../hooks/useModelAvailability";
 import { openSettingsTab } from "../workspace/openPageTab";
+import { executionForDisplay } from "../../utils/modelNormalization";
 
 import type { Theme } from "@mui/material/styles";
 
@@ -59,10 +55,6 @@ const MODEL_NAME_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
   minWidth: 0,
   flex: "1 1 auto"
-};
-const BADGE_PRICE_STYLE: React.CSSProperties = {
-  fontSize: "0.9em",
-  opacity: 0.8
 };
 const PRIMARY_TYPOGRAPHY_PROPS = { component: "div" as const, noWrap: true };
 const SECONDARY_TYPOGRAPHY_PROPS = { component: "div" as const };
@@ -208,16 +200,6 @@ function ModelList<TModel extends ModelSelectorModel>({
     [theme.vars.palette.action.hover, theme.vars.palette.text.secondary]
   );
 
-  const badgeWithIconStyle = useMemo<React.CSSProperties>(
-    () => ({
-      ...badgeStyle,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.micro)
-    }),
-    [badgeStyle]
-  );
-
   const secondaryTextStyle = useMemo<React.CSSProperties>(
     () => ({
       display: "flex",
@@ -302,10 +284,11 @@ function ModelList<TModel extends ModelSelectorModel>({
     }) => {
       const fav = isFavorite(m.provider || "", m.id || "");
       const { available, providerEnabled, hasKey } = getAvailability(m);
+      const execution = executionForDisplay(m);
       const isActive = index === activeIndex;
       const tooltipTitle =
-        m.execution && m.execution.state !== "ready"
-          ? (m.execution.reason ?? "This model is not ready to use.")
+        execution.state !== "ready"
+          ? (execution.reason ?? "This model is not ready to use.")
           : !providerEnabled && !hasKey
             ? "Enable provider and add API key in Settings to use this model"
             : !providerEnabled
@@ -353,75 +336,30 @@ function ModelList<TModel extends ModelSelectorModel>({
                         primaryColor={theme.vars.palette.primary.main}
                       />
                     </span>
-                    {m.execution && (
-                      <Tooltip
-                        title={m.execution.reason ?? m.execution.label}
-                        placement="top"
+                    <Tooltip
+                      title={execution.reason ?? execution.label}
+                      placement="top"
+                    >
+                      <span
+                        className={`badge-execution badge-${execution.kind}`}
+                        tabIndex={0}
+                        aria-label={`${execution.label}: ${execution.reason ?? execution.label}`}
+                        style={{
+                          ...badgeStyle,
+                          color:
+                            execution.kind === "api"
+                              ? theme.vars.palette.info.main
+                              : execution.state === "ready"
+                                ? theme.vars.palette.success.main
+                                : execution.state === "download_required"
+                                  ? theme.vars.palette.warning.main
+                                  : theme.vars.palette.text.disabled,
+                          border: "1px solid currentColor"
+                        }}
                       >
-                        <span
-                          className={`badge-execution badge-${m.execution.kind}`}
-                          style={{
-                            ...badgeStyle,
-                            color:
-                              m.execution.kind === "api"
-                                ? theme.vars.palette.info.main
-                                : m.execution.state === "ready"
-                                  ? theme.vars.palette.success.main
-                                  : m.execution.state === "download_required"
-                                    ? theme.vars.palette.warning.main
-                                    : theme.vars.palette.text.disabled,
-                            border: "1px solid currentColor"
-                          }}
-                        >
-                          {m.execution.label}
-                        </span>
-                      </Tooltip>
-                    )}
-                    {!m.execution &&
-                      available &&
-                      isLocalProvider(m.provider) && (
-                        <Tooltip
-                          title="Runs locally on your device"
-                          placement="top"
-                        >
-                          <span className="badge-local" style={badgeStyle}>
-                            Local
-                          </span>
-                        </Tooltip>
-                      )}
-                    {!m.execution &&
-                      available &&
-                      isHuggingFaceInferenceProvider(m.provider) && (
-                        <Tooltip
-                          title="Hugging Face Inference API (Paid)"
-                          placement="top"
-                        >
-                          <span
-                            className="badge-hf-api"
-                            style={badgeWithIconStyle}
-                          >
-                            HF API
-                            <span style={BADGE_PRICE_STYLE}>$</span>
-                          </span>
-                        </Tooltip>
-                      )}
-                    {!m.execution &&
-                      available &&
-                      isCloudProvider(m.provider) &&
-                      !isHuggingFaceInferenceProvider(m.provider) && (
-                        <Tooltip
-                          title="Paid API service (Remote)"
-                          placement="top"
-                        >
-                          <span
-                            className="badge-api"
-                            style={badgeWithIconStyle}
-                          >
-                            API
-                            <span style={BADGE_PRICE_STYLE}>$</span>
-                          </span>
-                        </Tooltip>
-                      )}
+                        {execution.label}
+                      </span>
+                    </Tooltip>
                   </FlexRow>
                 }
                 secondary={
@@ -447,7 +385,6 @@ function ModelList<TModel extends ModelSelectorModel>({
       activeIndex,
       handleModelClick,
       badgeStyle,
-      badgeWithIconStyle,
       secondaryTextStyle,
       searchTerm,
       theme.vars.palette.primary.main,

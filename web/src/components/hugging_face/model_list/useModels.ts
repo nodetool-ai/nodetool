@@ -134,6 +134,10 @@ export interface UseModelsResult {
   allModels: UnifiedModel[] | undefined;
   groupedModels: Record<string, UnifiedModel[]>;
   filteredModels: UnifiedModel[];
+  availabilityCounts: Record<
+    "all" | "ready" | "download_required" | "unavailable",
+    number
+  >;
   isLoading: boolean;
   isFetching: boolean;
   error: Error | null;
@@ -156,6 +160,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   const source = useModelManagerStore((state) => state.source);
   const selectedGoal = useModelManagerStore((state) => state.selectedGoal);
   const selectedFormat = useModelManagerStore((state) => state.selectedFormat);
+  const selectedAvailability = useModelManagerStore(
+    (state) => state.selectedAvailability
+  );
   const recommendedCatalog = useMetadataStore(
     (state) => state.recommendedModels
   );
@@ -229,7 +236,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     [allModels]
   );
 
-  const filteredModels: UnifiedModel[] = useMemo(() => {
+  const modelsMatchingFilters = useMemo(() => {
     const filterModel = (model: UnifiedModel) => {
       const searchTerm = modelSearchTerm.toLowerCase();
       // Hub results are already filtered server-side by the search query, so
@@ -267,8 +274,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
 
       return true;
     };
-    const filtered = allModels?.filter(filterModel) || [];
-    return sortModels(filtered, sortField, sortDirection, budgetGb);
+    return allModels?.filter(filterModel) || [];
   }, [
     allModels,
     source,
@@ -276,7 +282,23 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     selectedModelType,
     selectedGoal,
     selectedFormat,
-    maxModelSizeGB,
+    maxModelSizeGB
+  ]);
+
+  const filteredModels: UnifiedModel[] = useMemo(() => {
+    const filtered =
+      source === "installed" && selectedAvailability !== "all"
+        ? modelsMatchingFilters.filter(
+            (model) =>
+              (model.execution?.state ?? "unavailable") ===
+              selectedAvailability
+          )
+        : modelsMatchingFilters;
+    return sortModels(filtered, sortField, sortDirection, budgetGb);
+  }, [
+    modelsMatchingFilters,
+    source,
+    selectedAvailability,
     sortField,
     sortDirection,
     budgetGb
@@ -372,6 +394,20 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     return counts;
   }, [filteredModels]);
 
+  const availabilityCounts = useMemo(() => {
+    const counts = {
+      all: modelsMatchingFilters.length,
+      ready: 0,
+      download_required: 0,
+      unavailable: 0
+    };
+    for (const model of modelsMatchingFilters) {
+      const state = model.execution?.state ?? "unavailable";
+      counts[state] += 1;
+    }
+    return counts;
+  }, [modelsMatchingFilters]);
+
   const handleShowInExplorer = async (modelId: string) => {
     if (!modelId) {
       return;
@@ -410,6 +446,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     allModels,
     groupedModels,
     filteredModels,
+    availabilityCounts,
     isLoading: activeLoading,
     isFetching: activeFetching,
     error: activeError,
