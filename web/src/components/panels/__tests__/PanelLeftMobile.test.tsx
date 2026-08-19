@@ -48,7 +48,9 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   ) => selector({ tabs: [], activeTabId: null, openTab: jest.fn() })
 }));
 
-jest.mock("../../assets/AssetGrid", () => () => <div data-testid="asset-grid" />);
+jest.mock("../../assets/AssetGrid", () => () => (
+  <div data-testid="asset-grid" />
+));
 jest.mock("../../workflows/WorkflowList", () => () => (
   <div data-testid="workflow-list" />
 ));
@@ -134,6 +136,25 @@ it("offers every non-workflow-edit top-level view as a tab", () => {
       expect(tab).toBeInTheDocument();
     }
   }
+});
+
+it("keeps the visible desktop groups in the mobile tab row", () => {
+  renderPanel();
+
+  const groups = Array.from(document.querySelectorAll(".mobile-tab-group"));
+  expect(groups).toHaveLength(4);
+  expect(
+    groups.map((group) =>
+      Array.from(group.querySelectorAll("button")).map((button) =>
+        button.getAttribute("aria-label")
+      )
+    )
+  ).toEqual([
+    ["Workflows", "Apps", "Chats"],
+    ["Sketches", "Scripts", "Storyboards", "Timelines"],
+    ["JS Scripts"],
+    ["Assets", "Library"]
+  ]);
 });
 
 it("switches the sheet to the view whose tab was tapped", async () => {

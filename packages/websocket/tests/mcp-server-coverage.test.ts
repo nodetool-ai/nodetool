@@ -99,9 +99,11 @@ describe("the CodeAct surface", () => {
         .map((t) => t.name)
         .filter((n) => n !== "view_image")
     );
+    // "Reachable" means importable now: every belt name carries the module it
+    // is imported from, and `__toolNames` is still the belt itself.
     const observed = await act(
       server,
-      "return Object.keys(tools).filter((n) => typeof tools[n] === 'function');"
+      "return __toolNames.filter((n) => typeof __toolModules[n] === 'string');"
     );
     expect(observed.ok).toBe(true);
     const names = new Set(observed.result as string[]);
@@ -131,7 +133,8 @@ describe("the CodeAct surface", () => {
     const server = createMcpServer({ agentToolsScope: scope });
     const observed = await act(
       server,
-      "return typeof tools.ui_add_node === 'function' && typeof openWorkflow === 'function';"
+      'import { ui_add_node } from "@nodetool-ai/sandbox-nodetool/ui";\n' +
+        "return typeof ui_add_node === 'function' && typeof openWorkflow === 'function';"
     );
     expect(observed.ok).toBe(true);
     expect(observed.result).toBe(true);
@@ -141,7 +144,8 @@ describe("the CodeAct surface", () => {
     const server = createMcpServer({ agentToolsScope: scope });
     const observed = await act(
       server,
-      "return await tools.validate_timeline({ document: { tracks: [], clips: [], markers: [] } });"
+      'import { validate_timeline } from "@nodetool-ai/sandbox-nodetool/timelines";\n' +
+        "return await validate_timeline({ document: { tracks: [], clips: [], markers: [] } });"
     );
     expect(observed.ok).toBe(true);
     const body = observed.result as { ok: boolean; summary: string };
@@ -164,12 +168,14 @@ describe("the CodeAct surface", () => {
     const server = createMcpServer({ agentToolsScope: scope });
     const written = await act(
       server,
-      'return await tools.write_file({ file_path: "mcp-roundtrip.txt", content: "hello" });'
+      'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+        'return await write_file({ file_path: "mcp-roundtrip.txt", content: "hello" });'
     );
     expect(written.ok).toBe(true);
     const read = await act(
       server,
-      'return await tools.read_file({ file_path: "mcp-roundtrip.txt" });'
+      'import { read_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+        'return await read_file({ file_path: "mcp-roundtrip.txt" });'
     );
     expect(read.ok).toBe(true);
     expect(JSON.stringify(read.result)).toContain("hello");
@@ -189,7 +195,8 @@ describe("the CodeAct surface", () => {
     const server = createMcpServer({ agentToolsScope: scope });
     const observed = await act(
       server,
-      "return await tools.validate_workflow({});"
+      'import { validate_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";\n' +
+        "return await validate_workflow({});"
     );
     expect(observed.ok).toBe(false);
     expect(observed.error).toContain("No graph to validate");
@@ -220,7 +227,8 @@ describe("the CodeAct surface", () => {
     };
     const observed = await act(
       server,
-      `return await tools.validate_sketch({ document: ${JSON.stringify(document)} });`
+      'import { validate_sketch } from "@nodetool-ai/sandbox-nodetool/sketches";\n' +
+        `return await validate_sketch({ document: ${JSON.stringify(document)} });`
     );
     expect(observed.ok).toBe(true);
     const body = observed.result as { ok: boolean; summary: string };
@@ -232,7 +240,8 @@ describe("the CodeAct surface", () => {
     const server = createMcpServer({ agentToolsScope: scope });
     const observed = await act(
       server,
-      'return await tools.validate_sketch({ image_document_id: "no-such-sketch" });'
+      'import { validate_sketch } from "@nodetool-ai/sandbox-nodetool/sketches";\n' +
+        'return await validate_sketch({ image_document_id: "no-such-sketch" });'
     );
     // A tool result carrying an `error` key becomes a guest throw, so code can
     // try/catch it — the CodeAct bridge convention, not a loader failure.
@@ -245,7 +254,8 @@ describe("the CodeAct surface", () => {
     const server = createMcpServer({ agentToolsScope: scope });
     const observed = await act(
       server,
-      'return await tools.save_asset({ name: "x.txt" });'
+      'import { save_asset } from "@nodetool-ai/sandbox-nodetool/assets";\n' +
+        'return await save_asset({ name: "x.txt" });'
     );
     expect(observed.ok).toBe(false);
     expect(observed.error).toContain("content");

@@ -47,10 +47,22 @@ const locatorParts = (
   return { uri, assetId: declared ?? assetIdFromLocator(uri) };
 };
 
-export function useResolvedMediaUri(source: MediaLocator): string | undefined {
+/**
+ * The resolved URL plus the asset's own content type. `useResolvedMediaUri`
+ * is this hook's URL half — a caller that only renders needs no MIME type. A
+ * locator with no file extension (`asset://<id>`, what `save_asset` used to
+ * return) carries nothing a renderer can type the media by, so a saved mp4
+ * rendered as a broken image in chat. The asset row is already fetched for the
+ * URL; its `content_type` is the answer.
+ */
+export type ResolvedMedia = {
+  url: string | undefined;
+  contentType: string | undefined;
+};
+
+export function useResolvedMedia(source: MediaLocator): ResolvedMedia {
   const getAsset = useAssetStore((state) => state.get);
   const { uri, assetId } = locatorParts(source);
-
   const staticUrl = resolveStaticMediaUri(uri);
   // A locator that resolves without the server still needs the asset id path
   // disabled — hooks cannot be called conditionally, so gate the query instead.
@@ -63,9 +75,16 @@ export function useResolvedMediaUri(source: MediaLocator): string | undefined {
   });
 
   if (staticUrl !== null) {
-    return staticUrl || undefined;
+    return { url: staticUrl || undefined, contentType: undefined };
   }
-  return asset?.get_url ?? undefined;
+  return {
+    url: asset?.get_url ?? undefined,
+    contentType: asset?.content_type ?? undefined
+  };
+}
+
+export function useResolvedMediaUri(source: MediaLocator): string | undefined {
+  return useResolvedMedia(source).url;
 }
 
 /**

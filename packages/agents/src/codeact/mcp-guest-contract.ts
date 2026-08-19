@@ -56,8 +56,8 @@ ${MCP_SANDBOX_ACTION_SNIPPET}
 \`\`\`
 
 Rules:
-- Call \`nodetool.<namespace>.<method>()\`. Do not invent MCP tools. Do not call \`tools.*\` when a \`nodetool.*\` method exists.
-- Unknown tool: \`await nodetool.searchTools("query")\` first. Do not guess arguments.
+- Call \`nodetool.<namespace>.<method>()\`. Do not invent MCP tools. There is no \`tools.*\` global — anything the object model does not cover is a static \`import\` from \`@nodetool-ai/sandbox-nodetool/<namespace>\`.
+- Unknown tool: \`await nodetool.searchTools("query")\` first. Each hit carries the \`import\` line to write. Do not guess arguments, and do not guess the module.
 - Static \`import\` only for allowed packs. This session lists them below; anything else fails.
 - \`return\` a small summary. Keep large data in \`state\`. Assign each generate or speak result to \`state\` at once. The next action must reuse it — do not generate again.
 - A failed tool throws. Use \`try/catch\`.

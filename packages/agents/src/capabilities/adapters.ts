@@ -12,6 +12,7 @@ import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import type { ZodType } from "zod";
 import { Tool } from "../tools/base-tool.js";
 import { permissionCategoryFor } from "../tools/tool-permissions.js";
+import { withSnakeCaseAliases } from "./args.js";
 import type {
   CapabilityExport,
   CapabilityImpl,
@@ -88,7 +89,7 @@ export class CapabilityTool extends Tool {
     const run = isRunFactory(this.runSource)
       ? this.runSource(context)
       : this.runSource;
-    return this.impl(run, params);
+    return this.impl(run, withSnakeCaseAliases(params));
   }
 }
 

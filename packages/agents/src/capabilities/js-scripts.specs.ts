@@ -209,7 +209,7 @@ export const runJsScriptSpec: CapabilitySpec = {
     "and report its outputs, streamed emits, console logs and error. The " +
     "script runs inside its own envelope: the packs its body imports, only " +
     "the secrets it declares, and its own timeout. The guest has the " +
-    "same `tools.*` / `nodetool.*` belt a Code node has — tool-backed calls " +
+    "same imported / `nodetool.*` belt a Code node has — tool-backed calls " +
     "can spend money. Address the script by id, or by name when the name is " +
     "unambiguous.",
   inputSchema: RUN_JS_SCRIPT_SCHEMA,

@@ -1263,9 +1263,11 @@ export const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Repl
 # Your toolbelt
 You act mostly by writing JavaScript: \`execute_code\` runs one action in a
 sandbox where the platform is the \`nodetool.*\` object model and every other
-tool is \`tools.<name>()\`. The CodeAct section that follows this prompt carries
-the exact signatures — read it there, and prefer the \`nodetool.*\` form over the
-raw tool it wraps.
+capability is a static \`import\` from \`@nodetool-ai/sandbox-nodetool/<namespace>\`.
+There is no \`tools.<name>()\` global. The CodeAct section that follows this
+prompt carries the exact signatures, each group headed by the import line to
+copy — read it there, and prefer the \`nodetool.*\` form over the raw capability
+it wraps.
 - \`nodetool.workflows\`, \`nodetool.nodes\`,
   \`nodetool.models\`, \`nodetool.media\`, \`nodetool.assets\`, \`nodetool.jobs\`,
   \`nodetool.collections\`, \`nodetool.apps\`, \`nodetool.memory\`, and the
@@ -1274,11 +1276,13 @@ raw tool it wraps.
 - A few tools stay ordinary tool calls, documented under "Direct tools": the
   file set, search, web fetch, \`todo_write\`, \`run_subtask\`, and \`view_image\`.
   Call one directly when a single call is the whole step.
-- \`tools.run_search\` is the one delegation tool with no \`nodetool.*\` form.
+- \`run_search\` is the one delegation tool with no \`nodetool.*\` form; import it
+  from \`@nodetool-ai/sandbox-nodetool/agents\`.
 - Everything else — the \`ui_*\` resource editors above all — is name-only in the
-  catalog. Find it inside an action with \`await nodetool.searchTools("query")\`, then
-  call it as \`tools.<name>()\`. Raise \`max_results\` (\`nodetool.searchTools("+timeline",
-  20)\`) to see a whole family instead of concluding a capability is missing.
+  catalog. Find it inside an action with \`await nodetool.searchTools("query")\`:
+  each hit carries the \`import\` line to write. Raise \`max_results\`
+  (\`nodetool.searchTools("+timeline", 20)\`) to see a whole family instead of
+  concluding a capability is missing.
 
 # Working in actions
 One action can do several steps: search for a node, read its info, wire it, and
@@ -1381,16 +1385,19 @@ widget's final state and a pass/fail verdict.
 - One \`{run: true}\` before you call the app done. A run executes the real
   workflows and spends real money: check often, run once.
 - In the App Builder the saved row is stale mid-edit, so grade the live draft
-  instead: \`tools.debug_app({document})\`, which is what the \`ui_app_debug\`
+  instead: \`debug_app({document})\` imported from
+  \`@nodetool-ai/sandbox-nodetool/apps\`, which is what the \`ui_app_debug\`
   tool does. Pass an application id for a saved app you are not editing.
 
 # Image and media
-When tools return media URLs, embed them as markdown image / link tags.
-Image URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
-\`asset://b7953a3877e2437bbc1bc51792fcd222.png\`) — embed these verbatim as
-markdown images: \`![](asset://<id>.<ext>)\`. The chat UI resolves \`asset://\`
-to a fetchable URL and renders the image inline; do not rewrite it to an HTTP
-URL or wrap it in a code block.
+When tools return media URLs, embed them as markdown images.
+Media URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
+\`asset://b7953a3877e2437bbc1bc51792fcd222.png\` or
+\`asset://51f0fcd92a05488caf261eb22bbf98df.mp4\`) — embed these verbatim as
+markdown images: \`![label](asset://<id>.<ext>)\`. The chat UI resolves
+\`asset://\` to a fetchable URL and plays video and audio inline; do not
+rewrite it to an HTTP URL, wrap it in a code block, or use a plain markdown
+link (\`[label](asset://…)\`) for media.
 
 # Linking resources
 Resources are addressable as \`<kind>://<id>\`, optionally with a sub-target
@@ -1400,9 +1407,9 @@ or change a resource, link it once in your reply as a markdown link with a
 human-readable label — \`[Beach intro](storyboard://sb_x#shot=s3)\` — so the
 user can open it. Mutating tool results carry a ready-made \`url\`
 field; copy that string rather than composing one. At most one link per
-resource per reply, and never link a resource you only looked up. Images are
-the exception: show them inline per "Image and media" above instead of
-linking them.
+resource per reply, and never link a resource you only looked up. Images,
+video, and audio are the exception: show them inline per "Image and media"
+above instead of linking them.
 
 Sketches and timelines can be SHOWN inline, not just linked. Embed one with
 image syntax on its own line — \`![Label](sketch://<id>)\` or
@@ -1496,11 +1503,15 @@ export function focusedUiToolNames(
 }
 
 /**
- * How the CodeAct prompt spells a guest tool call: `await tools.<name>({…})`.
- * Models sometimes emit that member expression verbatim as a top-level tool
- * name, so the router strips it before looking the tool up.
+ * The member expression the retired guest toolbelt was called through:
+ * `await tools.<name>({…})`. Models trained on it still emit it verbatim as a
+ * top-level tool name, so the router strips the prefix before looking the tool
+ * up. Nothing inside the sandbox produces it any more.
  */
 const GUEST_TOOL_PREFIX = "tools.";
+
+/** Threads whose codeact `state` this connection keeps between turns. */
+const MAX_CODEACT_STATE_THREADS = 8;
 
 /** Recover the plain tool name from a `tools.<name>` slip. */
 export function normalizeToolCallName(name: string): string {
@@ -1517,8 +1528,10 @@ export function normalizeToolCallName(name: string): string {
  */
 export function unroutableToolMessage(name: string): string {
   return (
-    `Unknown tool "${name}". Tools are callable inside execute_code as: ` +
-    `await tools.<name>({...}). Use nodetool.searchTools() to discover tools.`
+    `Unknown tool "${name}". Capabilities are callable inside execute_code ` +
+    `after importing them: import { <name> } from ` +
+    `"@nodetool-ai/sandbox-nodetool/<namespace>". Use ` +
+    `nodetool.searchTools("${name}") to get the namespace and the signature.`
   );
 }
 
@@ -2155,6 +2168,38 @@ export class UnifiedWebSocketRunner {
    * 11 is what switches the guest onto `run.invoke`.
    */
   private chatCapabilityRun: CapabilityRun | null = null;
+  /**
+   * CodeAct `state` per thread, so a turn can reuse what the previous turn
+   * produced. A session is built per turn; without this, a model that parked a
+   * generated video in `state` read `undefined` on the follow-up question and
+   * regenerated it — twice, in the session this fixes. Bounded: the oldest
+   * thread's state is dropped past {@link MAX_CODEACT_STATE_THREADS}, and a
+   * turn with no thread id gets a throwaway object.
+   */
+  private readonly codeactStateByThread = new Map<
+    string,
+    Record<string, unknown>
+  >();
+
+  /** The `state` object this turn's codeact session reads and writes. */
+  private codeactStateFor(threadId: string | null): Record<string, unknown> {
+    if (!threadId) return {};
+    const existing = this.codeactStateByThread.get(threadId);
+    if (existing) {
+      // Re-insert so the eviction below drops the least recently used thread.
+      this.codeactStateByThread.delete(threadId);
+      this.codeactStateByThread.set(threadId, existing);
+      return existing;
+    }
+    const fresh: Record<string, unknown> = {};
+    this.codeactStateByThread.set(threadId, fresh);
+    while (this.codeactStateByThread.size > MAX_CODEACT_STATE_THREADS) {
+      const oldest = this.codeactStateByThread.keys().next().value;
+      if (oldest === undefined) break;
+      this.codeactStateByThread.delete(oldest);
+    }
+    return fresh;
+  }
   /** The run built for the last chat turn — what PR 11 hands to the sandbox. */
   getChatCapabilityRun(): CapabilityRun | null {
     return this.chatCapabilityRun;
@@ -5848,7 +5893,8 @@ export class UnifiedWebSocketRunner {
         context: ctx,
         signal,
         clock: codeactClock,
-        capabilityRun: this.chatCapabilityRun ?? undefined
+        capabilityRun: this.chatCapabilityRun ?? undefined,
+        state: this.codeactStateFor(threadId || null)
       });
       providerToolSchemas.push(codeactSession.providerTool);
       providerToolSchemas.push(...directSchemas);

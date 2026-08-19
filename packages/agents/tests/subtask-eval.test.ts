@@ -102,14 +102,18 @@ describe("runSubtaskEval (scripted provider, end-to-end)", () => {
     const provider = new ScriptedProvider([
       () => [
         action(
-          `await tools.run_subtask({
+          `import { run_subtask } from "@nodetool-ai/sandbox-nodetool/agents";
+           await run_subtask({
              description: "compute product",
              prompt: "Multiply 47 by 89 with the calculate tool and report it."
            });`
         )
       ],
       () => [
-        action(`await tools.calculate({ a: 47, op: "multiply", b: 89 });`)
+        action(
+          `import { calculate } from "@nodetool-ai/sandbox-nodetool/session";\n` +
+            `await calculate({ a: 47, op: "multiply", b: 89 });`
+        )
       ],
       () => [{ type: "chunk", content: "The product is 4183.", done: true }],
       () => [{ type: "chunk", content: "The result is 4183.", done: true }]

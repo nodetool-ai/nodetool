@@ -142,10 +142,125 @@ export const deleteAppSpec: CapabilitySpec = {
   userMessage: (params) => `Deleting app ${params["application_id"]}`
 };
 
+export const CREATE_APP_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    name: { type: "string", description: "What the app is called" },
+    description: {
+      type: "string",
+      description: "One line on what the app does"
+    },
+    project_id: {
+      type: "string",
+      description: "Project to file the app under (default `default`)"
+    },
+    from_workflow_id: {
+      type: "string",
+      description:
+        "Start with one operation already bound to this workflow, so the " +
+        "app has something to run the moment a widget is placed."
+    },
+    document: {
+      type: "object",
+      description:
+        "A complete application document to start from. Omit it for an " +
+        "empty app and build it up with edit_app."
+    }
+  },
+  required: ["name"]
+};
+
+export const createAppSpec: CapabilitySpec = {
+  name: "create_app",
+  description:
+    "Create an empty mini APP (not a workflow) and return its id. This is " +
+    "the first step of building one: create it, place and wire the widgets " +
+    "with edit_app, then grade it with debug_app. Pass `from_workflow_id` " +
+    "to bind its first operation to a workflow you already built.",
+  inputSchema: CREATE_APP_SCHEMA,
+  category: "write",
+  userMessage: (params) => {
+    const name = params["name"];
+    return isString(name) && name.trim()
+      ? `Creating app ${name}`
+      : "Creating app";
+  }
+};
+
+export const EDIT_APP_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    application_id: { type: "string", description: "The app to edit" },
+    steps: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          tool: {
+            type: "string",
+            description:
+              "An App Builder tool name, with or without the `ui_app_` " +
+              "prefix — e.g. `add_component`, `ui_app_add_operation`. Call " +
+              "with an empty `steps` list to see every tool and its schema."
+          },
+          input: {
+            type: "object",
+            description: "That tool's arguments"
+          }
+        },
+        required: ["tool"]
+      },
+      description:
+        "The edits to apply, in order. They run against the saved " +
+        "document and the result is saved once, at the end."
+    },
+    name: { type: "string", description: "Rename the app" },
+    description: { type: "string", description: "Re-describe the app" },
+    workflow_ids: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "Workflows to load the bindable surface of, on top of the ones the " +
+        "app's operations already name. Bind a widget to a workflow this " +
+        "app does not use yet by naming it here."
+    },
+    base_updated_at: {
+      type: "string",
+      description:
+        "The `updated_at` this edit was written against. Given, the save " +
+        "is refused when the app changed since — nothing is written."
+    }
+  },
+  required: ["application_id"]
+};
+
+export const editAppSpec: CapabilitySpec = {
+  name: "edit_app",
+  description:
+    "Edit a mini APP by driving the App Builder tools headlessly: place " +
+    "and wire widgets, declare operations, variables and resources. Each " +
+    "step names one `ui_app_*` tool and its arguments; they apply in order " +
+    "to the saved document, which is written back once at the end. Call it " +
+    "with no steps to read the tool catalog and the app's current state. " +
+    "Check the result with debug_app({run: false}) — free and instant — " +
+    "before running the app for real.",
+  inputSchema: EDIT_APP_SCHEMA,
+  category: "write",
+  userMessage: (params) => {
+    const steps = params["steps"];
+    const count = Array.isArray(steps) ? steps.length : 0;
+    return count === 0
+      ? `Reading app ${params["application_id"]} editor`
+      : `Editing app ${params["application_id"]} (${count} steps)`;
+  }
+};
+
 /** Every spec this module declares, in declaration order. */
 export const appsSpecs: readonly CapabilitySpec[] = [
   debugAppSpec,
   listAppsSpec,
   getAppSpec,
+  createAppSpec,
+  editAppSpec,
   deleteAppSpec
 ];

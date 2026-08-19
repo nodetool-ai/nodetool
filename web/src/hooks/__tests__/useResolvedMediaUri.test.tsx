@@ -1,7 +1,10 @@
 import { renderHook } from "@testing-library/react";
 import { useQuery } from "@tanstack/react-query";
 
-import { useResolvedMediaUri } from "../useResolvedMediaUri";
+import {
+  useResolvedMedia,
+  useResolvedMediaUri
+} from "../useResolvedMediaUri";
 
 const mockGetAsset = jest.fn();
 jest.mock("../../stores/AssetStore", () => ({
@@ -21,9 +24,11 @@ jest.mock("@tanstack/react-query", () => ({
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
 
 /** The asset record the lookup resolves to, when it resolves. */
-const withAsset = (getUrl: string | undefined) => {
+const withAsset = (getUrl: string | undefined, contentType?: string) => {
   mockUseQuery.mockReturnValue({
-    data: getUrl ? { get_url: getUrl } : undefined
+    data: getUrl
+      ? { get_url: getUrl, content_type: contentType }
+      : undefined
   } as any);
 };
 
@@ -88,5 +93,26 @@ describe("useResolvedMediaUri", () => {
   it.each([undefined, null, ""])("returns undefined for %p", (input) => {
     const { result } = renderHook(() => useResolvedMediaUri(input));
     expect(result.current).toBeUndefined();
+  });
+});
+
+describe("useResolvedMedia", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    withAsset(undefined);
+  });
+
+  it("returns the asset content type with the signed URL", () => {
+    withAsset(
+      "https://cdn.example.com/signed/user-1/abc123.mp4?sig=x",
+      "video/mp4"
+    );
+    const { result } = renderHook(() =>
+      useResolvedMedia("asset://abc123")
+    );
+    expect(result.current).toEqual({
+      url: "https://cdn.example.com/signed/user-1/abc123.mp4?sig=x",
+      contentType: "video/mp4"
+    });
   });
 });

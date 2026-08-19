@@ -20,6 +20,7 @@ import {
   decidePermission,
   type PermissionCategory
 } from "../tools/tool-permissions.js";
+import { withSnakeCaseAliases } from "./args.js";
 import { findCapability } from "./registry.js";
 import type { LongTermMemory } from "../long-term-memory.js";
 import type {
@@ -154,8 +155,9 @@ async function offTheClock<T>(
 async function gatedCall(
   run: CapabilityRun,
   entry: CapabilityExport,
-  args: Record<string, unknown>
+  rawArgs: Record<string, unknown>
 ): Promise<unknown> {
+  const args = withSnakeCaseAliases(rawArgs);
   const { spec, impl } = entry;
   const category = spec.category;
   const decision = decidePermission(run.gate.mode, category);
