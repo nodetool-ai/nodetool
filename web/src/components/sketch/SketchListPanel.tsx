@@ -11,7 +11,7 @@ import {
   useRef,
   useState
 } from "react";
-import type { DragEvent, FocusEvent, KeyboardEvent, MouseEvent } from "react";
+import type { DragEvent, MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { usePanelStore } from "../../stores/PanelStore";
@@ -31,11 +31,10 @@ import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
   EmptyState,
   FlexColumn,
-  FlexRow,
+  ListPanelItem,
   LoadingSpinner,
   Text,
   ToolbarIconButton,
-  TruncatedText,
   Tooltip,
   BORDER_RADIUS,
   FONT_WEIGHT,
@@ -128,37 +127,6 @@ const SketchListItem = memo(function SketchListItem({
 }: SketchListItemProps) {
   const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
   const clearDrag = useDragDropStore((state) => state.clearDrag);
-  const handleClick = useCallback(() => onOpen(id, name), [id, name, onOpen]);
-  const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => onContextMenu(event, id, name),
-    [id, name, onContextMenu]
-  );
-  const handleRenameKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      event.stopPropagation();
-      if (event.key === "Enter") {
-        onCommitRename(id, event.currentTarget.value);
-      } else if (event.key === "Escape") {
-        onCancelRename();
-      }
-    },
-    [id, onCommitRename, onCancelRename]
-  );
-  const handleRenameBlur = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      onCommitRename(id, event.currentTarget.value);
-    },
-    [id, onCommitRename]
-  );
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        onOpen(id, name);
-      }
-    },
-    [id, name, onOpen]
-  );
   const handleDragStart = useCallback(
     (event: DragEvent<HTMLButtonElement>) => {
       const payload = { id, name, updatedAt };
@@ -187,52 +155,23 @@ const SketchListItem = memo(function SketchListItem({
     clearDrag();
   }, [clearDrag]);
 
-  if (editing) {
-    return (
-      <div className={`list-panel-item ${active ? "active" : ""}`}>
-        <FlexRow align="center" gap={1} fullWidth>
-          <BrushOutlinedIcon className="list-panel-icon" />
-          <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-            <input
-              className="rename-input"
-              type="text"
-              defaultValue={name}
-              aria-label="Sketch name"
-              autoFocus
-              onFocus={(event) => event.currentTarget.select()}
-              onKeyDown={handleRenameKeyDown}
-              onBlur={handleRenameBlur}
-            />
-          </FlexColumn>
-        </FlexRow>
-      </div>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      className={`list-panel-item ${active ? "active" : ""}`}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      onContextMenu={handleContextMenu}
+    <ListPanelItem
+      id={id}
+      name={name}
+      fallbackName="Untitled sketch"
+      renameLabel="Sketch name"
+      icon={BrushOutlinedIcon}
+      active={active}
+      editing={editing}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      aria-current={active ? "page" : undefined}
-    >
-      <FlexRow align="center" gap={1} fullWidth>
-        <BrushOutlinedIcon className="list-panel-icon" />
-        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-          <TruncatedText
-            component="span"
-            sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
-          >
-            {name || "Untitled sketch"}
-          </TruncatedText>
-        </FlexColumn>
-      </FlexRow>
-    </button>
+      onOpen={onOpen}
+      onContextMenu={onContextMenu}
+      onCommitRename={onCommitRename}
+      onCancelRename={onCancelRename}
+    />
   );
 });
 
