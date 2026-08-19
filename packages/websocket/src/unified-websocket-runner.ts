@@ -1390,12 +1390,14 @@ widget's final state and a pass/fail verdict.
   tool does. Pass an application id for a saved app you are not editing.
 
 # Image and media
-When tools return media URLs, embed them as markdown image / link tags.
-Image URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
-\`asset://b7953a3877e2437bbc1bc51792fcd222.png\`) — embed these verbatim as
-markdown images: \`![](asset://<id>.<ext>)\`. The chat UI resolves \`asset://\`
-to a fetchable URL and renders the image inline; do not rewrite it to an HTTP
-URL or wrap it in a code block.
+When tools return media URLs, embed them as markdown images.
+Media URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
+\`asset://b7953a3877e2437bbc1bc51792fcd222.png\` or
+\`asset://51f0fcd92a05488caf261eb22bbf98df.mp4\`) — embed these verbatim as
+markdown images: \`![label](asset://<id>.<ext>)\`. The chat UI resolves
+\`asset://\` to a fetchable URL and plays video and audio inline; do not
+rewrite it to an HTTP URL, wrap it in a code block, or use a plain markdown
+link (\`[label](asset://…)\`) for media.
 
 # Linking resources
 Resources are addressable as \`<kind>://<id>\`, optionally with a sub-target
@@ -1405,9 +1407,9 @@ or change a resource, link it once in your reply as a markdown link with a
 human-readable label — \`[Beach intro](storyboard://sb_x#shot=s3)\` — so the
 user can open it. Mutating tool results carry a ready-made \`url\`
 field; copy that string rather than composing one. At most one link per
-resource per reply, and never link a resource you only looked up. Images are
-the exception: show them inline per "Image and media" above instead of
-linking them.
+resource per reply, and never link a resource you only looked up. Images,
+video, and audio are the exception: show them inline per "Image and media"
+above instead of linking them.
 
 Sketches and timelines can be SHOWN inline, not just linked. Embed one with
 image syntax on its own line — \`![Label](sketch://<id>)\` or

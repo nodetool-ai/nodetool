@@ -39,7 +39,32 @@ const resolve = (source: MediaLocator): string | undefined => {
 
 export const resolveStaticMediaUri = realResolveStaticMediaUri;
 
-export const useResolvedMediaUri = resolve;
+const contentTypeByLocator = new Map<string, string>();
+
+/** Pin a content type for an `asset://` locator in tests. */
+export const mockAssetContentType = (locator: string, mime: string): void => {
+  contentTypeByLocator.set(locator, mime);
+};
+
+export const resetMockAssetContentTypes = (): void => {
+  contentTypeByLocator.clear();
+};
+
+const locatorUri = (source: MediaLocator): string | undefined =>
+  typeof source === "string" ? source : (source?.uri ?? undefined);
+
+export const useResolvedMedia = (
+  source: MediaLocator
+): { url: string | undefined; contentType: string | undefined } => {
+  const uri = locatorUri(source);
+  return {
+    url: resolve(source),
+    contentType: uri ? contentTypeByLocator.get(uri) : undefined
+  };
+};
+
+export const useResolvedMediaUri = (source: MediaLocator): string | undefined =>
+  useResolvedMedia(source).url;
 
 export const useResolvedMediaUris = (
   sources: MediaLocator[]

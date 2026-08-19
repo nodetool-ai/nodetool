@@ -47,7 +47,12 @@ const locatorParts = (
   return { uri, assetId: declared ?? assetIdFromLocator(uri) };
 };
 
-export function useResolvedMediaUri(source: MediaLocator): string | undefined {
+export type ResolvedMedia = {
+  url: string | undefined;
+  contentType: string | undefined;
+};
+
+export function useResolvedMedia(source: MediaLocator): ResolvedMedia {
   const getAsset = useAssetStore((state) => state.get);
   const { uri, assetId } = locatorParts(source);
 
@@ -63,9 +68,16 @@ export function useResolvedMediaUri(source: MediaLocator): string | undefined {
   });
 
   if (staticUrl !== null) {
-    return staticUrl || undefined;
+    return { url: staticUrl || undefined, contentType: undefined };
   }
-  return asset?.get_url ?? undefined;
+  return {
+    url: asset?.get_url ?? undefined,
+    contentType: asset?.content_type ?? undefined
+  };
+}
+
+export function useResolvedMediaUri(source: MediaLocator): string | undefined {
+  return useResolvedMedia(source).url;
 }
 
 /**

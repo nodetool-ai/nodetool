@@ -16,8 +16,14 @@ jest.mock("../../../../trpc/client", () => ({
   }
 }));
 
-jest.mock("../../../../hooks/useResolvedMediaUri");
-import { mockAssetUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
+jest.mock("../../../../hooks/useResolvedMediaUri", () =>
+  jest.requireActual("../../../../hooks/__mocks__/useResolvedMediaUri")
+);
+import {
+  mockAssetContentType,
+  mockAssetUrl,
+  resetMockAssetContentTypes
+} from "../../../../hooks/__mocks__/useResolvedMediaUri";
 
 /**
  * react-markdown is ESM-only; this mock handles markdown images `![](src)`
@@ -116,6 +122,7 @@ const renderMarkdown = (content: string) =>
 describe("ChatMarkdown asset video", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetMockAssetContentTypes();
   });
 
   it("renders an asset:// mp4 markdown image as a video player", () => {
@@ -145,6 +152,53 @@ describe("ChatMarkdown asset video", () => {
     const video = container.querySelector("video") as HTMLVideoElement;
     expect(video).not.toBeNull();
     expect(video).toHaveAttribute("src", httpsUrl);
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("renders an asset:// mp4 markdown link as a video player", () => {
+    mockUseQuery.mockReturnValue({ data: undefined });
+
+    const { container } = renderMarkdown(
+      `[Beach Scene at Sunset](${ASSET_URI})`
+    );
+
+    const video = container.querySelector("video") as HTMLVideoElement;
+    expect(video).not.toBeNull();
+    expect(video).toHaveAttribute("src", RESOLVED_URL);
+    expect(video).toHaveAttribute("aria-label", "Beach Scene at Sunset");
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("renders an extensionless asset:// markdown link as a video when the asset is video", () => {
+    const assetId = "552662c1d18842c8a854eaa72416393d";
+    const uri = `asset://${assetId}`;
+    mockAssetContentType(uri, "video/mp4");
+    mockUseQuery.mockReturnValue({ data: undefined });
+
+    const { container } = renderMarkdown(
+      `You can view it here: [National Geographic Giraffe Reel](${uri}).`
+    );
+
+    const video = container.querySelector("video") as HTMLVideoElement;
+    expect(video).not.toBeNull();
+    expect(video).toHaveAttribute("src", mockAssetUrl(assetId));
+    expect(video).toHaveAttribute(
+      "aria-label",
+      "National Geographic Giraffe Reel"
+    );
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("renders an extensionless asset:// markdown image as a video when the asset is video", () => {
+    const uri = "asset://552662c1d18842c8a854eaa72416393d";
+    mockAssetContentType(uri, "video/mp4");
+    mockUseQuery.mockReturnValue({ data: undefined });
+
+    const { container } = renderMarkdown(`![Giraffe Reel](${uri})`);
+
+    const video = container.querySelector("video") as HTMLVideoElement;
+    expect(video).not.toBeNull();
+    expect(video).toHaveAttribute("aria-label", "Giraffe Reel");
     expect(container.querySelector("img")).toBeNull();
   });
 

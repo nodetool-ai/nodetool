@@ -34,6 +34,7 @@ import {
 import type { Asset as AssetRow } from "@nodetool-ai/models";
 import { loadMediaRefBytes, safeFetch } from "@nodetool-ai/runtime";
 import { mimeForPath } from "../sandbox-media-ref.js";
+import { MIME_TO_EXT } from "../tools/asset-persist.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import type {
   CapabilityExport,
@@ -415,11 +416,16 @@ const saveAsset: CapabilityExport = {
               // Non-fatal: the asset is still saved via createAsset.
             }
           }
+          const ext = MIME_TO_EXT[mime];
+          const assetUri = ext
+            ? `asset://${asset.id}.${ext}`
+            : `asset://${asset.id}`;
           return {
             success: true,
             name,
             asset_id: asset.id,
-            asset_uri: `asset://${asset.id}`,
+            asset_uri: assetUri,
+            url: assetUri,
             content_type: mime,
             size: data.byteLength
           };
