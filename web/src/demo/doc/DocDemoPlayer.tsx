@@ -24,8 +24,7 @@ import React, {
   useState
 } from "react";
 import type { Data } from "@puckeditor/core";
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
+import { ThemeRoot } from "../../components/ui_primitives";
 import { MemoryRouter } from "react-router-dom";
 
 import "../../styles/vars.css";
@@ -137,9 +136,7 @@ export function DocDemoPlayer({
     // timeline, or asset); a MemoryRouter supplies the Router context.
     <MemoryRouter>
       <TRPCProvider>
-        <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-          <InitColorSchemeScript attribute="class" defaultMode="dark" />
-          <CssBaseline />
+        <ThemeRoot theme={ThemeNodetool}>
           <WorkflowManagerProvider queryClient={queryClient}>
             <div
               ref={rootRef}
@@ -167,7 +164,7 @@ export function DocDemoPlayer({
               )}
             </div>
           </WorkflowManagerProvider>
-        </ThemeProvider>
+        </ThemeRoot>
       </TRPCProvider>
     </MemoryRouter>
   );

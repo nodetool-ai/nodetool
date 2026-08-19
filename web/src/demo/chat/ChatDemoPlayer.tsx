@@ -7,8 +7,7 @@
  * plain fold (`computeChatStateAt`) instead of a stateful engine.
  */
 import React, { useLayoutEffect, useMemo } from "react";
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
+import { ThemeRoot } from "../../components/ui_primitives";
 import { MemoryRouter } from "react-router-dom";
 import { TRPCProvider } from "../../trpc/Provider";
 
@@ -51,9 +50,7 @@ export function ChatDemoPlayer({
   return (
     <MemoryRouter>
       <TRPCProvider>
-        <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-          <InitColorSchemeScript attribute="class" defaultMode="dark" />
-          <CssBaseline />
+        <ThemeRoot theme={ThemeNodetool}>
           <div
             data-demo-player
             style={{ width: "100%", height: "100%", ...style }}
@@ -71,7 +68,7 @@ export function ChatDemoPlayer({
               showNewChatButton={false}
             />
           </div>
-        </ThemeProvider>
+        </ThemeRoot>
       </TRPCProvider>
     </MemoryRouter>
   );
