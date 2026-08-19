@@ -18,7 +18,7 @@
  *
  * Then it calls `run.invoke`, which is where the permission gate lives. The
  * dispatcher does not gate on its own — a call through the import path and the
- * same call through `tools.*` reach one implementation past one gate.
+ * same call through the belt bridge reach one implementation past one gate.
  *
  * Design: docs/tool-class-retirement-design.md § "The dispatcher change".
  */
@@ -113,7 +113,7 @@ export function createCapabilityDispatcher(
           `${moduleKey}: ${found.spec.name} takes one arguments object`
         );
       }
-      // Plain data out, exactly as `tools.<name>()` hands it over, so the two
+      // Plain data out, exactly as the belt bridge hands it over, so the two
       // paths cannot show the guest different values for one call — including
       // an `{error}` payload, which is a failure to throw on rather than a
       // value to compute with. A gate refusal arrives that way.

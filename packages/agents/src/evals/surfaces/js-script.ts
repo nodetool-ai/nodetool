@@ -386,7 +386,7 @@ The host wraps the body in an async function. Write top-level statements only. D
 
 - Call ui_jsscript_get_state first to see the document and its current validation issues.
 - Declare ports with ui_jsscript_set_ports before writing a body that reads or writes them.
-- Write the body with ui_jsscript_set_code. Read \`inputs.<name>\`. Leave values with \`await output(name, value)\` or \`await emit(name, value)\`. Never \`return\` outputs. The body has the same \`tools.*\` / \`nodetool.*\` belt a Code node has.
+- Write the body with ui_jsscript_set_code. Read \`inputs.<name>\`. Leave values with \`await output(name, value)\` or \`await emit(name, value)\`. Never \`return\` outputs. The body has the same importable belt and \`nodetool.*\` object model a Code node has.
 - Save regression cases with ui_jsscript_set_tests, then run them with ui_jsscript_test. ui_jsscript_test with zero cases is an error — add cases first.
 - ui_jsscript_run executes the body once with inputs you supply. A run with declared outputs and an empty bag is not success.
 

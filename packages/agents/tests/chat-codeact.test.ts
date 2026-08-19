@@ -27,15 +27,24 @@ const objectSchema = (props: Record<string, unknown>) => ({
   properties: props
 });
 
+// Session tools, `ui_`-prefixed because that is what a chat session's own
+// tools are: client tools routed back to the browser. They are the only
+// non-capability names a chat action may import — an external MCP-server tool
+// stays a provider-level tool call and is deliberately not importable.
 const GENERIC_TOOLS = [
   {
-    name: "add",
+    name: "ui_add",
     description: "Add two numbers.",
     inputSchema: objectSchema({ a: { type: "number" }, b: { type: "number" } })
   },
   {
-    name: "always_fails",
+    name: "ui_always_fails",
     description: "Fails every time.",
+    inputSchema: objectSchema({})
+  },
+  {
+    name: "mcp_external_echo",
+    description: "An external MCP server's tool.",
     inputSchema: objectSchema({})
   }
 ];
@@ -71,11 +80,11 @@ function createFakeRouter(graph: FakeGraph) {
     calls.push(call);
     const args = call.args;
     switch (call.name) {
-      case "add":
+      case "ui_add":
         return JSON.stringify({
           sum: Number(args["a"]) + Number(args["b"])
         });
-      case "always_fails":
+      case "ui_always_fails":
         return JSON.stringify({ error: "boom", message: "always fails" });
       case "ui_get_graph":
         return JSON.stringify({
@@ -169,12 +178,13 @@ describe("createChatCodeActSession", () => {
     const session = makeSession(GENERIC_TOOLS, executeTool);
     const obs = await runAction(
       session,
-      `const r = await tools.add({ a: 2, b: 3 });\nreturn r.sum;`
+      `import { ui_add } from "@nodetool-ai/sandbox-nodetool/ui";\n` +
+        `const r = await ui_add({ a: 2, b: 3 });\nreturn r.sum;`
     );
     expect(obs.ok).toBe(true);
     expect(obs.result).toBe(5);
     expect(obs.toolCalls).toBe(1);
-    expect(calls[0]).toMatchObject({ name: "add" });
+    expect(calls[0]).toMatchObject({ name: "ui_add" });
     expect(calls[0].id).toMatch(/^codeact_[0-9a-f-]{36}_1$/);
   });
 
@@ -184,8 +194,9 @@ describe("createChatCodeActSession", () => {
     const first = makeSession(GENERIC_TOOLS, firstRouter.executeTool);
     const second = makeSession(GENERIC_TOOLS, secondRouter.executeTool);
 
-    await runAction(first, `return await tools.add({ a: 1, b: 2 });`);
-    await runAction(second, `return await tools.add({ a: 3, b: 4 });`);
+    const call = `import { ui_add } from "@nodetool-ai/sandbox-nodetool/ui";\nreturn await ui_add({});`;
+    await runAction(first, call);
+    await runAction(second, call);
 
     expect(firstRouter.calls[0].id).not.toBe(secondRouter.calls[0].id);
   });
@@ -235,7 +246,8 @@ return { secret: secret === undefined ? null : secret, fetchError, workspaceErro
     const session = makeSession(GENERIC_TOOLS, executeTool);
     const obs = await runAction(
       session,
-      `try {\n  await tools.always_fails({});\n  return "no throw";\n} catch (e) {\n  return "caught: " + e.message;\n}`
+      `import { ui_always_fails } from "@nodetool-ai/sandbox-nodetool/ui";\n` +
+        `try {\n  await ui_always_fails({});\n  return "no throw";\n} catch (e) {\n  return "caught: " + e.message;\n}`
     );
     expect(obs.ok).toBe(true);
     expect(obs.result).toContain("caught:");
@@ -281,12 +293,19 @@ return { secret: secret === undefined ? null : secret, fetchError, workspaceErro
     const session = makeSession(GENERIC_TOOLS, executeTool);
     const obs = await runAction(
       session,
-      `const hits = await nodetool.searchTools("select:add");\nreturn hits[0];`
+      `const hits = await nodetool.searchTools("select:ui_add");\nreturn hits[0];`
     );
     expect(obs.ok).toBe(true);
-    expect(obs.result).toMatchObject({ name: "add" });
+    expect(obs.result).toMatchObject({
+      name: "ui_add",
+      module: "ui",
+      specifier: "@nodetool-ai/sandbox-nodetool/ui"
+    });
     expect((obs.result as { signature: string }).signature).toContain(
-      "await tools.add("
+      "await ui_add("
+    );
+    expect((obs.result as { import: string }).import).toBe(
+      'import { ui_add } from "@nodetool-ai/sandbox-nodetool/ui";'
     );
   });
 
@@ -547,7 +566,11 @@ describe("permission prompts suspend the action clock", () => {
         return JSON.stringify({ ok: true });
       }
     });
-    const obs = await runAction(session, `return await tools.write_file({});`);
+    const obs = await runAction(
+      session,
+      'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+        "return await write_file({});"
+    );
     expect(obs.ok).toBe(false);
     expect(obs.error).toContain("ExecutionTimeout");
   }, 20_000);
@@ -571,7 +594,8 @@ describe("permission prompts suspend the action clock", () => {
     });
     const obs = await runAction(
       session,
-      `await tools.write_file({});\nreturn "resumed";`
+      'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+        'await write_file({});\nreturn "resumed";'
     );
     expect(obs.ok).toBe(true);
     expect(obs.result).toBe("resumed");
@@ -646,7 +670,8 @@ describe("sandbox package docs in a chat session", () => {
   }
 
   const docsCall =
-    'return await tools.get_sandbox_package_docs({ specifier: "@acme/geo" });';
+    'import { get_sandbox_package_docs } from "@nodetool-ai/sandbox-nodetool/packs";\n' +
+    'return await get_sandbox_package_docs({ specifier: "@acme/geo" });';
 
   it("installs the tool and advertises the real invocation", async () => {
     const session = createChatCodeActSession({
@@ -700,7 +725,8 @@ describe("sandbox package docs in a chat session", () => {
     });
     const obs = await runAction(
       session,
-      'return await tools.get_sandbox_package_docs({ specifier: "@evil/pack" });'
+      'import { get_sandbox_package_docs } from "@nodetool-ai/sandbox-nodetool/packs";\n' +
+        'return await get_sandbox_package_docs({ specifier: "@evil/pack" });'
     );
     expect(obs.ok).toBe(false);
     expect(obs.error).toContain("allowlist");
@@ -731,16 +757,17 @@ describe("sandbox package docs in a chat session", () => {
     );
     const obs = await runAction(session, docsCall);
     expect(obs.ok).toBe(false);
-    // The prelude builds a wrapper per belt tool, so an absent tool is not
-    // callable at all — the strongest structural proof it was never installed.
-    expect(obs.error).toContain("is not on this toolbelt");
+    // The `packs` facade exports one name per belt tool, so a tool that was
+    // never installed has no export to import — the strongest structural
+    // proof it is absent.
+    expect(obs.error).toContain("get_sandbox_package_docs");
   }, 60_000);
 });
 
 describe("platform modules in a chat session", () => {
   const specifier = sandboxCapabilitySpecifier("workflows");
 
-  it("mounts nothing without a capability run, and names the module", async () => {
+  it("refuses a module this session's belt cannot serve, and names what it can", async () => {
     const session = createChatCodeActSession({
       tools: GENERIC_TOOLS,
       executeTool: async () => ({})
@@ -751,6 +778,9 @@ describe("platform modules in a chat session", () => {
     );
     expect(obs.ok).toBe(false);
     expect(obs.error).toContain(specifier);
-    expect(obs.error).toContain("package allowlist");
+    // The belt carries only `ui_*` tools, so `ui` is the one namespace this
+    // session mounts — and the refusal says so rather than leaving the model
+    // to guess which module names are real.
+    expect(obs.error).toContain(sandboxCapabilitySpecifier("ui"));
   }, 60_000);
 });

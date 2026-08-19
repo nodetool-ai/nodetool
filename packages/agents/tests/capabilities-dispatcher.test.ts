@@ -5,7 +5,8 @@
  * before a capability is looked up, the way the host-module dispatcher does.
  * And the import path is the tools path: one action importing
  * `@nodetool-ai/sandbox-nodetool/workflows` and one calling
- * `tools.list_workflows({})` must see the same answer and pass the same gate.
+ * the import must see what the capability's own `invoke` answers, and pass
+ * the same gate a direct tool call passes.
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
@@ -53,8 +54,8 @@ function gatedRun(
 
 /**
  * One action in a chat session whose only surface is the capability run: the
- * tool router routes straight to `invoke`, so `tools.*` and the import land on
- * the same ladder and any difference is the dispatcher's.
+ * tool router routes straight to `invoke`, so the import and a direct tool
+ * call land on the same ladder and any difference is the dispatcher's.
  */
 async function action(
   run: CapabilityRun,
@@ -140,7 +141,7 @@ describe("the validation ladder", () => {
 });
 
 describe("the import path in the sandbox", () => {
-  it("answers exactly what tools.list_workflows answers", async () => {
+  it("answers what the capability itself answers", async () => {
     await Workflow.create({
       name: "Imported",
       user_id: USER,
@@ -154,10 +155,10 @@ describe("the import path in the sandbox", () => {
       `import { list_workflows } from "${WORKFLOWS}";\n` +
         `return await list_workflows({});`
     );
-    const bridged = await action(run, `return await tools.list_workflows({});`);
+    const direct = await run.invoke("list_workflows", {});
 
     expect(imported.ok).toBe(true);
-    expect(imported.result).toEqual(bridged.result);
+    expect(imported.result).toEqual(direct);
     const names = (
       (imported.result as { workflows: { name: string }[] }).workflows ?? []
     ).map((w) => w.name);
@@ -218,9 +219,8 @@ describe("the gate", () => {
       `import { list_workflows } from "${WORKFLOWS}";\n` +
         `return await list_workflows({});`
     );
-    const bridged = await action(run, `return await tools.list_workflows({});`);
     expect(prompts).toEqual([]);
-    expect(imported.result).toEqual(bridged.result);
+    expect(imported.result).toEqual(await run.invoke("list_workflows", {}));
   });
 });
 

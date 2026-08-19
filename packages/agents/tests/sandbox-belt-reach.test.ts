@@ -1,14 +1,18 @@
 /**
- * What a Code node and a JS script can call, and what happens when they call
- * something the belt does not carry.
+ * What a Code node and a JS script can call, and what a body written against
+ * the retired `tools.<name>()` global gets instead.
  *
- * The failure this pins: a chat ran `tools.run_apify_actor` inside
+ * The failure the belt checks pin: a chat ran `run_apify_actor` inside
  * `execute_code`, then wrote the same call into a `nodetool.code.Code` body.
  * The chat belt carried the Apify capabilities and the sandbox belt did not,
  * so the body failed with QuickJS's `TypeError: not a function` — naming
  * neither the tool nor the belt. The agent read that as "the sandbox has no
  * network", tried `fetch` against Apify's REST API, hit the same message, and
  * ended up hard-coding a scraped URL into a workflow it reported as working.
+ *
+ * `tools` is now a thrower for every name, because the belt is imported. What
+ * these check is that the message says which import replaces the call rather
+ * than leaving the reader where `TypeError` left them.
  */
 import { describe, it, expect } from "vitest";
 
@@ -24,12 +28,17 @@ import { TOOLS_PRELUDE } from "../src/codeact/tools-prelude.js";
 const PRELUDE = `${TOOLS_PRELUDE}\n${NODETOOL_API_PRELUDE_FULL}`;
 
 /** Run a body over a belt of `names`, none of which is really callable. */
-async function run(code: string, names: readonly string[] = []) {
+async function run(
+  code: string,
+  names: readonly string[] = [],
+  modules: Record<string, string> = {}
+) {
   return runInSandbox({
     code: `${PRELUDE}\n${code}`,
     context: {} as never,
     globals: {
       __toolNames: [...names],
+      __toolModules: modules,
       __callTool: async (name: unknown) => ({
         ok: true,
         result: { called: name }
@@ -53,35 +62,58 @@ describe("the sandbox toolbelt", () => {
   });
 });
 
-describe("tools.<name> for a name the belt does not carry", () => {
-  it("throws naming the tool instead of TypeError: not a function", async () => {
+describe("the retired tools.<name> global", () => {
+  it("names the import that replaces a call it knows the module for", async () => {
     const result = await run(
       `try {
          await tools.run_apify_actor({ actor_id: "apify/instagram-scraper" });
          return "no throw";
        } catch (e) {
          return String(e.message);
-       }`
+       }`,
+      ["run_apify_actor"],
+      { run_apify_actor: "apify" }
     );
     expect(result.error).toBeUndefined();
+    expect(result.result).toContain(
+      'import { run_apify_actor } from "@nodetool-ai/sandbox-nodetool/apify";'
+    );
+    expect(result.result).not.toContain("not a function");
+  }, 60_000);
+
+  it("points at searchTools for a name no module owns", async () => {
+    const result = await run(
+      `try {
+         await tools.run_apify_actor({});
+         return "no throw";
+       } catch (e) {
+         return String(e.message);
+       }`
+    );
     expect(result.result).toContain("run_apify_actor");
     expect(result.result).toContain("searchTools");
     expect(result.result).not.toContain("not a function");
   }, 60_000);
 
-  it("leaves a tool the belt does carry callable", async () => {
+  it("throws for a name the belt does carry — the belt is imported now", async () => {
     const result = await run(
-      `const r = await tools.list_workflows({});
-       return r.called;`,
-      ["list_workflows"]
+      `try {
+         await tools.list_workflows({});
+         return "no throw";
+       } catch (e) {
+         return String(e.message);
+       }`,
+      ["list_workflows"],
+      { list_workflows: "workflows" }
     );
-    expect(result.result).toBe("list_workflows");
+    expect(result.result).toContain(
+      '"@nodetool-ai/sandbox-nodetool/workflows"'
+    );
   }, 60_000);
 
   it("does not make nodetool report a capability the belt lacks", async () => {
     // `nodetool.capabilities()` and its per-method errors read `__toolNames`,
-    // not whether reading a property answers a function — the thrower would
-    // otherwise report every namespace as present.
+    // which is still the belt even though nothing enumerates `tools`.
     const result = await run(
       `const caps = nodetool.capabilities();
        let denied = "";
@@ -98,17 +130,24 @@ describe("tools.<name> for a name the belt does not carry", () => {
     );
   }, 60_000);
 
-  it("keeps the belt enumerable and does not answer as a thenable", async () => {
+  it("still lets the nodetool object model reach the belt", async () => {
+    // The object model calls `__callBeltTool`, not a belt object — this is
+    // what the retired global's removal had to leave working.
     const result = await run(
-      `return {
-         keys: Object.keys(tools).sort(),
-         then: typeof tools.then
-       };`,
+      `const r = await nodetool.workflows.list({});
+       return r.called;`,
+      ["list_workflows"],
+      { list_workflows: "workflows" }
+    );
+    expect(result.error).toBeUndefined();
+    expect(result.result).toBe("list_workflows");
+  }, 60_000);
+
+  it("is not a thenable, so awaiting it cannot call the thrower", async () => {
+    const result = await run(
+      `return { keys: Object.keys(tools), then: typeof tools.then };`,
       ["list_workflows", "run_workflow"]
     );
-    expect(result.result).toEqual({
-      keys: ["list_workflows", "run_workflow"],
-      then: "undefined"
-    });
+    expect(result.result).toEqual({ keys: [], then: "undefined" });
   }, 60_000);
 });

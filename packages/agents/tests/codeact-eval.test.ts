@@ -12,33 +12,37 @@ import { createScriptedLoopProvider } from "./_helpers/scripted-loop-provider.js
 
 const SOLUTIONS: Record<string, string[]> = {
   "chain-in-one-action": [
-    `const a = await tools.calculate({expression: "17 * 23"});
-     const b = await tools.calculate({expression: "441 / 21"});
+    `import { calculate } from "@nodetool-ai/sandbox-nodetool/session";
+     const a = await calculate({expression: "17 * 23"});
+     const b = await calculate({expression: "441 / 21"});
      await finish({total: a.value + b.value});`
   ],
   "loop-over-dataset": [
-    `const {cities} = await tools.list_cities({});
+    `import { list_cities, lookup_population } from "@nodetool-ai/sandbox-nodetool/session";
+     const {cities} = await list_cities({});
      let total = 0;
      for (const city of cities) {
-       const r = await tools.lookup_population({city});
+       const r = await lookup_population({city});
        total += r.population;
      }
      await finish({total});`
   ],
   "recover-from-failure": [
-    `let revision = null;
+    `import { flaky_fetch } from "@nodetool-ai/sandbox-nodetool/session";
+     let revision = null;
      for (let i = 0; i < 3 && !revision; i++) {
        try {
-         revision = (await tools.flaky_fetch({})).revision;
+         revision = (await flaky_fetch({})).revision;
        } catch (e) { /* transient — retry */ }
      }
      await finish({revision});`
   ],
   "reduce-before-returning": [
-    `const {cities} = await tools.list_cities({});
+    `import { list_cities, lookup_population } from "@nodetool-ai/sandbox-nodetool/session";
+     const {cities} = await list_cities({});
      let best = 0;
      for (const city of cities) {
-       const r = await tools.lookup_population({city});
+       const r = await lookup_population({city});
        if (r.population > best) best = r.population;
      }
      await finish({total: best});`

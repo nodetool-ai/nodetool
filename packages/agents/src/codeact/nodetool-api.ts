@@ -1,6 +1,6 @@
 /**
  * The `nodetool` object model — the agent-facing JS API for the CodeAct
- * sandbox. Where `tools.<name>()` is the raw RPC surface, `nodetool.*` is the
+ * sandbox. Where an imported capability is the raw RPC surface, `nodetool.*` is the
  * platform as objects: workflows, models, assets,
  * jobs, collections, timelines, sketches, scripts, and storyboards, plus a
  * bounded-concurrency `batch()` for fan-out (run a workflow once per CSV row,
@@ -10,7 +10,7 @@
  * gating, routing, and validation stay where they are. A method whose backing
  * tool is missing from the belt throws a message naming the tool instead of a
  * TypeError. The prelude assumes `CODEACT_PRELUDE` ran first (it uses
- * `tools.*`); `nodetool.workflows.open()` additionally uses `openWorkflow`
+ * the belt); `nodetool.workflows.open()` additionally uses `openWorkflow`
  * from the graph-model prelude when that is loaded.
  */
 
@@ -36,7 +36,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   // Documented in the sandbox-packages section rather than in the namespace
   // list, but covered here so the two discovery tools are not also catalogued
-  // as raw `tools.*` signatures.
+  // as raw catalog signatures.
   packs: ["list_sandbox_packages", "get_sandbox_package_docs"],
   nodes: ["search_nodes", "get_node_info", "list_nodes", "run_node"],
   agents: ["run_subtask"],
@@ -153,7 +153,7 @@ export function hasNodetoolApiTools(toolNames: Iterable<string>): boolean {
 
 /**
  * The belt tools the object model wraps — the ones the prompt should NOT
- * also document as raw `tools.*` calls. One surface per capability: wrapped
+ * also document as raw catalog signatures. One surface per capability: wrapped
  * tools stay callable through the bridge, but the catalog documents only the
  * `nodetool.*` form.
  */
@@ -172,24 +172,23 @@ export function nodetoolApiCoveredToolNames(
 
 /**
  * Guest-side prelude defining the global `nodetool`. Plain QuickJS-safe JS —
- * no host bridges of its own; every effect goes through `tools.*`.
+ * no host bridges of its own; every effect goes through `__callBeltTool`.
  */
 export const NODETOOL_API_PRELUDE = `
 const nodetool = (() => {
-  // What the belt carries is \`__toolNames\`, not what reading a property
-  // answers: \`tools\` hands back a thrower for a name it does not have, so
-  // probing it would report every capability as present.
+  // \`__toolNames\` is the belt, and the object model calls it through
+  // \`__callBeltTool\` rather than through a global belt object — there is no
+  // longer one for it to read.
   const __belt = new Set(__toolNames);
   const __has = (name) => __belt.has(name);
   const __need = (name) => {
-    const fn = __belt.has(name) ? tools[name] : undefined;
-    if (typeof fn !== "function") {
+    if (!__belt.has(name)) {
       throw new Error(
         'nodetool: tool "' + name + '" is not in this toolbelt, so this ' +
         "method is unavailable here. nodetool.searchTools() lists what is."
       );
     }
-    return fn;
+    return __callBeltTool(name);
   };
   const __merge = (a, b) => Object.assign({}, a || {}, b || {});
 
@@ -1461,7 +1460,7 @@ export function buildNodetoolApiPromptSection(
   const sections: string[] = [
     NODETOOL_API_SECTION_HEADER,
     `Platform objects — workflows, models, media, documents — are
-driven through \`nodetool.*\`, not through raw \`tools.*\` calls. The backing
+driven through \`nodetool.*\`, not through the raw imported calls. The backing
 tools are deliberately absent from the tool catalog above; this object model
 is their one documented surface. \`nodetool.capabilities()\` reports what is
 available. A method whose backing tool is missing throws and names the tool.`,

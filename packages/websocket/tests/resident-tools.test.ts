@@ -52,7 +52,7 @@ describe("resident toolbelt", () => {
   });
 
   it("grades the App Builder's live draft, not the saved row", () => {
-    expect(CHAT_AGENT_SYSTEM_PROMPT).toContain("tools.debug_app({document})");
+    expect(CHAT_AGENT_SYSTEM_PROMPT).toContain("debug_app({document})");
   });
 
   it("sends do-the-work asks to the flow pack, not to a saved graph", () => {

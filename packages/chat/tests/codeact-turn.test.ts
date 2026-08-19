@@ -134,7 +134,8 @@ describe("a CodeAct chat turn", () => {
       [
         toolCall("tc_1", {
           title: "Echoing",
-          code: `const r = await tools.echo({text: "hi"});
+          code: `import { echo } from "@nodetool-ai/sandbox-nodetool/session";
+                 const r = await echo({text: "hi"});
                  return r.echoed;`
         })
       ],

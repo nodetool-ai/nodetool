@@ -128,7 +128,8 @@ describe("CodeAct observations", () => {
         toolCalls: [
           codeAction(
             "tc_1",
-            `const shot = await tools.view_pixels({});
+            `import { view_pixels } from "@nodetool-ai/sandbox-nodetool/session";
+             const shot = await view_pixels({});
              await finish({answer: shot.asset_id});`
           )
         ]
@@ -190,8 +191,9 @@ describe("CodeAct observations", () => {
         toolCalls: [
           codeAction(
             "tc_1",
-            `await tools.run_subtask({objective: "a"});
-             await tools.run_subtask({objective: "b"});
+            `import { run_subtask } from "@nodetool-ai/sandbox-nodetool/agents";
+             await run_subtask({objective: "a"});
+             await run_subtask({objective: "b"});
              await finish({answer: "done"});`
           )
         ]

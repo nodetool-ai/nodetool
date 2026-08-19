@@ -19,7 +19,7 @@
  *
  * **Export naming: the wire name, and nothing else.** A facade exports
  * `list_workflows`, not `listWorkflows`. One capability, one name — the same
- * string the prompt documents, the MCP surface registers, and `tools.*` calls —
+ * string the prompt documents, the MCP surface registers, and the belt calls —
  * so no reader has to know which spelling a surface prefers. Capability names
  * are already valid JavaScript identifiers; {@link generateSandboxCapabilityFacade}
  * refuses anything that is not.
@@ -104,9 +104,9 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
  * One named async export per capability wire name, plus a default namespace
  * object so `import workflows from "@nodetool-ai/sandbox-nodetool/workflows"`
  * reads the way the object model does. Each export takes the single arguments
- * record every capability's input schema describes — the same object
- * `tools.<name>(args)` takes — and it is forwarded as a one-element list, the
- * shape the dispatcher's ladder validates.
+ * record every capability's input schema describes — the same object a direct
+ * tool call takes — and it is forwarded as a one-element list, the shape the
+ * dispatcher's ladder validates.
  */
 export function generateSandboxCapabilityFacade(
   moduleKey: string,
