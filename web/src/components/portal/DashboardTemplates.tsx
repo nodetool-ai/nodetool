@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { useQuery } from "@tanstack/react-query";
 import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -127,26 +128,11 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // The search box advertises "/" as a shortcut; make it work. Focus the
-  // template search when the user presses "/" anywhere outside a text field.
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
-      e.preventDefault();
-      searchRef.current?.focus();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  // The search box advertises "/" as a shortcut; make it work. The store gates
+  // it: nothing editable focused, and this input can actually take focus.
+  useGlobalCombo("/", () => searchRef.current?.focus(), {
+    target: () => searchRef.current
+  });
 
   const { data, isLoading, isError, refetch } = useQuery<WorkflowListType>({
     queryKey: ["templates"],

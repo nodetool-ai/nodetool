@@ -71,6 +71,8 @@ export function useSpringLoadedModifiers(
       useSketchStore.getState().setTransientMoveModifierHeld(false);
     };
 
+    // Not on the dispatcher: spring-loaded modifiers are hold-to-engage, so
+    // they need the keyup edge the store never dispatches.
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("keyup", onKeyUp, true);
     window.addEventListener("blur", onBlur);

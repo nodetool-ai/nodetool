@@ -25,6 +25,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useGlobalCombo } from "../../../stores/KeyPressedStore";
 import { styled } from "@mui/material/styles";
 
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
@@ -801,55 +802,48 @@ const EditorBody: React.FC<{
     });
   }, [editor]);
 
-  // Script-mode commands are bound at the window — like the timeline's other
-  // shortcuts (see TracksRegion) — because clicking a word doesn't move focus to
-  // any one element, so a focus-scoped handler silently never fires. We bow out
-  // while typing (Write mode, inputs, contentEditable — including the slash
-  // command's own input) and while a control is focused, so Space still
-  // activates buttons.
-  useEffect(() => {
-    if (writing) return;
-    // Real typing targets swallow ALL command keys (so we never hijack input).
-    const isTextInput = (t: EventTarget | null): boolean =>
-      t instanceof HTMLInputElement ||
-      t instanceof HTMLTextAreaElement ||
-      t instanceof HTMLSelectElement ||
-      (t instanceof HTMLElement && t.isContentEditable);
-    // A focused button/link only blocks Space (so Space activates it) — "/" and
-    // arrows must still fire, otherwise clicking any chip/button kills them.
-    const isFocusedControl = (t: EventTarget | null): boolean =>
-      t instanceof HTMLElement &&
-      t.closest('button, [role="button"], a') !== null;
-
-    const onWindowKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (isTextInput(e.target)) return;
-      if (e.key === " ") {
-        if (isFocusedControl(e.target)) return;
-        e.preventDefault();
-        togglePlay();
-      } else if (e.key === "/") {
-        e.preventDefault();
-        openSlashCommand();
-      } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-        // Step the cursor word-by-word (the playhead follows, so the Script
-        // caret moves across words). Reuses the shared word index — already
-        // sorted by time — instead of re-querying the word DOM.
-        const starts = wordIndex.all.map((entry) => entry.startMs);
-        if (starts.length === 0) return;
-        e.preventDefault();
-        const t = playbackApi.getState().currentTimeMs;
-        const target =
-          e.key === "ArrowRight"
-            ? starts.find((s) => s > t + 1) ?? starts[starts.length - 1]
-            : [...starts].reverse().find((s) => s < t - 1) ?? starts[0];
-        playbackApi.getState().seek(target);
+  // Script-mode commands are global — clicking a word doesn't move focus to any
+  // one element, so a focus-scoped handler would silently never fire. The store
+  // bows out while anything editable is focused (Write mode, inputs, the slash
+  // command's own field); the Space binding additionally bows out on a focused
+  // control so Space still activates buttons.
+  const scriptMode = { active: !writing } as const;
+  useGlobalCombo(
+    " ",
+    (event) => {
+      // A focused button/link blocks Space only (so Space activates it); "/"
+      // and the arrows must still fire after clicking any chip.
+      const target = event?.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest('button, [role="button"], a') !== null
+      ) {
+        return;
       }
-    };
+      togglePlay();
+    },
+    scriptMode
+  );
+  useGlobalCombo("/", openSlashCommand, scriptMode);
 
-    window.addEventListener("keydown", onWindowKeyDown);
-    return () => window.removeEventListener("keydown", onWindowKeyDown);
-  }, [writing, togglePlay, openSlashCommand, playbackApi, wordIndex]);
+  const stepWord = useCallback(
+    (direction: "forward" | "back") => {
+      // Step the cursor word-by-word (the playhead follows, so the Script
+      // caret moves across words). Reuses the shared word index — already
+      // sorted by time — instead of re-querying the word DOM.
+      const starts = wordIndex.all.map((entry) => entry.startMs);
+      if (starts.length === 0) return;
+      const t = playbackApi.getState().currentTimeMs;
+      const target =
+        direction === "forward"
+          ? starts.find((s) => s > t + 1) ?? starts[starts.length - 1]
+          : [...starts].reverse().find((s) => s < t - 1) ?? starts[0];
+      playbackApi.getState().seek(target);
+    },
+    [playbackApi, wordIndex]
+  );
+  useGlobalCombo("arrowright", () => stepWord("forward"), scriptMode);
+  useGlobalCombo("arrowleft", () => stepWord("back"), scriptMode);
 
   // Write-mode keys ride the editor (it holds focus): ⌘S plays, Esc finishes,
   // and "/" at the start of a block opens the command menu (mid-text "/" stays

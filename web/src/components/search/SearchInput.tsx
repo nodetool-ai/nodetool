@@ -6,10 +6,12 @@ import React, { useCallback, useRef, useState } from "react";
 import { MOTION, Tooltip, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import {
+  registerComboCallback,
+  registerTypeToFocus
+} from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { isMac } from "../../utils/platform";
-import { canTakeFocus, isTextInputActive } from "../../utils/browser";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 
@@ -184,93 +186,110 @@ const SearchInput: React.FC<SearchInputProps> = ({
     }
   }, [focusSearchInput, autoFocusEnabled]);
 
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const isFocused = document.activeElement === inputRef.current;
-      // Typing elsewhere focuses this input only when the user is not already
-      // in another editable field and this input can actually take focus.
-      // A hidden or inert host (an inactive workspace tab) must never steal
-      // the keystroke: focus() would be a no-op and the letter would be lost.
-      const shouldHandleEvent =
-        isFocused ||
-        (focusOnTyping &&
-          !isTextInputActive() &&
-          canTakeFocus(inputRef.current));
-
-      if (!shouldHandleEvent) { return; }
-
-      const isControlOrMeta = useKeyPressedStore.getState().isKeyPressed("control") ||
-        useKeyPressedStore.getState().isKeyPressed("meta");
+  // Element-scoped: these keys act on the field the user is typing in, so they
+  // ride on the input itself instead of a window listener.
+  const handleInputKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
-        isControlOrMeta
+        (event.ctrlKey || event.metaKey)
       ) {
         event.preventDefault();
         clearSearch();
         return;
       }
-
       if (event.key === "Escape") {
         onPressEscape?.();
         return;
       }
-
-      // Keyboard navigation for search results
       if (event.key === "ArrowDown") {
         event.preventDefault();
         onPressArrowDown?.();
         return;
       }
-
       if (event.key === "ArrowUp") {
         event.preventDefault();
         onPressArrowUp?.();
         return;
       }
-
       if (event.key === "Enter") {
         event.preventDefault();
         onPressEnter?.();
         return;
       }
-
       // Space on an empty, focused search toggles the host closed (e.g. the node
       // menu). Once there's text, Space falls through and types normally so
       // multi-word searches still work.
       if (
         onPressSpaceWhenEmpty &&
         event.key === " " &&
-        document.activeElement === inputRef.current &&
-        (inputRef.current?.value ?? "").length === 0
+        event.currentTarget.value.length === 0
       ) {
         event.preventDefault();
         onPressSpaceWhenEmpty();
-        return;
       }
+    },
+    [
+      clearSearch,
+      onPressEscape,
+      onPressArrowDown,
+      onPressArrowUp,
+      onPressEnter,
+      onPressSpaceWhenEmpty
+    ]
+  );
 
-      if (focusOnTyping) {
-        if (isControlOrMeta) { return; }
-        if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
-          if (document.activeElement !== inputRef.current) {
-            event.preventDefault();
-            inputRef.current?.focus();
-            setLocalSearchTerm(event.key);
-            debouncedSetSearchTerm(event.key);
+  // Type anywhere to search. The store owns the "may I pull focus?" decision
+  // (nothing editable focused AND this input can take focus), so an instance in
+  // an inert background tab never steals the keystroke.
+  React.useEffect(() => {
+    if (!focusOnTyping) {
+      return;
+    }
+    return registerTypeToFocus(inputRef, (key) => {
+      setLocalSearchTerm(key);
+      debouncedSetSearchTerm(key);
+    });
+  }, [focusOnTyping, debouncedSetSearchTerm]);
+
+  // With focusOnTyping the old window listener also handled navigation while
+  // focus sat outside the search box (e.g. on the dialog's filter bar), so the
+  // model list stayed arrow-navigable. Kept as combos with allowInInputs, which
+  // is the same looser gate; the field's own keys are handled above.
+  React.useEffect(() => {
+    if (!focusOnTyping) {
+      return;
+    }
+    const isSelfFocused = () => document.activeElement === inputRef.current;
+    const bind = (combo: string, handler: () => void) =>
+      registerComboCallback(combo, {
+        preventDefault: true,
+        allowInInputs: true,
+        target: () => inputRef.current,
+        callback: () => {
+          if (isSelfFocused()) {
+            return;
           }
+          handler();
         }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+      });
+    const disposers = [
+      bind("escape", () => onPressEscape?.()),
+      bind("arrowdown", () => onPressArrowDown?.()),
+      bind("arrowup", () => onPressArrowUp?.()),
+      bind("enter", () => onPressEnter?.()),
+      bind("backspace+control", clearSearch),
+      bind("backspace+meta", clearSearch),
+      bind("control+delete", clearSearch),
+      bind("delete+meta", clearSearch)
+    ];
+    return () => disposers.forEach((dispose) => dispose());
   }, [
     focusOnTyping,
-    onPressSpaceWhenEmpty,
     onPressEscape,
     onPressArrowDown,
     onPressArrowUp,
     onPressEnter,
-    debouncedSetSearchTerm,
     clearSearch
   ]);
 
@@ -295,6 +314,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         placeholder={placeholder}
         value={localSearchTerm}
         onChange={handleInputChange}
+        onKeyDown={handleInputKeyDown}
         autoCorrect="off"
         autoCapitalize="none"
         spellCheck="false"
