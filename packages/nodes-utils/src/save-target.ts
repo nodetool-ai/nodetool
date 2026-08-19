@@ -27,8 +27,8 @@ export const SAVE_TO_WORKSPACE_DESCRIPTION =
  * workspace toggle is off. The editor hides the field rather than showing a
  * path that has no effect.
  */
-export const HIDDEN_WHEN_SAVING_TO_WORKSPACE = {
-  hidden_when: { property: "save_to_workspace", equals: true }
+export const VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE = {
+  visible_when: { property: "save_to_workspace", equals: false }
 } as const;
 
 /** Turn a `file://` URI into a plain path; leave a plain path alone. */

@@ -1,4 +1,4 @@
-import type { Property } from "../../stores/ApiTypes";
+import type { Property } from "../stores/ApiTypes";
 
 export interface PropertyVisibilityRule {
   /** Property whose current value controls this property's visibility. */

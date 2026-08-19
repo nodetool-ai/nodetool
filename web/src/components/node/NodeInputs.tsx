@@ -15,8 +15,7 @@ import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 import {
   isPropertyConditionSatisfied,
   shouldRenderProperty
-} from "./propertyVisibility";
-import { isPropertyHidden } from "../../utils/propertyConditions";
+} from "../../utils/propertyVisibility";
 
 const rootCss = css({
   marginTop: "1em",
@@ -203,19 +202,19 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
     return map;
   }, [tabableProperties]);
 
-  // A property can switch another one off — the folder picker on a save node
-  // writing to the workspace, say (`hidden_when`), or a cloning input a model
-  // does not support (`visible_when`). Rendering it would offer a control
-  // that changes nothing. A connected input always renders.
+  // A property can switch another one off via `visible_when` — the folder
+  // picker on a save node writing to the workspace, or a cloning input a model
+  // does not support. Rendering it would offer a control that changes
+  // nothing. A connected input always renders.
   const shownProperties = useMemo(
     () =>
-      properties.filter((property) => {
-        const isConnected = connectedHandleSet.has(property.name);
-        return (
-          !isPropertyHidden(property, data, isConnected) &&
-          shouldRenderProperty(property, data?.properties, isConnected)
-        );
-      }),
+      properties.filter((property) =>
+        shouldRenderProperty(
+          property,
+          data?.properties,
+          connectedHandleSet.has(property.name)
+        )
+      ),
     [properties, data, connectedHandleSet]
   );
 

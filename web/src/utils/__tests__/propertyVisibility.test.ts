@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import type { Property } from "../../../stores/ApiTypes";
+import type { Property } from "../../stores/ApiTypes";
 import {
   isPropertyConditionSatisfied,
   shouldRenderProperty
@@ -51,6 +51,20 @@ describe("property visibility metadata", () => {
     expect(isPropertyConditionSatisfied(property("future-rule"), {})).toBe(
       true
     );
+  });
+
+  it("matches a flat boolean toggle with `equals`", () => {
+    // The folder picker on a save node: shown only while the workspace
+    // toggle is off. An absent value counts as "not false" — the runtime
+    // default is true, so the folder would be ignored anyway.
+    const folder = property({ property: "save_to_workspace", equals: false });
+    expect(
+      isPropertyConditionSatisfied(folder, { save_to_workspace: false })
+    ).toBe(true);
+    expect(
+      isPropertyConditionSatisfied(folder, { save_to_workspace: true })
+    ).toBe(false);
+    expect(isPropertyConditionSatisfied(folder, {})).toBe(false);
   });
 
   it("keeps a connected unsupported property renderable", () => {

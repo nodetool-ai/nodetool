@@ -43,7 +43,7 @@ export { base64ToBytes, bytesToBase64 } from "./base64.js";
 export {
   SAVE_TO_WORKSPACE_TITLE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
-  HIDDEN_WHEN_SAVING_TO_WORKSPACE,
+  VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   folderPathOf,
   resolveSaveFolder,
   uniqueFilePath,
