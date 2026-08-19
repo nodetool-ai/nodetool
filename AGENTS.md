@@ -1727,6 +1727,52 @@ npm run dev:nodetool -- harness gate --dry-run   # plan only
 npm run dev:nodetool -- harness gate --all       # every selfcheck (--expensive to widen)
 ```
 
+### nodetool reliability (Cross-Surface Journey Diffs)
+
+Runs a journey from `reliability/journeys/` on every execution surface it
+declares and diffs each non-oracle surface against the kernel oracle. A journey
+is a small workflow plus the invariants its run must hold — lifecycle pairing,
+terminal uniqueness, cleanup leaks — and what it proves is that the kernel
+runner and the ws-server produce the *same* stream for it. Reach for it after a
+change to execution: `harness gate` already runs the Ring 0 journeys on such a
+diff, and this is how you run one by hand.
+
+Run it from `dist`, not from source: the journey fixtures use decorators, which
+the `dev:nodetool` transform rejects (`Decorators are not valid here`). Build
+the packages first.
+
+```bash
+npm run nodetool -- reliability list                    # journeys + their surfaces
+npm run nodetool -- reliability run linear-text-pipeline
+npm run nodetool -- reliability run <journey> --surface kernel   # repeatable
+npm run nodetool -- reliability run <journey> --faults provider-429 --diff
+npm run nodetool -- reliability update-goldens <journey>
+```
+
+`--faults` replaces the journey's own matrix for that run. The provider-seam
+faults are implemented (`provider-429`, `provider-500`, `provider-timeout`,
+`truncated-stream`, `malformed-sse`, `slow-drip`, `cost-omission`); the
+`ws`/`bridge`/`host`/`client` names are recognized but report as unimplemented.
+`update-goldens` rewrites `expected/` from a fresh unfaulted kernel run — it
+cannot tell a fixed bug from a new one, so read the diff before committing it.
+Architecture: [docs/RELIABILITY_ARCHITECTURE.md](docs/RELIABILITY_ARCHITECTURE.md).
+
+### nodetool package (Node-Pack Authoring)
+
+Manages TypeScript **node** packages — the packs contributing node types to the
+registry — not the sandbox packs `nodetool packs` handles. `init` scaffolds a
+package (prompting for name, description, author), `list` reports what this
+install has, and `docs` / `node-docs` / `workflow-docs` generate a pack's
+Markdown.
+
+```bash
+npm run dev:nodetool -- package list [--available] [--json]
+npm run dev:nodetool -- package init
+npm run dev:nodetool -- package docs [-o docs] [--compact]
+npm run dev:nodetool -- package node-docs [-o docs/nodes] [-p <namespace>]
+npm run dev:nodetool -- package workflow-docs [-o docs/workflows] [-e <dir>]
+```
+
 ### nodetool workflows
 
 Reads and writes the local database directly — no running server needed. Pass
