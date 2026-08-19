@@ -126,7 +126,7 @@ describe("PanelHeadline", () => {
   });
 
   describe("documentation help", () => {
-    it("shows the panel description on the existing documentation link", async () => {
+    it("shows the panel description on the headline and separates documentation", async () => {
       const user = userEvent.setup();
       renderWithTheme(
         <PanelHeadline
@@ -136,15 +136,14 @@ describe("PanelHeadline", () => {
         />
       );
 
-      await user.hover(
-        screen.getByRole("link", { name: "Workflows documentation" })
-      );
+      await user.hover(screen.getByText("Workflows"));
 
       expect(
-        await screen.findByText(
-          "Open, create, and manage workflows. Open documentation."
-        )
+        await screen.findByText("Open, create, and manage workflows.")
       ).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: "Workflows documentation" })
+      ).toHaveTextContent("OPEN DOCUMENTATION");
     });
   });
 

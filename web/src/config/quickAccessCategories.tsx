@@ -148,7 +148,7 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   sketches: {
     id: "sketches",
     label: "Sketches",
-    description: "Open and create free-form visual sketches.",
+    description: "Create and edit images.",
     docsTopic: "sketches",
     icon: <BrushOutlinedIcon />
   },
@@ -201,13 +201,12 @@ export const WORKFLOW_OUTPUT_DESCRIPTION =
 
 export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
   {
-    id: "workflow-tools",
+    id: "node-tools",
     placement: "top",
     categories: [
       LEFT_PANEL_CATEGORY_BY_ID.nodes,
       LEFT_PANEL_CATEGORY_BY_ID.favorites,
-      LEFT_PANEL_CATEGORY_BY_ID.history,
-      LEFT_PANEL_CATEGORY_BY_ID.settings
+      LEFT_PANEL_CATEGORY_BY_ID.history
     ]
   },
   {
@@ -231,9 +230,10 @@ export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
     ]
   },
   {
-    id: "resources",
+    id: "workflow-context",
     placement: "bottom",
     categories: [
+      LEFT_PANEL_CATEGORY_BY_ID.settings,
       LEFT_PANEL_CATEGORY_BY_ID.assets,
       LEFT_PANEL_CATEGORY_BY_ID.library
     ]

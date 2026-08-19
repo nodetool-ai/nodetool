@@ -10,6 +10,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import {
   DocsHelpLink,
   Text,
+  Tooltip,
   thinScrollbarStyles,
   MOTION,
   FONT_WEIGHT,
@@ -61,7 +62,8 @@ const styles = (theme: Theme, isMobile: boolean) =>
       fontSize: "var(--fontSizeNormal)",
       fontWeight: FONT_WEIGHT.semibold,
       letterSpacing: "-0.01em",
-      color: theme.vars.palette.text.primary
+      color: theme.vars.palette.text.primary,
+      cursor: "default"
     },
     ".nl-header .docs-help-link": {
       marginLeft: "auto",
@@ -423,14 +425,19 @@ const NodeLibrary = memo<NodeLibraryProps>(
     return (
       <div css={cssStyles} className="nl-root">
         <div className="nl-header">
-          <Text className="nl-title" component="h2">
-            Node library
-          </Text>
+          <Tooltip
+            title={getTopLevelCategory("nodes").description}
+            placement="bottom-start"
+          >
+            <Text className="nl-title" component="h2">
+              Node library
+            </Text>
+          </Tooltip>
           <span className="nl-count">{nodes.length}</span>
           <DocsHelpLink
             topic="nodes"
             label="Node reference"
-            description={getTopLevelCategory("nodes").description}
+            variant="label"
           />
         </div>
 

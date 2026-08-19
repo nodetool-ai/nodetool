@@ -39,7 +39,6 @@ describe("quickAccessCategories", () => {
       "nodes",
       "favorites",
       "history",
-      "settings",
       "workflows",
       "apps",
       "chats",
@@ -48,12 +47,13 @@ describe("quickAccessCategories", () => {
       "storyboards",
       "timelines",
       "jsscripts",
+      "settings",
       "assets",
       "library"
     ]);
   });
 
-  it("groups workflow tools, global objects, editors, and resources", () => {
+  it("groups node tools, global objects, editors, and workflow context", () => {
     expect(
       LEFT_PANEL_GROUPS.map((group) => ({
         id: group.id,
@@ -62,9 +62,9 @@ describe("quickAccessCategories", () => {
       }))
     ).toEqual([
       {
-        id: "workflow-tools",
+        id: "node-tools",
         placement: "top",
-        views: ["nodes", "favorites", "history", "settings"]
+        views: ["nodes", "favorites", "history"]
       },
       {
         id: "main-objects",
@@ -77,9 +77,9 @@ describe("quickAccessCategories", () => {
         views: ["sketches", "scripts", "storyboards", "timelines", "jsscripts"]
       },
       {
-        id: "resources",
+        id: "workflow-context",
         placement: "bottom",
-        views: ["assets", "library"]
+        views: ["settings", "assets", "library"]
       }
     ]);
   });

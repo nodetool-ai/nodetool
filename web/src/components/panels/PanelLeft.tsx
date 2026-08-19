@@ -271,10 +271,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   return (
     <div className="vertical-toolbar">
       {showAppMenu && (
-        <>
-          <RailAppMenu />
-          <Divider className="toolbar-divider" sx={{ mx: SPACING.lg }} />
-        </>
+        <RailAppMenu />
       )}
       <QuickAccessSidebar
         activeCategory={renderedActive}

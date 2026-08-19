@@ -32,26 +32,20 @@ describe("DocsHelpLink", () => {
     ).toBeInTheDocument();
   });
 
-  it("adds the short explanation to the existing documentation tooltip", async () => {
-    const user = userEvent.setup();
+  it("can render an explicit external-link action", () => {
     renderWithTheme(
       <DocsHelpLink
         topic="workflows"
         label="Workflows"
-        description="Open, create, and manage workflows."
+        variant="label"
       />
     );
 
-    const link = screen.getByRole("link", {
-      name: "Workflows documentation"
-    });
-    await user.hover(link);
-
     expect(
-      await screen.findByText(
-        "Open, create, and manage workflows. Open documentation."
-      )
-    ).toBeInTheDocument();
+      screen.getByRole("link", {
+        name: "Workflows documentation"
+      })
+    ).toHaveTextContent("OPEN DOCUMENTATION");
   });
 
   it("keeps the documentation link in the keyboard tab order", async () => {

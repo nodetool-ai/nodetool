@@ -5,6 +5,7 @@ import {
   FlexRow,
   SPACING,
   Text,
+  Tooltip,
   getSpacingPx
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
@@ -15,9 +16,9 @@ import type { DocsTopic } from "../../config/docsLinks";
 interface PanelHeadlineProps {
   title: string;
   actions?: React.ReactNode;
-  /** Renders a help icon beside the title, linking to this docs page. */
+  /** Renders a documentation link beside the title. */
   docsTopic?: DocsTopic;
-  /** Short explanation shown in the documentation link tooltip. */
+  /** Short explanation shown when the title is hovered. */
   description?: string;
 }
 
@@ -39,7 +40,8 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.01em",
       lineHeight: "1.4em",
       color: theme.vars.palette.text.primary,
-      margin: 0
+      margin: 0,
+      cursor: "default"
     }
   });
 
@@ -59,20 +61,26 @@ const PanelHeadline: React.FC<PanelHeadlineProps> = ({
       align="center"
       fullWidth
     >
-      <FlexRow className="headline-titles" align="center" gap={SPACING.none}>
-        <Text
-          size="normal"
-          weight={600}
-          component="span"
-          className="headline-title"
+      <FlexRow className="headline-titles" align="center" gap={SPACING.md}>
+        <Tooltip
+          title={description ?? ""}
+          disabled={!description}
+          placement="bottom-start"
         >
-          {title}
-        </Text>
+          <Text
+            size="normal"
+            weight={600}
+            component="span"
+            className="headline-title"
+          >
+            {title}
+          </Text>
+        </Tooltip>
         {docsTopic && (
           <DocsHelpLink
             topic={docsTopic}
             label={title}
-            description={description}
+            variant="label"
           />
         )}
       </FlexRow>
