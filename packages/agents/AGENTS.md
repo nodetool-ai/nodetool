@@ -588,15 +588,17 @@ const { workflows } = await list_workflows({ limit: 20 });
 ```
 
 Exports carry the wire name — `list_workflows`, not `listWorkflows` — so the
-prompt, the MCP surface and `tools.*` all say one string. The facade generator
+prompt, the MCP surface and the belt all say one string. The facade generator
 and specifier shape live in `@nodetool-ai/protocol`
 (`sandbox-capability.ts`); the module list stays in the registry here, and the
 *host* decides which modules a session mounts. A third-party pack can never
 declare one. `createCapabilityDispatcher` validates module key, export name and
 argument list on every call, then delegates to `invoke` — it never gates on its
-own, so the import path and `tools.*` reach one implementation past one gate.
-The `nodetool` global survives as a generated shim over the imports for one
-release.
+own, so the import path and the belt bridge reach one implementation past one
+gate. The flat `tools.<name>()` global is gone: every capability is an import,
+and what a session added at its own call site is grafted onto `.../session`
+(client `ui_*` tools onto `.../ui`) so one import shape covers everything. The
+`nodetool` object model stays a global.
 
 **Import direction is one-way: `capabilities/` imports
 `tools/tool-permissions.ts`, never the reverse.** That is why `gateTools` sits
@@ -885,7 +887,8 @@ every task failed throws instead of compiling a deliverable out of nothing.
 
 The action space of the step loop, and the only one. Each step acts by writing
 JavaScript that runs in the QuickJS sandbox with the toolbelt exposed as
-`tools.<name>()` functions, a `state` object that persists across actions
+imports from `@nodetool-ai/sandbox-nodetool/<namespace>`, a `state` object
+that persists across actions
 (including after a throw), and `finish(result)` for host-validated completion.
 The prompt tells the model to assign each generate/speak result to `state`
 immediately and reuse it — `return` is the observation only. Design and the
@@ -902,7 +905,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   trained on, so a tool call beats a sandbox round trip that only forwards one.
   They stay on the belt — `nodetool.web`, `nodetool.agents` and hand-written
   fan-out call them from code — but the prompt documents them once, under
-  "Direct tools", instead of as a `tools.*` signature. `splitCoreTools` /
+  "Direct tools", instead of as a catalog signature. `splitCoreTools` /
   `buildCoreProviderTools` in `src/codeact/tool-api.ts`.
 - Discovery goes top level with it. `DISCOVERY_TOOL_NAMES` (`find_model`,
   `list_models`, `list_provider_models`, `search_nodes`, `get_node_info`,
@@ -927,7 +930,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   missing an injected dependency (no node registry, say) advertises no node
   tools instead of a tool that cannot run. Before this the mount registered
   only `execute_code` and `view_image`: everything was still reachable as
-  `tools.*` inside an action, but every discovery question cost a sandbox round
+  an import inside an action, but every discovery question cost a sandbox round
   trip, which is the tax the direct set exists to remove.
 - On `claude_agent_sdk` the built-in wins outright. The provider drops every
   tool `SDK_NATIVE_TOOL_REPLACEMENTS` maps (`read_file`→`Read`,
@@ -969,7 +972,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   add a failure mode: `SupervisorAgent` and the app-build spec stage.
 - Chat turns run in it too: the websocket runner swaps the toolbelt
   for `execute_code` (+ the core set, + `view_image`) via `createChatCodeActSession`
-  (`src/codeact/chat-codeact.ts`), which bridges `tools.<name>()` to the chat
+  (`src/codeact/chat-codeact.ts`), which routes every imported belt name to the chat
   runner's own tool router instead of `buildToolBridge` — permission gating
   and client (`ui_*`) round-trips stay where they are. When the belt carries
   the `ui_*` workflow document tools, actions also get the graph object model
@@ -981,7 +984,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `packages/cli/src/chat-codeact.ts`.
 - Both executors also load the `nodetool` object model
   (`src/codeact/nodetool-api.ts`): the platform as objects instead of raw
-  `tools.*` calls — `nodetool.workflows` (list/get/run/start/debug/validate/
+  imports — `nodetool.workflows` (list/get/run/start/debug/validate/
   create/open), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
   workflow once per CSV row), `nodetool.models` (`pick(capability)` resolves
   one ranked model; `find`/`list` for the long form; `forProvider(provider)`

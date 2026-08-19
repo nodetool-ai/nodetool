@@ -159,8 +159,8 @@ describe("TaskExecutor step tool allow-lists", () => {
 
     // Code actions reach the toolbelt through the sandbox, so what a step may
     // call shows up in the documented tool catalog, not in the provider tools.
-    expect(seenPrompts["s1"]).toContain("tools.allowed(");
-    expect(seenPrompts["s1"]).not.toContain("tools.forbidden(");
+    expect(seenPrompts["s1"]).toContain("await allowed(");
+    expect(seenPrompts["s1"]).not.toContain("await forbidden(");
   });
 
   it("hands a step every tool when the plan declared no list", async () => {
@@ -178,8 +178,8 @@ describe("TaskExecutor step tool allow-lists", () => {
       })
     );
 
-    expect(seenPrompts["s1"]).toContain("tools.allowed(");
-    expect(seenPrompts["s1"]).toContain("tools.forbidden(");
+    expect(seenPrompts["s1"]).toContain("await allowed(");
+    expect(seenPrompts["s1"]).toContain("await forbidden(");
   });
 
   it("grants nothing for an empty allow-list rather than falling back to all", () => {

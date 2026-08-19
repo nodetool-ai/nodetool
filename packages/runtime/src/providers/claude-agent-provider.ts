@@ -124,8 +124,9 @@ export type ClaudeCreateMcpServerFn = (opts: {
 const TOOL_SERVER_NAME = "nodetool_tools";
 const TOOL_PREFIX = `mcp__${TOOL_SERVER_NAME}__`;
 /**
- * How the CodeAct prompt spells a guest tool call: `await tools.<name>({…})`.
- * Models sometimes emit the member expression verbatim as a tool name.
+ * The member expression the retired guest toolbelt was called through:
+ * `await tools.<name>({…})`. Models trained on it still emit it verbatim as a
+ * tool name, so it is stripped on the way in. Nothing produces it any more.
  */
 const GUEST_TOOL_PREFIX = "tools.";
 /** Default cap on internal agent turns when tools are in play. */
@@ -900,9 +901,9 @@ function finalBlocks(
  *
  * Two prefixes get stripped, in order:
  *  - `mcp__<server>__`, which the SDK adds to in-process MCP tool names.
- *  - `tools.`, because the CodeAct prompt documents every guest tool as
- *    `await tools.<name>({…})` and models turn that member expression into a
- *    top-level tool name. Without this the call reaches no tool at all.
+ *  - `tools.`, the retired guest toolbelt's call form, which models still
+ *    turn into a top-level tool name. Without this the call reaches no tool
+ *    at all.
  */
 function stripToolPrefix(name: string | undefined): string {
   let n = isString(name) ? name : "";

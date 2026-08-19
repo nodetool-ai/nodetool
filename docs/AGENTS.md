@@ -85,7 +85,7 @@ You can skip planning entirely by passing a pre-built `task` object to the Agent
 
 1. Build messages — the CodeAct contract, the tool catalog, the step instructions
 2. Stream the LLM response
-3. Run the action's JavaScript in the QuickJS sandbox, where the toolbelt is `tools.<name>()`
+3. Run the action's JavaScript in the QuickJS sandbox, where the toolbelt is imported from `@nodetool-ai/sandbox-nodetool/<namespace>`
 4. Feed the observation (return value, logs, error) back as the tool result
 5. Repeat until the program calls `finish(result)` or max iterations are reached
 6. Validate the result against the step's output schema — host-side, in `finish`
@@ -224,7 +224,7 @@ observation envelope, and the direct set: `DIRECT_TOOL_NAMES` minus every key of
 table describes and its own `read_file` must not sit beside NodeTool's. What
 survives is discovery, the server-side reach behind NodeTool's SSRF guard and
 secrets, and `run_subtask`. Everything else on that belt is
-reachable inside an action as `tools.<name>()`, through the `nodetool.*` object
+reachable inside an action by import, through the `nodetool.*` object
 model, or found with `await nodetool.searchTools("query")`. MCP has no system
 prompt, so the guest contract leads the `execute_code` description and is also
 the server `instructions` string. The machine-readable form is

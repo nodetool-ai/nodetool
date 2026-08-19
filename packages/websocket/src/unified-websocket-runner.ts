@@ -1263,9 +1263,11 @@ export const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Repl
 # Your toolbelt
 You act mostly by writing JavaScript: \`execute_code\` runs one action in a
 sandbox where the platform is the \`nodetool.*\` object model and every other
-tool is \`tools.<name>()\`. The CodeAct section that follows this prompt carries
-the exact signatures — read it there, and prefer the \`nodetool.*\` form over the
-raw tool it wraps.
+capability is a static \`import\` from \`@nodetool-ai/sandbox-nodetool/<namespace>\`.
+There is no \`tools.<name>()\` global. The CodeAct section that follows this
+prompt carries the exact signatures, each group headed by the import line to
+copy — read it there, and prefer the \`nodetool.*\` form over the raw capability
+it wraps.
 - \`nodetool.workflows\`, \`nodetool.nodes\`,
   \`nodetool.models\`, \`nodetool.media\`, \`nodetool.assets\`, \`nodetool.jobs\`,
   \`nodetool.collections\`, \`nodetool.apps\`, \`nodetool.memory\`, and the
@@ -1274,11 +1276,13 @@ raw tool it wraps.
 - A few tools stay ordinary tool calls, documented under "Direct tools": the
   file set, search, web fetch, \`todo_write\`, \`run_subtask\`, and \`view_image\`.
   Call one directly when a single call is the whole step.
-- \`tools.run_search\` is the one delegation tool with no \`nodetool.*\` form.
+- \`run_search\` is the one delegation tool with no \`nodetool.*\` form; import it
+  from \`@nodetool-ai/sandbox-nodetool/agents\`.
 - Everything else — the \`ui_*\` resource editors above all — is name-only in the
-  catalog. Find it inside an action with \`await nodetool.searchTools("query")\`, then
-  call it as \`tools.<name>()\`. Raise \`max_results\` (\`nodetool.searchTools("+timeline",
-  20)\`) to see a whole family instead of concluding a capability is missing.
+  catalog. Find it inside an action with \`await nodetool.searchTools("query")\`:
+  each hit carries the \`import\` line to write. Raise \`max_results\`
+  (\`nodetool.searchTools("+timeline", 20)\`) to see a whole family instead of
+  concluding a capability is missing.
 
 # Working in actions
 One action can do several steps: search for a node, read its info, wire it, and
@@ -1381,7 +1385,8 @@ widget's final state and a pass/fail verdict.
 - One \`{run: true}\` before you call the app done. A run executes the real
   workflows and spends real money: check often, run once.
 - In the App Builder the saved row is stale mid-edit, so grade the live draft
-  instead: \`tools.debug_app({document})\`, which is what the \`ui_app_debug\`
+  instead: \`debug_app({document})\` imported from
+  \`@nodetool-ai/sandbox-nodetool/apps\`, which is what the \`ui_app_debug\`
   tool does. Pass an application id for a saved app you are not editing.
 
 # Image and media
@@ -1496,9 +1501,10 @@ export function focusedUiToolNames(
 }
 
 /**
- * How the CodeAct prompt spells a guest tool call: `await tools.<name>({…})`.
- * Models sometimes emit that member expression verbatim as a top-level tool
- * name, so the router strips it before looking the tool up.
+ * The member expression the retired guest toolbelt was called through:
+ * `await tools.<name>({…})`. Models trained on it still emit it verbatim as a
+ * top-level tool name, so the router strips the prefix before looking the tool
+ * up. Nothing inside the sandbox produces it any more.
  */
 const GUEST_TOOL_PREFIX = "tools.";
 
@@ -1517,8 +1523,10 @@ export function normalizeToolCallName(name: string): string {
  */
 export function unroutableToolMessage(name: string): string {
   return (
-    `Unknown tool "${name}". Tools are callable inside execute_code as: ` +
-    `await tools.<name>({...}). Use nodetool.searchTools() to discover tools.`
+    `Unknown tool "${name}". Capabilities are callable inside execute_code ` +
+    `after importing them: import { <name> } from ` +
+    `"@nodetool-ai/sandbox-nodetool/<namespace>". Use ` +
+    `nodetool.searchTools("${name}") to get the namespace and the signature.`
   );
 }
 

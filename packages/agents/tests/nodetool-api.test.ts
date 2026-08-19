@@ -498,21 +498,22 @@ describe("nodetool object model", () => {
     );
     // Wrapped tools are out of the catalog (resident and deferred alike)…
     for (const wrapped of [
-      "tools.run_workflow(",
-      "tools.create_workflow(",
-      "tools.find_model(",
-      "tools.generate_image("
+      "await run_workflow(",
+      "await create_workflow(",
+      "await find_model(",
+      "await generate_image("
     ]) {
       expect(session.systemPromptSection).not.toContain(wrapped);
     }
     // …unwrapped tools stay documented raw, and the API section is present.
-    expect(session.systemPromptSection).toContain("tools.read_file(");
+    expect(session.systemPromptSection).toContain("await read_file(");
     expect(session.systemPromptSection).toContain("nodetool.workflows");
 
-    // Wrapped tools remain callable through the bridge.
+    // Wrapped tools remain callable — by import, which is the only form now.
     const obs = await runAction(
       session,
-      `const r = await tools.run_workflow({ workflow_id: "wf1", params: {} });
+      `import { run_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";
+       const r = await run_workflow({ workflow_id: "wf1", params: {} });
        return r.status;`
     );
     expect(obs.ok).toBe(true);

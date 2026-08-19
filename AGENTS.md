@@ -1247,7 +1247,7 @@ Agents reach the same surface through the `js-scripts` capability module —
 runs inside its own envelope: every installed sandbox pack and every
 `@nodetool-ai/sandbox-nodetool/<namespace>` module by import, its declared
 secrets intersected with whatever allowance the invoking context carries, its
-own timeout, and the same `tools.*` / `nodetool.*` belt a Code node has.
+own timeout, and the same imported / `nodetool.*` belt a Code node has.
 Composition is bounded like sub-agents: depth cap 4
 and a script id chain, so a cycle fails the call naming it. Validation and
 report rules live in `@nodetool-ai/execution/js-script-debug`; the CLI keeps

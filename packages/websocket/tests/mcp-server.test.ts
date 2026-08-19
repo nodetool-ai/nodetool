@@ -189,7 +189,9 @@ describe("MCP server surface", () => {
     expect(toolNames(server)).not.toContain("list_renderers");
     const observation = await act(
       server,
-      "return [await tools.list_renderers(), await tools.ui_switch_tab({ tab_index: 2 })];"
+      'import { list_renderers } from "@nodetool-ai/sandbox-nodetool/session";\n' +
+        'import { ui_switch_tab } from "@nodetool-ai/sandbox-nodetool/ui";\n' +
+        "return [await list_renderers(), await ui_switch_tab({ tab_index: 2 })];"
     );
     expect(observation.ok).toBe(true);
     expect(observation.result).toEqual([
@@ -211,7 +213,8 @@ describe("MCP server surface", () => {
     });
     const observation = await act(
       server,
-      'return await tools.ui_switch_tab({ tab_index: 2, renderer_id: "missing" });'
+      'import { ui_switch_tab } from "@nodetool-ai/sandbox-nodetool/ui";\n' +
+        'return await ui_switch_tab({ tab_index: 2, renderer_id: "missing" });'
     );
     expect(observation.ok).toBe(false);
     expect(observation.error).toContain(
@@ -235,7 +238,10 @@ describe("MCP server surface", () => {
     const res = (await client.callTool({
       name: "execute_code",
       arguments: {
-        code: `return typeof tools.find_model + "," + typeof tools.browser;`
+        code:
+          'import { find_model } from "@nodetool-ai/sandbox-nodetool/models";\n' +
+          'import { browser } from "@nodetool-ai/sandbox-nodetool/web";\n' +
+          'return typeof find_model + "," + typeof browser;'
       }
     })) as { content: Array<{ text: string }>; isError?: boolean };
     expect(res.isError).toBeFalsy();

@@ -96,13 +96,23 @@ describe("CodeNode — nodetool object model", () => {
     expect(listTool.calls).toEqual([{ limit: 5 }]);
   });
 
-  it("exposes the raw tools.<name>() bridge alongside nodetool", async () => {
+  it("names the import that replaced the retired tools.<name>() bridge", async () => {
+    // The belt is reached by import now (and through `nodetool.*`, which the
+    // test above pins). What `tools` still does is tell a body written
+    // against the old global which import takes its place.
     setCodeNodeTools([new FakeListWorkflowsTool()]);
     const r = await runNode(
-      "return { count: (await tools.list_workflows()).length };",
+      `try {
+         await tools.list_workflows();
+         return { message: "no throw" };
+       } catch (e) {
+         return { message: String(e.message) };
+       }`,
       fakeContext
     );
-    expect(r).toEqual({ count: 2 });
+    expect(r["message"]).toContain(
+      'import { list_workflows } from "@nodetool-ai/sandbox-nodetool/workflows";'
+    );
   });
 
   it("rethrows a tool {error} payload as a guest exception", async () => {
