@@ -62,7 +62,6 @@ import type {
 } from "../useTriggers";
 
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
-const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
 const mockUseQueryClient = useQueryClient as jest.MockedFunction<
   typeof useQueryClient
 >;
