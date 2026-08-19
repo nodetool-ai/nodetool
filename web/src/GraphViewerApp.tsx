@@ -17,10 +17,8 @@ import {
   useNodesInitialized
 } from "@xyflow/react";
 
-// MUI Theme
-import { ThemeProvider, CssBaseline } from "@mui/material";
+import { ThemeRoot } from "./components/ui_primitives";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
-import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 
 // Nodetool stores — seed metadata only (no NodeStore)
 import useMetadataStore from "./stores/MetadataStore";
@@ -406,9 +404,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-        <InitColorSchemeScript attribute="class" defaultMode="dark" />
-        <CssBaseline />
+      <ThemeRoot theme={ThemeNodetool}>
         <MenuProvider>
           <WorkflowManagerProvider queryClient={queryClient}>
             <ContextMenuProvider active={false}>
@@ -423,7 +419,7 @@ export default function App() {
             </ContextMenuProvider>
           </WorkflowManagerProvider>
         </MenuProvider>
-      </ThemeProvider>
+      </ThemeRoot>
     </QueryClientProvider>
   );
 }

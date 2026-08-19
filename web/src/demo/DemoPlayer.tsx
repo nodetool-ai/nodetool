@@ -26,8 +26,7 @@ import {
 } from "@xyflow/react";
 import { useStore } from "zustand";
 
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
+import { ThemeRoot } from "../components/ui_primitives";
 import { MemoryRouter } from "react-router-dom";
 import { TRPCProvider } from "../trpc/Provider";
 import { queryClient } from "../queryClient";
@@ -221,9 +220,7 @@ export function DemoPlayer({
     // useNavigate; a MemoryRouter supplies the required Router context.
     <MemoryRouter>
       <TRPCProvider>
-        <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-          <InitColorSchemeScript attribute="class" defaultMode="dark" />
-          <CssBaseline />
+        <ThemeRoot theme={ThemeNodetool}>
           <MenuProvider>
             <WorkflowManagerProvider queryClient={queryClient}>
               <ContextMenuProvider active={false}>
@@ -251,7 +248,7 @@ export function DemoPlayer({
               </ContextMenuProvider>
             </WorkflowManagerProvider>
           </MenuProvider>
-        </ThemeProvider>
+        </ThemeRoot>
       </TRPCProvider>
     </MemoryRouter>
   );
