@@ -71,11 +71,14 @@ const JOURNEYS_WITH_OWN_RING_HANDLING = new Set([
 
 // The ws-transport-faults faults that complete with a real terminal frame and
 // so can be asserted through `reliability run`'s pass/fail exit code.
+const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+
 const WS_TRANSPORT_RECOVERABLE_FAULTS = new Set(["ws-delay", "ws-fragment"]);
 
 function runNodetool(args) {
-  return spawnSync("npm", ["run", "nodetool", "--", ...args], {
+  return spawnSync(npmCommand, ["run", "nodetool", "--", ...args], {
     cwd: repoRoot,
+    shell: process.platform === "win32",
     stdio: "inherit"
   });
 }
@@ -191,8 +194,9 @@ for (const faultName of readJourneyFaults("host-disk-full-write")) {
 
 if (withPackaged) {
   console.log(`\n=== staging packaged backend bundle (npm run prepare-backend --workspace=electron) ===`);
-  const stage = spawnSync("npm", ["run", "prepare-backend", "--workspace=electron"], {
+  const stage = spawnSync(npmCommand, ["run", "prepare-backend", "--workspace=electron"], {
     cwd: repoRoot,
+    shell: process.platform === "win32",
     stdio: "inherit"
   });
   if (stage.status !== 0) {
