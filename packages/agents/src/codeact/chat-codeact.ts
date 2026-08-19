@@ -156,6 +156,15 @@ export interface ChatCodeActSessionOptions {
    * Without one nothing is mounted and such an import is refused by name.
    */
   capabilityRun?: CapabilityRun;
+  /**
+   * The `state` object actions read and write. A host that passes the same
+   * object on the next turn carries the turn's work forward: a chat session is
+   * one session per turn, so without this a model that stored a generated
+   * video in `state` found it `undefined` in the next turn and paid to
+   * generate it again. Mutations land in this object, so the host needs no
+   * write-back of its own. Defaults to a fresh object.
+   */
+  state?: Record<string, unknown>;
   /** Observability hook — fires before each bridged tool executes. */
   onToolCall?: (record: {
     name: string;
@@ -319,8 +328,9 @@ export function createChatCodeActSession(
   const withGraphModel = hasGraphModelTools(toolNames);
   const toolCallIdPrefix = globalThis.crypto.randomUUID();
 
-  // Persists across the turn's actions (CaveAgent-style runtime state).
-  const state: Record<string, unknown> = {};
+  // Persists across the turn's actions (CaveAgent-style runtime state), and
+  // across turns when the host supplies the object (see `state` above).
+  const state: Record<string, unknown> = options.state ?? {};
   let totalCalls = 0;
   let actionCalls = 0;
 

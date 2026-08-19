@@ -60,7 +60,7 @@ export function sandboxCapabilityModuleName(
  * {@link generateSandboxCapabilityFacade} or
  * {@link SANDBOX_CAPABILITY_BRIDGE_SOURCE} changes what the guest sees.
  */
-export const SANDBOX_CAPABILITY_FACADE_VERSION = 1;
+export const SANDBOX_CAPABILITY_FACADE_VERSION = 2;
 
 /**
  * The guest-visible name the host parks the dispatcher on.
@@ -103,10 +103,11 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
  *
  * One named async export per capability wire name, plus a default namespace
  * object so `import workflows from "@nodetool-ai/sandbox-nodetool/workflows"`
- * reads the way the object model does. Each export takes the single arguments
+ * reads the way the object model does. Each export takes the arguments
  * record every capability's input schema describes — the same object a direct
- * tool call takes — and it is forwarded as a one-element list, the shape the
- * dispatcher's ladder validates.
+ * tool call takes. Extra positional arguments are forwarded, not dropped, so
+ * `save_asset("reel.mp4", {source})` reaches the dispatcher instead of
+ * arriving as a lone string.
  */
 export function generateSandboxCapabilityFacade(
   moduleKey: string,
@@ -122,7 +123,7 @@ export function generateSandboxCapabilityFacade(
   const body = exportNames
     .map(
       (exported) =>
-        `export async function ${exported}(args) {\n  return __call(${JSON.stringify(moduleKey)}, ${JSON.stringify(exported)}, [args === undefined ? {} : args]);\n}`
+        `export async function ${exported}(...args) {\n  return __call(${JSON.stringify(moduleKey)}, ${JSON.stringify(exported)}, args.length === 0 ? [{}] : args);\n}`
     )
     .join("\n");
   return `import { __call } from ${JSON.stringify(SANDBOX_CAPABILITY_BRIDGE_SPECIFIER)};

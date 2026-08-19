@@ -166,8 +166,20 @@ interface HastNodeLike {
   children?: HastNodeLike[];
 }
 
+/**
+ * An `asset://<id>` with no extension could be anything — its type comes from
+ * the asset row, which is fetched too late for this decision. Treated as a
+ * possible block embed so a video that resolves to one is not nested in a
+ * `<p>`.
+ */
+const isUntypedAssetSrc = (src: string): boolean =>
+  src.startsWith("asset://") && !/\.[A-Za-z0-9]{1,8}$/.test(hrefPath(src));
+
 const isBlockEmbedSrc = (src: string): boolean =>
-  isInlinePreviewUri(src) || isVideoHref(src) || isAudioHref(src);
+  isInlinePreviewUri(src) ||
+  isVideoHref(src) ||
+  isAudioHref(src) ||
+  isUntypedAssetSrc(src);
 
 /** Asset links may resolve to video/audio even without a file extension. */
 const isBlockEmbedHref = (href: string): boolean =>

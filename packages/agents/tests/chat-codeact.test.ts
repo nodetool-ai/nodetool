@@ -277,6 +277,43 @@ return { secret: secret === undefined ? null : secret, fetchError, workspaceErro
     expect(second.result).toBe("asset://abc");
   });
 
+  it("carries a host-supplied state object into the next session", async () => {
+    // A chat session is built per turn. Without the host holding the object,
+    // a video parked in `state` was `undefined` on the follow-up turn and the
+    // model paid to generate it again — twice, in the session this fixes.
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const state: Record<string, unknown> = {};
+    const turnOne = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool,
+      context: createMockContext() as unknown as ProcessingContext,
+      state
+    });
+    const first = await runAction(
+      turnOne,
+      `state.video = { asset_uri: "asset://abc.mp4" };\nreturn "set";`
+    );
+    expect(first.ok).toBe(true);
+    expect(state.video).toEqual({ asset_uri: "asset://abc.mp4" });
+
+    const turnTwo = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool,
+      context: createMockContext() as unknown as ProcessingContext,
+      state
+    });
+    const second = await runAction(turnTwo, `return state.video.asset_uri;`);
+    expect(second.ok).toBe(true);
+    expect(second.result).toBe("asset://abc.mp4");
+  });
+
+  it("starts empty when the host supplies no state", async () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const obs = await runAction(session, `return Object.keys(state).length;`);
+    expect(obs.result).toBe(0);
+  });
+
   it("rejects finish() with chat guidance", async () => {
     const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
     const session = makeSession(GENERIC_TOOLS, executeTool);

@@ -128,6 +128,13 @@ describe("the validation ladder", () => {
     ).rejects.toThrow(/takes one arguments object/);
   });
 
+  it("names required fields when the first argument is not a record", async () => {
+    const dispatcher = createCapabilityDispatcher(ungatedRun(), ["workflows"]);
+    await expect(
+      dispatcher.call(WORKFLOWS, "get_workflow", [1])
+    ).rejects.toThrow(/get_workflow takes one arguments object \(\{ workflow_id \}\)/);
+  });
+
   it("stops a cancelled run before anything is looked up", async () => {
     const controller = new AbortController();
     controller.abort();

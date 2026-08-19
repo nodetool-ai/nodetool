@@ -238,6 +238,44 @@ async function fetchModelsForCapability(
   }
 }
 
+/**
+ * The task a capability asks a model to perform, where one model list serves
+ * two directions. `getAvailableVideoModels` answers with every video endpoint
+ * the provider has — text-to-video, image-to-video, lip-sync, upscalers — so
+ * without this a `text_to_video` search ranked `.../image-to-video` first and
+ * the generation call that followed failed with a 422 from the provider. The
+ * same holds for image models (`text_to_image` vs `image_to_image`).
+ *
+ * Capabilities whose model list is already single-purpose (tts, asr,
+ * embeddings, language) map to `null` and filter nothing.
+ */
+function capabilityTask(capability: SupportedCapability): string | null {
+  switch (capability) {
+    case "text_to_image":
+    case "image_to_image":
+    case "text_to_video":
+    case "image_to_video":
+      return capability;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Models that declare they can do this capability's task. A model that
+ * declares no tasks at all is kept — the alternative is hiding every model
+ * from a provider whose manifest carries no task information.
+ */
+function forCapabilityTask<T extends { model: AnyModel }>(
+  candidates: T[],
+  capability: SupportedCapability
+): { kept: T[]; dropped: number } {
+  const task = capabilityTask(capability);
+  if (!task) return { kept: candidates, dropped: 0 };
+  const kept = candidates.filter(({ model }) => taskMatch(model, task));
+  return { kept, dropped: candidates.length - kept.length };
+}
+
 function taskMatch(model: AnyModel, task: string | undefined): boolean {
   if (!task) return true;
   if (!model.supportedTasks || model.supportedTasks.length === 0) return true;
@@ -523,10 +561,21 @@ const findModel: CapabilityExport = {
       }
     }
 
+    // Drop the models that cannot do what the capability asks before anything
+    // ranks or filters them: an `image_to_video` endpoint is not an answer to
+    // a `text_to_video` search, however well its name matches the query.
+    const forTask = forCapabilityTask(candidates, capability);
+    const capabilityCandidates = forTask.kept;
+
     const notes: string[] = [];
     if (unavailable.length > 0) {
       notes.push(
         `Skipped providers that cannot run here: ${unavailable.join(", ")}.`
+      );
+    }
+    if (forTask.dropped > 0 && capabilityCandidates.length === 0) {
+      notes.push(
+        `${forTask.dropped} model(s) were found but none declares ${capability}.`
       );
     }
     let words = queryWords(query ?? "");
@@ -536,22 +585,22 @@ const findModel: CapabilityExport = {
     // all, the unfiltered default ranking — and no way to tell why. A task no
     // model declares is read as a name search instead.
     const declaredTasks = new Set<string>();
-    for (const { model } of candidates) {
+    for (const { model } of capabilityCandidates) {
       for (const t of model.supportedTasks ?? []) declaredTasks.add(t);
     }
-    let pool: typeof candidates;
+    let pool: typeof capabilityCandidates;
     // The task the rank term reads. A `task` no model declares was a name
     // search all along, so it must not be looked up as a leaderboard either.
     let rankTask = task;
     if (task && !declaredTasks.has(task)) {
-      pool = candidates;
+      pool = capabilityCandidates;
       rankTask = undefined;
       words = [...words, ...queryWords(task)];
       notes.push(
         `No model declares task '${task}'; searched model names for it instead. Use \`query\` to search by name.`
       );
     } else {
-      pool = candidates.filter(({ model }) => taskMatch(model, task));
+      pool = capabilityCandidates.filter(({ model }) => taskMatch(model, task));
     }
 
     let queryMatched: boolean | undefined;
