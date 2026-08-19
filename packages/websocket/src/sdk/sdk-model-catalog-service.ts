@@ -91,6 +91,11 @@ function availabilityFor(
 ): SdkV1ModelAvailability {
   const repoId = sourceId(model);
   if (options.downloadingRepoIds?.has(repoId)) return "downloading";
+  if (model.execution) {
+    if (model.execution.state === "download_required") return "downloadable";
+    if (model.execution.state === "unavailable") return "unavailable";
+    return model.execution.kind === "api" ? "ready_remote" : "ready_local";
+  }
   if (model.downloaded === true || Boolean(model.cache_path)) {
     return "ready_local";
   }
