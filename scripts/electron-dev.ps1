@@ -54,13 +54,14 @@ if (-not $CondaActive) {
 Write-Host "Detected conda environment: $($env:CONDA_DEFAULT_ENV)"
 Write-Host "Starting web Vite server on $WebDevServerUrl..."
 
-$WebJob = Start-Job -ScriptBlock {
-    param($Url)
-    Set-Location web
-    npm run dev
-} -ArgumentList $WebDevServerUrl
+# Start-Job runs its script block in $HOME, not in the repo, so a `Set-Location
+# web` inside it fails silently and Vite never starts. Start-Process with an
+# explicit working directory gives a visible child and a real PID for Cleanup.
+$WebDir = Join-Path $PSScriptRoot "..\web"
+$WebProcess = Start-Process -FilePath "npm.cmd" -ArgumentList "run", "dev" `
+    -WorkingDirectory $WebDir -NoNewWindow -PassThru
 
-$WebServerPid = $WebJob.Id
+$WebServerPid = $WebProcess.Id
 
 Write-Host "Waiting for Vite server..."
 $MaxAttempts = 300
