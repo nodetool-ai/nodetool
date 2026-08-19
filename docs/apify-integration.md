@@ -28,11 +28,18 @@ this existed keeps working.
 
 Eight capabilities in the `apify` namespace. They are agent tools and sandbox
 imports at the same time — one spec behind both — so nothing can drift between
-what a model is told and what guest code can call. The chat belt and the MCP
-bridge carry them through `getApifyTools()`
+what a model is told and what guest code can call. The chat belt, the MCP
+bridge, and the belt a `nodetool.code.Code` node and a JS script share all
+carry them through `getApifyTools()`
 (`packages/agents/src/tools/external-capability-tools.ts`), which is what
 makes `nodetool.searchTools("apify")` find them: the search reads the belt,
 and a module reachable only by import is invisible to it.
+
+The Code node belt matters as much as the chat one, because the move a chat
+teaches is "run it here, then put the same call in a node". It carried the
+tools only in chat for a while, so that second step failed with QuickJS's
+`TypeError: not a function` — naming neither the tool nor the belt — and read
+as the sandbox having no reach at all.
 
 | Capability | Does | Class |
 |---|---|---|

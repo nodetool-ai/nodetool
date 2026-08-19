@@ -334,6 +334,9 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       onKeyReleased(button);
     };
 
+    // Not on the dispatcher: this view *visualizes* physical keys, so it must
+    // see every keydown and keyup in capture phase, including ones the store
+    // swallows for typing.
     window.addEventListener("keydown", handleKeyDown, true);
     window.addEventListener("keyup", handleKeyUp, true);
 

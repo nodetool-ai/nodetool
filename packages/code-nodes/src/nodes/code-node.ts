@@ -42,7 +42,6 @@ import {
   BaseNode,
   prop,
   CODE_INPUTS_GLOBAL,
-  NodeRegistry,
   parseCodeBody,
   staticImportSpecifiers,
   hasReturnStatement,
@@ -226,24 +225,15 @@ export function setCodeNodeTools(tools: AgentTool[] | null): void {
 }
 
 /**
- * Assemble the belt the way an agent loop would: `getAgentToolbelt()` plus
- * the in-process core API tools. Must match `assembleSandboxToolbelt` in
- * `@nodetool-ai/agents` — that is the belt a JS script run uses. Only the
- * node registry is constructible here (`NodeRegistry.global`); the example
- * catalog, DSL exporter and provider set live above this package, so their
- * tools stay dark and the `nodetool` prelude reports the difference via
- * `capabilities()`.
+ * The belt a JS script gets, from the one function that assembles it
+ * (`assembleSandboxToolbelt` in `@nodetool-ai/agents`). This used to be a
+ * second copy of that assembly with the comment "must match" — and it drifted:
+ * the Apify and SerpAPI capabilities were added to the shared belt and not to
+ * this copy, so `tools.run_apify_actor` inside a Code node was `undefined` and
+ * calling it failed with a bare `TypeError: not a function`.
  */
 function assembleToolbelt(mod: AgentsModule): AgentTool[] {
-  const byName = new Map<string, AgentTool>();
-  const registry = NodeRegistry.global;
-  for (const tool of [
-    ...mod.getAgentToolbelt(),
-    ...mod.getAllMcpTools({ registry })
-  ]) {
-    byName.set(tool.name, tool);
-  }
-  return [...byName.values()];
+  return mod.assembleSandboxToolbelt();
 }
 
 /**

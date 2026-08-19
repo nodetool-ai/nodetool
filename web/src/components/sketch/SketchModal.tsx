@@ -8,6 +8,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import ReactDOM from "react-dom";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -178,14 +179,16 @@ const SketchModal: React.FC<SketchModalProps> = ({
       setShortcutsSubTab("shortcuts");
       return;
     }
-    const onWindowKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShortcutsPaneOpen(false);
-      }
-    };
-    window.addEventListener("keydown", onWindowKeyDown, true);
-    return () => window.removeEventListener("keydown", onWindowKeyDown, true);
   }, [shortcutsPaneOpen]);
+
+  // allowInInputs: the old capture-phase listener closed the pane regardless of
+  // focus. The store's stack gives this the top binding while the pane is open,
+  // so it shadows the editor's own Escape.
+  useGlobalCombo("escape", () => setShortcutsPaneOpen(false), {
+    active: shortcutsPaneOpen,
+    allowInInputs: true,
+    preventDefault: false
+  });
 
   const handleRequestClose = useCallback(() => {
     editorRef.current?.flushPendingChanges();

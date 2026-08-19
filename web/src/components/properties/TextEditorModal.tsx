@@ -36,7 +36,7 @@ import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "../../utils/isEqual";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useCombo } from "../../stores/KeyPressedStore";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 
 import { CopyButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
@@ -1137,19 +1137,9 @@ const TextEditorModal = ({
     }
   };
 
-  useCombo(["escape"], onClose);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [onClose]);
+  // allowInInputs replaces the capture-phase window listener that used to sit
+  // beside this combo: Escape must close the modal from inside its editor too.
+  useGlobalCombo("escape", onClose, { allowInInputs: true });
 
   useEditorKeyboardShortcuts({
     onToggleFullscreen: toggleFullscreen,

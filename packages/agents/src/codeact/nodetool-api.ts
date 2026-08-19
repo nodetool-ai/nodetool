@@ -176,9 +176,13 @@ export function nodetoolApiCoveredToolNames(
  */
 export const NODETOOL_API_PRELUDE = `
 const nodetool = (() => {
-  const __has = (name) => typeof tools[name] === "function";
+  // What the belt carries is \`__toolNames\`, not what reading a property
+  // answers: \`tools\` hands back a thrower for a name it does not have, so
+  // probing it would report every capability as present.
+  const __belt = new Set(__toolNames);
+  const __has = (name) => __belt.has(name);
   const __need = (name) => {
-    const fn = tools[name];
+    const fn = __belt.has(name) ? tools[name] : undefined;
     if (typeof fn !== "function") {
       throw new Error(
         'nodetool: tool "' + name + '" is not in this toolbelt, so this ' +
