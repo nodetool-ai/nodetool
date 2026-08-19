@@ -10,21 +10,11 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
 import {
   collectProviderCatalogModels,
-  getAllModels,
-  getAvailableProviderIds
+  getAllModels
 } from "../trpc/routers/models.js";
 import { getExistingDownloadManager } from "@nodetool-ai/huggingface";
 
-const LOCAL_PROVIDER_IDS = new Set([
-  "huggingface",
-  "llama_cpp",
-  "node_llama_cpp",
-  "ollama",
-  "transformers_js"
-]);
-
 type CatalogProjectionOptions = {
-  configuredProviderIds: ReadonlySet<string>;
   downloadingRepoIds?: ReadonlySet<string>;
   recommendedModels?: readonly UnifiedModel[];
 };
@@ -95,16 +85,6 @@ function availabilityFor(
     if (model.execution.state === "download_required") return "downloadable";
     if (model.execution.state === "unavailable") return "unavailable";
     return model.execution.kind === "api" ? "ready_remote" : "ready_local";
-  }
-  if (model.downloaded === true || Boolean(model.cache_path)) {
-    return "ready_local";
-  }
-  if (
-    model.provider &&
-    options.configuredProviderIds.has(model.provider) &&
-    !LOCAL_PROVIDER_IDS.has(model.provider)
-  ) {
-    return "ready_remote";
   }
   if (recommended && isRepositoryModel(model.type || "unknown")) {
     return "downloadable";
@@ -225,7 +205,6 @@ export async function getSdkV1ModelCatalog(args: {
 }): Promise<SdkV1ModelCatalog> {
   let availableModels: readonly UnifiedModel[];
   let providerCatalogModels: readonly UnifiedModel[];
-  let providerIds: readonly string[];
   if (args.query.scope === "worker") {
     if (!args.getWorkerModels) {
       throw new SdkModelCatalogServiceError(
@@ -234,14 +213,12 @@ export async function getSdkV1ModelCatalog(args: {
     }
     availableModels = await args.getWorkerModels();
     providerCatalogModels = [];
-    providerIds = [];
   } else {
-    [availableModels, providerCatalogModels, providerIds] = await Promise.all([
+    [availableModels, providerCatalogModels] = await Promise.all([
       getAllModels(args.userId),
       (args.getProviderCatalogModels ?? getCachedProviderCatalogModels)(
         args.userId
-      ),
-      getAvailableProviderIds(args.userId)
+      )
     ]);
   }
   const recommendedModels = [
@@ -274,7 +251,6 @@ export async function getSdkV1ModelCatalog(args: {
   }
 
   return projectSdkModelCatalog(models, args.query, {
-    configuredProviderIds: new Set(providerIds),
     downloadingRepoIds,
     recommendedModels
   });
