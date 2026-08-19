@@ -9,7 +9,11 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
-  loadNodePath
+  loadNodePath,
+  resolveSaveTarget,
+  HIDDEN_WHEN_SAVING_TO_WORKSPACE,
+  SAVE_TO_WORKSPACE_DESCRIPTION,
+  SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
@@ -416,7 +420,7 @@ export class SaveAudioFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
-  static readonly inlineFields: string[] = [];
+  static readonly inlineFields: string[] = ["save_to_workspace"];
   static readonly inputFields: string[] = ["audio"];
 
   @prop({
@@ -434,10 +438,19 @@ export class SaveAudioFileNode extends BaseNode {
   declare audio: any;
 
   @prop({
+    type: "bool",
+    default: true,
+    title: SAVE_TO_WORKSPACE_TITLE,
+    description: SAVE_TO_WORKSPACE_DESCRIPTION
+  })
+  declare save_to_workspace: any;
+
+  @prop({
     type: "str",
     default: "",
     title: "Folder",
-    description: "Folder where the file will be saved"
+    description: "Folder where the file will be saved",
+    json_schema_extra: HIDDEN_WHEN_SAVING_TO_WORKSPACE
   })
   declare folder: any;
 
@@ -464,14 +477,15 @@ export class SaveAudioFileNode extends BaseNode {
   })
   declare FORMAT_MAP: any;
 
-  async process(): Promise<SaveAudioFileNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<SaveAudioFileNodeOutputs> {
     const audio = this.audio;
-    const folder = String(this.folder || ".");
-    const fname = dateName(String(this.filename || "audio.wav"));
     const fs = await loadNodeFsPromises();
-    const path = await loadNodePath();
-    const p = path.resolve(folder, fname);
-    await fs.mkdir(path.dirname(p), { recursive: true });
+    const p = await resolveSaveTarget({
+      folder: this.folder,
+      filename: dateName(String(this.filename || "audio.wav")),
+      saveToWorkspace: this.save_to_workspace,
+      workspaceDir: context?.workspaceDir
+    });
     await fs.writeFile(p, audioBytes(audio));
     return { output: p };
   }

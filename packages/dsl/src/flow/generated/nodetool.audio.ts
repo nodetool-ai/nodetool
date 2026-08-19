@@ -314,6 +314,7 @@ export function saveAudio(inputs: SaveAudioInputs): Promise<SaveAudioOutputs> {
 // Save Audio File — nodetool.audio.SaveAudioFile
 export type SaveAudioFileInputs = {
   audio?: AudioRef;
+  save_to_workspace?: boolean;
   folder?: string;
   filename?: string;
   FORMAT_MAP?: Record<string, string>;
