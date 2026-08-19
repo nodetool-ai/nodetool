@@ -8,6 +8,7 @@
 import React, { memo, forwardRef } from "react";
 import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 export interface CaptionProps extends Omit<TypographyProps, 'variant'> {
   /** Caption size variant */
@@ -25,6 +26,30 @@ export interface CaptionProps extends Omit<TypographyProps, 'variant'> {
   /** Link rel attribute */
   rel?: string;
 }
+
+const FONT_SIZES = {
+  small: "var(--fontSizeSmall)", // 13px — label combo
+  smaller: "var(--fontSizeSmaller)" // 11px — caption combo
+} satisfies Record<NonNullable<CaptionProps["size"]>, string>;
+
+const resolveColor = (color: string, theme: Theme): string => {
+  switch (color) {
+    case "primary":
+      return theme.vars.palette.primary.main;
+    case "secondary":
+      return theme.vars.palette.text.secondary;
+    case "error":
+      return theme.vars.palette.error.main;
+    case "warning":
+      return theme.vars.palette.warning.main;
+    case "success":
+      return theme.vars.palette.success.main;
+    case "muted":
+      return theme.vars.palette.text.disabled;
+    default:
+      return color;
+  }
+};
 
 /**
  * Caption - A small secondary text component
@@ -57,36 +82,16 @@ const CaptionInternal = forwardRef<HTMLElement, CaptionProps>(({
 }, ref) => {
   const theme = useTheme();
 
-  const getFontSize = () => {
-    const sizeMap = {
-      small: "var(--fontSizeSmall)", // 13px — label combo
-      smaller: "var(--fontSizeSmaller)" // 11px — caption combo
-    };
-    return sizeMap[size];
-  };
-
   // Stay on the sanctioned combos: 13px text is medium (label), 11px is regular.
   const fontWeight = size === "small" ? 500 : 400;
-
-  const getColor = () => {
-    const colorMap = {
-      primary: theme.vars.palette.primary.main,
-      secondary: theme.vars.palette.text.secondary,
-      error: theme.vars.palette.error.main,
-      warning: theme.vars.palette.warning.main,
-      success: theme.vars.palette.success.main,
-      muted: theme.vars.palette.text.disabled
-    };
-    return colorMap[color as keyof typeof colorMap] || color;
-  };
 
   return (
     <Typography
       ref={ref}
       sx={{
-        fontSize: getFontSize(),
+        fontSize: FONT_SIZES[size],
         fontWeight,
-        color: getColor(),
+        color: resolveColor(color, theme),
         fontStyle: italic ? "italic" : "normal",
         lineHeight: 1.4,
         ...sx
