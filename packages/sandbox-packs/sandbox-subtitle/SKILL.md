@@ -5,8 +5,7 @@ description: Parse and stringify SRT/WebVTT captions in a Code node or CodeAct a
 
 # Captions in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-subtitle`. Declare it in the node's
-`packages` property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-subtitle`. Import it at the top of the body.
 
 The published subtitle bundle uses streams the guest refuses, so this pack
 is a **host module**. You work with plain cue objects.

@@ -8,7 +8,6 @@
  */
 
 import { useEffect, useMemo } from "react";
-import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
 import { validateJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
 import {
@@ -102,10 +101,6 @@ export const useJsScriptAgentBridge = (scriptId: string): void => {
       },
       setPorts: (ports) => {
         store().setPorts(scriptId, ports);
-        return snapshot();
-      },
-      setPackages: (packages: SandboxModuleDeclaration[]) => {
-        store().setPackages(scriptId, packages);
         return snapshot();
       },
       setMeta: (meta) => {

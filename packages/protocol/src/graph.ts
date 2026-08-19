@@ -302,7 +302,7 @@ export interface NodeTypeMigration {
   /**
    * Static properties merged onto the migrated node's `data`/`properties`
    * unconditionally, applied after `moveRemainingPropertiesToDynamic` — e.g.
-   * the Code node's `code` and `packages`.
+   * the Code node's `code`.
    */
   setProperties?: Record<string, unknown>;
   /**
@@ -343,7 +343,7 @@ function textToCodeMigration(
     to: CODE_NODE_TYPE,
     renameProperties,
     moveRemainingPropertiesToDynamic: true,
-    setProperties: { code, packages: [] }
+    setProperties: { code }
   };
 }
 
@@ -363,8 +363,7 @@ function pdfToCodeMigration(from: string, code: string): NodeTypeMigration {
     setProperties: {
       code: `import { extractPages } from "${PDF_PACK}";
 const pages = await extractPages(await media.bytes(inputs.pdf));
-${code}`,
-      packages: [PDF_PACK]
+${code}`
     }
   };
 }
@@ -772,8 +771,7 @@ return { output: list.map(v => String(v ?? "")).join(String(inputs.separator ?? 
     moveRemainingPropertiesToDynamic: true,
     setProperties: {
       code: `import { count } from "${TOKENS_PACK}";
-return { output: await count(String(inputs.text ?? ""), inputs.encoding ?? "cl100k_base") };`,
-      packages: [TOKENS_PACK]
+return { output: await count(String(inputs.text ?? ""), inputs.encoding ?? "cl100k_base") };`
     }
   },
 

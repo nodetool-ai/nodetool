@@ -5,8 +5,7 @@ description: Build and merge PDF files in a Code node or CodeAct action, with pd
 
 # PDF writing in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-pdflib`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-pdflib`. Import it at the top of the body.
 
 This pack **writes** PDFs. To extract text from an existing file, use
 `@nodetool-ai/sandbox-pdf` instead.

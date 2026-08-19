@@ -5,8 +5,7 @@ description: Expand iCalendar recurrence rules inside a Code node or CodeAct act
 
 # Recurrence in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-rrule`. One module, rrule. Declare it in
-the node's `packages` property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-rrule`. One module, rrule. Import it at the top of the body.
 
 ## Build a rule and expand it
 

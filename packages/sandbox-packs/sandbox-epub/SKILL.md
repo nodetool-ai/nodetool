@@ -5,8 +5,7 @@ description: Read an EPUB's metadata, table of contents, and chapters in a Code 
 
 # EPUB e-books in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-epub`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-epub`. Import it at the top of the body.
 
 epub2 reads from a file path, not a buffer, so this pack is a **host module**:
 the host stages your bytes in a temp file for the call and removes it

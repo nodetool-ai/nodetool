@@ -5,7 +5,7 @@
  * This hook owns the four state transitions the editor offers — link, update to
  * latest, extract, detach — so the node body only has to render buttons.
  *
- * Link and update-to-latest copy the pinned version's code, packages, secrets,
+ * Link and update-to-latest copy the pinned version's code, secrets,
  * timeout and ports onto the node in one undoable update, and the `script`
  * property records which version they came from. That copy is what executes: a
  * run reads no script row, so a workflow stays runnable wherever it is opened.
@@ -51,7 +51,7 @@ interface CodeNodeScriptLinkState {
   /** Re-pin to the script's current content and re-copy it onto the node. */
   updateToLatest: () => Promise<void>;
   /**
-   * Lift the node's body, ports, packages and secrets into a new script.
+   * Lift the node's body, ports and secrets into a new script.
    * With a `category`, the script also lands in the node menu as a custom node.
    */
   extractToScript: (name: string, category?: string) => Promise<string>;
@@ -196,9 +196,6 @@ export function useCodeNodeScriptLink(
         code: isString(properties.code) ? properties.code : "",
         inputs: slotsToPorts(node?.data?.dynamic_inputs),
         outputs: outputsToPorts(node?.data?.dynamic_outputs),
-        packages: Array.isArray(properties.packages)
-          ? (properties.packages as { specifier: string }[])
-          : [],
         secrets: stringList(properties.secrets),
         timeoutSeconds:
           isNumber(properties.timeout) ? properties.timeout : 30,

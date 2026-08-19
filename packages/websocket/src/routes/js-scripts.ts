@@ -117,7 +117,6 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const runOptions: Parameters<typeof runCodeBody>[1] = {
         code: document.code,
         inputs: parsedBody.data.inputs,
-        packages: document.packages.map((pack) => pack.specifier),
         secrets: document.secrets,
         timeoutSeconds: Math.min(
           document.timeoutSeconds,

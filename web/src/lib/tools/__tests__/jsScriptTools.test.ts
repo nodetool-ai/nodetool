@@ -36,7 +36,6 @@ const createMockHandler = (): jest.Mocked<JsScriptAgentHandler> => ({
   getSnapshot: jest.fn(),
   setCode: jest.fn(),
   setPorts: jest.fn(),
-  setPackages: jest.fn(),
   setMeta: jest.fn(),
   setTests: jest.fn(),
   run: jest.fn(),
@@ -60,7 +59,6 @@ describe("ui_jsscript_* tools", () => {
         "ui_jsscript_get_state",
         "ui_jsscript_set_code",
         "ui_jsscript_set_ports",
-        "ui_jsscript_set_packages",
         "ui_jsscript_set_meta",
         "ui_jsscript_set_tests",
         "ui_jsscript_run",
@@ -82,7 +80,7 @@ describe("ui_jsscript_* tools", () => {
     const jsScriptTools = FrontendToolRegistry.getManifest().filter((tool) =>
       tool.name.startsWith("ui_jsscript_")
     );
-    expect(jsScriptTools).toHaveLength(8);
+    expect(jsScriptTools).toHaveLength(7);
     for (const tool of jsScriptTools) {
       const schema = tool.parameters;
       expect(schema.required).toContain("script_id");

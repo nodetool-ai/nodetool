@@ -81,8 +81,8 @@ async function main(): Promise<void> {
   // The shipped sandbox packs, so a Code node in an example workflow can
   // import one. `createTestUiServer` registers built-in nodes without loading
   // packs, which leaves no catalog on the process — and a Code node that
-  // declares `packages` then fails with "Sandbox packages are not available in
-  // this process" rather than running the way it does on the real server.
+  // imports one then fails with "Sandbox packages are not available in this
+  // process" rather than running the way it does on the real server.
   await refreshSandboxCatalog();
 
   let registry: NodeRegistry | null = null;

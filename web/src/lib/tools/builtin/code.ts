@@ -32,7 +32,7 @@ const portParam = z.object({
 FrontendToolRegistry.register({
   name: "ui_code_get_state",
   description:
-    "Read the open Code assistant's draft: the node id, the current code body, the declared input and output ports (name and type), and the declared sandbox packages. Call this first to see what you are editing.",
+    "Read the open Code assistant's draft: the node id, the current code body, the declared input and output ports (name and type). Call this first to see what you are editing.",
   parameters: z.object({ node_id: nodeIdParam }),
   async execute({ node_id }) {
     const state = getCodeAssistantHandler(node_id).getState();
@@ -77,18 +77,3 @@ FrontendToolRegistry.register({
   }
 });
 
-FrontendToolRegistry.register({
-  name: "ui_code_set_packages",
-  description:
-    "Replace the draft's declared sandbox package specifiers (e.g. '@nodetool-ai/sandbox-yaml'). A package must be declared here before the code can import it — an undeclared import fails validation.",
-  parameters: z.object({
-    node_id: nodeIdParam,
-    packages: z
-      .array(z.string())
-      .describe("The complete new list of sandbox package specifiers.")
-  }),
-  async execute({ node_id, packages }) {
-    getCodeAssistantHandler(node_id).setPackages(packages);
-    return { ok: true, packages };
-  }
-});

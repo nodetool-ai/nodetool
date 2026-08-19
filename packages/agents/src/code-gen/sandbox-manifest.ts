@@ -1149,13 +1149,13 @@ function partitionNativeGlobals() {
 /**
  * The one sentence every surface states about modules in the guest.
  *
- * Modules exist now — the loader serves what a run declared and refuses
+ * Modules exist now — the loader serves what a run resolved and refuses
  * everything else — so the old "there is no module loader" claim is false. It
  * lives here because the CodeAct prompt, the Code node prompts and the editor
  * docs all restate it, and the drift tests hold them to this text.
  */
 export const SANDBOX_MODULE_RULE =
-  "Modules come only from the sandbox packages this run declares, imported " +
+  "Modules come only from the sandbox packages this run serves, imported " +
   "with a static `import` at the top of the code; dynamic import expressions " +
   "and `require` never resolve, and there is no Intl. Everything else a " +
   "library would do comes from the bridges below.";

@@ -290,10 +290,10 @@ const CODE_NODE_TYPE = "nodetool.code.Code";
 
 /**
  * One Code node fed by an input, whose `total` handle reaches an output node.
- * `packages` and the second consumer vary per test.
+ * The body's imports and the second consumer vary per test.
  */
 function codeGraph(options: {
-  packages?: unknown[];
+  imports?: string[];
   outputHandle?: string;
   consumerType?: string;
   extraCodeNode?: boolean;
@@ -312,8 +312,10 @@ function codeGraph(options: {
       type: CODE_NODE_TYPE,
       name: "code",
       properties: {
-        code: "return { total: 1 };",
-        ...(options.packages ? { packages: options.packages } : {})
+        code:
+          (options.imports ?? [])
+            .map((specifier) => `import * as m from "${specifier}";\n`)
+            .join("") + "return { total: 1 };"
       }
     },
     {
@@ -419,7 +421,7 @@ describe("checkExpectations — Code node checks", () => {
     );
   });
 
-  it("forbids any declared sandbox package", () => {
+  it("forbids any imported sandbox package", () => {
     expect(
       pass(
         checkExpectations(codeGraph({}), { forbidCodePackages: true }),
@@ -428,36 +430,28 @@ describe("checkExpectations — Code node checks", () => {
     ).toBe(true);
     expect(
       pass(
-        checkExpectations(codeGraph({ packages: ["@nodetool-ai/sandbox-csv"] }), {
-          forbidCodePackages: true
-        }),
+        checkExpectations(
+          codeGraph({ imports: ["@nodetool-ai/sandbox-csv"] }),
+          { forbidCodePackages: true }
+        ),
         "codePackages:none"
       )
     ).toBe(false);
   });
 
-  it("allows only the listed specifiers, in either declaration shape", () => {
+  it("allows only the listed specifiers", () => {
     const allowed = ["@nodetool-ai/sandbox-csv"];
     expect(
       pass(
-        checkExpectations(codeGraph({ packages: allowed }), {
+        checkExpectations(codeGraph({ imports: allowed }), {
           allowedCodePackages: allowed
         }),
         "codePackages:allowed"
       )
     ).toBe(true);
-    expect(
-      pass(
-        checkExpectations(
-          codeGraph({ packages: [{ specifier: "@nodetool-ai/sandbox-csv" }] }),
-          { allowedCodePackages: allowed }
-        ),
-        "codePackages:allowed"
-      )
-    ).toBe(true);
 
     const hallucinated = checkExpectations(
-      codeGraph({ packages: ["papaparse"] }),
+      codeGraph({ imports: ["papaparse"] }),
       { allowedCodePackages: allowed }
     );
     expect(pass(hallucinated, "codePackages:allowed")).toBe(false);

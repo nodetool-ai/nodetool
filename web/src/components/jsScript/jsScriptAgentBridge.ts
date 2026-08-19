@@ -12,7 +12,6 @@
  * a {@link JsScriptSnapshot} and never touches Zustand store handles.
  */
 
-import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
 import type {
   JsScriptDocument,
   JsScriptPalette,
@@ -60,7 +59,6 @@ export interface JsScriptAgentHandler {
     inputs?: JsScriptPort[];
     outputs?: JsScriptPort[];
   }) => JsScriptSnapshot;
-  setPackages: (packages: SandboxModuleDeclaration[]) => JsScriptSnapshot;
   setMeta: (meta: JsScriptMetaInput) => JsScriptSnapshot;
   setTests: (tests: JsScriptTestCase[]) => JsScriptSnapshot;
   /**

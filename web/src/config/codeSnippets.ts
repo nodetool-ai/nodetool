@@ -57,15 +57,6 @@ export interface CodeSnippet {
   inputs?: Record<string, SnippetInputDeclaration>;
   /** Per-output types, keyed by the key of the returned object literal. */
   outputs?: Record<string, string>;
-  /**
-   * Sandbox packages the body imports, as specifiers.
-   *
-   * A snippet that reaches a library reaches it the way every other Code node
-   * does — a declared package and a static `import` — so inserting one seeds
-   * the node's `packages` property from this list. The pack still has to be
-   * installed; validation says which one when it is not.
-   */
-  packages?: string[];
 }
 
 export const SNIPPET_CATEGORIES: SnippetCategory[] = [
@@ -1344,7 +1335,6 @@ return { output: inputs.text.includes(inputs.substring) };`,
     title: "Count Tokens",
     description: "Count LLM tokens in text with tiktoken",
     category: "Text",
-    packages: ["@nodetool-ai/sandbox-tokens"],
     code: `import { count } from "@nodetool-ai/sandbox-tokens";
 return { output: await count(inputs.text, "cl100k_base") };`,
     outputs: { output: "int" },
@@ -2514,7 +2504,6 @@ return { output: parsed.protocol + "//" + parsed.host };`,
     description:
       "Extract every <a href> with its text, classified internal or external",
     category: "HTML",
-    packages: ["@nodetool-ai/sandbox-html"],
     code: `import { select } from "@nodetool-ai/sandbox-html";
 const baseUrl = ""; // page URL — decides internal vs external
 const hrefs = await select(inputs.html, "a[href]", { attr: "href", limit: 1000 });
@@ -2554,7 +2543,6 @@ return { links, href: links[0]?.href ?? "", text: links[0]?.text ?? "" };`,
     title: "Extract Images",
     description: "Collect every <img src> from HTML, resolved against a base URL",
     category: "HTML",
-    packages: ["@nodetool-ai/sandbox-html"],
     code: `import { select } from "@nodetool-ai/sandbox-html";
 const baseUrl = ""; // page URL — resolves relative src values
 const srcs = await select(inputs.html, "img[src]", { attr: "src", limit: 1000 });
@@ -2579,7 +2567,6 @@ return { images, image: images[0] ?? { uri: "", type: "image" } };`,
     title: "Extract Audio",
     description: "Collect <audio> and <audio><source> sources from HTML",
     category: "HTML",
-    packages: ["@nodetool-ai/sandbox-html"],
     code: `import { select } from "@nodetool-ai/sandbox-html";
 const baseUrl = ""; // page URL — resolves relative src values
 const srcs = await select(inputs.html, "audio[src], audio source[src]", {
@@ -2607,7 +2594,6 @@ return { audios, audio: audios[0] ?? { uri: "", type: "audio" } };`,
     title: "Extract Videos",
     description: "Collect <video>, <video><source> and <iframe> sources from HTML",
     category: "HTML",
-    packages: ["@nodetool-ai/sandbox-html"],
     code: `import { select } from "@nodetool-ai/sandbox-html";
 const baseUrl = ""; // page URL — resolves relative src values
 const srcs = await select(
@@ -2637,7 +2623,6 @@ return { videos, video: videos[0] ?? { uri: "", type: "video" } };`,
     title: "Extract Metadata",
     description: "Read the page title and the description / keywords meta tags",
     category: "HTML",
-    packages: ["@nodetool-ai/sandbox-html"],
     code: `import { select } from "@nodetool-ai/sandbox-html";
 const first = async (selector, attr) =>
   (await select(inputs.html, selector, attr ? { attr, limit: 1 } : { limit: 1 }))[0] ?? null;

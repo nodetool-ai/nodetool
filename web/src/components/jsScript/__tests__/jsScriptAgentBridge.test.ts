@@ -10,7 +10,6 @@ const makeMockHandler = (): JsScriptAgentHandler => ({
   getSnapshot: jest.fn(),
   setCode: jest.fn(),
   setPorts: jest.fn(),
-  setPackages: jest.fn(),
   setMeta: jest.fn(),
   setTests: jest.fn(),
   run: jest.fn(),

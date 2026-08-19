@@ -585,7 +585,7 @@ export function createGuestModuleHost(
       );
     }
     return deny(
-      `"${requested}" is not a sandbox package declared by this node — add it to the node's packages declaration to import it`
+      `"${requested}" is not a sandbox package this run serves — only an installed pack the code imports resolves`
     );
   };
 

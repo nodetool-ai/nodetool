@@ -55,7 +55,7 @@ function and write the control flow in plain JavaScript. No graph, no edges, no
 the fan-out.
 
 ```js
-// A Code node body. `packages` declares "@nodetool-ai/sandbox-flow".
+// A Code node body.
 import "@nodetool-ai/sandbox-nodetool/flow";
 import { template } from "@nodetool-ai/sandbox-flow/nodetool.text";
 import { textToSpeech } from "@nodetool-ai/sandbox-flow/gemini.audio";

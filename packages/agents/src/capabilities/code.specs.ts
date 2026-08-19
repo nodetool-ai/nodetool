@@ -28,14 +28,6 @@ export const CODE_FIELD: JsonSchema = {
     "the deprecated return/yield contract for one more release."
 };
 
-export const PACKAGES_FIELD: JsonSchema = {
-  type: "array",
-  items: { type: "string" },
-  description:
-    "Sandbox package specifiers the body imports (the node's `packages` " +
-    'property), e.g. ["@nodetool-ai/sandbox-yaml"].'
-};
-
 export const INPUT_STREAMS_FIELD: JsonSchema = {
   type: "object",
   description:
@@ -53,7 +45,7 @@ export const validateCodeSpec: CapabilitySpec = {
   name: "validate_code",
   description:
     "Statically check a Code-node body without running it: syntax, imports " +
-    "against the declared sandbox packages, undefined names, undeclared " +
+    "against the installed sandbox packs, undefined names, undeclared " +
     "`inputs.*` reads, unused inputs, and whether every declared output is " +
     "reached by an `emit` or `output` call. Same check the workflow " +
     "validator runs. Call it after every edit — it is far cheaper than " +
@@ -72,7 +64,6 @@ export const validateCodeSpec: CapabilitySpec = {
         items: { type: "string" },
         description: "Output handle names the node declares."
       },
-      packages: PACKAGES_FIELD
     },
     required: ["code"]
   },
@@ -103,7 +94,6 @@ export const runCodeSpec: CapabilitySpec = {
         additionalProperties: true
       },
       input_streams: INPUT_STREAMS_FIELD,
-      packages: PACKAGES_FIELD,
       secrets: {
         type: "array",
         items: { type: "string" },
@@ -177,7 +167,6 @@ export const testCodeSpec: CapabilitySpec = {
           required: []
         }
       },
-      packages: PACKAGES_FIELD,
       secrets: {
         type: "array",
         items: { type: "string" },

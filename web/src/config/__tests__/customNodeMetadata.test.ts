@@ -23,7 +23,6 @@ function script(
       code: 'await output("formatted", inputs.raw);',
       inputs: [{ name: "raw", type: "str" }],
       outputs: [{ name: "formatted", type: "str" }],
-      packages: [],
       secrets: [],
       timeoutSeconds: 30,
       palette: { category: "My API" },

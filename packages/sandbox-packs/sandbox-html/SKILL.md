@@ -5,8 +5,7 @@ description: Select elements out of HTML and convert a page to markdown in a Cod
 
 # HTML in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-html`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-html`. Import it at the top of the body.
 
 cheerio imports 25 Node builtins and turndown wants a DOM, so neither compiles
 into the guest. This pack is a **host module**: the import resolves to a

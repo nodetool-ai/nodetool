@@ -2,7 +2,7 @@
  * Materializing a JS script onto a `nodetool.code.Code` node.
  *
  * A placed custom node is a plain Code node carrying a copy of one pinned
- * script version: its body, packages, secrets and timeout as properties, its
+ * script version: its body, secrets and timeout as properties, its
  * declared ports as dynamic slots, and `{id, version}` as provenance. The web
  * editor does this when a script is linked and when a custom node is dropped
  * from the menu, and headless authoring does it when it places one — one
@@ -22,11 +22,6 @@ export interface JsScriptSlotType {
   type_args: [];
 }
 
-/** A sandbox pack declaration as the node stores it. */
-export interface JsScriptPackageRef {
-  specifier: string;
-}
-
 /**
  * The part of a script document a Code node copies. Structural rather than the
  * schema type, because callers hold it in several shapes — the tRPC client's
@@ -37,7 +32,6 @@ export interface MaterializableJsScript {
   code: string;
   inputs: readonly JsScriptPort[];
   outputs: readonly JsScriptPort[];
-  packages: readonly JsScriptPackageRef[];
   secrets: readonly string[];
   timeoutSeconds: number;
 }
@@ -46,7 +40,6 @@ export interface MaterializableJsScript {
 export interface MaterializedJsScriptProperties {
   script: JsScriptLink;
   code: string;
-  packages: readonly JsScriptPackageRef[];
   secrets: readonly string[];
   timeout: number;
 }
@@ -87,7 +80,6 @@ export function materializeJsScriptNode(
     properties: {
       script: { id: link.id, version: link.version },
       code: document.code,
-      packages: document.packages,
       secrets: document.secrets,
       timeout: document.timeoutSeconds
     },

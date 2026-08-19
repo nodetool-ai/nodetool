@@ -185,7 +185,7 @@ export const validateJsScriptSpec: CapabilitySpec = {
   name: "validate_js_script",
   description:
     "Statically check a JS script WITHOUT running it: the body's syntax, its " +
-    "imports against the declared sandbox packages, undefined names, " +
+    "imports against the installed sandbox packs, undefined names, " +
     "undeclared `inputs.*` reads, and outputs no `emit`/`output` call " +
     "reaches; plus the document's own rules — duplicate or non-identifier " +
     "port names, a test naming a port the script does not declare, a body " +
@@ -207,8 +207,8 @@ export const runJsScriptSpec: CapabilitySpec = {
   description:
     "Run a saved JS script in the QuickJS sandbox with the given `inputs` " +
     "and report its outputs, streamed emits, console logs and error. The " +
-    "script runs inside its own envelope: the sandbox packages it declares, " +
-    "only the secrets it declares, and its own timeout. The guest has the " +
+    "script runs inside its own envelope: the packs its body imports, only " +
+    "the secrets it declares, and its own timeout. The guest has the " +
     "same `tools.*` / `nodetool.*` belt a Code node has — tool-backed calls " +
     "can spend money. Address the script by id, or by name when the name is " +
     "unambiguous.",

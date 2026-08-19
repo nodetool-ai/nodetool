@@ -6,8 +6,7 @@ description: Mean, median, quantiles, and linear regression inside a Code node o
 # Statistics in the sandbox
 
 Specifier: `@nodetool-ai/sandbox-stats`. One module, simple-statistics.
-Declare it in the node's `packages` property and import it at the top of
-the body.
+Import it at the top of the body.
 
 ## Column summaries
 

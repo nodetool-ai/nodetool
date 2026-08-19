@@ -63,7 +63,6 @@ export interface JsScriptBridgeFinalState {
   code: string;
   inputs: string[];
   outputs: string[];
-  packages: string[];
   secrets: string[];
   timeoutSeconds: number;
   tests: string[];
@@ -172,7 +171,6 @@ export function createJsScriptToolBridge(
     const result = await runCodeBody(context, {
       code: document.code,
       inputs,
-      packages: document.packages.map((pack) => pack.specifier),
       secrets: document.secrets,
       timeoutSeconds: Math.min(
         document.timeoutSeconds,
@@ -256,19 +254,6 @@ export function createJsScriptToolBridge(
           outputs: document.outputs,
           validation
         };
-      }
-    ),
-
-    tool(
-      "ui_jsscript_set_packages",
-      "No-op leftover: a JS script does not declare packages. Import any installed sandbox pack or `@nodetool-ai/sandbox-nodetool/<namespace>` directly.",
-      z.object({
-        packages: z.array(z.object({ specifier: z.string() }))
-      }),
-      async ({ packages }) => {
-        document.packages = packages as JsScriptDocument["packages"];
-        const validation = await validate();
-        return { ok: true, packages: document.packages, validation };
       }
     ),
 
@@ -379,7 +364,6 @@ export function createJsScriptToolBridge(
       code: document.code,
       inputs: document.inputs.map((port) => port.name),
       outputs: document.outputs.map((port) => port.name),
-      packages: document.packages.map((pack) => pack.specifier),
       secrets: [...document.secrets],
       timeoutSeconds: document.timeoutSeconds,
       tests: document.tests.map((testCase) => testCase.name),

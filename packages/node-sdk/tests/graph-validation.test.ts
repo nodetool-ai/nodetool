@@ -1423,7 +1423,7 @@ describe("validateGraph — node/edge shape", () => {
 describe("Code node sandbox packages", () => {
   const CODE = "nodetool.code.Code";
   const registry = fakeRegistry({
-    [CODE]: meta(CODE, { code: "str", packages: "list" }, {}, {
+    [CODE]: meta(CODE, { code: "str" }, {}, {
       supports_dynamic_inputs: true,
       supports_dynamic_outputs: true
     } as Partial<NodeMetadata>)
@@ -1462,41 +1462,32 @@ describe("Code node sandbox packages", () => {
 
   const code = 'import { haversine } from "@acme/geo";\nreturn { out: haversine(1, 2) };';
 
-  it("accepts an import declared in the packages property", () => {
+  it("accepts an import the catalog serves", () => {
+    const report = validateGraph(graph({ code }), registry, {
+      sandboxModuleCatalog: catalog
+    });
+    expect(report.issues).toEqual([]);
+  });
+
+  it("checks nothing when there is no catalog to check against", () => {
+    const report = validateGraph(graph({ code }), registry, {
+      sandboxModuleCatalog: null
+    });
+    expect(report.issues).toEqual([]);
+  });
+
+  it("ignores a leftover packages property from a saved graph", () => {
     const report = validateGraph(
-      graph({ code, packages: [{ specifier: "@acme/geo" }] }),
+      graph({ code, packages: [{ specifier: "@stale/pack" }] }),
       registry,
       { sandboxModuleCatalog: catalog }
     );
     expect(report.issues).toEqual([]);
-  });
-
-  it("accepts a bare specifier string as a declaration", () => {
-    const report = validateGraph(
-      graph({ code, packages: ["@acme/geo"] }),
-      registry,
-      { sandboxModuleCatalog: null }
-    );
-    expect(report.issues).toEqual([]);
-  });
-
-  it("reports an import the node does not declare", () => {
-    const report = validateGraph(
-      graph({ code, packages: [] }),
-      registry,
-      { sandboxModuleCatalog: catalog }
-    );
-    const issue = report.issues.find((i) => i.code === "code_module");
-    expect(issue?.nodeId).toBe("c");
-    expect(issue?.message).toContain('"@acme/geo"');
   });
 
   it("reports a specifier the catalog does not have", () => {
     const report = validateGraph(
-      graph({
-        code: 'import { x } from "@nope/pack";\nreturn { out: x };',
-        packages: ["@nope/pack"]
-      }),
+      graph({ code: 'import { x } from "@nope/pack";\nreturn { out: x };' }),
       registry,
       { sandboxModuleCatalog: catalog }
     );
@@ -1507,26 +1498,11 @@ describe("Code node sandbox packages", () => {
     expect(issue?.message).toContain("@acme/nodetool-missing");
   });
 
-  it("reports an entry that is not a declaration", () => {
-    const report = validateGraph(
-      graph({ code, packages: [{ nope: 1 }] }),
-      registry,
-      { sandboxModuleCatalog: null }
-    );
-    const issue = report.issues.find(
-      (i) => i.code === "code_module" && i.message.includes("not a sandbox module")
-    );
-    expect(issue?.severity).toBe("error");
-  });
-
   it("falls back to the process catalog when the caller passes none", () => {
     setProcessSandboxModuleCatalog(catalog);
     try {
       const report = validateGraph(
-        graph({
-          code: 'import { x } from "@nope/pack";\nreturn { out: x };',
-          packages: ["@nope/pack"]
-        }),
+        graph({ code: 'import { x } from "@nope/pack";\nreturn { out: x };' }),
         registry,
         {}
       );

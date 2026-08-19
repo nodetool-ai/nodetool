@@ -147,7 +147,7 @@ describe("WASM dispatcher boundary", () => {
   it("serves only the modules and exports the run declared", async () => {
     const { dispatcher } = dispatcherFor();
     await expect(dispatcher.call("@other/pack/scalar", "add", [1, 2])).rejects.toThrow(
-      /is not a WASM sandbox module declared by this node/
+      /is not a WASM sandbox module this run serves/
     );
     await expect(dispatcher.call(REFERENCE_SPECIFIER, "sum-f32", [1, 2])).rejects.toThrow(
       /has no export named/
@@ -156,7 +156,7 @@ describe("WASM dispatcher boundary", () => {
       /has no export named/
     );
     await expect(dispatcher.call({ toString: () => REFERENCE_SPECIFIER }, "add", [1, 2]))
-      .rejects.toThrow(/is not a WASM sandbox module declared by this node/);
+      .rejects.toThrow(/is not a WASM sandbox module this run serves/);
   });
 
   it("has no dispatcher at all for a run with no WASM modules", () => {

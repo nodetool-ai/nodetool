@@ -1032,9 +1032,9 @@ provider or model the model hallucinated — and
 upstream half of the graph has been paid for.
 
 A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
-not valid JavaScript, uses `export` at the top level, imports a specifier the
-node's `packages` property does not declare (the guest loader resolves only
-declared sandbox packages),
+not valid JavaScript, uses `export` at the top level, imports a specifier no
+installed pack serves (a node declares no packages — its imports are the
+declaration, resolved against the catalog),
 reads a bare name that is not a sandbox API — including one of the node's own
 inputs, which arrive on the `inputs` object, so a bare read is a ReferenceError
 too — never returns, or leaves a declared output unset on some return path is
@@ -1564,7 +1564,6 @@ the control flow in plain JavaScript. `await` is the edge, a variable is the
 wire, `Promise.all` is the fan-out — no graph, no edges, no runner.
 
 ```js
-// Code node `packages` property: ["@nodetool-ai/sandbox-flow"]
 import "@nodetool-ai/sandbox-nodetool/flow";   // mounts the bridge (body-side, required)
 import { concat } from "@nodetool-ai/sandbox-flow/nodetool.text";
 
@@ -1586,7 +1585,7 @@ run's `ProcessingContext`, and is bounded by a recursion depth cap of 4 and
 16 concurrently open streams per run. v1 limits: streaming *inputs* accept
 arrays only (no live guest-produced streams), and the body must import the
 capability module itself for the facade to mount — the pack's `SKILL.md`
-states the exact declarations.
+states both imports.
 
 The host backend is `packages/dsl/src/flow/` (internal; `@nodetool-ai/dsl/flow`
 exists for the hidden import, not as a public surface — programs that must

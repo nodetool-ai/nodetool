@@ -5,8 +5,7 @@ description: Sign AWS requests (S3 and every other SigV4 service) in a Code node
 
 # AWS SigV4 in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-aws`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-aws`. Import it at the top of the body.
 
 S3 is an HTTP API, so `fetch` already reaches it. What the guest cannot do is
 sign the request: SigV4 is an HMAC-SHA256 chain over a canonical form of the

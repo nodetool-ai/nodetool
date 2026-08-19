@@ -4,7 +4,7 @@ import { getJsScriptAgentHandler } from "../../../components/jsScript/jsScriptAg
 
 /**
  * Frontend tools that let the agent author the open JS script document — its
- * body, declared ports, sandbox packages, metadata and saved test cases — and
+ * body, declared ports, metadata and saved test cases — and
  * execute it. Every tool takes an explicit `script_id` and delegates to the
  * handler that script's open JsScriptSurface registers on the
  * {@link jsScriptAgentBridge}; when that script is not open the handler getter
@@ -29,14 +29,6 @@ const portParam = z.object({
     .describe(
       "NodeTool type name, e.g. 'str', 'int', 'float', 'bool', 'list', 'dict', 'image', 'audio', 'video', 'any'."
     )
-});
-
-const packageParam = z.object({
-  specifier: z
-    .string()
-    .describe("Sandbox module specifier, e.g. '@nodetool-ai/sandbox-yaml'."),
-  resolvedPackVersion: z.string().optional(),
-  contentDigest: z.string().optional()
 });
 
 const testCaseParam = z.object({
@@ -109,26 +101,6 @@ FrontendToolRegistry.register({
       ok: true,
       inputs: snapshot.document.inputs,
       outputs: snapshot.document.outputs,
-      issues: snapshot.issues
-    };
-  }
-});
-
-FrontendToolRegistry.register({
-  name: "ui_jsscript_set_packages",
-  description:
-    "No-op leftover: a JS script does not declare packages. Every installed sandbox pack and every `@nodetool-ai/sandbox-nodetool/<namespace>` module resolves by import. The field is kept so old documents still parse.",
-  parameters: z.object({
-    script_id: scriptIdParam,
-    packages: z
-      .array(packageParam)
-      .describe("The complete new package declaration list.")
-  }),
-  async execute({ script_id, packages }) {
-    const snapshot = getJsScriptAgentHandler(script_id).setPackages(packages);
-    return {
-      ok: true,
-      packages: snapshot.document.packages,
       issues: snapshot.issues
     };
   }

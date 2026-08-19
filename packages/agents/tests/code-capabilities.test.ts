@@ -163,14 +163,13 @@ return { ignored: true };`,
     expect(result.error).toContain("declares no secrets");
   });
 
-  it("refuses declared packages when no catalog is mounted", async () => {
+  it("refuses an imported pack when no catalog is mounted", async () => {
     const tool = toolForCapabilityName("run_code");
     const result = (await tool.execute(context(), {
-      code: "return {};",
-      packages: ["@nodetool-ai/sandbox-yaml"]
+      code: 'import yaml from "@nodetool-ai/sandbox-yaml";\nreturn {};'
     })) as { ok: boolean; error: string };
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("Sandbox packages are not available");
+    expect(result.error).toContain("cannot be resolved in this process");
   });
 });
 

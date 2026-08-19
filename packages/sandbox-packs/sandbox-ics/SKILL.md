@@ -5,8 +5,7 @@ description: Build .ics calendar files in a Code node or CodeAct action, with ic
 
 # iCalendar in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-ics`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-ics`. Import it at the top of the body.
 
 The published ics bundle does not compile into QuickJS, so this pack is a
 **host module**.

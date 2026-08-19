@@ -1,16 +1,15 @@
 /**
- * Code node `packages`: declared sandbox modules, resolved through the host's
- * catalog and mounted in the guest.
+ * Code node sandbox packages: the body's own imports, resolved through the
+ * host's catalog and mounted in the guest.
  *
- * The catalog is the only door — a node that declares nothing imports nothing,
- * a declaration a catalog cannot serve fails the node before the guest starts,
- * and version drift only warns, because resolution uses what is installed.
+ * The catalog is the only door — a body that imports nothing gets no loader, an
+ * import a catalog cannot serve fails the node before the guest starts, and
+ * version drift only warns, because resolution uses what is installed.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { CodeNode, setCodeNodeTools } from "@nodetool-ai/code-nodes";
 import type {
   ResolvedSandboxModule,
-  SandboxModuleDeclaration,
   SandboxModuleStatus
 } from "@nodetool-ai/protocol";
 import { refuseSandboxDelivery } from "@nodetool-ai/runtime";
@@ -38,10 +37,10 @@ const GEO: ResolvedSandboxModule = {
 };
 
 /**
- * A catalog serving `@acme/geo`, warning when a declaration pins an older pack
- * version, and refusing everything else.
+ * A catalog serving `@acme/geo` — with `versionMoved`, serving it with a drift
+ * warning — and refusing every other specifier.
  */
-function catalog(): SandboxModuleCatalog {
+function catalog(options: { versionMoved?: boolean } = {}): SandboxModuleCatalog {
   return {
     summaries: () => [],
     diagnostics: () => [],
@@ -61,16 +60,13 @@ function catalog(): SandboxModuleCatalog {
           });
           continue;
         }
-        if (
-          declaration.resolvedPackVersion !== undefined &&
-          declaration.resolvedPackVersion !== GEO.packVersion
-        ) {
+        if (options.versionMoved === true) {
           statuses.push({
             packName: GEO.packName,
             specifier: GEO.specifier,
             status: "warning",
             code: "version-mismatch",
-            message: `Sandbox module ${GEO.specifier} was saved with pack version ${declaration.resolvedPackVersion}.`
+            message: `Sandbox module ${GEO.specifier} was saved with an older pack version.`
           });
         }
         modules.push(GEO);
@@ -98,11 +94,8 @@ function contextWith(
   } as unknown as ProcessingContext;
 }
 
-function node(
-  code: string,
-  packages: (string | SandboxModuleDeclaration)[]
-): CodeNode {
-  const instance = new CodeNode({ code, packages });
+function node(code: string): CodeNode {
+  const instance = new CodeNode({ code });
   instance.__node_id = "code_1";
   return instance;
 }
@@ -113,63 +106,61 @@ afterEach(() => {
 });
 
 describe("CodeNode — sandbox packages", () => {
-  it("imports a declared module and returns its result", async () => {
+  it("imports a module the body names and returns its result", async () => {
     const result = await node(
-      'import { label } from "@acme/geo";\nreturn { out: label(7) };',
-      ["@acme/geo"]
+      'import { label } from "@acme/geo";\nreturn { out: label(7) };'
     ).process(contextWith(catalog()));
     expect(result).toEqual({ out: "geo:7" });
   });
 
-  it("mounts nothing when the node declares nothing", async () => {
+  it("mounts nothing when the body imports nothing", async () => {
     const result = await node(
       'try { await import("@acme/geo"); return { out: "loaded" }; }' +
-        ' catch (e) { return { out: "denied" }; }',
-      []
+        ' catch (e) { return { out: "denied" }; }'
     ).process(contextWith(catalog()));
     expect(result).toEqual({ out: "denied" });
   });
 
+  it("ignores a leftover `packages` property from a saved graph", async () => {
+    const instance = new CodeNode({
+      code: 'import { label } from "@acme/geo";\nreturn { out: label(7) };',
+      packages: [{ specifier: "@stale/pack" }]
+    });
+    instance.__node_id = "code_1";
+    expect(await instance.process(contextWith(catalog()))).toEqual({
+      out: "geo:7"
+    });
+  });
+
   it("fails the node when this process has no catalog", async () => {
     await expect(
-      node('import { label } from "@acme/geo";\nreturn { out: label(1) };', [
-        "@acme/geo"
-      ]).process(contextWith(null))
+      node(
+        'import { label } from "@acme/geo";\nreturn { out: label(1) };'
+      ).process(contextWith(null))
     ).rejects.toThrow(/not available in this process/);
   });
 
   it("fails the node when no context reaches it at all", async () => {
     await expect(
-      node('import { label } from "@acme/geo";\nreturn { out: label(1) };', [
-        "@acme/geo"
-      ]).process()
+      node(
+        'import { label } from "@acme/geo";\nreturn { out: label(1) };'
+      ).process()
     ).rejects.toThrow(/not available in this process/);
   });
 
   it("fails the node naming an unknown specifier and its pack", async () => {
     await expect(
-      node('import { x } from "@nope/pack";\nreturn { out: x };', [
-        "@nope/pack"
-      ]).process(contextWith(catalog()))
+      node('import { x } from "@nope/pack";\nreturn { out: x };').process(
+        contextWith(catalog())
+      )
     ).rejects.toThrow(/@nope\/pack is not installed.*@acme\/nodetool-missing/);
-  });
-
-  it("rejects a `packages` entry that is not a declaration", async () => {
-    const instance = new CodeNode({
-      code: "return { out: 1 };",
-      packages: [{ nope: true }]
-    });
-    await expect(instance.process(contextWith(catalog()))).rejects.toThrow(
-      /Invalid `packages` declaration/
-    );
   });
 
   it("warns on version drift on the node log without failing the run", async () => {
     const posted: Posted[] = [];
     const result = await node(
-      'import { label } from "@acme/geo";\nreturn { out: label(1) };',
-      [{ specifier: "@acme/geo", resolvedPackVersion: "1.0.0" }]
-    ).process(contextWith(catalog(), posted));
+      'import { label } from "@acme/geo";\nreturn { out: label(1) };'
+    ).process(contextWith(catalog({ versionMoved: true }), posted));
     expect(result).toEqual({ out: "geo:1" });
     const warning = posted.find(
       (message) =>
@@ -179,10 +170,9 @@ describe("CodeNode — sandbox packages", () => {
     expect(warning?.severity).toBe("warning");
   });
 
-  it("streams from a body that imports a declared module", async () => {
+  it("streams from a body that imports a module", async () => {
     const streaming = node(
-      'import { label } from "@acme/geo";\nfor (const n of [1, 2]) yield({ out: label(n) });',
-      ["@acme/geo"]
+      'import { label } from "@acme/geo";\nfor (const n of [1, 2]) yield({ out: label(n) });'
     );
     const chunks: Record<string, unknown>[] = [];
     for await (const chunk of streaming.genProcess(contextWith(catalog()))) {
@@ -192,9 +182,7 @@ describe("CodeNode — sandbox packages", () => {
   });
 
   it("runs an import-free body without touching the catalog", async () => {
-    const result = await node("return { out: 1 };", []).process(
-      contextWith(null)
-    );
+    const result = await node("return { out: 1 };").process(contextWith(null));
     expect(result).toEqual({ out: 1 });
   });
 });
