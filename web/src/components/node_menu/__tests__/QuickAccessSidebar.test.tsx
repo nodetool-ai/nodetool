@@ -20,7 +20,7 @@ const renderSidebar = (
   );
 
 describe("QuickAccessSidebar", () => {
-  it("orders related views in top groups and docks resources separately", () => {
+  it("orders related views and docks workflow context separately", () => {
     const { container } = renderSidebar();
     const top = container.querySelector<HTMLElement>(".quick-access-top");
     const bottom = container.querySelector<HTMLElement>(".quick-access-bottom");
@@ -35,9 +35,8 @@ describe("QuickAccessSidebar", () => {
         .map((button) => button.getAttribute("aria-label"))
     ).toEqual([
       "Nodes",
-      "Favorites",
-      "History",
-      "Settings",
+      "Favorite Nodes",
+      "Recent Nodes",
       "Workflows",
       "Apps",
       "Chats",
@@ -51,11 +50,11 @@ describe("QuickAccessSidebar", () => {
       within(bottom)
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label"))
-    ).toEqual(["Assets", "Library"]);
-    expect(within(top).getAllByRole("separator")).toHaveLength(2);
+    ).toEqual(["Workflow Settings", "Assets", "Library"]);
+    expect(within(top).getAllByRole("separator")).toHaveLength(3);
   });
 
-  it("removes the empty workflow group outside workflow editing", () => {
+  it("removes hidden node tools outside workflow editing", () => {
     const { container } = renderSidebar(jest.fn(), [
       "nodes",
       "favorites",
@@ -63,15 +62,24 @@ describe("QuickAccessSidebar", () => {
       "settings"
     ]);
     const top = container.querySelector<HTMLElement>(".quick-access-top");
+    const bottom = container.querySelector<HTMLElement>(
+      ".quick-access-bottom"
+    );
 
     expect(top).not.toBeNull();
-    if (!top) return;
+    expect(bottom).not.toBeNull();
+    if (!top || !bottom) return;
 
     expect(within(top).queryByRole("button", { name: "Nodes" })).toBeNull();
-    expect(within(top).getAllByRole("separator")).toHaveLength(1);
+    expect(within(top).getAllByRole("separator")).toHaveLength(2);
     expect(within(top).getAllByRole("button")[0]).toHaveAccessibleName(
       "Workflows"
     );
+    expect(
+      within(bottom)
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label"))
+    ).toEqual(["Assets", "Library"]);
   });
 
   it("selects a view from any group", async () => {
@@ -79,7 +87,9 @@ describe("QuickAccessSidebar", () => {
     const onCategoryClick = jest.fn();
     renderSidebar(onCategoryClick);
 
-    await user.click(screen.getByRole("button", { name: "Favorites" }));
+    await user.click(
+      screen.getByRole("button", { name: "Favorite Nodes" })
+    );
     await user.click(screen.getByRole("button", { name: "Library" }));
 
     expect(onCategoryClick).toHaveBeenNthCalledWith(1, "favorites");

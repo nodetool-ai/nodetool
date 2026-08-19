@@ -271,10 +271,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   return (
     <div className="vertical-toolbar">
       {showAppMenu && (
-        <>
-          <RailAppMenu />
-          <Divider className="toolbar-divider" sx={{ mx: SPACING.lg }} />
-        </>
+        <RailAppMenu />
       )}
       <QuickAccessSidebar
         activeCategory={renderedActive}
@@ -362,7 +359,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeadline
-              title="History"
+              title="Recent Nodes"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -381,7 +378,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeadline
-              title="Favorites"
+              title="Favorite Nodes"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -636,7 +633,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeadline
-              title="Settings"
+              title="Workflow Settings"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />

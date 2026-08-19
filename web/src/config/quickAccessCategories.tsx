@@ -105,21 +105,21 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   },
   favorites: {
     id: "favorites",
-    label: "Favorites",
+    label: "Favorite Nodes",
     description: "Find nodes that you saved as favorites.",
     docsTopic: "nodes",
     icon: <StarIcon />
   },
   history: {
     id: "history",
-    label: "History",
+    label: "Recent Nodes",
     description: "Reuse nodes that you added recently.",
     docsTopic: "nodes",
     icon: <HistoryIcon />
   },
   settings: {
     id: "settings",
-    label: "Settings",
+    label: "Workflow Settings",
     description: "Edit settings for the current workflow.",
     docsTopic: "workflows",
     icon: <SettingsIcon />
@@ -148,7 +148,7 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   sketches: {
     id: "sketches",
     label: "Sketches",
-    description: "Open and create free-form visual sketches.",
+    description: "Create and edit images.",
     docsTopic: "sketches",
     icon: <BrushOutlinedIcon />
   },
@@ -201,13 +201,12 @@ export const WORKFLOW_OUTPUT_DESCRIPTION =
 
 export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
   {
-    id: "workflow-tools",
+    id: "node-tools",
     placement: "top",
     categories: [
       LEFT_PANEL_CATEGORY_BY_ID.nodes,
       LEFT_PANEL_CATEGORY_BY_ID.favorites,
-      LEFT_PANEL_CATEGORY_BY_ID.history,
-      LEFT_PANEL_CATEGORY_BY_ID.settings
+      LEFT_PANEL_CATEGORY_BY_ID.history
     ]
   },
   {
@@ -226,14 +225,21 @@ export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
       LEFT_PANEL_CATEGORY_BY_ID.sketches,
       LEFT_PANEL_CATEGORY_BY_ID.scripts,
       LEFT_PANEL_CATEGORY_BY_ID.storyboards,
-      LEFT_PANEL_CATEGORY_BY_ID.timelines,
+      LEFT_PANEL_CATEGORY_BY_ID.timelines
+    ]
+  },
+  {
+    id: "developer-tools",
+    placement: "top",
+    categories: [
       LEFT_PANEL_CATEGORY_BY_ID.jsscripts
     ]
   },
   {
-    id: "resources",
+    id: "workflow-context",
     placement: "bottom",
     categories: [
+      LEFT_PANEL_CATEGORY_BY_ID.settings,
       LEFT_PANEL_CATEGORY_BY_ID.assets,
       LEFT_PANEL_CATEGORY_BY_ID.library
     ]
