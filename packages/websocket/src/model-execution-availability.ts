@@ -39,6 +39,33 @@ function unavailable(reason: string): ModelExecutionAvailability {
   };
 }
 
+export function readyProviderExecution(
+  provider: Pick<ProviderExecutionInfo, "access" | "displayName">
+): ModelExecutionAvailability {
+  if (provider.access === "remote_api") {
+    return {
+      kind: "api",
+      state: "ready",
+      label: "API",
+      reason: `Input is sent to ${provider.displayName}. Provider billing applies.`
+    };
+  }
+  if (provider.access === "local_service") {
+    return {
+      kind: "server",
+      state: "ready",
+      label: "Server",
+      reason: `Available through ${provider.displayName}.`
+    };
+  }
+  return {
+    kind: "local",
+    state: "ready",
+    label: "Local",
+    reason: "Runs on this device."
+  };
+}
+
 function resolveAdapterTarget(
   target: UnifiedModel,
   cachedRepoIds: ReadonlySet<string>,
@@ -113,12 +140,7 @@ export function resolveModelExecutionAvailability(
       return {
         ...model,
         execution: provider.configured
-          ? {
-              kind: "api",
-              state: "ready",
-              label: "API",
-              reason: `Input is sent to ${provider.displayName}. Provider billing applies.`
-            }
+          ? readyProviderExecution(provider)
           : unavailable(
               `Configure ${provider.displayName} before using this model.`
             )
@@ -143,24 +165,14 @@ export function resolveModelExecutionAvailability(
     if (providerCatalogModel && provider?.access === "local_service") {
       return {
         ...model,
-        execution: {
-          kind: "server",
-          state: "ready",
-          label: "Server",
-          reason: `Available through ${provider.displayName}.`
-        }
+        execution: readyProviderExecution(provider)
       };
     }
 
     if (providerCatalogModel && provider?.access === "in_process") {
       return {
         ...model,
-        execution: {
-          kind: "local",
-          state: "ready",
-          label: "Local",
-          reason: "Runs on this device."
-        }
+        execution: readyProviderExecution(provider)
       };
     }
 

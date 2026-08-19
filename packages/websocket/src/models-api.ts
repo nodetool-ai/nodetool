@@ -34,6 +34,7 @@ import {
 } from "@nodetool-ai/huggingface";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 import {
+  readyProviderExecution,
   resolveModelExecutionAvailability,
   type ProviderExecutionInfo
 } from "./model-execution-availability.js";
@@ -307,6 +308,7 @@ async function hasCachedFiles(repoId: string): Promise<boolean> {
 }
 
 function toUnifiedLanguageModel(model: LanguageModel): UnifiedModel {
+  const registration = getRegisteredProvider(model.provider);
   return {
     id: model.id,
     type: "language_model",
@@ -315,7 +317,10 @@ function toUnifiedLanguageModel(model: LanguageModel): UnifiedModel {
     repo_id: null,
     path: null,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
-    tags: [model.provider]
+    tags: [model.provider],
+    execution: registration
+      ? readyProviderExecution(registration.metadata)
+      : null
   };
 }
 
@@ -331,6 +336,7 @@ function toUnifiedModel(
   type: string
 ): UnifiedModel {
   const tts = type === "tts_model" ? (model as TTSModel) : null;
+  const registration = getRegisteredProvider(model.provider);
   return {
     id: model.id,
     type,
@@ -359,6 +365,9 @@ function toUnifiedModel(
               }
             : null
         }
+      : null,
+    execution: registration
+      ? readyProviderExecution(registration.metadata)
       : null
   };
 }

@@ -47,6 +47,7 @@ import { basename, join, resolve, sep } from "node:path";
 import { z } from "zod";
 import { isString } from "../../lib/wire-values.js";
 import {
+  readyProviderExecution,
   resolveModelExecutionAvailability,
   type ProviderExecutionInfo
 } from "../../model-execution-availability.js";
@@ -757,6 +758,7 @@ function toUnifiedLanguageModel(
   },
   supportsTools?: boolean | null
 ): UnifiedModel {
+  const registration = getRegisteredProvider(model.provider);
   return {
     id: model.id,
     type: "language_model",
@@ -766,7 +768,10 @@ function toUnifiedLanguageModel(
     path: null,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
     tags: [model.provider],
-    supports_tools: supportsTools ?? null
+    supports_tools: supportsTools ?? null,
+    execution: registration
+      ? readyProviderExecution(registration.metadata)
+      : null
   };
 }
 
@@ -798,6 +803,7 @@ function toUnifiedModel(
   },
   type: string
 ): UnifiedModel {
+  const registration = getRegisteredProvider(model.provider);
   return {
     id: model.id,
     type,
@@ -830,7 +836,10 @@ function toUnifiedModel(
     supported_tasks: model.supportedTasks ?? null,
     durations: model.durations ?? null,
     resolutions: model.resolutions ?? null,
-    aspect_ratios: model.aspectRatios ?? null
+    aspect_ratios: model.aspectRatios ?? null,
+    execution: registration
+      ? readyProviderExecution(registration.metadata)
+      : null
   };
 }
 
