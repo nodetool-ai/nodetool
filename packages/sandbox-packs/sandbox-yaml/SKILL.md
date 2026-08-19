@@ -6,8 +6,7 @@ description: Read and write YAML inside a Code node or CodeAct action, with js-y
 # YAML in the sandbox
 
 Specifier: `@nodetool-ai/sandbox-yaml`. One module, the js-yaml root export.
-Declare it in the node's `packages` property and import it at the top of the
-body.
+Import it at the top of the body.
 
 ## load — YAML text to a value
 

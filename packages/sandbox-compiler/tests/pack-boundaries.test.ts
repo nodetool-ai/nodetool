@@ -23,7 +23,7 @@ async function refusalOf(code: string, specifiers: string[], declared = specifie
   return { error: result.error, value: result.result };
 }
 
-describe("the import surface is exactly what the node declared", () => {
+describe("the import surface is exactly what the run resolved", () => {
   it("refuses a real pack the node did not declare", async () => {
     // The catalog holds csv; this node's declaration does not.
     const { error, value } = await refusalOf(
@@ -35,7 +35,7 @@ describe("the import surface is exactly what the node declared", () => {
       [YAML]
     );
     expect(value).toBeUndefined();
-    expect(error).toMatch(/"@nodetool-ai\/sandbox-csv" is not a sandbox package declared by this node/);
+    expect(error).toMatch(/"@nodetool-ai\/sandbox-csv" is not a sandbox package this run serves/);
   });
 
   it("refuses a specifier nobody has ever shipped", async () => {
@@ -47,7 +47,7 @@ describe("the import surface is exactly what the node declared", () => {
       [YAML]
     );
     expect(value).toBeUndefined();
-    expect(error).toMatch(/"@acme\/totally-legit" is not a sandbox package declared by this node/);
+    expect(error).toMatch(/"@acme\/totally-legit" is not a sandbox package this run serves/);
   });
 
   it("refuses a Node builtin the wrapper's virtual FS really does mount", async () => {
@@ -61,7 +61,7 @@ describe("the import surface is exactly what the node declared", () => {
       [YAML]
     );
     expect(value).toBeUndefined();
-    expect(error).toMatch(/"node:buffer" is not a sandbox package declared by this node/);
+    expect(error).toMatch(/"node:buffer" is not a sandbox package this run serves/);
   });
 
   it("refuses a computed dynamic import, which no static check can see", async () => {

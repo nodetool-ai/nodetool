@@ -8,7 +8,6 @@ const document = {
     { name: "retries", type: "int" }
   ],
   outputs: [{ name: "formatted", type: "str" }],
-  packages: [{ specifier: "@nodetool-ai/sandbox-yaml" }],
   secrets: ["MY_KEY"],
   timeoutSeconds: 45
 };
@@ -23,7 +22,6 @@ describe("materializeJsScriptNode", () => {
     expect(properties).toEqual({
       script: { id: "abc", version: 7 },
       code: document.code,
-      packages: document.packages,
       secrets: document.secrets,
       timeout: 45
     });

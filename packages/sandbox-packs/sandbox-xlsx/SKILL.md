@@ -5,8 +5,7 @@ description: Read and write Excel workbooks in a Code node or CodeAct action, wi
 
 # Excel workbooks in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-xlsx`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-xlsx`. Import it at the top of the body.
 
 exceljs is built on Node streams and ships its own zip layer; it will never be a
 guest module. This pack is a **host module**: the import resolves to a generated

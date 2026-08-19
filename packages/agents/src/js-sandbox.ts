@@ -22,10 +22,10 @@
  * `RunSandboxOptions.limits`, clamped to hard ceilings.
  *
  * The guest imports nothing by default — without `RunSandboxOptions.modules`
- * there is no loader at all, so user code cannot `import`/`require` anything.
- * With it, the run's declared sandbox packages and their intra-pack siblings
- * are the only importable modules (see {@link createGuestModuleHost}), and
- * dynamic `import()` stays denied.
+ * every specifier is denied by name, so user code cannot `import`/`require`
+ * anything. With it, the run's resolved sandbox packages and their intra-pack
+ * siblings are the only importable modules (see {@link createGuestModuleHost}),
+ * and dynamic `import()` stays denied.
  *
  * **Every library the sandbox offers is an importable module.** Some are guest
  * modules the compiler admitted (js-yaml, date-fns); the rest are *host
@@ -33,7 +33,7 @@
  * host behind a generated ESM facade over a per-run dispatcher
  * (`host-modules/`), because they need Node builtins the guest lacks or carry a
  * limit the guest could not enforce. Either way the guest writes `import`, and
- * the pack has to be installed and declared. The remaining globals — `fetch`,
+ * the pack has to be installed. The remaining globals — `fetch`,
  * `workspace`, `getSecret`, the asset bridges, `format.*` (Intl), `crypto.*`
  * (WebCrypto), `image.*`/`canvas.*` — are not libraries: they are the
  * capabilities the node granted this run.
@@ -2511,9 +2511,9 @@ export interface RunSandboxOptions {
   suspendAllowanceMs?: number;
   /**
    * Sandbox modules this run may import, already resolved by the catalog.
-   * Without it the guest has no module loader at all, exactly as before: an
-   * `import` resolves nothing. With it, these modules and their intra-pack
-   * siblings are the only importable ones — see {@link createGuestModuleHost}.
+   * Without it every guest `import` is denied by name. With it, these modules
+   * and their intra-pack siblings are the only importable ones — see
+   * {@link createGuestModuleHost}.
    */
   modules?: SandboxModuleResolution;
   /**

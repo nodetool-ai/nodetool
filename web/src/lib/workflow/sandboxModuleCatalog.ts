@@ -1,7 +1,7 @@
 /**
  * Browser-side sandbox module catalog.
  *
- * A Code node's `packages` declaration names modules the guest may import. On
+ * A Code node's own imports name the modules the guest may import. On
  * the server those sources come off disk through the node-sdk catalog; in the
  * browser they come over `GET /api/sandbox-modules/<opaque id>` — one response
  * per file, each naming the ids it imports so the client can walk the closure.
@@ -32,7 +32,12 @@
 // implementation belongs in a browser bundle.
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime/context";
 import {
+  parseCodeBody,
+  staticImportSpecifiers
+} from "@nodetool-ai/node-sdk/code-analysis";
+import {
   parseSandboxGraphFileModuleId,
+  SANDBOX_CAPABILITY_PACK,
   sandboxDeliveryRefusal,
   type ResolvedSandboxModule,
   type SandboxModuleDeclaration,
@@ -95,14 +100,17 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 /**
- * The `packages` declarations of every Code node in `graph`, deduped by
- * specifier. Read from any of the three graph shapes the editor produces: a
- * `data.properties` bag, a `properties` bag, or props flattened onto `data`.
+ * The sandbox packages every Code node in `graph` imports, deduped. Nothing
+ * declares them — a body's static imports are the declaration — so this reads
+ * the `code` property of each node, in any of the three graph shapes the
+ * editor produces: a `data.properties` bag, a `properties` bag, or props
+ * flattened onto `data`. NodeTool's own guest modules are mounted by the host,
+ * not fetched from the pack catalog, so they are left out.
  */
 export function collectSandboxModuleDeclarations(
   graph: WorkflowGraph | null | undefined
 ): SandboxModuleDeclaration[] {
-  const bySpecifier = new Map<string, SandboxModuleDeclaration>();
+  const specifiers = new Set<string>();
   for (const node of graph?.nodes ?? []) {
     if (node.type !== CODE_NODE_TYPE) continue;
     const data = asRecord(node.data);
@@ -111,31 +119,21 @@ export function collectSandboxModuleDeclarations(
       asRecord(data?.["properties"]) ??
       data ??
       {};
-    const declared = props["packages"];
-    if (!isArray(declared)) continue;
-    for (const entry of declared) {
-      const specifier =
-        isString(entry)
-          ? entry
-          : isString(asRecord(entry)?.["specifier"])
-            ? (asRecord(entry)!["specifier"] as string)
-            : undefined;
-      if (specifier === undefined || specifier.length === 0) continue;
-      if (bySpecifier.has(specifier)) continue;
-      const fields = asRecord(entry);
-      const packVersion = fields?.["resolvedPackVersion"];
-      const contentDigest = fields?.["contentDigest"];
-      const declaration: SandboxModuleDeclaration = { specifier };
-      if (isString(packVersion)) {
-        declaration.resolvedPackVersion = packVersion;
+    const code = props["code"];
+    if (!isString(code)) continue;
+    const parsed = parseCodeBody(code);
+    if ("error" in parsed) continue;
+    for (const specifier of staticImportSpecifiers(parsed.statements)) {
+      if (
+        specifier === SANDBOX_CAPABILITY_PACK ||
+        specifier.startsWith(`${SANDBOX_CAPABILITY_PACK}/`)
+      ) {
+        continue;
       }
-      if (isString(contentDigest)) {
-        declaration.contentDigest = contentDigest;
-      }
-      bySpecifier.set(specifier, declaration);
+      specifiers.add(specifier);
     }
   }
-  return [...bySpecifier.values()];
+  return [...specifiers].map((specifier) => ({ specifier }));
 }
 
 // ---------------------------------------------------------------------------

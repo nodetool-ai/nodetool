@@ -115,8 +115,7 @@ describe("CodeAssistantDialog", () => {
       node_id: "code-1",
       code: "return { total: inputs.rows.length };",
       inputs: [{ name: "rows", type: "list" }],
-      outputs: [{ name: "total", type: "int" }],
-      packages: []
+      outputs: [{ name: "total", type: "int" }]
     });
 
     unmount();
@@ -139,24 +138,18 @@ describe("CodeAssistantDialog", () => {
           { name: "note", type: "str" }
         ]
       });
-      handler.setPackages(["@nodetool-ai/sandbox-yaml"]);
     });
 
     expect(screen.getByLabelText("Code draft")).toHaveTextContent(
       "return { total: 0, note: 'hi' };"
     );
     expect(screen.getByText("note: str")).toBeInTheDocument();
-    expect(
-      screen.getByText("@nodetool-ai/sandbox-yaml")
-    ).toBeInTheDocument();
-
     await user.click(screen.getByRole("button", { name: /^apply$/i }));
 
     expect(mockUpdateNodeData).toHaveBeenCalledTimes(1);
     const [nodeId, patch] = mockUpdateNodeData.mock.calls[0];
     expect(nodeId).toBe("code-1");
     expect(patch.properties.code).toBe("return { total: 0, note: 'hi' };");
-    expect(patch.properties.packages).toEqual(["@nodetool-ai/sandbox-yaml"]);
     expect(Object.keys(patch.dynamic_inputs)).toEqual(["rows"]);
     // The retained input keeps its declaration and current value.
     expect(patch.dynamic_inputs.rows.type.type).toBe("list");

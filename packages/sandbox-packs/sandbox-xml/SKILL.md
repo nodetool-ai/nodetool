@@ -5,8 +5,7 @@ description: Parse XML feeds and sitemaps in a Code node or CodeAct action, with
 
 # XML in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-xml`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-xml`. Import it at the top of the body.
 
 fast-xml-parser reads a bare `window`, which the guest does not have, so it
 cannot be compiled in. This pack is a **host module**: the import resolves to a

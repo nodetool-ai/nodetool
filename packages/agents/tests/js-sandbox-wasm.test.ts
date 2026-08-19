@@ -69,7 +69,7 @@ describe("sandbox WASM boundary", () => {
         }
       );
       expect(result.success).toBe(false);
-      expect(result.error).toContain("is not a sandbox package declared by this node");
+      expect(result.error).toContain("is not a sandbox package this run serves");
     },
     TIMEOUT_MS
   );
@@ -119,7 +119,7 @@ return [
       );
       expect(result.success).toBe(true);
       const text = String(result.result);
-      expect(text).toContain("is not a WASM sandbox module declared by this node");
+      expect(text).toContain("is not a WASM sandbox module this run serves");
       // `spin` is declared, so reaching it is allowed — and bounded.
       expect(text).toContain("per-call timeout");
       // Nothing beyond the run's declared surface: the declared call still works.

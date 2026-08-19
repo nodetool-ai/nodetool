@@ -360,7 +360,6 @@ describe("custom nodes", () => {
       code: 'await output("formatted", inputs.raw);',
       inputs: [{ name: "raw", type: "str" }],
       outputs: [{ name: "formatted", type: "str" }],
-      packages: [{ specifier: "@nodetool-ai/sandbox-yaml" }],
       secrets: ["MY_KEY"],
       timeoutSeconds: 45,
       palette: { category: "My API" }

@@ -121,6 +121,23 @@ describe("guest module contract (shared fixtures)", () => {
     expect(result.success).toBe(true);
     expect(result.result).toBe(2);
   });
+
+  // A run that resolved nothing is the common case for a body whose imports
+  // name no installed pack — and it is the case that has to deny hardest. The
+  // loader used to be built only when something resolved, which left the
+  // wrapper's own Node-compat modules reachable from a body that declared
+  // nothing at all.
+  for (const fixture of SANDBOX_MODULE_FIXTURES) {
+    if (fixture.errorContains === undefined || fixture.catchesError) continue;
+    it(`${fixture.name}: still denied when the run resolved nothing`, async () => {
+      const result = await runInSandbox({
+        code: fixture.code,
+        timeoutMs: 20000
+      });
+      expect(result.success).toBe(false);
+      expect(String(result.error)).toContain("not a sandbox package this run serves");
+    }, 60_000);
+  }
 });
 
 // ---------------------------------------------------------------------------

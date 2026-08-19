@@ -5,8 +5,7 @@ description: Build, parse, and rasterize SVG with Fabric.js (renderSVG, loadSVG,
 
 # Fabric.js in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-fabric`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-fabric`. Import it at the top of the body.
 
 ## render — Canvas spec / JSON to image bytes
 

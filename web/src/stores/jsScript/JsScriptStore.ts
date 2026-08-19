@@ -18,7 +18,6 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import type { jsScripts } from "@nodetool-ai/protocol/api-schemas";
-import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
 import {
   pushHistory,
   undoHistory,
@@ -113,7 +112,6 @@ interface JsScriptStoreState {
     scriptId: string,
     ports: { inputs?: JsScriptPort[]; outputs?: JsScriptPort[] }
   ) => void;
-  setPackages: (scriptId: string, packages: SandboxModuleDeclaration[]) => void;
   setSecrets: (scriptId: string, secrets: string[]) => void;
   setTimeoutSeconds: (scriptId: string, timeoutSeconds: number) => void;
   setTests: (scriptId: string, tests: JsScriptTestCase[]) => void;
@@ -133,7 +131,6 @@ export const emptyJsScriptDocument = (): JsScriptDocument => ({
   code: "",
   inputs: [],
   outputs: [],
-  packages: [],
   secrets: [],
   timeoutSeconds: JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS,
   tests: []
@@ -331,11 +328,6 @@ export const useJsScriptStore = create<JsScriptStoreState>((set, get) => ({
         if (ports.outputs) patch.outputs = ports.outputs;
         return withDocument(entry, patch);
       })
-    ),
-
-  setPackages: (scriptId, packages) =>
-    set((state) =>
-      withScript(state, scriptId, (entry) => withDocument(entry, { packages }))
     ),
 
   setSecrets: (scriptId, secrets) =>

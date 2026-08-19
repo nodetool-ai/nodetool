@@ -39,6 +39,12 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./code-analysis": {
+      "nodetool-dev": "./src/code-analysis.ts",
+      "types": "./dist/code-analysis.d.ts",
+      "import": "./dist/code-analysis.js",
+      "default": "./dist/code-analysis.js"
+    },
     "./code-body": {
       "nodetool-dev": "./src/code-body.ts",
       "types": "./dist/code-body.d.ts",

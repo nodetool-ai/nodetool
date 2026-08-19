@@ -268,8 +268,8 @@ one the host granted.
 
 - **No dynamic code generation.** `eval` and `Function` are deleted before any
   user code evaluates.
-- **No ambient modules.** Without a declared resolution there is no loader at
-  all. With one, only the run's declared packages and their intra-pack siblings
+- **No ambient modules.** A body that imports nothing gets no loader at all.
+  With one, only the packs the run resolved and their intra-pack siblings
   resolve; dynamic `import()` is always denied. Enforcement sits in the
   *normalizer*, not the loader, because QuickJS serves an already-cached module
   without consulting the loader — that is what keeps `node:buffer` and the rest
@@ -456,9 +456,10 @@ declared. Design:
 Node props map onto sandbox policy: `timeout` (seconds, 0 for none),
 `max_response_mb`, `allow_local_network` → `limits.allowPrivateNetwork`,
 `allow_host_filesystem` → `limits.filesystemAccess`, `secrets` →
-`limits.secretScope`, and `packages` → the declared module resolution. An undeclared or unserveable package fails the node
-before the guest starts rather than surfacing as a resolve error inside it;
-version or digest drift only warns on the node's log.
+`limits.secretScope`. Modules come from the body itself: the packs its static
+imports name are resolved against the installed catalog. A pack no install
+serves fails the node before the guest starts rather than surfacing as a
+resolve error inside it; version or digest drift only warns on the node's log.
 
 On a server host the node's code also gets the `nodetool` object model, backed
 by the agent toolbelt. A JS script run uses that same belt, and one function
@@ -474,8 +475,8 @@ server, Apify and SerpAPI included — a call a chat made and a node then repeat
 resolves to the same tool.
 
 **Static checking.** `nodetool validate` parses each Code node body and reports
-what a run would hit: invalid JavaScript, top-level `export`, an import the
-node's `packages` does not declare, a bare read of a name that is neither a
+what a run would hit: invalid JavaScript, top-level `export`, an import no
+installed pack serves, a bare read of a name that is neither a
 sandbox API nor one of the node's own inputs (they live on `inputs`, so a bare
 read is a `ReferenceError`), an `inputs.<name>` the node does not declare, an
 `emit`/`output` call naming a handle the node does not declare, and a declared
@@ -551,7 +552,7 @@ and the action timeout bound.
 
 ### Package consent
 
-A Code node carries packages a person saved; an action is code the model just
+A Code node runs a body a person saved; an action is code the model just
 wrote. So an action imports only what the session allowed
 (`sandboxPackages`), and the prompt advertises only those specifiers, one
 sanitized line each, never the installed catalog. A session that allowed nothing
@@ -581,7 +582,7 @@ it around every tool- and plan-approval round trip.
   *acts* through; it declares the session's sandbox packages. `run_code` remains
   as a hermetic authoring harness — it executes a Code-node body with no
   toolbelt and only the secrets the call names — and library-backed work outside
-  an agent goes through a Code node with the package declared.
+  an agent goes through a Code node that imports the pack.
 
 ## Failure modes
 

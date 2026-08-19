@@ -1,8 +1,9 @@
 /**
  * JS script documents — the wire schema and the document-level check.
  *
- * A JS script is a named, versioned script with declared ports, sandbox
- * packages, secrets, a timeout, and saved test cases. The document is stored
+ * A JS script is a named, versioned script with declared ports, secrets, a
+ * timeout, and saved test cases. It declares no packages: the body's imports
+ * are resolved against whatever packs this install has. The document is stored
  * whole and validated here at every boundary: the model's `beforeSave`, the
  * tRPC router, and the run endpoint.
  *
@@ -14,7 +15,6 @@
  */
 
 import { z } from "zod";
-import { SandboxModuleDeclarationSchema } from "../sandbox-package.js";
 import { isNumber, isRecord, isString } from "../predicates.js";
 
 /** The only document version that exists. */
@@ -76,8 +76,6 @@ export const jsScriptDocument = z.object({
   code: z.string().default(""),
   inputs: z.array(jsScriptPort).default([]),
   outputs: z.array(jsScriptPort).default([]),
-  /** Sandbox packs the body may import; an undeclared import fails the check. */
-  packages: z.array(SandboxModuleDeclarationSchema).default([]),
   /** Secret names the body may read. `[]` means none. */
   secrets: z.array(z.string()).default([]),
   timeoutSeconds: z
@@ -98,7 +96,6 @@ export function emptyJsScriptDocument(): JsScriptDocument {
     code: "",
     inputs: [],
     outputs: [],
-    packages: [],
     secrets: [],
     timeoutSeconds: JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS,
     tests: []

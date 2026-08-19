@@ -5,8 +5,7 @@ description: Parse and write CSV in a Code node or CodeAct action, with papapars
 
 # CSV in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-csv`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-csv`. Import it at the top of the body.
 
 papaparse imports `node:stream`, so it cannot be compiled into the guest. This
 pack is a **host module**: the import resolves to a generated facade whose two

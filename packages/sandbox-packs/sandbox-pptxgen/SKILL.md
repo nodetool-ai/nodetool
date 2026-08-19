@@ -5,8 +5,7 @@ description: Build PowerPoint files in a Code node or CodeAct action, with PptxG
 
 # PowerPoint writing in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-pptxgen`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-pptxgen`. Import it at the top of the body.
 
 This pack **writes** PPTX files. To extract text from an existing deck, use
 `@nodetool-ai/sandbox-pptx` instead.

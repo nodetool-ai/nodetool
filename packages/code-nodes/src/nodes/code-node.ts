@@ -42,13 +42,15 @@ import {
   BaseNode,
   prop,
   CODE_INPUTS_GLOBAL,
-  parseSandboxModuleDeclarations,
+  parseCodeBody,
+  staticImportSpecifiers,
   hasReturnStatement,
   hasYieldStatement,
   wrapImplicitReturn,
   normalizeCodeOutput,
   usesEmitOutputContract,
-  usesStreamInputContract
+  usesStreamInputContract,
+  type CodeBodyStatement
 } from "@nodetool-ai/node-sdk";
 import type {
   ProcessingContext,
@@ -66,7 +68,11 @@ import {
   type SandboxInputTake
 } from "@nodetool-ai/agents/js-sandbox";
 import { importHidden } from "@nodetool-ai/config";
-import { ALL_PLATFORMS, type SandboxModuleResolution } from "@nodetool-ai/protocol";
+import {
+  ALL_PLATFORMS,
+  SANDBOX_CAPABILITY_PACK,
+  type SandboxModuleResolution
+} from "@nodetool-ai/protocol";
 
 /** JS keywords that cannot be used as variable names. */
 const JS_RESERVED = new Set([
@@ -383,7 +389,6 @@ class InputStreamBridge {
 /** What one invocation executes: the node's own properties. */
 interface CodeEnvelope {
   code: string;
-  packages: unknown[];
   secrets: string[];
   timeoutSeconds: number;
 }
@@ -449,7 +454,8 @@ export class CodeNode extends BaseNode {
       "image, audio or video input, and media.toDocument/toImage/toAudio/toVideo(bytes, " +
       "{mimeType, filename}) to build one to return, " +
       "toBase64/fromBase64/toHex/fromHex. Libraries — CSV, HTML, XML, XLSX, YAML, zip, dates, " +
-      "diffs — are sandbox packages: declare one in `packages` and `import` it at the top. " +
+      "diffs — are sandbox packages: `import` one at the top and the host resolves it " +
+      "against the installed packs. " +
       "Await fetch, sleep, workspace, getSecret, format, media, an imported package's " +
       "calls, and crypto.digest/hmac; the rest are synchronous. " +
       "Concurrent calls run in parallel: use Promise.all or " +
@@ -478,23 +484,6 @@ export class CodeNode extends BaseNode {
   declare code: string;
 
   @prop({
-    type: "list[dict]",
-    default: [],
-    title: "Packages",
-    // The editor renders this with the sandbox package picker, which lists the
-    // installed packs and stamps each declaration with the version and digest
-    // it was chosen against.
-    json_schema_extra: { type: "sandbox_packages" },
-    description:
-      "Sandbox packages this code may import, as specifiers or " +
-      "{specifier, resolvedPackVersion, contentDigest} objects — e.g. " +
-      '["@nodetool-ai/sandbox-csv", "@nodetool-ai/sandbox-yaml", "@nodetool-ai/sandbox-html"]. ' +
-      "The sandbox resolves only what is listed here; every other `import` fails, " +
-      "and dynamic `import()`/`require()` are never available."
-  })
-  declare packages: unknown[];
-
-  @prop({
     type: "list[str]",
     default: [],
     title: "Secrets",
@@ -517,7 +506,7 @@ export class CodeNode extends BaseNode {
     description:
       "Which JS script version this node's body was copied from, as " +
       '{"id": "<script id>", "version": <n>}. Linking materializes the pinned ' +
-      "version: its code, packages, secrets and timeout become the node's own, " +
+      "version: its code, secrets and timeout become the node's own, " +
       "so editing the script does not silently change this workflow and a run " +
       "needs no script storage. \"Update to latest\" re-copies and re-pins. " +
       "Empty means the node was never linked."
@@ -616,40 +605,49 @@ export class CodeNode extends BaseNode {
   }
 
   /**
-   * Resolve the node's `packages` declarations through the host's catalog.
+   * Resolve the packs the body imports through the host's catalog.
    *
-   * Nothing declared means nothing importable: no resolution is built and the
-   * sandbox installs no loader at all. A declaration that cannot be served —
-   * no catalog in this process, an uninstalled pack, a module the host refused
-   * — fails the node here rather than as a resolve error inside the guest.
-   * Version and digest drift only warn: resolution uses what is installed, and
-   * saying so on the node's log is the whole remedy.
+   * The imports are the declaration: a static `import` of an installed pack is
+   * served, and nothing else is — same rule a JS script runs under, so a body
+   * moved between the two behaves identically. A body that imports no pack gets
+   * no loader at all. An import that cannot be served — no catalog in this
+   * process, an uninstalled pack, a module the host refused — fails the node
+   * here rather than as a resolve error inside the guest. Version and digest
+   * drift only warn: resolution uses what is installed, and saying so on the
+   * node's log is the whole remedy.
+   *
+   * NodeTool's own guest modules (`@nodetool-ai/sandbox-nodetool/*`) are not
+   * packs; {@link CodeNode.resolveCapabilities} mounts those.
    */
   private resolveModules(
     envelope: CodeEnvelope,
     context?: ProcessingContext
   ): SandboxModuleResolution | undefined {
-    const { declarations, invalid } = parseSandboxModuleDeclarations(
-      envelope.packages
-    );
-    if (invalid.length > 0) {
-      throw new Error(
-        `Invalid \`packages\` declaration${invalid.length > 1 ? "s" : ""}: ${invalid.join(", ")}. ` +
-          "Each entry is a module specifier, or an object with a `specifier`."
-      );
-    }
-    if (declarations.length === 0) return undefined;
+    const statements = importableStatements(envelope.code);
+    if (statements === null) return undefined;
+    const specifiers = [
+      ...new Set(
+        staticImportSpecifiers(statements).filter(
+          (specifier) =>
+            specifier !== SANDBOX_CAPABILITY_PACK &&
+            !specifier.startsWith(`${SANDBOX_CAPABILITY_PACK}/`)
+        )
+      )
+    ];
+    if (specifiers.length === 0) return undefined;
 
     const catalog = context?.sandboxModuleCatalog;
     if (!catalog) {
       throw new Error(
-        `Sandbox packages are not available in this process, so ${declarations
-          .map((declaration) => `"${declaration.specifier}"`)
+        `Sandbox packages are not available in this process, so ${specifiers
+          .map((specifier) => `"${specifier}"`)
           .join(", ")} cannot be imported.`
       );
     }
 
-    const resolution = catalog.resolveForExecution(declarations);
+    const resolution = catalog.resolveForExecution(
+      specifiers.map((specifier) => ({ specifier }))
+    );
     const errors = resolution.statuses.filter(
       (status) => status.status === "error"
     );
@@ -715,8 +713,8 @@ export class CodeNode extends BaseNode {
   /**
    * What this invocation runs: the node's own properties, always.
    *
-   * Linking a script *materializes* it — the pinned version's code, packages,
-   * secrets and timeout are copied onto the node when the link is made or
+   * Linking a script *materializes* it — the pinned version's code, secrets
+   * and timeout are copied onto the node when the link is made or
    * updated, and the `script` property records only which version they came
    * from. So execution needs no database, no resolver, and no await: the body
    * a run executes is the body the graph carries, which is also the body
@@ -725,7 +723,6 @@ export class CodeNode extends BaseNode {
   private envelope(): CodeEnvelope {
     return {
       code: String(this.code ?? "return {};"),
-      packages: Array.isArray(this.packages) ? this.packages : [],
       secrets: Array.isArray(this.secrets) ? this.secrets : [],
       timeoutSeconds: Number(this.timeout ?? 30)
     };
@@ -758,7 +755,7 @@ export class CodeNode extends BaseNode {
    * NodeTool's own guest modules (`@nodetool-ai/sandbox-nodetool/*`) for the
    * namespaces this body imports, or nothing when it imports none.
    *
-   * They are not packs, so they are not declared in `packages`: the host
+   * They are not packs, so they never reach the catalog: the host
    * decides what a run can reach, and for this node the host already made that
    * decision when it gave the body the `tools.*` / `nodetool.*` belt. The run
    * is therefore ungated, exactly as the belt is — a second, stricter door on
@@ -1023,6 +1020,22 @@ export class CodeNode extends BaseNode {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * The body's top-level statements, or null when it does not parse.
+ *
+ * A body on the legacy `yield` contract is not valid module syntax — a
+ * top-level `yield` is a reserved word outside a generator — so it parses only
+ * after the same rewrite {@link CodeNode.runLegacyStream} applies before
+ * running it. Reading the imports off the rewritten body keeps a legacy
+ * streaming body able to import a pack.
+ */
+function importableStatements(code: string): CodeBodyStatement[] | null {
+  const parsed = parseCodeBody(code);
+  if (!("error" in parsed)) return parsed.statements;
+  const rewritten = parseCodeBody(code.replace(/\byield\b/g, "yield_"));
+  return "error" in rewritten ? null : rewritten.statements;
+}
+
 /** Extract dynamic inputs, filtering reserved/invalid keys. */
 function extractDynamicInputs(
   inputs: Record<string, unknown>
@@ -1030,6 +1043,9 @@ function extractDynamicInputs(
   const reserved = new Set([
     "code",
     "script",
+    // Retired: the node no longer declares packages (they come from the body's
+    // imports), but a graph saved before that still carries the key and must
+    // not turn it into a dynamic input.
     "packages",
     "secrets",
     "timeout",

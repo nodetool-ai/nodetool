@@ -3,7 +3,7 @@
  * surface.
  *
  * A JS script is a named, versioned script with declared ports, sandbox
- * packages, secrets, a timeout, and saved test cases
+ * secrets, a timeout, and saved test cases
  * (docs/js-script-document-design.md). These six capabilities are how an agent
  * — or a Code node body, or a CodeAct action, through the same belt — finds
  * one, reads it, saves it, checks it, runs it, and regression-tests it:
@@ -268,7 +268,6 @@ async function runDocument(
   const params: Parameters<typeof runCodeBody>[1] = {
     code: document.code,
     inputs,
-    packages: document.packages.map((pack) => pack.specifier),
     secrets: resolveSecretScope(context, document.secrets),
     timeoutSeconds: Math.min(
       document.timeoutSeconds,

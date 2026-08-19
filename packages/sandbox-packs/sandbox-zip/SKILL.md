@@ -5,8 +5,7 @@ description: Read and write zip archives in a Code node or CodeAct action, with 
 
 # Zip archives in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-zip`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-zip`. Import it at the top of the body.
 
 ## Why this one runs on the host
 

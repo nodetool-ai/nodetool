@@ -5,8 +5,7 @@ description: Read and write Supabase tables from a Code node or CodeAct action, 
 
 # Supabase in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-supabase`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-supabase`. Import it at the top of the body.
 
 Supabase's REST surface is PostgREST: the whole query lives in the URL and the
 write semantics live in a `Prefer` header. Both are easy to get subtly wrong —

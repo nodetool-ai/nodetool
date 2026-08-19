@@ -5,8 +5,7 @@ description: Read the text in an image from a Code node or CodeAct action, with 
 
 # OCR in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-ocr`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-ocr`. Import it at the top of the body.
 
 tesseract.js runs a WASM engine, spawns workers, and downloads its language
 data on first use — none of which the guest can do. This pack is a **host

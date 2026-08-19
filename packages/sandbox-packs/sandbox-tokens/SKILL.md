@@ -5,8 +5,7 @@ description: Count, encode, and decode LLM tokens in a Code node or CodeAct acti
 
 # Token counting in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-tokens`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-tokens`. Import it at the top of the body.
 
 One encoding's BPE ranks are several megabytes, well past the 1 MB cap on a
 compiled guest module, so this pack is a **host module**: the import resolves to

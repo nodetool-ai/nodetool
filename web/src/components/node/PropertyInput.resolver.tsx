@@ -36,7 +36,6 @@ import ScriptProperty from "../properties/ScriptProperty";
 import ImageSizeProperty from "../properties/ImageSizeProperty";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
-import SandboxPackagesProperty from "../properties/SandboxPackagesProperty";
 import ImageListProperty from "../properties/ImageListProperty";
 import VideoListProperty from "../properties/VideoListProperty";
 import AudioListProperty from "../properties/AudioListProperty";
@@ -141,8 +140,6 @@ function customComponentForType(
       return MediaDurationProperty;
     case "media_strength":
       return MediaStrengthProperty;
-    case "sandbox_packages":
-      return SandboxPackagesProperty;
     default:
       return null;
   }

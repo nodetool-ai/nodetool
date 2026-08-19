@@ -38,7 +38,6 @@ export interface CustomNodeScript {
     code: string;
     inputs: readonly jsScripts.JsScriptPort[];
     outputs: readonly jsScripts.JsScriptPort[];
-    packages: readonly { specifier: string }[];
     secrets: readonly string[];
     timeoutSeconds: number;
     palette?: { category: string };
