@@ -2,15 +2,19 @@
 
 External-API integration nodes for [NodeTool](https://nodetool.ai).
 
-Connect visual AI workflows to the outside world: Google Workspace, email,
-Discord and Telegram triggers, and ComfyUI workflows.
+Connect visual AI workflows to the outside world: email, Discord and Telegram
+triggers, and ComfyUI workflows.
 
 Services that are one authenticated HTTP call — S3, Supabase, Notion, Twilio,
-Apify, SerpApi, Discord and Telegram sends — no longer ship as nodes. They are
-written as scripts in a `nodetool.code.Code` node, with `fetch`,
+Discord and Telegram sends — no longer ship as nodes. They are written as
+scripts in a `nodetool.code.Code` node, with `fetch`,
 `nodetool.secrets.get(name)`, and the auth-helper sandbox packs
-(`@nodetool-ai/sandbox-aws`, `-notion`, `-supabase`, `-twilio`, `-apify`). See
+(`@nodetool-ai/sandbox-aws`, `-notion`, `-supabase`, `-twilio`). See
 [packages/sandbox-packs](../sandbox-packs/README.md).
+
+Apify and SerpApi are capability modules instead
+(`@nodetool-ai/sandbox-nodetool/apify` and `.../serpapi`), so the credential
+stays on the host rather than being read by the script.
 
 ## Install
 

@@ -1489,6 +1489,70 @@ Manual harnesses (need a target/key — run yourself):
 3 selfcheck(s) to run
 ```
 
+### `nodetool package`
+
+Manage TypeScript **node** packages — the packs that contribute node types to
+the registry. Not to be confused with `nodetool packs`, which handles the
+sandbox packs a Code node imports; the names are one letter apart and the
+subjects are unrelated.
+
+Reach for it when you are authoring a node pack: `init` scaffolds one, `list`
+tells you what this install has, and the three `*-docs` commands generate the
+Markdown that ships with a pack.
+
+**Subcommands:** `list`, `init`, `docs`, `node-docs`, `workflow-docs`
+
+#### `nodetool package list`
+
+List the installed packages with their node counts, or the registry's catalog
+with `--available`.
+
+```bash
+nodetool package list
+nodetool package list --available
+nodetool package list --json
+```
+
+```
+ name          │ version     │ description         │ nodes
+───────────────┼─────────────┼─────────────────────┼───────
+ nodetool-base │ 0.6.3-rc.41 │ Nodetool Base nodes │ 0
+```
+
+`--available` reads the index at `NODETOOL_PACKAGE_REGISTRY_URL`. See
+[Node Packs](node-packs.md) for what a pack is and how one is installed.
+
+#### `nodetool package init`
+
+Scaffold a new TypeScript node package in the current directory. Takes no
+options — it prompts for what it needs.
+
+```bash
+mkdir nodetool-my-nodes && cd nodetool-my-nodes
+nodetool package init
+```
+
+#### `nodetool package docs`, `node-docs`, `workflow-docs`
+
+Generate Markdown from the current package: `docs` writes one overview,
+`node-docs` writes a page per node, and `workflow-docs` documents the workflow
+JSONs a pack ships. Each takes `-v, --verbose`.
+
+**Options:**
+
+- `docs` — `-o, --output-dir <dir>` (default `docs`), `-c, --compact` for a
+  shorter overview.
+- `node-docs` — `-o, --output-dir <dir>` (default `docs/nodes`),
+  `-p, --package-name <name>` to emit only nodes under a namespace prefix.
+- `workflow-docs` — `-o, --output-dir <dir>` (default `docs/workflows`),
+  `-e, --examples-dir <dir>` to point at the workflow JSONs, and
+  `-p, --package-name <name>` to keep only those whose `package_name` matches.
+
+```bash
+nodetool package docs --compact
+nodetool package node-docs --package-name nodetool.text
+```
+
 ### `nodetool packs compile`
 
 Compile every npm-backed sandbox module of every installed pack. A pack can
@@ -1527,6 +1591,75 @@ Everything that stops a module short of admission is a named skip, not an
 error: `npm-module-builtin-import` (the dependency needs `node:*`),
 `npm-module-unresolved`, `npm-module-too-large` (1 MB cap),
 `npm-module-forbidden-global`, and `npm-module-probe-failed`.
+
+### `nodetool reliability`
+
+Run a reliability journey on more than one execution surface and diff each one
+against the kernel oracle. A journey is a small workflow plus the invariants its
+run must hold — lifecycle pairing, one terminal message, no leaked cleanup — and
+the point is that the kernel runner and the WebSocket server must produce the
+same stream for it. Reach for it when a change touches execution and you need to
+know whether the surfaces still agree.
+
+Journeys live in `reliability/journeys/`. The architecture behind them is
+[RELIABILITY_ARCHITECTURE.md](RELIABILITY_ARCHITECTURE.md).
+
+Working in the monorepo, run this one from the built CLI (`npm run nodetool --`)
+rather than from source: the journey fixtures use decorators, and the
+`dev:nodetool` transform rejects them with `Decorators are not valid here`.
+
+**Subcommands:** `list`, `run`, `update-goldens`
+
+#### `nodetool reliability list`
+
+List the journeys, each with its surfaces and the invariants it asserts. Takes
+`--json` for the full summaries.
+
+```bash
+nodetool reliability list
+nodetool reliability list --json
+```
+
+```
+linear-text-pipeline
+  Journey #1 (docs/RELIABILITY_ARCHITECTURE.md §5): input -> transform -> output.
+  The baseline — if this diverges across surfaces, everything is suspect.
+  surfaces: kernel, ws-server
+  invariants: lifecycle-pairing, terminal-uniqueness
+```
+
+#### `nodetool reliability run <journey>`
+
+Run one journey on the surfaces it declares and diff every non-oracle surface
+against the kernel oracle.
+
+**Options:**
+
+- `--surface <name>` — run only this surface, repeatable, overriding the
+  journey's own list. The kernel oracle is always included.
+- `--faults <name>` — inject this fault, repeatable, replacing the journey's
+  declared fault matrix. The provider-seam faults are implemented
+  (`provider-429`, `provider-500`, `provider-timeout`, `truncated-stream`,
+  `malformed-sse`, `slow-drip`, `cost-omission`); the `ws`/`bridge`/`host`/
+  `client` names parse but report as unimplemented.
+- `--diff` — print the full per-channel stream diff for a diverging surface.
+- `--json` — print the whole `CompareReport` instead of the summary.
+
+```bash
+nodetool reliability run linear-text-pipeline
+nodetool reliability run linear-text-pipeline --surface kernel
+nodetool reliability run mid-run-cancel-node --faults provider-429 --diff
+```
+
+#### `nodetool reliability update-goldens <journey>`
+
+Rewrite a journey's `expected/` fixtures from a fresh unfaulted kernel run. For
+a golden that legitimately moved — read the diff before committing it, since
+this command cannot tell a fixed bug from a new one.
+
+```bash
+nodetool reliability update-goldens linear-text-pipeline
+```
 
 ### `nodetool eval <suite>`
 

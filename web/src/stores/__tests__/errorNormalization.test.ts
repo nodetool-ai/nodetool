@@ -1,5 +1,4 @@
 import { normalizeNodeError, hasNodeError, nodeErrorToDisplayString } from "../ErrorStore";
-import { stub } from "../../test-utils/doubles";
 
 describe("normalizeNodeError", () => {
   it("returns undefined for null", () => {

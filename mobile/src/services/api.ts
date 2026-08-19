@@ -57,12 +57,7 @@ function delay(ms: number): Promise<void> {
 }
 
 export type Asset = components["schemas"]["Asset"];
-export type AssetList = components["schemas"]["AssetList"];
-export type AssetUpdateRequest = components["schemas"]["AssetUpdateRequest"];
-export type AssetSearchResult = components["schemas"]["AssetSearchResult"];
-export type AssetWithPath = components["schemas"]["AssetWithPath"];
 export type JobResponse = components["schemas"]["JobResponse"];
-export type JobListResponse = components["schemas"]["JobListResponse"];
 export type {
   ApplicationListItem,
   ApplicationReleaseResponse,

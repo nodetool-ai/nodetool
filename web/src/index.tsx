@@ -29,11 +29,8 @@ import {
 
 import ErrorBoundary from "./ErrorBoundary";
 
-import { LoadingSpinner } from "./components/ui_primitives";
-import { ThemeProvider } from "@mui/material/styles";
-import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
+import { LoadingSpinner, ThemeRoot } from "./components/ui_primitives";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
-import { CssBaseline } from "@mui/material";
 
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
@@ -658,9 +655,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   return (
     <React.StrictMode>
       <TRPCProvider>
-        <InitColorSchemeScript attribute="class" defaultMode="dark" />
-        <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-          <CssBaseline />
+        <ThemeRoot theme={ThemeNodetool}>
           <MobileClassProvider>
             <MenuProvider>
               <MenuNavigationBridge />
@@ -782,7 +777,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
               </WorkflowManagerProvider>
             </MenuProvider>
           </MobileClassProvider>
-        </ThemeProvider>
+        </ThemeRoot>
       </TRPCProvider>
     </React.StrictMode>
   );
