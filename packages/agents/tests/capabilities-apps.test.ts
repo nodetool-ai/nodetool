@@ -60,7 +60,12 @@ describe("apps capability module", () => {
   });
 
   it("carries the wire names the tools carried", () => {
-    expect(APP_CAPABILITIES.map((e) => e.spec.name)).toEqual(["debug_app"]);
+    expect(APP_CAPABILITIES.map((e) => e.spec.name)).toEqual([
+      "debug_app",
+      "list_apps",
+      "get_app",
+      "delete_app"
+    ]);
   });
 
   it("classifies every capability the way the gate does today", () => {

@@ -232,6 +232,26 @@ export const testJsScriptSpec: CapabilitySpec = {
     `Testing JS script ${String(params["js_script_id"] ?? params["name"] ?? "")}`
 };
 
+export const deleteJsScriptSpec: CapabilitySpec = {
+  name: "delete_js_script",
+  description:
+    "Delete a JS script you own, together with its saved version history. " +
+    "This cannot be undone. A JS script belonging to another user is reported " +
+    "as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      script_id: {
+        type: "string",
+        description: "The JS script to delete. You must own it."
+      }
+    },
+    required: ["script_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting JS script ${params["script_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const jsScriptsSpecs: readonly CapabilitySpec[] = [
   listJsScriptsSpec,
@@ -239,5 +259,6 @@ export const jsScriptsSpecs: readonly CapabilitySpec[] = [
   saveJsScriptSpec,
   validateJsScriptSpec,
   runJsScriptSpec,
-  testJsScriptSpec
+  testJsScriptSpec,
+  deleteJsScriptSpec
 ];

@@ -305,6 +305,16 @@ one the host granted.
   fails fast and the guest unwinds. A purely CPU-bound loop still runs to its
   execution timeout — QuickJS's wrapper exposes no interrupt input — but
   `runInSandbox` returns as soon as the signal fires.
+- **The platform API is scoped to the caller's own rows.** Every capability
+  that reads or writes NodeTool's own data resolves the row against the run's
+  user id, and missing and not-yours are one answer so a run cannot probe for
+  ids. What is deliberately *not* reachable is written down per procedure in
+  `packages/websocket/src/trpc/sandbox-coverage.ts` and checked against the
+  live router: credentials, billing, other tenants, host control, the
+  transcript of the run's own behaviour, and anything that grants a third
+  party access. Publishing is the one exception, and it asks —
+  `set_workflow_access` is classified `external`, so the permission gate
+  prompts before a workflow becomes readable outside the account.
 - **Bridges are the boundary, not the hiding.** The host and WASM module
   dispatchers validate module identity, export name and argument list before any
   implementation loads, and their bindings are deleted before user code starts.

@@ -147,8 +147,8 @@ export const scriptsRouter = router({
     .input(idInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
-      const script = await loadOwned(ctx.userId, input.id);
-      await script.delete();
+      await loadOwned(ctx.userId, input.id);
+      await Script.deleteOwned(ctx.userId, input.id);
       return { ok: true as const };
     })
 });

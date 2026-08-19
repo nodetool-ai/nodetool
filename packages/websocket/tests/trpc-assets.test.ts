@@ -13,7 +13,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       find: vi.fn(),
       paginate: vi.fn(),
       searchAssetsGlobal: vi.fn(),
-      getChildren: vi.fn()
+      getChildren: vi.fn(),
+      validateParent: vi.fn().mockResolvedValue(null)
     }
   };
 });

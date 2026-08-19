@@ -9,16 +9,24 @@
  * Chroma) about users is a much larger change, so ownership is recorded in
  * collection metadata and enforced here, at the API boundary.
  *
- * In-process consumers — RAG nodes, agent tools, the CLI — talk to the
- * provider directly and are deliberately unaffected: they already run with the
- * privileges of whatever invoked them.
+ * In-process consumers that were written before this — RAG nodes, the CLI,
+ * and the read-only `list_collections` / `query_collection` capabilities —
+ * talk to the provider directly and are deliberately unaffected: they already
+ * run with the privileges of whatever invoked them. The rules live here rather
+ * than in the HTTP layer so that a consumer which *should* honour them can:
+ * the sandbox's `create_collection` and `delete_collection` capabilities do,
+ * because creating and destroying a store is where a shared namespace turns
+ * from a read others can see into a write others lose.
  *
  * Collections that predate this (no owner recorded) stay readable and writable
  * by everyone. Retroactively assigning them to a user would lock existing
  * deployments out of their own data, so they are treated as shared. Only
  * collections created through the API from here on are isolated.
  */
-import { isNonEmptyString } from "./wire-values.js";
+/** A metadata value that is a usable string. */
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
 
 
 /** Metadata key holding the id of the user who created the collection. */
@@ -39,11 +47,22 @@ export const MAX_COLLECTION_NAME_LENGTH = 128;
 type Metadata = Record<string, string | number | boolean>;
 
 /**
+ * Metadata as a *reader* sees it: a provider may hand back a key whose value
+ * is absent. The two read helpers take this wider type so a caller holding a
+ * provider's own metadata does not have to launder it first — they look at one
+ * key and check it is a usable string, so nothing else can reach them.
+ */
+type ReadableMetadata = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
+
+/**
  * The recorded owner of a collection, or `null` when it predates ownership
  * tracking.
  */
 export function collectionOwner(
-  metadata: Metadata | undefined
+  metadata: ReadableMetadata | undefined
 ): string | null {
   const owner = metadata?.[OWNER_METADATA_KEY];
   return isNonEmptyString(owner) ? owner : null;
@@ -54,7 +73,7 @@ export function collectionOwner(
  * Unowned (pre-existing) collections are shared — see the module comment.
  */
 export function canAccessCollection(
-  metadata: Metadata | undefined,
+  metadata: ReadableMetadata | undefined,
   userId: string
 ): boolean {
   const owner = collectionOwner(metadata);

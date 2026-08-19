@@ -1,3 +1,12 @@
+export {
+  OWNER_METADATA_KEY,
+  RESERVED_COLLECTION_METADATA_KEYS,
+  MAX_COLLECTION_NAME_LENGTH,
+  collectionOwner,
+  canAccessCollection,
+  stripReservedMetadata,
+  validateCollectionName
+} from "./collection-access.js";
 // @nodetool-ai/vectorstore — backend-agnostic vector store
 
 // ---------------------------------------------------------------------------

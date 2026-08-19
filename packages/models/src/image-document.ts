@@ -11,6 +11,7 @@ import {
 } from "./base-model.js";
 import { getDb } from "./db.js";
 import { imageDocuments } from "./schema/image-documents.js";
+import { ImageDocumentVersion } from "./image-document-version.js";
 
 export interface ImageDocumentData {
   sketch: SketchDocumentLike;
@@ -152,6 +153,24 @@ export class ImageDocument extends DBModel {
       createdAt: this.created_at,
       updatedAt: this.updated_at
     };
+  }
+
+  /**
+   * Delete a image document the caller owns, and everything that hung off it.
+   *
+   * The ownership test lives here rather than in each caller because there are
+   * two of them — the tRPC route and the sandbox's `delete_sketch`
+   * capability — and a delete is not a place for two copies of one rule.
+   * Missing and not-yours are the same answer, so a caller cannot probe ids.
+   */
+  static async deleteOwned(userId: string, id: string): Promise<boolean> {
+    const row = await ImageDocument.findById(id);
+    if (!row || row.user_id !== userId) return false;
+    await row.delete();
+    // Belt-and-braces with the FK cascade: version rows outliving their
+    // document would be unreachable garbage.
+    await ImageDocumentVersion.deleteForDocument(id);
+    return true;
   }
 
   static async findById(id: string): Promise<ImageDocument | null> {

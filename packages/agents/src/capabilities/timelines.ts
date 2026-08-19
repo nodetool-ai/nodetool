@@ -48,7 +48,8 @@ import {
   CREATE_TIMELINE_VERSION_SCHEMA,
   RESTORE_TIMELINE_VERSION_SCHEMA,
   EDIT_TIMELINE_SCHEMA,
-  VALIDATE_TIMELINE_SCHEMA
+  VALIDATE_TIMELINE_SCHEMA,
+  deleteTimelineSpec
 } from "./timelines.specs.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
@@ -615,6 +616,27 @@ const validateTimeline: CapabilityExport = {
 };
 
 /** Every timeline capability, in the order the tool files declared them. */
+/**
+ * Delete a timeline sequence the caller owns.
+ *
+ * The ownership check and the version cascade are `TimelineSequence.deleteOwned`, the
+ * same function the tRPC route calls — a delete is not a place for two copies
+ * of one rule, and version rows outliving their document would be unreachable
+ * garbage. Missing and not-yours are one answer.
+ */
+const deleteTimeline: CapabilityExport = {
+  spec: deleteTimelineSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const { TimelineSequence } = await import("@nodetool-ai/models");
+    const id = String(params["timeline_id"]);
+    const deleted = await TimelineSequence.deleteOwned(userId, id);
+    return deleted
+      ? { timeline_id: id, deleted: true }
+      : { error: `Timeline sequence ${id} was not found, or it is not yours.` };
+  }
+};
 export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   listTimelines,
   listTimelineVersions,
@@ -622,7 +644,8 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   createTimelineVersion,
   restoreTimelineVersion,
   editTimeline,
-  validateTimeline
+  validateTimeline,
+  deleteTimeline
 ];
 
 export const module: CapabilityModule = {
@@ -637,5 +660,6 @@ export {
   createTimelineVersion,
   restoreTimelineVersion,
   editTimeline,
-  validateTimeline
+  validateTimeline,
+  deleteTimeline
 };

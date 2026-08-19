@@ -248,6 +248,26 @@ export const deriveStoryboardFromScriptSpec: CapabilitySpec = {
     `Deriving a storyboard from script ${String(params["script_id"])}`
 };
 
+export const deleteScriptSpec: CapabilitySpec = {
+  name: "delete_script",
+  description:
+    "Delete a script you own, together with its saved version history. " +
+    "This cannot be undone. A script belonging to another user is reported " +
+    "as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      script_id: {
+        type: "string",
+        description: "The script to delete. You must own it."
+      }
+    },
+    required: ["script_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting script ${params["script_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const scriptsSpecs: readonly CapabilitySpec[] = [
   listScriptsSpec,
@@ -255,5 +275,6 @@ export const scriptsSpecs: readonly CapabilitySpec[] = [
   voiceScriptLinesSpec,
   assembleScriptTimelineSpec,
   editScriptSpec,
-  deriveStoryboardFromScriptSpec
+  deriveStoryboardFromScriptSpec,
+  deleteScriptSpec
 ];

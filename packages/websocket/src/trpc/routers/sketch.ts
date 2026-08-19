@@ -442,11 +442,10 @@ export const sketchRouter = router({
     .input(idInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
-      const doc = await loadOwned(ctx.userId, input.id);
-      await doc.delete();
-      // Belt-and-braces with the FK cascade: version rows outliving their
-      // document would be unreachable garbage.
-      await ImageDocumentVersion.deleteForDocument(input.id);
+      // Ownership, the row, and its version rows are one operation on the
+      // model, shared with the sandbox's `delete_sketch` capability.
+      await loadOwned(ctx.userId, input.id);
+      await ImageDocument.deleteOwned(ctx.userId, input.id);
       lastAutosaveVersionTime.delete(input.id);
       return { ok: true as const };
     }),

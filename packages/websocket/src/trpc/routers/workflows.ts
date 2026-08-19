@@ -736,16 +736,14 @@ export const workflowsRouter = router({
     .input(deleteInput)
     .output(deleteOutput)
     .mutation(async ({ ctx, input }) => {
-      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow)
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      if (workflow.user_id !== ctx.userId) {
+      // Ownership, the row, and the grants that outlive it are one operation
+      // in `deleteOwned` — the sandbox's `delete_workflow` capability calls
+      // the same function, so the cascade cannot drift between the two.
+      const deleted = await Workflow.deleteOwned(ctx.userId, input.id);
+      if (!deleted) {
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
-      await workflow.delete();
       lastAutosaveTime.delete(input.id);
-      await WorkflowCollaborator.removeAllForWorkflow(input.id);
-      await WorkflowShare.removeAllForWorkflow(input.id);
       return { ok: true as const };
     }),
 
