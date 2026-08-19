@@ -588,7 +588,7 @@ GlobalChatStore ───────┴──▶ GlobalWebSocketManager ──�
 REST calls go through `restFetch` (`web/src/lib/rest-fetch.ts`), a thin `fetch` wrapper:
 - **Base URL** — `BASE_URL` (`web/src/stores/BASE_URL.ts`) from `VITE_API_URL`, empty in local dev so requests stay relative
 - **Auth header** — a Supabase Bearer token is attached only when the server reports `authMode: "supabase"` (`isAuthRequired()` in `web/src/lib/runtimeConfig.ts`); in `local` auth mode no header is sent
-- **Environment detection** — `isLocalhost` / `isElectron` / `isProduction` flags in `web/src/lib/env.ts`, derived from hostname, `VITE_FORCE_LOCALHOST`, the `forceLocalhost` URL parameter, and localStorage
+- **Environment detection** — `isLocalhost` / `isElectron` / `isProduction` flags in `web/src/lib/env.ts`, derived from the hostname (`localhost`, `127.0.0.1`, or a `dev.` prefix) and the Electron preload bridge
 - **Types** — request/response types come from `@nodetool-ai/protocol`, re-exported through `web/src/stores/ApiTypes.ts`
 - **Dev proxy** — Vite proxies `/api`, `/ws`, `/trpc`, and `/storage` (rewritten to `/api/storage`) to `localhost:7777` during development
 
