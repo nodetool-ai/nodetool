@@ -187,7 +187,7 @@ lazy implementation table disagree.
 | `email` | `search_email`, `archive_email`, `add_label_to_email` |
 | `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image` |
 | `jobs` | `list_jobs`, `get_job`, `get_job_logs` |
-| `apps` | `debug_app` |
+| `apps` | `list_apps`, `get_app`, `create_app`, `edit_app`, `debug_app`, `delete_app` |
 | `code` | `validate_code`, `run_code`, `test_code` |
 | `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
 | `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video` |
@@ -263,9 +263,17 @@ from inside an agent:
   logs, and a graph overview in one call.
 - **`debug_app`** — validate a mini app's bindings, simulate it, and return each
   widget's final state with a verdict. `run: false` is the free, instant wiring
-  check an agent runs after every edit. There is no `build_app` tool: an app is
-  built with the `ui_app_*` editor tools and graded with this one. The batch
-  harness lives on at `POST /api/applications/build` and `nodetool app build`.
+  check an agent runs after every edit.
+- **`create_app`** / **`edit_app`** — author the app itself. `create_app` makes
+  the row; `edit_app` takes a list of `{tool, input}` steps naming the same
+  `ui_app_*` tools the browser editor exposes, applies them to the saved
+  document through the headless bridge (`app-build/bridge.ts`, which the
+  `app-tools` eval and the build harness's Author stage already drive), and
+  writes the result back once. `edit_app` with no steps returns every tool and
+  its schema. Without these two the `ui_app_*` tools only existed inside a live
+  Puck editor, so a chat agent could debug an app but never build one. There is
+  still no `build_app` tool: the batch harness lives on at
+  `POST /api/applications/build` and `nodetool app build`.
 - **`run_workflow`** / **`start_background_job`** — execute synchronously or as a
   background job (poll with `get_job` / `get_job_logs`).
 - **`create_workflow`**, **`search_nodes`**, **`list_nodes`**, **`get_node_info`**,

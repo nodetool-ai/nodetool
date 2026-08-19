@@ -105,7 +105,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "vector_text_search",
     "vector_hybrid_search"
   ],
-  apps: ["debug_app"],
+  apps: ["list_apps", "get_app", "create_app", "edit_app", "debug_app"],
   timelines: [
     "list_timelines",
     "list_timeline_versions",
@@ -947,6 +947,15 @@ const nodetool = (() => {
     },
 
     apps: {
+      list: (opts) => __need("list_apps")(__merge(opts)),
+      get: (id) => __need("get_app")({ application_id: id }),
+      /** Create an empty app and get its id back. */
+      create: (name, opts) => __need("create_app")(__merge(opts, { name: name })),
+      /** Apply App Builder steps to a saved app, then save it. */
+      edit: (id, steps, opts) =>
+        __need("edit_app")(
+          __merge(opts, { application_id: id, steps: steps })
+        ),
       /** Validate + simulate a saved app. {run: false} is the free check. */
       debug: (id, opts) =>
         __need("debug_app")(__merge(opts, { application_id: id }))
@@ -1265,10 +1274,13 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "apps",
-    doc: `- \`nodetool.apps\` — \`debug(applicationId, {params, interact, run,
-  poll})\` validates and simulates a saved app; \`{run: false}\` is the free,
-  instant wiring check. Build an app by driving the \`ui_app_*\` editor tools
-  and checking each change with \`{run: false}\`.`
+    doc: `- \`nodetool.apps\` — \`list()\`, \`get(id)\`, \`create(name,
+  {description, from_workflow_id})\`, \`edit(id, steps)\` and
+  \`debug(applicationId, {params, interact, run, poll})\`. Build an app by
+  creating it, then driving the App Builder tools through \`edit\`:
+  \`[{tool: "add_operation", input: {…}}, {tool: "add_component", input: {…}}]\`
+  — \`edit(id, [])\` returns every tool and its schema. \`debug\` with
+  \`{run: false}\` is the free, instant wiring check after each change.`
   },
   {
     namespace: "timelines",
