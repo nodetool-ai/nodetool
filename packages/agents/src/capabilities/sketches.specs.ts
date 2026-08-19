@@ -260,6 +260,26 @@ export const validateSketchSpec: CapabilitySpec = {
       : "Validating sketch document"
 };
 
+export const deleteSketchSpec: CapabilitySpec = {
+  name: "delete_sketch",
+  description:
+    "Delete a sketch you own, together with its saved version history. " +
+    "This cannot be undone. A sketch belonging to another user is reported " +
+    "as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      image_document_id: {
+        type: "string",
+        description: "The sketch to delete. You must own it."
+      }
+    },
+    required: ["image_document_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting sketch ${params["image_document_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const sketchesSpecs: readonly CapabilitySpec[] = [
   listSketchesSpec,
@@ -268,5 +288,6 @@ export const sketchesSpecs: readonly CapabilitySpec[] = [
   createSketchVersionSpec,
   restoreSketchVersionSpec,
   editSketchSpec,
-  validateSketchSpec
+  validateSketchSpec,
+  deleteSketchSpec
 ];

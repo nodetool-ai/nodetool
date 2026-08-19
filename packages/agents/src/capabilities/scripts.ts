@@ -70,7 +70,8 @@ import {
   VOICE_SCRIPT_LINES_SCHEMA,
   ASSEMBLE_SCRIPT_TIMELINE_SCHEMA,
   EDIT_SCRIPT_SCHEMA,
-  DERIVE_STORYBOARD_SCHEMA
+  DERIVE_STORYBOARD_SCHEMA,
+  deleteScriptSpec
 } from "./scripts.specs.js";
 
 export {
@@ -1493,13 +1494,35 @@ const deriveStoryboardFromScript: CapabilityExport = {
 };
 
 /** Every script capability, in the order the tool file declared them. */
+/**
+ * Delete a script the caller owns.
+ *
+ * The ownership check and the version cascade are `Script.deleteOwned`, the
+ * same function the tRPC route calls — a delete is not a place for two copies
+ * of one rule, and version rows outliving their document would be unreachable
+ * garbage. Missing and not-yours are one answer.
+ */
+const deleteScript: CapabilityExport = {
+  spec: deleteScriptSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const { Script } = await import("@nodetool-ai/models");
+    const id = String(params["script_id"]);
+    const deleted = await Script.deleteOwned(userId, id);
+    return deleted
+      ? { script_id: id, deleted: true }
+      : { error: `Script ${id} was not found, or it is not yours.` };
+  }
+};
 export const SCRIPT_CAPABILITIES: readonly CapabilityExport[] = [
   listScripts,
   getScript,
   voiceScriptLines,
   assembleScriptTimeline,
   editScript,
-  deriveStoryboardFromScript
+  deriveStoryboardFromScript,
+  deleteScript
 ];
 
 export const module: CapabilityModule = {
@@ -1513,5 +1536,6 @@ export {
   voiceScriptLines,
   assembleScriptTimeline,
   editScript,
-  deriveStoryboardFromScript
+  deriveStoryboardFromScript,
+  deleteScript
 };

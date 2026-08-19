@@ -263,7 +263,7 @@ describe("collections router", () => {
   });
   // ── Ownership isolation ───────────────────────────────────────────
   // Collections live in one global namespace in every provider, so these
-  // rules are the only thing separating tenants. See lib/collection-access.ts.
+  // rules are the only thing separating tenants. See @nodetool-ai/vectorstore collection-access.ts.
   describe("ownership", () => {
     /** A provider whose single collection belongs to someone else. */
     function providerOwnedBy(owner: string, name = "theirs") {

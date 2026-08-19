@@ -86,7 +86,8 @@ describe("sketches capability module", () => {
       "create_sketch_version",
       "restore_sketch_version",
       "edit_sketch",
-      "validate_sketch"
+      "validate_sketch",
+      "delete_sketch"
     ]);
   });
 
