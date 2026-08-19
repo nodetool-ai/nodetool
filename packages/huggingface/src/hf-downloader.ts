@@ -105,7 +105,7 @@ export function hfHubFileUrl(
  * Wrap a `fetch` so that streamed response bodies emit progress callbacks
  * and so that an external `AbortSignal` is honored.
  */
-function wrapFetch(
+export function wrapFetch(
   base: typeof fetch,
   options: {
     signal?: AbortSignal;
@@ -125,9 +125,14 @@ function wrapFetch(
 
     if (!resp.body || !options.onProgress) return resp;
 
-    // Skip JSON metadata responses to avoid double-counting paths-info hits.
-    const contentType = resp.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) return resp;
+    // The Hub client uses this same fetch for its POST /paths-info metadata
+    // request and for the actual file GET. Skip only the metadata endpoint.
+    // Repository files may legitimately be JSON (Supertonic voice styles are
+    // a concrete example), so filtering by Content-Type under-counts them and
+    // leaves a successful download looking permanently incomplete.
+    const requestUrl =
+      input instanceof Request ? input.url : input.toString();
+    if (requestUrl.includes("/paths-info")) return resp;
 
     const cb = options.onProgress;
     const lenHeader =

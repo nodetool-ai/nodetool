@@ -102,6 +102,10 @@ export function audioModelPatch(
       provider: model.provider,
       name: model.name || "",
       voices,
+      capabilities: model.capabilities ?? undefined,
+      languages: model.languages ?? undefined,
+      sample_rate: model.sample_rate ?? null,
+      requires_reference_text: model.requires_reference_text ?? false,
       selected_voice: voices[0] ?? currentVoice
     },
     voice: voices[0] ?? currentVoice

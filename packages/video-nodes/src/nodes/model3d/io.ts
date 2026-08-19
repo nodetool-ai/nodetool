@@ -8,7 +8,7 @@ import { DEFAULT_FOLDER, DEFAULT_MODEL_3D } from "./defaults.js";
 import { dateName, extFormat, filePath, modelRef, modelRefToBytes } from "./utils.js";
 import {
   resolveSaveTarget,
-  HIDDEN_WHEN_SAVING_TO_WORKSPACE,
+  VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
@@ -83,7 +83,7 @@ export class SaveModel3DFileNode extends BaseNode {
     default: "",
     title: "Folder",
     description: "Folder where the file will be saved",
-    json_schema_extra: HIDDEN_WHEN_SAVING_TO_WORKSPACE
+    json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
   declare folder: any;
 

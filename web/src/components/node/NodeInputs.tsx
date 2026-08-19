@@ -12,7 +12,10 @@ import { findOutputHandle } from "../../utils/handleUtils";
 import { normalizeDynamicSlot } from "../../utils/dynamicSlots";
 import { inferredCodeInputNamesFromData } from "../../utils/codeNodeHandles";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
-import { isPropertyHidden } from "../../utils/propertyConditions";
+import {
+  isPropertyConditionSatisfied,
+  shouldRenderProperty
+} from "../../utils/propertyVisibility";
 
 const rootCss = css({
   marginTop: "1em",
@@ -110,6 +113,10 @@ const NodeInput: React.FC<NodeInputProps> = memo(
         isDynamicProperty={isDynamicProperty}
         data={data}
         isConnected={isConnected}
+        conditionalUnavailable={
+          isConnected &&
+          !isPropertyConditionSatisfied(property, data?.properties)
+        }
       />
     );
   },
@@ -195,18 +202,18 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
     return map;
   }, [tabableProperties]);
 
-  // A property can switch another one off — the folder picker on a save node
-  // writing to the workspace, say. Rendering it would offer a control that
-  // changes nothing.
+  // A property can switch another one off via `visible_when` — the folder
+  // picker on a save node writing to the workspace, or a cloning input a model
+  // does not support. Rendering it would offer a control that changes
+  // nothing. A connected input always renders.
   const shownProperties = useMemo(
     () =>
-      properties.filter(
-        (property) =>
-          !isPropertyHidden(
-            property,
-            data,
-            connectedHandleSet.has(property.name)
-          )
+      properties.filter((property) =>
+        shouldRenderProperty(
+          property,
+          data?.properties,
+          connectedHandleSet.has(property.name)
+        )
       ),
     [properties, data, connectedHandleSet]
   );

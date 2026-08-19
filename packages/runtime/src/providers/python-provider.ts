@@ -19,7 +19,8 @@ import type {
   ProviderStreamItem,
   StreamingAudioChunk,
   TextToImageParams,
-  ImageToImageParams
+  ImageToImageParams,
+  TextToSpeechParams
 } from "./types.js";
 import type { PythonBridgeBase } from "../python-bridge-base.js";
 import { isString } from "../type-predicates.js";
@@ -27,6 +28,8 @@ import { isString } from "../type-predicates.js";
 type PythonProviderOptions = Record<string, unknown> & {
   _id: string;
   _bridge: PythonBridgeBase;
+  /** Provider id understood by the Python worker when the public id is aliased. */
+  _bridgeProviderId?: string;
 };
 
 export class PythonProvider extends BaseProvider {
@@ -56,10 +59,11 @@ export class PythonProvider extends BaseProvider {
       return;
     }
 
-    const { _id, _bridge, ...rawSecrets } = providerIdOrOptions;
+    const { _id, _bridge, _bridgeProviderId, ...rawSecrets } =
+      providerIdOrOptions;
     super(_id);
     this._bridge = _bridge;
-    this._pythonProviderId = _id;
+    this._pythonProviderId = _bridgeProviderId ?? _id;
     this._secrets = Object.fromEntries(
       Object.entries(rawSecrets).filter(
         (entry): entry is [string, string] => typeof entry[1] === "string"
@@ -82,7 +86,30 @@ export class PythonProvider extends BaseProvider {
   }
 
   async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return this._getModels("tts") as Promise<TTSModel[]>;
+    const models = await this._getModels("tts");
+    return models.map((raw) => {
+      const model = raw as Record<string, unknown>;
+      return {
+        id: String(model.id ?? ""),
+        name: String(model.name ?? model.id ?? ""),
+        provider: String(model.provider ?? this._pythonProviderId),
+        voices: Array.isArray(model.voices)
+          ? model.voices.map(String)
+          : undefined,
+        capabilities: Array.isArray(model.capabilities)
+          ? model.capabilities.map(String)
+          : undefined,
+        languages: Array.isArray(model.languages)
+          ? model.languages.map(String)
+          : undefined,
+        sampleRate:
+          typeof model.sample_rate === "number" ? model.sample_rate : undefined,
+        requiresReferenceText:
+          typeof model.requires_reference_text === "boolean"
+            ? model.requires_reference_text
+            : undefined
+      };
+    });
   }
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
@@ -98,11 +125,18 @@ export class PythonProvider extends BaseProvider {
   }
 
   private async _getModels(modelType: string): Promise<unknown[]> {
-    return this._bridge.getProviderModels(
+    const models = await this._bridge.getProviderModels(
       this._pythonProviderId,
       modelType,
       this._secrets
     );
+    // The public provider id may be an alias (notably `huggingface-local`) so
+    // selections route back through this bridge adapter instead of colliding
+    // with a built-in remote provider that uses the worker's original id.
+    return models.map((model) => ({
+      ...model,
+      provider: this.provider
+    }));
   }
 
   // ── Chat completion ───────────────────────────────────────────────
@@ -211,18 +245,22 @@ export class PythonProvider extends BaseProvider {
     );
   }
 
-  async *textToSpeech(args: {
-    text: string;
-    model: string;
-    voice?: string;
-    speed?: number;
-    audioFormat?: string;
-  }): AsyncGenerator<StreamingAudioChunk> {
+  async *textToSpeech(
+    args: TextToSpeechParams
+  ): AsyncGenerator<StreamingAudioChunk> {
     for await (const audioBytes of this._bridge.providerTTS(
       this._pythonProviderId,
       args.text,
       args.model,
-      { voice: args.voice, speed: args.speed, secrets: this._secrets }
+      {
+        voice: args.voice,
+        speed: args.speed,
+        reference_audio: args.referenceAudio,
+        reference_text: args.referenceText,
+        language: args.language,
+        instructions: args.instructions,
+        secrets: this._secrets
+      }
     )) {
       // audioBytes is a msgpack-decoded Uint8Array — generally a view into a
       // larger buffer at a non-zero byteOffset. `new Int16Array(bytes.buffer)`
