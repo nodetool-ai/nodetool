@@ -1,6 +1,10 @@
 # Canonical Model Intelligence — Design
 
-Status: proposed. Nothing in this document is built yet.
+Status: passes 1–3 and 4a are implemented (accessors + artifact in
+`packages/model-pricing`, the rankings sync + nightly workflow, the
+`find_model` rank term, the enriched `/api/models/recommended/*`
+endpoints). The picker work in pass 4 and the first real rankings
+artifact (which lands via the nightly sync PR) are still open.
 
 ## The problem
 
