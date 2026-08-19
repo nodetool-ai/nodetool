@@ -1,0 +1,111 @@
+name: Model Rankings Sync
+
+# Nightly: pull the Artificial Analysis media leaderboards into
+# `packages/model-pricing/src/generated/model-rankings.json`, and open a PR when
+# a rank moved.
+#
+# A ranking change reorders what agents and the model picker put first, so it is
+# a diff a human should see before it ships. This opens a PR and never pushes to
+# main. When nothing moved the script rewrites nothing and no PR is opened.
+#
+# The sync needs no provider API keys and no built packages: the canonical slugs
+# and their provider routes come from the shipped GenSpend price catalog in the
+# same package. It does need `ARTIFICIALANALYSIS_API_KEY` — without one the
+# script exits 0 having fetched nothing, which is what a fork gets.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # 03:50 UTC nightly — after the GenSpend sync, whose artifact this reads.
+    - cron: "50 3 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: model-rankings-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Refresh the model rankings artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Sync rankings
+        env:
+          ARTIFICIALANALYSIS_API_KEY: ${{ secrets.ARTIFICIALANALYSIS_API_KEY }}
+        run: npm run sync:model-rankings -- --report model-rankings-report.json
+
+      - name: Upload match report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: model-rankings-report
+          path: model-rankings-report.json
+          if-no-files-found: warn
+
+      - name: Detect changes
+        id: diff
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- packages/model-pricing/src/generated/model-rankings.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "summary<<EOF"
+              node -e "
+                const a = require('./packages/model-pricing/src/generated/model-rankings.json');
+                const report = require('./model-rankings-report.json');
+                console.log(\`\${report.canonicalModels} canonical models over \${report.routes} provider routes (ranks last moved \${a.generatedAt}).\`);
+                console.log('');
+                console.log('| Task | Leaderboard rows | Canonical models | Status |');
+                console.log('| --- | --- | --- | --- |');
+                for (const t of report.tasks) {
+                  console.log(\`| \${t.task} | \${t.rows} | \${t.matched} | \${t.error ?? 'ok'} |\`);
+                }
+                const stragglers = report.unmatched.length + report.ambiguous.length;
+                if (stragglers > 0) console.log(\`\n\${stragglers} leaderboard row(s) matched no canonical model or matched two — see the run log.\`);
+              "
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/model-rankings-sync
+          base: main
+          add-paths: packages/model-pricing/src/generated/model-rankings.json
+          commit-message: "chore(rankings): sync model rankings artifact"
+          title: "chore(rankings): sync model rankings artifact"
+          body: |
+            Nightly refresh of the model quality rankings. Rankings via
+            [artificialanalysis.ai](https://artificialanalysis.ai).
+
+            ${{ steps.diff.outputs.summary }}
+
+            These ranks order what `find_model` picks and what the model picker
+            shows first, so read the diff before merging:
+
+            - [ ] No task disappeared from the artifact (a dropped task means a
+                  leaderboard response the parser did not recognize)
+            - [ ] Every route of one `canonical` still carries identical `tasks`
+            - [ ] No model gained a rank on a task it cannot perform
+            - [ ] New canonical models name the model they claim to rank
+
+            Unmatched and ambiguous rows are listed in the run log and the
+            `model-rankings-report` artifact — pin or block them in
+            `scripts/rankings/aliases.json`.
+          delete-branch: true

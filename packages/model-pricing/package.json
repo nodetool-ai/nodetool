@@ -36,6 +36,12 @@
       "types": "./dist/genspend-catalog.d.ts",
       "import": "./dist/genspend-catalog.js",
       "default": "./dist/genspend-catalog.js"
+    },
+    "./model-rankings": {
+      "nodetool-dev": "./src/model-rankings.ts",
+      "types": "./dist/model-rankings.d.ts",
+      "import": "./dist/model-rankings.js",
+      "default": "./dist/model-rankings.js"
     }
   },
   "license": "MIT",

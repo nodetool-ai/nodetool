@@ -32,6 +32,11 @@ import {
   type HFFileRequest
 } from "@nodetool-ai/huggingface";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
+import {
+  modelRankings,
+  rankedForTask,
+  type ModelRankingsArtifact
+} from "@nodetool-ai/model-pricing";
 
 export type { UnifiedModel };
 
@@ -617,6 +622,71 @@ function selectRecommended(
   );
 }
 
+/**
+ * The `type` a merged entry carries, by task — the same value the hand-pinned
+ * RECOMMENDED_MODELS entries of that task carry. A task absent from this table
+ * has no ranked surface here, so the merge is a no-op for it.
+ */
+const RANKED_TASK_MODEL_TYPE: Record<string, string> = {
+  text_to_image: "image_model",
+  image_to_image: "image_model",
+  text_to_video: "video_model",
+  image_to_video: "video_model",
+  text_to_speech: "tts_model",
+  text_to_music: "music_model"
+};
+
+/**
+ * Append the ranked leaderboard for one task to the hand-pinned entries that
+ * already answer an endpoint. RECOMMENDED_MODELS is the override list: its
+ * entries keep their order and always come first; ranked models follow, best
+ * rank first.
+ *
+ * One entry per canonical model, taking its first route — a model reachable
+ * through FAL and kie is one row, not two. A canonical model any of whose
+ * routes is already pinned is skipped, so an override is never duplicated by
+ * the leaderboard.
+ *
+ * An empty artifact returns `base` unchanged, which is the shipped state until
+ * the rankings sync writes a snapshot.
+ */
+export function mergeRankedRecommendations(
+  base: UnifiedModel[],
+  task: string,
+  artifact: ModelRankingsArtifact = modelRankings
+): UnifiedModel[] {
+  const type = RANKED_TASK_MODEL_TYPE[task];
+  if (!type) return base;
+
+  const seen = new Set(
+    base.map((model) => `${model.provider ?? ""}::${model.id}`)
+  );
+  const merged = [...base];
+
+  for (const entry of rankedForTask(task, artifact)) {
+    const keys = entry.routes.map(
+      (route) => `${route.provider}::${route.modelId}`
+    );
+    if (keys.some((key) => seen.has(key))) continue;
+    const route = entry.routes[0];
+    if (!route) continue;
+    for (const key of keys) {
+      seen.add(key);
+    }
+    merged.push({
+      id: route.modelId,
+      type,
+      name: entry.name,
+      repo_id: null,
+      path: null,
+      downloaded: false,
+      provider: route.provider
+    });
+  }
+
+  return merged;
+}
+
 async function getAllModels(userId = "1"): Promise<UnifiedModel[]> {
   const all: UnifiedModel[] = [];
 
@@ -804,13 +874,23 @@ export async function handleModelsApiRequest(
   if (path === "/recommended/image/text-to-image") {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
-    return jsonResponse(selectRecommended("image", "text_to_image"));
+    return jsonResponse(
+      mergeRankedRecommendations(
+        selectRecommended("image", "text_to_image"),
+        "text_to_image"
+      )
+    );
   }
 
   if (path === "/recommended/image/image-to-image") {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
-    return jsonResponse(selectRecommended("image", "image_to_image"));
+    return jsonResponse(
+      mergeRankedRecommendations(
+        selectRecommended("image", "image_to_image"),
+        "image_to_image"
+      )
+    );
   }
 
   if (path === "/recommended/language") {
@@ -840,25 +920,39 @@ export async function handleModelsApiRequest(
   if (path === "/recommended/tts") {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
-    return jsonResponse(selectRecommended("tts"));
+    return jsonResponse(
+      mergeRankedRecommendations(selectRecommended("tts"), "text_to_speech")
+    );
   }
 
   if (path === "/recommended/music") {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
-    return jsonResponse(selectRecommended("music"));
+    return jsonResponse(
+      mergeRankedRecommendations(selectRecommended("music"), "text_to_music")
+    );
   }
 
   if (path === "/recommended/video/text-to-video") {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
-    return jsonResponse(selectRecommended("video", "text_to_video"));
+    return jsonResponse(
+      mergeRankedRecommendations(
+        selectRecommended("video", "text_to_video"),
+        "text_to_video"
+      )
+    );
   }
 
   if (path === "/recommended/video/image-to-video") {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
-    return jsonResponse(selectRecommended("video", "image_to_video"));
+    return jsonResponse(
+      mergeRankedRecommendations(
+        selectRecommended("video", "image_to_video"),
+        "image_to_video"
+      )
+    );
   }
 
   if (path === "/all") {

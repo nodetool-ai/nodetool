@@ -1,0 +1,4 @@
+{
+  "_comment": "Hand-maintained overrides for the model-rankings sync. `models` is keyed by the Artificial Analysis model slug (or its display name) → the GenSpend canonical slug its rankings belong to, or null to block the model entirely. Use a string to pin a match the exact-key comparison cannot see; use null to kill a match that is wrong. Every unmatched, ambiguous and blocked leaderboard row is listed by `npm run sync:model-rankings`.",
+  "models": {}
+}
