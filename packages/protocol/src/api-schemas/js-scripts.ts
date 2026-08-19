@@ -1,8 +1,9 @@
 /**
  * JS script documents — the wire schema and the document-level check.
  *
- * A JS script is a named, versioned script with declared ports, sandbox
- * packages, secrets, a timeout, and saved test cases. The document is stored
+ * A JS script is a named, versioned script with declared ports, secrets, a
+ * timeout, and saved test cases. It declares no packages: the body's imports
+ * are resolved against whatever packs this install has. The document is stored
  * whole and validated here at every boundary: the model's `beforeSave`, the
  * tRPC router, and the run endpoint.
  *
@@ -14,7 +15,6 @@
  */
 
 import { z } from "zod";
-import { SandboxModuleDeclarationSchema } from "../sandbox-package.js";
 import { isNumber, isRecord, isString } from "../predicates.js";
 
 /** The only document version that exists. */
@@ -57,6 +57,17 @@ export const jsScriptTestCase = z.object({
 });
 export type JsScriptTestCase = z.infer<typeof jsScriptTestCase>;
 
+/**
+ * Menu placement for a script its owner exposed as a custom node. Absent means
+ * the script stays a library script; the node's title, description and ports
+ * come from the document itself, so `category` is the only knob here.
+ */
+export const jsScriptPalette = z.object({
+  /** Free-text grouping under the `user` namespace, e.g. "Text", "My API". */
+  category: z.string()
+});
+export type JsScriptPalette = z.infer<typeof jsScriptPalette>;
+
 export const jsScriptDocument = z.object({
   schemaVersion: z.literal(JS_SCRIPT_SCHEMA_VERSION),
   /** What the script does — how an agent picks one out of a list. */
@@ -65,8 +76,6 @@ export const jsScriptDocument = z.object({
   code: z.string().default(""),
   inputs: z.array(jsScriptPort).default([]),
   outputs: z.array(jsScriptPort).default([]),
-  /** Sandbox packs the body may import; an undeclared import fails the check. */
-  packages: z.array(SandboxModuleDeclarationSchema).default([]),
   /** Secret names the body may read. `[]` means none. */
   secrets: z.array(z.string()).default([]),
   timeoutSeconds: z
@@ -74,7 +83,9 @@ export const jsScriptDocument = z.object({
     .positive()
     .max(JS_SCRIPT_MAX_TIMEOUT_SECONDS)
     .default(JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS),
-  tests: z.array(jsScriptTestCase).default([])
+  tests: z.array(jsScriptTestCase).default([]),
+  /** Set to expose the script in the node menu as a custom node. */
+  palette: jsScriptPalette.optional()
 });
 export type JsScriptDocument = z.infer<typeof jsScriptDocument>;
 
@@ -85,7 +96,6 @@ export function emptyJsScriptDocument(): JsScriptDocument {
     code: "",
     inputs: [],
     outputs: [],
-    packages: [],
     secrets: [],
     timeoutSeconds: JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS,
     tests: []
@@ -205,6 +215,25 @@ export function validateJsScriptDocument(
           message: `test "${testCase.name}" expects a stream from undeclared output "${entry.name}"`
         });
       }
+    }
+  }
+
+  if (doc.palette) {
+    if (doc.palette.category.trim() === "") {
+      issues.push({
+        severity: "error",
+        code: "js_script_palette_category",
+        message: "the palette category is empty"
+      });
+    }
+    if (doc.outputs.length === 0) {
+      issues.push({
+        severity: "warning",
+        code: "js_script_palette_no_outputs",
+        message:
+          "the script is exposed in the node menu but declares no outputs, " +
+          "so the node has no handles to connect"
+      });
     }
   }
 

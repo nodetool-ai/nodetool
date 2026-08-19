@@ -104,7 +104,8 @@ describe("timelines capability module", () => {
       "create_timeline_version",
       "restore_timeline_version",
       "edit_timeline",
-      "validate_timeline"
+      "validate_timeline",
+      "delete_timeline"
     ]);
   });
 

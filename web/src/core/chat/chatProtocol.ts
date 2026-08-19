@@ -109,6 +109,22 @@ interface PlanApprovalRequestMessage {
   plan: ProposedPlan;
 }
 
+/**
+ * Server → client request for a credential the install does not hold. Routed
+ * to the GlobalChatStore as a pending secret request and resolved by the
+ * inline SecretRequestCard, which saves the value itself and sends back only
+ * `secret_request_response` — the value never travels over this socket.
+ */
+interface SecretRequestMessage {
+  type: "secret_request";
+  thread_id: string;
+  approval_id: string;
+  key: string;
+  description: string | null;
+  reason: string | null;
+  help_url: string | null;
+}
+
 export interface ToolCallMessage {
   type: "tool_call";
   tool_call_id: string;
@@ -164,6 +180,7 @@ export type MsgpackData =
   | ToolResultMessage
   | ToolApprovalRequestMessage
   | PlanApprovalRequestMessage
+  | SecretRequestMessage
   | ChatResumedUpdate
   | ChatTurnActiveUpdate
   | ErrorMessage;
@@ -1319,6 +1336,26 @@ export async function sendPlanApprovalResponse(
   }
 }
 
+/**
+ * Report what the user did with the secret dialog. `saved` means the client
+ * already wrote the value through `settings.secrets.upsert`; this frame is the
+ * receipt, and deliberately carries no value.
+ */
+export async function sendSecretRequestResponse(
+  approvalId: string,
+  status: "saved" | "declined"
+): Promise<void> {
+  try {
+    await globalWebSocketManager.send({
+      type: "secret_request_response",
+      approval_id: approvalId,
+      status
+    });
+  } catch (error) {
+    console.error("Failed to send secret_request_response:", error);
+  }
+}
+
 export async function handleChatWebSocketMessage(
   msg: WebSocketMessage,
   set: ChatStateSetter,
@@ -1484,6 +1521,8 @@ export async function handleChatWebSocketMessage(
     get().addPendingApproval(data);
   } else if (data.type === "plan_approval_request") {
     get().addPendingPlanApproval(data);
+  } else if (data.type === "secret_request") {
+    get().addPendingSecretRequest(data);
   } else if (data.type === "generation_stopped") {
     // Clear the safety timeout when generation is stopped
     clearSendTimeout();

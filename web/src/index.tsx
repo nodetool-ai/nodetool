@@ -29,11 +29,8 @@ import {
 
 import ErrorBoundary from "./ErrorBoundary";
 
-import { LoadingSpinner } from "./components/ui_primitives";
-import { ThemeProvider } from "@mui/material/styles";
-import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
+import { LoadingSpinner, ThemeRoot } from "./components/ui_primitives";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
-import { CssBaseline } from "@mui/material";
 
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
@@ -58,6 +55,7 @@ import useOnboardingStore, { startRouteFor } from "./stores/OnboardingStore";
 import { useSettingsStore } from "./stores/SettingsStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata, prefetchMetadata } from "./serverState/useMetadata";
+import { useCustomNodeMetadata } from "./serverState/useCustomNodeMetadata";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
@@ -85,6 +83,9 @@ import { SkipLinks } from "./components/ui_primitives";
 // Lazy-loaded route components for code splitting
 const AcceptSharePage = React.lazy(
   () => import("./components/workflows/AcceptSharePage")
+);
+const IntegrationLinkPage = React.lazy(
+  () => import("./components/settings/IntegrationLinkPage")
 );
 const ModelsPage = React.lazy(
   () => import("./components/hugging_face/model_list/ModelsPage")
@@ -283,6 +284,18 @@ function getRoutes() {
         <ProtectedRoute>
           <React.Suspense fallback={<LoadingSpinner />}>
             <AcceptSharePage />
+          </React.Suspense>
+        </ProtectedRoute>
+      )
+    },
+    {
+      // The confirmation page for a bot-initiated account link; the bridge
+      // hands this URL to the user in the chat.
+      path: "/integrations/link",
+      element: (
+        <ProtectedRoute>
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <IntegrationLinkPage />
           </React.Suspense>
         </ProtectedRoute>
       )
@@ -544,6 +557,16 @@ const root = ReactDOM.createRoot(rootElement);
  * route. "Snap to Grid" toggles the editor setting, and the setting is mirrored
  * back so the View menu checkbox matches whichever surface changed it.
  */
+/**
+ * Merges the user's custom nodes (JS scripts flagged for the node menu) into
+ * the metadata store. It lives here because the hook needs the tRPC provider,
+ * which the app root renders.
+ */
+const CustomNodeMetadataBridge = () => {
+  useCustomNodeMetadata();
+  return null;
+};
+
 const MenuNavigationBridge = () => {
   const snapToGrid = useSettingsStore((state) => state.settings.snapToGrid);
   const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
@@ -632,12 +655,11 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   return (
     <React.StrictMode>
       <TRPCProvider>
-        <InitColorSchemeScript attribute="class" defaultMode="dark" />
-        <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-          <CssBaseline />
+        <ThemeRoot theme={ThemeNodetool}>
           <MobileClassProvider>
             <MenuProvider>
               <MenuNavigationBridge />
+              <CustomNodeMetadataBridge />
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
                   {status === "pending" && !isDevTestRoute && (
@@ -755,7 +777,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
               </WorkflowManagerProvider>
             </MenuProvider>
           </MobileClassProvider>
-        </ThemeProvider>
+        </ThemeRoot>
       </TRPCProvider>
     </React.StrictMode>
   );

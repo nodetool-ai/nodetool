@@ -89,3 +89,23 @@ export const isEditableElement = (
 export const isTextInputActive = (): boolean =>
   isEditableElement(document.activeElement);
 
+/**
+ * Whether an element is rendered, visible and outside any `inert` subtree, so
+ * that `element.focus()` would move focus to it. Inactive workspace tabs stay
+ * mounted at opacity 0 and inert; their inputs must not compete for keys.
+ */
+export const canTakeFocus = (
+  element: HTMLElement | null | undefined
+): boolean => {
+  if (!element || !element.isConnected) {
+    return false;
+  }
+  if (element.closest("[inert]") !== null) {
+    return false;
+  }
+  // Not opacity: a paused enter animation reads as opacity 0 while the window
+  // is occluded. jsdom has no checkVisibility; there, attached and not inert
+  // is the answer.
+  return element.checkVisibility?.() ?? true;
+};
+

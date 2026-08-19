@@ -5,8 +5,7 @@ description: Extract text from a PowerPoint file, whole or per slide, in a Code 
 
 # PowerPoint text in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-pptx`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-pptx`. Import it at the top of the body.
 
 office-text-extractor reads a `.pptx` buffer through Node's own zip/XML stack;
 it is not a guest-module candidate. This pack is a **host module**: the import

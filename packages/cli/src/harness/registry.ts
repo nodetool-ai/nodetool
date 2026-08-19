@@ -301,6 +301,22 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "AGENTS.md § nodetool chat"
   },
   {
+    id: "telegram-bridge",
+    title: "Telegram messaging bridge (renderer, router, identity, adapter)",
+    command: "nodetool telegram serve",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/telegram-bot-design.md",
+    selfcheck: {
+      // The bridge suites are hermetic (fake Bot API, fake socket, injected
+      // clock) and include the dependency-cone test; the websocket files run
+      // the identity routes, the shared link-code store, and the tRPC router.
+      command:
+        "npm run test --workspace=packages/telegram && npx vitest run tests/integrations-routes.test.ts tests/link-codes.test.ts tests/trpc-integrations.test.ts --root packages/websocket",
+      cost: "cheap"
+    }
+  },
+  {
     id: "backend-smoke",
     title: "Packaged-backend smoke (bundle staging + /health boot)",
     command: "npm run backend:smoke",
@@ -375,6 +391,19 @@ export const HARNESSES: HarnessEntry[] = [
 ];
 
 export const SURFACES: SurfaceEntry[] = [
+  {
+    id: "telegram-bridge",
+    title: "Telegram bot bridge + messaging-integration identity",
+    harnesses: ["telegram-bridge"],
+    paths: [
+      "packages/telegram/",
+      "packages/websocket/src/routes/integrations.ts",
+      "packages/websocket/src/lib/link-codes.ts",
+      "packages/websocket/src/trpc/routers/integrations.ts",
+      "packages/auth/src/providers/delegated-token-provider.ts",
+      "packages/models/src/external-identity.ts"
+    ]
+  },
   {
     id: "workflow-execution",
     title: "Workflow execution (kernel runner)",

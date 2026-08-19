@@ -129,63 +129,20 @@ const buildMenu = () => {
     {
       label: "Edit",
       submenu: [
-        {
-          label: "Undo",
-          accelerator: "CmdOrCtrl+Z",
-          role: "undo",
-          click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
-              type: "undo",
-            });
-          },
-        },
-        {
-          label: "Redo",
-          accelerator: "Shift+CmdOrCtrl+Z",
-          role: "redo",
-          click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
-              type: "redo",
-            });
-          },
-        },
+        // Standard editing uses roles with no `click`. A `click` overrides the
+        // role, and the previous hand-written handlers all targeted
+        // `mainWindow.webContents` — so Cmd+V in a DevTools window pasted into
+        // the app window instead, and DevTools got nothing. Roles route to
+        // whichever webContents has focus, and the renderer still sees the key
+        // event for its own canvas copy/paste, exactly as it does in a browser.
+        { role: "undo" },
+        { role: "redo" },
         { type: "separator" },
-        {
-          label: "Cut",
-          accelerator: "CmdOrCtrl+X",
-          click: () => {
-            // Execute native cut operation first (for text fields)
-            mainWindow.webContents.cut();
-            // Also send IPC event for custom handling (e.g., node cutting)
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
-              type: "cut",
-            });
-          },
-        },
-        {
-          label: "Copy",
-          accelerator: "CmdOrCtrl+C",
-          click: () => {
-            // Execute native copy operation first (for text fields)
-            mainWindow.webContents.copy();
-            // Also send IPC event for custom handling (e.g., node copying)
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
-              type: "copy",
-            });
-          },
-        },
-        {
-          label: "Paste",
-          accelerator: "CmdOrCtrl+V",
-          click: () => {
-            // Execute native paste operation first (for text fields)
-            mainWindow.webContents.paste();
-            // Also send IPC event for custom handling (e.g., node pasting)
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
-              type: "paste",
-            });
-          },
-        },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
+        { type: "separator" },
         {
           label: "Duplicate",
           accelerator: "CmdOrCtrl+D",
@@ -213,20 +170,11 @@ const buildMenu = () => {
             });
           },
         },
-        {
-          label: "Select All",
-          accelerator: "CmdOrCtrl+A",
-          role: "selectAll",
-          click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
-              type: "selectAll",
-            });
-          },
-        },
         { type: "separator" },
         {
+          // No accelerator: this used to claim CmdOrCtrl+A, which Select All
+          // already owns. The duplicate never fired.
           label: "Align",
-          accelerator: "CmdOrCtrl+A",
           click: () => {
             mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
               type: "align",

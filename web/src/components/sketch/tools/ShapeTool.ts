@@ -252,6 +252,8 @@ export class ShapeTool implements ToolHandler {
       ctx.altHeldRef.current = e.altKey;
       this.redrawPreview();
     };
+    // Not on the dispatcher: the same listener reads Shift/Alt on both edges
+    // mid-drag; the store dispatches combos on keydown only.
     window.addEventListener("keydown", listener, true);
     window.addEventListener("keyup", listener, true);
     this.modifierKeyListener = listener;

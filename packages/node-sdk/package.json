@@ -39,11 +39,23 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./code-analysis": {
+      "nodetool-dev": "./src/code-analysis.ts",
+      "types": "./dist/code-analysis.d.ts",
+      "import": "./dist/code-analysis.js",
+      "default": "./dist/code-analysis.js"
+    },
     "./code-body": {
       "nodetool-dev": "./src/code-body.ts",
       "types": "./dist/code-body.d.ts",
       "import": "./dist/code-body.js",
       "default": "./dist/code-body.js"
+    },
+    "./js-script-materialize": {
+      "nodetool-dev": "./src/js-script-materialize.ts",
+      "types": "./dist/js-script-materialize.d.ts",
+      "import": "./dist/js-script-materialize.js",
+      "default": "./dist/js-script-materialize.js"
     },
     "./cost-estimate": {
       "types": "./dist/cost-estimate.d.ts",

@@ -733,7 +733,7 @@ describe("sandbox package docs in a chat session", () => {
     expect(obs.ok).toBe(false);
     // The prelude builds a wrapper per belt tool, so an absent tool is not
     // callable at all — the strongest structural proof it was never installed.
-    expect(obs.error).toContain("not a function");
+    expect(obs.error).toContain("is not on this toolbelt");
   }, 60_000);
 });
 

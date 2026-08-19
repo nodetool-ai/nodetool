@@ -43,11 +43,7 @@ const sizeOptions: SizeBucket[] = [
   "70B+"
 ];
 
-interface ModelFiltersBarProps {
-  quantList?: string[];
-}
-
-const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
+const ModelFiltersBar: React.FC = () => {
   const selectedTypes = useModelFiltersStore((state) => state.selectedTypes);
   const sizeBucket = useModelFiltersStore((state) => state.sizeBucket);
   const toggleType = useModelFiltersStore((state) => state.toggleType);

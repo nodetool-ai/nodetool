@@ -54,6 +54,7 @@ import {
 import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
 import { persistBinaryOutput } from "../tools/binary-output.js";
 import { extractJSON } from "../utils/json-parser.js";
+import { isYtDlpEnabled } from "../yt-dlp-gate.js";
 import {
   isNonBlankString,
   isNonEmptyString,
@@ -1314,6 +1315,11 @@ const DEFAULT_YT_DLP_OUTPUT = "downloads/yt-dlp/%(id)s.%(ext)s";
 const ytDlp: CapabilityExport = {
   spec: ytDlpSpec,
   impl: async (run, params) => {
+    // The cloud profile leaves this off every belt, so a model never sees it.
+    // A host that resolves the capability by name still lands here.
+    if (!isYtDlpEnabled()) {
+      return { error: "yt_dlp is not available on this deployment" };
+    }
     const workspace = requireWorkspaceDir(run.context);
     if (!isString(workspace)) return workspace;
     const url = params["url"];

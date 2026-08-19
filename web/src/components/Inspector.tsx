@@ -42,6 +42,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
 import { InspectorTabs, type InspectorTab } from "./InspectorTabs";
 import { colorForType } from "../config/data_types";
+import { isPropertyHidden } from "../utils/propertyConditions";
 import { IconForType } from "../config/IconForType";
 import {
   isPropertyConditionSatisfied,
@@ -715,13 +716,12 @@ const Inspector: React.FC = () => {
     return metadata.properties.filter((property) => {
       if (property.json_schema_extra?.hidden_in_inspector === true) return false;
       const connected = connectedTargetHandles.has(property.name);
-      return shouldRenderProperty(
-        property,
-        selectedNode?.data.properties,
-        connected
+      return (
+        !isPropertyHidden(property, selectedNode?.data, connected) &&
+        shouldRenderProperty(property, selectedNode?.data.properties, connected)
       );
     });
-  }, [metadata, selectedNode, connectedTargetHandles]);
+  }, [metadata, selectedNode?.data, connectedTargetHandles]);
 
   const toggleVisibilityHandlers = useMemo(() => {
     if (!selectedNode) return new Map<string, () => void>();

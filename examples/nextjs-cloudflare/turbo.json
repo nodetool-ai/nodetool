@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  // Same override as examples/nextjs-vercel: a Next.js app has no `src/**`
+  // or `dist/**`, so the root task's inputs/outputs match nothing here.
+  // `build` is `next build` only — the OpenNext/Cloudflare packaging lives in
+  // `preview`/`deploy`, which is why `.open-next/` is not an output.
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "app/**",
+        "lib/**",
+        "next.config.mjs",
+        "next-env.d.ts",
+        "tsconfig.json",
+        "package.json"
+      ],
+      "outputs": [".next/**", "!.next/cache/**"]
+    }
+  }
+}

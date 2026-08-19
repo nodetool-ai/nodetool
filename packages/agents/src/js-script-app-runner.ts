@@ -47,7 +47,6 @@ export function createJsScriptAppRunner(
     const bodyParams: Parameters<typeof runCodeBody>[1] = {
       code: input.document.code,
       inputs: input.inputs,
-      packages: input.document.packages.map((pack) => pack.specifier),
       secrets: input.document.secrets,
       timeoutSeconds:
         input.timeoutMs === undefined

@@ -288,6 +288,26 @@ export const extractScriptFromStoryboardSpec: CapabilitySpec = {
     `Extracting a script from storyboard ${String(params["storyboard_id"])}`
 };
 
+export const deleteStoryboardSpec: CapabilitySpec = {
+  name: "delete_storyboard",
+  description:
+    "Delete a storyboard you own, together with its saved version history. " +
+    "This cannot be undone. A storyboard belonging to another user is reported " +
+    "as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      storyboard_id: {
+        type: "string",
+        description: "The storyboard to delete. You must own it."
+      }
+    },
+    required: ["storyboard_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting storyboard ${params["storyboard_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const storyboardsSpecs: readonly CapabilitySpec[] = [
   listStoryboardsSpec,
@@ -297,5 +317,6 @@ export const storyboardsSpecs: readonly CapabilitySpec[] = [
   reviseStoryboardClipSpec,
   assembleStoryboardTimelineSpec,
   editStoryboardSpec,
-  extractScriptFromStoryboardSpec
+  extractScriptFromStoryboardSpec,
+  deleteStoryboardSpec
 ];

@@ -59,9 +59,9 @@ export interface RunWorkflowOptions {
   ) => Promise<string | null | undefined> | string | null | undefined;
 
   /**
-   * Catalog the run's Code nodes resolve their `packages` declarations through.
-   * A host with no process-wide catalog — every browser — passes one here or
-   * the declarations cannot be served.
+   * Catalog the run's Code nodes resolve their imports through. A host with no
+   * process-wide catalog — every browser — passes one here or the imports
+   * cannot be served.
    */
   sandboxModuleCatalog?: SandboxModuleCatalog | null;
 

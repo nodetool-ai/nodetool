@@ -21,6 +21,7 @@ import { TimelineProvider } from "../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { initKeyListeners } from "../../../stores/KeyPressedStore";
 
 jest.mock("../../properties/TTSModelSelect", () => ({
   __esModule: true,
@@ -43,6 +44,14 @@ const voicedBeat = (words: CaptionWord[]): TimelineClip =>
     caption: { words }
   });
 
+// KeyPressedStore tracks held keys, so a keydown without its keyup leaves the
+// key "pressed" and the next combo resolves to a two-key string. Press and
+// release, the way a keyboard does.
+const pressKey = (target: Element | Document, key: string) => {
+  fireEvent.keyDown(target, { key });
+  fireEvent.keyUp(target, { key });
+};
+
 const renderPanel = () =>
   render(
     <ThemeProvider theme={mockTheme}>
@@ -59,6 +68,17 @@ const seed = (clips: TimelineClip[], durationMs: number) =>
   });
 
 describe("TranscriptPanel", () => {
+  // Script-mode keys are combos now, dispatched by KeyPressedStore's single
+  // window listener (index.tsx attaches it in the app).
+  let detachKeys: () => void;
+  beforeEach(() => {
+    detachKeys = initKeyListeners();
+  });
+  afterEach(() => {
+    detachKeys();
+  });
+
+
   it("renders the voice engine and generate action", () => {
     renderPanel();
     expect(screen.getByText("TRANSCRIPT")).toBeInTheDocument();
@@ -133,7 +153,7 @@ describe("TranscriptPanel", () => {
     // editor, so the command key must work at the window level, not via a
     // focus-scoped handler. (This is the bug the previous focus hack missed.)
     act(() => {
-      fireEvent.keyDown(document.body, { key: "/" });
+      pressKey(document.body, "/");
     });
     await screen.findByTestId("slash-command");
 
@@ -186,11 +206,11 @@ describe("TranscriptPanel", () => {
 
     // Arrows step the playhead word-to-word (the caret follows).
     act(() => {
-      fireEvent.keyDown(document.body, { key: "ArrowRight" });
+      pressKey(document.body, "ArrowRight");
     });
     expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(300);
     act(() => {
-      fireEvent.keyDown(document.body, { key: "ArrowLeft" });
+      pressKey(document.body, "ArrowLeft");
     });
     expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(0);
   });
@@ -201,7 +221,7 @@ describe("TranscriptPanel", () => {
 
     expect(useTimelinePlaybackStore.getState().isPlaying).toBe(false);
     act(() => {
-      fireEvent.keyDown(document.body, { key: " " });
+      pressKey(document.body, " ");
     });
     expect(useTimelinePlaybackStore.getState().isPlaying).toBe(true);
   });
@@ -215,7 +235,7 @@ describe("TranscriptPanel", () => {
     // reliably renders across all environments.
     const btn = screen.getByRole("button", { name: /Import audio or video/i });
     act(() => {
-      fireEvent.keyDown(btn, { key: "/" });
+      pressKey(btn, "/");
     });
     await screen.findByTestId("slash-command");
   });
@@ -228,7 +248,7 @@ describe("TranscriptPanel", () => {
     // Use the import button which reliably renders across all environments.
     const btn = screen.getByRole("button", { name: /Import audio or video/i });
     act(() => {
-      fireEvent.keyDown(btn, { key: " " });
+      pressKey(btn, " ");
     });
     expect(useTimelinePlaybackStore.getState().isPlaying).toBe(false);
   });

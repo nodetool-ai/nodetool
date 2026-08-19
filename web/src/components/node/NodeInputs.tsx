@@ -16,6 +16,7 @@ import {
   isPropertyConditionSatisfied,
   shouldRenderProperty
 } from "./propertyVisibility";
+import { isPropertyHidden } from "../../utils/propertyConditions";
 
 const rootCss = css({
   marginTop: "1em",
@@ -202,14 +203,26 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
     return map;
   }, [tabableProperties]);
 
-  const allInputs = useMemo(() => properties.flatMap((property, index) => {
-    const isConnected = connectedHandleSet.has(property.name);
-    if (!shouldRenderProperty(property, data?.properties, isConnected)) {
-      return [];
-    }
+  // A property can switch another one off — the folder picker on a save node
+  // writing to the workspace, say (`hidden_when`), or a cloning input a model
+  // does not support (`visible_when`). Rendering it would offer a control
+  // that changes nothing. A connected input always renders.
+  const shownProperties = useMemo(
+    () =>
+      properties.filter((property) => {
+        const isConnected = connectedHandleSet.has(property.name);
+        return (
+          !isPropertyHidden(property, data, isConnected) &&
+          shouldRenderProperty(property, data?.properties, isConnected)
+        );
+      }),
+    [properties, data, connectedHandleSet]
+  );
+
+  const allInputs = useMemo(() => shownProperties.map((property, index) => {
     const finalTabIndex = tabIndexMap.get(property.name) ?? -1;
 
-    return [(
+    return (
       <NodeInput
         key={property.name + id}
         id={id}
@@ -221,10 +234,10 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
         showFields={showFields}
         showHandle={showHandle}
         tabIndex={finalTabIndex}
-        isConnected={isConnected}
+        isConnected={connectedHandleSet.has(property.name)}
       />
-    )];
-  }), [properties, tabIndexMap, connectedHandleSet, id, nodeType, layout, data, showFields, showHandle]);
+    );
+  }), [shownProperties, tabIndexMap, connectedHandleSet, id, nodeType, layout, data, showFields, showHandle]);
 
   const dynamicInputs = useMemo(
     () => data?.dynamic_inputs || {},

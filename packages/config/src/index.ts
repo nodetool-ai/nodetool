@@ -17,10 +17,7 @@ export {
 
 export { getByteLimitEnv } from "./byte-limits.js";
 
-export {
-  isGoogleWorkspaceEnabled,
-  GOOGLE_WORKSPACE_NAMESPACE
-} from "./google-workspace.js";
+export { isGoogleWorkspaceEnabled } from "./google-workspace.js";
 
 export {
   registerSetting,
@@ -29,6 +26,13 @@ export {
   type SettingDefinition,
   type SettingStatus
 } from "./settings.js";
+
+export {
+  registerSettingDefinition,
+  settingCatalog,
+  settingDefinition,
+  type SettingCatalogEntry
+} from "./setting-catalog.js";
 
 export {
   configureLogging,

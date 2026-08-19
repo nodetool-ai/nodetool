@@ -81,7 +81,8 @@ describe("assets capability module", () => {
       "asset_search",
       "asset_list",
       "list_images",
-      "view_image"
+      "view_image",
+      "update_asset"
     ]);
   });
 
@@ -180,6 +181,88 @@ describe("assets capabilities against the database", () => {
     })) as Record<string, unknown>;
     expect(read.success).toBe(true);
     expect(read.content).toBe("# hello");
+  });
+
+  it("copies a stored file into the library from a /api/storage/ source, without base64", async () => {
+    // The regression: a tool downloaded a video to storage and returned its
+    // asset_url; the model's only way to make it a library asset was
+    // read_asset → 600 KB of base64 → save_asset. `source` is that copy,
+    // done host-side.
+    // The chat's storage answers `/api/storage/<key>` retrievals directly;
+    // the in-memory adapter speaks `memory://`, so fake the one method the
+    // resolver reads and keep the adapter's `store` for the saved copy.
+    const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 24]);
+    const inner = new InMemoryStorageAdapter();
+    const storage = {
+      store: inner.store.bind(inner),
+      retrieve: async (uri: string) =>
+        uri === "/api/storage/downloads/abc.mp4"
+          ? bytes
+          : inner.retrieve(uri)
+    };
+    const ctx = makeContext({ storage });
+    const saved = (await asTool("save_asset", ctx).process(ctx, {
+      name: "clip.mp4",
+      source: "/api/storage/downloads/abc.mp4"
+    })) as Record<string, unknown>;
+    expect(saved.success).toBe(true);
+    expect(saved.content_type).toBe("video/mp4");
+    expect(saved.size).toBe(bytes.byteLength);
+
+    const read = (await asTool("read_asset", ctx).process(ctx, {
+      name: "clip.mp4"
+    })) as Record<string, unknown>;
+    expect(read.success).toBe(true);
+    expect(read.binary).toBe(true);
+    expect(read.size).toBe(bytes.byteLength);
+  });
+
+  it("copies an http(s) source through the SSRF-screened fetch", async () => {
+    const original = globalThis.fetch;
+    const body = new Uint8Array([1, 2, 3, 4]);
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(body, {
+          status: 200,
+          headers: { "content-type": "image/png" }
+        })
+    ) as unknown as typeof fetch;
+    try {
+      const ctx = makeContext();
+      const saved = (await asTool("save_asset", ctx).process(ctx, {
+        name: "shot.png",
+        source: "https://api.apify.com/v2/key-value-stores/x/records/shot.png"
+      })) as Record<string, unknown>;
+      expect(saved.success).toBe(true);
+      expect(saved.content_type).toBe("image/png");
+      expect(saved.size).toBe(4);
+
+      const refused = (await asTool("save_asset", ctx).process(ctx, {
+        name: "loopback.bin",
+        source: "http://127.0.0.1:7777/anything"
+      })) as Record<string, unknown>;
+      expect(refused.success).toBe(false);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it("refuses more than one content form and names a missing source", async () => {
+    const ctx = makeContext();
+    const both = (await asTool("save_asset", ctx).process(ctx, {
+      name: "x.txt",
+      content: "a",
+      source: "/api/storage/downloads/nope.txt"
+    })) as Record<string, unknown>;
+    expect(both.success).toBe(false);
+    expect(String(both.error)).toContain("mutually exclusive");
+
+    const missing = (await asTool("save_asset", ctx).process(ctx, {
+      name: "x.bin",
+      source: "/api/storage/downloads/nope.bin"
+    })) as Record<string, unknown>;
+    expect(missing.success).toBe(false);
+    expect(String(missing.error)).toContain("Source not found");
   });
 });
 

@@ -92,7 +92,7 @@ const CODE_LEGEND: Readonly<Record<string, string>> = {
     "a dynamic slot is typed with a JSON-Schema/TypeScript name instead of NodeTool's, so the handle will not connect",
   code_syntax: "a Code node's body is not valid JavaScript",
   code_module:
-    "a Code node's body uses import/export, which the sandbox has no loader for",
+    "a Code node's body uses `export`, a dynamic import, or an import the sandbox loader cannot serve",
   code_undefined_name:
     "a Code node reads a name that is neither a sandbox API nor one of its inputs",
   code_no_return: "a Code node can finish without returning its outputs",

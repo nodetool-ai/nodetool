@@ -48,6 +48,9 @@ import {
   listWorkflowsSpec,
   getWorkflowSpec,
   createWorkflowSpec,
+  updateWorkflowSpec,
+  deleteWorkflowSpec,
+  setWorkflowAccessSpec,
   runWorkflowCapabilitySpec,
   debugWorkflowSpec,
   resolveWorkflowEscalationSpec,
@@ -182,6 +185,113 @@ const createWorkflow: CapabilityExport = {
       run_mode: "workflow"
     })) as WorkflowRow;
     return workflowRecord(created);
+  }
+};
+
+/**
+ * The one ownership test the three lifecycle capabilities share.
+ *
+ * `Workflow.find` is deliberately not it: that answers for a public workflow
+ * and for one shared with the caller as well, so writing a mutation on top of
+ * it would let a run rewrite or publish a workflow it can merely read. Missing
+ * and not-yours are one answer, so a caller cannot probe for ids.
+ */
+async function findOwnedWorkflow(
+  run: CapabilityRun,
+  id: string
+): Promise<WorkflowRow | null> {
+  const { Workflow } = await import("@nodetool-ai/models");
+  const wf = (await Workflow.get(id)) as WorkflowRow | null;
+  if (!wf || wf.user_id !== userIdOf(run.context)) return null;
+  return wf;
+}
+
+function notYours(id: string): { error: string } {
+  return { error: `Workflow ${id} was not found, or it is not yours.` };
+}
+
+const updateWorkflow: CapabilityExport = {
+  spec: updateWorkflowSpec,
+  impl: async (run, params) => {
+    const { Workflow } = await import("@nodetool-ai/models");
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const fields: Record<string, unknown> = {};
+    if (params["graph"] !== undefined) {
+      // The same three passes create_workflow runs, in the same order: an
+      // update that skipped them could store a graph the create path would
+      // have refused.
+      const authored = run.nodeRegistry
+        ? declareDynamicOutputsInGraph(params["graph"], run.nodeRegistry)
+        : params["graph"];
+      const graph = normalizeWorkflowGraph(authored);
+      const badModels = await modelSelectionError(
+        graph,
+        run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
+      );
+      if (badModels) return badModels;
+      fields.graph = graph;
+    }
+    if (isString(params["name"])) fields.name = params["name"];
+    if (isString(params["description"])) {
+      fields.description = params["description"];
+    }
+    if (Array.isArray(params["tags"])) fields.tags = params["tags"];
+    if (Object.keys(fields).length === 0) {
+      return { error: "Nothing to update — pass graph, name, description or tags." };
+    }
+
+    // `access` is not in the field set on purpose. Publishing is its own
+    // capability because it is its own permission class.
+    const expected = isString(params["expected_updated_at"])
+      ? params["expected_updated_at"]
+      : existing.updated_at;
+    const updated = await Workflow.updateFieldsIfUnchanged(
+      id,
+      expected,
+      fields as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2]
+    );
+    if (!updated) {
+      return {
+        error:
+          `Workflow ${id} changed since you read it — read it again and retry.`
+      };
+    }
+    return workflowRecord(updated as WorkflowRow);
+  }
+};
+
+const deleteWorkflow: CapabilityExport = {
+  spec: deleteWorkflowSpec,
+  impl: async (run, params) => {
+    const { Workflow } = await import("@nodetool-ai/models");
+    const id = String(params["workflow_id"]);
+    const deleted = await Workflow.deleteOwned(userIdOf(run.context), id);
+    return deleted ? { workflow_id: id, deleted: true } : notYours(id);
+  }
+};
+
+const setWorkflowAccess: CapabilityExport = {
+  spec: setWorkflowAccessSpec,
+  impl: async (run, params) => {
+    const { Workflow } = await import("@nodetool-ai/models");
+    const id = String(params["workflow_id"]);
+    const access = params["access"] === "public" ? "public" : "private";
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+    const updated = await Workflow.updateFieldsIfUnchanged(
+      id,
+      existing.updated_at,
+      { access } as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2]
+    );
+    if (!updated) {
+      return {
+        error: `Workflow ${id} changed since it was read — retry.`
+      };
+    }
+    return { workflow_id: id, access };
   }
 };
 
@@ -465,6 +575,9 @@ export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   listWorkflows,
   getWorkflow,
   createWorkflow,
+  updateWorkflow,
+  deleteWorkflow,
+  setWorkflowAccess,
   runWorkflowCapability,
   debugWorkflow,
   resolveWorkflowEscalation,
@@ -483,6 +596,9 @@ export {
   listWorkflows,
   getWorkflow,
   createWorkflow,
+  updateWorkflow,
+  deleteWorkflow,
+  setWorkflowAccess,
   runWorkflowCapability,
   debugWorkflow,
   resolveWorkflowEscalation,

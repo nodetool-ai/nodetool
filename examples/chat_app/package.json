@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "live-test": "node scripts/live-test.mjs"
   },
   "dependencies": {

@@ -3,12 +3,12 @@
  * surface.
  *
  * A JS script is a named, versioned script with declared ports, sandbox
- * packages, secrets, a timeout, and saved test cases
+ * secrets, a timeout, and saved test cases
  * (docs/js-script-document-design.md). These six capabilities are how an agent
  * — or a Code node body, or a CodeAct action, through the same belt — finds
  * one, reads it, saves it, checks it, runs it, and regression-tests it:
  *
- *   list_js_scripts    — id, name, description, ports (the discovery surface)
+ *   list_js_scripts    — id, name, description, ports, palette (discovery)
  *   get_js_script      — the full document
  *   save_js_script     — create or update, validated first, CAS on update
  *   validate_js_script — the static check, inline or by id
@@ -51,7 +51,8 @@ import {
   runJsScriptSpec,
   testJsScriptSpec,
   MAX_JS_SCRIPT_DEPTH,
-  MAX_JS_SCRIPT_TIMEOUT_SECONDS
+  MAX_JS_SCRIPT_TIMEOUT_SECONDS,
+  deleteJsScriptSpec
 } from "./js-scripts.specs.js";
 import { isNonBlankString, isRecord } from "../utils/type-guards.js";
 
@@ -268,7 +269,6 @@ async function runDocument(
   const params: Parameters<typeof runCodeBody>[1] = {
     code: document.code,
     inputs,
-    packages: document.packages.map((pack) => pack.specifier),
     secrets: resolveSecretScope(context, document.secrets),
     timeoutSeconds: Math.min(
       document.timeoutSeconds,
@@ -317,6 +317,7 @@ const listJsScripts: CapabilityExport = {
         description: doc.description,
         inputs: doc.inputs,
         outputs: doc.outputs,
+        palette: doc.palette ?? null,
         updated_at: row.updated_at
       };
     });
@@ -559,13 +560,35 @@ const testJsScript: CapabilityExport = {
   }
 };
 
+/**
+ * Delete a JS script the caller owns.
+ *
+ * The ownership check and the version cascade are `JsScript.deleteOwned`, the
+ * same function the tRPC route calls — a delete is not a place for two copies
+ * of one rule, and version rows outliving their document would be unreachable
+ * garbage. Missing and not-yours are one answer.
+ */
+const deleteJsScript: CapabilityExport = {
+  spec: deleteJsScriptSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const { JsScript } = await import("@nodetool-ai/models");
+    const id = String(params["script_id"]);
+    const deleted = await JsScript.deleteOwned(userId, id);
+    return deleted
+      ? { script_id: id, deleted: true }
+      : { error: `JS script ${id} was not found, or it is not yours.` };
+  }
+};
 export const JS_SCRIPT_CAPABILITIES: readonly CapabilityExport[] = [
   listJsScripts,
   getJsScript,
   saveJsScript,
   validateJsScript,
   runJsScript,
-  testJsScript
+  testJsScript,
+  deleteJsScript
 ];
 
 export const module: CapabilityModule = {
@@ -579,5 +602,6 @@ export {
   saveJsScript,
   validateJsScript,
   runJsScript,
-  testJsScript
+  testJsScript,
+  deleteJsScript
 };

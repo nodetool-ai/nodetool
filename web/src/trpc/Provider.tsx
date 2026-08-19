@@ -26,6 +26,11 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
         }),
         httpBatchLink({
           url: `${BASE_URL}/trpc`,
+          // Cap the batch: tRPC joins every procedure name into one URL path
+          // segment, and Fastify's router rejects a segment over `maxParamLength`
+          // with a 404. A model-picker mount batched 116 procedures into a ~2900
+          // char path and got nothing back.
+          maxItems: 20,
           // Force batches to POST so the (potentially long) batched input rides
           // in the request body instead of the URL. GET batches encode every
           // procedure's input into the query string, which reverse proxies

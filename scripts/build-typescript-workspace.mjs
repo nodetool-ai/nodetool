@@ -67,6 +67,7 @@ export async function runCommand(command, args, options = {}) {
       stdio: "inherit",
       cwd: options.cwd ?? process.cwd(),
       shell: false,
+      env: options.env ?? process.env,
     });
 
     child.on("error", rejectRun);
@@ -97,10 +98,29 @@ export async function prepareTypeScriptWorkspaceBuild(workspaceDir, execute = ru
   // files disappear.
   const { command, args } = getTypeScriptBuildCommand(repoRoot);
   await execute(command, args, {
-    cwd: workspaceDir
+    cwd: workspaceDir,
+    env: typeScriptBuildEnv(),
   });
 
   await pruneOrphanedDistOutputs(workspaceDir);
+}
+
+/** Default V8 heap (MiB) for `tsc --build` child processes. Override with NODETOOL_TSC_HEAP_MB. */
+export const DEFAULT_TSC_HEAP_MB = 8192;
+
+export function typeScriptBuildEnv(baseEnv = process.env) {
+  const configured = baseEnv.NODETOOL_TSC_HEAP_MB;
+  const heapMb =
+    configured && /^\d+$/.test(configured)
+      ? Number(configured)
+      : DEFAULT_TSC_HEAP_MB;
+  const existing = baseEnv.NODE_OPTIONS ?? "";
+  const hasHeapFlag = /--max[-_]old[-_]space[-_]size=\d+/i.test(existing);
+  const heapFlag = `--max-old-space-size=${heapMb}`;
+  return {
+    ...baseEnv,
+    NODE_OPTIONS: hasHeapFlag ? existing : [existing, heapFlag].filter(Boolean).join(" ").trim(),
+  };
 }
 
 export function getTypeScriptBuildCommand(rootDir = repoRoot) {

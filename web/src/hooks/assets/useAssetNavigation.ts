@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import type { Asset } from "../../stores/ApiTypes";
 
 export function useAssetNavigation(params: {
@@ -39,18 +40,21 @@ export function useAssetNavigation(params: {
     [assets.length, currentIndex, prevNextAmount, handleChangeAsset]
   );
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open) {return;}
-      if (e.key === "ArrowLeft") {
-        changeAsset("left", e.ctrlKey);
-      } else if (e.key === "ArrowRight") {
-        changeAsset("right", e.ctrlKey);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, changeAsset]);
+  // allowInInputs keeps the window listener's looser gate: it fired regardless
+  // of what had focus while the viewer was open.
+  const viewerKeys = { active: open, allowInInputs: true } as const;
+  useGlobalCombo("arrowleft", () => changeAsset("left", false), viewerKeys);
+  useGlobalCombo("arrowright", () => changeAsset("right", false), viewerKeys);
+  useGlobalCombo(
+    "arrowleft+control",
+    () => changeAsset("left", true),
+    viewerKeys
+  );
+  useGlobalCombo(
+    "arrowright+control",
+    () => changeAsset("right", true),
+    viewerKeys
+  );
 
   return { changeAsset, handleChangeAsset } as const;
 }

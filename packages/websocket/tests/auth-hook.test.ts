@@ -5,7 +5,13 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
-import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool-ai/auth";
+import {
+  SupabaseAuthProvider,
+  LocalAuthProvider,
+  DelegatedTokenProvider,
+  isDelegatedToken,
+  mintDelegatedToken
+} from "@nodetool-ai/auth";
 
 // Helper: build a minimal Fastify app with the auth hook and a protected route
 async function buildApp(opts: {
@@ -13,6 +19,8 @@ async function buildApp(opts: {
   mockVerify?: (
     token: string
   ) => Promise<{ ok: boolean; userId?: string; error?: string }>;
+  /** Signing key for the delegated-token leg of the chain; omitted = off. */
+  delegatedKey?: Buffer;
 }): Promise<FastifyInstance> {
   const app = Fastify({ trustProxy: true, logger: false });
 
@@ -32,6 +40,10 @@ async function buildApp(opts: {
     );
   }
 
+  const delegatedProvider = opts.delegatedKey
+    ? new DelegatedTokenProvider(opts.delegatedKey)
+    : null;
+
   app.addHook("onRequest", async (req, reply) => {
     const pathname = req.url.split("?")[0];
     if (pathname === "/health" || req.url.startsWith("/api/oauth/")) return;
@@ -44,6 +56,16 @@ async function buildApp(opts: {
           searchParams
         )
       : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
+
+    // Delegated tokens are checked first, and only when they announce
+    // themselves by prefix. Anything else falls through unchanged.
+    if (delegatedProvider && token && isDelegatedToken(token)) {
+      const delegated = await delegatedProvider.verifyToken(token);
+      if (delegated.ok) {
+        req.userId = delegated.userId ?? null;
+        return;
+      }
+    }
 
     if (opts.supabaseMode) {
       if (!token) {
@@ -170,6 +192,68 @@ describe("auth hook — Supabase mode", () => {
       method: "GET",
       url: "/ws?api_key=bad-token",
       headers: { upgrade: "websocket", connection: "upgrade" }
+    });
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe("auth hook — delegated tokens chained before the provider", () => {
+  const DELEGATED_KEY = Buffer.from("0123456789abcdef0123456789abcdef", "utf-8");
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    app = await buildApp({
+      supabaseMode: true,
+      delegatedKey: DELEGATED_KEY,
+      mockVerify: async (token: string) => {
+        if (token === "valid-token") return { ok: true, userId: "user-42" };
+        return { ok: false, error: "Invalid token" };
+      }
+    });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it("authenticates a minted delegated token as its mapped user", async () => {
+    const { token } = mintDelegatedToken(DELEGATED_KEY, "user-a", 3600);
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/protected",
+      headers: { authorization: `Bearer ${token}` }
+    });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ userId: "user-a" });
+  });
+
+  it("leaves non-delegated tokens to the configured provider", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/protected",
+      headers: { authorization: "Bearer valid-token" }
+    });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ userId: "user-42" });
+  });
+
+  it("falls through — and is rejected — when a delegated token expired", async () => {
+    const { token } = mintDelegatedToken(DELEGATED_KEY, "user-a", -1);
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/protected",
+      headers: { authorization: `Bearer ${token}` }
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("falls through — and is rejected — when a delegated token was tampered with", async () => {
+    const { token } = mintDelegatedToken(DELEGATED_KEY, "user-a", 3600);
+    const tampered = token.slice(0, -1) + (token.endsWith("A") ? "B" : "A");
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/protected",
+      headers: { authorization: `Bearer ${tampered}` }
     });
     expect(res.statusCode).toBe(401);
   });

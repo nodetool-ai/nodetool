@@ -37,6 +37,7 @@ import {
   summarizeDataset
 } from "../src/apify/normalize.js";
 import { runActor, waitForRun } from "../src/apify/run.js";
+import { collectRecordUrls, isApifyRecordUrl } from "../src/apify/assets.js";
 
 const TOKEN = "apify_api_SUPERSECRETVALUE0123456789";
 
@@ -328,5 +329,30 @@ describe("cancellation", () => {
     ).catch((e: unknown) => e);
     expect((error as ApifyError).kind).toBe("run_failed");
     expect((error as ApifyError).message).toContain("the site blocked us");
+  });
+});
+
+describe("produced-file URLs", () => {
+  it("keeps only Apify key-value record URLs, once each, up to the cap", () => {
+    const rec = (n: number) =>
+      `https://api.apify.com/v2/key-value-stores/STORE/records/file-${n}.png`;
+    const items = [
+      { a: rec(1), b: "https://example.com/page", c: { d: [rec(2), rec(1)] } },
+      { e: rec(3), f: "http://api.apify.com/v2/key-value-stores/X/records/y" },
+      rec(4),
+      { g: rec(5), h: rec(6) }
+    ];
+    expect(collectRecordUrls(items)).toEqual([
+      rec(1),
+      rec(2),
+      rec(3),
+      rec(4),
+      rec(5)
+    ]);
+    expect(collectRecordUrls(items, 2)).toEqual([rec(1), rec(2)]);
+    expect(isApifyRecordUrl("https://api.apify.com/v2/datasets/D/items")).toBe(
+      false
+    );
+    expect(isApifyRecordUrl(rec(9))).toBe(true);
   });
 });

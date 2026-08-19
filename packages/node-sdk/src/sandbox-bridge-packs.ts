@@ -209,6 +209,12 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
+    specifier: "@nodetool-ai/sandbox-tokens",
+    packName: "@nodetool-ai/sandbox-tokens",
+    library: "js-tiktoken",
+    runs: "host"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-twilio",
     packName: "@nodetool-ai/sandbox-twilio",
     library: "NodeTool's Twilio helper",

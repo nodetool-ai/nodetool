@@ -1,4 +1,9 @@
-import { getIsElectronDetails, isEditableElement, isTextInputActive } from "../browser";
+import {
+  canTakeFocus,
+  getIsElectronDetails,
+  isEditableElement,
+  isTextInputActive
+} from "../browser";
 
 describe("getIsElectronDetails", () => {
   const originalUserAgent = navigator.userAgent;
@@ -97,5 +102,29 @@ describe("isTextInputActive", () => {
     expect(isTextInputActive()).toBe(true);
 
     document.body.removeChild(monacoRoot);
+  });
+});
+
+describe("canTakeFocus", () => {
+  it("is false for a detached element", () => {
+    expect(canTakeFocus(document.createElement("input"))).toBe(false);
+    expect(canTakeFocus(null)).toBe(false);
+  });
+
+  it("is true for an attached element outside any inert subtree", () => {
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    expect(canTakeFocus(input)).toBe(true);
+    document.body.removeChild(input);
+  });
+
+  it("is false inside an inert ancestor", () => {
+    const host = document.createElement("div");
+    host.setAttribute("inert", "");
+    const input = document.createElement("input");
+    host.appendChild(input);
+    document.body.appendChild(host);
+    expect(canTakeFocus(input)).toBe(false);
+    document.body.removeChild(host);
   });
 });

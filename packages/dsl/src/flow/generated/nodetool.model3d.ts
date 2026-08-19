@@ -21,6 +21,7 @@ export function loadModel3DFile(inputs: LoadModel3DFileInputs): Promise<LoadMode
 // Save Model 3D File — nodetool.model3d.SaveModel3DFile
 export type SaveModel3DFileInputs = {
   model?: unknown;
+  save_to_workspace?: boolean;
   folder?: string;
   filename?: string;
   overwrite?: boolean;

@@ -29,6 +29,7 @@ import type {
   CapabilityRun,
   CapabilitySpec,
   ClientToolRouter,
+  SecretPrompt,
   SubAgentRuntime
 } from "./types.js";
 import type {
@@ -66,6 +67,8 @@ export interface CreateCapabilityRunOptions {
   context: ProcessingContext;
   gate: CapabilityGate;
   client?: ClientToolRouter;
+  /** Opens the bespoke secret dialog; see {@link CapabilityRun.secretPrompt}. */
+  secretPrompt?: SecretPrompt;
   subAgent?: SubAgentRuntime;
   nodeRegistry?: NodeRegistry;
   providers?: Record<string, BaseProvider>;
@@ -100,6 +103,7 @@ export function createCapabilityRun(
     context: options.context,
     gate: options.gate,
     client: options.client,
+    secretPrompt: options.secretPrompt,
     subAgent: options.subAgent,
     nodeRegistry: options.nodeRegistry,
     providers: options.providers,

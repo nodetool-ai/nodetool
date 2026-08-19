@@ -86,9 +86,9 @@ Decisions baked into the shape:
   the caller's secrets; it runs with the intersection of its declared `secrets`
   and what the invoking context allows.
 
-  **Implementation note.** The `packages` field remains on the document so old
-  saves parse. A script does not use it. Every installed sandbox pack and
-  every `@nodetool-ai/sandbox-nodetool/<namespace>` module resolves by import.
+  **Implementation note.** A script declares no packages. Every installed
+  sandbox pack and every `@nodetool-ai/sandbox-nodetool/<namespace>` module
+  resolves by import; a `packages` field on an old save is dropped on parse.
 
 ## Storage and API
 

@@ -28,7 +28,18 @@ this existed keeps working.
 
 Eight capabilities in the `apify` namespace. They are agent tools and sandbox
 imports at the same time — one spec behind both — so nothing can drift between
-what a model is told and what guest code can call.
+what a model is told and what guest code can call. The chat belt, the MCP
+bridge, and the belt a `nodetool.code.Code` node and a JS script share all
+carry them through `getApifyTools()`
+(`packages/agents/src/tools/external-capability-tools.ts`), which is what
+makes `nodetool.searchTools("apify")` find them: the search reads the belt,
+and a module reachable only by import is invisible to it.
+
+The Code node belt matters as much as the chat one, because the move a chat
+teaches is "run it here, then put the same call in a node". It carried the
+tools only in chat for a while, so that second step failed with QuickJS's
+`TypeError: not a function` — naming neither the tool nor the belt — and read
+as the sandbox having no reach at all.
 
 | Capability | Does | Class |
 |---|---|---|
@@ -99,8 +110,8 @@ Four modes, set with `NODETOOL_APIFY_MODE`:
 | Mode | Store search | Runs |
 |---|---|---|
 | `disabled` | — | nothing |
-| `allowlist` **(default)** | the shipped catalog only | allowlisted actors |
-| `discovery` | the whole store | allowlisted directly; anything else asks the user |
+| `allowlist` | the shipped catalog only | allowlisted actors |
+| `discovery` **(default)** | the whole store | allowlisted directly; anything else asks the user |
 | `unrestricted` | the whole store | anything |
 
 `NODETOOL_APIFY_ALLOWED_ACTORS` is a comma-separated list **added to** the
@@ -184,6 +195,16 @@ download if a server declares no length. Text and JSON come back inline —
 storing a copy of a string just creates a second handle on it. An import that
 fails reports itself and leaves the remote URL in place rather than discarding a
 run that has already been paid for.
+
+Two paths do the import. `run_apify_actor` walks its dataset preview for URLs
+into Apify's key-value storage — every actor names its file field differently
+(`downloadedFileUrl`, `screenshotUrl`, …), so it is the URL's shape that
+identifies a produced file — and imports up to five of them, returned as
+`files` with an `asset_url` each. `get_apify_key_value_record` imports a binary
+record on read. Both give storage URLs; keeping one in the asset library is
+`save_asset({name, source: asset_url})`, which copies host-side. The model is
+told so in the result, because the alternative it reaches for otherwise is
+`read_asset` → 600 KB of base64 → `save_asset`.
 
 Every result carries provenance: actor id, run id, retrieval time, dataset and
 key-value store ids, status, and cost. It carries no token and no actor input,

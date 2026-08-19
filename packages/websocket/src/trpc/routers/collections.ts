@@ -10,6 +10,10 @@ import { Workflow } from "@nodetool-ai/models";
 import {
   getDefaultVectorProvider,
   CollectionNotFoundError,
+  OWNER_METADATA_KEY,
+  canAccessCollection,
+  stripReservedMetadata,
+  validateCollectionName,
   type ProviderCollectionMetadata
 } from "@nodetool-ai/vectorstore";
 import { ApiErrorCode } from "../../error-codes.js";
@@ -17,12 +21,7 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { notifyResourceChange } from "../../resource-events.js";
-import {
-  OWNER_METADATA_KEY,
-  canAccessCollection,
-  stripReservedMetadata,
-  validateCollectionName
-} from "../../lib/collection-access.js";
+
 import {
   listOutput,
   collectionResponse,

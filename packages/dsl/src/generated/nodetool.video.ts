@@ -59,6 +59,7 @@ export function loadVideoFile(inputs: LoadVideoFileInputs): DslNode<LoadVideoFil
 // Save Video File — nodetool.video.SaveVideoFile
 export type SaveVideoFileInputs = {
   video?: Connectable<VideoRef>;
+  save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   filename?: Connectable<string>;
 };

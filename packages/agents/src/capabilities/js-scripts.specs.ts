@@ -32,11 +32,13 @@ const SCRIPT_REF_PROPERTIES = {
 
 const DOCUMENT_DESCRIPTION =
   "A JsScriptDocument: {schemaVersion: 1, description, code, inputs, " +
-  "outputs, packages, secrets, timeoutSeconds, tests}. Ports are " +
+  "outputs, packages, secrets, timeoutSeconds, tests, palette?}. Ports are " +
   "{name, type}; a test is {name, inputs, expect?, expectedStreamed?}. " +
   "The body is top-level statements (no `export`, no `function run`). " +
   "Outputs leave through `await emit(name, value)` and " +
-  "`await output(name, value)` — never through `return`.";
+  "`await output(name, value)` — never through `return`. " +
+  "`palette: {category}` exposes the script in the user's node menu as a " +
+  "custom node under that category; omit it for a plain library script.";
 
 const DOCUMENT_FIELD: JsonSchema = {
   type: "object",
@@ -140,9 +142,10 @@ export const listJsScriptsSpec: CapabilitySpec = {
   name: "list_js_scripts",
   description:
     "List the caller's JS scripts, most recently updated first: id, name, " +
-    "description, and declared input/output ports. The description says what " +
-    "a script does — this is how you pick one to run. Start here when the " +
-    "user names a script but not its id.",
+    "description, declared input/output ports, and `palette` — set when the " +
+    "user saved the script as one of their custom nodes. The description " +
+    "says what a script does — this is how you pick one to run. Start here " +
+    "when the user names a script but not its id.",
   inputSchema: LIST_JS_SCRIPTS_SCHEMA,
   category: "read",
   userMessage: () => "Listing JS scripts"
@@ -182,7 +185,7 @@ export const validateJsScriptSpec: CapabilitySpec = {
   name: "validate_js_script",
   description:
     "Statically check a JS script WITHOUT running it: the body's syntax, its " +
-    "imports against the declared sandbox packages, undefined names, " +
+    "imports against the installed sandbox packs, undefined names, " +
     "undeclared `inputs.*` reads, and outputs no `emit`/`output` call " +
     "reaches; plus the document's own rules — duplicate or non-identifier " +
     "port names, a test naming a port the script does not declare, a body " +
@@ -204,8 +207,8 @@ export const runJsScriptSpec: CapabilitySpec = {
   description:
     "Run a saved JS script in the QuickJS sandbox with the given `inputs` " +
     "and report its outputs, streamed emits, console logs and error. The " +
-    "script runs inside its own envelope: the sandbox packages it declares, " +
-    "only the secrets it declares, and its own timeout. The guest has the " +
+    "script runs inside its own envelope: the packs its body imports, only " +
+    "the secrets it declares, and its own timeout. The guest has the " +
     "same `tools.*` / `nodetool.*` belt a Code node has — tool-backed calls " +
     "can spend money. Address the script by id, or by name when the name is " +
     "unambiguous.",
@@ -229,6 +232,26 @@ export const testJsScriptSpec: CapabilitySpec = {
     `Testing JS script ${String(params["js_script_id"] ?? params["name"] ?? "")}`
 };
 
+export const deleteJsScriptSpec: CapabilitySpec = {
+  name: "delete_js_script",
+  description:
+    "Delete a JS script you own, together with its saved version history. " +
+    "This cannot be undone. A JS script belonging to another user is reported " +
+    "as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      script_id: {
+        type: "string",
+        description: "The JS script to delete. You must own it."
+      }
+    },
+    required: ["script_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting JS script ${params["script_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const jsScriptsSpecs: readonly CapabilitySpec[] = [
   listJsScriptsSpec,
@@ -236,5 +259,6 @@ export const jsScriptsSpecs: readonly CapabilitySpec[] = [
   saveJsScriptSpec,
   validateJsScriptSpec,
   runJsScriptSpec,
-  testJsScriptSpec
+  testJsScriptSpec,
+  deleteJsScriptSpec
 ];

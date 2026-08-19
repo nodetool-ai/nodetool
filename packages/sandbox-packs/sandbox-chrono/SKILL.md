@@ -5,8 +5,7 @@ description: Parse English dates such as next Tuesday in a Code node or CodeAct 
 
 # Natural-language dates in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-chrono`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-chrono`. Import it at the top of the body.
 
 chrono-node does not compile into QuickJS, so this pack is a **host module**.
 You pass text; you get ISO strings back.

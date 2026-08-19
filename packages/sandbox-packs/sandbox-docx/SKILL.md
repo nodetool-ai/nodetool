@@ -5,8 +5,7 @@ description: Build a Word document in a Code node or CodeAct action, with docx r
 
 # Word documents in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-docx`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-docx`. Import it at the top of the body.
 
 `docx` builds a document out of class instances (`Paragraph`, `TextRun`,
 `Table`, …) that cannot cross the guest boundary as plain data. This pack is a

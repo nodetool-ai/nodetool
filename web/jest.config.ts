@@ -32,8 +32,12 @@ export default {
     // node-sdk ships ESM-only dist; the cost-estimate subpath is a pure module
     // (protocol + pricing-bundle types only), so map it to src rather than
     // pull the heavy barrel (pack-loader, registry) into jsdom.
+    "^@nodetool-ai/node-sdk/code-analysis$":
+      "<rootDir>/../packages/node-sdk/src/code-analysis.ts",
     "^@nodetool-ai/node-sdk/code-body$":
       "<rootDir>/../packages/node-sdk/src/code-body.ts",
+    "^@nodetool-ai/node-sdk/js-script-materialize$":
+      "<rootDir>/../packages/node-sdk/src/js-script-materialize.ts",
     "^@nodetool-ai/node-sdk/cost-estimate$":
       "<rootDir>/../packages/node-sdk/src/cost-estimate.ts",
     "^@nodetool-ai/node-sdk/pricing-params$":

@@ -1,8 +1,8 @@
 /**
  * Session package consent for CodeAct actions.
  *
- * A Code node carries a `packages` declaration a person saved; a CodeAct action
- * is code the model just wrote. Mounting whatever happens to be installed would
+ * A Code node runs a body a person saved; a CodeAct action is code the model
+ * just wrote. Mounting whatever happens to be installed would
  * let the model hand an unrelated pack the action's `fetch`, `workspace`,
  * `getSecret` and tool capabilities, so an action imports only what the session
  * allowed — and the prompt advertises only those specifiers, one line each,

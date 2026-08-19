@@ -15,17 +15,19 @@
  * covers `randomUUID`, `getRandomValues`, `digest`, and `hmac`
  * (WebCrypto-backed); `workspace` covers text and binary reads/writes plus
  * `stat`, `mkdir`, and `remove`; `progress` forwards a percentage and label to
- * the host caller (rate-limited); `format` exposes host `Intl` number, date,
+ * the host caller (rate-limited); `console.*` appends to the run's `logs`
+ * array and, when the caller set {@link RunSandboxOptions.onLog}, forwards
+ * each line live (capped); `format` exposes host `Intl` number, date,
  * relative-time and list formatting, which QuickJS itself does not ship.
  * Every quantitative limit (fetch calls, response body, output size,
  * guest heap, stack, fetch timeout) is overridable per invocation through
  * `RunSandboxOptions.limits`, clamped to hard ceilings.
  *
  * The guest imports nothing by default — without `RunSandboxOptions.modules`
- * there is no loader at all, so user code cannot `import`/`require` anything.
- * With it, the run's declared sandbox packages and their intra-pack siblings
- * are the only importable modules (see {@link createGuestModuleHost}), and
- * dynamic `import()` stays denied.
+ * every specifier is denied by name, so user code cannot `import`/`require`
+ * anything. With it, the run's resolved sandbox packages and their intra-pack
+ * siblings are the only importable modules (see {@link createGuestModuleHost}),
+ * and dynamic `import()` stays denied.
  *
  * **Every library the sandbox offers is an importable module.** Some are guest
  * modules the compiler admitted (js-yaml, date-fns); the rest are *host
@@ -33,7 +35,7 @@
  * host behind a generated ESM facade over a per-run dispatcher
  * (`host-modules/`), because they need Node builtins the guest lacks or carry a
  * limit the guest could not enforce. Either way the guest writes `import`, and
- * the pack has to be installed and declared. The remaining globals — `fetch`,
+ * the pack has to be installed. The remaining globals — `fetch`,
  * `workspace`, `getSecret`, the asset bridges, `format.*` (Intl), `crypto.*`
  * (WebCrypto), `image.*`/`canvas.*` — are not libraries: they are the
  * capabilities the node granted this run.
@@ -165,6 +167,10 @@ export const DEFAULT_FORMAT_LOCALE = "en-US";
 export const MAX_RANDOM_BYTES = 65_536;
 /** Progress reports forwarded to the host per run; further calls are dropped. */
 export const MAX_PROGRESS_CALLS = 1000;
+/** Console lines forwarded to {@link RunSandboxOptions.onLog} per run. */
+export const MAX_CONSOLE_LOGS = 1000;
+/** Longest console line forwarded to the host. The collected `logs` array is not truncated. */
+export const MAX_CONSOLE_LOG_CHARS = 4000;
 /**
  * Emitted values a run may deliver. Unlike progress reports, emits are never
  * dropped or rate-limited — every value reaches the host in call order — so the
@@ -196,6 +202,21 @@ export const INPUT_STREAM_SUSPEND_ALLOWANCE_MS = MAX_ENGINE_TIMEOUT_MS;
 export type SandboxProgressCallback = (
   progress: number,
   message?: string
+) => void;
+
+/** Guest `console.*` method that produced a line. */
+export type SandboxLogLevel = "log" | "info" | "warn" | "error";
+
+/**
+ * Host sink for guest `console.*` calls. Synchronous and fire-and-forget:
+ * a failing sink does not take the guest down. At most
+ * {@link MAX_CONSOLE_LOGS} lines are forwarded, each truncated to
+ * {@link MAX_CONSOLE_LOG_CHARS}. The run's `logs` array still collects every
+ * line. Without a callback the guest console still writes that array.
+ */
+export type SandboxLogCallback = (
+  level: SandboxLogLevel,
+  message: string
 ) => void;
 
 /**
@@ -919,6 +940,8 @@ export interface SandboxResult {
  *                 {@link resolveSandboxLimits}.
  * @param onProgress Optional sink for guest `progress()` calls. Without one the
  *                 guest function is a no-op.
+ * @param onLog    Optional sink for guest `console.*` calls. Without one the
+ *                 lines still land in {@link SandboxResult}'s `getLogs`.
  * @param onEmit   Optional sink for guest `emit()` calls. Without one the values
  *                 are collected and handed back through `getEmitted`.
  * @param streams  Optional input bridges behind the guest `stream` global.
@@ -933,6 +956,7 @@ export function buildSandbox(
   signal?: AbortSignal,
   limits?: SandboxLimits,
   onProgress?: SandboxProgressCallback,
+  onLog?: SandboxLogCallback,
   onEmit?: SandboxEmitCallback,
   streams?: SandboxInputStreams,
   resolveMediaRef?: (where: string, ref: unknown) => Promise<Uint8Array>,
@@ -945,19 +969,41 @@ export function buildSandbox(
   const logs: string[] = [];
   const resolvedLimits = resolveSandboxLimits(limits);
   let fetchCount = 0;
+  let forwardedLogs = 0;
+
+  const pushConsole = (
+    level: SandboxLogLevel,
+    prefix: string,
+    args: unknown[]
+  ): void => {
+    const line = args.map(formatArg).join(" ");
+    logs.push(prefix + line);
+    if (!onLog || signal?.aborted) return;
+    if (forwardedLogs >= MAX_CONSOLE_LOGS) return;
+    forwardedLogs++;
+    const message =
+      line.length > MAX_CONSOLE_LOG_CHARS
+        ? line.slice(0, MAX_CONSOLE_LOG_CHARS)
+        : line;
+    try {
+      onLog(level, message);
+    } catch {
+      // A failing host sink must not take the guest run down with it.
+    }
+  };
 
   const console = {
     log: (...args: unknown[]) => {
-      logs.push(args.map(formatArg).join(" "));
+      pushConsole("log", "", args);
     },
     warn: (...args: unknown[]) => {
-      logs.push("[warn] " + args.map(formatArg).join(" "));
+      pushConsole("warn", "[warn] ", args);
     },
     error: (...args: unknown[]) => {
-      logs.push("[error] " + args.map(formatArg).join(" "));
+      pushConsole("error", "[error] ", args);
     },
     info: (...args: unknown[]) => {
-      logs.push("[info] " + args.map(formatArg).join(" "));
+      pushConsole("info", "[info] ", args);
     }
   };
 
@@ -2468,6 +2514,14 @@ export interface RunSandboxOptions {
    */
   onProgress?: SandboxProgressCallback;
   /**
+   * Sink for guest `console.*` calls. Each line is forwarded as it happens,
+   * with {@link MAX_CONSOLE_LOGS} as the cap and
+   * {@link MAX_CONSOLE_LOG_CHARS} as the per-line ceiling. The run's `logs`
+   * array still collects every untruncated line. Without a callback the guest
+   * console is unchanged: lines land only in `logs`.
+   */
+  onLog?: SandboxLogCallback;
+  /**
    * Sink for guest `emit(name, value)` calls. Every value reaches it, in call
    * order, and the guest's `emit` promise resolves only after it does — so an
    * `await emit(...)` blocks a producer the consumer cannot keep up with. A
@@ -2511,9 +2565,9 @@ export interface RunSandboxOptions {
   suspendAllowanceMs?: number;
   /**
    * Sandbox modules this run may import, already resolved by the catalog.
-   * Without it the guest has no module loader at all, exactly as before: an
-   * `import` resolves nothing. With it, these modules and their intra-pack
-   * siblings are the only importable ones — see {@link createGuestModuleHost}.
+   * Without it every guest `import` is denied by name. With it, these modules
+   * and their intra-pack siblings are the only importable ones — see
+   * {@link createGuestModuleHost}.
    */
   modules?: SandboxModuleResolution;
   /**
@@ -2681,6 +2735,7 @@ export async function runInSandbox(
     signal,
     limits,
     onProgress,
+    onLog,
     onEmit,
     onTakeInput,
     onStreamOpen,
@@ -2744,6 +2799,7 @@ export async function runInSandbox(
     signal,
     resolvedLimits,
     onProgress,
+    onLog,
     onEmit,
     streams,
     resolveMediaRef,

@@ -15,7 +15,6 @@
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { Render, type Data } from "@puckeditor/core";
-import { ThemeProvider, CssBaseline } from "@mui/material";
 
 import ThemeNodetool from "../components/themes/ThemeNodetool";
 import {
@@ -43,7 +42,7 @@ import {
 import { appConfig } from "../components/appbuilder/puck/config";
 import { extractWorkflowIO } from "../components/appbuilder/workflowIO";
 import { Workflow } from "../stores/ApiTypes";
-import { Box, BORDER_RADIUS } from "../components/ui_primitives";
+import { Box, BORDER_RADIUS, ThemeRoot } from "../components/ui_primitives";
 import { makeDemoAudio, makeDemoGradient, makeDemoVideo } from "./demoMedia";
 import { isObjectLike } from "../utils/typePredicates";
 
@@ -281,8 +280,7 @@ const AppPreviewApp: React.FC = () => {
   if (!bundle || !runtime || !data) return null;
 
   return (
-    <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-      <CssBaseline />
+    <ThemeRoot theme={ThemeNodetool}>
       {/* The asset viewer behind image controls calls useNavigate; nothing in
           the preview routes anywhere, so an in-memory router is enough. */}
       <MemoryRouter>
@@ -313,7 +311,7 @@ const AppPreviewApp: React.FC = () => {
           </WorkflowManagerProvider>
         </QueryClientProvider>
       </MemoryRouter>
-    </ThemeProvider>
+    </ThemeRoot>
   );
 };
 

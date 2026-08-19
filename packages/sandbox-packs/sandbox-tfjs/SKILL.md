@@ -5,8 +5,7 @@ description: Classify and embed images, detect objects, and answer from a passag
 
 # TensorFlow.js models in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-tfjs`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-tfjs`. Import it at the top of the body.
 
 The models are tens of megabytes of weights, fetched over the network and kept
 between calls. The guest has neither the heap for them nor a way to keep

@@ -11,7 +11,9 @@ $WebServerPid = $null
 
 function Cleanup {
     if ($WebServerPid) {
-        Stop-Process -Id $WebServerPid -Force -ErrorAction SilentlyContinue
+        # /T kills the whole tree — stopping only npm.cmd would orphan the
+        # Vite node child it spawned.
+        & taskkill /PID $WebServerPid /T /F 2>$null | Out-Null
     }
 }
 
@@ -20,47 +22,36 @@ trap {
     exit 1
 }
 
-# Check for conda environment - try multiple detection methods
-$CondaActive = $false
-
-# Method 1: Check CONDA_PREFIX environment variable
+# Conda is optional — only Python nodes need it, and the backend starts
+# without Python support when no environment is active (server.ts warns and
+# continues). Mirrors scripts/electron-dev.sh, which has no conda check.
 if ($env:CONDA_PREFIX) {
-    $CondaActive = $true
+    Write-Host "Detected conda environment: $($env:CONDA_DEFAULT_ENV)"
+} else {
+    Write-Host "No conda environment active - Python nodes will be unavailable. Run 'conda activate <env>' first to enable them." -ForegroundColor Yellow
 }
 
-# Method 2: Check CONDA_DEFAULT_ENV environment variable
-if (-not $CondaActive -and $env:CONDA_DEFAULT_ENV -and $env:CONDA_DEFAULT_ENV -ne "base") {
-    $CondaActive = $true
-}
-
-# Method 3: Try to run 'conda info' and check if there's an active env
-if (-not $CondaActive) {
-    try {
-        $CondaInfo = & conda info --envs 2>$null | Select-String "\*"
-        if ($CondaInfo) {
-            $CondaActive = $true
-        }
-    } catch {
-        # conda not in PATH or command failed
-    }
-}
-
-if (-not $CondaActive) {
-    Write-Error "ERROR: No active conda environment detected."
-    Write-Host "Activate your conda environment first, e.g. 'conda activate nodetool'." -ForegroundColor Yellow
-    exit 1
-}
-
-Write-Host "Detected conda environment: $($env:CONDA_DEFAULT_ENV)"
 Write-Host "Starting web Vite server on $WebDevServerUrl..."
 
-$WebJob = Start-Job -ScriptBlock {
-    param($Url)
-    Set-Location web
-    npm run dev
-} -ArgumentList $WebDevServerUrl
+# Start-Process, not Start-Job: under Windows PowerShell 5.1 a job runs in a
+# separate process rooted at the user's home directory, so `Set-Location web`
+# fails there and Vite never starts — silently, because nothing reads the
+# job's error stream. -NoNewWindow shares this console, so Vite's output and
+# any startup error stay visible.
+$WebUri = [Uri]$WebDevServerUrl
+$WebDir = Join-Path $PSScriptRoot "..\web"
+$WebProc = Start-Process -FilePath "npm.cmd" -ArgumentList @(
+    "run",
+    "dev",
+    "--",
+    "--host",
+    $WebUri.Host,
+    "--port",
+    "$($WebUri.Port)",
+    "--strictPort"
+) -WorkingDirectory $WebDir -NoNewWindow -PassThru
 
-$WebServerPid = $WebJob.Id
+$WebServerPid = $WebProc.Id
 
 Write-Host "Waiting for Vite server..."
 $MaxAttempts = 300

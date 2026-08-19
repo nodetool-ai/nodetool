@@ -49,8 +49,7 @@ describe("CodeNode — injected agents module", () => {
     const marker = new MarkerTool();
     const injected = {
       ...agents,
-      getAgentToolbelt: () => [marker],
-      getAllMcpTools: () => []
+      assembleSandboxToolbelt: () => [marker]
     } as unknown as AgentsModule;
     setCodeNodeAgentsModule(injected);
 
@@ -96,8 +95,7 @@ describe("CodeNode — injected agents module", () => {
   it("goes back to resolving the specifier once the injection is cleared", async () => {
     setCodeNodeAgentsModule({
       ...agents,
-      getAgentToolbelt: () => [],
-      getAllMcpTools: () => []
+      assembleSandboxToolbelt: () => []
     } as unknown as AgentsModule);
     setCodeNodeAgentsModule(null);
 

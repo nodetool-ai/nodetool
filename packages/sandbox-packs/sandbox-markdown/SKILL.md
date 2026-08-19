@@ -6,8 +6,7 @@ description: Parse markdown into a token stream inside a Code node or CodeAct ac
 # Markdown in the sandbox
 
 Specifier: `@nodetool-ai/sandbox-markdown`. One module, the `marked` root
-export. Declare it in the node's `packages` property and import it at the top
-of the body.
+export. Import it at the top of the body.
 
 `marked` is pure JavaScript — no Node builtins, no DOM — so it compiles
 straight into the QuickJS guest. There is no pre-built "extract headers"

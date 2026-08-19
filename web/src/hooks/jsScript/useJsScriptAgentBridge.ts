@@ -8,7 +8,6 @@
  */
 
 import { useEffect, useMemo } from "react";
-import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
 import { validateJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
 import {
@@ -104,10 +103,6 @@ export const useJsScriptAgentBridge = (scriptId: string): void => {
         store().setPorts(scriptId, ports);
         return snapshot();
       },
-      setPackages: (packages: SandboxModuleDeclaration[]) => {
-        store().setPackages(scriptId, packages);
-        return snapshot();
-      },
       setMeta: (meta) => {
         if (meta.name !== undefined) store().setName(scriptId, meta.name);
         if (meta.description !== undefined) {
@@ -118,6 +113,9 @@ export const useJsScriptAgentBridge = (scriptId: string): void => {
         }
         if (meta.timeoutSeconds !== undefined) {
           store().setTimeoutSeconds(scriptId, meta.timeoutSeconds);
+        }
+        if (meta.palette !== undefined) {
+          store().setPalette(scriptId, meta.palette);
         }
         return snapshot();
       },

@@ -47,7 +47,7 @@ Talk to the user in ASD-STE100 Simplified Technical English.
 ## Architecture
 
 ```
-packages/           # 55 npm workspace packages (TypeScript backend)
+packages/           # 56 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -236,13 +236,13 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 16,469 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,760 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-58 trees is 522 pairs, and 246 of them are already at zero — so a rule still
+59 trees is 531 pairs, and 247 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
 fifty-five packages, and those fifty-five are ratcheted today rather than after
 the last one lands. Seven rules are at zero everywhere and sit in the enforced
@@ -265,7 +265,7 @@ before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
 lints one tree per oxlint invocation and rejects any tree whose scan touched
 zero files: oxlint does not expand `packages/*/src` itself, and a glob that
 reaches it unexpanded lints nothing while reporting nothing — which is
-indistinguishable from a clean tree, and would ratchet all 522 pairs on a
+indistinguishable from a clean tree, and would ratchet all 531 pairs on a
 broken run.
 
 A rule that does not fit NodeTool is deleted from the plugin
@@ -280,7 +280,7 @@ inside a function returning `v is T` is the rule's sanctioned form, so working
 the backlog means consolidating repeated inline checks into named predicates
 (each tree has a predicate module: `packages/protocol/src/predicates.ts`,
 `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
-deleting guards. It is enforced for the twenty trees at zero on it (read the
+deleting guards. It is enforced for the twenty-one trees at zero on it (read the
 list off the enforced config), with the decoder `packages/protocol/src/typecheck.ts`
 exempt: in the package that owns the schemas, an inline `typeof` means someone
 bypassed the parse. One tradeoff: predicates take `value: unknown`, so
@@ -300,18 +300,18 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7008 | 11 / 58 |
-| `no-unsafe-dictionary-type` | 4269 | 11 / 58 |
-| `no-unknown-parameters` | 1918 | 14 / 58 |
-| `no-module-mocking` | 1457 | 55 / 58 |
-| `no-known-value-widening` | 672 | 17 / 58 |
-| `no-runtime-typeof` | 500 | 21 / 58 |
-| `no-implicit-return-type` | 448 | 30 / 58 |
-| `no-unknown-returns` | 232 | 41 / 58 |
-| `no-chained-type-assertions` | 49 | 46 / 58 |
+| `require-safety-comment-for-type-assertion` | 7039 | 11 / 59 |
+| `no-unsafe-dictionary-type` | 4315 | 11 / 59 |
+| `no-unknown-parameters` | 1948 | 14 / 59 |
+| `no-module-mocking` | 1460 | 56 / 59 |
+| `no-known-value-widening` | 722 | 17 / 59 |
+| `no-runtime-typeof` | 534 | 21 / 59 |
+| `no-implicit-return-type` | 449 | 30 / 59 |
+| `no-unknown-returns` | 243 | 41 / 59 |
+| `no-chained-type-assertions` | 50 | 46 / 59 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,457 findings but zero in 55 of 58 trees: it is
+`no-module-mocking` is 1,460 findings but zero in 56 of 59 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
@@ -1032,9 +1032,9 @@ provider or model the model hallucinated — and
 upstream half of the graph has been paid for.
 
 A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
-not valid JavaScript, uses `export` at the top level, imports a specifier the
-node's `packages` property does not declare (the guest loader resolves only
-declared sandbox packages),
+not valid JavaScript, uses `export` at the top level, imports a specifier no
+installed pack serves (a node declares no packages — its imports are the
+declaration, resolved against the catalog),
 reads a bare name that is not a sandbox API — including one of the node's own
 inputs, which arrive on the `inputs` object, so a bare read is a ReferenceError
 too — never returns, or leaves a declared output unset on some return path is
@@ -1500,7 +1500,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships thirty-seven packs in
+global — the `data.*` namespace is gone. NodeTool ships thirty-eight packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box:
 
@@ -1511,6 +1511,7 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-markdown` | marked | guest |
 | `@nodetool-ai/sandbox-qr` | uqr | guest |
 | `@nodetool-ai/sandbox-subtitle` | subtitle | host |
+| `@nodetool-ai/sandbox-tokens` | js-tiktoken | host |
 | `@nodetool-ai/sandbox-color` | culori | guest |
 | `@nodetool-ai/sandbox-decimal` | decimal.js | guest |
 | `@nodetool-ai/sandbox-expr` | expr-eval | host |
@@ -1563,7 +1564,6 @@ the control flow in plain JavaScript. `await` is the edge, a variable is the
 wire, `Promise.all` is the fan-out — no graph, no edges, no runner.
 
 ```js
-// Code node `packages` property: ["@nodetool-ai/sandbox-flow"]
 import "@nodetool-ai/sandbox-nodetool/flow";   // mounts the bridge (body-side, required)
 import { concat } from "@nodetool-ai/sandbox-flow/nodetool.text";
 
@@ -1571,7 +1571,7 @@ const r = await concat({ a: inputs.left, b: inputs.right });
 await output("joined", r.output);
 ```
 
-One module per node namespace (69 namespaces, 440 nodes), generated by the
+One module per node namespace (68 namespaces, 424 nodes), generated by the
 same `npm run codegen` pass as the graph DSL and shipped as the
 `sandbox-flow` pack. Streaming-output nodes carry `.stream(inputs)` — an
 async iterable over cursor calls; early `break` closes the stream and runs
@@ -1585,7 +1585,7 @@ run's `ProcessingContext`, and is bounded by a recursion depth cap of 4 and
 16 concurrently open streams per run. v1 limits: streaming *inputs* accept
 arrays only (no live guest-produced streams), and the body must import the
 capability module itself for the facade to mount — the pack's `SKILL.md`
-states the exact declarations.
+states both imports.
 
 The host backend is `packages/dsl/src/flow/` (internal; `@nodetool-ai/dsl/flow`
 exists for the hidden import, not as a public surface — programs that must
@@ -1617,6 +1617,55 @@ bills for it. Apify is now a **capability module**
 actor passes an allowlist and a session budget, actor inputs are SSRF-screened,
 cancellation aborts the remote run, and files it produces become NodeTool
 assets. See [docs/apify-integration.md](docs/apify-integration.md).
+
+**SerpAPI is a capability module** (`@nodetool-ai/sandbox-nodetool/serpapi`),
+and the engine list is discovered rather than declared. SerpAPI is one endpoint
+whose `engine` parameter selects which of ~120 contracts applies — Google and
+its verticals, Bing, Baidu, DuckDuckGo, Yandex, Naver, YouTube, Amazon, eBay,
+Walmart, Yelp, TripAdvisor, the app stores — so `list_serpapi_engines` and
+`get_serpapi_engine_schema` read SerpAPI's own engine table and an engine it
+ships tomorrow is callable with no diff here. `serpapi_search` runs any of them;
+the key stays on the host, `api_key` and `output` are refused from a caller, and
+the parameter bag is checked against the engine's contract before the call —
+SerpAPI *ignores* an unknown parameter, so a typo is otherwise a billed search
+that answers a different question. `web_search` stays what it is: one query
+against whichever `SERP_PROVIDER` this install configured. See
+[docs/serpapi-integration.md](docs/serpapi-integration.md).
+
+**Google Workspace is a capability module too**
+(`@nodetool-ai/sandbox-nodetool/google`), and the only Drive/Gmail/Docs/Sheets/
+Calendar surface — the fourteen `lib.google.*` nodes are gone. It authenticates
+with the token the user's Google sign-in returns rather than an API key, which
+the host resolves and refreshes; a guest never sees it. Its twenty calls are the
+fourteen the nodes made plus six they never offered — get one Drive file, get
+one Gmail message, list labels, create a spreadsheet, list calendars, delete an
+event — and a missing or revoked credential comes back as `{error}` telling the
+user to sign in again. A server with no Google login offers none of
+it — see `NODETOOL_GOOGLE_WORKSPACE` in
+[docs/configuration.md](docs/configuration.md).
+
+**NodeTool's own settings are a capability module**
+(`@nodetool-ai/sandbox-nodetool/settings`, also `nodetool.settings.*`), and the
+shape of it is the point: `list_settings`, `get_setting` and `set_setting` cover
+ordinary configuration, `list_secrets` reports which credentials this install
+holds without their values, and there is **no `set_secret`**. The definitions
+come from `settingCatalog()` in `@nodetool-ai/config` — the same table the tRPC
+settings router answers `settings.list` from — so the capability knows which
+names hold credentials instead of guessing from the name, and refuses to read or
+write one.
+
+Setting a secret goes through a bespoke dialog. `request_secret` takes a name, a
+reason and a help URL — never a value. The host sends a `secret_request` frame,
+the user types the key into a card in their own client, that client saves it
+with its own `settings.secrets.upsert` call, and the answer coming back
+(`secret_request_response`) says `saved` or `declined` and nothing else. The
+credential therefore never enters the guest, the websocket payload, the chat
+transcript, or the model's context; the run learns only that a secret now
+exists, and reads it — if at all — through `nodetool.secrets.get` under its own
+declared `secretScope`. The dialog is a host capability, not a fallback: a
+headless run (a workflow on the kernel, the CLI, an eval) carries no
+`CapabilityRun.secretPrompt` and the call is refused by name rather than
+quietly writing something nobody approved.
 
 The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
 `DownloadFile`, `Browser` and `SpiderCrawl` are the `fetch` capability plus
@@ -1675,6 +1724,52 @@ npm run dev:nodetool -- harness audit --strict   # exit 1 while any gap remains
 npm run dev:nodetool -- harness gate --base main # run the selfchecks this diff demands
 npm run dev:nodetool -- harness gate --dry-run   # plan only
 npm run dev:nodetool -- harness gate --all       # every selfcheck (--expensive to widen)
+```
+
+### nodetool reliability (Cross-Surface Journey Diffs)
+
+Runs a journey from `reliability/journeys/` on every execution surface it
+declares and diffs each non-oracle surface against the kernel oracle. A journey
+is a small workflow plus the invariants its run must hold — lifecycle pairing,
+terminal uniqueness, cleanup leaks — and what it proves is that the kernel
+runner and the ws-server produce the *same* stream for it. Reach for it after a
+change to execution: `harness gate` already runs the Ring 0 journeys on such a
+diff, and this is how you run one by hand.
+
+Run it from `dist`, not from source: the journey fixtures use decorators, which
+the `dev:nodetool` transform rejects (`Decorators are not valid here`). Build
+the packages first.
+
+```bash
+npm run nodetool -- reliability list                    # journeys + their surfaces
+npm run nodetool -- reliability run linear-text-pipeline
+npm run nodetool -- reliability run <journey> --surface kernel   # repeatable
+npm run nodetool -- reliability run <journey> --faults provider-429 --diff
+npm run nodetool -- reliability update-goldens <journey>
+```
+
+`--faults` replaces the journey's own matrix for that run. The provider-seam
+faults are implemented (`provider-429`, `provider-500`, `provider-timeout`,
+`truncated-stream`, `malformed-sse`, `slow-drip`, `cost-omission`); the
+`ws`/`bridge`/`host`/`client` names are recognized but report as unimplemented.
+`update-goldens` rewrites `expected/` from a fresh unfaulted kernel run — it
+cannot tell a fixed bug from a new one, so read the diff before committing it.
+Architecture: [docs/RELIABILITY_ARCHITECTURE.md](docs/RELIABILITY_ARCHITECTURE.md).
+
+### nodetool package (Node-Pack Authoring)
+
+Manages TypeScript **node** packages — the packs contributing node types to the
+registry — not the sandbox packs `nodetool packs` handles. `init` scaffolds a
+package (prompting for name, description, author), `list` reports what this
+install has, and `docs` / `node-docs` / `workflow-docs` generate a pack's
+Markdown.
+
+```bash
+npm run dev:nodetool -- package list [--available] [--json]
+npm run dev:nodetool -- package init
+npm run dev:nodetool -- package docs [-o docs] [--compact]
+npm run dev:nodetool -- package node-docs [-o docs/nodes] [-p <namespace>]
+npm run dev:nodetool -- package workflow-docs [-o docs/workflows] [-e <dir>]
 ```
 
 ### nodetool workflows

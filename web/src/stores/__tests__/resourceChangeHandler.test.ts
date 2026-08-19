@@ -403,6 +403,30 @@ describe("handleResourceChange", () => {
     expect(predicate({ queryKey: ["workflows"] })).toBe(false);
   });
 
+  it("refetches both the js script list and the node menu's palette", () => {
+    handleResourceChange({
+      type: "resource_change",
+      event: "updated",
+      resource_type: "jsscript",
+      resource: { id: "script-1", updated_at: "2026-08-18T00:00:00Z" }
+    });
+
+    const predicates = (queryClient.invalidateQueries as jest.Mock).mock.calls
+      .filter((call) => isFunction(call[0]?.predicate))
+      .map(
+        (call) =>
+          call[0].predicate as (q: { queryKey: readonly unknown[] }) => boolean
+      );
+
+    const matches = (key: readonly unknown[]) =>
+      predicates.some((predicate) => predicate({ queryKey: key }));
+
+    expect(matches([["jsScripts", "list"], {}])).toBe(true);
+    expect(matches([["jsScripts", "palette"], {}])).toBe(true);
+    expect(matches([["jsScripts", "get"], {}])).toBe(false);
+    expect(matches([["scripts", "palette"], {}])).toBe(false);
+  });
+
   it("includes additional resource properties in the update", () => {
     const update: ResourceChangeUpdate = {
       type: "resource_change",

@@ -12,6 +12,7 @@ const mockSignUrl = jest.fn();
 // QueryClientProvider, so use the manual mock (resolution itself is covered
 // by hooks/__tests__/useResolvedMediaUri.test.tsx).
 jest.mock("../../../../hooks/useResolvedMediaUri");
+import { mockAssetUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
 
 jest.mock("../../../../trpc/client", () => ({
   trpc: {
@@ -197,13 +198,13 @@ describe("ChatMarkdown inline document previews", () => {
   });
 
   it("still renders asset:// images as plain images", () => {
-    mockSignUrl.mockReturnValue({ data: { url: "http://x/signed.png" } });
+    mockSignUrl.mockReturnValue({ data: undefined });
     const { container } = renderMarkdown("![](asset://abc.png)");
 
     expect(screen.queryByTestId("inline-resource-preview")).toBeNull();
     expect(container.querySelector("img")).toHaveAttribute(
       "src",
-      "http://x/signed.png"
+      mockAssetUrl("abc.png")
     );
   });
 

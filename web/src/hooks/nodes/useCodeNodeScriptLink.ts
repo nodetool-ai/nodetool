@@ -5,7 +5,7 @@
  * This hook owns the four state transitions the editor offers — link, update to
  * latest, extract, detach — so the node body only has to render buttons.
  *
- * Link and update-to-latest copy the pinned version's code, packages, secrets,
+ * Link and update-to-latest copy the pinned version's code, secrets,
  * timeout and ports onto the node in one undoable update, and the `script`
  * property records which version they came from. That copy is what executes: a
  * run reads no script row, so a workflow stays runnable wherever it is opened.
@@ -15,6 +15,10 @@ import { useCallback, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
 import type { jsScripts } from "@nodetool-ai/protocol/api-schemas";
+import {
+  materializeJsScriptNode,
+  type MaterializableJsScript
+} from "@nodetool-ai/node-sdk/js-script-materialize";
 
 import { useNodes } from "../../contexts/NodeContext";
 import { trpc, type RouterOutputs } from "../../trpc/client";
@@ -46,8 +50,13 @@ interface CodeNodeScriptLinkState {
   linkScript: (scriptId: string) => Promise<void>;
   /** Re-pin to the script's current content and re-copy it onto the node. */
   updateToLatest: () => Promise<void>;
-  /** Lift the node's body, ports, packages and secrets into a new script. */
-  extractToScript: (name: string) => Promise<string>;
+  /**
+   * Lift the node's body, ports and secrets into a new script.
+   * With a `category`, the script also lands in the node menu as a custom node.
+   */
+  extractToScript: (name: string, category?: string) => Promise<string>;
+  /** Expose the linked script in the node menu under `category`. */
+  addToPalette: (category: string) => Promise<void>;
   /** Keep the pinned body inline and drop the link. */
   detach: () => void;
 }
@@ -64,24 +73,6 @@ const readLink = (value: unknown): JsScriptLink | null => {
     : null;
 };
 
-const portType = (type: string): TypeMetadata => ({
-  type,
-  optional: false,
-  type_args: []
-});
-
-const portsToSlots = (
-  ports: readonly JsScriptPort[]
-): Record<string, DynamicSlotDeclaration> =>
-  Object.fromEntries(
-    ports.map((port) => [port.name, { type: portType(port.type) }])
-  );
-
-const portsToOutputs = (
-  ports: readonly JsScriptPort[]
-): Record<string, TypeMetadata> =>
-  Object.fromEntries(ports.map((port) => [port.name, portType(port.type)]));
-
 const slotsToPorts = (
   slots: Record<string, DynamicSlotDeclaration> | undefined
 ): JsScriptPort[] =>
@@ -97,20 +88,6 @@ const outputsToPorts = (
     name,
     type: type?.type ?? "any"
   }));
-
-/**
- * The part of a script document the node copies. Structural because the tRPC
- * client's document type is the schema's *output* type, which differs from the
- * protocol's inferred type in optionality no consumer here cares about.
- */
-interface MaterializedScript {
-  code: string;
-  inputs: readonly JsScriptPort[];
-  outputs: readonly JsScriptPort[];
-  packages: readonly { specifier: string }[];
-  secrets: readonly string[];
-  timeoutSeconds: number;
-}
 
 const stringList = (value: unknown): string[] =>
   Array.isArray(value)
@@ -130,6 +107,7 @@ export function useCodeNodeScriptLink(
   );
   const utils = trpc.useUtils();
   const createScript = trpc.jsScripts.create.useMutation();
+  const updateScript = trpc.jsScripts.update.useMutation();
   const createVersion = trpc.jsScripts.documentVersions.create.useMutation();
 
   const link = useMemo(() => readLink(data.properties?.script), [
@@ -175,18 +153,18 @@ export function useCodeNodeScriptLink(
   );
 
   const materialize = useCallback(
-    (scriptId: string, version: number, document: MaterializedScript) => {
+    (scriptId: string, version: number, document: MaterializableJsScript) => {
+      const materialized = materializeJsScriptNode(document, {
+        id: scriptId,
+        version
+      });
       updateNodeData(nodeId, {
         properties: {
           ...(findNode(nodeId)?.data?.properties ?? {}),
-          script: { id: scriptId, version },
-          code: document.code,
-          packages: document.packages,
-          secrets: document.secrets,
-          timeout: document.timeoutSeconds
+          ...materialized.properties
         },
-        dynamic_inputs: portsToSlots(document.inputs),
-        dynamic_outputs: portsToOutputs(document.outputs)
+        dynamic_inputs: materialized.dynamic_inputs,
+        dynamic_outputs: materialized.dynamic_outputs
       });
     },
     [findNode, nodeId, updateNodeData]
@@ -209,7 +187,7 @@ export function useCodeNodeScriptLink(
   }, [link, materialize, pinCurrentVersion, utils]);
 
   const extractToScript = useCallback(
-    async (name: string): Promise<string> => {
+    async (name: string, category?: string): Promise<string> => {
       const node = findNode(nodeId);
       const properties = node?.data?.properties ?? {};
       const document = {
@@ -218,21 +196,41 @@ export function useCodeNodeScriptLink(
         code: isString(properties.code) ? properties.code : "",
         inputs: slotsToPorts(node?.data?.dynamic_inputs),
         outputs: outputsToPorts(node?.data?.dynamic_outputs),
-        packages: Array.isArray(properties.packages)
-          ? (properties.packages as { specifier: string }[])
-          : [],
         secrets: stringList(properties.secrets),
         timeoutSeconds:
           isNumber(properties.timeout) ? properties.timeout : 30,
-        tests: []
+        tests: [],
+        palette: category === undefined ? undefined : { category }
       };
       const created = await createScript.mutateAsync({ name, document });
       const version = await pinCurrentVersion(created.id, created.document);
       materialize(created.id, version, created.document);
       void utils.jsScripts.list.invalidate();
+      void utils.jsScripts.palette.invalidate();
       return created.id;
     },
     [createScript, findNode, materialize, nodeId, pinCurrentVersion, utils]
+  );
+
+  const addToPalette = useCallback(
+    async (category: string): Promise<void> => {
+      if (!link) return;
+      const script = await utils.jsScripts.get.fetch({ id: link.id });
+      await updateScript.mutateAsync({
+        id: link.id,
+        // SAFETY: the router's output document and its input document differ
+        // only in which `unknown` fields zod marks optional; the value is the
+        // document the server just sent back.
+        document: {
+          ...script.document,
+          palette: { category }
+        } as jsScripts.JsScriptDocument,
+        baseUpdatedAt: script.updatedAt
+      });
+      void utils.jsScripts.get.invalidate({ id: link.id });
+      void utils.jsScripts.palette.invalidate();
+    },
+    [link, updateScript, utils]
   );
 
   const detach = useCallback(() => {
@@ -247,6 +245,7 @@ export function useCodeNodeScriptLink(
     linkScript,
     updateToLatest,
     extractToScript,
+    addToPalette,
     detach
   };
 }

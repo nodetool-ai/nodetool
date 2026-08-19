@@ -5,8 +5,7 @@ description: Evaluate a math formula without eval in a Code node or CodeAct acti
 
 # Formulas in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-expr`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-expr`. Import it at the top of the body.
 
 The published expr-eval bundle trips the guest scanner, so this pack is a
 **host module**.

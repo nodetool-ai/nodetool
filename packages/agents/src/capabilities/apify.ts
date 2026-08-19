@@ -64,7 +64,13 @@ import {
   summarizeActor,
   summarizeDataset
 } from "../apify/normalize.js";
-import { importActorBytes, isBinaryContentType } from "../apify/assets.js";
+import {
+  collectRecordUrls,
+  importActorBytes,
+  importActorFile,
+  isBinaryContentType,
+  MAX_FILES_PER_RUN
+} from "../apify/assets.js";
 import { provenanceOf, resolveApifyToken, runActor } from "../apify/run.js";
 import { isRecord, isString } from "../utils/type-guards.js";
 
@@ -371,7 +377,22 @@ const runApifyActor: CapabilityExport = {
               )
               .catch(() => undefined);
 
-      return {
+      // Files the actor produced sit in Apify's storage under URLs that
+      // expire in days. Import them now, while the run's result is in hand,
+      // so the caller gets a NodeTool `asset_url` instead of a link that is
+      // dead next week — and never has to fetch the bytes itself.
+      const recordUrls =
+        dataset === undefined ? [] : collectRecordUrls(dataset.items);
+      const files =
+        recordUrls.length === 0
+          ? undefined
+          : await Promise.all(
+              recordUrls.map((url) =>
+                importActorFile(run.context, url, { signal: signalOf(run) })
+              )
+            );
+
+      const result = {
         ok: true,
         status: actorRun.status,
         run_id: actorRun.id,
@@ -396,6 +417,22 @@ const runApifyActor: CapabilityExport = {
           runs_allowed: ledger.budget.maxRuns,
           session_cost_usd: Number(ledger.costUsd.toFixed(4))
         }
+      };
+
+      // The file fields are added only when the run produced files, so a run
+      // without any does not carry an empty `files` key.
+      if (files === undefined) {
+        return result;
+      }
+      return {
+        ...result,
+        files,
+        files_note:
+          `${files.length} file(s) from the dataset were imported ` +
+          `(at most ${MAX_FILES_PER_RUN} per run). Each has an ` +
+          "asset_url; to keep one in the asset library, call " +
+          "save_asset({name, source: asset_url}) — do not read it to " +
+          "base64 first."
       };
     })
 };

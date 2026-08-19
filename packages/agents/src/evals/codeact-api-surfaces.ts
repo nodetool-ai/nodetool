@@ -525,8 +525,47 @@ function createWorld() {
           ]
         }
       ]
-    ])
+    ]),
+    // NodeTool's own configuration. A setting has a declared shape; a secret
+    // has only a name and whether it exists — which is the whole point of the
+    // split the `settings` capabilities enforce.
+    settingCatalog: [
+      {
+        key: "AUTOSAVE_ENABLED",
+        group: "Autosave",
+        description: "Save workflow versions automatically.",
+        allowed_values: ["true", "false"]
+      },
+      {
+        key: "AUTOSAVE_INTERVAL_MINUTES",
+        group: "Autosave",
+        description: "Minutes between autosaves.",
+        allowed_values: null
+      },
+      {
+        key: "FONT_PATH",
+        group: "Folders",
+        description: "Where image nodes look for fonts.",
+        allowed_values: null
+      }
+    ] as SettingDef[],
+    settingValues: new Map<string, string>([["AUTOSAVE_ENABLED", "true"]]),
+    secretCatalog: [
+      { key: "OPENAI_API_KEY", description: "OpenAI API key." },
+      { key: "STRIPE_API_KEY", description: "Stripe API key." }
+    ],
+    configuredSecrets: new Set<string>(["OPENAI_API_KEY"]),
+    /** What `request_secret` was asked for, so a case can score the ask. */
+    secretRequests: [] as { key: string; reason: string }[]
   };
+}
+
+/** One declared setting in the fake catalog. */
+interface SettingDef {
+  key: string;
+  group: string;
+  description: string;
+  allowed_values: string[] | null;
 }
 
 type World = ReturnType<typeof createWorld>;
@@ -1385,6 +1424,98 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         output_file: str(params["output_file"]),
         converted: true
       })
+    ),
+
+    // -- settings ---------------------------------------------------------
+    tool(
+      "list_settings",
+      "List NodeTool's configuration settings.",
+      obj({ group: S }),
+      (params) => {
+        const group = str(params["group"]).toLowerCase();
+        const settings = world.settingCatalog
+          .filter((def) => !group || def.group.toLowerCase() === group)
+          .map((def) => ({
+            ...def,
+            value: world.settingValues.get(def.key) ?? null
+          }));
+        return { settings };
+      }
+    ),
+    tool(
+      "get_setting",
+      "Read one setting's value.",
+      obj({ key: S }, ["key"]),
+      (params) => {
+        const key = str(params["key"]);
+        const def = world.settingCatalog.find((d) => d.key === key);
+        if (!def) {
+          return {
+            ok: false,
+            error: `no setting named "${key}"`,
+            error_kind: "unknown_setting"
+          };
+        }
+        return { ...def, value: world.settingValues.get(key) ?? null };
+      }
+    ),
+    tool(
+      "set_setting",
+      "Change one setting.",
+      obj({ key: S, value: S }, ["key", "value"]),
+      (params) => {
+        const key = str(params["key"]);
+        const value = str(params["value"]);
+        if (world.secretCatalog.some((sec) => sec.key === key)) {
+          return {
+            ok: false,
+            error: `${key} holds a credential — call request_secret instead`,
+            error_kind: "is_secret"
+          };
+        }
+        const def = world.settingCatalog.find((d) => d.key === key);
+        if (!def) {
+          return {
+            ok: false,
+            error: `no setting named "${key}"`,
+            error_kind: "unknown_setting"
+          };
+        }
+        if (def.allowed_values && !def.allowed_values.includes(value)) {
+          return {
+            ok: false,
+            error: `${key} accepts only: ${def.allowed_values.join(", ")}`,
+            error_kind: "invalid_value"
+          };
+        }
+        world.settingValues.set(key, value);
+        return { ok: true, key, value };
+      }
+    ),
+    tool(
+      "list_secrets",
+      "Which credentials this install holds. Never their values.",
+      obj({}),
+      () => ({
+        secrets: world.secretCatalog.map((sec) => ({
+          ...sec,
+          configured: world.configuredSecrets.has(sec.key)
+        }))
+      })
+    ),
+    tool(
+      "request_secret",
+      "Ask the user to enter a credential in a dialog. Takes no value.",
+      obj({ key: S, reason: S, help_url: S }, ["key"]),
+      (params) => {
+        const key = str(params["key"]);
+        // The fake user always saves. What is worth scoring is that the model
+        // asked rather than trying to write the value itself — there is no
+        // parameter here it could have written it into.
+        world.secretRequests.push({ key, reason: str(params["reason"]) });
+        world.configuredSecrets.add(key);
+        return { ok: true, key, configured: true };
+      }
     ),
 
     // -- email ------------------------------------------------------------
@@ -2443,6 +2574,33 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
         asString(field(r, "timelineId")) === "tl_sb_lighthouse" &&
         asNumber(field(r, "durationSeconds")) === 12,
       resultCheckLabel: "3 clips, tl_sb_lighthouse, 12s"
+    }
+  },
+  {
+    id: "settings-and-credentials",
+    description:
+      "Change a setting, and ask the user for the credential you cannot set",
+    namespaces: ["settings"],
+    objective:
+      "Prepare this install for billing work. Turn autosave off, and make " +
+      "sure the Stripe credential is available — you cannot write a " +
+      "credential yourself, so ask the user for it and say why. Finish with " +
+      "{autosave, missingBefore, stripeReady}: the value autosave now holds, " +
+      "the names of the credentials that were NOT configured before you " +
+      "started, and whether Stripe is configured afterwards.",
+    outputSchema: obj({ autosave: S, missingBefore: ANY_ARRAY, stripeReady: B }, [
+      "autosave",
+      "missingBefore",
+      "stripeReady"
+    ]),
+    expect: {
+      requiredTools: ["list_secrets", "request_secret", "set_setting"],
+      maxActions: 4,
+      resultCheck: (r: unknown) =>
+        asString(field(r, "autosave")) === "false" &&
+        strList(field(r, "missingBefore")).join(",") === "STRIPE_API_KEY" &&
+        field(r, "stripeReady") === true,
+      resultCheckLabel: "autosave off, Stripe asked for and now configured"
     }
   },
   {

@@ -4,6 +4,7 @@ import type { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
 import type { DynamicSlotDeclaration, NodeData } from "../stores/NodeData";
 import { defaultValueForType } from "./dynamicSlots";
 import { findSnippetByNodeType } from "../config/snippetMetadata";
+import { findCustomNodeScript } from "../config/customNodeMetadata";
 import { CODE_GEN_PALETTE_NODE_TYPE } from "../config/codeGenPaletteMetadata";
 import useMetadataStore from "../stores/MetadataStore";
 import useCodeGenDialogStore from "../stores/CodeGenDialogStore";
@@ -12,6 +13,7 @@ import {
   inferInputKeysFromCode
 } from "./codeOutputInference";
 import { CODE_NODE_TYPE } from "../components/node/codeNodeUi";
+import { materializeJsScriptNode } from "@nodetool-ai/node-sdk/js-script-materialize";
 
 /**
  * The JSON form the graph converters round-trip: `{type, type_args, optional}`.
@@ -39,20 +41,16 @@ interface PaletteNodeInstance {
 }
 
 /**
- * Turn node-menu metadata into a concrete ReactFlow node. Code snippets and
- * the "Write Code with AI" entry use a virtual `node_type` in the palette;
- * both become real `nodetool.code.Code` nodes — the snippet with its body, the
- * AI entry empty and with the generation dialog opened against it.
+ * Turn node-menu metadata into a concrete ReactFlow node. Code snippets, the
+ * user's own custom nodes (`user.*`) and the "Write Code with AI" entry use a
+ * virtual `node_type` in the palette; all three become real
+ * `nodetool.code.Code` nodes — the snippet with its body, the custom node with
+ * its script materialized and pinned, the AI entry empty and with the
+ * generation dialog opened against it.
  *
  * For snippets, call `updateNodeData(node.id, afterAdd)` after `addNode(node)` —
  * dynamic IO is merged only once the node exists in the store.
  */
-/** A snippet's Code-node properties; `packages` only when it imports one. */
-type SnippetCodeProperties = {
-  code: string;
-  packages?: { specifier: string }[];
-};
-
 export function instantiatePaletteNode(
   metadata: NodeMetadata,
   position: XYPosition,
@@ -76,21 +74,45 @@ export function instantiatePaletteNode(
     }
   }
 
+  const custom = findCustomNodeScript(metadata.node_type);
+  if (custom) {
+    const codeMetadata = useMetadataStore
+      .getState()
+      .getMetadata(CODE_NODE_TYPE);
+    if (codeMetadata) {
+      // The drop pins the version the user saw in the menu; editing the
+      // library script later does not touch this node until they update it.
+      const materialized = materializeJsScriptNode(custom.document, {
+        id: custom.id,
+        version: custom.version
+      });
+      const node = createNode(codeMetadata, position, {
+        ...materialized.properties
+      });
+      node.data.title = custom.name;
+      node.data.codeNodeMode = "custom";
+
+      const afterAdd: Partial<NodeData> = {
+        dynamic_inputs: materialized.dynamic_inputs,
+        dynamic_outputs: materialized.dynamic_outputs,
+        dynamic_properties: Object.fromEntries(
+          custom.document.inputs.map((port) => [
+            port.name,
+            defaultValueForType(typeMetadata(port.type))
+          ])
+        )
+      };
+      return { node, afterAdd };
+    }
+  }
+
   const snippet = findSnippetByNodeType(metadata.node_type);
   if (snippet) {
     const codeMetadata = useMetadataStore
       .getState()
       .getMetadata(CODE_NODE_TYPE);
     if (codeMetadata) {
-      const codeProperties: SnippetCodeProperties = { code: snippet.code };
-      // A snippet that imports a library seeds the declaration with it —
-      // the loader mounts only what the node declares.
-      if (snippet.packages !== undefined) {
-        codeProperties.packages = snippet.packages.map((specifier) => ({
-          specifier
-        }));
-      }
-      const node = createNode(codeMetadata, position, codeProperties);
+      const node = createNode(codeMetadata, position, { code: snippet.code });
       node.data.title = snippet.title;
       node.data.codeNodeMode = "snippet";
 

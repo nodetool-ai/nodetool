@@ -81,6 +81,13 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   threads: ["list_threads", "get_thread", "get_message"],
   email: ["search_email", "archive_email", "add_label_to_email"],
   style: ["get_style_profile", "record_style_preference"],
+  settings: [
+    "list_settings",
+    "get_setting",
+    "set_setting",
+    "list_secrets",
+    "request_secret"
+  ],
   assets: [
     "list_assets",
     "get_asset",
@@ -169,9 +176,13 @@ export function nodetoolApiCoveredToolNames(
  */
 export const NODETOOL_API_PRELUDE = `
 const nodetool = (() => {
-  const __has = (name) => typeof tools[name] === "function";
+  // What the belt carries is \`__toolNames\`, not what reading a property
+  // answers: \`tools\` hands back a thrower for a name it does not have, so
+  // probing it would report every capability as present.
+  const __belt = new Set(__toolNames);
+  const __has = (name) => __belt.has(name);
   const __need = (name) => {
-    const fn = tools[name];
+    const fn = __belt.has(name) ? tools[name] : undefined;
     if (typeof fn !== "function") {
       throw new Error(
         'nodetool: tool "' + name + '" is not in this toolbelt, so this ' +
@@ -271,6 +282,27 @@ const nodetool = (() => {
           ? null
           : __secretScope.slice();
       }
+    },
+
+    /**
+     * NodeTool's own configuration, and the one way to get a credential set.
+     *
+     * \`secrets\` above reads; this asks. \`requestSecret\` sends no value and
+     * receives none — it opens a dialog where the user types the key, and
+     * answers only whether they saved one.
+     */
+    settings: {
+      /** Every non-secret setting, or one group's worth. */
+      list: (opts) => __need("list_settings")(__merge(opts)),
+      /** One setting's value, resolved from this user then the environment. */
+      get: (key) => __need("get_setting")({ key: key }),
+      /** Change one setting. Refuses a secret and anything undeclared. */
+      set: (key, value) => __need("set_setting")({ key: key, value: value }),
+      /** Which credentials exist, never what they are. */
+      secrets: () => __need("list_secrets")({}),
+      /** Ask the user to enter one, in a dialog you never see the contents of. */
+      requestSecret: (key, opts) =>
+        __need("request_secret")(__merge(opts, { key: key }))
     },
 
     /**
@@ -1050,6 +1082,17 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   graph — a worked example to read before authoring one.`
   },
   {
+    namespace: "settings",
+    doc: `- \`nodetool.settings\` — this install's configuration. \`list({group})\`,
+  \`get(key)\` and \`set(key, value)\` cover the ordinary settings; \`secrets()\`
+  reports which credentials are configured, without their values. A secret is
+  never set from code: \`requestSecret(key, {reason, help_url})\` opens a dialog
+  where the user types it, and answers only whether they saved one — read it
+  afterwards with \`nodetool.secrets.get(key)\`, which works only if this run
+  declares the name in its secret scope. When a run has no interactive client
+  the request is refused; say what is missing instead of asking again.`
+  },
+  {
     namespace: "nodes",
     doc: `- \`nodetool.nodes\` — the graph author's discovery half. \`search_nodes\`,
   \`get_node_info\` and \`list_nodes\` are direct tool calls — reach for those
@@ -1192,8 +1235,12 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "assets",
     doc: `- \`nodetool.assets\` — \`list({content_type, limit})\`, \`search(query)\`,
   \`images({query, limit})\` (image handles — pass an id to \`view_image\`),
-  \`get(assetId)\` (the row — no bytes), \`save(name, {content_base64,
-  content_type})\`, \`read(nameOrUri)\` (an \`asset://\` URI, an asset id, a
+  \`get(assetId)\` (the row — no bytes), \`save(name, {content |
+  content_base64 | source, content_type})\` — \`source\` is the asset_url or
+  /api/storage/ key another tool returned, an \`asset://\` URI, or an http(s)
+  URL, copied host-side: to keep a file download_file or run_apify_actor
+  produced, pass its \`asset_url\` as \`source\`; never \`read()\` it to base64
+  first. \`read(nameOrUri)\` (an \`asset://\` URI, an asset id, a
   /api/storage/ key, or a stored file name → \`{content, content_base64}\`).
   To edit a generated image, pass the generation result to \`image.*\` and
   save with \`nodetool.media.toImage(handle).\``

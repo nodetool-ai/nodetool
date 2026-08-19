@@ -59,7 +59,8 @@ import {
   REVISE_CLIP_SCHEMA,
   ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
   EDIT_STORYBOARD_SCHEMA,
-  EXTRACT_SCRIPT_SCHEMA
+  EXTRACT_SCRIPT_SCHEMA,
+  deleteStoryboardSpec
 } from "./storyboards.specs.js";
 import {
   isNumber,
@@ -1437,6 +1438,27 @@ const extractScriptFromStoryboard: CapabilityExport = {
 };
 
 /** Every storyboard capability, in the order the tool file declared them. */
+/**
+ * Delete a storyboard the caller owns.
+ *
+ * The ownership check and the version cascade are `Storyboard.deleteOwned`, the
+ * same function the tRPC route calls — a delete is not a place for two copies
+ * of one rule, and version rows outliving their document would be unreachable
+ * garbage. Missing and not-yours are one answer.
+ */
+const deleteStoryboard: CapabilityExport = {
+  spec: deleteStoryboardSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const { Storyboard } = await import("@nodetool-ai/models");
+    const id = String(params["storyboard_id"]);
+    const deleted = await Storyboard.deleteOwned(userId, id);
+    return deleted
+      ? { storyboard_id: id, deleted: true }
+      : { error: `Storyboard ${id} was not found, or it is not yours.` };
+  }
+};
 export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
   listStoryboards,
   getStoryboard,
@@ -1445,7 +1467,8 @@ export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
   reviseStoryboardClip,
   assembleStoryboardTimeline,
   editStoryboard,
-  extractScriptFromStoryboard
+  extractScriptFromStoryboard,
+  deleteStoryboard
 ];
 
 export const module: CapabilityModule = {
@@ -1461,5 +1484,6 @@ export {
   reviseStoryboardClip,
   assembleStoryboardTimeline,
   editStoryboard,
-  extractScriptFromStoryboard
+  extractScriptFromStoryboard,
+  deleteStoryboard
 };

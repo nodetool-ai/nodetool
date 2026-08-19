@@ -1970,7 +1970,6 @@ import {
   CollectTextNode,
   ConcatTextNode,
   GetAudioInfoNode,
-  JoinTextNode,
   PromptNode,
   SwitchNode,
   TemplateTextNode,
@@ -1995,11 +1994,6 @@ describe("missing exported node smoke tests", () => {
 
   it("GetAudioInfoNode defaults", () => {
     const n = new GetAudioInfoNode();
-    expect(n.serialize()).toBeDefined();
-  });
-
-  it("JoinTextNode defaults", () => {
-    const n = new JoinTextNode();
     expect(n.serialize()).toBeDefined();
   });
 

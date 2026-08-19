@@ -19,8 +19,7 @@
       "result": null,
       "error": null,
       "properties": {
-        "code": "return { output: inputs.text.toUpperCase() };",
-        "packages": []
+        "code": "return { output: inputs.text.toUpperCase() };"
       },
       "provider_cost": null
     }
@@ -100,8 +99,7 @@
       },
       "error": null,
       "properties": {
-        "code": "return { output: inputs.text.toUpperCase() };",
-        "packages": []
+        "code": "return { output: inputs.text.toUpperCase() };"
       },
       "provider_cost": null
     }

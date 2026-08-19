@@ -24,23 +24,18 @@ import {
   ErrorMessage,
   FileInfo,
   FolderRef,
-  FontRef,
   GenerationComplete,
   HuggingFaceModel,
   ImageModel,
   ImageRef,
-  IndexResponse,
   InferenceProvider,
-  JobListResponse,
   JobResponse,
   JobUpdate,
   LanguageModel,
-  LlamaModel,
   LLMCallUpdate,
   LogUpdate,
   Message as ProtocolMessage,
   MessageAudioContent,
-  MessageCreateRequest,
   MessageDocumentContent,
   MessageImageContent,
   MessageTextContent,
@@ -63,16 +58,11 @@ import {
   Property,
   PropertyTypeMetadata,
   Provider,
-  ProviderId,
   PROVIDER_IDS,
   ProviderInfo,
-  RepoPath,
   RunJobRequest,
   SecretResponse,
   SettingWithValue,
-  SettingsResponse,
-  SettingsUpdateRequest,
-  SketchRef,
   Step,
   StepResult,
   SVGElement,
@@ -82,15 +72,8 @@ import {
   TaskUpdate,
   TerminalUpdate,
   TodoItem,
-  TodoStatus,
   TodoUpdate,
-  TextRef,
   Thread,
-  ThreadCreateRequest,
-  ThreadList,
-  ThreadSummarizeRequest,
-  ThreadUpdateRequest,
-  TimelineRef,
   ToolCall,
   ToolCallUpdate,
   ToolResultUpdate,
@@ -101,10 +84,7 @@ import {
   Workflow,
   WorkflowGraph,
   WorkflowList,
-  WorkflowRef,
   WorkflowRequest,
-  WorkflowTool,
-  WorkflowToolList,
   WorkflowVersion,
   WorkflowVersionList,
   WorkflowVersionSaveType,
@@ -135,18 +115,13 @@ export type { EmbeddingModel };
 export type { ErrorMessage };
 export type { FileInfo };
 export type { FolderRef };
-export type { FontRef };
 export type { GenerationComplete };
 export type { HuggingFaceModel };
 export type { ImageModel };
 export type { ImageRef };
-export type { IndexResponse };
 export type { InferenceProvider };
-export type { JobListResponse };
-export type { JobResponse };
 export type { JobUpdate };
 export type { LanguageModel };
-export type { LlamaModel };
 export type { LLMCallUpdate };
 export type { LogUpdate };
 /**
@@ -165,8 +140,6 @@ export interface Message extends ProtocolMessage {
   permission_mode?: PermissionMode | null;
 }
 export type { MessageAudioContent };
-export type { MessageCreateRequest };
-export type { MessageDocumentContent };
 export type { MessageImageContent };
 export type { MessageTextContent };
 export type { MessageVideoContent };
@@ -184,18 +157,12 @@ export type { PlotlyConfig };
 export type { Prediction };
 export type { Property };
 export type { PropertyTypeMetadata };
-export type { Provider };
-export type { ProviderId };
 export { PROVIDER_IDS };
 export type { ProviderCost };
 export type { ProviderInfo };
-export type { RepoPath };
 export type { RunJobRequest };
 export type { SecretResponse };
 export type { SettingWithValue };
-export type { SettingsResponse };
-export type { SettingsUpdateRequest };
-export type { SketchRef };
 export type { Step };
 export type { StepResult };
 export type { SVGElement };
@@ -205,15 +172,8 @@ export type { TaskPlan };
 export type { TaskUpdate };
 export type { TerminalUpdate };
 export type { TodoItem };
-export type { TodoStatus };
 export type { TodoUpdate };
-export type { TextRef };
 export type { Thread };
-export type { ThreadCreateRequest };
-export type { ThreadList };
-export type { ThreadSummarizeRequest };
-export type { ThreadUpdateRequest };
-export type { TimelineRef };
 export type { ToolCall };
 export type { ToolCallUpdate };
 export type { ToolResultUpdate };
@@ -224,10 +184,7 @@ export type { VideoRef };
 export type { Workflow };
 export type { WorkflowGraph };
 export type { WorkflowList };
-export type { WorkflowRef };
 export type { WorkflowRequest };
-export type { WorkflowTool };
-export type { WorkflowToolList };
 export type { WorkflowVersion };
 export type { WorkflowVersionList };
 export type { WorkflowVersionSaveType };

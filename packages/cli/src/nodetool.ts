@@ -95,6 +95,7 @@ import { registerHarnessCommands } from "./commands/harness.js";
 import { registerCollectionCommands } from "./commands/collections.js";
 import { registerCostsCommands } from "./commands/costs.js";
 import { registerAuthCommands } from "./commands/auth.js";
+import { registerTelegramCommands } from "./commands/telegram.js";
 import {
   listAllModels,
   listConfiguredProviderInfo,
@@ -2418,6 +2419,7 @@ registerHarnessCommands(program);
 registerCollectionCommands(program);
 registerCostsCommands(program);
 registerAuthCommands(program);
+registerTelegramCommands(program);
 
 // ---------------------------------------------------------------------------
 

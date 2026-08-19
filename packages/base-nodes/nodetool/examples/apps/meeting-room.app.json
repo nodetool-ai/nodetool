@@ -846,9 +846,10 @@
           },
           {
             "id": "transcript_join",
-            "type": "nodetool.text.Join",
+            "type": "nodetool.code.Code",
             "data": {
-              "separator": ""
+              "code": "const list = Array.isArray(inputs.strings) ? inputs.strings : [];\nreturn { output: list.map(v => String(v ?? \"\")).join(String(inputs.separator ?? \"\")) };",
+              "packages": []
             },
             "ui_properties": {
               "position": {
@@ -857,7 +858,21 @@
               },
               "selectable": true
             },
-            "dynamic_properties": {}
+            "dynamic_properties": {
+              "separator": ""
+            },
+            "dynamic_inputs": {
+              "strings": {
+                "type": {
+                  "type": "list",
+                  "type_args": [
+                    {
+                      "type": "str"
+                    }
+                  ]
+                }
+              }
+            }
           }
         ],
         "edges": [

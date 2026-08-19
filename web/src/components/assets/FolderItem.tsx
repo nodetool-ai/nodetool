@@ -78,13 +78,23 @@ const styles = (theme: Theme) =>
       fontWeight: 600
     },
     "&:hover .delete-button": {
+      pointerEvents: "all",
       opacity: 1
+    },
+    // A phone keeps :hover on the row it last tapped, which would leave this
+    // button live over the folder name. Touch deletes through the context menu.
+    "@media (pointer: coarse)": {
+      ".delete-button": {
+        display: "none"
+      }
     },
     "&.drag-hover": {
       backgroundColor: theme.vars.palette.grey[500]
     },
     ".delete-button": {
       position: "absolute",
+      // Transparent, so it must not swallow clicks meant for the folder.
+      pointerEvents: "none",
       opacity: 0,
       width: "20px",
       minWidth: "20px",

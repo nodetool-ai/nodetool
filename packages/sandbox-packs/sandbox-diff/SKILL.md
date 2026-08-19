@@ -5,8 +5,7 @@ description: Unified text diffs in a Code node or CodeAct action, with the diff 
 
 # Text diffs in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-diff`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-diff`. Import it at the top of the body.
 
 The `diff` library schedules with `setTimeout`, and the guest has no timers, so
 it cannot be compiled in. This pack is a **host module**: the import resolves to

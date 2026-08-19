@@ -5,8 +5,7 @@ description: Read a Word document as text or HTML in a Code node or CodeAct acti
 
 # Word documents in the sandbox (reading)
 
-Specifier: `@nodetool-ai/sandbox-mammoth`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-mammoth`. Import it at the top of the body.
 
 mammoth reads a `.docx` buffer through Node's own zip/XML stack; it will never
 be a guest module. This pack is a **host module**: the import resolves to a

@@ -26,7 +26,13 @@ import { randomUUID } from "node:crypto";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { isJsCodeNodeType, PROVIDER_NAMESPACES } from "@nodetool-ai/node-sdk";
+import {
+  isJsCodeNodeType,
+  parseCodeBody,
+  PROVIDER_NAMESPACES,
+  staticImportSpecifiers
+} from "@nodetool-ai/node-sdk";
+import { SANDBOX_CAPABILITY_PACK } from "@nodetool-ai/protocol";
 import type { GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 import { authorGraph, type AuthorGraphOptions } from "../author-graph.js";
 import { EXECUTE_CODE_TOOL_NAME } from "../codeact/codeact-executor.js";
@@ -80,11 +86,11 @@ export interface GraphPlannerEvalExpectations {
   requiredCodeOutputHandles?: string[];
   /** Every Code node must expose at least one output handle. */
   requireCodeOutputs?: boolean;
-  /** No Code node may declare a sandbox package in `packages`. */
+  /** No Code node body may import a sandbox package. */
   forbidCodePackages?: boolean;
   /**
-   * Sandbox specifiers the Code nodes may declare. A specifier outside the
-   * list fails the check — that is a pack the machine does not install.
+   * Sandbox specifiers the Code node bodies may import. A specifier outside
+   * the list fails the check — that is a pack the machine does not install.
    */
   allowedCodePackages?: string[];
   /**
@@ -212,15 +218,21 @@ function codeOutputHandles(graph: GraphData, node: NodeDescriptor): string[] {
   return [...handles];
 }
 
-/** Sandbox specifiers a Code node declares in `packages`. */
+/**
+ * Sandbox specifiers a Code node's body imports. Nothing declares packages —
+ * the imports are the declaration — so the body is where the check reads them.
+ * NodeTool's own guest modules are not packs and never count.
+ */
 function codePackageSpecifiers(node: NodeDescriptor): string[] {
-  const declared = node.properties?.["packages"];
-  if (!Array.isArray(declared)) return [];
-  return declared.map((entry) => {
-    if (isString(entry)) return entry;
-    const specifier = asRecord(entry)?.["specifier"];
-    return isString(specifier) ? specifier : String(entry);
-  });
+  const code = node.properties?.["code"];
+  if (!isString(code)) return [];
+  const parsed = parseCodeBody(code);
+  if ("error" in parsed) return [];
+  return [...new Set(staticImportSpecifiers(parsed.statements))].filter(
+    (specifier) =>
+      specifier !== SANDBOX_CAPABILITY_PACK &&
+      !specifier.startsWith(`${SANDBOX_CAPABILITY_PACK}/`)
+  );
 }
 
 /**

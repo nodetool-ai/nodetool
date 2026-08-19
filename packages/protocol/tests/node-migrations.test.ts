@@ -141,7 +141,6 @@ describe("migrateGraphNodeTypes", () => {
 
       expect(node.type).toBe("nodetool.code.Code");
       expect(node.data.code).toContain("inputs.text.split");
-      expect(node.data.packages).toEqual([]);
       // The old node's properties become dynamic inputs — no declared props
       // survive on a node whose config the Code node reads dynamically.
       expect(node.data.text).toBeUndefined();
@@ -321,7 +320,8 @@ describe("migrateGraphNodeTypes", () => {
         "nodetool.text.IndexOf",
         "nodetool.text.SurroundWith",
         "nodetool.text.Replace",
-        "nodetool.text.ToString"
+        "nodetool.text.ToString",
+        "nodetool.text.Join"
       ];
 
       for (const from of expectedFromTypes) {
@@ -334,12 +334,78 @@ describe("migrateGraphNodeTypes", () => {
     });
   });
 
+  it("migrates Join to Code, keeping the strings/separator properties", () => {
+    const graph = {
+      nodes: [
+        {
+          id: "n1",
+          type: "nodetool.text.Join",
+          data: { strings: ["a", "b"], separator: "-" }
+        }
+      ],
+      edges: [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "n1",
+          targetHandle: "strings"
+        }
+      ]
+    };
+    const result = migrateGraphNodeTypes(graph);
+    const node = result.nodes[0];
+
+    expect(node.type).toBe("nodetool.code.Code");
+    expect(node.data.code).toContain("inputs.strings");
+    expect(node.data.code).toContain("inputs.separator");
+    expect(node.dynamic_properties).toEqual({
+      strings: ["a", "b"],
+      separator: "-"
+    });
+    // No rename, so the incoming edge keeps its handle.
+    expect(result.edges[0].targetHandle).toBe("strings");
+    // `strings` was `list[str]`, and several edges may fan into it. An
+    // untyped dynamic slot loses that: correlation analysis refuses a handle
+    // with two edges unless it resolves to a list type.
+    expect(node.dynamic_inputs).toEqual({
+      strings: { type: { type: "list", type_args: [{ type: "str" }] } }
+    });
+  });
+
+  it("migrates CountTokens to Code against the tokens sandbox pack", () => {
+    const graph = {
+      nodes: [
+        {
+          id: "n1",
+          type: "nodetool.text.CountTokens",
+          data: { text: "hello world", encoding: "p50k_base" }
+        }
+      ],
+      edges: []
+    };
+    const result = migrateGraphNodeTypes(graph);
+    const node = result.nodes[0];
+
+    expect(node.type).toBe("nodetool.code.Code");
+    expect(node.data.code).toContain(
+      'import { count } from "@nodetool-ai/sandbox-tokens"'
+    );
+    // The encoding was a real per-instance property, so it has to survive as a
+    // dynamic input rather than collapsing to the default.
+    expect(node.dynamic_properties).toEqual({
+      text: "hello world",
+      encoding: "p50k_base"
+    });
+  });
+
   it("migrates removed lib.pdf.PageCount and SearchText to Code", () => {
     for (const from of ["lib.pdf.PageCount", "lib.pdf.SearchText"]) {
       const m = NODE_TYPE_MIGRATIONS.find((x) => x.from === from);
       expect(m, `missing migration for ${from}`).toBeDefined();
       expect(m?.to).toBe("nodetool.code.Code");
-      expect(m?.setProperties?.packages).toEqual(["@nodetool-ai/sandbox-pdf"]);
+      expect(String(m?.setProperties?.code)).toContain(
+        '@nodetool-ai/sandbox-pdf'
+      );
     }
   });
 

@@ -79,6 +79,17 @@ describe("isPublicAuthExemptRoute", () => {
     expect(isPublicAuthExemptRoute("/api/webhooks/tok-abc", "POST")).toBe(true);
   });
 
+  it("exempts the integration routes, which carry their own service token", () => {
+    expect(
+      isPublicAuthExemptRoute("/api/integrations/telegram/token", "POST")
+    ).toBe(true);
+    expect(
+      isPublicAuthExemptRoute("/api/integrations/telegram/link", "DELETE")
+    ).toBe(true);
+    // Not a prefix match on the bare word: only the route family is exempt.
+    expect(isPublicAuthExemptRoute("/api/integrations", "GET")).toBe(false);
+  });
+
   it("keeps private workflow library paths behind auth", () => {
     expect(isPublicAuthExemptRoute("/api/workflows/wf-123", "GET")).toBe(false);
   });

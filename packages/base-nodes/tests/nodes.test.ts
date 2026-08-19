@@ -8,7 +8,6 @@ import {
   ForEachNode,
   RerouteNode,
   CollectNode,
-  CountTokensNode,
   SaveTextFileNode,
   SaveTextNode,
   LoadTextFolderNode,
@@ -503,12 +502,6 @@ describe("text nodes", () => {
     });
     regexFilter.assign({ value: "abzx" });
     await expect(regexFilter.process()).resolves.toEqual({});
-  });
-
-  it("token count", async () => {
-    const _ct = new CountTokensNode();
-    _ct.assign({ text: "hello, world!" });
-    await expect(_ct.process()).resolves.toEqual({ output: 4 });
   });
 
   it("filesystem text save/load and embedding fallback", async () => {

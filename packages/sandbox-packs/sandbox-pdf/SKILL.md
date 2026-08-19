@@ -5,8 +5,7 @@ description: Extract the embedded text of a PDF, whole or per page, in a Code no
 
 # PDF text in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-pdf`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-pdf`. Import it at the top of the body.
 
 pdf-parse drives pdf.js, which needs Node builtins and a canvas; it is not a
 guest-module candidate. This pack is a **host module**: the import resolves to a

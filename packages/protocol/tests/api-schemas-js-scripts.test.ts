@@ -16,7 +16,7 @@ describe("jsScriptDocument schema", () => {
     const parsed = jsScriptDocument.parse({ schemaVersion: 1 });
     expect(parsed.timeoutSeconds).toBe(30);
     expect(parsed.inputs).toEqual([]);
-    expect(parsed.packages).toEqual([]);
+    expect(parsed.outputs).toEqual([]);
     expect(parsed.tests).toEqual([]);
   });
 
@@ -175,6 +175,65 @@ describe("validateJsScriptDocument", () => {
         message: "the script has no saved test cases"
       }
     ]);
+  });
+});
+
+describe("palette", () => {
+  it("parses and round-trips, and stays absent on an old document", () => {
+    const parsed = jsScriptDocument.parse({
+      schemaVersion: 1,
+      palette: { category: "My API" }
+    });
+    expect(parsed.palette).toEqual({ category: "My API" });
+    expect(jsScriptDocument.parse({ schemaVersion: 1 }).palette).toBeUndefined();
+  });
+
+  it("errors on a blank category", () => {
+    const issues = validateJsScriptDocument(
+      doc({
+        outputs: [{ name: "out", type: "str" }],
+        palette: { category: "   " }
+      })
+    );
+    expect(
+      issues.some(
+        (issue) =>
+          issue.code === "js_script_palette_category" &&
+          issue.severity === "error"
+      )
+    ).toBe(true);
+  });
+
+  it("accepts a category with content", () => {
+    const issues = validateJsScriptDocument(
+      doc({
+        outputs: [{ name: "out", type: "str" }],
+        palette: { category: "Text" }
+      })
+    );
+    expect(
+      issues.some((issue) => issue.code === "js_script_palette_category")
+    ).toBe(false);
+  });
+
+  it("warns when an exposed script declares no outputs", () => {
+    const issues = validateJsScriptDocument(
+      doc({ outputs: [], palette: { category: "Text" } })
+    );
+    expect(
+      issues.some(
+        (issue) =>
+          issue.code === "js_script_palette_no_outputs" &&
+          issue.severity === "warning"
+      )
+    ).toBe(true);
+  });
+
+  it("says nothing about the menu for a script that is not exposed", () => {
+    const issues = validateJsScriptDocument(doc({ outputs: [] }));
+    expect(
+      issues.some((issue) => issue.code.startsWith("js_script_palette"))
+    ).toBe(false);
   });
 });
 

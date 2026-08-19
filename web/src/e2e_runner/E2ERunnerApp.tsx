@@ -16,10 +16,9 @@ import {
   useReactFlow,
   type Node
 } from "@xyflow/react";
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import { ThemeRoot } from "../components/ui_primitives";
 import ThemeNodetool from "../components/themes/ThemeNodetool";
 import useMetadataStore from "../stores/MetadataStore";
 import type { NodeData } from "../stores/NodeData";
@@ -318,9 +317,7 @@ export default function E2ERunnerApp() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-        <InitColorSchemeScript attribute="class" defaultMode="dark" />
-        <CssBaseline />
+      <ThemeRoot theme={ThemeNodetool}>
         <style>{`
           .e2e-node { transition: filter 120ms ease, opacity 120ms ease; }
           .e2e-node-running { filter: drop-shadow(0 0 8px ${STATUS_COLOR.running}); }
@@ -352,7 +349,7 @@ export default function E2ERunnerApp() {
             </ContextMenuProvider>
           </WorkflowManagerProvider>
         </MenuProvider>
-      </ThemeProvider>
+      </ThemeRoot>
     </QueryClientProvider>
   );
 }

@@ -583,6 +583,53 @@ describe("@nodetool-ai/sandbox-diff", () => {
     expect(result.result).not.toContain("@@");
   });
 });
+
+// ---------------------------------------------------------------------------
+// tokens
+// ---------------------------------------------------------------------------
+
+describe("@nodetool-ai/sandbox-tokens", () => {
+  it("counts tokens the way the removed CountTokens node did", async () => {
+    const result = await run(
+      `import { count } from "@nodetool-ai/sandbox-tokens";
+       return {
+         hello: await count("hello world"),
+         empty: await count(""),
+         o200k: await count("hello world", "o200k_base")
+       };`,
+      "tokens"
+    );
+    expect(result.success).toBe(true);
+    const counts = result.result as Record<string, number>;
+    expect(counts.hello).toBe(2);
+    expect(counts.empty).toBe(0);
+    expect(counts.o200k).toBe(2);
+  });
+
+  it("round-trips encode and decode", async () => {
+    const result = await run(
+      `import { encode, decode } from "@nodetool-ai/sandbox-tokens";
+       const ids = await encode("hello world");
+       return { ids, text: await decode(ids) };`,
+      "tokens"
+    );
+    expect(result.success).toBe(true);
+    const round = result.result as { ids: number[]; text: string };
+    expect(round.ids).toHaveLength(2);
+    expect(round.text).toBe("hello world");
+  });
+
+  it("refuses an encoding it has no ranks for", async () => {
+    const result = await run(
+      `import { count } from "@nodetool-ai/sandbox-tokens";
+       try { await count("x", "not_an_encoding"); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "tokens"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toContain("tokens.count: encoding must be one of");
+  });
+});
 // ---------------------------------------------------------------------------
 // ocr and tfjs
 //

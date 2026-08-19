@@ -39,8 +39,12 @@ export type NodeData = {
   selected_generations?: string[];
   workflow_id: string;
   title?: string;
-  /** Marks snippet-backed Code nodes so the UI can lock title editing and hide code by default. */
-  codeNodeMode?: "snippet";
+  /**
+   * How a Code node came to be. `"snippet"` locks title editing and hides the
+   * code by default; `"custom"` marks one materialized from the user's own
+   * saved script, which keeps both.
+   */
+  codeNodeMode?: "snippet" | "custom";
   color?: string;
   collapsed?: boolean;
   /** Last expanded body height (px) before header-only collapse — restore on expand; not in `properties` */

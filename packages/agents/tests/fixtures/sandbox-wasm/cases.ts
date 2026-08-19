@@ -160,6 +160,6 @@ export const WASM_CONTRACT_CASES: readonly SandboxWasmCase[] = [
   {
     name: "an undeclared WASM specifier does not resolve",
     code: `import { add } from "@other/nodetool-pack/scalar";\nreturn typeof add;`,
-    errorIncludes: "is not a sandbox package declared by this node"
+    errorIncludes: "is not a sandbox package this run serves"
   }
 ];

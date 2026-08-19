@@ -27,6 +27,7 @@
 import type { Tool } from "./base-tool.js";
 import { registerTool } from "./tool-registry.js";
 import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
+import { isYtDlpEnabled } from "../yt-dlp-gate.js";
 
 export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Filesystem (workspace-relative)
@@ -128,6 +129,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Host media binaries
   "ffmpeg",
   "ffprobe",
+  // Dropped under the cloud profile — see `availableBuiltinToolNames`.
   "yt_dlp",
 
   // Email
@@ -148,15 +150,28 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
  * Useful when constructing a tool list for an agent.
  */
 export function getBuiltinTools(): Tool[] {
-  return BUILTIN_TOOL_NAMES.map((name) => toolForCapabilityName(name));
+  return availableBuiltinToolNames().map((name) => toolForCapabilityName(name));
+}
+
+/**
+ * {@link BUILTIN_TOOL_NAMES} minus the ones this deployment does not offer.
+ *
+ * Only `yt_dlp` is conditional today: the cloud profile drops it (see
+ * {@link isYtDlpEnabled}), so an agent, a Code node and a JS script all see the
+ * same belt as the node catalog — one gate rather than a per-host filter.
+ */
+export function availableBuiltinToolNames(): readonly string[] {
+  if (isYtDlpEnabled()) return BUILTIN_TOOL_NAMES;
+  return BUILTIN_TOOL_NAMES.filter((name) => name !== "yt_dlp");
 }
 
 /**
  * The built-ins an agent gets. The nine provider-specific duplicates this set
  * used to subtract are gone: the media four were deleted, and the five search
  * backends became plain functions that the single `web_search` capability
- * routes to host-side. Every host therefore assembles the same belt, and
- * there is nothing left to exclude.
+ * routes to host-side. Every host therefore assembles the same belt, and the
+ * only thing subtracted from it is what the deployment does not offer
+ * ({@link availableBuiltinToolNames}).
  */
 export function getAgentToolbelt(): Tool[] {
   return getBuiltinTools();

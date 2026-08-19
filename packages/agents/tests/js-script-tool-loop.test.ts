@@ -58,13 +58,12 @@ const call = (bridge: ReturnType<typeof createJsScriptToolBridge>) =>
   };
 
 describe("createJsScriptToolBridge", () => {
-  it("exposes the eight ui_jsscript_* tools", () => {
+  it("exposes the seven ui_jsscript_* tools", () => {
     expect(createJsScriptToolBridge().tools.map((t) => t.name).sort()).toEqual([
       "ui_jsscript_get_state",
       "ui_jsscript_run",
       "ui_jsscript_set_code",
       "ui_jsscript_set_meta",
-      "ui_jsscript_set_packages",
       "ui_jsscript_set_ports",
       "ui_jsscript_set_tests",
       "ui_jsscript_test"
@@ -211,10 +210,11 @@ describe("JS_SCRIPT_TOOL_LOOP_CASES", () => {
     return report.cases[0];
   };
 
-  it("has three cases with the expected ids", () => {
+  it("has four cases with the expected ids", () => {
     expect(JS_SCRIPT_TOOL_LOOP_CASES.map((c) => c.id)).toEqual([
       "author-sum-script",
       "add-saved-tests",
+      "expose-as-custom-node",
       "repair-failing-test"
     ]);
   });
@@ -257,6 +257,39 @@ describe("JS_SCRIPT_TOOL_LOOP_CASES", () => {
     ]);
     expect(result.checks.filter((c) => !c.pass)).toEqual([]);
     expect(result.score).toBe(1);
+  });
+
+  it("expose-as-custom-node is solved by one set_meta call", async () => {
+    const result = await solve("expose-as-custom-node", [
+      { name: "ui_jsscript_get_state", args: {} },
+      {
+        name: "ui_jsscript_set_meta",
+        args: {
+          description: "Turns a title into a URL slug.",
+          palette: { category: "Text" }
+        }
+      }
+    ]);
+    expect(result.checks.filter((c) => !c.pass)).toEqual([]);
+    expect(result.score).toBe(1);
+  });
+
+  it("scores a model that renames the ports while exposing the script as a miss", async () => {
+    const result = await solve("expose-as-custom-node", [
+      {
+        name: "ui_jsscript_set_meta",
+        args: {
+          description: "Turns a title into a URL slug.",
+          palette: { category: "Text" }
+        }
+      },
+      {
+        name: "ui_jsscript_set_ports",
+        args: { inputs: [{ name: "text", type: "str" }] }
+      }
+    ]);
+    expect(result.checks.some((c) => !c.pass)).toBe(true);
+    expect(result.score).toBeLessThan(1);
   });
 
   it("repair-failing-test is solved by fixing the body, not the case", async () => {

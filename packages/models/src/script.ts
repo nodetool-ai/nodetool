@@ -168,6 +168,21 @@ export class Script extends DBModel {
     };
   }
 
+  /**
+   * Delete a script the caller owns, and everything that hung off it.
+   *
+   * The ownership test lives here rather than in each caller because there are
+   * two of them — the tRPC route and the sandbox's `delete_script`
+   * capability — and a delete is not a place for two copies of one rule.
+   * Missing and not-yours are the same answer, so a caller cannot probe ids.
+   */
+  static async deleteOwned(userId: string, id: string): Promise<boolean> {
+    const row = await Script.findById(id);
+    if (!row || row.user_id !== userId) return false;
+    await row.delete();
+    return true;
+  }
+
   static async findById(id: string): Promise<Script | null> {
     return Script.get<Script>(id);
   }

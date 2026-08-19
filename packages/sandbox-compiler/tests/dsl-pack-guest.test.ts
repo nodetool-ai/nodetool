@@ -190,12 +190,12 @@ describe("every namespace module in the guest", () => {
     const run = await runGuest(
       `
         import * as dsl from "${SPECIFIER}";
-        import { countTokens } from "${TEXT}";
+        import { collect } from "${TEXT}";
         return {
           builders: ["createNode", "isOutputHandle", "workflow"].every(
             (key) => typeof dsl[key] === "function"
           ),
-          sameFactory: dsl.text.countTokens === countTokens,
+          sameFactory: dsl.text.collect === collect,
           namespaces: Object.keys(dsl).filter((key) => typeof dsl[key] === "object").length
         };
       `,
@@ -290,11 +290,11 @@ describe("the graph workflow() returns", () => {
       `
         import { workflow } from "${SPECIFIER}";
         import { stringInput } from "${INPUT}";
-        import { countTokens } from "${TEXT}";
+        import { collect } from "${TEXT}";
         import { output } from "${OUTPUT}";
 
         const prompt = stringInput({ name: "prompt", value: "a fox in snow" });
-        const tokens = countTokens({ text: prompt.output() });
+        const tokens = collect({ input_item: prompt.output() });
         return workflow(output({ name: "tokens", value: tokens.output() }));
       `,
       [SPECIFIER, INPUT, TEXT, OUTPUT]
@@ -655,25 +655,25 @@ describe("the failure paths a program reaches by guessing", () => {
     const graph = await buildGraph(
       `
         import { workflow } from "${SPECIFIER}";
-        import { countTokens } from "${TEXT}";
+        import { collect } from "${TEXT}";
         import { output } from "${OUTPUT}";
 
-        const tokens = countTokens({ txt: "a typo for text" });
+        const tokens = collect({ input_itm: "a typo for input_item" });
         return workflow(output({ name: "out", value: tokens.output() }));
       `,
       [SPECIFIER, TEXT, OUTPUT]
     );
     expect(
-      graph.nodes.find((node) => node.type === "nodetool.text.CountTokens")?.properties
-    ).toEqual({ txt: "a typo for text" });
+      graph.nodes.find((node) => node.type === "nodetool.text.Collect")?.properties
+    ).toEqual({ input_itm: "a typo for input_item" });
 
     const issues = validateGraph(graph, liveRegistry()).issues;
     const unknown = issues.filter((issue) => issue.code === "unknown_property");
     expect(unknown).toHaveLength(1);
     expect(unknown[0]?.severity).toBe("warning");
-    expect(unknown[0]?.message).toContain('"txt"');
+    expect(unknown[0]?.message).toContain('"input_itm"');
     // The message has to carry the fix, not just the complaint.
-    expect(unknown[0]?.message).toContain("text");
+    expect(unknown[0]?.message).toContain("input_item");
     // A warning, so the graph is still accepted — a saved workflow carrying a
     // stale property from a node refactor must not stop running.
     expect(issues.filter((issue) => issue.severity === "error")).toEqual([]);
@@ -684,12 +684,12 @@ describe("building the same program twice", () => {
   const program = `
     import { workflow } from "${SPECIFIER}";
     import { stringInput } from "${INPUT}";
-    import { countTokens } from "${TEXT}";
+    import { collect } from "${TEXT}";
     import { output } from "${OUTPUT}";
 
     const a = stringInput({ name: "a", value: "one" });
     const b = stringInput({ name: "b", value: "two" });
-    const tokens = countTokens({ text: a.output() });
+    const tokens = collect({ input_item: a.output() });
     return workflow(
       output({ name: "tokens", value: tokens.output() }),
       output({ name: "echo", value: b.output() })
@@ -707,7 +707,7 @@ describe("building the same program twice", () => {
     expect(first.nodes.map((node) => node.id)).toEqual([
       "output",
       "output_2",
-      "count_tokens",
+      "collect",
       "string_input_2",
       "string_input"
     ]);

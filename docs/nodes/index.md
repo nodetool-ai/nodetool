@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 501 NodeTool nodes across 74 namespaces.
+Complete reference documentation for all 487 NodeTool nodes across 73 namespaces.
 
 ## Namespaces
 
@@ -37,7 +37,6 @@ Complete reference documentation for all 501 NodeTool nodes across 74 namespaces
 - **[lib.browser](lib/browser/)** - 1 node(s)
 - **[lib.charts](lib/charts/)** - 1 node(s)
 - **[lib.comfy](lib/comfy/)** - 2 node(s)
-- **[lib.google](lib/google/)** - 14 node(s)
 - **[lib.grid](lib/grid/)** - 2 node(s)
 - **[lib.image.channel](lib/image/channel/)** - 2 node(s)
 - **[lib.image.color](lib/image/color/)** - 7 node(s)

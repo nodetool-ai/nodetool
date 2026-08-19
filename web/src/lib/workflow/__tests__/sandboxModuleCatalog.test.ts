@@ -123,39 +123,49 @@ describe("collectSandboxModuleDeclarations", () => {
       edges: []
     });
 
-  it("reads string and object declarations, deduped by specifier", () => {
+  it("reads the body's imports, deduped, ignoring platform modules", () => {
     expect(
       collectSandboxModuleDeclarations(
         graphWith({
           properties: {
-            packages: [
-              "@acme/geo",
-              { specifier: "@acme/geo" },
-              { specifier: "@acme/other", resolvedPackVersion: "2.0.0" }
-            ]
+            code:
+              'import { a } from "@acme/geo";\n' +
+              'import { b } from "@acme/geo";\n' +
+              'import { c } from "@acme/other";\n' +
+              'import { list_models } from "@nodetool-ai/sandbox-nodetool/models";\n' +
+              "return { out: a + b + c + list_models };"
           }
         })
       )
-    ).toEqual([
-      { specifier: "@acme/geo" },
-      { specifier: "@acme/other", resolvedPackVersion: "2.0.0" }
-    ]);
+    ).toEqual([{ specifier: "@acme/geo" }, { specifier: "@acme/other" }]);
   });
 
   it("reads a flattened graph shape and ignores non-Code nodes", () => {
     expect(
       collectSandboxModuleDeclarations(stub<WorkflowGraph>({
         nodes: [
-          { id: "n", type: "browser.Const", data: { packages: ["@x/y"] } },
+          {
+            id: "n",
+            type: "browser.Const",
+            data: { code: 'import { x } from "@x/y";\nreturn { out: x };' }
+          },
           {
             id: "code_1",
             type: "nodetool.code.Code",
-            data: { packages: ["@acme/geo"] }
+            data: { code: 'import { g } from "@acme/geo";\nreturn { out: g };' }
           }
         ],
         edges: []
       }))
     ).toEqual([{ specifier: "@acme/geo" }]);
+  });
+
+  it("is empty for a body that does not parse", () => {
+    expect(
+      collectSandboxModuleDeclarations(
+        graphWith({ properties: { code: "return { out: (" } })
+      )
+    ).toEqual([]);
   });
 
   it("is empty for a graph with no Code node", () => {

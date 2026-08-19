@@ -302,9 +302,18 @@ export interface NodeTypeMigration {
   /**
    * Static properties merged onto the migrated node's `data`/`properties`
    * unconditionally, applied after `moveRemainingPropertiesToDynamic` — e.g.
-   * the Code node's `code` and `packages`.
+   * the Code node's `code`.
    */
   setProperties?: Record<string, unknown>;
+  /**
+   * Type declarations merged into the migrated node's `dynamic_inputs`, so a
+   * slot that `moveRemainingPropertiesToDynamic` created keeps the type its
+   * static property had. Without this a `list[T]` property becomes an untyped
+   * slot, and correlation analysis then rejects the several edges the list
+   * handle used to accept — a fan-in the old node supported and the migrated
+   * one would silently lose.
+   */
+  setDynamicSlots?: Record<string, DynamicSlotMeta>;
 }
 
 /**
@@ -334,11 +343,13 @@ function textToCodeMigration(
     to: CODE_NODE_TYPE,
     renameProperties,
     moveRemainingPropertiesToDynamic: true,
-    setProperties: { code, packages: [] }
+    setProperties: { code }
   };
 }
 
 const PDF_PACK = "@nodetool-ai/sandbox-pdf";
+
+const TOKENS_PACK = "@nodetool-ai/sandbox-tokens";
 
 const PDF_PAGE_RANGE = `const start = Math.max(0, Number(inputs.start_page ?? 0));
 const requestedEnd = Number(inputs.end_page ?? -1);
@@ -352,8 +363,7 @@ function pdfToCodeMigration(from: string, code: string): NodeTypeMigration {
     setProperties: {
       code: `import { extractPages } from "${PDF_PACK}";
 const pages = await extractPages(await media.bytes(inputs.pdf));
-${code}`,
-      packages: [PDF_PACK]
+${code}`
     }
   };
 }
@@ -736,6 +746,35 @@ if (typeof v === "object") return { output: toJsonString(v) };
 return { output: String(v) };`
   ),
 
+  {
+    // The shared "Join Array" snippet hardcodes ", " as its example
+    // separator; Join's was a real per-instance property, and its list
+    // property was `strings` rather than the snippet's `items`.
+    ...textToCodeMigration(
+      "nodetool.text.Join",
+      `const list = Array.isArray(inputs.strings) ? inputs.strings : [];
+return { output: list.map(v => String(v ?? "")).join(String(inputs.separator ?? "")) };`
+    ),
+    // `strings` was `list[str]`, so several edges could fan into it — the
+    // shape three shipped examples use. Declare the slot rather than let it
+    // become untyped, which correlation analysis rejects at run time.
+    setDynamicSlots: {
+      strings: { type: { type: "list", type_args: [{ type: "str" }] } }
+    }
+  },
+  // CountTokens counted with js-tiktoken, which the guest cannot hold — one
+  // encoding's BPE ranks are megabytes. The @nodetool-ai/sandbox-tokens host
+  // pack is where that capability lives now.
+  {
+    from: "nodetool.text.CountTokens",
+    to: CODE_NODE_TYPE,
+    moveRemainingPropertiesToDynamic: true,
+    setProperties: {
+      code: `import { count } from "${TOKENS_PACK}";
+return { output: await count(String(inputs.text ?? ""), inputs.encoding ?? "cl100k_base") };`
+    }
+  },
+
   // PageCount and SearchText stay as Code rewrites. ExtractTextBlocks and
   // PageMetadata have no text-layer equivalent, so they stay unmigrated.
   pdfToCodeMigration("lib.pdf.PageCount", "return { output: pages.length };"),
@@ -855,6 +894,13 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
       if (!("data" in next) && !("properties" in next)) {
         next.properties = { ...migration.setProperties };
       }
+    }
+
+    if (migration.setDynamicSlots) {
+      const existing = isPlainObject(next.dynamic_inputs)
+        ? next.dynamic_inputs
+        : {};
+      next.dynamic_inputs = { ...existing, ...migration.setDynamicSlots };
     }
 
     return next;
