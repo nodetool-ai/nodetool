@@ -89,5 +89,63 @@ export const debugAppSpec: CapabilitySpec = {
   }
 };
 
+export const listAppsSpec: CapabilitySpec = {
+  name: "list_apps",
+  description:
+    "List the mini apps in this account, newest first, with each app's " +
+    "operations and when it was last changed.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      limit: {
+        type: "number",
+        description: "How many apps to return (1-100).",
+        default: 50
+      }
+    },
+    required: []
+  },
+  category: "read",
+  userMessage: () => "Listing apps"
+};
+
+export const getAppSpec: CapabilitySpec = {
+  name: "get_app",
+  description:
+    "Read one of your mini apps: its document — operations, variables and " +
+    "the widget tree — the same document debug_app simulates.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      application_id: { type: "string", description: "The app to read" }
+    },
+    required: ["application_id"]
+  },
+  category: "read",
+  userMessage: (params) => `Reading app ${params["application_id"]}`
+};
+
+export const deleteAppSpec: CapabilitySpec = {
+  name: "delete_app",
+  description:
+    "Delete a mini app you own. The workflows its operations bind are left " +
+    "alone — only the app record goes. An app belonging to another user is " +
+    "reported as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      application_id: { type: "string", description: "The app to delete" }
+    },
+    required: ["application_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting app ${params["application_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
-export const appsSpecs: readonly CapabilitySpec[] = [debugAppSpec];
+export const appsSpecs: readonly CapabilitySpec[] = [
+  debugAppSpec,
+  listAppsSpec,
+  getAppSpec,
+  deleteAppSpec
+];

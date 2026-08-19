@@ -340,3 +340,94 @@ describe("document deletes", () => {
     }
   });
 });
+
+describe("apps", () => {
+  async function makeApp(userId: string) {
+    const { Application } = await import("@nodetool-ai/models");
+    const { createEmptyDocument } = await import("@nodetool-ai/app-runtime");
+    const document = createEmptyDocument("Demo");
+    document.operations = [
+      {
+        id: "main",
+        name: "Run",
+        workflowId: "wf1",
+        inputs: {},
+        outputs: {},
+        policy: "replace"
+      }
+    ];
+    return Application.create<InstanceType<typeof Application>>({
+      user_id: userId,
+      project_id: "p1",
+      name: "Demo app",
+      document: JSON.stringify(document)
+    });
+  }
+
+  it("lists and reads the caller's own apps", async () => {
+    const app = await makeApp(USER);
+    await makeApp(OTHER);
+
+    const listed = (await toolFor("list_apps").process(ctx, {})) as {
+      apps: Array<Record<string, unknown>>;
+    };
+    expect(listed.apps.map((a) => a.id)).toEqual([app.id]);
+    expect(listed.apps[0].operations).toEqual(["main"]);
+
+    const got = (await toolFor("get_app").process(ctx, {
+      application_id: app.id
+    })) as Record<string, unknown>;
+    expect(got.id).toBe(app.id);
+  });
+
+  it("refuses to read or delete another user's app", async () => {
+    const theirs = await makeApp(OTHER);
+    const { Application } = await import("@nodetool-ai/models");
+
+    const read = (await toolFor("get_app").process(ctx, {
+      application_id: theirs.id
+    })) as Record<string, unknown>;
+    expect(String(read.error)).toContain("not yours");
+
+    const removed = (await toolFor("delete_app").process(ctx, {
+      application_id: theirs.id
+    })) as Record<string, unknown>;
+    expect(String(removed.error)).toContain("not yours");
+    expect(await Application.findById(theirs.id)).not.toBeNull();
+  });
+
+  it("deletes the caller's own app", async () => {
+    const app = await makeApp(USER);
+    const { Application } = await import("@nodetool-ai/models");
+    const answer = (await toolFor("delete_app").process(ctx, {
+      application_id: app.id
+    })) as Record<string, unknown>;
+    expect(answer.deleted).toBe(true);
+    expect(await Application.findById(app.id)).toBeNull();
+  });
+});
+
+describe("get_cost_summary", () => {
+  it("reports only the caller's own spend", async () => {
+    const { Prediction } = await import("@nodetool-ai/models");
+    await Prediction.create({
+      user_id: USER,
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      cost: 0.25,
+      status: "completed"
+    });
+    await Prediction.create({
+      user_id: OTHER,
+      provider: "openai",
+      model: "gpt-5.4-mini",
+      cost: 9.5,
+      status: "completed"
+    });
+
+    const summary = (await toolFor("get_cost_summary").process(ctx, {
+      days: 7
+    })) as { providers: Array<{ provider: string; total_cost: number }> };
+    expect(summary.providers.map((p) => p.provider)).toEqual(["anthropic"]);
+  });
+});
