@@ -407,7 +407,9 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
       <div css={cssStyles} className="code-body" data-bespoke-body="Code">
         <HandleColumn id={id} properties={inputProperties} />
 
-        {supportsCodeGen && <CodeNodeScriptLink id={id} data={data} />}
+        {supportsCodeGen && (
+          <CodeNodeScriptLink id={id} data={data} nodeType={nodeType} />
+        )}
 
         <div className="code-toolbar">
           <span className="code-language">{languageLabel}</span>

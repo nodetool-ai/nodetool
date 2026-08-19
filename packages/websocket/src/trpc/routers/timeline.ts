@@ -377,11 +377,10 @@ export const timelineRouter = router({
     .input(idInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
-      const seq = await loadOwned(ctx.userId, input.id);
-      await seq.delete();
-      // Belt-and-braces with the FK cascade: version rows outliving their
-      // timeline would be unreachable garbage.
-      await TimelineSequenceVersion.deleteForTimeline(input.id);
+      // Ownership, the row, and its version rows are one operation on the
+      // model, shared with the sandbox's `delete_timeline` capability.
+      await loadOwned(ctx.userId, input.id);
+      await TimelineSequence.deleteOwned(ctx.userId, input.id);
       lastAutosaveVersionTime.delete(input.id);
       return { ok: true as const };
     }),

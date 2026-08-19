@@ -176,7 +176,6 @@ async function loadExecutor(): Promise<JsScriptExecutor> {
     const runOptions: Parameters<typeof runCodeBody>[1] = {
       code: document.code,
       inputs,
-      packages: document.packages.map((pack) => pack.specifier),
       secrets: document.secrets,
       timeoutSeconds: Math.min(
         document.timeoutSeconds,

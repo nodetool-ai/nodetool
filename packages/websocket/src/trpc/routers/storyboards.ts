@@ -144,8 +144,8 @@ export const storyboardsRouter = router({
     .input(idInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
-      const board = await loadOwned(ctx.userId, input.id);
-      await board.delete();
+      await loadOwned(ctx.userId, input.id);
+      await Storyboard.deleteOwned(ctx.userId, input.id);
       return { ok: true as const };
     })
 });

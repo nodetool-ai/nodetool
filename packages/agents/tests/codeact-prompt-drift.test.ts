@@ -267,7 +267,7 @@ describe("the advertised docs call is one the session can serve", () => {
       await session.executeAction({ code: docsCall })
     ) as { ok: boolean; error?: string };
     expect(observation.ok).toBe(false);
-    expect(observation.error).toContain("not a function");
+    expect(observation.error).toContain("is not on this toolbelt");
   }, 60_000);
 
   it("step: an allowed executor advertises and carries the tool", () => {

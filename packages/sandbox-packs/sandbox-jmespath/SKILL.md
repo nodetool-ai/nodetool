@@ -6,8 +6,7 @@ description: Query a JSON document with JMESPath inside a Code node or CodeAct a
 # JMESPath in the sandbox
 
 Specifier: `@nodetool-ai/sandbox-jmespath`. One module, the `jmespath`
-root export. Declare it in the node's `packages` property and import it at
-the top of the body.
+root export. Import it at the top of the body.
 
 ## search — pick values out of JSON
 

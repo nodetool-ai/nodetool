@@ -26,8 +26,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
+import { ThemeRoot } from "../../components/ui_primitives";
 import { MemoryRouter } from "react-router-dom";
 import { TRPCProvider } from "../../trpc/Provider";
 
@@ -168,9 +167,7 @@ export function TimelineDemoPlayer({
   return (
     <MemoryRouter>
       <TRPCProvider>
-        <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-          <InitColorSchemeScript attribute="class" defaultMode="dark" />
-          <CssBaseline />
+        <ThemeRoot theme={ThemeNodetool}>
           <div
             ref={rootRef}
             data-demo-player
@@ -185,7 +182,7 @@ export function TimelineDemoPlayer({
               />
             </TimelineProvider>
           </div>
-        </ThemeProvider>
+        </ThemeRoot>
       </TRPCProvider>
     </MemoryRouter>
   );

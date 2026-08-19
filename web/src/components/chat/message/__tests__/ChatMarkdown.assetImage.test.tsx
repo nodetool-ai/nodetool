@@ -16,6 +16,10 @@ jest.mock("../../../../trpc/client", () => ({
   }
 }));
 
+// `asset://` locators resolve through the asset record, not signUrl.
+jest.mock("../../../../hooks/useResolvedMediaUri");
+import { mockAssetUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
+
 /**
  * react-markdown is ESM-only; this mock handles markdown images `![](src)`
  * and links `[label](href)` and forwards them to `components.img` / `components.a`.
@@ -102,8 +106,11 @@ jest.mock("../../../../lib/chat/openResource", () => ({
 // Import after mocks
 import ChatMarkdown from "../ChatMarkdown";
 
-const ASSET_URI = "asset://775ac6fedf9e4c9db271148c6e853b4d.png";
-const SIGNED_URL = "http://localhost:7777/api/storage/user-1/775ac6fedf9e4c9db271148c6e853b4d.png?sig=test";
+const ASSET_ID = "775ac6fedf9e4c9db271148c6e853b4d";
+const ASSET_URI = `asset://${ASSET_ID}.png`;
+const ASSET_URI_NO_EXT = `asset://${ASSET_ID}`;
+const RESOLVED_URL = mockAssetUrl(`${ASSET_ID}.png`);
+const RESOLVED_URL_NO_EXT = mockAssetUrl(ASSET_ID);
 
 const renderMarkdown = (content: string) =>
   render(
@@ -117,23 +124,41 @@ describe("ChatMarkdown asset image", () => {
     jest.clearAllMocks();
   });
 
-  it("resolves asset:// image through signed URL, not flat /api/storage path", async () => {
-    mockUseQuery.mockReturnValue({ data: { url: SIGNED_URL } });
+  it("resolves asset:// image through the asset record, not signUrl", () => {
+    mockUseQuery.mockReturnValue({ data: undefined });
 
     const { container } = renderMarkdown(`![](${ASSET_URI})`);
 
-    // The component should call signUrl with the flat key extracted from asset://
-    expect(mockUseQuery).toHaveBeenCalledWith(
+    const img = container.querySelector("img") as HTMLImageElement;
+    expect(img).not.toBeNull();
+    expect(img).toHaveAttribute("src", RESOLVED_URL);
+    expect(img.getAttribute("src")).not.toBe(
+      "/api/storage/775ac6fedf9e4c9db271148c6e853b4d.png"
+    );
+    // signUrl is the storage-key path; an asset:// locator is an id, not a key.
+    expect(mockUseQuery).not.toHaveBeenCalledWith(
       { key: "775ac6fedf9e4c9db271148c6e853b4d.png" },
-      expect.objectContaining({ enabled: true })
+      expect.anything()
+    );
+  });
+
+  it("resolves an extensionless asset:// locator the save API emits", () => {
+    mockUseQuery.mockReturnValue({ data: undefined });
+
+    const { container } = renderMarkdown(
+      `![Magalu Virtual Avatar 1](${ASSET_URI_NO_EXT})`
     );
 
     const img = container.querySelector("img") as HTMLImageElement;
     expect(img).not.toBeNull();
-    // Must be the signed, owner-prefixed URL, not the obsolete flat path
-    expect(img).toHaveAttribute("src", SIGNED_URL);
-    expect(img.getAttribute("src")).not.toBe("/api/storage/775ac6fedf9e4c9db271148c6e853b4d.png");
-    expect(img.getAttribute("src")).not.toBe("http://localhost:7777/api/storage/775ac6fedf9e4c9db271148c6e853b4d.png");
+    expect(img).toHaveAttribute("src", RESOLVED_URL_NO_EXT);
+    expect(img).toHaveAttribute("alt", "Magalu Virtual Avatar 1");
+    // The save API returns asset://<id> with no extension. Signing that string
+    // as a storage key 404s — the bytes live at <user>/<id>.<ext>.
+    expect(mockUseQuery).not.toHaveBeenCalledWith(
+      { key: ASSET_ID },
+      expect.anything()
+    );
   });
 
   it("does not use signed URL for ordinary https images", async () => {

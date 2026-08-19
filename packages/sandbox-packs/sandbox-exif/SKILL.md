@@ -5,8 +5,7 @@ description: Read EXIF from image bytes in a Code node or CodeAct action, with e
 
 # Photo metadata in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-exif`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-exif`. Import it at the top of the body.
 
 exifr does not compile into QuickJS, so this pack is a **host module**.
 

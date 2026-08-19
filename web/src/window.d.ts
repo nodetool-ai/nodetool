@@ -434,11 +434,10 @@ declare global {
     __UPDATES__?: Record<string, unknown>[];
     // Note: full `window.api` shape is large; access additional namespaces
     // (packages, nodePacks, settings, ...) through optional chaining.
-    // Debug globals exposed by ApiClient
+    // Debug globals exposed by `lib/env`
     isProduction?: boolean;
     isLocalhost?: boolean;
     isElectron?: boolean;
-    setForceLocalhost?: (force: boolean | null) => void;
     // Plausible analytics (loaded only on the production website).
     plausible?: {
       (

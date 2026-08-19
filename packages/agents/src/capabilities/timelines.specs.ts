@@ -255,6 +255,26 @@ export const validateTimelineSpec: CapabilitySpec = {
       : "Validating timeline document"
 };
 
+export const deleteTimelineSpec: CapabilitySpec = {
+  name: "delete_timeline",
+  description:
+    "Delete a timeline sequence you own, together with its saved version history. " +
+    "This cannot be undone. A timeline sequence belonging to another user is reported " +
+    "as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      timeline_id: {
+        type: "string",
+        description: "The timeline sequence to delete. You must own it."
+      }
+    },
+    required: ["timeline_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting timeline sequence ${params["timeline_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const timelinesSpecs: readonly CapabilitySpec[] = [
   listTimelinesSpec,
@@ -263,5 +283,6 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   createTimelineVersionSpec,
   restoreTimelineVersionSpec,
   editTimelineSpec,
-  validateTimelineSpec
+  validateTimelineSpec,
+  deleteTimelineSpec
 ];

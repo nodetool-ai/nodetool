@@ -9,6 +9,7 @@ import {
   useState,
   type MutableRefObject
 } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import * as THREE from "three";
@@ -50,7 +51,6 @@ import {
   type PrimitiveKind
 } from "./objectFactory";
 import { exportSceneToGlb } from "./exportGltf";
-import { model3DEditorHotkey } from "./editorHotkeys";
 import {
   setModel3DToolHandler,
   type Model3DSceneNode,
@@ -689,36 +689,14 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
     return () => setModel3DToolHandler(null);
   }, [root, findObject, toNode, addPrimitiveObject, bump, captureView]);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const typing =
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable);
-      if (typing) {
-        return;
-      }
-      const command = model3DEditorHotkey(e);
-      if (command === "save") {
-        e.preventDefault();
-        void handleSave();
-        return;
-      }
-      if (command === "delete") {
-        handleDelete();
-      } else if (command === "translate") {
-        setGizmoMode("translate");
-      } else if (command === "rotate") {
-        setGizmoMode("rotate");
-      } else if (command === "scale") {
-        setGizmoMode("scale");
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleDelete, handleSave]);
+  // The store's shared gate replaces this handler's own "am I typing?" check.
+  useGlobalCombo("control+s", handleSave);
+  useGlobalCombo("meta+s", handleSave);
+  useGlobalCombo("delete", handleDelete);
+  useGlobalCombo("backspace", handleDelete);
+  useGlobalCombo("g", () => setGizmoMode("translate"), { preventDefault: false });
+  useGlobalCombo("r", () => setGizmoMode("rotate"), { preventDefault: false });
+  useGlobalCombo("s", () => setGizmoMode("scale"), { preventDefault: false });
 
   return (
     <FlexColumn css={styles(theme)} className="model-3d-editor" fullWidth fullHeight>

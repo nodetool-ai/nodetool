@@ -361,6 +361,13 @@ const TABLE_COLUMNS = {
     created_at: "text",
     updated_at: "text"
   },
+  external_identities: {
+    id: "text",
+    provider: "text",
+    external_id: "text",
+    user_id: "text",
+    linked_at: "text"
+  },
   nodetool_thread_memories: {
     id: "text",
     user_id: "text",
@@ -1287,6 +1294,16 @@ function getCreateSchemaSql(): string {
     );
     CREATE INDEX IF NOT EXISTS "idx_thread_memory_thread_created" ON "nodetool_thread_memories" ("thread_id", "created_at");
     CREATE INDEX IF NOT EXISTS "idx_thread_memory_user" ON "nodetool_thread_memories" ("user_id");
+
+    CREATE TABLE IF NOT EXISTS "external_identities" (
+      "id" text PRIMARY KEY NOT NULL,
+      "provider" text NOT NULL,
+      "external_id" text NOT NULL,
+      "user_id" text NOT NULL,
+      "linked_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_external_identity_provider_external" ON "external_identities" ("provider", "external_id");
+    CREATE INDEX IF NOT EXISTS "idx_external_identity_user" ON "external_identities" ("user_id");
   `;
 }
 

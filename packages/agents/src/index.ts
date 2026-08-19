@@ -115,6 +115,9 @@ export type {
   CapabilityGate,
   CapabilityLoaders,
   ClientToolRouter,
+  SecretPrompt,
+  SecretPromptRequest,
+  SecretPromptStatus,
   SubAgentRuntime,
   CapabilityRunSource,
   CreateCapabilityRunOptions
@@ -142,16 +145,24 @@ export {
 } from "./tools/tool-registry.js";
 export {
   BUILTIN_TOOL_NAMES,
+  availableBuiltinToolNames,
   getBuiltinTools,
   getAgentToolbelt,
   registerBuiltinTools,
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";
+export { isYtDlpEnabled } from "./yt-dlp-gate.js";
 export {
   GOOGLE_WORKSPACE_TOOL_NAMES,
   getGoogleWorkspaceTools,
   registerGoogleWorkspaceTools
 } from "./tools/google-workspace-tools.js";
+export {
+  APIFY_TOOL_NAMES,
+  SERPAPI_TOOL_NAMES,
+  getApifyTools,
+  getSerpApiTools
+} from "./tools/external-capability-tools.js";
 
 export { getMediaTools } from "./tools/media-tools.js";
 export { CREATIVE_CRITIQUE_TOOL_NAMES } from "./tools/creative-critique-tools.js";

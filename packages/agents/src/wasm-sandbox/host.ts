@@ -373,7 +373,7 @@ export function createSandboxWasmDispatcher(
       const runModule = isString(moduleKey) ? byKey.get(moduleKey) : undefined;
       if (runModule === undefined) {
         throw new SandboxWasmError(
-          `${describe(moduleKey)} is not a WASM sandbox module declared by this node`
+          `${describe(moduleKey)} is not a WASM sandbox module this run serves`
         );
       }
       const exported =

@@ -8,6 +8,7 @@
 import React, { forwardRef } from "react";
 import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 export interface TextProps extends Omit<TypographyProps, 'variant'> {
   /** Text size variant — five sizes (22/18/15/13/11px), no aliases */
@@ -37,6 +38,52 @@ export interface TextProps extends Omit<TypographyProps, 'variant'> {
   /** Button type, for `component="button"` usage */
   type?: "button" | "submit" | "reset";
 }
+
+// Font sizes are driven by the theme CSS variables (single source of truth
+// in ThemeNodetool). Five names, five real values — no aliases.
+const FONT_SIZES = {
+  giant: "var(--fontSizeGiant)",
+  big: "var(--fontSizeBig)",
+  normal: "var(--fontSizeNormal)",
+  small: "var(--fontSizeSmall)",
+  smaller: "var(--fontSizeSmaller)"
+} satisfies Record<NonNullable<TextProps["size"]>, string>;
+
+// The sanctioned size+weight combos for the sans family: 22/18→600
+// (display/title), 15→400 (body), 13→500 (label), 11→400 (caption). The mono
+// family is 400 throughout.
+const SANS_WEIGHTS = {
+  giant: 600,
+  big: 600,
+  normal: 400,
+  small: 500,
+  smaller: 400
+} satisfies Record<NonNullable<TextProps["size"]>, 400 | 500 | 600>;
+
+const TRUNCATE_STYLES: React.CSSProperties = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap"
+};
+
+const resolveColor = (color: string, theme: Theme): string => {
+  switch (color) {
+    case "inherit":
+      return "inherit";
+    case "primary":
+      return theme.vars.palette.primary.main;
+    case "secondary":
+      return theme.vars.palette.text.secondary;
+    case "error":
+      return theme.vars.palette.error.main;
+    case "warning":
+      return theme.vars.palette.warning.main;
+    case "success":
+      return theme.vars.palette.success.main;
+    default:
+      return color;
+  }
+};
 
 /**
  * Text - A flexible text component with theme-aware styling
@@ -82,80 +129,30 @@ export const Text = forwardRef<HTMLElement, TextProps>(({
 }, ref) => {
   const theme = useTheme();
 
-  // Font sizes are driven by the theme CSS variables (single source of truth
-  // in ThemeNodetool). Five names, five real values — no aliases.
-  const getFontSize = () => {
-    const sizeMap = {
-      giant: "var(--fontSizeGiant)",
-      big: "var(--fontSizeBig)",
-      normal: "var(--fontSizeNormal)",
-      small: "var(--fontSizeSmall)",
-      smaller: "var(--fontSizeSmaller)"
-    } satisfies Record<NonNullable<TextProps["size"]>, string>;
-    return sizeMap[size];
-  };
+  const defaultWeight = family === "secondary" ? 400 : SANS_WEIGHTS[size];
+  const resolvedWeight = weight === "normal" ? 400 : weight ?? defaultWeight;
 
-  // Default weight follows the sanctioned size+weight combo for the size.
-  // sans: 22/18→600 (display/title), 15→400 (body), 13→500 (label), 11→400 (caption)
-  // mono: 13→400 (code), 12→500 (label), 11→400 (caption)
-  const getDefaultWeight = (): 400 | 500 | 600 => {
-    const titleSizes = ["giant", "big"];
-    const labelSizes = ["small"];
-    if (titleSizes.includes(size)) {
-      return family === "secondary" ? 400 : 600;
-    }
-    if (labelSizes.includes(size)) {
-      return family === "secondary" ? 400 : 500;
-    }
-    return 400; // body + caption
-  };
-  const resolvedWeight = weight === "normal" ? 400 : weight ?? getDefaultWeight();
-
-  const getColor = () => {
-    const colorMap = {
-      primary: theme.vars.palette.primary.main,
-      secondary: theme.vars.palette.text.secondary,
-      error: theme.vars.palette.error.main,
-      warning: theme.vars.palette.warning.main,
-      success: theme.vars.palette.success.main,
-      inherit: "inherit"
-    };
-    return colorMap[color as keyof typeof colorMap] || color;
-  };
-
-  const getFontFamily = () => {
-    return family === "secondary" ? theme.fontFamily2 : theme.fontFamily1;
-  };
-
-  const getTruncateStyles = (): React.CSSProperties => {
-    if (lineClamp) {
-      return {
+  const truncateStyles = lineClamp
+    ? {
         display: "-webkit-box",
         WebkitLineClamp: lineClamp,
         WebkitBoxOrient: "vertical" as const,
         overflow: "hidden",
         textOverflow: "ellipsis"
-      };
-    }
-    if (truncate) {
-      return {
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-      };
-    }
-    return {};
-  };
+      }
+    : truncate
+      ? TRUNCATE_STYLES
+      : undefined;
 
   return (
     <Typography
       ref={ref}
       sx={{
-        fontSize: getFontSize(),
-        color: getColor(),
+        fontSize: FONT_SIZES[size],
+        color: resolveColor(color, theme),
         fontWeight: resolvedWeight,
-        fontFamily: getFontFamily(),
-        ...getTruncateStyles(),
+        fontFamily: family === "secondary" ? theme.fontFamily2 : theme.fontFamily1,
+        ...truncateStyles,
         ...sx
       }}
       {...props}

@@ -38,8 +38,11 @@ import {
   vectorRecursiveSplitAndIndexSpec,
   vectorMarkdownSplitAndIndexSpec,
   vectorBatchIndexSpec,
+  createCollectionSpec,
+  deleteCollectionSpec,
   QUERY_COLLECTION_SCHEMA
 } from "./collections.specs.js";
+import { userIdOf } from "../tools/mcp-tool-support.js";
 import { isString } from "../utils/type-guards.js";
 
 export { QUERY_COLLECTION_SCHEMA } from "./collections.specs.js";
@@ -422,6 +425,74 @@ const vectorBatchIndex: CapabilityExport = {
 };
 
 /** Every collection capability: discovery and query first, then the store. */
+/**
+ * Collection lifecycle, under the ownership rules the HTTP layer applies.
+ *
+ * The `VectorProvider` interface has no concept of a user — collections are
+ * one flat namespace — so ownership is a metadata stamp checked at the
+ * boundary (`@nodetool-ai/vectorstore/collection-access`). The read
+ * capabilities predate that and stay as they are; these two do not, because
+ * creating and destroying a store is where a shared namespace stops being
+ * something others can see and starts being something others lose. A
+ * collection with no owner recorded predates the stamp and stays shared, which
+ * is the same answer the API gives.
+ */
+const createCollection: CapabilityExport = {
+  spec: createCollectionSpec,
+  impl: async (run, params) => {
+    const { getDefaultVectorProvider, validateCollectionName, OWNER_METADATA_KEY } =
+      await import("@nodetool-ai/vectorstore");
+    const name = String(params["name"] ?? "");
+    const badName = validateCollectionName(name);
+    if (badName) return { error: badName };
+
+    const metadata: Record<string, string> = {
+      [OWNER_METADATA_KEY]: userIdOf(run.context)
+    };
+    if (isString(params["embedding_model"])) {
+      metadata.embedding_model = params["embedding_model"];
+    }
+    if (isString(params["embedding_provider"])) {
+      metadata.embedding_provider = params["embedding_provider"];
+    }
+
+    const provider = getDefaultVectorProvider();
+    // The store's name column is unique, so a duplicate arrives as a driver
+    // error. Say what it means instead of forwarding raw SQL.
+    try {
+      await provider.createCollection({ name, metadata });
+    } catch (err) {
+      const existing = await provider
+        .listCollections()
+        .catch(() => [] as { name: string }[]);
+      if (existing.some((c) => c.name === name)) {
+        return { error: `Collection ${name} already exists.` };
+      }
+      throw err;
+    }
+    return { name, created: true };
+  }
+};
+
+const deleteCollection: CapabilityExport = {
+  spec: deleteCollectionSpec,
+  impl: async (run, params) => {
+    const { getDefaultVectorProvider, canAccessCollection } =
+      await import("@nodetool-ai/vectorstore");
+    const name = String(params["name"] ?? "");
+    const provider = getDefaultVectorProvider();
+    const infos = await provider.listCollections();
+    const info = infos.find((c) => c.name === name);
+    if (!info) return { error: `Collection ${name} was not found.` };
+    // Checked before the delete, not after: deleteCollection is irreversible.
+    if (!canAccessCollection(info.metadata, userIdOf(run.context))) {
+      return { error: `Collection ${name} belongs to another user.` };
+    }
+    await provider.deleteCollection(name);
+    return { name, deleted: true };
+  }
+};
+
 export const COLLECTION_CAPABILITIES: readonly CapabilityExport[] = [
   listCollections,
   queryCollection,
@@ -430,7 +501,9 @@ export const COLLECTION_CAPABILITIES: readonly CapabilityExport[] = [
   vectorHybridSearch,
   vectorRecursiveSplitAndIndex,
   vectorMarkdownSplitAndIndex,
-  vectorBatchIndex
+  vectorBatchIndex,
+  createCollection,
+  deleteCollection
 ];
 
 export const module: CapabilityModule = {
@@ -446,5 +519,7 @@ export {
   vectorHybridSearch,
   vectorRecursiveSplitAndIndex,
   vectorMarkdownSplitAndIndex,
-  vectorBatchIndex
+  vectorBatchIndex,
+  createCollection,
+  deleteCollection
 };

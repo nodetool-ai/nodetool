@@ -11,7 +11,7 @@
  * focused routes it to the document's own history, which is the source of truth.
  */
 
-import { useEffect } from "react";
+import { useGlobalCombo } from "../stores/KeyPressedStore";
 
 interface Options {
   /** True when this surface's tab is the focused one. */
@@ -28,26 +28,15 @@ export const useDocumentUndoShortcuts = ({
   onUndo,
   onRedo
 }: Options): void => {
-  useEffect(() => {
-    if (!active || !enabled) {
-      return;
-    }
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (!e.metaKey && !e.ctrlKey) {
-        return;
-      }
-      const key = e.key.toLowerCase();
-      if (key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        onUndo();
-      } else if ((key === "z" && e.shiftKey) || key === "y") {
-        e.preventDefault();
-        onRedo();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, enabled, onUndo, onRedo]);
+  // allowInInputs: the surface's text fields are store-controlled, so the
+  // shortcut must reach the document's own history even while one is focused.
+  const bound = { active: active && enabled, allowInInputs: true } as const;
+  useGlobalCombo("control+z", onUndo, bound);
+  useGlobalCombo("meta+z", onUndo, bound);
+  useGlobalCombo("control+shift+z", onRedo, bound);
+  useGlobalCombo("meta+shift+z", onRedo, bound);
+  useGlobalCombo("control+y", onRedo, bound);
+  useGlobalCombo("meta+y", onRedo, bound);
 };
 
 export default useDocumentUndoShortcuts;

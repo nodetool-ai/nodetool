@@ -26,7 +26,6 @@ import {
   type JsScriptLink,
   type JsScriptLinkLookup
 } from "./js-script-link.js";
-import { parseSandboxModuleDeclarations } from "./sandbox-module-declarations.js";
 import type { NodeMetadata } from "./metadata.js";
 import { portTypeAliases } from "./port-types.js";
 import {
@@ -735,7 +734,7 @@ export function collectModelSelectionIssues(
 
 export interface GraphValidationOptions {
   /**
-   * Catalog the Code nodes' `packages` declarations resolve against. Defaults
+   * Catalog the Code node bodies' imports resolve against. Defaults
    * to the process-wide catalog the host installed; pass `null` to check the
    * graph without one (a browser client, a test).
    */
@@ -1013,20 +1012,6 @@ export function validateGraph(
         }
       }
 
-      const { declarations, invalid } = parseSandboxModuleDeclarations(
-        props.packages
-      );
-      for (const entry of invalid) {
-        issues.push({
-          severity: "error",
-          code: "code_module",
-          nodeId: id,
-          nodeType: type,
-          message:
-            `Node "${id}": the \`packages\` entry ${entry} is not a sandbox module ` +
-            "declaration — each entry is a specifier, or an object with a `specifier`."
-        });
-      }
       for (const codeIssue of validateCodeNodeBody({
         code: props.code,
         availableInputs: [...availableInputs].filter(
@@ -1040,7 +1025,6 @@ export function validateGraph(
           ])
         ],
         connectedOutputs: [...(consumedByNode.get(id) ?? [])],
-        declaredPackages: declarations,
         sandboxModuleCatalog
       })) {
         issues.push({

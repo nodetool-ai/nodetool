@@ -15,6 +15,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import BoltIcon from "@mui/icons-material/Bolt";
 import MovieFilterIcon from "@mui/icons-material/MovieFilter";
 import ApiIcon from "@mui/icons-material/Api";
+import StarIcon from "@mui/icons-material/Star";
 
 import openaiIcon from "../../icons/providers/openai.svg";
 import anthropicIcon from "../../icons/providers/anthropic.svg";
@@ -56,6 +57,8 @@ const NAMESPACE_ICONS: Record<string, IconEntry> = {
   nodetool: { kind: "mui", Component: HubIcon },
   search: { kind: "mui", Component: SearchIcon },
   transformers: { kind: "mui", Component: AutoAwesomeIcon },
+  // The user's own saved nodes (JS scripts flagged for the menu).
+  user: { kind: "mui", Component: StarIcon },
   vector: { kind: "mui", Component: ScatterPlotIcon },
 
   // Providers

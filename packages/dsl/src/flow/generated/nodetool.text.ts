@@ -5,20 +5,6 @@
 import { callNode, streamNode } from "../guest-core.js";
 import type { AudioRef, TextRef, FolderRef } from "../../types.js";
 
-// Count Tokens — nodetool.text.CountTokens
-export type CountTokensInputs = {
-  text?: string;
-  encoding?: "cl100k_base" | "p50k_base" | "r50k_base";
-};
-
-export interface CountTokensOutputs {
-  output: number;
-}
-
-export function countTokens(inputs: CountTokensInputs): Promise<CountTokensOutputs> {
-  return callNode<CountTokensOutputs>("nodetool.text.CountTokens", inputs);
-}
-
 // Automatic Speech Recognition — nodetool.text.AutomaticSpeechRecognition
 export type AutomaticSpeechRecognitionInputs = {
   model?: unknown;
@@ -54,6 +40,7 @@ export function embedding(inputs: EmbeddingInputs): Promise<EmbeddingOutputs> {
 // Save Text File — nodetool.text.SaveTextFile
 export type SaveTextFileInputs = {
   text?: string;
+  save_to_workspace?: boolean;
   folder?: string;
   name?: string;
 };
@@ -172,20 +159,6 @@ export interface ConcatOutputs {
 
 export function concat(inputs?: ConcatInputs): Promise<ConcatOutputs> {
   return callNode<ConcatOutputs>("nodetool.text.Concat", inputs ?? {});
-}
-
-// Join — nodetool.text.Join
-export type JoinInputs = {
-  strings?: string[];
-  separator?: string;
-};
-
-export interface JoinOutputs {
-  output: string;
-}
-
-export function join(inputs: JoinInputs): Promise<JoinOutputs> {
-  return callNode<JoinOutputs>("nodetool.text.Join", inputs);
 }
 
 // Collect Text — nodetool.text.Collect

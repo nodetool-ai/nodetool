@@ -21,7 +21,7 @@ const GoalFilterChips: React.FC = () => {
   );
 
   return (
-    <FlexRow gap={1} align="center" sx={{ flexWrap: "wrap", mb: 2 }}>
+    <FlexRow gap={1} align="center" sx={{ flexWrap: "wrap", mb: 1 }}>
       <Text size="small" color="secondary" sx={{ whiteSpace: "nowrap" }}>
         I want to
       </Text>

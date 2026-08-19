@@ -28,7 +28,6 @@ export interface CodeAssistantState {
   inputs: CodeAssistantPort[];
   outputs: CodeAssistantPort[];
   /** Sandbox package specifiers the node declares. */
-  packages: string[];
 }
 
 /** Operations an open Code assistant dialog exposes to the tooling layer. */
@@ -41,8 +40,6 @@ export interface CodeAssistantHandler {
     inputs?: CodeAssistantPort[];
     outputs?: CodeAssistantPort[];
   }) => void;
-  /** Replace the declared sandbox package specifiers. */
-  setPackages: (packages: string[]) => void;
 }
 
 const handlers = new Map<string, CodeAssistantHandler>();

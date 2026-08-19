@@ -5,8 +5,7 @@ description: Encode an animated GIF from RGBA frames inside a Code node or CodeA
 
 # GIF encoding in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-gif`. One module, gifenc. Declare it in
-the node's `packages` property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-gif`. One module, gifenc. Import it at the top of the body.
 
 ## Frames to a GIF
 

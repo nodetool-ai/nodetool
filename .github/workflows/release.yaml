@@ -305,8 +305,11 @@ jobs:
       # It must be the *packed* tree, not electron/backend-bundle: afterPack is
       # what pins the backend's native modules to the bundled Node
       # (NODE_RUNTIME_VERSION) and drops that Node at backend/runtime/node.
-      # electron-builder's npmRebuild leaves the workspace copies on Electron's
-      # ABI, so the staged tree is not a runnable artifact at this point.
+      # The staged tree carries whatever ABI the workspace copies happen to be
+      # on — only the packed tree is guaranteed runnable. (npmRebuild is off in
+      # electron-builder.json: the app `files` exclude every ABI-locked module,
+      # so the Electron-ABI rebuild only clobbered the dev tree's Node-ABI
+      # better-sqlite3; afterPack's rebuild is the one the artifact needs.)
       - name: Smoke-boot packaged backend (Windows)
         if: matrix.os == 'windows-2022'
         shell: bash -l {0}

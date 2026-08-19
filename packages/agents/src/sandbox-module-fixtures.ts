@@ -167,7 +167,7 @@ return label() + ":" + haversine(0, 1);`,
     description: "a `node:*` specifier is denied by name",
     modules: GEO_AND_OTHER,
     code: 'import "node:buffer";\nreturn 1;',
-    errorContains: ["node:buffer", "packages declaration"]
+    errorContains: ["node:buffer", "not a sandbox package this run serves"]
   },
   {
     name: "deny-compat-module",
@@ -175,42 +175,42 @@ return label() + ":" + haversine(0, 1);`,
       "a bare compat module the QuickJS wrapper itself warmed is still denied",
     modules: GEO_AND_OTHER,
     code: 'import "buffer";\nreturn 1;',
-    errorContains: ["buffer", "packages declaration"]
+    errorContains: ["buffer", "not a sandbox package this run serves"]
   },
   {
     name: "deny-absolute-path",
     description: "an absolute path is not a specifier the loader serves",
     modules: GEO_AND_OTHER,
     code: 'import "/etc/passwd";\nreturn 1;',
-    errorContains: ["/etc/passwd", "packages declaration"]
+    errorContains: ["/etc/passwd", "not a sandbox package this run serves"]
   },
   {
     name: "deny-relative-escape",
     description: "user code cannot climb out with `../`",
     modules: GEO_AND_OTHER,
     code: 'import "../secrets.js";\nreturn 1;',
-    errorContains: ["../secrets.js", "packages declaration"]
+    errorContains: ["../secrets.js", "not a sandbox package this run serves"]
   },
   {
     name: "deny-encoded-traversal",
     description: "percent-encoding the traversal does not decode into one",
     modules: GEO_AND_OTHER,
     code: 'import "%2e%2e/secrets.js";\nreturn 1;',
-    errorContains: ["%2e%2e/secrets.js", "packages declaration"]
+    errorContains: ["%2e%2e/secrets.js", "not a sandbox package this run serves"]
   },
   {
     name: "deny-undeclared-specifier",
     description: "a specifier the node did not declare is refused",
     modules: GEO_AND_OTHER,
     code: 'import "@acme/other";\nreturn 1;',
-    errorContains: ["@acme/other", "packages declaration"]
+    errorContains: ["@acme/other", "not a sandbox package this run serves"]
   },
   {
     name: "deny-other-pack-internal",
     description: "another pack's internal file is not addressable",
     modules: GEO_AND_OTHER,
     code: 'import "@other/nodetool-pack/sandbox/internal/secret.js";\nreturn 1;',
-    errorContains: ["sandbox/internal/secret.js", "packages declaration"]
+    errorContains: ["sandbox/internal/secret.js", "not a sandbox package this run serves"]
   },
   {
     name: "deny-own-internal-from-user-code",

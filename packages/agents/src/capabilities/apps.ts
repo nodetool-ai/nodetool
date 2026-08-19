@@ -19,7 +19,12 @@
 
 import { noRegistryError, userIdOf } from "../tools/mcp-tool-support.js";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
-import { debugAppSpec } from "./apps.specs.js";
+import {
+  debugAppSpec,
+  listAppsSpec,
+  getAppSpec,
+  deleteAppSpec
+} from "./apps.specs.js";
 
 export { DEBUG_APP_SCHEMA } from "./apps.specs.js";
 
@@ -51,12 +56,79 @@ const debugApp: CapabilityExport = {
   }
 };
 
+/**
+ * An app the caller owns, or null.
+ *
+ * `Application.findById` is not user-scoped — it resolves any id — so the
+ * ownership test belongs at every call site that acts on the answer. Missing
+ * and not-yours are the same answer, matching what the tRPC route returns.
+ */
+async function findOwnedApp(userId: string, id: string) {
+  const { Application } = await import("@nodetool-ai/models");
+  const app = await Application.findById(id);
+  if (!app || app.user_id !== userId) return null;
+  return app;
+}
+
+const listApps: CapabilityExport = {
+  spec: listAppsSpec,
+  impl: async (run, params) => {
+    const { Application } = await import("@nodetool-ai/models");
+    const limit = Math.max(1, Math.min(Number(params["limit"]) || 50, 100));
+    const apps = await Application.listByUser(userIdOf(run.context), limit);
+    return {
+      apps: apps.map((app) => {
+        const document = app.toDocument();
+        return {
+          id: app.id,
+          name: app.name,
+          description: app.description ?? "",
+          operations: document.operations.map((operation) => operation.id),
+          updated_at: app.updated_at
+        };
+      })
+    };
+  }
+};
+
+const getApp: CapabilityExport = {
+  spec: getAppSpec,
+  impl: async (run, params) => {
+    const id = String(params["application_id"]);
+    const app = await findOwnedApp(userIdOf(run.context), id);
+    if (!app) return { error: `App ${id} was not found, or it is not yours.` };
+    return {
+      id: app.id,
+      name: app.name,
+      description: app.description ?? "",
+      updated_at: app.updated_at,
+      document: app.toDocument()
+    };
+  }
+};
+
+const deleteApp: CapabilityExport = {
+  spec: deleteAppSpec,
+  impl: async (run, params) => {
+    const id = String(params["application_id"]);
+    const app = await findOwnedApp(userIdOf(run.context), id);
+    if (!app) return { error: `App ${id} was not found, or it is not yours.` };
+    await app.delete();
+    return { application_id: id, deleted: true };
+  }
+};
+
 /** Every app capability, in the order `getAllMcpTools` offered them. */
-export const APP_CAPABILITIES: readonly CapabilityExport[] = [debugApp];
+export const APP_CAPABILITIES: readonly CapabilityExport[] = [
+  debugApp,
+  listApps,
+  getApp,
+  deleteApp
+];
 
 export const module: CapabilityModule = {
   module: "apps",
   exports: APP_CAPABILITIES
 };
 
-export { debugApp };
+export { debugApp, listApps, getApp, deleteApp };

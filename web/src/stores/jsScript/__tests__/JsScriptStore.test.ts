@@ -37,14 +37,13 @@ describe("JsScriptStore", () => {
     expect(store().getScript(ID)).toBeUndefined();
   });
 
-  it("writes code, ports, packages, secrets, tests and meta", () => {
+  it("writes code, ports, secrets, tests and meta", () => {
     store().ensureScript(ID);
     store().setName(ID, "Reshape");
     store().setDescription(ID, "Reshapes an API response");
     store().setCode(ID, "emit('out', inputs.a)");
     store().setPorts(ID, { inputs: [{ name: "a", type: "str" }] });
     store().setPorts(ID, { outputs: [{ name: "out", type: "str" }] });
-    store().setPackages(ID, [{ specifier: "@nodetool-ai/sandbox-yaml" }]);
     store().setSecrets(ID, ["OPENAI_API_KEY"]);
     store().setTests(ID, [{ name: "case", inputs: { a: "x" } }]);
 
@@ -54,7 +53,6 @@ describe("JsScriptStore", () => {
       code: "emit('out', inputs.a)",
       inputs: [{ name: "a", type: "str" }],
       outputs: [{ name: "out", type: "str" }],
-      packages: [{ specifier: "@nodetool-ai/sandbox-yaml" }],
       secrets: ["OPENAI_API_KEY"],
       tests: [{ name: "case", inputs: { a: "x" } }]
     });
@@ -86,6 +84,24 @@ describe("JsScriptStore", () => {
     const before = store().getScript(ID);
     store().setCode(ID, "emit('a', 1)");
     expect(store().getScript(ID)).toBe(before);
+  });
+
+  it("exposes the script in the node menu and takes it back out", () => {
+    store().ensureScript(ID);
+    store().setPalette(ID, { category: "My API" });
+    expect(store().getScript(ID)?.document.palette).toEqual({
+      category: "My API"
+    });
+
+    const before = store().getScript(ID);
+    store().setPalette(ID, { category: "My API" });
+    expect(store().getScript(ID)).toBe(before);
+
+    store().setPalette(ID, null);
+    expect(store().getScript(ID)?.document).not.toHaveProperty("palette");
+    const hidden = store().getScript(ID);
+    store().setPalette(ID, null);
+    expect(store().getScript(ID)).toBe(hidden);
   });
 
   it("undo restores the previous document and redo reapplies it", () => {

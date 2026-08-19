@@ -86,4 +86,54 @@ describe("resolveCodexAccessToken", () => {
 
     expect(await resolveCodexAccessToken("user-1")).toBe("stale-token");
   });
+
+  it("refreshes once for concurrent reads", async () => {
+    await OAuthCredential.upsert({
+      user_id: "user-1",
+      provider: "openai",
+      account_id: "acct",
+      access_token: "stale-token",
+      refresh_token: "refresh-token",
+      token_type: "Bearer",
+      received_at: new Date(Date.now() - 7_200_000).toISOString(),
+      expires_at: new Date(Date.now() - 3_600_000).toISOString()
+    });
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ access_token: "fresh-token", expires_in: 3600 }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      )
+    );
+
+    const tokens = await Promise.all([
+      resolveCodexAccessToken("user-1"),
+      resolveCodexAccessToken("user-1"),
+      resolveCodexAccessToken("user-1")
+    ]);
+
+    expect(tokens).toEqual(["fresh-token", "fresh-token", "fresh-token"]);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("stops retrying for a while after the endpoint rejects the refresh", async () => {
+    await OAuthCredential.upsert({
+      user_id: "user-2",
+      provider: "openai",
+      account_id: "acct",
+      access_token: "stale-token",
+      refresh_token: "revoked-token",
+      token_type: "Bearer",
+      received_at: new Date(Date.now() - 7_200_000).toISOString(),
+      expires_at: new Date(Date.now() - 3_600_000).toISOString()
+    });
+
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("nope", { status: 401 }));
+
+    expect(await resolveCodexAccessToken("user-2")).toBe("stale-token");
+    expect(await resolveCodexAccessToken("user-2")).toBe("stale-token");
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
 });

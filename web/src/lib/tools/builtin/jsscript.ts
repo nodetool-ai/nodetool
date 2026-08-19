@@ -4,7 +4,7 @@ import { getJsScriptAgentHandler } from "../../../components/jsScript/jsScriptAg
 
 /**
  * Frontend tools that let the agent author the open JS script document — its
- * body, declared ports, sandbox packages, metadata and saved test cases — and
+ * body, declared ports, metadata and saved test cases — and
  * execute it. Every tool takes an explicit `script_id` and delegates to the
  * handler that script's open JsScriptSurface registers on the
  * {@link jsScriptAgentBridge}; when that script is not open the handler getter
@@ -29,14 +29,6 @@ const portParam = z.object({
     .describe(
       "NodeTool type name, e.g. 'str', 'int', 'float', 'bool', 'list', 'dict', 'image', 'audio', 'video', 'any'."
     )
-});
-
-const packageParam = z.object({
-  specifier: z
-    .string()
-    .describe("Sandbox module specifier, e.g. '@nodetool-ai/sandbox-yaml'."),
-  resolvedPackVersion: z.string().optional(),
-  contentDigest: z.string().optional()
 });
 
 const testCaseParam = z.object({
@@ -115,29 +107,9 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
-  name: "ui_jsscript_set_packages",
-  description:
-    "No-op leftover: a JS script does not declare packages. Every installed sandbox pack and every `@nodetool-ai/sandbox-nodetool/<namespace>` module resolves by import. The field is kept so old documents still parse.",
-  parameters: z.object({
-    script_id: scriptIdParam,
-    packages: z
-      .array(packageParam)
-      .describe("The complete new package declaration list.")
-  }),
-  async execute({ script_id, packages }) {
-    const snapshot = getJsScriptAgentHandler(script_id).setPackages(packages);
-    return {
-      ok: true,
-      packages: snapshot.document.packages,
-      issues: snapshot.issues
-    };
-  }
-});
-
-FrontendToolRegistry.register({
   name: "ui_jsscript_set_meta",
   description:
-    "Set the script's name, description, declared secret names, and/or timeout in seconds. Omitted fields are left alone. The description is how a later agent picks this script out of a list, so make it say what the script does. Secrets are the only ones the body may read; the timeout is capped at 120 seconds.",
+    "Set the script's name, description, declared secret names, timeout in seconds, and/or its node-menu placement. Omitted fields are left alone. The description is how a later agent picks this script out of a list, so make it say what the script does. Secrets are the only ones the body may read; the timeout is capped at 120 seconds. Setting `palette` exposes the script in the node menu as one of the user's custom nodes, under the category it names; `null` takes it back out.",
   parameters: z.object({
     script_id: scriptIdParam,
     name: z.string().optional(),
@@ -146,14 +118,33 @@ FrontendToolRegistry.register({
       .array(z.string())
       .optional()
       .describe("Secret names the body may read; [] for none."),
-    timeoutSeconds: z.number().optional()
+    timeoutSeconds: z.number().optional(),
+    palette: z
+      .object({
+        category: z
+          .string()
+          .describe("Menu grouping, e.g. 'Text' or 'My API'. Free text.")
+      })
+      .nullable()
+      .optional()
+      .describe(
+        "Show the script in the node menu under this category, or null to hide it."
+      )
   }),
-  async execute({ script_id, name, description, secrets, timeoutSeconds }) {
+  async execute({
+    script_id,
+    name,
+    description,
+    secrets,
+    timeoutSeconds,
+    palette
+  }) {
     const snapshot = getJsScriptAgentHandler(script_id).setMeta({
       name,
       description,
       secrets,
-      timeoutSeconds
+      timeoutSeconds,
+      palette
     });
     return {
       ok: true,
@@ -161,6 +152,7 @@ FrontendToolRegistry.register({
       description: snapshot.document.description,
       secrets: snapshot.document.secrets,
       timeoutSeconds: snapshot.document.timeoutSeconds,
+      palette: snapshot.document.palette ?? null,
       issues: snapshot.issues
     };
   }

@@ -18,6 +18,7 @@ export function loadDocumentFile(inputs: LoadDocumentFileInputs): DslNode<LoadDo
 // Save Document File — nodetool.document.SaveDocumentFile
 export type SaveDocumentFileInputs = {
   document?: Connectable<unknown>;
+  save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   filename?: Connectable<string>;
 };

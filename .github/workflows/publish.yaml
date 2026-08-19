@@ -57,7 +57,7 @@ jobs:
           echo "npm tag: ${NPM_TAG}"
 
       - name: Bump package versions
-        run: node scripts/bump-version.mjs "$VERSION_NO_V"
+        run: node scripts/bump-version.mjs "$VERSION_NO_V" --no-commit
 
       - name: Build all packages
         env:

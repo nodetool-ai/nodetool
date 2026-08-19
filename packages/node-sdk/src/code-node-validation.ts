@@ -123,8 +123,8 @@ export interface CodeNodeIssue {
    * "code_return_shape" | "code_missing_output" | "code_undeclared_output" |
    * "code_output_dynamic_name" | "code_return_ignored" |
    * "code_undefined_name" | "code_undefined_input" | "code_unused_input" |
-   * "code_unused_package" | "code_package_unavailable" |
-   * "code_package_mismatch" | "code_undefined_stream" |
+   * "code_package_unavailable" | "code_package_mismatch" |
+   * "code_undefined_stream" |
    * "code_stream_dynamic_name" | "code_unconnected_stream" |
    * "code_stream_input_read" | "code_stream_return_contract".
    */
@@ -152,30 +152,35 @@ export interface CodeNodeValidationInput {
   /** Output handles other nodes are wired to. A superset check on `keys`. */
   connectedOutputs?: readonly string[];
   /**
-   * Sandbox modules the node declares in its `packages` property. The guest
-   * loader serves exactly these, so an import of anything else fails at run
-   * time and a declaration nothing imports is dead weight.
-   */
-  declaredPackages?: readonly SandboxModuleDeclaration[];
-  /**
-   * The installed catalog, when the caller has one. Given it, the declarations
-   * are resolved offline: a specifier no installed pack offers is an error, and
-   * a pack version or content digest that moved since the workflow was saved is
-   * a warning.
+   * The installed catalog, when the caller has one. Given it, the specifiers
+   * the body imports are resolved offline: one no installed pack offers is an
+   * error, and a pack whose version or content digest moved since the catalog
+   * was built is a warning.
    */
   sandboxModuleCatalog?: SandboxModuleCatalog | null;
-  /**
-   * A JS script has no `packages` setting: every installed pack and every
-   * platform module (`@nodetool-ai/sandbox-nodetool/<namespace>`) resolves by
-   * import. When this is set, an undeclared import is not an error, unused
-   * declarations are not warned, and only imported pack specifiers are
-   * checked against the catalog.
-   */
-  allowInstalledPackages?: boolean;
 }
 
 function formatNames(names: readonly string[]): string {
   return names.map((name) => `"${name}"`).join(", ");
+}
+
+/**
+ * Node builtins. The guest is QuickJS, not Node, and no pack is named after
+ * one — so an import of any of these resolves nowhere, whether or not the host
+ * running this check has a catalog to say so.
+ */
+const NODE_BUILTINS: ReadonlySet<string> = new Set([
+  "assert", "buffer", "child_process", "cluster", "crypto", "dgram", "dns",
+  "events", "fs", "http", "http2", "https", "module", "net", "os", "path",
+  "perf_hooks", "process", "querystring", "readline", "stream", "string_decoder",
+  "timers", "tls", "tty", "url", "util", "v8", "vm", "worker_threads", "zlib"
+]);
+
+function isNodeBuiltin(specifier: string): boolean {
+  return (
+    specifier.startsWith("node:") ||
+    NODE_BUILTINS.has(specifier.split("/")[0] ?? "")
+  );
 }
 
 /** NodeTool's own guest modules — not pack declarations. */
@@ -237,33 +242,35 @@ export function validateCodeNodeBody(
     });
   }
 
-  const declaredSpecifiers = new Set(
-    (input.declaredPackages ?? []).map((declaration) => declaration.specifier)
-  );
   const imported = staticImportSpecifiers(parsed.statements);
-  const allowInstalled = input.allowInstalledPackages === true;
-  const undeclaredImports = [
-    ...new Set(
-      imported.filter((specifier) => {
-        if (declaredSpecifiers.has(specifier)) return false;
-        // NodeTool's own guest modules are not packs and are never declared:
-        // the host mounts them for any body that imports one — a Code node's
-        // as well as a script's — so requiring a `packages` entry would fail
-        // a body the sandbox runs happily.
-        if (isCapabilitySpecifier(specifier)) return false;
-        return !allowInstalled;
-      })
-    )
+
+  const builtins = [
+    ...new Set(imported.filter(isNodeBuiltin))
   ].sort();
-  if (undeclaredImports.length > 0) {
+  if (builtins.length > 0) {
     issues.push({
       severity: "error",
       code: "code_module",
       message:
-        `The code imports ${formatNames(undeclaredImports)}, which this node does not ` +
-        `declare — the sandbox resolves only the modules listed in the node's ` +
-        `\`packages\` property. Add ${undeclaredImports.length > 1 ? "them" : "it"} there, ` +
-        "or remove the import."
+        `The code imports ${formatNames(builtins)}. The sandbox is QuickJS, not Node — ` +
+        "it has no builtin modules. Use the sandbox API (fetch, workspace, crypto, " +
+        "media) or a sandbox pack instead."
+    });
+  }
+
+  // The `nodetool:` specifiers are the private host bridges behind a generated
+  // facade. The guest loader serves them to a facade and to nothing else, so a
+  // body importing one directly fails at run time.
+  const privateBridges = [
+    ...new Set(imported.filter((specifier) => specifier.startsWith("nodetool:")))
+  ].sort();
+  if (privateBridges.length > 0) {
+    issues.push({
+      severity: "error",
+      code: "code_module",
+      message:
+        `The code imports ${formatNames(privateBridges)}, which the sandbox serves only ` +
+        "to a generated module facade. Import the pack whose facade uses it."
     });
   }
 
@@ -276,40 +283,30 @@ export function validateCodeNodeBody(
     issues.push({
       severity: "error",
       code: "code_module",
-      message: allowInstalled
-        ? `The code uses \`${used.join("` and `")}\`, which the sandbox does not support — ` +
-          "the loader denies every dynamic resolution. Import the module with a static " +
-          "`import` at the top of the code."
-        : `The code uses \`${used.join("` and `")}\`, which the sandbox does not support — ` +
-          "the loader denies every dynamic resolution. Declare the module in the node's " +
-          "`packages` property and import it with a static `import` at the top of the code."
+      message:
+        `The code uses \`${used.join("` and `")}\`, which the sandbox does not support — ` +
+        "the loader denies every dynamic resolution. Import the module with a static " +
+        "`import` at the top of the code."
     });
   }
 
-  if (allowInstalled) {
-    issues.push(
-      ...catalogIssues(
-        input.sandboxModuleCatalog,
-        imported
-          .filter((specifier) => !isCapabilitySpecifier(specifier))
-          .map((specifier) => ({ specifier }))
-      )
-    );
-  } else if (declaredSpecifiers.size > 0) {
-    const unusedPackages = [...declaredSpecifiers].filter(
-      (specifier) => !imported.includes(specifier)
-    );
-    if (unusedPackages.length > 0) {
-      issues.push({
-        severity: "warning",
-        code: "code_unused_package",
-        message: `The node declares ${formatNames(unusedPackages.sort())} in \`packages\`, which the code never imports.`
-      });
-    }
-    issues.push(
-      ...catalogIssues(input.sandboxModuleCatalog, input.declaredPackages ?? [])
-    );
-  }
+  issues.push(
+    ...catalogIssues(
+      input.sandboxModuleCatalog,
+      [
+        ...new Set(
+          imported.filter(
+            (specifier) =>
+              !isCapabilitySpecifier(specifier) &&
+              !specifier.startsWith("nodetool:") &&
+              !isNodeBuiltin(specifier)
+          )
+        )
+      ]
+        .sort()
+        .map((specifier) => ({ specifier }))
+    )
+  );
 
   // ── Names the body reads but nothing puts in scope ───────────────────────
   // Declared inputs are deliberately NOT bare-name scope: they arrive on the

@@ -199,3 +199,49 @@ export function isBinaryContentType(contentType: string): boolean {
     type === "application/javascript"
   );
 }
+
+/** Most files one run imports from its dataset. */
+export const MAX_FILES_PER_RUN = 5;
+
+const APIFY_RECORD_URL =
+  /^https:\/\/api\.apify\.com\/v2\/key-value-stores\/[A-Za-z0-9]+\/records\/[^\s"']+$/;
+
+/** Whether a string is a URL into Apify's key-value storage — a produced file. */
+export function isApifyRecordUrl(value: string): boolean {
+  return APIFY_RECORD_URL.test(value);
+}
+
+/**
+ * The Apify storage URLs a dataset preview points at, in order of first
+ * appearance and without duplicates. Every actor names its file field
+ * differently (`downloadedFileUrl`, `screenshotUrl`, `fileUrl`), so this walks
+ * every string at any depth and keeps the ones that live in Apify's store —
+ * the URLs that expire, and therefore the ones worth importing. Anything else
+ * (a YouTube manifest, a page URL) is data, not a produced file.
+ */
+export function collectRecordUrls(
+  items: readonly unknown[],
+  limit = MAX_FILES_PER_RUN
+): string[] {
+  const found: string[] = [];
+  const seen = new Set<string>();
+  const walk = (value: unknown, depth: number): void => {
+    if (found.length >= limit || depth > 8) return;
+    if (typeof value === "string") {
+      if (isApifyRecordUrl(value) && !seen.has(value)) {
+        seen.add(value);
+        found.push(value);
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const entry of value) walk(entry, depth + 1);
+      return;
+    }
+    if (value !== null && typeof value === "object") {
+      for (const entry of Object.values(value)) walk(entry, depth + 1);
+    }
+  };
+  for (const item of items) walk(item, 0);
+  return found;
+}

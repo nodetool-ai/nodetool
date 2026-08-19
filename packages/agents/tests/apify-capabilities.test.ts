@@ -121,12 +121,13 @@ describe("registration", () => {
 
 describe("credentials", () => {
   it("reports a missing token as a setting to change, not a stack trace", async () => {
+    // With discovery off, a search answers from the shipped catalog without
+    // needing a token at all — the token check belongs to the calls that
+    // actually reach Apify.
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith().invoke("search_apify_actors", {
       query: "crawler"
     })) as Record<string, unknown>;
-    // Discovery is off by default, so this answers from the shipped catalog
-    // without needing a token at all — the token check belongs to the calls
-    // that actually reach Apify.
     expect(result.ok).toBe(true);
 
     const needsToken = (await runWith().invoke("get_apify_run", {
@@ -138,6 +139,9 @@ describe("credentials", () => {
   });
 
   it("never hands the token to guest code", async () => {
+    // Allowlist mode keeps the search on the shipped catalog, so this needs
+    // no network; what it proves is about the guest's view, not the store.
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const run = runWith({ APIFY_API_TOKEN: TOKEN });
     const specifier = sandboxCapabilitySpecifier("apify");
     const observed = await action(
@@ -160,6 +164,7 @@ describe("credentials", () => {
   });
 
   it("accepts the legacy APIFY_API_KEY so an upgrade does not break", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith({ APIFY_API_KEY: TOKEN }).invoke(
       "get_apify_actor_schema",
       { actor_id: "someone/not-allowed" }
@@ -185,6 +190,7 @@ describe("permissions", () => {
   });
 
   it("answers a search from the shipped catalog when discovery is off", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
       "search_apify_actors",
       { query: "maps" }
@@ -199,6 +205,7 @@ describe("permissions", () => {
   });
 
   it("refuses to inspect an actor it would never run", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
       "get_apify_actor_schema",
       { actor_id: "someone/sketchy" }
@@ -208,6 +215,7 @@ describe("permissions", () => {
   });
 
   it("refuses to run an actor off the allowlist", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
     const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
       "run_apify_actor",
       { actor_id: "someone/sketchy", input: {} }
@@ -238,5 +246,99 @@ describe("input validation", () => {
     )) as Record<string, unknown>;
     expect(result.ok).toBe(false);
     expect(String(result.error)).toContain("dataset_id is required");
+  });
+});
+
+describe("produced files", () => {
+  it("imports the Apify storage files a run's dataset points at, and says how to keep one", async () => {
+    // The regression: a downloader actor answered with a `downloadedFileUrl`
+    // into Apify's expiring store, and the model — with nothing importing it —
+    // fetched it by hand, read the bytes to base64 and pushed them back
+    // through save_asset. The run result now carries the imported file.
+    const original = globalThis.fetch;
+    const video = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
+    const recordUrl =
+      "https://api.apify.com/v2/key-value-stores/KV1/records/clip.mp4";
+    const requested: string[] = [];
+    const json = (body: unknown, headers: Record<string, string> = {}) =>
+      new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "content-type": "application/json", ...headers }
+      });
+    globalThis.fetch = (async (input: unknown, init?: RequestInit) => {
+      const url = String(input);
+      requested.push(url);
+      if (url.includes("/v2/acts/") && url.includes("/runs")) {
+        return json({
+          data: {
+            id: "RUN1",
+            actId: "A",
+            status: "SUCCEEDED",
+            defaultDatasetId: "DS1",
+            defaultKeyValueStoreId: "KV1"
+          }
+        });
+      }
+      if (url.includes("/v2/datasets/DS1/items")) {
+        return json(
+          [
+            {
+              id: "clip",
+              downloadedFileUrl: recordUrl,
+              // A page URL, not a produced file: must not be imported.
+              input: "https://www.youtube.com/watch?v=abc",
+              nested: { again: recordUrl }
+            }
+          ],
+          { "x-apify-pagination-total": "1" }
+        );
+      }
+      if (url === recordUrl) {
+        return new Response(video, {
+          status: 200,
+          headers: { "content-type": "video/mp4" }
+        });
+      }
+      throw new Error(`unexpected request ${init?.method ?? "GET"} ${url}`);
+    }) as unknown as typeof fetch;
+
+    try {
+      const stored = new Map<string, Uint8Array>();
+      const context = {
+        userId: "user-apify",
+        getSecret: async (key: string) =>
+          key === "APIFY_API_TOKEN" ? TOKEN : null,
+        storage: {
+          store: async (key: string, bytes: Uint8Array) => {
+            stored.set(key, bytes);
+            return `memory://${key}`;
+          },
+          retrieve: async () => null
+        },
+        resolveTempUrl: async (uri: string) =>
+          `/api/storage/${uri.slice("memory://".length)}`
+      } as unknown as ProcessingContext;
+      const run = createCapabilityRun({ context, gate: UNGATED });
+      const result = (await run.invoke("run_apify_actor", {
+        actor_id: "apify/website-content-crawler",
+        input: {}
+      })) as Record<string, unknown>;
+
+      expect(result.ok).toBe(true);
+      const files = result.files as Array<Record<string, unknown>>;
+      expect(files).toHaveLength(1);
+      expect(files[0].source_url).toBe(recordUrl);
+      expect(files[0].content_type).toBe("video/mp4");
+      expect(files[0].size_bytes).toBe(video.byteLength);
+      expect(String(files[0].asset_url)).toMatch(/^\/api\/storage\/apify\//);
+      expect(files[0].import_error).toBeUndefined();
+      // The bytes are in NodeTool storage, fetched once.
+      expect(requested.filter((u) => u === recordUrl)).toHaveLength(1);
+      expect([...stored.values()][0]).toEqual(video);
+      // And the result tells the model the copy path that needs no base64.
+      expect(String(result.files_note)).toContain("save_asset({name, source: asset_url})");
+    } finally {
+      globalThis.fetch = original;
+    }
   });
 });

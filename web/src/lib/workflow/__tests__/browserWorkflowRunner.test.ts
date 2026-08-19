@@ -143,7 +143,7 @@ describe("canRunGraphInBrowserSync", () => {
 });
 
 describe("sandbox package prefetch", () => {
-  /** A registry that also knows the Code node, so only `packages` decides. */
+  /** A registry that also knows the Code node, so only its imports decide. */
   const codeRegistry = {
     has: (type: string) =>
       type.startsWith("browser.") || type === "nodetool.code.Code"
@@ -164,13 +164,20 @@ describe("sandbox package prefetch", () => {
     }));
   }
 
-  const codeGraph = (packages: unknown): WorkflowGraph =>
+  const codeGraph = (imports: string[]): WorkflowGraph =>
     stub<WorkflowGraph>({
       nodes: [
         {
           id: "code_1",
           type: "nodetool.code.Code",
-          data: { properties: { code: "return {};", packages } }
+          data: {
+            properties: {
+              code:
+                imports
+                  .map((specifier) => `import * as m from "${specifier}";\n`)
+                  .join("") + "return {};"
+            }
+          }
         }
       ],
       edges: []
@@ -239,7 +246,7 @@ describe("sandbox package prefetch", () => {
     delete (globalThis as { fetch?: unknown }).fetch;
   });
 
-  it("stays eligible whether or not the Code node declares packages", async () => {
+  it("stays eligible whether or not the Code node imports a pack", async () => {
     installCodeRunner();
     expect((await reportBrowserEligibility(codeGraph([]))).eligible).toBe(true);
     expect(

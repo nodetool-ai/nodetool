@@ -89,6 +89,8 @@ export function useKeyboardModifiers(params: {
         onAltHeldChange?.(false);
       }
     };
+    // Not on the dispatcher: modifier-hold state (Shift/Space/S/Alt) is
+    // keydown+keyup edges, and the store only dispatches on keydown.
     window.addEventListener("keydown", handleKeyDown, true);
     window.addEventListener("keyup", handleKeyUp, true);
     return () => {

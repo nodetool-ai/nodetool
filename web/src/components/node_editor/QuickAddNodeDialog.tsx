@@ -23,6 +23,7 @@
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { Command, CommandInput } from "cmdk";
 import { Dialog, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Caption, Text, Chip } from "../ui_primitives";
@@ -242,35 +243,13 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   }, [open]);
 
   // Keyboard navigation
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case "ArrowDown":
-          e.preventDefault();
-          moveSelectionDown();
-          break;
-        case "ArrowUp":
-          e.preventDefault();
-          moveSelectionUp();
-          break;
-        case "Enter":
-          e.preventDefault();
-          handleSelectNode();
-          break;
-        case "Escape":
-          e.preventDefault();
-          handleClose();
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, moveSelectionUp, moveSelectionDown, handleSelectNode, handleClose]);
+  // The dialog's search field holds focus, so these keep the window listener's
+  // looser gate (allowInInputs) rather than being suppressed while typing.
+  const dialogKeys = { active: open, allowInInputs: true } as const;
+  useGlobalCombo("arrowdown", moveSelectionDown, dialogKeys);
+  useGlobalCombo("arrowup", moveSelectionUp, dialogKeys);
+  useGlobalCombo("enter", handleSelectNode, dialogKeys);
+  useGlobalCombo("escape", handleClose, dialogKeys);
 
   return (
     <Dialog

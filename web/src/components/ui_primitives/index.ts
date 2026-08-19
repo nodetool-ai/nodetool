@@ -112,6 +112,9 @@ export type { TagInputProps, TagValidationResult } from "./TagInput";
 export { ThemeToggleButton } from "./ThemeToggleButton";
 export type { ThemeToggleButtonProps } from "./ThemeToggleButton";
 
+export { ThemeRoot } from "./ThemeRoot";
+export type { ThemeRootProps } from "./ThemeRoot";
+
 export { AutocompleteTagInput } from "./AutocompleteTagInput";
 export type { AutocompleteTagInputProps } from "./AutocompleteTagInput";
 
@@ -259,6 +262,8 @@ export {
 
 // Shared styles for the sidebar document list panels
 export { listPanelStyles } from "./listPanelStyles";
+export { ListPanelItem } from "./ListPanelItem";
+export type { ListPanelItemProps } from "./ListPanelItem";
 
 // Keyboard activation for non-native-button click targets
 export { activateOnKey } from "./keyboardActivation";

@@ -11,7 +11,7 @@ import {
   stripReservedMetadata,
   validateCollectionName,
   MAX_COLLECTION_NAME_LENGTH
-} from "../src/lib/collection-access.js";
+} from "@nodetool-ai/vectorstore";
 
 describe("collectionOwner", () => {
   it("reads the owner from metadata", () => {

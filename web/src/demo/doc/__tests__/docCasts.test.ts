@@ -186,7 +186,7 @@ describe("document casts — the surfaces get their data", () => {
     seeded(jsScriptAssistantCast, 10000);
     const coded = useJsScriptStore.getState().getScript(id)?.document;
     expect(coded?.code).toContain('output("total"');
-    expect(coded?.packages[0]?.specifier).toBe("@nodetool-ai/sandbox-csv");
+    expect(coded?.code).toContain('import { parse } from "@nodetool-ai/sandbox-csv"');
 
     seeded(jsScriptAssistantCast, 15000);
     expect(

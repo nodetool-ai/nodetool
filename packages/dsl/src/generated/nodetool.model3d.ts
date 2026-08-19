@@ -19,6 +19,7 @@ export function loadModel3DFile(inputs: LoadModel3DFileInputs): DslNode<LoadMode
 // Save Model 3D File — nodetool.model3d.SaveModel3DFile
 export type SaveModel3DFileInputs = {
   model?: Connectable<unknown>;
+  save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   filename?: Connectable<string>;
   overwrite?: Connectable<boolean>;

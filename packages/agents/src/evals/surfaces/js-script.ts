@@ -63,10 +63,11 @@ export interface JsScriptBridgeFinalState {
   code: string;
   inputs: string[];
   outputs: string[];
-  packages: string[];
   secrets: string[];
   timeoutSeconds: number;
   tests: string[];
+  /** The node-menu category, when the script is exposed as a custom node. */
+  paletteCategory: string | null;
   /** Whether the document passes the static check as it stands. */
   valid: boolean;
   validationErrorCodes: string[];
@@ -170,7 +171,6 @@ export function createJsScriptToolBridge(
     const result = await runCodeBody(context, {
       code: document.code,
       inputs,
-      packages: document.packages.map((pack) => pack.specifier),
       secrets: document.secrets,
       timeoutSeconds: Math.min(
         document.timeoutSeconds,
@@ -258,26 +258,14 @@ export function createJsScriptToolBridge(
     ),
 
     tool(
-      "ui_jsscript_set_packages",
-      "No-op leftover: a JS script does not declare packages. Import any installed sandbox pack or `@nodetool-ai/sandbox-nodetool/<namespace>` directly.",
-      z.object({
-        packages: z.array(z.object({ specifier: z.string() }))
-      }),
-      async ({ packages }) => {
-        document.packages = packages as JsScriptDocument["packages"];
-        const validation = await validate();
-        return { ok: true, packages: document.packages, validation };
-      }
-    ),
-
-    tool(
       "ui_jsscript_set_meta",
-      "Set the script's name, description, declared secrets, or timeout. Only the fields you pass change. The description is what an agent reads to decide whether this script does what it needs, so make it say what the script does.",
+      "Set the script's name, description, declared secrets, timeout, or node-menu placement. Only the fields you pass change. The description is what an agent reads to decide whether this script does what it needs, so make it say what the script does. `palette` shows the script in the node menu as one of the user's custom nodes under the category it names; null takes it back out.",
       z.object({
         name: z.string().optional(),
         description: z.string().optional(),
         secrets: z.array(z.string()).optional(),
-        timeoutSeconds: z.number().optional()
+        timeoutSeconds: z.number().optional(),
+        palette: z.object({ category: z.string() }).nullable().optional()
       }),
       async (args) => {
         if (args["name"] !== undefined) name = args["name"] as string;
@@ -293,6 +281,11 @@ export function createJsScriptToolBridge(
             JS_SCRIPT_MAX_TIMEOUT_SECONDS
           );
         }
+        if (args["palette"] !== undefined) {
+          const palette = args["palette"] as { category: string } | null;
+          if (palette === null) delete document.palette;
+          else document.palette = palette;
+        }
         const validation = await validate();
         return {
           ok: true,
@@ -300,6 +293,7 @@ export function createJsScriptToolBridge(
           description: document.description,
           secrets: document.secrets,
           timeoutSeconds: document.timeoutSeconds,
+          palette: document.palette ?? null,
           validation
         };
       }
@@ -370,10 +364,10 @@ export function createJsScriptToolBridge(
       code: document.code,
       inputs: document.inputs.map((port) => port.name),
       outputs: document.outputs.map((port) => port.name),
-      packages: document.packages.map((pack) => pack.specifier),
       secrets: [...document.secrets],
       timeoutSeconds: document.timeoutSeconds,
       tests: document.tests.map((testCase) => testCase.name),
+      paletteCategory: document.palette?.category ?? null,
       valid: lastValidation?.ok ?? false,
       validationErrorCodes: (lastValidation?.errors ?? []).map(
         (issue) => issue.code
@@ -470,6 +464,51 @@ export const JS_SCRIPT_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<JsScriptBridge
             name: "testsPass",
             detail: "the saved cases were never run green",
             test: (s) => s.lastTest?.ok === true && s.lastTest.passed >= 2
+          }
+        ]
+      }
+    },
+    {
+      id: "expose-as-custom-node",
+      description:
+        "Expose a working script in the node menu as one of the user's custom nodes",
+      objective:
+        "Save this script to my node menu under the category \"Text\" so I can drop it onto a graph, and give it a description that says what it does. Do not change its body or its ports.",
+      systemPrompt: JS_SCRIPT_SYSTEM_PROMPT,
+      createBridge: () =>
+        createJsScriptToolBridge({
+          name: "Slugify",
+          document: {
+            code: 'await output("slug", String(inputs.title).toLowerCase().replace(/[^a-z0-9]+/g, "-"));',
+            inputs: [{ name: "title", type: "str" }],
+            outputs: [{ name: "slug", type: "str" }]
+          }
+        }),
+      expect: {
+        requiredTools: ["ui_jsscript_set_meta"],
+        minToolCalls: 1,
+        maxToolCalls: 12,
+        finalState: [
+          {
+            name: "exposedUnderText",
+            detail: "the script is not exposed in the node menu under Text",
+            test: (s) => s.paletteCategory === "Text"
+          },
+          {
+            name: "described",
+            detail: "the script still has no description",
+            test: (s) => s.description.trim().length > 0
+          },
+          {
+            name: "portsUntouched",
+            detail: "the declared ports changed",
+            test: (s) =>
+              s.inputs.join() === "title" && s.outputs.join() === "slug"
+          },
+          {
+            name: "documentValid",
+            detail: "the document does not pass the static check",
+            test: (s) => s.valid
           }
         ]
       }

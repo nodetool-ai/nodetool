@@ -2,6 +2,7 @@ import {
   CODE_NODE_TYPE,
   isCodeNode,
   isSnippetCodeNode,
+  isCustomCodeNode,
   resolveCodeNodeTitle,
   isCodeNodeTitleEditable,
   getCodeNodeLanguage,
@@ -57,6 +58,37 @@ describe("codeNodeUi", () => {
       expect(
         isSnippetCodeNode("nodetool.text.Concat", { codeNodeMode: "snippet" })
       ).toBe(false);
+    });
+  });
+
+  describe("isCustomCodeNode", () => {
+    it("returns true for a code node materialized from a saved script", () => {
+      expect(isCustomCodeNode(CODE_NODE_TYPE, { codeNodeMode: "custom" })).toBe(
+        true
+      );
+    });
+
+    it("returns false for snippet and plain code nodes", () => {
+      expect(
+        isCustomCodeNode(CODE_NODE_TYPE, { codeNodeMode: "snippet" })
+      ).toBe(false);
+      expect(isCustomCodeNode(CODE_NODE_TYPE, { codeNodeMode: undefined })).toBe(
+        false
+      );
+      expect(
+        isCustomCodeNode("nodetool.text.Concat", { codeNodeMode: "custom" })
+      ).toBe(false);
+    });
+  });
+
+  describe("custom nodes keep the affordances snippets lose", () => {
+    it("shows the code body and keeps the title editable", () => {
+      const data = { codeNodeMode: "custom" as const };
+      expect(isCodeBodyNode(makeMetadata(), data)).toBe(true);
+      expect(isCodeNodeTitleEditable(CODE_NODE_TYPE, data)).toBe(true);
+      expect(resolveCodeNodeTitle(CODE_NODE_TYPE, "Invoice number", "Code")).toBe(
+        "Invoice number"
+      );
     });
   });
 

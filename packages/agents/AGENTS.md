@@ -278,7 +278,8 @@ body; there is no `data.*` namespace any more. Two kinds:
   `-csv` (papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser),
   `-xlsx` (exceljs), `-zip` (fflate), `-diff` (diff), `-ocr` (tesseract.js),
   `-tfjs` (TensorFlow.js and its model zoo), `-docx` (docx), `-mammoth`
-  (mammoth), `-epub` (epub2), `-pptx` (office-text-extractor). These are the
+  (mammoth), `-epub` (epub2), `-pptx` (office-text-extractor), `-tokens`
+  (js-tiktoken). These are the
   libraries the guest cannot hold — Node builtins, a DOM, a file path instead of
   a buffer, a limit the guest could not enforce on itself, or state that has to
   outlive a run. Four more are NodeTool's own code rather than a library: `-aws`
@@ -563,6 +564,17 @@ be two things to keep in step. `CapabilitySpec.zodSchema` carries the Zod schema
 for the few capabilities whose identity is one (`view_image`, `list_images`, the
 eight `ui_*` document tools), so `Tool.execute` still validates on the way in.
 
+What the registry deliberately does *not* serve is written down where the API
+it mirrors lives: `packages/websocket/src/trpc/sandbox-coverage.ts` classifies
+every tRPC procedure as covered by a capability, reachable through a
+differently-shaped one, withheld with the risk stated, or a recorded gap.
+`packages/websocket/tests/sandbox-api-coverage.test.ts` walks the live router
+and fails in both directions, so a new procedure cannot land unclassified and a
+stale verdict cannot outlive what it judged. The rule the withheld set follows:
+a run may act on the rows its own user owns, and may not touch credentials,
+billing, other tenants, host control, the transcript of its own behaviour, or
+anything that grants a third party access.
+
 `DECLARED_CAPABILITY_MODULES` is the module list a reviewer reads. Three drift
 walks keep everything honest. `capabilityModuleDrift()` reports a declared module with no loader,
 a loader nobody declared, an export with no category or no schema, and one name
@@ -735,8 +747,22 @@ virtual secret key `GOOGLE_ACCESS_TOKEN`, which `getSecret` routes to
 They are not in `BUILTIN_TOOL_CLASSES`. A server without a login can never
 produce a token, so the chat toolbelt adds them only when
 `isGoogleWorkspaceEnabled()` (`@nodetool-ai/config`) is true — Supabase auth
-mode, or `NODETOOL_GOOGLE_WORKSPACE=1`. The matching `lib.google.*` nodes are
-filtered out of `/api/nodes/metadata` under the same condition.
+mode, or `NODETOOL_GOOGLE_WORKSPACE=1`.
+
+The fourteen `lib.google.*` nodes are gone. Each wrapped a call this module
+already makes, on the same sign-in token, and the module makes six more no node
+ever offered: get one Drive file, get one Gmail message, list labels, create a
+spreadsheet, list calendars, delete an event. The capability is the only Google
+surface now, and it is two things at once — an agent tool and a guest import.
+
+```js
+// Code node `packages`: nothing to declare — capability modules are mounted
+// by the host, not installed as packs.
+import { drive_search, gmail_send_message } from "@nodetool-ai/sandbox-nodetool/google";
+
+const { files } = await drive_search({ query: "name contains 'invoice'" });
+await gmail_send_message({ to: "a@b.c", subject: "Invoices", body: String(files.length) });
+```
 
 ```ts
 import {

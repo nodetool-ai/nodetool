@@ -45,7 +45,8 @@ import {
   CREATE_SKETCH_VERSION_SCHEMA,
   RESTORE_SKETCH_VERSION_SCHEMA,
   EDIT_SKETCH_SCHEMA,
-  VALIDATE_SKETCH_SCHEMA
+  VALIDATE_SKETCH_SCHEMA,
+  deleteSketchSpec
 } from "./sketches.specs.js";
 import {
   isFiniteNumber,
@@ -797,6 +798,27 @@ const validateSketch: CapabilityExport = {
 };
 
 /** Every sketch capability, in the order the tool files declared them. */
+/**
+ * Delete a sketch the caller owns.
+ *
+ * The ownership check and the version cascade are `ImageDocument.deleteOwned`, the
+ * same function the tRPC route calls — a delete is not a place for two copies
+ * of one rule, and version rows outliving their document would be unreachable
+ * garbage. Missing and not-yours are one answer.
+ */
+const deleteSketch: CapabilityExport = {
+  spec: deleteSketchSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const { ImageDocument } = await import("@nodetool-ai/models");
+    const id = String(params["image_document_id"]);
+    const deleted = await ImageDocument.deleteOwned(userId, id);
+    return deleted
+      ? { image_document_id: id, deleted: true }
+      : { error: `Sketch ${id} was not found, or it is not yours.` };
+  }
+};
 export const SKETCH_CAPABILITIES: readonly CapabilityExport[] = [
   listSketches,
   listSketchVersions,
@@ -804,7 +826,8 @@ export const SKETCH_CAPABILITIES: readonly CapabilityExport[] = [
   createSketchVersion,
   restoreSketchVersion,
   editSketch,
-  validateSketch
+  validateSketch,
+  deleteSketch
 ];
 
 export const module: CapabilityModule = {
@@ -819,5 +842,6 @@ export {
   createSketchVersion,
   restoreSketchVersion,
   editSketch,
-  validateSketch
+  validateSketch,
+  deleteSketch
 };

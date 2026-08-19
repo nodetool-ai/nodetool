@@ -6,7 +6,7 @@ description: Convert, mix, and measure colors inside a Code node or CodeAct acti
 # Color in the sandbox
 
 Specifier: `@nodetool-ai/sandbox-color`. One module, culori's root export.
-Declare it in the node's `packages` property and import it at the top of the body.
+Import it at the top of the body.
 
 ## Parse and convert
 

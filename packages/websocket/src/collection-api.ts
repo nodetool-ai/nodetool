@@ -15,7 +15,7 @@ import {
 } from "@nodetool-ai/vectorstore";
 import { getUserId, type HttpApiOptions } from "./http-api.js";
 import { notifyResourceChange } from "./resource-events.js";
-import { canAccessCollection } from "./lib/collection-access.js";
+import { canAccessCollection } from "@nodetool-ai/vectorstore";
 
 const log = createLogger("nodetool.websocket.collection-api");
 
@@ -69,7 +69,7 @@ export async function handleCollectionRequest(
 
     // Same ownership rule the tRPC router enforces, and the same 404-not-403
     // response for someone else's collection so this endpoint can't be used to
-    // probe for names. See lib/collection-access.ts.
+    // probe for names. See @nodetool-ai/vectorstore collection-access.ts.
     if (
       !canAccessCollection(
         collection.metadata as Record<string, string | number | boolean>,

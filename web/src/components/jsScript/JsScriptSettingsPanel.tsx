@@ -1,7 +1,7 @@
 /**
  * The JS script's execution envelope, side by side in one panel: what the
- * script says it does, the ports it declares, the secrets it may read, and
- * the timeout it runs under. Every installed sandbox pack and every platform
+ * script says it does, the ports it declares, the secrets it may read, the
+ * timeout it runs under, and whether it shows up in the node menu. Every installed sandbox pack and every platform
  * module resolves by import — there is no packages setting. Every field
  * writes straight into the document, which autosaves.
  */
@@ -10,6 +10,7 @@ import { memo, useCallback } from "react";
 import {
   Divider,
   FlexColumn,
+  LabeledSwitch,
   ScrollArea,
   Text,
   TextInput,
@@ -23,6 +24,9 @@ import {
 } from "../../stores/jsScript/JsScriptStore";
 import JsScriptPortsEditor from "./JsScriptPortsEditor";
 import JsScriptSecretsEditor from "./JsScriptSecretsEditor";
+
+/** What a newly exposed script lands under until its owner names a category. */
+const DEFAULT_CATEGORY = "My Nodes";
 
 interface JsScriptSettingsPanelProps {
   scriptId: string;
@@ -40,6 +44,7 @@ const JsScriptSettingsPanel = ({
   const setTimeoutSeconds = useJsScriptStore(
     (state) => state.setTimeoutSeconds
   );
+  const setPalette = useJsScriptStore((state) => state.setPalette);
 
   const handleInputs = useCallback(
     (inputs: JsScriptPort[]) => setPorts(scriptId, { inputs }),
@@ -52,6 +57,11 @@ const JsScriptSettingsPanel = ({
   const handleSecrets = useCallback(
     (secrets: string[]) => setSecrets(scriptId, secrets),
     [scriptId, setSecrets]
+  );
+  const handleShowInMenu = useCallback(
+    (checked: boolean) =>
+      setPalette(scriptId, checked ? { category: DEFAULT_CATEGORY } : null),
+    [scriptId, setPalette]
   );
 
   return (
@@ -95,6 +105,30 @@ const JsScriptSettingsPanel = ({
           readOnly={readOnly}
           onChange={handleSecrets}
         />
+
+        <Divider />
+        <FlexColumn gap={SPACING.xs}>
+          <LabeledSwitch
+            label="Show in node menu"
+            size="small"
+            checked={document.palette !== undefined}
+            disabled={readOnly}
+            onChange={handleShowInMenu}
+            description="Adds this script to My Nodes, so it drops onto a graph like any node."
+          />
+          {document.palette !== undefined ? (
+            <TextInput
+              label="Category"
+              size="small"
+              value={document.palette.category}
+              placeholder={DEFAULT_CATEGORY}
+              disabled={readOnly}
+              onChange={(event) =>
+                setPalette(scriptId, { category: event.target.value })
+              }
+            />
+          ) : null}
+        </FlexColumn>
 
         <Divider />
         <TextInput

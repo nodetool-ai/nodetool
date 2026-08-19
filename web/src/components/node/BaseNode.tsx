@@ -39,6 +39,7 @@ import {
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
+import SaveDestinationHint from "./SaveDestinationHint";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import { edgesTargeting, isHandleConnected } from "../../hooks/nodes/edgeIndex";
@@ -801,6 +802,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         nodeType={type}
         name={data.properties?.name as string | undefined}
       />
+      <SaveDestinationHint data={data} />
       <div
         className="node-content-container"
         style={nodeContentContainerStyle}

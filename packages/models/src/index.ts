@@ -47,7 +47,8 @@ export {
   workerInstances,
   triggerInputs,
   runInboxMessages,
-  triggerRegistrations
+  triggerRegistrations,
+  externalIdentities
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -257,6 +258,8 @@ export { RunLease } from "./run-lease.js";
 export { TriggerInput } from "./trigger-input.js";
 export { RunInboxMessage } from "./run-inbox-message.js";
 export { TriggerRegistration } from "./trigger-registration.js";
+export { ExternalIdentity } from "./external-identity.js";
+export type { LinkExternalIdentityParams } from "./external-identity.js";
 
 // ── Seeds ────────────────────────────────────────────────────────────
 export { runSeeds, seedCostData, COST_SEED_USER_ID } from "./seeds/index.js";

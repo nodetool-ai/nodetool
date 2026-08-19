@@ -455,11 +455,6 @@ curl "http://localhost:7777/api/nodes/metadata?node_type=nodetool.text.Concat"
 }
 ```
 
-Google Workspace nodes are filtered out unless the integration is enabled — they
-sign in with the token a Google login returns, so a server with no login never
-lists them. See `NODETOOL_GOOGLE_WORKSPACE` in
-[Configuration](configuration.md).
-
 ### List Workflows
 
 ```bash

@@ -16,6 +16,7 @@ import { BORDER_RADIUS } from "../../ui_primitives";
 import { packageAssetHttpPath } from "@nodetool-ai/protocol";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { trpc } from "../../../trpc/client";
+import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 import ResourceChip from "./ResourceChip";
 import { isNumber, isString } from "../../../utils/typePredicates";
 import "../../../styles/markdown/github-markdown.css";
@@ -87,24 +88,26 @@ const videoCss = css({
 
 const extractStorageKey = (uri: string | null | undefined): string | null => {
   if (!uri) return null;
-  if (uri.startsWith("asset://")) return uri.slice("asset://".length);
   if (uri.startsWith("/api/storage/")) return uri.slice("/api/storage/".length);
   return null;
 };
 
 const useChatAssetSrc = (src: string | undefined): string | undefined => {
-  const key = extractStorageKey(src);
+  // `asset://<id>` is an id, not a storage key (`<user>/<id>.<ext>`).
+  const isAssetUri = Boolean(src?.startsWith("asset://"));
+  const fromAsset = useResolvedMediaUri(isAssetUri ? src : undefined);
+  const key = isAssetUri ? null : extractStorageKey(src);
   const { data } = trpc.storage.signUrl.useQuery(
     { key: key ?? "" },
     { enabled: Boolean(key), staleTime: 6 * 24 * 60 * 60 * 1000 }
   );
   if (!src) return undefined;
+  if (isAssetUri) {
+    return fromAsset;
+  }
   if (key) {
-    // Asset storage reference — resolve through the authenticated signed-URL
-    // mechanism so owner-prefixed keys (`<user>/<id>.png`) and cloud
-    // backends (S3/Supabase presigned URLs) are handled correctly.
-    // While the query is loading, return undefined rather than the obsolete
-    // flat `/api/storage/<id>.png` fallback.
+    // Legacy `/api/storage/<key>` markdown — resolve through the signed-URL
+    // path so owner-prefixed keys and cloud backends work.
     return data?.url;
   }
   const pkgPath = packageAssetHttpPath(src);
@@ -147,6 +150,9 @@ const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
 }) => {
   const href = src != null ? src : "";
   const resolvedSrc = useChatAssetSrc(href || undefined);
+  if (!resolvedSrc) {
+    return null;
+  }
   if (href && isVideoHref(href)) {
     return (
       <video

@@ -20,7 +20,7 @@ prefilled.
 
 ## The mechanism already exists
 
-Snippets are already virtual nodes. `web/src/config/codeSnippets.ts` holds 182
+Snippets are already virtual nodes. `web/src/config/codeSnippets.ts` holds 183
 of them; `snippetMetadata.ts` turns each into a `NodeMetadata` under
 `nodetool.<category>.<snippet_id>`, `useMetadata.ts` merges them into the
 catalog the node menu reads, and `instantiatePaletteNode.ts` drops a Code node
@@ -165,13 +165,21 @@ equivalent code; the node class is a second implementation of the same thing.
 `HasLength` is the one text node in this class without a snippet; **Measure
 Length** returns chars/words/lines and the comparison is one more expression.
 
-The 14 that stay as classes: `Prompt` and `Template` (variable editors,
+The 12 that stay as classes: `Prompt` and `Template` (variable editors,
 `{{var}}` substitution UI), `Concat` (dynamic-input card), `Collect` (streaming
-fold), `Embedding`, `CountTokens` (js-tiktoken), `AutomaticSpeechRecognition`,
+fold), `Embedding`, `AutomaticSpeechRecognition`,
 `SaveText`, `SaveTextFile`, `LoadTextAssets`,
 `LoadTextFolder` (asset system), `FilterString`, `FilterRegexString` (stream
 operators). HTML-to-text conversion moved to the `@nodetool-ai/sandbox-html`
 sandbox pack's `toText` export.
+
+`CountTokens` was on that list and is not any more. It was kept because
+js-tiktoken is a real library, which is the same reason cheerio and exceljs
+were kept — and the answer for those turned out to be a host pack, not a node
+class. `@nodetool-ai/sandbox-tokens` is that pack: one encoding's BPE ranks are
+several megabytes, far past the 1 MB guest-bundle cap, so it runs on the host
+behind `count` / `encode` / `decode`. A saved graph is rewritten to a Code node
+importing it. `Join` went too — it was `list.join(sep)`.
 
 ### `nodetool.list` — removed (was 1 of 4)
 
@@ -295,8 +303,10 @@ now covers this ground from inside a Code node. `ForEachRow` and
 | `nodetool.image.*` `nodetool.audio.*` `nodetool.video.*` `nodetool.model3d.*` `lib.image.*` `lib.audio.*` `lib.grid.*` `nodetool.sketch/timeline/script` | content cards and bespoke editors; sharp/canvas/ffmpeg |
 | `lib.nlp.*` (7) | compromise, AFINN, stemmers, TF-IDF — real libraries |
 | `lib.pdf` `lib.charts` | PDF text extraction and page rasterization, and a chart renderer |
-| `lib.mail` `lib.google` `lib.apple` `messaging.*` | IMAP/SMTP, an OAuth session, AppleScript, and long-lived bot connections — none of them a `fetch` call |
-| `lib.s3` `lib.supabase` `lib.notion` `lib.twilio` `apify.*` `search.*` `messaging.*.SendMessage` `lib.mail.SendEmail` | **Removed.** Each was one authenticated HTTP call, so each is a Code node now: `fetch`, `nodetool.secrets.get(name)`, and the auth-helper packs (`@nodetool-ai/sandbox-aws` for SigV4, `-notion`, `-supabase`, `-twilio`, `-apify`). `lib.mail.SendEmail` went with them and has no guest path — SMTP is not HTTP; a script sends mail through an HTTP email API. |
+| `lib.mail` `lib.apple` `messaging.*` | IMAP/SMTP, AppleScript, and long-lived bot connections — none of them a `fetch` call |
+| `lib.google` | **Removed.** Drive, Gmail, Docs, Sheets and Calendar are the `google` capability module: `import { drive_search } from "@nodetool-ai/sandbox-nodetool/google"`. The OAuth session stays host-side — the guest never holds the token. |
+| `lib.s3` `lib.supabase` `lib.notion` `lib.twilio` `messaging.*.SendMessage` `lib.mail.SendEmail` | **Removed.** Each was one authenticated HTTP call, so each is a Code node now: `fetch`, `nodetool.secrets.get(name)`, and the auth-helper packs (`@nodetool-ai/sandbox-aws` for SigV4, `-notion`, `-supabase`, `-twilio`). `lib.mail.SendEmail` went with them and has no guest path — SMTP is not HTTP; a script sends mail through an HTTP email API. |
+| `apify.*` `search.*` | **Removed.** Apify and SerpAPI are capability modules: `@nodetool-ai/sandbox-nodetool/apify` and `.../serpapi`. The token stays host-side — the guest never holds it. |
 | `lib.docx` `lib.epub` `lib.pptx` `lib.convert` | **Removed.** Reading and building these formats is what the `-docx`, `-mammoth`, `-epub` and `-pptx` packs offer a script. |
 | `lib.browser` `lib.sqlite` | CDP, and the database path a script needs |
 | all provider/model namespaces | model pickers, streamed output, cost tracking |
@@ -347,7 +357,7 @@ and the change reads as a regression.
 
 ## Related
 
-- `web/src/config/codeSnippets.ts` — the 182 snippets, and where new ones go.
+- `web/src/config/codeSnippets.ts` — the 183 snippets, and where new ones go.
 - `scripts/verify-snippets.mts` — runs snippet code through the real sandbox.
 - `web/src/config/snippetMetadata.ts` — snippet → `NodeMetadata`, and where
   per-snippet output typing would go.

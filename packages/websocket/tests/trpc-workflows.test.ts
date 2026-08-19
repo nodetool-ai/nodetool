@@ -27,7 +27,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       getManyByIds: vi.fn(),
       paginatePublic: vi.fn(),
       create: vi.fn(),
-      updateFieldsIfUnchanged: vi.fn()
+      updateFieldsIfUnchanged: vi.fn(),
+      deleteOwned: vi.fn()
     },
     WorkflowVersion: {
       ...actual.WorkflowVersion,
@@ -689,33 +690,31 @@ describe("workflows router", () => {
 
   // ── delete ────────────────────────────────────────────────────────────────
   describe("delete", () => {
-    it("deletes an owned workflow", async () => {
-      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
-      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+    // The ownership test and the cascade over collaborator grants and share
+    // links are `Workflow.deleteOwned`, shared with the sandbox's
+    // `delete_workflow` capability and covered against a real database in
+    // packages/models/tests/workflow.test.ts. What is this router's to get
+    // right is passing the caller's own id and answering NOT_FOUND when the
+    // model says the row was not the caller's to delete.
+    it("deletes through the shared owner-scoped delete", async () => {
+      (Workflow.deleteOwned as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
 
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.delete({ id: "wf-1" });
       expect(result).toEqual({ ok: true });
-      expect(wf.delete).toHaveBeenCalled();
+      expect(Workflow.deleteOwned).toHaveBeenCalledWith("user-1", "wf-1");
     });
 
-    it("throws NOT_FOUND when workflow does not exist", async () => {
-      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    it("throws NOT_FOUND when the model refuses the delete", async () => {
+      (Workflow.deleteOwned as ReturnType<typeof vi.fn>).mockResolvedValue(
+        false
+      );
       const caller = createCaller(makeCtx());
       await expect(
         caller.workflows.delete({ id: "missing" })
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-
-    it("throws NOT_FOUND when user doesn't own the workflow", async () => {
-      const wf = makeWorkflow({ id: "wf-1", user_id: "other-user" });
-      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.workflows.delete({ id: "wf-1" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-      expect(wf.delete).not.toHaveBeenCalled();
     });
 
     it("rejects unauthenticated callers", async () => {

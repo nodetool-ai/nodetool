@@ -144,7 +144,6 @@ export async function validateJsScriptDoc(
     availableInputs: inputNames,
     connectedInputs: inputNames,
     declaredOutputs: doc.outputs.map((port) => port.name),
-    allowInstalledPackages: true,
     sandboxModuleCatalog: options.sandboxModuleCatalog ?? null
   }).map((issue) => ({
     severity: issue.severity,

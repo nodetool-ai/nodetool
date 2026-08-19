@@ -226,6 +226,7 @@ loadImageFolder.stream = function (inputs: LoadImageFolderInputs): AsyncIterable
 // Save Image File — nodetool.image.SaveImageFile
 export type SaveImageFileInputs = {
   image?: ImageRef;
+  save_to_workspace?: boolean;
   folder?: string;
   filename?: string;
   overwrite?: boolean;

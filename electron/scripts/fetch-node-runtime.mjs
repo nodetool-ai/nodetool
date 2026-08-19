@@ -4,8 +4,9 @@
 // exists. Extraction uses platform tools available on each CI runner (tar for
 // .tar.gz, PowerShell Expand-Archive for .zip on Windows).
 //
-//   node scripts/fetch-node-runtime.mjs                 # all default targets
+//   node scripts/fetch-node-runtime.mjs                 # host platform target(s)
 //   node scripts/fetch-node-runtime.mjs darwin-arm64     # one target
+//   NODETOOL_FETCH_ALL_NODE_RUNTIMES=1 node scripts/fetch-node-runtime.mjs
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
@@ -18,6 +19,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const {
   NODE_RUNTIME_VERSION,
+  resolveNodeRuntimeTargets,
   nodeArchive,
   nodeBinaryName,
   npmDirInArchive,
@@ -28,20 +30,39 @@ const ELECTRON_DIR = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const CACHE_ROOT = path.join(ELECTRON_DIR, ".node-runtime", NODE_RUNTIME_VERSION);
 const BASE_URL = `https://nodejs.org/dist/v${NODE_RUNTIME_VERSION}`;
 
-const DEFAULT_TARGETS = [
-  { platform: "darwin", arch: "arm64" },
-  { platform: "darwin", arch: "x64" },
-  { platform: "win32", arch: "x64" },
-  { platform: "linux", arch: "x64" },
-];
-
 function targetsFromArgs() {
-  const args = process.argv.slice(2);
-  if (args.length === 0) return DEFAULT_TARGETS;
-  return args.map((a) => {
-    const [platform, arch] = a.split("-");
-    return { platform, arch };
+  return resolveNodeRuntimeTargets({
+    argv: process.argv.slice(2),
+    env: process.env,
+    platform: process.platform,
+    arch: process.arch,
   });
+}
+
+/**
+ * Extract only the node binary and npm tree from a .tar.gz archive. Skipping
+ * bin/npm/npx/corepack symlinks keeps cross-platform prefetch working on Windows.
+ */
+function extractTarGz(archivePath, info, platform, destDir) {
+  const resolvedArchive = path.resolve(archivePath);
+  const resolvedDest = path.resolve(destDir);
+  const members = [info.binaryInArchive, npmDirInArchive(platform, info.dir)];
+  const tarArgs =
+    process.platform === "win32"
+      ? [
+          "-xzf",
+          path.basename(resolvedArchive),
+          "-C",
+          resolvedDest.replace(/\\/g, "/"),
+          ...members,
+        ]
+      : ["-xzf", resolvedArchive, "-C", resolvedDest, ...members];
+  const tarOpts =
+    process.platform === "win32"
+      ? { cwd: path.dirname(resolvedArchive), stdio: "inherit" }
+      : { stdio: "inherit" };
+  const r = spawnSync("tar", tarArgs, tarOpts);
+  if (r.status !== 0) throw new Error("tar extraction failed");
 }
 
 async function download(url) {
@@ -74,8 +95,7 @@ function extractRuntime(archivePath, info, platform, destDir) {
       );
       if (r.status !== 0) throw new Error("Expand-Archive failed");
     } else {
-      const r = spawnSync("tar", ["-xzf", archivePath, "-C", tmp], { stdio: "inherit" });
-      if (r.status !== 0) throw new Error("tar extraction failed");
+      extractTarGz(archivePath, info, platform, tmp);
     }
     fs.mkdirSync(destDir, { recursive: true });
 

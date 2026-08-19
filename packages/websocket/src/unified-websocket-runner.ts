@@ -169,6 +169,8 @@ import {
   registerBuiltinTools,
   getGoogleWorkspaceTools,
   registerGoogleWorkspaceTools,
+  getApifyTools,
+  getSerpApiTools,
   toolForCapabilityName,
   gateTools,
   capabilityFromTool,
@@ -184,6 +186,8 @@ import {
   type ApprovalRequest,
   type PlanApprovalDecision,
   type RequestPlanApproval,
+  type SecretPromptRequest,
+  type SecretPromptStatus,
   type TaskPlan
 } from "@nodetool-ai/agents";
 import { mcpToolHostDeps } from "./mcp-tool-deps.js";
@@ -5079,6 +5083,46 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Open the bespoke secret dialog on the client and resolve with what the
+   * user did — never with what they typed.
+   *
+   * The value does not travel over this socket in either direction. The
+   * dialog writes it with the client's own `settings.secrets.upsert` call, so
+   * the credential never enters the chat transcript, the run's message log, or
+   * the model's context; this frame only asks, and the response only reports.
+   *
+   * A cancelled wait (the user pressed Stop) is a decline, which is the same
+   * fail-closed reading the approval prompts take.
+   */
+  private async requestSecretEntry(
+    threadId: string,
+    request: SecretPromptRequest
+  ): Promise<SecretPromptStatus> {
+    const approvalId = `secret_${randomUUID()}`;
+    await this.sendMessage({
+      type: "secret_request",
+      thread_id: threadId,
+      approval_id: approvalId,
+      key: request.key,
+      description: request.description ?? null,
+      reason: request.reason ?? null,
+      help_url: request.helpUrl ?? null
+    });
+    try {
+      // No timeout — finding an API key takes as long as it takes; `stop`
+      // cancels this thread.
+      const response = await this.approvalBridge.createWaiter(
+        approvalId,
+        0,
+        threadId
+      );
+      return response.status === "saved" ? "saved" : "declined";
+    } catch {
+      return "declined";
+    }
+  }
+
+  /**
    * Round-trip a plan approval to the client and resolve with the user's
    * decision. Emits a `plan_approval_request` carrying the serialized plan,
    * then waits for the matching `plan_approval_response` (resolved via
@@ -5537,9 +5581,38 @@ export class UnifiedWebSocketRunner {
     const runNodeTool = new RunNodeTool((nodeType, inputs) =>
       this.runSingleNode(nodeType, inputs, userId, threadId)
     );
+    // The permission gate the belt is wrapped in below. Built before the belt
+    // because the Apify tools carry it into their own run: in discovery mode
+    // the actor policy asks this gate to approve an actor the install has not
+    // allowlisted, so the user sees that question in the same place as every
+    // other permission prompt. The session allow-set is shared per thread so
+    // "Allow for this chat" sticks.
+    const sessionAllow =
+      this.chatSessionAllow.get(threadId) ?? new Set<string>();
+    this.chatSessionAllow.set(threadId, sessionAllow);
+    // A gated call inside a code action parks the guest program until the user
+    // answers, and the gate stops the clock for exactly that long — the wait is
+    // the user's, not the program's, and charged to the action's wall clock it
+    // would kill the very program that asked.
+    const codeactClock = createSandboxClock();
+    const chatGate: PermissionGateOptions = {
+      mode: permissionMode,
+      sessionAllow,
+      requestApproval: async (
+        request: ApprovalRequest
+      ): Promise<ApprovalDecision> =>
+        this.requestToolApproval(threadId, request),
+      clock: codeactClock
+    };
+    const gatedRun = (context: ProcessingContext): CapabilityRun =>
+      createCapabilityRun({ context, gate: chatGate });
     const rawToolbelt: Tool[] = [
       ...getAgentToolbelt(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
+      // Apify and SerpAPI have no `nodetool.*` namespace, so the belt is how
+      // a chat discovers them (`nodetool.searchTools("apify")`) at all.
+      ...getApifyTools(gatedRun),
+      ...getSerpApiTools(gatedRun),
       ...getAllMcpTools({
         registry: this.nodeRegistry,
         providers: chatProviders,
@@ -5560,25 +5633,7 @@ export class UnifiedWebSocketRunner {
 
     // Wrap the toolbelt in the permission gate. The wrapper is transparent
     // except for `process()`, so the chat loop AND any `run_subtask` child
-    // loop inherit gating by simply calling `tool.process()`. The session
-    // allow-set is shared per thread so "Allow for this chat" sticks.
-    const sessionAllow =
-      this.chatSessionAllow.get(threadId) ?? new Set<string>();
-    this.chatSessionAllow.set(threadId, sessionAllow);
-    // A gated call inside a code action parks the guest program until the user
-    // answers, and the gate stops the clock for exactly that long — the wait is
-    // the user's, not the program's, and charged to the action's wall clock it
-    // would kill the very program that asked.
-    const codeactClock = createSandboxClock();
-    const chatGate: PermissionGateOptions = {
-      mode: permissionMode,
-      sessionAllow,
-      requestApproval: async (
-        request: ApprovalRequest
-      ): Promise<ApprovalDecision> =>
-        this.requestToolApproval(threadId, request),
-      clock: codeactClock
-    };
+    // loop inherit gating by simply calling `tool.process()`.
     const baseTools = gateTools(dedupedToolbelt, chatGate);
 
     // Inject the recursive-decomposition primitive (ungated — it spawns a
@@ -5736,6 +5791,7 @@ export class UnifiedWebSocketRunner {
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,
+      secretPrompt: (request) => this.requestSecretEntry(threadId, request),
       ...mcpToolHostDeps(),
       capabilities: [capabilityFromTool(runNodeTool)]
     });
@@ -9213,6 +9269,17 @@ export class UnifiedWebSocketRunner {
       }
 
       if (msgType === "plan_approval_response") {
+        const approvalId = isString(data.approval_id) ? data.approval_id : null;
+        if (approvalId) {
+          this.approvalBridge.resolveResult(approvalId, data);
+          for (const session of this.adoptedSessions.values()) {
+            session.hooks.resolveApproval(approvalId, data);
+          }
+        }
+        continue;
+      }
+
+      if (msgType === "secret_request_response") {
         const approvalId = isString(data.approval_id) ? data.approval_id : null;
         if (approvalId) {
           this.approvalBridge.resolveResult(approvalId, data);

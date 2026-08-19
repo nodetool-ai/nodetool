@@ -10,7 +10,15 @@ import {
   base64ToBytes
 } from "@nodetool-ai/nodes-utils";
 import type { TemplateVars } from "@nodetool-ai/nodes-utils";
-import { loadNodeFsPromises, loadNodePath } from "@nodetool-ai/nodes-utils";
+import {
+  loadNodeFsPromises,
+  loadNodePath,
+  folderPathOf,
+  resolveSaveTarget,
+  HIDDEN_WHEN_SAVING_TO_WORKSPACE,
+  SAVE_TO_WORKSPACE_DESCRIPTION,
+  SAVE_TO_WORKSPACE_TITLE
+} from "@nodetool-ai/nodes-utils";
 import {
   isFunction,
   isNonEmptyString,
@@ -80,50 +88,6 @@ function embeddingParams(text: string, dimensions: number): EmbeddingParams {
     params.dimensions = dimensions;
   }
   return params;
-}
-
-/** Output handles CountTokensNode.process() emits. */
-type CountTokensNodeOutputs = {
-  output: number;
-};
-
-export class CountTokensNode extends BaseNode {
-  static readonly nodeType = "nodetool.text.CountTokens";
-  static readonly retrySafe = true;
-  static readonly cacheTtl = "forever";
-  static readonly title = "Count Tokens";
-  static readonly description =
-    "Counts the number of tokens in text using tiktoken.\n    text, tokens, count, encoding";
-  static readonly metadataOutputTypes = {
-    output: "int"
-  };
-  static readonly inputFields: string[] = ["text"];
-
-  @prop({ type: "str", default: "", title: "Text" })
-  declare text: any;
-
-  @prop({
-    type: "enum",
-    default: "cl100k_base",
-    title: "Encoding",
-    description: "The tiktoken encoding to use for token counting",
-    values: ["cl100k_base", "p50k_base", "r50k_base"]
-  })
-  declare encoding: any;
-
-  async process(): Promise<CountTokensNodeOutputs> {
-    const text = String(this.text ?? "");
-    if (!text) {
-      return { output: 0 };
-    }
-    const encodingName = String(this.encoding ?? "cl100k_base") as
-      | "cl100k_base"
-      | "p50k_base"
-      | "r50k_base";
-    const { getEncoding } = await import("js-tiktoken");
-    const encoder = getEncoding(encodingName);
-    return { output: encoder.encode(text).length };
-  }
 }
 
 /** Output handles AutomaticSpeechRecognitionNode.process() emits. */
@@ -336,16 +300,26 @@ export class SaveTextFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "text"
   };
+  static readonly inlineFields: string[] = ["save_to_workspace"];
   static readonly inputFields: string[] = ["text"];
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
 
   @prop({
+    type: "bool",
+    default: true,
+    title: SAVE_TO_WORKSPACE_TITLE,
+    description: SAVE_TO_WORKSPACE_DESCRIPTION
+  })
+  declare save_to_workspace: any;
+
+  @prop({
     type: "str",
     default: "",
     title: "Folder",
-    description: "Path to the output folder."
+    description: "Path to the output folder.",
+    json_schema_extra: HIDDEN_WHEN_SAVING_TO_WORKSPACE
   })
   declare folder: any;
 
@@ -358,17 +332,22 @@ export class SaveTextFileNode extends BaseNode {
   })
   declare name: any;
 
-  async process(): Promise<SaveTextFileNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<SaveTextFileNodeOutputs> {
     const text = String(this.text ?? "");
-    const folder = String(this.folder ?? "");
-    const name = formatFilename(String(this.name ?? "output.txt"));
-    if (!folder) {
-      throw new Error("folder cannot be empty");
+    const saveToWorkspace = this.save_to_workspace === true;
+    const folder = folderPathOf(this.folder);
+    if (!folder && !(saveToWorkspace && context?.workspaceDir)) {
+      throw new Error(
+        "No destination: set a folder, or turn on \"Save to workspace\" and assign a workspace to this workflow."
+      );
     }
     const fs = await loadNodeFsPromises();
-    const path = await loadNodePath();
-    await fs.mkdir(folder, { recursive: true });
-    const fsPath = path.join(folder, name);
+    const fsPath = await resolveSaveTarget({
+      folder: this.folder,
+      filename: formatFilename(String(this.name ?? "output.txt")),
+      saveToWorkspace,
+      workspaceDir: context?.workspaceDir
+    });
     await fs.writeFile(fsPath, text, "utf-8");
     // The output `uri` is a portable, URI-style path (forward slashes) so
     // downstream nodes and the web UI never have to special-case Windows.
@@ -818,6 +797,11 @@ export class FilterRegexStringNode extends BaseNode {
   }
 }
 
+// nodetool.text.CountTokens was removed; tiktoken now reaches the sandbox as
+// the @nodetool-ai/sandbox-tokens host pack. nodetool.text.Join was removed
+// too — it was `list.join(sep)`. Old workflows are rewritten to
+// nodetool.code.Code on load — see NODE_TYPE_MIGRATIONS in @nodetool-ai/protocol.
+
 /** Output handles ConcatTextNode.process() emits. */
 type ConcatTextNodeOutputs = {
   output: string;
@@ -848,45 +832,6 @@ export class ConcatTextNode extends BaseNode {
         .map((value) => String(value ?? ""))
         .join("")
     };
-  }
-}
-
-/** Output handles JoinTextNode.process() emits. */
-type JoinTextNodeOutputs = {
-  output: string;
-};
-
-export class JoinTextNode extends BaseNode {
-  static readonly nodeType = "nodetool.text.Join";
-  static readonly retrySafe = true;
-  static readonly cacheTtl = "forever";
-  static readonly title = "Join";
-  static readonly description =
-    "Joins a list of strings into a single string using a specified separator.\n    text, join, combine, concatenate, merge, list";
-  static readonly metadataOutputTypes = {
-    output: "str"
-  };
-
-  @prop({
-    type: "list[str]",
-    default: [],
-    title: "Strings",
-    description: "The list of strings to join."
-  })
-  declare strings: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Separator",
-    description: "Separator between items."
-  })
-  declare separator: any;
-
-  async process(): Promise<JoinTextNodeOutputs> {
-    const list = Array.isArray(this.strings) ? this.strings : [];
-    const sep = String(this.separator ?? "");
-    return { output: list.map((s: unknown) => String(s ?? "")).join(sep) };
   }
 }
 
@@ -1041,7 +986,6 @@ export class TemplateTextNode extends BaseNode {
 }
 
 export const TEXT_EXTRA_NODES = tagAsServer([
-  CountTokensNode,
   AutomaticSpeechRecognitionNode,
   EmbeddingTextNode,
   SaveTextFileNode,
@@ -1051,7 +995,6 @@ export const TEXT_EXTRA_NODES = tagAsServer([
   FilterStringNode,
   FilterRegexStringNode,
   ConcatTextNode,
-  JoinTextNode,
   CollectTextNode,
   PromptNode,
   TemplateTextNode

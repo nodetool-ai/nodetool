@@ -137,6 +137,29 @@ export const trpcClient = {
   fonts: {
     list: { query: emptyQuery() }
   },
+  integrations: {
+    list: { query: jest.fn(async () => ({ identities: [] })) },
+    createLinkCode: {
+      mutate: jest.fn(async () => ({
+        code: "mock-code",
+        deep_link: null,
+        expires_at: new Date(Date.now() + 600_000).toISOString()
+      }))
+    },
+    describeLinkCode: {
+      query: jest.fn(async () => ({
+        provider: "telegram",
+        external_id: "mock-external-id"
+      }))
+    },
+    confirmLink: {
+      mutate: jest.fn(async () => ({
+        linked: true,
+        external_id: "mock-external-id"
+      }))
+    },
+    unlink: { mutate: jest.fn(async () => ({ unlinked: true })) }
+  },
   mcpConfig: {
     status: { query: emptyQuery() },
     install: { mutate: emptyMutate() },

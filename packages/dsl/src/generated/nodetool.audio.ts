@@ -304,6 +304,7 @@ export function saveAudio(inputs: SaveAudioInputs): DslNode<SaveAudioOutputs, "o
 // Save Audio File — nodetool.audio.SaveAudioFile
 export type SaveAudioFileInputs = {
   audio?: Connectable<AudioRef>;
+  save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   filename?: Connectable<string>;
   FORMAT_MAP?: Connectable<Record<string, string>>;

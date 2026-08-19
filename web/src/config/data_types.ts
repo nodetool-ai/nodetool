@@ -742,9 +742,20 @@ export function datatypeByName(name: string): DataType | null {
   return DATA_TYPE_MAP["notype"] ?? null;
 }
 
+// Every handle and node-menu row asks for its colour on each render, over a
+// DATA_TYPE_MAP that is frozen after module init. Bounded by the type names
+// the registry ships.
+const colorByType = new Map<string, string>();
+
 export function colorForType(type: string): string {
+  const cached = colorByType.get(type);
+  if (cached !== undefined) {
+    return cached;
+  }
   const n = normalizeTypeName(type.replace(/^nodetool\./, ""));
-  return bundledDataTypeForTypeName(n)?.color || stringToColor(type);
+  const color = bundledDataTypeForTypeName(n)?.color || stringToColor(type);
+  colorByType.set(type, color);
+  return color;
 }
 
 export function descriptionForType(type: string): string {

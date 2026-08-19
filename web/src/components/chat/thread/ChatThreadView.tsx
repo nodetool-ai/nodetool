@@ -35,6 +35,7 @@ import { MessageView } from "../message/MessageView";
 import MediaOutputGroup from "../message/MediaOutputGroup";
 import ToolApprovalCard from "../message/ToolApprovalCard";
 import PlanApprovalCard from "../message/PlanApprovalCard";
+import SecretRequestCard from "../message/SecretRequestCard";
 import { ScrollToBottomButton } from "../controls/ScrollToBottomButton";
 import { createStyles } from "./ChatThreadView.styles";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
@@ -368,6 +369,22 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           (approval.thread_id === null && visibleThreadId === currentThreadId)
       ),
     [pendingPlanApprovals, currentThreadId, visibleThreadId]
+  );
+
+  // Pending credential requests. Thread-scoped like tool approvals: the run
+  // that asked is the one waiting.
+  const pendingSecretRequests = useGlobalChatStore(
+    (s) => s.pendingSecretRequests
+  );
+  const resolveSecretRequest = useGlobalChatStore(
+    (s) => s.resolveSecretRequest
+  );
+  const threadSecretRequests = useMemo(
+    () =>
+      Object.entries(pendingSecretRequests).filter(
+        ([, request]) => request.thread_id === visibleThreadId
+      ),
+    [pendingSecretRequests, visibleThreadId]
   );
 
   // The generating turn's own outgoing message carries `media_generation` —
@@ -979,6 +996,27 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                       approvalId={approvalId}
                       approval={approval}
                       onResolve={resolvePlanApproval}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {threadSecretRequests.length > 0 && (
+              <div className="chat-message-list-item">
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: getSpacingPx(SPACING.md)
+                  }}
+                >
+                  {threadSecretRequests.map(([approvalId, request]) => (
+                    <SecretRequestCard
+                      key={approvalId}
+                      approvalId={approvalId}
+                      request={request}
+                      onResolve={resolveSecretRequest}
                     />
                   ))}
                 </div>

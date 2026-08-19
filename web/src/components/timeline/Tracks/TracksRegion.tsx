@@ -858,6 +858,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         }
       };
 
+      // Not on the dispatcher: the arrow-nudge batch closes on keyup, and
+      // KeyPressedStore only dispatches combos on keydown.
       window.addEventListener("keydown", handleKeyDown);
       window.addEventListener("keyup", handleKeyUp);
       return () => {

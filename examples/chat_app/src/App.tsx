@@ -42,15 +42,6 @@ export function App() {
     }
   }, [activeThreadId, threads]);
 
-  const createThread = useMutation({
-    mutationFn: (title: string) =>
-      nodetool.trpc.threads.create.mutate({ title }),
-    onSuccess: (thread) => {
-      qc.invalidateQueries({ queryKey: ["threads"] });
-      setActiveThreadId(thread.id);
-    }
-  });
-
   const deleteThread = useMutation({
     mutationFn: (id: string) => nodetool.trpc.threads.delete.mutate({ id }),
     onSuccess: (_, id) => {
@@ -237,8 +228,10 @@ export function App() {
     if (!text.trim() || streaming) return;
     let threadId = activeThreadId;
     if (!threadId) {
-      const t = await createThread.mutateAsync("New Chat");
-      threadId = t.id;
+      // There is no create endpoint — the server creates the thread row from
+      // this id on the first chat message, and the `message` handler above
+      // refetches the thread list once it exists.
+      threadId = crypto.randomUUID();
       setActiveThreadId(threadId);
     }
 
@@ -303,7 +296,7 @@ export function App() {
           setSidebarOpen(false);
         }}
         onNewChat={() => {
-          createThread.mutate("New Chat");
+          setActiveThreadId(crypto.randomUUID());
           setSidebarOpen(false);
         }}
         onDelete={(id) => deleteThread.mutate(id)}

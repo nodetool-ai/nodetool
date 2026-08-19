@@ -23,6 +23,18 @@ const EXPIRY_SKEW_MS = 60_000;
 /** The Codex credential is stored under the "openai" provider namespace. */
 const CODEX_CREDENTIAL_PROVIDER = "openai";
 
+/** How long to stop retrying after the token endpoint rejects the refresh. */
+const REFRESH_COOLDOWN_MS = 5 * 60_000;
+
+/**
+ * One refresh per credential at a time. OpenAI rotates the refresh token, so
+ * parallel refreshes race: the first consumes the token and the rest get a 401.
+ */
+const inFlight = new Map<string, Promise<string | null>>();
+
+/** Credential id -> epoch ms before which no refresh is attempted again. */
+const cooldownUntil = new Map<string, number>();
+
 function isExpired(expiresAt: string | null): boolean {
   if (!expiresAt) return false;
   const expiryMs = Date.parse(expiresAt);
@@ -59,9 +71,15 @@ async function refreshCredential(
   });
 
   if (!res.ok) {
-    log.warn("Codex token refresh failed", { status: res.status });
+    cooldownUntil.set(credential.id, Date.now() + REFRESH_COOLDOWN_MS);
+    log.warn("Codex token refresh failed — sign in to Codex again", {
+      status: res.status,
+      retryAfterMs: REFRESH_COOLDOWN_MS
+    });
     return null;
   }
+
+  cooldownUntil.delete(credential.id);
 
   const body = (await res.json()) as RefreshResponse;
   const accessToken =
@@ -85,6 +103,17 @@ async function refreshCredential(
   return accessToken;
 }
 
+/** Refresh a credential, joining any refresh already running for it. */
+function refreshOnce(credential: OAuthCredential): Promise<string | null> {
+  const running = inFlight.get(credential.id);
+  if (running) return running;
+  const pending = refreshCredential(credential).finally(() => {
+    inFlight.delete(credential.id);
+  });
+  inFlight.set(credential.id, pending);
+  return pending;
+}
+
 /**
  * Resolve a valid Codex access token for a user, or null when the user has not
  * connected via the OpenAI/Codex login. Refreshes a (nearly) expired token.
@@ -100,9 +129,10 @@ export async function resolveCodexAccessToken(
   const credential = credentials[0];
   if (!credential) return null;
 
-  if (isExpired(credential.expires_at)) {
+  const cooldown = cooldownUntil.get(credential.id) ?? 0;
+  if (isExpired(credential.expires_at) && Date.now() >= cooldown) {
     try {
-      const refreshed = await refreshCredential(credential);
+      const refreshed = await refreshOnce(credential);
       if (refreshed) return refreshed;
       // Refresh failed — fall through and return the stored (expired) token so
       // the caller surfaces a 401 rather than silently dropping the provider.

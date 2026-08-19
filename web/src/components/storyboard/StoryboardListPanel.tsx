@@ -11,7 +11,7 @@ import {
   useRef,
   useState
 } from "react";
-import type { FocusEvent, KeyboardEvent, MouseEvent } from "react";
+import type { MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -35,117 +35,13 @@ import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
   EmptyState,
   FlexColumn,
-  FlexRow,
+  ListPanelItem,
   LoadingSpinner,
   Text,
   ToolbarIconButton,
-  TruncatedText,
   Tooltip,
   listPanelStyles
 } from "../ui_primitives";
-
-interface StoryboardListItemProps {
-  id: string;
-  name: string;
-  active: boolean;
-  editing: boolean;
-  onOpen: (id: string, name: string) => void;
-  onContextMenu: (
-    event: MouseEvent<HTMLButtonElement>,
-    id: string,
-    name: string
-  ) => void;
-  onCommitRename: (id: string, newName: string) => void;
-  onCancelRename: () => void;
-}
-
-const StoryboardListItem = memo(function StoryboardListItem({
-  id,
-  name,
-  active,
-  editing,
-  onOpen,
-  onContextMenu,
-  onCommitRename,
-  onCancelRename
-}: StoryboardListItemProps) {
-  const handleClick = useCallback(() => onOpen(id, name), [id, name, onOpen]);
-  const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => onContextMenu(event, id, name),
-    [id, name, onContextMenu]
-  );
-  const handleRenameKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      event.stopPropagation();
-      if (event.key === "Enter") {
-        onCommitRename(id, event.currentTarget.value);
-      } else if (event.key === "Escape") {
-        onCancelRename();
-      }
-    },
-    [id, onCommitRename, onCancelRename]
-  );
-  const handleRenameBlur = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      onCommitRename(id, event.currentTarget.value);
-    },
-    [id, onCommitRename]
-  );
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        onOpen(id, name);
-      }
-    },
-    [id, name, onOpen]
-  );
-
-  if (editing) {
-    return (
-      <div className={`list-panel-item ${active ? "active" : ""}`}>
-        <FlexRow align="center" gap={1} fullWidth>
-          <DashboardOutlinedIcon className="list-panel-icon" />
-          <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-            <input
-              className="rename-input"
-              type="text"
-              defaultValue={name}
-              aria-label="Storyboard name"
-              autoFocus
-              onFocus={(event) => event.currentTarget.select()}
-              onKeyDown={handleRenameKeyDown}
-              onBlur={handleRenameBlur}
-            />
-          </FlexColumn>
-        </FlexRow>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className={`list-panel-item ${active ? "active" : ""}`}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      onContextMenu={handleContextMenu}
-      aria-current={active ? "page" : undefined}
-    >
-      <FlexRow align="center" gap={1} fullWidth>
-        <DashboardOutlinedIcon className="list-panel-icon" />
-        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-          <TruncatedText
-            component="span"
-            sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
-          >
-            {name || "Untitled storyboard"}
-          </TruncatedText>
-        </FlexColumn>
-      </FlexRow>
-    </button>
-  );
-});
 
 export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
   const createStoryboard = useCreateStoryboard();
@@ -418,9 +314,12 @@ const StoryboardListPanel = () => {
                       </Text>
                     </div>
                   )}
-                  <StoryboardListItem
+                  <ListPanelItem
                     id={board.id}
                     name={board.name}
+                    fallbackName="Untitled storyboard"
+                    renameLabel="Storyboard name"
+                    icon={DashboardOutlinedIcon}
                     active={board.id === activeStoryboardId}
                     editing={board.id === editingId}
                     onOpen={handleOpen}

@@ -9,6 +9,13 @@
  *
  * The table is first-party only. Like `SANDBOX_HOST_MODULES` pins each host id
  * to one pack, a third-party pack can never declare a capability module.
+ *
+ * What this table does *not* carry is the other half of the answer: which of
+ * NodeTool's own API surfaces sandboxed code is deliberately kept away from,
+ * and why. That lives in `packages/websocket/src/trpc/sandbox-coverage.ts`,
+ * next to the router it classifies, and is checked against it by
+ * `tests/sandbox-api-coverage.test.ts` — so adding a capability here and
+ * leaving a surface unclassified there fails the build.
  */
 
 import {
@@ -25,6 +32,7 @@ import { appsSpecs } from "./apps.specs.js";
 import { assetsSpecs } from "./assets.specs.js";
 import { codeSpecs } from "./code.specs.js";
 import { collectionsSpecs } from "./collections.specs.js";
+import { costsSpecs } from "./costs.specs.js";
 import { documentsSpecs } from "./documents.specs.js";
 import { emailSpecs } from "./email.specs.js";
 import { filesSpecs } from "./files.specs.js";
@@ -38,6 +46,8 @@ import { modelsSpecs } from "./models.specs.js";
 import { nodesSpecs } from "./nodes.specs.js";
 import { packsSpecs } from "./packs.specs.js";
 import { scriptsSpecs } from "./scripts.specs.js";
+import { serpApiSpecs } from "./serpapi.specs.js";
+import { settingsSpecs } from "./settings.specs.js";
 import { sharedSpecs } from "./shared.specs.js";
 import { sketchesSpecs } from "./sketches.specs.js";
 import { storyboardsSpecs } from "./storyboards.specs.js";
@@ -58,6 +68,7 @@ const MODULES: Readonly<Record<string, Loader>> = {
   media: () => import("./media.js").then((m) => m.module),
   style: () => import("./style.js").then((m) => m.module),
   collections: () => import("./collections.js").then((m) => m.module),
+  costs: () => import("./costs.js").then((m) => m.module),
   nodes: () => import("./nodes.js").then((m) => m.module),
   jobs: () => import("./jobs.js").then((m) => m.module),
   assets: () => import("./assets.js").then((m) => m.module),
@@ -80,7 +91,9 @@ const MODULES: Readonly<Record<string, Loader>> = {
   "js-scripts": () => import("./js-scripts.js").then((m) => m.module),
   packs: () => import("./packs.js").then((m) => m.module),
   ui: () => import("./ui.js").then((m) => m.module),
-  apify: () => import("./apify.js").then((m) => m.module)
+  apify: () => import("./apify.js").then((m) => m.module),
+  serpapi: () => import("./serpapi.js").then((m) => m.module),
+  settings: () => import("./settings.js").then((m) => m.module)
 };
 
 /**
@@ -96,6 +109,7 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "media",
   "style",
   "collections",
+  "costs",
   "nodes",
   "jobs",
   "assets",
@@ -118,7 +132,9 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "js-scripts",
   "packs",
   "ui",
-  "apify"
+  "apify",
+  "serpapi",
+  "settings"
 ];
 
 /**
@@ -139,6 +155,7 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   media: mediaSpecs,
   style: styleSpecs,
   collections: collectionsSpecs,
+  costs: costsSpecs,
   nodes: nodesSpecs,
   jobs: jobsSpecs,
   assets: assetsSpecs,
@@ -161,7 +178,9 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   "js-scripts": jsScriptsSpecs,
   packs: packsSpecs,
   ui: uiSpecs,
-  apify: apifySpecs
+  apify: apifySpecs,
+  serpapi: serpApiSpecs,
+  settings: settingsSpecs
 };
 
 const SPEC_BY_NAME: ReadonlyMap<string, CapabilitySpec> = new Map(

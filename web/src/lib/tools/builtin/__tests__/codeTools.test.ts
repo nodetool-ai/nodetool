@@ -34,8 +34,7 @@ const baseState: CodeAssistantState = {
   node_id: "node-1",
   code: "return { total: inputs.rows.length };",
   inputs: [{ name: "rows", type: "list" }],
-  outputs: [{ name: "total", type: "int" }],
-  packages: ["@nodetool-ai/sandbox-yaml"]
+  outputs: [{ name: "total", type: "int" }]
 };
 
 function makeHandler(
@@ -45,7 +44,6 @@ function makeHandler(
     getState: () => baseState,
     setCode: jest.fn(),
     setPorts: jest.fn(),
-    setPackages: jest.fn(),
     ...overrides
   };
 }
@@ -144,31 +142,10 @@ describe("ui_code_* tools", () => {
     });
   });
 
-  it("ui_code_set_packages delegates the specifier list", async () => {
-    const handler = makeHandler();
-    unregister = registerCodeAssistantHandler("node-1", handler);
-
-    const result = await FrontendToolRegistry.call(
-      "ui_code_set_packages",
-      { node_id: "node-1", packages: ["@nodetool-ai/sandbox-dates"] },
-      "call-4",
-      ctx
-    );
-
-    expect(handler.setPackages).toHaveBeenCalledWith([
-      "@nodetool-ai/sandbox-dates"
-    ]);
-    expect(result).toEqual({
-      ok: true,
-      packages: ["@nodetool-ai/sandbox-dates"]
-    });
-  });
-
   it.each([
     ["ui_code_get_state", { node_id: "closed" }],
     ["ui_code_set_code", { node_id: "closed", code: "x" }],
-    ["ui_code_set_ports", { node_id: "closed", inputs: [] }],
-    ["ui_code_set_packages", { node_id: "closed", packages: [] }]
+    ["ui_code_set_ports", { node_id: "closed", inputs: [] }]
   ])("%s throws when no assistant is open", async (tool, args) => {
     await expect(
       FrontendToolRegistry.call(tool, args, `call-${tool}`, ctx)

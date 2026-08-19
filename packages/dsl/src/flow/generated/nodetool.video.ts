@@ -61,6 +61,7 @@ export function loadVideoFile(inputs: LoadVideoFileInputs): Promise<LoadVideoFil
 // Save Video File — nodetool.video.SaveVideoFile
 export type SaveVideoFileInputs = {
   video?: VideoRef;
+  save_to_workspace?: boolean;
   folder?: string;
   filename?: string;
 };

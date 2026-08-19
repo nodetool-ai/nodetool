@@ -24,16 +24,28 @@ const ROOT = resolve(import.meta.dirname, "..");
 
 const PRIVATE_PACKAGES = new Set(["fal-codegen", "kie-codegen", "replicate-codegen"]);
 
+/**
+ * Every directory holding a versioned package.json. Both extra roots live
+ * outside `packages/` and were skipped before, so each drifted behind: the
+ * reliability harness sat at rc.32, and the sandbox packs — which ship inside
+ * the app bundle, not to npm — spread across rc.34/35/36.
+ */
+const PACKAGE_ROOTS = ["packages", "packages/sandbox-packs", "reliability"];
+
 function getPublicPackageJsons() {
-  const packagesDir = resolve(ROOT, "packages");
-  return readdirSync(packagesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && !PRIVATE_PACKAGES.has(d.name))
-    .map((d) => resolve(packagesDir, d.name, "package.json"))
-    .filter((p) => {
-      if (!existsSync(p)) return false;
+  const found = [];
+  for (const root of PACKAGE_ROOTS) {
+    const dir = resolve(ROOT, root);
+    if (!existsSync(dir)) continue;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || PRIVATE_PACKAGES.has(entry.name)) continue;
+      const p = resolve(dir, entry.name, "package.json");
+      if (!existsSync(p)) continue;
       const pkg = JSON.parse(readFileSync(p, "utf8"));
-      return !pkg.private;
-    });
+      if (!pkg.private) found.push(p);
+    }
+  }
+  return found;
 }
 
 const PACKAGE_JSONS = [
@@ -138,18 +150,20 @@ const { values, positionals } = parseArgs({
   options: {
     tag: { type: "boolean", default: false },
     push: { type: "boolean", default: false },
+    "no-commit": { type: "boolean", default: false },
     "dry-run": { type: "boolean", default: false },
     help: { type: "boolean", short: "h", default: false },
   },
 });
 
 if (values.help || positionals.length === 0) {
-  console.log(`Usage: npm run bump-version <version> [--tag] [--push] [--dry-run]
+  console.log(`Usage: npm run bump-version <version> [--tag] [--push] [--no-commit] [--dry-run]
 
-  version     New version (e.g. 0.6.4, 0.7.0-rc.1)
-  --tag       Create a git tag (v<version>)
-  --push      Push commit and tag to origin (implies --tag)
-  --dry-run   Show what would change without modifying files`);
+  version      New version (e.g. 0.6.4, 0.7.0-rc.1)
+  --tag        Create a git tag (v<version>)
+  --push       Push commit and tag to origin (implies --tag)
+  --no-commit  Write the files only — no git commit or tag (for CI)
+  --dry-run    Show what would change without modifying files`);
   process.exit(values.help ? 0 : 1);
 }
 
@@ -170,7 +184,9 @@ if (values["dry-run"]) {
   if (!changed) {
     console.log("\nAll files already at the target version.");
   } else {
-    gitCommitAndTag(version, values.tag, values.push);
+    if (!values["no-commit"]) {
+      gitCommitAndTag(version, values.tag, values.push);
+    }
     console.log(`\nDone — version is now ${version}`);
   }
 }

@@ -40,8 +40,7 @@ import {
   MAX_TIMEOUT_SECONDS,
   DEFAULT_TIMEOUT_SECONDS,
   MAX_TEST_CASES,
-  CODE_FIELD,
-  PACKAGES_FIELD
+  CODE_FIELD
 } from "./code.specs.js";
 import {
   isNonBlankString,
@@ -53,8 +52,7 @@ export {
   MAX_TIMEOUT_SECONDS,
   DEFAULT_TIMEOUT_SECONDS,
   MAX_TEST_CASES,
-  CODE_FIELD,
-  PACKAGES_FIELD
+  CODE_FIELD
 } from "./code.specs.js";
 
 export type {
@@ -78,7 +76,6 @@ export async function runCodeBody(
   params: {
     code: string;
     inputs: Record<string, unknown>;
-    packages: readonly string[];
     secrets: readonly string[];
     timeoutSeconds: number;
     inputStreams?: Record<string, unknown[]>;
@@ -96,8 +93,7 @@ export async function runCodeBody(
     hasYieldStatement,
     wrapImplicitReturn,
     normalizeCodeOutput,
-    usesEmitOutputContract,
-    parseSandboxModuleDeclarations
+    usesEmitOutputContract
   } = await import("@nodetool-ai/node-sdk");
   const { runInSandbox } = await import("../js-sandbox.js");
 
@@ -112,8 +108,6 @@ export async function runCodeBody(
   let modules;
   let capabilities;
   if (params.withToolbelt) {
-    // A JS script has no packages setting: every installed pack and every
-    // platform module resolves from the import.
     const { mountJsScriptSandbox } = await import("../js-script-sandbox.js");
     const mounted = await mountJsScriptSandbox(params.code, context);
     if (!mounted.ok) {
@@ -122,32 +116,17 @@ export async function runCodeBody(
     modules = mounted.modules;
     capabilities = mounted.capabilities;
   } else {
-    const { declarations, invalid } = parseSandboxModuleDeclarations(
-      params.packages.length > 0 ? [...params.packages] : undefined
-    );
-    if (invalid.length > 0) {
-      return fail(`Invalid \`packages\` declarations: ${invalid.join(", ")}`);
+    // Hermetic: the body's pack imports still resolve against the installed
+    // catalog, but no platform module is mounted, so importing one fails in
+    // the guest the way any unserved specifier does.
+    const { resolveImportedPacks } = await import("../js-script-sandbox.js");
+    const packs = resolveImportedPacks(params.code, context, {
+      subject: "The code"
+    });
+    if (!packs.ok) {
+      return fail(packs.error);
     }
-    if (declarations.length > 0) {
-      const catalog = context.sandboxModuleCatalog;
-      if (!catalog) {
-        return fail(
-          "Sandbox packages are not available in this process, so the declared " +
-            "packages cannot be imported."
-        );
-      }
-      modules = catalog.resolveForExecution(declarations);
-      const errors = modules.statuses.filter(
-        (status) => status.status === "error"
-      );
-      if (errors.length > 0) {
-        return fail(
-          errors
-            .map((status) => `${status.message} (pack "${status.packName}")`)
-            .join(" ")
-        );
-      }
-    }
+    modules = packs.modules;
   }
 
   const code = params.code;
@@ -333,29 +312,15 @@ const CODE_LEGACY_CONTRACT = "code_legacy_contract";
 const validateCode: CapabilityExport = {
   spec: validateCodeSpec,
   impl: async (run, params) => {
-    const {
-      validateCodeNodeBody,
-      usesEmitOutputContract,
-      parseSandboxModuleDeclarations
-    } = await import("@nodetool-ai/node-sdk");
-    const packages = stringList(params["packages"]);
-    const { declarations, invalid } = parseSandboxModuleDeclarations(
-      packages.length > 0 ? packages : undefined
+    const { validateCodeNodeBody, usesEmitOutputContract } = await import(
+      "@nodetool-ai/node-sdk"
     );
     const issues = validateCodeNodeBody({
       code: params["code"],
       availableInputs: stringList(params["inputs"]),
       declaredOutputs: stringList(params["outputs"]),
-      declaredPackages: declarations,
       sandboxModuleCatalog: run.context.sandboxModuleCatalog
     });
-    for (const entry of invalid) {
-      issues.push({
-        severity: "error",
-        code: "code_module",
-        message: `Invalid \`packages\` declaration: ${entry}`
-      });
-    }
     // The legacy return/yield contract runs for one more release. The shared
     // validator is where that warning belongs; this adds it only when the
     // shared layer did not, so the harness warns either way and never twice.
@@ -398,7 +363,6 @@ function runCodeParams(
   const bodyParams: Parameters<typeof runCodeBody>[1] = {
     code: String(params["code"] ?? ""),
     inputs: inputBag(params["inputs"]),
-    packages: stringList(params["packages"]),
     secrets: stringList(params["secrets"]),
     timeoutSeconds: timeoutSeconds(params["timeout_seconds"])
   };
@@ -429,7 +393,6 @@ const testCode: CapabilityExport = {
       };
     }
     const code = String(params["code"] ?? "");
-    const packages = stringList(params["packages"]);
     const secrets = stringList(params["secrets"]);
     const timeout = timeoutSeconds(params["timeout_seconds"]);
 
@@ -458,7 +421,6 @@ const testCode: CapabilityExport = {
       const bodyParams: Parameters<typeof runCodeBody>[1] = {
         code,
         inputs: testCase.inputs,
-        packages,
         secrets,
         timeoutSeconds: timeout
       };

@@ -6,7 +6,7 @@
  * `run_job` / `cancel_job` / `stream_input` / … frame arrives in, plus the
  * handful of control frames that aren't wrapped in a `command` envelope
  * (`ping`, `client_tools_manifest`, `tool_result`, `tool_approval_response`,
- * `plan_approval_response`, `renderer_tool_result`).
+ * `plan_approval_response`, `secret_request_response`, `renderer_tool_result`).
  *
  * Schemas here are intentionally loose: every field is optional (the
  * per-command handler in `unified-websocket-runner.ts` still decides what's
@@ -379,6 +379,25 @@ export const planApprovalResponseMessageInSchema = z
   })
   .passthrough();
 
+/**
+ * The client's answer to a `secret_request` frame — the bespoke dialog the
+ * `request_secret` capability opens when sandboxed code needs a credential the
+ * install does not hold.
+ *
+ * `saved` means the user typed a value and the dialog wrote it through
+ * `settings.secrets.upsert`; `declined` means they closed it. **The value is
+ * never in this frame.** It travels browser → tRPC → secret store, so the run
+ * that asked learns only that a secret now exists, and reads it — if at all —
+ * back through `nodetool.secrets.get` under its own declared scope.
+ */
+export const secretRequestResponseMessageInSchema = z
+  .object({
+    type: z.literal("secret_request_response"),
+    approval_id: z.string().optional(),
+    status: z.enum(["saved", "declined"]).optional()
+  })
+  .passthrough();
+
 /** Every known control-frame `type`, keyed for lookup by the WS runner. */
 export const controlMessageInSchemas = {
   ping: pingMessageInSchema,
@@ -387,7 +406,8 @@ export const controlMessageInSchemas = {
   tool_result: toolResultMessageInSchema,
   renderer_tool_result: rendererToolResultMessageInSchema,
   tool_approval_response: toolApprovalResponseMessageInSchema,
-  plan_approval_response: planApprovalResponseMessageInSchema
+  plan_approval_response: planApprovalResponseMessageInSchema,
+  secret_request_response: secretRequestResponseMessageInSchema
 } as const;
 
 export type ControlMessageInType = keyof typeof controlMessageInSchemas;

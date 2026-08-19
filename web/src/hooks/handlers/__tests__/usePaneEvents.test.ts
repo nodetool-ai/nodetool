@@ -186,7 +186,7 @@ describe("usePaneEvents", () => {
 
   describe("handlePaneClick", () => {
     it("creates and adds node when pendingNodeType is set", () => {
-      mockGetMetadata.mockReturnValue({ type: "test-node" });
+      mockGetMetadata.mockReturnValue({ node_type: "nodetool.test.Node" });
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: "nodetool.test.Node",

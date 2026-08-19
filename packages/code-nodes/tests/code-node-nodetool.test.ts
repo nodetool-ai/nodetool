@@ -47,6 +47,38 @@ function runNode(
 
 afterEach(() => setCodeNodeTools(null));
 
+describe("CodeNode — the belt it assembles", () => {
+  it("carries the Apify capabilities a chat action can call", async () => {
+    // The regression: a chat ran `tools.run_apify_actor` in `execute_code`,
+    // then wrote the same call into a Code body. The chat belt had the tool
+    // and this one did not, so the node failed with a bare `TypeError: not a
+    // function` and the agent concluded the sandbox had no network.
+    const r = await runNode(
+      `return {
+         run: __toolNames.includes("run_apify_actor"),
+         dataset: __toolNames.includes("get_apify_dataset_items")
+       };`,
+      fakeContext
+    );
+    expect(r).toEqual({ run: true, dataset: true });
+  }, 60_000);
+
+  it("names a tool it does not carry instead of failing as a TypeError", async () => {
+    setCodeNodeTools([]);
+    const r = await runNode(
+      `try {
+         await tools.run_apify_actor({ actor_id: "apify/instagram-scraper" });
+         return { message: "no throw" };
+       } catch (e) {
+         return { message: String(e.message) };
+       }`,
+      fakeContext
+    );
+    expect(r["message"]).toContain("run_apify_actor");
+    expect(r["message"]).not.toContain("not a function");
+  }, 60_000);
+});
+
 describe("CodeNode — nodetool object model", () => {
   it("routes nodetool.* calls through the injected belt", async () => {
     const listTool = new FakeListWorkflowsTool();
