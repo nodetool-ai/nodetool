@@ -55,7 +55,8 @@ describe("jobs capability module", () => {
     expect(JOB_CAPABILITIES.map((e) => e.spec.name)).toEqual([
       "list_jobs",
       "get_job",
-      "get_job_logs"
+      "get_job_logs",
+      "cancel_job"
     ]);
   });
 
@@ -69,7 +70,8 @@ describe("jobs capability module", () => {
     const classes = [
       toolForCapabilityName("list_jobs"),
       toolForCapabilityName("get_job"),
-      toolForCapabilityName("get_job_logs")
+      toolForCapabilityName("get_job_logs"),
+      toolForCapabilityName("cancel_job")
     ];
     for (const tool of classes) {
       const entry = JOB_CAPABILITIES.find((e) => e.spec.name === tool.name);
@@ -116,6 +118,45 @@ describe("jobs capabilities against the database", () => {
     })) as Record<string, unknown>;
     expect(tail.total_logs).toBe(3);
     expect(tail.logs).toEqual([{ message: "two" }, { message: "three" }]);
+  });
+
+  it("cancels a running job, and says so when there was nothing to cancel", async () => {
+    const job = (await Job.create({
+      user_id: USER,
+      workflow_id: "wf-1",
+      status: "running",
+      params: {},
+      graph: { nodes: [], edges: [] }
+    })) as Job;
+
+    const cancelled = (await asTool("cancel_job").process(ctx, {
+      job_id: job.id
+    })) as Record<string, unknown>;
+    expect(cancelled.status).toBe("cancelled");
+    expect((await Job.find(USER, job.id))?.status).toBe("cancelled");
+
+    // Cancelling the same job twice is not an error, but it reports that
+    // nothing changed — the row is already terminal.
+    const again = (await asTool("cancel_job").process(ctx, {
+      job_id: job.id
+    })) as Record<string, unknown>;
+    expect(again.cancelled).toBe(false);
+  });
+
+  it("refuses to cancel another user's running job", async () => {
+    const theirs = (await Job.create({
+      user_id: "someone-else",
+      workflow_id: "wf-1",
+      status: "running",
+      params: {},
+      graph: { nodes: [], edges: [] }
+    })) as Job;
+
+    const answer = (await asTool("cancel_job").process(ctx, {
+      job_id: theirs.id
+    })) as Record<string, unknown>;
+    expect(answer.cancelled).toBe(false);
+    expect((await Job.get(theirs.id))?.status).toBe("running");
   });
 
   it("reports a job the user does not own", async () => {

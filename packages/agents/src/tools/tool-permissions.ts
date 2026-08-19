@@ -209,6 +209,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // Each creates a second document and links the pair.
   extract_script_from_storyboard: "write",
   derive_storyboard_from_script: "write",
+  cancel_job: "write",
+  update_workflow: "write",
+  delete_workflow: "write",
   transcribe_audio: "write",
   embed_text: "write",
   vector_index: "write",
@@ -231,6 +234,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
 
   // --- external: third-party side effects ---
   browser: "external",
+  // Publishing a workflow discloses it outside the account, and cannot be
+  // taken back from whoever read it while it was public.
+  set_workflow_access: "external",
   http_request: "external",
   yt_dlp: "external",
   archive_email: "external",

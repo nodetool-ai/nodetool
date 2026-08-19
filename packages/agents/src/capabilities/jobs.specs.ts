@@ -80,9 +80,30 @@ export const getJobLogsSpec: CapabilitySpec = {
   userMessage: (params) => `Getting logs for job ${params["job_id"]}`
 };
 
+export const cancelJobSpec: CapabilitySpec = {
+  name: "cancel_job",
+  description:
+    "Cancel a running job. Does nothing to a job that already finished, " +
+    "and a job belonging to another user is indistinguishable from a " +
+    "missing one.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      job_id: {
+        type: "string",
+        description: "The job ID"
+      }
+    },
+    required: ["job_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Cancelling job ${params["job_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const jobsSpecs: readonly CapabilitySpec[] = [
   listJobsSpec,
   getJobSpec,
-  getJobLogsSpec
+  getJobLogsSpec,
+  cancelJobSpec
 ];
