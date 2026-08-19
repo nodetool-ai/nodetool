@@ -70,7 +70,9 @@ const modelExecutionAvailabilitySchema = z.object({
   kind: z.enum(["local", "server", "api", "unavailable"]),
   state: z.enum(["ready", "download_required", "unavailable"]),
   label: z.enum(["Local", "Server", "API", "Unavailable"]),
-  reason: z.string().nullish()
+  reason: z.string().nullish(),
+  execution_site: z.enum(["nodetool_host", "provider"]).nullish(),
+  runtime_name: z.string().nullish()
 });
 
 // ── Local schemas (mirrored in packages/protocol/src/api-schemas/models.ts) ──

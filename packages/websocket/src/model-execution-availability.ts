@@ -47,22 +47,22 @@ export function readyProviderExecution(
       kind: "api",
       state: "ready",
       label: "API",
-      reason: `Input is sent to ${provider.displayName}. Provider billing applies.`
-    };
-  }
-  if (provider.access === "local_service") {
-    return {
-      kind: "server",
-      state: "ready",
-      label: "Server",
-      reason: `Available through ${provider.displayName}.`
+      reason: `Input is sent to ${provider.displayName}. Provider billing applies.`,
+      execution_site: "provider",
+      runtime_name: provider.displayName
     };
   }
   return {
-    kind: "local",
+    kind: "server",
     state: "ready",
-    label: "Local",
-    reason: "Runs on this device."
+    label: "Server",
+    reason:
+      provider.access === "local_service"
+        ? `Runs through ${provider.displayName} on the NodeTool host.`
+        : "Runs on the NodeTool host.",
+    execution_site: "nodetool_host",
+    runtime_name:
+      provider.access === "local_service" ? provider.displayName : null
   };
 }
 
@@ -90,24 +90,25 @@ function resolveAdapterTarget(
 
   const repoId = adapter.artifact_ref?.repo_id;
   const provider = target.provider ? providers.get(target.provider) : undefined;
-  const kind = provider?.access === "local_service" ? "server" : "local";
-  const label = kind === "server" ? "Server" : "Local";
   if (repoId && cachedRepoIds.has(repoId.toLowerCase())) {
     return {
-      kind,
+      kind: "server",
       state: "ready",
-      label,
-      reason:
-        kind === "server"
-          ? `Runs through ${provider?.displayName ?? "a local server"}.`
-          : "Runs on this device."
+      label: "Server",
+      reason: provider
+        ? `Runs through ${provider.displayName} on the NodeTool host.`
+        : "Runs on the NodeTool host.",
+      execution_site: "nodetool_host",
+      runtime_name: provider?.displayName ?? null
     };
   }
   return {
-    kind,
+    kind: "server",
     state: "download_required",
-    label,
-    reason: "Download the model files before using it locally."
+    label: "Server",
+    reason: "Download the model files to the NodeTool host before use.",
+    execution_site: "nodetool_host",
+    runtime_name: provider?.displayName ?? null
   };
 }
 
@@ -190,12 +191,9 @@ export function resolveModelExecutionAvailability(
     if (model.downloaded === true || Boolean(model.cache_path)) {
       return {
         ...model,
-        execution: {
-          kind: "local",
-          state: "ready",
-          label: "Local",
-          reason: "Runs on this device."
-        }
+        execution: unavailable(
+          "Model files are present, but no execution adapter or provider target was reported."
+        )
       };
     }
 
@@ -203,10 +201,11 @@ export function resolveModelExecutionAvailability(
       return {
         ...model,
         execution: {
-          kind: "local",
+          kind: "server",
           state: "download_required",
-          label: "Local",
-          reason: "Download the model files before using it locally."
+          label: "Server",
+          reason: "Download the model files to the NodeTool host before use.",
+          execution_site: "nodetool_host"
         }
       };
     }

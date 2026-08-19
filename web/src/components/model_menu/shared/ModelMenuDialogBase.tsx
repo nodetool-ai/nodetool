@@ -524,6 +524,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     >
       <ProviderList
         providers={providers}
+        models={models ?? EMPTY_MODELS}
         isLoading={!!isLoading}
         isError={!!isError}
         storeHook={storeHook}

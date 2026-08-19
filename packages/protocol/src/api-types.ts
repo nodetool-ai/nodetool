@@ -1296,6 +1296,10 @@ export interface ModelExecutionAvailability {
   state: "ready" | "download_required" | "unavailable";
   label: "Local" | "Server" | "API" | "Unavailable";
   reason?: string | null;
+  /** Stable execution location before the client resolves co-location. */
+  execution_site?: "nodetool_host" | "provider" | null;
+  /** Runtime or provider name used to build a location-aware explanation. */
+  runtime_name?: string | null;
 }
 
 export interface ASRModel {

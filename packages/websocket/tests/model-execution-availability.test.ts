@@ -35,7 +35,7 @@ describe("resolveModelExecutionAvailability", () => {
         model({
           id: "ResembleAI/chatterbox",
           repo_id: "ResembleAI/chatterbox",
-          type: "hf.text_to_speech",
+          type: null,
           downloaded: true
         })
       ],
@@ -47,7 +47,7 @@ describe("resolveModelExecutionAvailability", () => {
       state: "unavailable",
       label: "Unavailable"
     });
-    expect(resolved.execution?.reason).toContain("no installed TTS adapter");
+    expect(resolved.execution?.reason).toContain("no execution adapter");
   });
 
   it("joins an installed adapter to its exact cached repository", () => {
@@ -66,7 +66,7 @@ describe("resolveModelExecutionAvailability", () => {
     const cache = model({
       id: "Supertone/supertonic-3",
       repo_id: "Supertone/supertonic-3",
-      type: "hf.text_to_speech",
+      type: null,
       downloaded: true
     });
 
@@ -76,9 +76,10 @@ describe("resolveModelExecutionAvailability", () => {
     );
 
     expect(resolvedTarget.execution).toMatchObject({
-      kind: "local",
+      kind: "server",
       state: "ready",
-      label: "Local"
+      label: "Server",
+      execution_site: "nodetool_host"
     });
     expect(resolvedCache.execution).toEqual(resolvedTarget.execution);
   });
@@ -123,6 +124,12 @@ describe("resolveModelExecutionAvailability", () => {
 
     expect(api.execution).toMatchObject({ kind: "api", state: "ready" });
     expect(api.execution?.reason).toContain("Provider billing applies");
-    expect(server.execution).toMatchObject({ kind: "server", state: "ready" });
+    expect(api.execution?.execution_site).toBe("provider");
+    expect(server.execution).toMatchObject({
+      kind: "server",
+      state: "ready",
+      execution_site: "nodetool_host",
+      runtime_name: "Ollama"
+    });
   });
 });
