@@ -55,7 +55,10 @@ const HandleTooltip = memo(function HandleTooltip({
   const isPropertyVariant = variant === "property";
   const [showTooltip, setShowTooltip] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const tooltipIdRef = useRef<string>(generateTooltipId());
+  // Lazy: `useRef(generateTooltipId())` would call the generator on every
+  // render of every handle only to discard the result.
+  const tooltipIdRef = useRef<string | null>(null);
+  tooltipIdRef.current ??= generateTooltipId();
   const isConnecting = useConnectionStore(
     (state) => state.connecting || state.isReconnecting
   );
@@ -103,12 +106,22 @@ const HandleTooltip = memo(function HandleTooltip({
     setShowTooltip(true);
   }, [nodeSelected, isConnecting, enableHover, isPropertyVariant]);
 
-  const prettyName = displayName ?? paramName
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  const prettyName = useMemo(
+    () =>
+      displayName ??
+      paramName
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" "),
+    [displayName, paramName]
+  );
 
-  const displayType = formatTypeString(typeMetadata);
+  // `formatTypeString` walks the type tree recursively; the tree only changes
+  // when the handle's own metadata does, not when a drag starts elsewhere.
+  const displayType = useMemo(
+    () => formatTypeString(typeMetadata),
+    [typeMetadata]
+  );
   // Use "float" for color when displaying "number" (float|int union),
   // since both float and int use the same color
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
