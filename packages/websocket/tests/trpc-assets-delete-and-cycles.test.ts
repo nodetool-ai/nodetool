@@ -13,6 +13,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   assetFind: vi.fn(),
   getChildren: vi.fn(),
+  validateParent: vi.fn(),
   existing: new Set<string>(),
   deleted: [] as string[],
   deleteImpl: vi.fn(async (_uri: string) => {}),
@@ -44,6 +45,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       ...actual.Asset,
       find: mocks.assetFind,
       getChildren: mocks.getChildren,
+      validateParent: mocks.validateParent,
       paginate: vi.fn(),
       searchAssetsGlobal: vi.fn()
     }
@@ -196,68 +198,38 @@ describe("assets.delete removes stored objects", () => {
   });
 });
 
+/**
+ * The parent rule moved onto `Asset.validateParent` when the sandbox's
+ * `update_asset` capability grew a second caller for it, and is covered
+ * against a real database in packages/models/tests/asset-parent-cycle.ts.
+ * What is this route's to get right is turning the model's answer into an
+ * HTTP error rather than applying the move.
+ */
 describe("assets.update parent validation", () => {
-  it("rejects an asset as its own parent", async () => {
+  it("refuses the move and reports the model's own reason", async () => {
     const a = makeAsset({ id: "a1" });
     installTree([a]);
-    await expect(
-      createCaller(makeCtx()).assets.update({ id: "a1", parent_id: "a1" })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect(a.parent_id).toBe("user-1");
-  });
+    mocks.validateParent.mockResolvedValue("Parent must be a folder");
 
-  it("rejects a parent that does not exist", async () => {
-    const a = makeAsset({ id: "a1" });
-    installTree([a]);
-    await expect(
-      createCaller(makeCtx()).assets.update({ id: "a1", parent_id: "nope" })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-  });
-
-  it("rejects a non-folder parent", async () => {
-    const a = makeAsset({ id: "a1" });
-    const file = makeAsset({ id: "f1", content_type: "image/png" });
-    installTree([a, file]);
     await expect(
       createCaller(makeCtx()).assets.update({ id: "a1", parent_id: "f1" })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-  });
-
-  it("rejects moving a folder into its own descendant", async () => {
-    const top = makeAsset({ id: "top", content_type: "folder" });
-    const mid = makeAsset({
-      id: "mid",
-      content_type: "folder",
-      parent_id: "top"
-    });
-    const leaf = makeAsset({
-      id: "leaf",
-      content_type: "folder",
-      parent_id: "mid"
-    });
-    installTree([top, mid, leaf]);
-
-    await expect(
-      createCaller(makeCtx()).assets.update({ id: "top", parent_id: "leaf" })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect(top.parent_id).toBe("user-1");
-  });
-
-  it("accepts the synthetic Home folder and a real folder", async () => {
-    const a = makeAsset({ id: "a1" });
-    const folder = makeAsset({ id: "dest", content_type: "folder" });
-    installTree([a, folder]);
-
-    await createCaller(makeCtx()).assets.update({
-      id: "a1",
-      parent_id: "user-1"
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Parent must be a folder"
     });
     expect(a.parent_id).toBe("user-1");
+  });
+
+  it("applies the move when the model raises no objection", async () => {
+    const a = makeAsset({ id: "a1" });
+    installTree([a]);
+    mocks.validateParent.mockResolvedValue(null);
 
     await createCaller(makeCtx()).assets.update({
       id: "a1",
       parent_id: "dest"
     });
+    expect(mocks.validateParent).toHaveBeenCalledWith("user-1", a, "dest");
     expect(a.parent_id).toBe("dest");
   });
 });

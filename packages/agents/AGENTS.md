@@ -564,6 +564,17 @@ be two things to keep in step. `CapabilitySpec.zodSchema` carries the Zod schema
 for the few capabilities whose identity is one (`view_image`, `list_images`, the
 eight `ui_*` document tools), so `Tool.execute` still validates on the way in.
 
+What the registry deliberately does *not* serve is written down where the API
+it mirrors lives: `packages/websocket/src/trpc/sandbox-coverage.ts` classifies
+every tRPC procedure as covered by a capability, reachable through a
+differently-shaped one, withheld with the risk stated, or a recorded gap.
+`packages/websocket/tests/sandbox-api-coverage.test.ts` walks the live router
+and fails in both directions, so a new procedure cannot land unclassified and a
+stale verdict cannot outlive what it judged. The rule the withheld set follows:
+a run may act on the rows its own user owns, and may not touch credentials,
+billing, other tenants, host control, the transcript of its own behaviour, or
+anything that grants a third party access.
+
 `DECLARED_CAPABILITY_MODULES` is the module list a reviewer reads. Three drift
 walks keep everything honest. `capabilityModuleDrift()` reports a declared module with no loader,
 a loader nobody declared, an export with no category or no schema, and one name
