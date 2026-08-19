@@ -5,9 +5,8 @@ const mockIsApiKeySet = jest.fn();
 
 jest.mock("../../stores/ModelPreferencesStore", () => ({
   __esModule: true,
-  default: jest.fn(
-    <T,>(selector: (s: Record<string, unknown>) => T) =>
-      selector({ enabledProviders: mockEnabledProviders })
+  default: jest.fn(<T>(selector: (s: Record<string, unknown>) => T) =>
+    selector({ enabledProviders: mockEnabledProviders })
   )
 }));
 
@@ -99,5 +98,37 @@ describe("useModelAvailability", () => {
     const check = result.current({ provider: "google" });
 
     expect(check.providerEnabled).toBe(false);
+  });
+
+  it("disables a model whose resolved execution target is unavailable", () => {
+    const { result } = renderHook(() => useModelAvailability());
+    const check = result.current({
+      provider: "huggingface-local",
+      execution: {
+        kind: "unavailable",
+        state: "unavailable",
+        label: "Unavailable",
+        reason: "The local TTS adapter is not installed."
+      }
+    });
+
+    expect(check.available).toBe(false);
+    expect(check.providerEnabled).toBe(true);
+    expect(check.hasKey).toBe(true);
+  });
+
+  it("keeps a resolved ready local model selectable", () => {
+    const { result } = renderHook(() => useModelAvailability());
+    const check = result.current({
+      provider: "huggingface-local",
+      execution: {
+        kind: "local",
+        state: "ready",
+        label: "Local",
+        reason: "Runs on this device."
+      }
+    });
+
+    expect(check.available).toBe(true);
   });
 });

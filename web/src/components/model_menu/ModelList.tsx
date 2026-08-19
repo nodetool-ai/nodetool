@@ -60,7 +60,10 @@ const MODEL_NAME_STYLE: React.CSSProperties = {
   minWidth: 0,
   flex: "1 1 auto"
 };
-const BADGE_PRICE_STYLE: React.CSSProperties = { fontSize: "0.9em", opacity: 0.8 };
+const BADGE_PRICE_STYLE: React.CSSProperties = {
+  fontSize: "0.9em",
+  opacity: 0.8
+};
 const PRIMARY_TYPOGRAPHY_PROPS = { component: "div" as const, noWrap: true };
 const SECONDARY_TYPOGRAPHY_PROPS = { component: "div" as const };
 
@@ -129,7 +132,10 @@ const HighlightedModelName = memo<{
     <>
       {highlightedName.parts.map((part, i) =>
         part.isMatch ? (
-          <span key={`${name}-${i}-${part.text}`} style={{ color: primaryColor, fontWeight: 600 }}>
+          <span
+            key={`${name}-${i}-${part.text}`}
+            style={{ color: primaryColor, fontWeight: 600 }}
+          >
             {part.text}
           </span>
         ) : (
@@ -187,35 +193,44 @@ function ModelList<TModel extends ModelSelectorModel>({
     openSettingsTab("providers");
   }, []);
 
-  const badgeStyle = useMemo<React.CSSProperties>(() => ({
-    flex: "0 0 auto",
-    padding: `0 ${getSpacingPx(SPACING.sm)}`,
-    fontSize: "var(--fontSizeSmaller)",
-    lineHeight: 1.4,
-    borderRadius: BORDER_RADIUS.xs,
-    background: theme.vars.palette.action.hover,
-    color: theme.vars.palette.text.secondary,
-    letterSpacing: 0.2,
-    border: "none"
-  }), [theme.vars.palette.action.hover, theme.vars.palette.text.secondary]);
+  const badgeStyle = useMemo<React.CSSProperties>(
+    () => ({
+      flex: "0 0 auto",
+      padding: `0 ${getSpacingPx(SPACING.sm)}`,
+      fontSize: "var(--fontSizeSmaller)",
+      lineHeight: 1.4,
+      borderRadius: BORDER_RADIUS.xs,
+      background: theme.vars.palette.action.hover,
+      color: theme.vars.palette.text.secondary,
+      letterSpacing: 0.2,
+      border: "none"
+    }),
+    [theme.vars.palette.action.hover, theme.vars.palette.text.secondary]
+  );
 
-  const badgeWithIconStyle = useMemo<React.CSSProperties>(() => ({
-    ...badgeStyle,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: getSpacingPx(SPACING.micro)
-  }), [badgeStyle]);
+  const badgeWithIconStyle = useMemo<React.CSSProperties>(
+    () => ({
+      ...badgeStyle,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.micro)
+    }),
+    [badgeStyle]
+  );
 
-  const secondaryTextStyle = useMemo<React.CSSProperties>(() => ({
-    display: "flex",
-    alignItems: "center",
-    gap: getSpacingPx(SPACING.xs),
-    fontSize: theme.vars.fontSizeSmaller,
-    color: theme.vars.palette.text.secondary,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap"
-  }), [theme.vars.fontSizeSmaller, theme.vars.palette.text.secondary]);
+  const secondaryTextStyle = useMemo<React.CSSProperties>(
+    () => ({
+      display: "flex",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.xs),
+      fontSize: theme.vars.fontSizeSmaller,
+      color: theme.vars.palette.text.secondary,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }),
+    [theme.vars.fontSizeSmaller, theme.vars.palette.text.secondary]
+  );
 
   // Flatten selectable models + recommended downloads into one virtualized
   // list. Model rows stay first and 1:1 with `models`, so a model's flat index
@@ -263,14 +278,17 @@ function ModelList<TModel extends ModelSelectorModel>({
   }, [activeIndex, models.length, virtualizer]);
 
   // Stable handler for model selection using data attributes
-  const handleModelClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    const target = event.currentTarget;
-    const index = Number(target.dataset.index);
-    const available = target.dataset.available === "true";
-    if (available && models[index]) {
-      onSelect(models[index]);
-    }
-  }, [models, onSelect]);
+  const handleModelClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      const target = event.currentTarget;
+      const index = Number(target.dataset.index);
+      const available = target.dataset.available === "true";
+      if (available && models[index]) {
+        onSelect(models[index]);
+      }
+    },
+    [models, onSelect]
+  );
 
   const renderRow = useCallback(
     ({
@@ -286,19 +304,22 @@ function ModelList<TModel extends ModelSelectorModel>({
       const { available, providerEnabled, hasKey } = getAvailability(m);
       const isActive = index === activeIndex;
       const tooltipTitle =
-        !providerEnabled && !hasKey
-          ? "Enable provider and add API key in Settings to use this model"
-          : !providerEnabled
-            ? "Enable provider in the left sidebar to use this model"
-            : !hasKey
-              ? "Add API key in Settings to use this model"
-              : "";
+        m.execution && m.execution.state !== "ready"
+          ? (m.execution.reason ?? "This model is not ready to use.")
+          : !providerEnabled && !hasKey
+            ? "Enable provider and add API key in Settings to use this model"
+            : !providerEnabled
+              ? "Enable provider in the left sidebar to use this model"
+              : !hasKey
+                ? "Add API key in Settings to use this model"
+                : "";
       return (
         <div role="listitem" style={style}>
           <Tooltip disableInteractive title={tooltipTitle}>
             <ListItemButton
-              className={`model-menu__model-item ${available ? "" : "is-unavailable"
-                } ${fav ? "is-favorite" : ""} ${isActive ? "is-active" : ""}`}
+              className={`model-menu__model-item ${
+                available ? "" : "is-unavailable"
+              } ${fav ? "is-favorite" : ""} ${isActive ? "is-active" : ""}`}
               aria-disabled={!available}
               aria-selected={isActive}
               data-index={index}
@@ -325,30 +346,51 @@ function ModelList<TModel extends ModelSelectorModel>({
                     fullWidth
                     sx={FLEX_ROW_SX}
                   >
-                    <span
-                      className="model-name"
-                      style={MODEL_NAME_STYLE}
-                    >
+                    <span className="model-name" style={MODEL_NAME_STYLE}>
                       <HighlightedModelName
                         name={m.path || m.name}
                         searchTerm={searchTerm}
                         primaryColor={theme.vars.palette.primary.main}
                       />
                     </span>
-                    {available && isLocalProvider(m.provider) && (
+                    {m.execution && (
                       <Tooltip
-                        title="Runs locally on your device"
+                        title={m.execution.reason ?? m.execution.label}
                         placement="top"
                       >
                         <span
-                          className="badge-local"
-                          style={badgeStyle}
+                          className={`badge-execution badge-${m.execution.kind}`}
+                          style={{
+                            ...badgeStyle,
+                            color:
+                              m.execution.kind === "api"
+                                ? theme.vars.palette.info.main
+                                : m.execution.state === "ready"
+                                  ? theme.vars.palette.success.main
+                                  : m.execution.state === "download_required"
+                                    ? theme.vars.palette.warning.main
+                                    : theme.vars.palette.text.disabled,
+                            border: "1px solid currentColor"
+                          }}
                         >
-                          Local
+                          {m.execution.label}
                         </span>
                       </Tooltip>
                     )}
-                    {available &&
+                    {!m.execution &&
+                      available &&
+                      isLocalProvider(m.provider) && (
+                        <Tooltip
+                          title="Runs locally on your device"
+                          placement="top"
+                        >
+                          <span className="badge-local" style={badgeStyle}>
+                            Local
+                          </span>
+                        </Tooltip>
+                      )}
+                    {!m.execution &&
+                      available &&
                       isHuggingFaceInferenceProvider(m.provider) && (
                         <Tooltip
                           title="Hugging Face Inference API (Paid)"
@@ -359,13 +401,12 @@ function ModelList<TModel extends ModelSelectorModel>({
                             style={badgeWithIconStyle}
                           >
                             HF API
-                            <span style={BADGE_PRICE_STYLE}>
-                              $
-                            </span>
+                            <span style={BADGE_PRICE_STYLE}>$</span>
                           </span>
                         </Tooltip>
                       )}
-                    {available &&
+                    {!m.execution &&
+                      available &&
                       isCloudProvider(m.provider) &&
                       !isHuggingFaceInferenceProvider(m.provider) && (
                         <Tooltip
@@ -377,9 +418,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                             style={badgeWithIconStyle}
                           >
                             API
-                            <span style={BADGE_PRICE_STYLE}>
-                              $
-                            </span>
+                            <span style={BADGE_PRICE_STYLE}>$</span>
                           </span>
                         </Tooltip>
                       )}
@@ -387,7 +426,11 @@ function ModelList<TModel extends ModelSelectorModel>({
                 }
                 secondary={
                   <span style={secondaryTextStyle}>
-                    {m.path ? m.name : m.provider ? `Provider: ${m.provider}` : ""}
+                    {m.path
+                      ? m.name
+                      : m.provider
+                        ? `Provider: ${m.provider}`
+                        : ""}
                   </span>
                 }
                 primaryTypographyProps={PRIMARY_TYPOGRAPHY_PROPS}
@@ -477,8 +520,8 @@ function ModelList<TModel extends ModelSelectorModel>({
             title="No models yet — let's get started"
             description={
               <>
-                Download a local model or add an API key for a cloud provider to get going.
-                {" "}
+                Download a local model or add an API key for a cloud provider to
+                get going.{" "}
                 <Box
                   component="button"
                   type="button"
@@ -542,7 +585,7 @@ function ModelList<TModel extends ModelSelectorModel>({
             height: "100%",
             width: "100%",
             minHeight: 320,
-            overflow: "auto",
+            overflow: "auto"
           }}
         >
           <div
@@ -550,7 +593,7 @@ function ModelList<TModel extends ModelSelectorModel>({
             style={{
               height: virtualizer.getTotalSize(),
               width: "100%",
-              position: "relative",
+              position: "relative"
             }}
           >
             {virtualizer.getVirtualItems().map((vi) => (
@@ -561,7 +604,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                   left: 0,
                   width: "100%",
                   height: vi.size,
-                  transform: `translateY(${vi.start}px)`,
+                  transform: `translateY(${vi.start}px)`
                 })}
               </React.Fragment>
             ))}

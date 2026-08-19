@@ -118,7 +118,13 @@ const sortModels = (
         return 0;
     }
   });
-  return direction === "desc" ? sorted.reverse() : sorted;
+  const directed = direction === "desc" ? sorted.reverse() : sorted;
+  const availabilityRank = (model: UnifiedModel) => {
+    if (model.execution?.state === "unavailable") return 2;
+    if (model.execution?.state === "download_required") return 1;
+    return 0;
+  };
+  return directed.sort((a, b) => availabilityRank(a) - availabilityRank(b));
 };
 
 export interface UseModelsResult {
@@ -135,8 +141,12 @@ export interface UseModelsResult {
 }
 
 export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
-  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
-  const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
+  const modelSearchTerm = useModelManagerStore(
+    (state) => state.modelSearchTerm
+  );
+  const selectedModelType = useModelManagerStore(
+    (state) => state.selectedModelType
+  );
   const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
   const sortField = useModelManagerStore((state) => state.sortField);
   const sortDirection = useModelManagerStore((state) => state.sortDirection);
@@ -146,7 +156,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   const source = useModelManagerStore((state) => state.source);
   const selectedGoal = useModelManagerStore((state) => state.selectedGoal);
   const selectedFormat = useModelManagerStore((state) => state.selectedFormat);
-  const recommendedCatalog = useMetadataStore((state) => state.recommendedModels);
+  const recommendedCatalog = useMetadataStore(
+    (state) => state.recommendedModels
+  );
   const { budgetGb } = useHardwareProfile();
 
   const {
@@ -233,8 +245,12 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
       const typeMatches =
         selectedModelType === "All" || model.type === selectedModelType;
 
-      if (!matchesText) {return false;}
-      if (!typeMatches) {return false;}
+      if (!matchesText) {
+        return false;
+      }
+      if (!typeMatches) {
+        return false;
+      }
       if (selectedGoal && !goalsForModel(model).has(selectedGoal)) {
         return false;
       }
@@ -245,8 +261,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
         maxModelSizeGB &&
         model.size_on_disk &&
         model.size_on_disk > maxModelSizeGB * 1024 ** 3
-      )
-        {return false;}
+      ) {
+        return false;
+      }
 
       return true;
     };
@@ -284,7 +301,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     return sortModelTypes(Array.from(allTypes));
   }, [allModels, source]);
 
-    // Get available model types based on current filters (for sidebar visibility)
+  // Get available model types based on current filters (for sidebar visibility)
   const availableModelTypes = useMemo(() => {
     const types = new Set<string>();
     types.add("All");
@@ -309,7 +326,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
           model.name?.toLowerCase().includes(searchTerm) ||
           model.repo_id?.toLowerCase().includes(searchTerm);
 
-        if (!matchesText) {return false;}
+        if (!matchesText) {
+          return false;
+        }
         if (selectedGoal && !goalsForModel(model).has(selectedGoal)) {
           return false;
         }
@@ -320,8 +339,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
           maxModelSizeGB &&
           model.size_on_disk &&
           model.size_on_disk > maxModelSizeGB * 1024 ** 3
-        )
-          {return false;}
+        ) {
+          return false;
+        }
 
         return true;
       }) || [];
@@ -353,10 +373,14 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   }, [filteredModels]);
 
   const handleShowInExplorer = async (modelId: string) => {
-    if (!modelId) {return;}
+    if (!modelId) {
+      return;
+    }
 
     const model = allModels?.find((m) => m.id === modelId);
-    if (!model) {return;}
+    if (!model) {
+      return;
+    }
 
     const isOllama = model.type === "llama_model";
 
