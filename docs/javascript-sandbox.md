@@ -64,7 +64,7 @@ libraries are imports.**
 
 | Global | What it does |
 |---|---|
-| `console.*` | Log lines land in the run's `logs` array |
+| `console.*` | Log lines land in the run's `logs` array. A Code node also posts each line as a `log_update` |
 | `fetch(url, options?)` | HTTP, returning `{ok, status, headers, body, json, text(), arrayBuffer(), bytes()}`. A `Uint8Array` body is sent as raw bytes |
 | `workspace.*` | `read`, `write`, `list`, `readBytes`, `writeBytes`, `stat`, `root`, `copy`, `move`, `mkdir`, `remove`. Needs a `ProcessingContext` |
 | `getSecret(name)` | The run's secret store, limited to the run's declared secret scope |

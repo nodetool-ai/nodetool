@@ -65,7 +65,9 @@ import {
   type RunSandboxOptions,
   type RunSandboxResult,
   type SandboxCapabilityMount,
-  type SandboxInputTake
+  type SandboxInputTake,
+  type SandboxLogCallback,
+  type SandboxLogLevel
 } from "@nodetool-ai/agents/js-sandbox";
 import { importHidden } from "@nodetool-ai/config";
 import {
@@ -456,6 +458,7 @@ export class CodeNode extends BaseNode {
       "toBase64/fromBase64/toHex/fromHex. Libraries — CSV, HTML, XML, XLSX, YAML, zip, dates, " +
       "diffs — are sandbox packages: `import` one at the top and the host resolves it " +
       "against the installed packs. " +
+      "console.log/warn/error/info appear on the node log as they run. " +
       "Await fetch, sleep, workspace, getSecret, format, media, an imported package's " +
       "calls, and crypto.digest/hmac; the rest are synchronous. " +
       "Concurrent calls run in parallel: use Promise.all or " +
@@ -579,6 +582,37 @@ export class CodeNode extends BaseNode {
   }
 
   /**
+   * Forward guest `console.*` calls as `log_update` messages — the same
+   * channel package-resolution warnings already use, so the editor's log
+   * panel shows them as they happen.
+   */
+  private logSink(
+    context?: ProcessingContext
+  ): SandboxLogCallback | undefined {
+    if (!context || !this.__node_id) return undefined;
+    return (level: SandboxLogLevel, message: string) => {
+      this.postLog(context, message, consoleSeverity(level));
+    };
+  }
+
+  /** Post on the node's log channel, where the run has one. */
+  private postLog(
+    context: ProcessingContext | undefined,
+    content: string,
+    severity: "info" | "warning" | "error"
+  ): void {
+    if (!context || !this.__node_id) return;
+    context.postMessage({
+      type: "log_update",
+      node_id: this.__node_id,
+      node_name: CodeNode.title,
+      content,
+      severity,
+      workflow_id: context.workflowId
+    });
+  }
+
+  /**
    * Sandbox policy from the node's props. The sandbox clamps
    * `maxResponseBodyBytes` to its own ceiling, so no clamping here.
    *
@@ -670,15 +704,7 @@ export class CodeNode extends BaseNode {
     context: ProcessingContext | undefined,
     content: string
   ): void {
-    if (!context || !this.__node_id) return;
-    context.postMessage({
-      type: "log_update",
-      node_id: this.__node_id,
-      node_name: CodeNode.title,
-      content,
-      severity: "warning",
-      workflow_id: context.workflowId
-    });
+    this.postLog(context, content, "warning");
   }
 
   /**
@@ -746,6 +772,7 @@ export class CodeNode extends BaseNode {
       globals: await this.sandboxGlobals(context),
       limits: this.sandboxLimits(envelope),
       onProgress: this.progressSink(context),
+      onLog: this.logSink(context),
       modules: this.resolveModules(envelope, context),
       capabilities: await this.resolveCapabilities(code, context)
     };
@@ -1034,6 +1061,15 @@ function importableStatements(code: string): CodeBodyStatement[] | null {
   if (!("error" in parsed)) return parsed.statements;
   const rewritten = parseCodeBody(code.replace(/\byield\b/g, "yield_"));
   return "error" in rewritten ? null : rewritten.statements;
+}
+
+/** Map a guest `console.*` method onto a `log_update` severity. */
+function consoleSeverity(
+  level: SandboxLogLevel
+): "info" | "warning" | "error" {
+  if (level === "warn") return "warning";
+  if (level === "error") return "error";
+  return "info";
 }
 
 /** Extract dynamic inputs, filtering reserved/invalid keys. */

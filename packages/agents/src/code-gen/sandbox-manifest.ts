@@ -124,7 +124,8 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
   console: {
     name: "console",
     kind: "namespace",
-    description: "Collected into the node's logs; not returned to the graph.",
+    description:
+      "Forwarded as log updates and collected into the run's logs array; not returned to the graph.",
     members: [
       {
         name: "console.log",

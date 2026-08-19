@@ -19,7 +19,9 @@ import {
   resolveSandboxLimits,
   MAX_OUTPUT_SIZE,
   MAX_FETCH_CALLS,
-  GUEST_MEMORY_LIMIT
+  GUEST_MEMORY_LIMIT,
+  MAX_CONSOLE_LOGS,
+  MAX_CONSOLE_LOG_CHARS
 } from "../src/js-sandbox.js";
 
 // ---------------------------------------------------------------------------
@@ -428,6 +430,33 @@ describe("runInSandbox", () => {
     expect(result.success).toBe(true);
     expect(result.logs).toContain("hello");
     expect(result.logs).toContain("[warn] warning");
+  });
+
+  it("forwards console output to onLog as it happens", async () => {
+    const seen: Array<[string, string]> = [];
+    const result = await runInSandbox({
+      code: `
+        console.log("hello", 1);
+        console.info("note");
+        console.warn("warning");
+        console.error("boom");
+        return "done";
+      `,
+      onLog: (level, message) => seen.push([level, message])
+    });
+    expect(result.success).toBe(true);
+    expect(seen).toEqual([
+      ["log", "hello 1"],
+      ["info", "note"],
+      ["warn", "warning"],
+      ["error", "boom"]
+    ]);
+    expect(result.logs).toEqual([
+      "hello 1",
+      "[info] note",
+      "[warn] warning",
+      "[error] boom"
+    ]);
   });
 
   it("reports syntax errors", async () => {
@@ -1918,6 +1947,96 @@ describe("progress bridge", () => {
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// console log forwarding
+// ---------------------------------------------------------------------------
+
+describe("console log forwarding", () => {
+  it("forwards from the host console object immediately", () => {
+    const seen: Array<[string, string]> = [];
+    const { sandbox, getLogs } = buildSandbox(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      (level, message) => seen.push([level, message])
+    );
+    const con = sandbox.console as {
+      log: (...a: unknown[]) => void;
+      warn: (...a: unknown[]) => void;
+    };
+    con.log("hello", { n: 1 });
+    con.warn("careful");
+    expect(seen).toEqual([
+      ["log", "hello {\n  \"n\": 1\n}"],
+      ["warn", "careful"]
+    ]);
+    expect(getLogs()).toEqual(["hello {\n  \"n\": 1\n}", "[warn] careful"]);
+  });
+
+  it("truncates a forwarded line but keeps the full line in logs", () => {
+    const seen: string[] = [];
+    const { sandbox, getLogs } = buildSandbox(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      (_level, message) => seen.push(message)
+    );
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    const long = "x".repeat(MAX_CONSOLE_LOG_CHARS + 50);
+    con.log(long);
+    expect(seen[0]).toHaveLength(MAX_CONSOLE_LOG_CHARS);
+    expect(getLogs()[0]).toHaveLength(MAX_CONSOLE_LOG_CHARS + 50);
+  });
+
+  it("stops forwarding after MAX_CONSOLE_LOGS but still collects", () => {
+    const seen: string[] = [];
+    const { sandbox, getLogs } = buildSandbox(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      (_level, message) => seen.push(message)
+    );
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    for (let i = 0; i < MAX_CONSOLE_LOGS + 25; i++) {
+      con.log(String(i));
+    }
+    expect(seen).toHaveLength(MAX_CONSOLE_LOGS);
+    expect(getLogs()).toHaveLength(MAX_CONSOLE_LOGS + 25);
+  });
+
+  it("stops forwarding once the run is cancelled", () => {
+    const seen: string[] = [];
+    const controller = new AbortController();
+    const { sandbox } = buildSandbox(
+      undefined,
+      controller.signal,
+      undefined,
+      undefined,
+      (_level, message) => seen.push(message)
+    );
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    con.log("before");
+    controller.abort();
+    con.log("after");
+    expect(seen).toEqual(["before"]);
+  });
+
+  it("swallows a throwing sink so the guest still succeeds", async () => {
+    const result = await runInSandbox({
+      code: `console.log("hi"); return 1;`,
+      onLog: () => {
+        throw new Error("sink failed");
+      }
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(1);
+    expect(result.logs).toEqual(["hi"]);
   });
 });
 
