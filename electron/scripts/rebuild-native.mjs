@@ -88,9 +88,12 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 
   // Capture (rather than inherit) so we can inspect stderr for a transient
   // resolution failure before deciding whether to retry, then echo it through.
+  // `-j max` is `make -j` on POSIX and MSBuild `/m` on Windows; better-sqlite3
+  // is three projects (sqlite3, the binding, a test extension) and building
+  // them in parallel took the rebuild from 53 s to 33 s on a Windows box.
   const result = spawnSync(
     process.execPath,
-    [nodeGyp, "rebuild", "--release", `--arch=${arch}`],
+    [nodeGyp, "rebuild", "--release", `--arch=${arch}`, "-j", "max"],
     { cwd: moduleDir, encoding: "utf8" }
   );
   if (result.stdout) process.stdout.write(result.stdout);
