@@ -105,21 +105,21 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   },
   favorites: {
     id: "favorites",
-    label: "Favorites",
+    label: "Favorite Nodes",
     description: "Find nodes that you saved as favorites.",
     docsTopic: "nodes",
     icon: <StarIcon />
   },
   history: {
     id: "history",
-    label: "History",
+    label: "Recent Nodes",
     description: "Reuse nodes that you added recently.",
     docsTopic: "nodes",
     icon: <HistoryIcon />
   },
   settings: {
     id: "settings",
-    label: "Settings",
+    label: "Workflow Settings",
     description: "Edit settings for the current workflow.",
     docsTopic: "workflows",
     icon: <SettingsIcon />
@@ -225,7 +225,13 @@ export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
       LEFT_PANEL_CATEGORY_BY_ID.sketches,
       LEFT_PANEL_CATEGORY_BY_ID.scripts,
       LEFT_PANEL_CATEGORY_BY_ID.storyboards,
-      LEFT_PANEL_CATEGORY_BY_ID.timelines,
+      LEFT_PANEL_CATEGORY_BY_ID.timelines
+    ]
+  },
+  {
+    id: "developer-tools",
+    placement: "top",
+    categories: [
       LEFT_PANEL_CATEGORY_BY_ID.jsscripts
     ]
   },

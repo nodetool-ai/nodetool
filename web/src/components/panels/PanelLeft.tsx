@@ -359,7 +359,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeadline
-              title="History"
+              title="Recent Nodes"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -378,7 +378,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeadline
-              title="Favorites"
+              title="Favorite Nodes"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -633,7 +633,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeadline
-              title="Settings"
+              title="Workflow Settings"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />

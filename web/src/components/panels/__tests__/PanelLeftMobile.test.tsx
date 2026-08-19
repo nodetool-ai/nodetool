@@ -142,7 +142,7 @@ it("keeps the visible desktop groups in the mobile tab row", () => {
   renderPanel();
 
   const groups = Array.from(document.querySelectorAll(".mobile-tab-group"));
-  expect(groups).toHaveLength(3);
+  expect(groups).toHaveLength(4);
   expect(
     groups.map((group) =>
       Array.from(group.querySelectorAll("button")).map((button) =>
@@ -151,7 +151,8 @@ it("keeps the visible desktop groups in the mobile tab row", () => {
     )
   ).toEqual([
     ["Workflows", "Apps", "Chats"],
-    ["Sketches", "Scripts", "Storyboards", "Timelines", "JS Scripts"],
+    ["Sketches", "Scripts", "Storyboards", "Timelines"],
+    ["JS Scripts"],
     ["Assets", "Library"]
   ]);
 });

@@ -74,7 +74,12 @@ describe("quickAccessCategories", () => {
       {
         id: "editors",
         placement: "top",
-        views: ["sketches", "scripts", "storyboards", "timelines", "jsscripts"]
+        views: ["sketches", "scripts", "storyboards", "timelines"]
+      },
+      {
+        id: "developer-tools",
+        placement: "top",
+        views: ["jsscripts"]
       },
       {
         id: "workflow-context",
