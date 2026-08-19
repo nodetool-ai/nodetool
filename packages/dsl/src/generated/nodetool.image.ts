@@ -220,6 +220,7 @@ export function loadImageFolder(inputs: LoadImageFolderInputs): DslNode<LoadImag
 // Save Image File — nodetool.image.SaveImageFile
 export type SaveImageFileInputs = {
   image?: Connectable<ImageRef>;
+  save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   filename?: Connectable<string>;
   overwrite?: Connectable<boolean>;

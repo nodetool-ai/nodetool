@@ -38,6 +38,7 @@ export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "o
 // Save Text File — nodetool.text.SaveTextFile
 export type SaveTextFileInputs = {
   text?: Connectable<string>;
+  save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   name?: Connectable<string>;
 };

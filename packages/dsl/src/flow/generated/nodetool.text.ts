@@ -40,6 +40,7 @@ export function embedding(inputs: EmbeddingInputs): Promise<EmbeddingOutputs> {
 // Save Text File — nodetool.text.SaveTextFile
 export type SaveTextFileInputs = {
   text?: string;
+  save_to_workspace?: boolean;
   folder?: string;
   name?: string;
 };

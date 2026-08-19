@@ -7,8 +7,13 @@ import type {
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
-  loadNodePath
+  loadNodePath,
+  resolveSaveTarget,
+  HIDDEN_WHEN_SAVING_TO_WORKSPACE,
+  SAVE_TO_WORKSPACE_DESCRIPTION,
+  SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
 
@@ -86,7 +91,7 @@ export class SaveDocumentFileNode extends BaseNode {
   static readonly title = "Save Document File";
   static readonly description =
     "Write a document to disk.\n    files, document, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
-  static readonly inlineFields = ["folder", "filename"];
+  static readonly inlineFields = ["save_to_workspace", "folder", "filename"];
   static readonly inputFields = ["document"];
 
   @prop({
@@ -104,10 +109,19 @@ export class SaveDocumentFileNode extends BaseNode {
   declare document: DocumentRefLike;
 
   @prop({
+    type: "bool",
+    default: true,
+    title: SAVE_TO_WORKSPACE_TITLE,
+    description: SAVE_TO_WORKSPACE_DESCRIPTION
+  })
+  declare save_to_workspace: boolean;
+
+  @prop({
     type: "str",
     default: "",
     title: "Folder",
-    description: "Folder where the file will be saved"
+    description: "Folder where the file will be saved",
+    json_schema_extra: HIDDEN_WHEN_SAVING_TO_WORKSPACE
   })
   declare folder: string;
 
@@ -122,11 +136,23 @@ export class SaveDocumentFileNode extends BaseNode {
   /** Destination path — set on the instance, not declared as a `@prop`. */
   declare path?: string;
 
-  async process(): Promise<SaveDocumentFileNodeOutputs> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<SaveDocumentFileNodeOutputs> {
     const document = this.document ?? {};
-    const full = toFilePath(this.path ?? "");
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
+    // A caller (or an older graph) that pinned a full `path` keeps writing
+    // exactly there; everything else goes through folder + filename.
+    const pinned = toFilePath(this.path ?? "");
+    const full = pinned
+      ? pinned
+      : await resolveSaveTarget({
+          folder: this.folder,
+          filename: this.filename || "document.txt",
+          saveToWorkspace: this.save_to_workspace,
+          workspaceDir: context?.workspaceDir
+        });
     await fs.mkdir(path.dirname(full), { recursive: true });
     if (document.data) {
       await fs.writeFile(full, asBytes(document.data));

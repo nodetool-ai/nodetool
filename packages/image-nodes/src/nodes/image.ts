@@ -31,7 +31,11 @@ import {
 import {
   tagAsBrowserGpu,
   tagAsServer,
-  tagAsContentCard
+  tagAsContentCard,
+  resolveSaveTarget,
+  HIDDEN_WHEN_SAVING_TO_WORKSPACE,
+  SAVE_TO_WORKSPACE_DESCRIPTION,
+  SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
 import * as d from "typegpu/data";
 import {
@@ -462,7 +466,7 @@ export class SaveImageFileImageNode extends BaseNode {
     output: "image",
     path: "str"
   };
-  static readonly inlineFields = ["filename"];
+  static readonly inlineFields = ["save_to_workspace", "filename"];
   static readonly inputFields = ["image"];
   static readonly platforms = NODE_ONLY;
 
@@ -481,10 +485,19 @@ export class SaveImageFileImageNode extends BaseNode {
   declare image: any;
 
   @prop({
+    type: "bool",
+    default: true,
+    title: SAVE_TO_WORKSPACE_TITLE,
+    description: SAVE_TO_WORKSPACE_DESCRIPTION
+  })
+  declare save_to_workspace: any;
+
+  @prop({
     type: "str",
     default: "",
     title: "Folder",
-    description: "Folder where the file will be saved"
+    description: "Folder where the file will be saved",
+    json_schema_extra: HIDDEN_WHEN_SAVING_TO_WORKSPACE
   })
   declare folder: any;
 
@@ -506,30 +519,18 @@ export class SaveImageFileImageNode extends BaseNode {
   })
   declare overwrite: any;
 
-  async process(): Promise<SaveImageFileImageNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<SaveImageFileImageNodeOutputs> {
     const fs = await loadNodeFsPromises();
-    const path = await loadNodePath();
-    const folder = String(this.folder ?? ".");
     const filename = dateName(String(this.filename ?? "image.png"));
-    let p = await filePath(path.resolve(folder, filename));
-    await fs.mkdir(path.dirname(p), { recursive: true });
+    const p = await resolveSaveTarget({
+      folder: this.folder,
+      filename,
+      saveToWorkspace: this.save_to_workspace,
+      workspaceDir: context?.workspaceDir,
+      overwrite: this.overwrite
+    });
 
-    if (!this.overwrite) {
-      const ext = path.extname(p);
-      const base = p.slice(0, p.length - ext.length);
-      let counter = 1;
-      while (true) {
-        try {
-          await fs.access(p);
-          p = `${base}_${counter}${ext}`;
-          counter++;
-        } catch {
-          break;
-        }
-      }
-    }
-
-    const bytes = await imageBytesAsync(this.image);
+    const bytes = await imageBytesAsync(this.image, context);
     await fs.writeFile(p, bytes);
     const meta = await metadataFor(bytes);
     return {
