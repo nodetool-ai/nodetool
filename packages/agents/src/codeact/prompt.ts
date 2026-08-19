@@ -33,13 +33,15 @@ const BOUNDED_FANOUT_NODETOOL_BATCH = `Use
 
 /**
  * The catalog renders each tool as the call an action writes. Read as a tool
- * list, `tools.<name>` becomes a tool name a model emits at the top level, and
+ * list, an imported name becomes a tool name a model emits at the top level, and
  * the provider rejects the turn.
  */
 export const TOOL_CATALOG_GUIDANCE =
-  "Each line is code you write inside an `execute_code` action, not the name " +
-  "of a tool. Nothing here is callable as a top-level tool call — a turn that " +
-  "names one fails.";
+  "Each capability is an import. Write the `import` line at the top of the " +
+  "action and call the imported function — there is no `tools.<name>()` " +
+  "global. Each group below is headed by the exact import statement to copy. " +
+  "Nothing here is callable as a top-level tool call — a turn that names one " +
+  "fails.";
 
 const actionContractBase = (
   boundedFanout: string
@@ -67,7 +69,7 @@ Rules:
 - Independent work runs CONCURRENTLY, and a sequential \`for\` loop over
   \`await\` is the most common way an action wastes wall-clock. A call starts
   its work when invoked, not when awaited, so
-  \`await Promise.all(items.map(x => tools.foo(x)))\` fans out for real —
+  \`await Promise.all(items.map(x => nodetool.web.search(x)))\` fans out for real —
   ten independent lookups take one round trip, not ten. ${boundedFanout}
   \`Promise.allSettled\` when some are allowed to fail. Sequence only what
   genuinely depends on a previous result.
@@ -76,8 +78,11 @@ Rules:
   does not persist. Assign each expensive result to \`state\` immediately
   (\`state.video = state.video ?? await nodetool.media.generateVideo(prompt, model)\`),
   then continue. The next action must reuse what \`state\` already holds —
-  never re-run generate, speak, or fetch. Write a large literal into \`state\`
-  in the action that builds it. If that action fails, patch the copy in
+  never re-run generate, speak, or fetch. A chat turn keeps its thread's
+  \`state\`, so an earlier turn's results may still be there; read it
+  defensively (\`state.video?.asset_uri\`) instead of assuming a key exists,
+  and re-derive what is missing rather than throwing on \`undefined\`.
+  Write a large literal into \`state\` in the action that builds it. If that action fails, patch the copy in
   \`state\` (\`state.doc.type = "screenplay"\`) and retry — do not emit the
   literal a second time.
 - Keep observations small. \`return\` a compact summary (counts, ids, the few
@@ -106,8 +111,9 @@ function actionContractChat(
   boundedFanout: string
 ): string {
   return `${actionContractBase(boundedFanout)}
-- Network, secrets, files, and assets are available only through \`tools.*\`,
-  so permission checks and approvals cannot be bypassed. Unusable here:
+- Network, secrets, files, and assets are available only through imported
+  capabilities, so permission checks and approvals cannot be bypassed.
+  Unusable here:
   ${unavailable.map((name) => `\`${name}\``).join(", ")} — a chat action runs
   with no context and a zero-request fetch limit.
 - The \`nodetool\` object model covers what those bridges did, past the gate:
@@ -223,7 +229,9 @@ function renderSandboxSummary(
     lines.push(`- ${helper.signature}`);
   }
   const besides =
-    variant === "chat" ? "`tools.*`, `state`" : "`tools.*`, `state`, `finish`";
+    variant === "chat"
+      ? "imported capabilities, `state`"
+      : "imported capabilities, `state`, `finish`";
   const notes = relevantNotes(
     manifest,
     variant === "chat" ? unavailableInChat : new Set<string>()
@@ -262,7 +270,7 @@ interface CodeActPromptOptions {
   /**
    * Tools offered as ordinary tool calls rather than through the sandbox —
    * the file, search, fetch and delegation set. Listed by name so the model
-   * does not hunt for them in `tools.*`, where they are absent.
+   * does not hunt for them among the imports, where they are absent.
    */
   directToolNames?: string[];
   /** Extra sections appended after the tool catalog (e.g. the graph model). */
@@ -285,6 +293,12 @@ interface CodeActPromptOptions {
    * printed only when a session can answer it.
    */
   packageListTool?: boolean;
+  /**
+   * Specifiers for belt names no capability module owns but the host mounts
+   * anyway, so the catalog documents them as imports rather than as tool
+   * calls. See {@link renderToolCatalog}.
+   */
+  graftedSpecifiers?: ReadonlyMap<string, string>;
 }
 
 /** The one true invocation, as a code action writes it. */
@@ -350,17 +364,18 @@ export function buildCodeActSystemPrompt(
     }
   }
   sections.push(
-    `# Tools\n${TOOL_CATALOG_GUIDANCE}\n\n${renderToolCatalog(options.tools)}`
+    `# Tools\n${TOOL_CATALOG_GUIDANCE}\n\n${renderToolCatalog(options.tools, options.graftedSpecifiers)}`
   );
   const deferred = options.deferredTools ?? [];
   if (deferred.length > 0) {
     sections.push(
       `# More tools (discover before calling)\n` +
-        `These are also callable via \`tools.<name>()\`, but only their names ` +
-        `are listed here. Call \`await nodetool.searchTools("query")\` (or ` +
-        `\`nodetool.searchTools("select:name1,name2")\`) first — it returns each ` +
-        `match's signature and description. Do not guess arguments for a ` +
-        `tool you have not looked up.\n\n` +
+        `These are available too, but only their names are listed here. Call ` +
+        `\`await nodetool.searchTools("query")\` (or ` +
+        `\`nodetool.searchTools("select:name1,name2")\`) first — each match ` +
+        `comes back with its signature, its description and the \`import\` ` +
+        `line to write. Do not guess arguments, and do not guess the module ` +
+        `to import from.\n\n` +
         deferred.map((t) => t.name).join(", ")
     );
   }
@@ -373,8 +388,8 @@ export function buildCodeActSystemPrompt(
         `this install has. Call one directly when you need exactly what it ` +
         `does; a code action whose only job is to forward one is a wasted ` +
         `round trip. Write the action when you compose several calls, loop, ` +
-        `or transform the results — they stay reachable inside one as ` +
-        `\`tools.<name>()\` and through \`nodetool.*\`.\n\n` +
+        `or transform the results — inside one they are imported like any ` +
+        `other capability, and reachable through \`nodetool.*\`.\n\n` +
         direct.join(", ")
     );
   }

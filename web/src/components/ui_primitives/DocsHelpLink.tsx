@@ -4,38 +4,66 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconButton, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { docsLink, type DocsTopic } from "../../config/docsLinks";
-import { MOTION } from "./tokens";
+import { MOTION, TYPOGRAPHY, reducedMotion } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 
 export interface DocsHelpLinkProps {
   /** Documentation page this surface maps to. */
   topic: DocsTopic;
   /** What the tooltip names, e.g. "Workflows" → "Workflows documentation". */
   label: string;
+  /** Use a compact icon or an explicit external-link action. */
+  variant?: "icon" | "label";
   size?: "small" | "medium";
   tooltipPlacement?: "top" | "bottom" | "left" | "right";
   className?: string;
 }
 
-const styles = (theme: Theme) =>
+const iconStyles = (theme: Theme) =>
   css({
     color: theme.vars.palette.text.disabled,
     transition: `color ${MOTION.normal}`,
+    ...reducedMotion({ transition: MOTION.none }),
     "&:hover": {
       color: theme.vars.palette.primary.main,
       backgroundColor: theme.vars.palette.action.hover
     }
   });
 
+const labelStyles = (theme: Theme) =>
+  css({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: getSpacingPx(SPACING.micro),
+    color: theme.vars.palette.text.secondary,
+    ...TYPOGRAPHY.sans.label,
+    letterSpacing: "0.04em",
+    lineHeight: 1,
+    textDecoration: "none",
+    whiteSpace: "nowrap",
+    transition: `color ${MOTION.normal}`,
+    ...reducedMotion({ transition: MOTION.none }),
+    "&:hover": {
+      color: theme.vars.palette.primary.main,
+      textDecoration: "underline"
+    },
+    "& .docs-help-link-icon": {
+      fontSize: "1em"
+    }
+  });
+
 /**
- * Small help icon that opens the matching documentation page in a new tab.
- * Sits in panel headers and page heroes next to the thing it explains.
+ * Opens the matching documentation page in a new tab, as either a compact
+ * help icon or an explicit text action.
  */
 const DocsHelpLinkInternal: React.FC<DocsHelpLinkProps> = ({
   topic,
   label,
+  variant = "icon",
   size = "small",
   tooltipPlacement = "bottom",
   className
@@ -43,26 +71,43 @@ const DocsHelpLinkInternal: React.FC<DocsHelpLinkProps> = ({
   const theme = useTheme();
   const title = `${label} documentation`;
 
+  const commonProps = {
+    href: docsLink(topic),
+    target: "_blank",
+    rel: "noopener noreferrer",
+    "aria-label": title,
+    onClick: (event: React.MouseEvent) => event.stopPropagation()
+  } as const;
+
+  const link =
+    variant === "label" ? (
+      <a
+        {...commonProps}
+        className={`docs-help-link nodrag${className ? ` ${className}` : ""}`}
+        css={labelStyles(theme)}
+      >
+        <span>OPEN DOCUMENTATION</span>
+        <OpenInNewIcon className="docs-help-link-icon" aria-hidden="true" />
+      </a>
+    ) : (
+      <IconButton
+        {...commonProps}
+        className={`docs-help-link nodrag${className ? ` ${className}` : ""}`}
+        css={iconStyles(theme)}
+        size={size}
+        component="a"
+      >
+        <HelpOutlineIcon fontSize={size === "medium" ? "medium" : "small"} />
+      </IconButton>
+    );
+
   return (
     <Tooltip
       title={title}
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement={tooltipPlacement}
     >
-      <IconButton
-        className={`docs-help-link nodrag${className ? ` ${className}` : ""}`}
-        css={styles(theme)}
-        size={size}
-        component="a"
-        href={docsLink(topic)}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={title}
-        tabIndex={-1}
-        onClick={(event: React.MouseEvent) => event.stopPropagation()}
-      >
-        <HelpOutlineIcon fontSize={size === "medium" ? "medium" : "small"} />
-      </IconButton>
+      {link}
     </Tooltip>
   );
 };

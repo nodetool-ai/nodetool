@@ -122,18 +122,87 @@ interface MediaModelArgs {
   model: string;
 }
 
+function readModelId(value: unknown): string | undefined {
+  return isNonEmptyString(value) ? value : undefined;
+}
+
+/**
+ * Read a provider+model from the shapes find_model actually returns: a hit
+ * (`provider` + `model_id` + `ref`), its `.ref` (`provider` + `id`), or the
+ * documented `{provider, model}` pair. Nested `model` objects win over the
+ * top-level pair so `generate_video({prompt, model: hit.ref})` works.
+ */
+function modelFromRecord(value: unknown): MediaModelArgs | null {
+  if (!isRecord(value)) return null;
+  if (isRecord(value.ref)) {
+    const fromRef = modelFromRecord(value.ref);
+    if (fromRef !== null) return fromRef;
+  }
+  const provider = readModelId(value.provider);
+  const id =
+    readModelId(value.model_id) ??
+    (isNonEmptyString(value.model) ? value.model : undefined) ??
+    readModelId(value.id);
+  if (provider !== undefined && id !== undefined) {
+    return { provider, model: id };
+  }
+  return null;
+}
+
+/**
+ * A provider rejection, with the model that was called in it.
+ *
+ * "text_to_video failed: Unprocessable Entity" told a live session nothing:
+ * the model it had picked was an image-to-video endpoint, and the message
+ * named neither the model nor the way out. `find_model` now filters by
+ * direction, and when a provider still refuses, the error says which model to
+ * re-pick.
+ */
+function predictionError(
+  capability: string,
+  m: MediaModelArgs,
+  e: unknown
+): { error: string } {
+  const detail = e instanceof Error ? e.message : String(e);
+  return {
+    error:
+      `${capability} failed for ${m.provider}:${m.model} — ${detail}. ` +
+      `If the model does not do ${capability}, pick another with ` +
+      `find_model({capability: "${capability}"}).`
+  };
+}
+
 function parseModelArgs(
   params: Record<string, unknown>
 ): MediaModelArgs | { error: string } {
-  const provider = params["provider"];
-  const model = params["model"];
-  if (!isNonEmptyString(provider)) {
+  const fromModel = modelFromRecord(params.model);
+  if (fromModel !== null) return fromModel;
+  if (isRecord(params.model) && isNonEmptyString(params.provider)) {
+    const nested = params.model;
+    const id =
+      readModelId(nested.model_id) ??
+      readModelId(nested.id) ??
+      (isNonEmptyString(nested.model) ? nested.model : undefined);
+    if (id !== undefined) {
+      return { provider: params.provider, model: id };
+    }
+  }
+  const fromParams = modelFromRecord(params);
+  if (fromParams !== null) return fromParams;
+  if (isNonEmptyString(params.model) && params.model.includes("/")) {
+    const slash = params.model.indexOf("/");
+    return {
+      provider: params.model.slice(0, slash),
+      model: params.model.slice(slash + 1)
+    };
+  }
+  if (!isNonEmptyString(params.provider)) {
     return { error: "provider must be a non-empty string (use find_model)" };
   }
-  if (!isNonEmptyString(model)) {
+  if (!isNonEmptyString(params.model)) {
     return { error: "model must be a non-empty string (use find_model)" };
   }
-  return { provider, model };
+  return { provider: params.provider, model: params.model };
 }
 
 async function readWorkspaceOrAssetFile(
@@ -203,9 +272,7 @@ const generateImage: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `text_to_image failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("text_to_image", m, e);
     }
   }
 };
@@ -252,9 +319,7 @@ const editImage: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `image_to_image failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("image_to_image", m, e);
     }
   }
 };
@@ -296,9 +361,7 @@ const generateVideo: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `text_to_video failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("text_to_video", m, e);
     }
   }
 };
@@ -341,9 +404,7 @@ const animateImage: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `image_to_video failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("image_to_video", m, e);
     }
   }
 };
@@ -541,9 +602,7 @@ const generateSpeech: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `text_to_speech failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("text_to_speech", m, e);
     }
   }
 };

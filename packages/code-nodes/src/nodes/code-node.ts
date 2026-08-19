@@ -10,7 +10,7 @@
  *
  * On a server host the code also gets the `nodetool` object model — the
  * platform as objects (`nodetool.workflows`, `nodetool.assets`, …), backed by
- * the agent toolbelt through a `tools.<name>()` bridge. The belt is loaded
+ * the agent toolbelt through imported capability modules. The belt is loaded
  * lazily and only on Node: the in-browser runner bundles this module, so the
  * toolbelt (native canvas, IMAP, execution) must never sit in its static
  * import graph. Without a belt, `nodetool.capabilities()` reports `{}` and
@@ -150,10 +150,10 @@ const JS_RESERVED = new Set([
 // ---------------------------------------------------------------------------
 
 /**
- * The guest prelude every run gets: `tools.<name>()` wrappers over the
- * `__callTool` bridge, then the `nodetool` object model on top of them. Both
- * are plain strings, so prepending them costs nothing even where no belt
- * exists — the object model degrades per namespace by design.
+ * The guest prelude every run gets: the belt bridge over `__callTool`, then
+ * the `nodetool` object model on top of it. Both are plain strings, so
+ * prepending them costs nothing even where no belt exists — the object model
+ * degrades per namespace by design.
  */
 const NODETOOL_PRELUDE = `${TOOLS_PRELUDE}\n${NODETOOL_API_PRELUDE_FULL}`;
 
@@ -186,7 +186,7 @@ let injectedAgentsModule: AgentsModule | null = null;
  * externals, so `node_modules/@nodetool-ai/agents` does not exist in the
  * packaged desktop app or in the Docker/Fly image. Without this, a Code node
  * body in production runs with no toolbelt (`nodetool.capabilities()` is `{}`,
- * `tools.yt_dlp` is missing) and cannot import
+ * `yt_dlp` is missing) and cannot import
  * `@nodetool-ai/sandbox-nodetool/*` at all.
  *
  * The server calls this at bootstrap with the copy esbuild already inlined,
@@ -231,7 +231,7 @@ export function setCodeNodeTools(tools: AgentTool[] | null): void {
  * (`assembleSandboxToolbelt` in `@nodetool-ai/agents`). This used to be a
  * second copy of that assembly with the comment "must match" — and it drifted:
  * the Apify and SerpAPI capabilities were added to the shared belt and not to
- * this copy, so `tools.run_apify_actor` inside a Code node was `undefined` and
+ * this copy, so `run_apify_actor` inside a Code node resolved to nothing and
  * calling it failed with a bare `TypeError: not a function`.
  */
 function assembleToolbelt(mod: AgentsModule): AgentTool[] {
@@ -784,10 +784,10 @@ export class CodeNode extends BaseNode {
    *
    * They are not packs, so they never reach the catalog: the host
    * decides what a run can reach, and for this node the host already made that
-   * decision when it gave the body the `tools.*` / `nodetool.*` belt. The run
+   * decision when it gave the body the imported / `nodetool.*` belt. The run
    * is therefore ungated, exactly as the belt is — a second, stricter door on
    * the import path would mean one call is gated and the same call through
-   * `tools.*` is not. It is the wiring `mountJsScriptSandbox` builds for a JS
+   * the belt bridge is not. It is the wiring `mountJsScriptSandbox` builds for a JS
    * script, over the Code node's own module resolution.
    */
   private async resolveCapabilities(

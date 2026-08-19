@@ -572,7 +572,7 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 |---|---|---|---|
 | Static pre-flight (unknown nodes, missing props, bad edges) — **run this first** | `nodetool validate <id\|file.json\|file.ts>` | `validate_workflow` (inline `graph` or `workflow_id`) | < 1 s, no DB for file targets |
 | Run a workflow end-to-end and read every message/log/output/error | `nodetool debug <id\|file>` (server surface, default) | `debug_workflow` (status + outputs + errors + job logs + graph in one call) | seconds |
-| Build a mini app from a prompt and verify it end to end | `nodetool app build "<prompt>" -p <provider> -m <model>` | — (an agent builds an app with the `ui_app_*` tools and grades it with `debug_app`) | minutes |
+| Build a mini app from a prompt and verify it end to end | `nodetool app build "<prompt>" -p <provider> -m <model>` | `create_app` + `edit_app` (the `ui_app_*` steps), graded with `debug_app` | minutes |
 | Real-browser surface (Playwright + Chromium canvas), trace, per-stage shots | `nodetool debug <id> --browser --trace --stages` | — | tens of seconds (opt-in) |
 | Tight edit→verify loop on a file target | `nodetool debug file.ts --watch` (prints a verdict **diff** per save) | — | per-save |
 | Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
@@ -998,6 +998,14 @@ does — declare the operations, place the widgets, and grade every change with
 cannot see into. The route stays for the CLI, the eval suite, and a caller that
 wants the batch build.
 
+Off the browser that path runs through **`create_app`** and **`edit_app`**.
+`edit_app` takes `[{tool, input}, …]` naming the same `ui_app_*` tools the Puck
+editor exposes, replays them against the saved document through
+`app-build/bridge.ts` — the headless twin the Author stage and the `app-tools`
+eval already drive — and saves once, CAS on `updated_at`. Call it with no steps
+to get the tool catalog and the app's current state. The tools themselves stay
+in one implementation, so the browser and the headless path cannot drift.
+
 A build runs for minutes, so `poll: true` returns a session id immediately and
 the caller reads `GET /api/debug/sessions/:id` until it settles, or cancels with
 `POST /api/debug/sessions/:id/cancel` — the same session machinery an
@@ -1247,7 +1255,7 @@ Agents reach the same surface through the `js-scripts` capability module —
 runs inside its own envelope: every installed sandbox pack and every
 `@nodetool-ai/sandbox-nodetool/<namespace>` module by import, its declared
 secrets intersected with whatever allowance the invoking context carries, its
-own timeout, and the same `tools.*` / `nodetool.*` belt a Code node has.
+own timeout, and the same imported / `nodetool.*` belt a Code node has.
 Composition is bounded like sub-agents: depth cap 4
 and a script id chain, so a cycle fails the call naming it. Validation and
 report rules live in `@nodetool-ai/execution/js-script-debug`; the CLI keeps

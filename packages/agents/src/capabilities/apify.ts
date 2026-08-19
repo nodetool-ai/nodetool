@@ -143,13 +143,20 @@ async function guarded(
 
 function requireString(
   params: Record<string, unknown>,
-  key: string
+  key: string,
+  aliases: readonly string[] = []
 ): string {
-  const value = params[key];
-  if (!isString(value) || value.trim().length === 0) {
-    throw new ApifyError("invalid_input", `${key} is required`);
+  for (const name of [key, ...aliases]) {
+    const value = params[name];
+    if (isString(value) && value.trim().length > 0) {
+      return value.trim();
+    }
   }
-  return value.trim();
+  throw new ApifyError("invalid_input", `${key} is required`);
+}
+
+function requireActorId(params: Record<string, unknown>): string {
+  return requireString(params, "actor_id", ["actor", "actorId"]);
 }
 
 function readInteger(value: unknown, fallback: number): number {
@@ -236,7 +243,7 @@ const getApifyActor: CapabilityExport = {
   impl: (run, params) =>
     guarded(async () => {
       const policy = apifyPolicyFromEnv();
-      const actorId = toCanonicalActorId(requireString(params, "actor_id"));
+      const actorId = toCanonicalActorId(requireActorId(params));
       assertInspectable(policy, actorId);
 
       const client = await clientFor(run.context);
@@ -286,7 +293,7 @@ const getApifyActorSchema: CapabilityExport = {
   impl: (run, params) =>
     guarded(async () => {
       const policy = apifyPolicyFromEnv();
-      const actorId = toCanonicalActorId(requireString(params, "actor_id"));
+      const actorId = toCanonicalActorId(requireActorId(params));
       assertInspectable(policy, actorId);
 
       const client = await clientFor(run.context);
@@ -318,7 +325,7 @@ const runApifyActor: CapabilityExport = {
   impl: (run, params) =>
     guarded(async () => {
       const policy = apifyPolicyFromEnv();
-      const actorId = toCanonicalActorId(requireString(params, "actor_id"));
+      const actorId = toCanonicalActorId(requireActorId(params));
       const input = isRecord(params.input) ? params.input : {};
       const client = await clientFor(run.context);
       const ledger = ledgerFor(run, policy);

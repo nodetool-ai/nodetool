@@ -200,7 +200,7 @@ export const getAssetSpec: CapabilitySpec = {
 export const saveAssetSpec: CapabilitySpec = {
   name: "save_asset",
   description:
-    "Save content as an asset in the library. Use this for any artifact you want to keep or surface in the chat (text reports, JSON, manifests, images, audio, video). Pass `content` for text, `content_base64` for binary bytes you produced, or `source` for a file that already exists — the asset_url / /api/storage/ key another tool returned, an asset:// URI, or an http(s) URL — so the bytes are copied host-side instead of round-tripping through base64. Returns an asset_id and asset:// URI you can reference in later steps.",
+    "Save content as an asset in the library. Use this for any artifact you want to keep or surface in the chat (text reports, JSON, manifests, images, audio, video). Pass `content` for text, `content_base64` for binary bytes you produced, or `source` for a file that already exists — the asset_url / /api/storage/ key another tool returned, an asset:// URI, or an http(s) URL — so the bytes are copied host-side instead of round-tripping through base64. Returns an asset_id and an `asset://` URI (`asset_uri` / `url`). Embed images, video, and audio in your reply as a markdown image: `![label](asset_uri)`.",
   inputSchema: SAVE_ASSET_SCHEMA,
   category: "write",
   userMessage: (params) => {

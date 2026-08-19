@@ -214,6 +214,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   derive_storyboard_from_script: "write",
   cancel_job: "write",
   update_asset: "write",
+  create_app: "write",
+  edit_app: "write",
   delete_app: "write",
   delete_timeline: "write",
   delete_sketch: "write",

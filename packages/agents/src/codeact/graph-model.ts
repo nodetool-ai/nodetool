@@ -3,7 +3,7 @@
  * model instead of one bridged `ui_*` tool call per mutation.
  *
  * The guest prelude defines `openWorkflow(workflowId?)`, which loads the graph
- * once through `tools.ui_get_graph` and returns a model whose mutators are
+ * once through `ui_get_graph` and returns a model whose mutators are
  * synchronous: they update a local mirror and queue the equivalent `ui_*`
  * operation. `commit()` replays the queue through the bridged tools — the same
  * contract the renderer and the headless document tools already implement, so
@@ -11,7 +11,8 @@
  * code action can therefore build a whole graph and pay one round trip per
  * mutation only at commit time, with local reads in between.
  *
- * The prelude assumes `CODEACT_PRELUDE` ran first (it uses `tools.*`).
+ * The prelude assumes `CODEACT_PRELUDE` ran first (it calls the belt through
+ * `__callBeltTool`).
  */
 
 /** The `ui_*` document tools the object model drives. */
@@ -44,7 +45,7 @@ export const GRAPH_MODEL_GLOBALS = ["openWorkflow"] as const;
 
 /**
  * Guest-side prelude defining `openWorkflow()`. Plain QuickJS-safe JS — no
- * host bridges of its own; every effect goes through `tools.ui_*`.
+ * host bridges of its own; every effect goes through the `ui_*` belt calls.
  */
 export const GRAPH_MODEL_PRELUDE = `
 async function openWorkflow(workflowId) {
@@ -58,7 +59,7 @@ async function openWorkflow(workflowId) {
   const __snapNodes = (snap) => (snap && Array.isArray(snap.nodes) ? snap.nodes : []);
   const __snapEdges = (snap) => (snap && Array.isArray(snap.edges) ? snap.edges : []);
 
-  const snap = await tools.ui_get_graph(__wfArgs());
+  const snap = await __callBeltTool("ui_get_graph")(__wfArgs());
   const queueRoot =
     state.__nodetoolGraphQueues && typeof state.__nodetoolGraphQueues === "object"
       ? state.__nodetoolGraphQueues
@@ -183,7 +184,7 @@ async function openWorkflow(workflowId) {
       while (ops.length > 0) {
         const op = ops[0];
         try {
-          const result = await tools[op.tool](op.args);
+          const result = await __callBeltTool(op.tool)(op.args);
           if (
             op.tool === "ui_connect_nodes" &&
             typeof op.localEdgeId === "string" &&
@@ -207,7 +208,7 @@ async function openWorkflow(workflowId) {
         ops.shift();
         applied++;
       }
-      const fresh = await tools.ui_get_graph(__wfArgs());
+      const fresh = await __callBeltTool("ui_get_graph")(__wfArgs());
       __load(fresh);
       return { ok: true, applied, nodes: model.nodes.length, edges: model.edges.length };
     }
@@ -330,7 +331,7 @@ async function openWorkflow(workflowId) {
 /** Prompt section documenting the object model, for codeact system prompts. */
 export const GRAPH_MODEL_PROMPT_SECTION = `# Workflow graph editing (object model)
 
-Edit workflow graphs through the object model, not by calling \`tools.ui_*\`
+Edit workflow graphs through the object model, not by calling the \`ui_*\` tools
 one mutation at a time:
 
 \`\`\`js
@@ -349,6 +350,7 @@ await wf.commit();                            // applies the queued ops, then re
 - Mutators are synchronous and only queue work; nothing changes in the editor
   until \`await wf.commit()\`. A failed commit names the failing operation,
   keeps it and later ops queued, and can be retried after a fix.
-- Use \`tools.ui_search_nodes(...)\` / \`tools.search_nodes(...)\` first when
+- Use \`ui_search_nodes(...)\` / \`search_nodes(...)\` (imported from
+  \`@nodetool-ai/sandbox-nodetool/ui\` and \`.../nodes\`) first when
   unsure of a node type, and \`await wf.commit()\` before telling the user the
   graph is ready.`;

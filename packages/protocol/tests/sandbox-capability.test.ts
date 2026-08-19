@@ -56,14 +56,14 @@ describe("generateSandboxCapabilityFacade", () => {
   });
 
   it("exports one async function per wire name, plus the namespace default", () => {
-    expect(facade).toContain("export async function list_workflows(args)");
-    expect(facade).toContain("export async function run_workflow(args)");
+    expect(facade).toContain("export async function list_workflows(...args)");
+    expect(facade).toContain("export async function run_workflow(...args)");
     expect(facade).toContain("export default { list_workflows, run_workflow };");
   });
 
   it("pins the module key in every call, so a facade can name only itself", () => {
     expect(facade).toContain(
-      `__call("@nodetool-ai/sandbox-nodetool/workflows", "list_workflows", [args === undefined ? {} : args])`
+      `__call("@nodetool-ai/sandbox-nodetool/workflows", "list_workflows", args.length === 0 ? [{}] : args)`
     );
   });
 

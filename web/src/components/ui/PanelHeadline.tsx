@@ -1,7 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { DocsHelpLink, FlexRow } from "../ui_primitives";
-import { Text } from "../ui_primitives";
+import {
+  DocsHelpLink,
+  FlexRow,
+  SPACING,
+  Text,
+  Tooltip,
+  getSpacingPx
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
@@ -10,36 +16,40 @@ import type { DocsTopic } from "../../config/docsLinks";
 interface PanelHeadlineProps {
   title: string;
   actions?: React.ReactNode;
-  /** Renders a help icon beside the title, linking to this docs page. */
+  /** Renders a documentation link beside the title. */
   docsTopic?: DocsTopic;
+  /** Short explanation shown when the title is hovered. */
+  description?: string;
 }
 
 const styles = (theme: Theme) =>
   css({
-    padding: ".35em 0 .35em 0",
+    padding: `${getSpacingPx(SPACING.sm)} 0`,
     minHeight: "2.25em",
     boxSizing: "border-box",
 
     ".headline-actions .MuiIconButton-root": {
-      padding: 2,
+      padding: getSpacingPx(SPACING.micro),
       "& svg": { fontSize: "var(--fontSizeNormal)" }
     },
     ".headline-titles .docs-help-link": {
-      padding: 2,
+      padding: getSpacingPx(SPACING.micro),
       "& svg": { fontSize: "var(--fontSizeSmall)" }
     },
     ".headline-title": {
       letterSpacing: "0.01em",
       lineHeight: "1.4em",
       color: theme.vars.palette.text.primary,
-      margin: 0
+      margin: 0,
+      cursor: "default"
     }
   });
 
 const PanelHeadline: React.FC<PanelHeadlineProps> = ({
   title,
   actions,
-  docsTopic
+  docsTopic,
+  description
 }) => {
   const theme = useTheme();
 
@@ -51,19 +61,35 @@ const PanelHeadline: React.FC<PanelHeadlineProps> = ({
       align="center"
       fullWidth
     >
-      <FlexRow className="headline-titles" align="center" gap={0}>
-        <Text
-          size="normal"
-          weight={600}
-          component="span"
-          className="headline-title"
+      <FlexRow className="headline-titles" align="center" gap={SPACING.md}>
+        <Tooltip
+          title={description ?? ""}
+          disabled={!description}
+          placement="bottom-start"
         >
-          {title}
-        </Text>
-        {docsTopic && <DocsHelpLink topic={docsTopic} label={title} />}
+          <Text
+            size="normal"
+            weight={600}
+            component="span"
+            className="headline-title"
+          >
+            {title}
+          </Text>
+        </Tooltip>
+        {docsTopic && (
+          <DocsHelpLink
+            topic={docsTopic}
+            label={title}
+            variant="label"
+          />
+        )}
       </FlexRow>
       {actions && (
-        <FlexRow className="headline-actions" align="center" gap={0.5}>
+        <FlexRow
+          className="headline-actions"
+          align="center"
+          gap={SPACING.micro}
+        >
           {actions}
         </FlexRow>
       )}

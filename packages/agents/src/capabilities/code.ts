@@ -17,7 +17,7 @@
  * path (implicit return wrapping, `yield` collection, return-bag
  * normalization) through the `@nodetool-ai/node-sdk` code-body helpers, one
  * implementation for both hosts. What the harness deliberately does NOT
- * provide: the node toolbelt (`tools.*` / `nodetool.*`) and secrets outside
+ * provide: the node toolbelt (imports / `nodetool.*`) and secrets outside
  * the call's own `secrets` list — authoring runs are hermetic by default.
  */
 
@@ -63,7 +63,7 @@ export type {
 
 /**
  * Run one Code-node body the way the node runs it. Off by default this is
- * hermetic (no `tools.*` / `nodetool.*`); pass `withToolbelt` for a JS
+ * hermetic (no belt, no `nodetool.*`); pass `withToolbelt` for a JS
  * script run. Returns rather than throws: a failing body is a result to
  * report.
  *
@@ -80,7 +80,7 @@ export async function runCodeBody(
     timeoutSeconds: number;
     inputStreams?: Record<string, unknown[]>;
     /**
-     * Give the guest the Code-node belt (`tools.*` / `nodetool.*`) and every
+     * Give the guest the Code-node belt (imports / `nodetool.*`) and every
      * installed sandbox pack plus platform module by import. Off for
      * `run_code` / `test_code` (authoring stays hermetic). On for every JS
      * script run.

@@ -195,6 +195,15 @@ const MODULE_OF_NAME: ReadonlyMap<string, string> = new Map(
   )
 );
 
+/**
+ * The module that owns one capability, by wire name — the namespace a guest
+ * imports it from. `undefined` for a name no module declares (a session tool,
+ * an external MCP tool), which is how a caller tells the two apart.
+ */
+export function capabilityModuleOf(name: string): string | undefined {
+  return MODULE_OF_NAME.get(name);
+}
+
 /** Every registered capability's spec, read without loading a module. */
 export function listCapabilitySpecs(): readonly CapabilitySpec[] {
   return [...SPEC_BY_NAME.values()];

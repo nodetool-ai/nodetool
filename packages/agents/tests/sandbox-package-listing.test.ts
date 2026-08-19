@@ -346,9 +346,9 @@ describe("the step executor carries the same discovery", () => {
       SANDBOX_PACKAGE_LIST_TOOL_NAME
     );
     expect(internals.systemPrompt).toContain("await nodetool.packs.list()");
-    // One surface per capability: never as a raw tool signature.
+    // One surface per capability: never as a raw signature in the catalog.
     expect(internals.systemPrompt).not.toContain(
-      `await tools.${SANDBOX_PACKAGE_LIST_TOOL_NAME}(`
+      `await ${SANDBOX_PACKAGE_LIST_TOOL_NAME}(`
     );
   });
 });

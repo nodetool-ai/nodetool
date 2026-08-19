@@ -88,6 +88,62 @@ describe("model-arg validation (shared across tools)", () => {
     })) as { error?: string };
     expect(r.error).toContain("model must be a non-empty string");
   });
+
+  it("generate_video accepts a find_model ref as model", async () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const runProviderPrediction = vi.fn().mockResolvedValue(bytes);
+    const createAsset = vi.fn().mockResolvedValue({ id: "v-ref" });
+    const tool = generateVideoTool();
+    const r = (await tool.process(
+      makeContext({ runProviderPrediction, createAsset }),
+      {
+        prompt: "a giraffe",
+        model: {
+          type: "video_model",
+          provider: "openai",
+          id: "sora-2",
+          name: "Sora 2"
+        }
+      }
+    )) as { error?: string; type?: string };
+    expect(r.error).toBeUndefined();
+    expect(r.type).toBe("video");
+    expect(runProviderPrediction.mock.calls[0][0]).toMatchObject({
+      provider: "openai",
+      model: "sora-2",
+      capability: "text_to_video"
+    });
+  });
+
+  it("generate_video accepts a find_model hit nested under model", async () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const runProviderPrediction = vi.fn().mockResolvedValue(bytes);
+    const createAsset = vi.fn().mockResolvedValue({ id: "v-hit" });
+    const tool = generateVideoTool();
+    const r = (await tool.process(
+      makeContext({ runProviderPrediction, createAsset }),
+      {
+        prompt: "a giraffe",
+        model: {
+          provider: "fal",
+          model_id: "hailuo-02/pro/text-to-video",
+          name: "Hailuo",
+          ref: {
+            type: "video_model",
+            provider: "fal",
+            id: "hailuo-02/pro/text-to-video",
+            name: "Hailuo"
+          }
+        }
+      }
+    )) as { error?: string; type?: string };
+    expect(r.error).toBeUndefined();
+    expect(r.type).toBe("video");
+    expect(runProviderPrediction.mock.calls[0][0]).toMatchObject({
+      provider: "fal",
+      model: "hailuo-02/pro/text-to-video"
+    });
+  });
 });
 
 /* ---------------- GenerateImageTool ---------------- */
@@ -147,7 +203,7 @@ describe("GenerateImageTool", () => {
       model: "m",
       prompt: "p"
     })) as { error?: string };
-    expect(r.error).toBe("text_to_image failed: upstream 500");
+    expect(r.error).toContain("text_to_image failed for openai:m — upstream 500");
   });
 
   it("passes output_file through to workspace storage", async () => {
@@ -300,7 +356,9 @@ describe("GenerateVideoTool", () => {
       model: "m",
       prompt: "p"
     })) as { error?: string };
-    expect(r.error).toBe("text_to_video failed: boom-str");
+    // The message names the model, so a wrong-direction pick is legible.
+    expect(r.error).toContain("text_to_video failed for p:m — boom-str");
+    expect(r.error).toContain('find_model({capability: "text_to_video"})');
   });
 });
 
@@ -531,7 +589,9 @@ describe("GenerateSpeechTool", () => {
       makeContext({ getProvider, streamProviderPrediction }),
       { provider: "openai", model: "tts", text: "hi" }
     )) as { error?: string };
-    expect(r.error).toBe("text_to_speech failed: stream setup failed");
+    expect(r.error).toContain(
+      "text_to_speech failed for openai:tts — stream setup failed"
+    );
   });
 });
 
