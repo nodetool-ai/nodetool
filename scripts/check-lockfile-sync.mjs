@@ -73,10 +73,14 @@ async function checkNoNestedLockfiles(dirs) {
  * release build uses. Catches both a stale lock and a tree npm cannot resolve
  * at all (conflicting peer ranges).
  */
+const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+
 function checkLockResolves(dir, { label, remedy }) {
   try {
-    execFileSync("npm", ["ci", "--dry-run", "--ignore-scripts", "--no-audit", "--no-fund"], {
+    execFileSync(npmCommand, ["ci", "--dry-run", "--ignore-scripts", "--no-audit", "--no-fund"], {
       cwd: join(repoRoot, dir),
+      // Node 22 refuses to spawn a .cmd without a shell (EINVAL).
+      shell: process.platform === "win32",
       stdio: ["ignore", "ignore", "pipe"],
       encoding: "utf8"
     });
