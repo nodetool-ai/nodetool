@@ -1218,6 +1218,8 @@ export type InferenceProvider =
 export interface ProviderInfo {
   provider: Provider;
   capabilities: string[];
+  access?: "in_process" | "local_service" | "remote_api";
+  display_name?: string;
 }
 
 export interface LanguageModel {
@@ -1270,6 +1272,30 @@ export interface TTSModel {
   languages?: string[];
   sample_rate?: number | null;
   requires_reference_text?: boolean;
+  adapter?: ModelAdapterInfo | null;
+  execution?: ModelExecutionAvailability | null;
+}
+
+export interface ModelArtifactRef {
+  source: "huggingface";
+  repo_id: string;
+  revision?: string | null;
+  path?: string | null;
+}
+
+export interface ModelAdapterInfo {
+  state: "installed" | "missing_dependency" | "unknown";
+  reason_code?: string | null;
+  reason?: string | null;
+  artifact_ref?: ModelArtifactRef | null;
+}
+
+export interface ModelExecutionAvailability {
+  /** User-facing execution origin, kept separate from cache/download state. */
+  kind: "local" | "server" | "api" | "unavailable";
+  state: "ready" | "download_required" | "unavailable";
+  label: "Local" | "Server" | "API" | "Unavailable";
+  reason?: string | null;
 }
 
 export interface ASRModel {
@@ -1362,6 +1388,10 @@ export interface UnifiedModel {
   sample_rate?: number | null;
   /** Whether cloning requires a transcript of the reference recording. */
   requires_reference_text?: boolean | null;
+  /** Local execution adapter facts; independent from downloaded/cache state. */
+  adapter?: ModelAdapterInfo | null;
+  /** Resolved execution status for presentation and selection gating. */
+  execution?: ModelExecutionAvailability | null;
   /** Allowed clip durations (seconds). Only meaningful for video models. */
   durations?: number[] | null;
   /** Allowed output resolutions (e.g. "720p"). Only meaningful for video models. */
