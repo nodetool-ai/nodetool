@@ -34,6 +34,7 @@ import {
 import type { Asset as AssetRow } from "@nodetool-ai/models";
 import { loadMediaRefBytes, safeFetch } from "@nodetool-ai/runtime";
 import { mimeForPath } from "../sandbox-media-ref.js";
+import { MIME_TO_EXT } from "../tools/asset-persist.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import type {
   CapabilityExport,
@@ -324,6 +325,18 @@ async function readSourceBytes(
   return { bytes };
 }
 
+/**
+ * The `.<ext>` an `asset://` URI carries, from the saved name or its MIME
+ * type. Empty when neither names one — a suffix guessed wrong is worse than
+ * none, since it is what a renderer types the media by.
+ */
+function assetUriSuffix(name: string, mime: string): string {
+  const fromName = /\.([A-Za-z0-9]{1,8})$/.exec(name);
+  if (fromName) return `.${fromName[1].toLowerCase()}`;
+  const ext = MIME_TO_EXT[mime];
+  return ext ? `.${ext}` : "";
+}
+
 const saveAsset: CapabilityExport = {
   spec: saveAssetSpec,
   impl: async (run, params) => {
@@ -415,11 +428,17 @@ const saveAsset: CapabilityExport = {
               // Non-fatal: the asset is still saved via createAsset.
             }
           }
+          // With the extension: a chat embed of `asset://<id>` alone has no
+          // way to tell a video from an image and renders it as one, which
+          // is how a saved mp4 came back as a broken image. `generate_*`
+          // already returns the suffixed form.
+          const savedUri = `asset://${asset.id}${assetUriSuffix(name, mime)}`;
           return {
             success: true,
             name,
             asset_id: asset.id,
-            asset_uri: `asset://${asset.id}`,
+            asset_uri: savedUri,
+            url: savedUri,
             content_type: mime,
             size: data.byteLength
           };

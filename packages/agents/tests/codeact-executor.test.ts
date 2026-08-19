@@ -121,8 +121,9 @@ describe("CodeActExecutor", () => {
         toolCalls: [
           codeAction(
             "tc_1",
-            `const first = await tools.add({a: 1, b: 2});
-             const second = await tools.add({a: first.sum, b: 39});
+            `import { add } from "@nodetool-ai/sandbox-nodetool/session";
+             const first = await add({a: 1, b: 2});
+             const second = await add({a: first.sum, b: 39});
              await finish({answer: second.sum});`
           )
         ]
@@ -219,9 +220,10 @@ describe("CodeActExecutor", () => {
         toolCalls: [
           codeAction(
             "tc_1",
-            `let failed = false;
+            `import { always_fails } from "@nodetool-ai/sandbox-nodetool/session";
+             let failed = false;
              try {
-               await tools.always_fails({});
+               await always_fails({});
              } catch (e) {
                failed = e.message.includes("always fails");
              }
@@ -357,16 +359,17 @@ describe("CodeAct progressive tool disclosure", () => {
     });
 
     // Resident: full signature. Deferred: name only, discoverable.
-    expect(prompt).toContain("await tools.web_search(");
+    expect(prompt).toContain("await web_search(");
+    expect(prompt).toContain('from "@nodetool-ai/sandbox-nodetool/web";');
     expect(prompt).toContain("lookup_customer");
-    expect(prompt).not.toContain("await tools.lookup_customer(");
+    expect(prompt).not.toContain("await lookup_customer(");
     expect(prompt).toContain('nodetool.searchTools("query")');
   });
 
   it("tells the model that independent calls run concurrently", async () => {
     const { buildCodeActSystemPrompt } = await import("../src/codeact/prompt.js");
     // The sandbox parallelizes host calls, but a model that does not know it
-    // writes `for (const x of xs) await tools.foo(x)` and pays one round trip
+    // writes `for (const x of xs) await foo(x)` and pays one round trip
     // per item. Both variants need the guidance — chat turns fan out over
     // `tools.*` exactly as steps do.
     for (const variant of ["step", "chat"] as const) {
@@ -409,9 +412,28 @@ describe("CodeAct progressive tool disclosure", () => {
           codeAction(
             "tc_1",
             `const hits = await nodetool.searchTools("+lookup customer");
-             const name = hits[0].name;
-             const r = await tools[name]({value: "c42"});
-             await finish({answer: r.echoed === "c42" && r.via === "lookup_customer" ? 1 : 0});`
+             state.found = hits[0];
+             return hits[0];`
+          )
+        ]
+      },
+      {
+        // The hit's own \`import\` line, written verbatim into the next
+        // action — which is the whole loop now that the belt is imports.
+        toolCalls: [
+          codeAction(
+            "tc_2",
+            `import { lookup_customer } from "@nodetool-ai/sandbox-nodetool/session";
+             const r = await lookup_customer({value: "c42"});
+             await finish({
+               answer:
+                 state.found.import ===
+                   'import { lookup_customer } from "@nodetool-ai/sandbox-nodetool/session";' &&
+                 r.echoed === "c42" &&
+                 r.via === "lookup_customer"
+                   ? 1
+                   : 0
+             });`
           )
         ]
       }
@@ -490,10 +512,10 @@ describe("CodeAct core tools", () => {
     expect(offered).toContain("execute_code");
     expect(offered).toContain("read_file");
     expect(offered).not.toContain("lookup_customer");
-    // And the prompt points at it there, not at a `tools.read_file(` signature.
+    // And the prompt points at it there, not at a `read_file(` signature.
     expect(systemPrompt).toContain("# Direct tools");
-    expect(systemPrompt).not.toContain("tools.read_file(");
-    expect(systemPrompt).toContain("tools.lookup_customer(");
+    expect(systemPrompt).not.toContain("await read_file(");
+    expect(systemPrompt).toContain("await lookup_customer(");
   });
 
   it("offers model and node discovery as direct tools too", async () => {
@@ -554,7 +576,8 @@ describe("CodeAct core tools", () => {
         toolCalls: [
           codeAction(
             "tc_1",
-            `const r = await tools.read_file({value: "x"});
+            `import { read_file } from "@nodetool-ai/sandbox-nodetool/files";
+             const r = await read_file({value: "x"});
              await finish({answer: r.via === "read_file" ? 1 : 0});`
           )
         ]

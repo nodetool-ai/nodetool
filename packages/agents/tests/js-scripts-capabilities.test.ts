@@ -257,12 +257,13 @@ describe("run_js_script", () => {
   it("gives the guest the Code-node toolbelt", async () => {
     const script = await makeScript({
       code:
+        'import { list_js_scripts } from "@nodetool-ai/sandbox-nodetool/js-scripts";\n' +
         "const caps = nodetool.capabilities();\n" +
         'await output("tools", typeof tools);\n' +
         'await output("nodetool", typeof nodetool);\n' +
-        'await output("hasList", typeof tools.list_js_scripts);\n' +
+        'await output("hasList", typeof list_js_scripts);\n' +
         'await output("hasWorkflows", Boolean(caps.workflows));\n' +
-        "const listed = await tools.list_js_scripts();\n" +
+        "const listed = await list_js_scripts();\n" +
         'await output("count", listed.js_scripts.length);',
       outputs: [
         { name: "tools", type: "str" },
@@ -291,8 +292,9 @@ describe("run_js_script", () => {
   it("refuses a nested run_js_script of the same script, naming the cycle", async () => {
     const script = await makeScript({
       code:
+        'import { run_js_script } from "@nodetool-ai/sandbox-nodetool/js-scripts";\n' +
         "try {\n" +
-        "  await tools.run_js_script({ js_script_id: inputs.id });\n" +
+        "  await run_js_script({ js_script_id: inputs.id });\n" +
         '  await output("err", "");\n' +
         "} catch (e) {\n" +
         '  await output("err", String(e.message));\n' +

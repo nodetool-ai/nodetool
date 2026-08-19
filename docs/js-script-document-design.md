@@ -189,7 +189,7 @@ on — parameterized by the script document instead of ad-hoc arguments:
   the caller's allowance; `timeoutMs` from the document, capped by the caller.
 - Packages resolve through the process `SandboxModuleCatalog`; an undeclared
   import fails validation before it fails at run time.
-- **The Code-node toolbelt.** A script run prepends the same `tools.*` /
+- **The Code-node toolbelt.** A script run prepends the same imported /
   `nodetool.*` prelude a Code node does, wired to
   `assembleSandboxToolbelt()` (`getAgentToolbelt()` plus
   `getAllMcpTools({ registry })`). Chat `ui_*` tools stay off this belt —

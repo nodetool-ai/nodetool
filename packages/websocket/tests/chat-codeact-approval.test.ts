@@ -107,7 +107,8 @@ describe("codeact permission prompts", () => {
     const runner = new UnifiedWebSocketRunner({
       resolveExecutor: noop,
       resolveProvider: codeActProvider(
-        `const r = await tools.write_file({ file_path: "note.txt", content: "hi" });\n` +
+        'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+        `const r = await write_file({ file_path: "note.txt", content: "hi" });\n` +
           `return { wrote: String(r) };`
       )
     });
@@ -162,8 +163,9 @@ describe("codeact permission prompts", () => {
     const runner = new UnifiedWebSocketRunner({
       resolveExecutor: noop,
       resolveProvider: codeActProvider(
-        `try {\n` +
-          `  await tools.write_file({ file_path: "note.txt", content: "hi" });\n` +
+        'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+          `try {\n` +
+          `  await write_file({ file_path: "note.txt", content: "hi" });\n` +
           `  return "wrote";\n` +
           `} catch (e) {\n` +
           `  return { denied: e.message };\n` +

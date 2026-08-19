@@ -27,7 +27,9 @@ describe("unroutableToolMessage", () => {
     const msg = unroutableToolMessage("no_such_tool");
     expect(msg).toContain('Unknown tool "no_such_tool"');
     expect(msg).toContain("execute_code");
-    expect(msg).toContain("await tools.<name>({...})");
-    expect(msg).toContain("nodetool.searchTools()");
+    expect(msg).toContain(
+      'import { <name> } from "@nodetool-ai/sandbox-nodetool/<namespace>"'
+    );
+    expect(msg).toContain('nodetool.searchTools("no_such_tool")');
   });
 });

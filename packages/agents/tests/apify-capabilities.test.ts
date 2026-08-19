@@ -247,6 +247,57 @@ describe("input validation", () => {
     expect(result.ok).toBe(false);
     expect(String(result.error)).toContain("dataset_id is required");
   });
+
+  it("accepts actorId the way guest JS writes it", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
+    const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
+      "get_apify_actor_schema",
+      { actorId: "someone/sketchy" }
+    )) as Record<string, unknown>;
+    expect(result.error_kind).toBe("actor_not_allowed");
+    expect(String(result.error)).not.toContain("actor_id is required");
+  });
+
+  it("accepts actor as an alias for actor_id", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
+    const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
+      "run_apify_actor",
+      { actor: "someone/sketchy", input: {} }
+    )) as Record<string, unknown>;
+    expect(result.error_kind).toBe("actor_not_allowed");
+    expect(String(result.error)).not.toContain("actor_id is required");
+  });
+
+  it("guest import accepts actorId and a positional actor id", async () => {
+    process.env.NODETOOL_APIFY_MODE = "allowlist";
+    const run = runWith({ APIFY_API_TOKEN: TOKEN });
+    const specifier = sandboxCapabilitySpecifier("apify");
+    const camel = await action(
+      run,
+      `import { get_apify_actor_schema } from ${JSON.stringify(specifier)};
+       try {
+         return await get_apify_actor_schema({ actorId: "someone/sketchy" });
+       } catch (e) {
+         return e instanceof Error ? e.message : String(e);
+       }`
+    );
+    expect(camel.ok).toBe(true);
+    expect(String(camel.result)).toMatch(/allowlist|not allowed/i);
+    expect(String(camel.result)).not.toContain("actor_id is required");
+
+    const positional = await action(
+      run,
+      `import { get_apify_actor_schema } from ${JSON.stringify(specifier)};
+       try {
+         return await get_apify_actor_schema("someone/sketchy");
+       } catch (e) {
+         return e instanceof Error ? e.message : String(e);
+       }`
+    );
+    expect(positional.ok).toBe(true);
+    expect(String(positional.result)).toMatch(/allowlist|not allowed/i);
+    expect(String(positional.result)).not.toContain("actor_id is required");
+  });
 });
 
 describe("produced files", () => {

@@ -17,6 +17,7 @@
 import {
   generateSandboxCapabilityFacade,
   sandboxCapabilityModuleName,
+  sandboxCapabilitySpecifier,
   SANDBOX_CAPABILITY_PACK
 } from "@nodetool-ai/protocol";
 import { parseCodeBody, staticImportSpecifiers } from "@nodetool-ai/node-sdk";
@@ -34,6 +35,39 @@ export type CapabilityModuleMount =
   | { ok: false; error: string };
 
 /**
+ * Session tools a host wants importable alongside the registry's own modules.
+ *
+ * Chat is the case this exists for: its client `ui_*` tools are JSON schemas
+ * routed back to the browser, not capabilities, so no registry module owns
+ * them. Grafting them onto a namespace keeps one resolution path — a chat
+ * action imports `ui_add_node` exactly the way it imports `list_workflows` —
+ * without inventing a second global for the difference. External MCP-server
+ * tools are deliberately NOT offered this way: they stay provider-level tool
+ * calls.
+ */
+/**
+ * The namespace belt tools with no capability module of their own are grafted
+ * onto. It is not in the registry — nothing declares it — which is the point:
+ * a name under it belongs to this session, not to the platform.
+ */
+export const SESSION_CAPABILITY_MODULE = "session";
+
+export interface SessionCapabilityModule {
+  /** The namespace to graft onto, e.g. `"ui"`. */
+  readonly module: string;
+  /** Wire names to export, added to whatever the registry module declares. */
+  readonly exports: readonly string[];
+  /** What a call to one of those names runs. */
+  readonly call: (name: string, args: unknown) => Promise<unknown>;
+}
+
+export interface MountCapabilityModulesOptions {
+  signal?: AbortSignal;
+  /** Session tools grafted onto a namespace. Empty by default. */
+  session?: readonly SessionCapabilityModule[];
+}
+
+/**
  * The platform modules one action's code needs, or nothing when it imports
  * none — and nothing at all when the session has no run to serve them.
  *
@@ -44,9 +78,10 @@ export type CapabilityModuleMount =
 export async function mountCapabilityModules(
   code: string,
   run: CapabilityRun | undefined,
-  options: { signal?: AbortSignal } = {}
+  options: MountCapabilityModulesOptions = {}
 ): Promise<CapabilityModuleMount> {
-  if (run === undefined) return { ok: true };
+  const session = options.session ?? [];
+  if (run === undefined && session.length === 0) return { ok: true };
 
   const parsed = parseCodeBody(code);
   // A body that does not parse has no imports to serve; the sandbox reports the
@@ -59,7 +94,14 @@ export async function mountCapabilityModules(
   );
   if (wanted.length === 0) return { ok: true };
 
-  const registered = new Set(listCapabilityModules());
+  const sessionByModule = new Map(session.map((entry) => [entry.module, entry]));
+  // A run serves the registry's modules; without one only the grafted
+  // namespaces resolve, so the refusal names what this session actually has.
+  const registered = new Set(
+    run === undefined ? sessionByModule.keys() : listCapabilityModules()
+  );
+  for (const name of sessionByModule.keys()) registered.add(name);
+
   const modules: string[] = [];
   for (const specifier of wanted) {
     const name = sandboxCapabilityModuleName(specifier);
@@ -76,20 +118,67 @@ export async function mountCapabilityModules(
     modules.push(name);
   }
 
-  const specs = await capabilityModuleSpecs([...new Set(modules)]);
+  const unique = [...new Set(modules)];
+  const registrySpecs =
+    run === undefined
+      ? []
+      : await capabilityModuleSpecs(
+          unique.filter((name) => listCapabilityModules().includes(name))
+        );
+  const exportsByModule = new Map(
+    registrySpecs.map((spec) => [spec.module, [...spec.exports]])
+  );
+  // A session export shadows nothing: a name the registry already declares
+  // stays the registry's, so grafting can add reach but never redirect a
+  // gated capability at the browser.
+  const sessionNames = new Map<string, Set<string>>();
+  for (const name of unique) {
+    const graft = sessionByModule.get(name);
+    if (graft === undefined) continue;
+    const declared = exportsByModule.get(name) ?? [];
+    const added = graft.exports.filter(
+      (exported) => !declared.includes(exported)
+    );
+    exportsByModule.set(name, [...declared, ...added]);
+    sessionNames.set(name, new Set(added));
+  }
+
   const facades = new Map(
-    specs.map((spec) => [
-      spec.specifier,
-      generateSandboxCapabilityFacade(spec.specifier, spec.exports)
+    unique.map((name) => [
+      sandboxCapabilitySpecifier(name),
+      generateSandboxCapabilityFacade(
+        sandboxCapabilitySpecifier(name),
+        exportsByModule.get(name) ?? []
+      )
     ])
   );
-  const dispatcher = createCapabilityDispatcher(
-    run,
-    listCapabilityModules(),
-    options.signal === undefined ? {} : { signal: options.signal }
-  );
-  return {
-    ok: true,
-    mount: { facades, call: dispatcher.call.bind(dispatcher) }
+  const dispatcher =
+    run === undefined
+      ? undefined
+      : createCapabilityDispatcher(
+          run,
+          listCapabilityModules(),
+          options.signal === undefined ? {} : { signal: options.signal }
+        );
+  const call = async (
+    moduleKey: string,
+    exportName: string,
+    args: readonly unknown[]
+  ): Promise<unknown> => {
+    const module = sandboxCapabilityModuleName(moduleKey) ?? moduleKey;
+    if (sessionNames.get(module)?.has(exportName) === true) {
+      const graft = sessionByModule.get(module);
+      if (graft === undefined) {
+        throw new Error(`no session module serves "${moduleKey}"`);
+      }
+      return graft.call(exportName, args[0] === undefined ? {} : args[0]);
+    }
+    if (dispatcher === undefined) {
+      throw new Error(
+        `"${exportName}" is not available in this run — it needs a capability run.`
+      );
+    }
+    return dispatcher.call(moduleKey, exportName, args);
   };
+  return { ok: true, mount: { facades, call } };
 }

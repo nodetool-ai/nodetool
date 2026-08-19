@@ -183,7 +183,9 @@ ApplicationAppView   # renders the document's widget tree
   each card names the value, shows the metadata its ref carries, and hands the
   file to the OS instead of drawing something that only looks like it.
   `Gallery` does render — it tiles the bound refs with the same `Image` the
-  `Image` widget uses.
+  `Image` widget uses, and a tap opens a full-screen pager the images are swiped
+  through (`pagingEnabled`, so the swipe follows the finger and settles on a
+  page), with a `n / total` counter and a Close control.
 - **Path inputs are typed fields**: a phone sandbox has no user-visible
   filesystem, and a `FilePathInput`/`FolderPathInput` value is read by the
   machine running the workflow, not by the device. Same reasoning as

@@ -21,7 +21,7 @@
  * guest gets is the script's own envelope plus the Code-node toolbelt:
  * every installed pack and platform module by import, its declared secrets
  * narrowed by whatever allowance the invoking context carries, its own
- * timeout, and `tools.*` / `nodetool.*`.
+ * timeout, the importable belt, and `nodetool.*`.
  * Grading is `gradeCodeCases`, shared with `test_code` rather than copied.
  *
  * Composition is bounded the way sub-agents are: the context carries a depth

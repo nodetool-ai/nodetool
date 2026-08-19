@@ -82,8 +82,9 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex",
   "parallelMap", "createCanvas",
-  // The tool bridge preludes: `tools.<name>()` wrappers and the `nodetool`
-  // object model over them
+  // The `nodetool` object model, plus the retired `tools` global — still
+  // defined, as a thrower that names the import replacing it, so a body that
+  // reads it gets that message at run time instead of a ReferenceError here.
   "tools", "nodetool",
   // Absent from this guest, but not user inputs either
   "setTimeout", "clearTimeout", "setInterval", "clearInterval",

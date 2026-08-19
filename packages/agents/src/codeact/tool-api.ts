@@ -4,7 +4,7 @@
  * system prompt.
  *
  * One host bridge (`__callTool`) serves every tool; a generated guest prelude
- * builds the `tools.<name>()` wrappers on top of it. Host bridges follow the
+ * builds the belt caller on top of it. Host bridges follow the
  * js-sandbox never-reject convention: they resolve `{ok, ...}` envelopes and
  * the guest wrapper re-throws, so the QuickJS host-promise-rejection leak is
  * never hit.
@@ -17,6 +17,9 @@ import type {
   MessageImageContent,
   ProviderTool
 } from "@nodetool-ai/runtime";
+import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
+
+import { capabilityModuleOf } from "../capabilities/registry.js";
 import { Tool } from "../tools/base-tool.js";
 import {
   extractInjectableImages,
@@ -105,6 +108,23 @@ export function extractErrorPayload(result: unknown): string | null {
     : record["error"];
 }
 
+/**
+ * Wire name → the capability namespace it is imported from, for the names a
+ * module owns. A session tool (a client `ui_*` schema, an external MCP tool)
+ * owns no module and is left out, which is how the guest's `tools` thrower
+ * tells "import it from here" from "ask searchTools".
+ */
+export function toolModuleMap(
+  tools: readonly { name: string }[]
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const tool of tools) {
+    const module = capabilityModuleOf(tool.name);
+    if (module !== undefined) map[tool.name] = module;
+  }
+  return map;
+}
+
 export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
   const byName = new Map(options.tools.map((t) => [t.name, t]));
   const maxCalls =
@@ -183,7 +203,8 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
   return {
     globals: {
       __callTool: callTool,
-      __toolNames: options.tools.map((t) => t.name)
+      __toolNames: options.tools.map((t) => t.name),
+      __toolModules: toolModuleMap(options.tools)
     },
     callCount: () => calls,
     resetActionBudget: () => {
@@ -257,8 +278,8 @@ export function buildCoreProviderTools(options: {
 }
 
 /**
- * Guest-side prelude prepended to every code action. Builds `tools.<name>()`
- * wrappers over `__callTool` (via {@link TOOLS_PRELUDE}) and `finish()` over
+ * Guest-side prelude prepended to every code action. Builds the belt caller
+ * over `__callTool` (via {@link TOOLS_PRELUDE}) and `finish()` over
  * `__finish`. Hosts without a `__finish` bridge — the Code node — prepend
  * `TOOLS_PRELUDE` alone. Tool discovery lives on the object model as
  * `nodetool.searchTools()`, so a session reaches every capability under one
@@ -289,6 +310,8 @@ export const CODEACT_INJECTED_GLOBALS = [
   "__callTool",
   "__finish",
   "__toolNames",
+  "__toolModules",
+  "__callBeltTool",
   "__searchTools",
   ...GRAPH_MODEL_GLOBALS,
   ...NODETOOL_API_GLOBALS
@@ -348,12 +371,31 @@ function firstSentence(text: string): string {
   return period > 0 ? trimmed.slice(0, period + 1) : trimmed;
 }
 
-/** The bare call signature: `await tools.web_search({query: string, ...})`. */
+/** The bare call signature: `await web_search({query: string, ...})`. */
 export function toolSignature(tool: ToolSignatureSource): string {
   const schema = tool.inputSchema as JsonSchema;
   const params = schemaTypeLabel(schema);
   const args = params === "{}" ? "" : params;
-  return `await tools.${tool.name}(${args})`;
+  return `await ${tool.name}(${args})`;
+}
+
+/** The specifier a capability is imported from, or `undefined` for a session tool. */
+export function toolSpecifier(name: string): string | undefined {
+  const module = capabilityModuleOf(name);
+  return module === undefined
+    ? undefined
+    : sandboxCapabilitySpecifier(module);
+}
+
+/**
+ * The import statement that makes one capability callable, or `undefined` for
+ * a name no module owns.
+ */
+export function toolImportLine(name: string): string | undefined {
+  const specifier = toolSpecifier(name);
+  return specifier === undefined
+    ? undefined
+    : `import { ${name} } from ${JSON.stringify(specifier)};`;
 }
 
 /** Signature bullet + first sentence of the description. */
@@ -364,9 +406,53 @@ export function renderToolSignature(tool: ToolSignatureSource): string {
     : `- ${toolSignature(tool)}`;
 }
 
-export function renderToolCatalog(tools: ToolSignatureSource[]): string {
+/**
+ * The catalog, grouped by the module each capability is imported from.
+ *
+ * The group header IS the import statement the action has to write, with every
+ * name in that group already in the braces — so a model that copies the header
+ * and then calls two of the listed signatures has written a working action.
+ * Listing a signature without saying where the name comes from is what made
+ * the flat belt readable at a glance and unwritable in practice.
+ */
+export function renderToolCatalog(
+  tools: ToolSignatureSource[],
+  /**
+   * Specifiers for names no capability module owns but the host has grafted
+   * onto a namespace anyway — a chat session's `ui_*` tools, a step's own
+   * belt. A name absent from it is documented as a plain tool call, which is
+   * what an external MCP tool is.
+   */
+  grafted: ReadonlyMap<string, string> = new Map()
+): string {
   if (tools.length === 0) return "(no tools available)";
-  return tools.map(renderToolSignature).join("\n");
+  const groups = new Map<string, ToolSignatureSource[]>();
+  const ungrouped: ToolSignatureSource[] = [];
+  for (const tool of tools) {
+    const specifier = toolSpecifier(tool.name) ?? grafted.get(tool.name);
+    if (specifier === undefined) {
+      ungrouped.push(tool);
+      continue;
+    }
+    const group = groups.get(specifier);
+    if (group === undefined) groups.set(specifier, [tool]);
+    else group.push(tool);
+  }
+  const blocks = [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([specifier, group]) =>
+      [
+        `import { ${group.map((t) => t.name).join(", ")} } from ${JSON.stringify(specifier)};`,
+        ...group.map(renderToolSignature)
+      ].join("\n")
+    );
+  if (ungrouped.length > 0) {
+    blocks.push(
+      ["// no import — these are called as ordinary tools:",
+        ...ungrouped.map(renderToolSignature)].join("\n")
+    );
+  }
+  return blocks.join("\n\n");
 }
 
 /** What `nodetool.searchTools()` returns to the guest, per matched tool. */
@@ -374,4 +460,30 @@ export interface ToolSearchHit {
   name: string;
   signature: string;
   description: string;
+  /** The capability namespace, absent for a tool no module owns. */
+  module?: string;
+  /** The specifier to import it from, absent for the same reason. */
+  specifier?: string;
+  /** The exact import statement to write. */
+  import?: string;
+}
+
+/** One search hit, with everything needed to write the call. */
+export function toolSearchHit(
+  tool: ToolSignatureSource,
+  /** The namespace a host grafted this name onto, if any. */
+  graftedModule?: string
+): ToolSearchHit {
+  const hit: ToolSearchHit = {
+    name: tool.name,
+    signature: toolSignature(tool),
+    description: tool.description ?? ""
+  };
+  const module = capabilityModuleOf(tool.name) ?? graftedModule;
+  if (module !== undefined) {
+    hit.module = module;
+    hit.specifier = sandboxCapabilitySpecifier(module);
+    hit.import = `import { ${tool.name} } from ${JSON.stringify(sandboxCapabilitySpecifier(module))};`;
+  }
+  return hit;
 }

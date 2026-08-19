@@ -28,16 +28,3 @@ export function codeAction(
 export function finishAction(result: unknown, title?: string) {
   return codeAction(`await finish(${JSON.stringify(result)});`, title);
 }
-
-/** A code action that calls one tool and finishes with its return value. */
-export function callToolAction(
-  toolName: string,
-  args: Record<string, unknown> = {},
-  title?: string
-) {
-  return codeAction(
-    `const out = await tools.${toolName}(${JSON.stringify(args)});\n` +
-      `await finish(out);`,
-    title
-  );
-}

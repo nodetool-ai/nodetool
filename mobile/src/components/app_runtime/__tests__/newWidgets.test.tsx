@@ -6,7 +6,11 @@
  * charting library and no PDF viewer — so what is asserted there is that the
  * card names the value and offers to open it, not that it draws it.
  */
+import { Dimensions } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+
+/** The pager pages by window width, so a scripted swipe offsets by it. */
+const WINDOW_WIDTH = Dimensions.get("window").width;
 
 import {
   parseApplicationDocument,
@@ -185,6 +189,52 @@ describe("display fallbacks", () => {
 
     expect(await screen.findByText("Results")).toBeTruthy();
     expect(screen.getAllByTestId("gallery-tile")).toHaveLength(2);
+  });
+
+  it("opens a swipeable pager on the tapped image and follows the swipe", async () => {
+    renderApp(
+      "wf-gallery-swipe",
+      appDoc("Gallery", { label: "Results" }, [
+        { type: "image", uri: "https://x.test/a.png" },
+        { type: "image", uri: "https://x.test/b.png" },
+        { type: "image", uri: "https://x.test/c.png" },
+      ])
+    );
+
+    fireEvent.press((await screen.findAllByTestId("gallery-tile"))[1]);
+
+    const pager = screen.getByTestId("gallery-pager");
+    expect(pager.props.pagingEnabled).toBe(true);
+    expect(pager.props.horizontal).toBe(true);
+    expect(pager.props.initialScrollIndex).toBe(1);
+    expect(screen.getByText("2 / 3")).toBeTruthy();
+
+    fireEvent(pager, "momentumScrollEnd", {
+      nativeEvent: {
+        contentOffset: { x: 2 * WINDOW_WIDTH, y: 0 },
+        contentSize: { width: 3 * WINDOW_WIDTH, height: 100 },
+        layoutMeasurement: { width: WINDOW_WIDTH, height: 100 },
+      },
+    });
+
+    expect(screen.getByText("3 / 3")).toBeTruthy();
+  });
+
+  it("closes the pager", async () => {
+    renderApp(
+      "wf-gallery-close",
+      appDoc("Gallery", {}, [
+        { type: "image", uri: "https://x.test/a.png" },
+        { type: "image", uri: "https://x.test/b.png" },
+      ])
+    );
+
+    fireEvent.press((await screen.findAllByTestId("gallery-tile"))[0]);
+    expect(screen.getByTestId("gallery-pager")).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText("Close gallery"));
+
+    expect(screen.queryByTestId("gallery-pager")).toBeNull();
   });
 
   it("shows the gallery placeholder for an empty array", () => {
