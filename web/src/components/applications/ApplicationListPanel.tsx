@@ -13,7 +13,7 @@ import {
   useRef,
   useState
 } from "react";
-import type { FocusEvent, KeyboardEvent, MouseEvent } from "react";
+import type { MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -40,7 +40,7 @@ import {
   Dialog,
   EmptyState,
   FlexColumn,
-  FlexRow,
+  ListPanelItem,
   LoadingSpinner,
   Text,
   ToolbarIconButton,
@@ -74,114 +74,6 @@ const pickerStyles = () =>
       overflowY: "auto"
     }
   });
-
-interface ApplicationListItemProps {
-  id: string;
-  name: string;
-  operationCount: number;
-  active: boolean;
-  editing: boolean;
-  onOpen: (id: string, name: string) => void;
-  onContextMenu: (
-    event: MouseEvent<HTMLButtonElement>,
-    id: string,
-    name: string
-  ) => void;
-  onCommitRename: (id: string, newName: string) => void;
-  onCancelRename: () => void;
-}
-
-const ApplicationListItem = memo(function ApplicationListItem({
-  id,
-  name,
-  operationCount,
-  active,
-  editing,
-  onOpen,
-  onContextMenu,
-  onCommitRename,
-  onCancelRename
-}: ApplicationListItemProps) {
-  const handleClick = useCallback(() => onOpen(id, name), [id, name, onOpen]);
-  const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => onContextMenu(event, id, name),
-    [id, name, onContextMenu]
-  );
-  const handleRenameKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      event.stopPropagation();
-      if (event.key === "Enter") {
-        onCommitRename(id, event.currentTarget.value);
-      } else if (event.key === "Escape") {
-        onCancelRename();
-      }
-    },
-    [id, onCommitRename, onCancelRename]
-  );
-  const handleRenameBlur = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      onCommitRename(id, event.currentTarget.value);
-    },
-    [id, onCommitRename]
-  );
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        onOpen(id, name);
-      }
-    },
-    [id, name, onOpen]
-  );
-
-  if (editing) {
-    return (
-      <div className={`list-panel-item ${active ? "active" : ""}`}>
-        <FlexRow align="center" gap={1} fullWidth>
-          <DashboardCustomizeOutlinedIcon className="list-panel-icon" />
-          <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-            <input
-              className="rename-input"
-              type="text"
-              defaultValue={name}
-              aria-label="App name"
-              autoFocus
-              onFocus={(event) => event.currentTarget.select()}
-              onKeyDown={handleRenameKeyDown}
-              onBlur={handleRenameBlur}
-            />
-          </FlexColumn>
-        </FlexRow>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className={`list-panel-item ${active ? "active" : ""}`}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      onContextMenu={handleContextMenu}
-      aria-current={active ? "page" : undefined}
-    >
-      <FlexRow align="center" gap={1} fullWidth>
-        <DashboardCustomizeOutlinedIcon className="list-panel-icon" />
-        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-          <TruncatedText
-            component="span"
-            sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
-          >
-            {name || UNTITLED}
-          </TruncatedText>
-          <Text size="small" color="secondary">
-            {operationCount === 1 ? "1 operation" : `${operationCount} operations`}
-          </Text>
-        </FlexColumn>
-      </FlexRow>
-    </button>
-  );
-});
 
 /** Focus the workspace and open the app's tab. */
 const useOpenApplication = () => {
@@ -546,10 +438,17 @@ const ApplicationListPanel = () => {
                       </Text>
                     </div>
                   )}
-                  <ApplicationListItem
+                  <ListPanelItem
                     id={app.id}
                     name={app.name}
-                    operationCount={app.operationCount}
+                    fallbackName={UNTITLED}
+                    renameLabel="App name"
+                    icon={DashboardCustomizeOutlinedIcon}
+                    secondary={
+                      app.operationCount === 1
+                        ? "1 operation"
+                        : `${app.operationCount} operations`
+                    }
                     active={app.id === activeApplicationId}
                     editing={app.id === editingId}
                     onOpen={openApplication}
