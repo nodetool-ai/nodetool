@@ -13,7 +13,7 @@
  * the thumb. The thumb just visualizes and drives that one value.
  */
 
-import React, { memo, useCallback, useRef } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -120,6 +120,8 @@ export const TimelineScrollbar: React.FC<TimelineScrollbarProps> = memo(
     // Subscribed here (rather than passed as a prop) so a pan frame only
     // re-renders this scrollbar, not the whole TracksRegion.
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
+    // That re-render is one per pan frame; only the thumb's inline rect moves.
+    const containerCss = useMemo(() => containerStyles(theme), [theme]);
     const troughRef = useRef<HTMLDivElement>(null);
     const dragRef = useRef<{ startX: number; startScroll: number } | null>(null);
 
@@ -130,6 +132,11 @@ export const TimelineScrollbar: React.FC<TimelineScrollbarProps> = memo(
         scrollLeftPx,
         viewportWidthPx
       );
+
+    const thumbCss = useMemo(
+      () => thumbStyles(theme, scrollable),
+      [theme, scrollable]
+    );
 
     const handleThumbPointerDown = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
@@ -175,7 +182,7 @@ export const TimelineScrollbar: React.FC<TimelineScrollbarProps> = memo(
 
     return (
       <div
-        css={containerStyles(theme)}
+        css={containerCss}
         style={{ paddingLeft: leftInsetPx }}
         data-testid="timeline-scrollbar"
       >
@@ -185,7 +192,7 @@ export const TimelineScrollbar: React.FC<TimelineScrollbarProps> = memo(
           onPointerDown={handleTroughPointerDown}
         >
           <div
-            css={thumbStyles(theme, scrollable)}
+            css={thumbCss}
             style={{ width: thumbWidth, left: thumbLeft }}
             onPointerDown={handleThumbPointerDown}
             onPointerMove={handleThumbPointerMove}

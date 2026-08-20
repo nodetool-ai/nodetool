@@ -13,6 +13,7 @@ import React, {
   memo,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from "react";
@@ -155,6 +156,8 @@ const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
   onRemove
 }) => {
   const theme = useTheme();
+  // Was serialized once per visible marker, on every scroll frame.
+  const flagCss = useMemo(() => markerFlagStyles(theme), [theme]);
   return (
     <div
       css={markerLayerStyles}
@@ -176,7 +179,7 @@ const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
         return (
           <div
             key={m.id}
-            css={markerFlagStyles(theme)}
+            css={flagCss}
             style={{ left: contentPx, backgroundColor: m.color || undefined }}
             title={`${m.label || "Marker"} — click to seek`}
             data-testid="timeline-marker"
@@ -261,6 +264,8 @@ interface TimeRulerProps {
 export const TimeRuler: React.FC<TimeRulerProps> = memo(
   ({ totalWidthPx, headerWidthPx = 0 }) => {
     const theme = useTheme();
+    // `scrollLeftPx` re-renders this on every scroll frame.
+    const rootCss = useMemo(() => rulerStyles(theme), [theme]);
     const { mode, systemMode } = useColorScheme();
     const activeMode = mode === "system" ? systemMode : mode;
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -497,7 +502,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
     return (
       <div
-        css={rulerStyles(theme)}
+        css={rootCss}
         style={{ paddingLeft: headerWidthPx }}
         data-testid="time-ruler"
       >
