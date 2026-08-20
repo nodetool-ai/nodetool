@@ -100,6 +100,13 @@ export interface FakeWorkerHandle {
    * No-op when gateUpgrade was false or after the upgrade was already released.
    */
   releaseUpgrade: () => void;
+  /**
+   * True once a gated WebSocket upgrade has reached the server and is being
+   * held. This is the observable a test should wait on instead of sleeping:
+   * "the socket is genuinely CONNECTING" is a fact about the server, not a
+   * duration, and a fixed sleep only guesses at it.
+   */
+  upgradePending: () => boolean;
 }
 
 /**
@@ -175,12 +182,26 @@ export function startFakeWorker(
 ): Promise<FakeWorkerHandle> {
   // When gateUpgrade: true, the first WS upgrade is held until releaseUpgrade()
   // is called. Captured via verifyClient's async callback form.
+  //
+  // `verifyClient` fires only once the upgrade request reaches the server, so a
+  // caller cannot know whether it has run yet. Releasing before it fired used to
+  // be a silent no-op — the upgrade was then held forever and the handshake
+  // never settled, which surfaces as a test timeout with nothing to read. On a
+  // busy CI runner that is exactly the order that happens. `releaseRequested`
+  // makes an early release apply to the next upgrade instead of vanishing, so
+  // ordering cannot decide the outcome.
   let pendingRelease: (() => void) | null = null;
+  let releaseRequested = false;
   const verifyClient = initialOptions.gateUpgrade
     ? (
         _info: Record<string, unknown>,
         cb: (res: boolean) => void
       ) => {
+        if (releaseRequested) {
+          releaseRequested = false;
+          cb(true);
+          return;
+        }
         pendingRelease = () => {
           pendingRelease = null;
           cb(true);
@@ -558,8 +579,14 @@ export function startFakeWorker(
         },
         received: (t: string) => receivedByType.get(t) ?? [],
         releaseUpgrade: () => {
-          pendingRelease?.();
-        }
+          if (pendingRelease) {
+            pendingRelease();
+            return;
+          }
+          // The upgrade has not arrived yet — arm it rather than drop it.
+          releaseRequested = true;
+        },
+        upgradePending: () => pendingRelease !== null
       });
     });
   });

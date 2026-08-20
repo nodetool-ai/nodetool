@@ -632,9 +632,12 @@ describe("WebsocketPythonBridge", () => {
           // expected to reject — the handshake gets aborted by setTarget
         });
 
-        // Give the TCP connection to worker A a moment to establish so the socket
-        // is genuinely CONNECTING (not just queued).
-        await new Promise((r) => setTimeout(r, 30));
+        // Wait for the state the race needs rather than guessing at a duration:
+        // worker A's upgrade has reached the server and is being held, so the
+        // socket is genuinely CONNECTING. This was a fixed 30ms sleep, which is
+        // ample on an idle machine and not guaranteed on a loaded CI runner —
+        // the test then timed out at 30s with nothing to read.
+        await waitFor(() => workerA.upgradePending(), 5000);
 
         let reconnected = false;
         bridge.on("reconnected", () => { reconnected = true; });
@@ -666,6 +669,32 @@ describe("WebsocketPythonBridge", () => {
       } finally {
         await workerA.close();
         await workerB.close();
+      }
+    });
+
+    it("releaseUpgrade before the upgrade arrives still releases it", async () => {
+      // The ordering CI hit. `verifyClient` only fires once the upgrade request
+      // reaches the server, and `releaseUpgrade()` used to call whatever was
+      // pending *at that moment* — so a release that ran first was dropped, the
+      // upgrade was then held forever, and the handshake never settled. On a
+      // loaded runner that is a 30s test timeout with no assertion to read.
+      //
+      // Ordering must not decide the outcome, so a release that arrives early
+      // now applies to the next upgrade instead of vanishing.
+      const worker = await startFakeWorker(0, { gateUpgrade: true });
+      try {
+        // Release before anything has connected — the losing order.
+        worker.releaseUpgrade();
+
+        bridge = new WebsocketPythonBridge({
+          wsUrl: `ws://127.0.0.1:${worker.port}`,
+          startupTimeoutMs: 3000
+        });
+        await bridge.connect();
+
+        expect(bridge.isConnected).toBe(true);
+      } finally {
+        await worker.close();
       }
     });
 
