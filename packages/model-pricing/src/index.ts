@@ -157,4 +157,22 @@ export function getModelUnitPrice(
 export { priceGenspendEntry, normalizeResolution } from "./genspend-calc.js";
 export type { ModelParamPrice } from "./genspend-calc.js";
 
+export {
+  modelRankings,
+  buildRankingsIndex,
+  getModelRank,
+  getCanonicalId,
+  routesFor,
+  rankedForTask
+} from "./model-rankings.js";
+export type {
+  ModelRankingsArtifact,
+  RankedModelEntry,
+  TaskRank,
+  ModelRoute,
+  RankedRoute,
+  RankedTaskEntry,
+  RankingsIndex
+} from "./model-rankings.js";
+
 export default getModelUnitPrice;
