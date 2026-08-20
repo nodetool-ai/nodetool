@@ -717,6 +717,108 @@ export class TimelineTranscriptNode extends BaseNode {
   }
 }
 
+/** Content types AddClips falls back to when the bytes say nothing. */
+const CLIP_CONTENT_TYPE_FALLBACK: Record<string, string> = {
+  image: "image/png",
+  audio: "audio/wav",
+  video: "video/mp4"
+};
+
+const CLIP_CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  wav: "audio/wav",
+  mp3: "audio/mpeg",
+  ogg: "audio/ogg",
+  flac: "audio/x-flac",
+  m4a: "audio/x-m4a",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime"
+};
+
+const startsWithBytes = (bytes: Uint8Array, ascii: string, at = 0): boolean => {
+  if (bytes.length < at + ascii.length) return false;
+  for (let i = 0; i < ascii.length; i++) {
+    if (bytes[at + i] !== ascii.charCodeAt(i)) return false;
+  }
+  return true;
+};
+
+/** The content type the bytes themselves declare, or null when unrecognized. */
+function sniffContentType(
+  mediaType: string,
+  bytes: Uint8Array
+): string | null {
+  if (startsWithBytes(bytes, "RIFF") && startsWithBytes(bytes, "WAVE", 8)) {
+    return "audio/wav";
+  }
+  if (startsWithBytes(bytes, "RIFF") && startsWithBytes(bytes, "WEBP", 8)) {
+    return "image/webp";
+  }
+  if (startsWithBytes(bytes, "ID3")) return "audio/mpeg";
+  // MPEG audio frame sync: 11 set bits. Two bytes is weak evidence, so trust
+  // it only where the clip is already known to be audio.
+  if (
+    mediaType === "audio" &&
+    bytes.length >= 2 &&
+    bytes[0] === 0xff &&
+    (bytes[1]! & 0xe0) === 0xe0
+  ) {
+    return "audio/mpeg";
+  }
+  if (startsWithBytes(bytes, "OggS")) return "audio/ogg";
+  if (startsWithBytes(bytes, "fLaC")) return "audio/x-flac";
+  if (startsWithBytes(bytes, "\x89PNG")) return "image/png";
+  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xd8) {
+    return "image/jpeg";
+  }
+  if (startsWithBytes(bytes, "GIF8")) return "image/gif";
+  // Matroska/WebM EBML header.
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x1a &&
+    bytes[1] === 0x45 &&
+    bytes[2] === 0xdf &&
+    bytes[3] === 0xa3
+  ) {
+    return "video/webm";
+  }
+  if (startsWithBytes(bytes, "ftyp", 4)) {
+    if (startsWithBytes(bytes, "qt", 8)) return "video/quicktime";
+    if (startsWithBytes(bytes, "M4A", 8)) return "audio/x-m4a";
+    return "video/mp4";
+  }
+  return null;
+}
+
+/**
+ * The content type to store a clip's bytes under.
+ *
+ * The stored asset's file extension and the `Content-Type` the browser is
+ * served both come from this, so guessing by media kind alone mislabels
+ * anything that is not the kind's default container: a WAV voiceover saved as
+ * `audio/mpeg` reaches the player as a `.mp3` it cannot decode. Read the bytes
+ * first, then the source URI's extension, and only then fall back to the kind.
+ */
+export function clipContentType(
+  mediaType: string,
+  bytes: Uint8Array,
+  uri: string | undefined
+): string {
+  const sniffed = sniffContentType(mediaType, bytes);
+  if (sniffed) return sniffed;
+  const extension = (uri ?? "").toLowerCase().split(/[?#]/)[0]!.split(".").pop();
+  const byExtension = extension
+    ? CLIP_CONTENT_TYPE_BY_EXTENSION[extension]
+    : undefined;
+  if (byExtension) return byExtension;
+  return CLIP_CONTENT_TYPE_FALLBACK[mediaType] ?? "application/octet-stream";
+}
+
 /** Output handles AddClipsToTimelineNode.process() emits. */
 type AddClipsToTimelineNodeOutputs = {
   output: { type: string; id: string };
@@ -834,12 +936,11 @@ export class AddClipsToTimelineNode extends BaseNode {
             );
             continue;
           }
-          const contentType =
-            mediaType === "video"
-              ? "video/mp4"
-              : mediaType === "audio"
-                ? "audio/mpeg"
-                : "image/png";
+          const contentType = clipContentType(
+            mediaType,
+            bytes,
+            isString(item.uri) ? item.uri : undefined
+          );
           const created = (await context.createAsset({
             name: `clip-${i + 1}`,
             contentType,

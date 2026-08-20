@@ -58,6 +58,14 @@ const locatorParts = (
 export type ResolvedMedia = {
   url: string | undefined;
   contentType: string | undefined;
+  /**
+   * True while the asset lookup is still in flight. A caller that renders
+   * nothing without a URL needs this to tell "not yet" from "never": an asset
+   * whose row is gone, or whose object cannot be signed, resolves to no URL
+   * forever, and silently rendering nothing leaves the reader with an empty
+   * gap and no way to reach the media.
+   */
+  pending: boolean;
 };
 
 export function useResolvedMedia(source: MediaLocator): ResolvedMedia {
@@ -68,18 +76,24 @@ export function useResolvedMedia(source: MediaLocator): ResolvedMedia {
   // disabled — hooks cannot be called conditionally, so gate the query instead.
   const needsAsset = staticUrl === null && Boolean(assetId);
 
-  const { data: asset } = useQuery({
+  const {
+    data: asset,
+    isPending,
+    isError
+  } = useQuery({
     queryKey: ["asset", assetId],
     queryFn: () => getAsset(assetId as string),
     enabled: needsAsset
   });
 
   if (staticUrl !== null) {
-    return { url: staticUrl || undefined, contentType: undefined };
+    return { url: staticUrl || undefined, contentType: undefined, pending: false };
   }
   return {
     url: asset?.get_url ?? undefined,
-    contentType: asset?.content_type ?? undefined
+    contentType: asset?.content_type ?? undefined,
+    // A disabled query reports `pending` forever, so gate on the id path.
+    pending: needsAsset && isPending && !isError
   };
 }
 
