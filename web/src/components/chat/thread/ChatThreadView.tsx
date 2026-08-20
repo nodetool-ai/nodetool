@@ -52,6 +52,7 @@ import {
   isObjectLike,
   isString
 } from "../../../utils/typePredicates";
+import { collapseToolCallOnlyMessages } from "../message/groupToolCalls";
 
 interface ChatThreadViewProps {
   /** Conversation rendered by this ChatView instance. */
@@ -526,11 +527,16 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       filtered.push(m);
     }
 
+    const collapsed = collapseToolCallOnlyMessages(filtered);
+
     let lastUserIdx = -1;
-    for (let i = 0; i < filtered.length; i++) {
-      if (filtered[i].role === "user") lastUserIdx = i;
+    for (let i = 0; i < collapsed.length; i++) {
+      if (collapsed[i].role === "user") lastUserIdx = i;
     }
-    return { filteredMessages: filtered, lastUserMessageIndex: lastUserIdx };
+    return {
+      filteredMessages: collapsed,
+      lastUserMessageIndex: lastUserIdx
+    };
   }, [messages, executionMessagesById]);
 
   const virtualizer = useVirtualizer({

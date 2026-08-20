@@ -509,4 +509,47 @@ describe("ChatThreadView", () => {
     );
     expect(screen.getByTestId("task-update")).toBeInTheDocument();
   });
+
+  it("collapses consecutive tool-call-only messages of the same tool", () => {
+    const toolMessage = (id: string, callId: string): Message =>
+      ({
+        type: "message",
+        id,
+        role: "assistant",
+        content: "",
+        tool_calls: [{ id: callId, name: "web_search", args: {} }]
+      }) as Message;
+
+    renderWithTheme(
+      <ChatThreadView
+        {...defaultProps}
+        messages={[
+          mockMessages[0],
+          toolMessage("s1", "a"),
+          {
+            type: "message",
+            id: "t1",
+            role: "tool",
+            tool_call_id: "a",
+            content: "result a"
+          } as Message,
+          toolMessage("s2", "b"),
+          toolMessage("s3", "c"),
+          {
+            type: "message",
+            id: "final",
+            role: "assistant",
+            content: "Done"
+          }
+        ]}
+      />
+    );
+
+    expect(screen.getByTestId("message-1")).toBeInTheDocument();
+    expect(screen.getByTestId("message-s1")).toBeInTheDocument();
+    expect(screen.queryByTestId("message-s2")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("message-s3")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("message-t1")).not.toBeInTheDocument();
+    expect(screen.getByTestId("message-final")).toBeInTheDocument();
+  });
 });
