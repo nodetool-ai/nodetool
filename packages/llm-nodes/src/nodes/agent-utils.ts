@@ -390,7 +390,12 @@ export function normalizeToolCalls(value: unknown): ToolCall[] | null {
       name: isString(item.name) ? item.name : "",
       args: isObjectLike(item.args)
         ? (item.args as Record<string, unknown>)
-        : {}
+        : {},
+      // Gemini 3 rejects a replayed function call whose signature is gone, so
+      // it has to survive the round trip through stored history.
+      ...(isNonEmptyString(item.thought_signature)
+        ? { thought_signature: item.thought_signature }
+        : {})
     }))
     .filter((item) => item.name.length > 0);
   return toolCalls.length > 0 ? toolCalls : null;

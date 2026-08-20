@@ -4742,11 +4742,14 @@ export class UnifiedWebSocketRunner {
       content: rawContent ?? "",
       toolCallId: isString(m.tool_call_id) ? m.tool_call_id : null,
       toolCalls: Array.isArray(m.tool_calls)
-        ? (m.tool_calls as Array<{
-            id: string;
-            name: string;
-            args: Record<string, unknown>;
-          }>)
+        ? (m.tool_calls as Array<ProviderToolCall>).map((tc) => ({
+            id: tc.id,
+            name: tc.name,
+            args: tc.args,
+            ...(isString(tc.thought_signature)
+              ? { thought_signature: tc.thought_signature }
+              : {})
+          }))
         : null,
       threadId: m.thread_id
     };
@@ -6189,7 +6192,10 @@ export class UnifiedWebSocketRunner {
               id: tc.id,
               name: tc.name,
               args: tc.args,
-              result: null
+              result: null,
+              // Gemini 3 rejects a history that replays a function call
+              // without the signature it issued, so it rides into the DB.
+              thought_signature: tc.thought_signature ?? null
             }))
           : null;
         for (const tc of toolCalls ?? []) {
