@@ -24,8 +24,7 @@ export type {
 
 export { SamServiceFal, resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
 
-export { SamServiceNode, SAM_NODE_CONFIGS, DEFAULT_SAM_NODE_BACKEND } from "./SamServiceNode";
-export type { SamNodeConfig } from "./SamServiceNode";
+export { SamServiceNode } from "./SamServiceNode";
 export { normalizeSamMasks } from "./normalizeSamMasks";
 export {
   rasterizeSegmentationToDocumentSpace,
@@ -33,8 +32,6 @@ export {
 } from "./segmentationDocumentSpace";
 
 export {
-  getMaskOverlayColor,
-  getMaskOutlineColor,
   drawMaskBoundsOverlay,
   drawMaskImageOverlay,
   generateCutoutDataUrl,

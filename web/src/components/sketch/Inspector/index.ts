@@ -9,4 +9,3 @@ export { LayerVersionList } from "./LayerVersionList";
 export { SketchAIToolbar } from "./SketchAIToolbar";
 export { ConnectedGeneratedLayerSection } from "./ConnectedGeneratedLayerSection";
 export { LAYER_STATUS_MAP } from "./layerStatusMapping";
-export type { LayerStatusVisual } from "./layerStatusMapping";

@@ -23,7 +23,6 @@ export { StrokeAssist } from "./StrokeAssist";
 
 // ── Coordinate mapping ─────────────────────────────────────────────────────
 export { CoordinateMapper } from "./CoordinateMapper";
-export type { CoordinateMapperConfig } from "./CoordinateMapper";
 
 // ── Document sampling / hit-testing ────────────────────────────────────────
 export {
@@ -36,14 +35,10 @@ export {
   captureAlphaSnapshot,
   restoreAlphaFromSnapshot
 } from "./alphaLock";
-export type { AlphaRestoreDirtyRect } from "./alphaLock";
 
 // ── Helper-tool session (clone stamp, blur, etc.) ──────────────────────────
 export { HelperToolSession } from "./HelperToolSession";
 export type {
-  HelperOnSetup,
-  HelperOnDraw,
-  HelperOnTeardown,
   HelperSetupInfo,
   HelperDrawInfo
 } from "./HelperToolSession";

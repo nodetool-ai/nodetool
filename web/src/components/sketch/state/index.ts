@@ -5,8 +5,4 @@ export {
   SKETCH_ZOOM_MIN,
   SKETCH_ZOOM_MAX
 } from "./useSketchStore";
-export type {
-  PersistedSketchStoreState,
-  SketchStore,
-  SketchStoreApi
-} from "./useSketchStore";
+export type { SketchStore, SketchStoreApi } from "./useSketchStore";
