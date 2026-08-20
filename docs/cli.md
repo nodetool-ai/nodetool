@@ -1369,6 +1369,227 @@ See the [Agent CLI](agent-cli.md) reference for full details.
 > The `nodetool db` group (`migrate`, `status`, `baseline`, `rollback`) is documented under
 > [Database Migrations](#database-migrations) above.
 
+## Deployment and Workers
+
+Two different things, and the CLI keeps them apart. A **server** is long-lived
+and people connect in to it — `nodetool deploy` manages one over Docker. A
+**worker** is a rented GPU that a NodeTool instance connects out to, bills by
+the minute, and is meant to be torn down — `nodetool worker` provisions it. See
+[Deployment](deployment.md) for which one you want.
+
+### `nodetool deploy`
+
+Manage a Docker self-host server target described by a `deployment.yaml`.
+`init` scaffolds the file, `add` fills in one target, and every other
+subcommand names that target.
+
+The file lives in the user config directory, not the working directory:
+`~/Library/Application Support/nodetool/deployment.yaml` on macOS,
+`%APPDATA%\nodetool\deployment.yaml` on Windows, and
+`$XDG_CONFIG_HOME/nodetool/deployment.yaml` — falling back to
+`~/.config/nodetool/` — elsewhere. Run `nodetool deploy edit` to open it rather
+than guessing the path.
+
+**Subcommands:** `init`, `add`, `edit`, `list`, `show`, `plan`, `apply`,
+`status`, `logs`, `destroy`, plus the remote groups `workflows`, `database`,
+`collections` and the `users-*` verbs below.
+
+**Options:**
+
+- `--dry-run` — print what `apply` would do without executing it.
+- `-f, --follow` / `--tail <n>` / `--service <service>` — for `logs`; `--tail`
+  defaults to `100`.
+- `--force` — skip the `destroy` confirmation.
+- `--json` — machine-readable `list` output.
+
+```bash
+# Scaffold, describe, and review before touching the remote host
+nodetool deploy init
+nodetool deploy add my-server --type docker
+nodetool deploy plan my-server
+
+# Deploy and watch it
+nodetool deploy apply my-server
+nodetool deploy logs my-server --follow --tail 200
+
+# Open deployment.yaml in $EDITOR
+nodetool deploy edit
+```
+
+The full server walkthrough is [Deployment](deployment.md) and
+[Self-Hosted Deployment](self-hosted-deployment.md).
+
+#### Remote workflows, rows, and collections
+
+Once a target is up, three groups act on it over the admin API rather than on
+the local database:
+
+```bash
+# Push a local workflow and everything it references, then run it there
+nodetool deploy workflows sync my-server <workflow_id>
+nodetool deploy workflows list my-server
+nodetool deploy workflows run my-server <workflow_id> -p prompt="a red fox"
+nodetool deploy workflows delete my-server <workflow_id>
+
+# Read, upsert, and delete a single remote DB row
+nodetool deploy database get my-server users alice
+nodetool deploy database save my-server users '{"id":"alice","role":"admin"}'
+nodetool deploy database delete my-server users alice
+
+# Push a local RAG collection to the deployment
+nodetool deploy collections sync my-server my_docs
+```
+
+`workflows run` takes `-p, --param <k=v>`, repeatable. `<table>` is passed
+through to the deployment, which resolves it against its own adapters — the
+valid names are the remote server's tables, not a list this CLI holds. `save`
+takes the row as a positional JSON string, and `get` on a row that is not there
+answers `404`. `collections sync` uploads in batches of `--batch-size`,
+default `100`.
+
+#### API users on the deployment
+
+For a multi-user server, mint and rotate the tokens its API clients
+authenticate with. `--role` is `user` unless you pass `admin`.
+
+```bash
+nodetool deploy users-add my-server alice --role admin
+nodetool deploy users-list my-server
+nodetool deploy users-reset-token my-server alice
+nodetool deploy users-remove my-server alice
+```
+
+Every subcommand that touches a live deployment — the `users-*` verbs and the
+three remote groups above — sends an admin bearer token. `--token <token>`
+passes it explicitly and wins over `NODETOOL_ADMIN_TOKEN`; with neither, an
+interactive shell prompts and a non-interactive one exits `1`.
+
+### `nodetool worker`
+
+Provision, attach to, and tear down a rented GPU worker on RunPod or Vast. A
+worker bills by the minute, so `stop` is part of the workflow, not cleanup you
+get to postpone.
+
+**Subcommands:** `profile` (`add`, `list`, `rm`), `create`, `list`, `status`,
+`token`, `stop`, `models`
+
+**Options:**
+
+- `--target <runpod|vast>`, `--image <image>`, `--gpu <gpu>`, `--vcpu <n>` —
+  what to rent, on `profile add` or inline on `create`.
+- `--idle-timeout <minutes>` / `--max-lifetime <minutes>` — auto-stop when idle,
+  and a hard TTL. Both are the guard against a forgotten worker.
+- `--token-policy <generate|fixed>` — default `generate`.
+- `--profile <name>` / `--attach` — for `create`.
+- `--all` — for `stop`, stops every non-stopped worker.
+- `--json` — for `list`.
+
+```bash
+# Save a preset once, then rent from it
+nodetool worker profile add hf-a40 --target runpod \
+  --image ghcr.io/nodetool-ai/nodetool-worker:latest \
+  --gpu "NVIDIA A40" --idle-timeout 15
+nodetool worker create --profile hf-a40 --attach
+
+# Inspect and tear down
+nodetool worker list
+nodetool worker status <instance-id>
+nodetool worker stop --all
+```
+
+The full walkthrough, including what `--attach` changes locally, is
+[Worker Deployment](worker-deployment.md).
+
+#### `nodetool worker models`
+
+Manage the HuggingFace cache on the worker itself, over the WebSocket bridge —
+no NodeTool server has to be running. Pre-pulling weights here is what keeps the
+first run of a graph from paying the download on rented GPU time.
+
+The `[worker-id]` argument is optional: omit it and the command uses the
+currently attached worker, or errors telling you to attach one.
+
+**Options:**
+
+- `--repo-id <id>` — HuggingFace repo, `owner/name`. Required for `download`
+  and `delete`.
+- `--file-path <path>` — download a single file instead of the repo.
+- `-a, --allow-patterns <pattern>` / `-i, --ignore-patterns <pattern>` — glob
+  filters on `download`, both repeatable.
+- `--json` — for `list`.
+
+```bash
+# What is already cached on the attached worker
+nodetool worker models list
+
+# Pull weights ahead of a run — whole repo, then just the safetensors
+nodetool worker models download --repo-id stabilityai/sdxl-turbo
+nodetool worker models download --repo-id stabilityai/sdxl-turbo -a "*.safetensors"
+
+# Reclaim disk on a named worker
+nodetool worker models delete <worker-id> --repo-id stabilityai/sdxl-turbo
+```
+
+## Messaging Bridges
+
+### `nodetool telegram`
+
+Run the Telegram bridge: it turns private-chat messages into turns on the agent
+loop of a running NodeTool server, and streams the answers back. The bridge
+holds no conversation state and no user credentials — the agent loop, tools,
+permissions, threads, and cost tracking all stay on the server, which the
+bridge reaches over `/ws` as the linked user.
+
+Reach for it when you want NodeTool answering from a phone without opening the
+web UI. The server it talks to must have `NODETOOL_INTEGRATION_TOKEN` set, or
+the linking routes the bridge calls do not exist.
+
+**Subcommands:** `serve`, `register-commands`
+
+**Options:**
+
+- `--config <path>` — path to `telegram-bot.json`, relative to the working
+  directory. Both subcommands take it. Without the flag, `telegram-bot.json` is
+  read if it is there and skipped if it is not; a path you asked for explicitly
+  and that does not exist is an error.
+
+Configuration is environment variables plus that optional file. The env vars are
+listed in the
+[Environment Variables Index](configuration.md#environment-variables-index);
+the file carries only the tuning knobs:
+
+```jsonc
+// telegram-bot.json
+{
+  "allowUsers": [],       // Telegram user ids allowed to link; empty = anyone
+  "editThrottleMs": 1500, // minimum gap between edits of one streamed reply
+  "maxQueuedTurns": 3     // messages queued behind an in-flight turn
+}
+```
+
+```bash
+# Publish the bot's command list — a deploy step, not a boot step
+export TELEGRAM_BOT_TOKEN=123456:AA...
+export NODETOOL_INTEGRATION_TOKEN=the-same-value-the-server-has
+nodetool telegram register-commands
+
+# Long-poll the Bot API and serve turns
+nodetool telegram serve --config ./telegram-bot.json
+```
+
+Both subcommands validate the whole configuration before doing anything and
+print the fields that failed rather than a stack trace:
+
+```
+Invalid Telegram bridge environment:
+  TELEGRAM_BOT_TOKEN: TELEGRAM_BOT_TOKEN is required
+  NODETOOL_INTEGRATION_TOKEN: NODETOOL_INTEGRATION_TOKEN is required
+```
+
+`serve` polls with `getUpdates`. Webhook mode is not implemented yet, and
+setting `TELEGRAM_WEBHOOK_URL` makes `serve` refuse to start rather than
+silently polling. Design notes: [telegram-bot-design.md](telegram-bot-design.md).
+
 ## Development Tooling
 
 ### `nodetool affected [files...]`

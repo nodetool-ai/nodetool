@@ -1937,6 +1937,44 @@ npm run dev:nodetool -- secrets store MY_KEY --description "..."
 npm run dev:nodetool -- secrets get OPENAI_API_KEY              # Print value
 ```
 
+### nodetool worker (Rented GPU Workers)
+
+Provisions a RunPod/Vast worker a NodeTool instance attaches to for Python
+nodes, and manages the HuggingFace cache on it over the WebSocket bridge — no
+server needed for `worker models`. A worker bills by the minute, so
+`--idle-timeout` and `stop` are part of the flow.
+
+```bash
+npm run dev:nodetool -- worker profile add hf-a40 --target runpod \
+  --image ghcr.io/nodetool-ai/nodetool-worker:latest --gpu "NVIDIA A40" --idle-timeout 15
+npm run dev:nodetool -- worker create --profile hf-a40 --attach
+npm run dev:nodetool -- worker models list                      # attached worker
+npm run dev:nodetool -- worker models download --repo-id stabilityai/sdxl-turbo
+npm run dev:nodetool -- worker list
+npm run dev:nodetool -- worker stop --all
+```
+
+Full reference: [docs/cli.md § nodetool worker](docs/cli.md#nodetool-worker),
+walkthrough: [docs/worker-deployment.md](docs/worker-deployment.md).
+
+### nodetool telegram (Telegram Bridge)
+
+Turns Telegram private-chat messages into turns on a running server's agent
+loop. The bridge holds no credentials and no conversation state — threads,
+tools, permissions, and cost tracking stay on the server, which needs
+`NODETOOL_INTEGRATION_TOKEN` set or the linking routes do not exist. Long
+polling only; `TELEGRAM_WEBHOOK_URL` makes `serve` refuse to start.
+
+```bash
+npm run dev:nodetool -- telegram register-commands              # setMyCommands (deploy step)
+npm run dev:nodetool -- telegram serve --config ./telegram-bot.json
+```
+
+Env: `TELEGRAM_BOT_TOKEN`, `NODETOOL_INTEGRATION_TOKEN`, `NODETOOL_API_URL`.
+File (optional): `allowUsers`, `editThrottleMs`, `maxQueuedTurns`. Full
+reference: [docs/cli.md § nodetool telegram](docs/cli.md#nodetool-telegram),
+design: [docs/telegram-bot-design.md](docs/telegram-bot-design.md).
+
 ### nodetool settings & info
 
 ```bash
