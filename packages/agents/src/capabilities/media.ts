@@ -1374,10 +1374,16 @@ async function stageInputs(
       };
     }
     let bytes: Uint8Array | null = null;
+    let readError: string | undefined;
     try {
       bytes = await loadMediaRefBytes({ uri: ref.trim() }, context);
-    } catch {
-      // Reported as unreadable below; the message names the forms that work.
+    } catch (e) {
+      // Keep why. Naming only the accepted forms is useless to a caller who
+      // already passed one — an unreachable bucket, a revoked credential and a
+      // typo all arrive here, and only the first two are worth retrying. Told
+      // just "pass an asset:// URI", a model re-sends the ref it has and then
+      // starts guessing at URL shapes.
+      readError = e instanceof Error ? e.message : String(e);
     }
     // Zero bytes is a failed read wearing a buffer, the same way it is in
     // `save_asset` — staging it would hand ffmpeg an empty file and the
@@ -1385,8 +1391,12 @@ async function stageInputs(
     if (!bytes || bytes.byteLength === 0) {
       return {
         error:
-          `inputs["${name}"]: could not read ${ref}. Pass an asset:// URI, ` +
-          `the /api/storage/ key a tool returned, or a data: URI.`
+          `inputs["${name}"]: could not read ${ref}. ` +
+          (readError
+            ? `Reading it failed: ${readError}. `
+            : "It resolved to no bytes. ") +
+          `Accepted: an asset:// URI, the /api/storage/ key a tool returned, ` +
+          `or a data: URI.`
       };
     }
     if (bytes.byteLength > MAX_STAGED_INPUT_BYTES) {

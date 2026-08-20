@@ -487,6 +487,33 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     }
   });
 
+  it("ffmpeg names why an inputs ref failed to resolve", async () => {
+    // The same shape `view_image` hit: the ref is a perfectly good form, and
+    // the read fails underneath. Reporting only the accepted forms sends the
+    // model back round with the ref it already had — it cannot tell a typo
+    // from an unreachable bucket, so it guesses at the one thing it can change.
+    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-err-"));
+    try {
+      const context = {
+        userId: "user-1",
+        workspace: createLocalWorkspace(dir),
+        resolveWorkspacePath: (relative: string) => resolve(dir, relative),
+        resolveAssetBytes: async () => {
+          throw new Error("storage backend unreachable");
+        }
+      } as unknown as ProcessingContext;
+
+      const result = (await asTool(ffmpeg).process(context, {
+        args: ["-i", "a.mp4", "out.mp4"],
+        inputs: { "a.mp4": "asset://abc.mp4" }
+      })) as Record<string, unknown>;
+
+      expect(String(result["error"])).toContain("storage backend unreachable");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("ffmpeg points a refused URI at the inputs parameter", async () => {
     const result = (await asTool(ffmpeg).process(
       localWorkspaceContext("/tmp"),
