@@ -79,6 +79,16 @@ export interface SubtaskCaseResult {
   skipped: boolean;
   /** The parent loop ran to a natural stop without a fatal provider error. */
   accepted: boolean;
+  /**
+   * Accepted AND every expectation check passed. This — not {@link accepted} —
+   * is what the suite's success rate and the `--min-success` gate read. A
+   * parent that answered correctly by doing the work itself is live but has
+   * failed the only thing a delegation case measures, and reporting that as a
+   * success made the suite a scoreboard that could not go red.
+   */
+  success: boolean;
+  /** Expectation checks that failed. Zero is required for {@link success}. */
+  criticalFailures: number;
   score: number;
   checks: EvalCheck[];
   /** Number of subtasks spawned. */
@@ -101,8 +111,15 @@ export interface SubtaskEvalReport {
     total: number;
     skipped: number;
     accepted: number;
-    /** accepted / (total - skipped) */
+    /** Cases that were accepted AND passed every expectation check. */
+    successful: number;
+    /** success / (total - skipped) — the gated metric. */
     successRate: number;
+    /**
+     * accepted / (total - skipped). A liveness signal, not a result: a parent
+     * that called no tools at all still scores 100% on it.
+     */
+    completionRate: number;
     /** Mean expectation score over non-skipped cases. */
     meanScore: number;
     avgSubtasks: number;
@@ -389,21 +406,28 @@ async function runCase(
     subtaskResults: subtaskTool.spawns.map((s) => s.resultText)
   };
 
+  const expectationChecks = accepted
+    ? checkSubtaskExpectations(observation, evalCase.expect)
+    : [];
   const checks: EvalCheck[] = [
-    { name: "accepted", pass: accepted, detail: error }
+    { name: "accepted", pass: accepted, detail: error },
+    ...expectationChecks
   ];
-  if (accepted) {
-    checks.push(...checkSubtaskExpectations(observation, evalCase.expect));
-  }
   const score = accepted
     ? checks.filter((c) => c.pass).length / checks.length
     : 0;
+  // Every expectation check is the point of its case — required parent and
+  // child tools, delegation depth, forbidden tools. None is advisory, so any
+  // failure disqualifies the run rather than merely lowering its score.
+  const criticalFailures = expectationChecks.filter((c) => !c.pass).length;
 
   return {
     caseId: evalCase.id,
     description: evalCase.description,
     skipped: false,
     accepted,
+    success: accepted && criticalFailures === 0,
+    criticalFailures,
     score,
     checks,
     subtasks: subtaskTool.spawns.length,
@@ -432,6 +456,8 @@ export async function runSubtaskEval(
         description: evalCase.description,
         skipped: true,
         accepted: false,
+        success: false,
+        criticalFailures: 0,
         score: 0,
         checks: [],
         subtasks: 0,
@@ -447,7 +473,7 @@ export async function runSubtaskEval(
     const result = await runCase(evalCase, opts);
     const failed = result.checks.filter((c) => !c.pass);
     opts.onEvent?.(
-      `  ${result.accepted ? "PASS" : "FAIL"} score=${result.score.toFixed(2)} ` +
+      `  ${result.success ? "PASS" : "FAIL"} score=${result.score.toFixed(2)} ` +
         `subtasks=${result.subtasks} depth=${result.maxDepth} ` +
         `${Math.round(result.durationMs / 1000)}s` +
         (failed.length > 0
@@ -459,11 +485,14 @@ export async function runSubtaskEval(
 
   const ran = results.filter((r) => !r.skipped);
   const acceptedResults = ran.filter((r) => r.accepted);
+  const successful = ran.filter((r) => r.success);
   const summary = {
     total: results.length,
     skipped: results.length - ran.length,
     accepted: acceptedResults.length,
-    successRate: ran.length > 0 ? acceptedResults.length / ran.length : 0,
+    successful: successful.length,
+    successRate: ran.length > 0 ? successful.length / ran.length : 0,
+    completionRate: ran.length > 0 ? acceptedResults.length / ran.length : 0,
     meanScore:
       ran.length > 0 ? ran.reduce((a, r) => a + r.score, 0) / ran.length : 0,
     avgSubtasks:
@@ -504,7 +533,7 @@ export function formatSubtaskReport(report: SubtaskEvalReport): string {
     lines.push(
       [
         r.caseId.padEnd(22),
-        (r.skipped ? "skip" : r.accepted ? "pass" : "FAIL").padEnd(7),
+        (r.skipped ? "skip" : r.success ? "pass" : "FAIL").padEnd(7),
         (r.skipped ? "-" : r.score.toFixed(2)).padEnd(6),
         String(r.subtasks).padEnd(5),
         String(r.maxDepth).padEnd(6),
@@ -519,7 +548,8 @@ export function formatSubtaskReport(report: SubtaskEvalReport): string {
   const s = report.summary;
   lines.push("");
   lines.push(
-    `success ${s.accepted}/${s.total - s.skipped} (${(s.successRate * 100).toFixed(0)}%)` +
+    `success ${s.successful}/${s.total - s.skipped} (${(s.successRate * 100).toFixed(0)}%)` +
+      `  completed ${s.accepted}/${s.total - s.skipped}` +
       `  mean score ${s.meanScore.toFixed(2)}` +
       `  avg subtasks ${s.avgSubtasks.toFixed(1)}` +
       (s.totalCostUsd > 0 ? `  cost $${s.totalCostUsd.toFixed(4)}` : "") +
