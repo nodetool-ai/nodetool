@@ -470,6 +470,32 @@ function appendGeminiContent(
   }
 }
 
+/**
+ * Sentinel Gemini accepts in place of a real thought signature. Gemini 3
+ * rejects a request whose history replays a function call with no signature —
+ * which is every turn recorded before signatures were persisted, and every
+ * call a caller injected by hand. The documented escape hatch is this literal:
+ * https://ai.google.dev/gemini-api/docs/generate-content/thought-signatures
+ * Reasoning continuity is lost for that call, so it is only ever a fallback
+ * for a signature we do not have.
+ */
+const GEMINI_UNSIGNED_CALL_SENTINEL = "skip_thought_signature_validator";
+
+/**
+ * Gemini validates that the *first* functionCall part of each model turn
+ * carries a signature. Stamp the sentinel on any that reaches us without one
+ * so an unsigned history fails soft (degraded reasoning) instead of 400.
+ */
+function signUnsignedFunctionCalls(contents: GeminiContent[]): void {
+  for (const content of contents) {
+    if (content.role !== "model") continue;
+    const first = content.parts.find((p) => p.functionCall !== undefined);
+    if (first && !first.thoughtSignature) {
+      first.thoughtSignature = GEMINI_UNSIGNED_CALL_SENTINEL;
+    }
+  }
+}
+
 function geminiResponseError(data: GeminiResponse): Error | null {
   if (data.error?.message)
     return new Error(`Gemini API error: ${data.error.message}`);
@@ -1003,9 +1029,13 @@ export class GeminiProvider extends BaseProvider {
       if (msg.role === "assistant") {
         // If we have raw Gemini parts (with thought content), replay them exactly
         if (msg._rawGeminiParts && Array.isArray(msg._rawGeminiParts)) {
+          // Copy: the contents we build get merged and stamped below, and the
+          // message's own parts must survive that untouched for the next turn.
           appendGeminiContent(contents, {
             role: "model",
-            parts: msg._rawGeminiParts as GeminiPart[]
+            parts: (msg._rawGeminiParts as GeminiPart[]).map((part) => ({
+              ...part
+            }))
           });
           continue;
         }
@@ -1054,6 +1084,8 @@ export class GeminiProvider extends BaseProvider {
         appendGeminiContent(contents, { role: "user", parts });
       }
     }
+
+    signUnsignedFunctionCalls(contents);
 
     return { contents, systemInstruction };
   }

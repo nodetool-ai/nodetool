@@ -40,7 +40,11 @@ export function matchesFileWatchPattern(
     .replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")
     .replace(/\\\*/g, ".*")
     .replace(/\\\?/g, ".");
-  return new RegExp(`^${source}$`).test(filename);
+  // "s" because a bare "." skips the four JS line terminators, all of which
+  // are legal in a POSIX filename; "u" because it otherwise counts one UTF-16
+  // unit, so "?" ate half an emoji. Neither flag can make the compile throw:
+  // the escape above already covers every character "u" is strict about.
+  return new RegExp(`^${source}$`, "us").test(filename);
 }
 
 /**

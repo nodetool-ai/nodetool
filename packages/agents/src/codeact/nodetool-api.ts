@@ -1172,8 +1172,13 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`understandVideo(video, prompt, videoModel, {max_tokens})\` reads a whole clip
   with a model that takes video (Gemini) and answers \`prompt\` as \`{text}\` —
   describe it, summarize it, or pull the on-screen text out.
-  Host binaries: \`ffmpeg(args, {output_file, timeout_seconds})\` runs ffmpeg
-  in the workspace (no shell, workspace paths only, no URL inputs);
+  Host binaries: \`ffmpeg(args, {inputs, output_file, timeout_seconds})\` runs
+  ffmpeg in the workspace (no shell, workspace paths only, no URL inputs).
+  \`inputs\` stages refs under workspace names first, which is how an asset
+  reaches ffmpeg — concatenating two of them is one call:
+  \`ffmpeg(["-i", "a.mp4", "-i", "b.mp4", "-filter_complex",
+  "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]", "-map", "[v]", "-map", "[a]",
+  "out.mp4"], {inputs: {"a.mp4": uriA, "b.mp4": uriB}, output_file: "out.mp4"})\`;
   \`ffprobe(path)\` reads a file's format and streams before you decide what to
   run; \`downloadVideo(url, outputFile, {format,
   timeout_seconds})\` downloads with yt-dlp. Browse pages with
@@ -1289,7 +1294,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:
   "audio"}, {op: "add_text_clip", text: "Hi"}, {op: "split_clip", target:
   "shot", atMs: 3000}, {op: "animate_clip", target: "Hi", animations:
-  [{role: "in", preset: "fade"}]}]\`. Start with \`{op: "get_state"}\` for ids.`
+  [{role: "in", preset: "fade"}]}]\`. Start with \`{op: "get_state"}\` for ids.
+  Existing library media goes on with \`{op: "add_media_clip", asset:
+  "asset://<id>.mp4"}\`, which appends after the track's last clip — so one
+  call per asset lays them end to end.`
   },
   {
     namespace: "sketches",

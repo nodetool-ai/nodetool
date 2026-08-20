@@ -36,6 +36,9 @@ import {
   DEFAULT_SHAPE_FILL_COLOR,
   DEFAULT_SHAPE_STROKE_COLOR,
   DEFAULT_SHAPE_STROKE_WIDTH_PX,
+  DEFAULT_MEDIA_CLIP_DURATION_MS,
+  mediaTypeForContentType,
+  trackTypeForMediaType,
   type TimelineClip,
   type TimelineTrack,
   type ClipAnimation
@@ -87,6 +90,26 @@ const fullTextStyleParams = z.object({
   maxWidthFrac: z.number().optional()
 });
 
+/**
+ * What the bridge needs to know about an asset to place it as a clip. A host
+ * that can read the asset table supplies {@link TimelineAssetResolver}; the
+ * eval bridge seeds a fixed table instead, so the op is exercised with no
+ * database in reach.
+ */
+export interface TimelineBridgeAsset {
+  id: string;
+  name: string;
+  contentType: string;
+  /** Length in ms, when the catalogue knows it. */
+  durationMs?: number;
+  thumbnailAssetId?: string;
+}
+
+/** Look up an asset by id or `asset://<id>[.ext]` URI. */
+export type TimelineAssetResolver = (
+  ref: string
+) => Promise<TimelineBridgeAsset | null>;
+
 /** A whole sequence handed to the bridge as-is, fields and all. */
 export interface TimelineBridgeSequenceSeed {
   fps?: number;
@@ -109,6 +132,12 @@ export interface TimelineBridgeInitialState {
    * can hand over state it still owns.
    */
   sequence?: TimelineBridgeSequenceSeed;
+  /**
+   * Resolve an asset ref for `ui_timeline_add_media_clip`. Without one the op
+   * reports that this surface has no asset lookup rather than inventing a
+   * clip that points at nothing.
+   */
+  resolveAsset?: TimelineAssetResolver;
   tracks?: { name?: string; type: "video" | "audio" | "overlay" | "subtitle" }[];
   clips?: {
     name: string;
@@ -179,6 +208,7 @@ export function createTimelineToolBridge(
   initial: TimelineBridgeInitialState = {}
 ): HeadlessSurfaceBridge<TimelineBridgeFinalState> {
   const seed = initial.sequence;
+  const resolveAsset = initial.resolveAsset;
   const fps = seed?.fps ?? initial.fps ?? 30;
   const width = seed?.width ?? initial.width ?? 1920;
   const height = seed?.height ?? initial.height ?? 1080;
@@ -421,6 +451,62 @@ export function createTimelineToolBridge(
             maxWidthFrac: s.maxWidthFrac
           }
         });
+        clips.push(clip);
+        selectedClipIds = [clip.id];
+        return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_add_media_clip",
+      "Place an existing asset — a video, image, or audio file already in the library — on the specified timeline sequence. `asset` is an asset id or `asset://<id>.<ext>` URI (list_assets returns both). Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset when known.",
+      z.object({
+        asset: z.string().trim().min(1),
+        trackId: z.string().optional(),
+        startMs: z.number().optional(),
+        durationMs: z.number().optional(),
+        name: z.string().optional()
+      }),
+      async ({ asset, trackId, startMs, durationMs, name }) => {
+        if (!resolveAsset) {
+          throw new Error(
+            "This timeline surface cannot look up assets, so an existing asset cannot be placed here."
+          );
+        }
+        const ref = asset as string;
+        const found = await resolveAsset(ref);
+        if (!found) {
+          throw new Error(
+            `No asset found for "${ref}". Pass an asset id or an asset:// URI from list_assets.`
+          );
+        }
+        const mediaType = mediaTypeForContentType(found.contentType);
+        if (!mediaType) {
+          throw new Error(
+            `Asset "${found.name}" is ${found.contentType}, which is not video, image, or audio and cannot go on a timeline.`
+          );
+        }
+        const track = trackId
+          ? resolveTrack(trackId as string)
+          : findOrCreateTrack(trackTypeForMediaType(mediaType));
+        const init: Parameters<typeof makeClip>[0] = {
+          id: nextClipId(),
+          trackId: track.id,
+          name: (name as string | undefined) ?? found.name,
+          startMs: (startMs as number | undefined) ?? trackEndMs(track.id),
+          durationMs:
+            (durationMs as number | undefined) ??
+            found.durationMs ??
+            DEFAULT_MEDIA_CLIP_DURATION_MS,
+          mediaType,
+          sourceType: "imported",
+          status: "generated",
+          currentAssetId: found.id
+        };
+        if (found.thumbnailAssetId) {
+          init.thumbnailAssetId = found.thumbnailAssetId;
+        }
+        const clip = makeClip(init);
         clips.push(clip);
         selectedClipIds = [clip.id];
         return { ok: true, clip: serializeClip(clip) };

@@ -102,7 +102,10 @@ describe("GeminiProvider", () => {
     expect(result.contents[0]).toEqual({
       role: "model",
       parts: [
-        { functionCall: { id: "tc1", name: "search", args: { q: "test" } } }
+        {
+          functionCall: { id: "tc1", name: "search", args: { q: "test" } },
+          thoughtSignature: "skip_thought_signature_validator"
+        }
       ]
     });
     expect(result.contents[1]).toEqual({
@@ -764,7 +767,8 @@ describe("GeminiProvider", () => {
       { role: "tool", toolCallId: "vendor-call-1", content: "ok" }
     ]);
     expect(converted.contents[0].parts[0]).toEqual({
-      functionCall: { id: "vendor-call-1", name: "lookup", args: { q: "x" } }
+      functionCall: { id: "vendor-call-1", name: "lookup", args: { q: "x" } },
+      thoughtSignature: "skip_thought_signature_validator"
     });
     expect(converted.contents[1].parts[0]).toEqual({
       functionResponse: {
@@ -981,6 +985,65 @@ describe("GeminiProvider", () => {
       { role: "user", parts: [{ text: "a" }, { text: "b" }] },
       { role: "model", parts: [{ text: "c" }, { text: "d" }] }
     ]);
+  });
+
+  it("replays a persisted tool call with its thought signature", async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+    const converted = await provider.convertMessages([
+      { role: "user", content: "hi" },
+      {
+        role: "assistant",
+        content: null,
+        toolCalls: [
+          { id: "c1", name: "search", args: { q: "x" }, thought_signature: "sig" },
+          { id: "c2", name: "search", args: { q: "y" } }
+        ]
+      }
+    ]);
+    const parts = converted.contents[1].parts;
+    expect(parts[0].thoughtSignature).toBe("sig");
+    // Gemini signs only the first call of a parallel batch — leave the rest bare.
+    expect(parts[1].thoughtSignature).toBeUndefined();
+  });
+
+  it("stamps the skip sentinel on an unsigned tool call in history", async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+    const converted = await provider.convertMessages([
+      { role: "user", content: "hi" },
+      {
+        role: "assistant",
+        content: null,
+        toolCalls: [{ id: "c1", name: "search", args: {} }]
+      },
+      { role: "tool", content: "result", toolCallId: "c1" },
+      { role: "user", content: "again" }
+    ]);
+    expect(converted.contents[1].parts[0].thoughtSignature).toBe(
+      "skip_thought_signature_validator"
+    );
+  });
+
+  it("leaves the message's own raw parts untouched when replaying them", async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+    const rawParts = [
+      { functionCall: { id: "c1", name: "search", args: {} } }
+    ];
+    const message: Message = {
+      role: "assistant",
+      content: null,
+      toolCalls: [{ id: "c1", name: "search", args: {} }],
+      _rawGeminiParts: rawParts
+    };
+    const converted = await provider.convertMessages([
+      { role: "user", content: "hi" },
+      message
+    ]);
+    expect(converted.contents[1].parts[0].thoughtSignature).toBe(
+      "skip_thought_signature_validator"
+    );
+    expect(rawParts[0]).toEqual({
+      functionCall: { id: "c1", name: "search", args: {} }
+    });
   });
 
   it("preserves text-part thought signatures in non-streaming history", async () => {

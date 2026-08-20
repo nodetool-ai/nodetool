@@ -45,6 +45,39 @@ describe("matchesFileWatchPattern", () => {
   it("anchors the match to the whole filename", () => {
     expect(matchesFileWatchPattern("prefix-a.csv", "a.csv")).toBe(false);
   });
+
+  // A POSIX filename may hold any byte but "/" and NUL. The compiled "."
+  // used to skip all four line terminators, so the function contradicted
+  // itself: "*" matched "a\nb.txt" (short-circuited) and "**" did not.
+  describe.each([
+    ["LF", "\n"],
+    ["CR", "\r"],
+    ["U+2028 line separator", "\u2028"],
+    ["U+2029 paragraph separator", "\u2029"]
+  ])("a filename containing %s", (_label, terminator) => {
+    const filename = `a${terminator}b.txt`;
+
+    it("is matched by '*'", () => {
+      expect(matchesFileWatchPattern(filename, "*")).toBe(true);
+      expect(matchesFileWatchPattern(filename, "**")).toBe(true);
+      expect(matchesFileWatchPattern(filename, "*.txt")).toBe(true);
+      expect(matchesFileWatchPattern(filename, "a*")).toBe(true);
+    });
+
+    it("is matched by '?' one character at a time", () => {
+      expect(matchesFileWatchPattern(`a${terminator}b`, "a?b")).toBe(true);
+    });
+
+    it("still fails a pattern it does not match", () => {
+      expect(matchesFileWatchPattern(filename, "*.csv")).toBe(false);
+    });
+  });
+
+  it("counts an astral character as the single character '?' matches", () => {
+    expect(matchesFileWatchPattern("a\u{1F600}.txt", "a?.txt")).toBe(true);
+    expect(matchesFileWatchPattern("\u{1F600}\u{1F600}", "??")).toBe(true);
+    expect(matchesFileWatchPattern("\u{1F600}", "??")).toBe(false);
+  });
 });
 
 describe("shouldProcessFileWatchPath", () => {

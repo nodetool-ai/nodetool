@@ -183,6 +183,61 @@ export function createNode<
   return node;
 }
 
+/**
+ * Find an {@link OutputHandle} nested inside a prop value — in an array, or
+ * under an object key. Returns the path to the first one, or null.
+ *
+ * `workflow()` derives edges from handles sitting *directly* on an input, so a
+ * handle one level down is not a connection: it used to be written verbatim
+ * into the node's `data`, the node producing it was never reached, and the
+ * graph validated clean with the producer missing entirely. Reporting the path
+ * is what turns that silent hole into an error a caller can act on.
+ */
+function findNestedHandlePath(
+  value: unknown,
+  seen: Set<object>
+): string | null {
+  if (typeof value !== "object" || value === null) return null;
+  if (seen.has(value)) return null;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const item = value[i];
+      if (isOutputHandle(item)) return `[${i}]`;
+      const deeper = findNestedHandlePath(item, seen);
+      if (deeper !== null) return `[${i}]${deeper}`;
+    }
+    return null;
+  }
+  for (const [key, item] of Object.entries(value)) {
+    if (isOutputHandle(item)) return `.${key}`;
+    const deeper = findNestedHandlePath(item, seen);
+    if (deeper !== null) return `.${key}${deeper}`;
+  }
+  return null;
+}
+
+/**
+ * Refuse a prop that buries a node reference where no edge can be drawn from
+ * it. The message names the one shape that works: a handle per input, which
+ * for a node with dynamic inputs means one named slot per source.
+ */
+function assertNoNestedHandles(desc: RegisteredNodeDescriptor): void {
+  for (const [inputName, value] of Object.entries(desc.inputs)) {
+    if (isOutputHandle(value)) continue;
+    const path = findNestedHandlePath(value, new Set());
+    if (path === null) continue;
+    throw new Error(
+      `${desc.nodeType} input "${inputName}" holds a node output at ` +
+        `"${inputName}${path}". A connection is only made from a handle ` +
+        `assigned directly to an input — one nested in an array or object is ` +
+        `not wired, and the node producing it is left out of the graph. Give ` +
+        `each source its own input (e.g. {video1: a.output(), video2: ` +
+        `b.output()}) instead of a list.`
+    );
+  }
+}
+
 export function workflow(...terminals: DslNode<never>[]): Workflow {
   if (terminals.length === 0) {
     throw new Error("workflow() requires at least one terminal node");
@@ -208,6 +263,7 @@ export function workflow(...terminals: DslNode<never>[]): Workflow {
   while (queue.length > 0) {
     const currentId = queue.shift()!;
     const desc = visited.get(currentId)!;
+    assertNoNestedHandles(desc);
 
     for (const [inputName, value] of Object.entries(desc.inputs)) {
       if (isOutputHandle(value)) {

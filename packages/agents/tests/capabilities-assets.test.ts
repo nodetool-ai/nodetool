@@ -281,6 +281,36 @@ describe("assets capabilities against the database", () => {
     }
   });
 
+  it("refuses a source that resolves to zero bytes", async () => {
+    // A storage adapter that answers with an empty buffer instead of null is
+    // what turned a failed copy into a 0-byte asset reported as saved.
+    const ctx = makeContext({
+      storage: {
+        retrieve: async () => new Uint8Array(0),
+        store: async (key: string) => `mem://${key}`,
+        uriForKey: (key: string) => `mem://${key}`
+      }
+    });
+
+    const saved = (await asTool("save_asset", ctx).process(ctx, {
+      name: "stitched.mp4",
+      source: "supabase://nodetool-temp/assets/missing.mp4",
+      content_type: "video/mp4"
+    })) as Record<string, unknown>;
+    expect(saved.success).toBe(false);
+    expect(String(saved.error)).toContain("0 bytes");
+  });
+
+  it("refuses base64 that decodes to nothing", async () => {
+    const ctx = makeContext();
+    const saved = (await asTool("save_asset", ctx).process(ctx, {
+      name: "empty.mp4",
+      content_base64: "",
+      content_type: "video/mp4"
+    })) as Record<string, unknown>;
+    expect(saved.success).toBe(false);
+  });
+
   it("refuses more than one content form and names a missing source", async () => {
     const ctx = makeContext();
     const both = (await asTool("save_asset", ctx).process(ctx, {

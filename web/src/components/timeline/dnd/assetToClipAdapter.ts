@@ -1,30 +1,19 @@
 import type { Asset } from "../../../stores/ApiTypes";
-import { makeClip } from "@nodetool-ai/timeline";
+import {
+  DEFAULT_MEDIA_CLIP_DURATION_MS,
+  makeClip,
+  mediaTypeForContentType
+} from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
-
-const DEFAULT_DURATION_MS = 4000;
 
 /**
  * Derive the timeline mediaType from an asset's content_type.
  * Returns null if the content type is not image, video, or audio.
+ *
+ * The mapping itself lives in `@nodetool-ai/timeline` so the headless agent
+ * surface places an imported clip the same way a drop does.
  */
-export function assetMediaType(
-  contentType: string | undefined | null
-): "image" | "video" | "audio" | null {
-  if (!contentType) {
-    return null;
-  }
-  if (contentType.startsWith("image/")) {
-    return "image";
-  }
-  if (contentType.startsWith("video/")) {
-    return "video";
-  }
-  if (contentType.startsWith("audio/")) {
-    return "audio";
-  }
-  return null;
-}
+export const assetMediaType = mediaTypeForContentType;
 
 /**
  * Return true if the given mediaType is compatible with the given track type.
@@ -62,7 +51,7 @@ export function assetToClip(
   const durationMs =
     asset.duration !== null && asset.duration !== undefined
       ? Math.round(asset.duration * 1000)
-      : DEFAULT_DURATION_MS;
+      : DEFAULT_MEDIA_CLIP_DURATION_MS;
 
   // Thumbnail: for video assets check metadata.thumbnails array
   let thumbnailAssetId: string | undefined;

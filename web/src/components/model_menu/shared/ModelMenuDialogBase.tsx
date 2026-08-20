@@ -340,8 +340,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const getAvailability = useModelAvailability();
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const keyboardEnabled = true;
-
   const isRowAvailable = useCallback(
     (index: number) => getAvailability(filteredModelsAdvanced[index]).available,
     [filteredModelsAdvanced, getAvailability]
@@ -351,11 +349,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   // Enter selects the top-ranked match right after typing.
   React.useEffect(() => {
     setActiveIndex(
-      keyboardEnabled
-        ? firstAvailableIndex(filteredModelsAdvanced.length, isRowAvailable)
-        : -1
+      firstAvailableIndex(filteredModelsAdvanced.length, isRowAvailable)
     );
-  }, [filteredModelsAdvanced.length, keyboardEnabled, isRowAvailable]);
+  }, [filteredModelsAdvanced.length, isRowAvailable]);
 
   const stepActiveIndex = useCallback(
     (dir: 1 | -1) => {
@@ -372,32 +368,19 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   );
 
   const handleArrowDown = useCallback(() => {
-    if (keyboardEnabled) {
-      stepActiveIndex(1);
-    }
-  }, [keyboardEnabled, stepActiveIndex]);
+    stepActiveIndex(1);
+  }, [stepActiveIndex]);
 
   const handleArrowUp = useCallback(() => {
-    if (keyboardEnabled) {
-      stepActiveIndex(-1);
-    }
-  }, [keyboardEnabled, stepActiveIndex]);
+    stepActiveIndex(-1);
+  }, [stepActiveIndex]);
 
   const handleEnter = useCallback(() => {
-    if (!keyboardEnabled) {
-      return;
-    }
     const model = filteredModelsAdvanced[activeIndex];
     if (model && getAvailability(model).available) {
       handleSelectModel(model);
     }
-  }, [
-    keyboardEnabled,
-    filteredModelsAdvanced,
-    activeIndex,
-    getAvailability,
-    handleSelectModel
-  ]);
+  }, [filteredModelsAdvanced, activeIndex, getAvailability, handleSelectModel]);
 
   const handleRefresh = useCallback(async () => {
     if (!refetch || isFetching) {
