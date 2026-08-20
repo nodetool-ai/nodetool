@@ -121,6 +121,20 @@ describe("T-META-1: TypeMetadata", () => {
       expect(str.isCompatibleWith(int)).toBe(false);
     });
 
+    it("str and enum are compatible", () => {
+      const str = TypeMetadata.fromString("str");
+      const enumType = TypeMetadata.fromString("enum");
+      expect(str.isCompatibleWith(enumType)).toBe(true);
+      expect(enumType.isCompatibleWith(str)).toBe(true);
+    });
+
+    it("cv and chunk are compatible", () => {
+      const cv = TypeMetadata.fromString("cv");
+      const chunk = TypeMetadata.fromString("chunk");
+      expect(cv.isCompatibleWith(chunk)).toBe(true);
+      expect(chunk.isCompatibleWith(cv)).toBe(true);
+    });
+
     it("union containing the type is compatible", () => {
       const union = TypeMetadata.fromString("union[str, int]");
       const int = TypeMetadata.fromString("int");

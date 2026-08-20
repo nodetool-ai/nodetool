@@ -12,7 +12,10 @@ export * from "./custom-providers.js";
 export * from "./package-assets.js";
 export * from "./resource-uri.js";
 export * from "./model-selection.js";
-export { TypeMetadata } from "./type-metadata.js";
+export {
+  TypeMetadata,
+  areTypeNamesCompatible
+} from "./type-metadata.js";
 export { validateType, type ValidationResult } from "./typecheck.js";
 export {
   wrapPrimitive,

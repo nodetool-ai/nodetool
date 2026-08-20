@@ -6,6 +6,21 @@
  */
 
 const NUMERIC_TYPES = new Set(["int", "float", "number"]);
+const COMPATIBLE_TYPE_PAIRS: ReadonlySet<string> = new Set([
+  "enum|str",
+  "chunk|cv"
+]);
+
+/**
+ * Check compatibility between two distinct, non-parameterized type names.
+ * This is the shared policy for static validation and kernel execution.
+ */
+export function areTypeNamesCompatible(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (NUMERIC_TYPES.has(a) && NUMERIC_TYPES.has(b)) return true;
+  const pair = a < b ? `${a}|${b}` : `${b}|${a}`;
+  return COMPATIBLE_TYPE_PAIRS.has(pair);
+}
 
 export class TypeMetadata {
   /** The base type name (e.g. "list", "union", "int", "ImageRef"). */
@@ -79,7 +94,7 @@ export class TypeMetadata {
       return this.args.every((arg, i) => arg.isCompatibleWith(other.args[i]));
     }
 
-    if (NUMERIC_TYPES.has(this.type) && NUMERIC_TYPES.has(other.type)) {
+    if (areTypeNamesCompatible(this.type, other.type)) {
       return true;
     }
 
