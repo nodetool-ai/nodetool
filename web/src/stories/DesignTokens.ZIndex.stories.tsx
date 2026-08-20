@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Box } from "@mui/material";
+import { Box } from "../components/ui_primitives";
 import { Z_INDEX } from "../components/ui_primitives/tokens";
 
 const ZIndexScale = () => (

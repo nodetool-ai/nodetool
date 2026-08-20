@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { Box } from "../components/ui_primitives";
 
 /**
  * Palette swatches read straight off the active theme, so this page shows any
