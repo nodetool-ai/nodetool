@@ -400,13 +400,11 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           trackId,
           Math.max(0, opts.startMs ?? trackEndMs(trackId))
         );
-        const clip: TimelineClip = {
-          ...base,
-          ...(opts.durationMs !== undefined
-            ? { durationMs: Math.max(1, opts.durationMs) }
-            : {}),
-          ...(opts.name ? { name: opts.name } : {})
-        };
+        const clip: TimelineClip = { ...base };
+        if (opts.durationMs !== undefined) {
+          clip.durationMs = Math.max(1, opts.durationMs);
+        }
+        if (opts.name) clip.name = opts.name;
         doc.getState().addClip(clip);
         ui.getState().selectClip(clip.id);
         return clipNode(reReadClip(clip.id));

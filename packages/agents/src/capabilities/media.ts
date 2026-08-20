@@ -1398,16 +1398,17 @@ const ffmpeg: CapabilityExport = {
         result.exitCode === 0 && persistTarget
           ? await persistWorkspaceFile(run.context, persistTarget)
           : undefined;
-      return {
+      const report: Record<string, unknown> = {
         success: result.exitCode === 0,
         stdout: result.stdout,
         stderr: result.stderr,
         exit_code: result.exitCode,
-        ...(Object.keys(stagedResult.staged).length > 0
-          ? { staged: stagedResult.staged }
-          : {}),
         ...(persisted ?? {})
       };
+      if (Object.keys(stagedResult.staged).length > 0) {
+        report["staged"] = stagedResult.staged;
+      }
+      return report;
     } catch (e) {
       if (e instanceof HostBinaryMissingError) {
         return { error: e.message };
