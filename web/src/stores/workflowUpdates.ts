@@ -30,7 +30,7 @@ import useErrorStore, {
   nodeErrorToDisplayString
 } from "./ErrorStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
-import type { WorkflowRunnerStore } from "./WorkflowRunner";
+import type { WorkflowRunner, WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
 import useOnboardingStore from "./OnboardingStore";
@@ -689,6 +689,332 @@ const handleJobResumed = (
   }
 };
 
+/**
+ * Statuses after which no further frames arrive for a job. The coalesced
+ * audio/text appends have to land before one is processed, so the buffers
+ * hold the complete stream (incl. the done marker) the moment the run ends.
+ */
+const SETTLED_JOB_STATUSES: ReadonlySet<string> = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+  "error",
+  "timed_out"
+]);
+
+/**
+ * Statuses that move a job between the Queue panel's lifecycle columns, so the
+ * panel has to refetch. These are per-job (not per-node), so the frequency is
+ * low.
+ */
+const QUEUE_PANEL_JOB_STATUSES: ReadonlySet<string> = new Set([
+  "queued",
+  "running",
+  "completed",
+  "cancelled",
+  "failed",
+  "suspended",
+  "paused"
+]);
+
+/**
+ * Map a JobUpdate status to the state of the per-workflow runner. Returns
+ * undefined for statuses that leave the runner where it is.
+ */
+const mapJobStatusToRunnerState = (
+  status: string
+): WorkflowRunner["state"] | undefined => {
+  switch (status) {
+    case "running":
+    case "queued":
+      return "running";
+    case "suspended":
+      return "suspended";
+    case "paused":
+      return "paused";
+    case "completed":
+      return "idle";
+    case "cancelled":
+      return "cancelled";
+    case "failed":
+    case "timed_out":
+      return "error";
+    default:
+      return undefined;
+  }
+};
+
+/**
+ * Toast for a run that pre-flight graph validation refused: name the first
+ * offending field and offer to select the node it sits on.
+ */
+const validationIssueNotification = (
+  workflowId: string,
+  issues: NonNullable<JobUpdate["validation_issues"]>,
+  getNodeStore: (workflowId: string) => NodeStore | undefined
+): Parameters<WorkflowRunner["addNotification"]>[0] => {
+  const firstIssue = issues[0];
+  const firstNode = getNodeStore(workflowId)
+    ?.getState()
+    .findNode(firstIssue.node_id);
+  const nodeLabel =
+    firstNode?.data?.title?.trim() ||
+    firstNode?.type?.split(".").pop() ||
+    firstIssue.node_id;
+  const content =
+    issues.length > 1
+      ? `Fix ${issues.length} fields before running (starting at ${nodeLabel}).`
+      : firstIssue.property
+        ? `Fix “${firstIssue.property}” on ${nodeLabel} before running.`
+        : `Fix “${nodeLabel}” before running: ${firstIssue.message}`;
+  return {
+    type: "error",
+    alert: true,
+    content,
+    timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED,
+    action: {
+      label: "Show",
+      onClick: () => {
+        const store = getNodeStore(workflowId);
+        if (!store) return;
+        const { findNode, setSelectedNodes, setShouldFitToScreen } =
+          store.getState();
+        const target = findNode(firstIssue.node_id);
+        if (!target) return;
+        setSelectedNodes([target]);
+        setShouldFitToScreen(true, [firstIssue.node_id]);
+      }
+    }
+  };
+};
+
+/**
+ * A job's lifecycle frame: drives the per-workflow runner (state, job_id,
+ * queue position, status text), the concurrent-runs registry, the Queue
+ * panel's cached lists, and the toast for a run that ended badly.
+ */
+const handleJobUpdate = (
+  workflow: WorkflowAttributes,
+  job: JobUpdate,
+  runnerStore: WorkflowRunnerStore,
+  runner: WorkflowRunner,
+  getNodeStore: (workflowId: string) => NodeStore | undefined
+): void => {
+  // Live-preview scrub jobs must never touch the runner state, queue or job
+  // list — they'd hijack the Stop button (the runner is idle during a scrub,
+  // so they'd otherwise match the "fresh run" branch below) and refetch the
+  // job list on every frame.
+  const silentJob = isSilentJob(job.job_id);
+  const runnerJobId = runnerStore.getState().job_id;
+
+  if (SETTLED_JOB_STATUSES.has(job.status)) {
+    flushAudioAppends();
+    flushTextChunks();
+    // The run is over: its saw-generation_complete flags are no longer read
+    // (the terminal node_update fallback already ran). Drop them, along with
+    // the dispatch-time signature map (spec §3.4), so neither leaks one dead
+    // entry per generator node per run for the life of the session. Skip
+    // silent scrub jobs — they reuse one jobId and never finalize between
+    // frames.
+    if (job.job_id && !silentJob) {
+      clearSawGenerationCompleteFor(job.job_id);
+      clearRunSignatures(job.job_id);
+    }
+  }
+
+  // The per-workflow runner represents the single full run. Concurrent
+  // inline/per-node jobs share this workflow_id but have their own job_id, so
+  // only updates for the runner's OWN job (or a fresh run when the runner is
+  // idle and hasn't claimed a job yet) may drive its state/job_id/queue.
+  // Otherwise an inline job's update could hijack the Stop button's target or
+  // clear the full run's queued position. The running-job COUNT below still
+  // tracks every job.
+  const runnerState = runnerStore.getState().state;
+  const isRunnerJob =
+    !silentJob &&
+    (!job.job_id ||
+      job.job_id === runnerJobId ||
+      (runnerJobId === null &&
+        (runnerState === "idle" || runnerState === "connecting")));
+
+  const mappedState = mapJobStatusToRunnerState(job.status);
+  // Don't overwrite an error state from a node_update with a stale "running"
+  // job_update.
+  const newState =
+    mappedState === "running" && runnerState === "error"
+      ? undefined
+      : mappedState;
+
+  if (job.status === "running" || job.status === "queued") {
+    // A new run starts: clear any prior pre-flight validation highlights
+    // so stale red outlines don't linger after the user fixes them.
+    usePropertyValidationStore.getState().clearWorkflow(workflow.id);
+    // Begin a fresh LLM/agent trace timeline for the runner's own run. Guarded
+    // by job_id so startRun (which clears prior events) fires once per run, not
+    // on every running/queued heartbeat.
+    const incomingTraceJobId = job.job_id ?? null;
+    if (isRunnerJob && incomingTraceJobId !== traceRunJobIds.get(workflow.id)) {
+      traceRunJobIds.set(workflow.id, incomingTraceJobId);
+      useTraceStore.getState().startRun(new Date().toISOString());
+      // A fresh run gets a fresh chance to surface a credential problem.
+      authPromptedRuns.delete(incomingTraceJobId ?? workflow.id);
+      // Clear the saw-generation_complete flags for this incoming job so a
+      // reused jobId can't poison the next run's node_update{completed}
+      // fallback (a stale flag would suppress a legitimate synthesis).
+      if (job.job_id) {
+        clearSawGenerationCompleteFor(job.job_id);
+      }
+    }
+  }
+
+  // Populate the WorkflowRunsStore registry so concurrent runs can be tracked.
+  const runState = mapJobStatusToRunState(job.status);
+  if (job.job_id && runState) {
+    const runsStore = useWorkflowRunsStore.getState();
+    if (runsStore.hasRun(workflow.id, job.job_id)) {
+      runsStore.updateRunState(workflow.id, job.job_id, runState);
+    } else {
+      runsStore.recordRun({
+        jobId: job.job_id,
+        workflowId: workflow.id,
+        state: runState,
+        startedAt: Date.now(),
+        label: job.job_id
+      });
+    }
+  }
+
+  if (isRunnerJob) {
+    if (newState) {
+      runnerStore.setState({ state: newState });
+    }
+
+    if (job.job_id) {
+      runnerStore.setState({ job_id: job.job_id });
+    }
+
+    // Track queue position so the UI can show "Queued (#N)". Any
+    // non-queued update (running, completed, …) clears it.
+    runnerStore.setState({
+      queuePosition:
+        job.status === "queued" ? (job.queue_position ?? null) : null
+    });
+
+    if (newState === "suspended" && job.run_state?.suspension_reason) {
+      runnerStore.setState({ statusMessage: job.run_state.suspension_reason });
+    }
+  }
+
+  // Refresh the Queue panel when a job moves between lifecycle columns. Silent
+  // preview jobs are skipped — they'd refetch on every scrub frame.
+  if (!silentJob && QUEUE_PANEL_JOB_STATUSES.has(job.status)) {
+    queryClient.invalidateQueries({ queryKey: ["jobs"] });
+  }
+
+  // Generative nodes auto-save outputs to assets on completion; refresh
+  // the per-node asset cache so history badges/panels update without
+  // waiting for staleTime to elapse. (Preview runs persist nothing.)
+  if (job.status === "completed" && !silentJob) {
+    queryClient.invalidateQueries({ queryKey: ["assets"] });
+    // The generation timeline (useNodeGenerations) reads persisted assets
+    // from WorkflowAssetStore, which is otherwise only loaded when the
+    // workflow is fetched. Reload it so the finished run's live generation
+    // is superseded by its persisted asset — download / open-in-viewer in
+    // NodeHistoryViewer need the full Asset to enable.
+    useWorkflowAssetStore
+      .getState()
+      .loadWorkflowAssets(workflow.id)
+      .catch(() => {
+        // already logged inside loadWorkflowAssets
+      });
+  }
+
+  switch (job.status) {
+    case "completed": {
+      // A run that finished is what the "run a workflow" onboarding step
+      // asks for; a failed or cancelled one isn't. Preview runs don't count.
+      if (isRunnerJob && !silentJob) {
+        useOnboardingStore.getState().markStep("run-workflow");
+      }
+      // No toast — completion is reflected in the Queue panel/overlay.
+      // Don't clear this run's per-job state (progress/timings/edges): with
+      // per-job keys those clears span the whole workflow and would wipe a
+      // concurrently running sibling. The finished run's slice persists so it
+      // can be focused; a new run auto-focuses its own empty slice.
+      break;
+    }
+    case "cancelled":
+      runner.addNotification({
+        type: "info",
+        alert: true,
+        content: "Job cancelled"
+      });
+      // Keep this run's per-job results slice (see "completed"): broad
+      // clears here would erase a concurrent sibling. But do stop the
+      // run's transient visuals — node/edge updates are dropped once the
+      // runner state is "cancelled", so without this job-scoped clear the
+      // "running" borders and edge animations would persist forever.
+      if (job.job_id) {
+        useStatusStore.getState().clearJobStatuses(workflow.id, job.job_id);
+        useResultsStore.getState().clearJobRunVisuals(workflow.id, job.job_id);
+      }
+      break;
+    case "failed":
+    case "timed_out": {
+      const validationIssues = job.validation_issues;
+      if (validationIssues && validationIssues.length > 0) {
+        usePropertyValidationStore
+          .getState()
+          .setIssues(workflow.id, validationIssues);
+        runner.addNotification(
+          validationIssueNotification(
+            workflow.id,
+            validationIssues,
+            getNodeStore
+          )
+        );
+      } else {
+        runner.addNotification({
+          type: "error",
+          alert: true,
+          content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
+          timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+        });
+      }
+      // Keep this run's per-job slice (see "completed"): broad clears here
+      // would erase a concurrent sibling.
+      break;
+    }
+    case "queued":
+      if (isRunnerJob) {
+        runnerStore.setState({
+          statusMessage:
+            job.message || "Worker is booting (may take a few seconds)..."
+        });
+      }
+      break;
+    case "running":
+      // Clear the carried-over status ("Workflow starting…" from run(), or
+      // "Queued…" if it sat in the queue) once the run actually starts. Node
+      // updates set no per-node status text, so without this the "starting"
+      // message would linger top-right for the whole run. No "started" toast —
+      // the Queue panel/overlay shows the running job.
+      if (isRunnerJob) {
+        runnerStore.setState({ statusMessage: null });
+      }
+      break;
+    case "suspended":
+      runner.addNotification({
+        type: "info",
+        alert: true,
+        content:
+          job.message || "Workflow suspended - waiting for external input",
+        timeout: NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED
+      });
+      break;
+  }
+};
+
 export const handleUpdate = (
   workflow: WorkflowAttributes,
   data: MsgpackData,
@@ -981,291 +1307,7 @@ export const handleUpdate = (
     }
   }
   if (data.type === "job_update") {
-    const job = data;
-    // Live-preview scrub jobs must never touch the runner state, queue or job
-    // list — they'd hijack the Stop button (the runner is idle during a scrub,
-    // so they'd otherwise match the "fresh run" branch below) and refetch the
-    // job list on every frame.
-    const silentJob = isSilentJob(job.job_id);
-    const runnerJobId = runnerStore.getState().job_id;
-    // Land any coalesced audio/text-chunk appends before the run's terminal
-    // state is processed, so the buffer holds the complete stream (incl. the
-    // done marker) the moment the job ends.
-    if (
-      ["completed", "failed", "cancelled", "error", "timed_out"].includes(
-        String(job.status)
-      )
-    ) {
-      flushAudioAppends();
-      flushTextChunks();
-      // The run is over: its saw-generation_complete flags are no longer read
-      // (the terminal node_update fallback already ran). Drop them so the set
-      // doesn't accumulate one dead entry per generator node per run for the
-      // life of the session. Skip silent scrub jobs — they reuse one jobId and
-      // never finalize between frames.
-      if (job.job_id && !silentJob) {
-        clearSawGenerationCompleteFor(job.job_id);
-        // The run is finished: drop its dispatch-time signature map so the
-        // registry doesn't leak entries across runs (spec §3.4).
-        clearRunSignatures(job.job_id);
-      }
-    }
-    // The per-workflow runner represents the single full run. Concurrent
-    // inline/per-node jobs share this workflow_id but have their own job_id, so
-    // only updates for the runner's OWN job (or a fresh run when the runner is
-    // idle and hasn't claimed a job yet) may drive its state/job_id/queue.
-    // Otherwise an inline job's update could hijack the Stop button's target or
-    // clear the full run's queued position. The running-job COUNT below still
-    // tracks every job.
-    const runnerState = runnerStore.getState().state;
-    const isRunnerJob =
-      !silentJob &&
-      (!job.job_id ||
-        job.job_id === runnerJobId ||
-        (runnerJobId === null &&
-          (runnerState === "idle" || runnerState === "connecting")));
-
-    // Consolidate state mapping
-    let newState:
-      | "idle"
-      | "running"
-      | "paused"
-      | "suspended"
-      | "error"
-      | "cancelled"
-      | undefined;
-
-    if (job.status === "running" || job.status === "queued") {
-      // Don't overwrite an error state from a node_update with a stale "running" job_update
-      const currentState = runnerStore.getState().state;
-      if (currentState !== "error") {
-        newState = "running";
-      }
-      // A new run starts: clear any prior pre-flight validation highlights
-      // so stale red outlines don't linger after the user fixes them.
-      usePropertyValidationStore.getState().clearWorkflow(workflow.id);
-      // Begin a fresh LLM/agent trace timeline for the runner's own run. Guarded
-      // by job_id so startRun (which clears prior events) fires once per run, not
-      // on every running/queued heartbeat.
-      const incomingTraceJobId = job.job_id ?? null;
-      if (
-        isRunnerJob &&
-        incomingTraceJobId !== traceRunJobIds.get(workflow.id)
-      ) {
-        traceRunJobIds.set(workflow.id, incomingTraceJobId);
-        useTraceStore.getState().startRun(new Date().toISOString());
-        // A fresh run gets a fresh chance to surface a credential problem.
-        authPromptedRuns.delete(incomingTraceJobId ?? workflow.id);
-        // Clear the saw-generation_complete flags for this incoming job so a
-        // reused jobId can't poison the next run's node_update{completed}
-        // fallback (a stale flag would suppress a legitimate synthesis).
-        if (job.job_id) {
-          clearSawGenerationCompleteFor(job.job_id);
-        }
-      }
-    } else if (job.status === "suspended") {
-      newState = "suspended";
-    } else if (job.status === "paused") {
-      newState = "paused";
-    } else if (job.status === "completed") {
-      newState = "idle";
-    } else if (job.status === "cancelled") {
-      newState = "cancelled";
-    } else if (job.status === "failed" || job.status === "timed_out") {
-      newState = "error";
-    }
-
-    // Populate the WorkflowRunsStore registry so concurrent runs can be tracked.
-    if (job.job_id) {
-      const runState = mapJobStatusToRunState(job.status);
-      if (runState) {
-        const runsStore = useWorkflowRunsStore.getState();
-        const known = runsStore.hasRun(workflow.id, job.job_id);
-        if (!known) {
-          runsStore.recordRun({
-            jobId: job.job_id,
-            workflowId: workflow.id,
-            state: runState,
-            startedAt: Date.now(),
-            label: job.job_id
-          });
-        } else {
-          runsStore.updateRunState(workflow.id, job.job_id, runState);
-        }
-      }
-    }
-
-    if (isRunnerJob) {
-      if (newState) {
-        runnerStore.setState({ state: newState });
-      }
-
-      if (job.job_id) {
-        runnerStore.setState({ job_id: job.job_id });
-      }
-
-      // Track queue position so the UI can show "Queued (#N)". Any
-      // non-queued update (running, completed, …) clears it.
-      runnerStore.setState({
-        queuePosition:
-          job.status === "queued" ? (job.queue_position ?? null) : null
-      });
-    }
-
-    if (
-      isRunnerJob &&
-      job.run_state?.suspension_reason &&
-      newState === "suspended"
-    ) {
-      runnerStore.setState({ statusMessage: job.run_state.suspension_reason });
-    }
-
-    // Refresh the Queue panel when a job moves between lifecycle columns.
-    // These are per-job (not per-node) updates, so the frequency is low.
-    // Silent preview jobs are skipped — they'd refetch on every scrub frame.
-    if (
-      !silentJob &&
-      (job.status === "queued" ||
-        job.status === "running" ||
-        job.status === "completed" ||
-        job.status === "cancelled" ||
-        job.status === "failed" ||
-        job.status === "suspended" ||
-        job.status === "paused")
-    ) {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-    }
-
-    // Generative nodes auto-save outputs to assets on completion; refresh
-    // the per-node asset cache so history badges/panels update without
-    // waiting for staleTime to elapse. (Preview runs persist nothing.)
-    if (job.status === "completed" && !silentJob) {
-      queryClient.invalidateQueries({ queryKey: ["assets"] });
-      // The generation timeline (useNodeGenerations) reads persisted assets
-      // from WorkflowAssetStore, which is otherwise only loaded when the
-      // workflow is fetched. Reload it so the finished run's live generation
-      // is superseded by its persisted asset — download / open-in-viewer in
-      // NodeHistoryViewer need the full Asset to enable.
-      useWorkflowAssetStore
-        .getState()
-        .loadWorkflowAssets(workflow.id)
-        .catch(() => {
-          // already logged inside loadWorkflowAssets
-        });
-    }
-
-    switch (job.status) {
-      case "completed": {
-        // A run that finished is what the "run a workflow" onboarding step
-        // asks for; a failed or cancelled one isn't. Preview runs don't count.
-        if (isRunnerJob && !silentJob) {
-          useOnboardingStore.getState().markStep("run-workflow");
-        }
-        // No toast — completion is reflected in the Queue panel/overlay.
-        // Don't clear this run's per-job state (progress/timings/edges): with
-        // per-job keys those clears span the whole workflow and would wipe a
-        // concurrently running sibling. The finished run's slice persists so it
-        // can be focused; a new run auto-focuses its own empty slice.
-        break;
-      }
-      case "cancelled":
-        runner.addNotification({
-          type: "info",
-          alert: true,
-          content: "Job cancelled"
-        });
-        // Keep this run's per-job results slice (see "completed"): broad
-        // clears here would erase a concurrent sibling. But do stop the
-        // run's transient visuals — node/edge updates are dropped once the
-        // runner state is "cancelled", so without this job-scoped clear the
-        // "running" borders and edge animations would persist forever.
-        if (job.job_id) {
-          useStatusStore.getState().clearJobStatuses(workflow.id, job.job_id);
-          useResultsStore
-            .getState()
-            .clearJobRunVisuals(workflow.id, job.job_id);
-        }
-        break;
-      case "failed":
-      case "timed_out": {
-        const validationIssues = job.validation_issues;
-        if (validationIssues && validationIssues.length > 0) {
-          usePropertyValidationStore
-            .getState()
-            .setIssues(workflow.id, validationIssues);
-          const firstIssue = validationIssues[0];
-          const nodeStore = getNodeStore(workflow.id);
-          const firstNode = nodeStore?.getState().findNode(firstIssue.node_id);
-          const nodeLabel =
-            firstNode?.data?.title?.trim() ||
-            firstNode?.type?.split(".").pop() ||
-            firstIssue.node_id;
-          const noun = validationIssues.length === 1 ? "field" : "fields";
-          const content =
-            validationIssues.length === 1
-              ? firstIssue.property
-                ? `Fix “${firstIssue.property}” on ${nodeLabel} before running.`
-                : `Fix “${nodeLabel}” before running: ${firstIssue.message}`
-              : `Fix ${validationIssues.length} ${noun} before running (starting at ${nodeLabel}).`;
-          runner.addNotification({
-            type: "error",
-            alert: true,
-            content,
-            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED,
-            action: {
-              label: "Show",
-              onClick: () => {
-                const store = getNodeStore(workflow.id);
-                if (!store) return;
-                const { findNode, setSelectedNodes, setShouldFitToScreen } =
-                  store.getState();
-                const target = findNode(firstIssue.node_id);
-                if (!target) return;
-                setSelectedNodes([target]);
-                setShouldFitToScreen(true, [firstIssue.node_id]);
-              }
-            }
-          });
-        } else {
-          runner.addNotification({
-            type: "error",
-            alert: true,
-            content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
-            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
-          });
-        }
-        // Keep this run's per-job slice (see "completed"): broad clears here
-        // would erase a concurrent sibling.
-        break;
-      }
-      case "queued":
-        if (isRunnerJob) {
-          runnerStore.setState({
-            statusMessage:
-              job.message || "Worker is booting (may take a few seconds)..."
-          });
-        }
-        break;
-      case "running":
-        // Clear the carried-over status ("Workflow starting…" from run(), or
-        // "Queued…" if it sat in the queue) once the run actually starts. Node
-        // updates set no per-node status text, so without this the "starting"
-        // message would linger top-right for the whole run. No "started" toast —
-        // the Queue panel/overlay shows the running job.
-        if (isRunnerJob) {
-          runnerStore.setState({ statusMessage: null });
-        }
-        break;
-      case "suspended":
-        runner.addNotification({
-          type: "info",
-          alert: true,
-          content:
-            job.message || "Workflow suspended - waiting for external input",
-          timeout: NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED
-        });
-        break;
-    }
+    handleJobUpdate(workflow, data, runnerStore, runner, getNodeStore);
   }
 
   if (data.type === "prediction") {
