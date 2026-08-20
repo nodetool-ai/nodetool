@@ -193,6 +193,24 @@ const nodetool = (() => {
   const __merge = (a, b) => Object.assign({}, a || {}, b || {});
 
   /**
+   * A job id from either an id or a job/receipt object. \`start()\` answers with
+   * a record, and reaching for the wrong field on it used to reach the tool as
+   * \`job_id: undefined\`, which came back as "Job undefined was not found" —
+   * a message about a job rather than about the call that asked for it.
+   */
+  const __jobId = (idOrJob, method) => {
+    if (typeof idOrJob === "string" && idOrJob) return idOrJob;
+    if (idOrJob && typeof idOrJob === "object") {
+      const id = idOrJob.job_id || idOrJob.id;
+      if (typeof id === "string" && id) return id;
+    }
+    throw new Error(
+      "nodetool.jobs." + method + ": no job id. Pass the id string, or the " +
+      "record nodetool.workflows.start() returned (its id is job_id)."
+    );
+  };
+
+  /**
    * Accept a GraphBuilder, a bare {nodes, edges}, or a workflow record —
    * the shared graph DSL core's normalizer.
    */
@@ -546,6 +564,11 @@ const nodetool = (() => {
         __need("run_workflow")(
           __merge(opts, { workflow_id: id, params: params || {} })
         ),
+      /**
+       * Start a run and return a receipt — {job_id, id, status: "running"} —
+       * without waiting for it. Pass it to nodetool.jobs.wait() and read the
+       * settled job's outputs.
+       */
       start: (id, params) =>
         __need("start_background_job")({
           workflow_id: id,
@@ -894,8 +917,10 @@ const nodetool = (() => {
 
     jobs: {
       list: (opts) => __need("list_jobs")(__merge(opts)),
-      get: (id) => __need("get_job")({ job_id: id }),
-      logs: (id, opts) => __need("get_job_logs")(__merge(opts, { job_id: id })),
+      /** The job row, including the run's outputs once it has settled. */
+      get: (id) => __need("get_job")({ job_id: __jobId(id, "get") }),
+      logs: (id, opts) =>
+        __need("get_job_logs")(__merge(opts, { job_id: __jobId(id, "logs") })),
       /**
        * Poll a background job until it settles, then return the job record.
        * Terminal statuses are completed / failed / cancelled / error (the
@@ -903,18 +928,19 @@ const nodetool = (() => {
        * and the last status seen.
        */
       async wait(id, opts) {
+        const jobId = __jobId(id, "wait");
         const pollMs = Math.max(1000, (opts && opts.pollMs) || 3000);
         const timeoutMs = (opts && opts.timeoutMs) || 600000;
         const terminal = ["completed", "failed", "cancelled", "error"];
         const deadline = Date.now() + timeoutMs;
         let status = "unknown";
         for (;;) {
-          const job = await api.jobs.get(id);
+          const job = await api.jobs.get(jobId);
           status = (job && (job.status || job.state)) || "unknown";
           if (terminal.indexOf(status) >= 0) return job;
           if (Date.now() >= deadline) {
             throw new Error(
-              "nodetool.jobs.wait: job " + id + " did not finish within " +
+              "nodetool.jobs.wait: job " + jobId + " did not finish within " +
               timeoutMs + "ms (last status: " + status + "). Poll it with " +
               "nodetool.jobs.get(id) or read nodetool.jobs.logs(id)."
             );
@@ -1138,7 +1164,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   returning something else. \`find(capability,
   {query, provider_hint, prefer_local, limit})\` for the ranked list (returns
   \`{results}\`),
-  \`list({provider, model_type})\` to browse, \`forProvider(provider)\` for one
+  \`list({provider, model_type})\` to browse (also \`{results}\` — neither
+  answers with a bare array), \`forProvider(provider)\` for one
   provider's own catalog. Never guess a model id — pick one, then pass it to
   \`nodetool.media.*\`. To set a node's model property, assign the result's
   \`ref\` verbatim (it is the typed \`{type, provider, id, name}\` value the
@@ -1262,11 +1289,13 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "jobs",
     doc: `- \`nodetool.jobs\` — \`list({workflow_id})\`, \`get(jobId)\`, \`logs(jobId)\`,
   \`await wait(jobId, {timeoutMs, pollMs})\` polls until the job settles
-  (completed/failed/cancelled) and returns the job. Pair it with
-  \`nodetool.workflows.start(id, params)\`: start the run, do other work, then
-  \`wait\` on the job id instead of blocking on \`run()\`. \`wait\` replaces a
-  \`get()\` polling loop — start, wait, and read the result in one action,
-  never one \`get()\` per action.`
+  (completed/failed/cancelled) and returns the job, whose \`outputs\` hold what
+  the run produced. Pair it with
+  \`nodetool.workflows.start(id, params)\`: start the run — it returns a
+  receipt immediately, it does not wait — do other work, then \`wait\` on
+  \`receipt.job_id\` instead of blocking on \`run()\`. \`wait\` replaces a
+  \`get()\` polling loop — start, wait, and read \`settled.outputs\` in one
+  action, never one \`get()\` per action.`
   },
   {
     namespace: "collections",
@@ -1289,7 +1318,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "timelines",
-    doc: `- \`nodetool.timelines\` — \`list()\`, \`validate(idOrDocument)\`, \`versions(id)\`,
+    doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`), \`validate(idOrDocument)\`, \`versions(id)\`,
   \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`, and
   \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:
   "audio"}, {op: "add_text_clip", text: "Hi"}, {op: "split_clip", target:
