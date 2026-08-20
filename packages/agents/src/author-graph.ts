@@ -303,7 +303,7 @@ export function buildAuthoringPreamble(opts: AuthorGraphOptions): string {
 1. Build the graph: \`const graph = workflow(...terminals);\`
 2. Check it: \`await nodetool.workflows.validate(graph)\`. Fix every error it
    reports and validate again. A graph that still has errors is not finished.
-3. Hand it back: \`finish(graph)\` — the object itself, not a re-typed copy.
+3. Hand it back: \`await finish(graph)\` — the object itself, not a re-typed copy.
 
 A \`nodetool.code.Code\` body is code, so check it like code: \`validate_code\`
 after every edit, \`run_code\` with representative inputs when the body does

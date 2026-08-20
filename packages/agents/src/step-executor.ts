@@ -50,6 +50,7 @@ import {
   formatViolations,
   validateAgainstSchema
 } from "./utils/json-schema-validate.js";
+import { lastProseHint } from "./utils/step-failure.js";
 import { removeThinkTags } from "./utils/think-tags.js";
 import {
   isBoolean,
@@ -1099,6 +1100,9 @@ export class StepExecutor {
         if ("type" in item && item.type === "message") {
           const m = (item as { message?: Message }).message;
           if (m && m.role === "assistant") {
+            // One assistant message per provider turn — this is the iteration
+            // count the failure path reports.
+            this.iterations++;
             lastAssistant = isString(m.content)
               ? { ...m, content: removeThinkTags(m.content) }
               : m;
@@ -1129,9 +1133,11 @@ export class StepExecutor {
     }
 
     // If we didn't complete, yield a failure event and a step_result so
-    // downstream steps see an explicit error rather than undefined. When the
-    // provider loop threw, report the real cause; otherwise the step genuinely
-    // ran out of iterations (or an unstructured step produced no final text).
+    // downstream steps see an explicit error rather than undefined. Each
+    // terminal state gets its own sentence: the provider threw, the iteration
+    // budget really ran out, or the model ended its turn without calling
+    // `finish_step`. Reporting them all as "exceeded N iterations" pointed the
+    // reader at a budget that a two-turn step never came near.
     //
     // A failed step is terminal but NOT completed: `failed`/`error` are set and
     // `completed` stays false, so a scheduler cannot treat the failure as a
@@ -1144,7 +1150,13 @@ export class StepExecutor {
         ? `Step failed: result rejected after ${MAX_REPAIR_ROUNDS} attempts — ${this.acceptanceError}`
         : generationError
           ? `Step failed: ${generationError.message}`
-          : `Step failed: exceeded ${this.maxIterations} iterations without completion`;
+          : this.iterations >= this.maxIterations
+            ? `Step failed: exceeded ${this.maxIterations} iterations without completion`
+            : this.resultSchema !== null
+              ? `Step failed: ended after ${this.iterations} model turn(s) ` +
+                `without calling finish_step.${lastProseHint(lastAssistant)}`
+              : `Step failed: ended after ${this.iterations} model turn(s) ` +
+                `with no final message to use as the result.`;
       this.step.failed = true;
       this.step.error = message;
 
