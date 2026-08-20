@@ -884,7 +884,7 @@ export const TIDEWATCH_BRIEF: CreativeBrief = {
 };
 
 const actionsOf = (s: CreativePipelineFinalState) =>
-  s.storyboard.shots.map((sh) => sh.action.toLowerCase()).join("   ");
+  s.storyboard.shots.map((sh) => sh.action.toLowerCase()).join(" \0 ");
 
 const featuresCovered = (s: CreativePipelineFinalState) => {
   const hay = actionsOf(s);
@@ -892,9 +892,9 @@ const featuresCovered = (s: CreativePipelineFinalState) => {
 };
 
 const forbiddenAvoided = (s: CreativePipelineFinalState) => {
-  const hay = `${actionsOf(s)}   ${s.sketch.layers
+  const hay = `${actionsOf(s)} \0 ${s.sketch.layers
     .map((l) => l.name.toLowerCase())
-    .join("   ")}`;
+    .join(" \0 ")}`;
   return s.brief.forbid.every((f) => !hay.includes(f.toLowerCase()));
 };
 
