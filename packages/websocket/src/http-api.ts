@@ -2221,7 +2221,8 @@ export function toJobResponse(job: Job) {
     started_at: job.started_at ?? null,
     finished_at: job.finished_at ?? null,
     error: job.error ?? null,
-    cost: job.cost ?? null
+    cost: job.cost ?? null,
+    outputs: job.runOutputs()
   };
 }
 

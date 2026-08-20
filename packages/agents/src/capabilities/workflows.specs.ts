@@ -384,7 +384,10 @@ export const validateWorkflowSpec: CapabilitySpec = {
 export const startBackgroundJobSpec: CapabilitySpec = {
   name: "start_background_job",
   description:
-    "Start a workflow running in the background and return a job ID for tracking.",
+    "Start a workflow and return its job id immediately, without waiting for " +
+    "the run. Poll get_job with that id until it settles; the settled job " +
+    "carries the run's outputs. Use run_workflow instead when you want to " +
+    "block until the result is ready.",
   inputSchema: {
     type: "object",
     properties: {

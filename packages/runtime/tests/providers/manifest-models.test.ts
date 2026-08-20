@@ -33,6 +33,31 @@ describe("manifest-models task inference (FAL manifest)", () => {
     }
   });
 
+  // The catalog-wide form of the failure this fixed: `find_model` for
+  // image_to_video ranked ties alphabetically, so a search for "ltx" answered
+  // with four audio-to-video endpoints and an extend-video one.
+  it("keeps non-generator video endpoints out of the generation pools", () => {
+    const generators = videos.filter(
+      (m) =>
+        m.supportedTasks?.includes("text_to_video") ||
+        m.supportedTasks?.includes("image_to_video")
+    );
+    const offenders = generators
+      .map((m) => m.id)
+      .filter((id) =>
+        /audio-to-video|extend-video|\/extend$|reframe|retake|background-removal/.test(
+          id
+        )
+      );
+    expect(offenders).toEqual([]);
+    expect(
+      byId(videos, "fal-ai/ltx-2-19b/audio-to-video")?.supportedTasks
+    ).toEqual(["audio_to_video"]);
+    expect(
+      byId(videos, "fal-ai/ltx-2-19b/image-to-video")?.supportedTasks
+    ).toEqual(["image_to_video"]);
+  });
+
   it("tags specialized image transforms with a single specific task", () => {
     expect(byId(images, "fal-ai/image-apps-v2/relighting")?.supportedTasks).toEqual([
       "relight"
@@ -69,7 +94,7 @@ describe("manifest-models task inference (FAL manifest)", () => {
     }
   });
 
-  it("tags general image generators with both generation tasks", () => {
+  it("tags a general image generator image_to_image, and text_to_image unless it requires an image", () => {
     const generators = images.filter(
       (m) =>
         m.supportedTasks?.includes("text_to_image") ||
@@ -77,16 +102,27 @@ describe("manifest-models task inference (FAL manifest)", () => {
     );
     expect(generators.length).toBeGreaterThan(0);
     for (const m of generators) {
-      // Every generator carries both generation tasks; mask-declaring endpoints
-      // additionally advertise inpainting (the only permitted extra).
+      // Direction cannot be read off a FAL id, so a generator carries
+      // image_to_image either way; mask-declaring endpoints additionally
+      // advertise inpainting (the only permitted extra).
       const tasks = m.supportedTasks ?? [];
-      expect(tasks).toContain("text_to_image");
       expect(tasks).toContain("image_to_image");
       const extras = tasks.filter(
         (t) => t !== "text_to_image" && t !== "image_to_image"
       );
       expect(extras.every((t) => t === "inpainting")).toBe(true);
     }
+    // Some do generate from a prompt alone…
+    expect(
+      generators.filter((m) => m.supportedTasks?.includes("text_to_image"))
+        .length
+    ).toBeGreaterThan(0);
+    // …and an endpoint whose manifest marks an image input required does not:
+    // `pick("text_to_image")` answered with this editor before the required
+    // inputs were read.
+    expect(
+      byId(images, "alibaba/qwen-image-3/edit")?.supportedTasks
+    ).toEqual(["image_to_image"]);
   });
 
   it("tags mask-declaring edit endpoints with the inpainting task", () => {

@@ -179,10 +179,11 @@ describe("AtlasCloudProvider — getAvailableVideoModels", () => {
     expect(byId.get("bytedance/seedance-2.0/image-to-video")?.supportedTasks).toEqual([
       "image_to_video"
     ]);
-    // reference-to-video is multimodal: tagged both
+    // reference-to-video is image-conditioned: it needs the reference stills,
+    // so it is not an answer to a text_to_video search.
     expect(
       byId.get("bytedance/seedance-2.0/reference-to-video")?.supportedTasks
-    ).toEqual(["text_to_video", "image_to_video"]);
+    ).toEqual(["image_to_video"]);
   });
 });
 

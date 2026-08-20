@@ -72,6 +72,25 @@ const stubRegistry = {
   validateNode: () => []
 } as unknown as NodeRegistry;
 
+/** Poll the job row until it reaches `status`, so a detached run can be read. */
+async function waitForJobStatus(
+  jobId: string,
+  status: string,
+  timeoutMs = 5000
+): Promise<Job> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const job = (await Job.find(USER, jobId)) as Job | null;
+    if (job && job.status === status) return job;
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `job ${jobId} was "${job?.status ?? "missing"}", not "${status}"`
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
 async function saveWorkflow(
   fields: Partial<{
     id: string;
@@ -1191,6 +1210,54 @@ describe("start_background_job", () => {
     })) as Record<string, unknown>;
     expect(result.background).toBe(true);
     expect(result.job_id).toEqual(expect.any(String));
+  });
+
+  // `background: true` used to be a label on a blocking call: the tool awaited
+  // the whole run. A live session started a two-minute render this way and its
+  // turn was cancelled before the call returned. With the node parked, this
+  // test hangs forever if the call ever waits again.
+  it("returns while the run is still going, and settles the job with outputs", async () => {
+    const saved = await saveWorkflow({
+      graph: { nodes: [{ id: "slow", type: "test.Slow", data: {} }], edges: [] }
+    });
+    let release!: () => void;
+    const parked = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tool = capTool("start_background_job", {
+      workflowEnvironment: async () => ({
+        registry: {
+          ...stubRegistry,
+          getClass: () => undefined
+        } as unknown as NodeRegistry,
+        resolveExecutor: () => ({
+          process: async () => {
+            await parked;
+            return { output: "done" };
+          }
+        })
+      })
+    });
+
+    const receipt = (await tool.process(ctx, {
+      workflow_id: saved.id
+    })) as Record<string, unknown>;
+    expect(receipt.status).toBe("running");
+    expect(receipt.background).toBe(true);
+    // The jobs API keys everything else on `id`; a receipt that spelled it
+    // only `job_id` sent a live session to get_job(undefined).
+    expect(receipt.id).toBe(receipt.job_id);
+    const jobId = String(receipt.job_id);
+    expect((await Job.find(USER, jobId))?.status).toBe("running");
+
+    release();
+    const settled = await waitForJobStatus(jobId, "completed");
+    expect(settled.runOutputs()).toEqual({ slow: ["done"] });
+
+    const record = (await capTool("get_job").process(ctx, {
+      job_id: jobId
+    })) as Record<string, unknown>;
+    expect(record.outputs).toEqual({ slow: ["done"] });
   });
 
   it("userMessage includes workflow_id", () => {

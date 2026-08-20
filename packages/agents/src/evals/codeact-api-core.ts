@@ -1241,12 +1241,15 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         if (!job) throw new Error(`No job "${str(params["job_id"])}"`);
         job.polls += 1;
         const done = job.polls > 1;
+        // Same shape `jobRecord` reports: outputs on the settled job, null
+        // while it runs. The fake carried them under `result` and the real
+        // tool carried them nowhere, so an agent taught here found neither.
         return {
           id: job.id,
           workflow_id: job.workflow_id,
           status: done ? "completed" : "running",
           polls: job.polls,
-          result: done ? { outputs: job.outputs } : undefined
+          outputs: done ? job.outputs : null
         };
       }
     ),

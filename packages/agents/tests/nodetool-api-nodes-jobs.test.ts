@@ -182,6 +182,41 @@ describe("nodetool.jobs.wait", () => {
     expect(jobPollCount()).toBe(1);
   });
 
+  // A live session called `wait(job.id)` on the receipt `start()` returns —
+  // which spells its id `job_id` — and the undefined reached the tool, which
+  // answered "Job undefined was not found".
+  it("takes the receipt start() returns, not just an id string", async () => {
+    const { executeTool, calls } = createFakeRouter({ runningPolls: 0 });
+    const session = makeSession(JOB_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const receipt = { job_id: "job3", status: "running" };
+       const job = await nodetool.jobs.wait(receipt);
+       return job.id;`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toBe("job3");
+    expect(calls[0].args).toEqual({ job_id: "job3" });
+  });
+
+  it("names the call, not a phantom job, when the id is missing", async () => {
+    const { executeTool, calls } = createFakeRouter({ runningPolls: 0 });
+    const session = makeSession(JOB_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `try {
+         await nodetool.jobs.wait(undefined);
+         return "no throw";
+       } catch (e) { return e.message; }`
+    );
+    expect(obs.ok).toBe(true);
+    const message = String(obs.result);
+    expect(message).toContain("nodetool.jobs.wait: no job id");
+    expect(message).toContain("job_id");
+    // Nothing was asked of the belt: the mistake is in the call, not the job.
+    expect(calls).toHaveLength(0);
+  });
+
   it("throws a timeout naming the job id and last status", async () => {
     const { executeTool } = createFakeRouter({ runningPolls: -1 });
     const session = makeSession(JOB_TOOLS, executeTool);

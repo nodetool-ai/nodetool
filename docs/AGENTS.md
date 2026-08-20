@@ -274,8 +274,10 @@ from inside an agent:
   Puck editor, so a chat agent could debug an app but never build one. There is
   still no `build_app` tool: the batch harness lives on at
   `POST /api/applications/build` and `nodetool app build`.
-- **`run_workflow`** / **`start_background_job`** — execute synchronously or as a
-  background job (poll with `get_job` / `get_job_logs`).
+- **`run_workflow`** / **`start_background_job`** — execute synchronously, or
+  start a detached run and get its job id back at once. Poll `get_job` until it
+  settles: the settled job carries the run's `outputs`, and `get_job_logs`
+  carries its log tail and any node error.
 - **`create_workflow`**, **`search_nodes`**, **`list_nodes`**, **`get_node_info`**,
   **`get_example_workflow`**, **`export_workflow_digraph`** — build and inspect
   graphs against the live node registry.
