@@ -28,6 +28,7 @@ import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
 import {
   createCapabilityRun,
+  getBuiltinTools,
   toolForCapabilityName,
   UNGATED
 } from "@nodetool-ai/agents";
@@ -234,7 +235,14 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   // the websocket server exposes.
   const buildDirectTools = (prov: BaseProvider | null): Tool[] => {
     if (!prov) return [];
-    const baseTools: Tool[] = [];
+    // The builtin belt. This used to be an `extras` parameter that only the
+    // (now removed) `--sandbox` flag ever filled, so a normal CLI run reached
+    // the model with nothing on it: no `view_image`, so a headless turn could
+    // not look at an image at all, and every `nodetool.media.*` method threw
+    // naming a tool the belt did not carry. `createCliCodeActTurn` adds
+    // `execute_code` itself and appends `view_image` only if it finds it here,
+    // which is why an empty belt silently removed the one channel for pixels.
+    const baseTools: Tool[] = getBuiltinTools();
     const forwardMessage = (msg: ProcessingMessage) => {
       if (msg.type === "chunk") {
         process.stdout.write((msg as { content?: string }).content ?? "");
