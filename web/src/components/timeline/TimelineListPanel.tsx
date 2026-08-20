@@ -11,18 +11,18 @@ import {
   useRef,
   useState
 } from "react";
-import type { DragEvent, MouseEvent } from "react";
+import type { DragEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCreateTimeline, useTimelines } from "../../hooks/useTimelineSequence";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
-import useContextMenuStore from "../../stores/ContextMenuStore";
+import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import {
-  useSidebarDocumentActionsStore,
-  type SidebarDocumentItem
-} from "../../stores/SidebarDocumentActionsStore";
+  useSidebarDocumentMenu,
+  type SidebarDocumentContextMenuHandler
+} from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -110,7 +110,7 @@ interface TimelineListItemProps {
   active: boolean;
   editing: boolean;
   onOpen: (id: string, name: string) => void;
-  onContextMenu: (event: MouseEvent<HTMLButtonElement>, id: string, name: string) => void;
+  onContextMenu: SidebarDocumentContextMenuHandler;
   onCommitRename: (id: string, newName: string) => void;
   onCancelRename: () => void;
 }
@@ -300,32 +300,6 @@ const TimelineListPanel = () => {
       void utils.timeline.list.invalidate();
     }
   });
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const setActions = useSidebarDocumentActionsStore((state) => state.setActions);
-  const clearActions = useSidebarDocumentActionsStore(
-    (state) => state.clearActions
-  );
-
-  const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>, id: string, name: string) => {
-      event.preventDefault();
-      event.stopPropagation();
-      openContextMenu(
-        "sidebar-document-context-menu",
-        id,
-        event.clientX,
-        event.clientY,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { id, name }
-      );
-    },
-    [openContextMenu]
-  );
-
   const handleCommitRename = useCallback(
     (id: string, newName: string) => {
       const trimmed = newName.trim();
@@ -367,26 +341,27 @@ const TimelineListPanel = () => {
     [utils, createTimeline, updateTimeline]
   );
 
+  const handleRequestRename = useCallback((item: SidebarDocumentItem) => {
+    setEditingId(item.id);
+  }, []);
+
   const handleRequestDelete = useCallback((item: SidebarDocumentItem) => {
     setItemToDelete(item);
   }, []);
 
   const handleCancelRename = useCallback(() => setEditingId(null), []);
 
+  const handleContextMenu = useSidebarDocumentMenu({
+    onRename: handleRequestRename,
+    onDuplicate: handleDuplicate,
+    onDelete: handleRequestDelete
+  });
+
   const handleConfirmDelete = useCallback(() => {
     if (itemToDelete) {
       deleteTimeline.mutate({ id: itemToDelete.id });
     }
   }, [itemToDelete, deleteTimeline]);
-
-  useEffect(() => {
-    setActions({
-      onRename: (item) => setEditingId(item.id),
-      onDuplicate: (item) => void handleDuplicate(item),
-      onDelete: handleRequestDelete
-    });
-    return () => clearActions();
-  }, [setActions, clearActions, handleDuplicate, handleRequestDelete]);
 
   return (
     <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
