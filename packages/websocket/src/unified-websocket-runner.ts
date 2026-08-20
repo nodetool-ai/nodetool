@@ -1461,8 +1461,14 @@ const PERMISSION_MODE_PROMPTS = {
     "retry it — explain or propose an alternative.\n",
   auto:
     "\n# Permission mode: AUTO\n" +
-    "All tools run automatically without prompting. Be deliberate with actions " +
-    "that write, run, or have external side effects.\n"
+    "Tool calls inside a code action run without prompting, so the `risk` you " +
+    "declare on each `execute_code` call is what protects the user: a `low` " +
+    "action runs unattended, a `high` one asks them once before any of it " +
+    "runs. Declare `high` whenever the program deletes or overwrites " +
+    "something, publishes or sends anything outside this account, or spends " +
+    "real money — and whenever you are unsure. Keep the destructive or costly " +
+    "part in its own action so the routine work around it still runs " +
+    "unattended.\n"
 } satisfies Record<PermissionMode, string>;
 
 /**

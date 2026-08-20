@@ -73,10 +73,13 @@ import {
 import {
   CODEACT_DEFER_THRESHOLD,
   CODEACT_RESIDENT_TOOL_NAMES,
-  DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
+  DEFAULT_CODEACT_ACTION_TIMEOUT_MS
+} from "./codeact-executor.js";
+import {
+  admitCodeAction,
   EXECUTE_CODE_INPUT_SCHEMA,
   EXECUTE_CODE_TOOL_NAME
-} from "./codeact-executor.js";
+} from "./execute-code-contract.js";
 import {
   GRAPH_MODEL_PRELUDE,
   GRAPH_MODEL_PROMPT_SECTION,
@@ -218,8 +221,7 @@ function normalizeToolResult(raw: unknown): unknown {
     raw.length > 0 &&
     raw.every(
       (block) =>
-        isObjectLike(block) &&
-        isString((block as { type?: unknown }).type)
+        isObjectLike(block) && isString((block as { type?: unknown }).type)
     )
   ) {
     const texts = raw
@@ -360,9 +362,7 @@ export function createChatCodeActSession(
       if (isNonEmptyString(argsJson)) {
         try {
           const parsed = JSON.parse(argsJson) as unknown;
-          if (
-            isRecord(parsed)
-          ) {
+          if (isRecord(parsed)) {
             args = parsed as Record<string, unknown>;
           } else if (parsed !== null) {
             return {
@@ -424,10 +424,9 @@ export function createChatCodeActSession(
     { ok: true; result: ToolSearchHit[] } | { ok: false; error: string }
   > => {
     try {
-      const limit =
-        isFiniteNumber(maxResults)
-          ? Math.max(1, Math.min(25, Math.floor(maxResults)))
-          : 5;
+      const limit = isFiniteNumber(maxResults)
+        ? Math.max(1, Math.min(25, Math.floor(maxResults)))
+        : 5;
       const hits = searchTools(searchCatalog, String(query ?? ""), limit).map(
         (entry): ToolSearchHit =>
           toolSearchHit(
@@ -517,6 +516,15 @@ export function createChatCodeActSession(
         toolCalls: 0
       } satisfies ActionObservation);
     }
+    // Auto mode's one question, asked before the program runs.
+    const admission = await admitCodeAction(options.capabilityRun?.gate, args);
+    if (!admission.allowed) {
+      return JSON.stringify({
+        ok: false,
+        error: admission.error,
+        toolCalls: 0
+      } satisfies ActionObservation);
+    }
     const mountOptions: MountCapabilityModulesOptions = {};
     if (options.signal !== undefined) mountOptions.signal = options.signal;
     if (sessionModules.length > 0) mountOptions.session = sessionModules;
@@ -570,12 +578,11 @@ export function createChatCodeActSession(
                 : type === "audio"
                   ? "audio/wav"
                   : "video/mp4";
-          const filename =
-            isString(opts?.filename)
-              ? opts.filename
-              : isString(opts?.name)
-                ? opts.name
-                : undefined;
+          const filename = isString(opts?.filename)
+            ? opts.filename
+            : isString(opts?.name)
+              ? opts.name
+              : undefined;
           const persistOptions: Parameters<typeof persistOutput>[2] = {
             namePrefix: type,
             mime

@@ -803,13 +803,19 @@ export function registerAgentMcpTools(
   // model skipped a field this server does not use had its whole action
   // rejected on validation. It stays in the schema — described, and the
   // contract in the description still asks for one — but is optional here.
+  //
+  // `risk` is optional here for the same reason, and one more: this session's
+  // gate runs in `auto` with an always-allow approval (there is no MCP client
+  // to prompt), so the declared risk decides nothing on this surface. A
+  // missing one still reads as `high` — it just resolves to allow.
+  const optionalOnMcp = new Set(["title", "risk"]);
   const actionSchema = session.providerTool.inputSchema;
   const actionShape = jsonSchemaToZodShape({
     ...actionSchema,
     required: (Array.isArray(actionSchema["required"])
       ? (actionSchema["required"] as string[])
       : []
-    ).filter((name) => name !== "title")
+    ).filter((name) => !optionalOnMcp.has(name))
   });
 
   server.tool(

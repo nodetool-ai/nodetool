@@ -201,6 +201,31 @@ through the prompt and killed the program mid-wait — the dialog was still on
 screen, and answering it resolved nothing. Tests:
 `packages/websocket/tests/chat-codeact-approval.test.ts`.
 
+### Auto mode reads the action's declared risk
+
+Auto mode used to mean "every call runs, no prompts", which made a code action
+the one place a user could lose work they never agreed to lose: the per-call
+ladder answers `allow` for every category, so a program that deletes a
+workflow ran exactly like one that counted rows.
+
+So `execute_code` carries one more required option, `risk` (`"low"` | `"high"`),
+next to `title` and `code`. The model declares it; the host reads it before a
+line of the program runs
+(`admitCodeAction`, `packages/agents/src/codeact/execute-code-contract.ts`).
+In auto mode a `low` action runs unattended and a `high` one asks once — for
+the whole action, because the action, not the bridged call, is what the user is
+being shown. A denied action never runs, and the refusal is the observation.
+"Allow for this chat" is keyed on `execute_code` itself, so it stops the asking
+for the rest of the thread.
+
+It fails closed: a call with no `risk`, or one carrying anything outside the
+enum, reads as `high`. Plan and default modes are untouched — their per-call
+ladder already blocks or asks, and a second question per action would only
+double the prompts. Hosts with no one to ask (the MCP mount, the security
+monitor's pass in `Agent`) carry an always-allow `requestApproval`, so nothing
+there can deadlock. Tests:
+`packages/agents/tests/codeact-action-risk.test.ts`.
+
 ## Workflow graph editing: the JS object model
 
 When the belt carries the `ui_*` workflow document tools, code actions get an
