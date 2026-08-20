@@ -560,6 +560,12 @@ export interface ToolCall {
   result?: unknown;
   step_id?: string | null;
   message?: string | null;
+  /**
+   * Gemini's encrypted reasoning state for the call. Gemini 3 rejects a
+   * request whose history replays a function call without it, so the value
+   * has to survive the trip through the database.
+   */
+  thought_signature?: string | null;
 }
 
 /**
