@@ -4742,14 +4742,17 @@ export class UnifiedWebSocketRunner {
       content: rawContent ?? "",
       toolCallId: isString(m.tool_call_id) ? m.tool_call_id : null,
       toolCalls: Array.isArray(m.tool_calls)
-        ? (m.tool_calls as Array<ProviderToolCall>).map((tc) => ({
-            id: tc.id,
-            name: tc.name,
-            args: tc.args,
-            ...(isString(tc.thought_signature)
-              ? { thought_signature: tc.thought_signature }
-              : {})
-          }))
+        ? (m.tool_calls as Array<ProviderToolCall>).map((tc) => {
+            const call: ProviderToolCall = {
+              id: tc.id,
+              name: tc.name,
+              args: tc.args
+            };
+            if (isString(tc.thought_signature)) {
+              call.thought_signature = tc.thought_signature;
+            }
+            return call;
+          })
         : null,
       threadId: m.thread_id
     };
