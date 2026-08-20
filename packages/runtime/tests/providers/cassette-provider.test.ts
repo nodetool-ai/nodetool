@@ -170,6 +170,57 @@ describe("CassetteProvider record → replay (generateMessages)", () => {
   });
 });
 
+describe("CassetteProvider records what each call was sent", () => {
+  /**
+   * An agent loop appends to one `messages` array and calls the provider again
+   * with that same array. A recorded interaction that keeps the reference ends
+   * up showing the conversation's final state, so every interaction in a saved
+   * cassette reads as though it were the last one — which makes the cassette
+   * useless as a transcript of how the run got there.
+   */
+  it("snapshots messages instead of aliasing the caller's array", async () => {
+    const cassette = createEmptyCassette();
+    const fake = new FakeProvider({ textResponse: "ok", shouldStream: true });
+    const recorder = new CassetteProvider(fake, { mode: "record", cassette });
+
+    // The array the "agent loop" owns and keeps appending to.
+    const conversation: Message[] = [{ role: "user", content: "first" }];
+
+    await collect(
+      recorder.generateMessages({ messages: conversation, model: "fake-model" })
+    );
+    conversation.push({ role: "assistant", content: "reply" });
+    conversation.push({ role: "user", content: "second" });
+    await collect(
+      recorder.generateMessages({ messages: conversation, model: "fake-model" })
+    );
+
+    expect(cassette.interactions).toHaveLength(2);
+    // The first call was sent exactly one message; the second, three.
+    expect(cassette.interactions[0]!.request.messages).toHaveLength(1);
+    expect(cassette.interactions[1]!.request.messages).toHaveLength(3);
+    expect(cassette.interactions[0]!.request.messages[0]!.content).toBe(
+      "first"
+    );
+  });
+
+  it("keeps a recorded message stable when the caller mutates it in place", async () => {
+    const cassette = createEmptyCassette();
+    const fake = new FakeProvider({ textResponse: "ok", shouldStream: true });
+    const recorder = new CassetteProvider(fake, { mode: "record", cassette });
+
+    const message: Message = { role: "user", content: "original" };
+    await collect(
+      recorder.generateMessages({ messages: [message], model: "fake-model" })
+    );
+    message.content = "mutated after the call";
+
+    expect(cassette.interactions[0]!.request.messages[0]!.content).toBe(
+      "original"
+    );
+  });
+});
+
 describe("CassetteProvider record → replay (generateMessage)", () => {
   it("replays the single-shot message without the inner provider", async () => {
     const cassette = createEmptyCassette();
