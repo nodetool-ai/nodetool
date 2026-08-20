@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
-import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
+import {
+  getRegisteredProvider,
+  listRegisteredProviderIds,
+  RECOMMENDED_MODELS
+} from "@nodetool-ai/runtime";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 import {
   sdkV1ModelCatalog,
@@ -10,9 +14,14 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
 import {
   collectProviderCatalogModels,
-  getAllModels
+  getAllModels,
+  getAvailableProviderIds
 } from "../trpc/routers/models.js";
 import { getExistingDownloadManager } from "@nodetool-ai/huggingface";
+import {
+  resolveModelExecutionAvailability,
+  type ProviderExecutionInfo
+} from "../model-execution-availability.js";
 
 type CatalogProjectionOptions = {
   downloadingRepoIds?: ReadonlySet<string>;
@@ -194,6 +203,22 @@ function dedupeCatalogModels(models: readonly UnifiedModel[]): UnifiedModel[] {
   return [...byKey.values()];
 }
 
+function providerExecutionMap(
+  configuredProviderIds: readonly string[]
+): Map<string, ProviderExecutionInfo> {
+  const configured = new Set(configuredProviderIds);
+  const providers = new Map<string, ProviderExecutionInfo>();
+  for (const providerId of listRegisteredProviderIds()) {
+    const metadata = getRegisteredProvider(providerId)?.metadata;
+    if (!metadata) continue;
+    providers.set(providerId, {
+      ...metadata,
+      configured: configured.has(providerId)
+    });
+  }
+  return providers;
+}
+
 export async function getSdkV1ModelCatalog(args: {
   userId: string;
   query: SdkV1ModelCatalogQuery;
@@ -214,12 +239,19 @@ export async function getSdkV1ModelCatalog(args: {
     availableModels = await args.getWorkerModels();
     providerCatalogModels = [];
   } else {
-    [availableModels, providerCatalogModels] = await Promise.all([
-      getAllModels(args.userId),
-      (args.getProviderCatalogModels ?? getCachedProviderCatalogModels)(
-        args.userId
-      )
-    ]);
+    const [localModels, catalogModels, configuredProviderIds] =
+      await Promise.all([
+        getAllModels(args.userId),
+        (args.getProviderCatalogModels ?? getCachedProviderCatalogModels)(
+          args.userId
+        ),
+        getAvailableProviderIds(args.userId)
+      ]);
+    availableModels = localModels;
+    providerCatalogModels = resolveModelExecutionAvailability(
+      catalogModels,
+      providerExecutionMap(configuredProviderIds)
+    );
   }
   const recommendedModels = [
     ...RECOMMENDED_MODELS,

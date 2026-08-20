@@ -178,16 +178,9 @@ describe("ModelDownloadStore", () => {
 
   test("completed downloads invalidate execution-aware model queries", async () => {
     const originalWebSocket = global.WebSocket;
-    let socket: {
-      readyState: number;
-      onopen: ((event: Event) => void) | null;
-      onmessage: ((event: MessageEvent) => void) | null;
-      onclose: ((event: CloseEvent) => void) | null;
-      onerror: ((event: Event) => void) | null;
-      close: jest.Mock;
-    };
     class FakeWebSocket {
       static OPEN = 1;
+      static instance: FakeWebSocket | null = null;
       readyState = 0;
       onopen: ((event: Event) => void) | null = null;
       onmessage: ((event: MessageEvent) => void) | null = null;
@@ -196,7 +189,7 @@ describe("ModelDownloadStore", () => {
       close = jest.fn();
 
       constructor() {
-        socket = this;
+        FakeWebSocket.instance = this;
       }
     }
     global.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
@@ -208,11 +201,15 @@ describe("ModelDownloadStore", () => {
       } as never);
       useModelDownloadStore.getState().addDownload("org/model");
       const connecting = useModelDownloadStore.getState().connectWebSocket();
-      socket!.readyState = FakeWebSocket.OPEN;
-      socket!.onopen?.(new Event("open"));
+      const socket = FakeWebSocket.instance;
+      if (!socket) {
+        throw new Error("Expected the download store to create a WebSocket");
+      }
+      socket.readyState = FakeWebSocket.OPEN;
+      socket.onopen?.(new Event("open"));
       await connecting;
 
-      socket!.onmessage?.({
+      socket.onmessage?.({
         data: JSON.stringify({
           repo_id: "org/model",
           status: "completed",

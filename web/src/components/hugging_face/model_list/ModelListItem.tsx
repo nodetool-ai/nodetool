@@ -230,12 +230,14 @@ const ModelListItem: React.FC<
                   sx={{
                     height: 20,
                     fontSize: theme.vars.fontSizeSmaller,
-                    ...(execution.state === "unavailable"
-                      ? {
-                          color: "text.disabled",
-                          borderColor: "divider"
-                        }
-                      : {}),
+                    color:
+                      execution.state === "unavailable"
+                        ? "text.disabled"
+                        : undefined,
+                    borderColor:
+                      execution.state === "unavailable"
+                        ? "divider"
+                        : undefined,
                     cursor: "help"
                   }}
                 />
