@@ -14,6 +14,8 @@ import {
   nodeId,
   nodeName,
   matchesAny,
+  requiresMediaInput,
+  narrowTasksByRequiredInputs,
   inferVideoTasks,
   inferImageTasks,
   buildVideoModels,
@@ -330,6 +332,106 @@ describe("matchesAny", () => {
   });
 });
 
+describe("narrowTasksByRequiredInputs", () => {
+  const requiredImage = {
+    outputType: "image",
+    endpointId: "alibaba/qwen-image-3/edit",
+    inputFields: [
+      { name: "prompt", propType: "str", required: true },
+      { name: "images", propType: "list[image]", required: true }
+    ]
+  };
+
+  it("reads requiredness off the declared fields", () => {
+    expect(requiresMediaInput(requiredImage, "image")).toBe(true);
+    expect(requiresMediaInput(requiredImage, "video")).toBe(false);
+    expect(
+      requiresMediaInput(
+        { inputFields: [{ name: "image", propType: "image" }] },
+        "image"
+      )
+    ).toBe(false);
+    // Kie declares uploads instead of typed fields, and says nothing about
+    // requiredness — inference stands rather than being narrowed on a guess.
+    expect(
+      requiresMediaInput({ uploads: [{ field: "image", kind: "image" }] }, "image")
+    ).toBe(false);
+  });
+
+  // `models.pick("text_to_image")` answered with an image *editor* — every
+  // image endpoint was tagged with both generation tasks, so the pool was
+  // alphabetical and this id sorts first.
+  it("drops text_to_image from an endpoint that requires an image", () => {
+    expect(
+      narrowTasksByRequiredInputs(
+        ["text_to_image", "image_to_image"],
+        requiredImage,
+        "image"
+      )
+    ).toEqual(["image_to_image"]);
+  });
+
+  it("drops text_to_video from a video endpoint that requires an image", () => {
+    expect(
+      narrowTasksByRequiredInputs(
+        ["text_to_video", "image_to_video"],
+        {
+          outputType: "video",
+          inputFields: [{ name: "image", propType: "image", required: true }]
+        },
+        "video"
+      )
+    ).toEqual(["image_to_video"]);
+  });
+
+  it("falls back to the transform task when nothing generative is left", () => {
+    expect(
+      narrowTasksByRequiredInputs(
+        ["text_to_video", "image_to_video"],
+        {
+          outputType: "video",
+          inputFields: [{ name: "video", propType: "video", required: true }]
+        },
+        "video"
+      )
+    ).toEqual(["video_to_video"]);
+  });
+
+  it("leaves an endpoint that requires nothing alone", () => {
+    const tasks = ["text_to_image", "image_to_image"];
+    expect(
+      narrowTasksByRequiredInputs(
+        tasks,
+        {
+          outputType: "image",
+          inputFields: [{ name: "image", propType: "image", required: false }]
+        },
+        "image"
+      )
+    ).toBe(tasks);
+  });
+
+  it("never overrules an explicit supportedTasks declaration", () => {
+    const [model] = buildImageModels(
+      [
+        {
+          outputType: "image",
+          endpointId: "e1",
+          supportedTasks: ["text_to_image"],
+          inputFields: [{ name: "image", propType: "image", required: true }]
+        }
+      ],
+      "p"
+    );
+    expect(model.supportedTasks).toEqual(["text_to_image"]);
+  });
+
+  it("narrows an inferred tagging through buildImageModels", () => {
+    const [model] = buildImageModels([requiredImage], "fal_ai");
+    expect(model.supportedTasks).toEqual(["image_to_image"]);
+  });
+});
+
 describe("inferVideoTasks", () => {
   const cases: [string, string[]][] = [
     ["lipsync", ["lip_sync"]],
@@ -362,6 +464,40 @@ describe("inferVideoTasks", () => {
       "image_to_video"
     ]);
   });
+
+  // A live session searched image_to_video for "ltx" and got back four
+  // audio-to-video endpoints and an extend-video one, because every endpoint
+  // whose id spelled out neither direction was tagged as both generators.
+  const byId: [string, string[]][] = [
+    ["fal-ai/ltx-2-19b/audio-to-video", ["audio_to_video"]],
+    ["fal-ai/ltx-2-19b/distilled/audio-to-video/lora", ["audio_to_video"]],
+    ["fal-ai/longcat-multi-avatar/image-audio-to-video", ["audio_to_video"]],
+    ["argil/avatars/audio-to-video", ["audio_to_video"]],
+    ["fal-ai/ltx-2-19b/extend-video", ["video_to_video"]],
+    ["fal-ai/ltx-video-13b-dev/extend", ["video_to_video"]],
+    ["fal-ai/ltx-2.3/reframe", ["video_to_video"]],
+    ["fal-ai/ltx-2/retake-video", ["video_to_video"]],
+    ["fal-ai/ltx-2.3-quality/outpaint", ["video_to_video"]],
+    ["fal-ai/bernini-r/edit-video", ["video_to_video"]],
+    ["bria/video/background-removal/v3", ["video_to_video"]],
+    ["fal-ai/amt-interpolation/frame-interpolation", ["video_to_video"]],
+    ["fal-ai/elevenlabs/dubbing", ["video_to_video"]],
+    ["decart/lucy-restyle", ["video_to_video"]],
+    ["blackforestlabs/flux-3/first-last-frame-to-video", ["image_to_video"]],
+    ["blackforestlabs/flux-3/keyframes-to-video", ["image_to_video"]],
+    ["bytedance/seedance-2.0/reference-to-video", ["image_to_video"]],
+    // Still a generator: the direction is spelled out, so nothing above bites.
+    ["fal-ai/ltx-2-19b/image-to-video", ["image_to_video"]],
+    ["fal-ai/ltx-2-19b/distilled/image-to-video/lora", ["image_to_video"]],
+    ["fal-ai/heygen/avatar4/image-to-video", ["image_to_video"]],
+    // A lip-sync endpoint keeps its own task even when the id says audio.
+    ["fal-ai/kling-video/lipsync/audio-to-video", ["lip_sync"]]
+  ];
+  for (const [id, expected] of byId) {
+    it(`"${id}" → ${expected.join("+")}`, () => {
+      expect(inferVideoTasks("", id)).toEqual(expected);
+    });
+  }
 });
 
 describe("inferImageTasks", () => {
