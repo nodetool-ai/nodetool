@@ -32,15 +32,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import BrushIcon from "@mui/icons-material/Brush";
-import SvgIcon, { type SvgIconProps } from "@mui/material/SvgIcon";
-
-// Inline SVG so we don't depend on an icon-set that ships an eraser glyph.
-// Stylized rubber/wedge eraser at the standard 24px MUI viewBox.
-const EraserIcon = (props: SvgIconProps) => (
-  <SvgIcon {...props}>
-    <path d="M16.24 3.56l4.24 4.24a2 2 0 0 1 0 2.83l-9.9 9.9a2 2 0 0 1-2.83 0l-4.24-4.24a2 2 0 0 1 0-2.83l9.9-9.9a2 2 0 0 1 2.83 0zM6.71 14.12l3.18 3.18 3.18-3.18-3.18-3.18-3.18 3.18zM3 21h18v-2H3v2z" />
-  </SvgIcon>
-);
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -48,6 +39,8 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import {
   FlexColumn,
   FlexRow,
+  SvgIcon,
+  type SvgIconProps,
   ToggleGroup,
   ToggleOption,
   ToolbarIconButton,
@@ -74,6 +67,14 @@ import { createImageUrl } from "../../../utils/imageUtils";
 import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 import { PAINTER_NODE_TYPE } from "../../../constants/nodeTypes";
 import { isFunction, isNumber, isString } from "../../../utils/typePredicates";
+
+// Inline SVG so we don't depend on an icon-set that ships an eraser glyph.
+// Stylized rubber/wedge eraser at the standard 24px MUI viewBox.
+const EraserIcon = (props: SvgIconProps) => (
+  <SvgIcon {...props}>
+    <path d="M16.24 3.56l4.24 4.24a2 2 0 0 1 0 2.83l-9.9 9.9a2 2 0 0 1-2.83 0l-4.24-4.24a2 2 0 0 1 0-2.83l9.9-9.9a2 2 0 0 1 2.83 0zM6.71 14.12l3.18 3.18 3.18-3.18-3.18-3.18-3.18 3.18zM3 21h18v-2H3v2z" />
+  </SvgIcon>
+);
 
 // Max number of undo states retained. Keeps memory bounded; older
 // states are dropped from the front of the queue.

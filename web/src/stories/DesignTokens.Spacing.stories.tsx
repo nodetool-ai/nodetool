@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Box } from "@mui/material";
+import { Box } from "../components/ui_primitives";
 import { SPACING } from "../components/ui_primitives/spacing";
 
 /** The canonical 4px-grid spacing steps (plus the 2px micro step). */
