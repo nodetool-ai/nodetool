@@ -2,6 +2,7 @@ import React from "react";
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import ChatView from "../../../../components/chat/containers/ChatView";
 import mockTheme from "../../../../__mocks__/themeMock";
 import {
@@ -37,6 +38,11 @@ jest.mock("@mui/material", () => ({
   )
 }));
 
+jest.mock("@mui/material/useMediaQuery", () => ({
+  __esModule: true,
+  default: jest.fn()
+}));
+
 // Mock ChatThreadView component
 jest.mock("../../../../components/chat/thread/ChatThreadView", () => ({
   __esModule: true,
@@ -68,6 +74,11 @@ jest.mock("../../../../components/chat/thread/ChatThreadView", () => ({
       </div>
     );
   }
+}));
+
+jest.mock("../../../../components/node/TaskUpdateDisplay", () => ({
+  __esModule: true,
+  default: () => <div data-testid="task-update-display" />
 }));
 
 // Mock ChatInputSection component
@@ -107,6 +118,9 @@ const renderWithProviders = (component: React.ReactElement) => {
 };
 
 describe("ChatView", () => {
+  const mockedUseMediaQuery = useMediaQuery as jest.MockedFunction<
+    typeof useMediaQuery
+  >;
   const mockModel: LanguageModel = {
     type: "language_model",
     id: "gpt-4",
@@ -129,6 +143,7 @@ describe("ChatView", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedUseMediaQuery.mockReturnValue(false);
   });
 
   describe("Initial Rendering", () => {
@@ -411,6 +426,65 @@ describe("ChatView", () => {
       );
 
       expect(screen.getByTestId("chat-thread-view")).toBeInTheDocument();
+    });
+
+    it("shows an active task in the desktop right sidebar", () => {
+      mockedUseMediaQuery.mockReturnValue(true);
+      const taskUpdate: TaskUpdate = {
+        type: "task_update",
+        task: { id: "task-1", title: "Test task", status: "running" },
+        event: TaskUpdateEvent.StepStarted
+      };
+
+      renderWithProviders(
+        <ChatView
+          {...baseProps}
+          status="streaming"
+          messages={[
+            {
+              id: "1",
+              type: "message",
+              role: "user",
+              content: [{ type: "text", text: "Test" }]
+            }
+          ]}
+          currentTaskUpdate={taskUpdate}
+        />
+      );
+
+      expect(screen.getByLabelText("Active agent task")).toBeInTheDocument();
+      expect(screen.getByTestId("task-update-display")).toBeInTheDocument();
+    });
+
+    it("hides the active task sidebar on narrow screens", () => {
+      const taskUpdate: TaskUpdate = {
+        type: "task_update",
+        task: { id: "task-1", title: "Test task", status: "running" },
+        event: TaskUpdateEvent.StepStarted
+      };
+
+      renderWithProviders(
+        <ChatView
+          {...baseProps}
+          status="streaming"
+          messages={[
+            {
+              id: "1",
+              type: "message",
+              role: "user",
+              content: [{ type: "text", text: "Test" }]
+            }
+          ]}
+          currentTaskUpdate={taskUpdate}
+        />
+      );
+
+      expect(
+        screen.queryByLabelText("Active agent task")
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("task-update-display")
+      ).not.toBeInTheDocument();
     });
 
     it("passes running tool information to ChatThreadView", () => {

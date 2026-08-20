@@ -78,6 +78,8 @@ interface ChatThreadViewProps {
   onInsertCode?: (text: string, language?: string) => void;
   /** Render per-message avatar + header meta (full-page chat only). */
   showMessageMeta?: boolean;
+  /** Render task updates inline. Full chat surfaces move them to a right rail. */
+  showTaskUpdate?: boolean;
 }
 
 const SCROLL_THRESHOLD = 50;
@@ -332,7 +334,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   currentTaskUpdate,
   currentLogUpdate,
   onInsertCode,
-  showMessageMeta = false
+  showMessageMeta = false,
+  showTaskUpdate = true
 }) => {
   const theme = useTheme();
 
@@ -1032,7 +1035,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
               progressMessage={progressMessage}
               runningToolCallId={runningToolCallId}
               currentPlanningUpdate={currentPlanningUpdate}
-              currentTaskUpdate={currentTaskUpdate}
+              currentTaskUpdate={showTaskUpdate ? currentTaskUpdate : null}
               currentLogUpdate={currentLogUpdate}
               hasAgentExecutionMessages={hasAgentExecutionMessages}
               pendingMediaMessage={pendingMediaMessage}
