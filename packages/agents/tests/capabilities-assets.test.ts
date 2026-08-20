@@ -351,6 +351,88 @@ describe("view_image", () => {
     expect(extractInjectableImages(result)).not.toBeNull();
   });
 
+  it.each([
+    ["loopback", "http://localhost:7777/api/storage/abc.png"],
+    ["loopback by ip", "https://127.0.0.1:7777/api/storage/abc.png"],
+    ["cloud metadata", "http://169.254.169.254/latest/meta-data/iam"],
+    ["private range", "https://10.0.0.5/internal.png"],
+    ["plain http to a public host", "http://example.com/logo.png"]
+  ])("refuses a %s URL instead of handing it to the vision provider", async (
+    _label,
+    url
+  ) => {
+    // The passthrough hands `image_content.uri` to the vision provider, which
+    // fetches it from *their* network — so this is not an SSRF against our
+    // host. It is still the one model-supplied URL in this path that never met
+    // the guard every other outbound URL here meets, and `save_asset` already
+    // refuses exactly these through `safeFetch`.
+    const resolveAssetBytes = vi.fn(async () => ({
+      bytes: new Uint8Array(),
+      attempts: [] as string[]
+    }));
+    const ctx = makeContext({ resolveAssetBytes });
+    const result = (await asTool("view_image", ctx).process(ctx, {
+      image_id: url
+    })) as Record<string, unknown>;
+
+    expect(result.ok).toBeUndefined();
+    expect(result.image_content).toBeUndefined();
+    expect(String(result.error)).toContain("refused");
+    // Refused at the URL, not by falling through to an asset lookup.
+    expect(resolveAssetBytes).not.toHaveBeenCalled();
+  });
+
+  it("still passes a public https URL to the provider", async () => {
+    // The guard must not close the door it exists to leave open.
+    const ctx = makeContext();
+    const result = (await asTool("view_image", ctx).process(ctx, {
+      image_id: "https://example.com/logo.png"
+    })) as Record<string, unknown>;
+
+    expect(result.ok).toBe(true);
+    expect(result.image_content).toEqual({
+      uri: "https://example.com/logo.png",
+      mimeType: "image/png"
+    });
+  });
+
+  it("names why resolution failed instead of only naming the accepted forms", async () => {
+    // The shape a headless run hits: `save_asset` minted a real id, the row
+    // exists, and its bytes do not resolve. Reporting only "pass an asset id"
+    // sends an agent back round with the id it already had.
+    const ctx = makeContext({
+      resolveAssetBytes: vi.fn(async () => {
+        throw new Error("storage backend unreachable");
+      })
+    });
+    const result = (await asTool("view_image", ctx).process(ctx, {
+      image_id: "7bbcb4b593644b3abfe6abcfcd96aa60"
+    })) as Record<string, unknown>;
+
+    expect(String(result.error)).toContain("storage backend unreachable");
+    expect(String(result.error)).toContain("data: URI");
+    // It used to offer "http(s) URL" as an accepted form. That is what sent a
+    // headless agent guessing `localhost:7777` URL shapes for seven minutes
+    // while it held a valid id: the message recommended a form that cannot
+    // work here, and the guard then refused every attempt.
+    expect(String(result.error)).not.toContain("http(s)");
+    expect(String(result.error)).toContain("localhost");
+  });
+
+  it("says nothing resolved when the lookup answered with no bytes", async () => {
+    const ctx = makeContext({
+      resolveAssetBytes: vi.fn(async () => ({
+        bytes: new Uint8Array(),
+        attempts: [] as string[]
+      }))
+    });
+    const result = (await asTool("view_image", ctx).process(ctx, {
+      image_id: "empty-asset"
+    })) as Record<string, unknown>;
+
+    expect(String(result.error)).toContain("Nothing resolved for it");
+  });
+
   it("runs the argument check the tool ran, with the same envelope", async () => {
     const ctx = makeContext();
     const result = (await asTool("view_image", ctx).process(ctx, {})) as Record<
