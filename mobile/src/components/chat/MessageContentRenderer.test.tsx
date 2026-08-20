@@ -4,6 +4,8 @@
 
 import { Dimensions, StyleSheet } from 'react-native';
 import { render, screen, act } from '@testing-library/react-native';
+import { useAudioPlayer } from 'expo-audio';
+import { useVideoPlayer } from 'expo-video';
 import { MessageContentRenderer } from './MessageContentRenderer';
 import { MessageContent } from '../../types/ApiTypes';
 
@@ -98,7 +100,7 @@ describe('MessageContentRenderer', () => {
         },
       };
 
-      const { UNSAFE_root } = render(
+      render(
         <MessageContentRenderer
           content={imageContent}
           renderTextContent={mockRenderTextContent}
@@ -106,7 +108,9 @@ describe('MessageContentRenderer', () => {
         />
       );
 
-      expect(UNSAFE_root).toBeTruthy();
+      expect(screen.getByLabelText('Image content').props.source).toEqual({
+        uri: 'https://example.com/image.png',
+      });
       // renderTextContent should not be called for images
       expect(mockRenderTextContent).not.toHaveBeenCalled();
     });
@@ -192,7 +196,7 @@ describe('MessageContentRenderer', () => {
         },
       };
 
-      const { UNSAFE_root } = render(
+      render(
         <MessageContentRenderer
           content={audioContent}
           renderTextContent={mockRenderTextContent}
@@ -200,7 +204,12 @@ describe('MessageContentRenderer', () => {
         />
       );
 
-      expect(UNSAFE_root).toBeTruthy();
+      expect(useAudioPlayer).toHaveBeenCalledWith({
+        uri: 'https://example.com/audio.mp3',
+      });
+      // Paused at the start of a 60s track (the mocked player status).
+      expect(screen.getByLabelText('Play audio')).toBeTruthy();
+      expect(screen.getByText('0:00 / 1:00')).toBeTruthy();
       expect(mockRenderTextContent).not.toHaveBeenCalled();
     });
 
@@ -235,7 +244,7 @@ describe('MessageContentRenderer', () => {
         },
       };
 
-      const { UNSAFE_root } = render(
+      render(
         <MessageContentRenderer
           content={videoContent}
           renderTextContent={mockRenderTextContent}
@@ -243,7 +252,11 @@ describe('MessageContentRenderer', () => {
         />
       );
 
-      expect(UNSAFE_root).toBeTruthy();
+      expect(useVideoPlayer).toHaveBeenCalledWith(
+        'https://example.com/video.mp4',
+        expect.any(Function)
+      );
+      expect(screen.getByTestId('mock-video')).toBeTruthy();
       expect(mockRenderTextContent).not.toHaveBeenCalled();
     });
 

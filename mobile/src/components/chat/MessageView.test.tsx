@@ -71,9 +71,9 @@ describe('MessageView', () => {
         role: 'user',
         content: '',
       };
-      
-      const { UNSAFE_root } = render(<MessageView message={message} />);
-      expect(UNSAFE_root).toBeTruthy();
+
+      render(<MessageView message={message} />);
+      expect(screen.getByLabelText('You: ')).toBeTruthy();
     });
 
     it('renders user message with null content', () => {
@@ -83,9 +83,9 @@ describe('MessageView', () => {
         role: 'user',
         content: null as any,
       };
-      
-      const { UNSAFE_root } = render(<MessageView message={message} />);
-      expect(UNSAFE_root).toBeTruthy();
+
+      render(<MessageView message={message} />);
+      expect(screen.getByLabelText('You: ')).toBeTruthy();
     });
 
     it('renders user message with undefined content', () => {
@@ -95,9 +95,9 @@ describe('MessageView', () => {
         role: 'user',
         content: undefined as any,
       };
-      
-      const { UNSAFE_root } = render(<MessageView message={message} />);
-      expect(UNSAFE_root).toBeTruthy();
+
+      render(<MessageView message={message} />);
+      expect(screen.getByLabelText('You: ')).toBeTruthy();
     });
   });
 
@@ -134,9 +134,11 @@ describe('MessageView', () => {
         role: 'assistant',
         content: '',
       };
-      
-      const { UNSAFE_root } = render(<MessageView message={message} />);
-      expect(UNSAFE_root).toBeTruthy();
+
+      render(<MessageView message={message} />);
+      expect(screen.getByLabelText('Assistant: ')).toBeTruthy();
+      // Nothing to copy, so the copy button stays out of the bubble.
+      expect(screen.queryByLabelText('Copy message')).toBeNull();
     });
   });
 
@@ -201,21 +203,26 @@ describe('MessageView', () => {
         role: 'user',
         content: { type: 'text' } as any,
       };
-      
-      const { UNSAFE_root } = render(<MessageView message={message} />);
-      expect(UNSAFE_root).toBeTruthy();
+
+      render(<MessageView message={message} />);
+      expect(screen.getByLabelText('You: ')).toBeTruthy();
     });
 
-    it('handles object content with non-text type', () => {
+    it('routes a single non-text content object to the media renderer', () => {
       const message: Message = {
         id: '15',
         type: 'message',
         role: 'user',
-        content: { type: 'image', url: 'http://example.com' } as any,
+        content: {
+          type: 'image_url',
+          image: { type: 'image', uri: 'https://example.com/image.png' },
+        } as any,
       };
-      
-      const { UNSAFE_root } = render(<MessageView message={message} />);
-      expect(UNSAFE_root).toBeTruthy();
+
+      render(<MessageView message={message} />);
+      expect(screen.getByLabelText('Image content')).toBeTruthy();
+      // The bubble carries no text, so the label reads as the bare prefix.
+      expect(screen.getByLabelText('You: ')).toBeTruthy();
     });
 
     it('handles array with null items', () => {
@@ -237,9 +244,9 @@ describe('MessageView', () => {
         role: 'user',
         content: [{ type: 'text' }] as any,
       };
-      
-      const { UNSAFE_root } = render(<MessageView message={message} />);
-      expect(UNSAFE_root).toBeTruthy();
+
+      render(<MessageView message={message} />);
+      expect(screen.getByLabelText('You: ')).toBeTruthy();
     });
   });
 });

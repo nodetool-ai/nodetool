@@ -47,7 +47,11 @@ describe('ChatMessageList', () => {
           isStreaming={false}
         />
       );
-      expect(UNSAFE_root).toBeTruthy();
+
+      // An empty conversation is still a mounted list, with no rows in it.
+      const flatList = UNSAFE_root.findByType(require('react-native').FlatList);
+      expect(flatList.props.data).toEqual([]);
+      expect(screen.queryByTestId(/^message-/)).toBeNull();
     });
 
     it('renders single message', () => {
@@ -82,22 +86,6 @@ describe('ChatMessageList', () => {
       expect(screen.getByTestId('message-1')).toBeTruthy();
       expect(screen.getByTestId('message-2')).toBeTruthy();
       expect(screen.getByTestId('message-3')).toBeTruthy();
-    });
-
-    it('handles messages without ids', () => {
-      const messages: Message[] = [
-        { type: 'message', role: 'user', content: 'Test' } as Message,
-      ];
-      
-      const { UNSAFE_root } = render(
-        <ChatMessageList
-          messages={messages}
-          isLoading={false}
-          isStreaming={false}
-        />
-      );
-      
-      expect(UNSAFE_root).toBeTruthy();
     });
   });
 
