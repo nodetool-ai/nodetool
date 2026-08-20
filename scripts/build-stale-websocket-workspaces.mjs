@@ -5,18 +5,18 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { websocketWorkspaces } from "./websocket-workspaces.mjs";
+import { buildStampPath } from "./build-typescript-workspace.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "..");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
-function run(command, args, env = process.env) {
+function run(command, args) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(command, args, {
       cwd: rootDir,
       stdio: "inherit",
       shell: process.platform === "win32",
-      env,
     });
 
     child.on("error", rejectRun);
@@ -92,7 +92,7 @@ function emittedPathForSource(relativeSourcePath) {
   return null;
 }
 
-function hasStaleSourceOutput(srcDir, distDir, currentDir = srcDir) {
+function hasMissingSourceOutput(srcDir, distDir, currentDir = srcDir) {
   if (!existsSync(currentDir)) {
     return false;
   }
@@ -100,7 +100,7 @@ function hasStaleSourceOutput(srcDir, distDir, currentDir = srcDir) {
   for (const entry of readdirSync(currentDir, { withFileTypes: true })) {
     const sourcePath = resolve(currentDir, entry.name);
     if (entry.isDirectory()) {
-      if (hasStaleSourceOutput(srcDir, distDir, sourcePath)) {
+      if (hasMissingSourceOutput(srcDir, distDir, sourcePath)) {
         return true;
       }
       continue;
@@ -112,11 +112,7 @@ function hasStaleSourceOutput(srcDir, distDir, currentDir = srcDir) {
       continue;
     }
 
-    const outputPath = resolve(distDir, relativeOutputPath);
-    if (
-      !existsSync(outputPath) ||
-      statSync(sourcePath).mtimeMs > statSync(outputPath).mtimeMs
-    ) {
+    if (!existsSync(resolve(distDir, relativeOutputPath))) {
       return true;
     }
   }
@@ -128,27 +124,28 @@ function isWorkspaceStale(workspaceName) {
   const workspaceDir = getWorkspaceDir(workspaceName);
   const srcDir = resolve(workspaceDir, "src");
   const distDir = resolve(workspaceDir, "dist");
+  const stampPath = buildStampPath(workspaceDir);
 
-  if (!existsSync(distDir)) {
+  if (!existsSync(distDir) || !existsSync(stampPath)) {
     return true;
   }
 
-  // Comparing only the newest source and newest dist timestamps lets one
-  // recently emitted file hide an older output elsewhere in the package.
-  // Check every TypeScript input against its corresponding runtime output so
-  // renamed exports cannot leave consumers with incompatible compiled imports.
-  if (hasStaleSourceOutput(srcDir, distDir)) {
+  // A renamed or deleted export leaves consumers importing a compiled file
+  // that is no longer emitted, which no timestamp reveals.
+  if (hasMissingSourceOutput(srcDir, distDir)) {
     return true;
   }
 
+  // Compare against the build stamp, never against the emitted files:
+  // `tsc --build` decides by content, so a source whose mtime moved without
+  // its bytes changing is never re-emitted and would look stale forever.
   const sourceMtime = Math.max(
     getNewestMtimeMs(srcDir),
     getNewestMtimeMs(resolve(workspaceDir, "package.json")),
     getNewestMtimeMs(resolve(workspaceDir, "tsconfig.json"))
   );
-  const distMtime = getNewestMtimeMs(distDir);
 
-  return sourceMtime > distMtime;
+  return sourceMtime > statSync(stampPath).mtimeMs;
 }
 
 const directStaleWorkspaces = websocketWorkspaces.filter(isWorkspaceStale);
@@ -194,8 +191,5 @@ if (directStaleWorkspaces.length > 0 && staleWorkspaces.length > directStaleWork
 console.log(`Building stale workspaces: ${staleWorkspaces.join(", ")}`);
 
 for (const workspace of staleWorkspaces) {
-  await run(npmCommand, ["run", "build", "--workspace", workspace], {
-    ...process.env,
-    NODETOOL_FORCE_TSC_BUILD: "1",
-  });
+  await run(npmCommand, ["run", "build", "--workspace", workspace]);
 }

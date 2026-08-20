@@ -145,6 +145,15 @@ export class WebGPUCompositor implements TimelineCompositor {
     if (width === this.canvasWidth && height === this.canvasHeight) return;
     this.canvasWidth = width;
     this.canvasHeight = height;
+    // Setting canvas.width/height drops the configured swapchain. Reconfigure
+    // so the next getCurrentTexture() matches the new backing store.
+    if (this.context && this.device) {
+      this.context.configure({
+        device: this.device,
+        format: this.canvasFormat,
+        alphaMode: "premultiplied"
+      });
+    }
     this.core?.ensureSize(width, height);
   }
 

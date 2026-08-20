@@ -76,6 +76,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Sketch snapshot history (find a sketch, pin a state, roll one back)
   "list_sketches",
+  "create_sketch",
   "list_sketch_versions",
   "get_sketch_version",
   "create_sketch_version",

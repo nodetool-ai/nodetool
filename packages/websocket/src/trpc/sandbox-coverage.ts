@@ -630,11 +630,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "reads only names the run declared."
   },
   "settings.update": { capability: "set_setting" },
-  "sketch.create": {
-    gap:
-      "Sketch creation is the editor; edit_sketch mutates an existing " +
-      "document."
-  },
+  "sketch.create": { capability: "create_sketch" },
   "sketch.delete": { capability: "delete_sketch" },
   "sketch.documentVersions.create": { capability: "create_sketch_version" },
   "sketch.documentVersions.delete": {

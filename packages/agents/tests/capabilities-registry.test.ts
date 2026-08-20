@@ -49,6 +49,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   convert_markdown_to_pdf: "write",
   convert_pdf_to_markdown: "read",
   create_collection: "write",
+  create_sketch: "write",
   create_sketch_version: "write",
   create_timeline_version: "write",
   create_workflow: "write",

@@ -197,6 +197,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   assemble_script_timeline: "write",
   // Both write the sketch's snapshot history; a restore also rewrites the
   // document itself (undoably — it snapshots first).
+  create_sketch: "write",
   create_sketch_version: "write",
   restore_sketch_version: "write",
   // Same for a timeline sequence's history: a restore rewrites the cut, after

@@ -1809,6 +1809,39 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       })
     ),
     tool(
+      "create_sketch",
+      "Create a blank sketch (image document).",
+      obj({ name: S, width: N, height: N, id: S }, ["name"]),
+      (params) => {
+        const id = str(params["id"], `sketch_${world.sketches.size + 1}`);
+        if (world.sketches.has(id)) {
+          const existing = world.sketches.get(id)!;
+          return {
+            ok: true,
+            image_document_id: existing.id,
+            name: existing.name
+          };
+        }
+        const layerId = "layer_1";
+        const doc: SketchDoc = {
+          id,
+          name: str(params["name"], "Untitled"),
+          layers: [
+            {
+              id: layerId,
+              name: "Layer 1",
+              opacity: 1,
+              blendMode: "normal",
+              visible: true
+            }
+          ],
+          activeLayerId: layerId
+        };
+        world.sketches.set(id, doc);
+        return { ok: true, image_document_id: id, name: doc.name };
+      }
+    ),
+    tool(
       "validate_sketch",
       "Statically check an image document.",
       obj({ image_document_id: S, document: obj({}) }),

@@ -3,7 +3,9 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
+import { stat, utimes } from "node:fs/promises";
 import {
+  BUILD_STAMP_FILENAME,
   DEFAULT_TSC_HEAP_MB,
   getTypeScriptBuildCommand,
   prepareTypeScriptWorkspaceBuild,
@@ -52,6 +54,35 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
       "stale build state"
     );
     expect(existsSync(join(workspaceDir, "dist", "index.js"))).toBe(true);
+  });
+
+  it("advances the build stamp even when tsc re-emits nothing", async () => {
+    // `tsc --build` decides by content, so a source whose mtime moved without
+    // its bytes changing keeps its older output. Callers must compare against
+    // this stamp; comparing against the outputs reports a just-built package
+    // as stale forever and triggers a rebuild on every dev start.
+    const workspaceDir = await mkdtemp(join(tmpdir(), "nodetool-build-helper-"));
+    tempDirs.push(workspaceDir);
+
+    await mkdir(join(workspaceDir, "src"), { recursive: true });
+    await mkdir(join(workspaceDir, "dist"), { recursive: true });
+    await writeFile(join(workspaceDir, "dist", "index.js"), "compiled");
+    const staleTime = new Date(Date.now() - 60_000);
+    await utimes(join(workspaceDir, "dist", "index.js"), staleTime, staleTime);
+    await writeFile(join(workspaceDir, "src", "index.ts"), "export const a = 1;");
+
+    // tsc re-emits nothing: the output keeps its older timestamp.
+    await prepareTypeScriptWorkspaceBuild(workspaceDir, async () => {});
+
+    const stampPath = join(workspaceDir, "dist", BUILD_STAMP_FILENAME);
+    expect(existsSync(stampPath)).toBe(true);
+    const [stamp, source, output] = await Promise.all([
+      stat(stampPath),
+      stat(join(workspaceDir, "src", "index.ts")),
+      stat(join(workspaceDir, "dist", "index.js")),
+    ]);
+    expect(stamp.mtimeMs).toBeGreaterThanOrEqual(source.mtimeMs);
+    expect(output.mtimeMs).toBeLessThan(source.mtimeMs);
   });
 
   it("prunes dist outputs whose source file was deleted or renamed", async () => {

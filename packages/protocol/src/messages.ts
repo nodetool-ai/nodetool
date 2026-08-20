@@ -672,6 +672,7 @@ export type UnifiedCommandType =
   | "update_node_properties"
   | "get_status"
   | "set_mode"
+  | "set_permission_mode"
   | "clear_models"
   | "stream_input"
   | "end_input_stream"

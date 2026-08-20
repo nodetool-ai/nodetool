@@ -1316,11 +1316,12 @@ of assuming the only way forward is a workflow.
   (\`versions\`/\`getVersion\`/\`snapshot\`/\`restore\`) — none of it needs an open
   editor. \`nodetool.searchTools("+ui_timeline", 20)\` edits the open one. A timeline can
   be previewed inline in chat; see "Linking resources".
-- **sketch** — a layered image document. \`nodetool.sketches\` lists, validates,
-  edits the layer stack, and keeps the same snapshot history — but never
-  touches pixels. Painting, generating into a layer, and rendering to an asset
-  live in \`nodetool.searchTools("+ui_sketch", 20)\`, on the open document. A sketch can
-  be previewed inline in chat; see "Linking resources".
+- **sketch** — a layered image document. \`nodetool.sketches\` creates a blank
+  canvas, lists, validates, edits the layer stack, and keeps the same snapshot
+  history — but never touches pixels. Painting, generating into a layer, and
+  rendering to an asset live in \`nodetool.searchTools("+ui_sketch", 20)\`, on
+  the open document. A sketch can be previewed inline in chat; see "Linking
+  resources".
 - **model3d** — a 3D scene. Family \`nodetool.searchTools("+ui_3d", 20)\`: add and
   transform objects, set materials, capture a view as an image.
 - **collection** — a vector store for RAG. \`nodetool.collections\`: index,
@@ -1981,6 +1982,15 @@ class ToolBridge {
     waiter.resolve(payload);
   }
 
+  /** Resolve every waiter in `scope` with the same payload. */
+  resolveScope(scope: string, payload: Record<string, unknown>): void {
+    for (const waiter of [...this.waiters.values()]) {
+      if (waiter.scope === scope) {
+        waiter.resolve(payload);
+      }
+    }
+  }
+
   rejectResult(toolCallId: string, error: Error): void {
     const waiter = this.waiters.get(toolCallId);
     if (!waiter) return;
@@ -2171,6 +2181,11 @@ export class UnifiedWebSocketRunner {
    * via "Allow for this chat". Persists across messages within a thread.
    */
   private chatSessionAllow = new Map<string, Set<string>>();
+  /**
+   * Live permission mode for an in-flight turn. `set_permission_mode` writes
+   * here so switching to Auto mid-turn applies to the next gated call.
+   */
+  private chatTurnPermissionMode = new Map<string, { value: PermissionMode }>();
   /**
    * The capability run for the chat turn this connection is executing — the
    * gate, the context, and everything a capability needs that only exists per
@@ -5657,8 +5672,12 @@ export class UnifiedWebSocketRunner {
     // the user's, not the program's, and charged to the action's wall clock it
     // would kill the very program that asked.
     const codeactClock = createSandboxClock();
+    const liveMode = { value: permissionMode };
+    this.chatTurnPermissionMode.set(threadId, liveMode);
     const chatGate: PermissionGateOptions = {
-      mode: permissionMode,
+      get mode() {
+        return liveMode.value;
+      },
       sessionAllow,
       requestApproval: async (
         request: ApprovalRequest
@@ -8766,6 +8785,24 @@ export class UnifiedWebSocketRunner {
         }
         this.mode = mode;
         return { message: `Mode set to ${mode}` };
+      }
+      case "set_permission_mode": {
+        const threadId = data.thread_id;
+        const mode = data.permission_mode;
+        if (!isNonEmptyString(threadId)) {
+          return { error: "thread_id is required for set_permission_mode" };
+        }
+        if (mode !== "plan" && mode !== "default" && mode !== "auto") {
+          return { error: "permission_mode must be plan, default, or auto" };
+        }
+        const liveMode = this.chatTurnPermissionMode.get(threadId);
+        if (liveMode) {
+          liveMode.value = mode;
+        }
+        if (mode === "auto") {
+          this.approvalBridge.resolveScope(threadId, { decision: "allow" });
+        }
+        return { message: `Permission mode set to ${mode}`, thread_id: threadId };
       }
       case "chat_message": {
         const threadId = data.thread_id;
