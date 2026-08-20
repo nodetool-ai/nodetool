@@ -210,11 +210,22 @@ export class Watchdog {
       );
     }
 
-    // Phase 2: Wait for HTTP health endpoint to respond (server is fully ready)
-    lastLogTime = Date.now();
-    while (Date.now() - start < timeoutMs) {
+    // Phase 2: Wait for the HTTP readiness endpoint (server is fully ready).
+    //
+    // Fresh budget, not the remainder of phase 1's: on a cold dev start the
+    // compile + node-registry scan can eat most of the shared window before
+    // the port even opens, and the watchdog then killed a live, listening
+    // server because health had two minutes left of a five-minute budget.
+    //
+    // Probe /ready (accepting requests), not /health: /health also pings the
+    // database and answers 503 when degraded — a reason to surface a warning,
+    // not to kill the process at startup. Ongoing monitoring stays on
+    // healthUrl.
+    const phase2Start = Date.now();
+    lastLogTime = phase2Start;
+    while (Date.now() - phase2Start < timeoutMs) {
       checkCount++;
-      const healthy = await this.isHealthy();
+      const healthy = await this.isReady();
       if (healthy) {
         logMessage(
           `${this.opts.name} watchdog: health check passed after ${checkCount} attempts (${Date.now() - start}ms total)`
@@ -225,10 +236,10 @@ export class Watchdog {
       // Log progress every 5 seconds
       const now = Date.now();
       if (now - lastLogTime >= logInterval) {
-        const elapsed = Math.round((now - start) / 1000);
-        const remaining = Math.round((timeoutMs - (now - start)) / 1000);
+        const elapsed = Math.round((now - phase2Start) / 1000);
+        const remaining = Math.round((timeoutMs - (now - phase2Start)) / 1000);
         logMessage(
-          `${this.opts.name} watchdog: waiting for health endpoint... (${elapsed}s elapsed, ${remaining}s remaining, ${checkCount} attempts)`
+          `${this.opts.name} watchdog: waiting for readiness endpoint... (${elapsed}s elapsed, ${remaining}s remaining, ${checkCount} attempts)`
         );
         lastLogTime = now;
 
@@ -246,7 +257,7 @@ export class Watchdog {
 
     const pidAlive = await this.isPidAlive();
     throw new Error(
-      `${this.opts.name} watchdog: health check timed out after ${timeoutMs}ms (pidAlive=${pidAlive}, checkCount=${checkCount})`
+      `${this.opts.name} watchdog: readiness check timed out ${timeoutMs}ms after the port opened (pidAlive=${pidAlive}, checkCount=${checkCount})`
     );
   }
 
@@ -534,6 +545,17 @@ export class Watchdog {
    */
   private async isHealthy(): Promise<boolean> {
     return probeHttpOk(this.opts.healthUrl, { timeoutMs: 15000 });
+  }
+
+  /**
+   * Checks the liveness endpoint (/ready) used during startup: "accepting
+   * requests" is the readiness bar, while /health also pings the database
+   * and reports degraded states that are not startup failures.
+   */
+  private async isReady(): Promise<boolean> {
+    const readyUrl = new URL(this.opts.healthUrl);
+    readyUrl.pathname = "/ready";
+    return probeHttpOk(readyUrl.toString(), { timeoutMs: 15000 });
   }
 
   private async writePidFile(pid: number): Promise<void> {

@@ -29,6 +29,7 @@ import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } fr
 import { serverState } from "./state";
 import type { ServerState } from "./state";
 import { getServerUrl, errorMessage, isErrnoException } from "./utils";
+import { execFileSync } from "child_process";
 import fs from "fs/promises";
 import net from "net";
 import path from "path";
@@ -88,6 +89,44 @@ function isProcessRunning(pid: number): boolean {
       return false;
     }
     throw error;
+  }
+}
+
+/**
+ * Finds the PID listening on a local TCP port, or null.
+ *
+ * The PID file only knows about servers this app started. A backend left
+ * behind by `npm run dev` (or by a session whose PID file went stale) still
+ * owns the port, and without this lookup the only outcome was the hard
+ * "Port In Use" error — even though the listener was a healthy NodeTool
+ * server the user could reuse.
+ */
+function findPidListeningOnPort(port: number): number | null {
+  try {
+    if (process.platform === "win32") {
+      const out = execFileSync("netstat", ["-ano", "-p", "TCP"], {
+        encoding: "utf8",
+      });
+      for (const line of out.split(/\r?\n/)) {
+        const cols = line.trim().split(/\s+/);
+        // Proto Local-Address Foreign-Address State PID
+        if (cols[3] === "LISTENING" && cols[1]?.endsWith(`:${port}`)) {
+          const pid = Number(cols[4]);
+          if (Number.isInteger(pid) && pid > 0) return pid;
+        }
+      }
+      return null;
+    }
+    const out = execFileSync(
+      "lsof",
+      ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"],
+      { encoding: "utf8" }
+    );
+    const pid = Number(out.trim().split(/\s+/)[0]);
+    return Number.isInteger(pid) && pid > 0 ? pid : null;
+  } catch {
+    // lsof exits non-zero when nothing listens; netstat may be unavailable.
+    return null;
   }
 }
 
@@ -481,9 +520,27 @@ async function initializeBackendServer(): Promise<void> {
     serverState.error = undefined;
     
     // Check if there's an existing NodeTool server process from PID file
-    const existingPid = await findExistingServerPid();
-    
+    let existingPid = await findExistingServerPid();
+    const pidFromPidFile = existingPid !== null;
+
+    // The PID file misses servers this app did not start (an `npm run dev`
+    // backend, or an orphan from a session whose PID file was overwritten).
+    // If the port is taken anyway, identify the listener so the responsive
+    // branch below can offer reuse-or-kill instead of failing on "Port In Use".
+    if (!existingPid && !(await isPortAvailable(7777))) {
+      const portPid = findPidListeningOnPort(7777);
+      if (portPid && portPid !== process.pid) {
+        logMessage(
+          `Port 7777 is held by PID ${portPid} (not in the PID file); checking whether it is a NodeTool server...`
+        );
+        existingPid = portPid;
+      }
+    }
+
     if (existingPid) {
+      // Narrowed copy: `existingPid` is a `let` the not-a-NodeTool branch
+      // clears, so closures below (kill-wait intervals) need a plain number.
+      const pidToStop: number = existingPid;
       // Server process is running, check if it's responsive
       logMessage(`Checking if server PID ${existingPid} is responsive...`);
       
@@ -508,14 +565,14 @@ async function initializeBackendServer(): Promise<void> {
             logMessage("User chose to stop existing server");
             
             try {
-              logMessage(`Killing process ${existingPid}`);
-              process.kill(existingPid);
+              logMessage(`Killing process ${pidToStop}`);
+              process.kill(pidToStop);
               
               // Wait for the process to die
               await new Promise<void>((resolve) => {
                 const checkInterval = setInterval(() => {
                   try {
-                    process.kill(existingPid, 0);
+                    process.kill(pidToStop, 0);
                   } catch (e) {
                     if (isErrnoException(e) && e.code === "ESRCH") {
                       clearInterval(checkInterval);
@@ -559,17 +616,28 @@ async function initializeBackendServer(): Promise<void> {
           }
         }
       } catch {
+        if (!pidFromPidFile) {
+          // The PID came from a port scan, not from our PID file, and it does
+          // not answer /health — it may be an unrelated app that happens to
+          // sit on 7777. Never kill a process we cannot identify; fall
+          // through and let the port guard in startServer report it.
+          logMessage(
+            `PID ${existingPid} on port 7777 does not answer /health; not a NodeTool server, leaving it alone`,
+            "warn"
+          );
+          existingPid = null;
+        } else {
         logMessage(`Existing server process exists but is not responsive, will start new server`);
         // Server process exists but is not responsive, we can kill it and start fresh
         try {
-          logMessage(`Killing unresponsive process ${existingPid}`);
-          process.kill(existingPid);
+          logMessage(`Killing unresponsive process ${pidToStop}`);
+          process.kill(pidToStop);
           
           // Wait for the process to die
           await new Promise<void>((resolve) => {
             const checkInterval = setInterval(() => {
               try {
-                process.kill(existingPid, 0);
+                process.kill(pidToStop, 0);
               } catch (e) {
                 if (isErrnoException(e) && e.code === "ESRCH") {
                   clearInterval(checkInterval);
@@ -598,6 +666,7 @@ async function initializeBackendServer(): Promise<void> {
             `Failed to kill unresponsive process ${existingPid}: ${errorMessage(error)}`,
             "warn"
           );
+        }
         }
       }
     }

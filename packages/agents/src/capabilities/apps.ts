@@ -303,7 +303,7 @@ const editApp: CapabilityExport = {
     }
 
     const edited = bridge.document();
-    const rootProps: Record<string, unknown> = { ...document.ui.root.props };
+    const rootProps = { ...document.ui.root.props };
     if (edited.title !== null) {
       rootProps.title = edited.title;
     }
@@ -311,7 +311,10 @@ const editApp: CapabilityExport = {
       ...document,
       ui: {
         ...document.ui,
-        root: { ...document.ui.root, props: rootProps },
+        root: {
+          ...document.ui.root,
+          props: rootProps
+        },
         content: edited.content
       },
       operations: edited.meta.operations,

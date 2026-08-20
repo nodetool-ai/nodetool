@@ -24,13 +24,19 @@ interface BaselineFixture {
   };
 }
 
+function normalizeLineEndings(value: string): string {
+  return value.replaceAll("\r\n", "\n");
+}
+
 describe("generated public SDK protocol artifacts", () => {
   const artifacts = generateSdkProtocolArtifacts();
 
   it("matches the committed artifacts", () => {
     for (const [name, generated] of Object.entries(artifacts)) {
       const path = new URL(`../schema/${name}`, import.meta.url);
-      expect(readFileSync(path, "utf8"), name).toBe(generated);
+      expect(normalizeLineEndings(readFileSync(path, "utf8")), name).toBe(
+        normalizeLineEndings(generated)
+      );
     }
   });
 

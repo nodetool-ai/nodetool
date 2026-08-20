@@ -48,6 +48,12 @@ const EMPTY_MODELS: UseModelsResult = {
   allModels: [],
   groupedModels: {},
   filteredModels: [],
+  availabilityCounts: {
+    all: 0,
+    ready: 0,
+    download_required: 0,
+    unavailable: 0
+  },
   isLoading: false,
   isFetching: false,
   error: null,
@@ -90,7 +96,8 @@ beforeEach(() => {
     // source as already-settled to bypass the empty-install onboarding default.
     sourceInitialized: true,
     modelSearchTerm: "",
-    selectedModelType: "All"
+    selectedModelType: "All",
+    selectedAvailability: "all"
   });
 });
 
@@ -106,12 +113,8 @@ describe("ModelListIndex scope toggle", () => {
   it("shows the Local + worker toggle when a worker is attached", () => {
     mockUseWorkers.mockReturnValue({ activeWorker: makeInstance() });
     renderIndex();
-    expect(
-      screen.getByRole("button", { name: /Local/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /pod-a/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Local/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /pod-a/i })).toBeInTheDocument();
   });
 
   it("renders the worker empty-state when scope=worker and the cache is empty", () => {
@@ -137,6 +140,27 @@ describe("ModelListIndex scope toggle", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows and applies the compact availability filter", async () => {
+    mockUseModels.mockReturnValue({
+      ...EMPTY_MODELS,
+      availabilityCounts: {
+        all: 4,
+        ready: 2,
+        download_required: 1,
+        unavailable: 1
+      }
+    });
+    renderIndex();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Unavailable 1/i })
+    );
+
+    expect(useModelManagerStore.getState().selectedAvailability).toBe(
+      "unavailable"
+    );
+  });
+
   it("switching to Recommended sets the source and resets filters", async () => {
     useModelManagerStore.setState({
       selectedModelType: "hf.text_generation"
@@ -155,9 +179,7 @@ describe("ModelListIndex scope toggle", () => {
   it("renders the recommended empty-state when source=recommended and the catalog is empty", () => {
     useModelManagerStore.setState({ source: "recommended" });
     renderIndex();
-    expect(
-      screen.getByText(/No recommended models/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/No recommended models/i)).toBeInTheDocument();
     expect(
       screen.getByText(/gathered from the nodes you have installed/i)
     ).toBeInTheDocument();

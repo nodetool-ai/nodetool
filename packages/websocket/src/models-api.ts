@@ -5,6 +5,7 @@ import { basename, isAbsolute, join, relative } from "node:path";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import {
   getProvider,
+  getRegisteredProvider,
   isProviderConfigured,
   listRegisteredProviderIds,
   RECOMMENDED_MODELS,
@@ -37,6 +38,11 @@ import {
   rankedForTask,
   type ModelRankingsArtifact
 } from "@nodetool-ai/model-pricing";
+import {
+  readyProviderExecution,
+  resolveModelExecutionAvailability,
+  type ProviderExecutionInfo
+} from "./model-execution-availability.js";
 
 export type { UnifiedModel };
 
@@ -60,7 +66,10 @@ async function requireWorkerBridge(
 ): Promise<PythonBridge | Response> {
   if (!deps.workerManager) {
     // Server wiring problem, not a runtime state the client can act on.
-    return errorResponse(500, "Worker support is not configured on this server");
+    return errorResponse(
+      500,
+      "Worker support is not configured on this server"
+    );
   }
   const active = await deps.workerManager.getActiveWorker();
   if (!active) {
@@ -90,6 +99,8 @@ interface CachedRepo {
 interface ProviderInfo {
   provider: ProviderId;
   capabilities: string[];
+  access: "in_process" | "local_service" | "remote_api";
+  display_name: string;
 }
 
 interface HFCacheCheckRequest {
@@ -213,8 +224,7 @@ function getHfCacheRoot(): string {
   // Only HF_HOME needs `/hub` appended. Appending it to the hub-cache vars
   // (the previous behavior) probed one level too deep, so every model showed as
   // not-downloaded. Mirrors electron/src/fileExplorer.ts.
-  const hubDir =
-    process.env.HF_HUB_CACHE ?? process.env.HUGGINGFACE_HUB_CACHE;
+  const hubDir = process.env.HF_HUB_CACHE ?? process.env.HUGGINGFACE_HUB_CACHE;
   if (hubDir) return hubDir;
   const hfHome = process.env.HF_HOME;
   if (hfHome) return join(hfHome, "hub");
@@ -303,14 +313,19 @@ async function hasCachedFiles(repoId: string): Promise<boolean> {
 }
 
 function toUnifiedLanguageModel(model: LanguageModel): UnifiedModel {
+  const registration = getRegisteredProvider(model.provider);
   return {
     id: model.id,
     type: "language_model",
     name: model.name,
+    provider: model.provider,
     repo_id: null,
     path: null,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
-    tags: [model.provider]
+    tags: [model.provider],
+    execution: registration
+      ? readyProviderExecution(registration.metadata)
+      : null
   };
 }
 
@@ -325,14 +340,40 @@ function toUnifiedModel(
     | EmbeddingModel,
   type: string
 ): UnifiedModel {
+  const tts = type === "tts_model" ? (model as TTSModel) : null;
+  const registration = getRegisteredProvider(model.provider);
   return {
     id: model.id,
     type,
     name: model.name,
+    provider: model.provider,
     repo_id: null,
     path: null,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
-    tags: [model.provider]
+    tags: [model.provider],
+    voices: tts?.voices ?? null,
+    capabilities: tts?.capabilities ?? null,
+    languages: tts?.languages ?? null,
+    sample_rate: tts?.sampleRate ?? null,
+    requires_reference_text: tts?.requiresReferenceText ?? null,
+    adapter: tts?.adapter
+      ? {
+          state: tts.adapter.state,
+          reason_code: tts.adapter.reasonCode ?? null,
+          reason: tts.adapter.reason ?? null,
+          artifact_ref: tts.adapter.artifactRef
+            ? {
+                source: tts.adapter.artifactRef.source,
+                repo_id: tts.adapter.artifactRef.repoId,
+                revision: tts.adapter.artifactRef.revision ?? null,
+                path: tts.adapter.artifactRef.path ?? null
+              }
+            : null
+        }
+      : null,
+    execution: registration
+      ? readyProviderExecution(registration.metadata)
+      : null
   };
 }
 
@@ -367,14 +408,33 @@ export async function registerPythonProviders(
   const providers = await bridge.listProviders();
   const registered: string[] = [];
   for (const info of providers) {
-    if (listRegisteredProviderIds().includes(info.id)) continue;
+    const existingIds = listRegisteredProviderIds();
+    // The TypeScript runtime already owns `huggingface` for the hosted
+    // Inference API, while the Python worker uses the same id for local model
+    // execution. Keep both available under stable public ids and retain the
+    // worker id separately for bridge calls.
+    const publicId =
+      info.id === "huggingface" && existingIds.includes(info.id)
+        ? "huggingface-local"
+        : info.id;
+    if (existingIds.includes(publicId)) continue;
     const secrets: Record<string, string> = {};
-    registerProvider(info.id, PythonProvider as any, {
-      _bridge: bridge,
-      _id: info.id,
-      ...secrets
-    });
-    registered.push(info.id);
+    registerProvider(
+      publicId,
+      PythonProvider as any,
+      {
+        _bridge: bridge,
+        _id: publicId,
+        _bridgeProviderId: info.id,
+        ...secrets
+      },
+      {},
+      {
+        access: info.access ?? "in_process",
+        displayName: info.display_name ?? publicId
+      }
+    );
+    registered.push(publicId);
   }
   return registered;
 }
@@ -415,7 +475,13 @@ async function getProvidersInfo(userId = "1"): Promise<ProviderInfo[]> {
   for (const provider of await getAvailableProviderIds(userId)) {
     const instance = await instantiateProvider(provider, userId);
     if (!instance) continue;
-    infos.push({ provider, capabilities: instance.getCapabilities() });
+    const metadata = getRegisteredProvider(provider)?.metadata;
+    infos.push({
+      provider,
+      capabilities: instance.getCapabilities(),
+      access: metadata?.access ?? "remote_api",
+      display_name: metadata?.displayName ?? provider
+    });
   }
   return infos;
 }
@@ -710,6 +776,24 @@ async function getAllModels(userId = "1"): Promise<UnifiedModel[]> {
     all.push(...models);
   }
 
+  const localTtsModels = await Promise.all(
+    availableIds
+      .filter(
+        (providerId) =>
+          getRegisteredProvider(providerId)?.metadata.access !== "remote_api"
+      )
+      .map(async (providerId) => {
+        try {
+          return (await getTtsModelsByProvider(providerId, userId)).map(
+            (model) => toUnifiedModel(model, "tts_model")
+          );
+        } catch {
+          return [];
+        }
+      })
+  );
+  all.push(...localTtsModels.flat());
+
   // Include HuggingFace cached/recommended models
   if (!isProduction()) {
     try {
@@ -720,7 +804,20 @@ async function getAllModels(userId = "1"): Promise<UnifiedModel[]> {
     }
   }
 
-  return dedupeModels(all);
+  const configured = new Set(availableIds);
+  const providerExecution = new Map<string, ProviderExecutionInfo>();
+  for (const providerId of listRegisteredProviderIds()) {
+    const metadata = getRegisteredProvider(providerId)?.metadata;
+    if (!metadata) continue;
+    providerExecution.set(providerId, {
+      ...metadata,
+      configured: configured.has(providerId)
+    });
+  }
+  return resolveModelExecutionAvailability(
+    dedupeModels(all),
+    providerExecution
+  );
 }
 
 async function parseJsonBody<T>(request: Request): Promise<T | null> {
@@ -1166,11 +1263,7 @@ export async function handleModelsApiRequest(
     if (request.method !== "POST")
       return errorResponse(405, "Method not allowed");
     const body = await parseJsonBody<HFCacheCheckRequest>(request);
-    if (
-      !body ||
-      !isString(body.repo_id) ||
-      body.repo_id.length === 0
-    ) {
+    if (!body || !isString(body.repo_id) || body.repo_id.length === 0) {
       return errorResponse(400, "Invalid JSON body");
     }
 

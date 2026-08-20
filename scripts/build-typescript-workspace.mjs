@@ -96,7 +96,9 @@ export async function prepareTypeScriptWorkspaceBuild(workspaceDir, execute = ru
   // prune those after the build instead of wiping dist/ up front, so already
   // up-to-date outputs stay available throughout and only genuinely orphaned
   // files disappear.
-  const { command, args } = getTypeScriptBuildCommand(repoRoot);
+  const { command, args } = getTypeScriptBuildCommand(repoRoot, {
+    force: process.env.NODETOOL_FORCE_TSC_BUILD === "1",
+  });
   await execute(command, args, {
     cwd: workspaceDir,
     env: typeScriptBuildEnv(),
@@ -123,10 +125,17 @@ export function typeScriptBuildEnv(baseEnv = process.env) {
   };
 }
 
-export function getTypeScriptBuildCommand(rootDir = repoRoot) {
+export function getTypeScriptBuildCommand(
+  rootDir = repoRoot,
+  { force = false } = {}
+) {
   return {
     command: process.execPath,
-    args: [resolve(rootDir, "node_modules", "typescript", "bin", "tsc"), "--build"]
+    args: [
+      resolve(rootDir, "node_modules", "typescript", "bin", "tsc"),
+      "--build",
+      ...(force ? ["--force"] : []),
+    ]
   };
 }
 

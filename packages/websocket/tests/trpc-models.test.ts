@@ -82,7 +82,8 @@ import { access, readdir } from "node:fs/promises";
 // ── Mock @nodetool-ai/transformers-js-nodes (cache-scan + path helpers) ──────
 
 vi.mock("@nodetool-ai/transformers-js-nodes", async (orig) => {
-  const actual = await orig<typeof import("@nodetool-ai/transformers-js-nodes")>();
+  const actual =
+    await orig<typeof import("@nodetool-ai/transformers-js-nodes")>();
   return {
     ...actual,
     scanTransformersJsCache: vi.fn().mockResolvedValue([]),
@@ -110,12 +111,24 @@ function makeCtx(overrides: Partial<Context> = {}): Context {
 /** Minimal provider instance with all model-list methods returning empty arrays. */
 function makeProvider(
   overrides: Partial<{
-    getAvailableLanguageModels: () => Promise<{ id: string; name: string; provider: string }[]>;
-    getAvailableImageModels: () => Promise<{ id: string; name: string; provider: string }[]>;
-    getAvailableTTSModels: () => Promise<{ id: string; name: string; provider: string }[]>;
-    getAvailableASRModels: () => Promise<{ id: string; name: string; provider: string }[]>;
-    getAvailableEmbeddingModels: () => Promise<{ id: string; name: string; provider: string }[]>;
-    getAvailableVideoModels: () => Promise<{ id: string; name: string; provider: string }[]>;
+    getAvailableLanguageModels: () => Promise<
+      { id: string; name: string; provider: string }[]
+    >;
+    getAvailableImageModels: () => Promise<
+      { id: string; name: string; provider: string }[]
+    >;
+    getAvailableTTSModels: () => Promise<
+      { id: string; name: string; provider: string }[]
+    >;
+    getAvailableASRModels: () => Promise<
+      { id: string; name: string; provider: string }[]
+    >;
+    getAvailableEmbeddingModels: () => Promise<
+      { id: string; name: string; provider: string }[]
+    >;
+    getAvailableVideoModels: () => Promise<
+      { id: string; name: string; provider: string }[]
+    >;
     hasToolSupport: (model: string) => Promise<boolean>;
   }> = {}
 ) {
@@ -200,7 +213,9 @@ describe("models router", () => {
       (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue([
         "openai"
       ]);
-      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
       (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
         makeProvider()
       );
@@ -210,6 +225,8 @@ describe("models router", () => {
       expect(result).toHaveLength(1);
       expect(result[0].provider).toBe("openai");
       expect(result[0].capabilities).toContain("generate_message");
+      expect(result[0].access).toBe("remote_api");
+      expect(result[0].display_name).toBe("openai");
     });
   });
 
@@ -260,12 +277,16 @@ describe("models router", () => {
       (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue([
         "openai"
       ]);
-      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
       (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
         makeProvider({
-          getAvailableLanguageModels: vi.fn().mockResolvedValue([
-            { id: "gpt-extra", name: "GPT Extra", provider: "openai" }
-          ])
+          getAvailableLanguageModels: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "gpt-extra", name: "GPT Extra", provider: "openai" }
+            ])
         })
       );
 
@@ -279,7 +300,9 @@ describe("models router", () => {
       (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue([
         "openai"
       ]);
-      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
       (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
         makeProvider({
           getAvailableLanguageModels: vi.fn().mockResolvedValue([
@@ -356,7 +379,9 @@ describe("models router", () => {
         }
       ]);
       const caller = createCaller(makeCtx());
-      const result = await caller.models.huggingfaceSearch({ query: "whisper" });
+      const result = await caller.models.huggingfaceSearch({
+        query: "whisper"
+      });
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("whisper-tiny");
     });
@@ -452,8 +477,9 @@ describe("models router", () => {
       const result = await caller.models.transformersJsByType({
         model_type: "tjs.text_classification"
       });
-      expect(result.find((m) => m.repo_id === "user/random-onnx-model"))
-        .toBeDefined();
+      expect(
+        result.find((m) => m.repo_id === "user/random-onnx-model")
+      ).toBeDefined();
     });
 
     it("does NOT cross-list a repo that is recommended under a different type", async () => {
@@ -470,8 +496,9 @@ describe("models router", () => {
       const result = await caller.models.transformersJsByType({
         model_type: "tjs.text_classification"
       });
-      expect(result.find((m) => m.repo_id === "Xenova/whisper-tiny.en"))
-        .toBeUndefined();
+      expect(
+        result.find((m) => m.repo_id === "Xenova/whisper-tiny.en")
+      ).toBeUndefined();
     });
 
     it("returns recommended list (with downloaded=false) on scan failure", async () => {
@@ -541,8 +568,9 @@ describe("models router", () => {
       const result = await caller.models.transformersJsRecommended({
         model_type: "tjs.text_classification"
       });
-      expect(result.find((m) => m.repo_id === "user/random-onnx-model"))
-        .toBeUndefined();
+      expect(
+        result.find((m) => m.repo_id === "user/random-onnx-model")
+      ).toBeUndefined();
     });
 
     it("returns empty for unknown tjs.* types", async () => {
@@ -582,19 +610,25 @@ describe("models router", () => {
 
   describe("ollama", () => {
     it("returns empty array when ollama is not configured", async () => {
-      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(false);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        false
+      );
       const caller = createCaller(makeCtx());
       const result = await caller.models.ollama();
       expect(result).toEqual([]);
     });
 
     it("returns ollama models when provider is configured", async () => {
-      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
       (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
         makeProvider({
-          getAvailableLanguageModels: vi.fn().mockResolvedValue([
-            { id: "llama3", name: "Llama 3", provider: "ollama" }
-          ])
+          getAvailableLanguageModels: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "llama3", name: "Llama 3", provider: "ollama" }
+            ])
         })
       );
       const caller = createCaller(makeCtx());
@@ -609,19 +643,25 @@ describe("models router", () => {
 
   describe("llmByProvider", () => {
     it("returns empty array when provider is not configured", async () => {
-      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(false);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        false
+      );
       const caller = createCaller(makeCtx());
       const result = await caller.models.llmByProvider({ provider: "openai" });
       expect(result).toEqual([]);
     });
 
     it("returns language models from the configured provider", async () => {
-      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
       (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
         makeProvider({
-          getAvailableLanguageModels: vi.fn().mockResolvedValue([
-            { id: "gpt-4o", name: "GPT-4o", provider: "openai" }
-          ])
+          getAvailableLanguageModels: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "gpt-4o", name: "GPT-4o", provider: "openai" }
+            ])
         })
       );
       const caller = createCaller(makeCtx());
@@ -632,7 +672,9 @@ describe("models router", () => {
     });
 
     it("stamps supports_tools per model from provider.hasToolSupport", async () => {
-      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
       (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
         makeProvider({
           getAvailableLanguageModels: vi.fn().mockResolvedValue([
@@ -647,8 +689,12 @@ describe("models router", () => {
       const caller = createCaller(makeCtx());
       const result = await caller.models.llmByProvider({ provider: "openai" });
       expect(result).toHaveLength(2);
-      expect(result.find((m) => m.id === "tool-yes")?.supports_tools).toBe(true);
-      expect(result.find((m) => m.id === "tool-no")?.supports_tools).toBe(false);
+      expect(result.find((m) => m.id === "tool-yes")?.supports_tools).toBe(
+        true
+      );
+      expect(result.find((m) => m.id === "tool-no")?.supports_tools).toBe(
+        false
+      );
     });
   });
 
@@ -656,7 +702,9 @@ describe("models router", () => {
 
   describe("tts", () => {
     it("returns empty array when no providers are configured", async () => {
-      (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue([]);
+      (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue(
+        []
+      );
       const caller = createCaller(makeCtx());
       const result = await caller.models.tts();
       expect(result).toEqual([]);
@@ -667,13 +715,17 @@ describe("models router", () => {
         "openai",
         "elevenlabs"
       ]);
-      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
       (getProvider as ReturnType<typeof vi.fn>).mockImplementation(
         async (id: string) =>
           makeProvider({
-            getAvailableTTSModels: vi.fn().mockResolvedValue([
-              { id: `${id}-tts`, name: `${id} TTS`, provider: id }
-            ])
+            getAvailableTTSModels: vi
+              .fn()
+              .mockResolvedValue([
+                { id: `${id}-tts`, name: `${id} TTS`, provider: id }
+              ])
           })
       );
       const caller = createCaller(makeCtx());

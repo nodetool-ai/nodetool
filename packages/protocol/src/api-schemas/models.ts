@@ -1,5 +1,28 @@
 import { z } from "zod";
 
+export const modelArtifactRef = z.object({
+  source: z.literal("huggingface"),
+  repo_id: z.string(),
+  revision: z.string().nullish(),
+  path: z.string().nullish()
+});
+
+export const modelAdapterInfo = z.object({
+  state: z.enum(["installed", "missing_dependency", "unknown"]),
+  reason_code: z.string().nullish(),
+  reason: z.string().nullish(),
+  artifact_ref: modelArtifactRef.nullish()
+});
+
+export const modelExecutionAvailability = z.object({
+  kind: z.enum(["local", "server", "api", "unavailable"]),
+  state: z.enum(["ready", "download_required", "unavailable"]),
+  label: z.enum(["Local", "Server", "API", "Unavailable"]),
+  reason: z.string().nullish(),
+  execution_site: z.enum(["nodetool_host", "provider"]).nullish(),
+  runtime_name: z.string().nullish()
+});
+
 // ── Shared model schema ─────────────────────────────────────────────
 
 // Mirrors UnifiedModel in @nodetool-ai/protocol/api-types. Keep fields in sync
@@ -33,6 +56,12 @@ export const unifiedModel = z.object({
   image: z.string().nullish(),
   supports_tools: z.boolean().nullish(),
   voices: z.array(z.string()).nullish(),
+  capabilities: z.array(z.string()).nullish(),
+  languages: z.array(z.string()).nullish(),
+  sample_rate: z.number().nullish(),
+  requires_reference_text: z.boolean().nullish(),
+  adapter: modelAdapterInfo.nullish(),
+  execution: modelExecutionAvailability.nullish(),
   durations: z.array(z.number()).nullish(),
   resolutions: z.array(z.string()).nullish(),
   aspect_ratios: z.array(z.string()).nullish()
@@ -42,7 +71,9 @@ export const unifiedModel = z.object({
 
 export const providerInfo = z.object({
   provider: z.string(),
-  capabilities: z.array(z.string())
+  capabilities: z.array(z.string()),
+  access: z.enum(["in_process", "local_service", "remote_api"]).optional(),
+  display_name: z.string().optional()
 });
 
 export const providersOutput = z.array(providerInfo);
@@ -59,8 +90,14 @@ export const modelsListOutput = z.array(unifiedModel);
 
 export const hfCacheCheckInput = z.object({
   repo_id: z.string().min(1),
-  allow_pattern: z.union([z.string(), z.array(z.string())]).nullable().optional(),
-  ignore_pattern: z.union([z.string(), z.array(z.string())]).nullable().optional()
+  allow_pattern: z
+    .union([z.string(), z.array(z.string())])
+    .nullable()
+    .optional(),
+  ignore_pattern: z
+    .union([z.string(), z.array(z.string())])
+    .nullable()
+    .optional()
 });
 
 export const hfCacheCheckOutput = z.object({
@@ -77,8 +114,14 @@ export const hfFastCacheStatusItem = z.object({
   repo_id: z.string(),
   model_type: z.string().nullable().optional(),
   path: z.string().nullable().optional(),
-  allow_patterns: z.union([z.string(), z.array(z.string())]).nullable().optional(),
-  ignore_patterns: z.union([z.string(), z.array(z.string())]).nullable().optional()
+  allow_patterns: z
+    .union([z.string(), z.array(z.string())])
+    .nullable()
+    .optional(),
+  ignore_patterns: z
+    .union([z.string(), z.array(z.string())])
+    .nullable()
+    .optional()
 });
 
 export const hfFastCacheStatusInput = z.array(hfFastCacheStatusItem);

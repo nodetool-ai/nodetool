@@ -19,7 +19,7 @@ const properties = [
     name: "folder",
     type: { type: "str" },
     json_schema_extra: {
-      hidden_when: { property: "save_to_workspace", equals: true }
+      visible_when: { property: "save_to_workspace", equals: false }
     }
   }
 ] as any;
@@ -43,7 +43,7 @@ const Harness: FC<{ data: NodeData }> = ({ data }) => (
   </NodeProvider>
 );
 
-describe("NodeInputs hidden_when", () => {
+describe("NodeInputs visible_when", () => {
   it("leaves out a field its condition switches off", () => {
     render(<Harness data={makeData({ save_to_workspace: true })} />);
     expect(screen.getByTestId("field-save_to_workspace")).toBeInTheDocument();

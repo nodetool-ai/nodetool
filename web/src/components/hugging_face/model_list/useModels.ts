@@ -118,7 +118,13 @@ const sortModels = (
         return 0;
     }
   });
-  return direction === "desc" ? sorted.reverse() : sorted;
+  const directed = direction === "desc" ? sorted.reverse() : sorted;
+  const availabilityRank = (model: UnifiedModel) => {
+    if (model.execution?.state === "unavailable") return 2;
+    if (model.execution?.state === "download_required") return 1;
+    return 0;
+  };
+  return directed.sort((a, b) => availabilityRank(a) - availabilityRank(b));
 };
 
 export interface UseModelsResult {
@@ -128,6 +134,10 @@ export interface UseModelsResult {
   allModels: UnifiedModel[] | undefined;
   groupedModels: Record<string, UnifiedModel[]>;
   filteredModels: UnifiedModel[];
+  availabilityCounts: Record<
+    "all" | "ready" | "download_required" | "unavailable",
+    number
+  >;
   isLoading: boolean;
   isFetching: boolean;
   error: Error | null;
@@ -135,8 +145,12 @@ export interface UseModelsResult {
 }
 
 export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
-  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
-  const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
+  const modelSearchTerm = useModelManagerStore(
+    (state) => state.modelSearchTerm
+  );
+  const selectedModelType = useModelManagerStore(
+    (state) => state.selectedModelType
+  );
   const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
   const sortField = useModelManagerStore((state) => state.sortField);
   const sortDirection = useModelManagerStore((state) => state.sortDirection);
@@ -146,7 +160,12 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   const source = useModelManagerStore((state) => state.source);
   const selectedGoal = useModelManagerStore((state) => state.selectedGoal);
   const selectedFormat = useModelManagerStore((state) => state.selectedFormat);
-  const recommendedCatalog = useMetadataStore((state) => state.recommendedModels);
+  const selectedAvailability = useModelManagerStore(
+    (state) => state.selectedAvailability
+  );
+  const recommendedCatalog = useMetadataStore(
+    (state) => state.recommendedModels
+  );
   const { budgetGb } = useHardwareProfile();
 
   const {
@@ -217,7 +236,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     [allModels]
   );
 
-  const filteredModels: UnifiedModel[] = useMemo(() => {
+  const modelsMatchingFilters = useMemo(() => {
     const filterModel = (model: UnifiedModel) => {
       const searchTerm = modelSearchTerm.toLowerCase();
       // Hub results are already filtered server-side by the search query, so
@@ -233,8 +252,12 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
       const typeMatches =
         selectedModelType === "All" || model.type === selectedModelType;
 
-      if (!matchesText) {return false;}
-      if (!typeMatches) {return false;}
+      if (!matchesText) {
+        return false;
+      }
+      if (!typeMatches) {
+        return false;
+      }
       if (selectedGoal && !goalsForModel(model).has(selectedGoal)) {
         return false;
       }
@@ -245,13 +268,13 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
         maxModelSizeGB &&
         model.size_on_disk &&
         model.size_on_disk > maxModelSizeGB * 1024 ** 3
-      )
-        {return false;}
+      ) {
+        return false;
+      }
 
       return true;
     };
-    const filtered = allModels?.filter(filterModel) || [];
-    return sortModels(filtered, sortField, sortDirection, budgetGb);
+    return allModels?.filter(filterModel) || [];
   }, [
     allModels,
     source,
@@ -259,7 +282,23 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     selectedModelType,
     selectedGoal,
     selectedFormat,
-    maxModelSizeGB,
+    maxModelSizeGB
+  ]);
+
+  const filteredModels: UnifiedModel[] = useMemo(() => {
+    const filtered =
+      source === "installed" && selectedAvailability !== "all"
+        ? modelsMatchingFilters.filter(
+            (model) =>
+              (model.execution?.state ?? "unavailable") ===
+              selectedAvailability
+          )
+        : modelsMatchingFilters;
+    return sortModels(filtered, sortField, sortDirection, budgetGb);
+  }, [
+    modelsMatchingFilters,
+    source,
+    selectedAvailability,
     sortField,
     sortDirection,
     budgetGb
@@ -284,7 +323,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     return sortModelTypes(Array.from(allTypes));
   }, [allModels, source]);
 
-    // Get available model types based on current filters (for sidebar visibility)
+  // Get available model types based on current filters (for sidebar visibility)
   const availableModelTypes = useMemo(() => {
     const types = new Set<string>();
     types.add("All");
@@ -309,7 +348,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
           model.name?.toLowerCase().includes(searchTerm) ||
           model.repo_id?.toLowerCase().includes(searchTerm);
 
-        if (!matchesText) {return false;}
+        if (!matchesText) {
+          return false;
+        }
         if (selectedGoal && !goalsForModel(model).has(selectedGoal)) {
           return false;
         }
@@ -320,8 +361,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
           maxModelSizeGB &&
           model.size_on_disk &&
           model.size_on_disk > maxModelSizeGB * 1024 ** 3
-        )
-          {return false;}
+        ) {
+          return false;
+        }
 
         return true;
       }) || [];
@@ -352,11 +394,29 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     return counts;
   }, [filteredModels]);
 
+  const availabilityCounts = useMemo(() => {
+    const counts = {
+      all: modelsMatchingFilters.length,
+      ready: 0,
+      download_required: 0,
+      unavailable: 0
+    };
+    for (const model of modelsMatchingFilters) {
+      const state = model.execution?.state ?? "unavailable";
+      counts[state] += 1;
+    }
+    return counts;
+  }, [modelsMatchingFilters]);
+
   const handleShowInExplorer = async (modelId: string) => {
-    if (!modelId) {return;}
+    if (!modelId) {
+      return;
+    }
 
     const model = allModels?.find((m) => m.id === modelId);
-    if (!model) {return;}
+    if (!model) {
+      return;
+    }
 
     const isOllama = model.type === "llama_model";
 
@@ -386,6 +446,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     allModels,
     groupedModels,
     filteredModels,
+    availabilityCounts,
     isLoading: activeLoading,
     isFetching: activeFetching,
     error: activeError,

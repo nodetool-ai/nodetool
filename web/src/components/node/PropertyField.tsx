@@ -16,7 +16,13 @@ import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
 import usePropertyValidationStore from "../../stores/PropertyValidationStore";
-import { Tooltip, BORDER_RADIUS, MOTION, reducedMotion } from "../ui_primitives";
+import {
+  Caption,
+  Tooltip,
+  BORDER_RADIUS,
+  MOTION,
+  reducedMotion
+} from "../ui_primitives";
 import useModelCalloutStore from "../../stores/ModelCalloutStore";
 import { isModelEmpty } from "../../utils/findMissingModelNodes";
 import ModelSetupCallout from "./ModelSetupCallout";
@@ -68,6 +74,8 @@ export type PropertyFieldProps = {
   data: NodeData;
   /** True when an edge is connected to this property's target handle. */
   isConnected?: boolean;
+  /** Connected value retained only so its edge never becomes invisible. */
+  conditionalUnavailable?: boolean;
   onValueChange?: (value: unknown) => void;
 };
 
@@ -86,6 +94,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   hideActionIcons,
   data,
   isConnected = false,
+  conditionalUnavailable = false,
   onValueChange
 }) => {
   const { connectType, connectDirection, connectNodeId } = useConnectionStore(
@@ -212,7 +221,22 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
         </div>
       )}
 
-      {showFields ? (
+      {conditionalUnavailable ? (
+        <div className="property-spacer" style={PROPERTY_SPACER_STYLE}>
+          <PropertyLabel
+            id={id}
+            name={property.name}
+            description={property.description ?? undefined}
+            isDynamicProperty={isDynamicProperty ?? false}
+            density="compact"
+            handleTooltipType={property.type}
+            handleTooltipPosition="left"
+          />
+          <Caption size="smaller" color="muted">
+            Unavailable for the selected model; disconnect to hide.
+          </Caption>
+        </div>
+      ) : showFields ? (
         <>
           <PropertyInput
             propertyIndex={`${id}-${propertyIndex}`}
@@ -276,6 +300,7 @@ export default memo(PropertyField, (prev, next) => {
     prev.isDynamicProperty !== next.isDynamicProperty ||
     prev.hideActionIcons !== next.hideActionIcons ||
     prev.isConnected !== next.isConnected ||
+    prev.conditionalUnavailable !== next.conditionalUnavailable ||
     prev.onValueChange !== next.onValueChange
   ) {
     return false;

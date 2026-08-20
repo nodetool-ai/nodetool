@@ -358,6 +358,9 @@ export interface PythonProviderInfo {
   id: string;
   capabilities: string[];
   required_secrets: string[];
+  /** Where inference runs. Older workers omit this and are treated as in-process. */
+  access?: "in_process" | "local_service" | "remote_api";
+  display_name?: string;
 }
 
 export interface PythonWorkerLoadError {
