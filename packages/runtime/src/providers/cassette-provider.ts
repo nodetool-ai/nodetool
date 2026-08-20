@@ -315,6 +315,21 @@ export function normalizeRequest(args: {
   return request;
 }
 
+/**
+ * Deep-copy the messages of a request that is about to be stored.
+ *
+ * {@link normalizeRequest} deliberately aliases `args.messages` — it feeds the
+ * hash, which is taken while the array still holds this call's state, and
+ * cloning the whole conversation on every replay lookup would be wasted work.
+ * A *recorded* interaction outlives the call, though, and agent loops append
+ * to that same array between calls: kept as a reference, every interaction in
+ * a saved cassette ends up showing the conversation's final state rather than
+ * what its own call was sent. Snapshot at the moment of recording.
+ */
+function snapshotRequest(request: CassetteRequest): CassetteRequest {
+  return { ...request, messages: request.messages.map(cloneMessage) };
+}
+
 /** Stable hash of a request, scoped by method so the two surfaces never mix. */
 export function hashRequest(
   method: CassetteMethod,
@@ -559,7 +574,7 @@ export class CassetteProvider extends BaseProvider {
     const interaction: CassetteInteraction = {
       hash,
       method: "generateMessage",
-      request,
+      request: snapshotRequest(request),
       response: cloneMessage(result)
     };
     if (usage) {
@@ -630,7 +645,7 @@ export class CassetteProvider extends BaseProvider {
     const interaction: CassetteInteraction = {
       hash,
       method: "generateMessages",
-      request,
+      request: snapshotRequest(request),
       response: captured
     };
     if (usage) {
