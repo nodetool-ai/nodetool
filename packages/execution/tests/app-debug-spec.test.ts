@@ -164,6 +164,22 @@ describe("validateApp", () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it("does not treat unsupported event fields as a runnable click", () => {
+    const { spec } = parseAppSpec(
+      appDoc([
+        widget("Button", "Button-1", {
+          events: [{ event: "click", action: "run", operationId: "main" }]
+        })
+      ]),
+      io
+    );
+
+    const result = validateApp(spec!, io);
+    expect(result.errors).toContain(
+      'No widget has a "run" event — the app can never execute the workflow. Add a Run button or an on-change run.'
+    );
+  });
+
   it("flags bindings that reference missing inputs/outputs/variables", () => {
     const { spec } = parseAppSpec(
       appDoc([
