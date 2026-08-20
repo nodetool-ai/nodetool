@@ -15,11 +15,11 @@ export type { ViewportSlice } from "./viewportSlice";
 export { createToolSlice } from "./toolSlice";
 export type { ToolSlice } from "./toolSlice";
 
-export { createHistorySlice, resolveLayerData } from "./historySlice";
+export { createHistorySlice } from "./historySlice";
 export type { HistorySlice } from "./historySlice";
 
 export { createSelectionSlice } from "./selectionSlice";
-export type { SelectionSlice, SelectionPreviewMode } from "./selectionSlice";
+export type { SelectionSlice } from "./selectionSlice";
 
 export { createUiSlice } from "./uiSlice";
 export type { UiSlice } from "./uiSlice";

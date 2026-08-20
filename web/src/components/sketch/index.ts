@@ -15,7 +15,6 @@ export { default as SketchToolbar } from "./SketchToolbar";
 export { default as SketchToolTopBar } from "./SketchToolTopBar";
 export { default as SketchLayersPanel } from "./SketchLayersPanel";
 export { default as SketchToolIconLabel } from "./SketchToolIconLabel";
-export type { SketchToolIconLabelProps } from "./SketchToolIconLabel";
 
 export { useSketchStore } from "./state";
 
@@ -140,17 +139,10 @@ export {
 
 /** Clipboard / copy-paste pixel pipeline (usable from a standalone sketch shell). */
 export {
-  multiplyImageDataAlphaBySelectionMask,
-  readSystemClipboardImageCanvas,
   writeImageCanvasToSystemClipboardPng,
   resolveSketchPasteImageCanvas,
   buildSketchInternalClipboardCanvas,
   drawSketchPasteOnLayerContext
-} from "./sketchClipboard";
-export type {
-  ResolveSketchPasteImageOptions,
-  BuildSketchInternalClipboardParams,
-  SketchPasteDrawParams
 } from "./sketchClipboard";
 
 export { getSamService, SamServiceStub } from "./sam";

@@ -9,9 +9,7 @@ export type {
   SketchRuntime,
   DirtyRect,
   ActiveStrokeInfo,
-  ResolvedLayerBitmap,
-  WorkingSpace,
-  DynamicRange
+  ResolvedLayerBitmap
 } from "./types";
 
 export { Canvas2DRuntime } from "./Canvas2DRuntime";

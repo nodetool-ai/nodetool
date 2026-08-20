@@ -44,7 +44,7 @@ import type {
 import { registerCodeAssistantHandler } from "./codeAssistantBridge";
 import CodeAssistantChatPanel from "./CodeAssistantChatPanel";
 import ResizableSideDock from "../../chat/assistant/ResizableSideDock";
-import { isObjectLike, isString } from "../../../utils/typePredicates";
+import { isString } from "../../../utils/typePredicates";
 
 const CHAT_PANEL_WIDTH = 360;
 
