@@ -65,6 +65,7 @@ const snapshot = (): TimelineSnapshot => ({
 const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   getSnapshot: jest.fn(),
   addTrack: jest.fn(),
+  addMediaClip: jest.fn(),
   addTextClip: jest.fn(),
   addShapeClip: jest.fn(),
   generateClip: jest.fn(),
@@ -202,6 +203,27 @@ describe("ui_timeline_* tools", () => {
     expect(result.ok).toBe(true);
     expect(result.generationStarted).toBe(true);
     expect(result.clip.name).toBe("city at night");
+  });
+
+  it("places an existing asset as a clip", async () => {
+    const handler = createMockHandler();
+    handler.addMediaClip.mockResolvedValue(
+      clipNode({ mediaType: "video", name: "panda.mp4" })
+    );
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_add_media_clip",
+      { timeline_id: SEQ_ID, asset: "asset://abc123.mp4" },
+      "tc-media",
+      ctx
+    )) as { ok: boolean; clip: { name: string } };
+
+    expect(handler.addMediaClip).toHaveBeenCalledWith({
+      asset: "asset://abc123.mp4"
+    });
+    expect(result.ok).toBe(true);
+    expect(result.clip.name).toBe("panda.mp4");
   });
 
   it("adds authored text with optional styling", async () => {

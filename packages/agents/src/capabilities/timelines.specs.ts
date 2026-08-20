@@ -110,11 +110,13 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'Operations in order. Each is {"op": <name>, ...arguments}, e.g. ' +
         '{"op": "add_track", "type": "audio", "name": "Music"} or ' +
         '{"op": "animate_clip", "target": "Title", "animations": [{"role": "in", "preset": "fade"}]}. ' +
-        "Ops: get_state, add_track, add_text_clip, add_shape_clip, " +
+        "Ops: get_state, add_track, add_media_clip, add_text_clip, add_shape_clip, " +
         "split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_clip_binding, animate_clip, clear_animations, " +
         "list_animation_presets, select_clip, seek. Start with get_state to " +
-        "read track and clip ids.",
+        "read track and clip ids. To lay existing videos end to end, call " +
+        'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
+        '"asset://<id>.mp4"}) — each appends after the last.',
       items: { type: "object" }
     }
   },

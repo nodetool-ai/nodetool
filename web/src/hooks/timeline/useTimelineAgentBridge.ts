@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useMemo } from "react";
-import { makeClip } from "@nodetool-ai/timeline";
+import { makeClip, trackTypeForMediaType } from "@nodetool-ai/timeline";
 import type {
   ClipAnimation,
   TimelineClip,
@@ -32,6 +32,11 @@ import {
   type ModelKind
 } from "../../stores/lastModelStore";
 import { useAssetStore } from "../../stores/AssetStore";
+import {
+  assetMediaType,
+  assetToClip,
+  isCompatibleWithTrack
+} from "../../components/timeline/dnd/assetToClipAdapter";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 import {
@@ -42,6 +47,7 @@ import {
   type TimelineAnimationNode,
   type TimelineClipNode,
   type TimelineClipFrameNode,
+  type TimelineAddMediaClipOptions,
   type TimelineAddTextClipOptions,
   type TimelineAddShapeClipOptions,
   type TimelineGenerateKind,
@@ -347,6 +353,63 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         }
 
         return { clip: clipNode(reReadClip(clipId)), generationStarted, note };
+      },
+
+      async addMediaClip(opts: TimelineAddMediaClipOptions) {
+        const assetId = opts.asset.startsWith("asset://")
+          ? opts.asset.slice("asset://".length).replace(/\.[A-Za-z0-9]{1,8}$/, "")
+          : opts.asset;
+        const asset = await useAssetStore.getState().get(assetId);
+        if (!asset) {
+          throw new Error(`No asset found for "${opts.asset}".`);
+        }
+        const mediaType = assetMediaType(asset.content_type);
+        if (!mediaType) {
+          throw new Error(
+            `Asset "${asset.name}" is ${asset.content_type ?? "of unknown type"}, which cannot go on a timeline.`
+          );
+        }
+        const store = doc.getState();
+        let trackId: string;
+        if (opts.trackId) {
+          const track = requireTrack(opts.trackId);
+          if (!isCompatibleWithTrack(mediaType, track.type)) {
+            throw new Error(
+              `A ${mediaType} clip cannot go on "${track.name}", which is a ${track.type} track.`
+            );
+          }
+          trackId = track.id;
+        } else {
+          const wanted = trackTypeForMediaType(mediaType);
+          const existing = store.tracks.find((track) => track.type === wanted);
+          if (existing) {
+            trackId = existing.id;
+          } else {
+            store.addTrack(wanted);
+            const created = doc.getState().tracks.at(-1);
+            if (!created) {
+              throw new Error(`Could not create a ${wanted} track.`);
+            }
+            trackId = created.id;
+          }
+        }
+        // Appending after the track's last clip is what lays several assets
+        // end to end, one call each.
+        const base = assetToClip(
+          asset,
+          trackId,
+          Math.max(0, opts.startMs ?? trackEndMs(trackId))
+        );
+        const clip: TimelineClip = {
+          ...base,
+          ...(opts.durationMs !== undefined
+            ? { durationMs: Math.max(1, opts.durationMs) }
+            : {}),
+          ...(opts.name ? { name: opts.name } : {})
+        };
+        doc.getState().addClip(clip);
+        ui.getState().selectClip(clip.id);
+        return clipNode(reReadClip(clip.id));
       },
 
       addTextClip(opts: TimelineAddTextClipOptions) {

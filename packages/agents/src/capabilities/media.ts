@@ -21,7 +21,7 @@
 
 import { Buffer } from "node:buffer";
 import { randomInt } from "node:crypto";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
@@ -1256,6 +1256,102 @@ async function persistWorkspaceFile(
   }
 }
 
+/**
+ * What a refused `://` in ffmpeg argv should do instead. The guard's default
+ * says "stage it first" without saying how; here there is a parameter for it.
+ */
+const FFMPEG_REMEDY =
+  'Pass the ref in `inputs` instead — {"clip.mp4": "asset://<id>.mp4"} ' +
+  "copies it into the workspace, then name `clip.mp4` in args.";
+
+/** Largest single file `ffmpeg`'s `inputs` stages into the workspace. */
+const MAX_STAGED_INPUT_BYTES = 100 * 1024 * 1024;
+/** Files one `inputs` bag may stage. */
+const MAX_STAGED_INPUTS = 8;
+/** Bytes one `inputs` bag may stage in total. */
+const MAX_STAGED_TOTAL_BYTES = 256 * 1024 * 1024;
+
+/**
+ * Copy the refs in `inputs` into the workspace under the names the caller
+ * gave them, so argv can name plain local files.
+ *
+ * ffmpeg opens local files only — a URL or an `asset://` URI in argv is
+ * refused, and rightly so. But chat code has no workspace API of its own, so
+ * before this there was no way to put an asset where ffmpeg could see it: the
+ * capability was on the belt and unusable, and the refusal told the caller to
+ * "download first" with nothing to download with. Staging is that missing
+ * half, and it changes no boundary — the bytes are resolved host-side by the
+ * same resolver `save_asset` uses, and every name still goes through
+ * {@link confineArgvToWorkspace}.
+ */
+async function stageInputs(
+  context: ProcessingContext,
+  workspace: string,
+  raw: unknown
+): Promise<{ staged: Record<string, number> } | { error: string }> {
+  if (raw === undefined || raw === null) return { staged: {} };
+  if (!isRecord(raw)) {
+    return {
+      error:
+        'inputs must be an object of {"<workspace-relative name>": "<asset:// URI, /api/storage/ key, or data: URI>"}'
+    };
+  }
+  const entries = Object.entries(raw);
+  if (entries.length > MAX_STAGED_INPUTS) {
+    return {
+      error: `inputs stages at most ${MAX_STAGED_INPUTS} files; ${entries.length} were given.`
+    };
+  }
+  const names = entries.map(([name]) => name);
+  const refusal = await confineArgvToWorkspace(names, workspace);
+  if (refusal) return refusal;
+
+  const staged: Record<string, number> = {};
+  let total = 0;
+  for (const [name, ref] of entries) {
+    if (!isNonBlankString(name)) {
+      return { error: "inputs keys must be non-empty workspace paths." };
+    }
+    if (!isNonBlankString(ref)) {
+      return {
+        error: `inputs["${name}"] must be a string ref (asset:// URI, /api/storage/ key, or data: URI).`
+      };
+    }
+    let bytes: Uint8Array | null = null;
+    try {
+      bytes = await loadMediaRefBytes({ uri: ref.trim() }, context);
+    } catch {
+      // Reported as unreadable below; the message names the forms that work.
+    }
+    // Zero bytes is a failed read wearing a buffer, the same way it is in
+    // `save_asset` — staging it would hand ffmpeg an empty file and the
+    // failure would surface as an unhelpable decode error.
+    if (!bytes || bytes.byteLength === 0) {
+      return {
+        error:
+          `inputs["${name}"]: could not read ${ref}. Pass an asset:// URI, ` +
+          `the /api/storage/ key a tool returned, or a data: URI.`
+      };
+    }
+    if (bytes.byteLength > MAX_STAGED_INPUT_BYTES) {
+      return {
+        error: `inputs["${name}"] is ${bytes.byteLength} bytes, over the ${MAX_STAGED_INPUT_BYTES}-byte limit.`
+      };
+    }
+    total += bytes.byteLength;
+    if (total > MAX_STAGED_TOTAL_BYTES) {
+      return {
+        error: `inputs stages ${total} bytes, over the ${MAX_STAGED_TOTAL_BYTES}-byte total limit.`
+      };
+    }
+    const abs = context.resolveWorkspacePath(name);
+    await mkdir(path.dirname(abs), { recursive: true });
+    await writeFile(abs, bytes);
+    staged[name] = bytes.byteLength;
+  }
+  return { staged };
+}
+
 const ffmpeg: CapabilityExport = {
   spec: ffmpegSpec,
   impl: async (run, params) => {
@@ -1263,6 +1359,13 @@ const ffmpeg: CapabilityExport = {
     if (!isString(workspace)) return workspace;
     const args = stringArgs(params["args"]);
     if ("error" in args) return args;
+
+    const stagedResult = await stageInputs(
+      run.context,
+      workspace,
+      params["inputs"]
+    );
+    if ("error" in stagedResult) return stagedResult;
 
     const outputFile = isNonBlankString(params["output_file"])
       ? params["output_file"].trim()
@@ -1272,7 +1375,7 @@ const ffmpeg: CapabilityExport = {
       argv.push(outputFile);
     }
 
-    const refusal = await confineArgvToWorkspace(argv, workspace);
+    const refusal = await confineArgvToWorkspace(argv, workspace, FFMPEG_REMEDY);
     if (refusal) return refusal;
     const hardened = hardenFfmpegArgv(argv);
     if ("error" in hardened) return hardened;
@@ -1300,6 +1403,9 @@ const ffmpeg: CapabilityExport = {
         stdout: result.stdout,
         stderr: result.stderr,
         exit_code: result.exitCode,
+        ...(Object.keys(stagedResult.staged).length > 0
+          ? { staged: stagedResult.staged }
+          : {}),
         ...(persisted ?? {})
       };
     } catch (e) {

@@ -113,10 +113,16 @@ function pathCandidates(arg: string): string[] {
  * {@link pathCandidates} — is resolved against the workspace root, so an
  * absolute path, a `..` chain, and a path inside a filter token all land
  * outside it the same way.
+ *
+ * `remedy` is the one sentence the refusal ends on. It defaults to something
+ * true of every host binary; a caller with a way to put the file where the
+ * binary can see it — `ffmpeg`'s `inputs` — names that instead, so the refusal
+ * points at a parameter rather than at an errand the caller cannot run.
  */
 export async function confineArgvToWorkspace(
   argv: readonly string[],
-  workspace: string
+  workspace: string,
+  remedy = "Stage it in the workspace first, then pass the local path."
 ): Promise<ArgvRefusal | undefined> {
   for (const arg of argv) {
     const token = deniedToken(arg);
@@ -124,8 +130,7 @@ export async function confineArgvToWorkspace(
       return {
         error:
           `"${token}" is not allowed in a host media argument (in "${arg}"). ` +
-          `Only workspace files are readable; download first, then pass the ` +
-          `local path.`
+          `Only workspace files are readable. ${remedy}`
       };
     }
     if (arg === "" || arg.startsWith("-")) continue;
