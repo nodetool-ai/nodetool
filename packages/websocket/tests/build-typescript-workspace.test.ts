@@ -90,6 +90,14 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
       command: process.execPath,
       args: [resolve(repoRoot, "node_modules", "typescript", "bin", "tsc"), "--build"]
     });
+    expect(getTypeScriptBuildCommand(repoRoot, { force: true })).toEqual({
+      command: process.execPath,
+      args: [
+        resolve(repoRoot, "node_modules", "typescript", "bin", "tsc"),
+        "--build",
+        "--force"
+      ]
+    });
   });
 
   it("raises the tsc heap unless NODE_OPTIONS already sets one", () => {

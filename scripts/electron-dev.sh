@@ -20,6 +20,9 @@ trap cleanup EXIT INT TERM
 # system-Node backend (dev-server / tsx). If you hit NODE_MODULE_VERSION errors,
 # run: npm run rebuild:native
 
+echo "Building stale backend workspaces..."
+npm run build-stale-backend
+
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
 npm --prefix web run dev &
