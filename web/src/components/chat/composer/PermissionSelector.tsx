@@ -119,9 +119,7 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
 
   const handleSelect = useCallback(
     (next: PermissionMode) => {
-      if (selectedThreadId) {
-        setPermissionMode(selectedThreadId, next);
-      }
+      setPermissionMode(selectedThreadId, next);
       setOpen(false);
     },
     [selectedThreadId, setPermissionMode]

@@ -1981,6 +1981,15 @@ class ToolBridge {
     waiter.resolve(payload);
   }
 
+  /** Resolve every waiter in `scope` with the same payload. */
+  resolveScope(scope: string, payload: Record<string, unknown>): void {
+    for (const waiter of [...this.waiters.values()]) {
+      if (waiter.scope === scope) {
+        waiter.resolve(payload);
+      }
+    }
+  }
+
   rejectResult(toolCallId: string, error: Error): void {
     const waiter = this.waiters.get(toolCallId);
     if (!waiter) return;
@@ -2171,6 +2180,11 @@ export class UnifiedWebSocketRunner {
    * via "Allow for this chat". Persists across messages within a thread.
    */
   private chatSessionAllow = new Map<string, Set<string>>();
+  /**
+   * Live permission mode for an in-flight turn. `set_permission_mode` writes
+   * here so switching to Auto mid-turn applies to the next gated call.
+   */
+  private chatTurnPermissionMode = new Map<string, { value: PermissionMode }>();
   /**
    * The capability run for the chat turn this connection is executing — the
    * gate, the context, and everything a capability needs that only exists per
@@ -5657,8 +5671,12 @@ export class UnifiedWebSocketRunner {
     // the user's, not the program's, and charged to the action's wall clock it
     // would kill the very program that asked.
     const codeactClock = createSandboxClock();
+    const liveMode = { value: permissionMode };
+    this.chatTurnPermissionMode.set(threadId, liveMode);
     const chatGate: PermissionGateOptions = {
-      mode: permissionMode,
+      get mode() {
+        return liveMode.value;
+      },
       sessionAllow,
       requestApproval: async (
         request: ApprovalRequest
@@ -8766,6 +8784,24 @@ export class UnifiedWebSocketRunner {
         }
         this.mode = mode;
         return { message: `Mode set to ${mode}` };
+      }
+      case "set_permission_mode": {
+        const threadId = data.thread_id;
+        const mode = data.permission_mode;
+        if (!isNonEmptyString(threadId)) {
+          return { error: "thread_id is required for set_permission_mode" };
+        }
+        if (mode !== "plan" && mode !== "default" && mode !== "auto") {
+          return { error: "permission_mode must be plan, default, or auto" };
+        }
+        const liveMode = this.chatTurnPermissionMode.get(threadId);
+        if (liveMode) {
+          liveMode.value = mode;
+        }
+        if (mode === "auto") {
+          this.approvalBridge.resolveScope(threadId, { decision: "allow" });
+        }
+        return { message: `Permission mode set to ${mode}`, thread_id: threadId };
       }
       case "chat_message": {
         const threadId = data.thread_id;

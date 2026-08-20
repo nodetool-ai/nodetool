@@ -1314,6 +1314,28 @@ export async function sendToolApprovalResponse(
 }
 
 /**
+ * Tell an in-flight chat turn the user changed permission mode, so Auto
+ * starts applying to the next gated call instead of waiting for a new
+ * message.
+ */
+export async function sendPermissionMode(
+  threadId: string,
+  permissionMode: "plan" | "default" | "auto"
+): Promise<void> {
+  try {
+    await globalWebSocketManager.send({
+      command: "set_permission_mode",
+      data: {
+        thread_id: threadId,
+        permission_mode: permissionMode
+      }
+    });
+  } catch (error) {
+    console.error("Failed to send set_permission_mode:", error);
+  }
+}
+
+/**
  * Send the user's decision on a proposed agent plan back to the server,
  * resuming the paused agent. An approve starts execution; a reject with
  * feedback triggers a replan; a plain reject aborts the run.

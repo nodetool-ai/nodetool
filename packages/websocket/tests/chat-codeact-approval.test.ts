@@ -300,4 +300,53 @@ describe("codeact permission prompts", () => {
 
     await runner.disconnect();
   }, 60_000);
+
+  it("switching to auto mid-turn allows a pending write without another prompt", async () => {
+    initTestDb();
+    const ws = new MockWS();
+    const runner = new UnifiedWebSocketRunner({
+      resolveExecutor: noop,
+      resolveProvider: codeActProvider(
+        'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+          `const r = await write_file({ file_path: "note.txt", content: "hi" });\n` +
+          `return { wrote: String(r) };`,
+        "low"
+      )
+    });
+    await runner.connect(ws);
+    void runner.receiveMessages();
+    void runner.handleCommand({
+      command: "chat_message",
+      data: {
+        thread_id: "t-switch-auto",
+        content: "write a note",
+        provider: "mock",
+        model: "m",
+        permission_mode: "default"
+      }
+    });
+
+    const request = await waitFor(() =>
+      sentMsgs(ws).find((m) => m.type === "tool_approval_request")
+    );
+    expect(request).toMatchObject({
+      thread_id: "t-switch-auto",
+      tool_name: "write_file"
+    });
+
+    await runner.handleCommand({
+      command: "set_permission_mode",
+      data: {
+        thread_id: "t-switch-auto",
+        permission_mode: "auto"
+      }
+    });
+
+    const observation = await waitFor(() =>
+      sentMsgs(ws).find((m) => m.type === "message" && m.role === "tool")
+    );
+    expect(String(observation.content)).toContain('"wrote"');
+
+    await runner.disconnect();
+  }, 60_000);
 });

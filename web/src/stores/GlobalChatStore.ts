@@ -30,6 +30,7 @@ import useResultsStore from "./ResultsStore";
 import useWorkflowRunsStore from "./WorkflowRunsStore";
 import type { WebSocketMessage } from "../lib/websocket/GlobalWebSocketManager";
 import {
+  sendPermissionMode,
   sendPlanApprovalResponse,
   sendSecretRequestResponse,
   sendToolApprovalResponse
@@ -260,10 +261,11 @@ export interface GlobalChatState {
   setSelectedModel: (model: LanguageModel) => void;
 
   // Per-thread permission mode (governs how gated tool calls are handled).
-  // Unknown/new threads default to DEFAULT_PERMISSION_MODE.
+  // A thread with no entry uses lastPermissionMode, then Default.
   permissionMode: Record<string, PermissionMode>;
+  lastPermissionMode: PermissionMode;
   getPermissionMode: (threadId: string | null) => PermissionMode;
-  setPermissionMode: (threadId: string, mode: PermissionMode) => void;
+  setPermissionMode: (threadId: string | null, mode: PermissionMode) => void;
 
   // Inline tool-approval prompts awaiting a user decision, keyed by approval_id.
   pendingApprovals: Record<string, PendingApproval>;
@@ -418,16 +420,17 @@ const captureChatRunSpend = (
 };
 
 /**
- * The slice written to localStorage. The three newest keys are optional
- * because a payload persisted before they existed does not carry them, and
- * `migrate` returns only the four it can rebuild — persist merges the rest
- * from the store's initial state.
+ * The slice written to localStorage. Newer keys are optional because a
+ * payload persisted before they existed does not carry them, and `migrate`
+ * rebuilds what it can — persist merges the rest from the store's initial
+ * state.
  */
 interface PersistedChatState {
   threads: Record<string, Thread>;
   lastUsedThreadId: string | null;
   selectedModel: LanguageModel | null;
   permissionMode: Record<string, PermissionMode>;
+  lastPermissionMode?: PermissionMode;
   memoryEnabled?: boolean;
   workflowThreadId?: Record<string, string>;
   threadWorkflowId?: Record<string, string | null>;
@@ -539,16 +542,38 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set({ selectedModel: model });
       },
 
-      // Per-thread permission mode
+      // Per-thread permission mode. lastPermissionMode is what the user last
+      // picked, so a new chat keeps Auto instead of silently falling back to
+      // Default and prompting on a low-risk action.
       permissionMode: {},
+      lastPermissionMode: DEFAULT_PERMISSION_MODE,
       getPermissionMode: (threadId: string | null) => {
-        if (!threadId) return DEFAULT_PERMISSION_MODE;
-        return get().permissionMode[threadId] ?? DEFAULT_PERMISSION_MODE;
+        if (threadId) {
+          const explicit = get().permissionMode[threadId];
+          if (explicit) return explicit;
+        }
+        return get().lastPermissionMode;
       },
-      setPermissionMode: (threadId: string, mode: PermissionMode) =>
+      setPermissionMode: (threadId: string | null, mode: PermissionMode) => {
+        const pendingIds =
+          mode === "auto" && threadId
+            ? Object.entries(get().pendingApprovals)
+                .filter(([, approval]) => approval.thread_id === threadId)
+                .map(([approvalId]) => approvalId)
+            : [];
         set((state) => ({
-          permissionMode: { ...state.permissionMode, [threadId]: mode }
-        })),
+          lastPermissionMode: mode,
+          permissionMode: threadId
+            ? { ...state.permissionMode, [threadId]: mode }
+            : state.permissionMode
+        }));
+        for (const approvalId of pendingIds) {
+          get().resolveApproval(approvalId, "allow");
+        }
+        if (threadId) {
+          void sendPermissionMode(threadId, mode);
+        }
+      },
 
       // Inline tool-approval prompts
       pendingApprovals: {},
@@ -1257,11 +1282,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
           handleChatWebSocketMessage(data, set, get, id);
         });
 
+        const inheritedMode = get().lastPermissionMode;
+
         set((state) => {
           const patch: Partial<GlobalChatState> = {
             threads: {
               ...state.threads,
               [id]: localThread
+            },
+            permissionMode: {
+              ...state.permissionMode,
+              [id]: inheritedMode
             },
             threadWorkflowId: {
               ...state.threadWorkflowId,
@@ -1755,6 +1786,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           lastUsedThreadId: state.lastUsedThreadId,
           selectedModel: state.selectedModel,
           permissionMode: state.permissionMode,
+          lastPermissionMode: state.lastPermissionMode,
           memoryEnabled: state.memoryEnabled,
           // Per-workflow thread binding so the editor side panel restores the
           // right conversation across reloads.
@@ -1770,7 +1802,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threads: {},
           lastUsedThreadId: null as string | null,
           selectedModel: null as LanguageModel | null,
-          permissionMode: {}
+          permissionMode: {},
+          lastPermissionMode: DEFAULT_PERMISSION_MODE as PermissionMode
         };
         if (!persistedState || !isObjectLike(persistedState)) {
           return fallback;
@@ -1796,7 +1829,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
             isObjectLike(state.permissionMode) &&
             !Array.isArray(state.permissionMode)
               ? (state.permissionMode as Record<string, PermissionMode>)
-              : fallback.permissionMode
+              : fallback.permissionMode,
+          lastPermissionMode:
+            state.lastPermissionMode === "plan" ||
+            state.lastPermissionMode === "auto" ||
+            state.lastPermissionMode === "default"
+              ? state.lastPermissionMode
+              : fallback.lastPermissionMode
         };
       },
       onRehydrateStorage: () => (state) => {
@@ -1837,6 +1876,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // Ensure selection defaults are present
           if (!state.permissionMode) {
             state.permissionMode = {};
+          }
+          if (
+            state.lastPermissionMode !== "plan" &&
+            state.lastPermissionMode !== "auto" &&
+            state.lastPermissionMode !== "default"
+          ) {
+            state.lastPermissionMode = DEFAULT_PERMISSION_MODE;
           }
           if (!state.pendingApprovals) {
             state.pendingApprovals = {};
