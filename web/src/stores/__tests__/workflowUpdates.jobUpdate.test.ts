@@ -154,7 +154,11 @@ describe("handleUpdate job_update — queue position and status message", () => 
       {
         job_id: "A",
         status: "suspended",
-        run_state: { suspension_reason: "waiting for input" }
+        run_state: {
+          status: "suspended",
+          is_resumable: true,
+          suspension_reason: "waiting for input"
+        }
       },
       runnerStore
     );
