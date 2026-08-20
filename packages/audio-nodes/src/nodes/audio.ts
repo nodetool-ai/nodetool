@@ -1674,7 +1674,7 @@ export class TextToSpeechNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<TextToSpeechNodeOutputs> {
     const text = String(this.text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
-    const modelObj = (this.model ?? {}) as unknown as Record<string, unknown>;
+    const modelObj = this.model;
     const explicitVoice = isString(modelObj.selected_voice)
       ? modelObj.selected_voice
       : "";
