@@ -128,7 +128,8 @@ export type { LogUpdate };
  * Chat permission mode (per-thread). Sent on every outgoing chat message.
  * - `plan`: read & propose only; actionable tools are blocked.
  * - `default`: reads run; actionable tools ask for approval first.
- * - `auto`: everything runs, no prompts.
+ * - `auto`: routine work runs unattended; a code action the agent declares
+ *   high risk (deletes, publishes, spends) asks once before it runs.
  */
 export type PermissionMode = "plan" | "default" | "auto";
 

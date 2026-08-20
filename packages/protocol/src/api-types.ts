@@ -646,7 +646,8 @@ export interface Message {
    * run automatically, ask for approval, or are blocked:
    * - `"plan"` — read-only; actionable tools are blocked.
    * - `"default"` — read tools auto-run; actions require approval.
-   * - `"auto"` — everything runs without prompting.
+   * - `"auto"` — routine work runs unattended; a code action declared high
+   *   risk (deletes, publishes, spends) asks for approval once.
    * Omitted defaults to `"default"`.
    */
   permission_mode?: "plan" | "default" | "auto" | null;
