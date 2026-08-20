@@ -1361,7 +1361,16 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("create_workflow");
     expect(names).toContain("run_workflow");
     expect(names).toContain("validate_workflow");
+    // Apps must be authorable from headless chat as well as debuggable in an
+    // open App Builder document. This catches a belt omission where
+    // `nodetool.apps.create()` existed in the prelude but its backing tool did
+    // not, so the action failed with "not in this toolbelt".
+    expect(names).toContain("list_apps");
+    expect(names).toContain("get_app");
+    expect(names).toContain("create_app");
+    expect(names).toContain("edit_app");
     expect(names).toContain("debug_app");
+    expect(names).toContain("delete_app");
     expect(names).toContain("get_example_workflow");
     expect(names).toContain("export_workflow_digraph");
     expect(names).toContain("list_jobs");
@@ -1449,4 +1458,3 @@ describe("getAllMcpTools", () => {
     }
   });
 });
-

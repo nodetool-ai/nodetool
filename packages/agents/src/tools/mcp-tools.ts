@@ -209,8 +209,16 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     "get_example_workflow",
     "export_workflow_digraph",
     "start_background_job",
-    // apps
+    // apps — unlike the `ui_app_*` tools, these also work when the App
+    // Builder is not already open in the browser. Keep the whole headless
+    // app lifecycle on the chat belt so `nodetool.apps.*` never advertises a
+    // method whose backing capability is absent.
+    "list_apps",
+    "get_app",
+    "create_app",
+    "edit_app",
     "debug_app",
+    "delete_app",
     // jobs
     "list_jobs",
     "get_job",

@@ -193,6 +193,7 @@ const createApp: CapabilityExport = {
 
     return {
       ok: true,
+      id: app.id,
       application_id: app.id,
       name: app.name,
       description: app.description,

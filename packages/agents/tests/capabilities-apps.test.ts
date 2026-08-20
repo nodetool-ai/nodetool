@@ -102,6 +102,7 @@ describe("create_app and edit_app", () => {
       description: "Drafts a note"
     })) as Record<string, unknown>;
     expect(created.ok).toBe(true);
+    expect(created.id).toBe(created.application_id);
     const id = String(created.application_id);
 
     const edited = (await asTool("edit_app").process(ctx, {
