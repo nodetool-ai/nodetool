@@ -126,6 +126,11 @@ describe("tRPC /trpc/workspace.list over Fastify", () => {
   it("returns the workspaces list shape", async () => {
     const { Workspace } = await import("@nodetool-ai/models");
     vi.spyOn(Workspace, "paginate").mockResolvedValue([[], ""]);
+    // list creates the default workspace on the way through; the real one
+    // would touch the database and the filesystem.
+    vi.spyOn(Workspace, "ensureDefault").mockResolvedValue(
+      {} as unknown as InstanceType<typeof Workspace>
+    );
 
     const app = buildTestApp();
     await app.ready();
@@ -138,7 +143,7 @@ describe("tRPC /trpc/workspace.list over Fastify", () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     const data = body.result?.data?.json ?? body.result?.data;
-    expect(data).toEqual({ workspaces: [], next: null });
+    expect(data).toEqual({ workspaces: [], can_manage: true, next: null });
     await app.close();
   });
 });

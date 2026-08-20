@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { tmpdir } from "node:os";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
 import {
@@ -2038,8 +2037,13 @@ export interface UnifiedWebSocketRunnerOptions {
     userId: string
   ) => Promise<BaseProvider>;
   getSystemStats?: () => Record<string, unknown>;
+  /**
+   * Resolve the workspace directory for a run. `workflowId` is null for a chat
+   * turn, which resolves to the user's default workspace — chat writes files
+   * too, and they belong somewhere the user can find them.
+   */
   workspaceResolver?: (
-    workflowId: string,
+    workflowId: string | null,
     userId: string
   ) => Promise<string | null>;
   /** Called before a workflow job starts — used to lazily connect the Python bridge. */
@@ -3630,10 +3634,9 @@ export class UnifiedWebSocketRunner {
     }
     const preRunMs = performance.now() - phaseStartedAt;
 
-    const workspaceDir =
-      workflowId && this.workspaceResolver
-        ? await this.workspaceResolver(workflowId, userId)
-        : null;
+    const workspaceDir = this.workspaceResolver
+      ? await this.workspaceResolver(workflowId ?? null, userId)
+      : null;
 
     const context = createRuntimeContext({
       jobId,
@@ -5295,7 +5298,9 @@ export class UnifiedWebSocketRunner {
       jobId,
       workflowId: null,
       userId,
-      workspaceDir: tmpdir(),
+      workspaceDir: this.workspaceResolver
+        ? await this.workspaceResolver(null, userId)
+        : null,
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
     });
     this.attachPlanApproval(context, threadId);
@@ -5803,10 +5808,12 @@ export class UnifiedWebSocketRunner {
     });
 
     // Create a processing context for tool execution
-    const chatWorkspaceDir =
-      workflowId && this.workspaceResolver
-        ? await this.workspaceResolver(workflowId, userId)
-        : tmpdir();
+    // A chat turn without a workflow still resolves a workspace — the user's
+    // default one. It used to fall back to the whole OS temp dir, which is
+    // neither bounded nor anywhere the user would look for what an agent wrote.
+    const chatWorkspaceDir = this.workspaceResolver
+      ? await this.workspaceResolver(workflowId ?? null, userId)
+      : null;
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       workflowId,

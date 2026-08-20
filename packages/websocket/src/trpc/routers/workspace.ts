@@ -5,8 +5,12 @@
  * on REST because tRPC's JSON link doesn't carry binary payloads. The other
  * CRUD + listFiles (which returns JSON metadata) endpoints move here.
  *
- * Workspaces browse the local filesystem — disabled in production via the
- * `NODETOOL_ENV=production` env var.
+ * Pointing a workspace at an arbitrary host folder browses the local
+ * filesystem, so create/update/delete are disabled in production via the
+ * `NODETOOL_ENV=production` env var. Reading is not: every user has a default
+ * workspace, and in production it is the server-managed folder under the data
+ * dir — listing and downloading from that reaches nothing the deployment did
+ * not create itself.
  */
 
 import { stat, readdir, access } from "node:fs/promises";
@@ -39,18 +43,38 @@ function toWorkspaceResponse(ws: Workspace): WorkspaceResponse {
     name: ws.name,
     path: ws.path,
     is_default: ws.is_default,
+    is_managed: ws.isManaged(),
     is_accessible: ws.isAccessible(),
     created_at: ws.created_at,
     updated_at: ws.updated_at
   };
 }
 
-/** Guard: workspace operations are disabled in production. */
+/** True when this deployment lets a user point a workspace at a host folder. */
+function canManageWorkspaces(): boolean {
+  return process.env["NODETOOL_ENV"] !== "production";
+}
+
+/** Guard: choosing a workspace folder is disabled in production. */
 function requireNonProduction(): void {
-  if (process.env["NODETOOL_ENV"] === "production") {
+  if (!canManageWorkspaces()) {
     throwApiError(
       ApiErrorCode.FORBIDDEN,
-      "Workspaces are disabled in production"
+      "Managing workspace folders is disabled in production"
+    );
+  }
+}
+
+/**
+ * Guard for the read paths: in production only the managed workspace may be
+ * read. A row created while the deployment ran locally can point anywhere on
+ * the host, and listFiles would happily enumerate it.
+ */
+function requireReadable(ws: Workspace): void {
+  if (!canManageWorkspaces() && !ws.isManaged()) {
+    throwApiError(
+      ApiErrorCode.FORBIDDEN,
+      "This workspace is not readable in production"
     );
   }
 }
@@ -94,12 +118,19 @@ export const workspaceRouter = router({
     .input(listInput)
     .output(listOutput)
     .query(async ({ ctx, input }) => {
-      requireNonProduction();
+      // Listing creates the default workspace when the user has none, so the
+      // editor never has to render a "no workspace" state and a run always has
+      // somewhere to write.
+      await Workspace.ensureDefault(ctx.userId);
       const [items] = await Workspace.paginate(ctx.userId, {
         limit: input.limit
       });
+      const readable = canManageWorkspaces()
+        ? items
+        : items.filter((ws) => ws.isManaged());
       return {
-        workspaces: items.map(toWorkspaceResponse),
+        workspaces: readable.map(toWorkspaceResponse),
+        can_manage: canManageWorkspaces(),
         next: null
       };
     }),
@@ -164,6 +195,13 @@ export const workspaceRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Workspace not found");
       }
 
+      if (ws.is_default) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "Cannot delete the default workspace"
+        );
+      }
+
       const hasWorkflows = await Workspace.hasLinkedWorkflows(input.id);
       if (hasWorkflows) {
         throwApiError(
@@ -180,11 +218,11 @@ export const workspaceRouter = router({
     .input(listFilesInput)
     .output(listFilesOutput)
     .query(async ({ ctx, input }) => {
-      requireNonProduction();
       const workspace = await Workspace.find(ctx.userId, input.id);
       if (!workspace) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Workspace not found");
       }
+      requireReadable(workspace);
 
       const queryPath = input.path;
       if (queryPath.startsWith("/")) {

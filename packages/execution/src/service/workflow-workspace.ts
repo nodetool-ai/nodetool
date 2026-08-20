@@ -5,29 +5,38 @@ import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
 const log = createLogger("nodetool.execution.workspace");
 
 /**
- * Resolve the on-disk workspace directory for a workflow run.
+ * Resolve the on-disk workspace directory for a run.
  *
  * Workspace selection is stored on the workflow (`workflow.workspace_id`); this
  * maps it to the workspace's absolute `path`, gated on ownership and the folder
- * still being present and writable. Returns `null` when no workspace is assigned
- * or it isn't usable, in which case nodes fall back to a per-run temp dir.
+ * still being present and writable. When the workflow names no workspace — or
+ * there is no workflow at all, which is every chat turn — the run falls back to
+ * the user's default workspace, creating the managed folder on first use.
  *
- * Every execution path that starts a run with a known workflow id must call this
- * so the workspace is applied consistently — not just the streaming WebSocket
- * runner.
+ * It therefore answers with a directory in all but one case: the database or
+ * the filesystem refused, and the caller runs without a workspace root. Nothing
+ * routine reaches that branch, so a run no longer scatters its files across the
+ * OS temp dir where the user cannot find them.
+ *
+ * Every execution path that starts a run must call this so the workspace is
+ * applied consistently — not just the streaming WebSocket runner.
  */
 export async function resolveWorkflowWorkspace(
-  workflowId: string,
+  workflowId: string | null,
   userId: string
 ): Promise<string | null> {
   try {
-    const workflow = await Workflow.find(userId, workflowId);
-    if (!workflow?.workspace_id) return null;
-    const workspace = await Workspace.find(userId, workflow.workspace_id);
-    if (!workspace || !workspace.isAccessible()) return null;
-    return workspace.path;
+    if (workflowId) {
+      const workflow = await Workflow.find(userId, workflowId);
+      if (workflow?.workspace_id) {
+        const workspace = await Workspace.find(userId, workflow.workspace_id);
+        if (workspace?.isAccessible()) return workspace.path;
+      }
+    }
+    const fallback = await Workspace.ensureDefault(userId);
+    return fallback.isAccessible() ? fallback.path : null;
   } catch (err) {
-    log.warn("Failed to resolve workflow workspace", {
+    log.warn("Failed to resolve run workspace", {
       workflowId,
       userId,
       error: err instanceof Error ? err.message : String(err)

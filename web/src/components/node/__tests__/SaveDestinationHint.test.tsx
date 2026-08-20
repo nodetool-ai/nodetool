@@ -6,23 +6,17 @@ import mockTheme from "../../../__mocks__/themeMock";
 import SaveDestinationHint from "../SaveDestinationHint";
 import { NodeData } from "../../../stores/NodeData";
 
-const workspaces = [
-  { id: "ws-1", name: "Renders", path: "/home/me/renders" }
-];
+const renders = { id: "ws-1", name: "Renders", path: "/home/me/renders" };
 
-let currentWorkspaceId: string | undefined = "ws-1";
-
-jest.mock("../../../trpc/client", () => ({
-  trpcClient: {
-    workspace: { list: { query: jest.fn(async () => ({ workspaces })) } }
-  }
-}));
+let currentWorkspace: typeof renders | undefined = renders;
 
 jest.mock("../../../hooks/useCurrentWorkspace", () => ({
   useCurrentWorkspace: () => ({
-    workspaceId: currentWorkspaceId,
+    workspaceId: currentWorkspace?.id,
+    workspace: currentWorkspace,
     setWorkspaceId: jest.fn(),
-    hasActiveWorkflow: true
+    hasActiveWorkflow: true,
+    canManage: true
   })
 }));
 
@@ -37,7 +31,7 @@ const renderHint = (properties: Record<string, unknown>) =>
 
 describe("SaveDestinationHint", () => {
   beforeEach(() => {
-    currentWorkspaceId = "ws-1";
+    currentWorkspace = renders;
   });
 
   it("names the workspace the file will land in", async () => {
@@ -45,12 +39,10 @@ describe("SaveDestinationHint", () => {
     expect(await screen.findByText("Renders")).toBeInTheDocument();
   });
 
-  it("says so when no workspace is assigned", () => {
-    currentWorkspaceId = undefined;
+  it("falls back to a bare label while the list is still loading", () => {
+    currentWorkspace = undefined;
     renderHint({ save_to_workspace: true });
-    expect(
-      screen.getByText(/No workspace yet — pick one in the toolbar/)
-    ).toBeInTheDocument();
+    expect(screen.getByText("Workspace")).toBeInTheDocument();
   });
 
   it("renders nothing while the toggle is off", () => {

@@ -224,3 +224,31 @@ export function buildAssetUrl(key: string): string {
     .join("/");
   return `/api/storage/${encoded}`;
 }
+
+/**
+ * Root under which NodeTool keeps the workspace folders it manages itself.
+ *
+ * A managed workspace is the one every user gets without picking a folder, so
+ * a chat turn always has somewhere bounded to read and write. It lives under
+ * the data dir rather than the cache dir: an agent's outputs are user data, not
+ * a derived artifact that is safe to delete. Override with
+ * NODETOOL_WORKSPACES_DIR — a server deployment points it at a mounted volume.
+ */
+export function getManagedWorkspacesDir(): string {
+  if (!IS_NODE) return notOnNode("getManagedWorkspacesDir");
+  const override = process.env["NODETOOL_WORKSPACES_DIR"]?.trim();
+  if (override) return override;
+  return join(getNodetoolDataDir(), "workspaces");
+}
+
+/**
+ * Absolute path of a user's managed default workspace.
+ *
+ * The user id is a path segment, so anything that is not a safe filename
+ * character is replaced — a user id from an external identity provider can
+ * carry `/`, `:` or `..`, and each of those would escape the workspaces root.
+ */
+export function getManagedWorkspaceDir(userId: string): string {
+  const safe = userId.replace(/[^A-Za-z0-9._-]/g, "_").replace(/^\.+/, "_");
+  return join(getManagedWorkspacesDir(), safe || "default");
+}

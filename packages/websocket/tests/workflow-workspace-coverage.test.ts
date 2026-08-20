@@ -2,10 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const workflowFind = vi.fn();
 const workspaceFind = vi.fn();
+const ensureDefault = vi.fn();
 
 vi.mock("@nodetool-ai/models", () => ({
   Workflow: { find: (u: string, id: string) => workflowFind(u, id) },
-  Workspace: { find: (u: string, id: string) => workspaceFind(u, id) }
+  Workspace: {
+    find: (u: string, id: string) => workspaceFind(u, id),
+    ensureDefault: (u: string) => ensureDefault(u)
+  }
 }));
 
 class FakeProcessingContext {
@@ -45,29 +49,49 @@ describe("resolveWorkflowWorkspace", () => {
   beforeEach(() => {
     workflowFind.mockReset();
     workspaceFind.mockReset();
+    ensureDefault.mockReset();
+    ensureDefault.mockResolvedValue({
+      path: "/abs/default",
+      isAccessible: () => true
+    });
   });
 
-  it("returns null when the workflow is not found", async () => {
+  it("falls back to the default workspace when the workflow is not found", async () => {
     workflowFind.mockResolvedValue(null);
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBeNull();
+    expect(await resolveWorkflowWorkspace("wf", "user")).toBe("/abs/default");
   });
 
-  it("returns null when the workflow has no workspace_id", async () => {
+  it("falls back to the default workspace when the workflow has none", async () => {
     workflowFind.mockResolvedValue({ workspace_id: null });
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBeNull();
+    expect(await resolveWorkflowWorkspace("wf", "user")).toBe("/abs/default");
     expect(workspaceFind).not.toHaveBeenCalled();
   });
 
-  it("returns null when the workspace is not found", async () => {
-    workflowFind.mockResolvedValue({ workspace_id: "ws1" });
-    workspaceFind.mockResolvedValue(null);
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBeNull();
+  it("falls back to the default workspace for a run with no workflow", async () => {
+    expect(await resolveWorkflowWorkspace(null, "user")).toBe("/abs/default");
+    expect(workflowFind).not.toHaveBeenCalled();
+    expect(ensureDefault).toHaveBeenCalledWith("user");
   });
 
-  it("returns null when the workspace is not accessible", async () => {
+  it("falls back to the default workspace when the workspace is not found", async () => {
+    workflowFind.mockResolvedValue({ workspace_id: "ws1" });
+    workspaceFind.mockResolvedValue(null);
+    expect(await resolveWorkflowWorkspace("wf", "user")).toBe("/abs/default");
+  });
+
+  it("falls back to the default workspace when the chosen one is unusable", async () => {
     workflowFind.mockResolvedValue({ workspace_id: "ws1" });
     workspaceFind.mockResolvedValue({
       path: "/ws",
+      isAccessible: () => false
+    });
+    expect(await resolveWorkflowWorkspace("wf", "user")).toBe("/abs/default");
+  });
+
+  it("returns null when even the default workspace is unusable", async () => {
+    workflowFind.mockResolvedValue({ workspace_id: null });
+    ensureDefault.mockResolvedValue({
+      path: "/abs/default",
       isAccessible: () => false
     });
     expect(await resolveWorkflowWorkspace("wf", "user")).toBeNull();

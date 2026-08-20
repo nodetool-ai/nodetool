@@ -37,7 +37,11 @@ beforeEach(async () => {
   vi.clearAllMocks();
   delete process.env["NODETOOL_ENV"];
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "workspace-api-test-"));
-  findMock.mockResolvedValue({ id: "ws1", path: tmpDir });
+  findMock.mockResolvedValue({
+    id: "ws1",
+    path: tmpDir,
+    isManaged: () => false
+  });
 });
 
 afterEach(async () => {
@@ -56,7 +60,7 @@ function makeRequest(
 }
 
 describe("production guard", () => {
-  it("returns 403 when NODETOOL_ENV is production", async () => {
+  it("returns 403 for a workspace it does not manage", async () => {
     process.env["NODETOOL_ENV"] = "production";
     const res = await handleWorkspaceRequest(
       makeRequest("/api/workspaces/ws1/download/hello.txt"),
@@ -66,8 +70,23 @@ describe("production guard", () => {
     expect(res!.status).toBe(403);
     const body = await res!.json();
     expect(body.detail).toContain("production");
-    // Guard runs before any DB lookup
-    expect(findMock).not.toHaveBeenCalled();
+  });
+
+  it("serves the managed workspace in production", async () => {
+    process.env["NODETOOL_ENV"] = "production";
+    findMock.mockResolvedValue({
+      id: "ws1",
+      path: tmpDir,
+      isManaged: () => true
+    });
+    await fs.writeFile(path.join(tmpDir, "hello.txt"), "hello");
+    const res = await handleWorkspaceRequest(
+      makeRequest("/api/workspaces/ws1/download/hello.txt"),
+      options
+    );
+    expect(res).not.toBeNull();
+    expect(res!.status).toBe(200);
+    expect(await res!.text()).toBe("hello");
   });
 });
 

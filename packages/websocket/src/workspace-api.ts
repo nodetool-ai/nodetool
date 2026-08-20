@@ -72,11 +72,6 @@ export async function handleWorkspaceRequest(
   request: Request,
   options: HttpApiOptions
 ): Promise<Response | null> {
-  // Workspaces browse the local filesystem — disabled in production
-  if (process.env["NODETOOL_ENV"] === "production") {
-    return errorResponse(403, "Workspaces are disabled in production");
-  }
-
   const url = new URL(request.url);
   const pathname = normalizePath(url.pathname);
 
@@ -94,6 +89,16 @@ export async function handleWorkspaceRequest(
   const filePath = decodeURIComponent(downloadMatch[2]);
   const workspace = await Workspace.find(userId, wsId);
   if (!workspace) return errorResponse(404, "Workspace not found");
+
+  // In production only the server-managed workspace is readable: a row created
+  // while the deployment ran locally can still point at any host folder. Mirrors
+  // `requireReadable` in the tRPC router.
+  if (
+    process.env["NODETOOL_ENV"] === "production" &&
+    !workspace.isManaged()
+  ) {
+    return errorResponse(403, "This workspace is not readable in production");
+  }
 
   if (filePath.startsWith("/")) {
     return errorResponse(400, "Absolute paths not allowed");
