@@ -934,11 +934,13 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
                     style={{
+                      // `top`, not `transform: translateY()`. WebGPU canvases
+                      // in inline timeline previews stay black under a
+                      // transform ancestor.
                       position: "absolute",
-                      top: 0,
+                      top: virtualRow.start,
                       left: 0,
-                      width: "100%",
-                      transform: `translateY(${virtualRow.start}px)`
+                      width: "100%"
                     }}
                   >
                     <MessageView

@@ -1,6 +1,19 @@
-import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import {
+  useTimelinePlaybackStore,
+  type TimelinePlaybackState
+} from "../../../stores/timeline/TimelinePlaybackStore";
+
+type PlaybackClockState = Pick<
+  TimelinePlaybackState,
+  "isPlaying" | "setTimeMs" | "setCurrentTimeMs" | "pause"
+>;
 
 export class PlaybackClock {
+  constructor(
+    private readonly readState: () => PlaybackClockState = () =>
+      useTimelinePlaybackStore.getState()
+  ) {}
+
   private rafId: number | null = null;
   private startPositionMs = 0;
   private startWallMs = 0;
@@ -37,7 +50,7 @@ export class PlaybackClock {
 
   private tick(): void {
     const { isPlaying, setTimeMs, setCurrentTimeMs, pause } =
-      useTimelinePlaybackStore.getState();
+      this.readState();
 
     if (!isPlaying) {
       this.rafId = null;

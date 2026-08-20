@@ -66,21 +66,30 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
     return selector ? selector(state) : state;
   };
   useTimelinePlaybackStore.getState = getState;
-  return { useTimelinePlaybackStore };
+  return {
+    useTimelinePlaybackStore,
+    useTimelinePlaybackStoreApi: () => ({ getState })
+  };
 });
 
-jest.mock("../../../../stores/timeline/TimelineStore", () => ({
-  useTimelineStore: <T,>(
-    selector: (s: { clips: unknown[]; tracks: unknown[]; durationMs: number }) => T
+jest.mock("../../../../stores/timeline/TimelineStore", () => {
+  const getState = () => ({
+    clips: [] as unknown[],
+    tracks: [] as unknown[],
+    durationMs: 60_000
+  });
+  const useTimelineStore = <T,>(
+    selector: (s: ReturnType<typeof getState>) => T
   ) => {
-    const state = {
-      clips: [],
-      tracks: [],
-      durationMs: 60_000
-    };
+    const state = getState();
     return selector ? selector(state) : state;
-  }
-}));
+  };
+  useTimelineStore.getState = getState;
+  return {
+    useTimelineStore,
+    useTimelineStoreApi: () => ({ getState })
+  };
+});
 
 jest.mock("../../../../stores/AssetStore", () => ({
   useAssetStore: <T,>(selector: (s: { get: jest.Mock }) => T) => {
@@ -142,6 +151,13 @@ describe("PreviewArea", () => {
     it("shows 30 fps by default", () => {
       renderPreview();
       expect(screen.getByText("30 fps")).toBeInTheDocument();
+    });
+
+    it("hides duration and fps when those readouts are off", () => {
+      renderPreview({ showDuration: false, showFps: false });
+      expect(screen.getByText("00:00:00:00")).toBeInTheDocument();
+      expect(screen.queryByText("/00:01:00:00")).not.toBeInTheDocument();
+      expect(screen.queryByText("30 fps")).not.toBeInTheDocument();
     });
   });
 
