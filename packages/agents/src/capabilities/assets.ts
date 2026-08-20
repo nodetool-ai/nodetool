@@ -32,7 +32,11 @@ import {
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import type { Asset as AssetRow } from "@nodetool-ai/models";
-import { loadMediaRefBytes, safeFetch } from "@nodetool-ai/runtime";
+import {
+  isSafePublicHttpsUrl,
+  loadMediaRefBytes,
+  safeFetch
+} from "@nodetool-ai/runtime";
 import { mimeForPath } from "../sandbox-media-ref.js";
 import { MIME_TO_EXT } from "../tools/asset-persist.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
@@ -812,6 +816,7 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
   let sourceBytes: Uint8Array | null = null;
   let sourceMime = "image/png";
   let passthroughUri: string | undefined;
+  let resolveError: string | undefined;
 
   if (imageId.startsWith("data:")) {
     const parsed = parseDataUri(imageId);
@@ -819,6 +824,22 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
     sourceBytes = parsed.bytes;
     sourceMime = parsed.mimeType;
   } else if (/^https?:\/\//i.test(imageId)) {
+    // Screen it. This uri goes out as `image_content.uri` for the *provider* to
+    // fetch, so an unscreened one is not an SSRF against this host — the reach
+    // it buys is the provider's network, not ours. It was still the only
+    // model-supplied URL in this module that skipped the guard every other one
+    // meets: `save_asset` refuses exactly these through `safeFetch`, and a
+    // model that cannot tell which of two image tools screens its input is
+    // being taught that the boundary is arbitrary.
+    if (!isSafePublicHttpsUrl(imageId)) {
+      return {
+        error:
+          `Refused to load image from "${imageId}". ` +
+          `Only public https:// URLs are handed to the vision provider — ` +
+          `plain http, localhost, and private or link-local addresses are refused. ` +
+          `Pass an asset id, an asset:// URI, or a data: URI instead.`
+      };
+    }
     passthroughUri = imageId;
   } else {
     try {
@@ -827,14 +848,28 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
         sourceBytes = bytes;
         sourceMime = sniffImageMime(bytes);
       }
-    } catch {
-      // fall through to the not-found error below
+    } catch (e) {
+      // Keep why. A caller that passed a perfectly good asset id — one
+      // `save_asset` just minted — gets this same branch when the row exists
+      // but its bytes do not resolve (no configured storage, an unreachable
+      // bucket, a revoked credential). Told only "pass an asset id", an agent
+      // re-passes the id it already has, then guesses URL shapes; the reason
+      // is the one thing that stops that loop.
+      resolveError = e instanceof Error ? e.message : String(e);
     }
   }
 
   if (!sourceBytes && !passthroughUri) {
     return {
-      error: `Could not load image "${imageId}". Pass an asset id, asset:// URI, http(s) URL, or data: URI.`
+      error:
+        `Could not load image "${imageId}". ` +
+        (resolveError
+          ? `Resolving it failed: ${resolveError}. `
+          : "Nothing resolved for it. ") +
+        `Accepted: an asset id, an asset:// URI, a public https:// URL, or a ` +
+        `data: URI. A localhost or private-address URL is refused, so guessing ` +
+        `a local server URL will not work — if you already hold the bytes, ` +
+        `pass them as a data: URI.`
     };
   }
 
