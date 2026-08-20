@@ -4,6 +4,7 @@ import React, {
   memo,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from "react";
@@ -756,10 +757,19 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     const timecode = formatTimecode(currentTimeMs, fps);
     const durationTimecode = formatTimecode(durationMs || 0, fps);
 
+    // Playback no longer re-renders the bar (see above), but a scrub still
+    // does, once per discrete `currentTimeMs` write.
+    const containerCss = useMemo(() => containerStyles(theme), [theme]);
+    const controlBarCss = useMemo(() => controlBarStyles(theme), [theme]);
+    const dividerCss = useMemo(() => dividerStyles(theme), [theme]);
+    const timecodeCss = useMemo(() => timecodeStyles(theme), [theme]);
+    const durationCss = useMemo(() => durationStyles(theme), [theme]);
+    const fpsCss = useMemo(() => fpsStyles(theme), [theme]);
+
     return (
       <div
         ref={containerRef}
-        css={containerStyles(theme)}
+        css={containerCss}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         aria-label="Preview area"
@@ -769,7 +779,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           <PreviewCompositor />
         </div>
 
-        <div css={controlBarStyles(theme)}>
+        <div css={controlBarCss}>
           <ToolbarIconButton
             icon={<SkipPreviousIcon />}
             tooltip="Previous clip boundary (Shift+←)"
@@ -825,8 +835,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             className="timeline-preview__secondary-control"
           />
 
-          <div css={dividerStyles(theme)} className="timeline-preview__secondary-control" />
-          <Text ref={timecodeRef} css={timecodeStyles(theme)}>
+          <div css={dividerCss} className="timeline-preview__secondary-control" />
+          <Text ref={timecodeRef} css={timecodeCss}>
             {timecode}
           </Text>
           <div css={scrubberStyles}>
@@ -841,10 +851,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
               density="compact"
             />
           </div>
-          <Caption css={durationStyles(theme)} className="timeline-preview__duration">
+          <Caption css={durationCss} className="timeline-preview__duration">
             /{durationTimecode}
           </Caption>
-          <Caption css={fpsStyles(theme)} className="timeline-preview__fps">
+          <Caption css={fpsCss} className="timeline-preview__fps">
             {fps} fps
           </Caption>
 

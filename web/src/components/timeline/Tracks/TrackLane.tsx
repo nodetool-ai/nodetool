@@ -14,7 +14,14 @@
  *   - Drop target for assets dragged from AssetExplorer (NOD-304)
  */
 
-import React, { memo, useCallback, useRef, useState, useEffect } from "react";
+import React, {
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useEffect
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -525,10 +532,27 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     setAddClipAnchorEl(null);
   }, []);
 
+  // A rubber-band gesture re-renders the lane per pointermove; only the band's
+  // own inline rect changes during it.
+  const isRubberBanding = rubberBand !== null;
+  const laneCss = useMemo(
+    () =>
+      laneStyles(
+        theme,
+        heightPx,
+        track.visible,
+        isRubberBanding,
+        isDragOver,
+        isDragReject
+      ),
+    [theme, heightPx, track.visible, isRubberBanding, isDragOver, isDragReject]
+  );
+  const rubberBandCss = useMemo(() => rubberBandStyles(theme), [theme]);
+
   return (
     <div
       ref={laneRef}
-      css={laneStyles(theme, heightPx, track.visible, rubberBand !== null, isDragOver, isDragReject)}
+      css={laneCss}
       data-testid={`track-lane-${track.id}`}
       onPointerDown={handleLanePointerDown}
       onPointerMove={handleLanePointerMove}
@@ -550,7 +574,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       {/* Rubber-band selection rect */}
       {rubberBand && (
         <div
-          css={rubberBandStyles(theme)}
+          css={rubberBandCss}
           style={{
             left: rubberBand.left,
             top: rubberBand.top,
