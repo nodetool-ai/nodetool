@@ -122,9 +122,6 @@ const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(
   () => import("./components/ChatMarkdownTest")
 );
-const CodeEditorDebug = React.lazy(
-  () => import("./components/CodeEditorDebug")
-);
 const ComponentPreview = React.lazy(
   () => import("./components/preview/ComponentPreview")
 );
@@ -505,10 +502,6 @@ function getRoutes() {
     routes.push({
       path: "/chatmarkdowntest",
       element: <ChatMarkdownTest />
-    });
-    routes.push({
-      path: "/code-editor-debug",
-      element: <CodeEditorDebug />
     });
     // Component preview routes for isolated documentation screenshots
     routes.push({
