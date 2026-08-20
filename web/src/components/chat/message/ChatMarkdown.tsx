@@ -9,7 +9,7 @@ import InlineResourcePreview, {
   isInlinePreviewUri
 } from "./InlineResourcePreview";
 import "../../../styles/markdown/nodetool-markdown.css";
-import { SPACING, getSpacingPx } from "../../ui_primitives";
+import { Caption, FlexColumn, SPACING, getSpacingPx } from "../../ui_primitives";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import { BORDER_RADIUS } from "../../ui_primitives";
@@ -122,37 +122,54 @@ const extractStorageKey = (uri: string | null | undefined): string | null => {
 
 const useChatAsset = (
   src: string | undefined
-): { resolvedSrc: string | undefined; contentType: string | undefined } => {
+): {
+  resolvedSrc: string | undefined;
+  contentType: string | undefined;
+  pending: boolean;
+} => {
   // `asset://<id>` is an id, not a storage key (`<user>/<id>.<ext>`).
   const isAssetUri = Boolean(src?.startsWith("asset://"));
   const fromAsset = useResolvedMedia(isAssetUri ? src : undefined);
   const key = isAssetUri ? null : extractStorageKey(src);
-  const { data } = trpc.storage.signUrl.useQuery(
+  const { data, isPending, isError } = trpc.storage.signUrl.useQuery(
     { key: key ?? "" },
     { enabled: Boolean(key), staleTime: 6 * 24 * 60 * 60 * 1000 }
   );
   if (!src) {
-    return { resolvedSrc: undefined, contentType: undefined };
+    return { resolvedSrc: undefined, contentType: undefined, pending: false };
   }
   if (isAssetUri) {
     return {
       resolvedSrc: fromAsset.url,
-      contentType: fromAsset.contentType
+      contentType: fromAsset.contentType,
+      pending: fromAsset.pending
     };
   }
   if (key) {
     // Legacy `/api/storage/<key>` markdown — resolve through the signed-URL
     // path so owner-prefixed keys and cloud backends work.
-    return { resolvedSrc: data?.url, contentType: undefined };
+    return {
+      resolvedSrc: data?.url,
+      contentType: undefined,
+      pending: isPending && !isError
+    };
   }
   const pkgPath = packageAssetHttpPath(src);
   if (pkgPath) {
-    return { resolvedSrc: `${BASE_URL}${pkgPath}`, contentType: undefined };
+    return {
+      resolvedSrc: `${BASE_URL}${pkgPath}`,
+      contentType: undefined,
+      pending: false
+    };
   }
   if (src.startsWith("/api/")) {
-    return { resolvedSrc: `${BASE_URL}${src}`, contentType: undefined };
+    return {
+      resolvedSrc: `${BASE_URL}${src}`,
+      contentType: undefined,
+      pending: false
+    };
   }
-  return { resolvedSrc: src, contentType: undefined };
+  return { resolvedSrc: src, contentType: undefined, pending: false };
 };
 
 /**
@@ -242,15 +259,42 @@ const ChatMarkdownMedia: React.FC<{
   );
 };
 
+/**
+ * An embed whose media never resolved.
+ *
+ * Rendering nothing was the old behavior, and it is indistinguishable from the
+ * agent never having answered: a generated clip whose asset row is gone, or
+ * whose object cannot be signed, left an empty gap in the reply. Show the
+ * resource instead, so the reader knows something was there and can open it.
+ */
+const UnresolvedMedia: React.FC<{ href: string; label: string }> = ({
+  href,
+  label
+}) => (
+  <FlexColumn
+    gap={SPACING.xs}
+    align="flex-start"
+    data-testid="unresolved-media"
+  >
+    {isResourceUri(href) ? (
+      <ResourceChip uri={href} label={label || href} />
+    ) : null}
+    <Caption color="secondary">This media could not be loaded.</Caption>
+  </FlexColumn>
+);
+
 const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
   src,
   alt,
   ...props
 }) => {
   const href = src != null ? src : "";
-  const { resolvedSrc, contentType } = useChatAsset(href || undefined);
+  const { resolvedSrc, contentType, pending } = useChatAsset(href || undefined);
   if (!resolvedSrc) {
-    return null;
+    // Still resolving: render nothing rather than flashing a failure.
+    return pending || !href ? null : (
+      <UnresolvedMedia href={href} label={alt ?? ""} />
+    );
   }
   const kind = mediaKind(href, resolvedSrc, contentType) ?? "image";
   return (

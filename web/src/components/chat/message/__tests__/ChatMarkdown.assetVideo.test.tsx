@@ -22,8 +22,11 @@ jest.mock("../../../../hooks/useResolvedMediaUri", () =>
 import {
   mockAssetContentType,
   mockAssetUrl,
+  mockMissingAsset,
+  mockPendingAsset,
   resetMockAssetContentTypes
 } from "../../../../hooks/__mocks__/useResolvedMediaUri";
+import { screen } from "@testing-library/react";
 
 // The map the component sees: `jest.mock` above swapped the module the
 // component imports, and reaching the manual mock by its own path hands this
@@ -260,5 +263,36 @@ describe("ChatMarkdown asset video", () => {
     expect(audio).toHaveAttribute("aria-label", "Narration");
     expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector("video")).toBeNull();
+  });
+
+  /**
+   * A generated clip whose asset cannot be resolved — the row is gone, or the
+   * storage object cannot be signed — used to render nothing at all, so the
+   * reply showed a heading and an empty gap where the video should be.
+   */
+  it("shows the resource instead of nothing when the asset cannot be resolved", () => {
+    mockUseQuery.mockReturnValue({ data: undefined });
+    mockMissingAsset("ea27206c96404a11b5d8ba35735edf2f");
+
+    const { container } = renderMarkdown(
+      "![Opening Hook Clip](asset://ea27206c96404a11b5d8ba35735edf2f.mp4)"
+    );
+
+    expect(container.querySelector("video")).toBeNull();
+    expect(screen.getByTestId("unresolved-media")).toBeInTheDocument();
+    expect(screen.getByText("Opening Hook Clip")).toBeInTheDocument();
+    expect(screen.getByText("This media could not be loaded.")).toBeInTheDocument();
+  });
+
+  it("renders nothing while the asset lookup is still in flight", () => {
+    mockUseQuery.mockReturnValue({ data: undefined });
+    mockPendingAsset("d3f1ed729a6a4b45b759e95a6134e196");
+
+    const { container } = renderMarkdown(
+      "![Feature Clip](asset://d3f1ed729a6a4b45b759e95a6134e196.mp4)"
+    );
+
+    expect(container.querySelector("video")).toBeNull();
+    expect(screen.queryByTestId("unresolved-media")).toBeNull();
   });
 });

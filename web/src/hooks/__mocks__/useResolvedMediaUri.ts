@@ -23,18 +23,44 @@ export type MediaLocator =
 export const mockAssetUrl = (assetId: string): string =>
   `https://assets.test/${assetId}`;
 
+/**
+ * Asset ids a test wants to resolve to nothing — the shape of an asset whose
+ * row is gone or whose object cannot be signed.
+ */
+export const mockMissingAssets = new Set<string>();
+
+export const mockMissingAsset = (assetId: string): void => {
+  mockMissingAssets.add(assetId);
+};
+
+/** Asset ids whose lookup a test wants to leave in flight. */
+export const mockPendingAssets = new Set<string>();
+
+export const mockPendingAsset = (assetId: string): void => {
+  mockPendingAssets.add(assetId);
+};
+
+const isPendingAsset = (source: MediaLocator): boolean => {
+  const id = assetIdOf(source);
+  return id !== undefined && mockPendingAssets.has(id);
+};
+
 const resolve = (source: MediaLocator): string | undefined => {
   const uri = typeof source === "string" ? source : (source?.uri ?? undefined);
   const declared = typeof source === "object" ? source?.asset_id : undefined;
   if (declared) {
-    return mockAssetUrl(declared);
+    return mockMissingAssets.has(declared) ? undefined : mockAssetUrl(declared);
   }
   // Everything but an asset locator resolves exactly as it does in the app.
   const staticUrl = realResolveStaticMediaUri(uri);
   if (staticUrl !== null) {
     return staticUrl || undefined;
   }
-  return mockAssetUrl((uri as string).slice("asset://".length));
+  const id = (uri as string).slice("asset://".length);
+  const bareId = id.replace(/\.[^.]+$/, "");
+  return mockMissingAssets.has(id) || mockMissingAssets.has(bareId)
+    ? undefined
+    : mockAssetUrl(id);
 };
 
 export const resolveStaticMediaUri = realResolveStaticMediaUri;
@@ -57,6 +83,8 @@ export const mockAssetContentType = (locator: string, mime: string): void => {
 export const resetMockAssetContentTypes = (): void => {
   contentTypeByLocator.clear();
   mockAssetContentTypes.clear();
+  mockMissingAssets.clear();
+  mockPendingAssets.clear();
 };
 
 const locatorUri = (source: MediaLocator): string | undefined =>
@@ -72,11 +100,17 @@ const assetIdOf = (source: MediaLocator): string | undefined => {
 
 export const useResolvedMedia = (
   source: MediaLocator
-): { url: string | undefined; contentType: string | undefined } => {
+): {
+  url: string | undefined;
+  contentType: string | undefined;
+  pending: boolean;
+} => {
   const uri = locatorUri(source);
   const id = assetIdOf(source);
+  const pending = isPendingAsset(source);
   return {
-    url: resolve(source),
+    url: pending ? undefined : resolve(source),
+    pending,
     contentType:
       (uri ? contentTypeByLocator.get(uri) : undefined) ??
       (id ? mockAssetContentTypes.get(id) : undefined)
