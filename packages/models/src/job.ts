@@ -128,6 +128,22 @@ export class Job extends DBModel {
     this.finished_at = new Date().toISOString();
   }
 
+  /**
+   * What the run produced, as the run service stored it when the job settled
+   * (`metadata_json.outputs`), or null for a job that has not finished — or
+   * one that ran before outputs were persisted at all. The jobs table has no
+   * outputs column; `metadata_json` is where a run's answer lives, and this
+   * is the one reader, so every surface reports the same thing.
+   */
+  runOutputs(): Record<string, unknown> | null {
+    const outputs = this.metadata_json?.["outputs"];
+    return outputs !== null &&
+      typeof outputs === "object" &&
+      !Array.isArray(outputs)
+      ? (outputs as Record<string, unknown>)
+      : null;
+  }
+
   markSuspended(
     nodeId: string,
     reason: string,
