@@ -242,6 +242,18 @@ export function getManagedWorkspacesDir(): string {
 }
 
 /**
+ * Storage key prefix of a user's workspace on a deployment that keeps
+ * workspaces in object storage rather than on a disk.
+ *
+ * The same sanitizing as {@link getManagedWorkspaceDir}: the user id is one
+ * key segment, and a `/` or `..` inside it would otherwise reach another
+ * user's prefix.
+ */
+export function managedWorkspaceKey(userId: string): string {
+  return `workspaces/${sanitizeUserSegment(userId)}`;
+}
+
+/**
  * Absolute path of a user's managed default workspace.
  *
  * The user id is a path segment, so anything that is not a safe filename
@@ -249,6 +261,26 @@ export function getManagedWorkspacesDir(): string {
  * carry `/`, `:` or `..`, and each of those would escape the workspaces root.
  */
 export function getManagedWorkspaceDir(userId: string): string {
+  return join(getManagedWorkspacesDir(), sanitizeUserSegment(userId));
+}
+
+function sanitizeUserSegment(userId: string): string {
   const safe = userId.replace(/[^A-Za-z0-9._-]/g, "_").replace(/^\.+/, "_");
-  return join(getManagedWorkspacesDir(), safe || "default");
+  return safe || "default";
+}
+
+/**
+ * Whether this deployment backs workspaces with a local folder or with the
+ * object storage it already uses for assets.
+ *
+ * Production has no durable disk worth writing a user's files to — a Fly
+ * machine is replaced and the folder goes with it — so a cloud workspace is a
+ * key prefix in the asset bucket. `NODETOOL_WORKSPACE_STORAGE` overrides the
+ * default either way, which is how a self-hosted server with a mounted volume
+ * keeps local workspaces, and how a local install can be pointed at S3.
+ */
+export function workspaceStorageKind(): "local" | "cloud" {
+  const override = process.env["NODETOOL_WORKSPACE_STORAGE"]?.trim();
+  if (override === "local" || override === "cloud") return override;
+  return process.env["NODETOOL_ENV"] === "production" ? "cloud" : "local";
 }

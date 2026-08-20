@@ -611,7 +611,13 @@ export class ClaudeCodeAgentNode extends BaseNode {
     const command = String(this.command ?? "claude").trim() || "claude";
 
     let sessionName = String(this.session_name ?? "").trim();
+    // A tmux session lives for as long as the user keeps talking to it and
+    // edits files in place, so it needs a real directory rather than a staged
+    // copy that would be stale the moment the session wrote anything. A run
+    // whose workspace is cloud storage gets a temp directory instead — the
+    // session works, but its files do not land in the workspace.
     const workspaceDir =
+      context?.workspace?.localDir ??
       (context as { workspaceDir?: string } | undefined)?.workspaceDir ??
       (await mkdtemp(path.join(tmpdir(), "nodetool-claude-")));
     await mkdir(workspaceDir, { recursive: true });

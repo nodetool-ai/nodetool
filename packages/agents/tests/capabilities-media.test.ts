@@ -13,6 +13,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
 import {
@@ -138,9 +139,11 @@ describe("generate_image through the adapter", () => {
     const context = {
       userId: "user-1",
       runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
-      workspaceStorage: {
-        uriForKey: (key: string) => `ws://${key}`,
-        store: write
+      workspace: {
+        localDir: null,
+        write,
+        read: async () => null,
+        key: (p: string) => p
       }
     } as unknown as ProcessingContext;
 
@@ -371,10 +374,20 @@ describe("style capabilities through the adapter", () => {
   });
 });
 
+/**
+ * A context whose workspace is the given real directory — what the host-binary
+ * capabilities need, since they run a binary in it.
+ */
+function localWorkspaceContext(dir: string): ProcessingContext {
+  return {
+    workspace: createLocalWorkspace(dir)
+  } as unknown as ProcessingContext;
+}
+
 describe("ffmpeg and yt_dlp capabilities", () => {
   it("ffmpeg rejects missing args before spawn", async () => {
     const result = (await asTool(ffmpeg).process(
-      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      localWorkspaceContext("/tmp"),
       { args: [] }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/args must be/);
@@ -384,12 +397,12 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     const result = (await asTool(ffmpeg).process(makeContext(), {
       args: ["-version"]
     })) as Record<string, unknown>;
-    expect(String(result["error"])).toMatch(/workspaceDir/);
+    expect(String(result["error"])).toMatch(/workspace is required/);
   });
 
   it("yt_dlp rejects a missing url", async () => {
     const result = (await asTool(ytDlp).process(
-      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      localWorkspaceContext("/tmp"),
       {}
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/url is required/);
@@ -397,7 +410,7 @@ describe("ffmpeg and yt_dlp capabilities", () => {
 
   it("yt_dlp rejects a non-http url", async () => {
     const result = (await asTool(ytDlp).process(
-      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      localWorkspaceContext("/tmp"),
       { url: "file:///etc/passwd" }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/unsupported scheme/);
@@ -407,7 +420,7 @@ describe("ffmpeg and yt_dlp capabilities", () => {
   // capability actually calls it, and refuses before anything is spawned.
   it("ffmpeg refuses a path outside the workspace", async () => {
     const result = (await asTool(ffmpeg).process(
-      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      localWorkspaceContext("/tmp"),
       { args: ["-i", "/etc/passwd", "out.wav"] }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/outside the workspace/);
@@ -415,7 +428,7 @@ describe("ffmpeg and yt_dlp capabilities", () => {
 
   it("ffmpeg refuses a network input", async () => {
     const result = (await asTool(ffmpeg).process(
-      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      localWorkspaceContext("/tmp"),
       { args: ["-i", "http://169.254.169.254/latest/meta-data/", "out.txt"] }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/Only workspace files are readable/);
@@ -423,7 +436,7 @@ describe("ffmpeg and yt_dlp capabilities", () => {
 
   it("ffmpeg refuses an output_file that escapes the workspace", async () => {
     const result = (await asTool(ffmpeg).process(
-      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      localWorkspaceContext("/tmp"),
       { args: ["-i", "in.mp4"], output_file: "../../etc/cron.d/x" }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/outside the workspace/);
@@ -436,7 +449,7 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     ["http://[::ffff:127.0.0.1]/x.mp4", /internal\/private address/]
   ])("yt_dlp refuses %s", async (url, expected) => {
     const result = (await asTool(ytDlp).process(
-      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      localWorkspaceContext("/tmp"),
       { url }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(expected);
@@ -444,7 +457,7 @@ describe("ffmpeg and yt_dlp capabilities", () => {
 
   it("yt_dlp refuses a format that would be read as an option", async () => {
     const result = (await asTool(ytDlp).process(
-      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      localWorkspaceContext("/tmp"),
       { url: "https://example.com/v", format: "--exec" }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/cannot start with/);
@@ -452,7 +465,7 @@ describe("ffmpeg and yt_dlp capabilities", () => {
 
   it("yt_dlp refuses an output template that escapes the workspace", async () => {
     const result = (await asTool(ytDlp).process(
-      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      localWorkspaceContext("/tmp"),
       {
         url: "https://example.com/v",
         output_file: "../../root/.ssh/authorized_keys"

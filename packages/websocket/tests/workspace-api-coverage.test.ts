@@ -40,7 +40,10 @@ beforeEach(async () => {
   findMock.mockResolvedValue({
     id: "ws1",
     path: tmpDir,
-    isManaged: () => false
+    isManaged: () => false,
+    // A row with an absolute path is a local workspace, which is what
+    // `workspaceFromRow` turns into the Workspace the route reads through.
+    isVirtual: () => false
   });
 });
 
@@ -77,7 +80,8 @@ describe("production guard", () => {
     findMock.mockResolvedValue({
       id: "ws1",
       path: tmpDir,
-      isManaged: () => true
+      isManaged: () => true,
+      isVirtual: () => false
     });
     await fs.writeFile(path.join(tmpDir, "hello.txt"), "hello");
     const res = await handleWorkspaceRequest(

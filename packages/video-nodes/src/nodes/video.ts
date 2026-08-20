@@ -39,7 +39,7 @@ import {
 } from "./ffmpeg-helpers.js";
 import { isObjectLike, isString } from "../type-predicates.js";
 import {
-  resolveSaveTarget,
+  writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -666,10 +666,12 @@ export class LoadVideoFileNode extends BaseNode {
 /**
  * Resolve the destination folder for a save node. An explicit folder wins;
  * otherwise fall back to the run's workspace directory rather than the server
- * process cwd (`.`), which is rarely where a user wants their output.
+ * process cwd (`.`), which is rarely where a user wants their output. A
+ * workspace with no directory (cloud storage) leaves only the cwd — the nodes
+ * that can write through the workspace do so via `writeSavedFile` instead.
  */
 function saveFolder(rawFolder: unknown, context?: ProcessingContext): string {
-  return folderPath(rawFolder) || context?.workspaceDir || ".";
+  return folderPath(rawFolder) || context?.workspace?.localDir || ".";
 }
 
 /** Output handles SaveVideoFileVideoNode.process() emits. */
@@ -725,14 +727,14 @@ export class SaveVideoFileVideoNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<SaveVideoFileVideoNodeOutputs> {
     // dateName resolves to second granularity, so two saves in the same second
     // collide — resolveSaveTarget numbers them rather than overwriting.
-    const p = await resolveSaveTarget({
+    const bytes = await videoBytesAsync(this.video, context);
+    const p = await writeSavedFile({
       folder: this.folder,
       filename: dateName(String(this.filename || "video.mp4")),
       saveToWorkspace: this.save_to_workspace,
-      workspaceDir: context?.workspaceDir
+      workspace: context?.workspace,
+      bytes
     });
-    const bytes = await videoBytesAsync(this.video, context);
-    await fs.writeFile(p, bytes);
     return { output: videoRef(bytes, { uri: `file://${p}` }) };
   }
 }

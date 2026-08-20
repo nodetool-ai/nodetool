@@ -303,4 +303,28 @@ describe("Workspace model", () => {
     // leading dots that would climb out of it are gone.
     expect(dirname(resolve(ws.path))).toBe(resolve(getManagedWorkspacesDir()));
   });
+
+  it("creates a virtual workspace when the deployment keeps them in storage", async () => {
+    process.env["NODETOOL_WORKSPACE_STORAGE"] = "cloud";
+    try {
+      const ws = await Workspace.ensureDefault("u-cloud");
+      // A key prefix, not a path: nothing is created on disk, and the row
+      // survives the machine being replaced.
+      expect(ws.path).toBe("workspaces/u-cloud");
+      expect(ws.isVirtual()).toBe(true);
+      expect(ws.isManaged()).toBe(true);
+      expect(existsSync(ws.path)).toBe(false);
+      // Storage answers for itself, so a virtual workspace is never reported
+      // inaccessible — that verdict would send every cloud run down the
+      // "no workspace" path.
+      expect(ws.isAccessible()).toBe(true);
+    } finally {
+      delete process.env["NODETOOL_WORKSPACE_STORAGE"];
+    }
+  });
+
+  it("treats an absolute path as a local workspace", async () => {
+    const local = await createWorkspace("u-local", "Mine", "/tmp/mine");
+    expect(local.isVirtual()).toBe(false);
+  });
 });

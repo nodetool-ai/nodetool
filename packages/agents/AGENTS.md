@@ -142,12 +142,17 @@ Exposed guest surface: `console`, `fetch`, `sleep`, `getSecret`,
 `crypto.{randomUUID,getRandomValues,digest,hmac}` (WebCrypto-backed — `digest`
 and `hmac` take SHA-1/256/384/512 and accept string or `Uint8Array` input, both
 returning a `Uint8Array`), `workspace.{read,write,list,readBytes,writeBytes,
-stat,root,copy,move,mkdir,remove}` (requires a `ProcessingContext`; `remove`
-deletes one file or one empty directory, never a tree; `copy`/`move` check the
-source for read containment and the destination for write containment;
+stat,root,copy,move,mkdir,remove}` (requires a `ProcessingContext` carrying a
+`Workspace`; `remove` deletes one file or one empty directory, never a tree;
 `stat` returns `{exists, size, isDirectory, isFile, isSymlink, modifiedMs,
 createdMs, accessedMs}` and reports a missing path as `exists: false` rather
-than throwing), the pure guest-side helpers
+than throwing). Those calls go through `context.workspace`, not `node:fs`, so a
+Code node behaves the same whether the run's workspace is a folder or a prefix
+in object storage; `root()` answers the real directory when there is one and
+`/workspace` otherwise, and containment is the workspace's own rule rather than
+a symlink check here. `filesystemAccess: "host"` — the `lib.os` escape hatch a
+host opts into, never guest code — still resolves real paths through
+`node:fs`, the pure guest-side helpers
 `toBase64`/`fromBase64`/`toHex`/`fromHex`/`parallelMap`/`createCanvas`
 (UUIDs come from `crypto.randomUUID` and UTF-8 from the native
 `TextEncoder`/`TextDecoder` — the old `uuid`/`utf8Encode`/`utf8Decode`

@@ -28,7 +28,6 @@ import {
   isRecord,
   isString
 } from "./lib/wire-values.js";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
 import {
   resourceEvents,
   type ResourceChangePayload
@@ -111,7 +110,8 @@ import {
   getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
   isProviderMessageEvent,
-  type ActiveModelSelection
+  type ActiveModelSelection,
+  type Workspace
 } from "@nodetool-ai/runtime";
 import {
   isRawRgbaImage,
@@ -1191,7 +1191,12 @@ function createRuntimeContext(opts: {
   workflowId?: string | null;
   threadId?: string | null;
   userId: string;
-  workspaceDir: string | null;
+  /**
+   * The run's workspace — a local folder or a prefix in the deployment's
+   * object storage, resolved by `workspaceResolver`. Null when the host wired
+   * none, and file operations then say so instead of writing elsewhere.
+   */
+  workspace: Workspace | null;
   authToken?: string | null;
   assetOutputMode?:
     | "native"
@@ -1204,14 +1209,6 @@ function createRuntimeContext(opts: {
 }): RuntimeProcessingContext {
   const storagePath = getAssetStoragePath();
   const tempAdapter = getTempAdapter();
-  // The agent's "workspace" — where file_read / file_write / file_list land.
-  // Local: a FileStorageAdapter rooted at workspaceDir. Cloud: callers can
-  // wire a different StorageAdapter when constructing the runner; for now
-  // we fall back to a workspaceDir-backed FileStorageAdapter when one is
-  // present, leaving cloud wiring to the deployment-specific runner.
-  const workspaceAdapter = opts.workspaceDir
-    ? new FileStorageAdapter(opts.workspaceDir)
-    : null;
   const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
@@ -1222,7 +1219,10 @@ function createRuntimeContext(opts: {
     // `x-user-id` and 404s for every user but `1` — the reference then reached
     // the provider verbatim and died in the SSRF guard.
     assetStorage: getAssetAdapter(),
-    workspaceStorage: workspaceAdapter,
+    // Where file_read / file_write / file_list land. A folder on a local
+    // install, a key prefix in the asset bucket on a cloud one — the tools
+    // cannot tell which and do not branch on it.
+    workspace: opts.workspace,
     authToken: opts.authToken,
     tempUrlResolver: createTempUrlResolver(tempAdapter, storagePath)
   });
@@ -2045,7 +2045,7 @@ export interface UnifiedWebSocketRunnerOptions {
   workspaceResolver?: (
     workflowId: string | null,
     userId: string
-  ) => Promise<string | null>;
+  ) => Promise<Workspace | null>;
   /** Called before a workflow job starts — used to lazily connect the Python bridge. */
   beforeRunJob?: (graph: {
     nodes: ReadonlyArray<NodeDescriptor>;
@@ -3634,7 +3634,7 @@ export class UnifiedWebSocketRunner {
     }
     const preRunMs = performance.now() - phaseStartedAt;
 
-    const workspaceDir = this.workspaceResolver
+    const workspace = this.workspaceResolver
       ? await this.workspaceResolver(workflowId ?? null, userId)
       : null;
 
@@ -3642,7 +3642,7 @@ export class UnifiedWebSocketRunner {
       jobId,
       workflowId,
       userId,
-      workspaceDir,
+      workspace,
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url",
       persistOutputAssets: executionOptions.assetPersistence === "auto"
     });
@@ -5298,7 +5298,7 @@ export class UnifiedWebSocketRunner {
       jobId,
       workflowId: null,
       userId,
-      workspaceDir: this.workspaceResolver
+      workspace: this.workspaceResolver
         ? await this.workspaceResolver(null, userId)
         : null,
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
@@ -5811,7 +5811,7 @@ export class UnifiedWebSocketRunner {
     // A chat turn without a workflow still resolves a workspace — the user's
     // default one. It used to fall back to the whole OS temp dir, which is
     // neither bounded nor anywhere the user would look for what an agent wrote.
-    const chatWorkspaceDir = this.workspaceResolver
+    const chatWorkspace = this.workspaceResolver
       ? await this.workspaceResolver(workflowId ?? null, userId)
       : null;
     const ctx = createRuntimeContext({
@@ -5819,7 +5819,7 @@ export class UnifiedWebSocketRunner {
       workflowId,
       threadId: threadId || null,
       userId,
-      workspaceDir: chatWorkspaceDir,
+      workspace: chatWorkspace,
       authToken: this.authToken
     });
     const detachPredictions = attachChatPredictionForwarder(
@@ -6257,7 +6257,7 @@ export class UnifiedWebSocketRunner {
         executeTool: useTools ? effectiveExecuteTool : undefined,
         maxIterations: MAX_TOOL_ROUNDS,
         sequentialTools: session ? true : undefined,
-        workspaceDir: chatWorkspaceDir ?? undefined,
+        workspaceDir: chatWorkspace?.localDir ?? undefined,
         signal
       })) {
         // A newer turn has taken over. Stop driving the client, but do NOT
@@ -7654,14 +7654,14 @@ export class UnifiedWebSocketRunner {
       }
 
       // Create processing context
-      const workspaceDir = this.workspaceResolver
+      const workspace = this.workspaceResolver
         ? await this.workspaceResolver(workflowId, userId)
         : null;
       const context = createRuntimeContext({
         jobId,
         workflowId,
         userId,
-        workspaceDir,
+        workspace,
         assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
       });
 

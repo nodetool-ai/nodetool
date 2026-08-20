@@ -13,10 +13,12 @@
  * not create itself.
  */
 
-import { stat, readdir, access } from "node:fs/promises";
+import { stat, access } from "node:fs/promises";
 import { existsSync, constants } from "node:fs";
-import { resolve, relative, join, isAbsolute, sep } from "node:path";
+import { isAbsolute } from "node:path";
 import { Workspace } from "@nodetool-ai/models";
+import type { WorkspaceEntry } from "@nodetool-ai/runtime";
+import { workspaceFromRow } from "../../lib/workflow-workspace.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -218,58 +220,58 @@ export const workspaceRouter = router({
     .input(listFilesInput)
     .output(listFilesOutput)
     .query(async ({ ctx, input }) => {
-      const workspace = await Workspace.find(ctx.userId, input.id);
-      if (!workspace) {
+      const row = await Workspace.find(ctx.userId, input.id);
+      if (!row) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Workspace not found");
       }
-      requireReadable(workspace);
+      requireReadable(row);
 
-      const queryPath = input.path;
-      if (queryPath.startsWith("/")) {
+      if (input.path.startsWith("/")) {
         throwApiError(
           ApiErrorCode.INVALID_INPUT,
           "Absolute paths not allowed, use relative paths"
         );
       }
 
-      const workspacePath = resolve(workspace.path);
-      const resolvedPath = resolve(join(workspacePath, queryPath));
-
-      // Path traversal check — boundary-safe: a sibling like `/tmp/ws-evil`
-      // would pass a naive `startsWith("/tmp/ws")`, so use `path.relative`
-      // and require the result to be empty or a non-`..` relative path.
-      const rel = relative(workspacePath, resolvedPath);
-      // Segment-aware traversal check: a bare `startsWith("..")` also rejects a
-      // legitimate in-workspace entry named e.g. `..config`. Only `..` alone or
-      // a leading `../` segment actually escapes the workspace.
-      if (rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel)) {
-        throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+      // Listing goes through the workspace, so a cloud workspace (a prefix in
+      // object storage) browses exactly like a local folder. Containment is
+      // the workspace's own rule — there is no path arithmetic to get wrong
+      // here any more.
+      const workspace = workspaceFromRow(row);
+      if (!workspace) {
+        throwApiError(
+          ApiErrorCode.INTERNAL_ERROR,
+          "Workspace storage is not configured"
+        );
       }
 
-      let entries: string[];
+      let entries: WorkspaceEntry[];
       try {
-        entries = await readdir(resolvedPath);
-      } catch {
+        entries = await workspace.list(input.path === "." ? "" : input.path);
+      } catch (err) {
+        if (err instanceof Error && err.name === "WorkspacePathError") {
+          throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+        }
         throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
       }
 
-      const files: FileEntry[] = [];
-      for (const entry of entries) {
-        const entryRelative = join(queryPath === "." ? "" : queryPath, entry);
-        const fullPath = join(resolvedPath, entry);
-        try {
-          const s = await stat(fullPath);
-          files.push({
-            name: entry,
-            path: entryRelative,
-            size: s.size,
-            is_dir: s.isDirectory(),
-            modified_at: s.mtime.toISOString()
-          });
-        } catch {
-          // skip inaccessible entries
+      // An empty listing is either an empty directory or a path that is not
+      // there. Only a stat tells them apart, and the client shows a different
+      // thing for each — an empty folder, or an error.
+      if (entries.length === 0 && input.path !== "." && input.path !== "") {
+        const info = await workspace.stat(input.path).catch(() => null);
+        if (!info) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
         }
       }
+
+      const files: FileEntry[] = entries.map((entry) => ({
+        name: entry.name,
+        path: entry.path,
+        size: entry.size,
+        is_dir: entry.isDirectory,
+        modified_at: new Date(entry.modifiedAt).toISOString()
+      }));
       return files;
     })
 });

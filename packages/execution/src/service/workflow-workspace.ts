@@ -1,40 +1,74 @@
-import { createLogger } from "@nodetool-ai/config";
-import { Workflow, Workspace, getSecret } from "@nodetool-ai/models";
-import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
+import { createLogger, workspaceStorageKind } from "@nodetool-ai/config";
+import { Workflow, Workspace as WorkspaceRow, getSecret } from "@nodetool-ai/models";
+import {
+  ProcessingContext,
+  createLocalWorkspace,
+  createWorkspace,
+  type StorageAdapter,
+  type Workspace
+} from "@nodetool-ai/runtime";
 
 const log = createLogger("nodetool.execution.workspace");
 
 /**
- * Resolve the on-disk workspace directory for a run.
+ * The object store a cloud deployment keeps workspaces in.
  *
- * Workspace selection is stored on the workflow (`workflow.workspace_id`); this
- * maps it to the workspace's absolute `path`, gated on ownership and the folder
- * still being present and writable. When the workflow names no workspace — or
- * there is no workflow at all, which is every chat turn — the run falls back to
- * the user's default workspace, creating the managed folder on first use.
+ * Injected by the host rather than constructed here: `@nodetool-ai/execution`
+ * has no storage dependency, and the server already builds exactly one asset
+ * adapter it wants reused (connection pools, credentials).
+ */
+let cloudStorage: StorageAdapter | null = null;
+
+/** Called once at startup by a host that serves cloud workspaces. */
+export function setWorkspaceCloudStorage(storage: StorageAdapter | null): void {
+  cloudStorage = storage;
+}
+
+/** Build the {@link Workspace} a workspace row describes. */
+export function workspaceFromRow(row: WorkspaceRow): Workspace | null {
+  if (!row.isVirtual()) return createLocalWorkspace(row.path);
+  if (!cloudStorage) {
+    log.warn(
+      "A virtual workspace was requested but no cloud storage is configured",
+      { workspaceId: row.id }
+    );
+    return null;
+  }
+  return createWorkspace(cloudStorage, { prefix: row.path });
+}
+
+/**
+ * Resolve the workspace a run reads and writes in.
  *
- * It therefore answers with a directory in all but one case: the database or
- * the filesystem refused, and the caller runs without a workspace root. Nothing
- * routine reaches that branch, so a run no longer scatters its files across the
- * OS temp dir where the user cannot find them.
+ * Selection is stored on the workflow (`workflow.workspace_id`); this maps it
+ * to a {@link Workspace}, gated on ownership and the workspace still being
+ * usable. When the workflow names none — or there is no workflow at all, which
+ * is every chat turn — the run falls back to the user's default workspace,
+ * created on first use.
  *
- * Every execution path that starts a run must call this so the workspace is
- * applied consistently — not just the streaming WebSocket runner.
+ * What comes back is an interface, not a directory: a local install gets one
+ * over a real folder and a cloud deployment one over its object storage, and
+ * nothing downstream can tell which. It answers null only when the database or
+ * the storage refused, and a caller that gets null must report that rather than
+ * writing somewhere else.
  */
 export async function resolveWorkflowWorkspace(
   workflowId: string | null,
   userId: string
-): Promise<string | null> {
+): Promise<Workspace | null> {
   try {
     if (workflowId) {
       const workflow = await Workflow.find(userId, workflowId);
       if (workflow?.workspace_id) {
-        const workspace = await Workspace.find(userId, workflow.workspace_id);
-        if (workspace?.isAccessible()) return workspace.path;
+        const row = await WorkspaceRow.find(userId, workflow.workspace_id);
+        if (row?.isAccessible()) {
+          const workspace = workspaceFromRow(row);
+          if (workspace) return workspace;
+        }
       }
     }
-    const fallback = await Workspace.ensureDefault(userId);
-    return fallback.isAccessible() ? fallback.path : null;
+    const fallback = await WorkspaceRow.ensureDefault(userId);
+    return fallback.isAccessible() ? workspaceFromRow(fallback) : null;
   } catch (err) {
     log.warn("Failed to resolve run workspace", {
       workflowId,
@@ -43,6 +77,25 @@ export async function resolveWorkflowWorkspace(
     });
     return null;
   }
+}
+
+/**
+ * The directory a run's workspace lives in, or null when it is virtual.
+ *
+ * Only for the few callers that still need a real path (host binaries). Prefer
+ * {@link resolveWorkflowWorkspace} and the {@link Workspace} interface, which
+ * work on both deployments.
+ */
+export async function resolveWorkflowWorkspaceDir(
+  workflowId: string | null,
+  userId: string
+): Promise<string | null> {
+  return (await resolveWorkflowWorkspace(workflowId, userId))?.localDir ?? null;
+}
+
+/** True when this deployment keeps workspaces in object storage. */
+export function usesCloudWorkspaces(): boolean {
+  return workspaceStorageKind() === "cloud";
 }
 
 /**
@@ -62,7 +115,7 @@ export function buildWorkspaceExecutionContext(opts: {
   jobId: string;
   workflowId?: string | null;
   userId: string;
-  workspaceDir: string | null;
+  workspace: Workspace | null;
   /** Overrides the per-user DB lookup (tests, a host with its own store). */
   secretResolver?: (
     key: string,
@@ -73,10 +126,7 @@ export function buildWorkspaceExecutionContext(opts: {
     jobId: opts.jobId,
     workflowId: opts.workflowId ?? null,
     userId: opts.userId,
-    workspaceDir: opts.workspaceDir,
-    workspaceStorage: opts.workspaceDir
-      ? new FileStorageAdapter(opts.workspaceDir)
-      : null,
+    workspace: opts.workspace,
     secretResolver:
       opts.secretResolver ??
       ((key: string, userId: string) => getSecret(key, userId))

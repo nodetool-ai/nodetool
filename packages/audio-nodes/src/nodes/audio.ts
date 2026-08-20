@@ -11,7 +11,7 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
   loadNodePath,
-  resolveSaveTarget,
+  writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -480,14 +480,13 @@ export class SaveAudioFileNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<SaveAudioFileNodeOutputs> {
     const audio = this.audio;
-    const fs = await loadNodeFsPromises();
-    const p = await resolveSaveTarget({
+    const p = await writeSavedFile({
       folder: this.folder,
       filename: dateName(String(this.filename || "audio.wav")),
       saveToWorkspace: this.save_to_workspace,
-      workspaceDir: context?.workspaceDir
+      workspace: context?.workspace,
+      bytes: audioBytes(audio)
     });
-    await fs.writeFile(p, audioBytes(audio));
     return { output: p };
   }
 }

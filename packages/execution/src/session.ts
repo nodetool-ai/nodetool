@@ -248,7 +248,7 @@ export class ExecutionSession {
         jobId,
         workflowId,
         userId: "1",
-        workspaceDir: null
+        workspace: null
       });
 
     const resolveExecutor =

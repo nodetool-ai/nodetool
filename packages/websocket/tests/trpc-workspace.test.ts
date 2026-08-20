@@ -41,6 +41,14 @@ vi.mock("node:fs", async (orig) => {
 
 import { Workspace } from "@nodetool-ai/models";
 import { stat, readdir, access } from "node:fs/promises";
+import {
+  mkdtemp as realMkdtemp,
+  mkdir as realMkdir,
+  rm as realRm,
+  writeFile as realWriteFile
+} from "node:fs/promises";
+import { tmpdir as realTmpdir } from "node:os";
+import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { basename } from "node:path";
 
@@ -79,6 +87,9 @@ function makeWorkspace(opts: {
     updated_at: opts.updated_at ?? "2026-01-01T00:00:00Z",
     isAccessible: vi.fn().mockReturnValue(opts.is_accessible ?? true),
     isManaged: vi.fn().mockReturnValue(opts.is_managed ?? false),
+    // listFiles reads through the Workspace `workspaceFromRow` builds; an
+    // absolute path means a local one.
+    isVirtual: vi.fn().mockReturnValue(!opts.path?.startsWith("/") ?? false),
     save: vi.fn().mockResolvedValue(undefined),
     delete: vi.fn().mockResolvedValue(undefined)
   };
@@ -363,31 +374,31 @@ describe("workspace router", () => {
   });
 
   // ── listFiles ───────────────────────────────────────────────────
+  //
+  // These run against a real temp directory rather than mocked `readdir`/
+  // `stat`: the router reads through the run's `Workspace` now, so mocking
+  // `node:fs` would test nothing the router still calls.
   describe("listFiles", () => {
+    let dir: string;
+
+    beforeEach(async () => {
+      dir = await realMkdtemp(join(realTmpdir(), "trpc-ws-list-"));
+    });
+
+    afterEach(async () => {
+      await realRm(dir, { recursive: true, force: true });
+    });
+
     it("lists entries in the workspace root", async () => {
-      const ws = makeWorkspace({ id: "w1", path: "/home/user/ws" });
+      await realWriteFile(join(dir, "file.txt"), "x".repeat(123));
+      await realMkdir(join(dir, "sub"), { recursive: true });
+      await realWriteFile(join(dir, "sub", "inner.txt"), "y");
+
+      const ws = makeWorkspace({ id: "w1", path: dir });
       (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
-      (readdir as ReturnType<typeof vi.fn>).mockResolvedValue([
-        "file.txt",
-        "sub"
-      ]);
-      const mtime = new Date("2026-04-01T12:00:00Z");
-      // basename() instead of endsWith("/...") — the router joins paths with
-      // the platform separator, which is a backslash on Windows.
-      (stat as ReturnType<typeof vi.fn>).mockImplementation(
-        (p: string) =>
-          Promise.resolve({
-            isDirectory: () => basename(p) === "sub",
-            size: basename(p) === "file.txt" ? 123 : 0,
-            mtime
-          })
-      );
 
       const caller = createCaller(makeCtx());
-      const result = await caller.workspace.listFiles({
-        id: "w1",
-        path: "."
-      });
+      const result = await caller.workspace.listFiles({ id: "w1", path: "." });
       expect(result).toHaveLength(2);
       const file = result.find((f) => f.name === "file.txt");
       expect(file?.size).toBe(123);
@@ -397,13 +408,11 @@ describe("workspace router", () => {
     });
 
     it("defaults path to '.'", async () => {
-      const ws = makeWorkspace({ id: "w1", path: "/home/user/ws" });
+      const ws = makeWorkspace({ id: "w1", path: dir });
       (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
-      (readdir as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       const caller = createCaller(makeCtx());
-      const result = await caller.workspace.listFiles({ id: "w1" });
-      expect(result).toEqual([]);
+      expect(await caller.workspace.listFiles({ id: "w1" })).toEqual([]);
     });
 
     it("throws NOT_FOUND when workspace does not exist", async () => {

@@ -14,7 +14,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 
 import {
-  FileStorageAdapter,
+  createLocalWorkspace,
   ProcessingContext,
   type BaseProvider
 } from "@nodetool-ai/runtime";
@@ -279,8 +279,7 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
   const ctx = new ProcessingContext({
     jobId: `agent-${Date.now()}`,
     userId: "1",
-    workspaceDir,
-    workspaceStorage: new FileStorageAdapter(workspaceDir),
+    workspace: createLocalWorkspace(workspaceDir),
     secretResolver: getSecret
   });
   for (const [id, p] of Object.entries(configuredProviders)) {

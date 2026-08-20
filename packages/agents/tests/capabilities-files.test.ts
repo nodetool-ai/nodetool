@@ -16,7 +16,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import {
   FILE_CAPABILITIES,
   _resetTodoStoreForTests,
@@ -36,14 +36,16 @@ let workspace: string;
 let posted: unknown[];
 
 /**
- * One context serving both halves of the module: `workspaceStorage` for the
- * storage-backed file tools, `resolveWorkspacePath` for the path-backed edit
- * and search tools, over the same temp directory.
+ * A context over a real temp directory. Every file capability now reads
+ * `context.workspace`; the assertions below still check the bytes on disk,
+ * which is what makes them a test of the local backend rather than of the
+ * interface. `capabilities-files-virtual.test.ts` runs the same tools over an
+ * object store and asserts the same behavior.
  */
 function contextFor(dir: string): ProcessingContext {
   const variables = new Map<string, unknown>();
   return {
-    workspaceStorage: new FileStorageAdapter(dir),
+    workspace: createLocalWorkspace(dir),
     threadId: "thread-files",
     workflowId: null,
     get<T>(key: string): T | undefined {

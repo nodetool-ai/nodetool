@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import {
   runInSandbox,
   buildSandbox,
@@ -366,6 +367,7 @@ describe("buildSandbox workspace symlink containment", () => {
       await writeFile(join(outside, "secret.txt"), "SECRET\n");
       await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
       const context = {
+        workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
       } as never;
       const { sandbox } = buildSandbox(context);
@@ -1370,7 +1372,8 @@ describe("runInSandbox workspace binary I/O", () => {
     const { join, isAbsolute } = await import("node:path");
     const dir = await mkdtemp(join(tmpdir(), "sbx-bin-"));
     const context = {
-      resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(dir, p))
+      workspace: createLocalWorkspace(dir),
+        resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(dir, p))
     } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
     try {
       await fn(context, dir);
@@ -1461,13 +1464,18 @@ describe("runInSandbox workspace binary I/O", () => {
     try {
       await writeFile(join(outside, "secret.txt"), "SECRET");
       const context = {
+        workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
       } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
       const code = `return await workspace.read(${JSON.stringify(join(outside, "secret.txt"))});`;
 
+      // An absolute path is read as workspace-relative, so the guest lands on
+      // `<ws>/tmp/…/secret.txt` — which is not there. What matters is that the
+      // real secret never comes back; whether the refusal reads as "missing"
+      // or "outside" is not the security property.
       const confined = await runInSandbox({ code, context });
       expect(confined.success).toBe(false);
-      expect(confined.error).toMatch(/outside the workspace/i);
+      expect(JSON.stringify(confined)).not.toContain("SECRET");
 
       const hostMode = await runInSandbox({
         code,
@@ -1484,7 +1492,7 @@ describe("runInSandbox workspace binary I/O", () => {
         globals: { filesystemAccess: "host" }
       });
       expect(spoofed.success).toBe(false);
-      expect(spoofed.error).toMatch(/outside the workspace/i);
+      expect(JSON.stringify(spoofed)).not.toContain("SECRET");
     } finally {
       await rm(ws, { recursive: true, force: true });
       await rm(outside, { recursive: true, force: true });
@@ -1619,6 +1627,7 @@ describe("runInSandbox workspace binary I/O", () => {
       await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
       await symlink(outside, join(ws, "outdir"));
       const context = {
+        workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
       } as never;
       const { sandbox } = buildSandbox(context);
@@ -1637,10 +1646,10 @@ describe("runInSandbox workspace binary I/O", () => {
       await expect(
         workspace.move("inside.txt", "outdir/planted.txt")
       ).rejects.toThrow(/outside the workspace/i);
-      // Absolute escape, no symlink involved.
-      await expect(
-        workspace.copy("inside.txt", join(outside, "planted.txt"))
-      ).rejects.toThrow(/outside the workspace/i);
+      // Absolute escape, no symlink involved: the destination is read as
+      // workspace-relative, so the copy lands inside the workspace. The
+      // property under test is that nothing is planted outside it.
+      await workspace.copy("inside.txt", join(outside, "planted.txt"));
       expect(await readdir(outside)).toEqual(["secret.txt"]);
     } finally {
       await rm(ws, { recursive: true, force: true });
@@ -1659,6 +1668,7 @@ describe("runInSandbox workspace binary I/O", () => {
       await writeFile(join(outside, "secret.bin"), "SECRET");
       await symlink(join(outside, "secret.bin"), join(ws, "link.bin"));
       const context = {
+        workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
       } as never;
       const { sandbox } = buildSandbox(context);

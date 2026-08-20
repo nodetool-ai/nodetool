@@ -56,9 +56,7 @@ export async function runOnServer(
   // Match a server run's workspace assignment so file/workspace nodes land in
   // the same place a real run would.
   const { resolveWorkflowWorkspace } = await import("@nodetool-ai/websocket");
-  const workspaceDir = workflowId
-    ? await resolveWorkflowWorkspace(workflowId, "1")
-    : null;
+  const workspace = await resolveWorkflowWorkspace(workflowId ?? null, "1");
 
   const context = new ProcessingContext({
     jobId,
@@ -66,8 +64,7 @@ export async function runOnServer(
     userId: "1",
     secretResolver: getSecret,
     storage: new FileStorageAdapter(getDefaultAssetsPath()),
-    workspaceDir,
-    workspaceStorage: workspaceDir ? new FileStorageAdapter(workspaceDir) : null
+    workspace
   });
 
   // ExecutionSession owns editor-only-node pruning (Comment/Group/Reroute —

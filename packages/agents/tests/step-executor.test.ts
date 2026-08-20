@@ -8,6 +8,7 @@ import type { Tool } from "../src/tools/base-tool.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 
 /**
  * Minimal mock provider that returns a single assistant message
@@ -90,6 +91,7 @@ function createMockContext(
   return asProcessingContext({
     memory: new AgentMemory(),
     workspaceDir: null,
+    workspace: null,
     storeStepResult: vi.fn(async (key: string, value: unknown) => {
       store.set(key, value);
       return key;
@@ -1070,7 +1072,11 @@ describe("StepExecutor", () => {
         uri: "asset://persisted-artifact",
         asset_id: "persisted-artifact"
       });
-      const context = createMockContext({ sandboxToAsset, workspaceDir: root });
+      const context = createMockContext({
+        sandboxToAsset,
+        workspaceDir: root,
+        workspace: createLocalWorkspace(root)
+      });
 
       const executor = new StepExecutor({
         task,
@@ -1088,7 +1094,9 @@ describe("StepExecutor", () => {
       expect(sandboxToAsset).toHaveBeenCalled();
       const firstArg = sandboxToAsset.mock.calls[0]?.[0];
       expect(typeof firstArg).toBe("string");
-      expect(String(firstArg)).toContain("/artifacts/artifact_");
+      // A workspace path, not a host path: the artifact is written through
+      // the workspace, so what is recorded is what every other tool takes.
+      expect(String(firstArg)).toContain("artifacts/artifact_");
       expect(executor.getSources()).toContain("asset://persisted-artifact");
     } finally {
       await rm(root, { recursive: true, force: true });

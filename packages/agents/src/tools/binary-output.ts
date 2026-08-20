@@ -105,7 +105,7 @@ function buildDisplayMarkdown(
 }
 
 interface PersistBinaryOptions {
-  /** Optional workspace key. When set, bytes are also stored in `context.workspaceStorage`. */
+  /** Optional workspace path. When set, bytes are also written to `context.workspace`. */
   outputFile?: string;
   /** MIME type for storage + UI resolution. */
   contentType: string;
@@ -131,9 +131,9 @@ export async function persistBinaryOutput(
   const errors: { workspace?: string; asset?: string } = {};
 
   // Workspace copy — read by downstream tools that take `output_file`.
-  if (opts.outputFile && context.workspaceStorage) {
+  if (opts.outputFile && context.workspace) {
     try {
-      await context.workspaceStorage.store(
+      await context.workspace.write(
         opts.outputFile,
         bytes,
         opts.contentType

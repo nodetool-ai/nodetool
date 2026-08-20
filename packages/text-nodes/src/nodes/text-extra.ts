@@ -14,7 +14,7 @@ import {
   loadNodeFsPromises,
   loadNodePath,
   folderPathOf,
-  resolveSaveTarget,
+  writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -336,19 +336,19 @@ export class SaveTextFileNode extends BaseNode {
     const text = String(this.text ?? "");
     const saveToWorkspace = this.save_to_workspace === true;
     const folder = folderPathOf(this.folder);
-    if (!folder && !(saveToWorkspace && context?.workspaceDir)) {
+    if (!folder && !(saveToWorkspace && context?.workspace)) {
       throw new Error(
         "No destination: set a folder, or turn on \"Save to workspace\" and assign a workspace to this workflow."
       );
     }
     const fs = await loadNodeFsPromises();
-    const fsPath = await resolveSaveTarget({
+    const fsPath = await writeSavedFile({
       folder: this.folder,
       filename: formatFilename(String(this.name ?? "output.txt")),
       saveToWorkspace,
-      workspaceDir: context?.workspaceDir
+      workspace: context?.workspace,
+      bytes: text
     });
-    await fs.writeFile(fsPath, text, "utf-8");
     // The output `uri` is a portable, URI-style path (forward slashes) so
     // downstream nodes and the web UI never have to special-case Windows.
     const uri = fsPath.replace(/\\/g, "/");

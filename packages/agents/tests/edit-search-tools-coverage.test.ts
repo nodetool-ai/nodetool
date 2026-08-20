@@ -14,22 +14,25 @@ import { mkdtemp, rm, readFile, writeFile, mkdir, utimes } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { join, isAbsolute } from "node:path";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 
 let workspace: string;
 
 function ctxFor(dir: string) {
   return {
+    workspace: createLocalWorkspace(dir),
     resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(dir, p))
   } as any;
 }
 
 /** A context whose path resolution always throws — simulates escape attempts. */
-function throwingCtx(message = "path escapes workspace") {
-  return {
-    resolveWorkspacePath: () => {
-      throw new Error(message);
-    }
-  } as any;
+/**
+ * A context whose run has no workspace at all. Containment is the workspace's
+ * own rule now, so "path resolution throws" is not a state a caller can inject
+ * — what it stood for is covered by the `../escape` cases below.
+ */
+function noWorkspaceCtx() {
+  return { workspace: null } as any;
 }
 
 beforeEach(async () => {
@@ -83,14 +86,24 @@ describe("EditFileTool — validation and error paths", () => {
     expect(res.error).toMatch(/must be different/);
   });
 
-  it("returns the error when path resolution throws", async () => {
-    const res: any = await tool.process(throwingCtx("bad path"), {
+  it("says so when the run has no workspace", async () => {
+    const res: any = await tool.process(noWorkspaceCtx(), {
+      path: "f.txt",
+      old_string: "a",
+      new_string: "b"
+    });
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/No workspace/);
+  });
+
+  it("refuses a path that climbs out of the workspace", async () => {
+    const res: any = await tool.process(ctxFor(workspace), {
       path: "../escape",
       old_string: "a",
       new_string: "b"
     });
     expect(res.success).toBe(false);
-    expect(res.error).toBe("bad path");
+    expect(res.error).toMatch(/outside the workspace/i);
   });
 
   it("returns File not found for a non-empty old_string on a missing file", async () => {
@@ -139,19 +152,19 @@ describe("EditFileTool — validation and error paths", () => {
     expect(await readFile(join(workspace, "f.txt"), "utf-8")).toBe("y y y");
   });
 
-  it("rejects creating a file through a missing parent", async () => {
+  it("creates the directories a new file needs", async () => {
+    // The old path-based tool refused a missing parent. Writing through the
+    // workspace creates it, which is the only behavior an object store can
+    // have — there are no directories there to be missing.
     const res: any = await tool.process(ctxFor(workspace), {
       path: "no/such/dir/file.txt",
       old_string: "",
       new_string: "content"
     });
-    expect(res.success).toBe(false);
-    expect(res.error).toMatch(/Path resolves outside the workspace/);
+    expect(res).toMatchObject({ success: true, created: true });
   });
 
-  it("reports failure when editing but writing back fails", async () => {
-    // Create a subdir, then target the directory itself as a file: readFile of
-    // a directory rejects, hitting the outer catch.
+  it("reports a directory targeted as a file as not found", async () => {
     await mkdir(join(workspace, "adir"));
     const res: any = await tool.process(ctxFor(workspace), {
       path: "adir",
@@ -159,7 +172,7 @@ describe("EditFileTool — validation and error paths", () => {
       new_string: "y"
     });
     expect(res.success).toBe(false);
-    expect(res.error).toMatch(/Failed to edit file/);
+    expect(res.error).toMatch(/File not found/);
   });
 
   it("only replaces the first occurrence when replace_all is false and unique context differs", async () => {
@@ -189,13 +202,13 @@ describe("GlobTool", () => {
     expect(res.error).toMatch(/pattern must be a string/);
   });
 
-  it("returns the error when path resolution throws", async () => {
-    const res: any = await tool.process(throwingCtx("nope"), {
+  it("says so when the run has no workspace", async () => {
+    const res: any = await tool.process(noWorkspaceCtx(), {
       pattern: "*.ts",
       path: "../x"
     });
     expect(res.success).toBe(false);
-    expect(res.error).toBe("nope");
+    expect(res.error).toMatch(/No workspace/);
   });
 
   it("matches brace-expansion patterns", async () => {
@@ -278,13 +291,13 @@ describe("GrepTool", () => {
     expect(res.error).toMatch(/pattern must be a string/);
   });
 
-  it("returns the error when path resolution throws", async () => {
-    const res: any = await tool.process(throwingCtx("escape"), {
+  it("says so when the run has no workspace", async () => {
+    const res: any = await tool.process(noWorkspaceCtx(), {
       pattern: "x",
-      path: "../y"
+      path: "y"
     });
     expect(res.success).toBe(false);
-    expect(res.error).toBe("escape");
+    expect(res.error).toMatch(/No workspace/);
   });
 
   it("reports an invalid regex", async () => {
@@ -295,13 +308,25 @@ describe("GrepTool", () => {
     expect(res.error).toMatch(/Invalid regex/);
   });
 
-  it("rejects a missing search path", async () => {
+  it("reports a missing search path as missing", async () => {
+    // The path-based tool answered "resolves outside the workspace" for
+    // anything it could not stat, which told the model to stop rather than to
+    // create the file. Absent and out-of-bounds are different answers now.
     const res: any = await tool.process(ctxFor(workspace), {
       pattern: "x",
       path: "does-not-exist"
     });
     expect(res.success).toBe(false);
-    expect(res.error).toMatch(/Path resolves outside the workspace/);
+    expect(res.error).toMatch(/Path not found/);
+  });
+
+  it("refuses a search path that climbs out of the workspace", async () => {
+    const res: any = await tool.process(ctxFor(workspace), {
+      pattern: "x",
+      path: "../elsewhere"
+    });
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/outside the workspace/i);
   });
 
   it("searches a single file when path is a file", async () => {
@@ -314,7 +339,9 @@ describe("GrepTool", () => {
     expect(res.match_count).toBe(1);
     expect(res.matches[0].line).toBe(2);
     expect(res.matches[0].content).toBe("two");
-    expect(res.matches[0].file).toBe("");
+    // Named, not empty: a single-file search reports the file relative to its
+    // own directory, so the match says which file it came from.
+    expect(res.matches[0].file).toBe("f.txt");
   });
 
   it("returns no matches when the pattern is absent", async () => {

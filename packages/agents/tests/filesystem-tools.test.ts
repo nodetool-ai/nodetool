@@ -16,6 +16,7 @@ import {
   getAllTools
 } from "../src/tools/tool-registry.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import {
   FileStorageAdapter,
   InMemoryStorageAdapter,
@@ -27,14 +28,14 @@ import {
 let tempDir: string;
 
 function makeMockContext(workspaceDir: string): ProcessingContext {
-  // The new file-tool surface routes everything through context.workspaceStorage.
+  // The file-tool surface routes everything through context.workspace.
   // Tests use a real FileStorageAdapter rooted at the tmpdir so files
   // written via fs.writeFileSync (test setup) round-trip through the same
   // root storage adapter sees.
-  const workspaceStorage = new FileStorageAdapter(workspaceDir);
+  const workspace = createLocalWorkspace(workspaceDir);
   const variables = new Map<string, unknown>();
   return {
-    workspaceStorage,
+    workspace,
     // get/set back the read-before-write tracker used by WriteFileTool.
     get<T>(key: string): T | undefined {
       return variables.get(key) as T | undefined;

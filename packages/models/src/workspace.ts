@@ -6,7 +6,12 @@
 
 import { existsSync, accessSync, constants, mkdirSync } from "node:fs";
 import { eq, and } from "drizzle-orm";
-import { getManagedWorkspaceDir } from "@nodetool-ai/config";
+import { isAbsolute } from "node:path";
+import {
+  getManagedWorkspaceDir,
+  managedWorkspaceKey,
+  workspaceStorageKind
+} from "@nodetool-ai/config";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workspaces } from "./schema/workspaces.js";
@@ -42,7 +47,23 @@ export class Workspace extends DBModel {
     this.updated_at = new Date().toISOString();
   }
 
+  /**
+   * True when this workspace lives in object storage rather than on a disk.
+   *
+   * Decided by the shape of `path`, which needs no column and cannot drift: a
+   * local workspace's path is validated absolute on the way in (see the
+   * workspace router), so a relative one is a storage key prefix —
+   * `workspaces/<user>` — and nothing else.
+   */
+  isVirtual(): boolean {
+    return !isAbsolute(this.path);
+  }
+
   isAccessible(): boolean {
+    // A virtual workspace has no directory to probe. Storage either answers or
+    // reports its own error at call time; claiming it is inaccessible here
+    // would send every cloud run down the "no workspace" path.
+    if (this.isVirtual()) return true;
     if (!existsSync(this.path)) return false;
     try {
       accessSync(this.path, constants.W_OK);
@@ -113,7 +134,10 @@ export class Workspace extends DBModel {
    * locally-created workspace row might still point at.
    */
   isManaged(): boolean {
-    return this.path === getManagedWorkspaceDir(this.user_id);
+    return (
+      this.path === getManagedWorkspaceDir(this.user_id) ||
+      this.path === managedWorkspaceKey(this.user_id)
+    );
   }
 
   /**
@@ -130,8 +154,12 @@ export class Workspace extends DBModel {
     if (existing) {
       // A managed folder can be missing after a data-dir wipe or a fresh
       // container on the same database — recreate it rather than handing back
-      // an inaccessible workspace.
-      if (existing.isManaged() && !existsSync(existing.path)) {
+      // an inaccessible workspace. A virtual one has nothing to recreate.
+      if (
+        existing.isManaged() &&
+        !existing.isVirtual() &&
+        !existsSync(existing.path)
+      ) {
         mkdirSync(existing.path, { recursive: true });
       }
       return existing;
@@ -143,6 +171,17 @@ export class Workspace extends DBModel {
       first.is_default = true;
       await first.save();
       return first;
+    }
+
+    if (workspaceStorageKind() === "cloud") {
+      // No directory: the workspace is a key prefix in the same bucket the
+      // deployment keeps assets in, so it survives the machine being replaced.
+      return (await Workspace.create({
+        user_id: userId,
+        name: "Default",
+        path: managedWorkspaceKey(userId),
+        is_default: true
+      })) as Workspace;
     }
 
     const path = getManagedWorkspaceDir(userId);

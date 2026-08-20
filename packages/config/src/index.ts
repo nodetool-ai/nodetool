@@ -77,7 +77,9 @@ export {
   getAssetFilePath,
   buildAssetUrl,
   getManagedWorkspacesDir,
-  getManagedWorkspaceDir
+  getManagedWorkspaceDir,
+  managedWorkspaceKey,
+  workspaceStorageKind
 } from "./paths.js";
 
 export {

@@ -37,7 +37,15 @@ vi.mock("@nodetool-ai/runtime", () => ({
     constructor(dir: string) {
       this.dir = dir;
     }
-  }
+  },
+  // The resolver builds a Workspace rather than handing back a path; these
+  // stand in for the real factories so the test can read `localDir` off what
+  // comes back.
+  createLocalWorkspace: (dir: string) => ({ localDir: dir }),
+  createWorkspace: (_storage: unknown, opts: { prefix?: string }) => ({
+    localDir: null,
+    prefix: opts?.prefix
+  })
 }));
 
 import {
@@ -52,23 +60,24 @@ describe("resolveWorkflowWorkspace", () => {
     ensureDefault.mockReset();
     ensureDefault.mockResolvedValue({
       path: "/abs/default",
-      isAccessible: () => true
+      isAccessible: () => true,
+      isVirtual: () => false
     });
   });
 
   it("falls back to the default workspace when the workflow is not found", async () => {
     workflowFind.mockResolvedValue(null);
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBe("/abs/default");
+    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({ localDir: "/abs/default" });
   });
 
   it("falls back to the default workspace when the workflow has none", async () => {
     workflowFind.mockResolvedValue({ workspace_id: null });
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBe("/abs/default");
+    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({ localDir: "/abs/default" });
     expect(workspaceFind).not.toHaveBeenCalled();
   });
 
   it("falls back to the default workspace for a run with no workflow", async () => {
-    expect(await resolveWorkflowWorkspace(null, "user")).toBe("/abs/default");
+    expect(await resolveWorkflowWorkspace(null, "user")).toMatchObject({ localDir: "/abs/default" });
     expect(workflowFind).not.toHaveBeenCalled();
     expect(ensureDefault).toHaveBeenCalledWith("user");
   });
@@ -76,36 +85,39 @@ describe("resolveWorkflowWorkspace", () => {
   it("falls back to the default workspace when the workspace is not found", async () => {
     workflowFind.mockResolvedValue({ workspace_id: "ws1" });
     workspaceFind.mockResolvedValue(null);
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBe("/abs/default");
+    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({ localDir: "/abs/default" });
   });
 
   it("falls back to the default workspace when the chosen one is unusable", async () => {
     workflowFind.mockResolvedValue({ workspace_id: "ws1" });
     workspaceFind.mockResolvedValue({
       path: "/ws",
-      isAccessible: () => false
+      isAccessible: () => false,
+      isVirtual: () => false
     });
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBe("/abs/default");
+    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({ localDir: "/abs/default" });
   });
 
   it("returns null when even the default workspace is unusable", async () => {
     workflowFind.mockResolvedValue({ workspace_id: null });
     ensureDefault.mockResolvedValue({
       path: "/abs/default",
-      isAccessible: () => false
+      isAccessible: () => false,
+      isVirtual: () => false
     });
     expect(await resolveWorkflowWorkspace("wf", "user")).toBeNull();
   });
 
-  it("returns the workspace path when accessible", async () => {
+  it("returns the workflow's own workspace when accessible", async () => {
     workflowFind.mockResolvedValue({ workspace_id: "ws1" });
     workspaceFind.mockResolvedValue({
       path: "/abs/workspace",
-      isAccessible: () => true
+      isAccessible: () => true,
+      isVirtual: () => false
     });
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBe(
-      "/abs/workspace"
-    );
+    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({
+      localDir: "/abs/workspace"
+    });
   });
 
   it("returns null and swallows errors when a lookup throws", async () => {
@@ -120,37 +132,34 @@ describe("resolveWorkflowWorkspace", () => {
 });
 
 describe("buildWorkspaceExecutionContext", () => {
-  it("creates a context with a FileStorageAdapter when workspaceDir is set", () => {
+  it("passes the workspace through to the context", () => {
     const ctx = buildWorkspaceExecutionContext({
       jobId: "j1",
       workflowId: "wf1",
       userId: "u1",
-      workspaceDir: "/ws"
+      workspace: { localDir: "/ws", storage: { dir: "/ws" } }
     }) as any;
     expect(ctx.opts.jobId).toBe("j1");
     expect(ctx.opts.workflowId).toBe("wf1");
     expect(ctx.opts.userId).toBe("u1");
-    expect(ctx.opts.workspaceDir).toBe("/ws");
-    expect(ctx.opts.workspaceStorage).toBeTruthy();
-    expect(ctx.opts.workspaceStorage.dir).toBe("/ws");
+    expect(ctx.opts.workspace.localDir).toBe("/ws");
   });
 
-  it("uses null storage when workspaceDir is null", () => {
+  it("carries a null workspace through", () => {
     const ctx = buildWorkspaceExecutionContext({
       jobId: "j2",
       workflowId: null,
       userId: "u2",
-      workspaceDir: null
+      workspace: null
     }) as any;
-    expect(ctx.opts.workspaceStorage).toBeNull();
-    expect(ctx.opts.workspaceDir).toBeNull();
+    expect(ctx.opts.workspace).toBeNull();
   });
 
   it("defaults workflowId to null when omitted", () => {
     const ctx = buildWorkspaceExecutionContext({
       jobId: "j3",
       userId: "u3",
-      workspaceDir: null
+      workspace: null
     }) as any;
     expect(ctx.opts.workflowId).toBeNull();
   });
