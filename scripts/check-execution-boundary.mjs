@@ -18,7 +18,7 @@
 // (packages/*/tests/**) are out of scope by construction.
 
 import { readdir, readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -120,7 +120,7 @@ for (const entry of packageDirs) {
   if (ALWAYS_ALLOWED_PACKAGES.has(entry.name)) continue;
   const srcDir = join(packagesDir, entry.name, "src");
   for (const file of await collectSourceFiles(srcDir)) {
-    const rel = file.slice(repoRoot.length + 1);
+    const rel = relative(repoRoot, file).replaceAll("\\", "/");
     if (ALLOWLIST.has(rel)) continue;
     const source = await readFile(file, "utf8");
     if (kernelImportedNames(source).has("WorkflowRunner")) {
