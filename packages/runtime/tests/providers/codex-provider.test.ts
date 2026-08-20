@@ -34,7 +34,7 @@ describe("CodexProvider", () => {
   });
 
   it("lists the account's models from the live /models endpoint", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
           models: [{ slug: "gpt-5.5", display_name: "GPT-5.5" }]
@@ -44,6 +44,10 @@ describe("CodexProvider", () => {
     );
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const models = await provider.getAvailableLanguageModels();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `${CODEX_BACKEND_BASE_URL}/models?client_version=0.147.0`,
+      expect.any(Object)
+    );
     expect(models.map((m) => m.id)).toEqual(["gpt-5.5"]);
     expect(models.every((m) => m.provider === "codex")).toBe(true);
   });
