@@ -16,7 +16,9 @@ describe("registerPythonProviders", () => {
         {
           id: "huggingface",
           capabilities: ["text_to_speech"],
-          required_secrets: []
+          required_secrets: [],
+          access: "in_process",
+          display_name: "Hugging Face Local"
         }
       ])
     };
@@ -29,6 +31,10 @@ describe("registerPythonProviders", () => {
       _id: "huggingface-local",
       _bridgeProviderId: "huggingface",
       _bridge: bridge
+    });
+    expect(getRegisteredProvider("huggingface-local")?.metadata).toEqual({
+      access: "in_process",
+      displayName: "Hugging Face Local"
     });
   });
 });

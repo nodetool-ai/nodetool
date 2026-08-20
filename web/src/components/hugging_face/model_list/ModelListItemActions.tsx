@@ -49,6 +49,8 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   const isHuggingFace = model.type?.startsWith("hf") ?? false;
   const isOllama = model.type === "llama_model";
   const downloaded = model.downloaded ?? false;
+  const executionReady = model.execution?.state === "ready";
+  const canDownload = model.execution?.state !== "unavailable";
   const canShowExplorerButton = Boolean(
     handleShowInExplorer && showFileExplorerButton
   );
@@ -100,7 +102,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           Checking cache…
         </Box>
       )}
-      {onDownload && !downloaded && !isCheckingCache && (
+      {onDownload && canDownload && !downloaded && !isCheckingCache && (
         <EditorButton
           className="model-download-button"
           onClick={onDownload}
@@ -110,7 +112,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           Download
         </EditorButton>
       )}
-      {downloaded && onSelect && (
+      {downloaded && executionReady && onSelect && (
         <EditorButton
           className="model-select-button"
           onClick={handleSelectClick}
@@ -159,10 +161,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           />
         )}
         {handleModelDelete && (
-          <DeleteButton
-            onClick={handleDeleteClick}
-            tooltip="Delete model"
-          />
+          <DeleteButton onClick={handleDeleteClick} tooltip="Delete model" />
         )}
       </div>
       <div className="model-link">

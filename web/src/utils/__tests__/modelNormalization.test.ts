@@ -1,8 +1,83 @@
 import { describe, it, expect } from "@jest/globals";
-import { normalizeModelMeta, applyAdvancedModelFilters } from "../modelNormalization";
+import {
+  normalizeModelMeta,
+  applyAdvancedModelFilters,
+  executionForDisplay,
+  executionLabelsByProvider
+} from "../modelNormalization";
 import type { LanguageModel } from "../../stores/ApiTypes";
 
 describe("modelNormalization", () => {
+  describe("executionForDisplay", () => {
+    const serverExecution = {
+      kind: "server" as const,
+      state: "ready" as const,
+      label: "Server" as const,
+      reason: "Runs through Ollama on the NodeTool host.",
+      execution_site: "nodetool_host" as const,
+      runtime_name: "Ollama"
+    };
+
+    it("shows a NodeTool-host service as Local when the client is co-located", () => {
+      expect(
+        executionForDisplay({ execution: serverExecution }, true)
+      ).toMatchObject({
+        kind: "local",
+        label: "Local",
+        reason: "Runs through Ollama on this device."
+      });
+    });
+
+    it("keeps a NodeTool-host service as Server for a remote client", () => {
+      expect(
+        executionForDisplay({ execution: serverExecution }, false)
+      ).toEqual(serverExecution);
+    });
+
+    it("never rewrites provider API execution as Local", () => {
+      const apiExecution = {
+        kind: "api" as const,
+        state: "ready" as const,
+        label: "API" as const,
+        execution_site: "provider" as const,
+        runtime_name: "Replicate"
+      };
+      expect(executionForDisplay({ execution: apiExecution }, true)).toEqual(
+        apiExecution
+      );
+    });
+
+    it("groups provider badges from execution facts instead of provider names", () => {
+      const labels = executionLabelsByProvider(
+        [
+          {
+            id: "ollama-model",
+            name: "Ollama model",
+            type: "language_model",
+            provider: "custom-provider-name",
+            execution: serverExecution
+          },
+          {
+            id: "api-model",
+            name: "API model",
+            type: "language_model",
+            provider: "another-custom-name",
+            execution: {
+              kind: "api",
+              state: "ready",
+              label: "API",
+              execution_site: "provider"
+            }
+          }
+        ],
+        true
+      );
+
+      expect([...labels.get("custom-provider-name")!]).toEqual(["Local"]);
+      expect([...labels.get("another-custom-name")!]).toEqual(["API"]);
+    });
+  });
+
   describe("normalizeModelMeta", () => {
     it("should extract size in billions from model name", () => {
       const model: LanguageModel = {

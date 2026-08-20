@@ -6,6 +6,7 @@ import type { PythonBridge } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   getProvider,
+  getRegisteredProvider,
   isProviderConfigured,
   listRegisteredProviderIds,
   RECOMMENDED_MODELS,
@@ -45,6 +46,34 @@ import { homedir } from "node:os";
 import { basename, join, resolve, sep } from "node:path";
 import { z } from "zod";
 import { isString } from "../../lib/wire-values.js";
+import {
+  readyProviderExecution,
+  resolveModelExecutionAvailability,
+  type ProviderExecutionInfo
+} from "../../model-execution-availability.js";
+
+const modelArtifactRefSchema = z.object({
+  source: z.literal("huggingface"),
+  repo_id: z.string(),
+  revision: z.string().nullish(),
+  path: z.string().nullish()
+});
+
+const modelAdapterInfoSchema = z.object({
+  state: z.enum(["installed", "missing_dependency", "unknown"]),
+  reason_code: z.string().nullish(),
+  reason: z.string().nullish(),
+  artifact_ref: modelArtifactRefSchema.nullish()
+});
+
+const modelExecutionAvailabilitySchema = z.object({
+  kind: z.enum(["local", "server", "api", "unavailable"]),
+  state: z.enum(["ready", "download_required", "unavailable"]),
+  label: z.enum(["Local", "Server", "API", "Unavailable"]),
+  reason: z.string().nullish(),
+  execution_site: z.enum(["nodetool_host", "provider"]).nullish(),
+  runtime_name: z.string().nullish()
+});
 
 // ── Local schemas (mirrored in packages/protocol/src/api-schemas/models.ts) ──
 
@@ -83,6 +112,8 @@ const unifiedModelSchema = z.object({
   languages: z.array(z.string()).nullish(),
   sample_rate: z.number().nullish(),
   requires_reference_text: z.boolean().nullish(),
+  adapter: modelAdapterInfoSchema.nullish(),
+  execution: modelExecutionAvailabilitySchema.nullish(),
   durations: z.array(z.number()).nullish(),
   resolutions: z.array(z.string()).nullish(),
   aspect_ratios: z.array(z.string()).nullish()
@@ -93,7 +124,9 @@ const modelsListOutput = z.array(unifiedModelSchema);
 const providersOutput = z.array(
   z.object({
     provider: z.string(),
-    capabilities: z.array(z.string())
+    capabilities: z.array(z.string()),
+    access: z.enum(["in_process", "local_service", "remote_api"]).optional(),
+    display_name: z.string().optional()
   })
 );
 
@@ -727,6 +760,7 @@ function toUnifiedLanguageModel(
   },
   supportsTools?: boolean | null
 ): UnifiedModel {
+  const registration = getRegisteredProvider(model.provider);
   return {
     id: model.id,
     type: "language_model",
@@ -736,7 +770,10 @@ function toUnifiedLanguageModel(
     path: null,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
     tags: [model.provider],
-    supports_tools: supportsTools ?? null
+    supports_tools: supportsTools ?? null,
+    execution: registration
+      ? readyProviderExecution(registration.metadata)
+      : null
   };
 }
 
@@ -750,6 +787,17 @@ function toUnifiedModel(
     languages?: string[];
     sampleRate?: number;
     requiresReferenceText?: boolean;
+    adapter?: {
+      state: "installed" | "missing_dependency" | "unknown";
+      reasonCode?: string;
+      reason?: string;
+      artifactRef?: {
+        source: "huggingface";
+        repoId: string;
+        revision?: string;
+        path?: string;
+      };
+    };
     supportedTasks?: string[];
     durations?: number[];
     resolutions?: string[];
@@ -757,6 +805,7 @@ function toUnifiedModel(
   },
   type: string
 ): UnifiedModel {
+  const registration = getRegisteredProvider(model.provider);
   return {
     id: model.id,
     type,
@@ -771,10 +820,28 @@ function toUnifiedModel(
     languages: model.languages ?? null,
     sample_rate: model.sampleRate ?? null,
     requires_reference_text: model.requiresReferenceText ?? null,
+    adapter: model.adapter
+      ? {
+          state: model.adapter.state,
+          reason_code: model.adapter.reasonCode ?? null,
+          reason: model.adapter.reason ?? null,
+          artifact_ref: model.adapter.artifactRef
+            ? {
+                source: model.adapter.artifactRef.source,
+                repo_id: model.adapter.artifactRef.repoId,
+                revision: model.adapter.artifactRef.revision ?? null,
+                path: model.adapter.artifactRef.path ?? null
+              }
+            : null
+        }
+      : null,
     supported_tasks: model.supportedTasks ?? null,
     durations: model.durations ?? null,
     resolutions: model.resolutions ?? null,
-    aspect_ratios: model.aspectRatios ?? null
+    aspect_ratios: model.aspectRatios ?? null,
+    execution: registration
+      ? readyProviderExecution(registration.metadata)
+      : null
   };
 }
 
@@ -790,6 +857,44 @@ function toOllamaModel(model: { id: string; name: string }) {
   };
 }
 
+function providerExecutionMap(
+  configuredProviderIds: readonly string[]
+): Map<string, ProviderExecutionInfo> {
+  const configured = new Set(configuredProviderIds);
+  const providers = new Map<string, ProviderExecutionInfo>();
+  for (const providerId of listRegisteredProviderIds()) {
+    const metadata = getRegisteredProvider(providerId)?.metadata;
+    if (!metadata) continue;
+    providers.set(providerId, {
+      ...metadata,
+      configured: configured.has(providerId)
+    });
+  }
+  return providers;
+}
+
+async function resolveProviderModelExecution(
+  models: readonly UnifiedModel[],
+  configuredProviderIds: readonly string[]
+): Promise<UnifiedModel[]> {
+  if (!models.some((model) => model.adapter)) {
+    return resolveModelExecutionAvailability(
+      models,
+      providerExecutionMap(configuredProviderIds)
+    );
+  }
+  let cachedModels: UnifiedModel[] = [];
+  try {
+    cachedModels = await readCachedHfModels();
+  } catch {
+    // A failed cache scan means local adapters remain download-required.
+  }
+  return resolveModelExecutionAvailability(
+    [...models, ...cachedModels],
+    providerExecutionMap(configuredProviderIds)
+  ).slice(0, models.length);
+}
+
 export async function getAllModels(userId: string): Promise<UnifiedModel[]> {
   const all: UnifiedModel[] = [];
 
@@ -803,9 +908,7 @@ export async function getAllModels(userId: string): Promise<UnifiedModel[]> {
       const models = await instance.getAvailableLanguageModels();
       const toolFlags = await Promise.all(
         models.map((m) =>
-          instance
-            .hasToolSupport(m.id)
-            .catch(() => null as boolean | null)
+          instance.hasToolSupport(m.id).catch(() => null as boolean | null)
         )
       );
       return models.map((m, i) => toUnifiedLanguageModel(m, toolFlags[i]));
@@ -819,6 +922,12 @@ export async function getAllModels(userId: string): Promise<UnifiedModel[]> {
   for (const models of providerModelsArrays) {
     all.push(...models);
   }
+
+  const localProviderIds = availableIds.filter(
+    (providerId) =>
+      getRegisteredProvider(providerId)?.metadata.access !== "remote_api"
+  );
+  all.push(...(await collectProviderCatalogModels(userId, localProviderIds)));
 
   if (!isProduction()) {
     try {
@@ -847,7 +956,10 @@ export async function getAllModels(userId: string): Promise<UnifiedModel[]> {
     }
   }
 
-  return dedupeModels(all);
+  return resolveModelExecutionAvailability(
+    dedupeModels(all),
+    providerExecutionMap(availableIds)
+  );
 }
 
 // ── availableForKind helpers ───────────────────────────────────────
@@ -888,7 +1000,9 @@ async function collectProviderModelsForKind(
             const models = await instance.getAvailableLanguageModels();
             const toolFlags = await Promise.all(
               models.map((m) =>
-                instance.hasToolSupport(m.id).catch(() => null as boolean | null)
+                instance
+                  .hasToolSupport(m.id)
+                  .catch(() => null as boolean | null)
               )
             );
             models.forEach((m, i) =>
@@ -898,14 +1012,16 @@ async function collectProviderModelsForKind(
           }
           case "embedding": {
             const models = await instance.getAvailableEmbeddingModels();
-            for (const m of models) out.push(toUnifiedModel(m, "embedding_model"));
+            for (const m of models)
+              out.push(toUnifiedModel(m, "embedding_model"));
             return;
           }
           case "text_to_image":
           case "image_to_image": {
             const models = await instance.getAvailableImageModels();
             for (const m of models) {
-              if (m.supportedTasks && !m.supportedTasks.includes(kind)) continue;
+              if (m.supportedTasks && !m.supportedTasks.includes(kind))
+                continue;
               out.push(toUnifiedModel(m, "image_model"));
             }
             return;
@@ -929,7 +1045,8 @@ async function collectProviderModelsForKind(
           case "image_to_video": {
             const models = await instance.getAvailableVideoModels();
             for (const m of models) {
-              if (m.supportedTasks && !m.supportedTasks.includes(kind)) continue;
+              if (m.supportedTasks && !m.supportedTasks.includes(kind))
+                continue;
               out.push(toUnifiedModel(m, "video_model"));
             }
             return;
@@ -951,9 +1068,11 @@ async function collectProviderModelsForKind(
  * models are not collected here — `getAllModels` already enumerates them.
  */
 export async function collectProviderCatalogModels(
-  userId: string
+  userId: string,
+  providerIdsOverride?: readonly string[]
 ): Promise<UnifiedModel[]> {
-  const providerIds = await getAvailableProviderIds(userId);
+  const providerIds =
+    providerIdsOverride ?? (await getAvailableProviderIds(userId));
   const perProvider = await Promise.all(
     providerIds.map((providerId) =>
       safeProviderCall(
@@ -969,12 +1088,16 @@ export async function collectProviderCatalogModels(
             safeProviderCall(
               `catalogModels:${type}`,
               { provider: providerId, userId },
-              async () => (await fetchModels()).map((m) => toUnifiedModel(m, type)),
+              async () =>
+                (await fetchModels()).map((m) => toUnifiedModel(m, type)),
               [] as UnifiedModel[]
             );
           const lists = await Promise.all([
             collect(() => instance.getAvailableImageModels(), "image_model"),
-            collect(() => instance.getAvailableEmbeddingModels(), "embedding_model"),
+            collect(
+              () => instance.getAvailableEmbeddingModels(),
+              "embedding_model"
+            ),
             collect(() => instance.getAvailableTTSModels(), "tts_model"),
             collect(() => instance.getAvailableMusicModels(), "music_model"),
             collect(() => instance.getAvailableASRModels(), "asr_model"),
@@ -1018,13 +1141,21 @@ export const modelsRouter = router({
       // enumeration below — otherwise a second account's endpoints are the
       // ones listed, or none are after a restart.
       await syncCustomProviderRegistry(userId);
-      const infos: Array<{ provider: string; capabilities: string[] }> = [];
+      const infos: Array<{
+        provider: string;
+        capabilities: string[];
+        access: "in_process" | "local_service" | "remote_api";
+        display_name: string;
+      }> = [];
       for (const providerId of await getAvailableProviderIds(userId)) {
         const instance = await instantiateProvider(providerId, userId);
         if (!instance) continue;
+        const metadata = getRegisteredProvider(providerId)?.metadata;
         infos.push({
           provider: providerId,
-          capabilities: instance.getCapabilities()
+          capabilities: instance.getCapabilities(),
+          access: metadata?.access ?? "remote_api",
+          display_name: metadata?.displayName ?? providerId
         });
       }
       return infos;
@@ -1039,26 +1170,29 @@ export const modelsRouter = router({
       return getRecommendedModels(input.check_servers ?? false, ctx.userId);
     }),
 
-  recommendedImageTextToImage: protectedProcedure
-    .query(() => selectRecommended("image", "text_to_image")),
+  recommendedImageTextToImage: protectedProcedure.query(() =>
+    selectRecommended("image", "text_to_image")
+  ),
 
-  recommendedImageImageToImage: protectedProcedure
-    .query(() => selectRecommended("image", "image_to_image")),
+  recommendedImageImageToImage: protectedProcedure.query(() =>
+    selectRecommended("image", "image_to_image")
+  ),
 
-  recommendedLanguageEmbedding: protectedProcedure
-    .query(() => selectRecommended("language", "embedding")),
+  recommendedLanguageEmbedding: protectedProcedure.query(() =>
+    selectRecommended("language", "embedding")
+  ),
 
-  recommendedAsr: protectedProcedure
-    .query(() => selectRecommended("asr")),
+  recommendedAsr: protectedProcedure.query(() => selectRecommended("asr")),
 
-  recommendedTts: protectedProcedure
-    .query(() => selectRecommended("tts")),
+  recommendedTts: protectedProcedure.query(() => selectRecommended("tts")),
 
-  recommendedVideoTextToVideo: protectedProcedure
-    .query(() => selectRecommended("video", "text_to_video")),
+  recommendedVideoTextToVideo: protectedProcedure.query(() =>
+    selectRecommended("video", "text_to_video")
+  ),
 
-  recommendedVideoImageToVideo: protectedProcedure
-    .query(() => selectRecommended("video", "image_to_video")),
+  recommendedVideoImageToVideo: protectedProcedure.query(() =>
+    selectRecommended("video", "image_to_video")
+  ),
 
   /**
    * All models available to the user for a given task kind. Aggregates the
@@ -1088,8 +1222,7 @@ export const modelsRouter = router({
   /**
    * All models (recommended + provider models + HF cached).
    */
-  all: protectedProcedure
-    .query(async ({ ctx }) => getAllModels(ctx.userId)),
+  all: protectedProcedure.query(async ({ ctx }) => getAllModels(ctx.userId)),
 
   /**
    * HuggingFace cached models. `scope: "worker"` lists the attached worker's
@@ -1181,13 +1314,11 @@ export const modelsRouter = router({
         // SAFETY: the worker sends full `UnifiedModel` JSON, but the bridge
         // types the reply as `UnifiedModelLike`, which declares neither `type`
         // nor `path` — the two fields this filter reads.
-        const cached = (await bridge.listCachedModels()) as unknown as Parameters<
-          typeof filterModelsByHfType
-        >[0];
-        return filterModelsByHfType(
-          cached,
-          input.model_type
-        ) as UnifiedModel[];
+        const cached =
+          (await bridge.listCachedModels()) as unknown as Parameters<
+            typeof filterModelsByHfType
+          >[0];
+        return filterModelsByHfType(cached, input.model_type) as UnifiedModel[];
       }
       try {
         return await getModelsByHfType(input.model_type);
@@ -1240,12 +1371,7 @@ export const modelsRouter = router({
         const homes = tjsCachedAsRecommended(c.repo_id);
         if (homes.length > 0) continue;
         out.push(
-          tjsRefToUnified(
-            { repo_id: c.repo_id },
-            modelType,
-            true,
-            c.size_bytes
-          )
+          tjsRefToUnified({ repo_id: c.repo_id }, modelType, true, c.size_bytes)
         );
       }
 
@@ -1283,21 +1409,19 @@ export const modelsRouter = router({
       );
     }),
 
-  ollama: protectedProcedure
-    .output(ollamaModelsOutput)
-    .query(async ({ ctx }) =>
-      safeProviderCall(
-        "ollama models",
-        { provider: "ollama", userId: ctx.userId },
-        async () => {
-          const instance = await instantiateProvider("ollama", ctx.userId);
-          if (!instance) return [];
-          const models = await instance.getAvailableLanguageModels();
-          return models.map(toOllamaModel);
-        },
-        []
-      )
-    ),
+  ollama: protectedProcedure.output(ollamaModelsOutput).query(async ({ ctx }) =>
+    safeProviderCall(
+      "ollama models",
+      { provider: "ollama", userId: ctx.userId },
+      async () => {
+        const instance = await instantiateProvider("ollama", ctx.userId);
+        if (!instance) return [];
+        const models = await instance.getAvailableLanguageModels();
+        return models.map(toOllamaModel);
+      },
+      []
+    )
+  ),
 
   llmByProvider: protectedProcedure
     .input(providerInput)
@@ -1315,14 +1439,10 @@ export const modelsRouter = router({
           const models = await instance.getAvailableLanguageModels();
           const toolFlags = await Promise.all(
             models.map((m) =>
-              instance
-                .hasToolSupport(m.id)
-                .catch(() => null as boolean | null)
+              instance.hasToolSupport(m.id).catch(() => null as boolean | null)
             )
           );
-          return models.map((m, i) =>
-            toUnifiedLanguageModel(m, toolFlags[i])
-          );
+          return models.map((m, i) => toUnifiedLanguageModel(m, toolFlags[i]));
         },
         []
       )
@@ -1418,14 +1538,14 @@ export const modelsRouter = router({
         )
       )
     );
-    return results.flat();
+    return resolveProviderModelExecution(results.flat(), availableIds);
   }),
 
   ttsByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) =>
-      safeProviderCall(
+    .query(async ({ ctx, input }) => {
+      const models = await safeProviderCall(
         "ttsByProvider",
         { provider: input.provider, userId: ctx.userId },
         async () => {
@@ -1438,8 +1558,9 @@ export const modelsRouter = router({
           return models.map((m) => toUnifiedModel(m, "tts_model"));
         },
         []
-      )
-    ),
+      );
+      return resolveProviderModelExecution(models, [input.provider]);
+    }),
 
   music: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);

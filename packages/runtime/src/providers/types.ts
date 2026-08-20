@@ -47,6 +47,20 @@ export interface VideoModel {
   aspectRatios?: string[];
 }
 
+export interface ModelArtifactRef {
+  source: "huggingface";
+  repoId: string;
+  revision?: string;
+  path?: string;
+}
+
+export interface ModelAdapterInfo {
+  state: "installed" | "missing_dependency" | "unknown";
+  reasonCode?: string;
+  reason?: string;
+  artifactRef?: ModelArtifactRef;
+}
+
 export interface TTSModel {
   id: string;
   name: string;
@@ -56,6 +70,8 @@ export interface TTSModel {
   languages?: string[];
   sampleRate?: number;
   requiresReferenceText?: boolean;
+  /** Execution adapter facts reported by the local worker without loading weights. */
+  adapter?: ModelAdapterInfo;
 }
 
 export interface TextToSpeechParams {

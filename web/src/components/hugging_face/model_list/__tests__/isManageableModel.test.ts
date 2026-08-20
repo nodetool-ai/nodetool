@@ -35,10 +35,11 @@ describe("isManageableModel", () => {
   it("keeps local-runtime provider models", () => {
     expect(isManageableModel(model({ provider: "ollama" }))).toBe(true);
     expect(isManageableModel(model({ provider: "llama_cpp" }))).toBe(true);
-    expect(isManageableModel(model({ provider: "huggingface" }))).toBe(true);
+    expect(isManageableModel(model({ provider: "huggingface-local" }))).toBe(true);
   });
 
   it("drops cloud API provider models", () => {
+    expect(isManageableModel(model({ provider: "huggingface" }))).toBe(false);
     expect(isManageableModel(model({ provider: "openai" }))).toBe(false);
     expect(isManageableModel(model({ provider: "anthropic" }))).toBe(false);
     expect(isManageableModel(model({ provider: "gemini" }))).toBe(false);

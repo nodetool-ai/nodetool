@@ -126,8 +126,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
       const baseName =
         currentSelectedModelDetails?.name ||
         (typeof value === "object" ? value?.name ?? "" : "");
-      const modelToPass = {
-        ...(typeof value === "object" ? value : {}),
+      const voiceUpdate = {
         type: "tts_model" as const,
         id: modelId,
         provider: baseProvider,
@@ -135,6 +134,10 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
         voices: availableVoices,
         selected_voice: newVoice
       };
+      const modelToPass = { ...voiceUpdate };
+      if (typeof value === "object") {
+        Object.assign(modelToPass, value, voiceUpdate);
+      }
       onChange(modelToPass);
     },
     [

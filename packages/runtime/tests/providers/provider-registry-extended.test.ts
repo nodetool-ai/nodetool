@@ -146,7 +146,14 @@ describe("provider-registry — extended coverage", () => {
           {
             id: "Supertone/supertonic-3",
             name: "Supertonic 3",
-            provider: "huggingface"
+            provider: "huggingface",
+            adapter: {
+              state: "installed",
+              artifact_ref: {
+                source: "huggingface",
+                repo_id: "Supertone/supertonic-3"
+              }
+            }
           }
         ];
       }
@@ -160,7 +167,14 @@ describe("provider-registry — extended coverage", () => {
     await expect(provider.getAvailableTTSModels()).resolves.toEqual([
       expect.objectContaining({
         id: "Supertone/supertonic-3",
-        provider: "huggingface-local"
+        provider: "huggingface-local",
+        adapter: {
+          state: "installed",
+          artifactRef: {
+            source: "huggingface",
+            repoId: "Supertone/supertonic-3"
+          }
+        }
       })
     ]);
     expect(calls).toEqual(["huggingface"]);

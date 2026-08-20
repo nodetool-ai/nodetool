@@ -5,6 +5,11 @@ export type ModelSortField = "name" | "size" | "downloads" | "likes" | "fit";
 export type ModelSortDirection = "asc" | "desc";
 /** Which model cache the manager is browsing: the local FS or an attached worker. */
 export type ModelScope = "local" | "worker";
+export type ModelAvailabilityFilter =
+  | "all"
+  | "ready"
+  | "download_required"
+  | "unavailable";
 /**
  * Which catalog the manager lists:
  * - "installed": models actually on disk / the attached worker
@@ -48,6 +53,7 @@ interface ModelManagerState {
    * narrowing the list to models carrying it. `null` means "all formats".
    */
   selectedFormat: string | null;
+  selectedAvailability: ModelAvailabilityFilter;
   setIsOpen: (isOpen: boolean) => void;
   setModelSearchTerm: (term: string) => void;
   setSelectedModelType: (type: string) => void;
@@ -61,6 +67,7 @@ interface ModelManagerState {
   setVramOverrideGb: (gb: number | null) => void;
   setSelectedGoal: (goal: string | null) => void;
   setSelectedFormat: (format: string | null) => void;
+  setSelectedAvailability: (availability: ModelAvailabilityFilter) => void;
 }
 
 export const useModelManagerStore = create<ModelManagerState>()(
@@ -78,6 +85,7 @@ export const useModelManagerStore = create<ModelManagerState>()(
       vramOverrideGb: null,
       selectedGoal: null,
       selectedFormat: null,
+      selectedAvailability: "all",
       setIsOpen: (isOpen) => set({ isOpen }),
       setModelSearchTerm: (term) => set({ modelSearchTerm: term }),
       setSelectedModelType: (type) => set({ selectedModelType: type }),
@@ -94,7 +102,9 @@ export const useModelManagerStore = create<ModelManagerState>()(
         set({ sourceInitialized: initialized }),
       setVramOverrideGb: (gb) => set({ vramOverrideGb: gb }),
       setSelectedGoal: (goal) => set({ selectedGoal: goal }),
-      setSelectedFormat: (format) => set({ selectedFormat: format })
+      setSelectedFormat: (format) => set({ selectedFormat: format }),
+      setSelectedAvailability: (availability) =>
+        set({ selectedAvailability: availability })
     }),
     {
       name: "model-manager",

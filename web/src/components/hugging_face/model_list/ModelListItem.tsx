@@ -1,7 +1,17 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
-import { Chip, FlexRow, Tooltip, Text, Box, TextLink, SPACING, getSpacingPx, activateOnKey } from "../../ui_primitives";
+import {
+  Chip,
+  FlexRow,
+  Tooltip,
+  Text,
+  Box,
+  TextLink,
+  SPACING,
+  getSpacingPx,
+  activateOnKey
+} from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { ModelComponentProps } from "../ModelUtils";
@@ -19,12 +29,16 @@ import type { ModelCompatibilityResult } from "./useModelCompatibility";
 import ModelCompatibilityDialog from "./ModelCompatibilityDialog";
 import { classifyModelFit, estimateRequiredGb } from "./modelFit";
 import type { FitLevel } from "../onboarding/onboardingCatalog";
+import { executionForDisplay } from "../../../utils/modelNormalization";
 
 const IMPORTANT_TAGS = new Set(["gguf", "mlx"]);
 
 const FIT_CHIP: Record<
   Exclude<FitLevel, "unknown">,
-  { color: "success" | "warning" | "error"; label: (requiredGb: number) => string }
+  {
+    color: "success" | "warning" | "error";
+    label: (requiredGb: number) => string;
+  }
 > = {
   fits: { color: "success", label: () => "Fits your machine" },
   tight: { color: "warning", label: () => "Tight fit" },
@@ -58,7 +72,9 @@ const ModelListItem: React.FC<
 }) => {
   const baseId = model.repo_id || model.id;
   const downloadId = model.path ? `${baseId}/${model.path}` : baseId;
-  const download = useModelDownloadStore((state) => state.downloads[downloadId]);
+  const download = useModelDownloadStore(
+    (state) => state.downloads[downloadId]
+  );
   const theme = useTheme();
   const cssStyles = useMemo(() => modelListItemStyles(theme), [theme]);
   const tags = useMemo(
@@ -66,6 +82,7 @@ const ModelListItem: React.FC<
     [model.tags]
   );
   const [dialogOpen, setDialogOpen] = useState(false);
+  const execution = executionForDisplay(model);
 
   const fit = useMemo(
     () => classifyModelFit(model, fitBudgetGb),
@@ -93,7 +110,9 @@ const ModelListItem: React.FC<
   );
 
   const compatibilityCounts = useMemo(() => {
-    if (!compatibility) {return { total: 0 };}
+    if (!compatibility) {
+      return { total: 0 };
+    }
     return {
       total: compatibility.recommended.length + compatibility.compatible.length
     };
@@ -111,7 +130,7 @@ const ModelListItem: React.FC<
       </Box>
     );
   }
-  const selectable = !!onSelect && !!model.downloaded;
+  const selectable = !!onSelect && execution.state === "ready";
   return (
     <Box
       css={cssStyles}
@@ -191,19 +210,34 @@ const ModelListItem: React.FC<
             </div>
 
             <div className="model-details">
-              <Tooltip title="Runs locally on your device" delay={400}>
+              <Tooltip title={execution.reason ?? execution.label} delay={400}>
                 <Chip
-                  label="Local"
+                  label={execution.label}
                   size="small"
                   component="span"
+                  tabIndex={0}
+                  aria-label={`${execution.label}: ${execution.reason ?? execution.label}`}
+                  color={
+                    execution.kind === "api"
+                      ? "info"
+                      : execution.state === "ready"
+                        ? "success"
+                        : execution.state === "download_required"
+                          ? "warning"
+                          : "default"
+                  }
+                  variant="outlined"
                   sx={{
                     height: 20,
                     fontSize: theme.vars.fontSizeSmaller,
-                    color: theme.vars.palette.c_provider_local,
-                    borderColor: theme.vars.palette.c_provider_local,
-                    background: "transparent",
-                    borderWidth: 1,
-                    borderStyle: "solid",
+                    color:
+                      execution.state === "unavailable"
+                        ? "text.disabled"
+                        : undefined,
+                    borderColor:
+                      execution.state === "unavailable"
+                        ? "divider"
+                        : undefined,
                     cursor: "help"
                   }}
                 />
@@ -258,7 +292,11 @@ const ModelListItem: React.FC<
                     component="span"
                     color={FIT_CHIP[fit].color}
                     variant="outlined"
-                    sx={{ height: 20, fontSize: theme.vars.fontSizeSmaller, cursor: "help" }}
+                    sx={{
+                      height: 20,
+                      fontSize: theme.vars.fontSizeSmaller,
+                      cursor: "help"
+                    }}
                   />
                 </Tooltip>
               )}
@@ -267,18 +305,24 @@ const ModelListItem: React.FC<
                   label={`Works with ${compatibilityCounts.total} node${compatibilityCounts.total > 1 ? "s" : ""}`}
                   size="small"
                   onClick={handleOpenDialog}
-                  icon={<VisibilityIcon style={{ fontSize: "var(--fontSizeNormal)" }} />}
+                  icon={
+                    <VisibilityIcon
+                      style={{ fontSize: "var(--fontSizeNormal)" }}
+                    />
+                  }
                   sx={{
                     height: 20,
                     fontSize: theme.vars.fontSizeSmaller,
                     borderColor: theme.vars.palette.primary.main,
                     color: theme.vars.palette.primary.main,
-                    background: "rgba(var(--palette-primary-main-channel) / 0.1)",
+                    background:
+                      "rgba(var(--palette-primary-main-channel) / 0.1)",
                     borderWidth: 1,
                     borderStyle: "solid",
                     cursor: "pointer",
                     "&:hover": {
-                      background: "rgba(var(--palette-primary-main-channel) / 0.2)"
+                      background:
+                        "rgba(var(--palette-primary-main-channel) / 0.2)"
                     },
                     "& .MuiChip-icon": {
                       color: "inherit",

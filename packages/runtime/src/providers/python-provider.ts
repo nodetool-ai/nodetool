@@ -11,6 +11,7 @@ import type {
   LanguageModel,
   ImageModel,
   TTSModel,
+  ModelAdapterInfo,
   ASRModel,
   EmbeddingModel,
   VideoModel,
@@ -23,7 +24,7 @@ import type {
   TextToSpeechParams
 } from "./types.js";
 import type { PythonBridgeBase } from "../python-bridge-base.js";
-import { isString } from "../type-predicates.js";
+import { isRecord, isString } from "../type-predicates.js";
 
 type PythonProviderOptions = Record<string, unknown> & {
   _id: string;
@@ -31,6 +32,38 @@ type PythonProviderOptions = Record<string, unknown> & {
   /** Provider id understood by the Python worker when the public id is aliased. */
   _bridgeProviderId?: string;
 };
+
+function parseModelAdapter(value: unknown): ModelAdapterInfo | undefined {
+  if (!isRecord(value)) return undefined;
+  const state = value.state;
+  if (
+    state !== "installed" &&
+    state !== "missing_dependency" &&
+    state !== "unknown"
+  ) {
+    return undefined;
+  }
+
+  const rawArtifact = value.artifact_ref;
+  const artifactRef = isRecord(rawArtifact)
+    ? {
+        source: "huggingface" as const,
+        repoId: String(rawArtifact.repo_id ?? ""),
+        revision: isString(rawArtifact.revision)
+          ? rawArtifact.revision
+          : undefined,
+        path: isString(rawArtifact.path) ? rawArtifact.path : undefined
+      }
+    : undefined;
+
+  return {
+    state,
+    reasonCode: isString(value.reason_code) ? value.reason_code : undefined,
+    reason: isString(value.reason) ? value.reason : undefined,
+    artifactRef:
+      artifactRef && artifactRef.repoId.length > 0 ? artifactRef : undefined
+  };
+}
 
 export class PythonProvider extends BaseProvider {
   private _bridge: PythonBridgeBase;
@@ -107,7 +140,8 @@ export class PythonProvider extends BaseProvider {
         requiresReferenceText:
           typeof model.requires_reference_text === "boolean"
             ? model.requires_reference_text
-            : undefined
+            : undefined,
+        adapter: parseModelAdapter(model.adapter)
       };
     });
   }

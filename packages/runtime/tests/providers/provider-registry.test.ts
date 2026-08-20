@@ -29,6 +29,29 @@ describe("provider-registry", () => {
     expect(reg).not.toBeNull();
     expect(reg!.cls).toBe(FakeProvider);
     expect(reg!.kwargs).toEqual({});
+    expect(reg!.metadata).toEqual({
+      access: "remote_api",
+      displayName: id
+    });
+  });
+
+  it("stores explicit provider execution metadata", () => {
+    const id = uniqueId();
+    registerProvider(
+      id,
+      FakeProvider as any,
+      {},
+      {},
+      {
+        access: "in_process",
+        displayName: "Local Test Provider"
+      }
+    );
+
+    expect(getRegisteredProvider(id)?.metadata).toEqual({
+      access: "in_process",
+      displayName: "Local Test Provider"
+    });
   });
 
   it("registerProvider with kwargs", () => {

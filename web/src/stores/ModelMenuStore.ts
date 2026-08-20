@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
+import type { ModelExecutionAvailability } from "@nodetool-ai/protocol";
 import type {
   ImageModel,
   LanguageModel,
@@ -25,11 +26,10 @@ export interface ModelSelectorModel {
   name: string;
   path?: string | null;
   supported_tasks?: string[];
+  execution?: ModelExecutionAvailability | null;
 }
 
-interface ModelMenuState<
-  TModel extends ModelSelectorModel = LanguageModel
-> {
+interface ModelMenuState<TModel extends ModelSelectorModel = LanguageModel> {
   search: string;
   selectedProvider: string | null;
   activeSidebarTab: SidebarTab;
@@ -66,27 +66,69 @@ export const requiredSecretForProvider = (
   // Canonical IDs come from PROVIDER_IDS; the extra literals below ("google",
   // "fal", "kimi", "hf_", 3D providers, …) are aliases / Python-side IDs that
   // aren't part of the TS provider registry but still map to a secret.
-  if (p.includes(PROVIDER_IDS.OPENAI)) {return "OPENAI_API_KEY";}
-  if (p.includes(PROVIDER_IDS.ANTHROPIC)) {return "ANTHROPIC_API_KEY";}
-  if (p.includes(PROVIDER_IDS.GEMINI) || p.includes("google")) {return "GEMINI_API_KEY";}
-  if (p.includes(PROVIDER_IDS.MESHY)) {return "MESHY_API_KEY";}
-  if (p.includes(PROVIDER_IDS.RODIN)) {return "RODIN_API_KEY";}
-  if (p.includes("trellis")) {return "TRELLIS_API_KEY";}
-  if (p.includes("tripo")) {return "TRIPO_API_KEY";}
-  if (p.includes("hunyuan3d")) {return "HUNYUAN3D_API_KEY";}
-  if (p.includes("shap_e") || p.includes("shap-e")) {return "SHAP_E_API_KEY";}
-  if (p.includes("point_e") || p.includes("point-e")) {return "POINT_E_API_KEY";}
-  if (p.includes(PROVIDER_IDS.HUGGINGFACE) || p.includes("hf_")) {return "HF_TOKEN";}
-  if (p.includes(PROVIDER_IDS.REPLICATE)) {return "REPLICATE_API_TOKEN";}
-  if (p.includes("fal")) {return "FAL_API_KEY";}
-  if (p.includes(PROVIDER_IDS.MOONSHOT) || p.includes("kimi")) {return "KIMI_API_KEY";}
-  if (p.includes(PROVIDER_IDS.MINIMAX)) {return "MINIMAX_API_KEY";}
-  if (p.includes(PROVIDER_IDS.ALIBABA)) {return "DASHSCOPE_API_KEY";}
-  if (p.includes(PROVIDER_IDS.TOGETHER)) {return "TOGETHER_API_KEY";}
-  if (p === PROVIDER_IDS.COHERE) {return "COHERE_API_KEY";}
-  if (p === PROVIDER_IDS.VOYAGE || p === "voyage-ai" || p === "voyageai") {return "VOYAGE_API_KEY";}
-  if (p === PROVIDER_IDS.JINA || p === "jina-ai" || p === "jinaai") {return "JINA_API_KEY";}
-  if (isAkiProviderIdentifier(p)) {return "AKI_API_KEY";}
+  if (p.includes(PROVIDER_IDS.OPENAI)) {
+    return "OPENAI_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.ANTHROPIC)) {
+    return "ANTHROPIC_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.GEMINI) || p.includes("google")) {
+    return "GEMINI_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.MESHY)) {
+    return "MESHY_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.RODIN)) {
+    return "RODIN_API_KEY";
+  }
+  if (p.includes("trellis")) {
+    return "TRELLIS_API_KEY";
+  }
+  if (p.includes("tripo")) {
+    return "TRIPO_API_KEY";
+  }
+  if (p.includes("hunyuan3d")) {
+    return "HUNYUAN3D_API_KEY";
+  }
+  if (p.includes("shap_e") || p.includes("shap-e")) {
+    return "SHAP_E_API_KEY";
+  }
+  if (p.includes("point_e") || p.includes("point-e")) {
+    return "POINT_E_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.HUGGINGFACE) || p.includes("hf_")) {
+    return "HF_TOKEN";
+  }
+  if (p.includes(PROVIDER_IDS.REPLICATE)) {
+    return "REPLICATE_API_TOKEN";
+  }
+  if (p.includes("fal")) {
+    return "FAL_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.MOONSHOT) || p.includes("kimi")) {
+    return "KIMI_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.MINIMAX)) {
+    return "MINIMAX_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.ALIBABA)) {
+    return "DASHSCOPE_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.TOGETHER)) {
+    return "TOGETHER_API_KEY";
+  }
+  if (p === PROVIDER_IDS.COHERE) {
+    return "COHERE_API_KEY";
+  }
+  if (p === PROVIDER_IDS.VOYAGE || p === "voyage-ai" || p === "voyageai") {
+    return "VOYAGE_API_KEY";
+  }
+  if (p === PROVIDER_IDS.JINA || p === "jina-ai" || p === "jinaai") {
+    return "JINA_API_KEY";
+  }
+  if (isAkiProviderIdentifier(p)) {
+    return "AKI_API_KEY";
+  }
   return null;
 };
 
@@ -179,12 +221,17 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
 
   const recentModels = React.useMemo(() => {
     const byKey = new Map<string, TModel>(
-      (models ?? []).map((model) => [`${model.provider ?? ""}:${model.id ?? ""}`, model])
+      (models ?? []).map((model) => [
+        `${model.provider ?? ""}:${model.id ?? ""}`,
+        model
+      ])
     );
     const mapped: TModel[] = [];
     recentsList.forEach((recentItem) => {
       const model = byKey.get(`${recentItem.provider}:${recentItem.id}`);
-      if (model) {mapped.push(model);}
+      if (model) {
+        mapped.push(model);
+      }
     });
     return mapped;
   }, [models, recentsList]);
@@ -206,7 +253,9 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
     const isEnabled = (p?: string) => enabledProviders?.[p || ""] !== false;
     const isEnvOk = (p?: string) => {
       const env = requiredSecretForProvider(p);
-      if (!env) {return true;}
+      if (!env) {
+        return true;
+      }
       return isApiKeySet(env);
     };
     return (
@@ -247,6 +296,9 @@ export const useTTSModelMenuStore = createModelMenuStore<TTSModel>();
 export const useASRModelMenuStore = createModelMenuStore<ASRModel>();
 export const useMusicModelMenuStore = createModelMenuStore<MusicModel>();
 export const useVideoModelMenuStore = createModelMenuStore<VideoModel>();
-export const useHuggingFaceImageModelMenuStore = createModelMenuStore<ImageModel>();
-export const useTransformersJsModelMenuStore = createModelMenuStore<ImageModel>();
-export const useEmbeddingModelMenuStore = createModelMenuStore<EmbeddingModel>();
+export const useHuggingFaceImageModelMenuStore =
+  createModelMenuStore<ImageModel>();
+export const useTransformersJsModelMenuStore =
+  createModelMenuStore<ImageModel>();
+export const useEmbeddingModelMenuStore =
+  createModelMenuStore<EmbeddingModel>();

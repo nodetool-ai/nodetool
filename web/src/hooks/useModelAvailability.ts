@@ -20,19 +20,26 @@ interface ModelAvailability {
  * dialog (keyboard navigation skips unavailable rows).
  */
 export const useModelAvailability = (): ((
-  model: Pick<ModelSelectorModel, "provider">
+  model: Pick<ModelSelectorModel, "provider" | "execution">
 ) => ModelAvailability) => {
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const { isApiKeySet } = useSecrets();
 
   return useCallback(
-    (model: Pick<ModelSelectorModel, "provider">): ModelAvailability => {
+    (
+      model: Pick<ModelSelectorModel, "provider" | "execution">
+    ): ModelAvailability => {
       const provider = model.provider || "";
       const env = requiredSecretForProvider(model.provider);
       const normKey = /gemini|google/i.test(provider) ? "gemini" : provider;
       const providerEnabled = enabledProviders?.[normKey] !== false;
       const hasKey = env ? isApiKeySet(env) : true;
-      return { available: providerEnabled && hasKey, providerEnabled, hasKey };
+      const executionReady = model.execution?.state === "ready";
+      return {
+        available: providerEnabled && hasKey && executionReady,
+        providerEnabled,
+        hasKey
+      };
     },
     [enabledProviders, isApiKeySet]
   );

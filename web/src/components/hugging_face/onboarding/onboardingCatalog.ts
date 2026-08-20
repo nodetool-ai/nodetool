@@ -384,16 +384,6 @@ export const ONBOARDING_MODELS: readonly OnboardingModel[] = [
     "text-to-speech",
     { featured: true }
   ),
-  hf(
-    "ResembleAI/chatterbox",
-    "Chatterbox",
-    "Expressive voice cloning from a short reference clip.",
-    1.0,
-    3,
-    "text-to-speech",
-    "hf.text_to_speech",
-    "text-to-speech"
-  ),
   // --- Embeddings (Hugging Face) --------------------------------------------
   hf(
     "Qwen/Qwen3-Embedding-0.6B",

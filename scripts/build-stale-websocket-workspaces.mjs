@@ -10,12 +10,13 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "..");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
-function run(command, args) {
+function run(command, args, env = process.env) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(command, args, {
       cwd: rootDir,
       stdio: "inherit",
       shell: process.platform === "win32",
+      env,
     });
 
     child.on("error", rejectRun);
@@ -66,16 +67,82 @@ function getNewestMtimeMs(pathname) {
   return newest;
 }
 
+function emittedPathForSource(relativeSourcePath) {
+  if (
+    relativeSourcePath.endsWith(".d.ts") ||
+    relativeSourcePath.endsWith(".d.mts") ||
+    relativeSourcePath.endsWith(".d.cts")
+  ) {
+    // Ambient/source declarations participate in type checking but TypeScript
+    // does not copy them to outDir.
+    return null;
+  }
+  if (relativeSourcePath.endsWith(".mts")) {
+    return `${relativeSourcePath.slice(0, -4)}.mjs`;
+  }
+  if (relativeSourcePath.endsWith(".cts")) {
+    return `${relativeSourcePath.slice(0, -4)}.cjs`;
+  }
+  if (relativeSourcePath.endsWith(".tsx")) {
+    return `${relativeSourcePath.slice(0, -4)}.js`;
+  }
+  if (relativeSourcePath.endsWith(".ts")) {
+    return `${relativeSourcePath.slice(0, -3)}.js`;
+  }
+  return null;
+}
+
+function hasStaleSourceOutput(srcDir, distDir, currentDir = srcDir) {
+  if (!existsSync(currentDir)) {
+    return false;
+  }
+
+  for (const entry of readdirSync(currentDir, { withFileTypes: true })) {
+    const sourcePath = resolve(currentDir, entry.name);
+    if (entry.isDirectory()) {
+      if (hasStaleSourceOutput(srcDir, distDir, sourcePath)) {
+        return true;
+      }
+      continue;
+    }
+
+    const relativeSourcePath = sourcePath.slice(srcDir.length + 1);
+    const relativeOutputPath = emittedPathForSource(relativeSourcePath);
+    if (relativeOutputPath === null) {
+      continue;
+    }
+
+    const outputPath = resolve(distDir, relativeOutputPath);
+    if (
+      !existsSync(outputPath) ||
+      statSync(sourcePath).mtimeMs > statSync(outputPath).mtimeMs
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function isWorkspaceStale(workspaceName) {
   const workspaceDir = getWorkspaceDir(workspaceName);
+  const srcDir = resolve(workspaceDir, "src");
   const distDir = resolve(workspaceDir, "dist");
 
   if (!existsSync(distDir)) {
     return true;
   }
 
+  // Comparing only the newest source and newest dist timestamps lets one
+  // recently emitted file hide an older output elsewhere in the package.
+  // Check every TypeScript input against its corresponding runtime output so
+  // renamed exports cannot leave consumers with incompatible compiled imports.
+  if (hasStaleSourceOutput(srcDir, distDir)) {
+    return true;
+  }
+
   const sourceMtime = Math.max(
-    getNewestMtimeMs(resolve(workspaceDir, "src")),
+    getNewestMtimeMs(srcDir),
     getNewestMtimeMs(resolve(workspaceDir, "package.json")),
     getNewestMtimeMs(resolve(workspaceDir, "tsconfig.json"))
   );
@@ -127,5 +194,8 @@ if (directStaleWorkspaces.length > 0 && staleWorkspaces.length > directStaleWork
 console.log(`Building stale workspaces: ${staleWorkspaces.join(", ")}`);
 
 for (const workspace of staleWorkspaces) {
-  await run(npmCommand, ["run", "build", "--workspace", workspace]);
+  await run(npmCommand, ["run", "build", "--workspace", workspace], {
+    ...process.env,
+    NODETOOL_FORCE_TSC_BUILD: "1",
+  });
 }

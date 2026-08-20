@@ -303,16 +303,17 @@ const editApp: CapabilityExport = {
     }
 
     const edited = bridge.document();
+    const rootProps = { ...document.ui.root.props };
+    if (edited.title !== null) {
+      rootProps.title = edited.title;
+    }
     const next: ApplicationDocument = {
       ...document,
       ui: {
         ...document.ui,
         root: {
           ...document.ui.root,
-          props: {
-            ...document.ui.root.props,
-            ...(edited.title !== null ? { title: edited.title } : {})
-          }
+          props: rootProps
         },
         content: edited.content
       },
