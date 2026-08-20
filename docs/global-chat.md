@@ -121,7 +121,9 @@ The permission chip sets how far the agent may act on its own. It's per-thread, 
 |------|----------|
 | **Plan** | Read and propose only. No actions taken. |
 | **Default** | Reads run automatically; actions ask first. |
-| **Auto** | Everything runs, no prompts. |
+| **Auto** | Routine work runs unattended; the agent asks once before an action it declares risky. |
+
+In Auto the agent labels every code action it writes `low` or `high` risk. A `low` action — reading, computing, work you asked for and can undo — runs with no prompt. A `high` one — deleting or overwriting something, publishing or sending anything outside the account, spending real money — asks you first, once, showing the program it wants to run. Unlabeled counts as high. "Allow for this chat" stops the asking for the rest of the thread.
 
 ### Agent Capabilities
 

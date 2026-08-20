@@ -67,6 +67,12 @@ import {
   type ToolCallRecord,
   type ToolSearchHit
 } from "./tool-api.js";
+import {
+  admitCodeAction,
+  EXECUTE_CODE_INPUT_SCHEMA,
+  EXECUTE_CODE_TOOL_NAME,
+  executeCodeMessage
+} from "./execute-code-contract.js";
 import { searchTools } from "../tools/tool-search.js";
 import { buildCodeActSystemPrompt } from "./prompt.js";
 import {
@@ -126,32 +132,19 @@ export const DEFAULT_CODEACT_MAX_ITERATIONS = 20;
  */
 export const DEFAULT_CODEACT_ACTION_TIMEOUT_MS = 600_000;
 
-/**
- * Input schema for the one provider tool codeact mode exposes. `title` is the
- * user-facing label the UI shows for the action card while the code runs —
- * the code itself is a detail view, so without a title the user sees only
- * "Execute Code". Required: a strict schema (additionalProperties: false)
- * must list every property under `required` for OpenAI structured outputs.
- */
-export const EXECUTE_CODE_INPUT_SCHEMA = {
-  type: "object",
-  properties: {
-    title: {
-      type: "string",
-      description:
-        "3-8 word user-facing summary of what this action does, shown in " +
-        'the UI while it runs (e.g. "Rendering product images from CSV").'
-    },
-    code: {
-      type: "string",
-      description: "The JavaScript program to run."
-    }
-  },
-  required: ["title", "code"],
-  additionalProperties: false
-} as const;
+// The `execute_code` contract lives beside the auto-mode admission that reads
+// it (execute-code-contract.ts); re-exported here so every importer keeps its
+// path.
+export {
+  EXECUTE_CODE_INPUT_SCHEMA,
+  EXECUTE_CODE_TOOL_NAME,
+  executeCodeMessage,
+  declaredActionRisk,
+  admitCodeAction,
+  ACTION_RISK_VALUES
+} from "./execute-code-contract.js";
+export type { ActionRisk, ActionAdmission } from "./execute-code-contract.js";
 
-/** The display label for a code action: its title, else a generic fallback. */
 /**
  * A string leaf that is a JSON-serialized tool envelope rather than the value
  * itself: it parses to an object carrying an envelope key (status/outputs/
@@ -216,13 +209,6 @@ export function coercionArtifactPaths(
   }
   return [];
 }
-
-export function executeCodeMessage(args: Record<string, unknown>): string {
-  const title = isString(args?.["title"]) ? args["title"].trim() : "";
-  return title || "Executing code action";
-}
-
-export const EXECUTE_CODE_TOOL_NAME = "execute_code";
 
 /**
  * Tools documented in full in the prompt regardless of toolbelt size — the
@@ -531,14 +517,11 @@ export class CodeActExecutor {
     this.sessionModuleExports = new Map();
     this.graftedSpecifiers = new Map();
     for (const tool of this.tools) {
-      const module =
-        capabilityModuleOf(tool.name) ?? SESSION_CAPABILITY_MODULE;
-      this.graftedSpecifiers.set(
-        tool.name,
-        sandboxCapabilitySpecifier(module)
-      );
+      const module = capabilityModuleOf(tool.name) ?? SESSION_CAPABILITY_MODULE;
+      this.graftedSpecifiers.set(tool.name, sandboxCapabilitySpecifier(module));
       const names = this.sessionModuleExports.get(module);
-      if (names === undefined) this.sessionModuleExports.set(module, [tool.name]);
+      if (names === undefined)
+        this.sessionModuleExports.set(module, [tool.name]);
       else names.push(tool.name);
     }
 
@@ -695,10 +678,9 @@ export class CodeActExecutor {
       { ok: true; result: ToolSearchHit[] } | { ok: false; error: string }
     > => {
       try {
-        const limit =
-          isFiniteNumber(maxResults)
-            ? Math.max(1, Math.min(25, Math.floor(maxResults)))
-            : 5;
+        const limit = isFiniteNumber(maxResults)
+          ? Math.max(1, Math.min(25, Math.floor(maxResults)))
+          : 5;
         const byName = new Map(this.tools.map((t) => [t.name, t]));
         const hits = searchTools(searchCatalog, String(query ?? ""), limit).map(
           (entry): ToolSearchHit =>
@@ -733,6 +715,15 @@ export class CodeActExecutor {
         return JSON.stringify({
           ok: false,
           error: "execute_code: `code` must be a non-empty string",
+          toolCalls: 0
+        } satisfies ActionObservation);
+      }
+      // Auto mode's one question, asked before the program runs.
+      const admission = await admitCodeAction(this.capabilityRun?.gate, args);
+      if (!admission.allowed) {
+        return JSON.stringify({
+          ok: false,
+          error: admission.error,
           toolCalls: 0
         } satisfies ActionObservation);
       }
@@ -811,9 +802,7 @@ export class CodeActExecutor {
       // Pixels a tool returned during the action ride beside the observation
       // as a provider image message; the observation itself stays light.
       const images = bridge.drainImages();
-      return images.length > 0
-        ? [{ type: "text", text }, ...images]
-        : text;
+      return images.length > 0 ? [{ type: "text", text }, ...images] : text;
     };
 
     const providerTools = [
@@ -887,10 +876,9 @@ export class CodeActExecutor {
         if ("type" in item && item.type === "message") {
           const m = (item as { message?: Message }).message;
           if (m && m.role === "assistant") {
-            lastAssistant =
-              isString(m.content)
-                ? { ...m, content: removeThinkTags(m.content) }
-                : m;
+            lastAssistant = isString(m.content)
+              ? { ...m, content: removeThinkTags(m.content) }
+              : m;
           }
         }
         yield* drainUi();
@@ -953,9 +941,7 @@ export class CodeActExecutor {
     if (!this.step.outputSchema) return null;
     try {
       const parsed = JSON.parse(this.step.outputSchema) as unknown;
-      if (
-        isRecord(parsed)
-      ) {
+      if (isRecord(parsed)) {
         return parsed as Record<string, unknown>;
       }
       return null;
@@ -1033,9 +1019,5 @@ function isChunk(item: ProviderStreamItem): item is Chunk {
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {
-  return (
-    "name" in item &&
-    typeof item.name === "string" &&
-    "id" in item
-  );
+  return "name" in item && typeof item.name === "string" && "id" in item;
 }

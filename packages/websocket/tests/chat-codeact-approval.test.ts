@@ -57,7 +57,7 @@ const sentMsgs = (ws: MockWS): Record<string, unknown>[] =>
   ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
 
 /** Yields one `execute_code` call on the first round, then plain text. */
-function codeActProvider(code: string) {
+function codeActProvider(code: string, risk: "low" | "high" = "low") {
   let round = 0;
   return async () =>
     ({
@@ -65,7 +65,11 @@ function codeActProvider(code: string) {
       async *generateMessages() {},
       async *generateMessagesTraced() {
         if (round++ === 0) {
-          yield { id: "tc1", name: "execute_code", args: { title: "t", code } };
+          yield {
+            id: "tc1",
+            name: "execute_code",
+            args: { title: "t", risk, code }
+          };
         } else {
           yield { type: "chunk", content: "done", done: true };
         }
@@ -108,7 +112,7 @@ describe("codeact permission prompts", () => {
       resolveExecutor: noop,
       resolveProvider: codeActProvider(
         'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
-        `const r = await write_file({ file_path: "note.txt", content: "hi" });\n` +
+          `const r = await write_file({ file_path: "note.txt", content: "hi" });\n` +
           `return { wrote: String(r) };`
       )
     });
@@ -201,6 +205,98 @@ describe("codeact permission prompts", () => {
       sentMsgs(ws).find((m) => m.type === "message" && m.role === "tool")
     );
     expect(String(observation.content)).toContain("denied");
+
+    await runner.disconnect();
+  }, 60_000);
+  it("asks once for a high-risk action in auto mode, and runs nothing when denied", async () => {
+    initTestDb();
+    const ws = new MockWS();
+    const runner = new UnifiedWebSocketRunner({
+      resolveExecutor: noop,
+      resolveProvider: codeActProvider(
+        'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+          `await write_file({ file_path: "note.txt", content: "hi" });\n` +
+          `return { wrote: true };`,
+        "high"
+      )
+    });
+    await runner.connect(ws);
+    void runner.receiveMessages();
+    void runner.handleCommand({
+      command: "chat_message",
+      data: {
+        thread_id: "t-auto-high",
+        content: "clean up the notes",
+        provider: "mock",
+        model: "m",
+        permission_mode: "auto"
+      }
+    });
+
+    // The action itself is what the user is asked about — not the write inside
+    // it, which auto mode would wave through.
+    const request = await waitFor(() =>
+      sentMsgs(ws).find((m) => m.type === "tool_approval_request")
+    );
+    expect(request).toMatchObject({
+      tool_name: "execute_code",
+      category: "execute"
+    });
+
+    ws.push({
+      type: "websocket.receive",
+      bytes: pack({
+        type: "tool_approval_response",
+        approval_id: request.approval_id,
+        decision: "deny"
+      })
+    } as WebSocketReceiveFrame);
+
+    const observation = await waitFor(() =>
+      sentMsgs(ws).find((m) => m.type === "message" && m.role === "tool")
+    );
+    expect(String(observation.content)).toContain("declined");
+    expect(String(observation.content)).not.toContain("wrote");
+    // The program never ran, so nothing inside it was ever asked about.
+    expect(
+      sentMsgs(ws).filter((m) => m.type === "tool_approval_request")
+    ).toHaveLength(1);
+
+    await runner.disconnect();
+  }, 60_000);
+
+  it("runs a low-risk action in auto mode with no prompt", async () => {
+    initTestDb();
+    const ws = new MockWS();
+    const runner = new UnifiedWebSocketRunner({
+      resolveExecutor: noop,
+      resolveProvider: codeActProvider(
+        'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+          `const r = await write_file({ file_path: "note.txt", content: "hi" });\n` +
+          `return { wrote: String(r) };`,
+        "low"
+      )
+    });
+    await runner.connect(ws);
+    void runner.receiveMessages();
+    void runner.handleCommand({
+      command: "chat_message",
+      data: {
+        thread_id: "t-auto-low",
+        content: "write a note",
+        provider: "mock",
+        model: "m",
+        permission_mode: "auto"
+      }
+    });
+
+    const observation = await waitFor(() =>
+      sentMsgs(ws).find((m) => m.type === "message" && m.role === "tool")
+    );
+    expect(String(observation.content)).toContain('"wrote"');
+    expect(sentMsgs(ws).some((m) => m.type === "tool_approval_request")).toBe(
+      false
+    );
 
     await runner.disconnect();
   }, 60_000);
