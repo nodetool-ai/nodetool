@@ -170,6 +170,7 @@ export class SaveDocumentFileNode extends BaseNode {
       filename: this.filename || "document.txt",
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
       bytes
     });
     return { output: full };

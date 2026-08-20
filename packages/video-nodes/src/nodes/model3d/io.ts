@@ -112,6 +112,7 @@ export class SaveModel3DFileNode extends BaseNode {
       filename: dateName(String(this.filename ?? "model.glb")),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
       overwrite: this.overwrite,
       bytes
     });

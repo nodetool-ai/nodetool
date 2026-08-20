@@ -347,6 +347,7 @@ export class SaveTextFileNode extends BaseNode {
       filename: formatFilename(String(this.name ?? "output.txt")),
       saveToWorkspace,
       workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
       bytes: text
     });
     // The output `uri` is a portable, URI-style path (forward slashes) so

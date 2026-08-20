@@ -42,6 +42,8 @@ vi.mock("@nodetool-ai/runtime", () => ({
   FileStorageAdapter: class {
     constructor(_root?: string) {}
   },
+  // The chat context builds the run's workspace from the --workspace path.
+  createLocalWorkspace: (dir: string) => ({ localDir: dir }),
   // This mock replaces the shared stub wholesale, so re-state the one other
   // export the CodeAct wiring reads.
   DIRECT_TOOL_NAMES: DIRECT_TOOL_NAMES_STUB

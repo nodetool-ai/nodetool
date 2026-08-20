@@ -485,6 +485,7 @@ export class SaveAudioFileNode extends BaseNode {
       filename: dateName(String(this.filename || "audio.wav")),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
       bytes: audioBytes(audio)
     });
     return { output: p };

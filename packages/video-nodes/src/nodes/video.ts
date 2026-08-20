@@ -671,7 +671,12 @@ export class LoadVideoFileNode extends BaseNode {
  * that can write through the workspace do so via `writeSavedFile` instead.
  */
 function saveFolder(rawFolder: unknown, context?: ProcessingContext): string {
-  return folderPath(rawFolder) || context?.workspace?.localDir || ".";
+  return (
+    folderPath(rawFolder) ||
+    context?.workspace?.localDir ||
+    context?.workspaceDir ||
+    "."
+  );
 }
 
 /** Output handles SaveVideoFileVideoNode.process() emits. */
@@ -733,6 +738,7 @@ export class SaveVideoFileVideoNode extends BaseNode {
       filename: dateName(String(this.filename || "video.mp4")),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
       bytes
     });
     return { output: videoRef(bytes, { uri: `file://${p}` }) };
