@@ -5,12 +5,13 @@
  *
  * These wrap `ProcessingContext.runProviderPrediction` /
  * `streamProviderPrediction` / `getProvider` and persist via `persistOutput`
- * (which uses `context.createAsset` / `context.workspaceStorage`). All those
+ * (which uses `context.createAsset` / `context.workspace`). All those
  * surfaces are mocked here — no real providers, network, or filesystem.
  */
 
 import { describe, it, expect, vi } from "vitest";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
+import { StorageWorkspace } from "@nodetool-ai/runtime";
 
 const generateImageTool = () => toolForCapabilityName("generate_image");
 const editImageTool = () => toolForCapabilityName("edit_image");
@@ -41,7 +42,11 @@ function makeContext(opts: MockCtxOptions = {}): any {
     // fake that only defines the method reads as "no asset persistence".
     hasModelInterface: (name: string) => name === "createAsset",
     createAsset,
-    workspaceStorage: opts.workspaceStorage
+    // The tools read `context.workspace`; the option still names an adapter,
+    // which is what a Workspace is built over.
+    workspace: opts.workspaceStorage
+      ? new StorageWorkspace(opts.workspaceStorage as never)
+      : null
   };
 }
 
@@ -295,7 +300,7 @@ describe("EditImageTool", () => {
       { provider: "fal", model: "m", input_file: "in.png", prompt: "p" }
     )) as { error?: string };
     expect(r.error).toContain("image_to_image failed");
-    expect(r.error).toContain("No workspace storage configured");
+    expect(r.error).toContain("No workspace configured");
   });
 
   it("errors when the source file is not found", async () => {
@@ -307,7 +312,7 @@ describe("EditImageTool", () => {
       }),
       { provider: "fal", model: "m", input_file: "missing.png", prompt: "p" }
     )) as { error?: string };
-    expect(r.error).toContain("Input file not found in workspace storage");
+    expect(r.error).toContain("Input file not found in workspace");
   });
 });
 

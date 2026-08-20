@@ -55,7 +55,7 @@ packages/           # 56 npm workspace packages (TypeScript backend)
   storage/          # File storage (local, S3)
   models/           # SQLite data models (Drizzle ORM)
   node-sdk/         # BaseNode class, NodeRegistry, type system
-  runtime/          # ProcessingContext, LLM providers, message queue
+  runtime/          # ProcessingContext, LLM providers, message queue, Workspace
   kernel/           # Workflow graph, Actor runtime, WorkflowRunner
   agents/           # Planning agent system (TaskPlanner → TaskExecutor → CodeActExecutor)
   chat/             # Chat message processing, token counting
@@ -100,6 +100,7 @@ protocol → config → security → auth → storage
 - **Design tokens (MANDATORY)**: See **[docs/DESIGN.md](docs/DESIGN.md)** for the token systems — `SPACING` (4px grid), `TYPOGRAPHY` (4-size scale), `BORDER_RADIUS`, `MOTION`, `Z_INDEX`. **Never** hardcode border radii (`4`, `10`, `18px`), transition strings (`"all 200ms ease"`), font sizes (`"14px"`, `"0.85rem"`), or off-grid spacing (`5px`, `10px`, `13px`). Use the named constants from `ui_primitives`. When touching any UI file, fix violations in the same PR.
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
 - **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
+- **Workspace access goes through an interface, never a path**: a run's files live behind `context.workspace` (`Workspace` in `@nodetool-ai/runtime`) — `read`/`write`/`list`/`stat`/`copy`/`move`/`delete` over workspace-relative paths. A local install backs it with a folder, a cloud deployment with a key prefix in the asset bucket (`NODETOOL_WORKSPACE_STORAGE`), and no caller branches on which. `workspace.localDir` is null on a virtual workspace and is only for code that genuinely needs a real directory: a host binary stages through `materialize`/`absorb` + `scratchDir`, and the two nodes that hold a live file (`lib.sqlite`, the tmux Claude-Code node) say they need a local workspace instead of silently losing writes. `context.workspaceDir` survives as the derived local path and is deprecated.
 - **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
 - **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), TaskExecutor/ParallelTaskExecutor (walk the DAG), CodeActExecutor (sandboxed-JavaScript action loop for one step)
 - **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors

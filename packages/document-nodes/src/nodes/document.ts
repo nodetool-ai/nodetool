@@ -8,7 +8,7 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
   loadNodePath,
-  resolveSaveTarget,
+  writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -142,27 +142,37 @@ export class SaveDocumentFileNode extends BaseNode {
     const document = this.document ?? {};
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
+
+    // The bytes first, so one write call covers every source shape and the
+    // workspace path never needs a second branch.
+    let bytes: Uint8Array | string;
+    if (document.data) {
+      bytes = asBytes(document.data);
+    } else if (document.text != null) {
+      bytes = document.text;
+    } else if (document.uri) {
+      bytes = new Uint8Array(await fs.readFile(toFilePath(document.uri)));
+    } else {
+      bytes = "";
+    }
+
     // A caller (or an older graph) that pinned a full `path` keeps writing
     // exactly there; everything else goes through folder + filename.
     const pinned = toFilePath(this.path ?? "");
-    const full = pinned
-      ? pinned
-      : await resolveSaveTarget({
-          folder: this.folder,
-          filename: this.filename || "document.txt",
-          saveToWorkspace: this.save_to_workspace,
-          workspaceDir: context?.workspaceDir
-        });
-    await fs.mkdir(path.dirname(full), { recursive: true });
-    if (document.data) {
-      await fs.writeFile(full, asBytes(document.data));
-    } else if (document.text != null) {
-      await fs.writeFile(full, document.text, "utf8");
-    } else if (document.uri) {
-      await fs.copyFile(toFilePath(document.uri), full);
-    } else {
-      await fs.writeFile(full, "", "utf8");
+    if (pinned) {
+      await fs.mkdir(path.dirname(pinned), { recursive: true });
+      await fs.writeFile(pinned, bytes);
+      return { output: pinned };
     }
+
+    const full = await writeSavedFile({
+      folder: this.folder,
+      filename: this.filename || "document.txt",
+      saveToWorkspace: this.save_to_workspace,
+      workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
+      bytes
+    });
     return { output: full };
   }
 }

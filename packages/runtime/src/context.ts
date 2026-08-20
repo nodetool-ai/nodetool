@@ -39,6 +39,7 @@ import {
   inlineTextAssetRefs
 } from "./prompt-asset-refs.js";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
+import type { Workspace } from "./workspace.js";
 
 // `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
 // lazily so this module loads in browser / Edge runtimes. The
@@ -673,7 +674,7 @@ async function coerceEntityList(
   return out.length > 0 ? out : undefined;
 }
 
-function normalizeStorageKey(key: string): string {
+export function normalizeStorageKey(key: string): string {
   const segments: string[] = [];
   for (const segment of key.replaceAll("\\", "/").split("/")) {
     if (!segment || segment === ".") continue;
@@ -1216,6 +1217,37 @@ export function resolveWorkspacePath(
 // ProcessingContext
 // ---------------------------------------------------------------------------
 
+/**
+ * Build the run's workspace from whatever the host supplied.
+ *
+ * Hosts are migrating from `workspaceDir` (a real folder) and `workspaceStorage`
+ * (a bare adapter) to `workspace`. Accepting all three keeps the call sites
+ * working while they move, and means a consumer only ever reads
+ * `context.workspace`. Constructed lazily through a setter the storage module
+ * installs, so `context.ts` does not import the implementation and stays
+ * loadable off Node.
+ */
+type WorkspaceFactory = (opts: {
+  workspace?: Workspace | null;
+  workspaceDir?: string | null;
+  workspaceStorage?: StorageAdapter | null;
+}) => Workspace | null;
+
+let workspaceFactory: WorkspaceFactory = (opts) => opts.workspace ?? null;
+
+/** Installed once by `storage-workspace.ts`; see {@link ProcessingContext.workspace}. */
+export function setWorkspaceFactory(factory: WorkspaceFactory): void {
+  workspaceFactory = factory;
+}
+
+function resolveWorkspaceOption(opts: {
+  workspace?: Workspace | null;
+  workspaceDir?: string | null;
+  workspaceStorage?: StorageAdapter | null;
+}): Workspace | null {
+  return workspaceFactory(opts);
+}
+
 export class ProcessingContext {
   readonly jobId: string;
   readonly workflowId: string | null;
@@ -1301,7 +1333,22 @@ export class ProcessingContext {
    * If null, file-tool operations should return a clear error rather than
    * fall back to direct FS access — there is no implicit workspace.
    */
+  /**
+   * @deprecated Use {@link workspace}, which works on a cloud deployment too.
+   * Only set when a host passed a bare adapter; a host that passes a
+   * `workspace` leaves this null.
+   */
   readonly workspaceStorage: StorageAdapter | null;
+  /**
+   * The run's workspace as an interface — the way to read and write run files.
+   *
+   * Null when the host wired none, in which case a file operation must report
+   * that plainly rather than reaching for the process working directory.
+   * Prefer this over {@link workspaceDir}, which is only non-null when the
+   * workspace happens to be a real folder: a cloud run's workspace lives in
+   * object storage and has no path.
+   */
+  readonly workspace: Workspace | null;
   /**
    * Unified, structured agent memory. The single source of truth for results
    * shared between agents, tasks, steps and tools. Keys use the namespaces
@@ -1391,6 +1438,13 @@ export class ProcessingContext {
     storage?: StorageAdapter | null;
     assetStorage?: StorageAdapter | null;
     workspaceStorage?: StorageAdapter | null;
+    /**
+     * The run's workspace. Preferred over `workspaceDir`/`workspaceStorage`,
+     * which are kept for hosts that still hand over a directory or a bare
+     * adapter — either one is wrapped into a Workspace here so every consumer
+     * sees the same interface whatever the host passed.
+     */
+    workspace?: Workspace | null;
     onMessage?: (msg: ProcessingMessage) => void;
     variables?: Record<string, unknown>;
     environment?: Record<string, string>;
@@ -1428,7 +1482,8 @@ export class ProcessingContext {
     this.workflowId = opts.workflowId ?? null;
     this.threadId = opts.threadId ?? null;
     this.userId = opts.userId ?? "default";
-    this.workspaceDir = opts.workspaceDir ?? null;
+    this.workspace = resolveWorkspaceOption(opts);
+    this.workspaceDir = this.workspace?.localDir ?? opts.workspaceDir ?? null;
     this.assetOutputMode = opts.assetOutputMode ?? "native";
     this.persistOutputAssets = opts.persistOutputAssets ?? true;
     this.cache = opts.cache ?? new MemoryCache();

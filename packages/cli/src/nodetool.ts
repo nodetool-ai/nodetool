@@ -58,6 +58,7 @@ import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 import {
   ProcessingContext,
   FileStorageAdapter,
+  createLocalWorkspace,
   initTelemetry
 } from "@nodetool-ai/runtime";
 import type { AssetOutputMode } from "@nodetool-ai/runtime";
@@ -752,7 +753,7 @@ addSupervisorOptions(
       // workspace-driving nodes land in the same directory as a server run.
       const { resolveWorkflowWorkspace } =
         await import("@nodetool-ai/websocket");
-      const workspaceDir = workflowId
+      const assignedWorkspace = workflowId
         ? await resolveWorkflowWorkspace(workflowId, "1")
         : null;
       const ASSET_OUTPUT_MODES = [
@@ -774,20 +775,25 @@ addSupervisorOptions(
         );
       }
 
-      // `workspace` mode writes each output into <workspace>/assets, so it
-      // needs a directory even when the run has no saved workflow (a JSON or
-      // DSL file target). Fall back to ./nodetool-output so a bare
-      // `workflows run file.json --asset-output-mode workspace` produces
-      // files in the current directory rather than failing.
-      const effectiveWorkspaceDir =
+      // `--workspace <dir>` wins, then whatever the workflow is assigned.
+      // `workspace` asset mode writes each output into <workspace>/assets, so
+      // it needs somewhere to write even when the run has no saved workflow (a
+      // JSON or DSL file target). Fall back to ./nodetool-output so a bare
+      // `workflows run file.json --asset-output-mode workspace` produces files
+      // in the current directory rather than failing.
+      const overrideWorkspaceDir =
         opts.workspace ??
-        workspaceDir ??
-        (assetOutputMode === "workspace"
-          ? resolve(process.cwd(), "nodetool-output")
-          : null);
-      if (effectiveWorkspaceDir) {
-        mkdirSync(effectiveWorkspaceDir, { recursive: true });
+        (assignedWorkspace
+          ? null
+          : assetOutputMode === "workspace"
+            ? resolve(process.cwd(), "nodetool-output")
+            : null);
+      if (overrideWorkspaceDir) {
+        mkdirSync(overrideWorkspaceDir, { recursive: true });
       }
+      const runWorkspace = overrideWorkspaceDir
+        ? createLocalWorkspace(overrideWorkspaceDir)
+        : assignedWorkspace;
 
       const assetStorage = new FileStorageAdapter(getDefaultAssetsPath());
       const context = new ProcessingContext({
@@ -797,10 +803,7 @@ addSupervisorOptions(
         secretResolver: getSecret,
         storage: assetStorage,
         assetOutputMode,
-        workspaceDir: effectiveWorkspaceDir,
-        workspaceStorage: effectiveWorkspaceDir
-          ? new FileStorageAdapter(effectiveWorkspaceDir)
-          : null
+        workspace: runWorkspace
       });
 
       const supervisor = supervisorConfig

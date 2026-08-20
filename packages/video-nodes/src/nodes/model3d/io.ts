@@ -7,7 +7,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { DEFAULT_FOLDER, DEFAULT_MODEL_3D } from "./defaults.js";
 import { dateName, extFormat, filePath, modelRef, modelRefToBytes } from "./utils.js";
 import {
-  resolveSaveTarget,
+  writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -106,15 +106,16 @@ export class SaveModel3DFileNode extends BaseNode {
   declare overwrite: any;
 
   async process(context?: ProcessingContext): Promise<SaveModel3DFileNodeOutputs> {
-    const targetPath = await resolveSaveTarget({
+    const bytes = await modelRefToBytes(this.model, context);
+    const targetPath = await writeSavedFile({
       folder: this.folder,
       filename: dateName(String(this.filename ?? "model.glb")),
       saveToWorkspace: this.save_to_workspace,
+      workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
-      overwrite: this.overwrite
+      overwrite: this.overwrite,
+      bytes
     });
-    const bytes = await modelRefToBytes(this.model, context);
-    await fs.writeFile(targetPath, bytes);
 
     return {
       output: modelRef(bytes, {

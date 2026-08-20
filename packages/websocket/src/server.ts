@@ -130,6 +130,7 @@ import { createSdkV1ExecutionTargetReadiness } from "./sdk/sdk-execution-target-
 import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
 import { FrontendRendererRegistry } from "./frontend-renderer-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
+import { initWorkspaceStorage } from "./lib/workflow-workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import applicationsRoutes from "./routes/applications.js";
@@ -1340,6 +1341,10 @@ await app.register(storageRoutes, routeOpts);
 await app.register(openaiRoutes, routeOpts);
 await app.register(oauthRoutes, routeOpts);
 await app.register(workspaceRoutes, routeOpts);
+
+// A cloud deployment keeps workspaces in the asset bucket rather than on the
+// machine's disk, which it would lose on every replacement. No-op locally.
+initWorkspaceStorage();
 await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(applicationsRoutes, routeOpts);

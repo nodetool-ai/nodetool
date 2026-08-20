@@ -75,7 +75,11 @@ export {
   getDefaultAssetsPath,
   getDefaultTransformersJsCacheDir,
   getAssetFilePath,
-  buildAssetUrl
+  buildAssetUrl,
+  getManagedWorkspacesDir,
+  getManagedWorkspaceDir,
+  managedWorkspaceKey,
+  workspaceStorageKind
 } from "./paths.js";
 
 export {

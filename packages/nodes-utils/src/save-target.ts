@@ -72,12 +72,30 @@ export function folderPathOf(raw: FolderValue): string {
   return "";
 }
 
+/**
+ * The slice of the run's workspace a save node needs.
+ *
+ * Structural rather than imported: `@nodetool-ai/nodes-utils` sits below
+ * `@nodetool-ai/runtime` in the dependency order, and a `ProcessingContext`'s
+ * `workspace` satisfies this shape.
+ */
+export interface SaveWorkspace {
+  localDir: string | null;
+  exists(path: string): Promise<boolean>;
+  write(path: string, data: Uint8Array | string, contentType?: string): Promise<void>;
+}
+
 export interface SaveFolderOptions {
   /** The node's `folder` property, whatever shape it arrived in. */
   folder: FolderValue;
   /** The node's `save_to_workspace` property. */
   saveToWorkspace: boolean | undefined;
-  /** `context.workspaceDir` — null when the run has no workspace. */
+  /** `context.workspace` — null when the run has no workspace. */
+  workspace?: SaveWorkspace | null;
+  /**
+   * `context.workspaceDir`. Only meaningful for a workspace that is a real
+   * folder; a cloud run has none and saves through `workspace` instead.
+   */
   workspaceDir?: string | null;
 }
 
@@ -92,10 +110,11 @@ export interface SaveFolderOptions {
  */
 export function resolveSaveFolder(opts: SaveFolderOptions): string {
   const folder = folderPathOf(opts.folder);
-  if (opts.saveToWorkspace === true && opts.workspaceDir) {
-    return opts.workspaceDir;
+  const workspaceDir = opts.workspace?.localDir ?? opts.workspaceDir ?? null;
+  if (opts.saveToWorkspace === true && workspaceDir) {
+    return workspaceDir;
   }
-  return folder || opts.workspaceDir || ".";
+  return folder || workspaceDir || ".";
 }
 
 /**
@@ -144,4 +163,64 @@ export async function resolveSaveTarget(
   const target = path.resolve(folder, opts.filename);
   await fs.mkdir(path.dirname(target), { recursive: true });
   return opts.overwrite === true ? target : uniqueFilePath(target);
+}
+
+/**
+ * Write a saved file where the node's properties say it goes, and report the
+ * path it landed on.
+ *
+ * With the workspace toggle on this writes through the workspace, so the same
+ * node produces a file in the user's folder locally and an object in their
+ * workspace prefix in the cloud. The name is deduplicated the same way in both
+ * cases — a run that saves twice in one second must not silently overwrite its
+ * first output.
+ *
+ * With the toggle off the node is naming a host folder, which only exists on a
+ * local install; a cloud run has no such folder and says so rather than writing
+ * somewhere the user will never find.
+ */
+export async function writeSavedFile(
+  opts: SaveTargetOptions & { bytes: Uint8Array | string }
+): Promise<string> {
+  const workspace = opts.workspace ?? null;
+  const isVirtual = workspace !== null && workspace.localDir === null;
+
+  if (opts.saveToWorkspace === true && workspace) {
+    if (isVirtual) {
+      const target =
+        opts.overwrite === true
+          ? opts.filename
+          : await uniqueWorkspacePath(workspace, opts.filename);
+      await workspace.write(target, opts.bytes);
+      return target;
+    }
+    // A local workspace is a real folder, so the file goes there by path —
+    // which is what a user browsing their workspace on disk expects.
+  } else if (isVirtual) {
+    throw new Error(
+      "This node writes to a folder on the machine running the workflow, and " +
+        "this run's workspace is cloud storage with no such folder. Turn on " +
+        '"Save to workspace" to write into the workspace instead.'
+    );
+  }
+
+  const fs = await loadNodeFsPromises();
+  const target = await resolveSaveTarget(opts);
+  await fs.writeFile(target, opts.bytes);
+  return target;
+}
+
+/** `name.ext`, `name_1.ext`, … — the first one the workspace does not hold. */
+async function uniqueWorkspacePath(
+  workspace: SaveWorkspace,
+  filename: string
+): Promise<string> {
+  if (!(await workspace.exists(filename))) return filename;
+  const dot = filename.lastIndexOf(".");
+  const base = dot > 0 ? filename.slice(0, dot) : filename;
+  const ext = dot > 0 ? filename.slice(dot) : "";
+  for (let i = 1; ; i++) {
+    const candidate = `${base}_${i}${ext}`;
+    if (!(await workspace.exists(candidate))) return candidate;
+  }
 }

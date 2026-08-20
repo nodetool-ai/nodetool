@@ -9,10 +9,15 @@ import AddIcon from "@mui/icons-material/Add";
 import FolderIcon from "@mui/icons-material/Folder";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import {
+  useWorkspaces,
+  useWorkspaceCacheWriter,
+  WORKSPACES_QUERY_KEY
+} from "../../hooks/useWorkspaces";
 import { useFolderPicker } from "./useFolderPicker";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import {
@@ -89,11 +94,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
-  return workspaces as WorkspaceResponse[];
-};
-
 /** Derive a workspace name from an absolute folder path. */
 function nameFromPath(path: string): string {
   const normalized = path.replace(/\\/g, "/");
@@ -105,6 +105,7 @@ const WorkspacesManager: React.FC = () => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
+  const writeWorkspaceToCache = useWorkspaceCacheWriter();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -115,13 +116,10 @@ const WorkspacesManager: React.FC = () => {
     string | null
   >(null);
 
-  const { data: workspaces, isLoading, error } = useQuery({
-    queryKey: ["workspaces"],
-    queryFn: fetchWorkspaces
-  });
+  const { workspaces, canManage, isLoading, error } = useWorkspaces();
 
   const handleRetry = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+    queryClient.invalidateQueries({ queryKey: WORKSPACES_QUERY_KEY });
   }, [queryClient]);
 
   const createMutation = useMutation({
@@ -132,11 +130,7 @@ const WorkspacesManager: React.FC = () => {
       });
     },
     onSuccess: (created) => {
-      queryClient.setQueryData<WorkspaceResponse[]>(["workspaces"], (prev) => {
-        if (prev?.some((w) => w.id === created.id)) return prev;
-        return [...(prev ?? []), created as WorkspaceResponse];
-      });
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      writeWorkspaceToCache(created as WorkspaceResponse);
       addNotification({
         type: "success",
         alert: true,
@@ -159,7 +153,7 @@ const WorkspacesManager: React.FC = () => {
       return trpcClient.workspace.update.mutate(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      queryClient.invalidateQueries({ queryKey: WORKSPACES_QUERY_KEY });
     },
     onError: (error) => {
       addNotification({
@@ -176,7 +170,7 @@ const WorkspacesManager: React.FC = () => {
       await trpcClient.workspace.delete.mutate({ id });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      queryClient.invalidateQueries({ queryKey: WORKSPACES_QUERY_KEY });
       addNotification({
         type: "success",
         alert: true,
@@ -246,7 +240,7 @@ const WorkspacesManager: React.FC = () => {
                 Retry
               </EditorButton>
             </Box>
-          ) : workspaces && workspaces.length > 0 ? (
+          ) : workspaces.length > 0 ? (
             <List className="workspace-list">
               {workspaces.map((workspace) => (
                 <ListItem key={workspace.id} className="workspace-item">
@@ -290,11 +284,13 @@ const WorkspacesManager: React.FC = () => {
                         }
                       }}
                     />
-                    <ToolbarIconButton
-                      icon={<DeleteIcon fontSize="small" />}
-                      tooltip="Remove"
-                      onClick={() => handleDeleteWorkspace(workspace.id)}
-                    />
+                    {!workspace.is_default && (
+                      <ToolbarIconButton
+                        icon={<DeleteIcon fontSize="small" />}
+                        tooltip="Remove"
+                        onClick={() => handleDeleteWorkspace(workspace.id)}
+                      />
+                    )}
                   </ListItemSecondaryAction>
                 </ListItem>
               ))}
@@ -304,21 +300,25 @@ const WorkspacesManager: React.FC = () => {
               <FolderIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
               <Text>No workspaces configured</Text>
               <Text size="small">
-                Add a workspace to allow agents to access local folders
+                {canManage
+                  ? "Add a workspace to allow agents to access local folders"
+                  : "This deployment manages your workspace for you"}
               </Text>
             </Box>
           )}
 
-          <div className="add-workspace-section">
-            <EditorButton
-              startIcon={<AddIcon />}
-              onClick={handleAddWorkspace}
-              fullWidth
-              disabled={createMutation.isPending}
-            >
-              {createMutation.isPending ? "Adding…" : "Add Workspace"}
-            </EditorButton>
-          </div>
+          {canManage && (
+            <div className="add-workspace-section">
+              <EditorButton
+                startIcon={<AddIcon />}
+                onClick={handleAddWorkspace}
+                fullWidth
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? "Adding…" : "Add Workspace"}
+              </EditorButton>
+            </div>
+          )}
         </div>
       </FlexColumn>
 

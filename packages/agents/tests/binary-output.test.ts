@@ -10,8 +10,10 @@ import {
   type StorageStat
 } from "@nodetool-ai/storage";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { StorageWorkspace } from "@nodetool-ai/runtime";
 
 function makeContext(opts: {
+  /** Backs `context.workspace`; a null adapter means the run has none. */
   workspaceStorage?: StorageAdapter | null;
   storage?: StorageAdapter | null;
   resolveTempUrl?: (uri: string) => Promise<string> | string;
@@ -21,7 +23,9 @@ function makeContext(opts: {
     ((uri: string) =>
       uri.replace(/^memory:\/\//, "/api/storage/").replace(/^file:\/\//, ""));
   return {
-    workspaceStorage: opts.workspaceStorage ?? null,
+    workspace: opts.workspaceStorage
+      ? new StorageWorkspace(opts.workspaceStorage)
+      : null,
     storage: opts.storage ?? null,
     resolveTempUrl: async (uri: string) => tempResolver(uri)
   } as unknown as ProcessingContext;

@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { tmpdir } from "node:os";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
 import {
@@ -29,7 +28,6 @@ import {
   isRecord,
   isString
 } from "./lib/wire-values.js";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
 import {
   resourceEvents,
   type ResourceChangePayload
@@ -112,7 +110,8 @@ import {
   getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
   isProviderMessageEvent,
-  type ActiveModelSelection
+  type ActiveModelSelection,
+  type Workspace
 } from "@nodetool-ai/runtime";
 import {
   isRawRgbaImage,
@@ -1192,7 +1191,12 @@ function createRuntimeContext(opts: {
   workflowId?: string | null;
   threadId?: string | null;
   userId: string;
-  workspaceDir: string | null;
+  /**
+   * The run's workspace — a local folder or a prefix in the deployment's
+   * object storage, resolved by `workspaceResolver`. Null when the host wired
+   * none, and file operations then say so instead of writing elsewhere.
+   */
+  workspace: Workspace | null;
   authToken?: string | null;
   assetOutputMode?:
     | "native"
@@ -1205,14 +1209,6 @@ function createRuntimeContext(opts: {
 }): RuntimeProcessingContext {
   const storagePath = getAssetStoragePath();
   const tempAdapter = getTempAdapter();
-  // The agent's "workspace" — where file_read / file_write / file_list land.
-  // Local: a FileStorageAdapter rooted at workspaceDir. Cloud: callers can
-  // wire a different StorageAdapter when constructing the runner; for now
-  // we fall back to a workspaceDir-backed FileStorageAdapter when one is
-  // present, leaving cloud wiring to the deployment-specific runner.
-  const workspaceAdapter = opts.workspaceDir
-    ? new FileStorageAdapter(opts.workspaceDir)
-    : null;
   const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
@@ -1223,7 +1219,10 @@ function createRuntimeContext(opts: {
     // `x-user-id` and 404s for every user but `1` — the reference then reached
     // the provider verbatim and died in the SSRF guard.
     assetStorage: getAssetAdapter(),
-    workspaceStorage: workspaceAdapter,
+    // Where file_read / file_write / file_list land. A folder on a local
+    // install, a key prefix in the asset bucket on a cloud one — the tools
+    // cannot tell which and do not branch on it.
+    workspace: opts.workspace,
     authToken: opts.authToken,
     tempUrlResolver: createTempUrlResolver(tempAdapter, storagePath)
   });
@@ -2038,10 +2037,15 @@ export interface UnifiedWebSocketRunnerOptions {
     userId: string
   ) => Promise<BaseProvider>;
   getSystemStats?: () => Record<string, unknown>;
+  /**
+   * Resolve the workspace directory for a run. `workflowId` is null for a chat
+   * turn, which resolves to the user's default workspace — chat writes files
+   * too, and they belong somewhere the user can find them.
+   */
   workspaceResolver?: (
-    workflowId: string,
+    workflowId: string | null,
     userId: string
-  ) => Promise<string | null>;
+  ) => Promise<Workspace | null>;
   /** Called before a workflow job starts — used to lazily connect the Python bridge. */
   beforeRunJob?: (graph: {
     nodes: ReadonlyArray<NodeDescriptor>;
@@ -3630,16 +3634,15 @@ export class UnifiedWebSocketRunner {
     }
     const preRunMs = performance.now() - phaseStartedAt;
 
-    const workspaceDir =
-      workflowId && this.workspaceResolver
-        ? await this.workspaceResolver(workflowId, userId)
-        : null;
+    const workspace = this.workspaceResolver
+      ? await this.workspaceResolver(workflowId ?? null, userId)
+      : null;
 
     const context = createRuntimeContext({
       jobId,
       workflowId,
       userId,
-      workspaceDir,
+      workspace,
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url",
       persistOutputAssets: executionOptions.assetPersistence === "auto"
     });
@@ -5301,7 +5304,9 @@ export class UnifiedWebSocketRunner {
       jobId,
       workflowId: null,
       userId,
-      workspaceDir: tmpdir(),
+      workspace: this.workspaceResolver
+        ? await this.workspaceResolver(null, userId)
+        : null,
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
     });
     this.attachPlanApproval(context, threadId);
@@ -5809,16 +5814,18 @@ export class UnifiedWebSocketRunner {
     });
 
     // Create a processing context for tool execution
-    const chatWorkspaceDir =
-      workflowId && this.workspaceResolver
-        ? await this.workspaceResolver(workflowId, userId)
-        : tmpdir();
+    // A chat turn without a workflow still resolves a workspace — the user's
+    // default one. It used to fall back to the whole OS temp dir, which is
+    // neither bounded nor anywhere the user would look for what an agent wrote.
+    const chatWorkspace = this.workspaceResolver
+      ? await this.workspaceResolver(workflowId ?? null, userId)
+      : null;
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       workflowId,
       threadId: threadId || null,
       userId,
-      workspaceDir: chatWorkspaceDir,
+      workspace: chatWorkspace,
       authToken: this.authToken
     });
     const detachPredictions = attachChatPredictionForwarder(
@@ -6259,7 +6266,7 @@ export class UnifiedWebSocketRunner {
         executeTool: useTools ? effectiveExecuteTool : undefined,
         maxIterations: MAX_TOOL_ROUNDS,
         sequentialTools: session ? true : undefined,
-        workspaceDir: chatWorkspaceDir ?? undefined,
+        workspaceDir: chatWorkspace?.localDir ?? undefined,
         signal
       })) {
         // A newer turn has taken over. Stop driving the client, but do NOT
@@ -7656,14 +7663,14 @@ export class UnifiedWebSocketRunner {
       }
 
       // Create processing context
-      const workspaceDir = this.workspaceResolver
+      const workspace = this.workspaceResolver
         ? await this.workspaceResolver(workflowId, userId)
         : null;
       const context = createRuntimeContext({
         jobId,
         workflowId,
         userId,
-        workspaceDir,
+        workspace,
         assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
       });
 

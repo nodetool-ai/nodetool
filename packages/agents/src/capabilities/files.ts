@@ -2,10 +2,15 @@
  * The `files` capability module — the workspace namespace.
  *
  * Seven capabilities that used to be seven `Tool` subclasses across three
- * files: `read_file`, `write_file` and `list_directory` (`filesystem-tools.ts`,
- * backed by `context.workspaceStorage`), `edit_file`, `glob` and `grep`
- * (`edit-search-tools.ts`, backed by the resolved workspace path), and
- * `todo_write` (`todo-tools.ts`, the per-thread checklist).
+ * files: `read_file`, `write_file` and `list_directory` (`filesystem-tools.ts`),
+ * `edit_file`, `glob` and `grep` (`edit-search-tools.ts`), and `todo_write`
+ * (`todo-tools.ts`, the per-thread checklist).
+ *
+ * All six file capabilities go through `context.workspace`, never `node:fs`.
+ * That is what makes them work on a cloud deployment, where the workspace is a
+ * prefix in object storage and there is no directory to walk — and it is why
+ * the symlink guards that used to live here are gone: containment is the
+ * workspace's own rule, checked once, in one place.
  *
  * Every one is context-only: what the class read off the `ProcessingContext`
  * the implementation reads off `run.context`, and nothing else rides on the
@@ -19,16 +24,14 @@
  * namespaces".
  */
 
-import { access, readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { join, relative } from "node:path";
-import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
-import type { StorageAdapter } from "@nodetool-ai/storage";
+import type {
+  JsonSchema,
+  ProcessingContext,
+  Workspace,
+  WorkspaceEntry
+} from "@nodetool-ai/runtime";
 import type { TodoItem, TodoStatus, TodoUpdate } from "@nodetool-ai/protocol";
 import { Tool } from "../tools/base-tool.js";
-import {
-  isEditTargetWithinRoot,
-  isRealPathWithinRoot
-} from "../workspace-paths.js";
 import {
   isNonBlankString,
   isNumber,
@@ -124,8 +127,8 @@ function isBinaryBytes(bytes: Uint8Array): boolean {
   return false;
 }
 
-function getStorage(context: ProcessingContext): StorageAdapter | null {
-  return context.workspaceStorage ?? null;
+function getWorkspace(context: ProcessingContext): Workspace | null {
+  return context.workspace ?? null;
 }
 
 const EXT_TO_MIME: Record<string, string> = {
@@ -161,9 +164,14 @@ function mimeForPath(path: string): string {
   return EXT_TO_MIME[ext] ?? "text/plain; charset=utf-8";
 }
 
-function isInvalidStorageKeyError(err: unknown): boolean {
+function isOutsideWorkspaceError(err: unknown): boolean {
+  if (err instanceof Error && err.name === "WorkspacePathError") return true;
   const msg = err instanceof Error ? err.message : String(err);
-  return msg.toLowerCase().includes("invalid storage key");
+  const lowered = msg.toLowerCase();
+  return (
+    lowered.includes("invalid storage key") ||
+    lowered.includes("outside the workspace")
+  );
 }
 
 const NO_WORKSPACE_ERROR =
@@ -179,17 +187,16 @@ const readFileCapability: CapabilityExport = {
     if (!isString(filePath)) {
       return "Error: file_path must be a string";
     }
-    const storage = getStorage(context);
-    if (!storage) return NO_WORKSPACE_ERROR;
+    const workspace = getWorkspace(context);
+    if (!workspace) return NO_WORKSPACE_ERROR;
 
-    let uri: string;
+    let bytes: Uint8Array | null;
     try {
-      uri = storage.uriForKey(filePath);
+      bytes = await workspace.read(filePath);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return `Error: Path '${filePath}' is outside the workspace: ${msg}`;
     }
-    const bytes = await storage.retrieve(uri);
     if (!bytes) {
       return `Error: ${filePath} does not exist`;
     }
@@ -261,18 +268,19 @@ const writeFileCapability: CapabilityExport = {
     if (!isString(content)) {
       return "Error: content must be a string";
     }
-    const storage = getStorage(context);
-    if (!storage) return NO_WORKSPACE_ERROR;
+    const workspace = getWorkspace(context);
+    if (!workspace) return NO_WORKSPACE_ERROR;
 
-    let uri: string;
+    // Classify the path before writing: `exists` answers false for a path that
+    // escapes, so without this the refusal would surface as a write failure.
+    let exists: boolean;
     try {
-      uri = storage.uriForKey(filePath);
+      workspace.key(filePath);
+      exists = await workspace.exists(filePath);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return `Error: Path '${filePath}' is outside the workspace: ${msg}`;
     }
-
-    const exists = await storage.exists(uri);
     if (exists && !readSet(context).has(filePath)) {
       return (
         `Error: ${filePath} exists but has not been read in this session. ` +
@@ -281,8 +289,7 @@ const writeFileCapability: CapabilityExport = {
     }
 
     try {
-      const bytes = new TextEncoder().encode(content);
-      await storage.store(filePath, bytes, mimeForPath(filePath));
+      await workspace.write(filePath, content, mimeForPath(filePath));
       // After a successful write, treat the file as "read" — the model knows
       // its current contents (it just wrote them) and shouldn't have to re-read
       // before the next overwrite.
@@ -315,71 +322,58 @@ async function listEntries(
   rawPath: string,
   recursive: boolean
 ): Promise<DirEntry[] | string> {
-  const storage = getStorage(context);
-  if (!storage) return NO_WORKSPACE_ERROR;
+  const workspace = getWorkspace(context);
+  if (!workspace) return NO_WORKSPACE_ERROR;
 
-  // Normalize "." and "/" to the empty prefix (workspace root). The
-  // storage layer's normalizeStorageKey rejects "." as invalid.
-  const listPrefix =
+  // "." and "/" both name the workspace root, which the interface spells "".
+  const dirPath =
     rawPath === "." || rawPath === "/" || rawPath === "" ? "" : rawPath;
 
-  let result;
+  let listed;
   try {
-    result = await storage.list(listPrefix, { delimiter: "/" });
+    listed = await workspace.list(dirPath);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (isInvalidStorageKeyError(e)) {
+    if (isOutsideWorkspaceError(e)) {
       return `Error: Path '${rawPath}' is outside the workspace: ${msg}`;
     }
     return `Error: Failed to list '${rawPath}': ${msg}`;
   }
-  if (
-    result.entries.length === 0 &&
-    result.commonPrefixes.length === 0 &&
-    listPrefix !== ""
-  ) {
-    let stillExists = false;
+
+  // An empty listing is either an empty directory or a path that is not
+  // there — only a stat tells them apart, and the difference matters to a
+  // model deciding whether to create the file.
+  if (listed.length === 0 && dirPath !== "") {
     try {
-      stillExists = await storage.exists(storage.uriForKey(listPrefix));
+      if (!(await workspace.stat(dirPath))) {
+        return `Error: '${rawPath}' not found`;
+      }
     } catch (e) {
-      if (isInvalidStorageKeyError(e)) {
+      if (isOutsideWorkspaceError(e)) {
         return `Error: Path '${rawPath}' is outside the workspace`;
       }
       const msg = e instanceof Error ? e.message : String(e);
       return `Error: Failed to list '${rawPath}': ${msg}`;
     }
-    if (!stillExists) {
-      return `Error: '${rawPath}' not found`;
-    }
   }
-  const entries: DirEntry[] = [];
-  const prefixToStrip = rawPath ? `${rawPath.replace(/\/+$/, "")}/` : "";
 
-  for (const entry of result.entries) {
-    const name = prefixToStrip
-      ? entry.key.startsWith(prefixToStrip)
-        ? entry.key.slice(prefixToStrip.length)
-        : entry.key
-      : entry.key;
-    entries.push({ name, size: entry.size, isDirectory: false });
-  }
-  for (const cp of result.commonPrefixes) {
-    const trimmed = cp.replace(/\/+$/, "");
-    const name = prefixToStrip
-      ? trimmed.startsWith(prefixToStrip.replace(/\/+$/, ""))
-        ? trimmed.slice(prefixToStrip.length).replace(/^\/+/, "")
-        : trimmed
-      : trimmed;
-    const lastSegment = name.split("/").pop() ?? name;
-    entries.push({ name: lastSegment, size: 0, isDirectory: true });
-  }
+  const prefixToStrip = dirPath ? `${dirPath.replace(/\/+$/, "")}/` : "";
+  const relative = (path: string): string =>
+    prefixToStrip && path.startsWith(prefixToStrip)
+      ? path.slice(prefixToStrip.length)
+      : path;
+
+  const entries: DirEntry[] = listed.map((entry) => ({
+    name: relative(entry.path),
+    size: entry.size,
+    isDirectory: entry.isDirectory
+  }));
 
   if (recursive) {
-    for (const cp of result.commonPrefixes) {
-      const subKey = cp.replace(/\/+$/, "");
-      const subEntries = await listEntries(context, subKey, true);
+    for (const dir of listed.filter((entry) => entry.isDirectory)) {
+      const subEntries = await listEntries(context, dir.path, true);
       if (isString(subEntries)) continue; // skip errored subdirs
-      const subBase = subKey.split("/").pop() ?? subKey;
+      const subBase = dir.name;
       for (const child of subEntries) {
         entries.push({ ...child, name: `${subBase}/${child.name}` });
       }
@@ -397,9 +391,6 @@ const listDirectory: CapabilityExport = {
     if (!isString(rawPath)) {
       return "Error: path must be a string";
     }
-    const storage = getStorage(context);
-    if (!storage) return NO_WORKSPACE_ERROR;
-
     const recursive = params["recursive"] === true;
     const entries = await listEntries(context, rawPath, recursive);
     if (isString(entries)) return entries; // error already formatted
@@ -424,7 +415,7 @@ const listDirectory: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 /**
- * Largest file grep will read into memory. `walkDir` returns every non-binary
+ * Largest file grep will read into memory. The walk returns every non-binary
  * file regardless of size, so without this cap a single huge log/jsonl file
  * would be fully buffered (plus a decoded copy and a split array), OOM-ing the
  * shared server process.
@@ -445,10 +436,6 @@ const GREP_TIME_BUDGET_MS = 5000;
  * ammunition a ReDoS pattern needs while still matching normal source lines.
  */
 const MAX_GREP_LINE_LENGTH = 100_000;
-
-function resolveSafePath(context: ProcessingContext, rawPath: string): string {
-  return context.resolveWorkspacePath(rawPath);
-}
 
 /**
  * Best-effort detector for the classic catastrophic-backtracking regex family:
@@ -666,42 +653,6 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-async function walkDir(
-  dir: string,
-  maxDepth: number,
-  depth = 0
-): Promise<string[]> {
-  if (depth > maxDepth) return [];
-  const results: string[] = [];
-  try {
-    const entries = await readdir(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      // Skip hidden dirs and node_modules for performance
-      if (
-        entry.isDirectory() &&
-        (entry.name.startsWith(".") || entry.name === "node_modules")
-      ) {
-        continue;
-      }
-      // Never follow symlinks: a symlink inside the workspace can point outside
-      // the root, and the lexical containment check can't see through it. Skip
-      // both file and directory symlinks so grep/glob stay sandboxed.
-      if (entry.isSymbolicLink()) {
-        continue;
-      }
-      const fullPath = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        results.push(...(await walkDir(fullPath, maxDepth, depth + 1)));
-      } else {
-        results.push(fullPath);
-      }
-    }
-  } catch {
-    // Permission denied or broken symlink — skip
-  }
-  return results;
-}
-
 const editFile: CapabilityExport = {
   spec: editFileSpec,
   impl: async (run, params) => {
@@ -723,9 +674,16 @@ const editFile: CapabilityExport = {
         error: "old_string and new_string must be different"
       };
 
-    let filePath: string;
+    const workspace = getWorkspace(context);
+    if (!workspace) return { success: false, error: NO_WORKSPACE_ERROR };
+
+    // Containment is the workspace's job — a key that would climb out is
+    // rejected there, and a symlink cannot exist in an object store at all.
+    // On a local workspace the storage layer resolves symlinks and refuses a
+    // target whose real path leaves the root.
+    let existing: string | null;
     try {
-      filePath = resolveSafePath(context, rawPath);
+      existing = await workspace.readText(rawPath);
     } catch (e) {
       return {
         success: false,
@@ -733,29 +691,10 @@ const editFile: CapabilityExport = {
       };
     }
 
-    // resolveSafePath only checks containment lexically. Follow symlinks and
-    // verify the real target (or, for a not-yet-created file, its parent dir)
-    // stays inside the workspace, so an in-workspace symlink can't be used to
-    // read or overwrite arbitrary host files.
-    const workspaceRoot = resolveSafePath(context, ".");
-    if (!(await isEditTargetWithinRoot(workspaceRoot, filePath))) {
-      return {
-        success: false,
-        error: `Path resolves outside the workspace: ${rawPath}`
-      };
-    }
-
     // Empty old_string is the "create a new file" path. The file must not
     // already exist.
     if (oldString === "") {
-      let exists = false;
-      try {
-        await access(filePath);
-        exists = true;
-      } catch {
-        // File does not exist — the expected case for creation.
-      }
-      if (exists) {
+      if (existing !== null) {
         return {
           success: false,
           error:
@@ -763,7 +702,7 @@ const editFile: CapabilityExport = {
         };
       }
       try {
-        await writeFile(filePath, newString, "utf-8");
+        await workspace.write(rawPath, newString, mimeForPath(rawPath));
         return { success: true, path: rawPath, created: true };
       } catch (e) {
         return {
@@ -773,14 +712,12 @@ const editFile: CapabilityExport = {
       }
     }
 
-    try {
-      await access(filePath);
-    } catch {
+    if (existing === null) {
       return { success: false, error: `File not found: ${rawPath}` };
     }
 
     try {
-      const content = await readFile(filePath, "utf-8");
+      const content = existing;
 
       if (!content.includes(oldString)) {
         return {
@@ -846,7 +783,7 @@ const editFile: CapabilityExport = {
           content.slice(firstIdx + searchString.length);
       }
 
-      await writeFile(filePath, newContent, "utf-8");
+      await workspace.write(rawPath, newContent, mimeForPath(rawPath));
 
       return {
         success: true,
@@ -862,6 +799,42 @@ const editFile: CapabilityExport = {
   }
 };
 
+/**
+ * Every file at or under `dir`, as workspace paths.
+ *
+ * Replaces the old `walkDir`: the workspace's recursive listing is one call on
+ * either backend, and it never sees a symlink — an object store cannot hold
+ * one, and the local adapter refuses to follow one out of the root.
+ */
+async function walkWorkspace(
+  workspace: Workspace,
+  dir: string
+): Promise<WorkspaceEntry[]> {
+  const entries = await workspace.list(dir, { recursive: true });
+  return entries.filter(
+    (entry) => !entry.isDirectory && !isSkippedWalkPath(entry.path)
+  );
+}
+
+/**
+ * Directories glob and grep never descend into: `node_modules` and anything
+ * hidden. A workspace holding a checkout is otherwise mostly dependencies, and
+ * a search that returns them buries the files the user meant.
+ */
+function isSkippedWalkPath(path: string): boolean {
+  return path
+    .split("/")
+    .slice(0, -1)
+    .some((segment) => segment === "node_modules" || segment.startsWith("."));
+}
+
+/** Path of `file` relative to the searched directory. */
+function relativeToSearch(searchDir: string, path: string): string {
+  if (!searchDir) return path;
+  const head = `${searchDir.replace(/\/+$/, "")}/`;
+  return path.startsWith(head) ? path.slice(head.length) : path;
+}
+
 const glob: CapabilityExport = {
   spec: globSpec,
   impl: async (run, params) => {
@@ -872,12 +845,13 @@ const glob: CapabilityExport = {
     if (!isString(pattern))
       return { success: false, error: "pattern must be a string" };
 
+    const workspace = getWorkspace(context);
+    if (!workspace) return { success: false, error: NO_WORKSPACE_ERROR };
+
     let searchDir: string;
     try {
-      searchDir = resolveSafePath(
-        context,
-        isString(rawPath) ? rawPath : "."
-      );
+      const raw = isString(rawPath) ? rawPath : ".";
+      searchDir = raw === "." || raw === "/" ? "" : workspace.key(raw);
     } catch (e) {
       return {
         success: false,
@@ -885,52 +859,30 @@ const glob: CapabilityExport = {
       };
     }
 
-    // walkDir skips symlink entries, but readdir transparently follows a
-    // symlinked search root itself, so realpath-verify it stays in the
-    // workspace before walking (mirrors grep).
-    const workspaceRoot = resolveSafePath(context, ".");
-    if (!(await isRealPathWithinRoot(workspaceRoot, searchDir))) {
-      return {
-        success: false,
-        error: `Path resolves outside the workspace: ${rawPath ?? "."}`
-      };
-    }
-
-    const maxDepth = pattern.includes("**") ? 20 : 5;
     const LIMIT = 100;
     const start = Date.now();
 
     try {
-      const allFiles = await walkDir(searchDir, maxDepth);
+      const allFiles = await walkWorkspace(workspace, searchDir);
       const regex = globToRegex(pattern);
-      const matchedAbs = allFiles.filter((f) =>
-        regex.test(relative(searchDir, f))
-      );
+      const matched = allFiles
+        .map((entry) => ({
+          path: relativeToSearch(searchDir, entry.path),
+          mtime: entry.modifiedAt
+        }))
+        .filter((f) => regex.test(f.path));
 
       // Sort by modification time, most-recently-modified last, so the
       // freshest files land nearest the end of the list the model reads.
-      const withMtime = await Promise.all(
-        matchedAbs.map(async (f) => {
-          let mtime = 0;
-          try {
-            mtime = (await stat(f)).mtimeMs;
-          } catch {
-            // Vanished between walk and stat — sort it to the front.
-          }
-          return { path: relative(searchDir, f), mtime };
-        })
-      );
-      withMtime.sort(
-        (a, b) => a.mtime - b.mtime || a.path.localeCompare(b.path)
-      );
+      matched.sort((a, b) => a.mtime - b.mtime || a.path.localeCompare(b.path));
 
-      const truncated = withMtime.length > LIMIT;
-      const files = withMtime.slice(0, LIMIT).map((m) => m.path);
+      const truncated = matched.length > LIMIT;
+      const files = matched.slice(0, LIMIT).map((m) => m.path);
 
       return {
         success: true,
         pattern,
-        match_count: withMtime.length,
+        match_count: matched.length,
         truncated,
         duration_ms: Date.now() - start,
         files
@@ -968,12 +920,13 @@ const grep: CapabilityExport = {
     if (!isString(pattern))
       return { success: false, error: "pattern must be a string" };
 
+    const workspace = getWorkspace(context);
+    if (!workspace) return { success: false, error: NO_WORKSPACE_ERROR };
+
     let searchDir: string;
     try {
-      searchDir = resolveSafePath(
-        context,
-        isString(rawPath) ? rawPath : "."
-      );
+      const raw = isString(rawPath) ? rawPath : ".";
+      searchDir = raw === "." || raw === "/" ? "" : workspace.key(raw);
     } catch (e) {
       return {
         success: false,
@@ -1005,28 +958,37 @@ const grep: CapabilityExport = {
       };
     }
 
-    // The workspace root, used to reject symlinks that escape it. searchDir was
-    // only checked lexically, so a symlinked target must be realpath-verified.
-    const workspaceRoot = resolveSafePath(context, ".");
-    if (!(await isRealPathWithinRoot(workspaceRoot, searchDir))) {
-      return {
-        success: false,
-        error: `Path resolves outside the workspace: ${rawPath ?? "."}`
-      };
-    }
-
-    // Determine if searching a single file or a directory
-    let filesToSearch: string[];
+    // A single file or a directory — the stat tells them apart, and a
+    // workspace path that is neither is simply not there.
+    let filesToSearch: WorkspaceEntry[];
     try {
-      const info = await stat(searchDir);
-      if (info.isFile()) {
-        filesToSearch = [searchDir];
+      const info = searchDir ? await workspace.stat(searchDir) : null;
+      if (info && !info.isDirectory) {
+        filesToSearch = [
+          {
+            path: searchDir,
+            name: searchDir.split("/").pop() ?? searchDir,
+            size: info.size,
+            modifiedAt: info.modifiedAt,
+            isDirectory: false
+          }
+        ];
+        // A single-file search reports paths relative to its own directory.
+        searchDir = searchDir.slice(0, Math.max(0, searchDir.lastIndexOf("/")));
+      } else if (info || searchDir === "") {
+        filesToSearch = await walkWorkspace(workspace, searchDir);
       } else {
-        // Walk the directory
-        const allFiles = await walkDir(searchDir, 20);
-        filesToSearch = allFiles;
+        return { success: false, error: `Path not found: ${rawPath ?? "."}` };
       }
-    } catch {
+    } catch (e) {
+      // A path that resolves out of the workspace is a refusal, not a miss —
+      // a symlink pointing at ~/.ssh must say so rather than read as absent.
+      if (isOutsideWorkspaceError(e)) {
+        return {
+          success: false,
+          error: `Path resolves outside the workspace: ${rawPath ?? "."}`
+        };
+      }
       return { success: false, error: `Path not found: ${rawPath ?? "."}` };
     }
 
@@ -1034,7 +996,7 @@ const grep: CapabilityExport = {
     if (isString(include)) {
       const includeRegex = globToRegex(include);
       filesToSearch = filesToSearch.filter((f) => {
-        const rel = relative(searchDir, f);
+        const rel = relativeToSearch(searchDir, f.path);
         const basename = rel.split("/").pop() ?? rel;
         return includeRegex.test(basename) || includeRegex.test(rel);
       });
@@ -1078,7 +1040,7 @@ const grep: CapabilityExport = {
       ".wasm"
     ]);
     filesToSearch = filesToSearch.filter((f) => {
-      const ext = f.slice(f.lastIndexOf(".")).toLowerCase();
+      const ext = f.path.slice(f.path.lastIndexOf(".")).toLowerCase();
       return !binaryExts.has(ext);
     });
 
@@ -1095,20 +1057,18 @@ const grep: CapabilityExport = {
       }
 
       // Skip oversized files: reading them buffers the whole file (plus a
-      // decoded copy and a split array) into the shared process heap.
-      try {
-        const fileInfo = await stat(file);
-        if (fileInfo.size > MAX_GREP_FILE_BYTES) continue;
-      } catch {
-        continue;
-      }
+      // decoded copy and a split array) into the shared process heap. The
+      // listing already carries the size, so this costs no extra round trip —
+      // which matters on an object store, where a stat is a network call.
+      if (file.size > MAX_GREP_FILE_BYTES) continue;
 
       let content: string;
       try {
-        const buf = await readFile(file);
+        const buf = await workspace.read(file.path);
+        if (!buf) continue;
         // Skip binary files (null byte check)
         if (buf.subarray(0, 512).includes(0)) continue;
-        content = buf.toString("utf-8");
+        content = new TextDecoder().decode(buf);
       } catch {
         continue;
       }
@@ -1127,7 +1087,7 @@ const grep: CapabilityExport = {
         if (lines[i].length > MAX_GREP_LINE_LENGTH) continue;
         if (regex.test(lines[i])) {
           const match: GrepMatch = {
-            file: relative(searchDir, file),
+            file: relativeToSearch(searchDir, file.path),
             line: i + 1,
             content: lines[i]
           };

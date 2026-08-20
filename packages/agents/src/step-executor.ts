@@ -636,8 +636,8 @@ export class StepExecutor {
     }
 
     const result = { ...toolResult };
-    const workspaceDir = this.context.workspaceDir;
-    if (!workspaceDir) return result;
+    const workspace = this.context.workspace;
+    if (!workspace) return result;
 
     for (const field of ["image", "audio"]) {
       const value = result[field];
@@ -654,11 +654,15 @@ export class StepExecutor {
         .slice(0, 16);
       const filename = `artifact_${hash}.${ext}`;
 
-      const artifactsDir = path.join(workspaceDir, "artifacts");
-      await fs.mkdir(artifactsDir, { recursive: true });
-      const filepath = path.join(artifactsDir, filename);
-
-      await fs.writeFile(filepath, Buffer.from(base64Data!, "base64"));
+      // Written through the workspace, so a cloud run keeps its artifacts too.
+      // The recorded handle is the workspace path — what every other tool in
+      // the loop takes — rather than a host path only this machine has.
+      const filepath = `artifacts/${filename}`;
+      await workspace.write(
+        filepath,
+        new Uint8Array(Buffer.from(base64Data!, "base64")),
+        mimeType
+      );
       result[field] = filepath;
       if (!this.sourcesSet.has(filepath)) {
         this.sources.push(filepath);

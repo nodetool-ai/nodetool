@@ -180,15 +180,14 @@ export async function startHeadlessJob(
     });
   }
 
-  const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
+  const workspace = await resolveWorkflowWorkspace(workflowId, userId);
   const context = new ProcessingContext({
     jobId: job.id,
     workflowId,
     userId,
     secretResolver: getSecret,
     storage: new FileStorageAdapter(getDefaultAssetsPath()),
-    workspaceDir,
-    workspaceStorage: workspaceDir ? new FileStorageAdapter(workspaceDir) : null
+    workspace
   });
 
   log.info("Headless job started", {

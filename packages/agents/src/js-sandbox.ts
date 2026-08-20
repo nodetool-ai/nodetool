@@ -142,7 +142,7 @@ const quickJsVariant = (
 ).default;
 import { importNodeBuiltin } from "@nodetool-ai/config";
 import type { AssetRef } from "@nodetool-ai/protocol";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext, Workspace } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -1291,6 +1291,18 @@ export function buildSandbox(
         return undefined;
       };
 
+  /** What `workspace.stat` answers for a path that is not there. */
+  const MISSING_STAT: Record<string, unknown> = {
+    exists: false,
+    size: 0,
+    isDirectory: false,
+    isFile: false,
+    isSymlink: false,
+    modifiedMs: 0,
+    createdMs: 0,
+    accessedMs: 0
+  };
+
   /**
    * Resolve a guest path under the configured filesystem scope.
    *
@@ -1325,163 +1337,214 @@ export function buildSandbox(
     return fullPath;
   };
 
-  const workspace = context
-    ? {
-        read: async (path: string): Promise<string> => {
-          const fs = await loadFsPromises();
-          const fullPath = await resolveGuestPath(context, path, false);
-          return fs.readFile(fullPath, "utf-8");
-        },
-        write: async (path: string, content: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          const fullPath = await resolveGuestPath(context, path, true);
-          await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
-          await fs.writeFile(fullPath, content, "utf-8");
-        },
-        list: async (path: string): Promise<string[]> => {
-          const fs = await loadFsPromises();
-          const fullPath = await resolveGuestPath(context, path, false);
-          return fs.readdir(fullPath);
-        },
-        readBytes: async (path: string): Promise<Record<string, string>> => {
-          const fs = await loadFsPromises();
-          const fullPath = await resolveGuestPath(context, path, false);
-          return toGuestBytes(new Uint8Array(await fs.readFile(fullPath)));
-        },
-        writeBytes: async (path: string, data: unknown): Promise<void> => {
-          const bytes =
-            data instanceof Uint8Array ? data : toNativeUint8Array(data);
-          const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          const fullPath = await resolveGuestPath(context, path, true);
-          await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
-          await fs.writeFile(fullPath, bytes);
-        },
-        // A missing path is an answer, not a failure: guest code asking
-        // "does this exist?" should not have to wrap the call in try/catch.
-        // `lstat` (not `stat`) so a symlink reports as itself rather than as
-        // whatever it points at.
-        stat: async (path: string): Promise<Record<string, unknown>> => {
-          const fs = await loadFsPromises();
-          // Resolved as a write, not a read: the queried path may legitimately
-          // not exist, and the read path resolves it with `realpath`, which
-          // throws on a missing file and so would report every absent path as
-          // an escape. The write path decides containment from the nearest
-          // existing ancestor instead. A path that *does* exist is still
-          // realpath-checked, so a symlink out of the workspace is caught.
-          const fullPath = await resolveGuestPath(context, path, true);
-          let info;
-          try {
-            info = await fs.lstat(fullPath);
-          } catch {
-            return {
-              exists: false,
-              size: 0,
-              isDirectory: false,
-              isFile: false,
-              isSymlink: false,
-              modifiedMs: 0,
-              createdMs: 0,
-              accessedMs: 0
-            };
-          }
-          return {
-            exists: true,
-            size: info.size,
-            isDirectory: info.isDirectory(),
-            isFile: info.isFile(),
-            isSymlink: info.isSymbolicLink(),
-            modifiedMs: info.mtimeMs,
-            createdMs: info.birthtimeMs,
-            accessedMs: info.atimeMs
-          };
-        },
-        /** Absolute path of the workspace root — the base for relative paths. */
-        root: async (): Promise<string> => {
-          return context.resolveWorkspacePath(".");
-        },
-        copy: async (src: string, dest: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          // Source is a read, destination is a write — the asymmetry matters:
-          // a write target may not exist yet, so it is checked via its nearest
-          // existing ancestor.
-          const fullSrc = await resolveGuestPath(context, src, false);
-          const fullDest = await resolveGuestPath(context, dest, true);
-          await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
-          await fs.copyFile(fullSrc, fullDest);
-        },
-        move: async (src: string, dest: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          // A move unlinks the source, so it is a write on both ends.
-          const fullSrc = await resolveGuestPath(context, src, true);
-          const fullDest = await resolveGuestPath(context, dest, true);
-          await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
-          await fs.rename(fullSrc, fullDest);
-        },
-        mkdir: async (path: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          const fullPath = await resolveGuestPath(context, path, true);
-          await fs.mkdir(fullPath, { recursive: true });
-        },
-        remove: async (path: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          // Resolved as a write. `recursive: false` keeps this to one file or
-          // one empty directory — guest code cannot delete a whole subtree in
-          // a single call, in either filesystem mode.
-          const fullPath = await resolveGuestPath(context, path, true);
-          const info = await fs.lstat(fullPath);
-          if (info.isDirectory()) {
-            // rmdir refuses a non-empty directory, which is the point.
-            await fs.rmdir(fullPath);
-          } else {
-            await fs.rm(fullPath, { recursive: false });
-          }
-        }
+  /**
+   * The guest's `workspace.*` API.
+   *
+   * Three shapes, picked once: no context at all (every call explains itself),
+   * `filesystemAccess: "host"` (the `lib.os` escape hatch — real paths, no
+   * containment, host opt-in only), and the normal case, which goes through
+   * `context.workspace` and therefore works the same whether the run's
+   * workspace is a folder or a prefix in object storage.
+   */
+  const hostFsWorkspace = (ctx: ProcessingContext) => ({
+    read: async (path: string): Promise<string> => {
+      const fs = await loadFsPromises();
+      return fs.readFile(await resolveGuestPath(ctx, path, false), "utf-8");
+    },
+    write: async (path: string, content: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      const nodePath = await loadNodePath();
+      const fullPath = await resolveGuestPath(ctx, path, true);
+      await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
+      await fs.writeFile(fullPath, content, "utf-8");
+    },
+    list: async (path: string): Promise<string[]> => {
+      const fs = await loadFsPromises();
+      return fs.readdir(await resolveGuestPath(ctx, path, false));
+    },
+    readBytes: async (path: string): Promise<Record<string, string>> => {
+      const fs = await loadFsPromises();
+      const fullPath = await resolveGuestPath(ctx, path, false);
+      return toGuestBytes(new Uint8Array(await fs.readFile(fullPath)));
+    },
+    writeBytes: async (path: string, data: unknown): Promise<void> => {
+      const bytes = data instanceof Uint8Array ? data : toNativeUint8Array(data);
+      const fs = await loadFsPromises();
+      const nodePath = await loadNodePath();
+      const fullPath = await resolveGuestPath(ctx, path, true);
+      await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
+      await fs.writeFile(fullPath, bytes);
+    },
+    stat: async (path: string): Promise<Record<string, unknown>> => {
+      const fs = await loadFsPromises();
+      const fullPath = await resolveGuestPath(ctx, path, true);
+      let info;
+      try {
+        info = await fs.lstat(fullPath);
+      } catch {
+        return MISSING_STAT;
       }
-    : {
-        read: async (_path: string): Promise<string> => {
-          throw new Error("workspace.read is not available without a context");
-        },
-        write: async (_path: string, _content: string): Promise<void> => {
-          throw new Error("workspace.write is not available without a context");
-        },
-        list: async (_path: string): Promise<string[]> => {
-          throw new Error("workspace.list is not available without a context");
-        },
-        readBytes: async (_path: string): Promise<Record<string, string>> => {
-          throw new Error(
-            "workspace.readBytes is not available without a context"
-          );
-        },
-        writeBytes: async (_path: string, _data: unknown): Promise<void> => {
-          throw new Error(
-            "workspace.writeBytes is not available without a context"
-          );
-        },
-        stat: async (_path: string): Promise<Record<string, unknown>> => {
-          throw new Error("workspace.stat is not available without a context");
-        },
-        root: async (): Promise<string> => {
-          throw new Error("workspace.root is not available without a context");
-        },
-        copy: async (_src: string, _dest: string): Promise<void> => {
-          throw new Error("workspace.copy is not available without a context");
-        },
-        move: async (_src: string, _dest: string): Promise<void> => {
-          throw new Error("workspace.move is not available without a context");
-        },
-        mkdir: async (_path: string): Promise<void> => {
-          throw new Error("workspace.mkdir is not available without a context");
-        },
-        remove: async (_path: string): Promise<void> => {
-          throw new Error(
-            "workspace.remove is not available without a context"
-          );
-        }
+      return {
+        exists: true,
+        size: info.size,
+        isDirectory: info.isDirectory(),
+        isFile: info.isFile(),
+        isSymlink: info.isSymbolicLink(),
+        modifiedMs: info.mtimeMs,
+        createdMs: info.birthtimeMs,
+        accessedMs: info.atimeMs
       };
+    },
+    root: async (): Promise<string> => ctx.resolveWorkspacePath("."),
+    copy: async (src: string, dest: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      const nodePath = await loadNodePath();
+      const fullSrc = await resolveGuestPath(ctx, src, false);
+      const fullDest = await resolveGuestPath(ctx, dest, true);
+      await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
+      await fs.copyFile(fullSrc, fullDest);
+    },
+    move: async (src: string, dest: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      const nodePath = await loadNodePath();
+      const fullSrc = await resolveGuestPath(ctx, src, true);
+      const fullDest = await resolveGuestPath(ctx, dest, true);
+      await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
+      await fs.rename(fullSrc, fullDest);
+    },
+    mkdir: async (path: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      await fs.mkdir(await resolveGuestPath(ctx, path, true), {
+        recursive: true
+      });
+    },
+    remove: async (path: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      const fullPath = await resolveGuestPath(ctx, path, true);
+      const info = await fs.lstat(fullPath);
+      if (info.isDirectory()) {
+        // rmdir refuses a non-empty directory, which is the point.
+        await fs.rmdir(fullPath);
+      } else {
+        await fs.rm(fullPath, { recursive: false });
+      }
+    }
+  });
+
+  const backedWorkspace = (ws: Workspace) => ({
+    read: async (path: string): Promise<string> => {
+      const text = await ws.readText(path);
+      if (text === null) throw new Error(`ENOENT: no such file: ${path}`);
+      return text;
+    },
+    write: async (path: string, content: string): Promise<void> => {
+      await ws.write(path, content);
+    },
+    // Names only, like readdir — the guest joins them onto the path it asked
+    // about, which is how the pre-existing scripts use this.
+    list: async (path: string): Promise<string[]> =>
+      (await ws.list(path)).map((entry) => entry.name),
+    readBytes: async (path: string): Promise<Record<string, string>> => {
+      const bytes = await ws.read(path);
+      if (bytes === null) throw new Error(`ENOENT: no such file: ${path}`);
+      return toGuestBytes(bytes);
+    },
+    writeBytes: async (path: string, data: unknown): Promise<void> => {
+      const bytes = data instanceof Uint8Array ? data : toNativeUint8Array(data);
+      await ws.write(path, bytes);
+    },
+    // A missing path is an answer, not a failure: guest code asking
+    // "does this exist?" should not have to wrap the call in try/catch.
+    stat: async (path: string): Promise<Record<string, unknown>> => {
+      let info;
+      try {
+        info = await ws.stat(path);
+      } catch {
+        return MISSING_STAT;
+      }
+      if (!info) return MISSING_STAT;
+      return {
+        exists: true,
+        size: info.size,
+        isDirectory: info.isDirectory,
+        isFile: !info.isDirectory,
+        // Nothing reachable through a workspace is a symlink: an object store
+        // cannot hold one, and the local backend refuses to follow one out of
+        // the root.
+        isSymlink: false,
+        modifiedMs: info.modifiedAt,
+        createdMs: info.modifiedAt,
+        accessedMs: info.modifiedAt
+      };
+    },
+    /**
+     * The base for relative paths. A real directory when the workspace has
+     * one; otherwise `/workspace`, which every workspace path accepts as its
+     * own root, so a script that joins onto it keeps working.
+     */
+    root: async (): Promise<string> => ws.localDir ?? "/workspace",
+    copy: async (src: string, dest: string): Promise<void> => {
+      await ws.copy(src, dest);
+    },
+    move: async (src: string, dest: string): Promise<void> => {
+      await ws.move(src, dest);
+    },
+    mkdir: async (path: string): Promise<void> => {
+      await ws.mkdir(path);
+    },
+    remove: async (path: string): Promise<void> => {
+      // One file or one empty directory — guest code cannot delete a whole
+      // subtree in a single call, in any filesystem mode.
+      const info = await ws.stat(path);
+      if (info?.isDirectory) {
+        const children = await ws.list(path);
+        if (children.length > 0) {
+          throw new Error(`ENOTEMPTY: directory not empty: ${path}`);
+        }
+        await ws.deleteAll(path);
+        return;
+      }
+      if (!(await ws.delete(path))) {
+        throw new Error(`ENOENT: no such file: ${path}`);
+      }
+    }
+  });
+
+  const unavailable = (api: string) => async (): Promise<never> => {
+    throw new Error(`workspace.${api} is not available without a context`);
+  };
+
+  const workspace = !context
+    ? {
+        read: unavailable("read"),
+        write: unavailable("write"),
+        list: unavailable("list"),
+        readBytes: unavailable("readBytes"),
+        writeBytes: unavailable("writeBytes"),
+        stat: unavailable("stat"),
+        root: unavailable("root"),
+        copy: unavailable("copy"),
+        move: unavailable("move"),
+        mkdir: unavailable("mkdir"),
+        remove: unavailable("remove")
+      }
+    : resolvedLimits.filesystemAccess === "host"
+      ? hostFsWorkspace(context)
+      : context.workspace
+        ? backedWorkspace(context.workspace)
+        : {
+            read: unavailable("read"),
+            write: unavailable("write"),
+            list: unavailable("list"),
+            readBytes: unavailable("readBytes"),
+            writeBytes: unavailable("writeBytes"),
+            stat: unavailable("stat"),
+            root: unavailable("root"),
+            copy: unavailable("copy"),
+            move: unavailable("move"),
+            mkdir: unavailable("mkdir"),
+            remove: unavailable("remove")
+          };
 
   const sleep = (ms: number): Promise<void> => {
     const capped = Math.min(ms, 5000);

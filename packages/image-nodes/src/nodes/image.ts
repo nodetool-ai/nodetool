@@ -32,7 +32,7 @@ import {
   tagAsBrowserGpu,
   tagAsServer,
   tagAsContentCard,
-  resolveSaveTarget,
+  writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -522,16 +522,16 @@ export class SaveImageFileImageNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<SaveImageFileImageNodeOutputs> {
     const fs = await loadNodeFsPromises();
     const filename = dateName(String(this.filename ?? "image.png"));
-    const p = await resolveSaveTarget({
+    const bytes = await imageBytesAsync(this.image, context);
+    const p = await writeSavedFile({
       folder: this.folder,
       filename,
       saveToWorkspace: this.save_to_workspace,
+      workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
-      overwrite: this.overwrite
+      overwrite: this.overwrite,
+      bytes
     });
-
-    const bytes = await imageBytesAsync(this.image, context);
-    await fs.writeFile(p, bytes);
     const meta = await metadataFor(bytes);
     return {
       output: imageRef(bytes, {

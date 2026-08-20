@@ -20,6 +20,7 @@ const validWorkspace = {
   name: "Default",
   path: "/ws",
   is_default: true,
+  is_managed: false,
   is_accessible: true,
   created_at: "2020",
   updated_at: "2020"
@@ -58,12 +59,15 @@ describe("workspace.listInput", () => {
 describe("workspace.listOutput", () => {
   it("accepts null next", () => {
     expect(
-      listOutput.safeParse({ workspaces: [], next: null }).success
+      listOutput.safeParse({ workspaces: [], can_manage: true, next: null })
+        .success
     ).toBe(true);
   });
 
   it("rejects omitted next (nullable, not optional)", () => {
-    expect(listOutput.safeParse({ workspaces: [] }).success).toBe(false);
+    expect(
+      listOutput.safeParse({ workspaces: [], can_manage: true }).success
+    ).toBe(false);
   });
 });
 

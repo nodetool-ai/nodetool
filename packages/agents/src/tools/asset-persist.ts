@@ -117,14 +117,13 @@ export async function persistOutput(
     }
   }
 
-  // Persist a workspace copy via the storage adapter so downstream tools can
-  // read the bytes back by `output_file` key. Routed through
-  // context.workspaceStorage instead of `node:fs` so cloud deployments work
-  // identically.
-  if ((opts.outputFile || !result.asset_id) && context.workspaceStorage) {
+  // Persist a workspace copy so downstream tools can read the bytes back by
+  // `output_file`. Routed through the workspace rather than `node:fs`, so a
+  // cloud deployment behaves identically.
+  if ((opts.outputFile || !result.asset_id) && context.workspace) {
     const fileName = opts.outputFile ?? timestampedName(opts.namePrefix, ext);
     try {
-      await context.workspaceStorage.store(fileName, bytes, opts.mime);
+      await context.workspace.write(fileName, bytes, opts.mime);
       result.path = fileName;
     } catch {
       // Non-fatal — asset_id (if set) is still a valid handle.

@@ -3,7 +3,8 @@ import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import FolderIcon from "@mui/icons-material/Folder";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
@@ -23,12 +24,11 @@ import { trpcClient } from "../../trpc/client";
 import type { WorkspaceResponse } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
+import {
+  useWorkspaces,
+  useWorkspaceCacheWriter
+} from "../../hooks/useWorkspaces";
 import { useFolderPicker } from "./useFolderPicker";
-
-const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
-  return workspaces as WorkspaceResponse[];
-};
 
 /** Derive a workspace name from an absolute folder path. */
 function nameFromPath(path: string): string {
@@ -78,12 +78,16 @@ const styles = (theme: Theme) =>
   });
 
 /**
- * Workspace picker for the canvas composer footer, next to the model chip.
+ * Workspace picker for the composer footer, next to the model chip.
  *
  * The workspace is where a run reads and writes files (`workspace.write(...)`
  * in a Code node), so it belongs with the other run-context chips rather than
- * in the app-level chrome. Selection is per-workflow — see
- * {@link useCurrentWorkspace}.
+ * in the app-level chrome. It shows in chat as well as on the canvas: a chat
+ * turn writes files too, into the workflow's workspace when one is open and
+ * the default one otherwise — see {@link useCurrentWorkspace}.
+ *
+ * On a phone the chip drops its label and keeps the folder icon, so the chip
+ * strip still fits the mode, model and permission chips without scrolling.
  */
 const WorkspaceChip: React.FC = () => {
   const theme = useTheme();
@@ -91,17 +95,13 @@ const WorkspaceChip: React.FC = () => {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
 
-  const queryClient = useQueryClient();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const writeWorkspaceToCache = useWorkspaceCacheWriter();
   const addNotification = useNotificationStore((state) => state.addNotification);
   const { pickFolder, dialog: folderPickerDialog } = useFolderPicker();
-  const { workspaceId, setWorkspaceId, hasActiveWorkflow } =
+  const { workspaceId, workspace: selected, setWorkspaceId, canManage } =
     useCurrentWorkspace();
-
-  const { data: workspaces } = useQuery({
-    queryKey: ["workspaces"],
-    queryFn: fetchWorkspaces,
-    enabled: hasActiveWorkflow
-  });
+  const { workspaces } = useWorkspaces();
 
   const createMutation = useMutation({
     mutationFn: async (path: string) =>
@@ -111,7 +111,7 @@ const WorkspaceChip: React.FC = () => {
         is_default: false
       }),
     onSuccess: (created) => {
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      writeWorkspaceToCache(created as WorkspaceResponse);
       void setWorkspaceId((created as WorkspaceResponse).id);
     },
     onError: (error) => {
@@ -132,18 +132,12 @@ const WorkspaceChip: React.FC = () => {
     }
   }, [pickFolder, createMutation]);
 
-  const selected = workspaces?.find((w) => w.id === workspaceId);
-
-  if (!hasActiveWorkflow) {
-    return null;
-  }
-
   return (
     <>
       <MediaControlChip
         ref={anchorRef}
         icon={<FolderIcon fontSize="small" />}
-        label={selected ? nameFromPath(selected.path) : "No workspace"}
+        label={isMobile ? undefined : selected?.name || "Workspace"}
         title={selected?.path ?? "Select a workspace folder"}
         active={open}
         showChevron={false}
@@ -167,7 +161,7 @@ const WorkspaceChip: React.FC = () => {
           <Caption className="workspace-menu-header" size="small">
             Workspace
           </Caption>
-          {(workspaces ?? []).map((workspace) => {
+          {workspaces.map((workspace) => {
             const isSelected = workspace.id === workspaceId;
             return (
               <div
@@ -205,23 +199,25 @@ const WorkspaceChip: React.FC = () => {
               </div>
             );
           })}
-          <div
-            role="menuitem"
-            tabIndex={0}
-            className="workspace-menu-item"
-            onClick={handleAdd}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                void handleAdd();
-              }
-            }}
-          >
-            <span className="workspace-menu-icon">
-              <AddIcon fontSize="small" />
-            </span>
-            <Text size="small">Add workspace…</Text>
-          </div>
+          {canManage && (
+            <div
+              role="menuitem"
+              tabIndex={0}
+              className="workspace-menu-item"
+              onClick={handleAdd}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  void handleAdd();
+                }
+              }}
+            >
+              <span className="workspace-menu-icon">
+                <AddIcon fontSize="small" />
+              </span>
+              <Text size="small">Add workspace…</Text>
+            </div>
+          )}
         </div>
       </Popover>
       {folderPickerDialog}

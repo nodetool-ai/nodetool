@@ -47,6 +47,11 @@ export {
   folderPathOf,
   resolveSaveFolder,
   uniqueFilePath,
-  resolveSaveTarget
+  resolveSaveTarget,
+  writeSavedFile
 } from "./save-target.js";
-export type { SaveFolderOptions, SaveTargetOptions } from "./save-target.js";
+export type {
+  SaveFolderOptions,
+  SaveTargetOptions,
+  SaveWorkspace
+} from "./save-target.js";

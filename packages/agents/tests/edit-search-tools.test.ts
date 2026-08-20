@@ -17,11 +17,13 @@ import {
 import { tmpdir } from "node:os";
 import { join, isAbsolute } from "node:path";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 
 let workspace: string;
 
 function ctxFor(dir: string) {
   return {
+    workspace: createLocalWorkspace(dir),
     resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(dir, p))
   } as any;
 }

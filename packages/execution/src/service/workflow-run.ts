@@ -24,7 +24,8 @@ import {
   listOfflineModelIds,
   listRegisteredProviderIds,
   type NodeExecutor,
-  type ProcessingContext
+  type ProcessingContext,
+  type Workspace
 } from "@nodetool-ai/runtime";
 import { normalizeGraph } from "../normalize-graph.js";
 import { collectExecutionSummary } from "../debug/collector.js";
@@ -120,9 +121,9 @@ export interface RunWorkflowOptions {
    * do) keeps controlling it. Defaults to the workspace stored on the workflow.
    */
   resolveWorkspace?: (
-    workflowId: string,
+    workflowId: string | null,
     userId: string
-  ) => Promise<string | null>;
+  ) => Promise<Workspace | null>;
   catalogs?: RunModelCatalogs;
 }
 
@@ -363,7 +364,7 @@ export async function runWorkflow(
   let interactiveHandle: InteractiveEscalationHandle | null = null;
   let supervisorHandle: BoundedHandle | null = null;
   try {
-    const workspaceDir = await (
+    const workspace = await (
       options.resolveWorkspace ?? resolveWorkflowWorkspace
     )(workflowId, userId);
     if (interactive) {
@@ -411,7 +412,7 @@ export async function runWorkflow(
           jobId: job.id,
           workflowId,
           userId,
-          workspaceDir
+          workspace
         });
         // The host attaches its model interfaces (asset persistence, …) —
         // without them an Output node that stores an image fails the run.

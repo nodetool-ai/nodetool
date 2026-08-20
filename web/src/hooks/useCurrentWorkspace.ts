@@ -1,20 +1,28 @@
 import { useCallback, useEffect } from "react";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useCurrentWorkspaceStore } from "../stores/CurrentWorkspaceStore";
+import { useWorkspaces } from "./useWorkspaces";
+import type { WorkspaceResponse } from "../stores/ApiTypes";
 
 /**
  * Central source-of-truth for "which workspace is active right now".
  *
- * Workspace selection is stored on each workflow (workflow.workspace_id).
- * This hook reads that value for the active workflow, falling back to the
- * last-used workspace (persisted) when no workflow is open or the active
- * workflow has no workspace assigned. Setting the workspace patches the
- * active workflow and remembers the choice for future new workflows.
+ * Resolution order: the active workflow's `workspace_id`, then the last-used
+ * workspace (persisted), then the user's default. The last step is what makes
+ * the answer total — a chat with no workflow open still writes its files
+ * somewhere the user can find them, which is why the server creates a default
+ * workspace rather than letting a run fall back to the OS temp dir.
+ *
+ * Setting the workspace patches the active workflow and remembers the choice
+ * for future new workflows.
  */
 interface CurrentWorkspace {
   workspaceId: string | undefined;
+  workspace: WorkspaceResponse | undefined;
   setWorkspaceId: (newWorkspaceId: string | undefined) => Promise<void>;
   hasActiveWorkflow: boolean;
+  /** False in the cloud: the managed workspace is the only one. */
+  canManage: boolean;
 }
 
 export const useCurrentWorkspace = (): CurrentWorkspace => {
@@ -27,6 +35,8 @@ export const useCurrentWorkspace = (): CurrentWorkspace => {
   const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
+
+  const { workspaces, defaultWorkspace, canManage } = useWorkspaces();
 
   const lastUsedWorkspaceId = useCurrentWorkspaceStore(
     (state) => state.lastUsedWorkspaceId
@@ -43,7 +53,17 @@ export const useCurrentWorkspace = (): CurrentWorkspace => {
   const workflowWorkspaceId =
     currentWorkflowMeta?.workspace_id ?? currentWorkflow?.workspace_id ?? null;
 
-  const workspaceId = workflowWorkspaceId ?? lastUsedWorkspaceId;
+  // A remembered id that no longer exists (deleted workspace, another machine)
+  // must not win over the default, or the chip shows a workspace the run will
+  // not use.
+  const knownLastUsed =
+    lastUsedWorkspaceId &&
+    workspaces.some((workspace) => workspace.id === lastUsedWorkspaceId)
+      ? lastUsedWorkspaceId
+      : null;
+
+  const workspaceId =
+    workflowWorkspaceId ?? knownLastUsed ?? defaultWorkspace?.id ?? null;
 
   // Mirror the active workflow's workspace into the persisted "last used"
   // so a newly-created workflow inherits whatever the user was just working in.
@@ -73,7 +93,9 @@ export const useCurrentWorkspace = (): CurrentWorkspace => {
 
   return {
     workspaceId: workspaceId ?? undefined,
+    workspace: workspaces.find((workspace) => workspace.id === workspaceId),
     setWorkspaceId,
-    hasActiveWorkflow: Boolean(currentWorkflow)
+    hasActiveWorkflow: Boolean(currentWorkflow),
+    canManage
   };
 };
