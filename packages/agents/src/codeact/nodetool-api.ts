@@ -117,6 +117,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   sketches: [
     "list_sketches",
+    "create_sketch",
     "list_sketch_versions",
     "get_sketch_version",
     "create_sketch_version",
@@ -1010,6 +1011,9 @@ const nodetool = (() => {
 
     sketches: {
       list: (opts) => __need("list_sketches")(__merge(opts)),
+      /** Create a blank sketch. Pass {width, height} for the canvas size. */
+      create: (name, opts) =>
+        __need("create_sketch")(__merge(opts, { name: name })),
       versions: (id, opts) =>
         __need("list_sketch_versions")(
           __merge(opts, { image_document_id: id })
@@ -1330,12 +1334,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "sketches",
-    doc: `- \`nodetool.sketches\` — \`list()\`, \`validate(idOrDocument)\`, \`versions(id)\`,
-  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`, and
-  \`edit(id, ops)\` for layer structure server-side: \`[{op: "add_layer", name:
-  "Shadow"}, {op: "set_layer_props", target: "Shadow", opacity: 0.4,
-  blendMode: "multiply"}]\`. Pixels are never touched — painting and
-  generation stay with an open editor or a workflow run.`
+    doc: `- \`nodetool.sketches\` — \`list()\`, \`create(name, {width, height})\`,
+  \`validate(idOrDocument)\`, \`versions(id)\`, \`getVersion(id, n)\`,
+  \`snapshot(id, {name})\`, \`restore(id, n)\`, and \`edit(id, ops)\` for layer
+  structure server-side: \`[{op: "add_layer", name: "Shadow"}, {op:
+  "set_layer_props", target: "Shadow", opacity: 0.4, blendMode:
+  "multiply"}]\`. Create a blank canvas first, then edit. Pixels are never
+  touched — painting and generation stay with an open editor or a workflow
+  run.`
   },
   {
     namespace: "scripts",

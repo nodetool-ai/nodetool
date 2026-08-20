@@ -1316,11 +1316,12 @@ of assuming the only way forward is a workflow.
   (\`versions\`/\`getVersion\`/\`snapshot\`/\`restore\`) — none of it needs an open
   editor. \`nodetool.searchTools("+ui_timeline", 20)\` edits the open one. A timeline can
   be previewed inline in chat; see "Linking resources".
-- **sketch** — a layered image document. \`nodetool.sketches\` lists, validates,
-  edits the layer stack, and keeps the same snapshot history — but never
-  touches pixels. Painting, generating into a layer, and rendering to an asset
-  live in \`nodetool.searchTools("+ui_sketch", 20)\`, on the open document. A sketch can
-  be previewed inline in chat; see "Linking resources".
+- **sketch** — a layered image document. \`nodetool.sketches\` creates a blank
+  canvas, lists, validates, edits the layer stack, and keeps the same snapshot
+  history — but never touches pixels. Painting, generating into a layer, and
+  rendering to an asset live in \`nodetool.searchTools("+ui_sketch", 20)\`, on
+  the open document. A sketch can be previewed inline in chat; see "Linking
+  resources".
 - **model3d** — a 3D scene. Family \`nodetool.searchTools("+ui_3d", 20)\`: add and
   transform objects, set materials, capture a view as an image.
 - **collection** — a vector store for RAG. \`nodetool.collections\`: index,

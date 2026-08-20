@@ -1,10 +1,10 @@
 /**
  * The `sketches` capability module.
  *
- * Seven capabilities that used to be seven `Tool` subclasses: the five version
- * tools (`../tools/sketch-version-tools.ts`), the headless layer editor
- * (`sketch-edit-tools.ts`), and `validate_sketch`, which lived beside
- * the workflow tools in `../tools/mcp-tools.ts`.
+ * Sketch capabilities: list and create, the five version tools, the headless
+ * layer editor, validate, and delete. The version tools used to be
+ * `../tools/sketch-version-tools.ts`; the editor was `sketch-edit-tools.ts`;
+ * `validate_sketch` lived beside the workflow tools in `../tools/mcp-tools.ts`.
  *
  * Wire names, descriptions and schemas are unchanged: the old classes survive
  * as thin `CapabilityTool` subclasses over these implementations.
@@ -30,6 +30,7 @@ import type {
 } from "./types.js";
 import {
   listSketchesSpec,
+  createSketchSpec,
   listSketchVersionsSpec,
   getSketchVersionSpec,
   createSketchVersionSpec,
@@ -40,6 +41,7 @@ import {
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
   LIST_SKETCHES_SCHEMA,
+  CREATE_SKETCH_SCHEMA,
   LIST_SKETCH_VERSIONS_SCHEMA,
   GET_SKETCH_VERSION_SCHEMA,
   CREATE_SKETCH_VERSION_SCHEMA,
@@ -61,6 +63,7 @@ export {
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
   LIST_SKETCHES_SCHEMA,
+  CREATE_SKETCH_SCHEMA,
   LIST_SKETCH_VERSIONS_SCHEMA,
   GET_SKETCH_VERSION_SCHEMA,
   CREATE_SKETCH_VERSION_SCHEMA,
@@ -148,6 +151,131 @@ function versionNumber(value: unknown): number | ToolError {
   }
   return n;
 }
+
+const DEFAULT_CANVAS_SIZE = 1024;
+const DEFAULT_BACKGROUND = "#ffffff";
+
+/** A blank raster document matching `sketch.create` on the tRPC router. */
+function emptySketchDocument(
+  width: number,
+  height: number,
+  backgroundColor: string
+): ImageDocumentData {
+  const layerId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  return {
+    sketch: {
+      version: 3,
+      canvas: { width, height, backgroundColor },
+      layers: [
+        {
+          id: layerId,
+          name: "Layer 1",
+          type: "raster",
+          visible: true,
+          opacity: 1,
+          locked: false,
+          alphaLock: false,
+          blendMode: "normal",
+          data: null,
+          transform: { x: 0, y: 0 },
+          contentBounds: { x: 0, y: 0, width, height },
+          effects: []
+        }
+      ],
+      activeLayerId: layerId,
+      maskLayerId: null,
+      activeTool: "brush",
+      viewport: { zoom: 1, pan: { x: 0, y: 0 } },
+      history: [],
+      historyIndex: -1,
+      metadata: { createdAt: now, updatedAt: now }
+    },
+    layerBindings: []
+  };
+}
+
+function canvasSize(value: unknown, fallback: number): number | ToolError {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (!isFiniteNumber(value) || !Number.isInteger(value) || value < 1) {
+    return { error: "width and height must be positive integers." };
+  }
+  return value;
+}
+
+const createSketch: CapabilityExport = {
+  spec: createSketchSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const name = params["name"];
+    if (!isNonBlankString(name)) {
+      return { error: "name is required and must be a non-empty string." };
+    }
+    const width = canvasSize(params["width"], DEFAULT_CANVAS_SIZE);
+    if (isError(width)) return width;
+    const height = canvasSize(params["height"], DEFAULT_CANVAS_SIZE);
+    if (isError(height)) return height;
+    const backgroundColor = isNonBlankString(params["background_color"])
+      ? params["background_color"].trim()
+      : DEFAULT_BACKGROUND;
+    const projectId = isNonBlankString(params["project_id"])
+      ? params["project_id"].trim()
+      : "default";
+    const requestedId = isNonBlankString(params["id"])
+      ? params["id"].trim()
+      : undefined;
+
+    const { ImageDocument } = await import("@nodetool-ai/models");
+    if (requestedId) {
+      const existing = await ImageDocument.findById(requestedId);
+      if (existing) {
+        if (existing.user_id !== userId) {
+          return { error: `A sketch with id ${requestedId} already exists.` };
+        }
+        return {
+          ok: true,
+          image_document_id: existing.id,
+          name: existing.name,
+          width: existing.width,
+          height: existing.height,
+          project_id: existing.project_id,
+          updated_at: existing.updated_at
+        };
+      }
+    }
+
+    const now = new Date().toISOString();
+    const document = emptySketchDocument(width, height, backgroundColor);
+    const fields: ConstructorParameters<typeof ImageDocument>[0] = {
+      user_id: userId,
+      project_id: projectId,
+      name: name.trim(),
+      width,
+      height,
+      background_color: backgroundColor,
+      document: JSON.stringify(document),
+      created_at: now,
+      updated_at: now
+    };
+    if (requestedId) {
+      fields.id = requestedId;
+    }
+    const doc = new ImageDocument(fields);
+    await doc.save();
+    return {
+      ok: true,
+      image_document_id: doc.id,
+      name: doc.name,
+      width: doc.width,
+      height: doc.height,
+      project_id: doc.project_id,
+      updated_at: doc.updated_at
+    };
+  }
+};
 
 const listSketches: CapabilityExport = {
   spec: listSketchesSpec,
@@ -821,6 +949,7 @@ const deleteSketch: CapabilityExport = {
 };
 export const SKETCH_CAPABILITIES: readonly CapabilityExport[] = [
   listSketches,
+  createSketch,
   listSketchVersions,
   getSketchVersion,
   createSketchVersion,
@@ -837,6 +966,7 @@ export const module: CapabilityModule = {
 
 export {
   listSketches,
+  createSketch,
   listSketchVersions,
   getSketchVersion,
   createSketchVersion,

@@ -70,6 +70,7 @@ describe("sketch version tools", () => {
     expect(permissionCategoryFor("get_sketch_version")).toBe("read");
     expect(permissionCategoryFor("restore_sketch_version")).toBe("write");
     expect(permissionCategoryFor("validate_sketch")).toBe("read");
+    expect(permissionCategoryFor("create_sketch")).toBe("write");
   });
 
   it("lists the caller's sketches and filters by name", async () => {

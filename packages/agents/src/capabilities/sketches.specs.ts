@@ -169,6 +169,57 @@ export const listSketchesSpec: CapabilitySpec = {
   userMessage: () => "Listing sketches"
 };
 
+export const CREATE_SKETCH_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    name: {
+      type: "string",
+      description: "Name of the new sketch."
+    },
+    width: {
+      type: "number",
+      description: "Canvas width in pixels (default 1024)."
+    },
+    height: {
+      type: "number",
+      description: "Canvas height in pixels (default 1024)."
+    },
+    background_color: {
+      type: "string",
+      description: "Canvas background color (default #ffffff)."
+    },
+    project_id: {
+      type: "string",
+      description: "Project to create the sketch in (default 'default')."
+    },
+    id: {
+      type: "string",
+      description:
+        "Optional id. If a sketch with this id already exists and you " +
+        "own it, that row is returned instead of creating a duplicate."
+    }
+  },
+  required: ["name"]
+};
+
+export const createSketchSpec: CapabilitySpec = {
+  name: "create_sketch",
+  description:
+    "Create a blank sketch (image document) and return its id. This is the " +
+    "first step of drawing one headlessly: create it, then add and arrange " +
+    "layers with edit_sketch. An open editor picks the new document up once " +
+    "you open it. Pixels stay empty — painting and generation happen in an " +
+    "open editor or a workflow run.",
+  inputSchema: CREATE_SKETCH_SCHEMA,
+  category: "write",
+  userMessage: (params) => {
+    const name = params["name"];
+    return typeof name === "string" && name.trim()
+      ? `Creating sketch ${name}`
+      : "Creating sketch";
+  }
+};
+
 export const listSketchVersionsSpec: CapabilitySpec = {
   name: "list_sketch_versions",
   description:
@@ -283,6 +334,7 @@ export const deleteSketchSpec: CapabilitySpec = {
 /** Every spec this module declares, in declaration order. */
 export const sketchesSpecs: readonly CapabilitySpec[] = [
   listSketchesSpec,
+  createSketchSpec,
   listSketchVersionsSpec,
   getSketchVersionSpec,
   createSketchVersionSpec,

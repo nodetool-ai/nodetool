@@ -1169,6 +1169,7 @@ The same static check is exposed to agents through the **`validate_sketch`**
 tool: pass an inline `document` to check a sketch being built, or an
 `image_document_id` to validate a saved one (scoped to the requesting user).
 Agents also get the version history headlessly: **`list_sketches`**,
+**`create_sketch`** (a blank canvas, then `edit_sketch`),
 **`list_sketch_versions`**, **`get_sketch_version`** (read one snapshot's
 document without restoring), **`create_sketch_version`** (manual snapshot), and
 **`restore_sketch_version`**, which snapshots the pre-restore state first and
