@@ -145,16 +145,16 @@ See [THEME.md](THEME.md) for detailed theme documentation and customization opti
    title: "New Feature"
    ---
    ```
-3. Add the page to sidebar navigation in `_includes/sidebar.html`
-4. Optionally add to header in `_config.yml` under `header_pages`
-5. Write your content using markdown
+3. Add the page to sidebar navigation in `_includes/sidebar.html` — the single
+   source of truth for navigation. The custom theme does not use Jekyll's
+   Minima-only `header_pages`, and `jekyll-sitemap` already includes every page.
+4. Write your content using markdown
 
 ## Configuration
 
 Main configuration is in `_config.yml`:
 - **Site settings**: title, description, URLs
 - **Base URL**: `baseurl` is set to `""` (served from site root)
-- **Navigation**: page order in header
 - **Plugins**: enabled Jekyll plugins
 - **Custom theme**: Uses custom layouts in `_layouts/` and `_includes/`
 

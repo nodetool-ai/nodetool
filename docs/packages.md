@@ -62,16 +62,16 @@ Every node package depends on **`@nodetool-ai/node-sdk`**, which provides `BaseN
 
 ## Node Registration
 
-Each package exports a constant array of node classes and a registration function. The pattern used by `@nodetool-ai/base-nodes`:
+The packages the runtime registers directly export a constant array of node classes and a registration function. `@nodetool-ai/base-nodes` is one of them; it aggregates node groups from sibling packages:
 
 ```ts
 import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
-import { LIST_NODES } from "./nodes/list.js";
-import { TEXT_NODES } from "./nodes/text.js";
+import { CONTROL_NODES } from "@nodetool-ai/core-nodes/nodes/control";
+import { TEXT_EXTRA_NODES } from "@nodetool-ai/text-nodes/nodes/text-extra";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
-  ...LIST_NODES,
-  ...TEXT_NODES,
+  ...CONTROL_NODES,
+  ...TEXT_EXTRA_NODES,
   // ... additional node groups
 ];
 
