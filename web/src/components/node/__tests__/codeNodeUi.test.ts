@@ -4,6 +4,7 @@ import {
   isSnippetCodeNode,
   isCustomCodeNode,
   resolveCodeNodeTitle,
+  resolveNodeHeaderTitle,
   isCodeNodeTitleEditable,
   getCodeNodeLanguage,
   codeLanguageLabel,
@@ -117,6 +118,84 @@ describe("codeNodeUi", () => {
       expect(resolveCodeNodeTitle(CODE_NODE_TYPE, undefined, "Code")).toBe(
         "Code"
       );
+    });
+  });
+
+  describe("resolveNodeHeaderTitle", () => {
+    it("uses the input node's name as the header title", () => {
+      expect(
+        resolveNodeHeaderTitle(
+          "nodetool.input.StringInput",
+          undefined,
+          "String Input",
+          "prompt"
+        )
+      ).toBe("prompt");
+    });
+
+    it("trims whitespace around the input name", () => {
+      expect(
+        resolveNodeHeaderTitle(
+          "nodetool.input.ImageInput",
+          undefined,
+          "Image Input",
+          "  source  "
+        )
+      ).toBe("source");
+    });
+
+    it("falls back to the metadata title when the input name is empty", () => {
+      expect(
+        resolveNodeHeaderTitle(
+          "nodetool.input.StringInput",
+          undefined,
+          "String Input",
+          ""
+        )
+      ).toBe("String Input");
+      expect(
+        resolveNodeHeaderTitle(
+          "nodetool.input.StringInput",
+          undefined,
+          "String Input",
+          "   "
+        )
+      ).toBe("String Input");
+      expect(
+        resolveNodeHeaderTitle(
+          "nodetool.input.StringInput",
+          undefined,
+          "String Input"
+        )
+      ).toBe("String Input");
+    });
+
+    it("does not use a note title in place of the input name", () => {
+      expect(
+        resolveNodeHeaderTitle(
+          "nodetool.input.StringInput",
+          "a note",
+          "String Input",
+          "prompt"
+        )
+      ).toBe("prompt");
+    });
+
+    it("keeps code-node title resolution for code nodes", () => {
+      expect(
+        resolveNodeHeaderTitle(CODE_NODE_TYPE, "My Script", "Code")
+      ).toBe("My Script");
+    });
+
+    it("keeps the metadata title for other node types", () => {
+      expect(
+        resolveNodeHeaderTitle(
+          "nodetool.text.Concat",
+          "Custom",
+          "Text Concat",
+          "ignored"
+        )
+      ).toBe("Text Concat");
     });
   });
 
