@@ -57,6 +57,7 @@ import {
   validateAgainstSchema
 } from "../utils/json-schema-validate.js";
 import { linkAbort } from "../utils/link-abort.js";
+import { lastProseHint } from "../utils/step-failure.js";
 import { removeThinkTags } from "../utils/think-tags.js";
 import {
   buildToolBridge,
@@ -318,8 +319,42 @@ interface ActionObservation {
   stack?: string;
   logs?: string[];
   finished?: boolean;
+  /** Why `finished` is false, when the action looked like it finished. */
+  note?: string;
   toolCalls: number;
 }
+
+/**
+ * Told to the model when a schema'd action returned a value instead of
+ * finishing. `finished` was previously absent rather than false, so an
+ * observation for the losing move (`return graph`) was byte-identical to one
+ * for a step still in progress — nothing in it said the step had not ended.
+ */
+const RETURN_IS_NOT_FINISH_NOTE =
+  "This step is NOT finished: a returned value is an observation only. " +
+  "Call `await finish(<value>)` inside the action to complete the step.";
+
+const RETURN_MATCHES_SCHEMA_NOTE =
+  "This step is NOT finished: the value you returned matches the required " +
+  "output schema — call finish() on it (`await finish(<that value>)`) inside " +
+  "an execute_code action. Nothing else completes the step.";
+
+/**
+ * Sent as a user message when a schema'd step's turn ended in prose. The model
+ * that built the right value and then described it is one sentence away from a
+ * passing step, and the prose message itself proves it never saw the contract.
+ */
+export const FINISH_CONTRACT_NUDGE =
+  "You answered with prose. This step completes only when you call " +
+  "`await finish(result)` inside an `execute_code` action. If you already " +
+  "built the value, call finish() on it now.";
+
+/**
+ * Re-prompts allowed per step. Bounded because a model that ignores the
+ * contract twice is not going to honor it on the third ask, and each nudge is
+ * a paid provider round.
+ */
+export const MAX_FINISH_NUDGES = 2;
 
 export class CodeActExecutor {
   private readonly task: Task;
@@ -796,6 +831,20 @@ export class CodeActExecutor {
         uiEvents.push(this.taskUpdate(TaskUpdateEvent.StepCompleted));
         uiEvents.push(this.stepResult(finishedResult.value));
         abort.abort();
+      } else if (
+        this.resultSchema !== null &&
+        outcome.success &&
+        observation.result !== undefined &&
+        observation.result !== null
+      ) {
+        // The action produced a value and ended the turn without finishing.
+        // Say so in the observation: an absent `finished` reads as success.
+        observation.finished = false;
+        observation.note =
+          validateAgainstSchema(observation.result, this.resultSchema).length ===
+          0
+            ? RETURN_MATCHES_SCHEMA_NOTE
+            : RETURN_IS_NOT_FINISH_NOTE;
       }
 
       const text = truncateToolResult(JSON.stringify(observation));
@@ -827,61 +876,94 @@ export class CodeActExecutor {
       while (uiEvents.length > 0) yield uiEvents.shift() as ProcessingMessage;
     };
 
-    try {
-      const loopArgs: Parameters<BaseProvider["generateLoop"]>[0] = {
-        messages: history,
-        model: this.model,
-        tools: providerTools,
-        threadId: this.threadId,
-        maxIterations: this.maxIterations,
-        maxTokens: this.maxTokens,
-        sequentialTools: true,
-        workspaceDir: this.context.workspaceDir ?? undefined,
-        signal: abort.signal
-      };
-      if (this.turnBudget) loopArgs.turnBudget = this.turnBudget;
-      const stream = this.provider.generateLoop(loopArgs);
+    // Whether the last generation round used up its iteration budget, as
+    // opposed to the model ending its turn on its own. Only the first case is
+    // "exceeded N iterations"; the loop below distinguishes them.
+    let exhaustedIterations = false;
+    let nudges = 0;
 
-      for await (const item of stream) {
-        if (isToolCall(item)) {
-          const coreTool =
-            item.name === EXECUTE_CODE_TOOL_NAME
-              ? undefined
-              : toolsByName.get(item.name);
-          yield {
-            type: "tool_call_update",
-            node_id: this.step.id,
-            tool_call_id: item.id,
-            name: item.name,
-            args: item.args,
-            message: coreTool
-              ? Tool.resolveMessage(coreTool, item.args)
-              : executeCodeMessage(item.args)
-          } satisfies ToolCallUpdate;
-          yield* drainUi();
-          continue;
-        }
-        if (isChunk(item)) {
-          if (isNonEmptyString(item.content)) {
+    try {
+      for (;;) {
+        const loopArgs: Parameters<BaseProvider["generateLoop"]>[0] = {
+          messages: history,
+          model: this.model,
+          tools: providerTools,
+          threadId: this.threadId,
+          maxIterations: this.maxIterations,
+          maxTokens: this.maxTokens,
+          sequentialTools: true,
+          workspaceDir: this.context.workspaceDir ?? undefined,
+          signal: abort.signal
+        };
+        if (this.turnBudget) loopArgs.turnBudget = this.turnBudget;
+        const stream = this.provider.generateLoop(loopArgs);
+
+        // One assistant message per provider turn, so this counts the round's
+        // iterations against the budget the round was given.
+        let turnsThisRound = 0;
+
+        for await (const item of stream) {
+          if (isToolCall(item)) {
+            const coreTool =
+              item.name === EXECUTE_CODE_TOOL_NAME
+                ? undefined
+                : toolsByName.get(item.name);
             yield {
-              type: "chunk",
+              type: "tool_call_update",
               node_id: this.step.id,
-              content: item.content,
-              done: false
-            } satisfies Chunk;
+              tool_call_id: item.id,
+              name: item.name,
+              args: item.args,
+              message: coreTool
+                ? Tool.resolveMessage(coreTool, item.args)
+                : executeCodeMessage(item.args)
+            } satisfies ToolCallUpdate;
+            yield* drainUi();
+            continue;
+          }
+          if (isChunk(item)) {
+            if (isNonEmptyString(item.content)) {
+              yield {
+                type: "chunk",
+                node_id: this.step.id,
+                content: item.content,
+                done: false
+              } satisfies Chunk;
+            }
+            yield* drainUi();
+            continue;
+          }
+          if ("type" in item && item.type === "message") {
+            const m = (item as { message?: Message }).message;
+            if (m && m.role === "assistant") {
+              turnsThisRound++;
+              lastAssistant =
+                isString(m.content)
+                  ? { ...m, content: removeThinkTags(m.content) }
+                  : m;
+            }
           }
           yield* drainUi();
-          continue;
         }
-        if ("type" in item && item.type === "message") {
-          const m = (item as { message?: Message }).message;
-          if (m && m.role === "assistant") {
-            lastAssistant = isString(m.content)
-              ? { ...m, content: removeThinkTags(m.content) }
-              : m;
-          }
+        exhaustedIterations = turnsThisRound >= this.maxIterations;
+
+        if (!this.shouldNudgeToFinish(lastAssistant, nudges, abort.signal)) {
+          break;
         }
-        yield* drainUi();
+        nudges++;
+        // The provider copies the message array, so this round's transcript
+        // never came back to us. Carrying the prose forward is what makes the
+        // nudge a reply to it instead of a repetition of the brief. An empty
+        // assistant turn is not carried: several provider APIs reject a
+        // content-less message outright.
+        if (lastAssistant && hasContent(lastAssistant)) {
+          history.push(lastAssistant);
+        }
+        history.push({ role: "user", content: FINISH_CONTRACT_NUDGE });
+        log.debug("CodeAct step ended in prose; re-prompting to finish", {
+          stepId: this.step.id,
+          nudge: nudges
+        });
       }
     } catch (e) {
       generationError = e instanceof Error ? e : new Error(String(e));
@@ -914,7 +996,13 @@ export class CodeActExecutor {
       this.step.endTime = Date.now();
       const message = generationError
         ? `Step failed: ${generationError.message}`
-        : `Step failed: exceeded ${this.maxIterations} iterations without completion`;
+        : exhaustedIterations
+          ? `Step failed: exceeded ${this.maxIterations} iterations without completion`
+          : this.resultSchema !== null
+            ? `Step failed: ended after ${this.actionCount} action(s) without ` +
+              `calling finish().${lastProseHint(lastAssistant)}`
+            : `Step failed: ended after ${this.actionCount} action(s) with no ` +
+              `final message to use as the result.`;
       this.step.failed = true;
       this.step.error = message;
       const errorResult = { error: message };
@@ -935,6 +1023,30 @@ export class CodeActExecutor {
         is_task_result: this.useFinishTask
       } satisfies StepResult;
     }
+  }
+
+  /**
+   * Whether to re-prompt after a generation round that produced no result.
+   *
+   * The recoverable case is narrow: a schema'd step whose last assistant
+   * message carried no tool calls — the model stopped to explain instead of
+   * calling `finish()`, and the value it built may still be in `state`. A round
+   * that ended on a tool call ran out of budget instead, which another user
+   * message does not fix, and a cancelled run must not spend a turn at all.
+   */
+  private shouldNudgeToFinish(
+    lastAssistant: Message | null,
+    nudges: number,
+    signal: AbortSignal
+  ): boolean {
+    if (this.step.completed) return false;
+    if (this.resultSchema === null) return false;
+    if (nudges >= MAX_FINISH_NUDGES) return false;
+    if (signal.aborted) return false;
+    if (this.signal?.aborted === true) return false;
+    if (!lastAssistant) return false;
+    const toolCalls = lastAssistant.toolCalls;
+    return !toolCalls || toolCalls.length === 0;
   }
 
   private loadResultSchema(): Record<string, unknown> | null {
@@ -1007,6 +1119,13 @@ export class CodeActExecutor {
       is_task_result: this.useFinishTask
     };
   }
+}
+
+/** Whether a message carries anything a provider will accept as content. */
+function hasContent(message: Message): boolean {
+  const content = message.content;
+  if (isString(content)) return content.trim() !== "";
+  return Array.isArray(content) && content.length > 0;
 }
 
 function isChunk(item: ProviderStreamItem): item is Chunk {

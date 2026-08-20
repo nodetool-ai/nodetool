@@ -1268,7 +1268,7 @@ describe("StepExecutor", () => {
     expect(executor.getSources()).toEqual([]);
   });
 
-  it("yields StepFailed when step exhausts iterations without completing", async () => {
+  it("yields StepFailed naming the real terminal state when the model ends in prose", async () => {
     const step: Step = {
       id: "step_fail",
       instructions: "Will not complete",
@@ -1320,7 +1320,12 @@ describe("StepExecutor", () => {
     // Terminal, but NOT completed — a dependent step must not run on this.
     expect(step.completed).toBe(false);
     expect(step.failed).toBe(true);
-    expect(step.error).toContain("exceeded 2 iterations");
+    // One provider turn happened, so the iteration budget is not the story.
+    // The error says what the model did instead, and quotes it.
+    expect(step.error).toContain("ended after 1 model turn(s)");
+    expect(step.error).toContain("without calling finish_step");
+    expect(step.error).toContain("I cannot figure this out");
+    expect(step.error).not.toContain("exceeded 2 iterations");
     expect(step.endTime).toBeDefined();
 
     // Should have a StepFailed task_update
@@ -1332,6 +1337,58 @@ describe("StepExecutor", () => {
     // …and the failure is on the protocol-level `error` field, not buried in
     // the result payload.
     const stepResult = messages.find((m) => m.type === "step_result") as any;
-    expect(stepResult.error).toContain("exceeded 2 iterations");
+    expect(stepResult.error).toContain("ended after 1 model turn(s)");
+  });
+
+  it("reports iteration exhaustion only when the budget really ran out", async () => {
+    const step: Step = {
+      id: "step_exhaust",
+      instructions: "Will keep calling a tool",
+      completed: false,
+      dependsOn: [],
+      logs: [],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { answer: { type: "string" } },
+        required: ["answer"]
+      })
+    };
+    const task: Task = { id: "task_exhaust", title: "Exhaust", steps: [step] };
+
+    // Every turn calls a tool, so the loop only stops at maxIterations.
+    let turn = 0;
+    const provider = {
+      ...createMockProvider(),
+      generateMessages: async function* () {
+        yield { id: `tc_${++turn}`, name: "my_tool", args: {} };
+      }
+    } as unknown as BaseProvider;
+
+    const mockTool = asTool({
+      name: "my_tool",
+      description: "A test tool",
+      inputSchema: { type: "object" as const, properties: {}, required: [] },
+      process: vi.fn().mockResolvedValue({ output: "not a result" }),
+      userMessage: () => "Using my_tool",
+      toProviderTool: () => ({
+        name: "my_tool",
+        description: "A test tool",
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
+    });
+
+    const executor = new StepExecutor({
+      task,
+      step,
+      context: createMockContext(),
+      provider,
+      model: "test-model",
+      tools: [mockTool],
+      maxIterations: 2
+    });
+    for await (const _ of executor.execute()) void _;
+
+    expect(turn).toBe(2);
+    expect(step.error).toContain("exceeded 2 iterations without completion");
   });
 });

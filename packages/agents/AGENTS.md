@@ -1898,8 +1898,10 @@ Plans are validated before execution:
 
 Steps can enforce structured output via JSON schema:
 - `additionalProperties: false` enforced automatically
-- Schema'd steps finalize ONLY through the `finish_step` tool — there is no JSON-from-text extraction path. If `finish_step` is never called, the step fails on `maxIterations` and emits an explicit error result.
+- Schema'd steps finalize ONLY through the finishing tool — `finish_step` in tool mode, `finish()` in a CodeAct action. There is no JSON-from-text extraction path, so a step that never calls it fails and emits an explicit error result.
 - Unstructured steps (no schema) finalize when the model emits a no-tool-call assistant message; that text becomes the result.
+- Two things make that contract visible to a model that believes `return graph` finished the step, because the observation for the losing move used to be indistinguishable from success. A CodeAct observation for a schema'd step that returned a value without finishing carries `finished: false` and a `note` — which says so explicitly when the returned value already matched the schema. And a schema'd step whose turn ended in prose is re-prompted with the contract, at most `MAX_FINISH_NUDGES` (2) times, before it fails.
+- The failure message names the terminal state it actually hit: the provider's error, `exceeded N iterations` only when the loop really used its budget, else "ended after N action(s) / model turn(s) without calling finish", quoting the model's last message.
 
 ### Skills System
 
