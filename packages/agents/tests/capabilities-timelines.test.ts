@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
+  Asset,
   ModelObserver,
   TimelineSequence,
   initTestDb
@@ -215,6 +216,76 @@ describe("timelines capability behaviour", () => {
     })) as { applied: number; failed: number; tracks: Array<{ name: string }> };
     expect(result).toMatchObject({ applied: 1, failed: 0 });
     expect(result.tracks.map((t) => t.name)).toContain("Music");
+  });
+
+  it("lays two library videos end to end with add_media_clip", async () => {
+    const row = await makeTimeline();
+    const first = (await Asset.create({
+      user_id: "u1",
+      name: "skateboarding_red_panda.mp4",
+      content_type: "video/mp4",
+      duration: 3
+    })) as Asset;
+    const second = (await Asset.create({
+      user_id: "u1",
+      name: "second.mp4",
+      content_type: "video/mp4"
+    })) as Asset;
+
+    const result = (await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "add_media_clip", asset: `asset://${first.id}.mp4` },
+        { op: "add_media_clip", asset: second.id }
+      ]
+    })) as {
+      applied: number;
+      failed: number;
+      clips: Array<{
+        name: string;
+        start_ms: number;
+        duration_ms: number;
+        track_id: string;
+      }>;
+    };
+    expect(result).toMatchObject({ applied: 2, failed: 0 });
+
+    // The seed document already holds a 2000ms clip on the only video track,
+    // so the two appends land after it, back to back — which is what
+    // "stitch my videos" means on a timeline.
+    const added = result.clips.slice(1);
+    expect(added.map((c) => c.name)).toEqual([
+      "skateboarding_red_panda.mp4",
+      "second.mp4"
+    ]);
+    expect(added[0]).toMatchObject({ start_ms: 2000, duration_ms: 3000 });
+    expect(added[1].start_ms).toBe(5000);
+    expect(added[0].track_id).toBe(added[1].track_id);
+  });
+
+  it("refuses an asset that is not this user's, and one that is not media", async () => {
+    const row = await makeTimeline();
+    const theirs = (await Asset.create({
+      user_id: "u2",
+      name: "private.mp4",
+      content_type: "video/mp4"
+    })) as Asset;
+    const notMedia = (await Asset.create({
+      user_id: "u1",
+      name: "notes.md",
+      content_type: "text/markdown"
+    })) as Asset;
+
+    const result = (await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "add_media_clip", asset: theirs.id },
+        { op: "add_media_clip", asset: notMedia.id }
+      ]
+    })) as { failed: number; ops: Array<{ error?: string }> };
+    expect(result.failed).toBe(2);
+    expect(result.ops[0].error).toContain("No asset found");
+    expect(result.ops[1].error).toContain("cannot go on a timeline");
   });
 
   it("records an unknown edit op instead of throwing", async () => {

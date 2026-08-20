@@ -25,7 +25,10 @@ import type {
   TimelineSequenceVersion
 } from "@nodetool-ai/models";
 import type { TimelineValidation } from "@nodetool-ai/execution/timeline-debug";
-import type { TimelineBridgeFinalState } from "../evals/surfaces/timeline.js";
+import type {
+  TimelineBridgeAsset,
+  TimelineBridgeFinalState
+} from "../evals/surfaces/timeline.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -414,12 +417,54 @@ interface ApplyOutcome {
 }
 
 /**
+ * Read one of the caller's assets for `add_media_clip`.
+ *
+ * The ref a model has in hand is whatever `list_assets` printed — a bare id or
+ * an `asset://<id>.<ext>` URI — so both resolve here.
+ */
+async function resolveTimelineAsset(
+  run: CapabilityRun,
+  ref: string
+): Promise<TimelineBridgeAsset | null> {
+  const id = ref.startsWith("asset://")
+    ? ref.slice("asset://".length).replace(/\.[A-Za-z0-9]{1,8}$/, "")
+    : ref;
+  if (!id) return null;
+  const userId = run.context.userId;
+  if (!userId) return null;
+  const { Asset } = await import("@nodetool-ai/models");
+  // `find` is already user-scoped: someone else's asset reads as missing.
+  const asset = await Asset.find(userId, id);
+  if (!asset) return null;
+  const thumbnails = isRecord(asset.metadata)
+    ? asset.metadata["thumbnails"]
+    : undefined;
+  const thumbnailAssetId =
+    Array.isArray(thumbnails) && isString(thumbnails[0])
+      ? thumbnails[0]
+      : undefined;
+  const resolved: TimelineBridgeAsset = {
+    id: asset.id,
+    name: asset.name,
+    contentType: asset.content_type
+  };
+  // `duration` is seconds and often null — assets are catalogued without
+  // probing. The bridge falls back to its own default when it is missing.
+  if (isFiniteNumber(asset.duration) && asset.duration > 0) {
+    resolved.durationMs = Math.round(asset.duration * 1000);
+  }
+  if (thumbnailAssetId) resolved.thumbnailAssetId = thumbnailAssetId;
+  return resolved;
+}
+
+/**
  * Run `ops` against a bridge seeded from `document`.
  *
  * A failing op is recorded and the script continues: stopping at the first
  * error hides every problem behind it, and the caller wants the whole picture.
  */
 async function applyOps(
+  run: CapabilityRun,
   sequence: TimelineSequence,
   document: TimelineDocument,
   ops: ParsedOp[]
@@ -433,7 +478,8 @@ async function applyOps(
       height: sequence.height,
       tracks: document.tracks,
       clips: document.clips
-    }
+    },
+    resolveAsset: (ref) => resolveTimelineAsset(run, ref)
   });
   const byName = new Map(
     bridge.tools
@@ -491,7 +537,7 @@ const editTimeline: CapabilityExport = {
         return { error: `Timeline ${timelineId} was not found.` };
       }
       const document = sequence.toDocument();
-      const { records, state } = await applyOps(sequence, document, ops);
+      const { records, state } = await applyOps(run, sequence, document, ops);
 
       // Markers and the transcript ride along untouched: no timeline operation
       // edits them, so the stored copies stay authoritative.

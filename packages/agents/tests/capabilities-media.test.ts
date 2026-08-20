@@ -11,6 +11,9 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
@@ -52,6 +55,15 @@ function makeContext(
   return {
     userId: "user-1",
     runProviderPrediction
+  } as unknown as ProcessingContext;
+}
+
+/** A context with a real workspace directory on disk. */
+function workspaceContext(dir: string): ProcessingContext {
+  return {
+    userId: "user-1",
+    workspaceDir: dir,
+    resolveWorkspacePath: (relative: string) => resolve(dir, relative)
   } as unknown as ProcessingContext;
 }
 
@@ -419,6 +431,55 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       { args: ["-i", "http://169.254.169.254/latest/meta-data/", "out.txt"] }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/Only workspace files are readable/);
+  });
+
+  it("ffmpeg stages an inputs ref into the workspace before running", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-"));
+    try {
+      // ffmpeg may not be installed here; staging happens before the spawn,
+      // so the file on disk is what this pins.
+      await asTool(ffmpeg).process(workspaceContext(dir), {
+        args: ["-i", "a.txt", "out.mp4"],
+        inputs: { "a.txt": "data:text/plain;base64,aGk=" }
+      });
+      expect(await readFile(join(dir, "a.txt"), "utf8")).toBe("hi");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("ffmpeg refuses an inputs name that escapes the workspace", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-"));
+    try {
+      const result = (await asTool(ffmpeg).process(workspaceContext(dir), {
+        args: ["-i", "a.txt", "out.mp4"],
+        inputs: { "../escaped.txt": "data:text/plain;base64,aGk=" }
+      })) as Record<string, unknown>;
+      expect(String(result["error"])).toMatch(/outside the workspace/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("ffmpeg names the ref it could not read", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-"));
+    try {
+      const result = (await asTool(ffmpeg).process(workspaceContext(dir), {
+        args: ["-i", "a.mp4", "out.mp4"],
+        inputs: { "a.mp4": "asset://does-not-exist.mp4" }
+      })) as Record<string, unknown>;
+      expect(String(result["error"])).toMatch(/could not read/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("ffmpeg points a refused URI at the inputs parameter", async () => {
+    const result = (await asTool(ffmpeg).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { args: ["-i", "asset://abc.mp4", "out.mp4"] }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/`inputs`/);
   });
 
   it("ffmpeg refuses an output_file that escapes the workspace", async () => {

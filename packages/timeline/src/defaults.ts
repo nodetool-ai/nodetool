@@ -35,6 +35,35 @@ export const DEFAULT_TEXT_CLIP_COLOR = "#FFFFFF";
 export const DEFAULT_TEXT_CLIP_DURATION_MS = 3000;
 export const DEFAULT_TEXT_CLIP_FONT_SIZE_PX = 96;
 
+/**
+ * Length an imported media clip gets when nothing knows its real duration.
+ * Assets are catalogued without probing, so `Asset.duration` is often null.
+ */
+export const DEFAULT_MEDIA_CLIP_DURATION_MS = 4000;
+
+/**
+ * The timeline media type an asset's MIME type maps to, or null when the
+ * asset is not placeable on a timeline. Shared by the editor's drag-and-drop
+ * adapter and the headless agent surface so a clip placed by an agent matches
+ * one placed by hand.
+ */
+export function mediaTypeForContentType(
+  contentType: string | undefined | null
+): "image" | "video" | "audio" | null {
+  if (!contentType) return null;
+  if (contentType.startsWith("image/")) return "image";
+  if (contentType.startsWith("video/")) return "video";
+  if (contentType.startsWith("audio/")) return "audio";
+  return null;
+}
+
+/** The track type an imported clip of this media type belongs on. */
+export function trackTypeForMediaType(
+  mediaType: "image" | "video" | "audio"
+): "video" | "audio" {
+  return mediaType === "audio" ? "audio" : "video";
+}
+
 /** Default authored-shape colors, stored as canvas-ready color data. */
 export const DEFAULT_SHAPE_FILL_COLOR = "#FFFFFF";
 export const DEFAULT_SHAPE_STROKE_COLOR = "#FFFFFF";

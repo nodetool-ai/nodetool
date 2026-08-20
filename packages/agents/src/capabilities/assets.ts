@@ -298,6 +298,9 @@ async function readSourceBytes(
       };
     }
     const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength === 0) {
+      return { error: `${source} returned an empty body — nothing to save.` };
+    }
     if (bytes.byteLength > MAX_SOURCE_BYTES) {
       return {
         error: `${source} is ${bytes.byteLength} bytes, past the ${MAX_SOURCE_BYTES}-byte limit.`
@@ -320,6 +323,18 @@ async function readSourceBytes(
       error:
         `Source not found: ${source}. Pass the asset_url or /api/storage/ ` +
         `key a tool returned, an asset:// URI, or an http(s) URL.`
+    };
+  }
+  // A resolver that finds the key but reads nothing back — a bucket the
+  // adapter is not configured for, an object still being written — hands back
+  // an empty buffer rather than null. Saving it produced a 0-byte asset the
+  // caller was told was fine, and a chat that answered with a video nobody
+  // could play. Zero bytes is never a successful copy.
+  if (bytes.byteLength === 0) {
+    return {
+      error:
+        `${source} resolved to 0 bytes — nothing was copied. Check that the ` +
+        `source still exists and that this server can read its storage.`
     };
   }
   return { bytes };
@@ -396,6 +411,12 @@ const saveAsset: CapabilityExport = {
         data = hasBinary
           ? new Uint8Array(Buffer.from(contentBase64, "base64"))
           : new TextEncoder().encode(content as string);
+        if (hasBinary && data.byteLength === 0) {
+          return {
+            success: false,
+            error: "`content_base64` decoded to 0 bytes — nothing to save."
+          };
+        }
         mime =
           isString(contentTypeArg) && contentTypeArg
             ? contentTypeArg

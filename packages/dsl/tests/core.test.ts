@@ -121,6 +121,40 @@ describe("createNode", () => {
 });
 
 describe("workflow", () => {
+  test("refuses a node output buried in an array prop", () => {
+    const a = createNode<SingleOutput<string>>("nodetool.constant.String", {
+      value: "a"
+    });
+    const b = createNode<SingleOutput<string>>("nodetool.constant.String", {
+      value: "b"
+    });
+    const sink = createNode<SingleOutput<string>>("nodetool.video.Concat", {
+      videos: [a.output(), b.output()]
+    });
+    // Before this check the array was written into the node's data verbatim,
+    // no edge was drawn, and both constants were dropped — a one-node graph
+    // that validated clean.
+    expect(() => workflow(sink)).toThrow(/videos\[0\]/);
+  });
+
+  test("refuses a node output buried under an object key", () => {
+    const a = createNode<SingleOutput<string>>("nodetool.constant.String", {
+      value: "a"
+    });
+    const sink = createNode<SingleOutput<string>>("nodetool.text.Concat", {
+      settings: { source: a.output() }
+    });
+    expect(() => workflow(sink)).toThrow(/settings\.source/);
+  });
+
+  test("leaves a plain array prop alone", () => {
+    const sink = createNode<SingleOutput<string>>("nodetool.text.Concat", {
+      parts: ["a", "b"],
+      nested: { deep: [1, 2, 3] }
+    });
+    expect(() => workflow(sink)).not.toThrow();
+  });
+
   test("single node — 1 node, 0 edges", () => {
     const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", {
       input_item: 5
