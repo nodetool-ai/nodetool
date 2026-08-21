@@ -11,7 +11,8 @@ import {
   S3StorageAdapter,
   resolveWorkspacePath,
   type S3Client,
-  type MessageCreateRequestLike
+  type MessageCreateRequestLike,
+  type StorageListResult
 } from "../src/context.js";
 import type { ProcessingMessage, NodeUpdate } from "@nodetool-ai/protocol";
 import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
@@ -1027,6 +1028,24 @@ describe("FileStorageAdapter", () => {
   });
 });
 
+/**
+ * Supabase Storage semantics: `list(path)` returns the immediate children of a
+ * pseudo-directory — never a recursive walk, and empty for a path that is not
+ * one. `InMemoryStorageAdapter.list` is prefix-matching and recursive, so it
+ * cannot show what an owner-prefixed key does to a root listing.
+ */
+class FolderListingAdapter extends InMemoryStorageAdapter {
+  override async list(prefix: string): Promise<StorageListResult> {
+    const dir = prefix.replace(/\/+$/, "");
+    const all = await super.list("");
+    const entries = all.entries.filter((entry) => {
+      const slash = entry.key.lastIndexOf("/");
+      return (slash < 0 ? "" : entry.key.slice(0, slash)) === dir;
+    });
+    return { entries, commonPrefixes: [] };
+  }
+}
+
 describe("ProcessingContext.resolveAssetBytes", () => {
   it("resolves an asset:// URN against the storage adapter (key <id>.<ext>)", async () => {
     const storage = new InMemoryStorageAdapter();
@@ -1089,6 +1108,41 @@ describe("ProcessingContext.resolveAssetBytes", () => {
 
     const { bytes } = await ctx.resolveAssetBytes("asset://user-7/abc.png");
     expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([3, 4]));
+  });
+
+  it("resolves an extension-less ref under the owner prefix (folder-listing backend)", async () => {
+    // Regression: an uploaded asset is stored at `<userId>/<id>.<ext>`, but the
+    // graph carries `asset://<id>` with no extension (that is what the editor
+    // writes into a Constant Image node, and what a bare `asset_id` yields).
+    // Every exact-key lookup misses, so resolution falls to the prefix
+    // listing — and on Supabase `list("")` returns only the bucket's immediate
+    // children, which under this layout are folders. The image reached the
+    // node empty and it reported "The input image is empty".
+    const storage = new FolderListingAdapter();
+    await storage.store("user-7/abc.jpeg", new Uint8Array([5, 6, 7]), "image/jpeg");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://abc");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([5, 6, 7]));
+  });
+
+  it("still skips the thumbnail when listing the owner prefix", async () => {
+    const storage = new FolderListingAdapter();
+    await storage.store("user-7/abc_thumb.jpg", new Uint8Array([9]), "image/jpeg");
+    await storage.store("user-7/abc.jpeg", new Uint8Array([5, 6, 7]), "image/jpeg");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://abc");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([5, 6, 7]));
+  });
+
+  it("does not read another owner's asset of the same id", async () => {
+    const storage = new FolderListingAdapter();
+    await storage.store("user-8/abc.jpeg", new Uint8Array([1, 1]), "image/jpeg");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://abc");
+    expect(bytes).toBeNull();
   });
 
   it("resolves a bare `/api/storage/<key>` path against the storage adapter", async () => {

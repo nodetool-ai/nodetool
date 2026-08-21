@@ -22,11 +22,21 @@ import type {
 } from "../app-debug/index.js";
 import { getSecret } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  FileStorageAdapter,
+  ProcessingContext,
+  type StorageAdapter
+} from "@nodetool-ai/runtime";
 
 export interface AppServerRunnerOptions {
   /** Job-id prefix, so a run is attributable to the surface that started it. */
   jobPrefix?: string;
+  /**
+   * The store `asset://<id>` inputs resolve through. Only the local assets dir
+   * on a `file` backend, so a host on S3/Supabase must pass its own or the
+   * run reads every uploaded input as empty.
+   */
+  assetStorage?: StorageAdapter | null;
 }
 
 export function createAppServerRunner(
@@ -43,7 +53,8 @@ export function createAppServerRunner(
       workflowId: input.workflowId,
       userId,
       secretResolver: (key: string) => getSecret(key, userId),
-      storage: new FileStorageAdapter(getDefaultAssetsPath())
+      storage: new FileStorageAdapter(getDefaultAssetsPath()),
+      assetStorage: options.assetStorage ?? null
     });
     const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
       graph: input.graph,

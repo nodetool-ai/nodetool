@@ -32,6 +32,7 @@ import type { SupervisorRunOptions } from "@nodetool-ai/protocol";
 import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { createRunSupervisor } from "./run-supervisor.js";
 import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
+import { getAssetAdapter } from "./lib/storage.js";
 
 const log = createLogger("nodetool.websocket.headless-job");
 
@@ -187,6 +188,10 @@ export async function startHeadlessJob(
     userId,
     secretResolver: getSecret,
     storage: new FileStorageAdapter(getDefaultAssetsPath()),
+    // `asset://<id>` inputs resolve through the configured asset store, which
+    // is only the local assets dir on a `file` backend. Without it a triggered
+    // run on an S3/Supabase deployment reads every uploaded input as empty.
+    assetStorage: getAssetAdapter(),
     workspace
   });
 

@@ -110,6 +110,12 @@ export function usesCloudWorkspaces(): boolean {
  * image in a chat turn and get a 401 from the same provider when it ran the
  * workflow it had just built. The resolver is scoped to the run's own user,
  * which is the only account whose secrets this run may read.
+ *
+ * So do the storage adapters. A context with none resolves no `asset://` ref
+ * at all — every uploaded image wired into a graph reached its node empty, and
+ * the node reported "The input image is empty". The host passes the same two
+ * adapters the streaming WebSocket runner uses; a host that passes neither
+ * keeps the old read-nothing behaviour rather than guessing at a backend.
  */
 export function buildWorkspaceExecutionContext(opts: {
   jobId: string;
@@ -121,12 +127,18 @@ export function buildWorkspaceExecutionContext(opts: {
     key: string,
     userId: string
   ) => Promise<string | null | undefined> | string | null | undefined;
+  /** Temp store for runtime-materialized refs. */
+  storage?: StorageAdapter | null;
+  /** Asset store `asset://<id>` references resolve through. */
+  assetStorage?: StorageAdapter | null;
 }): ProcessingContext {
   return new ProcessingContext({
     jobId: opts.jobId,
     workflowId: opts.workflowId ?? null,
     userId: opts.userId,
     workspace: opts.workspace,
+    storage: opts.storage ?? null,
+    assetStorage: opts.assetStorage ?? null,
     secretResolver:
       opts.secretResolver ??
       ((key: string, userId: string) => getSecret(key, userId))
