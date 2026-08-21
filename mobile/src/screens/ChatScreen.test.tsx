@@ -342,17 +342,17 @@ describe('ChatScreen', () => {
     ];
 
     statuses.forEach((status) => {
-      it(`renders correctly with status: ${status}`, () => {
+      it(`forwards status ${status} to ChatView`, () => {
         const storeWithStatus = {
           ...mockStore,
           status,
         };
-        
+
         mockStoreState(storeWithStatus);
-        
-        const { UNSAFE_root } = renderChatScreen();
-        
-        expect(UNSAFE_root).toBeTruthy();
+
+        renderChatScreen();
+
+        expect(screen.getByTestId('status')).toHaveTextContent(status);
       });
     });
   });
