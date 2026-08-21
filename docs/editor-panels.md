@@ -105,8 +105,9 @@ The bottom panel docks runtime diagnostics and secondary workflow tools. Drag it
 Its header also carries a live readout of the **server's** CPU and memory use,
 next to the node and edge counts. The figures come from the `system_stats`
 frame the server pushes every 5s (see
-[WebSocket API](websocket-api.md#system_stats)); on a desktop install that is
-your own machine, and on a hosted install it is the box your workflows run on.
+[WebSocket API](websocket-api.md#system_stats)); that is your own machine. A
+hosted server (auth enforced) sends no such frame — the readout describes a
+shared container nobody using it owns — so the header shows the counts alone.
 
 ### Logs
 
