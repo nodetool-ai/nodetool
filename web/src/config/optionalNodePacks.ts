@@ -105,10 +105,6 @@ export const getOptionalNodePackForNamespace = (
     pack.namespaces.some((prefix) => matchesPrefix(namespace, prefix))
   );
 
-/** Whether `namespace` belongs to any optional pack. */
-export const isOptionalNamespace = (namespace: string): boolean =>
-  getOptionalNodePackForNamespace(namespace) !== undefined;
-
 /**
  * Whether `namespace` should be hidden from the node-menu tree given the set of
  * pack ids the user has turned on. A namespace is hidden only when it belongs

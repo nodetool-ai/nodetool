@@ -8,19 +8,6 @@ export const isHuggingFaceProvider = (provider?: string): boolean => {
   );
 };
 
-/**
- * Checks if a HuggingFace provider is local (runs models locally).
- * The Python worker is exposed as `huggingface-local`; bare `huggingface` is
- * the hosted Inference API.
- */
-export const isHuggingFaceLocalProvider = (provider?: string): boolean => {
-  if (!provider) {
-    return false;
-  }
-  const normalized = provider.toLowerCase().trim();
-  return normalized === "huggingface-local";
-};
-
 export const isLocalProvider = (provider?: string): boolean => {
   if (!provider) {
     return false;
@@ -42,17 +29,6 @@ export const isCloudProvider = (provider?: string): boolean => {
   }
   // If it's not local, we assume it's an API/Cloud provider
   return !isLocalProvider(provider);
-};
-
-export const isHuggingFaceInferenceProvider = (provider?: string): boolean => {
-  if (!provider) {
-    return false;
-  }
-  const providerLower = provider.toLowerCase().trim();
-  return (
-    providerLower.includes("hf_inference") ||
-    providerLower.includes("huggingface_inference")
-  );
 };
 
 const insertSpacesBeforeCapitals = (value: string): string => {

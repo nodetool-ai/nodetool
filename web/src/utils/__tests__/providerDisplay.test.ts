@@ -1,8 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import {
   isHuggingFaceProvider,
-  isHuggingFaceLocalProvider,
-  isHuggingFaceInferenceProvider,
   isLocalProvider,
   isCloudProvider,
   getModelUrl,
@@ -321,46 +319,6 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("HuggingFaceTestProvider")).toBe(
         "https://huggingface.co/testprovider"
       );
-    });
-  });
-
-  describe("isHuggingFaceLocalProvider", () => {
-    it("returns true for the explicit local alias", () => {
-      expect(isHuggingFaceLocalProvider("huggingface-local")).toBe(true);
-      expect(isHuggingFaceLocalProvider("HuggingFace-Local")).toBe(true);
-      expect(isHuggingFaceLocalProvider(" huggingface-local ")).toBe(true);
-    });
-
-    it("returns false for HuggingFace sub-providers", () => {
-      expect(isHuggingFaceLocalProvider("huggingface/fireworks-ai")).toBe(
-        false
-      );
-      expect(isHuggingFaceLocalProvider("huggingface_cerebras")).toBe(false);
-      expect(isHuggingFaceLocalProvider("huggingface")).toBe(false);
-    });
-
-    it("returns false for undefined/empty", () => {
-      expect(isHuggingFaceLocalProvider(undefined)).toBe(false);
-      expect(isHuggingFaceLocalProvider("")).toBe(false);
-    });
-  });
-
-  describe("isHuggingFaceInferenceProvider", () => {
-    it("returns true for inference providers", () => {
-      expect(isHuggingFaceInferenceProvider("hf_inference")).toBe(true);
-      expect(isHuggingFaceInferenceProvider("huggingface_inference")).toBe(
-        true
-      );
-    });
-
-    it("returns false for non-inference providers", () => {
-      expect(isHuggingFaceInferenceProvider("huggingface")).toBe(false);
-      expect(isHuggingFaceInferenceProvider("openai")).toBe(false);
-    });
-
-    it("returns false for undefined/empty", () => {
-      expect(isHuggingFaceInferenceProvider(undefined)).toBe(false);
-      expect(isHuggingFaceInferenceProvider("")).toBe(false);
     });
   });
 

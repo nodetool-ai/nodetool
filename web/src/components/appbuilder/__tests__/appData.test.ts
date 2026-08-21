@@ -2,7 +2,6 @@ import {
   createEmptyData,
   createEmptyDocument,
   parseApplicationDocument,
-  isRenderableData,
   APP_SCHEMA_VERSION
 } from "../appData";
 
@@ -53,18 +52,6 @@ describe("appData", () => {
           ui: { root: { props: {} }, content: [] }
         })
       ).toBeNull();
-    });
-  });
-
-  describe("isRenderableData", () => {
-    it("is false for null/empty", () => {
-      expect(isRenderableData(null)).toBe(false);
-      expect(isRenderableData(createEmptyData())).toBe(false);
-    });
-    it("is true with content", () => {
-      const data = createEmptyData();
-      data.content.push({ type: "Text", props: { id: "t1" } });
-      expect(isRenderableData(data)).toBe(true);
     });
   });
 });

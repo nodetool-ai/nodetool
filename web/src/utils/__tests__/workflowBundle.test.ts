@@ -1,10 +1,6 @@
 import { restFetch } from "../../lib/rest-fetch";
 import { stub } from "../../test-utils/doubles";
-import {
-  exportWorkflowBundle,
-  exportWorkflowsBundle,
-  importWorkflowBundle
-} from "../workflowBundle";
+import { exportWorkflowBundle, importWorkflowBundle } from "../workflowBundle";
 
 jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
@@ -99,21 +95,6 @@ describe("exportWorkflowBundle", () => {
     await expect(exportWorkflowBundle("missing", "x")).rejects.toThrow(
       "Workflow not found"
     );
-  });
-});
-
-describe("exportWorkflowsBundle", () => {
-  it("POSTs workflow_ids to the multi-workflow export route", async () => {
-    mockRestFetch.mockResolvedValue(fakeResponse({ ok: true }));
-    await exportWorkflowsBundle(["a", "b"], "pack");
-    expect(mockRestFetch).toHaveBeenCalledWith(
-      "/api/workflows/export-bundle",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ workflow_ids: ["a", "b"] })
-      })
-    );
-    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1);
   });
 });
 
