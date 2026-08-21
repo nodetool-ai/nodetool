@@ -1,4 +1,8 @@
-import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
+import { useEffect } from "react";
+import {
+  useWorkspaceTabsStore,
+  type WorkspaceTabMode
+} from "../../stores/WorkspaceTabsStore";
 import { useAssetById } from "../../serverState/useAssetById";
 import { FlexColumn, LoadingSpinner, Text } from "../ui_primitives";
 import TextDocumentEditor from "./TextDocumentEditor";
@@ -21,6 +25,12 @@ interface TextSurfaceProps {
  */
 const TextSurface = ({ refId, mode }: TextSurfaceProps) => {
   const { data: asset, isLoading, error } = useAssetById(refId);
+  const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
+
+  useEffect(() => {
+    if (!asset) return;
+    setTabTitle(refId, "text", asset.name || "Untitled");
+  }, [asset, refId, setTabTitle]);
 
   if (isLoading) {
     return (

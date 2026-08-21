@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, type MouseEvent } from "react";
+import { memo, useCallback, useEffect, useState, type MouseEvent } from "react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/Close";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -88,6 +88,7 @@ const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
   const isActiveTab = useWorkspaceTabsStore(
     (state) => state.activeTabId === tabId("application", refId)
   );
+  const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
 
   const handleViewChange = useCallback(
     (_event: MouseEvent<HTMLElement>, next: ApplicationView | null) => {
@@ -97,6 +98,11 @@ const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
     },
     []
   );
+
+  useEffect(() => {
+    if (!application) return;
+    setTabTitle(refId, "application", application.name || "Untitled app");
+  }, [application, refId, setTabTitle]);
 
   if (isLoading) {
     return <LoadingSpinner size="large" text="Loading app" />;

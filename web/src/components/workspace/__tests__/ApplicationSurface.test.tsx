@@ -27,11 +27,16 @@ jest.mock("../../../hooks/useApplications", () => ({
 }));
 
 const openTab = jest.fn();
+const setTitle = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   tabId: (type: string, ref: string) => `${type}:${ref}`,
   useWorkspaceTabsStore: <T,>(
-    selector: (s: { openTab: jest.Mock; activeTabId: string }) => T
-  ) => selector({ openTab, activeTabId: "application:app-1" })
+    selector: (s: {
+      openTab: jest.Mock;
+      setTitle: jest.Mock;
+      activeTabId: string;
+    }) => T
+  ) => selector({ openTab, setTitle, activeTabId: "application:app-1" })
 }));
 
 const linkedProps = jest.fn();
@@ -130,6 +135,7 @@ describe("ApplicationSurface", () => {
     expect(screen.getByTestId("app-builder")).toHaveTextContent("app-1");
     expect(screen.queryByTestId("governance")).not.toBeInTheDocument();
     expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
+    expect(setTitle).toHaveBeenCalledWith("app-1", "application", "Translator");
   });
 
   it("switches to publish and budget controls", async () => {
