@@ -86,7 +86,7 @@ npm run lint:anti-slop   # whole repo, exits 1 while findings remain
 npx oxlint --config .oxlintrc.anti-slop.json packages/cli/src
 ```
 
-`npm run lint` and CI do not run it. The rules find 16,760 violations in the
+`npm run lint` and CI do not run it. The rules find 16,912 violations in the
 current tree, so folding them into the main gate would leave it permanently red.
 Treat this as a backlog to work down, not a merge blocker.
 

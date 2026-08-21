@@ -237,7 +237,7 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 16,760 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,912 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
@@ -245,7 +245,7 @@ exactly one of them:
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
 59 trees is 531 pairs, and 247 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
-fifty-five packages, and those fifty-five are ratcheted today rather than after
+fifty-six packages, and those fifty-six are ratcheted today rather than after
 the last one lands. Seven rules are at zero everywhere and sit in the enforced
 config's top-level `rules`; the rest are enforced per-path, one override block
 per rule listing the trees at zero for it.
@@ -301,18 +301,18 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7039 | 11 / 59 |
-| `no-unsafe-dictionary-type` | 4315 | 11 / 59 |
-| `no-unknown-parameters` | 1948 | 14 / 59 |
-| `no-module-mocking` | 1460 | 56 / 59 |
-| `no-known-value-widening` | 722 | 17 / 59 |
-| `no-runtime-typeof` | 534 | 21 / 59 |
-| `no-implicit-return-type` | 449 | 30 / 59 |
-| `no-unknown-returns` | 243 | 41 / 59 |
-| `no-chained-type-assertions` | 50 | 46 / 59 |
+| `require-safety-comment-for-type-assertion` | 7082 | 11 / 59 |
+| `no-unsafe-dictionary-type` | 4346 | 11 / 59 |
+| `no-unknown-parameters` | 1964 | 14 / 59 |
+| `no-module-mocking` | 1471 | 56 / 59 |
+| `no-known-value-widening` | 749 | 17 / 59 |
+| `no-runtime-typeof` | 548 | 21 / 59 |
+| `no-implicit-return-type` | 451 | 30 / 59 |
+| `no-unknown-returns` | 247 | 41 / 59 |
+| `no-chained-type-assertions` | 54 | 46 / 59 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,460 findings but zero in 56 of 59 trees: it is
+`no-module-mocking` is 1,471 findings but zero in 56 of 59 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
@@ -637,14 +637,16 @@ npm run dev:chat -- --url ws://localhost:7777/ws
 Chat flags:
 ```
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
-                         moonshot, minimax, cerebras, alibaba, together, openrouter,
-                         huggingface, replicate, kie, aki, ollama, lmstudio,
-                         claude_agent_sdk, codex, gmi, mlx, node_llama_cpp
+                         moonshot, minimax, cerebras, meta, alibaba, together,
+                         openrouter, huggingface, replicate, kie, aki, ollama,
+                         lmstudio, claude_agent_sdk, codex, gmi, mlx, node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
 -m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
 --tools <list>           Comma-separated tool names
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
+--no-read-only-search    Disable the read-only run_search fan-out primitive
+                         (on by default)
 -a, --agent [mode]       [deprecated] No-op
 --no-agent               [deprecated] No-op
 ```
