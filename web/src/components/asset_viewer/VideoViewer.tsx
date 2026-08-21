@@ -33,7 +33,12 @@ const styles = () =>
 const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asset, url }) {
   return (
     <Box className="video-viewer" css={styles()}>
-      <video controls={true} src={asset?.get_url || url || ""}>
+      <video
+        controls={true}
+        playsInline
+        preload="metadata"
+        src={asset?.get_url || url || ""}
+      >
         Your browser does not support the video element.
       </video>
       <Text size="big" color="secondary">

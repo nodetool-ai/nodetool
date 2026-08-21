@@ -436,6 +436,8 @@ const PropertyDropzone = ({
                 <video
                   style={{ width: "100%", height: "auto" }}
                   controls
+                  playsInline
+                  preload="metadata"
                   src={uri}
                   aria-label={filename || "Video"}
                 >

@@ -228,6 +228,8 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
           <video
             ref={videoRef}
             controls
+            playsInline
+            preload="metadata"
             style={videoStyle}
             src={videoObjectUrl}
             aria-label="Video content"

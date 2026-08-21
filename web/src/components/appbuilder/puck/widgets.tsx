@@ -182,6 +182,8 @@ const VideoItem: React.FC<{ src: string; height: number }> = ({
     <Box
       component="video"
       controls
+      playsInline
+      preload="metadata"
       src={resolved}
       sx={{
         width: "100%",
