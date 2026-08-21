@@ -2717,11 +2717,19 @@ export class ProcessingContext {
       // with the id, since the URN extension may differ from the one on disk
       // (e.g. jpeg vs jpg). Only reached when the exact-key lookups all miss.
       //
-      // Try a narrow prefix first (S3 treats `list(bareId)` as a raw-string
-      // prefix match — bounded to a handful of entries) before falling back to
-      // a root listing for adapters that treat the prefix as a folder path
-      // (memory/supabase). Avoids `list("")` becoming a multi-thousand-object
-      // scan on production S3 backends.
+      // Try a narrow prefix first (S3 treats `list(<owner>/<bareId>)` as a
+      // raw-string prefix match — bounded to a handful of entries) before
+      // widening. `list("")` is the last resort: it is a multi-thousand-object
+      // scan on production S3 backends, and on Supabase it lists only the
+      // bucket's immediate children — which under the owner-prefixed layout
+      // are folders, so it never sees an asset at all.
+      //
+      // The owner prefix is what makes this work for uploads. They are stored
+      // at `<userId>/<id>.<ext>`, and a ref that carries no extension
+      // (`asset://<id>`, or a bare `asset_id`) misses every exact-key lookup
+      // above. Listing the owner's own folder finds it on every adapter:
+      // hierarchical ones (file/supabase/memory) list its children, and
+      // prefix-matching ones (S3) stay scoped to that one user.
       const bareId = idCandidates[idCandidates.length - 1];
       if (bareId) {
         const tryListing = async (
@@ -2757,7 +2765,12 @@ export class ProcessingContext {
           }
           return null;
         };
-        for (const prefix of [bareId, ""]) {
+        const owner = this.userId;
+        const prefixes =
+          owner && !bareId.startsWith(`${owner}/`)
+            ? [`${owner}/${bareId}`, bareId, owner, ""]
+            : [bareId, ""];
+        for (const prefix of prefixes) {
           const bytes = await tryListing(prefix);
           if (bytes) {
             return { bytes, attempts };

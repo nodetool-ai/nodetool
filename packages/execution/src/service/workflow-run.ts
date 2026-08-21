@@ -25,6 +25,7 @@ import {
   listRegisteredProviderIds,
   type NodeExecutor,
   type ProcessingContext,
+  type StorageAdapter,
   type Workspace
 } from "@nodetool-ai/runtime";
 import { normalizeGraph } from "../normalize-graph.js";
@@ -76,6 +77,13 @@ export interface WorkflowRunEnvironment {
    * nodes that persist artifacts — every image Output — fail their run.
    */
   configureContext?: (context: ProcessingContext) => void;
+  /**
+   * The store `asset://<id>` inputs resolve through, and the temp store for
+   * runtime-materialized refs. A host that brings neither runs with a context
+   * that can write assets but not read them.
+   */
+  assetStorage?: StorageAdapter | null;
+  storage?: StorageAdapter | null;
 }
 
 /** Provider/model catalogs the pre-flight checks a graph's selections against. */
@@ -512,7 +520,9 @@ export async function runWorkflow(
           jobId: job.id,
           workflowId,
           userId,
-          workspace
+          workspace,
+          storage: environment.storage ?? null,
+          assetStorage: environment.assetStorage ?? null
         });
         // The host attaches its model interfaces (asset persistence, …) —
         // without them an Output node that stores an image fails the run.

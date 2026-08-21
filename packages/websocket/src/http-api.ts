@@ -56,7 +56,8 @@ import {
   safeFetch,
   type NodeExecutor,
   type ProcessingContext,
-  type PythonBridge
+  type PythonBridge,
+  type StorageAdapter
 } from "@nodetool-ai/runtime";
 import { createAssetModelInterface } from "./lib/asset-model-interface.js";
 import { verdictSchema } from "@nodetool-ai/protocol";
@@ -81,7 +82,7 @@ import {
   storeAssetWithThumbnail,
   thumbnailKey
 } from "./lib/thumbnail.js";
-import { getAssetAdapter } from "./lib/storage.js";
+import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import {
   probeHasAudio,
   extractAudio,
@@ -363,6 +364,8 @@ type WorkflowRuntimeEnvironment = {
     [key: string]: unknown;
   }) => NodeExecutor;
   configureContext: (context: ProcessingContext) => void;
+  assetStorage: StorageAdapter;
+  storage: StorageAdapter;
 };
 
 export async function getWorkflowRuntimeEnvironment(
@@ -538,7 +541,13 @@ export async function getWorkflowRuntimeEnvironment(
           context.setModelInterfaces({
             createAsset: createAssetModelInterface
           });
-        }
+        },
+        // The stores the run reads through. `asset://<id>` inputs — every
+        // uploaded image wired into a graph — live in the asset store; without
+        // it the reference resolves to nothing and the node runs on an empty
+        // input. Same pair the streaming WebSocket runner uses.
+        assetStorage: getAssetAdapter(),
+        storage: getTempAdapter()
       };
     })();
   }
