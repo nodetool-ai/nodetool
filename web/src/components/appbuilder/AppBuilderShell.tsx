@@ -55,6 +55,11 @@ interface AppBuilderShellProps {
   banner?: React.ReactNode;
   onSave: (document: AppDocument) => void;
   onClose?: () => void;
+  /**
+   * Project whose documents an "all of this kind" resource binding reaches.
+   * The App Data form never asks for it.
+   */
+  projectId?: string;
 }
 
 /**
@@ -107,7 +112,8 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   header,
   banner,
   onSave,
-  onClose
+  onClose,
+  projectId
 }) => {
   const setCurrentWorkflowId = useWorkflowManager((s) => s.setCurrentWorkflowId);
   // Puck owns the layout after mount, so this is the seed only. The document's
@@ -204,6 +210,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             onChange={setMeta}
             workflowId={workflow.id}
             workflowName={workflow.name}
+            projectId={projectId}
           />
         </Box>
       )}

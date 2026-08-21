@@ -250,6 +250,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       operationWorkflows={operationWorkflows}
       agentWorkflowId={workflow?.id}
       onOperationsChange={setLiveOperations}
+      projectId={application.projectId}
       onSave={(next) => void handleSave(next)}
       banner={
         conflict ? (

@@ -55,6 +55,11 @@ interface AppDataPanelProps {
   /** The workflow the builder opened with — the default for a new operation. */
   workflowId: string;
   workflowName?: string;
+  /**
+   * Project whose documents an "all of this kind" binding reaches. The form
+   * never asks for it — the app already belongs to a project.
+   */
+  projectId?: string;
 }
 
 const TARGET_KIND_OPTIONS = [
@@ -93,6 +98,30 @@ const RESOURCE_KIND_OPTIONS: { label: string; value: ResourceKind }[] = [
   { label: "Storyboard", value: "storyboard" },
   { label: "Sketch", value: "sketch" }
 ];
+
+const RESOURCE_KIND_LABEL: Record<ResourceKind, string> = {
+  asset: "Asset",
+  timeline: "Timeline",
+  storyboard: "Storyboard",
+  sketch: "Sketch"
+};
+
+const RESOURCE_KIND_PLURAL: Record<ResourceKind, string> = {
+  asset: "assets",
+  timeline: "timelines",
+  storyboard: "storyboards",
+  sketch: "sketches"
+};
+
+const RESOURCE_COLLECTION_NAME: Record<ResourceKind, string> = {
+  asset: "Assets",
+  timeline: "Timelines",
+  storyboard: "Storyboards",
+  sketch: "Sketches"
+};
+
+/** Sentinel: bind every document of this kind in the app's project. */
+const ALL_OF_KIND = "__all__";
 
 /** A row in one of the three lists: a bordered card with a delete affordance. */
 const EntryCard: React.FC<{
@@ -296,11 +325,11 @@ const ResourceRow: React.FC<{
 }> = ({ resource, onRemove }) => (
   <EntryCard
     title={resource.name || resource.id}
-    subtitle={`${resource.kind} · ${
+    subtitle={
       resource.scope.fixedId
-        ? `pinned ${resource.scope.fixedId}`
-        : `project ${resource.scope.projectId}`
-    }`}
+        ? RESOURCE_KIND_LABEL[resource.kind]
+        : `All ${RESOURCE_KIND_PLURAL[resource.kind]}`
+    }
     onDelete={onRemove}
     deleteLabel={`Remove resource ${resource.name || resource.id}`}
   >
@@ -310,22 +339,75 @@ const ResourceRow: React.FC<{
   </EntryCard>
 );
 
-/** The "add a resource binding" form — the one entry that needs a scope up front. */
-const AddResourceForm: React.FC<{ onAdd: (input: {
+interface ResourceListItem {
+  ref: { kind: ResourceKind; id: string };
   name: string;
-  kind: ResourceKind;
-  projectId: string;
-}) => void }> = ({ onAdd }) => {
+}
+
+/** Pick a document of the selected kind, or every document of that kind. */
+const AddResourceForm: React.FC<{
+  onAdd: (input: {
+    name: string;
+    kind: ResourceKind;
+    fixedId?: string;
+  }) => void;
+}> = ({ onAdd }) => {
   const [name, setName] = useState("");
   const [kind, setKind] = useState<ResourceKind>("asset");
-  const [projectId, setProjectId] = useState("");
+  const [selectedId, setSelectedId] = useState(ALL_OF_KIND);
+
+  const { data: items, isFetched } = useQuery({
+    queryKey: ["app-data-panel-resources", kind],
+    queryFn: async (): Promise<ResourceListItem[]> => {
+      const listed = await trpcClient.resources.list.query({
+        kind,
+        limit: 50
+      });
+      return listed.map((item) => ({
+        ref: { kind: item.ref.kind, id: item.ref.id },
+        name: item.name
+      }));
+    },
+    staleTime: 30_000
+  });
+
+  const documentOptions = useMemo(() => {
+    const listed = (items ?? []).map((item) => ({
+      value: item.ref.id,
+      label: item.name || item.ref.id
+    }));
+    return [
+      {
+        value: ALL_OF_KIND,
+        label: `All ${RESOURCE_KIND_PLURAL[kind]}`
+      },
+      ...listed
+    ];
+  }, [items, kind]);
+
+  const setKindAndReset = useCallback((value: string) => {
+    const next = RESOURCE_KIND_OPTIONS.find((option) => option.value === value);
+    if (!next) return;
+    setKind(next.value);
+    setSelectedId(ALL_OF_KIND);
+  }, []);
 
   const submit = useCallback(() => {
-    if (!projectId.trim()) return;
-    onAdd({ name: name.trim() || kind, kind, projectId: projectId.trim() });
+    const picked = (items ?? []).find((item) => item.ref.id === selectedId);
+    const collection = selectedId === ALL_OF_KIND;
+    if (!collection && !picked) return;
+    onAdd({
+      name:
+        name.trim() ||
+        (collection
+          ? RESOURCE_COLLECTION_NAME[kind]
+          : picked?.name || RESOURCE_KIND_LABEL[kind]),
+      kind,
+      fixedId: collection ? undefined : picked?.ref.id
+    });
     setName("");
-    setProjectId("");
-  }, [kind, name, onAdd, projectId]);
+    setSelectedId(ALL_OF_KIND);
+  }, [items, kind, name, onAdd, selectedId]);
 
   return (
     <FlexColumn gap={SPACING.sm} fullWidth>
@@ -340,20 +422,23 @@ const AddResourceForm: React.FC<{ onAdd: (input: {
         label="Kind"
         value={kind}
         options={RESOURCE_KIND_OPTIONS}
-        onChange={(value) => setKind(value as ResourceKind)}
+        onChange={setKindAndReset}
       />
-      <TextInput
-        label="Project id"
-        value={projectId}
-        size="small"
-        fullWidth
-        onChange={(e) => setProjectId(e.target.value)}
+      <SelectField
+        label={RESOURCE_KIND_LABEL[kind]}
+        value={selectedId}
+        options={documentOptions}
+        onChange={setSelectedId}
       />
+      {isFetched && (items ?? []).length === 0 ? (
+        <Caption color="secondary">
+          No {RESOURCE_KIND_PLURAL[kind]} yet. You can still bind all of them.
+        </Caption>
+      ) : null}
       <EditorButton
         size="small"
         variant="outlined"
         startIcon={<AddIcon sx={{ fontSize: 16 }} />}
-        disabled={!projectId.trim()}
         onClick={submit}
       >
         Add resource
@@ -366,7 +451,8 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
   meta,
   onChange,
   workflowId,
-  workflowName
+  workflowName,
+  projectId = "default"
 }) => {
   const { data: workflows } = useQuery({
     queryKey: workflowListQueryKey(200),
@@ -418,16 +504,18 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
   }, [meta, onChange]);
 
   const addRes = useCallback(
-    (input: { name: string; kind: ResourceKind; projectId: string }) => {
+    (input: { name: string; kind: ResourceKind; fixedId?: string }) => {
       onChange(
         addResource(meta, {
           name: input.name,
           kind: input.kind,
-          scope: { projectId: input.projectId }
+          scope: input.fixedId
+            ? { fixedId: input.fixedId }
+            : { projectId }
         }).meta
       );
     },
-    [meta, onChange]
+    [meta, onChange, projectId]
   );
 
   return (
@@ -495,7 +583,8 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
         <CollapsibleSection title="Resources" compact>
           <FlexColumn gap={SPACING.md} fullWidth>
             <Caption color="secondary">
-              Document collections a picker or gallery widget can browse.
+              An asset, timeline, storyboard, or sketch a picker or gallery can
+              browse — or all of that kind in this project.
             </Caption>
             {meta.resources.map((resource) => (
               <ResourceRow

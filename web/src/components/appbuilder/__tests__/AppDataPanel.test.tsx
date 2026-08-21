@@ -30,6 +30,35 @@ jest.mock("../../../trpc/client", () => ({
           { id: "js2", name: "Slugify" }
         ])
       }
+    },
+    resources: {
+      list: {
+        query: jest.fn().mockImplementation(async ({ kind }: { kind: string }) => {
+          if (kind === "storyboard") {
+            return [
+              {
+                ref: { kind: "storyboard", id: "board-1" },
+                name: "Opening",
+                projectId: "default",
+                contentType: null,
+                updatedAt: "2026-08-01T00:00:00.000Z"
+              }
+            ];
+          }
+          if (kind === "asset") {
+            return [
+              {
+                ref: { kind: "asset", id: "asset-1" },
+                name: "Hero",
+                projectId: null,
+                contentType: "image/png",
+                updatedAt: "2026-08-01T00:00:00.000Z"
+              }
+            ];
+          }
+          return [];
+        })
+      }
     }
   }
 }));
@@ -225,19 +254,47 @@ describe("AppDataPanel", () => {
     );
   });
 
-  it("requires a project id before a resource can be added", async () => {
+  it("binds all documents of the selected kind without asking for a project id", async () => {
     const user = userEvent.setup();
     const { onChange } = renderPanel();
     await user.click(screen.getByRole("button", { name: /^resources$/i }));
-    const add = screen.getByRole("button", { name: /add resource/i });
-    expect(add).toBeDisabled();
 
-    await user.type(screen.getByLabelText(/project id/i), "proj1");
-    await user.click(add);
+    expect(screen.queryByLabelText(/project id/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /add resource/i }));
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         resources: [
-          expect.objectContaining({ kind: "asset", scope: { projectId: "proj1" } })
+          expect.objectContaining({
+            name: "Assets",
+            kind: "asset",
+            scope: { projectId: "default" }
+          })
+        ]
+      })
+    );
+  });
+
+  it("pins a named document of the selected kind", async () => {
+    const user = userEvent.setup();
+    const { onChange } = renderPanel();
+    await user.click(screen.getByRole("button", { name: /^resources$/i }));
+
+    await user.click(screen.getByRole("combobox", { name: /^kind$/i }));
+    await user.click(screen.getByRole("option", { name: /^storyboard$/i }));
+
+    await user.click(await screen.findByRole("combobox", { name: /^storyboard$/i }));
+    await user.click(await screen.findByRole("option", { name: /opening/i }));
+    await user.click(screen.getByRole("button", { name: /add resource/i }));
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resources: [
+          expect.objectContaining({
+            name: "Opening",
+            kind: "storyboard",
+            scope: { fixedId: "board-1" }
+          })
         ]
       })
     );
