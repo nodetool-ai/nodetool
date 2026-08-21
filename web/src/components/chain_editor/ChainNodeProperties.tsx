@@ -197,6 +197,10 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
   }
 
   const secondary = theme.vars.palette.secondary.main;
+  // The connect button is offered whenever an earlier step exists, not only
+  // when one is type-compatible — otherwise there is no way to open the picker
+  // and see why nothing fits.
+  const canConnect = previousNodes.length > 0;
 
   return (
     <NodeContext.Provider value={store}>
@@ -213,9 +217,6 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
             );
             const sourceCompatible =
               !sourceOutput || areTypesCompatible(sourceOutput.type, prop.type);
-            const hasCompatibleSource = (
-              sourcesByInput.get(prop.name) ?? []
-            ).some((o) => o.compatible);
             const value = values[prop.name] ?? prop.default;
 
             if (mapping) {
@@ -301,7 +302,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                 key={prop.name}
                 sx={{ position: "relative" }}
               >
-                {hasCompatibleSource && (
+                {canConnect && (
                   <Box
                     sx={{
                       position: "absolute",
@@ -316,21 +317,20 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                       tooltip="Use output from a previous step"
                       onClick={(e) => handleOpenPicker(prop.name, e.currentTarget)}
                       icon={
-                        <AddLinkIcon
-                          sx={{
-                            fontSize: 16,
-                            color: theme.vars.palette.text.disabled,
-                            transition: MOTION.all,
-                            ".chain-property-item:hover &, .MuiIconButton-root:focus-visible &":
-                              { color: secondary },
-                          }}
-                        />
+                        <AddLinkIcon sx={{ fontSize: 16, color: secondary }} />
                       }
-                      sx={{ p: 0.5 }}
+                      sx={{
+                        p: 0.5,
+                        borderRadius: BORDER_RADIUS.xs,
+                        border: `1px solid ${secondary}40`,
+                        backgroundColor: theme.vars.palette.background.paper,
+                        transition: MOTION.all,
+                        "&:hover": { backgroundColor: `${secondary}20` },
+                      }}
                     />
                   </Box>
                 )}
-                <Box sx={hasCompatibleSource ? { pr: 3.5 } : undefined}>
+                <Box sx={canConnect ? { pr: 3.5 } : undefined}>
                   {createElement(Component, {
                     property: prop,
                     value,
@@ -374,7 +374,14 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
 
           {compatibleOptions.length === 0 && (
             <EditorMenuItem disabled>
-              <ListItemText primary="No compatible outputs in previous steps" />
+              <ListItemText
+                primary="No compatible outputs in previous steps"
+                secondary={
+                  activeProp
+                    ? `This field takes ${formatType(activeProp.type)}`
+                    : undefined
+                }
+              />
             </EditorMenuItem>
           )}
 
