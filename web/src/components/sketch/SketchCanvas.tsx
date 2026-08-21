@@ -24,7 +24,6 @@ import type {
   SketchTool,
   Point,
   Selection,
-  LayerTransform,
   LayerContentBounds
 } from "./types";
 import {
@@ -39,7 +38,7 @@ import type {
   AgentStrokeRequest
 } from "./painting/agentStrokes";
 import { clientToDocumentCanvas } from "./tools/transform/handleGeometry";
-import type { StrokeEndOptions } from "./tools/types";
+import type { SketchCanvasCallbacks } from "./tools/types";
 import SketchCanvasPresentation from "./SketchCanvasPresentation";
 import GeneratingLayerOverlay from "./GeneratingLayerOverlay";
 import { getToolHandler } from "./tools";
@@ -187,7 +186,7 @@ export interface SketchCanvasRef {
  *
  * Props are grouped by concern:
  */
-interface SketchCanvasProps {
+interface SketchCanvasProps extends SketchCanvasCallbacks {
   // ── Committed document state ───────────────────────────────────────
   document: SketchDocument;
   selection?: Selection | null;
@@ -207,36 +206,7 @@ interface SketchCanvasProps {
   symmetryMode: string;
   symmetryRays: number;
 
-  // ── Store-to-parent event callbacks ────────────────────────────────
-  onZoomChange: (zoom: number) => void;
-  onPanChange: (pan: Point) => void;
-  onStrokeStart: () => void;
-  onStrokeEnd: (
-    layerId: string,
-    data: string | null,
-    committedBounds?: LayerContentBounds,
-    options?: StrokeEndOptions
-  ) => void;
-  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
-  onLayerContentBoundsChange?: (
-    layerId: string,
-    contentBounds: LayerContentBounds
-  ) => void;
-  onBrushSizeChange?: (size: number) => void;
-  onContextMenu?: (x: number, y: number) => void;
-  /** Called on right-click inside the transform bounding box (when transform tool is active). */
-  onTransformContextMenu?: (x: number, y: number) => void;
-  onCropComplete?: (
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ) => void;
-  onEyedropperPick?: (color: string) => void;
-  onSelectionChange?: (sel: Selection | null) => void;
-  onAutoPickLayer?: (layerId: string) => void;
-  /** Called when the pointer leaves the canvas area (e.g. refresh layer thumbnails off the hot path). */
-  onCanvasLeave?: () => void;
+  // ── Drop / resize callbacks ────────────────────────────────────────
   /** Called when an image file is dropped onto the canvas. */
   onDropImage?: (file: File) => void;
   /** Called when an imported image asset is dropped onto the canvas. */

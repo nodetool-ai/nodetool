@@ -43,6 +43,52 @@ export interface StrokeEndOptions {
   syncDocumentFromCanvas?: boolean;
 }
 
+/**
+ * Callbacks the editor hands down to the canvas and its tools, forwarded
+ * through SketchCanvasPane → SketchCanvas → useCanvasOrchestration →
+ * usePointerHandlers → buildToolContext → ToolContext.
+ */
+export interface SketchToolCallbacks {
+  onZoomChange: (zoom: number) => void;
+  onPanChange: (pan: Point) => void;
+  onStrokeStart: () => void;
+  onStrokeEnd: (
+    layerId: string,
+    data: string | null,
+    committedBounds?: LayerContentBounds,
+    options?: StrokeEndOptions
+  ) => void;
+  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
+  onLayerContentBoundsChange?: (
+    layerId: string,
+    contentBounds: LayerContentBounds
+  ) => void;
+  onBrushSizeChange?: (size: number) => void;
+  onContextMenu?: (x: number, y: number) => void;
+  onCropComplete?: (
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ) => void;
+  onEyedropperPick?: (color: string) => void;
+  onSelectionChange?: (sel: Selection | null) => void;
+  onAutoPickLayer?: (layerId: string) => void;
+}
+
+/** The tool callbacks plus the two the canvas raises but no tool handler reads. */
+export interface SketchCanvasCallbacks extends SketchToolCallbacks {
+  /** Called on right-click inside the transform bounding box (when the transform tool is active). */
+  onTransformContextMenu?: (x: number, y: number) => void;
+  /**
+   * Fires when the **primary pointer** leaves the canvas container (layer thumbnails,
+   * deferred doc sync). Use pointerleave only — not mouseleave — so stylus input does
+   * not spuriously flush while the pen is still down (Windows often fires mouseleave
+   * for the logical mouse while the pen tip remains over the canvas).
+   */
+  onCanvasLeave?: () => void;
+}
+
 export type ToolRuntime = SketchRuntime & {
   applySelectionOverlay?: (
     overlay: Selection,
@@ -60,7 +106,7 @@ export type ToolRuntime = SketchRuntime & {
 
 // ─── Tool context (injected dependencies) ─────────────────────────────────
 
-export interface ToolContext {
+export interface ToolContext extends SketchToolCallbacks {
   /** Current document state. */
   doc: SketchDocument;
   /** Active tool type. */
@@ -121,33 +167,6 @@ export interface ToolContext {
    * that are not clipped by the document bounds.
    */
   drawGizmo: (callback: GizmoDrawCallback) => void;
-
-  // ── Editor callbacks ─────────────────────────────────────────────────
-  onZoomChange: (zoom: number) => void;
-  onPanChange: (pan: Point) => void;
-  onStrokeStart: () => void;
-  onStrokeEnd: (
-    layerId: string,
-    data: string | null,
-    committedBounds?: LayerContentBounds,
-    options?: StrokeEndOptions
-  ) => void;
-  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
-  onLayerContentBoundsChange?: (
-    layerId: string,
-    contentBounds: LayerContentBounds
-  ) => void;
-  onBrushSizeChange?: (size: number) => void;
-  onContextMenu?: (x: number, y: number) => void;
-  onCropComplete?: (
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ) => void;
-  onEyedropperPick?: (color: string) => void;
-  onSelectionChange?: (sel: Selection | null) => void;
-  onAutoPickLayer?: (layerId: string) => void;
 
   // ── Coordinate helpers ───────────────────────────────────────────────
   screenToCanvas: (clientX: number, clientY: number) => Point;

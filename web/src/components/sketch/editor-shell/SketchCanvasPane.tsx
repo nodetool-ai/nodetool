@@ -7,37 +7,23 @@ import React, { memo, useCallback, useEffect } from "react";
 import type { Asset } from "../../../stores/ApiTypes";
 import SketchCanvas, { type SketchCanvasRef } from "../SketchCanvas";
 import { useSketchStore } from "../state";
-import type { LayerContentBounds, LayerTransform, Point } from "../types";
-import type { StrokeEndOptions } from "../tools/types";
+import type { LayerContentBounds, Point } from "../types";
+import type { SketchCanvasCallbacks } from "../tools/types";
 import type { useSegmentation } from "../hooks/useSegmentation";
 
-export interface SketchCanvasPaneProps {
+/** `onSelectionChange` is omitted because the pane writes selection to the store itself. */
+export interface SketchCanvasPaneProps
+  extends Omit<SketchCanvasCallbacks, "onSelectionChange"> {
   canvasReady: boolean;
   canvasRef: React.RefObject<SketchCanvasRef | null>;
   document: import("../types").SketchDocument;
   activeTool: import("../types").SketchTool;
   interactionTool: import("../types").SketchTool;
-  onZoomChange: (zoom: number) => void;
-  onPanChange: (pan: { x: number; y: number }) => void;
-  onStrokeStart: () => void;
-  onStrokeEnd: (
-    layerId: string,
-    data: string | null,
-    committedBounds?: LayerContentBounds,
-    options?: StrokeEndOptions
-  ) => void;
   onCanvasLeave: () => void;
-  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
   onLayerContentBoundsChange: (
     layerId: string,
     contentBounds: LayerContentBounds
   ) => void;
-  onBrushSizeChange?: (size: number) => void;
-  onContextMenu?: (x: number, y: number) => void;
-  onTransformContextMenu?: (x: number, y: number) => void;
-  onCropComplete?: (x: number, y: number, width: number, height: number) => void;
-  onEyedropperPick?: (color: string) => void;
-  onAutoPickLayer?: (layerId: string) => void;
   onDropImage?: (file: File) => void;
   onDropAsset?: (asset: Asset) => void;
   onCanvasResizeStart?: () => void;
