@@ -132,6 +132,116 @@ describe("useChainEditorStore", () => {
     });
   });
 
+  describe("auto-connect on add", () => {
+    it("wires the new node to the previous node's selected output", () => {
+      const metaA = makeMetadata("test.A", [], [makeOutput("out", "str")]);
+      const metaB = makeMetadata("test.B", [makeProp("text", "str")], []);
+
+      act(() => {
+        useChainEditorStore.getState().addNode(metaA);
+        useChainEditorStore.getState().addNode(metaB);
+      });
+
+      const { chain, connections } = useChainEditorStore.getState();
+      expect(chain[1].inputMappings).toEqual({
+        text: { sourceNodeId: chain[0].id, sourceOutput: "out" }
+      });
+      expect(connections).toHaveLength(1);
+    });
+
+    it("prefers the input whose type matches exactly over an any input", () => {
+      const metaA = makeMetadata("test.A", [], [makeOutput("out", "image")]);
+      const metaB = makeMetadata(
+        "test.B",
+        [makeProp("data", "any"), makeProp("image", "image")],
+        []
+      );
+
+      act(() => {
+        useChainEditorStore.getState().addNode(metaA);
+        useChainEditorStore.getState().addNode(metaB);
+      });
+
+      const { chain } = useChainEditorStore.getState();
+      expect(Object.keys(chain[1].inputMappings)).toEqual(["image"]);
+    });
+
+    it("walks further back when the immediately previous node has no match", () => {
+      const metaA = makeMetadata("test.A", [], [makeOutput("out", "image")]);
+      const metaB = makeMetadata("test.B", [], [makeOutput("out", "audio")]);
+      const metaC = makeMetadata("test.C", [makeProp("image", "image")], []);
+
+      act(() => {
+        useChainEditorStore.getState().addNode(metaA);
+        useChainEditorStore.getState().addNode(metaB);
+        useChainEditorStore.getState().addNode(metaC);
+      });
+
+      const { chain } = useChainEditorStore.getState();
+      expect(chain[2].inputMappings).toEqual({
+        image: { sourceNodeId: chain[0].id, sourceOutput: "out" }
+      });
+    });
+
+    it("leaves inputs unwired when nothing earlier produces a matching type", () => {
+      const metaA = makeMetadata("test.A", [], [makeOutput("out", "audio")]);
+      const metaB = makeMetadata("test.B", [makeProp("image", "image")], []);
+
+      act(() => {
+        useChainEditorStore.getState().addNode(metaA);
+        useChainEditorStore.getState().addNode(metaB);
+      });
+
+      expect(useChainEditorStore.getState().chain[1].inputMappings).toEqual({});
+    });
+
+    it("splices a mid-chain insert into the flow, re-pointing the follower", () => {
+      const metaA = makeMetadata("test.A", [], [makeOutput("out", "str")]);
+      const metaC = makeMetadata("test.C", [makeProp("text", "str")], []);
+      const metaB = makeMetadata(
+        "test.B",
+        [makeProp("text", "str")],
+        [makeOutput("out", "str")]
+      );
+
+      act(() => {
+        useChainEditorStore.getState().addNode(metaA);
+        useChainEditorStore.getState().addNode(metaC);
+      });
+      act(() => {
+        useChainEditorStore.getState().addNode(metaB, 1);
+      });
+
+      const { chain } = useChainEditorStore.getState();
+      expect(chain.map((n) => n.nodeType)).toEqual(["test.A", "test.B", "test.C"]);
+      expect(chain[1].inputMappings).toEqual({
+        text: { sourceNodeId: chain[0].id, sourceOutput: "out" }
+      });
+      expect(chain[2].inputMappings).toEqual({
+        text: { sourceNodeId: chain[1].id, sourceOutput: "out" }
+      });
+    });
+
+    it("leaves the follower alone when the inserted node's output does not fit", () => {
+      const metaA = makeMetadata("test.A", [], [makeOutput("out", "str")]);
+      const metaC = makeMetadata("test.C", [makeProp("text", "str")], []);
+      const metaB = makeMetadata("test.B", [], [makeOutput("out", "audio")]);
+
+      act(() => {
+        useChainEditorStore.getState().addNode(metaA);
+        useChainEditorStore.getState().addNode(metaC);
+      });
+      act(() => {
+        useChainEditorStore.getState().addNode(metaB, 1);
+      });
+
+      const { chain } = useChainEditorStore.getState();
+      expect(chain[2].inputMappings).toEqual({
+        text: { sourceNodeId: chain[0].id, sourceOutput: "out" }
+      });
+    });
+  });
+
   describe("removeNode", () => {
     it("removes a node by id", () => {
       act(() => { useChainEditorStore.getState().addNode(makeMetadata("test.Node")); });

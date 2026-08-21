@@ -152,7 +152,9 @@ describe("ChainNodeProperties", () => {
     expect(onSetInputMapping).toHaveBeenCalledWith("text", null);
   });
 
-  it("hides the connect affordance when no previous step has a compatible output", () => {
+  it("offers the connect affordance even when no previous output fits, and says so", async () => {
+    const user = userEvent.setup();
+
     render(
       <ChainNodeProperties
         nodeId="n1"
@@ -161,6 +163,26 @@ describe("ChainNodeProperties", () => {
         values={{}}
         inputMappings={{}}
         previousNodes={[previousNodes[0]]}
+        onUpdate={jest.fn()}
+        onSetInputMapping={jest.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /connect count/i }));
+    expect(
+      screen.getByText("No compatible outputs in previous steps")
+    ).toBeInTheDocument();
+  });
+
+  it("hides the connect affordance on the first node, which has no earlier step", () => {
+    render(
+      <ChainNodeProperties
+        nodeId="n1"
+        nodeType="test.Target"
+        properties={[makeProperty("count", intType)]}
+        values={{}}
+        inputMappings={{}}
+        previousNodes={[]}
         onUpdate={jest.fn()}
         onSetInputMapping={jest.fn()}
       />

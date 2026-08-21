@@ -47,7 +47,12 @@ Click the **Add Node** button at the end of the chain. The **Node Picker Dialog*
 
 ![Node Picker](assets/screenshots/web-chain-editor-picker.png)
 
-Pick a node and it's inserted at the end. The editor automatically wires a single input from the previous step.
+Pick a node and it's inserted at the chosen position. The editor wires one of
+its inputs to the nearest step above that produces a value of a matching type —
+preferring that step's selected output, and preferring an input whose type
+matches exactly over one typed `any`. Insert into the middle of a chain and the
+step below follows: an input it took from the step now above the new card moves
+to the new card's output when the types allow.
 
 ---
 
@@ -74,7 +79,12 @@ Incompatible connections are highlighted in red and the editor suggests a compat
 
 Each card has:
 
-- **Input Mapping Selector** — pick which output of the previous card becomes this card's input. This is useful when a previous step returns multiple values (e.g., `text`, `metadata`).
+- **Input Mapping Selector** — every field carries a link button that picks
+  which earlier step's output fills it, not just the previous card's. The menu
+  lists the compatible outputs first and shows the incompatible ones greyed out
+  with the type they produce, so a mismatch is visible rather than missing.
+  Wired fields show the source step instead of an editor; the unlink button
+  gives the editor back.
 - **Output Selector** — if this card has multiple outputs, pick the one that should flow into the next step.
 
 Both selectors show the data type, so you can spot mismatches quickly.

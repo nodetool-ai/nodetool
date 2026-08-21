@@ -6,7 +6,7 @@ import { create } from "zustand";
 import useMetadataStore from "../../stores/MetadataStore";
 import type { NodeMetadata, Workflow } from "../../stores/ApiTypes";
 import type { ChainNode, ChainConnection, InputMappings, InputSource } from "./chainTypes";
-import { buildConnections, chainToGraph, findBestInput } from "./chainTypes";
+import { areTypesCompatible, autoMapInputs, buildConnections, chainToGraph } from "./chainTypes";
 
 function generateId(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -89,23 +89,8 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
     const defaultOutput =
       metadata.outputs.length > 0 ? metadata.outputs[0].name : "";
 
-    // Auto-map from previous node if compatible
-    const inputMappings: InputMappings = {};
-    if (idx > 0) {
-      const prev = chain[idx - 1];
-      const prevOutput = prev.metadata.outputs.find(
-        (o) => o.name === prev.selectedOutput
-      );
-      if (prevOutput) {
-        const bestInput = findBestInput(metadata, prevOutput.type);
-        if (bestInput) {
-          inputMappings[bestInput] = {
-            sourceNodeId: prev.id,
-            sourceOutput: prev.selectedOutput,
-          };
-        }
-      }
-    }
+    // Auto-map from the nearest earlier node that produces a matching value.
+    const inputMappings = autoMapInputs(metadata, chain, idx);
 
     const newNode: ChainNode = {
       id: generateId(),
@@ -119,6 +104,26 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
 
     const updated = [...chain];
     updated.splice(idx, 0, newNode);
+
+    // Inserting into the middle splices the new node into the flow: an input
+    // on the following node that was fed by the node now above the new one
+    // moves to the new node's output, when the types allow it.
+    const follower = updated[idx + 1];
+    const displacedSource = idx > 0 ? updated[idx - 1].id : null;
+    const newOutput = metadata.outputs.find((o) => o.name === defaultOutput);
+    if (follower && displacedSource && newOutput) {
+      const remapped: InputMappings = {};
+      for (const [inputName, source] of Object.entries(follower.inputMappings)) {
+        const prop = follower.metadata.properties.find((p) => p.name === inputName);
+        remapped[inputName] =
+          source.sourceNodeId === displacedSource &&
+          prop &&
+          areTypesCompatible(newOutput.type, prop.type)
+            ? { sourceNodeId: newNode.id, sourceOutput: defaultOutput }
+            : source;
+      }
+      updated[idx + 1] = { ...follower, inputMappings: remapped };
+    }
 
     set({ chain: updated, connections: buildConnections(updated) });
   },
