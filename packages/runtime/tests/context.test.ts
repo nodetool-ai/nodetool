@@ -1036,7 +1036,12 @@ describe("FileStorageAdapter", () => {
  */
 class FolderListingAdapter extends InMemoryStorageAdapter {
   override async list(prefix: string): Promise<StorageListResult> {
-    const dir = prefix.replace(/\/+$/, "");
+    // Trim trailing slashes without a regex: `/\/+$/` over a caller-supplied
+    // prefix is the polynomial backtracking (CWE-1333) the real Supabase
+    // adapter documents avoiding, and an asset ref reaches this prefix.
+    let end = prefix.length;
+    while (end > 0 && prefix[end - 1] === "/") end -= 1;
+    const dir = prefix.slice(0, end);
     const all = await super.list("");
     const entries = all.entries.filter((entry) => {
       const slash = entry.key.lastIndexOf("/");
