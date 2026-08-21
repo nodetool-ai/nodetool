@@ -255,28 +255,6 @@ describe('ChatComposer', () => {
   });
 
   describe('Stop button', () => {
-    it('shows stop button when loading', () => {
-      const { UNSAFE_root } = render(
-        <ChatComposer
-          status="loading"
-          onSendMessage={mockOnSendMessage}
-          onStop={mockOnStop}
-        />
-      );
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
-    it('shows stop button when streaming', () => {
-      const { UNSAFE_root } = render(
-        <ChatComposer
-          status="streaming"
-          onSendMessage={mockOnSendMessage}
-          onStop={mockOnStop}
-        />
-      );
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
     it('calls onStop when stop button pressed', () => {
       render(
         <ChatComposer
@@ -299,7 +277,8 @@ describe('ChatComposer', () => {
           onSendMessage={mockOnSendMessage}
         />
       );
-      expect(screen.UNSAFE_root).toBeTruthy();
+      expect(screen.queryByTestId('stop-button')).toBeNull();
+      expect(screen.getByTestId('send-button')).toBeTruthy();
     });
   });
 
@@ -440,30 +419,38 @@ describe('ChatComposer', () => {
   });
 
   describe('Status handling', () => {
-    const statuses: ChatStatus[] = [
-      'disconnected',
-      'connecting',
-      'connected',
-      'reconnecting',
-      'disconnecting',
-      'failed',
-      'loading',
-      'streaming',
-      'error',
-      'stopping',
-    ];
+    // Spelled out rather than derived from the composer's own condition, so a
+    // change to that condition shows up here instead of following it.
+    const buttonForStatus = {
+      disconnected: 'send-button',
+      connecting: 'send-button',
+      connected: 'send-button',
+      reconnecting: 'send-button',
+      disconnecting: 'send-button',
+      failed: 'send-button',
+      loading: 'stop-button',
+      streaming: 'stop-button',
+      error: 'send-button',
+      stopping: 'send-button',
+    } satisfies Record<ChatStatus, 'send-button' | 'stop-button'>;
 
-    statuses.forEach((status) => {
-      it(`renders correctly with status: ${status}`, () => {
-        const { UNSAFE_root } = render(
+    // SAFETY: the object above satisfies Record<ChatStatus, …>, so its keys are
+    // exactly the ChatStatus members.
+    for (const status of Object.keys(buttonForStatus) as ChatStatus[]) {
+      const expected = buttonForStatus[status];
+      const absent = expected === 'send-button' ? 'stop-button' : 'send-button';
+
+      it(`shows the ${expected} for status: ${status}`, () => {
+        render(
           <ChatComposer
             status={status}
             onSendMessage={mockOnSendMessage}
             onStop={mockOnStop}
           />
         );
-        expect(UNSAFE_root).toBeTruthy();
+        expect(screen.getByTestId(expected)).toBeTruthy();
+        expect(screen.queryByTestId(absent)).toBeNull();
       });
-    });
+    }
   });
 });

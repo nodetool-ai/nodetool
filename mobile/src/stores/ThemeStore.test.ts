@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { useThemeStore } from './ThemeStore';
+import { paletteDark, paletteLight } from '../utils/theme';
 import { Appearance } from 'react-native';
 
 // Mock Appearance
@@ -21,13 +22,6 @@ describe('ThemeStore', () => {
   it('initializes with system mode', () => {
     const { result } = renderHook(() => useThemeStore());
     expect(result.current.mode).toBe('system');
-  });
-
-  it('returns colors', () => {
-    const { result } = renderHook(() => useThemeStore());
-    expect(result.current.colors).toBeDefined();
-    expect(result.current.colors.background).toBeDefined();
-    expect(result.current.colors.text).toBeDefined();
   });
 
   it('setTheme changes mode to light', () => {
@@ -64,22 +58,18 @@ describe('ThemeStore', () => {
     expect(result.current.mode).toBe('system');
   });
 
-  it('setTheme updates colors when switching modes', () => {
+  it('setTheme swaps the palette along with the mode', () => {
     const { result } = renderHook(() => useThemeStore());
-    
+
     act(() => {
       result.current.setTheme('light');
     });
-    const lightColors = result.current.colors;
+    expect(result.current.colors).toBe(paletteLight);
 
     act(() => {
       result.current.setTheme('dark');
     });
-    const darkColors = result.current.colors;
-
-    // Colors should be different for different modes
-    expect(lightColors).toBeDefined();
-    expect(darkColors).toBeDefined();
+    expect(result.current.colors).toBe(paletteDark);
   });
 
   it('toggleTheme switches from system to opposite of current system theme', () => {
@@ -125,19 +115,20 @@ describe('ThemeStore', () => {
     expect(result.current.mode).toBe('dark');
   });
 
-  it('updateSystemTheme updates colors when mode is system', () => {
+  it('updateSystemTheme picks up a changed system scheme', () => {
+    jest.mocked(Appearance.getColorScheme).mockReturnValue('dark');
     const { result } = renderHook(() => useThemeStore());
-    
+
     act(() => {
       result.current.setTheme('system');
     });
+    expect(result.current.colors).toBe(paletteDark);
 
+    jest.mocked(Appearance.getColorScheme).mockReturnValue('light');
     act(() => {
       result.current.updateSystemTheme();
     });
-    
-    // Colors should be set (even if same)
-    expect(result.current.colors).toBeDefined();
+    expect(result.current.colors).toBe(paletteLight);
   });
 
   it('updateSystemTheme does not update colors when mode is not system', () => {
@@ -159,27 +150,25 @@ describe('ThemeStore', () => {
 
   it('uses dark colors when system is dark', () => {
     jest.mocked(Appearance.getColorScheme).mockReturnValue('dark');
-    
+
     const { result } = renderHook(() => useThemeStore());
-    
+
     act(() => {
       result.current.setTheme('system');
     });
 
-    // Assuming dark background is darker than light
-    expect(result.current.colors).toBeDefined();
+    expect(result.current.colors).toBe(paletteDark);
   });
 
   it('uses light colors when system is light', () => {
     jest.mocked(Appearance.getColorScheme).mockReturnValue('light');
-    
+
     const { result } = renderHook(() => useThemeStore());
-    
+
     act(() => {
       result.current.setTheme('system');
     });
 
-    // Assuming light mode has light colors
-    expect(result.current.colors).toBeDefined();
+    expect(result.current.colors).toBe(paletteLight);
   });
 });
