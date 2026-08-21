@@ -21,6 +21,9 @@ describe("languageFromAsset", () => {
     expect(
       languageFromAsset({ name: "data", content_type: "application/json" })
     ).toBe("json");
+    expect(
+      languageFromAsset({ name: "note", content_type: "text/markdown" })
+    ).toBe("markdown");
   });
 
   it("returns undefined for binary assets", () => {
@@ -56,6 +59,9 @@ describe("previewKind", () => {
     expect(previewKind({ name: "notes.txt" })).toBe("text");
     expect(previewKind({ name: "log", content_type: "text/plain" })).toBe(
       "text"
+    );
+    expect(previewKind({ name: "note", content_type: "text/markdown" })).toBe(
+      "markdown"
     );
   });
 });

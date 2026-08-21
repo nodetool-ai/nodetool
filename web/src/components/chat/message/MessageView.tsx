@@ -34,12 +34,17 @@ import {
   FlexRow,
   FlexColumn,
   ShimmerText,
-  Collapse
+  Collapse,
+  ToolbarIconButton
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import { useAssetStore } from "../../../stores/AssetStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { getToolVisual } from "./toolCallIcon";
 
 import AgentExecutionView from "./AgentExecutionView";
@@ -638,6 +643,19 @@ const ToolCallGroup: React.FC<{
 });
 ToolCallGroup.displayName = "ToolCallGroup";
 
+function markdownAssetFilename(text: string): string {
+  const firstLine = text
+    .split("\n")
+    .map((line) => line.replace(/^#+\s*/, "").trim())
+    .find((line) => line.length > 0);
+  const base = (firstLine ?? "message")
+    .replace(/[<>:"/\\|?*]/g, "")
+    .replace(/\s+/g, " ")
+    .slice(0, 48)
+    .trim();
+  return `${base || "message"}.md`;
+}
+
 interface MessageViewProps {
   message: Message;
   isThoughtExpanded: (key: string) => boolean;
@@ -669,6 +687,10 @@ export const MessageView: React.FC<
     showMeta = false
   }) => {
     const insertIntoEditor = useEditorInsertion();
+    const createAsset = useAssetStore((state) => state.createAsset);
+    const openTab = useWorkspaceTabsStore((state) => state.openTab);
+    const [savingMarkdown, setSavingMarkdown] = useState(false);
+    const savingMarkdownRef = useRef(false);
 
     const copyText = useMemo(() => {
       if (isString(message.content)) {
@@ -685,6 +707,42 @@ export const MessageView: React.FC<
       }
       return "";
     }, [message.content]);
+
+    const handleSaveMarkdownAsset = useCallback(async () => {
+      const body = copyText.trim();
+      if (!body || savingMarkdownRef.current) {
+        return;
+      }
+      const filename = markdownAssetFilename(body);
+      savingMarkdownRef.current = true;
+      setSavingMarkdown(true);
+      try {
+        const asset = await createAsset(
+          new File([body], filename, { type: "text/markdown" })
+        );
+        openTab({
+          type: "text",
+          ref: asset.id,
+          mode: "edit",
+          title: asset.name || filename
+        });
+        useNotificationStore.getState().addNotification({
+          type: "success",
+          content: `Saved ${asset.name || filename} as a markdown asset.`
+        });
+      } catch (error) {
+        useNotificationStore.getState().addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to save markdown asset: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+      } finally {
+        savingMarkdownRef.current = false;
+        setSavingMarkdown(false);
+      }
+    }, [copyText, createAsset, openTab]);
 
     const toggleCallbackRef = useRef(onToggleThought);
     toggleCallbackRef.current = onToggleThought;
@@ -925,6 +983,17 @@ export const MessageView: React.FC<
                 buttonSize="small"
                 tooltip="Copy to clipboard"
               />
+              {copyText.trim() ? (
+                <ToolbarIconButton
+                  icon={<ArticleOutlinedIcon fontSize="small" />}
+                  tooltip="Save as markdown asset"
+                  size="small"
+                  disabled={savingMarkdown}
+                  onClick={() => {
+                    void handleSaveMarkdownAsset();
+                  }}
+                />
+              ) : null}
             </div>
           )}
         </div>

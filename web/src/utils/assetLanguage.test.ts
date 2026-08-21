@@ -28,6 +28,7 @@ describe("assetLanguage", () => {
       expect(languageFromAsset({ name: "data", content_type: "application/json" })).toBe("json");
       expect(languageFromAsset({ name: "data", content_type: "application/xml" })).toBe("xml");
       expect(languageFromAsset({ name: "data", content_type: "text/plain" })).toBe("plaintext");
+      expect(languageFromAsset({ name: "note", content_type: "text/markdown" })).toBe("markdown");
     });
 
     it("returns undefined for binary/unknown types", () => {
@@ -67,6 +68,7 @@ describe("assetLanguage", () => {
     it("returns 'markdown' for markdown files", () => {
       expect(previewKind({ name: "readme.md" })).toBe("markdown");
       expect(previewKind({ name: "docs.markdown" })).toBe("markdown");
+      expect(previewKind({ name: "note", content_type: "text/markdown" })).toBe("markdown");
     });
 
     it("returns 'csv' for csv/tsv files", () => {
