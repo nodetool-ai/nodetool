@@ -27,11 +27,10 @@ import type {
   SketchTool,
   Point,
   Selection,
-  LayerTransform,
-  LayerContentBounds
+  LayerTransform
 } from "../types";
 import type { ActiveStrokeInfo } from "../rendering";
-import type { StrokeEndOptions } from "../tools/types";
+import type { SketchCanvasCallbacks } from "../tools/types";
 import type { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 import {
   useCompositing,
@@ -63,7 +62,7 @@ interface SelectionAntsRuntime {
 
 // ─── Params ──────────────────────────────────────────────────────────────────
 
-export interface UseCanvasOrchestrationParams {
+export interface UseCanvasOrchestrationParams extends SketchCanvasCallbacks {
   // ── Document state ─────────────────────────────────────────────────
   /** Bare document (no toolSettings) — consumed by compositing. */
   doc: SketchDocument;
@@ -92,35 +91,6 @@ export interface UseCanvasOrchestrationParams {
   coordinatorRef?: React.MutableRefObject<DisplayFrameCoordinator | null>;
   setLayerTransformPreview: (layerId: string, transform: LayerTransform) => void;
   clearLayerTransformPreview: (layerId?: string) => void;
-
-  // ── Store-to-parent event callbacks ────────────────────────────────
-  onZoomChange: (zoom: number) => void;
-  onPanChange: (pan: Point) => void;
-  onStrokeStart: () => void;
-  onStrokeEnd: (
-    layerId: string,
-    data: string | null,
-    committedBounds?: LayerContentBounds,
-    options?: StrokeEndOptions
-  ) => void;
-  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
-  onLayerContentBoundsChange?: (
-    layerId: string,
-    contentBounds: LayerContentBounds
-  ) => void;
-  onBrushSizeChange?: (size: number) => void;
-  onContextMenu?: (x: number, y: number) => void;
-  onTransformContextMenu?: (x: number, y: number) => void;
-  onCropComplete?: (
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ) => void;
-  onEyedropperPick?: (color: string) => void;
-  onSelectionChange?: (sel: Selection | null) => void;
-  onAutoPickLayer?: (layerId: string) => void;
-  onCanvasLeave?: () => void;
 }
 
 // ─── Result ──────────────────────────────────────────────────────────────────

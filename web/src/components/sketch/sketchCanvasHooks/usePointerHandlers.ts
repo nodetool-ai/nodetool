@@ -12,8 +12,7 @@ import type {
   SketchTool,
   Point,
   Selection,
-  LayerTransform,
-  LayerContentBounds
+  LayerTransform
 } from "../types";
 import {
   isPaintingTool,
@@ -24,7 +23,11 @@ import { CloneStampTool } from "../tools/CloneStampTool";
 import { TransformTool } from "../tools/TransformTool";
 import { CropTool } from "../tools/CropTool";
 import { sampleColorHex } from "../tools/ColorPickerTool";
-import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
+import type {
+  ToolContext,
+  ToolPointerEvent,
+  SketchCanvasCallbacks
+} from "../tools/types";
 import { buildToolContext } from "../tools/buildToolContext";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
@@ -63,7 +66,7 @@ import { isFunction } from "../../../utils/typePredicates";
  * | Store-to-parent callbacks   | No (stable callbacks)     | N/A (callbacks) |
  * | Transient preview callbacks | No (stable callbacks)     | N/A (callbacks) |
  */
-export interface UsePointerHandlersParams {
+export interface UsePointerHandlersParams extends SketchCanvasCallbacks {
   // ── Committed document state ───────────────────────────────────────
   // Snapshot of the document (with live toolSettings merged in via
   // `docWithTools`). Only changes on committed store mutations.
@@ -128,43 +131,6 @@ export interface UsePointerHandlersParams {
   drawCursor: (clientX: number, clientY: number) => void;
   clearGizmo: () => void;
   drawGizmo: (callback: GizmoDrawCallback) => void;
-
-  // ── Store-to-parent event callbacks ────────────────────────────────
-  // Stable callbacks that propagate changes upward to SketchEditor.
-  onZoomChange: (zoom: number) => void;
-  onPanChange: (pan: Point) => void;
-  onStrokeStart: () => void;
-  onStrokeEnd: (
-    layerId: string,
-    data: string | null,
-    committedBounds?: LayerContentBounds,
-    options?: StrokeEndOptions
-  ) => void;
-  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
-  onLayerContentBoundsChange?: (
-    layerId: string,
-    contentBounds: { x: number; y: number; width: number; height: number }
-  ) => void;
-  onBrushSizeChange?: (size: number) => void;
-  onContextMenu?: (x: number, y: number) => void;
-  /** Called on right-click inside the transform bounding box (when transform tool is active). */
-  onTransformContextMenu?: (x: number, y: number) => void;
-  onCropComplete?: (
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ) => void;
-  onEyedropperPick?: (color: string) => void;
-  onSelectionChange?: (sel: Selection | null) => void;
-  onAutoPickLayer?: (layerId: string) => void;
-  /**
-   * Fires when the **primary pointer** leaves the canvas container (layer thumbnails,
-   * deferred doc sync). Use pointerleave only — not mouseleave — so stylus input does
-   * not spuriously flush while the pen is still down (Windows often fires mouseleave
-   * for the logical mouse while the pen tip remains over the canvas).
-   */
-  onCanvasLeave?: () => void;
 
   // ── Transient preview callbacks ────────────────────────────────────
   // Local React state setters for transform preview. Never persisted.
