@@ -320,6 +320,114 @@ const NOT_SIMULATED: ReadonlyArray<string> = [
   "Reactive subgraph runs — the browser reruns one input's downstream subgraph, the harness runs the whole workflow."
 ];
 
+/**
+ * Variables a widget writes rather than the graph — a chat composer's
+ * conversation. Nothing the run emits fills them, so an empty one after a
+ * headless run says nothing about the wiring.
+ */
+function uiWrittenVariableIds(spec: AppSpec | null): Set<string> {
+  const ids = new Set<string>();
+  for (const widget of spec?.widgets ?? []) {
+    for (const extra of widget.extraBindings) {
+      if (extra.ref?.kind === "variable") ids.add(extra.ref.variableId);
+    }
+  }
+  return ids;
+}
+
+/**
+ * What every read-bound widget shows after a run that ended clean: an error
+ * message a node handed downstream as a plain value, and — for the widgets that
+ * stayed empty — whether that emptiness is a defect or expected.
+ */
+function widgetValueFindings(
+  report: Pick<AppDebugReport, "widgets" | "spec" | "invocations">,
+  graph: DebugGraph
+) {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+  const conditional = conditionalNodeIds(graph);
+  const byName = nodeIdsByName(graph);
+  const nodeIds = new Set(graph.nodes.map((n) => n.id).filter(isString));
+  const uiWrittenVariables = uiWrittenVariableIds(report.spec);
+  const ranOperations = new Set(report.invocations.map((i) => i.operationId));
+
+  for (const w of report.widgets) {
+    if (w.bindingMode !== "read" || !w.binding) continue;
+    const message = errorLikeValue(w.display ?? w.value);
+    if (message) {
+      issues.push(
+        `${w.type} "${w.id}" shows an error message from "${w.binding}": ${message}`
+      );
+    }
+  }
+
+  for (const w of report.widgets) {
+    if (w.bindingMode !== "read" || !w.binding || w.hasValue) continue;
+    const ref = parseBinding(w.binding);
+    if (ref?.kind === "variable" && uiWrittenVariables.has(ref.variableId)) {
+      continue;
+    }
+    if (ref?.kind === "execution") {
+      // Execution state is not a value the graph emits — an empty one only
+      // means the operation never ran, or reported no activity.
+      if (!ranOperations.has(ref.operationId)) {
+        issues.push(
+          `${w.type} "${w.id}" shows operation "${ref.operationId}" ${ref.field}, but that operation never ran.`
+        );
+      } else if (ref.field === "activity") {
+        warnings.push(
+          `${w.type} "${w.id}" shows activity, but the run reported none — only streaming agent nodes emit activity labels.`
+        );
+      }
+      continue;
+    }
+    // A legacy document binds by node name, and `parseBinding` hands the name
+    // back in the `nodeId` slot, so an unrecognised id is retried as a name.
+    const parsed = (ref && "nodeId" in ref ? ref.nodeId : null) ?? w.binding;
+    const nodeId = nodeIds.has(parsed) ? parsed : (byName.get(parsed) ?? null);
+    if (nodeId && conditional.has(nodeId)) {
+      // One run takes one branch, so an empty widget here is expected. It is
+      // still worth surfacing: a branch that no input can reach looks exactly
+      // the same, and only running both branches tells them apart.
+      warnings.push(
+        `${w.type} "${w.id}" is bound to "${w.binding}", downstream of a branch that was not taken this run — run the other branch to confirm it can be reached.`
+      );
+      continue;
+    }
+    // The value arrived and is empty ("", [], null). A warning rather than an
+    // issue: an output is legitimately empty often enough — no matches, no
+    // remainder, nothing to say — that failing the verdict on it would call
+    // working apps broken. An app that computed nothing looks the same from
+    // here, so the report says what happened and leaves the call to the author.
+    // A widget whose `format` template renders nothing keeps the issue below:
+    // the value reached it and the template still dropped it, which is wiring,
+    // not data.
+    if (w.display === null && w.value !== undefined && !w.resourceBindingId) {
+      warnings.push(
+        `${w.type} "${w.id}" is bound to "${w.binding}" but received an empty value — confirm the output is meant to be empty.`
+      );
+      continue;
+    }
+    issues.push(
+      `${w.type} "${w.id}" is bound to "${w.binding}" but never received a value — check the output node emits.`
+    );
+  }
+
+  return { issues, warnings };
+}
+
+function verdictHeadline(
+  firstIssue: string | undefined,
+  runCount: number
+): string {
+  if (firstIssue !== undefined) return `App has issues — ${firstIssue}`;
+  if (runCount > 0) {
+    return `App ran clean — ${runCount} run(s), every bound widget on a taken branch received a value.`;
+  }
+  return "App wiring is valid (static check only — no run executed).";
+}
+
 function buildAppVerdict(
   report: Pick<
     AppDebugReport,
@@ -375,109 +483,28 @@ function buildAppVerdict(
     );
   }
 
-  const ranOperations = new Set(report.invocations.map((i) => i.operationId));
-  if (ranWorkflow && report.runs.length > 0 && report.runs.every((r) => r.ok)) {
-    const conditional = conditionalNodeIds(graph);
-    const byName = nodeIdsByName(graph);
-    const nodeIds = new Set(
-      graph.nodes
-        .map((n) => (isString(n.id) ? n.id : ""))
-        .filter(Boolean)
-    );
-    // Variables a widget writes rather than the graph — a chat composer's
-    // conversation. Nothing the run emits fills them, so an empty one after a
-    // headless run says nothing about the wiring.
-    const uiWrittenVariables = new Set(
-      (report.spec?.widgets ?? []).flatMap((w) =>
-        w.extraBindings
-          .filter((extra) => extra.ref?.kind === "variable")
-          .map((extra) =>
-            extra.ref?.kind === "variable" ? extra.ref.variableId : ""
-          )
-      )
-    );
-    for (const w of report.widgets) {
-      if (w.bindingMode !== "read" || !w.binding) continue;
-      const message = errorLikeValue(w.display ?? w.value);
-      if (message) {
-        issues.push(
-          `${w.type} "${w.id}" shows an error message from "${w.binding}": ${message}`
-        );
-      }
-    }
-    for (const w of report.widgets) {
-      if (w.bindingMode !== "read" || !w.binding || w.hasValue) continue;
-      const ref = parseBinding(w.binding);
-      if (ref?.kind === "variable" && uiWrittenVariables.has(ref.variableId)) {
-        continue;
-      }
-      if (ref?.kind === "execution") {
-        // Execution state is not a value the graph emits — an empty one only
-        // means the operation never ran, or reported no activity.
-        if (!ranOperations.has(ref.operationId)) {
-          issues.push(
-            `${w.type} "${w.id}" shows operation "${ref.operationId}" ${ref.field}, but that operation never ran.`
-          );
-        } else if (ref.field === "activity") {
-          warnings.push(
-            `${w.type} "${w.id}" shows activity, but the run reported none — only streaming agent nodes emit activity labels.`
-          );
-        }
-        continue;
-      }
-      // A legacy document binds by node name, and `parseBinding` hands the name
-      // back in the `nodeId` slot, so an unrecognised id is retried as a name.
-      const parsed = (ref && "nodeId" in ref ? ref.nodeId : null) ?? w.binding;
-      const nodeId = nodeIds.has(parsed)
-        ? parsed
-        : (byName.get(parsed) ?? null);
-      if (nodeId && conditional.has(nodeId)) {
-        // One run takes one branch, so an empty widget here is expected. It is
-        // still worth surfacing: a branch that no input can reach looks exactly
-        // the same, and only running both branches tells them apart.
-        warnings.push(
-          `${w.type} "${w.id}" is bound to "${w.binding}", downstream of a branch that was not taken this run — run the other branch to confirm it can be reached.`
-        );
-        continue;
-      }
-      // The value arrived and is empty ("", [], null). A warning rather than an
-      // issue: an output is legitimately empty often enough — no matches, no
-      // remainder, nothing to say — that failing the verdict on it would call
-      // working apps broken. An app that computed nothing looks the same from
-      // here, so the report says what happened and leaves the call to the
-      // author. A widget whose `format` template renders nothing keeps the
-      // issue below: the value reached it and the template still dropped it,
-      // which is wiring, not data.
-      if (w.display === null && w.value !== undefined && !w.resourceBindingId) {
-        warnings.push(
-          `${w.type} "${w.id}" is bound to "${w.binding}" but received an empty value — confirm the output is meant to be empty.`
-        );
-        continue;
-      }
-      issues.push(
-        `${w.type} "${w.id}" is bound to "${w.binding}" but never received a value — check the output node emits.`
-      );
-    }
+  const ranClean =
+    ranWorkflow && report.runs.length > 0 && report.runs.every((r) => r.ok);
+  if (ranClean) {
+    const found = widgetValueFindings(report, graph);
+    issues.push(...found.issues);
+    warnings.push(...found.warnings);
   }
-  if (
-    ranWorkflow &&
-    report.runs.length === 0 &&
-    report.invocations.length === 0 &&
-    report.spec &&
-    report.spec.widgets.length > 0
-  ) {
+
+  const neverRan =
+    ranWorkflow && report.runs.length === 0 && report.invocations.length === 0;
+  if (neverRan && (report.spec?.widgets.length ?? 0) > 0) {
     issues.push(
       "No interaction triggered a workflow run — the app was never executed."
     );
   }
 
-  const ok = issues.length === 0;
-  const headline = ok
-    ? report.runs.length > 0
-      ? `App ran clean — ${report.runs.length} run(s), every bound widget on a taken branch received a value.`
-      : "App wiring is valid (static check only — no run executed)."
-    : `App has issues — ${issues[0]}`;
-  return { ok, headline, issues, warnings };
+  return {
+    ok: issues.length === 0,
+    headline: verdictHeadline(issues[0], report.runs.length),
+    issues,
+    warnings
+  };
 }
 
 /** A finished script run in the report's server-run shape. */
