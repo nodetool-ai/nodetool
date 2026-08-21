@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { NodeGenerator } from "../src/node-generator.js";
+import { applyConfig } from "../src/node-generator.js";
 import type { NodeSpec, FieldDef, EnumDef } from "../src/types.js";
 
 function makeField(overrides: Partial<FieldDef> & { name: string }): FieldDef {
@@ -30,30 +30,28 @@ function makeSpec(overrides: Partial<NodeSpec> = {}): NodeSpec {
   };
 }
 
-describe("NodeGenerator.applyConfig()", () => {
-  const gen = new NodeGenerator();
-
+describe("applyConfig()", () => {
   it("overrides className", () => {
     const spec = makeSpec({ className: "StabilityAiSdxl" });
-    const result = gen.applyConfig(spec, { className: "Sdxl" });
+    const result = applyConfig(spec, { className: "Sdxl" });
     expect(result.className).toBe("Sdxl");
   });
 
   it("overrides docstring", () => {
     const spec = makeSpec({ docstring: "Old doc" });
-    const result = gen.applyConfig(spec, { docstring: "New doc" });
+    const result = applyConfig(spec, { docstring: "New doc" });
     expect(result.docstring).toBe("New doc");
   });
 
   it("overrides tags", () => {
     const spec = makeSpec({ tags: ["old"] });
-    const result = gen.applyConfig(spec, { tags: ["image", "text-to-image"] });
+    const result = applyConfig(spec, { tags: ["image", "text-to-image"] });
     expect(result.tags).toEqual(["image", "text-to-image"]);
   });
 
   it("overrides returnType (outputType)", () => {
     const spec = makeSpec({ outputType: "str" });
-    const result = gen.applyConfig(spec, { returnType: "image" });
+    const result = applyConfig(spec, { returnType: "image" });
     expect(result.outputType).toBe("image");
   });
 
@@ -68,7 +66,7 @@ describe("NodeGenerator.applyConfig()", () => {
         })
       ]
     });
-    const result = gen.applyConfig(spec, {
+    const result = applyConfig(spec, {
       fieldOverrides: { seed: { description: "New description" } }
     });
     expect(result.inputFields[0].description).toBe("New description");
@@ -78,7 +76,7 @@ describe("NodeGenerator.applyConfig()", () => {
     const spec = makeSpec({
       inputFields: [makeField({ name: "seed", propType: "int", default: 0 })]
     });
-    const result = gen.applyConfig(spec, {
+    const result = applyConfig(spec, {
       fieldOverrides: { seed: { default: -1 } }
     });
     expect(result.inputFields[0].default).toBe(-1);
@@ -90,7 +88,7 @@ describe("NodeGenerator.applyConfig()", () => {
         makeField({ name: "image_path", propType: "str", default: "" })
       ]
     });
-    const result = gen.applyConfig(spec, {
+    const result = applyConfig(spec, {
       fieldOverrides: { image_path: { propType: "image" } }
     });
     expect(result.inputFields[0].propType).toBe("image");
@@ -115,7 +113,7 @@ describe("NodeGenerator.applyConfig()", () => {
       ],
       enums: [enumDef]
     });
-    const result = gen.applyConfig(spec, {
+    const result = applyConfig(spec, {
       enumOverrides: { Scheduler: "SchedulerType" }
     });
     expect(result.enums[0].name).toBe("SchedulerType");
@@ -141,7 +139,7 @@ describe("NodeGenerator.applyConfig()", () => {
       ],
       enums: [enumDef]
     });
-    const result = gen.applyConfig(spec, {
+    const result = applyConfig(spec, {
       enumValueOverrides: {
         Refine: { NO_REFINER: "NONE", BASE_IMAGE_REFINER: "BASE" }
       }
@@ -154,7 +152,7 @@ describe("NodeGenerator.applyConfig()", () => {
 
   it("does not mutate the original spec", () => {
     const spec = makeSpec({ className: "StabilityAiSdxl" });
-    gen.applyConfig(spec, { className: "Sdxl" });
+    applyConfig(spec, { className: "Sdxl" });
     expect(spec.className).toBe("StabilityAiSdxl");
   });
 
@@ -165,7 +163,7 @@ describe("NodeGenerator.applyConfig()", () => {
       default: ""
     });
     const spec = makeSpec({ inputFields: [original] });
-    gen.applyConfig(spec, {
+    applyConfig(spec, {
       fieldOverrides: { prompt: { description: "Changed" } }
     });
     expect(original.description).toBe("");
