@@ -111,21 +111,6 @@ describe("FrontendToolRegistry", () => {
       expect(typeof entry!.parameters).toBe("object");
     });
 
-    it("excludes hidden tools from manifest", () => {
-      const tool: FrontendToolDefinition = {
-        name: toolName,
-        description: "hidden tool",
-        parameters: z.object({}),
-        hidden: true,
-        execute: async () => null
-      };
-      unregister = FrontendToolRegistry.register(tool);
-
-      const manifest = FrontendToolRegistry.getManifest();
-      const entry = manifest.find((t) => t.name === toolName);
-      expect(entry).toBeUndefined();
-    });
-
     it("manifest entry has name and description", () => {
       const tool: FrontendToolDefinition = {
         name: toolName,

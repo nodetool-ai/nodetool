@@ -174,7 +174,6 @@ export const uiCopyParams = {
 export const uiPasteParams = {};
 
 // --- Registry for MCP server registration ---
-// Only non-hidden tools. ui_graph (hidden) is excluded.
 
 export interface UiToolSchema {
   description: string;

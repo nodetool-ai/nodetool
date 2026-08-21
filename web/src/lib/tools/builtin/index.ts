@@ -14,7 +14,6 @@
 // -----------------------------------------------------------------
 
 // Graph editor.
-import "./graph";
 import "./addNode";
 import "./updateNodeData";
 import "./connectNodes";

@@ -1,7 +1,4 @@
-import { z } from "zod";
 import type { FrontendToolState } from "../frontendTools";
-
-export const optionalWorkflowIdSchemaCompact = z.string().nullable().optional();
 
 export function resolveWorkflowId(
   state: FrontendToolState,
