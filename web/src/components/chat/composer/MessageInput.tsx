@@ -11,7 +11,6 @@ interface MessageInputProps {
   value: string;
   onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  disabled: boolean;
   placeholder?: string;
   ref?: React.Ref<HTMLTextAreaElement>;
 }
@@ -23,7 +22,6 @@ export const MessageInput = memo(function MessageInput({
   value,
   onChange,
   onKeyDown,
-  disabled,
   placeholder = "Type your message...",
   ref
 }: MessageInputProps) {
@@ -54,10 +52,10 @@ export const MessageInput = memo(function MessageInput({
   // Skipped on touch, where the virtual keyboard would cover the thread.
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
-    if (textarea && !disabled && autoFocusEnabled) {
+    if (textarea && autoFocusEnabled) {
       textarea.focus();
     }
-  }, [textareaRef, disabled, autoFocusEnabled]);
+  }, [textareaRef, autoFocusEnabled]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -75,7 +73,6 @@ export const MessageInput = memo(function MessageInput({
       value={value}
       onChange={handleChange}
       onKeyDown={onKeyDown}
-      disabled={disabled}
       placeholder={placeholder}
       autoCorrect="off"
       autoCapitalize="none"

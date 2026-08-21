@@ -15,8 +15,7 @@ describe("MessageInput", () => {
   const baseProps = {
     value: "",
     onChange: mockOnChange,
-    onKeyDown: mockOnKeyDown,
-    disabled: false
+    onKeyDown: mockOnKeyDown
   };
 
   beforeEach(() => {
@@ -165,48 +164,12 @@ describe("MessageInput", () => {
     });
   });
 
-  describe("Disabled State", () => {
-    it("is enabled by default", () => {
+  describe("Enabled State", () => {
+    it("is always enabled — messages are queued while disconnected", () => {
       renderComponent(baseProps);
 
       const textarea = screen.getByRole("textbox");
       expect(textarea).not.toBeDisabled();
-    });
-
-    it("can be disabled", () => {
-      renderComponent({
-        ...baseProps,
-        disabled: true
-      });
-
-      const textarea = screen.getByRole("textbox");
-      expect(textarea).toBeDisabled();
-    });
-
-    it("calls onChange even when disabled", () => {
-      renderComponent({
-        ...baseProps,
-        disabled: true
-      });
-
-      const textarea = screen.getByRole("textbox");
-      fireEvent.change(textarea, { target: { value: "New text" } });
-
-      // Note: onChange should still be called even if disabled
-      // This is the expected behavior for controlled components
-      expect(mockOnChange).toHaveBeenCalledTimes(1);
-    });
-
-    it("calls onKeyDown even when disabled", () => {
-      renderComponent({
-        ...baseProps,
-        disabled: true
-      });
-
-      const textarea = screen.getByRole("textbox");
-      fireEvent.keyDown(textarea, { key: "Enter", code: "Enter" });
-
-      expect(mockOnKeyDown).toHaveBeenCalledTimes(1);
     });
   });
 

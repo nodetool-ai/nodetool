@@ -127,8 +127,6 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   );
 
   const isDisabled = disabled || isLoading || isStreaming;
-  // Input is never disabled - messages are always queued by globalWebSocketManager
-  const isInputDisabled = false;
 
   const removeCallbacks = useMemo(
     () => new Map(droppedFiles.map((f) => [f.id, () => removeFile(f.id)])),
@@ -222,7 +220,6 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
             value={prompt}
             onChange={handleOnChange}
             onKeyDown={handleKeyDown}
-            disabled={isInputDisabled}
             placeholder={
               isMobile
                 ? "Type a message..."
