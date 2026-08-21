@@ -4,17 +4,13 @@ import {
   type AppDocMeta,
   type OperationBinding
 } from "@nodetool-ai/app-runtime";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import CloseIcon from "@mui/icons-material/Close";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
 import {
   Box,
-  CircularActionButton,
   FlexColumn,
   FlexRow,
   BORDER_RADIUS,
-  SPACING,
   Z_INDEX
 } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
@@ -22,9 +18,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 import { createEmptyData, type AppDocument } from "./appData";
 import PuckAppEditor from "./puck/PuckAppEditor";
-import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 import AppDataPanel from "./AppDataPanel";
-import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { isString } from "../../utils/typePredicates";
 
 interface AppBuilderShellProps {
@@ -43,8 +37,8 @@ interface AppBuilderShellProps {
    */
   operationWorkflows?: Record<string, Workflow>;
   /**
-   * Workflow the agent panel edits. Omitted when the app has no workflow bound
-   * yet; the panel still opens, on a thread of its own.
+   * Workflow the agent's graph tools target. Omitted when the app has no
+   * workflow bound yet.
    */
   agentWorkflowId?: string;
   /**
@@ -64,11 +58,10 @@ interface AppBuilderShellProps {
 }
 
 /**
- * Puck folds its header actions — the "Ask Agent" and "App Data" toggles among
- * them — into a chevron menu below 638px, so on a phone the only way to reach
- * the agent is to find that menu. Below that width the shell surfaces the agent
- * behind a floating button of its own, and the panel covers the whole surface:
- * docking a 360px panel beside the canvas leaves too little of either.
+ * Puck folds its header actions — the "App Data" toggle among them — into a
+ * chevron menu below 638px. Below that width the App Data panel covers the
+ * canvas instead of docking beside it: a 360px column leaves too little of
+ * either.
  */
 const NARROW_QUERY = "(max-width: 637.98px)";
 
@@ -136,8 +129,6 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
     resources: document.resources,
     variables: document.variables
   }));
-  const [agentOpen, setAgentOpen] = useState(false);
-  const toggleAgent = useCallback(() => setAgentOpen((open) => !open), []);
   const narrow = useMediaQuery(NARROW_QUERY);
   const panelSx = narrow ? overlayPanelSx : sidePanelSx;
   const [dataOpen, setDataOpen] = useState(false);
@@ -198,8 +189,6 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             data={data}
             onPublish={handleSave}
             onClose={onClose}
-            agentOpen={agentOpen}
-            onToggleAgent={toggleAgent}
             meta={meta}
             onMetaChange={setMeta}
             dataOpen={dataOpen}
@@ -217,40 +206,6 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             workflowName={workflow.name}
           />
         </Box>
-      )}
-      {agentOpen &&
-        (narrow ? (
-          <Box sx={overlayPanelSx}>
-            <AppBuilderAgentPanel
-              applicationId={applicationId}
-              workflowId={agentWorkflowId}
-            />
-          </Box>
-        ) : (
-          <ResizableSideDock
-            storageKey="app_builder"
-            defaultWidth={420}
-            ariaLabel="Resize app builder assistant"
-          >
-            <AppBuilderAgentPanel
-              applicationId={applicationId}
-              workflowId={agentWorkflowId}
-            />
-          </ResizableSideDock>
-        ))}
-      {narrow && (
-        <CircularActionButton
-          icon={agentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
-          onClick={toggleAgent}
-          ariaLabel={agentOpen ? "Close agent" : "Ask Agent"}
-          tooltip={agentOpen ? "Close agent" : "Ask Agent"}
-          tooltipPlacement="top"
-          size={48}
-          position="absolute"
-          bottom={SPACING.xl}
-          right={SPACING.xl}
-          zIndex={Z_INDEX.overlay + 1}
-        />
       )}
     </FlexRow>
   );

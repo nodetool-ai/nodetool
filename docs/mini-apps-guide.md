@@ -68,11 +68,11 @@ Every app below begins here.
 To edit the graph while you build, open **Linked workflows** on the app tab and
 click the workflow. It opens as a normal workflow tab; the app tab stays put.
 
-**Ask Agent** in App Builder opens an assistant that can read the app's workflows
-and edit the app for you: place widgets, wire them up, declare variables and
-operations, and add the Input, Output, or Set Variable nodes a layout needs. It's
-the quickest route to the parts the visual editor doesn't expose — several
-operations, typed variables, and resources.
+The assistant on the right of App Builder can read the app's workflows and
+edit the app for you: place widgets, wire them up, declare variables and
+operations, and add the Input, Output, or Set Variable nodes a layout needs.
+It is the quickest route to the parts the visual editor doesn't expose —
+several operations, typed variables, and resources.
 
 ---
 
@@ -181,7 +181,7 @@ five-second workflow builds a backlog the user can't escape.
 **Good for:** draft then publish, extract then post, analyze then act, generate
 then upscale.
 
-This needs two operations and a variable, so build it with **Ask Agent** or by
+This needs two operations and a variable, so build it with the assistant or by
 editing the document directly.
 
 1. Declare a variable — call it `draft`.

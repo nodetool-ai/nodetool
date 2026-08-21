@@ -29,6 +29,12 @@ import { registerDocumentSync } from "../../stores/documentSync";
 
 interface ApplicationAppBuilderProps {
   applicationId: string;
+  /**
+   * The graph the assistant's workflow tools should target. Reported whenever
+   * the live operations change, including the seed, so the surface dock can
+   * bind the same thread Design, Run, and Settings share.
+   */
+  onAgentWorkflowIdChange?: (workflowId: string | undefined) => void;
 }
 
 /**
@@ -55,7 +61,8 @@ const placeholderWorkflow = (id: string, name: string): Workflow => ({
  * untouched — the user's edits are still there to re-apply after reloading.
  */
 const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
-  applicationId
+  applicationId,
+  onAgentWorkflowIdChange
 }) => {
   const { data: application, isLoading, isError, error } =
     useApplication(applicationId);
@@ -163,6 +170,12 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   );
 
   const workflow = operationWorkflows[operationWorkflowId];
+
+  const onAgentWorkflowIdChangeRef = useRef(onAgentWorkflowIdChange);
+  onAgentWorkflowIdChangeRef.current = onAgentWorkflowIdChange;
+  useEffect(() => {
+    onAgentWorkflowIdChangeRef.current?.(workflow?.id);
+  }, [workflow?.id]);
 
   const editorWorkflow = useMemo(
     () =>

@@ -58,9 +58,9 @@ description, versions, and spending limit.
 
 ## Letting the agent do it
 
-Click **Ask Agent**. It can read the app's workflows, add widgets, wire them up,
-declare operations and variables, and even edit a graph when the app needs new
-Input, Output, or Variable nodes.
+The assistant sits on the right of Design, Run, and Settings. It can read the
+app's workflows, add widgets, wire them up, declare operations and variables,
+and even edit a graph when the app needs new Input, Output, or Variable nodes.
 
 Good prompts describe the result you want:
 

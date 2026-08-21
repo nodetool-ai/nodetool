@@ -4,7 +4,6 @@ import { Puck, useGetPuck, type Data, type Overrides } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import "./puckTheme.css";
 import CloseIcon from "@mui/icons-material/Close";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SaveIcon from "@mui/icons-material/Save";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import TabletMacIcon from "@mui/icons-material/TabletMac";
@@ -42,8 +41,6 @@ interface PuckAppEditorProps {
   onChange?: (data: Data) => void;
   /** Omitted when the builder is embedded and there is nowhere to go back to. */
   onClose?: () => void;
-  agentOpen?: boolean;
-  onToggleAgent?: () => void;
   /**
    * The document's operations, variables, and resources. Puck does not own
    * them, so the page holds them and the agent tools edit them through
@@ -122,8 +119,6 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   onPublish,
   onChange,
   onClose,
-  agentOpen = false,
-  onToggleAgent,
   meta = EMPTY_DOC_META,
   onMetaChange,
   dataOpen = false,
@@ -212,18 +207,6 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
               App Data
             </EditorButton>
           )}
-          {onToggleAgent && (
-            <EditorButton
-              size="small"
-              variant={agentOpen ? "contained" : "text"}
-              color="primary"
-              startIcon={<AutoAwesomeIcon sx={{ fontSize: 16 }} />}
-              onClick={onToggleAgent}
-              aria-pressed={agentOpen}
-            >
-              Ask Agent
-            </EditorButton>
-          )}
           {onClose && (
             <EditorButton
               size="small"
@@ -242,8 +225,6 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
       applicationId,
       onClose,
       onPublish,
-      onToggleAgent,
-      agentOpen,
       workflow,
       previewWidth,
       meta,
