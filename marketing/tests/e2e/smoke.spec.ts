@@ -45,4 +45,35 @@ test.describe("marketing smoke", () => {
     await page.goto("/");
     await expect(page.locator(".sr-only-seo")).toHaveCount(0);
   });
+
+  test("search opportunity pages expose targeted metadata and links", async ({ page }) => {
+    await page.goto("/alternatives/comfyui");
+    await expect(page).toHaveTitle("Easier ComfyUI Alternatives for Mac | NodeTool");
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      "content",
+      "Easier ComfyUI Alternatives for Mac | NodeTool",
+    );
+
+    await page.goto("/alternatives/lm-studio");
+    await expect(page).toHaveTitle(
+      "LM Studio Alternatives for Local AI Workflows | NodeTool",
+    );
+
+    await page.goto("/tasks/lip-sync");
+    await expect(page).toHaveTitle("Best AI Lip Sync Models & Workflows — NodeTool");
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "AI Lip Sync: Best Models & Workflows",
+      }),
+    ).toBeVisible();
+
+    await page.goto("/node-based-ai");
+    await expect(
+      page.getByRole("link", { name: "Figma Weave alternative" }),
+    ).toHaveAttribute("href", "/alternatives/figma-weave");
+    await expect(
+      page.getByRole("link", { name: "Weavy comparison" }),
+    ).toHaveAttribute("href", "/alternatives/weavy");
+  });
 });

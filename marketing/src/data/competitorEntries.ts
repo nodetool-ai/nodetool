@@ -131,12 +131,20 @@ export type Competitor = {
   isNew?: boolean;
   /** Footer link label override, e.g. to note a product rename. */
   footerName?: string;
+
+  /** Optional search snippet for pages with a distinct, high-volume query intent. */
+  seo?: { title: string; description: string };
 };
 
 export const competitors: Competitor[] = [
   {
     slug: "comfyui",
     name: "ComfyUI",
+    seo: {
+      title: "Easier ComfyUI Alternatives for Mac | NodeTool",
+      description:
+        "Compare easier ComfyUI alternatives for Mac and other platforms. See how NodeTool brings image, video, audio, and text workflows to one open-source canvas.",
+    },
     theme: "blue",
     category: "Node editor",
     og: {
@@ -756,6 +764,11 @@ export const competitors: Competitor[] = [
   {
     slug: "lm-studio",
     name: "LM Studio",
+    seo: {
+      title: "LM Studio Alternatives for Local AI Workflows | NodeTool",
+      description:
+        "Compare local and open-source LM Studio alternatives for Windows and other platforms. See how NodeTool connects local models to agents, documents, and media workflows.",
+    },
     theme: "emerald",
     category: "Local language model runtime",
     isNew: true,
