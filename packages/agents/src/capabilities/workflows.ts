@@ -50,6 +50,11 @@ import {
   createWorkflowSpec,
   updateWorkflowSpec,
   deleteWorkflowSpec,
+  listWorkflowVersionsSpec,
+  getWorkflowVersionSpec,
+  createWorkflowVersionSpec,
+  restoreWorkflowVersionSpec,
+  deleteWorkflowVersionSpec,
   setWorkflowAccessSpec,
   runWorkflowCapabilitySpec,
   debugWorkflowSpec,
@@ -58,6 +63,8 @@ import {
   startBackgroundJobSpec,
   getExampleWorkflowSpec,
   exportWorkflowDigraphSpec,
+  DEFAULT_VERSION_LIMIT,
+  MAX_VERSION_LIMIT,
   LIST_WORKFLOWS_SCHEMA,
   CREATE_WORKFLOW_SCHEMA,
   RUN_WORKFLOW_SCHEMA,
@@ -270,6 +277,188 @@ const deleteWorkflow: CapabilityExport = {
     const id = String(params["workflow_id"]);
     const deleted = await Workflow.deleteOwned(userIdOf(run.context), id);
     return deleted ? { workflow_id: id, deleted: true } : notYours(id);
+  }
+};
+
+function versionNumber(value: unknown): number | { error: string } {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) {
+    return {
+      error:
+        "version must be a positive integer (use list_workflow_versions to see the available ones)."
+    };
+  }
+  return n;
+}
+
+function toVersionListItem(version: {
+  id: string;
+  version: number;
+  name: string | null;
+  description: string | null;
+  save_type: string;
+  created_at: string;
+}) {
+  return {
+    id: version.id,
+    version: version.version,
+    name: version.name,
+    description: version.description,
+    save_type: version.save_type,
+    created_at: version.created_at
+  };
+}
+
+const listWorkflowVersions: CapabilityExport = {
+  spec: listWorkflowVersionsSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const { WorkflowVersion } = await import("@nodetool-ai/models");
+    const limit = Math.max(
+      1,
+      Math.min(
+        Number(params["limit"]) || DEFAULT_VERSION_LIMIT,
+        MAX_VERSION_LIMIT
+      )
+    );
+    const versions = await WorkflowVersion.listForWorkflow(id, { limit });
+    return {
+      workflow_id: id,
+      name: existing.name,
+      versions: versions.map(toVersionListItem)
+    };
+  }
+};
+
+const getWorkflowVersion: CapabilityExport = {
+  spec: getWorkflowVersionSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const number = versionNumber(params["version"]);
+    if (typeof number !== "number") return number;
+
+    const { WorkflowVersion } = await import("@nodetool-ai/models");
+    const version = await WorkflowVersion.findByVersion(id, number);
+    if (!version) {
+      return {
+        error: `Workflow ${id} has no version ${number}. Call list_workflow_versions to see the available ones.`
+      };
+    }
+    return {
+      workflow_id: id,
+      ...toVersionListItem(version),
+      graph: version.graph
+    };
+  }
+};
+
+const createWorkflowVersion: CapabilityExport = {
+  spec: createWorkflowVersionSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const { WorkflowVersion } = await import("@nodetool-ai/models");
+    const nextVer = await WorkflowVersion.nextVersion(id);
+    const version = (await WorkflowVersion.create({
+      workflow_id: id,
+      user_id: userIdOf(run.context),
+      name: isString(params["name"]) ? params["name"] : null,
+      description: isString(params["description"])
+        ? params["description"]
+        : null,
+      graph: existing.graph,
+      version: nextVer,
+      save_type: "manual"
+    })) as InstanceType<typeof WorkflowVersion>;
+    return {
+      ok: true,
+      workflow_id: id,
+      ...toVersionListItem(version)
+    };
+  }
+};
+
+const restoreWorkflowVersion: CapabilityExport = {
+  spec: restoreWorkflowVersionSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const number = versionNumber(params["version"]);
+    if (typeof number !== "number") return number;
+
+    const { Workflow, WorkflowVersion } = await import("@nodetool-ai/models");
+    const version = await WorkflowVersion.findByVersion(id, number);
+    if (!version) {
+      return {
+        error: `Workflow ${id} has no version ${number}. Call list_workflow_versions to see the available ones.`
+      };
+    }
+
+    const undoVer = await WorkflowVersion.nextVersion(id);
+    const undo = (await WorkflowVersion.create({
+      workflow_id: id,
+      user_id: userIdOf(run.context),
+      name: `Before restore to v${number}`,
+      description: null,
+      graph: existing.graph,
+      version: undoVer,
+      save_type: "restore"
+    })) as InstanceType<typeof WorkflowVersion>;
+
+    const updated = await Workflow.updateFieldsIfUnchanged(
+      id,
+      existing.updated_at,
+      { graph: version.graph }
+    );
+    if (!updated) {
+      return {
+        error: `Workflow ${id} changed since you read it — read it again and retry.`,
+        undo_version: undo.version
+      };
+    }
+    return {
+      ok: true,
+      workflow_id: id,
+      restored_version: number,
+      undo_version: undo.version,
+      ...workflowRecord(updated as WorkflowRow)
+    };
+  }
+};
+
+const deleteWorkflowVersion: CapabilityExport = {
+  spec: deleteWorkflowVersionSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const number = versionNumber(params["version"]);
+    if (typeof number !== "number") return number;
+
+    const { WorkflowVersion } = await import("@nodetool-ai/models");
+    const version = await WorkflowVersion.findByVersion(id, number);
+    if (!version) {
+      return {
+        error: `Workflow ${id} has no version ${number}. Call list_workflow_versions to see the available ones.`
+      };
+    }
+    await version.delete();
+    return {
+      ok: true,
+      workflow_id: id,
+      deleted_version: number
+    };
   }
 };
 
@@ -577,6 +766,11 @@ export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   createWorkflow,
   updateWorkflow,
   deleteWorkflow,
+  listWorkflowVersions,
+  getWorkflowVersion,
+  createWorkflowVersion,
+  restoreWorkflowVersion,
+  deleteWorkflowVersion,
   setWorkflowAccess,
   runWorkflowCapability,
   debugWorkflow,
@@ -598,6 +792,11 @@ export {
   createWorkflow,
   updateWorkflow,
   deleteWorkflow,
+  listWorkflowVersions,
+  getWorkflowVersion,
+  createWorkflowVersion,
+  restoreWorkflowVersion,
+  deleteWorkflowVersion,
   setWorkflowAccess,
   runWorkflowCapability,
   debugWorkflow,

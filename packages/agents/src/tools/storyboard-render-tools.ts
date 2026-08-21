@@ -9,6 +9,7 @@
 /** Every tool in this module, for toolbelt assembly and docs. */
 export const STORYBOARD_RENDER_TOOL_NAMES = [
   "list_storyboards",
+  "create_storyboard",
   "get_storyboard",
   "render_storyboard_stills",
   "render_storyboard_clips",

@@ -220,6 +220,33 @@ export const restoreTimelineVersionSpec: CapabilitySpec = {
     `Restoring timeline ${String(params["timeline_id"])} to v${String(params["version"])}`
 };
 
+export const DELETE_TIMELINE_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "Timeline sequence id."
+    },
+    version: {
+      type: "number",
+      description: "Version number to delete, from list_timeline_versions."
+    }
+  },
+  required: ["timeline_id", "version"]
+};
+
+export const deleteTimelineVersionSpec: CapabilitySpec = {
+  name: "delete_timeline_version",
+  description:
+    "Delete one snapshot of a timeline sequence you own, addressed by " +
+    "version number (from list_timeline_versions). This cannot be undone. " +
+    "The live sequence is not changed.",
+  inputSchema: DELETE_TIMELINE_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Deleting v${String(params["version"])} of timeline ${String(params["timeline_id"])}`
+};
+
 export const editTimelineSpec: CapabilitySpec = {
   name: "edit_timeline",
   description:
@@ -284,6 +311,7 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   getTimelineVersionSpec,
   createTimelineVersionSpec,
   restoreTimelineVersionSpec,
+  deleteTimelineVersionSpec,
   editTimelineSpec,
   validateTimelineSpec,
   deleteTimelineSpec

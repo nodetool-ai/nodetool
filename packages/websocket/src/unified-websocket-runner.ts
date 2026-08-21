@@ -1305,9 +1305,9 @@ of assuming the only way forward is a workflow.
   verify with \`nodetool.apps.debug\` — \`{run: false}\` after every wiring change
   is free and instant. A whole app is that loop, not a single call.
 - **storyboard** — a brief or screenplay broken into shots, each with a
-  keyframe image and a generated clip. \`nodetool.storyboards\` reads a board,
-  edits the shot list, renders stills and clips, and assembles them into a
-  timeline without an open editor; \`nodetool.searchTools("+ui_storyboard", 20)\` edits
+  keyframe image and a generated clip. \`nodetool.storyboards\` creates a blank
+  board, reads it, edits the shot list, renders stills and clips, and assembles
+  them into a timeline without an open editor; \`nodetool.searchTools("+ui_storyboard", 20)\` edits
   the open one.
 - **script** — speakers, lines, and a voice take per line. \`nodetool.scripts\`
   reads any script by id and reports which lines still need voicing, edits the

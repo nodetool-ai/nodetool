@@ -295,6 +295,151 @@ export const deleteWorkflowSpec: CapabilitySpec = {
   userMessage: (params) => `Deleting workflow ${params["workflow_id"]}`
 };
 
+export const DEFAULT_VERSION_LIMIT = 20;
+
+export const MAX_VERSION_LIMIT = 100;
+
+export const LIST_WORKFLOW_VERSIONS_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    limit: {
+      type: "number",
+      description: `Max versions to return (default ${DEFAULT_VERSION_LIMIT}, max ${MAX_VERSION_LIMIT}).`
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const GET_WORKFLOW_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    version: {
+      type: "number",
+      description: "Version number to read, from list_workflow_versions."
+    }
+  },
+  required: ["workflow_id", "version"]
+};
+
+export const CREATE_WORKFLOW_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    name: {
+      type: "string",
+      description: "Label for the snapshot, e.g. 'before the rewrite'."
+    },
+    description: {
+      type: "string",
+      description: "Optional note stored with the snapshot."
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const RESTORE_WORKFLOW_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    version: {
+      type: "number",
+      description: "Version number to restore, from list_workflow_versions."
+    }
+  },
+  required: ["workflow_id", "version"]
+};
+
+export const DELETE_WORKFLOW_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    version: {
+      type: "number",
+      description: "Version number to delete, from list_workflow_versions."
+    }
+  },
+  required: ["workflow_id", "version"]
+};
+
+export const listWorkflowVersionsSpec: CapabilitySpec = {
+  name: "list_workflow_versions",
+  description:
+    "List a workflow's snapshots, newest first: version number, name, " +
+    "description, save type ('manual', 'autosave', 'restore'), and when it " +
+    "was taken. Call this before restoring — restore_workflow_version " +
+    "addresses a snapshot by its version number.",
+  inputSchema: LIST_WORKFLOW_VERSIONS_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Listing versions of workflow ${String(params["workflow_id"])}`
+};
+
+export const getWorkflowVersionSpec: CapabilitySpec = {
+  name: "get_workflow_version",
+  description:
+    "Read one snapshot of a workflow without restoring it: the version's " +
+    "metadata plus the graph it stored. Use this to inspect or compare " +
+    "versions before deciding which one to restore.",
+  inputSchema: GET_WORKFLOW_VERSION_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Reading v${String(params["version"])} of workflow ${String(params["workflow_id"])}`
+};
+
+export const createWorkflowVersionSpec: CapabilitySpec = {
+  name: "create_workflow_version",
+  description:
+    "Snapshot a workflow's current graph as a manual version, so it can be " +
+    "restored later. Take one before an edit the user may want undone. " +
+    "Returns the new version's number.",
+  inputSchema: CREATE_WORKFLOW_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Snapshotting workflow ${String(params["workflow_id"])}`
+};
+
+export const restoreWorkflowVersionSpec: CapabilitySpec = {
+  name: "restore_workflow_version",
+  description:
+    "Roll a workflow's graph back to one of its snapshots, addressed by " +
+    "version number (from list_workflow_versions). The graph being " +
+    "overwritten is snapshotted first, so the restore is itself undoable — " +
+    "restore that snapshot to come back.",
+  inputSchema: RESTORE_WORKFLOW_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Restoring workflow ${String(params["workflow_id"])} to v${String(params["version"])}`
+};
+
+export const deleteWorkflowVersionSpec: CapabilitySpec = {
+  name: "delete_workflow_version",
+  description:
+    "Delete one snapshot of a workflow you own, addressed by version number " +
+    "(from list_workflow_versions). This cannot be undone. The live graph is " +
+    "not changed.",
+  inputSchema: DELETE_WORKFLOW_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Deleting v${String(params["version"])} of workflow ${String(params["workflow_id"])}`
+};
+
 export const setWorkflowAccessSpec: CapabilitySpec = {
   name: "set_workflow_access",
   description:
@@ -460,6 +605,11 @@ export const workflowsSpecs: readonly CapabilitySpec[] = [
   createWorkflowSpec,
   updateWorkflowSpec,
   deleteWorkflowSpec,
+  listWorkflowVersionsSpec,
+  getWorkflowVersionSpec,
+  createWorkflowVersionSpec,
+  restoreWorkflowVersionSpec,
+  deleteWorkflowVersionSpec,
   setWorkflowAccessSpec,
   runWorkflowCapabilitySpec,
   debugWorkflowSpec,

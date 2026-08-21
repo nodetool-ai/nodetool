@@ -712,6 +712,7 @@ result as an asset, and write it back onto the persisted board.
 | Tool | Does |
 |---|---|
 | `list_storyboards` | Boards newest first, with per-board still/clip counts |
+| `create_storyboard` | Blank board (then `edit_storyboard` adds shots) |
 | `get_storyboard` | Shots with ids, status, and whether each has a still/clip |
 | `render_storyboard_stills` | `text_to_image` per shot → the shot's keyframe |
 | `render_storyboard_clips` | `image_to_video` seeded by the keyframe → the shot's clip |

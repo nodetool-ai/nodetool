@@ -27,6 +27,11 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "list_workflows",
     "get_workflow",
     "create_workflow",
+    "list_workflow_versions",
+    "get_workflow_version",
+    "create_workflow_version",
+    "restore_workflow_version",
+    "delete_workflow_version",
     "run_workflow",
     "start_background_job",
     "debug_workflow",
@@ -112,6 +117,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "get_timeline_version",
     "create_timeline_version",
     "restore_timeline_version",
+    "delete_timeline_version",
     "validate_timeline",
     "edit_timeline"
   ],
@@ -122,6 +128,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "get_sketch_version",
     "create_sketch_version",
     "restore_sketch_version",
+    "delete_sketch_version",
     "validate_sketch",
     "edit_sketch"
   ],
@@ -134,6 +141,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   storyboards: [
     "list_storyboards",
+    "create_storyboard",
     "get_storyboard",
     "render_storyboard_stills",
     "render_storyboard_clips",
@@ -561,6 +569,22 @@ const nodetool = (() => {
         __need("create_workflow")(
           __merge(opts, { name: name, graph: __graphJson(graph) })
         ),
+      versions: (id, opts) =>
+        __need("list_workflow_versions")(__merge(opts, { workflow_id: id })),
+      getVersion: (id, version) =>
+        __need("get_workflow_version")({ workflow_id: id, version: version }),
+      snapshot: (id, opts) =>
+        __need("create_workflow_version")(__merge(opts, { workflow_id: id })),
+      restore: (id, version) =>
+        __need("restore_workflow_version")({
+          workflow_id: id,
+          version: version
+        }),
+      deleteVersion: (id, version) =>
+        __need("delete_workflow_version")({
+          workflow_id: id,
+          version: version
+        }),
       run: (id, params, opts) =>
         __need("run_workflow")(
           __merge(opts, { workflow_id: id, params: params || {} })
@@ -1001,6 +1025,11 @@ const nodetool = (() => {
           timeline_id: id,
           version: version
         }),
+      deleteVersion: (id, version) =>
+        __need("delete_timeline_version")({
+          timeline_id: id,
+          version: version
+        }),
       validate: (target) =>
         typeof target === "string"
           ? __need("validate_timeline")({ timeline_id: target })
@@ -1032,6 +1061,11 @@ const nodetool = (() => {
           image_document_id: id,
           version: version
         }),
+      deleteVersion: (id, version) =>
+        __need("delete_sketch_version")({
+          image_document_id: id,
+          version: version
+        }),
       validate: (target) =>
         typeof target === "string"
           ? __need("validate_sketch")({ image_document_id: target })
@@ -1054,6 +1088,9 @@ const nodetool = (() => {
 
     storyboards: {
       list: (opts) => __need("list_storyboards")(__merge(opts)),
+      /** Create a blank storyboard. Pass {brief, style, aspect_ratio} for board settings. */
+      create: (name, opts) =>
+        __need("create_storyboard")(__merge(opts, { name: name })),
       get: (id) => __need("get_storyboard")({ storyboard_id: id }),
       renderStills: (id, opts) =>
         __need("render_storyboard_stills")(
@@ -1109,7 +1146,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.workflows\` — \`list()\` returns \`{workflows}\`
   (an envelope, not a bare array), \`get(id)\`, \`run(id, params, {interactive})\`,
   \`start(id, params)\` (background job), \`debug(id, params)\`, \`validate(idOrGraph)\`,
-  \`create(name, graph, {description, tags})\`, \`open(id?)\` (the editable object
+  \`create(name, graph, {description, tags})\`, \`versions(id)\`, \`getVersion(id, n)\`,
+  \`snapshot(id, {name})\`, \`restore(id, n)\`, \`deleteVersion(id, n)\`,
+  \`open(id?)\` (the editable object
   model — see the graph-editing section). An interactive run returns an
   escalation: answer it with \`resolve(sessionId, escalationId, action,
   {outputs, reason, apply_to})\` — retry/substitute/skip/end_stream/fail — and
@@ -1323,7 +1362,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "timelines",
     doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`), \`validate(idOrDocument)\`, \`versions(id)\`,
-  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`, and
+  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`,
+  \`deleteVersion(id, n)\`, and
   \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:
   "audio"}, {op: "add_text_clip", text: "Hi"}, {op: "split_clip", target:
   "shot", atMs: 3000}, {op: "animate_clip", target: "Hi", animations:
@@ -1336,7 +1376,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "sketches",
     doc: `- \`nodetool.sketches\` — \`list()\`, \`create(name, {width, height})\`,
   \`validate(idOrDocument)\`, \`versions(id)\`, \`getVersion(id, n)\`,
-  \`snapshot(id, {name})\`, \`restore(id, n)\`, and \`edit(id, ops)\` for layer
+  \`snapshot(id, {name})\`, \`restore(id, n)\`, \`deleteVersion(id, n)\`, and \`edit(id, ops)\` for layer
   structure server-side: \`[{op: "add_layer", name: "Shadow"}, {op:
   "set_layer_props", target: "Shadow", opacity: 0.4, blendMode:
   "multiply"}]\`. Create a blank canvas first, then edit. Pixels are never
@@ -1353,11 +1393,13 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "storyboards",
-    doc: `- \`nodetool.storyboards\` — \`list()\`, \`get(id)\`, \`renderStills(id, {targets})\`,
+    doc: `- \`nodetool.storyboards\` — \`list()\`, \`create(name, {brief, style,
+  aspect_ratio})\`, \`get(id)\`, \`renderStills(id, {targets})\`,
   \`renderClips(id, {targets})\`, \`reviseClip(id, target, instruction)\`,
   \`assembleTimeline(id)\`, and \`edit(id, ops)\` for the shot list:
   \`[{op: "add_shot", action: "Wide of the lighthouse at dusk",
-  duration_seconds: 4}, {op: "reorder_shot", target: "shot_2", index: 0}]\`.`
+  duration_seconds: 4}, {op: "reorder_shot", target: "shot_2", index: 0}]\`.
+  Create a blank board first, then add shots with \`edit\`.`
   }
 ];
 

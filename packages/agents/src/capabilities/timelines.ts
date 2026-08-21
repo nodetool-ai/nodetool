@@ -40,6 +40,7 @@ import {
   getTimelineVersionSpec,
   createTimelineVersionSpec,
   restoreTimelineVersionSpec,
+  deleteTimelineVersionSpec,
   editTimelineSpec,
   validateTimelineSpec,
   DEFAULT_VERSION_LIMIT,
@@ -50,6 +51,7 @@ import {
   GET_TIMELINE_VERSION_SCHEMA,
   CREATE_TIMELINE_VERSION_SCHEMA,
   RESTORE_TIMELINE_VERSION_SCHEMA,
+  DELETE_TIMELINE_VERSION_SCHEMA,
   EDIT_TIMELINE_SCHEMA,
   VALIDATE_TIMELINE_SCHEMA,
   deleteTimelineSpec
@@ -65,6 +67,7 @@ export {
   GET_TIMELINE_VERSION_SCHEMA,
   CREATE_TIMELINE_VERSION_SCHEMA,
   RESTORE_TIMELINE_VERSION_SCHEMA,
+  DELETE_TIMELINE_VERSION_SCHEMA,
   EDIT_TIMELINE_SCHEMA,
   VALIDATE_TIMELINE_SCHEMA
 } from "./timelines.specs.js";
@@ -341,6 +344,31 @@ const restoreTimelineVersion: CapabilityExport = {
       updated_at: updated.updated_at,
       validation,
       summary: validationSummary(validation)
+    };
+  }
+};
+
+const deleteTimelineVersion: CapabilityExport = {
+  spec: deleteTimelineVersionSpec,
+  impl: async (run, params) => {
+    const seq = await loadTimeline(run, params["timeline_id"]);
+    if (isError(seq)) return seq;
+
+    const number = versionNumber(params["version"]);
+    if (isError(number)) return number;
+
+    const { TimelineSequenceVersion } = await import("@nodetool-ai/models");
+    const version = await TimelineSequenceVersion.findByVersion(seq.id, number);
+    if (!version) {
+      return {
+        error: `Timeline ${seq.id} has no version ${number}. Call list_timeline_versions to see the available ones.`
+      };
+    }
+    await version.delete();
+    return {
+      ok: true,
+      timeline_id: seq.id,
+      deleted_version: number
     };
   }
 };
@@ -689,6 +717,7 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   getTimelineVersion,
   createTimelineVersion,
   restoreTimelineVersion,
+  deleteTimelineVersion,
   editTimeline,
   validateTimeline,
   deleteTimeline
@@ -705,6 +734,7 @@ export {
   getTimelineVersion,
   createTimelineVersion,
   restoreTimelineVersion,
+  deleteTimelineVersion,
   editTimeline,
   validateTimeline,
   deleteTimeline

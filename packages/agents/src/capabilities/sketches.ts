@@ -35,6 +35,7 @@ import {
   getSketchVersionSpec,
   createSketchVersionSpec,
   restoreSketchVersionSpec,
+  deleteSketchVersionSpec,
   editSketchSpec,
   validateSketchSpec,
   DEFAULT_VERSION_LIMIT,
@@ -46,6 +47,7 @@ import {
   GET_SKETCH_VERSION_SCHEMA,
   CREATE_SKETCH_VERSION_SCHEMA,
   RESTORE_SKETCH_VERSION_SCHEMA,
+  DELETE_SKETCH_VERSION_SCHEMA,
   EDIT_SKETCH_SCHEMA,
   VALIDATE_SKETCH_SCHEMA,
   deleteSketchSpec
@@ -68,6 +70,7 @@ export {
   GET_SKETCH_VERSION_SCHEMA,
   CREATE_SKETCH_VERSION_SCHEMA,
   RESTORE_SKETCH_VERSION_SCHEMA,
+  DELETE_SKETCH_VERSION_SCHEMA,
   EDIT_SKETCH_SCHEMA,
   VALIDATE_SKETCH_SCHEMA
 } from "./sketches.specs.js";
@@ -451,6 +454,31 @@ const restoreSketchVersion: CapabilityExport = {
       updated_at: updated.updated_at,
       validation,
       summary: validationSummary(validation)
+    };
+  }
+};
+
+const deleteSketchVersion: CapabilityExport = {
+  spec: deleteSketchVersionSpec,
+  impl: async (run, params) => {
+    const doc = await loadSketch(run, params["image_document_id"]);
+    if (isError(doc)) return doc;
+
+    const number = versionNumber(params["version"]);
+    if (isError(number)) return number;
+
+    const { ImageDocumentVersion } = await import("@nodetool-ai/models");
+    const version = await ImageDocumentVersion.findByVersion(doc.id, number);
+    if (!version) {
+      return {
+        error: `Sketch ${doc.id} has no version ${number}. Call list_sketch_versions to see the available ones.`
+      };
+    }
+    await version.delete();
+    return {
+      ok: true,
+      image_document_id: doc.id,
+      deleted_version: number
     };
   }
 };
@@ -954,6 +982,7 @@ export const SKETCH_CAPABILITIES: readonly CapabilityExport[] = [
   getSketchVersion,
   createSketchVersion,
   restoreSketchVersion,
+  deleteSketchVersion,
   editSketch,
   validateSketch,
   deleteSketch
@@ -971,6 +1000,7 @@ export {
   getSketchVersion,
   createSketchVersion,
   restoreSketchVersion,
+  deleteSketchVersion,
   editSketch,
   validateSketch,
   deleteSketch

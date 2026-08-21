@@ -12,5 +12,6 @@ export const SKETCH_VERSION_TOOL_NAMES = [
   "list_sketch_versions",
   "get_sketch_version",
   "create_sketch_version",
-  "restore_sketch_version"
+  "restore_sketch_version",
+  "delete_sketch_version"
 ] as const;

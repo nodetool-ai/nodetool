@@ -71,7 +71,8 @@ describe("timeline version tools", () => {
         "list_timeline_versions",
         "get_timeline_version",
         "create_timeline_version",
-        "restore_timeline_version"
+        "restore_timeline_version",
+        "delete_timeline_version"
       ])
     );
     expect(permissionCategoryFor("list_timelines")).toBe("read");
@@ -79,6 +80,7 @@ describe("timeline version tools", () => {
     expect(permissionCategoryFor("get_timeline_version")).toBe("read");
     expect(permissionCategoryFor("create_timeline_version")).toBe("write");
     expect(permissionCategoryFor("restore_timeline_version")).toBe("write");
+    expect(permissionCategoryFor("delete_timeline_version")).toBe("write");
   });
 
   it("lists the caller's timelines and filters by name", async () => {

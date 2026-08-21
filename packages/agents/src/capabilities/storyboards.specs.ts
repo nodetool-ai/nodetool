@@ -30,6 +30,39 @@ export const LIST_STORYBOARDS_SCHEMA: JsonSchema = {
   }
 };
 
+export const CREATE_STORYBOARD_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    name: {
+      type: "string",
+      description: "Name of the new storyboard."
+    },
+    brief: {
+      type: "string",
+      description: "Board brief. Defaults to empty."
+    },
+    style: {
+      type: "string",
+      description: "Style text appended to every shot prompt. Defaults to empty."
+    },
+    aspect_ratio: {
+      type: "string",
+      description: "Shot aspect ratio, e.g. '16:9' (default '16:9')."
+    },
+    project_id: {
+      type: "string",
+      description: "Project to create the storyboard in (default 'default')."
+    },
+    id: {
+      type: "string",
+      description:
+        "Optional id. If a storyboard with this id already exists and you " +
+        "own it, that row is returned instead of creating a duplicate."
+    }
+  },
+  required: ["name"]
+};
+
 export const GET_STORYBOARD_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -175,6 +208,24 @@ export const listStoryboardsSpec: CapabilitySpec = {
   userMessage: () => "Listing storyboards"
 };
 
+export const createStoryboardSpec: CapabilitySpec = {
+  name: "create_storyboard",
+  description:
+    "Create a blank storyboard and return its id. This is the first step of " +
+    "directing one headlessly: create it, then add and rewrite shots with " +
+    "edit_storyboard. An open editor picks the new board up once you open it. " +
+    "Stills and clips stay empty — render them with render_storyboard_stills " +
+    "and render_storyboard_clips.",
+  inputSchema: CREATE_STORYBOARD_SCHEMA,
+  category: "write",
+  userMessage: (params) => {
+    const name = params["name"];
+    return typeof name === "string" && name.trim()
+      ? `Creating storyboard ${name}`
+      : "Creating storyboard";
+  }
+};
+
 export const getStoryboardSpec: CapabilitySpec = {
   name: "get_storyboard",
   description:
@@ -311,6 +362,7 @@ export const deleteStoryboardSpec: CapabilitySpec = {
 /** Every spec this module declares, in declaration order. */
 export const storyboardsSpecs: readonly CapabilitySpec[] = [
   listStoryboardsSpec,
+  createStoryboardSpec,
   getStoryboardSpec,
   renderStoryboardStillsSpec,
   renderStoryboardClipsSpec,

@@ -63,12 +63,14 @@ describe("sketch version tools", () => {
         "list_sketch_versions",
         "get_sketch_version",
         "create_sketch_version",
-        "restore_sketch_version"
+        "restore_sketch_version",
+        "delete_sketch_version"
       ])
     );
     expect(permissionCategoryFor("list_sketch_versions")).toBe("read");
     expect(permissionCategoryFor("get_sketch_version")).toBe("read");
     expect(permissionCategoryFor("restore_sketch_version")).toBe("write");
+    expect(permissionCategoryFor("delete_sketch_version")).toBe("write");
     expect(permissionCategoryFor("validate_sketch")).toBe("read");
     expect(permissionCategoryFor("create_sketch")).toBe("write");
   });
@@ -265,5 +267,31 @@ describe("sketch version tools", () => {
       version: 1
     })) as { error: string };
     expect(result.error).toContain("was not found");
+  });
+
+  it("deletes a snapshot without changing the live document", async () => {
+    const row = await makeSketch();
+    await toolForCapabilityName("create_sketch_version").process(ctx(), {
+      image_document_id: row.id
+    });
+
+    const result = (await toolForCapabilityName("delete_sketch_version").process(
+      ctx(),
+      { image_document_id: row.id, version: 1 }
+    )) as { ok: boolean; deleted_version: number };
+    expect(result).toEqual({
+      ok: true,
+      image_document_id: row.id,
+      deleted_version: 1
+    });
+
+    const listed = (await toolForCapabilityName("list_sketch_versions").process(
+      ctx(),
+      { image_document_id: row.id }
+    )) as { versions: unknown[] };
+    expect(listed.versions).toEqual([]);
+
+    const live = (await ImageDocument.findById(row.id))!;
+    expect(live.updated_at).toBe(row.updated_at);
   });
 });

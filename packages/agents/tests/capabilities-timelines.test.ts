@@ -91,6 +91,10 @@ const PAIRS: Array<[string, () => Tool]> = [
     "restore_timeline_version",
     () => toolForCapabilityName("restore_timeline_version")
   ],
+  [
+    "delete_timeline_version",
+    () => toolForCapabilityName("delete_timeline_version")
+  ],
   ["edit_timeline", () => toolForCapabilityName("edit_timeline")],
   ["validate_timeline", () => toolForCapabilityName("validate_timeline")]
 ];
@@ -104,6 +108,7 @@ describe("timelines capability module", () => {
       "get_timeline_version",
       "create_timeline_version",
       "restore_timeline_version",
+      "delete_timeline_version",
       "edit_timeline",
       "validate_timeline",
       "delete_timeline"

@@ -633,11 +633,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "sketch.create": { capability: "create_sketch" },
   "sketch.delete": { capability: "delete_sketch" },
   "sketch.documentVersions.create": { capability: "create_sketch_version" },
-  "sketch.documentVersions.delete": {
-    gap:
-      "Pruning snapshots; the restore path is covered, the prune is " +
-      "not."
-  },
+  "sketch.documentVersions.delete": { capability: "delete_sketch_version" },
   "sketch.documentVersions.get": { capability: "get_sketch_version" },
   "sketch.documentVersions.list": { capability: "list_sketch_versions" },
   "sketch.documentVersions.restore": { capability: "restore_sketch_version" },
@@ -684,7 +680,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "outside every check in this table, for as long as it is valid. " +
       "read_asset returns the bytes to the run instead."
   },
-  "storyboards.create": { capability: "derive_storyboard_from_script" },
+  "storyboards.create": { capability: "create_storyboard" },
   "storyboards.delete": { capability: "delete_storyboard" },
   "storyboards.get": { capability: "get_storyboard" },
   "storyboards.list": { capability: "list_storyboards" },
@@ -728,11 +724,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "timeline.list": { capability: "list_timelines" },
   "timeline.update": { capability: "edit_timeline" },
   "timeline.versions.create": { capability: "create_timeline_version" },
-  "timeline.versions.delete": {
-    gap:
-      "Pruning snapshots; the restore path is covered, the prune is " +
-      "not."
-  },
+  "timeline.versions.delete": { capability: "delete_timeline_version" },
   "timeline.versions.get": { capability: "get_timeline_version" },
   "timeline.versions.list": { capability: "list_timeline_versions" },
   "timeline.versions.restore": { capability: "restore_timeline_version" },
@@ -942,30 +934,10 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "get_workflow carries the graph the outputs are read from."
   },
   "workflows.update": { capability: "update_workflow" },
-  "workflows.versions.create": {
-    gap:
-      "Workflow version history has no capability yet; " +
-      "update_workflow's expected_updated_at is the concurrency " +
-      "guard."
-  },
-  "workflows.versions.delete": {
-    gap:
-      "Workflow version history has no capability yet; " +
-      "update_workflow's expected_updated_at is the concurrency " +
-      "guard."
-  },
-  "workflows.versions.list": {
-    gap:
-      "Workflow version history has no capability yet; " +
-      "update_workflow's expected_updated_at is the concurrency " +
-      "guard."
-  },
-  "workflows.versions.restore": {
-    gap:
-      "Workflow version history has no capability yet; " +
-      "update_workflow's expected_updated_at is the concurrency " +
-      "guard."
-  },
+  "workflows.versions.create": { capability: "create_workflow_version" },
+  "workflows.versions.delete": { capability: "delete_workflow_version" },
+  "workflows.versions.list": { capability: "list_workflow_versions" },
+  "workflows.versions.restore": { capability: "restore_workflow_version" },
   "workspace.create": {
     withheld:
       "A workspace names an absolute path on the host filesystem, so " +

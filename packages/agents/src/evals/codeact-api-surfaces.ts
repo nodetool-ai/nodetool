@@ -1794,6 +1794,23 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         };
       }
     ),
+    tool(
+      "delete_timeline_version",
+      "Delete one snapshot. The live sequence is not changed.",
+      obj({ timeline_id: S, version: N }, ["timeline_id", "version"]),
+      (params) => {
+        const id = str(params["timeline_id"]);
+        needTimeline(world, id);
+        const version = num(params["version"], 0);
+        const list = world.versions.get(`timeline:${id}`) ?? [];
+        const idx = list.findIndex((v) => v.version === version);
+        if (idx < 0)
+          throw new Error(`no version ${version} for timeline "${id}"`);
+        list.splice(idx, 1);
+        world.versions.set(`timeline:${id}`, list);
+        return { ok: true, timeline_id: id, deleted_version: version };
+      }
+    ),
 
     // -- sketches ---------------------------------------------------------
     tool(
@@ -1982,6 +1999,25 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         };
       }
     ),
+    tool(
+      "delete_sketch_version",
+      "Delete one snapshot. The live document is not changed.",
+      obj({ image_document_id: S, version: N }, [
+        "image_document_id",
+        "version"
+      ]),
+      (params) => {
+        const id = str(params["image_document_id"]);
+        needSketch(world, id);
+        const version = num(params["version"], 0);
+        const list = world.versions.get(`sketch:${id}`) ?? [];
+        const idx = list.findIndex((v) => v.version === version);
+        if (idx < 0) throw new Error(`no version ${version} for sketch "${id}"`);
+        list.splice(idx, 1);
+        world.versions.set(`sketch:${id}`, list);
+        return { ok: true, image_document_id: id, deleted_version: version };
+      }
+    ),
 
     // -- scripts ----------------------------------------------------------
     tool("list_scripts", "List saved scripts.", obj({ limit: N }), () => ({
@@ -2127,6 +2163,32 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           clips: doc.shots.filter((s) => s.clip !== null).length
         }))
       })
+    ),
+    tool(
+      "create_storyboard",
+      "Create a blank storyboard.",
+      obj({ name: S, brief: S, style: S, aspect_ratio: S, id: S }, ["name"]),
+      (params) => {
+        const id = str(params["id"], `sb_${world.storyboards.size + 1}`);
+        if (world.storyboards.has(id)) {
+          const existing = world.storyboards.get(id)!;
+          return {
+            ok: true,
+            storyboard_id: existing.storyboard_id,
+            name: existing.name
+          };
+        }
+        const name = str(params["name"], "Untitled");
+        const doc: StoryboardDoc = {
+          storyboard_id: id,
+          name,
+          image_model: { provider: "fal_ai", model: "fal-ai/flux/schnell" },
+          video_model: { provider: "fal_ai", model: "fal-ai/ltx" },
+          shots: []
+        };
+        world.storyboards.set(id, doc);
+        return { ok: true, storyboard_id: id, name, shots: 0 };
+      }
     ),
     tool(
       "get_storyboard",

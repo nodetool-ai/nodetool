@@ -66,6 +66,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Storyboard → rendered media → timeline, without authoring a workflow
   "list_storyboards",
+  "create_storyboard",
   "get_storyboard",
   "render_storyboard_stills",
   "render_storyboard_clips",
@@ -81,6 +82,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "get_sketch_version",
   "create_sketch_version",
   "restore_sketch_version",
+  "delete_sketch_version",
   "edit_sketch",
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)
@@ -89,6 +91,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "get_timeline_version",
   "create_timeline_version",
   "restore_timeline_version",
+  "delete_timeline_version",
   "edit_timeline",
 
   // Code-node authoring harness (validate → run → test a Code body)

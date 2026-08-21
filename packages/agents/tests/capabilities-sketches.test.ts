@@ -73,6 +73,10 @@ const PAIRS: Array<[string, () => Tool]> = [
     "restore_sketch_version",
     () => toolForCapabilityName("restore_sketch_version")
   ],
+  [
+    "delete_sketch_version",
+    () => toolForCapabilityName("delete_sketch_version")
+  ],
   ["edit_sketch", () => toolForCapabilityName("edit_sketch")],
   ["validate_sketch", () => toolForCapabilityName("validate_sketch")]
 ];
@@ -87,6 +91,7 @@ describe("sketches capability module", () => {
       "get_sketch_version",
       "create_sketch_version",
       "restore_sketch_version",
+      "delete_sketch_version",
       "edit_sketch",
       "validate_sketch",
       "delete_sketch"

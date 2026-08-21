@@ -176,7 +176,7 @@ lazy implementation table disagree.
 
 | Module | Capabilities |
 |---|---|
-| `workflows` | `list_workflows`, `get_workflow`, `create_workflow`, `run_workflow`, `debug_workflow`, `resolve_workflow_escalation`, `validate_workflow`, `start_background_job`, `get_example_workflow`, `export_workflow_digraph` |
+| `workflows` | `list_workflows`, `get_workflow`, `create_workflow`, `list_workflow_versions`, `get_workflow_version`, `create_workflow_version`, `restore_workflow_version`, `delete_workflow_version`, `run_workflow`, `debug_workflow`, `resolve_workflow_escalation`, `validate_workflow`, `start_background_job`, `get_example_workflow`, `export_workflow_digraph` |
 | `nodes` | `list_nodes`, `search_nodes`, `get_node_info` |
 | `models` | `find_model`, `list_models`, `list_provider_models` |
 | `files` | `read_file`, `write_file`, `list_directory`, `edit_file`, `glob`, `grep`, `todo_write` |
@@ -191,9 +191,9 @@ lazy implementation table disagree.
 | `code` | `validate_code`, `run_code`, `test_code` |
 | `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
 | `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video` |
-| `timelines` | `list_timelines`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `edit_timeline`, `validate_timeline` |
-| `sketches` | `list_sketches`, `create_sketch`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `edit_sketch`, `validate_sketch` |
-| `storyboards` | `list_storyboards`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard` |
+| `timelines` | `list_timelines`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `delete_timeline_version`, `edit_timeline`, `validate_timeline` |
+| `sketches` | `list_sketches`, `create_sketch`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `delete_sketch_version`, `edit_sketch`, `validate_sketch` |
+| `storyboards` | `list_storyboards`, `create_storyboard`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard` |
 | `scripts` | `list_scripts`, `get_script`, `voice_script_lines`, `assemble_script_timeline`, `edit_script` |
 | `memory` | `thread_memory_save`, `thread_memory_list`, `thread_memory_update`, `thread_memory_delete` |
 | `shared` | `list_shared`, `read_shared`, `share_result` |

@@ -105,6 +105,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_timelines: "read",
   list_timeline_versions: "read",
   get_timeline_version: "read",
+  list_workflow_versions: "read",
+  get_workflow_version: "read",
   list_storyboards: "read",
   get_storyboard: "read",
   get_example_workflow: "read",
@@ -199,11 +201,17 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // document itself (undoably — it snapshots first).
   create_sketch: "write",
   create_sketch_version: "write",
+  create_storyboard: "write",
   restore_sketch_version: "write",
+  delete_sketch_version: "write",
   // Same for a timeline sequence's history: a restore rewrites the cut, after
   // snapshotting the state it replaces.
   create_timeline_version: "write",
   restore_timeline_version: "write",
+  delete_timeline_version: "write",
+  create_workflow_version: "write",
+  restore_workflow_version: "write",
+  delete_workflow_version: "write",
   // Document edits: each rewrites a stored document under a CAS.
   edit_timeline: "write",
   edit_sketch: "write",

@@ -1134,9 +1134,9 @@ non-zero and prints the issues.
 Agents get the same history headlessly: **`list_timelines`**,
 **`list_timeline_versions`**, **`get_timeline_version`** (read one snapshot's
 document without restoring), **`create_timeline_version`** (manual snapshot),
-and **`restore_timeline_version`**, which snapshots the pre-restore state first
-and returns the post-restore validation. None of them needs an open editor or a
-running server.
+**`delete_timeline_version`**, and **`restore_timeline_version`**, which
+snapshots the pre-restore state first and returns the post-restore validation.
+None of them needs an open editor or a running server.
 
 ### nodetool sketch validate / debug (Sketch Harness)
 
@@ -1173,9 +1173,9 @@ tool: pass an inline `document` to check a sketch being built, or an
 Agents also get the version history headlessly: **`list_sketches`**,
 **`create_sketch`** (a blank canvas, then `edit_sketch`),
 **`list_sketch_versions`**, **`get_sketch_version`** (read one snapshot's
-document without restoring), **`create_sketch_version`** (manual snapshot), and
-**`restore_sketch_version`**, which snapshots the pre-restore state first and
-returns the post-restore validation.
+document without restoring), **`create_sketch_version`** (manual snapshot),
+**`delete_sketch_version`**, and **`restore_sketch_version`**, which snapshots
+the pre-restore state first and returns the post-restore validation.
 
 The bundle (`nodetool-debug/sketch-<id>-<ts>/`) holds `report.json`,
 `report.md`, and `sketch.json` (the input document). Exit code 0 only when the
@@ -1288,7 +1288,8 @@ remain the path when the script is open in a browser.
 ### Storyboard render tools (no workflow, no browser)
 
 An agent takes a storyboard from directed to delivered without authoring a
-workflow: **`render_storyboard_stills`** calls the image model per shot and
+workflow: **`create_storyboard`** makes a blank board (then `edit_storyboard`
+adds shots), **`render_storyboard_stills`** calls the image model per shot and
 saves each still as the shot's keyframe, **`render_storyboard_clips`** animates
 those keyframes into clips, **`revise_storyboard_clip`** revises one take, and
 **`assemble_storyboard_timeline`** lays the rendered clips into a saved timeline

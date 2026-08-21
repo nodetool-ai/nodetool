@@ -274,6 +274,33 @@ export const restoreSketchVersionSpec: CapabilitySpec = {
     `Restoring sketch ${String(params["image_document_id"])} to v${String(params["version"])}`
 };
 
+export const DELETE_SKETCH_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    image_document_id: {
+      type: "string",
+      description: "Sketch id."
+    },
+    version: {
+      type: "number",
+      description: "Version number to delete, from list_sketch_versions."
+    }
+  },
+  required: ["image_document_id", "version"]
+};
+
+export const deleteSketchVersionSpec: CapabilitySpec = {
+  name: "delete_sketch_version",
+  description:
+    "Delete one whole-document snapshot of a sketch you own, addressed by " +
+    "version number (from list_sketch_versions). This cannot be undone. The " +
+    "live document is not changed.",
+  inputSchema: DELETE_SKETCH_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Deleting v${String(params["version"])} of sketch ${String(params["image_document_id"])}`
+};
+
 export const editSketchSpec: CapabilitySpec = {
   name: "edit_sketch",
   description:
@@ -339,6 +366,7 @@ export const sketchesSpecs: readonly CapabilitySpec[] = [
   getSketchVersionSpec,
   createSketchVersionSpec,
   restoreSketchVersionSpec,
+  deleteSketchVersionSpec,
   editSketchSpec,
   validateSketchSpec,
   deleteSketchSpec
