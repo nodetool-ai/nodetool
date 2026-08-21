@@ -1,7 +1,6 @@
 import {
   OPTIONAL_NODE_PACKS,
   getOptionalNodePackForNamespace,
-  isOptionalNamespace,
   isNamespaceHiddenByOptionalPacks
 } from "../optionalNodePacks";
 
@@ -47,14 +46,6 @@ describe("optionalNodePacks catalog", () => {
     it("does not match a namespace that merely shares a prefix substring", () => {
       // `lib.images` is not under the `lib.image` prefix.
       expect(getOptionalNodePackForNamespace("lib.images")).toBeUndefined();
-    });
-  });
-
-  describe("isOptionalNamespace", () => {
-    it("classifies niche vs core namespaces", () => {
-      expect(isOptionalNamespace("lib.os")).toBe(true);
-      expect(isOptionalNamespace("lib.browser")).toBe(true);
-      expect(isOptionalNamespace("nodetool.audio")).toBe(false);
     });
   });
 

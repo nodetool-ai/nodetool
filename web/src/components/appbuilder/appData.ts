@@ -12,7 +12,6 @@ import {
   APP_SCHEMA_VERSION,
   createEmptyDocument as createEmptyApplicationDocument,
   createEmptyPuckData,
-  isRenderableUi,
   parseApplicationDocument,
   type ApplicationDocument
 } from "@nodetool-ai/app-runtime";
@@ -26,7 +25,3 @@ export const createEmptyData = (): Data => createEmptyPuckData() as Data;
 
 export const createEmptyDocument = (title?: string): AppDocument =>
   createEmptyApplicationDocument(title);
-
-/** True when the document has at least one placed component. */
-export const isRenderableData = (data: Data | null | undefined): data is Data =>
-  isRenderableUi(data as never);
