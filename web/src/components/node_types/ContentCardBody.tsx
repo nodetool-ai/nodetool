@@ -212,8 +212,13 @@ const styles = (theme: Theme) =>
         overflow: "auto",
         padding: theme.spacing(0.5),
         background: "transparent",
-        // The inner TextRenderer/MaybeMarkdown brings its own typography
-        // (matches PreviewNode); just give it a scroll container.
+        fontSize: "var(--fontSizeSmaller)",
+        // PreviewNode forces `.output` to fontSizeSmaller. Without the same
+        // size here, TextRenderer (fontSizeSmall) and `.markdown-body`
+        // (fontSizeNormal) render larger than the output node preview.
+        "& .output, & .markdown-body": {
+          fontSize: "var(--fontSizeSmaller) !important"
+        },
         "& > .output": {
           height: "100%"
         }
@@ -563,11 +568,8 @@ const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
 };
 
 const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
-  // Render via the same TextRenderer PreviewNode uses (markdown + theme
-  // typography) so the card and the preview node match visually. The card's
-  // height is capped (see `.preview-area` CSS) so long/streaming text scrolls
-  // in place; the generations navigator's "Open full text" control
-  // (NodeHistoryViewer) opens the full text in a readable popup.
+  // Same TextRenderer PreviewNode uses. `.text-preview` CSS pins
+  // fontSizeSmaller so the card matches the output node preview.
   const text = extractTextValue(value);
   return (
     <div
