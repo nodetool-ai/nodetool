@@ -1,12 +1,8 @@
 /**
- * Characterization tests for the app verdict — the branches the other
- * app-debug suites do not reach.
- *
- * The verdict decides, after a headless run, which empty widget is a defect and
- * which is expected: an execution field of an operation that never ran, a
- * variable only the UI writes, a branch the run did not take, an operation that
- * outlived its timeout, and an app nothing ever ran. Each of those is a
- * separate rule, and each is asserted here against a stubbed runner.
+ * The verdict rules the other app-debug suites do not reach. Each decides what
+ * an empty widget means after a headless run: an execution field of an
+ * operation that never ran, a variable only the UI writes, a branch the run did
+ * not take, an operation past its timeout, and an app nothing ever ran.
  */
 import { describe, expect, it, vi } from "vitest";
 import { simulateApp } from "../src/app-debug/simulate.js";
@@ -20,6 +16,8 @@ import type {
   ResolvedAppTarget
 } from "../src/app-debug/types.js";
 import { resolvedBundle, resolvedWorkflow } from "./app-debug-fixtures.js";
+
+type RunOnServer = (input: AppServerRunInput) => Promise<AppServerRunOutcome>;
 
 const runButton = {
   type: "Button",
@@ -42,8 +40,8 @@ const stubRunner = (
     { type: "job_update", status: "completed" }
   ]
 ) =>
-  vi.fn<(input: AppServerRunInput) => Promise<AppServerRunOutcome>>(async () => {
-    const summary = collectExecutionSummary(messages as never[]);
+  vi.fn<RunOnServer>(async () => {
+    const summary = collectExecutionSummary(messages);
     summary.status = "completed";
     return {
       report: {
@@ -62,7 +60,7 @@ const stubRunner = (
 const run = async (
   target: ResolvedAppTarget,
   interact?: InteractionStep[],
-  runOnServer = stubRunner()
+  runOnServer: RunOnServer = stubRunner()
 ) => {
   const report = await simulateApp(
     target,
@@ -344,9 +342,7 @@ describe("app verdict — a branch the run did not take", () => {
 
 describe("app verdict — an operation that outlived its timeout", () => {
   it("fails and says the app would still show it running", async () => {
-    const hangs = vi.fn<
-      (input: AppServerRunInput) => Promise<AppServerRunOutcome>
-    >(() => new Promise<AppServerRunOutcome>(() => {}));
+    const hangs: RunOnServer = () => new Promise(() => {});
     const { report } = await run(
       twoOperationApp(
         [
