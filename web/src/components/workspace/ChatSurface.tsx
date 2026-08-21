@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
-import { FlexColumn, Text } from "../ui_primitives";
+import { FlexColumn } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
 import WelcomePlaceholder from "../chat/containers/WelcomePlaceholder";
 import useGlobalChatStore, {
@@ -9,6 +9,16 @@ import useGlobalChatStore, {
 } from "../../stores/GlobalChatStore";
 import type { Message, LanguageModel } from "../../stores/ApiTypes";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+
+const whenChatStoreHydrated = (): Promise<void> => {
+  const persistApi = useGlobalChatStore.persist;
+  if (persistApi.hasHydrated()) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    persistApi.onFinishHydration(() => resolve());
+  });
+};
 
 interface ChatSurfaceProps {
   refId: string;
@@ -29,8 +39,6 @@ const NO_MESSAGES: Message[] = [];
  * the focused tab.
  */
 const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
-  const [notFound, setNotFound] = useState(false);
-
   const runtime = useThreadRuntime(refId);
 
   const { currentThreadId, thread, messages } = useGlobalChatStore(
@@ -44,6 +52,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
   const {
     connect,
     fetchThread,
+    ensureLocalThread,
     switchThread,
     loadMessages,
     createNewThread,
@@ -55,6 +64,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     useShallow((state) => ({
       connect: state.connect,
       fetchThread: state.fetchThread,
+      ensureLocalThread: state.ensureLocalThread,
       switchThread: state.switchThread,
       loadMessages: state.loadMessages,
       createNewThread: state.createNewThread,
@@ -82,24 +92,25 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     });
   }, [connect]);
 
-  // Hydrate the thread on mount: a restored tab may reference a thread the
-  // store hasn't seen yet. Mark the tab when the thread no longer exists.
+  // Hydrate after persist so a locally-created thread is not treated as
+  // missing while rehydration is still in flight. The server creates the
+  // row on the first message, so a 404 is an empty conversation.
   const threadKnown = thread !== undefined;
   useEffect(() => {
-    if (notFound) {
-      return;
-    }
     let cancelled = false;
     const hydrate = async () => {
       try {
-        if (!threadKnown) {
+        await whenChatStoreHydrated();
+        if (cancelled) {
+          return;
+        }
+        if (!useGlobalChatStore.getState().threads[refId]) {
           const fetched = await fetchThread(refId);
           if (cancelled) {
             return;
           }
-          if (!fetched) {
-            setNotFound(true);
-            return;
+          if (!fetched && !useGlobalChatStore.getState().threads[refId]) {
+            ensureLocalThread(refId);
           }
         }
         await loadMessages(refId);
@@ -113,7 +124,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     return () => {
       cancelled = true;
     };
-  }, [notFound, threadKnown, refId, fetchThread, loadMessages]);
+  }, [refId, fetchThread, ensureLocalThread, loadMessages]);
 
   // The active tab's thread becomes the store's current one (sidebar
   // selection, header, persistent composer default). Generation itself is
@@ -179,16 +190,6 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
       console.error("Failed to create new chat thread:", error);
     }
   }, [createNewThread, openTab]);
-
-  if (notFound) {
-    return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <Text size="normal" weight={600}>
-          Conversation not found
-        </Text>
-      </FlexColumn>
-    );
-  }
 
   return (
     <FlexColumn fullWidth fullHeight sx={{ minHeight: 0, overflow: "hidden" }}>

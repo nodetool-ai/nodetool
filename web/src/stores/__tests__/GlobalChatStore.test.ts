@@ -177,6 +177,20 @@ describe("GlobalChatStore", () => {
     expect(state.threads[id]).toBeDefined();
   });
 
+  it("ensureLocalThread seeds a given id without stealing the current thread", () => {
+    store.getState().ensureLocalThread("local-tab", { makeCurrent: false });
+    const state = store.getState();
+    expect(state.threads["local-tab"]).toBeDefined();
+    expect(state.threads["local-tab"]?.title).toBe("New conversation");
+    expect(state.currentThreadId).toBeNull();
+  });
+
+  it("ensureLocalThread does not replace an existing thread", async () => {
+    const id = await store.getState().createNewThread("Kept title");
+    store.getState().ensureLocalThread(id, { title: "Other" });
+    expect(store.getState().threads[id]?.title).toBe("Kept title");
+  });
+
   it("sendMessage sends the thread's permission mode", async () => {
     mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(true);
     mockGlobalWebSocketManager.isConnected = true;

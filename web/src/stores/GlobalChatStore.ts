@@ -326,6 +326,18 @@ export interface GlobalChatState {
   // Thread actions
   fetchThreads: () => Promise<void>;
   fetchThread: (threadId: string) => Promise<Thread | null>;
+  /**
+   * Register a thread that exists only on the client. The server creates the
+   * row on the first message. No-op when `threadId` is already in `threads`.
+   */
+  ensureLocalThread: (
+    threadId: string,
+    options?: {
+      title?: string;
+      workflowId?: string | null;
+      makeCurrent?: boolean;
+    }
+  ) => void;
   createNewThread: (
     title?: string,
     workflowId?: string | null,
@@ -1244,83 +1256,93 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
       },
 
-      createNewThread: async (
-        title?: string,
-        workflowId?: string | null,
-        options?: { makeCurrent?: boolean }
-      ) => {
-        const safeTitle = isString(title) ? title : undefined;
-        const makeCurrent = options?.makeCurrent !== false;
+      ensureLocalThread: (threadId, options) => {
+        if (get().threads[threadId]) {
+          return;
+        }
 
-        // Bind to the passed workflow, or the currently open one. `undefined`
-        // means "use current"; an explicit `null` forces a workflow-agnostic
-        // thread.
+        const safeTitle = isString(options?.title) ? options.title : undefined;
+        const makeCurrent = options?.makeCurrent === true;
         const boundWorkflowId =
-          workflowId !== undefined ? workflowId : (get().workflowId ?? null);
+          options?.workflowId !== undefined
+            ? options.workflowId
+            : (get().workflowId ?? null);
 
-        // Create thread locally; server will auto-create on first message
-        const id = crypto.randomUUID();
+        // Subscribe first, then atomically store the unsubscribe handle.
+        // This avoids the closure being created inside set() where a stale
+        // read of wsThreadSubscriptions could leak an old handler.
+        const existingUnsub = get().wsThreadSubscriptions[threadId];
+        if (existingUnsub) {
+          existingUnsub();
+        }
+        const newUnsub = globalWebSocketManager.subscribe(threadId, (data) => {
+          captureChatRunSpend(data, threadId, get);
+          handleChatWebSocketMessage(data, set, get, threadId);
+        });
+
         const now = new Date().toISOString();
         const localThread: Thread = {
-          id,
+          id: threadId,
           user_id: "",
           workflow_id: boundWorkflowId,
           title: safeTitle || "New conversation",
           created_at: now,
           updated_at: now
         };
-
-        // Subscribe first, then atomically store the unsubscribe handle.
-        // This avoids the closure being created inside set() where a stale
-        // read of wsThreadSubscriptions could leak an old handler.
-        const existingUnsub = get().wsThreadSubscriptions[id];
-        if (existingUnsub) {
-          existingUnsub();
-        }
-        const newUnsub = globalWebSocketManager.subscribe(id, (data) => {
-          captureChatRunSpend(data, id, get);
-          handleChatWebSocketMessage(data, set, get, id);
-        });
-
         const inheritedMode = get().lastPermissionMode;
 
         set((state) => {
           const patch: Partial<GlobalChatState> = {
             threads: {
               ...state.threads,
-              [id]: localThread
+              [threadId]: localThread
             },
             permissionMode: {
               ...state.permissionMode,
-              [id]: inheritedMode
+              [threadId]: inheritedMode
             },
             threadWorkflowId: {
               ...state.threadWorkflowId,
-              [id]: boundWorkflowId
+              [threadId]: boundWorkflowId
             },
             messageCache: {
               ...state.messageCache,
-              [id]: []
+              [threadId]: []
             },
             wsThreadSubscriptions: {
               ...state.wsThreadSubscriptions,
-              [id]: newUnsub
+              [threadId]: newUnsub
             }
           };
           if (makeCurrent) {
-            patch.currentThreadId = id;
-            patch.lastUsedThreadId = id;
+            patch.currentThreadId = threadId;
+            patch.lastUsedThreadId = threadId;
             patch.workflowThreadId = boundWorkflowId
-              ? { ...state.workflowThreadId, [boundWorkflowId]: id }
+              ? { ...state.workflowThreadId, [boundWorkflowId]: threadId }
               : state.workflowThreadId;
             Object.assign(
               patch,
-              mirrorsForThread({ ...state, currentThreadId: id }, id)
+              mirrorsForThread(
+                { ...state, currentThreadId: threadId },
+                threadId
+              )
             );
           }
           return patch;
         });
+      },
 
+      createNewThread: async (
+        title?: string,
+        workflowId?: string | null,
+        options?: { makeCurrent?: boolean }
+      ) => {
+        const id = crypto.randomUUID();
+        get().ensureLocalThread(id, {
+          title: isString(title) ? title : undefined,
+          workflowId,
+          makeCurrent: options?.makeCurrent !== false
+        });
         return id;
       },
 
@@ -1793,6 +1815,36 @@ const useGlobalChatStore = create<GlobalChatState>()(
           workflowThreadId: state.workflowThreadId,
           threadWorkflowId: state.threadWorkflowId
         }),
+      // Default persist merge is shallow, so a rehydrate that finishes after
+      // createNewThread would replace `threads` and drop the new conversation.
+      merge: (persistedState, currentState) => {
+        if (!isObjectLike(persistedState) || Array.isArray(persistedState)) {
+          return currentState;
+        }
+        const persisted = persistedState as Partial<PersistedChatState>;
+        // SAFETY: overlay is a persisted subset; the four maps are rebuilt so
+        // in-memory keys win over a late rehydrate.
+        return {
+          ...currentState,
+          ...persisted,
+          threads: {
+            ...(persisted.threads ?? {}),
+            ...currentState.threads
+          },
+          permissionMode: {
+            ...(persisted.permissionMode ?? {}),
+            ...currentState.permissionMode
+          },
+          workflowThreadId: {
+            ...(persisted.workflowThreadId ?? {}),
+            ...currentState.workflowThreadId
+          },
+          threadWorkflowId: {
+            ...(persisted.threadWorkflowId ?? {}),
+            ...currentState.threadWorkflowId
+          }
+        } as GlobalChatState;
+      },
       migrate: (persistedState, _version) => {
         // Corrupt localStorage (string, null, etc.) must yield a usable
         // default rather than passing the raw value through; selectors
