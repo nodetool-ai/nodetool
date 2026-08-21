@@ -32,7 +32,10 @@ import {
   resourceEvents,
   type ResourceChangePayload
 } from "./resource-events.js";
-import { createSystemStatsSampler } from "./system-stats.js";
+import {
+  createSystemStatsSampler,
+  systemStatsBroadcastEnabled
+} from "./system-stats.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import {
   resolveContentUrls,
@@ -2048,6 +2051,15 @@ export interface UnifiedWebSocketRunnerOptions {
   ) => Promise<BaseProvider>;
   getSystemStats?: () => Record<string, unknown>;
   /**
+   * Whether to broadcast `system_stats` to this client. Defaults to off on a
+   * server that enforces auth: there the CPU/RAM belong to a shared container
+   * the user does not own, so the readout is both wrong for them and a report
+   * on someone else's host. Defaults to on for a local install, which is the
+   * machine the numbers describe. See `systemStatsBroadcastEnabled`, which
+   * also reads the `NODETOOL_SYSTEM_STATS` override.
+   */
+  systemStatsEnabled?: boolean;
+  /**
    * Resolve the workspace directory for a run. `workflowId` is null for a chat
    * turn, which resolves to the user's default workspace — chat writes files
    * too, and they belong somewhere the user can find them.
@@ -2117,6 +2129,7 @@ export class UnifiedWebSocketRunner {
   private resolveNodeType?: UnifiedWebSocketRunnerOptions["resolveNodeType"];
   private resolveProvider?: UnifiedWebSocketRunnerOptions["resolveProvider"];
   private getSystemStats: () => Record<string, unknown>;
+  private systemStatsEnabled: boolean;
   private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
   private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
@@ -2440,6 +2453,8 @@ export class UnifiedWebSocketRunner {
     this.apiOptions = options.apiOptions;
     this.frontendRendererRegistry = options.frontendRendererRegistry;
     this.getSystemStats = options.getSystemStats ?? createSystemStatsSampler();
+    this.systemStatsEnabled =
+      options.systemStatsEnabled ?? systemStatsBroadcastEnabled();
   }
 
   isRendererConnected(): boolean {
@@ -9154,6 +9169,9 @@ export class UnifiedWebSocketRunner {
 
   private startStatsBroadcast(): void {
     this.stopStatsBroadcast();
+    if (!this.systemStatsEnabled) {
+      return;
+    }
     const send = () => {
       this.sendMessage({
         type: "system_stats",
