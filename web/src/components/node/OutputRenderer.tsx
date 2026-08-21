@@ -686,6 +686,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <video
             ref={videoRef}
             controls
+            // iOS Safari plays a video inline only with `playsinline`, and
+            // decodes no frame at all without a preload hint — without both,
+            // the element paints an empty box on a phone.
+            playsInline
+            preload="metadata"
             // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
             // the native controls (scrub, volume) get the mouse events.
             className="nodrag nopan"

@@ -50,7 +50,14 @@ export function ListVideoThumb({
 }) {
   const src = useDisplayUri("video", item);
   return (
-    <video src={src} controls muted preload="metadata" aria-label={label} />
+    <video
+      src={src}
+      controls
+      muted
+      playsInline
+      preload="metadata"
+      aria-label={label}
+    />
   );
 }
 
