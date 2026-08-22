@@ -18,6 +18,7 @@ import {
 } from "../ui_primitives";
 import { TutorialCard } from "./TutorialCard";
 import { TUTORIALS, getTutorial } from "./tutorialsData";
+import { resolveStaticMediaUri } from "../../utils/resolveMediaUri";
 
 const styles = (theme: Theme) =>
   css({
@@ -270,8 +271,8 @@ const TutorialsPage: React.FC = () => {
             <div className="tut-player">
               <VideoPlayer
                 key={active.id}
-                src={active.video}
-                poster={active.poster}
+                src={resolveStaticMediaUri(active.video) ?? undefined}
+                poster={resolveStaticMediaUri(active.poster) ?? undefined}
                 autoplay
                 muted
               />

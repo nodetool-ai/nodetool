@@ -79,12 +79,47 @@ These primitives exist but are barely adopted:
 ### Menus & Navigation
 `EditorMenu` | `EditorMenuItem` | `MenuItemPrimitive` | `ContextMenu` | `Breadcrumbs` | `InfoTooltip` | `Tooltip` | `Popover`
 
+### Media (the media-locator rendering boundary)
+`ResponsiveImage` | `VideoPlayer` | `AudioPlayback`
+
 ### Misc
-`Dialog` | `PositionedDialog` | `DialogActionButtons` | `ColorSwatch` | `ResponsiveImage` | `ShortcutHint` | `KeyboardShortcutCard` | `ThemeToggleButton` | `Chip` | `Divider` | `SkipLinks` | `ZoomControls` | `HoverActionGroup` | `SelectableListItem` | `DropZoneOverlay` | `MetadataListRow`
+`Dialog` | `PositionedDialog` | `DialogActionButtons` | `ColorSwatch` | `ShortcutHint` | `KeyboardShortcutCard` | `ThemeToggleButton` | `Chip` | `Divider` | `SkipLinks` | `ZoomControls` | `HoverActionGroup` | `SelectableListItem` | `DropZoneOverlay` | `MetadataListRow`
+
+## Media: resolution is the rendering boundary
+
+`asset://<id>` is an identifier, not a path. The bytes live under
+`<user_id>/<asset_id>.<ext>` and, on the cloud backends, behind a signed URL
+only the server can mint, so handing the locator to an element renders nothing.
+Six separate surfaces shipped that defect (#4873, #4929, #5028, #5078, #5122,
+#5123) before the boundary was made a type.
+
+Two shapes, and the compiler picks between them:
+
+- **`locator`** — whatever the graph stored: `asset://…`, an `ImageRef`/
+  `VideoRef`/`AudioRef`, a `data:`/`blob:`/`package://` URL. The primitive
+  resolves it before setting `src`.
+- **`src`** — a `ResolvedMediaUrl`, which only the resolvers in
+  `utils/resolveMediaUri.ts` and the hooks in `hooks/useResolvedMediaUri.ts`
+  mint. A plain `string` does not typecheck.
+
+```tsx
+<ResponsiveImage locator={shot.keyframe} alt="Still" />
+<VideoPlayer locator={shot.clip} label="Shot clip" />
+<AudioPlayback locator={content.audio} label="Generated audio" />
+```
+
+Rendering a raw `asset://` literal into a JSX `src`/`poster`/`href` is rejected
+by `design-tokens/no-unresolved-media-src` (fixture:
+`scripts/test-media-src-rule.mjs`). The surfaces that render stored media are
+inventoried in `src/__tests__/mediaResolutionBoundary.test.ts`.
 
 ## Decision Tree: Which Primitive to Use
 
 ```
+Need to render media (image / video / audio)?
+├── From a stored locator → ResponsiveImage / VideoPlayer / AudioPlayback with `locator`
+└── From an already-resolved URL → the same three with `src` (ResolvedMediaUrl)
+
 Need a flex container?
 ├── Vertical → FlexColumn
 ├── Horizontal → FlexRow

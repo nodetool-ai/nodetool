@@ -19,7 +19,7 @@ export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRem
   <div className="file-preview">
     {file.type.startsWith("image/") && isDisplayableImage(file.dataUri) ? (
       <ResponsiveImage
-        src={file.dataUri}
+        locator={file.dataUri}
         alt={file.name}
         fit="cover"
         borderRadius={BORDER_RADIUS.sm}

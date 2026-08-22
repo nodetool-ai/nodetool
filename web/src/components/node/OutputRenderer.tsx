@@ -144,6 +144,8 @@ import { RealtimeAudioOutputFromChunks } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
+import { resolveInlineMediaSource } from "../../utils/resolveMediaUri";
+import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
 
 const LazyTimelineRenderer = React.lazy(() => import("../timeline/TimelineRenderer"));
 const LazyAudioPlayer = React.lazy(() => import("../audio/AudioPlayer"));
@@ -548,11 +550,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return (v.data as (string | Uint8Array)[]).map((item) => (
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(item), seen)}
-              source={item}
+              source={resolveInlineMediaSource(item)}
             />
           ));
         } else {
-          let imageSource: string | Uint8Array;
+          let imageSource: ResolvedMediaUrl | "" | Uint8Array;
           if (
             v.mimeType === RAW_RGBA_MIME &&
             v.data instanceof Uint8Array &&
@@ -560,11 +562,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             isNumber(v.height)
           ) {
             // Raw RGBA can't be decoded by <img>; encode to a PNG data URL.
-            imageSource = rawRgbaToPngDataUrl(
-              v.data,
-              v.width,
-              v.height
-            );
+            imageSource =
+              resolveInlineMediaSource(
+                rawRgbaToPngDataUrl(v.data, v.width, v.height)
+              ) ?? "";
           } else if (isStoredUri(v.uri)) {
             imageSource = signedValueUrl;
           } else if (v.data instanceof Uint8Array) {
@@ -572,7 +573,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           } else if (Array.isArray(v.data)) {
             imageSource = new Uint8Array(v.data as number[]);
           } else if (isString(v.data)) {
-            imageSource = v.data;
+            imageSource = resolveInlineMediaSource(v.data) ?? "";
           } else {
             imageSource = "";
           }

@@ -6,6 +6,10 @@ import { trpc } from "../../../trpc/client";
 import { bitmapToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";
 import { fileUriToHttpUrl } from "../../../utils/localFile";
 import {
+  asResolvedMediaUrl,
+  type ResolvedMediaUrl
+} from "../../../utils/resolveMediaUri";
+import {
   useResolvedMediaUri,
   useResolvedMediaUris,
   type MediaLocator
@@ -181,7 +185,9 @@ export function getMimeTypeFromUri(
  * every video and audio output whose ref was an extensionless `asset://`
  * (what chat persistence and `save_asset` produce) rendered an empty element.
  */
-export function useSignedUrl(uri: string | undefined | null): string {
+export function useSignedUrl(
+  uri: string | undefined | null
+): ResolvedMediaUrl | "" {
   const isAssetUri = Boolean(uri?.startsWith("asset://"));
   const assetUrl = useResolvedMediaUri(isAssetUri ? uri : undefined);
   const key = isAssetUri ? null : extractStorageKey(uri);
@@ -194,12 +200,12 @@ export function useSignedUrl(uri: string | undefined | null): string {
   // streaming endpoint.
   const fileHttpUrl = fileUriToHttpUrl(uri);
   if (fileHttpUrl !== null) {
-    return fileHttpUrl;
+    return asResolvedMediaUrl(fileHttpUrl) ?? "";
   }
   if (isAssetUri) {
     return assetUrl ?? "";
   }
-  return data?.url ?? resolveAssetUri(uri);
+  return asResolvedMediaUrl(data?.url ?? resolveAssetUri(uri)) ?? "";
 }
 
 function isVideoValue(value: unknown): value is VideoValue {

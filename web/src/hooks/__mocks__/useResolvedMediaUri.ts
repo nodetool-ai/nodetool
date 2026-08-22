@@ -11,7 +11,11 @@
  * URL a test can assert on.
  */
 
-import { resolveStaticMediaUri as realResolveStaticMediaUri } from "../../utils/resolveMediaUri";
+import {
+  asResolvedMediaUrl,
+  resolveStaticMediaUri as realResolveStaticMediaUri
+} from "../../utils/resolveMediaUri";
+import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
 
 export type MediaLocator =
   | string
@@ -20,8 +24,8 @@ export type MediaLocator =
   | undefined;
 
 /** The URL an `asset://<id>` locator resolves to under test. */
-export const mockAssetUrl = (assetId: string): string =>
-  `https://assets.test/${assetId}`;
+export const mockAssetUrl = (assetId: string): ResolvedMediaUrl =>
+  `https://assets.test/${assetId}` as ResolvedMediaUrl;
 
 /**
  * Asset ids a test wants to resolve to nothing — the shape of an asset whose
@@ -45,7 +49,7 @@ const isPendingAsset = (source: MediaLocator): boolean => {
   return id !== undefined && mockPendingAssets.has(id);
 };
 
-const resolve = (source: MediaLocator): string | undefined => {
+const resolve = (source: MediaLocator): ResolvedMediaUrl | undefined => {
   const uri = typeof source === "string" ? source : (source?.uri ?? undefined);
   const declared = typeof source === "object" ? source?.asset_id : undefined;
   if (declared) {
@@ -54,7 +58,7 @@ const resolve = (source: MediaLocator): string | undefined => {
   // Everything but an asset locator resolves exactly as it does in the app.
   const staticUrl = realResolveStaticMediaUri(uri);
   if (staticUrl !== null) {
-    return staticUrl || undefined;
+    return asResolvedMediaUrl(staticUrl) ?? undefined;
   }
   const id = (uri as string).slice("asset://".length);
   const bareId = id.replace(/\.[^.]+$/, "");
@@ -101,7 +105,7 @@ const assetIdOf = (source: MediaLocator): string | undefined => {
 export const useResolvedMedia = (
   source: MediaLocator
 ): {
-  url: string | undefined;
+  url: ResolvedMediaUrl | undefined;
   contentType: string | undefined;
   pending: boolean;
 } => {
@@ -117,11 +121,12 @@ export const useResolvedMedia = (
   };
 };
 
-export const useResolvedMediaUri = (source: MediaLocator): string | undefined =>
-  useResolvedMedia(source).url;
+export const useResolvedMediaUri = (
+  source: MediaLocator
+): ResolvedMediaUrl | undefined => useResolvedMedia(source).url;
 
 export const useResolvedMediaUris = (
   sources: MediaLocator[]
-): (string | undefined)[] => sources.map(resolve);
+): (ResolvedMediaUrl | undefined)[] => sources.map(resolve);
 
 export default useResolvedMediaUri;

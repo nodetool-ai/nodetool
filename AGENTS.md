@@ -97,6 +97,7 @@ protocol → config → security → auth → storage
 
 - **State management**: Zustand stores (web/src/stores/), React Context wraps Zustand, TanStack Query for server state
 - **UI Primitives (MANDATORY)**: All frontend UI must use primitives from `web/src/components/ui_primitives/`. **Never import raw MUI components** (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) outside of `ui_primitives/` or `editor_ui/`. See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the decision tree, migration rules, and full catalog of 90+ primitives. When touching any file, migrate raw MUI usage to primitives.
+- **Media rendering (MANDATORY)**: `asset://<id>` is a stored identifier, not a URL — the bytes live under `<user_id>/<asset_id>.<ext>` and, on the cloud backends, behind a signed URL only the server can mint. Never set `src`/`poster` from a locator. Render stored media through `ResponsiveImage`, `VideoPlayer`, or `AudioPlayback` with a `locator` prop; those primitives resolve it. Their `src` prop takes a `ResolvedMediaUrl`, minted only by `utils/resolveMediaUri.ts` and `hooks/useResolvedMediaUri.ts`, so a raw string does not typecheck. The lint rule `design-tokens/no-unresolved-media-src` rejects a locator literal in a JSX url attribute; the rendering surfaces are inventoried in `web/src/__tests__/mediaResolutionBoundary.test.ts`.
 - **Design tokens (MANDATORY)**: See **[docs/DESIGN.md](docs/DESIGN.md)** for the token systems — `SPACING` (4px grid), `TYPOGRAPHY` (4-size scale), `BORDER_RADIUS`, `MOTION`, `Z_INDEX`. **Never** hardcode border radii (`4`, `10`, `18px`), transition strings (`"all 200ms ease"`), font sizes (`"14px"`, `"0.85rem"`), or off-grid spacing (`5px`, `10px`, `13px`). Use the named constants from `ui_primitives`. When touching any UI file, fix violations in the same PR.
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
 - **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
@@ -2140,6 +2141,7 @@ See [packages/agents/AGENTS.md](packages/agents/AGENTS.md) for agent architectur
 - Use theme values for spacing, colors, and typography — never hardcode hex colors or pixel values.
 - Prefer composition over deep prop drilling.
 - If no primitive exists for your use case, **create a new primitive** in `ui_primitives/` rather than using raw MUI.
+- Render stored media (`asset://`, a `*Ref`) with `ResponsiveImage` / `VideoPlayer` / `AudioPlayback` and a `locator` prop — never a raw `<img>`/`<video>`/`<audio>` whose `src` is a locator. See [STRATEGY.md § Media](web/src/components/ui_primitives/STRATEGY.md).
 
 ### Design Token Rules (see [docs/DESIGN.md](docs/DESIGN.md) for full reference)
 

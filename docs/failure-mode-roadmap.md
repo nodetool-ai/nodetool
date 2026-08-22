@@ -97,31 +97,6 @@ Tests must show that a missing key produces an issue, an available key clears
 it, and an absent callback preserves current output. Run
 `npm run test --workspace=packages/agents -- workflows`.
 
-## 4. Make media resolution the browser rendering boundary
-
-Status: OPEN. Follow-up to #4873, #4929, #5028, #5078, #5122, and #5123.
-
-The reported leaks are fixed. Canonical resolution exists in
-`web/src/utils/resolveMediaUri.ts` and `web/src/hooks/useResolvedMediaUri.ts`.
-`asset://` remains a valid stored locator, so a zero-hit grep is invalid.
-
-Implementation:
-
-1. Add a `ResolvedMediaUrl` branded string to `resolveMediaUri.ts`. Brand only
-   a non-empty resolved URL; keep missing results `null` or `undefined`.
-2. Extend `ResponsiveImage` and `VideoPlayer` instead of creating parallel
-   image/video primitives. Add one audio primitive. They accept a
-   `MediaLocator` and resolve it before setting `src`.
-3. Migrate chat media, storyboard cards, sketch layers, script shot chips,
-   node previews, and App Builder media widgets.
-4. Check in a consumer inventory for the named surfaces and assert that each
-   uses a locator-aware primitive. Add a design-lint rule that rejects an
-   `asset://` string literal in a JSX `src`. Include a positive-control fixture.
-
-Acceptance: upload -> graph input -> render works for image, video, and audio;
-the primitives cover stored locators and HTTPS URLs; the lint fixture proves
-the rule can fail.
-
 ## 5. Preserve provider behavior through decorators
 
 Status: OPEN. Issue #5109.
@@ -300,5 +275,13 @@ add one 600 x 600 px test per migrated primitive.
   deploys, non-stale failures, and the guard window.
 - **Stale Prompt value:** issue #3786 is closed. `PromptComposerBody` commits
   edits synchronously; its commit and run-from-here suites cover the defect.
+- **Media resolution as the browser rendering boundary:** shipped 2026-08-22.
+  `ResolvedMediaUrl` in `web/src/utils/resolveMediaUri.ts` is the brand;
+  `ResponsiveImage`, `VideoPlayer`, and the new `AudioPlayback` take a
+  `locator` and resolve it. The rendering surfaces are inventoried in
+  `web/src/__tests__/mediaResolutionBoundary.test.ts`, and
+  `design-tokens/no-unresolved-media-src` (fixture
+  `web/scripts/test-media-src-rule.mjs`) rejects a locator literal in a JSX
+  url attribute.
 - **Cross-origin media CSP:** issue #5125 is fixed and covered by
   `web/src/__tests__/contentSecurityPolicy.test.ts`.
