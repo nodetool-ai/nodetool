@@ -73,6 +73,12 @@
       "import": "./dist/context.js",
       "default": "./dist/context.js"
     },
+    "./safe-url": {
+      "nodetool-dev": "./src/providers/safe-url.ts",
+      "types": "./dist/providers/safe-url.d.ts",
+      "import": "./dist/providers/safe-url.js",
+      "default": "./dist/providers/safe-url.js"
+    },
     "./media-ref-bytes": {
       "nodetool-dev": "./src/media-ref-bytes.ts",
       "types": "./dist/media-ref-bytes.d.ts",

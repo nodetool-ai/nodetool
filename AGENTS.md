@@ -40,6 +40,7 @@ Talk to the user in ASD-STE100 Simplified Technical English.
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Mobile](mobile/AGENTS.md)** — React Native / Expo app
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
+- **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
 
 ---
@@ -2263,6 +2264,14 @@ See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific t
 - Validate all IPC inputs with Zod before acting on them.
 - No `eval`, `new Function`, or `setTimeout` with string arguments.
 - Secrets never appear in code, logs, or error messages.
+- Any outbound fetch of a URL somebody else chose — a media ref, a provider's
+  result body, a model's answer — goes through `safeFetch` (or
+  `fetchExternalMedia` for media refs) from `@nodetool-ai/runtime`, never a bare
+  `fetch`. A predicate can refuse the first URL; only the protected fetch
+  re-checks each redirect hop. Every such surface is inventoried in
+  [docs/url-egress-inventory.md](docs/url-egress-inventory.md) and audited by
+  `packages/runtime/tests/url-egress-audit.test.ts`, which fails on a new
+  unclassified `fetch(url)` anywhere under `packages/*/src`.
 - `npm audit` must pass — high/critical advisories block merge unless waived with rationale.
 
 ## Accessibility, Performance, Observability

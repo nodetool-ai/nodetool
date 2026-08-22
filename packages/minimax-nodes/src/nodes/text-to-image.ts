@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { safeFetch } from "@nodetool-ai/runtime";
 import {
   assertBaseResp,
   getMinimaxApiKey,
@@ -115,7 +116,8 @@ export class MinimaxTextToImageNode extends BaseNode {
 
     const urls = payload?.image_urls as string[] | undefined;
     if (urls && urls.length > 0) {
-      const dl = await fetch(urls[0]);
+      // Provider-returned download URL — screened like every other one.
+      const dl = await safeFetch(urls[0]);
       if (!dl.ok) {
         throw new Error(`Failed to download MiniMax image from ${urls[0]}`);
       }

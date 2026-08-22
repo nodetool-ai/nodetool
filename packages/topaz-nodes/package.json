@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
-    "@nodetool-ai/node-sdk": "*"
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

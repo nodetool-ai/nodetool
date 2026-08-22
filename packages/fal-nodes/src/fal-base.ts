@@ -4,6 +4,7 @@
  */
 
 import { createFalClient, type FalClient } from "@fal-ai/client";
+import { fetchExternalMedia } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
 // API Key extraction
@@ -175,7 +176,8 @@ export async function imageToDataUrl(
   if (data) return `data:${mime};base64,${data}`;
   const uri = ref.uri as string | undefined;
   if (uri?.startsWith("https://")) {
-    const res = await fetch(uri);
+    // The ref's uri is workflow data — the media-ref egress policy decides.
+    const res = await fetchExternalMedia(uri);
     const contentType = res.headers?.get?.("content-type") ?? mime;
     const buf = Buffer.from(await res.arrayBuffer());
     return `data:${contentType};base64,${buf.toString("base64")}`;

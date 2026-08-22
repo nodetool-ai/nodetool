@@ -179,27 +179,9 @@ unregistered-file failure, and a non-agent surface that needs no eval.
 
 ## 8. Inventory and consolidate SSRF screening
 
-Status: OPEN. Evidence: #5101.
-
-1. Check in an inventory of every capability, tool, and node parameter that
-   can fetch a caller-provided URL. Record owner, schemes, auth scope, redirect
-   policy, and screening function.
-2. Route the actual public HTTPS operation through redirect-aware `safeFetch`
-   from `@nodetool-ai/runtime`. Predicate helpers may reject an initial URL but
-   do not replace the protected fetch.
-3. Record exemptions for fixed provider hosts and intentional private-network
-   integrations.
-4. Add an audit that asserts it found URL surfaces and that every entry names a
-   policy.
-5. Add a contribution checklist: input source, egress target, authorization,
-   redirects, and CSP impact.
-6. Decide and document DNS rebinding before enforcement: either resolve and pin
-   public addresses for the connection, or name the deployment egress control
-   as the security boundary. Add the chosen rule to the inventory schema.
-
-Tests must reject alternate IPv4 forms, IPv4-mapped IPv6, loopback, private
-networks, metadata addresses, and redirects to blocked addresses. Run
-`npm run test --workspace=packages/runtime -- safe-url`.
+Status: DONE, shipped 2026-08-22. See **SSRF screening inventory and
+consolidation** under [Completed work](#completed-work). The numbering stays so
+older references still resolve.
 
 ## 9. Add property tests to seven pure helpers
 
@@ -292,5 +274,20 @@ add one 600 x 600 px test per migrated primitive.
   `design-tokens/no-unresolved-media-src` (fixture
   `web/scripts/test-media-src-rule.mjs`) rejects a locator literal in a JSX
   url attribute.
+- **SSRF screening inventory and consolidation:** shipped 2026-08-22.
+  `isBlockedIpLiteral` in `packages/runtime/src/providers/safe-url.ts` is the
+  one address table; the sandbox's `network-guard.ts` imports it and the
+  websocket runner's private copy (`isSafeExternalUrl`) is gone.
+  `fetchExternalMedia` (`packages/runtime/src/external-media-fetch.ts`) is the
+  media-ref egress policy — `safeFetch`, with
+  `NODETOOL_ALLOW_PRIVATE_MEDIA_FETCH=1` as the self-hosted LAN opt-out — and
+  the fifteen media and result-download sites that used a bare `fetch` now call
+  it or `safeFetch`. The inventory is
+  `packages/runtime/tests/url-egress-inventory.ts` (86 entries: guarded,
+  fixed-host, private-integration, browser, sandbox-bridge, screening); the
+  reader-facing doc, with the DNS-rebinding decision and the contribution
+  checklist, is `docs/url-egress-inventory.md`; and `url-egress-audit.test.ts`
+  discovers URL surfaces from source in both directions, so a new unclassified
+  `fetch(url)` fails.
 - **Cross-origin media CSP:** issue #5125 is fixed and covered by
   `web/src/__tests__/contentSecurityPolicy.test.ts`.

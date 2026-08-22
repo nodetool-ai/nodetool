@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
+  isBlockedIpLiteral,
   isSafePublicHttpsUrl,
   assertSafePublicHttpsUrl,
   safeFetch
@@ -103,6 +104,69 @@ describe("isSafePublicHttpsUrl", () => {
     expect(isSafePublicHttpsUrl("https://[2002:808:808::]/x")).toBe(true);
     expect(isSafePublicHttpsUrl("https://[64:ff9b::8.8.8.8]/x")).toBe(true);
   });
+
+  it("rejects alternate IPv4 spellings of loopback", () => {
+    // inet_aton forms: decimal, hex, octal, and the short 2-part form. The
+    // WHATWG parser normalises each to 127.0.0.1 before the table sees it —
+    // pinned here because that normalisation is what the table relies on, and
+    // a hand-rolled host check would have to do it itself.
+    expect(isSafePublicHttpsUrl("https://2130706433/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://0x7f000001/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://0177.0.0.1/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://127.1/x")).toBe(false);
+  });
+
+  it("rejects the benchmarking range 198.18.0.0/15", () => {
+    // Came from the sandbox fetch guard's table when the two were merged.
+    expect(isSafePublicHttpsUrl("https://198.18.0.1/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://198.19.255.255/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://198.20.0.1/x")).toBe(true);
+  });
+});
+
+describe("isBlockedIpLiteral", () => {
+  // The shared address table: `packages/agents/src/network-guard.ts` imports
+  // this exact function, so the sandbox fetch bridge and NodeTool's default
+  // egress policy cannot disagree about which addresses are internal.
+  it("blocks every internal literal form", () => {
+    for (const host of [
+      "127.0.0.1",
+      "10.1.2.3",
+      "172.20.0.1",
+      "192.168.0.1",
+      "169.254.169.254",
+      "100.64.0.1",
+      "198.18.0.1",
+      "0.0.0.0",
+      "::1",
+      "::",
+      "[::1]",
+      "fc00::1",
+      "fd12::1",
+      "fe80::1",
+      "febf::1",
+      "fe80::1%eth0",
+      "::ffff:127.0.0.1",
+      "::ffff:7f00:1",
+      "2002:a9fe:a9fe::",
+      "64:ff9b::169.254.169.254"
+    ]) {
+      expect([host, isBlockedIpLiteral(host)]).toEqual([host, true]);
+    }
+  });
+
+  it("passes public literals and every hostname", () => {
+    for (const host of [
+      "8.8.8.8",
+      "198.20.0.1",
+      "2001:4860:4860::8888",
+      "::ffff:8.8.8.8",
+      "example.com",
+      "metadata.example.com"
+    ]) {
+      expect([host, isBlockedIpLiteral(host)]).toEqual([host, false]);
+    }
+  });
 });
 
 describe("safeFetch", () => {
@@ -130,6 +194,21 @@ describe("safeFetch", () => {
       new Response(null, {
         status: 302,
         headers: { location: "http://127.0.0.1:6379/" }
+      })
+    );
+    await expect(safeFetch("https://fal.media/a.png")).rejects.toThrow(
+      /unsafe URL/
+    );
+  });
+
+  it("refuses a redirect to the metadata address over https", async () => {
+    // The internal-host case above redirects to plain http, which the scheme
+    // check alone would catch. This one keeps https, so only the address table
+    // can refuse it.
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: "https://169.254.169.254/latest/meta-data/" }
       })
     );
     await expect(safeFetch("https://fal.media/a.png")).rejects.toThrow(
