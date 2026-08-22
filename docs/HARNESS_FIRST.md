@@ -140,7 +140,7 @@ notes. Each entry also carries a fingerprint of what the capability declares —
 name, description, input schema, category, `needsToolCallId` — which is what
 lets `harness gate --base <ref>` demand a mapping change from a contract change
 and nothing from a refactor. Details:
-[packages/agents/AGENTS.md § Capability coverage](../packages/agents/AGENTS.md).
+[packages/agents/AGENTS.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
 
 ## The gate
 
