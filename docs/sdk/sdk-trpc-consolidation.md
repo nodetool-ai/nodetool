@@ -69,9 +69,10 @@ contract with tRPC URL encoding, envelopes, and internal procedure names.
 ### 2.2 Implementation decisions
 
 - A protocol operation registry owns stable operation IDs, transport metadata,
-  schemas, authentication policy, feature policy, errors, and implementation
-  status. Its HTTP declarations include methods and paths; its WebSocket
-  declarations include commands/events and directions.
+  schemas, authentication policy, feature policy, and errors. Its HTTP
+  declarations include methods and paths; its WebSocket declarations include
+  commands/events and directions. The release registry contains implemented
+  public operations only. Roadmap operations stay in design notes.
 - A typed server handler map, keyed by request/response operation IDs, owns the
   binding to server code. Event publishers have a separate completeness check.
   The protocol package does not contain tRPC procedure-name strings.
@@ -200,7 +201,9 @@ must record the exact commands and commits used for the new baseline.
 
 ### 4.4 Current consumer boundary
 
-- The C#/VL SDK in `nodetool-sdk` is the public out-of-tree consumer.
+- The C#/VL SDK in `nodetool-sdk` is the in-development out-of-tree consumer.
+  It is the release candidate for the public SDK, but there are no external SDK
+  users yet.
 - The TypeScript package uses tRPC and `/ws`; it does not depend on the public
   C# HTTP surface in the same way.
 - The NodeTool web application does not currently call the public SDK routes.
@@ -227,16 +230,17 @@ C# usability layer over these controls.
 ```mermaid
 flowchart LR
   D["SDK v1 operation registry"] --> A["OpenAPI, AsyncAPI, JSON Schema, manifest"]
-  D --> R["Typed server handler map"]
-  D --> E["WebSocket publisher completeness checks"]
+  D --> R["Typed SDK HTTP handler map"]
+  D --> E["Execution dispatcher and publisher checks"]
   R --> S["Transport-neutral SDK service facade"]
   S --> X["Existing domain services"]
-  H["REST adapter"] --> R
-  W["SDK WebSocket adapter"] --> R
-  T["Retained tRPC adapters"] --> R
+  H["SDK HTTP adapter"] --> R
+  W["MessagePack execution adapter"] --> Q["Execution runtime"]
+  Q --> X
+  T["General product tRPC"] --> X
   A --> B["Deterministic released contract bundle"]
   B --> C["Pinned C# wire layer"]
-  C --> P["Stable handwritten C# public API"]
+  C --> P["Session-first handwritten C# API"]
 ```
 
 ### 5.1 Protocol operation registry in `[nodetool]`
@@ -244,10 +248,9 @@ flowchart LR
 Add declarations such as
 `packages/protocol/src/api-schemas/sdk-v1-http-operations.ts` and
 `sdk-v1-websocket-operations.ts`, backed by shared operation metadata types.
-Each implemented or planned operation declares:
+Each implemented public operation declares:
 
 - a stable operation ID;
-- implementation status: `implemented` or `planned`;
 - transport and direction;
 - an HTTP method and path, or a WebSocket command/event identity and channel;
 - applicable path, query, header, body, or message schemas;
@@ -262,7 +265,6 @@ representative shape is:
 ```ts
 type SdkV1OperationCommon = {
   id: SdkV1OperationId;
-  status: "implemented" | "planned";
   auth: "discovery" | "authenticated";
   feature: "workflow-interface" | "lifecycle" | null;
   errors: readonly SdkV1ErrorDeclaration[];
@@ -279,7 +281,7 @@ type SdkV1OperationDeclaration = SdkV1OperationCommon &
       }
     | {
         transport: "websocket";
-        direction: "request-response" | "server-event";
+        direction: "client-command" | "server-event";
         channel: string;
         command?: string;
         message: SdkV1MessageDeclaration;
@@ -288,18 +290,18 @@ type SdkV1OperationDeclaration = SdkV1OperationCommon &
 ```
 
 Generate OpenAPI paths from HTTP declarations and AsyncAPI channels/messages
-from WebSocket declarations. A generated channel can be marked `partial` when
-it contains both implemented and planned operation variants. Generate an
-implemented-only profile for client generation so planned job operations
-cannot appear as callable C# methods.
+from WebSocket declarations. The generated artifacts and client input contain
+only operations that exist in the release. A proposed operation cannot enter
+the registry until its server implementation and contract tests land together.
 
 ### 5.2 Typed handler map and service facade in `[nodetool]`
 
-Define a server handler type from each request/response declaration's input and
-output schema. Require an exhaustive handler map for all implemented
-request/response operation IDs. Check server-event publishers separately
-against implemented event declarations. This gives compile-time or CI failures
-for missing implementations and avoids runtime lookup by a dotted tRPC string.
+Define a server handler type from each HTTP request/response declaration's input
+and output schema. Require an exhaustive handler map for all declared HTTP
+operation IDs. Check execution command dispatchers and server-event publishers
+separately against the WebSocket declarations. This gives compile-time or CI
+failures for missing implementations and avoids runtime lookup by a dotted tRPC
+string.
 
 The handler map calls a transport-neutral facade such as `SdkV1Service`. The
 facade may be a small collection of domain-focused services rather than one
@@ -329,7 +331,10 @@ Define an `SdkV1ServiceError` with at least:
 
 Map it at each edge:
 
-- SDK HTTP maps it to one SDK error JSON shape and HTTP status;
+- SDK HTTP maps it to exactly
+  `{ "code": string, "message": string, "retryable": boolean }`, the declared
+  HTTP status, and `application/json`; it does not serialize `detail`, an
+  internal cause, or an RPC envelope;
 - execution WebSocket errors remain part of the execution runner protocol;
 - general product tRPC errors remain part of the internal TypeScript API.
 
@@ -401,7 +406,9 @@ Purpose: make hidden behavior explicit before moving code.
 
 - [x] Record the exact server commit and commands for the baseline.
 - [x] Inventory every implemented and planned SDK HTTP operation.
-- [x] Inventory every public SDK WebSocket command and event.
+- [x] Inventory every WebSocket command and event declared in the intermediate
+      SDK v1 registry. Phase 8A separately inventories and declares the actual
+      execution wire used by C#.
 - [x] Inventory each SDK-related tRPC procedure and all in-repository callers.
 - [x] Audit known out-of-repository tRPC consumers before planning removal.
 - [x] Record route ownership, auth policy, feature policy, request limits,
@@ -705,6 +712,14 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 - [ ] Repeat the Phase 0 caller audit against the current branch. Record every
       in-repository caller of the four SDK-specific tRPC procedures and six SDK
       discovery/lifecycle WebSocket commands.
+- [ ] Inventory the actual C# execution wire before deleting any WebSocket
+      declaration: `run_job`, `cancel_job`, `reconnect_job`, `stream_input`,
+      `end_input_stream`, `update_node_properties`, and every response, live
+      event, replay, terminal result, and error that the SDK consumes.
+- [ ] Add that execution inventory to the SDK v1 WebSocket registry, AsyncAPI,
+      dispatcher/publisher completeness checks, and byte-exact MessagePack
+      goldens. The six discovery/lifecycle RPC declarations may be removed only
+      after the replacement execution contract is complete.
 - [ ] Remove `nodes.sdkTypeInventory`, `workflows.sdkSummaries`,
       `workflows.interface`, and `workflows.interfaces` after the audit confirms
       that no TypeScript product caller uses them.
@@ -718,9 +733,11 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 - [ ] Move the single workflow-interface operation from
       `/api/workflows/{id}/interface` to
       `/api/sdk/v1/workflows/{id}/interface`.
-- [ ] Give every SDK HTTP failure one error body and one status mapping. Remove
-      legacy method fallbacks, the old `detail`-only 405 body, Fastify 404
-      emulation, legacy RPC error fields, and validation-order exceptions.
+- [ ] Give every SDK HTTP failure exactly
+      `{ "code": string, "message": string, "retryable": boolean }`, one
+      declared status mapping, and `application/json`. Remove the duplicate
+      `detail` field, legacy method fallbacks, Fastify 404 emulation, legacy RPC
+      error fields, and validation-order exceptions.
 - [ ] Make the declaration-driven Fastify plugin call the typed boundary
       directly. Delete Fetch/Fastify bridges and focused HTTP adapter files
       that have no remaining caller.
@@ -736,9 +753,10 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 - [ ] Set the server `maxBatchSize` to the same value as the clients'
       `httpBatchLink.maxItems` limit. Keep POST method override for batched
       queries and add a test that rejects an oversized batch.
-- [ ] Add Zod output schemas to every tRPC procedure. Start with `triggers` and
-      `worker`, the two routers that currently contain no `.output()` calls.
-      Add an inventory test that prevents new unvalidated procedures.
+- [ ] Add Zod output schemas to the remaining 33 of 218 tRPC procedures found by
+      the 2026-08-23 AST inventory: 3 in `jobs`, 14 in `models`, 2 in
+      `triggers`, and 14 in `worker`. Add an inventory test that prevents new
+      unvalidated procedures.
 - [ ] Put the web React and vanilla clients behind one shared link factory so
       authentication, `maxItems`, POST override, logging, and base URL handling
       cannot drift. Keep mobile and Electron limits in the same tested policy.
@@ -790,7 +808,8 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
       changes. Include the semantic operation diff and the old/new fixture
       inventory in the commit or review notes.
 - [ ] Replace Phase 0 HTTP and MessagePack goldens once. Delete obsolete
-      fixtures instead of teaching tests to accept both contracts.
+      discovery RPC fixtures, add the complete execution-wire fixtures, and do
+      not teach tests to accept both contracts.
 - [ ] Generate a new deterministic NodeTool bundle, pin its exact digest in the
       SDK, and prove that a second generation is byte-identical.
 - [ ] Run NodeTool HTTP/service/auth/feature-policy tests and the full protocol
@@ -807,6 +826,7 @@ Exit criteria:
 - SDK discovery and control use HTTP only.
 - SDK execution and live events use MessagePack WebSocket only.
 - No SDK-specific tRPC procedure remains.
+- Every execution command and consumed event is declared and byte-frozen.
 - Every retained product function is reachable through the C# session or a
   session-owned domain service.
 - General TypeScript tRPC callers retain end-to-end types, authentication,
@@ -873,7 +893,8 @@ implementation or change SDK v1 behavior without the normal protocol process.
 - workflow-interface HTTP and service parity tests;
 - an inventory test that rejects SDK-specific tRPC procedures and SDK discovery
   WebSocket commands;
-- tRPC server batch-limit and output-schema inventory tests;
+- tRPC server batch-limit and an output-schema inventory test that reports zero
+  missing procedures;
 - authentication and feature-policy matrix tests;
 - model catalog and model-download lifecycle tests;
 - multipart temporary-upload limits and cleanup tests;
@@ -928,8 +949,9 @@ counterpart.
 11. **`[both]` benchmark changes:** server timing evidence and SDK runner.
 12. **`[nodetool-sdk]` PR 3:** primary facade documentation and measured
     presets.
-13. **`[nodetool]` PR 8:** Phase 8A transport deletion, normalized SDK HTTP
-    routes, and the reviewed replacement baseline.
+13. **`[nodetool]` PR 8:** declare and freeze the actual execution wire, then
+    perform the Phase 8A transport deletion, normalize SDK HTTP routes, and
+    produce the reviewed candidate baseline.
 14. **`[nodetool]` PR 9:** Phase 8B tRPC batch enforcement, output schemas, and
     shared client-link policy.
 15. **`[nodetool-sdk]` PR 4:** pin the replacement bundle, remove WebSocket
@@ -939,25 +961,26 @@ counterpart.
 
 ## 10. Risks and controls
 
-| Risk                                               | Control                                                                                           |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| The facade becomes a large class                   | Keep domain services separate; the facade coordinates contract operations and shared policy only. |
-| The route table becomes coupled to tRPC            | Store stable operation IDs, never dotted procedure-name strings.                                  |
-| A general tRPC call bypasses authentication        | Keep one protected procedure and test direct and HTTP callers.                                    |
-| Generated C# code changes the public API           | Keep it internal and map through the existing handwritten API.                                    |
-| Planned jobs re-enter the public v1 schema         | Keep roadmap operations outside the implemented manifest.                                         |
-| SDK HTTP errors diverge between routes             | Use one service error and one HTTP error mapper.                                                  |
-| A flag consolidation removes operational control   | Preserve both feature flags and the auth override independently.                                  |
-| A deleted procedure has a hidden TypeScript caller | Repeat the caller audit, remove the procedure in the same PR, and run web/mobile/Electron tests.  |
-| A raw C# client has a unique useful operation      | Add the session/domain-service operation before hiding the raw client.                            |
-| A client batch limit is bypassed                   | Enforce the same maximum on the tRPC server.                                                      |
-| New response fields break C#                       | Test additive-field tolerance against every fixture.                                              |
-| Strict request changes break protocol v1           | Require a protocol version or capability decision.                                                |
-| Multipart becomes JSON/base64                      | Keep a binary-route architecture test and benchmark guard.                                        |
-| CI depends on the network                          | Pin verified artifacts locally; fetch only during explicit updates.                               |
-| Contract generation creates noisy diffs            | Require deterministic output and a semantic review summary.                                       |
-| A convenience preset loses durability              | Preserve defaults, require explicit selection, negotiate support, and document behavior.          |
-| Web download migration changes real-time behavior  | Keep it outside core acceptance and require separate measurements.                                |
+| Risk                                               | Control                                                                                                         |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| The facade becomes a large class                   | Keep domain services separate; the facade coordinates contract operations and shared policy only.               |
+| The route table becomes coupled to tRPC            | Store stable operation IDs, never dotted procedure-name strings.                                                |
+| A general tRPC call bypasses authentication        | Keep one protected procedure and test direct and HTTP callers.                                                  |
+| Generated C# code changes the public API           | Keep it internal and map through the existing handwritten API.                                                  |
+| Planned jobs re-enter the public v1 schema         | Keep roadmap operations outside the implemented manifest.                                                       |
+| SDK HTTP errors diverge between routes             | Use one service error and one HTTP error mapper.                                                                |
+| A flag consolidation removes operational control   | Preserve both feature flags and the auth override independently.                                                |
+| A deleted procedure has a hidden TypeScript caller | Repeat the caller audit, remove the procedure in the same PR, and run web/mobile/Electron tests.                |
+| A raw C# client has a unique useful operation      | Add the session/domain-service operation before hiding the raw client.                                          |
+| Execution frames are missing from the SDK registry | Inventory the C# wire first; block adapter deletion and release until declaration and golden inventories match. |
+| A client batch limit is bypassed                   | Enforce the same maximum on the tRPC server.                                                                    |
+| New response fields break C#                       | Test additive-field tolerance against every fixture.                                                            |
+| Strict request changes break protocol v1           | Require a protocol version or capability decision.                                                              |
+| Multipart becomes JSON/base64                      | Keep a binary-route architecture test and benchmark guard.                                                      |
+| CI depends on the network                          | Pin verified artifacts locally; fetch only during explicit updates.                                             |
+| Contract generation creates noisy diffs            | Require deterministic output and a semantic review summary.                                                     |
+| A convenience preset loses durability              | Preserve defaults, require explicit selection, negotiate support, and document behavior.                        |
+| Web download migration changes real-time behavior  | Keep it outside core acceptance and require separate measurements.                                              |
 
 ## 11. Definition of done
 
@@ -965,10 +988,14 @@ counterpart.
       operation, and one declared publisher path emits each server event.
 - [ ] Protocol declarations match the implemented HTTP registration,
       WebSocket dispatcher, and event-publisher inventories.
+- [ ] Every execution command and SDK-consumed response, event, replay,
+      terminal result, and error is declared and has a byte-exact MessagePack
+      golden.
 - [ ] SDK HTTP is the only discovery/control transport, and SDK MessagePack
       WebSocket is the only execution/live-event transport.
 - [ ] No SDK-specific tRPC procedure or discovery WebSocket command remains.
-- [ ] All SDK HTTP operations use the `/api/sdk/v1` prefix and one error shape.
+- [ ] All SDK HTTP operations use the `/api/sdk/v1` prefix and the exact
+      `{ "code", "message", "retryable" }` error shape without `detail`.
 - [ ] Multipart upload, MessagePack execution, streaming, cancellation, and
       reconnect behavior remain intact.
 - [ ] NodeTool publishes one deterministic contract bundle per release.
@@ -987,26 +1014,26 @@ counterpart.
 - [ ] Optional product follow-ups are tracked separately from this plan's core
       acceptance.
 
-## 12. Questions resolved within the phases
-
-These do not block the plan. Each has a named decision point:
+## 12. Resolved decisions and open measurement
 
 1. **Resolved 2026-08-23:** There are no supported external consumers of the
    four SDK-related tRPC procedures. Remove them in Phase 8 after repeating the
    in-repository audit.
-2. **Phase 1:** Will release assets and `@nodetool-ai/protocol` both carry the
-   bundle? If yes, they must carry identical bytes and digests.
-3. **Phase 1:** Which planned operations must remain visible in the full
-   manifest while being excluded from generated clients?
-4. **Phase 4:** Which generator meets the internal-wire-layer requirements, or
-   is a focused repository generator safer?
-5. **Phase 6:** What measured thresholds justify the name
+2. **Resolved for release:** The NodeTool release asset is the authoritative
+   contract bundle. If `@nodetool-ai/protocol` also carries the staged bundle,
+   it must contain identical bytes and the same digest.
+3. **Resolved for release:** No planned operation appears in the public v1
+   registry, manifest, schemas, AsyncAPI, or client input. Roadmap operations
+   remain in design notes until implemented.
+4. **Resolved in Phase 4:** Use the focused deterministic C# wire generator and
+   verifier. Do not generate the handwritten public domain API.
+5. **Open measurement in Phase 6:** What measured thresholds justify the name
    `LowLatencyInteractive`?
 6. **Resolved for the first release:** Move the single-workflow interface under
    `/api/sdk/v1`; there is no compatibility alias. Replacing `/ws/download`
    remains a separate product plan.
 
-Until another question is resolved, keep individual execution options, pin
-generated artifacts, and keep tRPC details out of the public C# contract. Do
-not retain an unreleased duplicate transport only because it exists in the
-Phase 0 baseline.
+Until the measurement is resolved, keep individual execution options and do not
+publish a named preset. In all cases, pin generated artifacts, keep tRPC details
+out of the public C# contract, and do not retain an unreleased duplicate
+transport only because it exists in the Phase 0 baseline.
