@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { EventEmitter } from "node:events";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { initTestDb, ModelObserver, TriggerRegistration } from "@nodetool-ai/models";
 import { TriggerWakeupService } from "@nodetool-ai/kernel";
@@ -17,6 +18,18 @@ function mkTmpDir(): string {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+class FakeWatcher extends EventEmitter implements fs.FSWatcher {
+  close = vi.fn();
+
+  ref(): this {
+    return this;
+  }
+
+  unref(): this {
+    return this;
+  }
 }
 
 async function waitFor(
@@ -65,6 +78,7 @@ describe("file-watch adapter", () => {
     await stopFileWatch(state);
     fs.rmSync(tmpDir, { recursive: true, force: true });
     ModelObserver.clear();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -109,6 +123,33 @@ describe("file-watch adapter", () => {
       fs.writeFileSync(path.join(tmpDir, "ignored.log"), "x");
       // Give the (non-)event time to arrive if it were going to.
       await sleep(200);
+
+      expect(deliverSpy).not.toHaveBeenCalled();
+    });
+
+    it("ignores a modified event for a path that does not exist", async () => {
+      await makeRegistration({
+        config: { path: tmpDir, patterns: ["*"], debounce_seconds: 0 }
+      });
+      const wakeupService = new TriggerWakeupService();
+      const deliverSpy = vi.spyOn(wakeupService, "deliverTriggerInput");
+      let listener:
+        | ((
+            eventType: "rename" | "change",
+            filename: string | Buffer | null
+          ) => void)
+        | null = null;
+
+      await runFileWatchSweepOnce(state, {
+        wakeupService,
+        watch: (_watchPath, _options, nextListener) => {
+          listener = nextListener;
+          return new FakeWatcher();
+        }
+      });
+
+      if (!listener) throw new Error("Watcher listener was not installed");
+      listener("change", path.basename(tmpDir));
 
       expect(deliverSpy).not.toHaveBeenCalled();
     });
@@ -209,7 +250,7 @@ describe("file-watch adapter", () => {
         await waitFor(() => deliverSpy.mock.calls.length > 0);
         expect(deliverSpy).toHaveBeenCalledTimes(1);
       } finally {
-        stop();
+        await stop();
       }
 
       const callsAtStop = deliverSpy.mock.calls.length;
@@ -217,6 +258,27 @@ describe("file-watch adapter", () => {
       await sleep(200);
       expect(deliverSpy.mock.calls.length).toBe(callsAtStop);
       void registration;
+    });
+
+    it("waits for an in-flight sweep before the stop handle resolves", async () => {
+      const pendingFind = Promise.withResolvers<TriggerRegistration[]>();
+      vi.spyOn(TriggerRegistration, "findEnabledByKind").mockReturnValue(
+        pendingFind.promise
+      );
+      const wakeupService = new TriggerWakeupService();
+
+      const stop = startFileWatch({ wakeupService, intervalMs: 50 });
+      let stopResolved = false;
+      const stopPromise = stop().then(() => {
+        stopResolved = true;
+      });
+
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(stopResolved).toBe(false);
+
+      pendingFind.resolve([]);
+      await stopPromise;
+      expect(stopResolved).toBe(true);
     });
   });
 
