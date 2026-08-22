@@ -30,7 +30,11 @@ import {
   type RawGraphInput
 } from "@nodetool-ai/execution";
 import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
-import { InMemoryStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  InMemoryStorageAdapter,
+  ProcessingContext,
+  listRegisteredProviderIds
+} from "@nodetool-ai/runtime";
 import type { Journey, JourneyInteraction } from "../core/journey.js";
 import {
   makeFrame,
@@ -42,6 +46,7 @@ import { AnchorWaiter } from "./anchors.js";
 import { buildJourneyRegistry } from "./registry.js";
 import { journeyPythonBridgeFactory } from "./python-bridge.js";
 import { getInjectedHostStorage } from "../faults/host-faults.js";
+import { RELIABILITY_FAULT_PROVIDER_ID } from "../faults/provider-faults.js";
 import type { RunDriver } from "./types.js";
 
 async function pumpMessages(
@@ -153,6 +158,25 @@ export class KernelDriver implements RunDriver {
             // checks (pending inbox work, pending control responses) are
             // always thrown violations, not log warnings.
             strict: true,
+            // This driver is a custom-provider host: journeys wire an LLM
+            // node to `reliability-fault-llm`, which `provider-faults.ts`
+            // registers process-wide only while a provider fault is active.
+            // The run preflight would otherwise refuse every journey that
+            // names it with no fault applied — which is how the
+            // unregistered-fault-name case reports, so the harness could no
+            // longer report it. Declaring the catalog keeps a typo'd provider
+            // an error while letting the fault id through; model ids are
+            // fixtures with no offline catalog, so they stay unchecked.
+            catalogs: {
+              listProviderIds: () => [
+                ...listRegisteredProviderIds(),
+                RELIABILITY_FAULT_PROVIDER_ID
+              ],
+              listModelIds: () => undefined
+            },
+            // Journeys are hermetic: the fault provider needs no credential,
+            // and no journey may depend on a real key being present.
+            providerConfiguration: () => [],
             // This driver records the message stream frame by frame
             // (`pumpMessages` below), so it's one of the few callers that
             // actually drains `session.messages` — capture is opt-in exactly
