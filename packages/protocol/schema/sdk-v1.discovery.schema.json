@@ -797,7 +797,7 @@
             },
             "type_args": {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/RpcResponse/$defs/__schema0"
               },
               "type": "array"
             },
@@ -853,13 +853,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/RpcResponse/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/RpcResponse/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -1029,7 +1029,7 @@
                         "additionalProperties": true,
                         "properties": {
                           "default": {
-                            "$ref": "#/$defs/__schema1"
+                            "$ref": "#/$defs/RpcResponse/$defs/__schema1"
                           },
                           "description": {
                             "type": "string"
@@ -1050,7 +1050,7 @@
                             "type": "boolean"
                           },
                           "type": {
-                            "$ref": "#/$defs/__schema0"
+                            "$ref": "#/$defs/RpcResponse/$defs/__schema0"
                           }
                         },
                         "required": [
@@ -1082,7 +1082,7 @@
                             "type": "boolean"
                           },
                           "type": {
-                            "$ref": "#/$defs/__schema0"
+                            "$ref": "#/$defs/RpcResponse/$defs/__schema0"
                           }
                         },
                         "required": [
@@ -1225,7 +1225,7 @@
                               "additionalProperties": true,
                               "properties": {
                                 "default": {
-                                  "$ref": "#/$defs/__schema1"
+                                  "$ref": "#/$defs/RpcResponse/$defs/__schema1"
                                 },
                                 "description": {
                                   "type": "string"
@@ -1246,7 +1246,7 @@
                                   "type": "boolean"
                                 },
                                 "type": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/RpcResponse/$defs/__schema0"
                                 }
                               },
                               "required": [
@@ -1278,7 +1278,7 @@
                                   "type": "boolean"
                                 },
                                 "type": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/RpcResponse/$defs/__schema0"
                                 }
                               },
                               "required": [
@@ -1670,7 +1670,7 @@
             },
             "type_args": {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/WorkflowInterface/$defs/__schema0"
               },
               "type": "array"
             },
@@ -1726,13 +1726,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/WorkflowInterface/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/WorkflowInterface/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -1792,7 +1792,7 @@
             "additionalProperties": true,
             "properties": {
               "default": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/WorkflowInterface/$defs/__schema1"
               },
               "description": {
                 "type": "string"
@@ -1813,7 +1813,7 @@
                 "type": "boolean"
               },
               "type": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/WorkflowInterface/$defs/__schema0"
               }
             },
             "required": [
@@ -1845,7 +1845,7 @@
                 "type": "boolean"
               },
               "type": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/WorkflowInterface/$defs/__schema0"
               }
             },
             "required": [
@@ -1936,7 +1936,7 @@
             },
             "type_args": {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/WorkflowInterfacesOutput/$defs/__schema0"
               },
               "type": "array"
             },
@@ -1992,13 +1992,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/WorkflowInterfacesOutput/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/WorkflowInterfacesOutput/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -2089,7 +2089,7 @@
                   "additionalProperties": true,
                   "properties": {
                     "default": {
-                      "$ref": "#/$defs/__schema1"
+                      "$ref": "#/$defs/WorkflowInterfacesOutput/$defs/__schema1"
                     },
                     "description": {
                       "type": "string"
@@ -2110,7 +2110,7 @@
                       "type": "boolean"
                     },
                     "type": {
-                      "$ref": "#/$defs/__schema0"
+                      "$ref": "#/$defs/WorkflowInterfacesOutput/$defs/__schema0"
                     }
                   },
                   "required": [
@@ -2142,7 +2142,7 @@
                       "type": "boolean"
                     },
                     "type": {
-                      "$ref": "#/$defs/__schema0"
+                      "$ref": "#/$defs/WorkflowInterfacesOutput/$defs/__schema0"
                     }
                   },
                   "required": [

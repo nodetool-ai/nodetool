@@ -186,6 +186,38 @@ function outputComponent(schema: z.ZodType): ComponentEntry {
   return { schema, io: "output" };
 }
 
+function escapeJsonPointerSegment(value: string): string {
+  return value.replaceAll("~", "~0").replaceAll("/", "~1");
+}
+
+function scopeComponentReferences(
+  value: JsonValue,
+  componentName: string
+): JsonValue {
+  if (Array.isArray(value)) {
+    return value.map((item) => scopeComponentReferences(item, componentName));
+  }
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => {
+      if (
+        key === "$ref" &&
+        typeof item === "string" &&
+        item.startsWith("#/$defs/")
+      ) {
+        return [
+          key,
+          `#/$defs/${escapeJsonPointerSegment(componentName)}/$defs/` +
+            item.slice("#/$defs/".length)
+        ];
+      }
+      return [key, scopeComponentReferences(item, componentName)];
+    })
+  );
+}
+
 const discoveryComponents: Record<string, ComponentEntry> = {
   Error: outputComponent(sdkV1Error),
   HttpError: outputComponent(sdkV1HttpError),
@@ -242,7 +274,7 @@ function buildDefs(
   return Object.fromEntries(
     Object.entries(components).map(([name, entry]) => [
       name,
-      component(entry.schema, entry.io)
+      scopeComponentReferences(component(entry.schema, entry.io), name)
     ])
   );
 }

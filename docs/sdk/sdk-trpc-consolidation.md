@@ -565,13 +565,13 @@ it.
 
 #### `[nodetool]` producer gates
 
-- [ ] Validate every golden JSON fixture against generated schemas.
-- [ ] Validate exact MessagePack fixtures.
-- [ ] Verify route and command inventories against OpenAPI and AsyncAPI.
-- [ ] Run REST, WebSocket, and retained tRPC parity tests.
-- [ ] Fail on removed required response fields, repurposed fields, stricter v1
+- [x] Validate every golden JSON fixture against generated schemas.
+- [x] Validate exact MessagePack fixtures.
+- [x] Verify route and command inventories against OpenAPI and AsyncAPI.
+- [x] Run REST, WebSocket, and retained tRPC parity tests.
+- [x] Fail on removed required response fields, repurposed fields, stricter v1
       inputs, or changed retry semantics without an explicit protocol decision.
-- [ ] Build and publish the candidate contract bundle in release CI.
+- [x] Build and publish the candidate contract bundle in release CI.
 
 #### `[nodetool-sdk]` consumer gates
 

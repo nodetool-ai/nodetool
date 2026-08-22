@@ -25,6 +25,8 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },

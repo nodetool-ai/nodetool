@@ -103,13 +103,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/CancelJobResponse/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/CancelJobResponse/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -134,13 +134,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/CancelJobResponse/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/CancelJobResponse/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -165,13 +165,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/CancelJobResponse/$defs/__schema2"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/CancelJobResponse/$defs/__schema2"
               },
               "propertyNames": {
                 "type": "string"
@@ -350,7 +350,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/CancelJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -688,7 +688,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/CancelJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -1032,7 +1032,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/CancelJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -1311,7 +1311,7 @@
                     },
                     "outputs": {
                       "additionalProperties": {
-                        "$ref": "#/$defs/__schema1"
+                        "$ref": "#/$defs/CancelJobResponse/$defs/__schema1"
                       },
                       "propertyNames": {
                         "type": "string"
@@ -1323,7 +1323,7 @@
                       "properties": {
                         "inputs": {
                           "additionalProperties": {
-                            "$ref": "#/$defs/__schema2"
+                            "$ref": "#/$defs/CancelJobResponse/$defs/__schema2"
                           },
                           "propertyNames": {
                             "type": "string"
@@ -1649,7 +1649,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/CancelJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -2011,7 +2011,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/CancelJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -2531,13 +2531,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/JobEvent/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/JobEvent/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -2562,13 +2562,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/JobEvent/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/JobEvent/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -2593,13 +2593,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/JobEvent/$defs/__schema2"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/JobEvent/$defs/__schema2"
               },
               "propertyNames": {
                 "type": "string"
@@ -2624,13 +2624,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema3"
+                "$ref": "#/$defs/JobEvent/$defs/__schema3"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema3"
+                "$ref": "#/$defs/JobEvent/$defs/__schema3"
               },
               "propertyNames": {
                 "type": "string"
@@ -2925,7 +2925,7 @@
               "type": "string"
             },
             "value": {
-              "$ref": "#/$defs/__schema0"
+              "$ref": "#/$defs/JobEvent/$defs/__schema0"
             },
             "workflow_id": {
               "maxLength": 512,
@@ -3128,7 +3128,7 @@
                                   },
                                   "details": {
                                     "additionalProperties": {
-                                      "$ref": "#/$defs/__schema1"
+                                      "$ref": "#/$defs/JobEvent/$defs/__schema1"
                                     },
                                     "propertyNames": {
                                       "type": "string"
@@ -3466,7 +3466,7 @@
                                   },
                                   "details": {
                                     "additionalProperties": {
-                                      "$ref": "#/$defs/__schema1"
+                                      "$ref": "#/$defs/JobEvent/$defs/__schema1"
                                     },
                                     "propertyNames": {
                                       "type": "string"
@@ -3810,7 +3810,7 @@
                                   },
                                   "details": {
                                     "additionalProperties": {
-                                      "$ref": "#/$defs/__schema1"
+                                      "$ref": "#/$defs/JobEvent/$defs/__schema1"
                                     },
                                     "propertyNames": {
                                       "type": "string"
@@ -4089,7 +4089,7 @@
                         },
                         "outputs": {
                           "additionalProperties": {
-                            "$ref": "#/$defs/__schema2"
+                            "$ref": "#/$defs/JobEvent/$defs/__schema2"
                           },
                           "propertyNames": {
                             "type": "string"
@@ -4101,7 +4101,7 @@
                           "properties": {
                             "inputs": {
                               "additionalProperties": {
-                                "$ref": "#/$defs/__schema3"
+                                "$ref": "#/$defs/JobEvent/$defs/__schema3"
                               },
                               "propertyNames": {
                                 "type": "string"
@@ -4427,7 +4427,7 @@
                                   },
                                   "details": {
                                     "additionalProperties": {
-                                      "$ref": "#/$defs/__schema1"
+                                      "$ref": "#/$defs/JobEvent/$defs/__schema1"
                                     },
                                     "propertyNames": {
                                       "type": "string"
@@ -4789,7 +4789,7 @@
                                   },
                                   "details": {
                                     "additionalProperties": {
-                                      "$ref": "#/$defs/__schema1"
+                                      "$ref": "#/$defs/JobEvent/$defs/__schema1"
                                     },
                                     "propertyNames": {
                                       "type": "string"
@@ -5051,13 +5051,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/JobSnapshot/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/JobSnapshot/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -5082,13 +5082,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/JobSnapshot/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/JobSnapshot/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -5113,13 +5113,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/JobSnapshot/$defs/__schema2"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/JobSnapshot/$defs/__schema2"
               },
               "propertyNames": {
                 "type": "string"
@@ -5287,7 +5287,7 @@
                           },
                           "details": {
                             "additionalProperties": {
-                              "$ref": "#/$defs/__schema0"
+                              "$ref": "#/$defs/JobSnapshot/$defs/__schema0"
                             },
                             "propertyNames": {
                               "type": "string"
@@ -5625,7 +5625,7 @@
                           },
                           "details": {
                             "additionalProperties": {
-                              "$ref": "#/$defs/__schema0"
+                              "$ref": "#/$defs/JobSnapshot/$defs/__schema0"
                             },
                             "propertyNames": {
                               "type": "string"
@@ -5969,7 +5969,7 @@
                           },
                           "details": {
                             "additionalProperties": {
-                              "$ref": "#/$defs/__schema0"
+                              "$ref": "#/$defs/JobSnapshot/$defs/__schema0"
                             },
                             "propertyNames": {
                               "type": "string"
@@ -6248,7 +6248,7 @@
                 },
                 "outputs": {
                   "additionalProperties": {
-                    "$ref": "#/$defs/__schema1"
+                    "$ref": "#/$defs/JobSnapshot/$defs/__schema1"
                   },
                   "propertyNames": {
                     "type": "string"
@@ -6260,7 +6260,7 @@
                   "properties": {
                     "inputs": {
                       "additionalProperties": {
-                        "$ref": "#/$defs/__schema2"
+                        "$ref": "#/$defs/JobSnapshot/$defs/__schema2"
                       },
                       "propertyNames": {
                         "type": "string"
@@ -6586,7 +6586,7 @@
                           },
                           "details": {
                             "additionalProperties": {
-                              "$ref": "#/$defs/__schema0"
+                              "$ref": "#/$defs/JobSnapshot/$defs/__schema0"
                             },
                             "propertyNames": {
                               "type": "string"
@@ -6948,7 +6948,7 @@
                           },
                           "details": {
                             "additionalProperties": {
-                              "$ref": "#/$defs/__schema0"
+                              "$ref": "#/$defs/JobSnapshot/$defs/__schema0"
                             },
                             "propertyNames": {
                               "type": "string"
@@ -7161,13 +7161,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/LifecycleRpcRequest/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/LifecycleRpcRequest/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -7192,13 +7192,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/LifecycleRpcRequest/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/LifecycleRpcRequest/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -7317,7 +7317,7 @@
                 },
                 "inputs": {
                   "additionalProperties": {
-                    "$ref": "#/$defs/__schema0"
+                    "$ref": "#/$defs/LifecycleRpcRequest/$defs/__schema0"
                   },
                   "propertyNames": {
                     "type": "string"
@@ -7409,7 +7409,7 @@
                 },
                 "inputs": {
                   "additionalProperties": {
-                    "$ref": "#/$defs/__schema1"
+                    "$ref": "#/$defs/LifecycleRpcRequest/$defs/__schema1"
                   },
                   "propertyNames": {
                     "type": "string"
@@ -7615,13 +7615,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -7646,13 +7646,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -7677,13 +7677,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema2"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema2"
               },
               "propertyNames": {
                 "type": "string"
@@ -8068,7 +8068,7 @@
                           },
                           "details": {
                             "additionalProperties": {
-                              "$ref": "#/$defs/__schema0"
+                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                             },
                             "propertyNames": {
                               "type": "string"
@@ -8341,7 +8341,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -8652,7 +8652,7 @@
                                       },
                                       "details": {
                                         "additionalProperties": {
-                                          "$ref": "#/$defs/__schema0"
+                                          "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                         },
                                         "propertyNames": {
                                           "type": "string"
@@ -8990,7 +8990,7 @@
                                       },
                                       "details": {
                                         "additionalProperties": {
-                                          "$ref": "#/$defs/__schema0"
+                                          "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                         },
                                         "propertyNames": {
                                           "type": "string"
@@ -9334,7 +9334,7 @@
                                       },
                                       "details": {
                                         "additionalProperties": {
-                                          "$ref": "#/$defs/__schema0"
+                                          "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                         },
                                         "propertyNames": {
                                           "type": "string"
@@ -9613,7 +9613,7 @@
                             },
                             "outputs": {
                               "additionalProperties": {
-                                "$ref": "#/$defs/__schema1"
+                                "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema1"
                               },
                               "propertyNames": {
                                 "type": "string"
@@ -9625,7 +9625,7 @@
                               "properties": {
                                 "inputs": {
                                   "additionalProperties": {
-                                    "$ref": "#/$defs/__schema2"
+                                    "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema2"
                                   },
                                   "propertyNames": {
                                     "type": "string"
@@ -9951,7 +9951,7 @@
                                       },
                                       "details": {
                                         "additionalProperties": {
-                                          "$ref": "#/$defs/__schema0"
+                                          "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                         },
                                         "propertyNames": {
                                           "type": "string"
@@ -10313,7 +10313,7 @@
                                       },
                                       "details": {
                                         "additionalProperties": {
-                                          "$ref": "#/$defs/__schema0"
+                                          "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                         },
                                         "propertyNames": {
                                           "type": "string"
@@ -10708,7 +10708,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -11046,7 +11046,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -11390,7 +11390,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -11669,7 +11669,7 @@
                                 },
                                 "outputs": {
                                   "additionalProperties": {
-                                    "$ref": "#/$defs/__schema1"
+                                    "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema1"
                                   },
                                   "propertyNames": {
                                     "type": "string"
@@ -11681,7 +11681,7 @@
                                   "properties": {
                                     "inputs": {
                                       "additionalProperties": {
-                                        "$ref": "#/$defs/__schema2"
+                                        "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema2"
                                       },
                                       "propertyNames": {
                                         "type": "string"
@@ -12007,7 +12007,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -12369,7 +12369,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -12755,7 +12755,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -13093,7 +13093,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -13437,7 +13437,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -13716,7 +13716,7 @@
                                 },
                                 "outputs": {
                                   "additionalProperties": {
-                                    "$ref": "#/$defs/__schema1"
+                                    "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema1"
                                   },
                                   "propertyNames": {
                                     "type": "string"
@@ -13728,7 +13728,7 @@
                                   "properties": {
                                     "inputs": {
                                       "additionalProperties": {
-                                        "$ref": "#/$defs/__schema2"
+                                        "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema2"
                                       },
                                       "propertyNames": {
                                         "type": "string"
@@ -14054,7 +14054,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -14416,7 +14416,7 @@
                                           },
                                           "details": {
                                             "additionalProperties": {
-                                              "$ref": "#/$defs/__schema0"
+                                              "$ref": "#/$defs/LifecycleRpcResponse/$defs/__schema0"
                                             },
                                             "propertyNames": {
                                               "type": "string"
@@ -15066,13 +15066,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/PreflightRequest/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/PreflightRequest/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -15157,7 +15157,7 @@
         },
         "inputs": {
           "additionalProperties": {
-            "$ref": "#/$defs/__schema0"
+            "$ref": "#/$defs/PreflightRequest/$defs/__schema0"
           },
           "propertyNames": {
             "type": "string"
@@ -15232,13 +15232,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/PreflightSummary/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/PreflightSummary/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -15378,7 +15378,7 @@
               },
               "details": {
                 "additionalProperties": {
-                  "$ref": "#/$defs/__schema0"
+                  "$ref": "#/$defs/PreflightSummary/$defs/__schema0"
                 },
                 "propertyNames": {
                   "type": "string"
@@ -15492,13 +15492,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/Requirement/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/Requirement/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -15515,7 +15515,7 @@
         },
         "details": {
           "additionalProperties": {
-            "$ref": "#/$defs/__schema0"
+            "$ref": "#/$defs/Requirement/$defs/__schema0"
           },
           "propertyNames": {
             "type": "string"
@@ -15592,13 +15592,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/ResultManifest/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/ResultManifest/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -15623,13 +15623,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/ResultManifest/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/ResultManifest/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -15813,7 +15813,7 @@
         },
         "outputs": {
           "additionalProperties": {
-            "$ref": "#/$defs/__schema0"
+            "$ref": "#/$defs/ResultManifest/$defs/__schema0"
           },
           "propertyNames": {
             "type": "string"
@@ -15825,7 +15825,7 @@
           "properties": {
             "inputs": {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/ResultManifest/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -15921,13 +15921,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/SubmitJobRequest/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/SubmitJobRequest/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -15951,7 +15951,7 @@
         },
         "inputs": {
           "additionalProperties": {
-            "$ref": "#/$defs/__schema0"
+            "$ref": "#/$defs/SubmitJobRequest/$defs/__schema0"
           },
           "propertyNames": {
             "type": "string"
@@ -16034,13 +16034,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/SubmitJobResponse/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/SubmitJobResponse/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -16201,7 +16201,7 @@
                   },
                   "details": {
                     "additionalProperties": {
-                      "$ref": "#/$defs/__schema0"
+                      "$ref": "#/$defs/SubmitJobResponse/$defs/__schema0"
                     },
                     "propertyNames": {
                       "type": "string"
@@ -16366,13 +16366,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema0"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema0"
+                "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema0"
               },
               "propertyNames": {
                 "type": "string"
@@ -16397,13 +16397,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema1"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema1"
               },
               "propertyNames": {
                 "type": "string"
@@ -16428,13 +16428,13 @@
             },
             {
               "items": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema2"
               },
               "type": "array"
             },
             {
               "additionalProperties": {
-                "$ref": "#/$defs/__schema2"
+                "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema2"
               },
               "propertyNames": {
                 "type": "string"
@@ -16632,7 +16632,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -16970,7 +16970,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -17314,7 +17314,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -17593,7 +17593,7 @@
                     },
                     "outputs": {
                       "additionalProperties": {
-                        "$ref": "#/$defs/__schema1"
+                        "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema1"
                       },
                       "propertyNames": {
                         "type": "string"
@@ -17605,7 +17605,7 @@
                       "properties": {
                         "inputs": {
                           "additionalProperties": {
-                            "$ref": "#/$defs/__schema2"
+                            "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema2"
                           },
                           "propertyNames": {
                             "type": "string"
@@ -17931,7 +17931,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
@@ -18293,7 +18293,7 @@
                               },
                               "details": {
                                 "additionalProperties": {
-                                  "$ref": "#/$defs/__schema0"
+                                  "$ref": "#/$defs/SubscribeJobResponse/$defs/__schema0"
                                 },
                                 "propertyNames": {
                                   "type": "string"
