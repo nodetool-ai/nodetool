@@ -1,5 +1,7 @@
 import path from "node:path";
 
+import { fetchExternalMedia } from "@nodetool-ai/runtime";
+
 import type {
   JsonResourceRef,
   JsonResources,
@@ -47,7 +49,9 @@ export async function modelRefToBytes(
   }
 
   if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    const res = await fetch(uri);
+    // Caller-supplied uri — the media-ref egress policy decides whether this
+    // host opens the socket; a refusal throws and names the URL.
+    const res = await fetchExternalMedia(uri);
     if (!res.ok) throw new Error(`Failed to fetch model (${res.status}): ${uri}`);
     return new Uint8Array(await res.arrayBuffer());
   }
@@ -110,7 +114,8 @@ export async function imageRefToBytes(
   }
 
   if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    const res = await fetch(uri);
+    // Same policy as every other caller-supplied media uri.
+    const res = await fetchExternalMedia(uri);
     if (!res.ok) {
       throw new Error(`Failed to fetch image (${res.status}): ${uri}`);
     }

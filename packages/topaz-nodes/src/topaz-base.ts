@@ -27,6 +27,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import { safeFetch } from "@nodetool-ai/runtime";
+
 const execFile = promisify(execFileCb);
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
@@ -260,7 +263,8 @@ export async function refToBytes(
   }
 
   if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    const resp = await fetch(uri);
+    // Caller-supplied media uri — the media-ref egress policy decides.
+    const resp = await fetchExternalMedia(uri);
     if (!resp.ok) throw new Error(`Failed to fetch asset: ${resp.status}`);
     return new Uint8Array(await resp.arrayBuffer());
   }
@@ -460,7 +464,8 @@ export async function topazExecuteImageTask(
     throw new Error(`No download URL in response: ${JSON.stringify(dlJson)}`);
   }
 
-  const result = await fetch(finalUrl);
+  // Provider-returned download URL — screened like every other one.
+  const result = await safeFetch(finalUrl);
   if (!result.ok) {
     throw new Error(`Failed to fetch Topaz result: ${result.status}`);
   }
@@ -685,7 +690,8 @@ export async function topazExecuteVideoTask(
       `No download URL in final status: ${JSON.stringify(final)}`
     );
   }
-  const result = await fetch(downloadUrl);
+  // Provider-returned download URL — screened like every other one.
+  const result = await safeFetch(downloadUrl);
   if (!result.ok) {
     throw new Error(`Failed to fetch Topaz video result: ${result.status}`);
   }

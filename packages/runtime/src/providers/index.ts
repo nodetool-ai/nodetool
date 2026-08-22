@@ -83,6 +83,7 @@ export {
   sdkNativeReplacements
 } from "./core-tools.js";
 export {
+  isBlockedIpLiteral,
   isSafePublicHttpsUrl,
   assertSafePublicHttpsUrl,
   safeFetch

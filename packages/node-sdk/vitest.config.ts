@@ -9,6 +9,10 @@ export default defineConfig({
       // Subpaths must precede the root alias — Vite alias matching is
       // prefix-based, so `@nodetool-ai/runtime` would otherwise rewrite
       // `@nodetool-ai/runtime/tracing` to `…/src/index.ts/tracing`.
+      "@nodetool-ai/runtime/safe-url": resolve(
+        __dirname,
+        "../runtime/src/providers/safe-url.ts"
+      ),
       "@nodetool-ai/runtime/tracing": resolve(
         __dirname,
         "../runtime/src/tracing-helpers.ts"

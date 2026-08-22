@@ -96,6 +96,8 @@ defaults:
     values: *noindex
   - scope: { path: "SEO_STRATEGY.md" }
     values: *noindex
+  - scope: { path: "url-egress-inventory.md" }
+    values: *noindex
   - scope: { path: "agent-resource-links-design.md" }
     values: *noindex
   - scope: { path: "codeact-design.md" }

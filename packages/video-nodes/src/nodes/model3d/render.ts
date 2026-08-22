@@ -17,6 +17,7 @@ import { NODE_AND_BROWSER_PLATFORMS } from "@nodetool-ai/protocol";
 import { IS_NODE } from "@nodetool-ai/config";
 import { base64ToBytes, bytesToBase64 } from "@nodetool-ai/nodes-utils";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { fetchExternalMedia } from "@nodetool-ai/runtime";
 
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import type { LightingPreset, Render3DOptions } from "./render3d-core.js";
@@ -61,7 +62,8 @@ async function resolveModelBytes(
   }
 
   if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    const res = await fetch(uri);
+    // Caller-supplied media uri — the media-ref egress policy decides.
+    const res = await fetchExternalMedia(uri);
     if (!res.ok) {
       throw new Error(`Failed to fetch model (${res.status}): ${uri}`);
     }
