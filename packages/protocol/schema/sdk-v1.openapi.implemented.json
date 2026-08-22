@@ -1,0 +1,675 @@
+{
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "description": "Required for remote multi-user discovery when NODETOOL_REQUIRE_SDK_AUTH_V1=1. Trusted local connections may omit it.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Draft HTTP contract for the feature-flagged NodeTool SDK v1 discovery profile.",
+    "title": "NodeTool SDK discovery API",
+    "version": "1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/sdk/v1/assets/temporary": {
+      "post": {
+        "operationId": "uploadTemporaryAsset",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "contentMediaType": "application/octet-stream",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/TemporaryAssetUpload"
+                }
+              }
+            },
+            "description": "Temporary storage URI without persistent asset metadata"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid multipart upload"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Upload exceeds the configured limit"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "SDK lifecycle is unavailable"
+          }
+        },
+        "summary": "Upload one transient workflow input without asset autosave"
+      }
+    },
+    "/api/sdk/v1/capabilities": {
+      "get": {
+        "operationId": "getCapabilities",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/Capabilities"
+                }
+              }
+            },
+            "description": "Server capabilities and advertised limits"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Capabilities are unavailable"
+          }
+        },
+        "summary": "Get public SDK capabilities"
+      }
+    },
+    "/api/sdk/v1/model-downloads": {
+      "get": {
+        "operationId": "listModelDownloads",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadQuery/properties/scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operation_id",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadQuery/properties/operation_id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadSnapshot"
+                }
+              }
+            },
+            "description": "Current reconnectable model download states"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid download query"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Requested execution scope is not available"
+          }
+        },
+        "summary": "List model downloads"
+      },
+      "post": {
+        "operationId": "startModelDownload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadState"
+                }
+              }
+            },
+            "description": "Accepted download state"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid download request"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Requested model download is not available"
+          }
+        },
+        "summary": "Start or retry a model download"
+      }
+    },
+    "/api/sdk/v1/model-downloads/cancel": {
+      "post": {
+        "operationId": "cancelModelDownload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadState"
+                }
+              }
+            },
+            "description": "Current terminal download state"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid cancellation request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Download operation was not found"
+          }
+        },
+        "summary": "Cancel a model download"
+      }
+    },
+    "/api/sdk/v1/models": {
+      "get": {
+        "operationId": "listModels",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "compatibility",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/ModelCatalogQuery/properties/compatibility"
+            }
+          },
+          {
+            "in": "query",
+            "name": "availability",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/ModelCatalogQuery/properties/availability"
+            }
+          },
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/ModelCatalogQuery/properties/provider"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/ModelCatalogQuery/properties/scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/ModelCatalogQuery/properties/cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/ModelCatalogQuery/properties/limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/ModelCatalog"
+                }
+              }
+            },
+            "description": "A bounded page of models visible to this SDK principal"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid catalog query"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Requested execution scope is not available"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Model catalog is unavailable"
+          }
+        },
+        "summary": "List execution-compatible models"
+      }
+    },
+    "/api/sdk/v1/node-types": {
+      "get": {
+        "operationId": "getNodeTypeInventory",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryInput/properties/cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryInput/properties/limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryOutput"
+                }
+              }
+            },
+            "description": "Bounded hybrid node-type inventory"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid cursor or limit"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "SDK discovery is disabled"
+          }
+        },
+        "summary": "List node types used by the loaded registry"
+      }
+    },
+    "/api/sdk/v1/preflight": {
+      "post": {
+        "operationId": "preflightWorkflow",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/PreflightRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/PreflightSummary"
+                }
+              }
+            },
+            "description": "Side-effect-free workflow preflight"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid preflight request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Workflow not found or inaccessible"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Requested preflight level is unavailable"
+          }
+        },
+        "summary": "Preflight a workflow without starting paid work"
+      }
+    },
+    "/api/sdk/v1/workflow-interfaces": {
+      "post": {
+        "operationId": "getWorkflowInterfaces",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./sdk-v1.discovery.schema.json#/$defs/WorkflowInterfacesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/WorkflowInterfacesOutput"
+                }
+              }
+            },
+            "description": "Ordered accessible interfaces and isolated errors"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "SDK discovery is disabled"
+          }
+        },
+        "summary": "Get up to 100 workflow interfaces"
+      }
+    },
+    "/api/sdk/v1/workflows": {
+      "get": {
+        "operationId": "listWorkflowSummaries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesInput/properties/limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesInput/properties/cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesOutput"
+                }
+              }
+            },
+            "description": "Compact workflow summaries"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid cursor or limit"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "SDK discovery is disabled"
+          }
+        },
+        "summary": "List compact workflow summaries"
+      }
+    },
+    "/api/workflows/{id}/interface": {
+      "get": {
+        "operationId": "getWorkflowInterface",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "const": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/WorkflowInterface"
+                }
+              }
+            },
+            "description": "Graph-derived workflow interface"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Unsupported interface version"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Workflow not found or not accessible"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Workflow graph is invalid"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "SDK discovery is disabled"
+          }
+        },
+        "summary": "Get one graph-derived workflow interface"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {}
+  ],
+  "servers": [
+    {
+      "description": "Local NodeTool server",
+      "url": "http://127.0.0.1:7777"
+    }
+  ],
+  "x-nodetool-kill-switch": "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1",
+  "x-nodetool-status": "draft"
+}

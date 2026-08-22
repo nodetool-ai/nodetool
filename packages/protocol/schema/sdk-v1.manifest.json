@@ -23,6 +23,26 @@
       "path": "sdk-v1.discovery.schema.json",
       "profile": "discovery",
       "sha256": "a386e224e19b23a55cbb760c5877f9a5e64ba67438d525fe8d7fe58ee5ede982"
+    },
+    {
+      "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
+      "path": "sdk-v1.asyncapi.implemented.json",
+      "profile": "discovery",
+      "sha256": "184538a5b8a1e352314cab952eac9726051b3123969f3bf3ba9f14899ac6c54b",
+      "variant": "implemented"
+    },
+    {
+      "media_type": "application/vnd.oai.openapi+json;version=3.1",
+      "path": "sdk-v1.openapi.implemented.json",
+      "profile": "discovery",
+      "sha256": "549353fe539cd74e4a37c57fdfb007f68df0788e196ff514973222786b4c1a5e",
+      "variant": "implemented"
+    },
+    {
+      "media_type": "application/json",
+      "path": "sdk-v1.operations.json",
+      "profile": "operations",
+      "sha256": "b405b04a937b6017d900d0f82d6520fc25f321e4c396ff2afd118d061e89bfd4"
     }
   ],
   "default_websocket_encoding": "messagepack",

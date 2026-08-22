@@ -1,0 +1,726 @@
+{
+  "generated_from": "@nodetool-ai/protocol",
+  "operations": [
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Job not found, inaccessible, or expired",
+          "status": "404"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "cancelJob",
+      "method": "POST",
+      "path": "/api/sdk/v1/jobs/{job_id}/cancel",
+      "request": {},
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/CancelJobResponse",
+        "status": "200"
+      },
+      "status": "planned",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid cancellation request",
+          "status": "400"
+        },
+        {
+          "description": "Download operation was not found",
+          "status": "404"
+        }
+      ],
+      "feature": null,
+      "id": "cancelModelDownload",
+      "method": "POST",
+      "path": "/api/sdk/v1/model-downloads/cancel",
+      "request": {
+        "body": {
+          "content_type": "application/json",
+          "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadCancelRequest"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadState",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Capabilities are unavailable",
+          "status": "503"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "getCapabilities",
+      "method": "GET",
+      "path": "/api/sdk/v1/capabilities",
+      "request": {},
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/Capabilities",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Job not found, inaccessible, or expired",
+          "status": "404"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "getJobSnapshot",
+      "method": "GET",
+      "path": "/api/sdk/v1/jobs/{job_id}",
+      "request": {},
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/JobSnapshot",
+        "status": "200"
+      },
+      "status": "planned",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Invalid cursor or limit",
+          "status": "400"
+        },
+        {
+          "description": "SDK discovery is disabled",
+          "status": "503"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "getNodeTypeInventory",
+      "method": "GET",
+      "path": "/api/sdk/v1/node-types",
+      "request": {
+        "query": "sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryInput"
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryOutput",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Unsupported interface version",
+          "status": "400"
+        },
+        {
+          "description": "Workflow not found or not accessible",
+          "status": "404"
+        },
+        {
+          "description": "Workflow graph is invalid",
+          "status": "422"
+        },
+        {
+          "description": "SDK discovery is disabled",
+          "status": "503"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "getWorkflowInterface",
+      "method": "GET",
+      "path": "/api/workflows/{id}/interface",
+      "request": {},
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterface",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Invalid request",
+          "status": "400"
+        },
+        {
+          "description": "SDK discovery is disabled",
+          "status": "503"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "getWorkflowInterfaces",
+      "method": "POST",
+      "path": "/api/sdk/v1/workflow-interfaces",
+      "request": {
+        "body": {
+          "content_type": "application/json",
+          "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterfacesInput"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterfacesOutput",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "cancel_job",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "NOT_FOUND",
+          "description": "Job not found, inaccessible, or expired"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "lifecycleRpc.cancel_job",
+      "message": {
+        "request": {
+          "envelope": "lifecycleRpcRequest",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/JobRequest"
+        },
+        "response": {
+          "envelope": "lifecycleRpcResponse",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/CancelJobResponse"
+        }
+      },
+      "status": "planned",
+      "transport": "websocket"
+    },
+    {
+      "auth": "discovery",
+      "channel": "sdkRpc",
+      "command": "get_capabilities",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "SERVICE_UNAVAILABLE",
+          "description": "Capabilities are unavailable"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "lifecycleRpc.get_capabilities",
+      "message": {
+        "request": {
+          "envelope": "lifecycleRpcRequest",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/CapabilitiesRequest"
+        },
+        "response": {
+          "envelope": "lifecycleRpcResponse",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/Capabilities"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "get_job_snapshot",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "NOT_FOUND",
+          "description": "Job not found, inaccessible, or expired"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "lifecycleRpc.get_job_snapshot",
+      "message": {
+        "request": {
+          "envelope": "lifecycleRpcRequest",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/JobRequest"
+        },
+        "response": {
+          "envelope": "lifecycleRpcResponse",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/JobSnapshot"
+        }
+      },
+      "status": "planned",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "preflight_workflow",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "INVALID_INPUT",
+          "description": "Invalid preflight request"
+        },
+        {
+          "code": "WORKFLOW_NOT_FOUND",
+          "description": "Workflow not found"
+        },
+        {
+          "code": "SERVICE_UNAVAILABLE",
+          "description": "Requested preflight level is unavailable"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "lifecycleRpc.preflight_workflow",
+      "message": {
+        "request": {
+          "envelope": "lifecycleRpcRequest",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/PreflightRequest"
+        },
+        "response": {
+          "envelope": "lifecycleRpcResponse",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/PreflightSummary"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "submit_job",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "INVALID_INPUT",
+          "description": "Invalid submission"
+        },
+        {
+          "code": "TOO_MANY_REQUESTS",
+          "description": "Admission or rate limit exceeded"
+        },
+        {
+          "code": "SERVICE_UNAVAILABLE",
+          "description": "Execution is unavailable"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "lifecycleRpc.submit_job",
+      "message": {
+        "request": {
+          "envelope": "lifecycleRpcRequest",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/SubmitJobRequest"
+        },
+        "response": {
+          "envelope": "lifecycleRpcResponse",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/SubmitJobResponse"
+        }
+      },
+      "status": "planned",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "subscribe_job",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "NOT_FOUND",
+          "description": "Job not found, inaccessible, or expired"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "lifecycleRpc.subscribe_job",
+      "message": {
+        "request": {
+          "envelope": "lifecycleRpcRequest",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/SubscribeJobRequest"
+        },
+        "response": {
+          "envelope": "lifecycleRpcResponse",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/SubscribeJobResponse"
+        }
+      },
+      "status": "planned",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid download query",
+          "status": "400"
+        },
+        {
+          "description": "Requested execution scope is not available",
+          "status": "501"
+        }
+      ],
+      "feature": null,
+      "id": "listModelDownloads",
+      "method": "GET",
+      "path": "/api/sdk/v1/model-downloads",
+      "request": {
+        "query": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadQuery"
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadSnapshot",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Invalid catalog query",
+          "status": "400"
+        },
+        {
+          "description": "Requested execution scope is not available",
+          "status": "501"
+        },
+        {
+          "description": "Model catalog is unavailable",
+          "status": "503"
+        }
+      ],
+      "feature": null,
+      "id": "listModels",
+      "method": "GET",
+      "path": "/api/sdk/v1/models",
+      "request": {
+        "query": "sdk-v1.discovery.schema.json#/$defs/ModelCatalogQuery"
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/ModelCatalog",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Invalid cursor or limit",
+          "status": "400"
+        },
+        {
+          "description": "SDK discovery is disabled",
+          "status": "503"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "listWorkflowSummaries",
+      "method": "GET",
+      "path": "/api/sdk/v1/workflows",
+      "request": {
+        "query": "sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesInput"
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesOutput",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid preflight request",
+          "status": "400"
+        },
+        {
+          "description": "Workflow not found or inaccessible",
+          "status": "404"
+        },
+        {
+          "description": "Requested preflight level is unavailable",
+          "status": "503"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "preflightWorkflow",
+      "method": "POST",
+      "path": "/api/sdk/v1/preflight",
+      "request": {
+        "body": {
+          "content_type": "application/json",
+          "schema": "sdk-v1.lifecycle.schema.json#/$defs/PreflightRequest"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/PreflightSummary",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "lifecycle",
+      "id": "receiveJobEvent",
+      "message": {
+        "event": {
+          "envelope": "jobEvent",
+          "payload": "sdk-v1.lifecycle.schema.json#/$defs/JobEvent"
+        }
+      },
+      "status": "planned",
+      "transport": "websocket"
+    },
+    {
+      "auth": "discovery",
+      "channel": "sdkRpc",
+      "command": "get_node_type_inventory",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "INVALID_INPUT",
+          "description": "Invalid cursor or limit"
+        },
+        {
+          "code": "SERVICE_UNAVAILABLE",
+          "description": "SDK discovery is disabled"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "sdkRpc.get_node_type_inventory",
+      "message": {
+        "request": {
+          "envelope": "sdkRpcRequest",
+          "payload": "sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryInput"
+        },
+        "response": {
+          "envelope": "sdkRpcResponse",
+          "payload": "sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryOutput"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "discovery",
+      "channel": "sdkRpc",
+      "command": "get_workflow_interface",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "INVALID_INPUT",
+          "description": "Unsupported interface version"
+        },
+        {
+          "code": "WORKFLOW_NOT_FOUND",
+          "description": "Workflow not found"
+        },
+        {
+          "code": "SERVICE_UNAVAILABLE",
+          "description": "SDK discovery is disabled"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "sdkRpc.get_workflow_interface",
+      "message": {
+        "request": {
+          "envelope": "sdkRpcRequest",
+          "payload": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterfaceInput"
+        },
+        "response": {
+          "envelope": "sdkRpcResponse",
+          "payload": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterface"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "discovery",
+      "channel": "sdkRpc",
+      "command": "get_workflow_interfaces",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "INVALID_INPUT",
+          "description": "Invalid request"
+        },
+        {
+          "code": "SERVICE_UNAVAILABLE",
+          "description": "SDK discovery is disabled"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "sdkRpc.get_workflow_interfaces",
+      "message": {
+        "request": {
+          "envelope": "sdkRpcRequest",
+          "payload": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterfacesInput"
+        },
+        "response": {
+          "envelope": "sdkRpcResponse",
+          "payload": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterfacesOutput"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "discovery",
+      "channel": "sdkRpc",
+      "command": "list_workflow_summaries",
+      "direction": "request-response",
+      "errors": [
+        {
+          "code": "INVALID_INPUT",
+          "description": "Invalid cursor or limit"
+        },
+        {
+          "code": "SERVICE_UNAVAILABLE",
+          "description": "SDK discovery is disabled"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "sdkRpc.list_workflow_summaries",
+      "message": {
+        "request": {
+          "envelope": "sdkRpcRequest",
+          "payload": "sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesInput"
+        },
+        "response": {
+          "envelope": "sdkRpcResponse",
+          "payload": "sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesOutput"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid download request",
+          "status": "400"
+        },
+        {
+          "description": "Requested model download is not available",
+          "status": "501"
+        }
+      ],
+      "feature": null,
+      "id": "startModelDownload",
+      "method": "POST",
+      "path": "/api/sdk/v1/model-downloads",
+      "request": {
+        "body": {
+          "content_type": "application/json",
+          "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadStartRequest"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadState",
+        "status": "202"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid submission",
+          "status": "400"
+        },
+        {
+          "description": "Idempotency or workflow revision conflict",
+          "status": "409"
+        },
+        {
+          "description": "Preflight failed",
+          "status": "422"
+        },
+        {
+          "description": "Admission or rate limit exceeded",
+          "status": "429"
+        },
+        {
+          "description": "Execution is unavailable",
+          "status": "503"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "submitJob",
+      "method": "POST",
+      "path": "/api/sdk/v1/jobs",
+      "request": {
+        "body": {
+          "content_type": "application/json",
+          "schema": "sdk-v1.lifecycle.schema.json#/$defs/SubmitJobRequest"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/SubmitJobResponse",
+        "status": "202"
+      },
+      "status": "planned",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid multipart upload",
+          "status": "400"
+        },
+        {
+          "description": "Upload exceeds the configured limit",
+          "status": "413"
+        },
+        {
+          "description": "SDK lifecycle is unavailable",
+          "status": "503"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "uploadTemporaryAsset",
+      "method": "POST",
+      "path": "/api/sdk/v1/assets/temporary",
+      "request": {
+        "body": {
+          "binary": true,
+          "content_type": "multipart/form-data"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/TemporaryAssetUpload",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    }
+  ],
+  "protocol_version": "1"
+}
