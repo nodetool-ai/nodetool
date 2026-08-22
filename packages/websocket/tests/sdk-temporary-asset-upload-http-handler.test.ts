@@ -4,6 +4,9 @@ import {
   type StorageAdapter
 } from "@nodetool-ai/storage";
 import { handleSdkV1TemporaryAssetUpload } from "../src/sdk/sdk-temporary-asset-upload-http-handler.js";
+import { createSdkV1TemporaryAssetService } from "../src/sdk/sdk-temporary-asset-service.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 
 function uploadRequest(bytes: Uint8Array = new Uint8Array([1, 2, 3])): Request {
   const form = new FormData();
@@ -14,6 +17,24 @@ function uploadRequest(bytes: Uint8Array = new Uint8Array([1, 2, 3])): Request {
   });
 }
 
+function boundary(input: {
+  storage: StorageAdapter;
+  createId?: () => string;
+  getConfiguredMaxUploadBytes?: () => number;
+  environment?: NodeJS.ProcessEnv;
+}) {
+  return createSdkV1ImplementationBoundary(
+    createSdkV1Service({
+      temporaryAssetService: createSdkV1TemporaryAssetService({
+        getStorage: () => input.storage,
+        createId: input.createId,
+        getConfiguredMaxUploadBytes: input.getConfiguredMaxUploadBytes
+      }),
+      getEnvironment: () => input.environment ?? {}
+    })
+  );
+}
+
 describe("SDK temporary asset upload", () => {
   it("stores bytes directly without creating persistent asset metadata", async () => {
     const storage = new InMemoryStorageAdapter();
@@ -21,8 +42,11 @@ describe("SDK temporary asset upload", () => {
     let internalError: unknown;
 
     const response = await handleSdkV1TemporaryAssetUpload(uploadRequest(), {
-      storage,
-      createId: () => "upload-id",
+      boundary: boundary({
+        storage,
+        createId: () => "upload-id",
+        getConfiguredMaxUploadBytes: () => 1024
+      }),
       getConfiguredMaxUploadBytes: () => 1024,
       onInternalError: (error) => {
         internalError = error;
@@ -49,7 +73,10 @@ describe("SDK temporary asset upload", () => {
     const store = vi.spyOn(storage, "store");
 
     const response = await handleSdkV1TemporaryAssetUpload(uploadRequest(), {
-      storage,
+      boundary: boundary({
+        storage,
+        getConfiguredMaxUploadBytes: () => 2
+      }),
       getConfiguredMaxUploadBytes: () => 2
     });
 
@@ -67,8 +94,11 @@ describe("SDK temporary asset upload", () => {
     } as unknown as StorageAdapter;
 
     const response = await handleSdkV1TemporaryAssetUpload(uploadRequest(), {
-      storage,
-      createId: () => "upload-id",
+      boundary: boundary({
+        storage,
+        createId: () => "upload-id",
+        getConfiguredMaxUploadBytes: () => 1024
+      }),
       getConfiguredMaxUploadBytes: () => 1024
     });
 
@@ -80,8 +110,10 @@ describe("SDK temporary asset upload", () => {
 
   it("is unavailable with the lifecycle kill switch", async () => {
     const response = await handleSdkV1TemporaryAssetUpload(uploadRequest(), {
-      storage: new InMemoryStorageAdapter(),
-      environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "1" }
+      boundary: boundary({
+        storage: new InMemoryStorageAdapter(),
+        environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "1" }
+      })
     });
 
     expect(response.status).toBe(503);

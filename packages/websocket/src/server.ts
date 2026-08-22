@@ -108,6 +108,7 @@ import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute, { describeMissingAnonKey } from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
+import sdkV1Routes from "./routes/sdk-v1.js";
 import workflowsRoutes from "./routes/workflows.js";
 import nodesRoutes from "./routes/nodes.js";
 import storageRoutes from "./routes/storage.js";
@@ -128,6 +129,10 @@ import { unifiedModel } from "@nodetool-ai/protocol/api-schemas/models.js";
 import { createNodeToolSdkV1PreflightService } from "./sdk/sdk-preflight-service.js";
 import { createSdkV1ExecutionTargetReadiness } from "./sdk/sdk-execution-target-readiness.js";
 import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
+import { createSdkV1Service } from "./sdk/sdk-v1-service.js";
+import { createSdkV1ImplementationBoundary } from "./sdk/sdk-v1-handler-map.js";
+import { createSdkV1TemporaryAssetService } from "./sdk/sdk-temporary-asset-service.js";
+import { getTempAdapter } from "./lib/storage.js";
 import { FrontendRendererRegistry } from "./frontend-renderer-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
 import { initWorkspaceStorage } from "./lib/workflow-workspace.js";
@@ -1093,89 +1098,98 @@ const apiOptions: HttpApiOptions = {
   metadataRoots,
   registry,
   getPythonBridgeReady,
-  getSdkCapabilities: createNodeToolSdkV1CapabilitiesProvider({
-    nodetoolVersion: getVersion(),
-    registry,
-    pythonBridge: () => (getPythonBridgeReady() ? "ready" : "starting"),
-    profiles: {
-      discovery: "available",
-      execution: "available",
-      preflight: "available",
-      model_catalog: "available",
-      model_download: "available",
-      temporary_asset_upload: "available"
-    },
-    authModes: enforceAuth ? ["bearer"] : ["trusted_local"],
-    assetUriSchemes: ["asset"],
-    limits: {
-      maxRpcBatch: 100,
-      // The initial SDK profile deliberately prefers asset references for
-      // media instead of promising an inline payload size.
-      maxInlineBytes: 0,
-      maxQueuedJobs: 0,
-      maxJobEventReplay: 0,
-      requestTimeoutSeconds: 30
-    }
-  }),
-  sdkPreflightService: createNodeToolSdkV1PreflightService({
-    registry,
-    getPythonBridgeReady,
-    getExecutionTargetReadiness: ({ request, principal }) => {
-      const target = request.execution_target;
-      if (target?.kind === "runner") {
-        const ready = sdkLiveRunnerRegistry.has(
-          target.runner_id,
-          principal.userId
-        );
-        return {
-          id: target.runner_id,
-          name: "Live runner",
-          ready,
-          message: ready ? null : "Selected live runner is not available."
-        };
-      }
-      return resolveExecutionTarget(target);
-    },
-    getExecutionCapacitySnapshot: ({ request, principal }) => {
-      const target = request.execution_target;
-      if (target?.kind !== "runner") {
-        throw new Error("Execution capacity requires a selected live runner.");
-      }
-      return sdkLiveRunnerRegistry.getCapacity({
-        runnerId: target.runner_id,
-        userId: principal.userId,
-        workflowId: request.workflow_id,
-        concurrent: target.concurrent
-      });
-    }
-  }),
-  sdkModelCatalogService: {
-    list: (args) =>
-      getSdkV1ModelCatalog({
-        ...args,
-        recommendedModels: listRegistryRecommendedModels(),
-        getWorkerModels: async () => {
-          const activeWorker = await workerManager?.getActiveWorker();
-          if (!activeWorker) {
-            throw new SdkModelCatalogServiceError(
-              "No worker is attached to this server."
-            );
-          }
-          if (!pythonBridge.supportsModelManagement()) {
-            throw new SdkModelCatalogServiceError(
-              "The attached worker does not support model management."
-            );
-          }
-          const models: UnifiedModel[] = [];
-          for (const candidate of await pythonBridge.listCachedModels()) {
-            const parsed = unifiedModel.safeParse(candidate);
-            if (parsed.success) models.push(parsed.data as UnifiedModel);
-          }
-          return models;
+  sdkV1Boundary: createSdkV1ImplementationBoundary(
+    createSdkV1Service({
+      getCapabilities: createNodeToolSdkV1CapabilitiesProvider({
+        nodetoolVersion: getVersion(),
+        registry,
+        pythonBridge: () => (getPythonBridgeReady() ? "ready" : "starting"),
+        profiles: {
+          discovery: "available",
+          execution: "available",
+          preflight: "available",
+          model_catalog: "available",
+          model_download: "available",
+          temporary_asset_upload: "available"
+        },
+        authModes: enforceAuth ? ["bearer"] : ["trusted_local"],
+        assetUriSchemes: ["asset"],
+        limits: {
+          maxRpcBatch: 100,
+          // The initial SDK profile deliberately prefers asset references for
+          // media instead of promising an inline payload size.
+          maxInlineBytes: 0,
+          maxQueuedJobs: 0,
+          maxJobEventReplay: 0,
+          requestTimeoutSeconds: 30
         }
+      }),
+      preflightService: createNodeToolSdkV1PreflightService({
+        registry,
+        getPythonBridgeReady,
+        getExecutionTargetReadiness: ({ request, principal }) => {
+          const target = request.execution_target;
+          if (target?.kind === "runner") {
+            const ready = sdkLiveRunnerRegistry.has(
+              target.runner_id,
+              principal.userId
+            );
+            return {
+              id: target.runner_id,
+              name: "Live runner",
+              ready,
+              message: ready ? null : "Selected live runner is not available."
+            };
+          }
+          return resolveExecutionTarget(target);
+        },
+        getExecutionCapacitySnapshot: ({ request, principal }) => {
+          const target = request.execution_target;
+          if (target?.kind !== "runner") {
+            throw new Error(
+              "Execution capacity requires a selected live runner."
+            );
+          }
+          return sdkLiveRunnerRegistry.getCapacity({
+            runnerId: target.runner_id,
+            userId: principal.userId,
+            workflowId: request.workflow_id,
+            concurrent: target.concurrent
+          });
+        }
+      }),
+      modelCatalogService: {
+        list: (args) =>
+          getSdkV1ModelCatalog({
+            ...args,
+            recommendedModels: listRegistryRecommendedModels(),
+            getWorkerModels: async () => {
+              const activeWorker = await workerManager?.getActiveWorker();
+              if (!activeWorker) {
+                throw new SdkModelCatalogServiceError(
+                  "No worker is attached to this server."
+                );
+              }
+              if (!pythonBridge.supportsModelManagement()) {
+                throw new SdkModelCatalogServiceError(
+                  "The attached worker does not support model management."
+                );
+              }
+              const models: UnifiedModel[] = [];
+              for (const candidate of await pythonBridge.listCachedModels()) {
+                const parsed = unifiedModel.safeParse(candidate);
+                if (parsed.success) models.push(parsed.data as UnifiedModel);
+              }
+              return models;
+            }
+          })
+      },
+      modelDownloadService: sdkModelDownloadService,
+      temporaryAssetService: createSdkV1TemporaryAssetService({
+        getStorage: getTempAdapter
       })
-  },
-  sdkModelDownloadService
+    })
+  )
 };
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
@@ -1334,6 +1348,7 @@ await app.register(configRoute);
 // All HTTP API routes receive apiOptions
 const routeOpts = { apiOptions };
 
+await app.register(sdkV1Routes, routeOpts);
 await app.register(assetsRoutes, routeOpts);
 await app.register(workflowsRoutes, routeOpts);
 await app.register(nodesRoutes, routeOpts);

@@ -57,21 +57,44 @@ import {
   sdkV1TerminalJobStatus,
   sdkV1ValidationIssue
 } from "../src/api-schemas/sdk-lifecycle-v1.js";
+import type {
+  SdkV1HttpErrorDeclaration,
+  SdkV1HttpOperationDeclaration,
+  SdkV1HttpRequestBodyDeclaration,
+  SdkV1SchemaRef,
+  SdkV1WebSocketMessageEnvelope,
+  SdkV1WebSocketMessageKey,
+  SdkV1WebSocketOperationDeclaration
+} from "../src/api-schemas/sdk-v1-operations.js";
+import {
+  implementedSdkV1HttpOperations,
+  sdkV1HttpOperations,
+  sdkV1WebSocketChannel,
+  sdkV1WebSocketMessages,
+  sdkV1WebSocketOperations,
+  validateSdkV1OperationRegistry
+} from "../src/api-schemas/sdk-v1-operations.js";
 
 const PROTOCOL_VERSION = "1";
 const SCHEMA_FILE = "sdk-v1.discovery.schema.json";
 const LIFECYCLE_SCHEMA_FILE = "sdk-v1.lifecycle.schema.json";
 const OPENAPI_FILE = "sdk-v1.openapi.json";
+const OPENAPI_IMPLEMENTED_FILE = "sdk-v1.openapi.implemented.json";
 const ASYNCAPI_FILE = "sdk-v1.asyncapi.json";
+const ASYNCAPI_IMPLEMENTED_FILE = "sdk-v1.asyncapi.implemented.json";
+const OPERATIONS_FILE = "sdk-v1.operations.json";
 const MANIFEST_FILE = "sdk-v1.manifest.json";
+
+const OPENAPI_MEDIA_TYPE = "application/vnd.oai.openapi+json;version=3.1";
+const ASYNCAPI_MEDIA_TYPE = "application/vnd.aai.asyncapi+json;version=3.0";
 
 type JsonValue =
   | null
   | boolean
   | number
   | string
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  | readonly JsonValue[]
+  | { readonly [key: string]: JsonValue };
 
 function sortJson(value: JsonValue): JsonValue {
   if (Array.isArray(value)) {
@@ -99,7 +122,7 @@ function allowAdditiveResponseFields(value: JsonValue): JsonValue {
     return value;
   }
 
-  const result = Object.fromEntries(
+  const result: { [key: string]: JsonValue } = Object.fromEntries(
     Object.entries(value).map(([key, child]) => [
       key,
       allowAdditiveResponseFields(child)
@@ -119,7 +142,7 @@ function disallowUnknownRequestFields(value: JsonValue): JsonValue {
     return value;
   }
 
-  const result = Object.fromEntries(
+  const result: { [key: string]: JsonValue } = Object.fromEntries(
     Object.entries(value).map(([key, child]) => [
       key,
       disallowUnknownRequestFields(child)
@@ -150,106 +173,292 @@ function component(
     : disallowUnknownRequestFields(result);
 }
 
-function schemaReference(name: string): JsonValue {
-  return {
-    $ref: `./${SCHEMA_FILE}#/$defs/${name}`
-  };
+type ComponentEntry = {
+  readonly schema: z.ZodType;
+  readonly io: "input" | "output";
+};
+
+function inputComponent(schema: z.ZodType): ComponentEntry {
+  return { schema, io: "input" };
 }
 
-function lifecycleSchemaReference(name: string): JsonValue {
-  return {
-    $ref: `./${LIFECYCLE_SCHEMA_FILE}#/$defs/${name}`
-  };
+function outputComponent(schema: z.ZodType): ComponentEntry {
+  return { schema, io: "output" };
 }
 
-function errorResponses(statuses: ReadonlyArray<[string, string]>): JsonValue {
+function escapeJsonPointerSegment(value: string): string {
+  return value.replaceAll("~", "~0").replaceAll("/", "~1");
+}
+
+function scopeComponentReferences(
+  value: JsonValue,
+  componentName: string
+): JsonValue {
+  if (Array.isArray(value)) {
+    return value.map((item) => scopeComponentReferences(item, componentName));
+  }
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
   return Object.fromEntries(
-    statuses.map(([status, description]) => [
-      status,
+    Object.entries(value).map(([key, item]) => {
+      if (
+        key === "$ref" &&
+        typeof item === "string" &&
+        item.startsWith("#/$defs/")
+      ) {
+        return [
+          key,
+          `#/$defs/${escapeJsonPointerSegment(componentName)}/$defs/` +
+            item.slice("#/$defs/".length)
+        ];
+      }
+      return [key, scopeComponentReferences(item, componentName)];
+    })
+  );
+}
+
+const discoveryComponents: Record<string, ComponentEntry> = {
+  Error: outputComponent(sdkV1Error),
+  HttpError: outputComponent(sdkV1HttpError),
+  ModelCatalog: outputComponent(sdkV1ModelCatalog),
+  ModelCatalogEntry: outputComponent(sdkV1ModelCatalogEntry),
+  ModelCatalogQuery: inputComponent(sdkV1ModelCatalogQuery),
+  NodeTypeInventoryInput: inputComponent(sdkNodeTypeInventoryInput),
+  NodeTypeInventoryOutput: outputComponent(sdkNodeTypeInventoryOutput),
+  RpcError: outputComponent(sdkV1RpcError),
+  RpcRequest: inputComponent(sdkV1RpcRequest),
+  RpcResponse: outputComponent(sdkV1RpcResponse),
+  WorkflowInterface: outputComponent(workflowInterfaceV1),
+  WorkflowInterfaceInput: inputComponent(workflowInterfaceInput),
+  WorkflowInterfacesInput: inputComponent(workflowInterfacesInput),
+  WorkflowInterfacesOutput: outputComponent(workflowInterfacesOutput),
+  WorkflowSummariesInput: inputComponent(sdkWorkflowSummariesInput),
+  WorkflowSummariesOutput: outputComponent(sdkWorkflowSummariesOutput)
+};
+
+const lifecycleComponents: Record<string, ComponentEntry> = {
+  AssetReference: outputComponent(sdkV1AssetReference),
+  CancelJobResponse: outputComponent(sdkV1CancelJobResponse),
+  Capabilities: outputComponent(sdkV1Capabilities),
+  CapabilitiesRequest: inputComponent(sdkV1CapabilitiesRequest),
+  CostActual: outputComponent(sdkV1CostActual),
+  CostSummary: outputComponent(sdkV1CostSummary),
+  JobEvent: outputComponent(sdkV1JobEvent),
+  JobRequest: inputComponent(sdkV1JobRequest),
+  JobSnapshot: outputComponent(sdkV1JobSnapshot),
+  JobStatus: outputComponent(sdkV1JobStatus),
+  LifecycleRpcRequest: inputComponent(sdkV1LifecycleRpcRequest),
+  LifecycleRpcResponse: outputComponent(sdkV1LifecycleRpcResponse),
+  ModelDownloadCancelRequest: inputComponent(sdkV1ModelDownloadCancelRequest),
+  ModelDownloadQuery: inputComponent(sdkV1ModelDownloadQuery),
+  ModelDownloadSnapshot: outputComponent(sdkV1ModelDownloadSnapshot),
+  ModelDownloadStartRequest: inputComponent(sdkV1ModelDownloadStartRequest),
+  ModelDownloadState: outputComponent(sdkV1ModelDownloadState),
+  PreflightRequest: inputComponent(sdkV1PreflightRequest),
+  PreflightSummary: outputComponent(sdkV1PreflightSummary),
+  Requirement: outputComponent(sdkV1Requirement),
+  ResultManifest: outputComponent(sdkV1ResultManifest),
+  SubmitJobRequest: inputComponent(sdkV1SubmitJobRequest),
+  SubmitJobResponse: outputComponent(sdkV1SubmitJobResponse),
+  SubscribeJobRequest: inputComponent(sdkV1SubscribeJobRequest),
+  SubscribeJobResponse: outputComponent(sdkV1SubscribeJobResponse),
+  TemporaryAssetUpload: outputComponent(sdkV1TemporaryAssetUpload),
+  TerminalJobStatus: outputComponent(sdkV1TerminalJobStatus),
+  ValidationIssue: outputComponent(sdkV1ValidationIssue)
+};
+
+function buildDefs(
+  components: Record<string, ComponentEntry>
+): Record<string, JsonValue> {
+  return Object.fromEntries(
+    Object.entries(components).map(([name, entry]) => [
+      name,
+      scopeComponentReferences(component(entry.schema, entry.io), name)
+    ])
+  );
+}
+
+const discoveryDefs = buildDefs(discoveryComponents);
+const lifecycleDefs = buildDefs(lifecycleComponents);
+
+function schemaFileFor(profile: SdkV1SchemaRef["profile"]): string {
+  return profile === "discovery" ? SCHEMA_FILE : LIFECYCLE_SCHEMA_FILE;
+}
+
+function componentEntryFor(ref: SdkV1SchemaRef): ComponentEntry {
+  const table =
+    ref.profile === "discovery" ? discoveryComponents : lifecycleComponents;
+  const entry = table[ref.name];
+  if (!entry) {
+    throw new Error(
+      `Operation registry references unknown ${ref.profile} component ${ref.name}`
+    );
+  }
+  if (entry.schema !== ref.schema) {
+    throw new Error(
+      `Operation registry reference ${ref.profile}.${ref.name} does not use the generated component's Zod schema`
+    );
+  }
+  return entry;
+}
+
+function refJson(ref: SdkV1SchemaRef): JsonValue {
+  componentEntryFor(ref);
+  return { $ref: `./${schemaFileFor(ref.profile)}#/$defs/${ref.name}` };
+}
+
+function refPointer(ref: SdkV1SchemaRef): string {
+  componentEntryFor(ref);
+  return `${schemaFileFor(ref.profile)}#/$defs/${ref.name}`;
+}
+
+function queryPropertyRef(query: SdkV1SchemaRef, property: string): JsonValue {
+  componentEntryFor(query);
+  const defs = query.profile === "discovery" ? discoveryDefs : lifecycleDefs;
+  const definition = defs[query.name];
+  const properties =
+    definition !== null &&
+    typeof definition === "object" &&
+    !Array.isArray(definition)
+      ? definition.properties
+      : undefined;
+  const hasProperty =
+    properties !== undefined &&
+    properties !== null &&
+    typeof properties === "object" &&
+    !Array.isArray(properties) &&
+    Object.hasOwn(properties, property);
+  if (!hasProperty) {
+    throw new Error(
+      `Component ${query.profile}.${query.name} declares no property ${property} for a query parameter`
+    );
+  }
+  return {
+    $ref: `./${schemaFileFor(query.profile)}#/$defs/${query.name}/properties/${property}`
+  };
+}
+
+function errorResponses(
+  errors: readonly SdkV1HttpErrorDeclaration[]
+): JsonValue {
+  return Object.fromEntries(
+    errors.map((error) => [
+      error.status,
       {
         content: {
           "application/json": {
-            schema: schemaReference("HttpError")
+            schema: refJson({
+              profile: "discovery",
+              name: "HttpError",
+              schema: sdkV1HttpError
+            })
           }
         },
-        description
+        description: error.description
       }
     ])
   );
 }
 
-export function generateSdkProtocolArtifacts(): Record<string, string> {
-  const schema = serialize({
-    $defs: {
-      Error: component(sdkV1Error),
-      HttpError: component(sdkV1HttpError),
-      ModelCatalog: component(sdkV1ModelCatalog),
-      ModelCatalogEntry: component(sdkV1ModelCatalogEntry),
-      ModelCatalogQuery: component(sdkV1ModelCatalogQuery, "input"),
-      NodeTypeInventoryInput: component(sdkNodeTypeInventoryInput, "input"),
-      NodeTypeInventoryOutput: component(sdkNodeTypeInventoryOutput),
-      RpcError: component(sdkV1RpcError),
-      RpcRequest: component(sdkV1RpcRequest, "input"),
-      RpcResponse: component(sdkV1RpcResponse),
-      WorkflowInterface: component(workflowInterfaceV1),
-      WorkflowInterfaceInput: component(workflowInterfaceInput, "input"),
-      WorkflowInterfacesInput: component(workflowInterfacesInput, "input"),
-      WorkflowInterfacesOutput: component(workflowInterfacesOutput),
-      WorkflowSummariesInput: component(sdkWorkflowSummariesInput, "input"),
-      WorkflowSummariesOutput: component(sdkWorkflowSummariesOutput)
+function requestBodyJson(body: SdkV1HttpRequestBodyDeclaration): JsonValue {
+  const description =
+    body.description === undefined ? {} : { description: body.description };
+  if (body.kind === "json") {
+    return {
+      content: { "application/json": { schema: refJson(body.schema) } },
+      required: body.required,
+      ...description
+    };
+  }
+  return {
+    content: {
+      "multipart/form-data": {
+        schema: {
+          additionalProperties: false,
+          properties: {
+            [body.field]: {
+              contentMediaType: "application/octet-stream",
+              format: "binary",
+              type: "string"
+            }
+          },
+          required: [body.field],
+          type: "object"
+        }
+      }
     },
-    $id: "https://nodetool.ai/schemas/sdk/v1/discovery.schema.json",
-    $schema: "https://json-schema.org/draft/2020-12/schema",
-    description:
-      "Public NodeTool SDK v1 discovery and correlated read-only RPC components.",
-    title: "NodeTool SDK v1 discovery profile"
+    required: body.required,
+    ...description
+  };
+}
+
+function httpOperationJson(
+  operation: SdkV1HttpOperationDeclaration
+): JsonValue {
+  const parameters = operation.request.parameters?.map((parameter) => {
+    let schema: JsonValue;
+    if (parameter.schema.kind === "inline") {
+      schema = parameter.schema.jsonSchema;
+    } else {
+      const query = operation.request.query;
+      if (!query) {
+        throw new Error(
+          `Operation ${operation.id} declares query-property parameter ${parameter.name} without a query schema`
+        );
+      }
+      schema = queryPropertyRef(query, parameter.name);
+    }
+    return {
+      in: parameter.in,
+      name: parameter.name,
+      required: parameter.required,
+      schema,
+      ...(parameter.description === undefined
+        ? {}
+        : { description: parameter.description })
+    };
   });
 
-  const lifecycleSchema = serialize({
-    $defs: {
-      AssetReference: component(sdkV1AssetReference),
-      CancelJobResponse: component(sdkV1CancelJobResponse),
-      Capabilities: component(sdkV1Capabilities),
-      CapabilitiesRequest: component(sdkV1CapabilitiesRequest, "input"),
-      CostActual: component(sdkV1CostActual),
-      CostSummary: component(sdkV1CostSummary),
-      JobEvent: component(sdkV1JobEvent),
-      JobRequest: component(sdkV1JobRequest, "input"),
-      JobSnapshot: component(sdkV1JobSnapshot),
-      JobStatus: component(sdkV1JobStatus),
-      LifecycleRpcRequest: component(sdkV1LifecycleRpcRequest, "input"),
-      LifecycleRpcResponse: component(sdkV1LifecycleRpcResponse),
-      ModelDownloadCancelRequest: component(
-        sdkV1ModelDownloadCancelRequest,
-        "input"
-      ),
-      ModelDownloadQuery: component(sdkV1ModelDownloadQuery, "input"),
-      ModelDownloadSnapshot: component(sdkV1ModelDownloadSnapshot),
-      ModelDownloadStartRequest: component(
-        sdkV1ModelDownloadStartRequest,
-        "input"
-      ),
-      ModelDownloadState: component(sdkV1ModelDownloadState),
-      PreflightRequest: component(sdkV1PreflightRequest, "input"),
-      PreflightSummary: component(sdkV1PreflightSummary),
-      Requirement: component(sdkV1Requirement),
-      ResultManifest: component(sdkV1ResultManifest),
-      SubmitJobRequest: component(sdkV1SubmitJobRequest, "input"),
-      SubmitJobResponse: component(sdkV1SubmitJobResponse),
-      SubscribeJobRequest: component(sdkV1SubscribeJobRequest, "input"),
-      SubscribeJobResponse: component(sdkV1SubscribeJobResponse),
-      TemporaryAssetUpload: component(sdkV1TemporaryAssetUpload),
-      TerminalJobStatus: component(sdkV1TerminalJobStatus),
-      ValidationIssue: component(sdkV1ValidationIssue)
+  return {
+    operationId: operation.id,
+    ...(parameters && parameters.length > 0 ? { parameters } : {}),
+    ...(operation.request.body
+      ? { requestBody: requestBodyJson(operation.request.body) }
+      : {}),
+    responses: {
+      [operation.response.status]: {
+        content: {
+          [operation.response.contentType]: {
+            schema: refJson(operation.response.schema)
+          }
+        },
+        description: operation.response.description
+      },
+      ...errorResponses(operation.errors)
     },
-    $id: "https://nodetool.ai/schemas/sdk/v1/lifecycle.schema.json",
-    $schema: "https://json-schema.org/draft/2020-12/schema",
-    description:
-      "Draft public NodeTool SDK v1 capabilities, preflight, jobs, events, results, and asset-reference components.",
-    title: "NodeTool SDK v1 lifecycle profiles"
-  });
+    summary: operation.summary,
+    ...(operation.status === "planned"
+      ? { "x-nodetool-implementation": "planned" }
+      : {})
+  };
+}
 
-  const openApi = serialize({
+function buildOpenApiPaths(
+  operations: readonly SdkV1HttpOperationDeclaration[]
+): JsonValue {
+  const paths: Record<string, Record<string, JsonValue>> = {};
+  for (const operation of operations) {
+    const pathItem = (paths[operation.path] ??= {});
+    pathItem[operation.method.toLowerCase()] = httpOperationJson(operation);
+  }
+  return paths;
+}
+
+function openApiDocument(
+  operations: readonly SdkV1HttpOperationDeclaration[]
+): JsonValue {
+  return {
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -268,439 +477,7 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
       version: PROTOCOL_VERSION
     },
     openapi: "3.1.0",
-    paths: {
-      "/api/sdk/v1/capabilities": {
-        get: {
-          operationId: "getCapabilities",
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: lifecycleSchemaReference("Capabilities")
-                }
-              },
-              description: "Server capabilities and advertised limits"
-            },
-            ...errorResponses([["503", "Capabilities are unavailable"]])
-          },
-          summary: "Get public SDK capabilities"
-        }
-      },
-      "/api/sdk/v1/models": {
-        get: {
-          operationId: "listModels",
-          parameters: [
-            "compatibility",
-            "availability",
-            "provider",
-            "scope",
-            "cursor",
-            "limit"
-          ].map((name) => ({
-            in: "query",
-            name,
-            required: false,
-            schema: {
-              $ref: `./${SCHEMA_FILE}#/$defs/ModelCatalogQuery/properties/${name}`
-            }
-          })),
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: schemaReference("ModelCatalog")
-                }
-              },
-              description:
-                "A bounded page of models visible to this SDK principal"
-            },
-            ...errorResponses([
-              ["400", "Invalid catalog query"],
-              ["501", "Requested execution scope is not available"],
-              ["503", "Model catalog is unavailable"]
-            ])
-          },
-          summary: "List execution-compatible models"
-        }
-      },
-      "/api/sdk/v1/model-downloads": {
-        get: {
-          operationId: "listModelDownloads",
-          parameters: ["scope", "operation_id"].map((name) => ({
-            in: "query",
-            name,
-            required: false,
-            schema: {
-              $ref: `./${LIFECYCLE_SCHEMA_FILE}#/$defs/ModelDownloadQuery/properties/${name}`
-            }
-          })),
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: lifecycleSchemaReference("ModelDownloadSnapshot")
-                }
-              },
-              description: "Current reconnectable model download states"
-            },
-            ...errorResponses([
-              ["400", "Invalid download query"],
-              ["501", "Requested execution scope is not available"]
-            ])
-          },
-          summary: "List model downloads"
-        },
-        post: {
-          operationId: "startModelDownload",
-          requestBody: {
-            content: {
-              "application/json": {
-                schema: lifecycleSchemaReference("ModelDownloadStartRequest")
-              }
-            },
-            required: true
-          },
-          responses: {
-            "202": {
-              content: {
-                "application/json": {
-                  schema: lifecycleSchemaReference("ModelDownloadState")
-                }
-              },
-              description: "Accepted download state"
-            },
-            ...errorResponses([
-              ["400", "Invalid download request"],
-              ["501", "Requested model download is not available"]
-            ])
-          },
-          summary: "Start or retry a model download"
-        }
-      },
-      "/api/sdk/v1/model-downloads/cancel": {
-        post: {
-          operationId: "cancelModelDownload",
-          requestBody: {
-            content: {
-              "application/json": {
-                schema: lifecycleSchemaReference("ModelDownloadCancelRequest")
-              }
-            },
-            required: true
-          },
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: lifecycleSchemaReference("ModelDownloadState")
-                }
-              },
-              description: "Current terminal download state"
-            },
-            ...errorResponses([
-              ["400", "Invalid cancellation request"],
-              ["404", "Download operation was not found"]
-            ])
-          },
-          summary: "Cancel a model download"
-        }
-      },
-      "/api/sdk/v1/assets/temporary": {
-        post: {
-          operationId: "uploadTemporaryAsset",
-          requestBody: {
-            content: {
-              "multipart/form-data": {
-                schema: {
-                  additionalProperties: false,
-                  properties: {
-                    file: {
-                      contentMediaType: "application/octet-stream",
-                      format: "binary",
-                      type: "string"
-                    }
-                  },
-                  required: ["file"],
-                  type: "object"
-                }
-              }
-            },
-            required: true
-          },
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: lifecycleSchemaReference("TemporaryAssetUpload")
-                }
-              },
-              description:
-                "Temporary storage URI without persistent asset metadata"
-            },
-            ...errorResponses([
-              ["400", "Invalid multipart upload"],
-              ["413", "Upload exceeds the configured limit"],
-              ["503", "SDK lifecycle is unavailable"]
-            ])
-          },
-          summary: "Upload one transient workflow input without asset autosave"
-        }
-      },
-      "/api/sdk/v1/jobs": {
-        post: {
-          operationId: "submitJob",
-          requestBody: {
-            content: {
-              "application/json": {
-                schema: lifecycleSchemaReference("SubmitJobRequest")
-              }
-            },
-            required: true
-          },
-          responses: {
-            "202": {
-              content: {
-                "application/json": {
-                  schema: lifecycleSchemaReference("SubmitJobResponse")
-                }
-              },
-              description: "Persisted job acknowledgement"
-            },
-            ...errorResponses([
-              ["400", "Invalid submission"],
-              ["409", "Idempotency or workflow revision conflict"],
-              ["422", "Preflight failed"],
-              ["429", "Admission or rate limit exceeded"],
-              ["503", "Execution is unavailable"]
-            ])
-          },
-          summary: "Submit one idempotent workflow job",
-          "x-nodetool-implementation": "planned"
-        }
-      },
-      "/api/sdk/v1/jobs/{job_id}": {
-        get: {
-          operationId: "getJobSnapshot",
-          parameters: [
-            {
-              in: "path",
-              name: "job_id",
-              required: true,
-              schema: { minLength: 1, type: "string" }
-            }
-          ],
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: lifecycleSchemaReference("JobSnapshot")
-                }
-              },
-              description: "Authoritative job snapshot"
-            },
-            ...errorResponses([
-              ["404", "Job not found, inaccessible, or expired"]
-            ])
-          },
-          summary: "Get an authoritative job snapshot",
-          "x-nodetool-implementation": "planned"
-        }
-      },
-      "/api/sdk/v1/jobs/{job_id}/cancel": {
-        post: {
-          operationId: "cancelJob",
-          parameters: [
-            {
-              in: "path",
-              name: "job_id",
-              required: true,
-              schema: { minLength: 1, type: "string" }
-            }
-          ],
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: lifecycleSchemaReference("CancelJobResponse")
-                }
-              },
-              description:
-                "Cancellation acknowledgement or existing terminal state"
-            },
-            ...errorResponses([
-              ["404", "Job not found, inaccessible, or expired"]
-            ])
-          },
-          summary: "Request idempotent job cancellation",
-          "x-nodetool-implementation": "planned"
-        }
-      },
-      "/api/sdk/v1/node-types": {
-        get: {
-          operationId: "getNodeTypeInventory",
-          parameters: [
-            {
-              in: "query",
-              name: "cursor",
-              required: false,
-              schema: schemaReference(
-                "NodeTypeInventoryInput/properties/cursor"
-              )
-            },
-            {
-              in: "query",
-              name: "limit",
-              required: false,
-              schema: schemaReference("NodeTypeInventoryInput/properties/limit")
-            }
-          ],
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: schemaReference("NodeTypeInventoryOutput")
-                }
-              },
-              description: "Bounded hybrid node-type inventory"
-            },
-            ...errorResponses([
-              ["400", "Invalid cursor or limit"],
-              ["503", "SDK discovery is disabled"]
-            ])
-          },
-          summary: "List node types used by the loaded registry"
-        }
-      },
-      "/api/sdk/v1/workflow-interfaces": {
-        post: {
-          operationId: "getWorkflowInterfaces",
-          requestBody: {
-            content: {
-              "application/json": {
-                schema: schemaReference("WorkflowInterfacesInput")
-              }
-            },
-            required: true
-          },
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: schemaReference("WorkflowInterfacesOutput")
-                }
-              },
-              description: "Ordered accessible interfaces and isolated errors"
-            },
-            ...errorResponses([
-              ["400", "Invalid request"],
-              ["503", "SDK discovery is disabled"]
-            ])
-          },
-          summary: "Get up to 100 workflow interfaces"
-        }
-      },
-      "/api/sdk/v1/preflight": {
-        post: {
-          operationId: "preflightWorkflow",
-          requestBody: {
-            content: {
-              "application/json": {
-                schema: lifecycleSchemaReference("PreflightRequest")
-              }
-            },
-            required: true
-          },
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: lifecycleSchemaReference("PreflightSummary")
-                }
-              },
-              description: "Side-effect-free workflow preflight"
-            },
-            ...errorResponses([
-              ["400", "Invalid preflight request"],
-              ["404", "Workflow not found or inaccessible"],
-              ["503", "Requested preflight level is unavailable"]
-            ])
-          },
-          summary: "Preflight a workflow without starting paid work"
-        }
-      },
-      "/api/sdk/v1/workflows": {
-        get: {
-          operationId: "listWorkflowSummaries",
-          parameters: [
-            {
-              in: "query",
-              name: "limit",
-              required: false,
-              schema: schemaReference("WorkflowSummariesInput/properties/limit")
-            },
-            {
-              in: "query",
-              name: "cursor",
-              required: false,
-              schema: schemaReference(
-                "WorkflowSummariesInput/properties/cursor"
-              )
-            }
-          ],
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: schemaReference("WorkflowSummariesOutput")
-                }
-              },
-              description: "Compact workflow summaries"
-            },
-            ...errorResponses([
-              ["400", "Invalid cursor or limit"],
-              ["503", "SDK discovery is disabled"]
-            ])
-          },
-          summary: "List compact workflow summaries"
-        }
-      },
-      "/api/workflows/{id}/interface": {
-        get: {
-          operationId: "getWorkflowInterface",
-          parameters: [
-            {
-              in: "path",
-              name: "id",
-              required: true,
-              schema: { minLength: 1, type: "string" }
-            },
-            {
-              in: "query",
-              name: "version",
-              required: true,
-              schema: { const: 1, type: "integer" }
-            }
-          ],
-          responses: {
-            "200": {
-              content: {
-                "application/json": {
-                  schema: schemaReference("WorkflowInterface")
-                }
-              },
-              description: "Graph-derived workflow interface"
-            },
-            ...errorResponses([
-              ["400", "Unsupported interface version"],
-              ["404", "Workflow not found or not accessible"],
-              ["422", "Workflow graph is invalid"],
-              ["503", "SDK discovery is disabled"]
-            ])
-          },
-          summary: "Get one graph-derived workflow interface"
-        }
-      }
-    },
+    paths: buildOpenApiPaths(operations),
     security: [{ bearerAuth: [] }, {}],
     servers: [
       {
@@ -710,53 +487,94 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
     ],
     "x-nodetool-kill-switch": "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1",
     "x-nodetool-status": "draft"
-  });
+  };
+}
 
-  const asyncApi = serialize({
+function operationEnvelopes(
+  operation: SdkV1WebSocketOperationDeclaration
+): readonly SdkV1WebSocketMessageKey[] {
+  return operation.direction === "request-response"
+    ? [operation.message.request.envelope, operation.message.response.envelope]
+    : [operation.message.event.envelope];
+}
+
+/**
+ * An envelope shared by implemented and planned command variants is marked
+ * `partial`; one used only by planned operations is `planned`; a fully
+ * implemented envelope carries no marker.
+ */
+function envelopeMarker(
+  key: SdkV1WebSocketMessageKey
+): "planned" | "partial" | undefined {
+  const statuses = sdkV1WebSocketOperations
+    .filter((operation) => operationEnvelopes(operation).includes(key))
+    .map((operation) => operation.status);
+  if (statuses.length === 0) {
+    throw new Error(
+      `WebSocket envelope ${key} is not referenced by any declared operation`
+    );
+  }
+  if (statuses.every((status) => status === "implemented")) {
+    return undefined;
+  }
+  if (statuses.every((status) => status === "planned")) {
+    return "planned";
+  }
+  return "partial";
+}
+
+function markerProps(marker: "planned" | "partial" | undefined): JsonValue {
+  return marker === undefined ? {} : { "x-nodetool-implementation": marker };
+}
+
+function assertEnvelopeCoverage(): void {
+  const envelopeKeys = new Set(
+    sdkV1WebSocketMessages.map((message) => message.key)
+  );
+  for (const operation of sdkV1WebSocketOperations) {
+    for (const key of operationEnvelopes(operation)) {
+      if (!envelopeKeys.has(key)) {
+        throw new Error(
+          `Operation ${operation.id} references undeclared WebSocket envelope ${key}`
+        );
+      }
+    }
+  }
+}
+
+function asyncApiDocument(
+  envelopes: readonly SdkV1WebSocketMessageEnvelope[]
+): JsonValue {
+  const channelRef = `#/channels/${sdkV1WebSocketChannel.key}`;
+  const messages = Object.fromEntries(
+    envelopes.map((envelope) => [
+      envelope.key,
+      {
+        contentType: envelope.contentType,
+        description: envelope.description,
+        name: envelope.name,
+        payload: refJson(envelope.payload),
+        ...markerProps(envelopeMarker(envelope.key))
+      }
+    ])
+  );
+  const operations = Object.fromEntries(
+    envelopes.map((envelope) => [
+      envelope.operationKey,
+      {
+        action: envelope.action,
+        channel: { $ref: channelRef },
+        messages: [{ $ref: `${channelRef}/messages/${envelope.key}` }],
+        ...markerProps(envelopeMarker(envelope.key))
+      }
+    ])
+  );
+  return {
     asyncapi: "3.0.0",
     channels: {
-      sdkRpc: {
-        address: "/ws",
-        messages: {
-          sdkRpcRequest: {
-            contentType: "application/msgpack",
-            description:
-              "A correlated read-only SDK command. request_id must be non-empty.",
-            name: "SdkRpcRequest",
-            payload: schemaReference("RpcRequest")
-          },
-          sdkRpcResponse: {
-            contentType: "application/msgpack",
-            description:
-              "Exactly one result or error response correlated by request_id.",
-            name: "SdkRpcResponse",
-            payload: schemaReference("RpcResponse")
-          },
-          lifecycleRpcRequest: {
-            contentType: "application/msgpack",
-            description:
-              "Capabilities and preflight are implemented behind the lifecycle feature flag; later job lifecycle commands remain planned.",
-            name: "LifecycleRpcRequest",
-            payload: lifecycleSchemaReference("LifecycleRpcRequest"),
-            "x-nodetool-implementation": "partial"
-          },
-          lifecycleRpcResponse: {
-            contentType: "application/msgpack",
-            description:
-              "A correlated lifecycle response. Capabilities and preflight are implemented; later job lifecycle responses remain planned.",
-            name: "LifecycleRpcResponse",
-            payload: lifecycleSchemaReference("LifecycleRpcResponse"),
-            "x-nodetool-implementation": "partial"
-          },
-          jobEvent: {
-            contentType: "application/msgpack",
-            description:
-              "A planned ordered per-job event emitted after subscription.",
-            name: "JobEvent",
-            payload: lifecycleSchemaReference("JobEvent"),
-            "x-nodetool-implementation": "planned"
-          }
-        }
+      [sdkV1WebSocketChannel.key]: {
+        address: sdkV1WebSocketChannel.address,
+        messages
       }
     },
     info: {
@@ -765,36 +583,7 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
       title: "NodeTool SDK discovery WebSocket API",
       version: PROTOCOL_VERSION
     },
-    operations: {
-      receiveJobEvent: {
-        action: "receive",
-        channel: { $ref: "#/channels/sdkRpc" },
-        messages: [{ $ref: "#/channels/sdkRpc/messages/jobEvent" }],
-        "x-nodetool-implementation": "planned"
-      },
-      receiveLifecycleRpcResponse: {
-        action: "receive",
-        channel: { $ref: "#/channels/sdkRpc" },
-        messages: [{ $ref: "#/channels/sdkRpc/messages/lifecycleRpcResponse" }],
-        "x-nodetool-implementation": "partial"
-      },
-      receiveSdkRpcResponse: {
-        action: "receive",
-        channel: { $ref: "#/channels/sdkRpc" },
-        messages: [{ $ref: "#/channels/sdkRpc/messages/sdkRpcResponse" }]
-      },
-      sendSdkRpcRequest: {
-        action: "send",
-        channel: { $ref: "#/channels/sdkRpc" },
-        messages: [{ $ref: "#/channels/sdkRpc/messages/sdkRpcRequest" }]
-      },
-      sendLifecycleRpcRequest: {
-        action: "send",
-        channel: { $ref: "#/channels/sdkRpc" },
-        messages: [{ $ref: "#/channels/sdkRpc/messages/lifecycleRpcRequest" }],
-        "x-nodetool-implementation": "partial"
-      }
-    },
+    operations,
     servers: {
       local: {
         description:
@@ -806,17 +595,160 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
     },
     "x-nodetool-default-encoding": "messagepack",
     "x-nodetool-status": "draft"
+  };
+}
+
+function httpOperationManifest(
+  operation: SdkV1HttpOperationDeclaration
+): JsonValue {
+  const body = operation.request.body;
+  return {
+    auth: operation.auth,
+    errors: operation.errors.map((error) => ({
+      description: error.description,
+      status: error.status
+    })),
+    feature: operation.feature,
+    id: operation.id,
+    method: operation.method,
+    path: operation.path,
+    request: {
+      ...(operation.request.query
+        ? { query: refPointer(operation.request.query) }
+        : {}),
+      ...(body
+        ? {
+            body:
+              body.kind === "json"
+                ? {
+                    content_type: "application/json",
+                    schema: refPointer(body.schema)
+                  }
+                : { binary: true, content_type: "multipart/form-data" }
+          }
+        : {})
+    },
+    response: {
+      content_type: operation.response.contentType,
+      schema: refPointer(operation.response.schema),
+      status: operation.response.status
+    },
+    status: operation.status,
+    transport: "http"
+  };
+}
+
+function webSocketOperationManifest(
+  operation: SdkV1WebSocketOperationDeclaration
+): JsonValue {
+  return {
+    auth: operation.auth,
+    channel: operation.channel,
+    ...(operation.direction === "request-response"
+      ? { command: operation.command }
+      : {}),
+    direction: operation.direction,
+    errors: operation.errors.map((error) => ({
+      code: error.code,
+      description: error.description
+    })),
+    feature: operation.feature,
+    id: operation.id,
+    message:
+      operation.direction === "request-response"
+        ? {
+            request: {
+              envelope: operation.message.request.envelope,
+              payload: refPointer(operation.message.request.payload)
+            },
+            response: {
+              envelope: operation.message.response.envelope,
+              payload: refPointer(operation.message.response.payload)
+            }
+          }
+        : {
+            event: {
+              envelope: operation.message.event.envelope,
+              payload: refPointer(operation.message.event.payload)
+            }
+          },
+    status: operation.status,
+    transport: "websocket"
+  };
+}
+
+export function generateSdkProtocolArtifacts(): Record<string, string> {
+  validateSdkV1OperationRegistry();
+  assertEnvelopeCoverage();
+
+  const schema = serialize({
+    $defs: discoveryDefs,
+    $id: "https://nodetool.ai/schemas/sdk/v1/discovery.schema.json",
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    description:
+      "Public NodeTool SDK v1 discovery and correlated read-only RPC components.",
+    title: "NodeTool SDK v1 discovery profile"
   });
 
-  const contractArtifacts = {
+  const lifecycleSchema = serialize({
+    $defs: lifecycleDefs,
+    $id: "https://nodetool.ai/schemas/sdk/v1/lifecycle.schema.json",
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    description:
+      "Draft public NodeTool SDK v1 capabilities, preflight, jobs, events, results, and asset-reference components.",
+    title: "NodeTool SDK v1 lifecycle profiles"
+  });
+
+  const openApi = serialize(openApiDocument(sdkV1HttpOperations));
+  const openApiImplemented = serialize(
+    openApiDocument(implementedSdkV1HttpOperations)
+  );
+
+  const asyncApi = serialize(asyncApiDocument(sdkV1WebSocketMessages));
+  const asyncApiImplemented = serialize(
+    asyncApiDocument(
+      sdkV1WebSocketMessages.filter(
+        (envelope) => envelopeMarker(envelope.key) !== "planned"
+      )
+    )
+  );
+
+  const operationsManifest = serialize({
+    generated_from: "@nodetool-ai/protocol",
+    operations: [
+      ...sdkV1HttpOperations.map((operation) => ({
+        id: operation.id,
+        entry: httpOperationManifest(operation)
+      })),
+      ...sdkV1WebSocketOperations.map((operation) => ({
+        id: operation.id,
+        entry: webSocketOperationManifest(operation)
+      }))
+    ]
+      .sort(({ id: left }, { id: right }) =>
+        left < right ? -1 : left > right ? 1 : 0
+      )
+      .map(({ entry }) => entry),
+    protocol_version: PROTOCOL_VERSION
+  });
+
+  const contractArtifacts: Record<
+    string,
+    {
+      content: string;
+      mediaType: string;
+      profile: string;
+      variant?: "implemented";
+    }
+  > = {
     [ASYNCAPI_FILE]: {
       content: asyncApi,
-      mediaType: "application/vnd.aai.asyncapi+json;version=3.0",
+      mediaType: ASYNCAPI_MEDIA_TYPE,
       profile: "discovery"
     },
     [OPENAPI_FILE]: {
       content: openApi,
-      mediaType: "application/vnd.oai.openapi+json;version=3.1",
+      mediaType: OPENAPI_MEDIA_TYPE,
       profile: "discovery"
     },
     [LIFECYCLE_SCHEMA_FILE]: {
@@ -828,6 +760,23 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
       content: schema,
       mediaType: "application/schema+json",
       profile: "discovery"
+    },
+    [ASYNCAPI_IMPLEMENTED_FILE]: {
+      content: asyncApiImplemented,
+      mediaType: ASYNCAPI_MEDIA_TYPE,
+      profile: "discovery",
+      variant: "implemented"
+    },
+    [OPENAPI_IMPLEMENTED_FILE]: {
+      content: openApiImplemented,
+      mediaType: OPENAPI_MEDIA_TYPE,
+      profile: "discovery",
+      variant: "implemented"
+    },
+    [OPERATIONS_FILE]: {
+      content: operationsManifest,
+      mediaType: "application/json",
+      profile: "operations"
     }
   };
   const manifest = serialize({
@@ -835,7 +784,8 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
       media_type: artifact.mediaType,
       path,
       profile: artifact.profile,
-      sha256: createHash("sha256").update(artifact.content).digest("hex")
+      sha256: createHash("sha256").update(artifact.content).digest("hex"),
+      ...(artifact.variant === undefined ? {} : { variant: artifact.variant })
     })),
     default_websocket_encoding: "messagepack",
     generated_from: "@nodetool-ai/protocol",

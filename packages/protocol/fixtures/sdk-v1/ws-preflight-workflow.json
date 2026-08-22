@@ -1,0 +1,41 @@
+{
+  "fixture_version": 1,
+  "command": "preflight_workflow",
+  "env": {
+    "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+    "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+    "NODETOOL_REQUIRE_SDK_AUTH_V1": "0",
+    "NODETOOL_PACKS_CONFIG": "/nonexistent/sdk-v1-golden-packs.json"
+  },
+  "request": {
+    "command": "preflight_workflow",
+    "request_id": "sdk-golden-preflight_workflow",
+    "data": {
+      "workflow_id": "wf-sdk-golden-1",
+      "workspace_id": null,
+      "workflow_etag": "sdk-golden-etag",
+      "interface_version": 1,
+      "level": "static",
+      "inputs": {
+        "prompt": "hello"
+      }
+    }
+  },
+  "response": {
+    "type": "rpc_response",
+    "request_id": "sdk-golden-preflight_workflow",
+    "command": "preflight_workflow",
+    "result": {
+      "version": 1,
+      "level": "static",
+      "workflow_id": "wf-sdk-golden-1",
+      "workflow_etag": "sdk-golden-etag",
+      "runnable": true,
+      "issues": [],
+      "requirements": [],
+      "cost": null
+    }
+  },
+  "messagepack_request_hex": "de0003a7636f6d6d616e64b2707265666c696768745f776f726b666c6f77aa726571756573745f6964bd73646b2d676f6c64656e2d707265666c696768745f776f726b666c6f77a464617461de0006ab776f726b666c6f775f6964af77662d73646b2d676f6c64656e2d31ac776f726b73706163655f6964c0ad776f726b666c6f775f65746167af73646b2d676f6c64656e2d65746167b1696e746572666163655f76657273696f6e01a56c6576656ca6737461746963a6696e70757473de0001a670726f6d7074a568656c6c6f",
+  "messagepack_response_hex": "de0004a474797065ac7270635f726573706f6e7365aa726571756573745f6964bd73646b2d676f6c64656e2d707265666c696768745f776f726b666c6f77a7636f6d6d616e64b2707265666c696768745f776f726b666c6f77a6726573756c74de0008a776657273696f6e01a56c6576656ca6737461746963ab776f726b666c6f775f6964af77662d73646b2d676f6c64656e2d31ad776f726b666c6f775f65746167af73646b2d676f6c64656e2d65746167a872756e6e61626c65c3a669737375657390ac726571756972656d656e747390a4636f7374c0"
+}

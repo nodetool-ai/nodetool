@@ -42,12 +42,8 @@ import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { syncRegistrations } from "../../triggers/registration-sync.js";
-import {
-  getWorkflowInterfaceV1,
-  getWorkflowInterfacesV1,
-  listWorkflowSummariesV1,
-  WorkflowInterfaceServiceError
-} from "../../workflow-interface-service.js";
+import { resolveSdkV1Boundary } from "../../http-api.js";
+import { throwSdkV1TrpcError } from "../../sdk/sdk-v1-trpc-error.js";
 import {
   listInput,
   listOutput,
@@ -96,25 +92,9 @@ import {
   type WorkflowResponse,
   type VersionResponse
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import {
-  isNumber,
-  isString
-} from "../../lib/wire-values.js";
+import { isNumber, isString } from "../../lib/wire-values.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
-
-function throwWorkflowInterfaceError(error: unknown): never {
-  if (!(error instanceof WorkflowInterfaceServiceError)) {
-    throw error;
-  }
-  if (error.code === "feature_disabled") {
-    throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, error.message);
-  }
-  if (error.code === "workflow_not_found") {
-    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, error.message);
-  }
-  throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
-}
 
 /**
  * Reconcile `trigger_registrations` against the workflow's current graph.
@@ -166,7 +146,10 @@ async function requireWorkflowRole(
     throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
   }
   const role = await resolveWorkflowRole(workflow, userId);
-  const rank = { viewer: 1, editor: 2, owner: 3 } satisfies Record<WorkflowRole, number>;
+  const rank = { viewer: 1, editor: 2, owner: 3 } satisfies Record<
+    WorkflowRole,
+    number
+  >;
   if (!role || rank[role] < rank[minimum]) {
     throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
   }
@@ -364,10 +347,9 @@ function buildExamplesFromDir(
     try {
       const raw = readFileSync(nodePath.join(examplesDir, file), "utf8");
       const parsed = JSON.parse(raw) as Record<string, unknown>;
-      const name =
-        isString(parsed.name)
-          ? parsed.name
-          : file.replace(/\.json$/i, "");
+      const name = isString(parsed.name)
+        ? parsed.name
+        : file.replace(/\.json$/i, "");
       // Append ?v=<md5-8> via withCacheBuster so the browser invalidates
       // its cached thumbnail whenever the JPG is regenerated on disk.
       const jpgFile = `${name}.jpg`;
@@ -385,8 +367,7 @@ function buildExamplesFromDir(
         updated_at: now,
         name,
         tool_name: null,
-        description:
-          isString(parsed.description) ? parsed.description : "",
+        description: isString(parsed.description) ? parsed.description : "",
         tags: Array.isArray(parsed.tags)
           ? parsed.tags.filter((t: unknown) => isString(t))
           : [],
@@ -396,8 +377,9 @@ function buildExamplesFromDir(
         input_schema: null,
         output_schema: null,
         settings: null,
-        package_name:
-          isString(parsed.package_name) ? parsed.package_name : null,
+        package_name: isString(parsed.package_name)
+          ? parsed.package_name
+          : null,
         path: null,
         run_mode: null,
         workspace_id: null,
@@ -474,34 +456,17 @@ export const workflowsRouter = router({
     .output(sdkWorkflowSummariesOutput)
     .query(async ({ ctx, input }) => {
       try {
-        type ListInputFields = {
-          userId: string;
-          limit: number;
-          cursor?: string;
-        };
-        const listInput: ListInputFields = {
+        return await resolveSdkV1Boundary(ctx.apiOptions).handlers[
+          "sdkRpc.list_workflow_summaries"
+        ]({
           userId: ctx.userId,
-          limit: input.limit
-        };
-        if (input.cursor) {
-          listInput.cursor = input.cursor;
-        }
-        const result = await listWorkflowSummariesV1(listInput);
-        return {
-          workflows: result.workflows.map((workflow) => ({
-            id: workflow.id,
-            name: workflow.name,
-            description: workflow.description,
-            revision: workflow.updated_at,
-            registry_revision: Number.isSafeInteger(ctx.registry.revision)
-              ? ctx.registry.revision
-              : null,
-            run_mode: workflow.run_mode
-          })),
-          next: result.next
-        };
+          request: input,
+          registryRevision: Number.isSafeInteger(ctx.registry.revision)
+            ? ctx.registry.revision
+            : null
+        });
       } catch (error) {
-        throwWorkflowInterfaceError(error);
+        throwSdkV1TrpcError(error);
       }
     }),
 
@@ -548,13 +513,15 @@ export const workflowsRouter = router({
     .output(workflowInterfaceV1)
     .query(async ({ ctx, input }) => {
       try {
-        return await getWorkflowInterfaceV1({
-          workflowId: input.id,
+        return await resolveSdkV1Boundary(ctx.apiOptions).handlers[
+          "sdkRpc.get_workflow_interface"
+        ]({
           userId: ctx.userId,
+          workflowId: input.id,
           registry: ctx.registry
         });
       } catch (error) {
-        throwWorkflowInterfaceError(error);
+        throwSdkV1TrpcError(error);
       }
     }),
 
@@ -563,13 +530,15 @@ export const workflowsRouter = router({
     .output(workflowInterfacesOutput)
     .query(async ({ ctx, input }) => {
       try {
-        return await getWorkflowInterfacesV1({
-          workflowIds: input.ids,
+        return await resolveSdkV1Boundary(ctx.apiOptions).handlers[
+          "sdkRpc.get_workflow_interfaces"
+        ]({
           userId: ctx.userId,
+          request: input,
           registry: ctx.registry
         });
       } catch (error) {
-        throwWorkflowInterfaceError(error);
+        throwSdkV1TrpcError(error);
       }
     }),
 
@@ -759,8 +728,9 @@ export const workflowsRouter = router({
       );
 
       const force = input.force === true;
-      const maxVersions =
-        isNumber(input.max_versions) ? input.max_versions : 10;
+      const maxVersions = isNumber(input.max_versions)
+        ? input.max_versions
+        : 10;
 
       // Rate-limit
       if (!force) {

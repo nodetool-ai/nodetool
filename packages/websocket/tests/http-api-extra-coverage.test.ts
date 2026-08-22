@@ -23,6 +23,7 @@ import {
   toJobResponse,
   type HttpApiOptions
 } from "../src/http-api.js";
+import sdkV1Routes from "../src/routes/sdk-v1.js";
 
 // ── Test helpers ────────────────────────────────────────────────────────
 
@@ -63,6 +64,11 @@ async function makeApp(options: HttpApiOptions = {}): Promise<FastifyInstance> {
   app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
     done(null, body);
   });
+  app.addHook("onRequest", async (request) => {
+    const userId = request.headers["x-user-id"];
+    request.userId = typeof userId === "string" ? userId : null;
+  });
+  await app.register(sdkV1Routes, { apiOptions: options });
   app.all("/*", async (request, reply) => {
     const headers = new Headers();
     for (const [k, v] of Object.entries(request.headers)) {

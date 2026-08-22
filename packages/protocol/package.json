@@ -12,6 +12,8 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs && npm run generate:processing-messages-schema",
     "generate:sdk-protocol": "tsx scripts/generate-sdk-protocol.ts",
     "check:sdk-protocol": "tsx scripts/generate-sdk-protocol.ts --check",
+    "build:sdk-contract-bundle": "tsx scripts/build-sdk-contract-bundle.ts",
+    "diff:sdk-contract": "tsx scripts/diff-sdk-contract.ts",
     "generate:processing-messages-schema": "tsx scripts/generate-processing-messages-schema.ts",
     "check:processing-messages-schema": "tsx scripts/generate-processing-messages-schema.ts --check",
     "test": "vitest run",
@@ -23,6 +25,8 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },

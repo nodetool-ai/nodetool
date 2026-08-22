@@ -1,0 +1,27 @@
+{
+  "fixture_version": 1,
+  "command": "get_capabilities",
+  "env": {
+    "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+    "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "1",
+    "NODETOOL_REQUIRE_SDK_AUTH_V1": "0",
+    "NODETOOL_PACKS_CONFIG": "/nonexistent/sdk-v1-golden-packs.json"
+  },
+  "request": {
+    "command": "get_capabilities",
+    "request_id": "sdk-golden-get_capabilities",
+    "data": {}
+  },
+  "response": {
+    "type": "rpc_response",
+    "request_id": "sdk-golden-get_capabilities",
+    "command": "get_capabilities",
+    "error": {
+      "code": "SDK_LIFECYCLE_DISABLED",
+      "message": "SDK lifecycle v1 is disabled",
+      "retryable": false
+    }
+  },
+  "messagepack_request_hex": "de0003a7636f6d6d616e64b06765745f6361706162696c6974696573aa726571756573745f6964bb73646b2d676f6c64656e2d6765745f6361706162696c6974696573a464617461de0000",
+  "messagepack_response_hex": "de0004a474797065ac7270635f726573706f6e7365aa726571756573745f6964bb73646b2d676f6c64656e2d6765745f6361706162696c6974696573a7636f6d6d616e64b06765745f6361706162696c6974696573a56572726f72de0003a4636f6465b653444b5f4c4946454359434c455f44495341424c4544a76d657373616765bc53444b206c6966656379636c652076312069732064697361626c6564a9726574727961626c65c2"
+}

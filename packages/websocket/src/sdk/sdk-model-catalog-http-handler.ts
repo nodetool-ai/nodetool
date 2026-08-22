@@ -1,21 +1,15 @@
+import { sdkV1ModelCatalogQuery } from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
+import type { SdkV1ImplementationBoundary } from "./sdk-v1-handler-map.js";
 import {
-  sdkV1ModelCatalogQuery,
-  type SdkV1ModelCatalog,
-  type SdkV1ModelCatalogQuery
-} from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
-import { SdkModelCatalogServiceError } from "./sdk-model-catalog-service.js";
-
-export interface SdkV1ModelCatalogHttpService {
-  list(args: {
-    userId: string;
-    query: SdkV1ModelCatalogQuery;
-  }): Promise<SdkV1ModelCatalog> | SdkV1ModelCatalog;
-}
+  normalizeSdkV1ServiceError,
+  reportSdkV1InternalError,
+  sdkV1HttpError
+} from "./sdk-v1-service-error.js";
 
 interface HandleSdkV1ModelCatalogOptions {
-  service: SdkV1ModelCatalogHttpService;
-  getUserId: (request: Request) => string;
-  onInternalError?: (error: unknown) => void;
+  readonly boundary: SdkV1ImplementationBoundary;
+  readonly getUserId: (request: Request) => string;
+  readonly onInternalError?: (error: unknown) => void;
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -25,11 +19,25 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
-function errorResponse(status: number, code: string, message: string): Response {
+function errorResponse(
+  status: number,
+  code: string,
+  message: string
+): Response {
   return jsonResponse(
     { code, message, detail: message, retryable: status >= 500 },
     status
   );
+}
+
+function serviceErrorResponse(
+  error: unknown,
+  options: HandleSdkV1ModelCatalogOptions
+): Response {
+  const normalized = normalizeSdkV1ServiceError(error);
+  reportSdkV1InternalError(normalized, options.onInternalError);
+  const mapped = sdkV1HttpError(normalized);
+  return jsonResponse(mapped.body, mapped.status);
 }
 
 function rawQuery(request: Request): Record<string, string> {
@@ -51,20 +59,12 @@ export async function handleSdkV1ModelCatalog(
 
   try {
     return jsonResponse(
-      await options.service.list({
+      await options.boundary.handlers.listModels({
         userId: options.getUserId(request),
         query: parsed.data
       })
     );
   } catch (error) {
-    if (error instanceof SdkModelCatalogServiceError) {
-      return errorResponse(501, "MODEL_SCOPE_UNAVAILABLE", error.message);
-    }
-    try {
-      options.onInternalError?.(error);
-    } catch {
-      // Error reporting must not replace the redacted public response.
-    }
-    return errorResponse(500, "INTERNAL_ERROR", "Internal server error");
+    return serviceErrorResponse(error, options);
   }
 }
