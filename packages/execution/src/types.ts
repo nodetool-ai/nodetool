@@ -16,6 +16,10 @@ import type {
 } from "@nodetool-ai/kernel";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type {
+  ProviderConfigurationChecker,
+  RunModelCatalogs
+} from "./preflight.js";
+import type {
   PythonBridgeBase,
   ProcessingContext,
   PythonJobLifecycle
@@ -182,6 +186,22 @@ export interface ExecutionSessionOptions {
    * surface and the one place strict mode is meant to be on by default.
    */
   strict?: boolean;
+  /**
+   * Provider/model catalogs the run preflight checks the graph's selections
+   * against. Defaults to the process-wide provider registry — the same
+   * catalogs `runWorkflow` uses.
+   */
+  catalogs?: RunModelCatalogs;
+  /**
+   * How the preflight decides a selected provider is configured. Defaults to
+   * `unconfiguredProviderErrors` over the process-wide provider registry.
+   *
+   * A host whose providers are not in that registry (a cassette, a fake, an
+   * in-process custom provider) must supply this **and** `catalogs`: the two
+   * checks read the same registry, so replacing one and not the other refuses
+   * a graph the host can in fact run.
+   */
+  providerConfiguration?: ProviderConfigurationChecker;
   /**
    * Capture every emitted message into `session.messages` (default `false`).
    * Off by default because capture is retention: the queue holds each message

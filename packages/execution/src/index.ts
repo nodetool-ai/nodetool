@@ -3,6 +3,25 @@
  */
 export { ExecutionSession } from "./session.js";
 export { normalizeGraph, toRawGraphInput } from "./normalize-graph.js";
+export {
+  assertPreflight,
+  collectPreflightIssues,
+  ExecutionPreflightError,
+  formatPreflightDetail,
+  isExecutionPreflightError,
+  modelSelectionErrors,
+  providerConfigurationChecker,
+  unconfiguredProviderErrors,
+  RUNTIME_CATALOGS
+} from "./preflight.js";
+export type {
+  CredentialResolver,
+  ExecutionPreflightIssue,
+  PreflightIssueKind,
+  PreflightOptions,
+  ProviderConfigurationChecker,
+  RunModelCatalogs
+} from "./preflight.js";
 export { DEFAULT_MESSAGE_BUFFER_LIMIT } from "./message-stream.js";
 export {
   INTERVENTION_MARK,
