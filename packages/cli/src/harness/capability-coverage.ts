@@ -26,6 +26,7 @@
 
 import { createHash } from "node:crypto";
 
+import { isRecord } from "../predicates.js";
 import type { HarnessEntry } from "./registry.js";
 
 /** The fields of a spec the fingerprint is taken over. */
@@ -40,9 +41,9 @@ export interface CapabilityContractInput {
 /** Key order is not part of a contract, so the payload is sorted first. */
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
-  if (value !== null && typeof value === "object") {
+  if (isRecord(value)) {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
+      Object.entries(value)
         .sort(([a], [b]) => (a < b ? -1 : 1))
         .map(([key, inner]) => [key, canonical(inner)])
     );
