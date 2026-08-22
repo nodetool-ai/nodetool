@@ -75,6 +75,11 @@ export default [
       // violations) — locked in as an error so any new raw s/ms timing fails the
       // gate. See docs/DESIGN.md §5.
       "design-tokens/motion-tokens": "error",
+      // A stored media locator (asset://, memory://) written straight into a
+      // JSX url attribute renders nothing — media resolution is the rendering
+      // boundary. Zero violations; locked in as an error. See
+      // utils/resolveMediaUri.ts and scripts/test-media-src-rule.mjs.
+      "design-tokens/no-unresolved-media-src": "error",
     },
   },
 ];

@@ -16,6 +16,10 @@ import {
   toUint8Array
 } from "../../components/node/output";
 import { isObjectLike, isString } from "../../utils/typePredicates";
+import {
+  asResolvedMediaUrl,
+  type ResolvedMediaUrl
+} from "../../utils/resolveMediaUri";
 
 export type MediaKind = "audio" | "video";
 
@@ -53,7 +57,7 @@ export const useMediaSrc = (
   value: unknown,
   kind: MediaKind,
   fallbackMime?: string
-): string => {
+): ResolvedMediaUrl | "" => {
   const v =
     value && isObjectLike(value)
       ? (value as Record<string, unknown>)
@@ -107,7 +111,8 @@ export const useMediaSrc = (
     return undefined;
   }, [bytes, blobMime]);
 
-  return blobUrl || signedUrl || "";
+  // A blob URL is as resolved as media gets — the bytes are already local.
+  return asResolvedMediaUrl(blobUrl) ?? signedUrl ?? "";
 };
 
 export default useMediaSrc;

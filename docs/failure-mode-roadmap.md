@@ -284,5 +284,13 @@ add one 600 x 600 px test per migrated primitive.
   deploys, non-stale failures, and the guard window.
 - **Stale Prompt value:** issue #3786 is closed. `PromptComposerBody` commits
   edits synchronously; its commit and run-from-here suites cover the defect.
+- **Media resolution as the browser rendering boundary:** shipped 2026-08-22.
+  `ResolvedMediaUrl` in `web/src/utils/resolveMediaUri.ts` is the brand;
+  `ResponsiveImage`, `VideoPlayer`, and the new `AudioPlayback` take a
+  `locator` and resolve it. The rendering surfaces are inventoried in
+  `web/src/__tests__/mediaResolutionBoundary.test.ts`, and
+  `design-tokens/no-unresolved-media-src` (fixture
+  `web/scripts/test-media-src-rule.mjs`) rejects a locator literal in a JSX
+  url attribute.
 - **Cross-origin media CSP:** issue #5125 is fixed and covered by
   `web/src/__tests__/contentSecurityPolicy.test.ts`.

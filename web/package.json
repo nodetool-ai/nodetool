@@ -81,8 +81,8 @@
     "lint:fix": "oxlint src --fix",
     "lint:eslint": "eslint src",
     "lint:eslint:fix": "eslint src --fix",
-    "lint:design": "eslint --config eslint.design.config.mjs src && node scripts/test-motion-rule.mjs && node scripts/lint-spacing-css.mjs && node scripts/lint-font-color-css.mjs && node scripts/lint-radius-css.mjs && node scripts/lint-motion-css.mjs",
-    "lint:design:fix": "eslint --config eslint.design.config.mjs src --fix && node scripts/test-motion-rule.mjs && node scripts/lint-spacing-css.mjs && node scripts/lint-font-color-css.mjs && node scripts/lint-radius-css.mjs && node scripts/lint-motion-css.mjs",
+    "lint:design": "eslint --config eslint.design.config.mjs src && node scripts/test-motion-rule.mjs && node scripts/test-media-src-rule.mjs && node scripts/lint-spacing-css.mjs && node scripts/lint-font-color-css.mjs && node scripts/lint-radius-css.mjs && node scripts/lint-motion-css.mjs",
+    "lint:design:fix": "eslint --config eslint.design.config.mjs src --fix && node scripts/test-motion-rule.mjs && node scripts/test-media-src-rule.mjs && node scripts/test-media-src-rule.mjs && node scripts/lint-spacing-css.mjs && node scripts/lint-font-color-css.mjs && node scripts/lint-radius-css.mjs && node scripts/lint-motion-css.mjs",
     "check": "tsc && eslint src && jest",
     "test": "node ../scripts/run-jest-utc.mjs --forceExit",
     "test:summary": "node ../scripts/run-jest-utc.mjs --reporters=\"summary\" --forceExit",
@@ -110,6 +110,7 @@
     "lint:radius-css": "node scripts/lint-radius-css.mjs",
     "lint:motion-css": "node scripts/lint-motion-css.mjs",
     "lint:motion-rule": "node scripts/test-motion-rule.mjs",
+    "lint:media-src-rule": "node scripts/test-media-src-rule.mjs",
     "storybook": "storybook dev -p 6006 --no-open",
     "build-storybook": "storybook build"
   },
