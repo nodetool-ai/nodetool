@@ -55,6 +55,24 @@ import { VoyageProvider } from "./voyage-provider.js";
 import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
+export {
+  PROBE_MANIFEST,
+  probeProviders,
+  formatProbeReport,
+  runProbes,
+  redactText,
+  summarizeShape,
+  SHAPE_LITERAL_KEYS
+} from "./contract/index.js";
+export type {
+  LiveProbeSpec,
+  ProbeManifestEntry,
+  ProbeProvider,
+  ProbeReport,
+  ProbeResult,
+  ProbeStatus,
+  RunProbesOptions
+} from "./contract/index.js";
 export type { ProviderCapability } from "./base-provider.js";
 export {
   CORE_TOOL_NAMES,

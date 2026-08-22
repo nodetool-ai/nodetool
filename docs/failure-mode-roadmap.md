@@ -114,30 +114,8 @@ method-existence test cannot detect this.
 The current implementation must fail the new test before the fix. Then run
 `npm run test --workspace=packages/runtime -- provider-decorator-inertness`.
 
-## 5. Add live provider contract probes
 
-Status: OPEN. This is separate from cassette replay.
-
-Old cassettes cannot detect a response that changed today. Start with OpenAI,
-Gemini, FAL, and KIE:
-
-1. Check in a probe manifest. Each entry names the provider, model or endpoint,
-   response decoder, maximum requests, and maximum USD cost. The first manifest
-   is limited to one request and USD 0.05 per provider per nightly run.
-2. Add raw HTTP response fixtures at each provider client boundary. Decoder
-   tests use these fixtures; normalized `CassetteProvider` replay remains a
-   separate contract test.
-3. Parse live responses through production decoders. Do not overwrite
-   checked-in cassettes automatically.
-4. Report network failures separately from schema failures.
-5. Redact credentials, prompts, user data, request IDs, and signed URLs from
-   retained artifacts.
-
-Acceptance: removing a field from a raw response fixture fails its decoder
-test; a changed live shape fails the nightly probe; retained artifacts contain
-no secrets or signed URLs.
-
-## 6. Require an eval case for each agent capability
+## 5. Require an eval case for each agent capability
 
 Status: OPEN. Evidence: #5095, #5100, #5103, #5105, and #5107.
 
@@ -159,7 +137,7 @@ Status: OPEN. Evidence: #5095, #5100, #5103, #5105, and #5107.
 Tests must cover a capability-only failure, a capability-plus-eval pass, an
 unregistered-file failure, and a non-agent surface that needs no eval.
 
-## 7. Inventory and consolidate SSRF screening
+## 6. Inventory and consolidate SSRF screening
 
 Status: OPEN. Evidence: #5101.
 
@@ -183,7 +161,7 @@ Tests must reject alternate IPv4 forms, IPv4-mapped IPv6, loopback, private
 networks, metadata addresses, and redirects to blocked addresses. Run
 `npm run test --workspace=packages/runtime -- safe-url`.
 
-## 8. Add property tests to seven pure helpers
+## 7. Add property tests to seven pure helpers
 
 Status: OPEN. Use one PR per row. Before adding `fast-check`, record why the
 current dependencies and table-driven tests are insufficient, check its latest
@@ -209,11 +187,11 @@ and stable source order as the tie-breaker for duplicate indexes in #5116.
 Split #4909 into one execution normalization property and one node-sdk
 validation property.
 
-## 9. Complete editor input-path coverage
+## 8. Complete editor input-path coverage
 
 Status: OPEN. Use three separate PRs.
 
-### 9A. Shortcut action mapping
+### 8A. Shortcut action mapping
 
 `web/src/config/shortcuts.ts` already owns shortcuts and rejects duplicate
 slugs. Add a typed action ID used by menus and handlers. Test missing actions,
@@ -221,7 +199,7 @@ duplicate normalized combinations within the same active editor context and
 OS, Electron-only actions in web menus, and the command-menu shortcut on
 Windows and macOS. Duplicate combinations in disjoint contexts remain valid.
 
-### 9B. Canvas drop journeys
+### 8B. Canvas drop journeys
 
 Add web Playwright journeys for file drop, node creation from a dropped
 connection at the cursor, and run-selected with multiple nodes. Use
@@ -230,7 +208,7 @@ Electron Playwright dependency, config, script, packaged-app fixture, and
 Windows CI job. Update `AGENTS.md` and Electron testing docs with the command.
 Run the case on Windows; a Windows-style string on macOS is not sufficient.
 
-### 9C. Dialog containment audit
+### 8C. Dialog containment audit
 
 `PositionedDialog` already clamps to the viewport. Enumerate other dialog
 primitives and direct users in a checked-in audit with a non-zero count. A
@@ -240,6 +218,24 @@ add one 600 x 600 px test per migrated primitive.
 
 ## Completed work
 
+- **Live provider contract probes:** shipped 2026-08-22. The manifest
+  `packages/runtime/src/providers/contract/probe-manifest.ts` names, per entry,
+  the provider, the endpoint, the production decoder, a checked-in raw HTTP
+  response fixture, the required fields whose removal must break the check, and
+  — for one entry per provider — the single live request, capped at one request
+  and USD 0.05 per provider. The decoders were extracted out of the provider
+  methods (`decodeChatCompletion`, `decodeOpenAIModelList`,
+  `decodeGeminiGenerateContent`, `decodeGeminiModelsPage`,
+  `decodeFalLanguageCatalog`, the fal `extract*Url` family, `kieEnvelopeError`,
+  `decodeKieTaskSubmission`, `decodeKieRecordInfo`, `decodeKieResultUrls`), so
+  fixtures and live responses parse through the code a run uses. `runProbes`
+  reports network failures apart from schema failures, and retains only the
+  response shape (`summarizeShape`) plus redacted messages, so no credential,
+  prompt, request id, or signed URL reaches an artifact. Nightly:
+  `.github/workflows/provider-contract-probe.yml`; offline half:
+  `packages/runtime/tests/providers/provider-contract-probes.test.ts`, wired
+  into `harness gate` through the new `provider-clients` surface. Docs:
+  `docs/provider-contract-probes.md`.
 - **Generated provider metadata drift:** shipped 2026-08-22. Both generators
   have a fixture mode — `packages/{fal,kie}-codegen/src/fixture-generate.ts` —
   that reads only the schema fixtures under `fixtures/`, named by

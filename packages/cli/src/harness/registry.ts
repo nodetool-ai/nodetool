@@ -334,6 +334,23 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "AGENTS.md § Common Pitfalls (deploy)"
   },
   {
+    id: "provider-contract",
+    title:
+      "Provider contract probes (raw response fixtures + one live request per provider)",
+    command: "npm run probe:providers [--json] [--out report.json]",
+    kind: "meta",
+    capabilities: ["json", "gated"],
+    docs: "docs/provider-contract-probes.md",
+    selfcheck: {
+      // The offline half: every manifest entry decodes its checked-in raw
+      // response, and every declared required field is removed once to prove
+      // the check can fail. No key, no network.
+      command:
+        "npm run test --workspace=packages/runtime -- provider-contract-probes",
+      cost: "cheap"
+    }
+  },
+  {
     id: "affected",
     title: "Changed-file → workspace mapping",
     command: "nodetool affected [--base main]",
@@ -435,6 +452,12 @@ export const SURFACES: SurfaceEntry[] = [
       // so a diff that edits one runs the validate selfcheck.
       "examples/workflows/"
     ]
+  },
+  {
+    id: "provider-clients",
+    title: "LLM and media provider clients (request shaping + response decoding)",
+    harnesses: ["provider-contract", "eval"],
+    paths: ["packages/runtime/src/providers/"]
   },
   {
     id: "workflow-authoring",

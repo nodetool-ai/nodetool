@@ -10,6 +10,14 @@ export {
   parseErrorBody
 } from "./errors.js";
 export { sseEvents } from "./sse.js";
+export {
+  decodeChatCompletion,
+  decodeChatCompletionUsage
+} from "./decode.js";
+export type {
+  DecodedChatCompletion,
+  DecodedToolCall
+} from "./decode.js";
 export type {
   ChatCompletionsRequest,
   ChatCompletionResponse,

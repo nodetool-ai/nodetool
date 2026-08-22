@@ -150,6 +150,7 @@
     "gen:example-thumbnails": "node scripts/generate-example-thumbnails.mjs",
     "examples:smoke": "node scripts/smoke-examples.mjs",
     "backend:smoke": "npm run prepare-backend --workspace=electron && node scripts/smoke-backend-bundle.mjs",
+    "probe:providers": "node scripts/provider-contract-probe.mjs",
     "reliability:ring0": "node scripts/reliability-ring0.mjs",
     "reliability:ring1": "node scripts/reliability-ring1.mjs",
     "test:mutation": "for pkg in agents auth config kernel node-sdk runtime security storage; do npm run test:mutation --workspace=packages/$pkg || true; done",

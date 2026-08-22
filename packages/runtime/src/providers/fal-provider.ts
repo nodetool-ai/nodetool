@@ -732,10 +732,7 @@ export class FalProvider extends BaseProvider {
     try {
       const response = await this._fetch(OPENROUTER_CATALOG_URL);
       if (!response.ok) return [];
-      const payload = (await response.json()) as {
-        data?: OpenRouterCatalogRow[];
-      };
-      rows = payload.data ?? [];
+      rows = decodeFalLanguageCatalog(await response.json());
     } catch (err) {
       log.warn(`Could not load the fal language-model catalog: ${err}`);
       return [];
@@ -1192,7 +1189,31 @@ export class FalProvider extends BaseProvider {
   }
 }
 
-function extractImageUrls(result: Record<string, unknown>): string[] {
+/**
+ * Decode the OpenRouter catalog fal's chat route is backed by. Throws when the
+ * body carries no `data` array; {@link FalProvider.getAvailableLanguageModels}
+ * treats that the way it treats an unreachable catalog.
+ */
+export function decodeFalLanguageCatalog(
+  payload: unknown
+): OpenRouterCatalogRow[] {
+  if (!isObjectLike(payload)) {
+    throw new Error("fal language catalog is not an object");
+  }
+  const rows = (payload as { data?: unknown }).data;
+  if (!Array.isArray(rows)) {
+    throw new Error("fal language catalog has no `data` array");
+  }
+  return rows as OpenRouterCatalogRow[];
+}
+
+/**
+ * The result-URL extractors below are the fal response decoders: every media
+ * surface hands its endpoint's payload to one of them. The checked-in raw
+ * fixtures in `packages/runtime/tests/fixtures/provider-contract/` run these
+ * same functions, so an endpoint that renames its result field fails there.
+ */
+export function extractImageUrls(result: Record<string, unknown>): string[] {
   const images = result.images as Array<Record<string, unknown>> | undefined;
   if (images && images.length > 0) {
     const urls = images.map((img) => img.url as string).filter(Boolean);
@@ -1203,11 +1224,11 @@ function extractImageUrls(result: Record<string, unknown>): string[] {
   throw new Error(`Unexpected FAL image response: ${JSON.stringify(result)}`);
 }
 
-function extractImageUrl(result: Record<string, unknown>): string {
+export function extractImageUrl(result: Record<string, unknown>): string {
   return extractImageUrls(result)[0];
 }
 
-function extractVideoUrl(result: Record<string, unknown>): string {
+export function extractVideoUrl(result: Record<string, unknown>): string {
   // FAL video endpoints return { video: { url } } or { video_url } or { url }
   const video = result.video as Record<string, unknown> | undefined;
   if (video?.url) return video.url as string;
@@ -1222,7 +1243,7 @@ function extractVideoUrl(result: Record<string, unknown>): string {
   throw new Error(`Unexpected FAL video response: ${JSON.stringify(result)}`);
 }
 
-function extractAudioUrl(result: Record<string, unknown>): string {
+export function extractAudioUrl(result: Record<string, unknown>): string {
   // FAL TTS endpoints return { audio: { url } } or { audio: "url" } or
   // { audio_url } or a bare { url }.
   const audio = result.audio as Record<string, unknown> | string | undefined;

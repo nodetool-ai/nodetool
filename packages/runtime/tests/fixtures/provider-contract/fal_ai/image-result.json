@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "url": "https://fal.media/files/example/contract-probe.png",
+      "width": 1024,
+      "height": 1024,
+      "content_type": "image/png"
+    }
+  ],
+  "timings": { "inference": 1.2 },
+  "seed": 1234567890,
+  "has_nsfw_concepts": [false]
+}
