@@ -11,6 +11,7 @@ import {
 } from "../src/graph-validation.js";
 import type { NodeMetadata } from "../src/metadata.js";
 import type { NodePropertyValidationIssue } from "../src/validation.js";
+import { NODE_TYPE_MIGRATIONS } from "@nodetool-ai/protocol";
 import {
   refuseSandboxDelivery,
   setProcessSandboxModuleCatalog,
@@ -102,6 +103,34 @@ describe("validateGraph", () => {
     );
     expect(report.ok).toBe(false);
     expect(report.issues.some((i) => i.code === "unknown_node")).toBe(true);
+  });
+
+  it("validates the migrated type, not the removed one", () => {
+    // `Graph.loadFromDict` rewrites nodetool.text.TrimWhitespace to
+    // nodetool.code.Code on load, so the graph the runner sees never carries
+    // the removed type — the validator must migrate first or it refuses a
+    // workflow that runs.
+    const migration = NODE_TYPE_MIGRATIONS.find(
+      (m) => m.from === "nodetool.text.TrimWhitespace"
+    );
+    expect(migration?.to).toBe("nodetool.code.Code");
+    const registry = fakeRegistry({
+      "nodetool.code.Code": meta("nodetool.code.Code", {}, { output: "str" })
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "1",
+            type: "nodetool.text.TrimWhitespace",
+            data: { trim_start: true, trim_end: true }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "unknown_node")).toEqual([]);
   });
 
   it("flags duplicate node ids", () => {

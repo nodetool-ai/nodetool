@@ -315,7 +315,31 @@ describe("readUriBytes — http(s) fallback", () => {
     expect(bytes).toEqual(new Uint8Array([4, 5, 6]));
   });
 
-  it("fetches plain http bytes too (pins the http:// scheme clause)", async () => {
+  it("refuses plain http and private hosts under the default policy", async () => {
+    // The uri is caller data, so the media-ref egress policy decides: https to
+    // a public host. The fetch must not happen at all — a refusal that still
+    // opened the socket would be no guard.
+    const fetchSpy = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([7]).buffer
+    }));
+    vi.stubGlobal("fetch", fetchSpy);
+    expect(
+      await loadMediaRefBytes({ type: "image", uri: "http://example.com/x.png" })
+    ).toBeNull();
+    expect(
+      await loadMediaRefBytes({
+        type: "image",
+        uri: "https://169.254.169.254/latest/meta-data/"
+      })
+    ).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("fetches a private media uri when the operator opts in", async () => {
+    // NODETOOL_ALLOW_PRIVATE_MEDIA_FETCH is the self-hosted LAN escape hatch:
+    // it turns the guard off for media refs and nothing else.
+    vi.stubEnv("NODETOOL_ALLOW_PRIVATE_MEDIA_FETCH", "1");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -325,9 +349,10 @@ describe("readUriBytes — http(s) fallback", () => {
     );
     const bytes = await loadMediaRefBytes({
       type: "image",
-      uri: "http://example.com/x.png"
+      uri: "http://nas.local/x.png"
     });
     expect(bytes).toEqual(new Uint8Array([7]));
+    vi.unstubAllEnvs();
   });
 
   it("returns null when the http response is not ok", async () => {
@@ -367,7 +392,7 @@ describe("readUriBytes — http(s) fallback", () => {
       })
     );
     expect(
-      await loadMediaRefBytes({ type: "image", uri: "http://example.com/x" })
+      await loadMediaRefBytes({ type: "image", uri: "https://example.com/x" })
     ).toBeNull();
   });
 });

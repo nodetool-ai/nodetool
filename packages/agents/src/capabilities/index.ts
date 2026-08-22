@@ -29,6 +29,7 @@ export {
   DECLARED_CAPABILITY_MODULES,
   listCapabilitySpecs,
   capabilitySpec,
+  capabilityModuleOf,
   capabilityModuleSpecTable,
   loadCapabilityImpl,
   eagerSpecDrift,

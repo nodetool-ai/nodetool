@@ -24,6 +24,8 @@
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { fetchExternalMedia } from "@nodetool-ai/runtime";
+
 export const REVE_API_BASE = "https://api.reve.com";
 
 /** Aspect ratios accepted by every Reve image endpoint. */
@@ -152,7 +154,8 @@ export async function refToBytes(
   }
 
   if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    const resp = await fetch(uri);
+    // Caller-supplied media uri — the media-ref egress policy decides.
+    const resp = await fetchExternalMedia(uri);
     if (!resp.ok) throw new Error(`Failed to fetch image: ${resp.status}`);
     return new Uint8Array(await resp.arrayBuffer());
   }

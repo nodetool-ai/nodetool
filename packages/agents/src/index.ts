@@ -102,6 +102,7 @@ export {
   toolForCapabilityName,
   capabilityFromTool,
   capabilitySpec,
+  capabilityModuleOf,
   listCapabilitySpecs,
   createCapabilityRun,
   contextSecretAvailability,

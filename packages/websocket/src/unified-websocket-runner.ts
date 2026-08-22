@@ -113,6 +113,7 @@ import {
   ACTIVE_MODEL_CONTEXT_KEY,
   DIRECT_TOOL_NAMES,
   encodeRawRgbaToPng,
+  fetchExternalMedia,
   getCostReconciler,
   getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
@@ -327,89 +328,6 @@ function lastMatchingProviderSession(
       : null;
   }
   return null;
-}
-
-/**
- * Return `true` when the given http(s) URL appears to point at a public
- * destination (not a loopback, link-local, or RFC1918 private address).
- *
- * Used before `fetch`ing URLs supplied by chat clients to resolve source
- * images — without this gate, an authenticated user could coerce the server
- * into reading internal services via `http://169.254.169.254/...`,
- * `http://localhost:6379/...`, etc. The check is conservative: unparseable
- * URLs and literal IP addresses in private ranges are refused. DNS-based
- * bypass is still possible, so this is a defense-in-depth measure and not a
- * full SSRF mitigation; intended for complementing network-level egress
- * filtering.
- */
-function isSafeExternalUrl(url: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return false;
-  }
-  // Normalise IPv6 hostnames: WHATWG URL may return them with or without
-  // surrounding brackets depending on the runtime.
-  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (!host) return false;
-  if (
-    host === "localhost" ||
-    host === "ip6-localhost" ||
-    host === "ip6-loopback" ||
-    host.endsWith(".localhost") ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal")
-  ) {
-    return false;
-  }
-  // Decimal-encoded IPv4 (e.g. 2130706433 = 127.0.0.1). WHATWG URL
-  // normalises these in most runtimes, but guard here for completeness.
-  if (/^\d+$/.test(host)) {
-    const n = parseInt(host, 10);
-    if (n < 0 || n > 0xffffffff) return false;
-    const a = (n >>> 24) & 0xff;
-    const b = (n >>> 16) & 0xff;
-    const c = (n >>> 8) & 0xff;
-    const d = n & 0xff;
-    return isSafeExternalUrl(`http://${a}.${b}.${c}.${d}/`);
-  }
-  // IPv4 literal check
-  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (ipv4) {
-    const [a, b] = ipv4.slice(1).map((n) => parseInt(n, 10));
-    // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16,
-    // 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 (CGNAT)
-    if (a === 0 || a === 10 || a === 127) return false;
-    if (a === 169 && b === 254) return false;
-    if (a === 172 && b >= 16 && b <= 31) return false;
-    if (a === 192 && b === 168) return false;
-    if (a === 100 && b >= 64 && b <= 127) return false;
-  }
-  // IPv6 literal — refuse loopback / ULA / link-local / unspecified ranges.
-  if (host.includes(":")) {
-    if (host === "::" || host === "::1") return false;
-    if (host.startsWith("fc") || host.startsWith("fd")) return false; // ULA fc00::/7
-    if (host.startsWith("fe80:")) return false; // link-local
-    // IPv4-mapped IPv6 (::ffff:x.x.x.x in dotted-quad or hex form). WHATWG
-    // URL serialises these as ::ffff:hhhh:hhhh; match both to be safe.
-    const v4DotMatch = host.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (v4DotMatch) return isSafeExternalUrl(`http://${v4DotMatch[1]}/`);
-    const v4HexMatch = host.match(/^::ffff:([0-9a-f]+):([0-9a-f]+)$/);
-    if (v4HexMatch) {
-      const hi = parseInt(v4HexMatch[1], 16);
-      const lo = parseInt(v4HexMatch[2], 16);
-      const a = (hi >>> 8) & 0xff;
-      const b = hi & 0xff;
-      const c = (lo >>> 8) & 0xff;
-      const d = lo & 0xff;
-      return isSafeExternalUrl(`http://${a}.${b}.${c}.${d}/`);
-    }
-  }
-  return true;
 }
 
 function sanitizeLargeText(
@@ -734,20 +652,21 @@ async function readBytesFromUri(uri: string): Promise<Uint8Array | null> {
       return Uint8Array.from(Buffer.from(uri.slice(commaIdx + 1), "base64"));
     }
     if (uri.startsWith("http://") || uri.startsWith("https://")) {
-      // The uri comes from a user-authored workflow's output, so gate it
-      // against SSRF (internal/link-local hosts) exactly like
-      // resolveSourceImageBytes does — otherwise an auto-save node could make
-      // the server fetch cloud-metadata / internal services.
-      if (!isSafeExternalUrl(uri)) {
-        log.warn(`readBytesFromUri refused unsafe URL: ${uri}`);
-        return null;
-      }
-      const resp = await fetch(uri);
+      // The uri comes from a user-authored workflow's output, so it is fetched
+      // under the media-ref egress policy — otherwise an auto-save node could
+      // make the server read cloud-metadata / internal services. A refusal
+      // throws; the catch below reports it and answers "no bytes".
+      const resp = await fetchExternalMedia(uri);
       if (!resp.ok) return null;
       return new Uint8Array(await resp.arrayBuffer());
     }
-  } catch {
-    // Failed to read bytes — non-fatal
+  } catch (err) {
+    // Failed to read bytes — non-fatal, but say which uri and why: a refused
+    // URL and a dead host are different problems for whoever reads the log.
+    log.warn("readBytesFromUri failed", {
+      uri,
+      error: err instanceof Error ? err.message : String(err)
+    });
   }
   return null;
 }
@@ -7603,23 +7522,19 @@ export class UnifiedWebSocketRunner {
               }
             }
           } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
-            if (!isSafeExternalUrl(uri)) {
-              log.warn(
-                "resolveSourceImageBytes: refusing to fetch non-public URL",
-                { uri }
-              );
-            } else {
-              try {
-                const resp = await fetch(uri);
-                if (resp.ok) {
-                  return new Uint8Array(await resp.arrayBuffer());
-                }
-              } catch (err) {
-                log.warn("resolveSourceImageBytes: fetch failed", {
-                  uri,
-                  error: err instanceof Error ? err.message : String(err)
-                });
+            // A chat client picked this uri, so the media-ref egress policy
+            // decides — including on every redirect hop, which the predicate
+            // this replaced never saw.
+            try {
+              const resp = await fetchExternalMedia(uri);
+              if (resp.ok) {
+                return new Uint8Array(await resp.arrayBuffer());
               }
+            } catch (err) {
+              log.warn("resolveSourceImageBytes: fetch failed", {
+                uri,
+                error: err instanceof Error ? err.message : String(err)
+              });
             }
           }
         }

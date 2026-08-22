@@ -337,6 +337,74 @@ nodetool deploy users-reset-token local alice
 nodetool deploy users-remove local alice --force
 ```
 
+## MCP over HTTP and Python nodes
+
+Two surfaces are off when `NODETOOL_ENV=production` — which the published image,
+`fly.toml`, and `docker-compose.yml` all set. Each has an opt-in flag.
+
+### `/mcp` — `NODETOOL_ENABLE_MCP=1`
+
+The streamable-HTTP MCP mount carries the full agent toolbelt, so it registers
+in production only with the flag:
+
+```yaml
+environment:
+  NODETOOL_ENABLE_MCP: "1"
+```
+
+Without it the route is not registered, `/mcp` answers 404, and the boot log
+names the flag.
+
+The mount is not a second door. It sits behind the same `onRequest` auth hook as
+`/api`, and binds the user that hook resolved: a request it cannot authenticate
+is refused at initialize with 401, never given an anonymous session. The session
+id in the `mcp-session-id` header is scoped to its owner — a second user
+presenting the same id gets `404 Session not found`, the same answer as an id
+that never existed.
+
+How an agent authenticates depends on the server's auth mode:
+
+- **Supabase mode** (`SUPABASE_URL` + `SUPABASE_KEY`): the agent sends a
+  Supabase access token as `Authorization: Bearer <jwt>`, like any web client.
+  The MCP session then belongs to that Supabase user.
+- **Local mode behind a VPN**: set `NODETOOL_TRUST_LOCAL_NETWORKS` to the VPN's
+  CIDR. Requests from that range are trusted as user `1` with no token. Scope it
+  to the VPN — anything reaching the server from a trusted range gets the whole
+  toolbelt.
+- **A bot or bridge**: mint a delegated token through the integration routes
+  (`NODETOOL_INTEGRATION_TOKEN`) and send it as the bearer token. The session
+  binds the linked account rather than a shared identity.
+
+Not covered by the flag: the tRPC `mcpConfig` router stays disabled in
+production. It edits MCP *client* config files on the server's filesystem, which
+has no meaning on a shared host.
+
+### Python nodes — `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1`
+
+The Python bridge refuses to connect in production. The flag lifts that:
+
+```yaml
+environment:
+  NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION: "1"
+  NODETOOL_PYTHON: "/opt/conda/envs/nodetool/bin/python"
+```
+
+**The published image ships no Python worker.** `ghcr.io/nodetool-ai/nodetool`
+carries the TypeScript server only, so the flag by itself changes nothing except
+the error you get. To run Python nodes, derive an image that installs
+`nodetool-core` and set `NODETOOL_PYTHON` to that interpreter:
+
+```dockerfile
+FROM ghcr.io/nodetool-ai/nodetool:latest
+RUN pip install --no-cache-dir nodetool-core
+ENV NODETOOL_PYTHON=/usr/local/bin/python3 \
+    NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1
+```
+
+With the flag set and no interpreter found, the boot log says
+`Python not found — Python nodes will not be available`. With the flag unset it
+names the flag instead, so the log tells you which of the two you are missing.
+
 ## Manual Troubleshooting
 
 ### Container Logs

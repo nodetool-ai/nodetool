@@ -216,7 +216,9 @@ jobs:
           #      commit 2c0fd8fad), hence is-test:false — they stay a required
           #      gate even when skip-tests drops the bulk test legs.
           #   3. `npm run validate:examples` — rot detector for the shipped
-          #      example workflows: `nodetool validate` against the current node
+          #      example workflows, both `packages/**/examples/` (templates and
+          #      app bundles) and `examples/workflows/` (the CLI samples):
+          #      `nodetool validate` against the current node
           #      registry (unknown node types, missing required properties,
           #      unselected models, dangling/mis-typed edges).
           #      --warnings-as-errors (set in the script) so a warning-level

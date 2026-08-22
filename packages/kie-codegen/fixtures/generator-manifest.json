@@ -1,0 +1,52 @@
+{
+  "provider": "kie",
+  "llms": "llms.txt",
+  "fixtures": [
+    {
+      "url": "https://docs.kie.ai/market/seedream/seedream-v4-text-to-image.md",
+      "doc": "docs/market_seedream_seedream-v4-text-to-image.md"
+    },
+    {
+      "url": "https://docs.kie.ai/market/google/nano-banana-edit.md",
+      "doc": "docs/market_google_nano-banana-edit.md"
+    },
+    {
+      "url": "https://docs.kie.ai/market/kling/text-to-video.md",
+      "doc": "docs/market_kling_text-to-video.md"
+    },
+    {
+      "url": "https://docs.kie.ai/market/elevenlabs/audio-isolation.md",
+      "doc": "docs/market_elevenlabs_audio-isolation.md"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "kie-manifest.json",
+      "kind": "static-metadata"
+    },
+    {
+      "path": "configs/image.ts",
+      "kind": "node-source"
+    },
+    {
+      "path": "configs/audio.ts",
+      "kind": "node-source"
+    },
+    {
+      "path": "configs/video.ts",
+      "kind": "node-source"
+    },
+    {
+      "path": "nodes/image.ts",
+      "kind": "node-source"
+    },
+    {
+      "path": "nodes/audio.ts",
+      "kind": "node-source"
+    },
+    {
+      "path": "nodes/video.ts",
+      "kind": "node-source"
+    }
+  ]
+}

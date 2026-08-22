@@ -626,6 +626,48 @@ breaks a synchronous cycle, and `server.mjs` died on an unsettled top-level
 await before it served `/health`. `npm run backend:smoke` is the check that
 catches it; a passing `vitest` run will not.
 
+## Capability coverage — every capability names its check
+
+`SurfaceEntry.paths` in the harness registry is coarse on purpose:
+`packages/agents/` is one path, so a diff that *adds* a capability lights up
+exactly the checks a diff that renames a local variable does. Five capabilities
+shipped through that hole before anyone noticed nothing exercised them
+(#5095, #5100, #5103, #5105, #5107).
+
+So there is a second table one rung down:
+**`packages/cli/src/harness/capability-table.ts`**. One entry per exported
+capability, naming the file that implements it, the checked-in suites a
+selfcheck runs over it, the eval cases whose `expect.requiredTools` demand it,
+and — where nothing does yet — a written gap note. The invariant is the
+registry's: **no capability without a check or a documented gap.**
+
+Everything mechanical is derived, so the table cannot rot:
+
+```bash
+npm run capabilities:sync     # rewrite the table from the live registry
+npm run capabilities:check    # fail if it is stale (CI, and the gate)
+npm run dev:nodetool -- harness capabilities [--json] [--strict]
+```
+
+`name`, `module`, `contract`, `suites` and `evals` come from
+`scripts/sync-capability-coverage.mjs`, which reads the live specs, scans the
+agent suites, and imports the eval case files. The one hand-written field is
+`gap`, and the sync preserves it. A capability that names every other
+capability by construction — the category snapshot in
+`capabilities-registry.test.ts`, the belt walk in `capabilities-coverage.test.ts`
+— is excluded from suite attribution; counting them would make everything look
+covered.
+
+**Adding a capability means adding its check.** Write the eval case or the
+suite first; `npm run capabilities:check` fails on a new capability with
+neither, and it will not accept a gap note that still says TODO. Changing what
+a capability *declares* — its description, input schema, category, or
+`needsToolCallId` — moves its `contract` fingerprint, and
+`nodetool harness gate --base <ref>` then refuses a diff that left the coverage
+mapping untouched: say which case covers the new contract, or write down why
+there isn't one. A refactor that leaves the contract alone demands nothing and
+runs the mapped checks as usual.
+
 ## The core API is in-process (`src/tools/mcp-tools.ts`)
 
 The workflow/node/job/asset tools call NodeTool's own code, never HTTP. There

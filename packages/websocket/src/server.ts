@@ -687,6 +687,12 @@ const isProduction = process.env["NODETOOL_ENV"] === "production";
 // In production, bind to all interfaces unless HOST is explicitly set
 const host = process.env["HOST"] ?? (isProduction ? "0.0.0.0" : "127.0.0.1");
 
+// The `/mcp` streamable-HTTP mount. Off in production by default: it carries
+// the full agent toolbelt for whichever user it binds, so a deployment opts in
+// with NODETOOL_ENABLE_MCP=1 and authenticates the agent like any other client.
+const mcpHttpEnabled =
+  !isProduction || process.env["NODETOOL_ENABLE_MCP"] === "1";
+
 // Reverse proxies whose X-Forwarded-For header may be trusted to determine the
 // real client IP. Comma-separated IPs/CIDRs (e.g. "127.0.0.1,10.0.0.0/8").
 // When empty, X-Forwarded-For is NOT trusted: req.ip falls back to the socket
@@ -906,13 +912,16 @@ app.addHook("onRequest", async (req, reply) => {
   }
 
   // Static frontend assets don't require auth (served by fastifyStatic)
+  // `GET /mcp` is the MCP SSE stream, not a static asset — it must go through
+  // auth so the mount can bind the session's user.
   if (
     hasStaticApp &&
     req.method === "GET" &&
     !pathname.startsWith("/api") &&
     !pathname.startsWith("/ws") &&
     !pathname.startsWith("/v1") &&
-    !pathname.startsWith("/trpc")
+    !pathname.startsWith("/trpc") &&
+    !pathname.startsWith("/mcp")
   ) {
     return;
   }
@@ -1383,10 +1392,11 @@ await app.register(
 if (triggersEnabled()) {
   await app.register(createTriggerWebhookRoute());
 }
-// MCP endpoints are only available in local/dev mode — not in production.
-// The configuration endpoints moved to the tRPC `mcpConfig` router; the
-// `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.
-if (!isProduction) {
+// The `/mcp` mount is a bare MCP over-HTTP transport (the configuration
+// endpoints moved to the tRPC `mcpConfig` router, which stays local-only). In
+// production it registers only with NODETOOL_ENABLE_MCP=1, and it binds the
+// user the auth hook resolved rather than the local single user.
+if (mcpHttpEnabled) {
   app.all("/mcp", async (req, reply) => {
     const protocol = httpsOptions ? "https" : "http";
     const url = `${protocol}://${req.headers.host ?? `127.0.0.1:${port}`}${req.url}`;
@@ -1423,15 +1433,20 @@ if (!isProduction) {
       ...({ duplex: "half" })
     } as RequestInit);
 
-    // This mount is non-production only (see the isProduction guard above)
-    // and serves the local single user. An authenticated multi-user mount
-    // must derive agentToolsScope from the session instead.
+    // The scope is the user the auth hook resolved for this request. With no
+    // user, no scope is passed and mcp-server.ts answers 401 at initialize
+    // instead of handing out an anonymous full-access session.
     const response = await handleMcpHttpRequest(request, {
       metadataRoots,
       registry,
       examplesDir: apiOptions.examplesDir,
       frontendRendererRegistry,
-      agentToolsScope: { userId: "1", source: "local-dev-http" }
+      agentToolsScope: req.userId
+        ? {
+            userId: req.userId,
+            source: isProduction ? "http-session" : "local-dev-http"
+          }
+        : undefined
     });
     if (!response) {
       reply.status(404).send({ error: "Not found" });
@@ -1445,6 +1460,10 @@ if (!isProduction) {
     const payload = Buffer.from(await response.arrayBuffer());
     reply.send(payload);
   });
+} else {
+  log.info(
+    "MCP over HTTP (/mcp) disabled in production; set NODETOOL_ENABLE_MCP=1 to enable"
+  );
 }
 
 log.info(`Routes registered [${startupMs()}]`);
@@ -1498,6 +1517,7 @@ app.setNotFoundHandler((req, reply) => {
     !pathname.startsWith("/v1") &&
     !pathname.startsWith("/oauth") &&
     !pathname.startsWith("/trpc") &&
+    !pathname.startsWith("/mcp") &&
     !pathname.includes(".")
   ) {
     return reply.sendFile("index.html");
@@ -1678,9 +1698,11 @@ if (pythonBridge.isAvailable()) {
       );
     });
 } else {
+  const pythonAllowedInProduction =
+    process.env["NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION"] === "1";
   log.info(
-    isProduction
-      ? "Python bridge disabled in production — Python nodes will not be available"
+    isProduction && !pythonAllowedInProduction
+      ? "Python bridge disabled in production — Python nodes will not be available; set NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1 to enable (the image ships no Python worker: install nodetool-core and point NODETOOL_PYTHON at that interpreter)"
       : "Python not found — Python nodes will not be available"
   );
 }

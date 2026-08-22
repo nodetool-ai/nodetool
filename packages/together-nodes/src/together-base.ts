@@ -16,7 +16,10 @@
  *  - Video: POST /v2/videos → { id }, then poll GET /v2/videos/{id}          (async)
  */
 
+import { fetchExternalMedia } from "@nodetool-ai/runtime";
+
 const TOGETHER_BASE = "https://api.together.xyz";
+
 
 export function getApiKey(secrets: Record<string, string> | undefined): string {
   const key =
@@ -236,7 +239,9 @@ export async function resolveAssetBytes(
 }
 
 async function fetchBytes(url: string): Promise<Uint8Array> {
-  const res = await fetch(url);
+  // `isSafeHttpUrl` has already judged the initial URL; it cannot judge the
+  // redirect hops, which is what the protected fetch is for.
+  const res = await fetchExternalMedia(url);
   if (!res.ok) {
     throw new Error(`Together asset fetch failed: HTTP ${res.status} for ${url}`);
   }

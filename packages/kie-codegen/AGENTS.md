@@ -38,12 +38,38 @@ changes.
 - Upload configs for list fields must set `isList: true` and the API parameter
   name, for example `paramName: "reference_image_urls"`.
 
+## Fixture mode and the drift gate
+
+`npm run generate:kie` reads live docs pages and live pricing, so its output is
+not reproducible and nothing catches a generator change that quietly moves a
+node's type, default, or enum. Fixture mode is the reproducible half:
+`src/fixture-generate.ts` reads the checked-in `fixtures/llms.txt` snapshot and
+the docs-page fixtures named by `fixtures/generator-manifest.json`, and writes
+the outputs that manifest declares — the three module configs, the three
+node-source modules, and the manifest JSON. No network, no pricing, no
+timestamps, so two runs are byte-identical.
+
+`npm run generate:kie:check` generates into a temporary directory and diffs the
+declared outputs against `fixtures/expected/`. It exits non-zero on any
+difference, on a declared docs fixture that is absent, on a declared URL the
+`llms.txt` snapshot no longer lists, and when it compared nothing at all.
+`--strict` also fails on an expected file no manifest output declares.
+
+When a generator change is intended, refresh the expected outputs with
+`node scripts/provider-codegen-check.mjs --provider kie --write` and commit the
+diff. Adding a fixture means adding the docs page under `fixtures/docs/` and the
+entry in the generator manifest.
+
+`.github/workflows/provider-codegen.yml` runs the check on every diff touching
+this package.
+
 ## Verification
 
 After changing KIE codegen or factory behavior:
 
 ```bash
 npm run generate:kie
+npm run generate:kie:check
 npm run lint --workspace=packages/kie-codegen
 npm run test --workspace=packages/kie-codegen
 ```

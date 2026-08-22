@@ -1,0 +1,1015 @@
+[
+  {
+    "endpointId": "fal-ai/flux/dev",
+    "className": "FluxDev",
+    "docstring": "FLUX.1 [dev] is a powerful open-weight text-to-image model with 12 billion parameters. Optimized for prompt following and visual quality.",
+    "tags": [
+      "image",
+      "generation",
+      "flux",
+      "text-to-image",
+      "txt2img"
+    ],
+    "useCases": [
+      "Generate high-quality images from text prompts",
+      "Create detailed illustrations with precise control",
+      "Produce professional artwork and designs",
+      "Generate multiple variations from one prompt",
+      "Create safe-for-work content with built-in safety checker"
+    ],
+    "inputFields": [
+      {
+        "name": "acceleration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "none",
+        "description": "The speed of the generation. The higher the speed, the faster the generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Acceleration",
+        "enumValues": [
+          "none",
+          "regular",
+          "high"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt to generate an image from",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Enable safety checker to filter unsafe content",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "landscape_4_3",
+        "description": "Size preset for the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSizePreset",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "num_inference_steps",
+        "tsType": "number",
+        "propType": "int",
+        "default": 28,
+        "description": "Number of denoising steps. More steps typically improve quality",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 50
+      },
+      {
+        "name": "guidance_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 3.5,
+        "description": "How strictly to follow the prompt. Higher values are more literal",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "int",
+        "default": -1,
+        "description": "Seed for reproducible results. Use -1 for random",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "jpeg",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png"
+        ]
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "Image[]",
+        "propType": "list[Image]",
+        "default": [],
+        "description": "The generated image files info.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt used for generating the image.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "has_nsfw_concepts",
+        "tsType": "boolean[]",
+        "propType": "list[bool]",
+        "default": [],
+        "description": "Whether the generated images contain NSFW concepts.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Acceleration",
+        "values": [
+          [
+            "NONE",
+            "none"
+          ],
+          [
+            "REGULAR",
+            "regular"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "The speed of the generation. The higher the speed, the faster the generation."
+      },
+      {
+        "name": "ImageSizePreset",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "The size of the generated image."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ]
+        ],
+        "description": "The format of the generated image."
+      }
+    ],
+    "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "fal-ai/flux/schnell",
+    "className": "FluxSchnell",
+    "docstring": "FLUX.1 [schnell] is a fast distilled version of FLUX.1 optimized for speed. Can generate high-quality images in 1-4 steps.",
+    "tags": [
+      "image",
+      "generation",
+      "flux",
+      "fast",
+      "text-to-image",
+      "txt2img"
+    ],
+    "useCases": [
+      "Generate images quickly for rapid iteration",
+      "Create concept art with minimal latency",
+      "Produce preview images before final generation",
+      "Generate multiple variations efficiently",
+      "Real-time image generation applications"
+    ],
+    "inputFields": [
+      {
+        "name": "acceleration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "none",
+        "description": "The speed of the generation. The higher the speed, the faster the generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Acceleration",
+        "enumValues": [
+          "none",
+          "regular",
+          "high"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt to generate an image from",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Enable safety checker to filter unsafe content",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "landscape_4_3",
+        "description": "Size preset for the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSizePreset",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "num_inference_steps",
+        "tsType": "number",
+        "propType": "int",
+        "default": 4,
+        "description": "Number of denoising steps (1-4 recommended for schnell)",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 12
+      },
+      {
+        "name": "guidance_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 3.5,
+        "description": "\n        The CFG (Classifier Free Guidance) scale is a measure of how close you want\n        the model to stick to your prompt when looking for a related image to show you.\n    ",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "int",
+        "default": -1,
+        "description": "Seed for reproducible results. Use -1 for random",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "jpeg",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png"
+        ]
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "Image[]",
+        "propType": "list[Image]",
+        "default": [],
+        "description": "The generated image files info.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt used for generating the image.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "has_nsfw_concepts",
+        "tsType": "boolean[]",
+        "propType": "list[bool]",
+        "default": [],
+        "description": "Whether the generated images contain NSFW concepts.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Acceleration",
+        "values": [
+          [
+            "NONE",
+            "none"
+          ],
+          [
+            "REGULAR",
+            "regular"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "The speed of the generation. The higher the speed, the faster the generation."
+      },
+      {
+        "name": "ImageSizePreset",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "The size of the generated image."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ]
+        ],
+        "description": "The format of the generated image."
+      }
+    ],
+    "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "fal-ai/flux-pro/kontext",
+    "className": "FluxProKontext",
+    "docstring": "FLUX.1 Kontext [pro] edits images from text instructions with strong character and scene consistency.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "flux",
+      "kontext"
+    ],
+    "useCases": [
+      "Edit a photo from a written instruction",
+      "Keep a character consistent across edits",
+      "Change scenes while preserving subjects",
+      "Restyle images without losing structure",
+      "Make iterative local edits"
+    ],
+    "inputFields": [
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        ",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Image prompt for the omni model.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "2",
+        "description": "The safety tolerance level for the generated image. 1 being the most strict and 5 being the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "SafetyTolerance",
+        "enumValues": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6"
+        ]
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "jpeg",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "The aspect ratio of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "3:2",
+          "1:1",
+          "2:3",
+          "3:4",
+          "9:16",
+          "9:21"
+        ]
+      },
+      {
+        "name": "enhance_prompt",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Whether to enhance the prompt for better results.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "guidance_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 3.5,
+        "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt to generate an image from.",
+        "fieldType": "input",
+        "required": true
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "images",
+        "tsType": "Image[]",
+        "propType": "list[Image]",
+        "default": [],
+        "description": "The generated image files info.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "has_nsfw_concepts",
+        "tsType": "boolean[]",
+        "propType": "list[bool]",
+        "default": [],
+        "description": "Whether the generated images contain NSFW concepts.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt used for generating the image.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "SafetyTolerance",
+        "values": [
+          [
+            "VALUE_1",
+            "1"
+          ],
+          [
+            "VALUE_2",
+            "2"
+          ],
+          [
+            "VALUE_3",
+            "3"
+          ],
+          [
+            "VALUE_4",
+            "4"
+          ],
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_6",
+            "6"
+          ]
+        ],
+        "description": "The safety tolerance level for the generated image. 1 being the most strict and 5 being the most permissive."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ]
+        ],
+        "description": "The format of the generated image."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_9_21",
+            "9:21"
+          ]
+        ],
+        "description": "The aspect ratio of the generated image."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "fal-ai/hunyuan-video",
+    "className": "HunyuanVideo",
+    "docstring": "Hunyuan Video is Tencent's advanced text-to-video model for high-quality video generation.",
+    "tags": [
+      "video",
+      "generation",
+      "hunyuan",
+      "text-to-video",
+      "txt2vid"
+    ],
+    "useCases": [
+      "Generate cinematic videos from text descriptions",
+      "Create marketing videos from product descriptions",
+      "Produce educational video content",
+      "Generate creative video concepts",
+      "Create animated scenes from stories"
+    ],
+    "inputFields": [
+      {
+        "name": "num_frames",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 129,
+        "description": "The number of frames to generate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "NumFrames",
+        "enumValues": [
+          "129",
+          "85"
+        ]
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "The resolution of the video to generate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "580p",
+          "720p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "The aspect ratio of the video to generate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt to generate the video from.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If set to true, the safety checker will be enabled. Disabling it requires account authorization; unauthorized requests are always checked.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "pro_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "By default, generations are done with 35 steps. Pro mode does 55 steps which results in higher quality videos but will take more time and cost 2x more billing units.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The seed to use for generating the video.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generating the video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "NumFrames",
+        "values": [
+          [
+            "VALUE_129",
+            "129"
+          ],
+          [
+            "VALUE_85",
+            "85"
+          ]
+        ],
+        "description": "The number of frames to generate."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_580P",
+            "580p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ]
+        ],
+        "description": "The resolution of the video to generate."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the video to generate."
+      }
+    ],
+    "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "fal-ai/speech-to-text",
+    "className": "SpeechToText",
+    "docstring": "General-purpose speech-to-text model for accurate audio transcription.",
+    "tags": [
+      "audio",
+      "transcription",
+      "stt",
+      "speech-to-text"
+    ],
+    "useCases": [
+      "General audio transcription",
+      "Convert speech recordings to text",
+      "Generate audio transcripts",
+      "Process voice recordings",
+      "Extract text from speech"
+    ],
+    "inputFields": [
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "Local filesystem path (or remote URL) to a long audio file",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "audio_url"
+      },
+      {
+        "name": "use_pnc",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to use Canary's built-in punctuation & capitalization",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "dict",
+    "outputFields": [
+      {
+        "name": "output",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The partial or final transcription output from Canary",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "partial",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Indicates if this is a partial (in-progress) transcript",
+        "fieldType": "output",
+        "required": false
+      }
+    ],
+    "enums": [],
+    "moduleName": "speech_to_text"
+  }
+]

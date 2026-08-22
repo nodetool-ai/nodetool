@@ -4,6 +4,7 @@
  */
 
 import Replicate from "replicate";
+import { fetchExternalMedia } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
 // Client cache — one Replicate client instance per API key
@@ -182,7 +183,9 @@ async function uploadToReplicate(
   apiKey: string,
   sourceUrl: string
 ): Promise<string> {
-  const res = await fetch(sourceUrl);
+  // sourceUrl comes off a media ref in the graph, so the media-ref egress
+  // policy decides whether this host fetches it.
+  const res = await fetchExternalMedia(sourceUrl);
   if (!res.ok) throw new Error(`Failed to fetch ${sourceUrl}: ${res.status}`);
 
   const bytes = new Uint8Array(await res.arrayBuffer());

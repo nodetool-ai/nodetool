@@ -1,6 +1,7 @@
 import { isPackageAssetUri, isRawRgbaImage } from "@nodetool-ai/protocol";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import type { ProcessingContext } from "./context.js";
+import { fetchExternalMedia } from "./external-media-fetch.js";
 import { encodeRawRgbaToPng } from "./image-codec.js";
 import { isNonEmptyString } from "./type-predicates.js";
 
@@ -201,8 +202,12 @@ export async function loadMediaRefBytes(
   }
 
   if (uri.startsWith("http://") || uri.startsWith("https://")) {
+    // Last resort, and the only branch that opens a socket: the uri is caller
+    // data, so it goes through the media-ref egress policy rather than a bare
+    // fetch. A refusal throws and lands in the catch, which is this function's
+    // contract for "no bytes" either way.
     try {
-      const response = await fetch(uri);
+      const response = await fetchExternalMedia(uri);
       if (response.ok) {
         return new Uint8Array(await response.arrayBuffer());
       }

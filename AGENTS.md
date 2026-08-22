@@ -40,6 +40,7 @@ Talk to the user in ASD-STE100 Simplified Technical English.
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Mobile](mobile/AGENTS.md)** — React Native / Expo app
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
+- **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
 
 ---
@@ -547,6 +548,7 @@ Before submitting a PR, review for:
 - **Packaged Electron backend flattens file paths**. esbuild bundles the backend into one `server.mjs`, so anything resolved relative to `import.meta.url` (provider `*-manifest.json`, examples, `package://` assets) lives elsewhere in the packaged app than in dev. Data files a package loads at runtime must be declared in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and loaded via `loadPackageAssetJson` from `@nodetool-ai/config` — the registry drives staging (`scripts/bundle-backend.mjs`) and artifact verification (`scripts/verify-backend-bundle.mjs`), and unregistered loads throw in dev. See [electron/src/AGENTS.md § Packaged file layout](electron/src/AGENTS.md).
 - **The packaged backend only resolves what `bundle-backend.mjs` stages, in a flat `_modules/`**. One version per package name wins, so a dependency npm hoisted for an older major can take the slot a newer one needs — invisible in dev, fatal in the artifact. `npm run backend:smoke` stages the bundle and boots `server.mjs` against `/health`; run it after touching `scripts/bundle-backend.mjs`, a native dependency, or anything the backend loads lazily. CI runs it as the Quality Gate `bundle` leg and again per-OS in `release.yaml`.
 - **Price catalogs are generated — never hand-edit them.** FAL/kie come from `packages/fal-codegen`; `packages/model-pricing/src/generated/genspend-pricing.json` covers every other provider and comes from the GenSpend catalog, refreshed by the nightly `GenSpend Pricing Sync` workflow (`npm run sync:genspend` locally after `build:packages`, `npm run sync:genspend:check` to see whether it is stale). The sync matches GenSpend models against the models each provider enumerates in NodeTool, so it never emits an id NodeTool doesn't ship; unmatched models are reported, and `scripts/genspend/aliases.json` is where a maintainer pins or blocks one. The job opens a PR when a price moved — a number that gates a run's budget gets reviewed, not auto-merged. See [packages/model-pricing/README.md](packages/model-pricing/README.md).
+- **Generated provider metadata has a drift gate.** The FAL and KIE generators normally read live schemas and live pricing, so their output is not reproducible. `npm run generate:fal:check` / `generate:kie:check` run the same generators in fixture mode — only the schema fixtures checked in under `packages/{fal,kie}-codegen/fixtures/`, no network, no pricing, no timestamps — into a temporary directory, and diff the outputs the generator manifest declares against `fixtures/expected/`. Any difference exits non-zero, as does a check that compared nothing. Refresh an intended change with `node scripts/provider-codegen-check.mjs --provider <fal|kie> --write`. `.github/workflows/provider-codegen.yml` runs both on every diff touching a codegen package. Live refresh stays `npm run generate:fal` / `generate:kie`.
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`. The one shared package mobile compiles from **source** (no build) is `@nodetool-ai/app-runtime`, wired in `mobile/metro.config.js`, `tsconfig.json` and `jest.config.js` — all three must agree.
@@ -580,6 +582,8 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 | Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
 | Run a workflow (id, JSON, or DSL `.ts`) | `nodetool run <file>` / `nodetool workflows run <id> [--params …]` | `run_workflow`, `start_background_job` | varies |
 | Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
+| Check that every agent capability names a check | `nodetool harness capabilities`; `npm run capabilities:check` | — | seconds |
+| Check a provider's live response against the decoder that reads it | `npm run probe:providers` (nightly; offline half runs on every provider diff) | — | seconds |
 | Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |
 | Check a script↔storyboard link (extract, scaffold, joint assemble) | no command of its own — the pure-function suites the `script-storyboard-link` harness entry names, run by `harness gate` on diffs touching either surface | `get_storyboard`, `get_script` (link state, drift, orphans), `validate_timeline` on the assembled output | seconds |
 | Jobs & assets | `nodetool jobs …` / `nodetool assets …` | `list_jobs`, `get_job`, `get_job_logs`, `list_assets`, `get_asset` | — |
@@ -1723,12 +1727,48 @@ rebuild/test: the owning package plus its downstream dependents, and a
 `build:packages` only when a decorator package (loads from `dist/`) is affected.
 Avoids reflexively running the full 1–2 min build.
 
+Workspaces come from the root `package.json`, not from a scan of `packages/` —
+`reliability/harness` is a workspace too, and a scan of one directory reported
+every change under it as belonging to nothing. `reliability/journeys/` maps to
+the harness that runs it (`EXTRA_WORKSPACE_PATHS` in
+`packages/cli/src/affected/affected.ts`).
+
 ```bash
 npm run dev:nodetool -- affected                       # uses git working-tree changes
 npm run dev:nodetool -- affected --base main           # diff against a ref
 npm run dev:nodetool -- affected packages/cli/src/x.ts # explicit files
 npm run dev:nodetool -- affected --json
 ```
+
+### npm run probe:providers (Provider Contract Probes)
+
+Asks OpenAI, Gemini, fal, and KIE for one real response each and decodes it with
+the same production decoder a run uses. A cassette proves NodeTool still handles
+a response a provider gave us *once*; it cannot notice that the provider changed
+the response today.
+
+```bash
+npm run probe:providers                      # one request per provider, keys from env
+npm run probe:providers -- --json --out report.json
+npm run probe:providers -- --only openai.chat-completion
+npm run probe:providers -- --strict-network  # also fail on an unreachable provider
+```
+
+The offline half needs no key and runs on every diff touching
+`packages/runtime/src/providers/`: each manifest entry decodes a checked-in raw
+HTTP response fixture, and every declared required field is deleted once to
+prove the check can fail
+(`npm run test --workspace=packages/runtime -- provider-contract-probes`).
+
+**Network failures are reported apart from schema failures.** No body reaching
+the decoder (DNS, timeout, 5xx, an HTML gateway page) is a network failure and
+does not fail the nightly job; a response that no longer decodes is a schema
+failure and does. Budget: one request and USD 0.05 per provider per run,
+enforced by the runner. Retained artifacts hold response *shapes* and redacted
+messages, never a body — no credential, prompt, request id, or signed URL
+survives. Manifest:
+`packages/runtime/src/providers/contract/probe-manifest.ts`. Details:
+[docs/provider-contract-probes.md](docs/provider-contract-probes.md).
 
 ### nodetool harness (Registry, Coverage Audit, and the Gate)
 
@@ -1754,7 +1794,20 @@ npm run dev:nodetool -- harness audit --strict   # exit 1 while any gap remains
 npm run dev:nodetool -- harness gate --base main # run the selfchecks this diff demands
 npm run dev:nodetool -- harness gate --dry-run   # plan only
 npm run dev:nodetool -- harness gate --all       # every selfcheck (--expensive to widen)
+npm run dev:nodetool -- harness capabilities     # capability coverage + documented gaps
 ```
+
+`capabilities` is the same invariant one rung down, over
+`packages/cli/src/harness/capability-table.ts`: every exported agent capability
+names the suites a selfcheck runs over it, the eval cases that drive a model
+through it, or a written gap note. The table is derived —
+`npm run capabilities:sync` rewrites it from the live registry, the agent
+suites and the eval case files, and `npm run capabilities:check` fails when it
+is stale or when a new capability arrives with no check and no gap note. It
+also carries a fingerprint of what each capability *declares*, so
+`harness gate --base <ref>` can refuse a contract change that left its coverage
+mapping untouched while saying nothing about an ordinary refactor. See
+[packages/agents/AGENTS.md § Capability coverage](packages/agents/AGENTS.md).
 
 ### nodetool reliability (Cross-Surface Journey Diffs)
 
@@ -2257,6 +2310,14 @@ See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific t
 - Validate all IPC inputs with Zod before acting on them.
 - No `eval`, `new Function`, or `setTimeout` with string arguments.
 - Secrets never appear in code, logs, or error messages.
+- Any outbound fetch of a URL somebody else chose — a media ref, a provider's
+  result body, a model's answer — goes through `safeFetch` (or
+  `fetchExternalMedia` for media refs) from `@nodetool-ai/runtime`, never a bare
+  `fetch`. A predicate can refuse the first URL; only the protected fetch
+  re-checks each redirect hop. Every such surface is inventoried in
+  [docs/url-egress-inventory.md](docs/url-egress-inventory.md) and audited by
+  `packages/runtime/tests/url-egress-audit.test.ts`, which fails on a new
+  unclassified `fetch(url)` anywhere under `packages/*/src`.
 - `npm audit` must pass — high/critical advisories block merge unless waived with rationale.
 
 ## Accessibility, Performance, Observability

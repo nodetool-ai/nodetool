@@ -19,7 +19,10 @@ import {
 } from "@nodetool-ai/nodes-utils";
 import { IS_NODE, importNodeBuiltin } from "@nodetool-ai/config";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  fetchExternalMedia,
+  type ProcessingContext
+} from "@nodetool-ai/runtime";
 import {
   loadOfflineAudioContext,
   type OfflineAudioContextCtor
@@ -74,7 +77,9 @@ export async function audioBytesAsync(
         return new Uint8Array(await fs.readFile(uriToPath(ref.uri)));
       }
       if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
-        const response = await fetch(ref.uri);
+        // Caller-supplied uri: the media-ref egress policy decides, not this
+        // helper. A refusal throws into the catch below and reads as no bytes.
+        const response = await fetchExternalMedia(ref.uri);
         if (!response.ok) return new Uint8Array();
         return new Uint8Array(await response.arrayBuffer());
       }

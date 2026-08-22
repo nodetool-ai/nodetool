@@ -12,6 +12,13 @@ import {
   auditHarnessCoverage,
   planGate
 } from "../src/harness/registry.js";
+import {
+  auditCapabilityCoverage,
+  extractCoverageBlocks,
+  planCapabilityMappingGate,
+  type CapabilityCoverageEntry,
+  type DeclaredCapability
+} from "../src/harness/capability-coverage.js";
 
 describe("harness registry", () => {
   it("has unique harness and surface ids", () => {
@@ -163,5 +170,222 @@ describe("harness gate", () => {
       if (!h.selfcheck) continue;
       expect(h.selfcheck.command, h.id).toMatch(/^(npm|node) /);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Capability coverage: the rung below surface coverage.
+// ---------------------------------------------------------------------------
+
+/** A capability the fixtures can hand the audit, with a stable fingerprint. */
+function declare(
+  name: string,
+  module = "demo",
+  contract = "aaaaaaaaaaaa"
+): DeclaredCapability {
+  return { name, module, contract };
+}
+
+function entry(
+  over: Partial<CapabilityCoverageEntry> & { name: string }
+): CapabilityCoverageEntry {
+  return {
+    module: "demo",
+    impl: "packages/agents/src/capabilities/demo.ts",
+    contract: "aaaaaaaaaaaa",
+    ...over
+  };
+}
+
+describe("capability coverage audit", () => {
+  it("fails on a new exported capability with no mapping", () => {
+    const result = auditCapabilityCoverage(
+      [declare("list_demo"), declare("brand_new_capability")],
+      [entry({ name: "list_demo", gap: "nothing covers it yet" })],
+      HARNESSES
+    );
+    expect(result.unmapped).toEqual(["brand_new_capability"]);
+  });
+
+  it("fails a capability with no selfcheck, no eval case, and no gap note", () => {
+    const result = auditCapabilityCoverage(
+      [declare("list_demo")],
+      [entry({ name: "list_demo" })],
+      HARNESSES
+    );
+    expect(result.undocumentedGaps).toEqual(["list_demo"]);
+    expect(result.coveredCount).toBe(0);
+  });
+
+  it("passes a capability that names an eval case", () => {
+    const result = auditCapabilityCoverage(
+      [declare("list_demo")],
+      [
+        entry({
+          name: "list_demo",
+          evals: [
+            {
+              file: "packages/agents/src/evals/codeact-api-core.ts",
+              cases: ["api-demo"]
+            }
+          ]
+        })
+      ],
+      HARNESSES
+    );
+    expect(result.undocumentedGaps).toEqual([]);
+    expect(result.coveredCount).toBe(1);
+    expect(result.rows[0]!.evalCases).toBe(1);
+  });
+
+  it("rejects a selfcheck no harness offers, and one that names no suite", () => {
+    const result = auditCapabilityCoverage(
+      [declare("a"), declare("b")],
+      [
+        entry({ name: "a", selfcheck: "no-such-harness", suites: ["x.test.ts"] }),
+        entry({ name: "b", selfcheck: "capability-suites" })
+      ],
+      HARNESSES
+    );
+    expect(result.unknownSelfchecks).toEqual(["a → no-such-harness"]);
+    expect(result.selfchecksWithoutSuites).toEqual(["b"]);
+  });
+
+  it("reports a stale entry, a moved module, and contract drift", () => {
+    const result = auditCapabilityCoverage(
+      [declare("kept", "demo", "bbbbbbbbbbbb")],
+      [
+        entry({ name: "kept", module: "elsewhere", gap: "n/a" }),
+        entry({ name: "retired", gap: "n/a" })
+      ],
+      HARNESSES
+    );
+    expect(result.stale).toEqual(["retired"]);
+    expect(result.moduleMismatches).toHaveLength(1);
+    expect(result.contractDrift).toHaveLength(1);
+  });
+
+  it("catches the same name entered twice", () => {
+    const result = auditCapabilityCoverage(
+      [declare("twice")],
+      [entry({ name: "twice", gap: "n/a" }), entry({ name: "twice", gap: "n/a" })],
+      HARNESSES
+    );
+    expect(result.duplicates).toEqual(["twice"]);
+  });
+});
+
+describe("capability mapping gate", () => {
+  const table = (entries: string[]): string =>
+    `export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [\n${entries.join(
+      "\n"
+    )}\n];\n`;
+
+  const block = (
+    name: string,
+    contract: string,
+    coverage = '    gap: "nothing covers it yet",'
+  ): string =>
+    [
+      "  {",
+      `    name: "${name}",`,
+      '    module: "demo",',
+      '    impl: "packages/agents/src/capabilities/demo.ts",',
+      `    contract: "${contract}",`,
+      coverage,
+      "  },"
+    ].join("\n");
+
+  it("reads one block per capability out of the table source", () => {
+    const blocks = extractCoverageBlocks(
+      table([block("a", "1111"), block("b", "2222")])
+    );
+    expect([...blocks.keys()]).toEqual(["a", "b"]);
+    expect(blocks.get("a")).toContain('contract: "1111"');
+  });
+
+  it("fails a contract change that left the mapping untouched", () => {
+    const base = table([block("a", "1111")]);
+    const head = table([block("a", "2222")]);
+    const result = planCapabilityMappingGate(base, head);
+    expect(result.contractChanged).toEqual(["a"]);
+    expect(result.violations.map((v) => v.name)).toEqual(["a"]);
+    expect(result.violations[0]!.detail).toContain("coverage mapping");
+  });
+
+  it("passes a contract change that moved its mapping with it", () => {
+    const base = table([block("a", "1111")]);
+    const head = table([
+      block(
+        "a",
+        "2222",
+        '    evals: [{ file: "packages/agents/src/evals/x.ts", cases: ["new-case"] }],'
+      )
+    ]);
+    const result = planCapabilityMappingGate(base, head);
+    expect(result.contractChanged).toEqual(["a"]);
+    expect(result.violations).toEqual([]);
+  });
+
+  it("passes a new capability — its mapping is new by construction", () => {
+    const result = planCapabilityMappingGate(
+      table([block("a", "1111")]),
+      table([block("a", "1111"), block("b", "3333")])
+    );
+    expect(result.added).toEqual(["b"]);
+    expect(result.violations).toEqual([]);
+  });
+
+  it("says nothing about an ordinary refactor", () => {
+    const same = table([block("a", "1111"), block("b", "2222")]);
+    const result = planCapabilityMappingGate(same, same);
+    expect(result).toEqual({
+      added: [],
+      contractChanged: [],
+      removed: [],
+      violations: []
+    });
+  });
+
+  it("reports a removed capability without failing the gate", () => {
+    const result = planCapabilityMappingGate(
+      table([block("a", "1111"), block("b", "2222")]),
+      table([block("a", "1111")])
+    );
+    expect(result.removed).toEqual(["b"]);
+    expect(result.violations).toEqual([]);
+  });
+
+  it("treats a table absent at the base ref as all-new", () => {
+    const result = planCapabilityMappingGate(null, table([block("a", "1111")]));
+    expect(result.added).toEqual(["a"]);
+    expect(result.violations).toEqual([]);
+  });
+
+  it("demands no eval from a non-agent surface", () => {
+    // A deploy-image change touches a surface with its own harness and no
+    // capability at all: the table is untouched, so the gate is silent.
+    const plan = planGate(["Dockerfile", "scripts/docker-smoke.mjs"]);
+    expect(plan.surfaces.map((s) => s.id)).toEqual(["deploy-image"]);
+    const same = table([block("a", "1111")]);
+    expect(planCapabilityMappingGate(same, same).violations).toEqual([]);
+  });
+
+  it("maps a capability change onto the agent-capabilities surface", () => {
+    const plan = planGate([
+      "packages/agents/src/capabilities/workflows.ts",
+      "packages/cli/src/harness/capability-table.ts"
+    ]);
+    expect(plan.surfaces.map((s) => s.id)).toContain("agent-capabilities");
+    expect(plan.checks.map((c) => c.harnessId)).toContain("capability-suites");
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+
+  it("reports an unregistered capability-adjacent file", () => {
+    // A file no surface claims still lands in unmappedFiles — the gate cannot
+    // select a check for code it does not know who owns.
+    const plan = planGate(["notes/capability-plans.md"]);
+    expect(plan.unmappedFiles).toEqual(["notes/capability-plans.md"]);
+    expect(plan.checks).toEqual([]);
   });
 });

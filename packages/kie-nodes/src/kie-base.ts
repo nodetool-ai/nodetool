@@ -4,6 +4,7 @@
  */
 
 import { loadMediaRefBytes, registerWebhookWait } from "@nodetool-ai/runtime";
+import { safeFetch } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const KIE_API_BASE = "https://api.kie.ai";
@@ -124,7 +125,8 @@ async function downloadResult(
   if (!resultUrls?.length) throw new Error(withTaskId("No resultUrls in resultJson", taskId));
   const items = await Promise.all(
     resultUrls.map(async (resultUrl) => {
-      const dlRes = await fetch(resultUrl);
+      // Provider-returned download URL — screened like every other one.
+      const dlRes = await safeFetch(resultUrl);
       if (!dlRes.ok) {
         throw new Error(withTaskId(`Failed to download from ${resultUrl}`, taskId));
       }
@@ -335,7 +337,8 @@ async function downloadCustomResult(
   // Try Runway-style: data.videoInfo.videoUrl
   const videoInfo = data?.videoInfo as Record<string, unknown> | undefined;
   if (videoInfo?.videoUrl) {
-    const res = await fetch(videoInfo.videoUrl as string);
+    // Provider-returned download URL — screened like every other one.
+    const res = await safeFetch(videoInfo.videoUrl as string);
     if (!res.ok) throw new Error(`Download failed: ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   }
@@ -365,7 +368,8 @@ async function downloadCustomResult(
   if (!resultUrls.length)
     throw new Error(`No result URLs in response: ${JSON.stringify(statusData)}`);
 
-  const res = await fetch(resultUrls[0]);
+  // Provider-returned download URL — screened like every other one.
+  const res = await safeFetch(resultUrls[0]);
   if (!res.ok) throw new Error(`Download failed: ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
@@ -635,7 +639,8 @@ export async function kieExecuteSunoTask(
   if (!sunoData?.length) throw new Error("No sunoData in Suno response");
   const audioUrl = sunoData[0].audioUrl as string;
   if (!audioUrl) throw new Error("No audioUrl in Suno response");
-  const dlRes = await fetch(audioUrl);
+  // Provider-returned download URL — screened like every other one.
+  const dlRes = await safeFetch(audioUrl);
   if (!dlRes.ok) throw new Error(`Failed to download audio: ${dlRes.status}`);
   const buf = Buffer.from(await dlRes.arrayBuffer());
   const b64 = buf.toString("base64");

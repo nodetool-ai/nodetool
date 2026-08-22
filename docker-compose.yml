@@ -131,6 +131,21 @@ services:
       # Optional OAuth redirect when served behind a domain/proxy:
       # AUTH_REDIRECT_URL: "${AUTH_REDIRECT_URL:-}"
 
+      # ── MCP over HTTP and Python nodes ─────────────────────────────────────
+      # Both surfaces are off because NODETOOL_ENV is "production" above.
+      #
+      # /mcp — the streamable-HTTP MCP mount an agent connects to. It sits
+      # behind the same auth hook as /api and binds the user that hook resolved,
+      # so an unauthenticated request is refused at initialize. Session ids are
+      # scoped to their owner. See docs/self-hosted-deployment.md.
+      # NODETOOL_ENABLE_MCP: "1"
+      #
+      # Python nodes. The published image ships no Python worker, so this flag
+      # alone does nothing: derive an image that installs nodetool-core and
+      # point NODETOOL_PYTHON at its interpreter.
+      # NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION: "1"
+      # NODETOOL_PYTHON: "/usr/local/bin/python3"
+
       # Model provider keys — only the ones you use. Values come from .env.
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
