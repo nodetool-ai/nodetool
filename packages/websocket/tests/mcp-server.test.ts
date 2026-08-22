@@ -395,6 +395,83 @@ describe("session scope", () => {
     expect(() => createMcpServer()).toThrow(MCP_SCOPE_REQUIRED_MESSAGE);
   });
 
+  const initializeBody = JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "test", version: "1.0.0" }
+    }
+  });
+
+  async function openHttpSession(userId: string): Promise<string> {
+    const response = await handleMcpHttpRequest(
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream"
+        },
+        body: initializeBody
+      }),
+      { agentToolsScope: { userId, source: "http-session" } }
+    );
+    expect(response!.status).toBe(200);
+    const sessionId = response!.headers.get("mcp-session-id");
+    expect(sessionId).toBeTruthy();
+    return sessionId!;
+  }
+
+  function sessionRequest(method: string, sessionId: string): Request {
+    return new Request("http://localhost/mcp", {
+      method,
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "mcp-session-id": sessionId
+      },
+      ...(method === "POST"
+        ? {
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 2,
+              method: "tools/list",
+              params: {}
+            })
+          }
+        : {})
+    });
+  }
+
+  it("lets the owning user resume an HTTP session", async () => {
+    const sessionId = await openHttpSession("alice");
+    const response = await handleMcpHttpRequest(
+      sessionRequest("POST", sessionId),
+      { agentToolsScope: { userId: "alice", source: "http-session" } }
+    );
+    expect(response!.status).toBe(200);
+  });
+
+  it("hides another user's HTTP session behind a 404", async () => {
+    const sessionId = await openHttpSession("alice");
+    for (const method of ["POST", "GET", "DELETE"]) {
+      const response = await handleMcpHttpRequest(
+        sessionRequest(method, sessionId),
+        { agentToolsScope: { userId: "mallory", source: "http-session" } }
+      );
+      expect(response!.status).toBe(404);
+      expect(await response!.text()).toBe("Session not found");
+    }
+    // The owner still has it — the refusals did not evict the session.
+    const owned = await handleMcpHttpRequest(
+      sessionRequest("DELETE", sessionId),
+      { agentToolsScope: { userId: "alice", source: "http-session" } }
+    );
+    expect(owned!.status).toBeLessThan(400);
+  });
+
   it("refuses an unscoped HTTP initialize with the fix named", async () => {
     const response = await handleMcpHttpRequest(
       new Request("http://localhost/mcp", {

@@ -155,7 +155,11 @@ NODETOOL_PYTHON=/opt/conda/envs/nodetool/bin/python nodetool serve
 The bridge is a local-only feature: when `NODETOOL_ENV=production` it refuses to
 connect, and a workflow reaching a Python node fails with "Python bridge is
 disabled in production". Set `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1` to
-override that on a host where you do want the worker.
+override that on a host where you do want the worker. The flag alone is not
+enough on the published Docker image: it ships no Python worker, so derive an
+image that installs `nodetool-core` and point `NODETOOL_PYTHON` at that
+interpreter. See [Self-hosted deployment › MCP over HTTP and Python
+nodes](self-hosted-deployment.md#mcp-over-http-and-python-nodes).
 
 The three `NODETOOL_PYTHON_*_TIMEOUT_MS` variables bound how long the server
 waits on the worker. Raise `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` past its
@@ -446,6 +450,7 @@ missing binary.
 | `NODETOOL_REQUIRE_SDK_AUTH_V1` | Require a token on the SDK **discovery** routes even when the server does not enforce auth | no | `1` only. Those routes (`capabilities`, `models`, `node-types`, `workflows`, `workflow-interfaces`, `workflows/:id/interface`) are otherwise auth-exempt in local trust mode, since they only describe the server. Set it when a local-mode server is reachable beyond loopback. A server that already enforces auth requires the token regardless |
 | `NODETOOL_EXTENSION_DIST` | Directory holding the built Chrome extension served by `/api/extension/download` | no | Set by the desktop app to its bundled copy. When unset (or pointing at a directory with no `manifest.json`), the server walks up from its own directory and the working directory looking for `chrome-extension/dist`. See [Chrome Extension](chrome-extension.md#downloading-a-prebuilt-copy) |
 | `NODETOOL_ENABLE_EXTENSION_BRIDGE` | Keep the `/ws/extension` CDP bridge open when `NODETOOL_ENV=production` | no | Off in production unless set to exactly `1`; on everywhere else. The bridge is unauthenticated and single-connection — whoever connects becomes *the* extension socket and can proxy CDP through the server — so enable it only on a deployment that actually drives the browser extension. When disabled the server logs that at startup and the route is not registered |
+| `NODETOOL_ENABLE_MCP` | Keep the `/mcp` streamable-HTTP mount registered when `NODETOOL_ENV=production` | no | Off in production unless set to exactly `1`; on everywhere else. The mount inherits the server's auth mode — it is not a second door — and binds the user the auth hook resolved, so a request it cannot authenticate gets `401` at initialize instead of an anonymous session. A session id belongs to the user who opened it: another user presenting it gets `404`. When disabled the server logs that at startup and the route is not registered. See [Self-hosted deployment › MCP over HTTP and Python nodes](self-hosted-deployment.md#mcp-over-http-and-python-nodes) |
 | `NODETOOL_HOST_BINARY_CONCURRENCY` | Host binaries (`ffmpeg`, `yt-dlp`) the media capabilities may run at once | no | Default `2`; the rest queue, so one run cannot take every core from the request handlers. Read per spawn, as a whole number ≥ 1 — anything unparseable or non-positive keeps the default. Raise it on a machine with cores to spare and lower it on a shared one |
 | `NODETOOL_BROWSER_HEADLESS` | Whether browser-automation nodes launch Chrome headless | no | Server-side browser tools are headless unless this is exactly `false` |
 | `NODETOOL_SHIPPED_PACKS_DIR` | Roots the sandbox packs that ship with NodeTool are read from | no | Comma-, semicolon-, or `PATH`-separator-delimited, same as `NODETOOL_PACK_SEARCH_PATHS`. Candidates that do not exist are dropped, so a bad path yields no packs rather than an error. Unset, the loader looks for `_sandbox/` beside the bundled `server.mjs` (packaged desktop app, Docker image), then walks up to `packages/sandbox-packs` (a checkout). Set it only for a host that stages the packs somewhere else. See [Sandbox package design](sandbox-package-design.md) |
