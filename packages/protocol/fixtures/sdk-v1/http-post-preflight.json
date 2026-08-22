@@ -1,0 +1,212 @@
+{
+  "captures": {
+    "auth_failure": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": {
+          "inputs": {
+            "prompt": "hello"
+          },
+          "interface_version": 1,
+          "level": "static",
+          "workflow_etag": "sdk-golden-etag",
+          "workflow_id": "wf-sdk-golden-1",
+          "workspace_id": null
+        },
+        "headers": {
+          "content-type": "application/json"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/preflight"
+      },
+      "response": {
+        "body": {
+          "code": "AUTHENTICATION_REQUIRED",
+          "detail": "Authentication required",
+          "message": "Authentication required",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 401
+      },
+      "via": "fastify"
+    },
+    "bad_input": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": {},
+        "headers": {
+          "content-type": "application/json",
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/preflight"
+      },
+      "response": {
+        "body": {
+          "code": "INVALID_REQUEST",
+          "detail": "Invalid preflight request",
+          "message": "Invalid preflight request",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 400
+      },
+      "via": "fastify"
+    },
+    "feature_disabled": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "1",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": {
+          "inputs": {
+            "prompt": "hello"
+          },
+          "interface_version": 1,
+          "level": "static",
+          "workflow_etag": "sdk-golden-etag",
+          "workflow_id": "wf-sdk-golden-1",
+          "workspace_id": null
+        },
+        "headers": {
+          "content-type": "application/json",
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/preflight"
+      },
+      "response": {
+        "body": {
+          "code": "SDK_LIFECYCLE_DISABLED",
+          "detail": "SDK lifecycle v1 is disabled",
+          "message": "SDK lifecycle v1 is disabled",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 503
+      },
+      "via": "fastify"
+    },
+    "method_not_allowed": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/preflight"
+      },
+      "response": {
+        "body": {
+          "code": "METHOD_NOT_ALLOWED",
+          "detail": "Method not allowed",
+          "message": "Method not allowed",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 405
+      },
+      "via": "http-api-dispatcher"
+    },
+    "success": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": {
+          "inputs": {
+            "prompt": "hello"
+          },
+          "interface_version": 1,
+          "level": "static",
+          "workflow_etag": "sdk-golden-etag",
+          "workflow_id": "wf-sdk-golden-1",
+          "workspace_id": null
+        },
+        "headers": {
+          "content-type": "application/json",
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/preflight"
+      },
+      "response": {
+        "body": {
+          "cost": null,
+          "issues": [],
+          "level": "static",
+          "requirements": [],
+          "runnable": true,
+          "version": 1,
+          "workflow_etag": "sdk-golden-etag",
+          "workflow_id": "wf-sdk-golden-1"
+        },
+        "content_type": "application/json",
+        "status": 200
+      },
+      "via": "fastify"
+    },
+    "unsupported_media_type": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": "hello",
+        "headers": {
+          "content-type": "text/plain",
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/preflight"
+      },
+      "response": {
+        "body": {
+          "code": "UNSUPPORTED_MEDIA_TYPE",
+          "detail": "Content-Type must be application/json",
+          "message": "Content-Type must be application/json",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 415
+      },
+      "via": "fastify"
+    }
+  },
+  "fixture_version": 1,
+  "not_captured": {},
+  "operation": "preflight",
+  "route": {
+    "auth": "authenticated",
+    "feature_flag": "NODETOOL_DISABLE_SDK_LIFECYCLE_V1",
+    "in_http_api_dispatcher": true,
+    "method": "POST",
+    "owner": "packages/websocket/src/routes/nodes.ts",
+    "path": "/api/sdk/v1/preflight"
+  }
+}

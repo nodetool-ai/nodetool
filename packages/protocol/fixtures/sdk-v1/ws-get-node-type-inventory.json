@@ -1,0 +1,98 @@
+{
+  "fixture_version": 1,
+  "command": "get_node_type_inventory",
+  "env": {
+    "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+    "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+    "NODETOOL_REQUIRE_SDK_AUTH_V1": "0",
+    "NODETOOL_PACKS_CONFIG": "/nonexistent/sdk-v1-golden-packs.json"
+  },
+  "request": {
+    "command": "get_node_type_inventory",
+    "request_id": "sdk-golden-get_node_type_inventory",
+    "data": {
+      "limit": 50
+    }
+  },
+  "response": {
+    "type": "rpc_response",
+    "request_id": "sdk-golden-get_node_type_inventory",
+    "command": "get_node_type_inventory",
+    "result": {
+      "version": 1,
+      "registry_revision": 0,
+      "registry_ready": true,
+      "python_bridge_ready": true,
+      "node_count": 2,
+      "type_count": 1,
+      "provenance_counts": {
+        "loaded-metadata": 2
+      },
+      "cursor": 0,
+      "next_cursor": null,
+      "types": [
+        {
+          "signature": "str",
+          "type": "str",
+          "type_name": null,
+          "optional": false,
+          "type_args": [],
+          "values": [],
+          "values_truncated": false,
+          "input_uses": 0,
+          "output_uses": 1,
+          "node_count": 1,
+          "sources": {
+            "loaded-metadata": 1
+          },
+          "examples": [
+            {
+              "node_type": "nodetool.input.StringInput",
+              "pin": "output",
+              "direction": "output"
+            }
+          ]
+        }
+      ],
+      "unavailable_packs": [
+        {
+          "id": "atlascloud",
+          "name": "AtlasCloud",
+          "reason": "disabled by built-in pack configuration"
+        },
+        {
+          "id": "elevenlabs",
+          "name": "ElevenLabs",
+          "reason": "disabled by built-in pack configuration"
+        },
+        {
+          "id": "minimax",
+          "name": "MiniMax",
+          "reason": "disabled by built-in pack configuration"
+        },
+        {
+          "id": "reve",
+          "name": "Reve",
+          "reason": "disabled by built-in pack configuration"
+        },
+        {
+          "id": "together",
+          "name": "Together AI",
+          "reason": "disabled by built-in pack configuration"
+        },
+        {
+          "id": "topaz",
+          "name": "Topaz Labs",
+          "reason": "disabled by built-in pack configuration"
+        },
+        {
+          "id": "transformers-js",
+          "name": "Transformers.js",
+          "reason": "disabled by built-in pack configuration"
+        }
+      ]
+    }
+  },
+  "messagepack_request_hex": "de0003a7636f6d6d616e64b76765745f6e6f64655f747970655f696e76656e746f7279aa726571756573745f6964d92273646b2d676f6c64656e2d6765745f6e6f64655f747970655f696e76656e746f7279a464617461de0001a56c696d697432",
+  "messagepack_response_hex": "de0004a474797065ac7270635f726573706f6e7365aa726571756573745f6964d92273646b2d676f6c64656e2d6765745f6e6f64655f747970655f696e76656e746f7279a7636f6d6d616e64b76765745f6e6f64655f747970655f696e76656e746f7279a6726573756c74de000ba776657273696f6e01b172656769737472795f7265766973696f6e00ae72656769737472795f7265616479c3b3707974686f6e5f6272696467655f7265616479c3aa6e6f64655f636f756e7402aa747970655f636f756e7401b170726f76656e616e63655f636f756e7473de0001af6c6f616465642d6d6574616461746102a6637572736f7200ab6e6578745f637572736f72c0a5747970657391de000ca97369676e6174757265a3737472a474797065a3737472a9747970655f6e616d65c0a86f7074696f6e616cc2a9747970655f6172677390a676616c75657390b076616c7565735f7472756e6361746564c2aa696e7075745f7573657300ab6f75747075745f7573657301aa6e6f64655f636f756e7401a7736f7572636573de0001af6c6f616465642d6d6574616461746101a86578616d706c657391de0003a96e6f64655f74797065ba6e6f6465746f6f6c2e696e7075742e537472696e67496e707574a370696ea66f7574707574a9646972656374696f6ea66f7574707574b1756e617661696c61626c655f7061636b7397de0003a26964aa61746c6173636c6f7564a46e616d65aa41746c6173436c6f7564a6726561736f6ed92764697361626c6564206279206275696c742d696e207061636b20636f6e66696775726174696f6ede0003a26964aa656c6576656e6c616273a46e616d65aa456c6576656e4c616273a6726561736f6ed92764697361626c6564206279206275696c742d696e207061636b20636f6e66696775726174696f6ede0003a26964a76d696e696d6178a46e616d65a74d696e694d6178a6726561736f6ed92764697361626c6564206279206275696c742d696e207061636b20636f6e66696775726174696f6ede0003a26964a472657665a46e616d65a452657665a6726561736f6ed92764697361626c6564206279206275696c742d696e207061636b20636f6e66696775726174696f6ede0003a26964a8746f676574686572a46e616d65ab546f676574686572204149a6726561736f6ed92764697361626c6564206279206275696c742d696e207061636b20636f6e66696775726174696f6ede0003a26964a5746f70617aa46e616d65aa546f70617a204c616273a6726561736f6ed92764697361626c6564206279206275696c742d696e207061636b20636f6e66696775726174696f6ede0003a26964af7472616e73666f726d6572732d6a73a46e616d65af5472616e73666f726d6572732e6a73a6726561736f6ed92764697361626c6564206279206275696c742d696e207061636b20636f6e66696775726174696f6e"
+}

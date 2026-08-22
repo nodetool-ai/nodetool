@@ -1,0 +1,115 @@
+{
+  "captures": {
+    "bad_input": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/model-downloads?scope=bogus"
+      },
+      "response": {
+        "body": {
+          "code": "INVALID_INPUT",
+          "detail": "Invalid model download query",
+          "message": "Invalid model download query",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 400
+      },
+      "via": "fastify"
+    },
+    "success": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/model-downloads"
+      },
+      "response": {
+        "body": {
+          "downloads": [
+            {
+              "current_files": [],
+              "downloaded_bytes": 0,
+              "downloaded_files": 0,
+              "error": null,
+              "model_type": "hf.text_generation",
+              "operation_id": "mdl_sdk_golden",
+              "path": null,
+              "repo_id": "sdk-golden/model",
+              "scope": "local",
+              "started_at": "2026-08-22T12:00:00.000Z",
+              "status": "start",
+              "total_bytes": 0,
+              "total_files": 0,
+              "updated_at": "2026-08-22T12:00:00.000Z",
+              "version": "1"
+            }
+          ],
+          "version": "1"
+        },
+        "content_type": "application/json",
+        "status": 200
+      },
+      "via": "fastify"
+    },
+    "wrong_method_unrouted": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": {},
+        "headers": {
+          "content-type": "application/json",
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "PUT",
+        "multipart": null,
+        "path": "/api/sdk/v1/model-downloads"
+      },
+      "response": {
+        "body": {
+          "error": "Not Found",
+          "message": "Route PUT:/api/sdk/v1/model-downloads not found",
+          "statusCode": 404
+        },
+        "content_type": "application/json; charset=utf-8",
+        "status": 404
+      },
+      "via": "fastify"
+    }
+  },
+  "fixture_version": 1,
+  "not_captured": {
+    "auth_failure": "No in-route 401: getUserId falls back to x-user-id/'1' and server.ts enforces authentication in its onRequest hook (server.ts:897) before routing, answering 401 {\"error\":\"Unauthorized\"} outside the handlers.",
+    "feature_disabled": "No feature flag applies: the handler checks neither NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1 nor NODETOOL_DISABLE_SDK_LIFECYCLE_V1."
+  },
+  "operation": "model_download_list",
+  "route": {
+    "auth": "authenticated",
+    "feature_flag": null,
+    "in_http_api_dispatcher": false,
+    "method": "GET",
+    "owner": "packages/websocket/src/routes/nodes.ts",
+    "path": "/api/sdk/v1/model-downloads"
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "captures": {
+    "bad_input": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/workflows?limit=0"
+      },
+      "response": {
+        "body": {
+          "code": "INVALID_INPUT",
+          "detail": "Invalid workflow summary query",
+          "message": "Invalid workflow summary query",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 400
+      },
+      "via": "fastify"
+    },
+    "feature_disabled": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "1",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/workflows?limit=50"
+      },
+      "response": {
+        "body": {
+          "code": "SDK_WORKFLOW_INTERFACE_DISABLED",
+          "detail": "SDK workflow interface v1 is disabled",
+          "message": "SDK workflow interface v1 is disabled",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 503
+      },
+      "via": "fastify"
+    },
+    "method_not_allowed": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/workflows"
+      },
+      "response": {
+        "body": {
+          "detail": "Method not allowed"
+        },
+        "content_type": "application/json",
+        "status": 405
+      },
+      "via": "http-api-dispatcher"
+    },
+    "success": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/workflows?limit=50"
+      },
+      "response": {
+        "body": {
+          "next": null,
+          "workflows": [
+            {
+              "description": "Second deterministic SDK v1 golden workflow",
+              "id": "wf-sdk-golden-2",
+              "name": "SDK Golden Two",
+              "registry_revision": 0,
+              "revision": "2026-08-22T12:00:00.001Z",
+              "run_mode": "workflow"
+            },
+            {
+              "description": "Deterministic SDK v1 golden workflow",
+              "id": "wf-sdk-golden-1",
+              "name": "SDK Golden One",
+              "registry_revision": 0,
+              "revision": "2026-08-22T12:00:00.001Z",
+              "run_mode": "workflow"
+            }
+          ]
+        },
+        "content_type": "application/json",
+        "status": 200
+      },
+      "via": "fastify"
+    }
+  },
+  "fixture_version": 1,
+  "not_captured": {
+    "auth_failure": "No in-route 401: getUserId falls back to x-user-id/'1' and server.ts enforces authentication in its onRequest hook (server.ts:897) before routing, answering 401 {\"error\":\"Unauthorized\"} outside the handlers."
+  },
+  "operation": "workflow_summaries",
+  "route": {
+    "auth": "discovery",
+    "feature_flag": "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1",
+    "in_http_api_dispatcher": true,
+    "method": "GET",
+    "owner": "packages/websocket/src/routes/workflows.ts",
+    "path": "/api/sdk/v1/workflows"
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "captures": {
+    "bad_input": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": {},
+        "headers": {
+          "content-type": "application/json"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/assets/temporary"
+      },
+      "response": {
+        "body": {
+          "code": "INVALID_REQUEST",
+          "detail": "Expected multipart/form-data",
+          "message": "Expected multipart/form-data",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 400
+      },
+      "via": "handler"
+    },
+    "feature_disabled": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "1",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "content-type": "multipart/form-data"
+        },
+        "method": "POST",
+        "multipart": {
+          "content_type": "image/png",
+          "field": "file",
+          "filename": "input.png",
+          "size": 3
+        },
+        "path": "/api/sdk/v1/assets/temporary"
+      },
+      "response": {
+        "body": {
+          "code": "SDK_LIFECYCLE_DISABLED",
+          "detail": "SDK lifecycle v1 is disabled",
+          "message": "SDK lifecycle v1 is disabled",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 503
+      },
+      "via": "handler"
+    },
+    "method_not_allowed": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {},
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/assets/temporary"
+      },
+      "response": {
+        "body": {
+          "code": "METHOD_NOT_ALLOWED",
+          "detail": "Method not allowed",
+          "message": "Method not allowed",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 405
+      },
+      "via": "handler"
+    },
+    "missing_file_field": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "content-type": "multipart/form-data"
+        },
+        "method": "POST",
+        "multipart": {
+          "content_type": "image/png",
+          "field": "other",
+          "filename": "input.png",
+          "size": 3
+        },
+        "path": "/api/sdk/v1/assets/temporary"
+      },
+      "response": {
+        "body": {
+          "code": "INVALID_REQUEST",
+          "detail": "Multipart field 'file' is required",
+          "message": "Multipart field 'file' is required",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 400
+      },
+      "via": "handler"
+    },
+    "success": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "content-type": "multipart/form-data"
+        },
+        "method": "POST",
+        "multipart": {
+          "content_type": "image/png",
+          "field": "file",
+          "filename": "input.png",
+          "size": 3
+        },
+        "path": "/api/sdk/v1/assets/temporary"
+      },
+      "response": {
+        "body": {
+          "content_type": "image/png",
+          "expires_at": null,
+          "name": "input.png",
+          "size": 3,
+          "uri": "memory://temp/sdk-inputs/sdk-golden-upload.png",
+          "version": 1
+        },
+        "content_type": "application/json",
+        "status": 200
+      },
+      "via": "handler"
+    },
+    "too_large": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "content-type": "multipart/form-data"
+        },
+        "method": "POST",
+        "multipart": {
+          "content_type": "application/octet-stream",
+          "field": "file",
+          "filename": "big.bin",
+          "size": 100
+        },
+        "path": "/api/sdk/v1/assets/temporary"
+      },
+      "response": {
+        "body": {
+          "code": "UPLOAD_TOO_LARGE",
+          "detail": "Upload exceeds the configured 64 byte limit",
+          "message": "Upload exceeds the configured 64 byte limit",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 413
+      },
+      "via": "handler"
+    }
+  },
+  "fixture_version": 1,
+  "not_captured": {
+    "auth_failure": "No in-route 401: getUserId falls back to x-user-id/'1' and server.ts enforces authentication in its onRequest hook (server.ts:897) before routing, answering 401 {\"error\":\"Unauthorized\"} outside the handlers.",
+    "wrong_method_unrouted": "Captured as method_not_allowed: this operation is replayed through the handler (the only injection point for createId and the upload limit), which owns the 405."
+  },
+  "operation": "temporary_asset_upload",
+  "route": {
+    "auth": "authenticated",
+    "feature_flag": "NODETOOL_DISABLE_SDK_LIFECYCLE_V1",
+    "in_http_api_dispatcher": false,
+    "method": "POST",
+    "owner": "packages/websocket/src/routes/assets.ts",
+    "path": "/api/sdk/v1/assets/temporary"
+  }
+}
