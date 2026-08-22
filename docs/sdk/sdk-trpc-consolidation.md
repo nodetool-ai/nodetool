@@ -12,14 +12,15 @@ This is the only active plan for SDK contract convergence. It combines the
 server consolidation work with the C# SDK drift-prevention and usability work.
 All task status, design changes, and acceptance evidence belong in this file.
 
-**Execution status (2026-08-22):** Phases 0 and 1 are complete in `nodetool`
-on branch `claude/sdk-trpc-consolidation-ut79fs` (commits `322dbc0`,
-`8486b9e`, `8fb47bb`, `7398c2d`). Phase 0 evidence:
-`docs/sdk/phase-0-baseline-2026-08-22.md`. The release workflow already
-builds and attaches the contract bundle (part of the Phase 5 producer gates).
-Phases 2 and 3 are not started. Continue on the same branch; the Phase 0
-golden tests freeze the public contract byte-exact and must not be edited to
-make later work pass.
+**Execution status (2026-08-22):** NodeTool producer Phases 0 through 3 and
+the Phase 5 producer gates are complete on branch
+`claude/sdk-trpc-consolidation-ut79fs` through commit `686a0d710e`. Phase 0
+evidence: `docs/sdk/phase-0-baseline-2026-08-22.md`. The byte-frozen goldens
+remain unchanged. In `nodetool-sdk`, Phase 4, the Phase 5 consumer gates, and
+the non-preset Phase 7 facade work are complete on the matching branch through
+commit `2c57c93` (facade commit `765ebe2`). The cross-release compatibility
+matrix, Phase 6 benchmarks, benchmark-dependent presets, and releases remain
+open.
 
 ## 1. Outcome
 
@@ -533,23 +534,27 @@ Exit criteria:
 Purpose: replace handwritten server-contract duplication with a mechanical,
 reviewable update.
 
-- [ ] Add `contracts/sdk-v1/` with the pinned manifest and bundle, or a lock
+- [x] Add `contracts/sdk-v1/` with the pinned manifest and bundle, or a lock
       file plus a verified local cache.
-- [ ] Record NodeTool release, protocol version, bundle digest, and minimum
+- [x] Record NodeTool release, protocol version, bundle digest, and minimum
       supported server version.
-- [ ] Add an explicit contract-update command that fetches or copies a named
+- [x] Add an explicit contract-update command that fetches or copies a named
       release, verifies digests, regenerates the wire layer, runs conformance
       tests, and prints a semantic diff.
-- [ ] Keep normal build and test commands offline.
-- [ ] Run the generator evaluation described in Section 5.6.
-- [ ] Generate or mechanically verify internal HTTP wire DTOs, errors,
+- [x] Keep normal build and test commands offline.
+- [x] Run the generator evaluation described in Section 5.6.
+- [x] Generate or mechanically verify internal HTTP wire DTOs, errors,
       endpoints, methods, and serialization metadata.
-- [ ] Map internal wire types to the existing public types in one module.
-- [ ] Add a freshness check that fails after manual generated-file edits.
-- [ ] Verify handwritten MessagePack code against the pinned fixtures.
-- [ ] Preserve `INodetoolClient`, `IWorkflowDiscoveryClient`, model services,
+- [x] Map internal wire types to the existing public types in one module.
+- [x] Add a freshness check that fails after manual generated-file edits.
+- [x] Verify handwritten MessagePack code against the pinned fixtures.
+- [x] Preserve `INodetoolClient`, `IWorkflowDiscoveryClient`, model services,
       execution clients, session APIs, injected `HttpClient` ownership,
       cancellation, retries, token refresh, request IDs, and proxy subpaths.
+
+Done in `nodetool-sdk` commits `e5e297e` (pinned bundle and HTTP/MessagePack
+golden conformance) and `e0b4fd7` (focused wire generator, mappings, runtime
+validation, update command, freshness checks, and conformance CI).
 
 Exit criteria:
 
@@ -575,12 +580,12 @@ it.
 
 #### `[nodetool-sdk]` consumer gates
 
-- [ ] Deserialize every success and stable error fixture.
-- [ ] Decode every MessagePack fixture and compare its public meaning.
-- [ ] Re-encode supported C# requests and validate them against request schemas.
-- [ ] Prove unknown additional response fields are ignored.
-- [ ] Prove invalid enum values and missing required fields fail safely.
-- [ ] Run against every supported .NET target and the VL adapter/package build.
+- [x] Deserialize every success and stable error fixture.
+- [x] Decode every MessagePack fixture and compare its public meaning.
+- [x] Re-encode supported C# requests and validate them against request schemas.
+- [x] Prove unknown additional response fields are ignored.
+- [x] Prove invalid enum values and missing required fields fail safely.
+- [x] Run against every supported .NET target and the VL adapter/package build.
 
 #### `[both]` compatibility matrix and update flow
 
@@ -639,13 +644,13 @@ Exit criteria:
 
 Purpose: make the common path small without hiding advanced controls.
 
-- [ ] Make `NodeToolConnectionSession` the primary documented entry point.
-- [ ] Let the session coordinate discovery, capabilities, preflight, model
+- [x] Make `NodeToolConnectionSession` the primary documented entry point.
+- [x] Let the session coordinate discovery, capabilities, preflight, model
       catalog/downloads, execution, and asset transfer.
-- [ ] Preserve design-time HTTP fallback when WebSocket is unavailable.
-- [ ] Keep low-level HTTP and WebSocket clients public for advanced use,
+- [x] Preserve design-time HTTP fallback when WebSocket is unavailable.
+- [x] Keep low-level HTTP and WebSocket clients public for advanced use,
       testing, and host adapters.
-- [ ] Keep every `WorkflowExecutionOptions` value independently settable.
+- [x] Keep every `WorkflowExecutionOptions` value independently settable.
 - [ ] Add named presets only if Phase 6 supports them. Candidate names:
   - `Default`: job persistence, full events, and temporary assets, matching
     current C# defaults;
@@ -655,8 +660,8 @@ Purpose: make the common path small without hiding advanced controls.
     persistence.
 - [ ] Implement presets as immutable factories/values that callers can copy and
       override.
-- [ ] Negotiate non-default values through capabilities before submission.
-- [ ] Return a clear compatibility error for an unsupported requested option;
+- [x] Negotiate non-default values through capabilities before submission.
+- [x] Return a clear compatibility error for an unsupported requested option;
       never silently change semantics.
 - [ ] Document history, reconnect, event delivery, temporary retention, and
       asset-library visibility for each preset.
