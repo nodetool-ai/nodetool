@@ -1,0 +1,37 @@
+{
+  "provider": "fal",
+  "fixtures": [
+    {
+      "endpointId": "fal-ai/flux/dev",
+      "module": "text_to_image",
+      "schema": "schemas/fal-ai_flux_dev.json"
+    },
+    {
+      "endpointId": "fal-ai/flux/schnell",
+      "module": "text_to_image",
+      "schema": "schemas/fal-ai_flux_schnell.json"
+    },
+    {
+      "endpointId": "fal-ai/flux-pro/kontext",
+      "module": "image_to_image",
+      "schema": "schemas/fal-ai_flux-pro_kontext.json"
+    },
+    {
+      "endpointId": "fal-ai/hunyuan-video",
+      "module": "text_to_video",
+      "schema": "schemas/fal-ai_hunyuan-video.json"
+    },
+    {
+      "endpointId": "fal-ai/speech-to-text",
+      "module": "speech_to_text",
+      "schema": "schemas/fal-ai_speech-to-text.json"
+    }
+  ],
+  "outputs": [
+    { "path": "fal-manifest.json", "kind": "static-metadata" },
+    { "path": "nodes/text_to_image.ts", "kind": "node-source" },
+    { "path": "nodes/image_to_image.ts", "kind": "node-source" },
+    { "path": "nodes/text_to_video.ts", "kind": "node-source" },
+    { "path": "nodes/speech_to_text.ts", "kind": "node-source" }
+  ]
+}

@@ -1,0 +1,270 @@
+[
+  {
+    "className": "BytedanceSeedreamV4TextToImage",
+    "moduleName": "image",
+    "modelId": "bytedance/seedream-v4-text-to-image",
+    "title": "Seedream4.0 - Text to Image",
+    "description": "Seedream4.0 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream4.0's advanced AI model",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt used to generate the image (Max length: 5000 characters)",
+        "required": true,
+        "max": 5000
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "square_hd",
+        "title": "Image Size",
+        "description": "The size of the generated image.",
+        "required": false,
+        "values": [
+          "square",
+          "square_hd",
+          "portrait_4_3",
+          "portrait_3_2",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_3_2",
+          "landscape_16_9",
+          "landscape_21_9"
+        ]
+      },
+      {
+        "name": "image_resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Image Resolution",
+        "description": "Final image resolution is determined by combining image_size (aspect ratio) and image_resolution (pixel scale). For example, choosing 4:3 + 4K gives 4096 × 3072px",
+        "required": false,
+        "values": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      },
+      {
+        "name": "max_images",
+        "type": "float",
+        "default": 1,
+        "title": "Max Images",
+        "description": "Set this value (1–6) to cap how many images a single generation run can produce in one set—because they’re created in one shot rather than separate requests, you must also state the exact number you want in the prompt so both settings align. (Min: 1, Max: 6, Step: 1) (step: 1)",
+        "required": false,
+        "min": 1,
+        "max": 6
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed to control the stochasticity of image generation",
+        "required": false
+      },
+      {
+        "name": "nsfw_checker",
+        "type": "bool",
+        "default": false,
+        "title": "Nsfw Checker",
+        "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+        "required": false
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "GoogleNanoBananaEdit",
+    "moduleName": "image",
+    "modelId": "google/nano-banana-edit",
+    "title": "Google - Nano Banana Edit",
+    "description": "Google - Nano Banana Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image editing using Google's Nano Banana Edit model",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt for image editing (Max length: 5000 characters)",
+        "required": true,
+        "max": 5000
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "List of URLs of input images for editing,up to 10 images. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+        "required": true,
+        "max": 10
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output format for the images",
+        "required": false,
+        "values": [
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Radio description",
+        "required": false,
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "3:4",
+          "4:3",
+          "3:2",
+          "2:3",
+          "5:4",
+          "4:5",
+          "21:9",
+          "auto"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "paramName": "image_urls",
+        "isList": true
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "ElevenlabsAudioIsolation",
+    "moduleName": "audio",
+    "modelId": "elevenlabs/audio-isolation",
+    "title": "elevenlabs/audio-isolation",
+    "description": "elevenlabs/audio-isolation via Kie.ai.\n\n    kie, audio, ai\n\n    Content generation using elevenlabs/audio-isolation",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "URL of the audio file to isolate voice from (File URL after upload, not file content; Accepted types: audio/mpeg, audio/wav, audio/x-wav, audio/aac, audio/mp4, audio/ogg; Max size: 10.0MB)",
+        "required": true
+      }
+    ],
+    "uploads": [
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
+      }
+    ]
+  },
+  {
+    "className": "Kling26TextToVideo",
+    "moduleName": "video",
+    "modelId": "kling-2.6/text-to-video",
+    "title": "Kling 2.6 Text to Video",
+    "description": "Kling 2.6 Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt for video generation (maximum length: 1000 characters)",
+        "required": true,
+        "max": 1000
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": false,
+        "title": "Sound",
+        "description": "This parameter specifies whether the generated video contains sound (boolean: true/false)",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "This parameter defines the video aspect ratio",
+        "required": true,
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "5",
+        "title": "Duration",
+        "description": "Video duration (unit: seconds)",
+        "required": true,
+        "values": [
+          "5",
+          "10"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      },
+      {
+        "field": "aspect_ratio",
+        "rule": "not_empty",
+        "message": "Aspect Ratio is required"
+      },
+      {
+        "field": "duration",
+        "rule": "not_empty",
+        "message": "Duration is required"
+      }
+    ]
+  }
+]
