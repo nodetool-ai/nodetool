@@ -241,7 +241,9 @@ export const sdkV1OperationRegistry: SdkV1OperationRegistry = {
   websocket: sdkV1WebSocketOperations
 };
 
-function isValidSchemaRef(ref: SdkV1SchemaRef | undefined): boolean {
+function isValidSchemaRef(
+  ref: SdkV1SchemaRef | undefined
+): ref is SdkV1SchemaRef {
   return (
     ref !== undefined &&
     typeof ref.name === "string" &&
