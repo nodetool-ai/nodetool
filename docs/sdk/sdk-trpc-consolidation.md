@@ -12,6 +12,15 @@ This is the only active plan for SDK contract convergence. It combines the
 server consolidation work with the C# SDK drift-prevention and usability work.
 All task status, design changes, and acceptance evidence belong in this file.
 
+**Execution status (2026-08-22):** Phases 0 and 1 are complete in `nodetool`
+on branch `claude/sdk-trpc-consolidation-ut79fs` (commits `322dbc0`,
+`8486b9e`, `8fb47bb`, `7398c2d`). Phase 0 evidence:
+`docs/sdk/phase-0-baseline-2026-08-22.md`. The release workflow already
+builds and attaches the contract bundle (part of the Phase 5 producer gates).
+Phases 2 and 3 are not started. Continue on the same branch; the Phase 0
+golden tests freeze the public contract byte-exact and must not be edited to
+make later work pass.
+
 ## 1. Outcome
 
 Simplify the SDK implementation without removing any supported function:
@@ -375,21 +384,25 @@ repository generator from the published schemas.
 
 Purpose: make hidden behavior explicit before moving code.
 
-- [ ] Record the exact server commit and commands for the baseline.
-- [ ] Inventory every implemented and planned SDK HTTP operation.
-- [ ] Inventory every public SDK WebSocket command and event.
-- [ ] Inventory each SDK-related tRPC procedure and all in-repository callers.
-- [ ] Audit known out-of-repository tRPC consumers before planning removal.
-- [ ] Record route ownership, auth policy, feature policy, request limits,
+- [x] Record the exact server commit and commands for the baseline.
+- [x] Inventory every implemented and planned SDK HTTP operation.
+- [x] Inventory every public SDK WebSocket command and event.
+- [x] Inventory each SDK-related tRPC procedure and all in-repository callers.
+- [x] Audit known out-of-repository tRPC consumers before planning removal.
+- [x] Record route ownership, auth policy, feature policy, request limits,
       content types, statuses, headers, error shapes, and retry semantics.
-- [ ] Capture JSON success and error goldens for every HTTP operation.
-- [ ] Capture exact MessagePack fixtures for public WebSocket requests,
+- [x] Capture JSON success and error goldens for every HTTP operation.
+- [x] Capture exact MessagePack fixtures for public WebSocket requests,
       responses, events, and errors.
-- [ ] Capture multipart upload size-limit, filename, media-type, temporary-ID,
+- [x] Capture multipart upload size-limit, filename, media-type, temporary-ID,
       and cleanup behavior.
-- [ ] Add route and WebSocket inventory tests around the current declarations.
-- [ ] Prove each new drift check fails by changing one fixture or declaration
+- [x] Add route and WebSocket inventory tests around the current declarations.
+- [x] Prove each new drift check fails by changing one fixture or declaration
       in a temporary local test change, then restore it.
+
+Done in commit `7398c2d`: 20 fixtures under `packages/protocol/fixtures/sdk-v1/`,
+five test files under `packages/websocket/tests/` (`sdk-v1-*.test.ts`), and
+`docs/sdk/phase-0-baseline-2026-08-22.md` with the drift-check proof table.
 
 Exit criteria:
 
@@ -403,22 +416,32 @@ Exit criteria:
 Purpose: make one machine-readable declaration drive public artifacts and
 route completeness.
 
-- [ ] Add HTTP and WebSocket operation declarations to `packages/protocol`.
-- [ ] Give every operation a stable ID and explicit implementation status.
-- [ ] Include the compatible non-prefixed workflow-interface route.
-- [ ] Mark temporary upload as multipart/binary.
-- [ ] Generate OpenAPI route entries from HTTP declarations.
-- [ ] Generate or validate AsyncAPI command, event, and direction inventory
+- [x] Add HTTP and WebSocket operation declarations to `packages/protocol`.
+- [x] Give every operation a stable ID and explicit implementation status.
+- [x] Include the compatible non-prefixed workflow-interface route.
+- [x] Mark temporary upload as multipart/binary.
+- [x] Generate OpenAPI route entries from HTTP declarations.
+- [x] Generate or validate AsyncAPI command, event, and direction inventory
       from WebSocket declarations.
-- [ ] Generate implemented-only and full-manifest profiles.
-- [ ] Fail when operation IDs or method/path pairs are duplicated.
-- [ ] Fail when an implemented route lacks schemas, declared errors, or policy.
+- [x] Generate implemented-only and full-manifest profiles.
+- [x] Fail when operation IDs or method/path pairs are duplicated.
+- [x] Fail when an implemented route lacks schemas, declared errors, or policy.
 - [ ] Fail when a registered route and implemented OpenAPI inventory differ.
-- [ ] Add deterministic bundle generation and digest verification.
-- [ ] Add a semantic contract diff that labels additive, risky, and breaking
+      (Today both sides are pinned by separate tests against the same
+      11-route list; the direct comparison lands with the Phase 3 route
+      plugin, where registration is derived from the declarations.)
+- [x] Add deterministic bundle generation and digest verification.
+- [x] Add a semantic contract diff that labels additive, risky, and breaking
       changes.
-- [ ] Document v1 rules: response additions are tolerated; request changes
+- [x] Document v1 rules: response additions are tolerated; request changes
       need an explicit version or capability decision when inputs are strict.
+
+Done in commits `322dbc0` (registry: `sdk-v1-operations.ts`,
+`sdk-v1-http-operations.ts`, `sdk-v1-websocket-operations.ts`;
+declaration-driven generation with byte-identical artifacts; implemented-only
+profiles; `sdk-v1.operations.json`) and `8486b9e`
+(`build:sdk-contract-bundle`, `diff:sdk-contract`,
+`docs/sdk/protocol-v1-compatibility.md`, release-CI bundle attachment).
 
 Exit criteria:
 
