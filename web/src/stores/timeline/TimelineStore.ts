@@ -646,24 +646,51 @@ function mergeClipsAtTime(
   const EPS = 1;
   const removed = new Set<string>();
   const replaced = new Map<string, TimelineClip>();
+
+  // Pre-group potential left clips that end near timeMs by track and asset ID
+  // for O(1) candidate lookup instead of an O(N) array search on every right clip.
+  const candidatesByTrackAsset = new Map<string, TimelineClip[]>();
+  for (const c of clips) {
+    if (Math.abs(c.startMs + c.durationMs - timeMs) <= EPS) {
+      const key = `${c.trackId}::${c.currentAssetId}`;
+      let list = candidatesByTrackAsset.get(key);
+      if (!list) {
+        list = [];
+        candidatesByTrackAsset.set(key, list);
+      }
+      list.push(c);
+    }
+  }
+
+  if (candidatesByTrackAsset.size === 0) return clips;
+
   for (const right of clips) {
     if (removed.has(right.id)) continue;
     if (Math.abs(right.startMs - timeMs) > EPS) continue;
-    const left = clips.find(
-      (c) =>
-        c.id !== right.id &&
-        !removed.has(c.id) &&
-        c.trackId === right.trackId &&
-        c.currentAssetId === right.currentAssetId &&
-        Math.abs(c.startMs + c.durationMs - timeMs) <= EPS &&
-        // Source contiguity: the left half's source out-point must meet the
-        // right half's source in-point. Use outPointMs (set on every split half)
-        // rather than inPointMs + durationMs, which only holds at 1× speed.
-        Math.abs(
-          (c.outPointMs ?? (c.inPointMs ?? 0) + c.durationMs) -
-            (right.inPointMs ?? 0)
-        ) <= EPS
-    );
+
+    const key = `${right.trackId}::${right.currentAssetId}`;
+    const potentialLefts = candidatesByTrackAsset.get(key);
+
+    let left: TimelineClip | undefined;
+    if (potentialLefts) {
+      for (const c of potentialLefts) {
+        if (
+          c.id !== right.id &&
+          !removed.has(c.id) &&
+          // Source contiguity: the left half's source out-point must meet the
+          // right half's source in-point. Use outPointMs (set on every split half)
+          // rather than inPointMs + durationMs, which only holds at 1× speed.
+          Math.abs(
+            (c.outPointMs ?? (c.inPointMs ?? 0) + c.durationMs) -
+              (right.inPointMs ?? 0)
+          ) <= EPS
+        ) {
+          left = c;
+          break;
+        }
+      }
+    }
+
     if (!left) continue;
     const base = replaced.get(left.id) ?? left;
     replaced.set(left.id, {
