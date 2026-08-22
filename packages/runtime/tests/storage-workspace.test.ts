@@ -6,7 +6,14 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, readFile, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  rm,
+  readFile,
+  symlink,
+  writeFile
+} from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -260,6 +267,20 @@ describe("Workspace over a local directory", () => {
     const workspace = new StorageWorkspace(new FileStorageAdapter(dir));
     await workspace.write("notes.md", "on disk");
     expect(await readFile(resolve(dir, "notes.md"), "utf8")).toBe("on disk");
+  });
+
+  it("accepts a workspace root reached through a symlink alias", async () => {
+    const actual = join(dir, "actual");
+    const alias = join(dir, "alias");
+    await mkdir(actual);
+    await symlink(actual, alias);
+
+    const workspace = new StorageWorkspace(new FileStorageAdapter(alias));
+    await workspace.write("notes.md", "through alias");
+
+    expect(await readFile(join(actual, "notes.md"), "utf8")).toBe(
+      "through alias"
+    );
   });
 });
 

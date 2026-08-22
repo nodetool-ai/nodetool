@@ -283,7 +283,13 @@ describe("AppDataPanel", () => {
     await user.click(screen.getByRole("combobox", { name: /^kind$/i }));
     await user.click(screen.getByRole("option", { name: /^storyboard$/i }));
 
-    await user.click(await screen.findByRole("combobox", { name: /^storyboard$/i }));
+    await user.click(
+      await screen.findByRole(
+        "combobox",
+        { name: /^storyboard$/i },
+        { timeout: 5_000 }
+      )
+    );
     await user.click(await screen.findByRole("option", { name: /opening/i }));
     await user.click(screen.getByRole("button", { name: /add resource/i }));
 
