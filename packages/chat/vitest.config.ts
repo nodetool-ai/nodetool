@@ -29,6 +29,10 @@ export default defineConfig({
         replacement: resolve(__dirname, "../config/src/index.ts")
       },
       {
+        find: "@nodetool-ai/runtime/safe-url",
+        replacement: resolve(__dirname, "../runtime/src/providers/safe-url.ts")
+      },
+      {
         find: "@nodetool-ai/runtime/tracing",
         replacement: resolve(__dirname, "../runtime/src/tracing-helpers.ts")
       },
