@@ -1,6 +1,6 @@
 # Plan: MCP over HTTP and the Python bridge on a production server
 
-Status: proposed — 2026-08-22.
+Status: implemented — 2026-08-22.
 
 ## Problem
 
