@@ -48,7 +48,11 @@ import {
   type NodeTypeResolver,
   type NodeValidator
 } from "@nodetool-ai/kernel";
-import { ExecutionSession, toRawGraphInput } from "@nodetool-ai/execution";
+import {
+  ExecutionSession,
+  isExecutionPreflightError,
+  toRawGraphInput
+} from "@nodetool-ai/execution";
 import { createRunSupervisor } from "./run-supervisor.js";
 import {
   chatTurnRegistry,
@@ -177,6 +181,7 @@ import {
   gateTools,
   capabilityFromTool,
   createCapabilityRun,
+  contextSecretAvailability,
   UNGATED,
   extractInjectableImages,
   PLAN_APPROVAL_CONTEXT_KEY,
@@ -3801,7 +3806,25 @@ export class UnifiedWebSocketRunner {
     if (supervisor) {
       sessionOptions.supervisor = supervisor;
     }
-    const session = await ExecutionSession.create(sessionOptions);
+    // A graph this runtime cannot honour (unknown model, unregistered
+    // provider, missing credential) is refused before the kernel starts.
+    // Route it through the same terminal `job_update` a failed pre-run hook
+    // uses: a bare throw reaches handleCommand as a generic `invalid_command`
+    // the UI never associates with the job, so the run appears to spin
+    // forever instead of failing with the reason.
+    let session: ExecutionSession;
+    try {
+      session = await ExecutionSession.create(sessionOptions);
+    } catch (err) {
+      if (!isExecutionPreflightError(err)) throw err;
+      await this.emitBeforeRunFailure(
+        jobId,
+        workflowId,
+        err,
+        executionOptions.persistence === "job"
+      );
+      return;
+    }
 
     const active: ActiveJob = {
       jobId,
@@ -5357,19 +5380,28 @@ export class UnifiedWebSocketRunner {
       );
     }
 
-    const session = await ExecutionSession.create({
-      graph: toRawGraphInput(graph),
-      resolveExecutor: (node) =>
-        this.resolveExecutor(
-          node as { id: string; type: string; [key: string]: unknown }
-        ),
-      bridgeFactory: async () => null,
-      jobLifecycleBridge: this.pythonBridge ?? null,
-      jobId,
-      context,
-      params: {},
-      validateNode: this.validateNode
-    });
+    // A node selecting a model this runtime cannot honour is refused before
+    // the kernel starts; the tool answers with the reason, like every other
+    // preparation failure here.
+    let session: ExecutionSession;
+    try {
+      session = await ExecutionSession.create({
+        graph: toRawGraphInput(graph),
+        resolveExecutor: (node) =>
+          this.resolveExecutor(
+            node as { id: string; type: string; [key: string]: unknown }
+          ),
+        bridgeFactory: async () => null,
+        jobLifecycleBridge: this.pythonBridge ?? null,
+        jobId,
+        context,
+        params: {},
+        validateNode: this.validateNode
+      });
+    } catch (err) {
+      if (!isExecutionPreflightError(err)) throw err;
+      return { error: err.message };
+    }
     const result = await session.result;
 
     // Capture the node's completed result from the streamed updates.
@@ -5701,7 +5733,11 @@ export class UnifiedWebSocketRunner {
       clock: codeactClock
     };
     const gatedRun = (context: ProcessingContext): CapabilityRun =>
-      createCapabilityRun({ context, gate: chatGate });
+      createCapabilityRun({
+        context,
+        gate: chatGate,
+        availableSecrets: contextSecretAvailability(context)
+      });
     const rawToolbelt: Tool[] = [
       ...getAgentToolbelt(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
@@ -5779,6 +5815,7 @@ export class UnifiedWebSocketRunner {
           // Ungated on purpose, as before: spawning a child loop has no side
           // effect of its own, and the child's tools are the gated `baseTools`.
           gate: UNGATED,
+          availableSecrets: contextSecretAvailability(context),
           subAgent: subAgentRuntime
         });
       serverTools.unshift(toolForCapabilityName("run_subtask", delegationRun));
@@ -5886,6 +5923,7 @@ export class UnifiedWebSocketRunner {
     this.chatCapabilityRun = createCapabilityRun({
       context: ctx,
       gate: chatGate,
+      availableSecrets: contextSecretAvailability(ctx),
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,

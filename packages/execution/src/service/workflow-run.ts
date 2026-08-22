@@ -13,29 +13,24 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import {
-  BoundedHandle,
-  rewriteBypassedNodes,
-  WorkflowRunner
-} from "@nodetool-ai/kernel";
+import { BoundedHandle, WorkflowRunner } from "@nodetool-ai/kernel";
 import { Job, Workflow, getSecret } from "@nodetool-ai/models";
 import {
-  collectModelProviders,
-  collectModelSelectionIssues,
   hydrateGraphNodeFlags,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
-import {
-  getProviderSecretKey,
-  isProviderConfigured,
-  listOfflineModelIds,
-  listRegisteredProviderIds,
-  type NodeExecutor,
-  type ProcessingContext,
-  type StorageAdapter,
-  type Workspace
+import type {
+  NodeExecutor,
+  ProcessingContext,
+  StorageAdapter,
+  Workspace
 } from "@nodetool-ai/runtime";
 import { normalizeGraph } from "../normalize-graph.js";
+import {
+  collectPreflightIssues,
+  formatPreflightDetail,
+  type RunModelCatalogs
+} from "../preflight.js";
 import { collectExecutionSummary } from "../debug/collector.js";
 import type { ExecutionSummary } from "../debug/types.js";
 import {
@@ -54,12 +49,22 @@ import {
   buildWorkspaceExecutionContext,
   resolveWorkflowWorkspace
 } from "./workflow-workspace.js";
-import {
-  isFunctionValue,
-  isNumber,
-  isRecord,
-  isString
-} from "../predicates.js";
+import { isFunctionValue, isNumber, isString } from "../predicates.js";
+
+// The preflight moved to `../preflight.ts` so `ExecutionSession` can run the
+// same checks without importing the models database. Re-exported here because
+// this module is where every host already reaches for them.
+export {
+  modelSelectionErrors,
+  unconfiguredProviderErrors,
+  formatPreflightDetail,
+  ExecutionPreflightError
+} from "../preflight.js";
+export type {
+  CredentialResolver,
+  ExecutionPreflightIssue,
+  RunModelCatalogs
+} from "../preflight.js";
 
 const log = createLogger("nodetool.execution.workflow-run");
 
@@ -93,21 +98,6 @@ export interface WorkflowRunEnvironment {
   assetStorage?: StorageAdapter | null;
   storage?: StorageAdapter | null;
 }
-
-/** Provider/model catalogs the pre-flight checks a graph's selections against. */
-export interface RunModelCatalogs {
-  listProviderIds: () => readonly string[];
-  listModelIds: (
-    provider: string,
-    modelType: string
-  ) => readonly string[] | undefined;
-}
-
-const RUNTIME_CATALOGS: RunModelCatalogs = {
-  listProviderIds: () => listRegisteredProviderIds(),
-  listModelIds: (provider, modelType) =>
-    listOfflineModelIds(provider, modelType)
-};
 
 export interface RunWorkflowOptions {
   workflowId: string;
@@ -181,79 +171,6 @@ export function boundedRunOption(
     return undefined;
   }
   return Math.min(value, max);
-}
-
-/** Model selections in a graph that no configured provider can honour. */
-export function modelSelectionErrors(
-  graph: { nodes?: unknown },
-  catalogs: RunModelCatalogs = RUNTIME_CATALOGS
-): string[] {
-  const nodes = graph.nodes;
-  if (!Array.isArray(nodes)) return [];
-  return collectModelSelectionIssues({ nodes: nodes as never[] }, catalogs)
-    .filter((issue) => issue.severity === "error")
-    .map(
-      (issue) => `Node "${issue.nodeId}" (${issue.nodeType}): ${issue.message}`
-    );
-}
-
-/** How the preflight resolves a credential — the way the coming run will. */
-export interface CredentialResolver {
-  resolveSecret: (
-    key: string
-  ) => Promise<string | null | undefined> | string | null | undefined;
-}
-
-/**
- * Providers a graph selects whose required credentials this runtime cannot
- * resolve, one message each.
- *
- * The provider registry knows exactly which kwargs are load-bearing (an empty
- * declaration means "resolve from store, then env"), and a provider built
- * without one throws the `*_API_KEY is required` error mid-run that this check
- * exists to front-run. Unregistered ids are skipped: the model-selection check
- * already reports those as errors, and guessing at an unknown provider's
- * credentials would be noise.
- */
-export async function unconfiguredProviderErrors(
-  graph: { nodes?: unknown; edges?: unknown },
-  resolver: CredentialResolver,
-  providerIds: readonly string[] = listRegisteredProviderIds()
-): Promise<string[]> {
-  const nodes = graph.nodes;
-  if (!Array.isArray(nodes)) return [];
-  const graphNodes = nodes.filter(isRecord);
-  const graphEdges = Array.isArray(graph.edges)
-    ? graph.edges.filter(isRecord)
-    : [];
-  const effectiveGraph = rewriteBypassedNodes(
-    normalizeGraph({ nodes: graphNodes, edges: graphEdges })
-  );
-  const known = new Set(providerIds);
-  const errors: string[] = [];
-  for (const provider of collectModelProviders({
-    nodes: effectiveGraph.nodes,
-    edges: effectiveGraph.edges
-  })) {
-    if (!known.has(provider)) continue;
-    if (
-      await isProviderConfigured(provider, (key) => resolver.resolveSecret(key))
-    ) {
-      continue;
-    }
-    const keyName = getProviderSecretKey(provider);
-    errors.push(
-      keyName
-        ? `Provider "${provider}" needs "${keyName}", which is not set on ` +
-            "this server. Store the secret " +
-            `"${keyName}" for this user (Settings → Credentials), or switch ` +
-            "the model to a provider you have configured."
-        : `Provider "${provider}" is missing its required configuration ` +
-            "(base URL or credential) on this server. Complete it in " +
-            "Settings → Providers before running."
-    );
-  }
-  return errors;
 }
 
 /** Mark a job failed and persist it, best effort. */
@@ -493,26 +410,19 @@ export async function runWorkflow(
   // legacy `type`.
   const runnableGraph = normalizeGraph(workflow.getGraph());
 
-  const badModels = modelSelectionErrors(runnableGraph, options.catalogs);
-  if (badModels.length > 0) {
-    return {
-      kind: "error",
-      status: 400,
-      detail: `Workflow selects providers or models this runtime cannot honour:\n${badModels.join("\n")}`
-    };
-  }
-
-  // Same gate, one layer down: a provider that would construct without its
-  // key fails mid-run today, after the upstream half of the graph is paid
-  // for. Refuse here, before the job row exists, and name the secret.
-  const badCredentials = await unconfiguredProviderErrors(runnableGraph, {
+  // The same refusal `ExecutionSession` raises, one layer up: a provider that
+  // would construct without its key fails mid-run today, after the upstream
+  // half of the graph is paid for. Refuse here, before the job row exists,
+  // and name the secret.
+  const preflightIssues = await collectPreflightIssues(runnableGraph, {
+    catalogs: options.catalogs,
     resolveSecret: (key) => getSecret(key, userId)
   });
-  if (badCredentials.length > 0) {
+  if (preflightIssues.length > 0) {
     return {
       kind: "error",
       status: 400,
-      detail: `Workflow selects providers whose credentials are not configured:\n${badCredentials.join("\n")}`
+      detail: formatPreflightDetail(preflightIssues)
     };
   }
 

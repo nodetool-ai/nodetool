@@ -24,6 +24,7 @@ import { withSnakeCaseAliases } from "./args.js";
 import { findCapability } from "./registry.js";
 import type { LongTermMemory } from "../long-term-memory.js";
 import type {
+  AvailableSecretsResolver,
   CapabilityExport,
   CapabilityGate,
   CapabilityLoaders,
@@ -61,7 +62,33 @@ export const UNGATED: CapabilityGate = {
 export function ungatedCapabilityRun(
   context: ProcessingContext
 ): CapabilityRun {
-  return createCapabilityRun({ context, gate: UNGATED });
+  return createCapabilityRun({
+    context,
+    gate: UNGATED,
+    availableSecrets: contextSecretAvailability(context)
+  });
+}
+
+/**
+ * The availability callback for a run whose context can reach a secret store,
+ * and `undefined` for one that cannot.
+ *
+ * Every host resolves the same way BaseNode's secret injection does — a key
+ * with a non-empty value is available — so this is the one implementation
+ * instead of one per host. It reads values, but only to test them: nothing
+ * leaves the callback except the set of names that resolved.
+ */
+export function contextSecretAvailability(
+  context: ProcessingContext
+): AvailableSecretsResolver | undefined {
+  if (!context.hasSecretResolver) return undefined;
+  return async (keys) => {
+    const found = new Set<string>();
+    for (const key of keys) {
+      if (await context.getSecret(key)) found.add(key);
+    }
+    return found;
+  };
 }
 
 export interface CreateCapabilityRunOptions {
@@ -71,6 +98,14 @@ export interface CreateCapabilityRunOptions {
   /** Opens the bespoke secret dialog; see {@link CapabilityRun.secretPrompt}. */
   secretPrompt?: SecretPrompt;
   subAgent?: SubAgentRuntime;
+  /**
+   * Which declared credentials this install holds; see
+   * {@link CapabilityRun.availableSecrets}. Build it with
+   * {@link contextSecretAvailability} — a host that omits it turns off
+   * `validate_workflow`'s `missing_secret` check rather than reporting every
+   * declared key as absent.
+   */
+  availableSecrets?: AvailableSecretsResolver;
   nodeRegistry?: NodeRegistry;
   providers?: Record<string, BaseProvider>;
   examples?: ExampleWorkflowCatalog;
@@ -106,6 +141,7 @@ export function createCapabilityRun(
     client: options.client,
     secretPrompt: options.secretPrompt,
     subAgent: options.subAgent,
+    availableSecrets: options.availableSecrets,
     nodeRegistry: options.nodeRegistry,
     providers: options.providers,
     examples: options.examples,

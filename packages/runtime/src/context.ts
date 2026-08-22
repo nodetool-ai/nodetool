@@ -1801,6 +1801,20 @@ export class ProcessingContext {
     );
   }
 
+  /**
+   * Whether this run can reach a secret store at all.
+   *
+   * {@link getSecret} answers `null` both for "no store is wired" and for "the
+   * store does not hold this key", which a caller asking *which* of a list of
+   * credentials exists cannot tell apart — and reporting every declared
+   * credential as missing because no store was reachable is exactly the
+   * false alarm the graph validator's `missing_secret` check refuses to raise.
+   * A host installs the availability callback only when this is true.
+   */
+  get hasSecretResolver(): boolean {
+    return this._secretResolver !== null;
+  }
+
   async getSecret(key: string): Promise<string | null> {
     if (!this._secretResolver) return null;
     const value = await this._secretResolver(key, this.userId);

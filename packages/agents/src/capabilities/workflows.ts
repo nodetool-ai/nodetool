@@ -22,6 +22,7 @@
  */
 
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import type { GraphValidationReport } from "@nodetool-ai/node-sdk";
 import type { Workflow as WorkflowRow } from "@nodetool-ai/models";
 import {
   NO_EXAMPLES,
@@ -39,6 +40,8 @@ import {
   workflowRecord
 } from "../tools/mcp-tool-support.js";
 import { declareDynamicOutputsInGraph } from "../dynamic-slots.js";
+import { findCapability } from "./registry.js";
+import { REQUEST_SECRET_TOOL_NAME } from "./settings.specs.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -664,24 +667,79 @@ const validateWorkflow: CapabilityExport = {
       nodes?: unknown[];
       edges?: unknown[];
     };
-    const { validateGraph } = await import("@nodetool-ai/node-sdk");
-    return validateGraph(
-      {
-        nodes: declared.nodes as never[],
-        edges: (declared.edges ?? []) as never[]
-      },
-      {
-        has: (type) => registry.has(type),
-        getMetadata: (type) => registry.getMetadata(type),
-        validateNode: (descriptor, connectedHandles) =>
-          registry.validateNode(descriptor, connectedHandles),
-        listProviderIds: () => catalogs.listProviderIds(),
-        listModelIds: (provider, modelType) =>
-          catalogs.listModelIds(provider, modelType)
-      }
+    const { collectSecretRequirementSites, validateGraph } = await import(
+      "@nodetool-ai/node-sdk"
     );
+    const registryView = {
+      has: (type: string) => registry.has(type),
+      getMetadata: (type: string) => registry.getMetadata(type),
+      validateNode: (
+        descriptor: Parameters<typeof registry.validateNode>[0],
+        connectedHandles: Parameters<typeof registry.validateNode>[1]
+      ) => registry.validateNode(descriptor, connectedHandles),
+      listProviderIds: () => catalogs.listProviderIds(),
+      listModelIds: (provider: string, modelType: string) =>
+        catalogs.listModelIds(provider, modelType)
+    };
+    const checked = {
+      nodes: declared.nodes as never[],
+      edges: (declared.edges ?? []) as never[]
+    };
+
+    // The credentials the graph's nodes declare are collected first so the
+    // host resolves exactly those names — one store round trip per
+    // requirement, not one per key it holds. A run with no reachable store
+    // carries no resolver and the check is skipped: reporting every declared
+    // key as missing because nothing could answer is the false alarm this
+    // whole path fails toward silence to avoid.
+    let availableSecrets: ReadonlySet<string> | undefined;
+    if (run.availableSecrets) {
+      const sites = collectSecretRequirementSites(checked, registryView);
+      if (sites.length > 0) {
+        availableSecrets = await run.availableSecrets(
+          sites.map((site) => site.key)
+        );
+      }
+    }
+
+    const report = validateGraph(checked, registryView, { availableSecrets });
+    return await withSecretRemediation(run, report);
   }
 };
+
+/**
+ * Tell the agent what to do about a `missing_secret` warning.
+ *
+ * The validator says a key is missing; only the run knows how this agent can
+ * get one set. Settings → Credentials is always the answer a person can act
+ * on; `request_secret` is added only where this run can actually serve it —
+ * it needs the capability *and* a host that can raise the dialog, and a
+ * headless run has neither, so naming it there sends the agent at a call that
+ * fails closed.
+ */
+async function withSecretRemediation(
+  run: CapabilityRun,
+  report: GraphValidationReport
+): Promise<GraphValidationReport> {
+  if (!report.issues.some((issue) => issue.code === "missing_secret")) {
+    return report;
+  }
+  const canAsk =
+    run.secretPrompt !== undefined &&
+    (await findCapability(REQUEST_SECRET_TOOL_NAME)) !== undefined;
+  const remediation = canAsk
+    ? "Ask the user to set it in Settings → Credentials, or call " +
+      `\`${REQUEST_SECRET_TOOL_NAME}\` to have them enter it now.`
+    : "Ask the user to set it in Settings → Credentials.";
+  return {
+    ...report,
+    issues: report.issues.map((issue) =>
+      issue.code === "missing_secret"
+        ? { ...issue, message: `${issue.message} ${remediation}` }
+        : issue
+    )
+  };
+}
 
 // ---------------------------------------------------------------------------
 // start_background_job

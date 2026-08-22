@@ -1,14 +1,19 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { ModuleConfig, NodeConfig } from "./types.js";
+import type { KieModuleName, ModuleConfig, NodeConfig } from "./types.js";
 
-const MODULE_DEFAULTS: Record<string, Pick<ModuleConfig, "defaultPollInterval" | "defaultMaxAttempts">> = {
+const MODULE_NAMES: readonly KieModuleName[] = ["image", "audio", "video"];
+
+const MODULE_DEFAULTS = {
   image: { defaultPollInterval: 1500, defaultMaxAttempts: 400 },
   audio: { defaultPollInterval: 4000, defaultMaxAttempts: 120 },
   video: { defaultPollInterval: 8000, defaultMaxAttempts: 450 }
-};
+} satisfies Record<
+  KieModuleName,
+  Pick<ModuleConfig, "defaultPollInterval" | "defaultMaxAttempts">
+>;
 
-function renderConfig(moduleName: string, nodes: NodeConfig[]): string {
+function renderConfig(moduleName: KieModuleName, nodes: NodeConfig[]): string {
   const constName = `${moduleName}Config`;
   const config: ModuleConfig = {
     moduleName,
@@ -28,7 +33,7 @@ export async function writeKieConfigs(
   nodes: NodeConfig[],
   outputDir = join(process.cwd(), "src", "configs")
 ): Promise<void> {
-  const modules = new Map<string, NodeConfig[]>();
+  const modules = new Map<KieModuleName, NodeConfig[]>();
   for (const node of nodes) {
     const moduleName =
       node.moduleName ??
@@ -43,7 +48,7 @@ export async function writeKieConfigs(
     modules.get(moduleName)!.push(node);
   }
 
-  for (const moduleName of ["image", "audio", "video"]) {
+  for (const moduleName of MODULE_NAMES) {
     const moduleNodes = modules.get(moduleName) ?? [];
     await writeFile(
       join(outputDir, `${moduleName}.ts`),

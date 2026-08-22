@@ -1,14 +1,20 @@
 import yaml from "js-yaml";
-import type { FieldDef, NodeConfig, ModuleConfig } from "./types.js";
+import type {
+  FieldDef,
+  JsonRecord,
+  JsonValue,
+  KieModuleName,
+  NodeConfig
+} from "./types.js";
+import { isJsonNumber, isJsonRecord, isJsonString } from "./types.js";
 import type { KieDocsEntry } from "./schema-fetcher.js";
 
 /** Inclusive numeric bounds parsed from a schema or its prose. */
 type NumericBounds = { min?: number; max?: number };
 
-type JsonRecord = Record<string, unknown>;
 type MediaKind = "image" | "audio" | "video";
 
-const GEMINI_OMNI_MODULE: ModuleConfig["moduleName"] = "video";
+const GEMINI_OMNI_MODULE: KieModuleName = "video";
 
 const IMAGE_REF = {
   type: "image" as const,
@@ -36,16 +42,12 @@ const VIDEO_REF = {
   format: null
 };
 
-function asRecord(value: unknown): JsonRecord | undefined {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as JsonRecord)
-    : undefined;
+function asRecord(value: JsonValue | undefined): JsonRecord | undefined {
+  return isJsonRecord(value) ? value : undefined;
 }
 
-function asStringArray(value: unknown): string[] | undefined {
-  return Array.isArray(value) && value.every((item) => typeof item === "string")
-    ? value
-    : undefined;
+function asStringArray(value: JsonValue | undefined): string[] | undefined {
+  return Array.isArray(value) && value.every(isJsonString) ? value : undefined;
 }
 
 function toWords(value: string): string[] {
@@ -128,9 +130,7 @@ function classNameForModelId(modelId: string, fallback: string): string {
   return toPascalCase(fallback);
 }
 
-function moduleFromCategory(
-  category: string
-): ModuleConfig["moduleName"] | null {
+function moduleFromCategory(category: string): KieModuleName | null {
   const lower = category.toLowerCase().replace(/\s+/g, " ");
   if (lower.includes("video models")) {
     return "video";
@@ -150,7 +150,7 @@ function moduleFromCategory(
 }
 
 function outputTypeForModule(
-  moduleName: ModuleConfig["moduleName"]
+  moduleName: KieModuleName
 ): NodeConfig["outputType"] {
   if (moduleName === "video") {
     return "video";
@@ -163,7 +163,7 @@ function outputTypeForModule(
 
 function outputTypeForModelId(
   modelId: string,
-  moduleName: ModuleConfig["moduleName"]
+  moduleName: KieModuleName
 ): NodeConfig["outputType"] {
   if (modelId === "gemini-omni-audio" || modelId === "gemini-omni-character") {
     return "text";
@@ -177,14 +177,12 @@ function outputTypeForModelId(
 /** The empty media ref a media property starts at before the user picks one. */
 type MediaRefDefault = typeof IMAGE_REF | typeof AUDIO_REF | typeof VIDEO_REF;
 
-/** What a field starts at when the schema names no default. */
-type FieldDefault =
-  | string
-  | number
-  | boolean
-  | null
-  | FieldDefault[]
-  | { [key: string]: FieldDefault };
+/** The list field type each media kind maps onto. */
+const LIST_TYPE_FOR_MEDIA = {
+  image: "list[image]",
+  audio: "list[audio]",
+  video: "list[video]"
+} satisfies Record<MediaKind, FieldDef["type"]>;
 
 function defaultForMedia(kind: MediaKind): MediaRefDefault {
   if (kind === "audio") {
@@ -232,17 +230,12 @@ function isVideoClipSchema(schema: JsonRecord): boolean {
   );
 }
 
-function cleanDescription(value: unknown): string {
-  if (typeof value !== "string") {
-    return "";
-  }
-  return value.replace(/\s+/g, " ").trim();
+function cleanDescription(value: JsonValue | undefined): string {
+  return isJsonString(value) ? value.replace(/\s+/g, " ").trim() : "";
 }
 
-function numericValue(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value)
-    ? value
-    : undefined;
+function numericValue(value: JsonValue | undefined): number | undefined {
+  return isJsonNumber(value) && Number.isFinite(value) ? value : undefined;
 }
 
 function numericBoundsFromText(text: string): NumericBounds {
@@ -296,10 +289,7 @@ function applyBounds(field: FieldDef, schema: JsonRecord): void {
   }
 }
 
-function coerceDefault(
-  schema: JsonRecord,
-  type: FieldDef["type"]
-): FieldDefault {
+function coerceDefault(schema: JsonRecord, type: FieldDef["type"]): JsonValue {
   if (type === "image" || type === "audio" || type === "video") {
     return defaultForMedia(type);
   }
@@ -307,9 +297,7 @@ function coerceDefault(
     return [];
   }
   if (schema.default !== undefined) {
-    // SAFETY: `schema` is a JSON-decoded API schema, so its `default` is a
-    // JSON value.
-    return schema.default as FieldDefault;
+    return schema.default;
   }
   if (type === "bool") {
     return false;
@@ -392,9 +380,7 @@ function mapField(
 
   if (mediaKind) {
     const fieldName = fieldNameForUrl(sourceName, mediaKind, isUrlArray);
-    const fieldType = isUrlArray
-      ? (`list[${mediaKind}]` as FieldDef["type"])
-      : mediaKind;
+    const fieldType = isUrlArray ? LIST_TYPE_FOR_MEDIA[mediaKind] : mediaKind;
     const field: FieldDef = {
       name: fieldName,
       type: fieldType,
@@ -457,7 +443,11 @@ function extractOpenApi(markdown: string): JsonRecord | null {
   if (!match) {
     return null;
   }
-  const parsed = yaml.load(match[1]) as unknown;
+  // SAFETY: the decode boundary. `yaml.load` is typed `unknown`; the block it
+  // reads is an OpenAPI document, a JSON tree. A value the YAML schema builds
+  // outside that tree — a timestamp, a binary — cannot escape as one, because
+  // `asRecord` and every read under it re-check the field they take.
+  const parsed = yaml.load(match[1]) as JsonValue;
   return asRecord(parsed) ?? null;
 }
 
@@ -521,7 +511,7 @@ function inputSchema(schema: JsonRecord): JsonRecord | null {
  * input mode — the first documented branch — stays a complete set of inputs.
  */
 function flattenProperties(schema: JsonRecord) {
-  const properties: JsonRecord = { ...(asRecord(schema.properties) ?? {}) };
+  const properties = { ...asRecord(schema.properties) };
   const required = new Set(asStringArray(schema.required) ?? []);
   for (const key of ["oneOf", "anyOf"] as const) {
     const branches = schema[key];
@@ -560,7 +550,8 @@ function modelIdFromSchema(schema: JsonRecord): string | null {
   if (enumValues?.[0]) {
     return enumValues[0];
   }
-  return typeof model?.default === "string" ? model.default : null;
+  const fallback = model?.default;
+  return isJsonString(fallback) ? fallback : null;
 }
 
 export class KieSchemaParser {

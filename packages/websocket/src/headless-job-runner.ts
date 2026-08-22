@@ -19,6 +19,7 @@
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   ExecutionSession,
+  isExecutionPreflightError,
   normalizeGraph,
   toRawGraphInput,
   type RunResult
@@ -232,7 +233,29 @@ export async function startHeadlessJob(
   if (supervisor) {
     sessionOptions.supervisor = supervisor;
   }
-  const session = await ExecutionSession.create(sessionOptions);
+  // The job row already exists, so a refusal must finalize it — a bare throw
+  // stranded it at "running" forever. `create()` refuses a graph this runtime
+  // cannot honour (unknown model, unregistered provider, missing credential)
+  // before the kernel starts.
+  let session: ExecutionSession;
+  try {
+    session = await ExecutionSession.create(sessionOptions);
+  } catch (err) {
+    if (!isExecutionPreflightError(err)) throw err;
+    await persistTerminalStatus(job.id, {
+      status: "failed",
+      error: err.message,
+      outputs: {},
+      messages: []
+    } as RunResult);
+    log.info("Headless job refused", { jobId: job.id, error: err.message });
+    return {
+      jobId: job.id,
+      status: "failed",
+      error: err.message,
+      outputs: {}
+    };
+  }
 
   const result = await session.result;
 
