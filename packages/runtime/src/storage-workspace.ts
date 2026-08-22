@@ -117,8 +117,9 @@ async function realPathWithinRoot(
   candidate: string
 ): Promise<boolean> {
   const { fs, path } = requireNode();
+  const realRoot = await fs.realpath(root);
   const within = (real: string): boolean => {
-    const rel = path.relative(root, real);
+    const rel = path.relative(realRoot, real);
     return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
   };
   try {
