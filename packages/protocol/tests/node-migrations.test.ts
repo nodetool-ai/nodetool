@@ -284,6 +284,26 @@ describe("migrateGraphNodeTypes", () => {
       });
     });
 
+    it("keeps reading the per-instance properties the removed node had", () => {
+      // `moveRemainingPropertiesToDynamic` puts these on the Code node's
+      // dynamic inputs; a body that ignores one silently changes behavior,
+      // and the graph validator reports it as an unused input.
+      const readsInputs: Record<string, string[]> = {
+        "nodetool.text.TrimWhitespace": ["trim_start", "trim_end"],
+        "nodetool.text.IndexOf": ["substring", "case_sensitive"]
+      };
+      for (const [from, inputs] of Object.entries(readsInputs)) {
+        const code = NODE_TYPE_MIGRATIONS.find((m) => m.from === from)
+          ?.setProperties?.code;
+        expect(typeof code, `missing migration for ${from}`).toBe("string");
+        for (const input of inputs) {
+          expect(String(code), `${from} drops ${input}`).toContain(
+            `inputs.${input}`
+          );
+        }
+      }
+    });
+
     it("covers every Tier 1 nodetool.text.* removal with a Code node migration", () => {
       const expectedFromTypes = [
         "nodetool.text.Split",

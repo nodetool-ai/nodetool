@@ -606,7 +606,14 @@ return { output: needles.some(needle => haystack.includes(needle)) };`
   ),
   textToCodeMigration(
     "nodetool.text.TrimWhitespace",
-    "return { output: inputs.text.trim() };"
+    // trim_start/trim_end were real per-instance properties (both default
+    // true) — read them from the dynamic inputs instead of always trimming
+    // both ends.
+    `const text = String(inputs.text ?? "");
+const trimStart = inputs.trim_start === undefined ? true : Boolean(inputs.trim_start);
+const trimEnd = inputs.trim_end === undefined ? true : Boolean(inputs.trim_end);
+const started = trimStart ? text.trimStart() : text;
+return { output: trimEnd ? started.trimEnd() : started };`
   ),
   textToCodeMigration(
     "nodetool.text.CollapseWhitespace",
@@ -713,7 +720,16 @@ return { output };`
   ),
   textToCodeMigration(
     "nodetool.text.IndexOf",
-    "return { output: inputs.text.indexOf(inputs.substring) };"
+    // case_sensitive was a real per-instance property (default true) — honor
+    // it instead of always matching case-sensitively.
+    `const text = String(inputs.text ?? "");
+const substring = String(inputs.substring ?? "");
+const caseSensitive = inputs.case_sensitive === undefined ? true : Boolean(inputs.case_sensitive);
+return {
+  output: caseSensitive
+    ? text.indexOf(substring)
+    : text.toLowerCase().indexOf(substring.toLowerCase())
+};`
   ),
   textToCodeMigration(
     "nodetool.text.SurroundWith",

@@ -1723,6 +1723,12 @@ rebuild/test: the owning package plus its downstream dependents, and a
 `build:packages` only when a decorator package (loads from `dist/`) is affected.
 Avoids reflexively running the full 1–2 min build.
 
+Workspaces come from the root `package.json`, not from a scan of `packages/` —
+`reliability/harness` is a workspace too, and a scan of one directory reported
+every change under it as belonging to nothing. `reliability/journeys/` maps to
+the harness that runs it (`EXTRA_WORKSPACE_PATHS` in
+`packages/cli/src/affected/affected.ts`).
+
 ```bash
 npm run dev:nodetool -- affected                       # uses git working-tree changes
 npm run dev:nodetool -- affected --base main           # diff against a ref
