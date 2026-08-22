@@ -41,6 +41,7 @@ import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   ExecutionSession,
+  isExecutionPreflightError,
   type RawGraphInput
 } from "@nodetool-ai/execution";
 import {
@@ -305,6 +306,15 @@ function asJson(data: unknown): void {
 // installing them before `setupDb()` is safe.
 await installLocalModelInterfaces();
 
+/**
+ * What to print when a run command fails. A preflight refusal already reads as
+ * a complete explanation — printing the error class in front of it only buries
+ * the secret name the user has to go set.
+ */
+function describeRunFailure(error: unknown): string {
+  return isExecutionPreflightError(error) ? error.message : String(error);
+}
+
 // ---------------------------------------------------------------------------
 // info
 // ---------------------------------------------------------------------------
@@ -419,7 +429,7 @@ addSupervisorOptions(
         }
       }
     } catch (e) {
-      console.error(String(e));
+      console.error(describeRunFailure(e));
       process.exit(1);
     }
   }
@@ -888,7 +898,7 @@ addSupervisorOptions(
 
       process.exit(result.status === "completed" ? 0 : 1);
     } catch (e) {
-      console.error(String(e));
+      console.error(describeRunFailure(e));
       process.exit(1);
     }
   }

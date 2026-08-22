@@ -26,6 +26,7 @@ import type {
 import { createExecutorResolver } from "./executor-resolver.js";
 import { buildWorkspaceExecutionContext } from "./service/workflow-workspace.js";
 import { normalizeGraph } from "./normalize-graph.js";
+import { assertPreflight } from "./preflight.js";
 import { rewriteOutputNames } from "./output-names.js";
 import { MessageStream } from "./message-stream.js";
 import type { ExecutionSessionOptions } from "./types.js";
@@ -184,6 +185,32 @@ export class ExecutionSession {
 
     const normalized = normalizeGraph(options.graph);
 
+    // A caller that brings no context still gets one that can reach the
+    // secret store. The bare `new ProcessingContext(...)` this replaced
+    // resolved no secret at all, so a graph with a provider node failed on
+    // credentials the install had — the same defect the service-layer run
+    // path shipped with. Selected here, ahead of the bridge, because the
+    // preflight below resolves credentials through it.
+    const context =
+      options.context ??
+      buildWorkspaceExecutionContext({
+        jobId,
+        workflowId,
+        userId: "1",
+        workspace: null
+      });
+
+    // Refuse a graph this runtime cannot honour before anything is paid for:
+    // ahead of the Python bridge (a worker spawn), ahead of
+    // `persistence.onAccepted` (a job row), and ahead of the kernel. Without
+    // this, a bad model id or a missing key failed at the node that needed it
+    // — after the upstream half of the graph had already run and billed.
+    await assertPreflight(normalized, {
+      catalogs: options.catalogs,
+      providerConfiguration: options.providerConfiguration,
+      resolveSecret: (key) => context.getSecret(key)
+    });
+
     // A caller injecting its own `resolveExecutor` (see the option doc)
     // typically also owns its own Python bridge — never connect a second one
     // behind its back. `bridgeFactory` remains available for that caller to
@@ -236,20 +263,6 @@ export class ExecutionSession {
     if (options.requireTerminalResult) {
       rewriteOutputNames(hydrated);
     }
-
-    // A caller that brings no context still gets one that can reach the
-    // secret store. The bare `new ProcessingContext(...)` this replaced
-    // resolved no secret at all, so a graph with a provider node failed on
-    // credentials the install had — the same defect the service-layer run
-    // path shipped with.
-    const context =
-      options.context ??
-      buildWorkspaceExecutionContext({
-        jobId,
-        workflowId,
-        userId: "1",
-        workspace: null
-      });
 
     const resolveExecutor =
       options.resolveExecutor ?? createExecutorResolver(registry!, bridge);

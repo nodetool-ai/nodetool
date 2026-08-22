@@ -52,7 +52,14 @@ async function execute(
     registry,
     resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
     jobId: `input-example-${file}`,
-    params
+    params,
+    // These examples carry model references but never call a provider — the
+    // model-selector nodes pass the reference through as a value. The run
+    // preflight cannot tell that apart from a node about to spend money, so
+    // it would demand ANTHROPIC_API_KEY/FAL_API_KEY/OPENAI_API_KEY for a
+    // suite that contacts nothing. Declaring "no provider configuration
+    // required" states here what this file's header already claims.
+    providerConfiguration: () => []
   } as never);
   const result = await session.result;
   return {
@@ -200,8 +207,8 @@ describe("inputs_model_selectors_cli", () => {
       {
         type: "video_model",
         provider: "fal_ai",
-        id: "fal-ai/kling-video",
-        name: "Kling"
+        id: "fal-ai/kling-video/v3/standard/text-to-video",
+        name: "Kling v3"
       }
     ]);
     expect(out["asr"]).toEqual([
