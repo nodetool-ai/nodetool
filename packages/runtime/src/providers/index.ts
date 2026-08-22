@@ -24,7 +24,10 @@ import { MistralProvider } from "./mistral-provider.js";
 import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { TogetherProvider } from "./together-provider.js";
-import { AlibabaProvider } from "./alibaba-provider.js";
+import {
+  ALIBABA_DEFAULT_BASE_URL,
+  AlibabaProvider
+} from "./alibaba-provider.js";
 import { CerebrasProvider } from "./cerebras-provider.js";
 import { EvolinkProvider } from "./evolink-provider.js";
 import { GMIProvider } from "./gmi-provider.js";
@@ -170,6 +173,7 @@ export {
   isProviderConfigured,
   listRegisteredProviderIds,
   readCredentialEnv,
+  resolveCredentialValue,
   unregisterProvider
 } from "./provider-registry.js";
 export type {
@@ -354,10 +358,12 @@ registerBuiltinProvider(PROVIDER_IDS.OPENROUTER, OpenRouterProvider, {
 registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, {
   TOGETHER_API_KEY: ""
 });
-registerBuiltinProvider(PROVIDER_IDS.ALIBABA, AlibabaProvider, {
-  DASHSCOPE_API_KEY: "",
-  DASHSCOPE_BASE_URL: ""
-});
+registerBuiltinProvider(
+  PROVIDER_IDS.ALIBABA,
+  AlibabaProvider,
+  { DASHSCOPE_API_KEY: "" },
+  { DASHSCOPE_BASE_URL: ALIBABA_DEFAULT_BASE_URL }
+);
 registerBuiltinProvider(PROVIDER_IDS.CEREBRAS, CerebrasProvider, {
   CEREBRAS_API_KEY: ""
 });

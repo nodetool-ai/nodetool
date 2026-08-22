@@ -20,6 +20,23 @@ interface ValidateCliOptions {
   warningsAsErrors?: boolean;
 }
 
+type SecretLookup = (
+  key: string
+) => Promise<string | null | undefined> | string | null | undefined;
+
+/** Resolve declared node settings exactly as BaseNode secret injection does. */
+export async function collectAvailableSecrets(
+  keys: readonly string[],
+  getSecret: SecretLookup
+): Promise<Set<string>> {
+  const found = new Set<string>();
+  for (const key of keys) {
+    const value = await getSecret(key);
+    if (value) found.add(key);
+  }
+  return found;
+}
+
 export function registerValidateCommand(program: Command): void {
   program
     .command("validate <workflow_id_or_file>")
@@ -38,18 +55,28 @@ export function registerValidateCommand(program: Command): void {
         // Only a DB-id target needs the database; file/DSL targets validate
         // with no DB at all, so initialize it lazily on first lookup.
         let dbReady = false;
+        const ensureDb = async () => {
+          if (!dbReady) {
+            const { initDb } = await import("@nodetool-ai/models");
+            const { getDefaultDbPath } = await import("@nodetool-ai/config");
+            initDb(getDefaultDbPath());
+            dbReady = true;
+          }
+        };
         const { target, report } = await runValidate(ref, {
           loadFromDb: async (id) => {
-            if (!dbReady) {
-              const { initDb } = await import("@nodetool-ai/models");
-              const { getDefaultDbPath } = await import("@nodetool-ai/config");
-              initDb(getDefaultDbPath());
-              dbReady = true;
-            }
+            await ensureDb();
             const { Workflow } = await import("@nodetool-ai/models");
             return Workflow.get(id) as Promise<{
               graph: { nodes: never[]; edges: never[] };
             } | null>;
+          },
+          // Node required settings use exact names. Provider aliases are
+          // resolved separately by the run preflight.
+          availableSecrets: async (keys) => {
+            await ensureDb();
+            const { getSecret } = await import("@nodetool-ai/models");
+            return collectAvailableSecrets(keys, (key) => getSecret(key, "1"));
           }
         });
 
@@ -87,7 +114,10 @@ const CODE_LEGEND: Readonly<Record<string, string>> = {
     "edge targets a dynamic input with no declared type, so the connection is not type-checked — expected on workflows saved before typed slots, one per dynamic edge; informational, never a failure",
   dynamic_type_mismatch:
     "inline value of a dynamic input does not match the type the slot declares",
-  unknown_provider: "a model property names a provider the runtime cannot build",
+  unknown_provider:
+    "a model property names a provider the runtime cannot build",
+  missing_secret:
+    "a node declares a credential this install cannot resolve — the run may fail when the node executes",
   slot_type_alias:
     "a dynamic slot is typed with a JSON-Schema/TypeScript name instead of NodeTool's, so the handle will not connect",
   code_syntax: "a Code node's body is not valid JavaScript",
@@ -96,7 +126,8 @@ const CODE_LEGEND: Readonly<Record<string, string>> = {
   code_undefined_name:
     "a Code node reads a name that is neither a sandbox API nor one of its inputs",
   code_no_return: "a Code node can finish without returning its outputs",
-  code_return_shape: "a Code node returns something other than an output object",
+  code_return_shape:
+    "a Code node returns something other than an output object",
   code_missing_output: "a return path leaves a declared output unset",
   code_undeclared_output:
     "a Code node returns a key it does not declare as an output handle",

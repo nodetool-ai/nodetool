@@ -341,10 +341,11 @@ nodetool workflows import-bundle my-pack.nodetool
 
 Check a workflow against the node registry **without running it**: unknown node
 types, missing required properties, dangling or mis-typed edges, model
-properties naming a provider or model id that does not exist, and
-`nodetool.code.Code` bodies that never return or leave an output unset. It
-finishes in well under a second, which makes it the cheap pre-flight before a
-run that costs money.
+properties naming a provider or model id that does not exist,
+and `nodetool.code.Code` bodies that never return or leave an output unset. On
+a workflow-id target, where the secret store is reachable, it also warns about
+declared credentials the install cannot resolve. It finishes in well under a
+second, which makes it the cheap pre-flight before a run that costs money.
 
 The target is a workflow id, a workflow JSON file, or a TypeScript DSL file.
 File targets need no database.
@@ -1936,4 +1937,3 @@ deterministic-over-llm   Pure string mechanics must not be solved with an LLM st
 - Set `NODETOOL_API_URL` environment variable to avoid specifying `--api-url` on every command.
 - Use `nodetool serve` to start the local backend server before running API commands.
 - See [Environment Variables](configuration.md#environment-variables-index) for a complete list of configurable variables.
-

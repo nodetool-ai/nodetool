@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   collectJsScriptLinks,
+  collectMissingSecretIssues,
+  collectModelProviders,
   collectModelSelectionIssues,
+  collectSecretRequirementSites,
   validateGraph,
   validationHeadline,
   type GraphValidationRegistry
@@ -1668,5 +1671,302 @@ describe("Code nodes linked to a JS script", () => {
     expect(collectJsScriptLinks(graph({}))).toEqual([
       { id: "s1", version: 2 }
     ]);
+  });
+});
+
+describe("collectSecretRequirementSites", () => {
+  const KEYED = "a.Keyed";
+  const CODE = "nodetool.code.Code";
+  const registry = fakeRegistry({
+    [KEYED]: meta(KEYED, { prompt: "str" }, { out: "str" }, {
+      required_settings: ["FAL_API_KEY"]
+    }),
+    [CODE]: meta(CODE, { code: "str", secrets: "list[str]" }, {}, {
+      supports_dynamic_inputs: true,
+      supports_dynamic_outputs: true
+    })
+  });
+
+  it("collects required_settings and Code-node declarations, deduplicated", () => {
+    const sites = collectSecretRequirementSites(
+      {
+        nodes: [
+          { id: "k1", type: KEYED, properties: {} },
+          { id: "k2", type: KEYED, properties: {} },
+          {
+            id: "c",
+            type: CODE,
+            properties: { secrets: ["MY_KEY", "MY_KEY"] }
+          }
+        ]
+      },
+      registry
+    );
+    expect(sites).toEqual([
+      {
+        nodeId: "k1",
+        nodeType: KEYED,
+        key: "FAL_API_KEY",
+        source: "required_setting"
+      },
+      {
+        nodeId: "k2",
+        nodeType: KEYED,
+        key: "FAL_API_KEY",
+        source: "required_setting"
+      },
+      {
+        nodeId: "c",
+        nodeType: CODE,
+        key: "MY_KEY",
+        source: "code_secret"
+      }
+    ]);
+  });
+
+  it("ignores a stray secrets property on a non-Code node", () => {
+    const PLAIN = "a.Plain";
+    const plainRegistry = fakeRegistry({
+      [PLAIN]: meta(PLAIN, {}, {})
+    });
+    const sites = collectSecretRequirementSites(
+      {
+        nodes: [{ id: "s", type: PLAIN, properties: { secrets: ["X"] } }]
+      },
+      plainRegistry
+    );
+    expect(sites).toEqual([]);
+  });
+
+  it("skips node types the registry does not know", () => {
+    const sites = collectSecretRequirementSites(
+      { nodes: [{ id: "p", type: "python.Thing", properties: {} }] },
+      registry
+    );
+    expect(sites).toEqual([]);
+  });
+
+  it("skips a known type whose metadata is absent", () => {
+    const hollowRegistry: GraphValidationRegistry = {
+      has: () => true,
+      getMetadata: () => undefined,
+      validateNode: () => []
+    };
+    expect(
+      collectSecretRequirementSites(
+        { nodes: [{ id: "h", type: "a.Hollow", properties: {} }] },
+        hollowRegistry
+      )
+    ).toEqual([]);
+  });
+
+  it("skips an untyped node even when the registry answers has(\"\")", () => {
+    const yesRegistry: GraphValidationRegistry = {
+      has: () => true,
+      getMetadata: () =>
+        meta("a.Keyed", {}, {}, {
+          required_settings: ["K"]
+        }),
+      validateNode: () => []
+    };
+    expect(
+      collectSecretRequirementSites(
+        { nodes: [{ id: "u", properties: {} }] },
+        yesRegistry
+      )
+    ).toEqual([]);
+  });
+
+  it("ignores non-string names in both sources", () => {
+    const CODE = "nodetool.code.Code";
+    const sites = collectSecretRequirementSites(
+      {
+        nodes: [
+          {
+            id: "k",
+            type: KEYED,
+            properties: { secrets: [42, "", null, "REAL_KEY"] }
+          },
+          // A string is not a list — the declaration shape is wrong, and
+          // guessing its characters would be worse than ignoring it.
+          {
+            id: "c",
+            type: CODE,
+            properties: { secrets: "REAL_KEY" }
+          }
+        ]
+      },
+      {
+        ...registry,
+        getMetadata: (t) => {
+          if (t === KEYED) {
+            const metadata = registry.getMetadata(KEYED);
+            if (!metadata) return undefined;
+            const malformed = { ...metadata };
+            Reflect.set(malformed, "required_settings", ["GOOD_KEY", "", 7]);
+            return malformed;
+          }
+          return t === CODE
+            ? meta(CODE, { code: "str", secrets: "list[str]" }, {})
+            : registry.getMetadata(t);
+        }
+      }
+    );
+    expect(sites).toEqual([
+      // 42, "" and null drop out of both lists; the bare string on the Code
+      // node is not a list at all and is ignored whole.
+      {
+        nodeId: "k",
+        nodeType: KEYED,
+        key: "GOOD_KEY",
+        source: "required_setting"
+      }
+    ]);
+  });
+
+  it("deduplicates a repeated name inside one declaration list", () => {
+    const dupMeta = meta(KEYED, {}, {}, {
+      required_settings: ["SAME_KEY", "SAME_KEY"]
+    });
+    const sites = collectSecretRequirementSites(
+      { nodes: [{ id: "d", type: KEYED, properties: {} }] },
+      fakeRegistry({ [KEYED]: dupMeta })
+    );
+    expect(sites).toEqual([
+      {
+        nodeId: "d",
+        nodeType: KEYED,
+        key: "SAME_KEY",
+        source: "required_setting"
+      }
+    ]);
+  });
+
+  it("does not let one node's key collide with another's", () => {
+    const CODE = "nodetool.code.Code";
+    const pairRegistry = fakeRegistry({
+      [CODE]: meta(CODE, { code: "str", secrets: "list[str]" }, {})
+    });
+    const sites = collectSecretRequirementSites(
+      {
+        nodes: [
+          { id: "c1", type: CODE, properties: { secrets: ["A_KEY"] } },
+          { id: "c2", type: CODE, properties: { secrets: ["B_KEY"] } }
+        ]
+      },
+      pairRegistry
+    );
+    expect(sites.map((s) => s.key)).toEqual(["A_KEY", "B_KEY"]);
+  });
+});
+
+describe("collectMissingSecretIssues", () => {
+  const KEYED = "a.Keyed";
+  const registry = fakeRegistry({
+    [KEYED]: meta(KEYED, {}, {}, {
+      required_settings: ["FAL_API_KEY"]
+    })
+  });
+  const graph = {
+    nodes: [{ id: "k", type: KEYED, properties: {} }]
+  };
+
+  it("reports nothing without an availability set — silence, not guesses", () => {
+    expect(collectMissingSecretIssues(graph, registry)).toEqual([]);
+    expect(collectMissingSecretIssues(graph, registry, null)).toEqual([]);
+  });
+
+  it("warns when the set cannot resolve the key", () => {
+    const issues = collectMissingSecretIssues(graph, registry, new Set());
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.severity).toBe("warning");
+    expect(issues[0]?.code).toBe("missing_secret");
+    expect(issues[0]?.nodeId).toBe("k");
+    expect(issues[0]?.message).toBe(
+      `Node "k" (a.Keyed) needs "FAL_API_KEY", which this install cannot ` +
+        "resolve. Set it in Settings → Credentials, or the node may fail " +
+        "when it runs."
+    );
+  });
+
+  it("worded for a Code node's own declared list", () => {
+    const CODE = "nodetool.code.Code";
+    const codeRegistry = fakeRegistry({
+      [CODE]: meta(CODE, { code: "str", secrets: "list[str]" }, {})
+    });
+    const issues = collectMissingSecretIssues(
+      {
+        nodes: [
+          { id: "c", type: CODE, properties: { secrets: ["MY_KEY"] } }
+        ]
+      },
+      codeRegistry,
+      new Set()
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toBe(
+      `Node "c" declares secret "MY_KEY", which this install cannot ` +
+        "resolve — the body's reads of it will fail."
+    );
+  });
+
+  it("stays silent once the set resolves the key", () => {
+    expect(
+      collectMissingSecretIssues(graph, registry, new Set(["FAL_API_KEY"]))
+    ).toEqual([]);
+  });
+
+  it("does not flip the report to not-ok — warnings inform, they do not refuse", () => {
+    const report = validateGraph(graph, fakeRegistry({ [KEYED]: registry.getMetadata!(KEYED)! }), {
+      availableSecrets: new Set()
+    });
+    expect(report.issues.some((i) => i.code === "missing_secret")).toBe(true);
+    expect(report.ok).toBe(true);
+  });
+});
+
+describe("collectModelProviders", () => {
+  const graph = {
+    nodes: [
+      {
+        id: "n1",
+        type: "nodetool.image.TextToImage",
+        properties: {
+          model: { type: "image_model", provider: "fal_ai", id: "fal-ai/flux/schnell" }
+        }
+      },
+      {
+        id: "n2",
+        type: "nodetool.video.ImageToVideo",
+        dynamic_properties: {
+          model: { type: "video_model", provider: "kie", id: "wan/2-7-image-to-video" }
+        }
+      },
+      {
+        id: "n3",
+        type: "a.List",
+        properties: {
+          models: [
+            { type: "image_model", provider: "openai", id: "gpt-image-2" },
+            { type: "image_model", provider: "fal_ai", id: "fal-ai/flux/dev" }
+          ]
+        }
+      }
+    ]
+  };
+
+  it("walks top-level, dynamic, and list-nested refs, deduplicated in order", () => {
+    expect(collectModelProviders(graph)).toEqual([
+      "fal_ai",
+      "kie",
+      "openai"
+    ]);
+  });
+
+  it("returns nothing for a graph with no model references", () => {
+    expect(
+      collectModelProviders({ nodes: [{ id: "t", type: "a.T", properties: {} }] })
+    ).toEqual([]);
+    expect(collectModelProviders({})).toEqual([]);
   });
 });

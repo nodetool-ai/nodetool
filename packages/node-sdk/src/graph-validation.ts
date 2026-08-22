@@ -19,7 +19,10 @@ import {
   inferredCodeInputNames,
   inferredCodeOutputNames
 } from "./code-analysis.js";
-import { isJsCodeNodeType, validateCodeNodeBody } from "./code-node-validation.js";
+import {
+  isJsCodeNodeType,
+  validateCodeNodeBody
+} from "./code-node-validation.js";
 import {
   jsScriptPortMismatches,
   readJsScriptLink,
@@ -92,7 +95,7 @@ export interface GraphValidationIssue {
    * "property" | "dangling_edge" | "unknown_handle" | "missing_handle" |
    * "cycle" | "type_mismatch" | "fan_in" | "untyped_dynamic_slot" |
    * "dynamic_type_mismatch" | "unknown_provider" | "missing_provider" |
-   * "unknown_model" | "slot_type_alias" | "invalid_graph", plus the `code_*`
+   * "unknown_model" | "missing_secret" | "slot_type_alias" | "invalid_graph", plus the `code_*`
    * categories a Code node body produces (see {@link validateCodeNodeBody}).
    *
    * - "invalid_graph" (error): `nodes` or `edges` is not an array, so that half
@@ -111,6 +114,11 @@ export interface GraphValidationIssue {
    * - "missing_provider" (error): a model reference carries an id but no
    *   provider, so nothing can route it. See
    *   {@link collectModelSelectionIssues} for this and its two siblings.
+   * - "missing_secret" (warning): a node declares a credential
+   *   ({@link collectSecretRequirementSites}) that `options.availableSecrets`
+   *   cannot resolve. Only reported when a set was supplied; warning because
+   *   some declared keys are optional at call time, so absence does not prove
+   *   a failed run.
    * - "type_mismatch": a warning for declared properties (best-effort), an
    *   error when the target is a *declared* dynamic slot whose type the source
    *   output cannot satisfy.
@@ -325,6 +333,8 @@ function isModelRef(value: unknown): value is Record<string, unknown> {
 interface ModelRefSite {
   /** Property path, e.g. `model`, `models[0]`, `config.model`. */
   path: string;
+  /** Top-level input property that owns the reference. */
+  propertyName: string;
   ref: Record<string, unknown>;
 }
 
@@ -346,24 +356,43 @@ const MODEL_REF_MAX_DEPTH = 4;
 function collectModelRefs(
   value: unknown,
   path: string,
+  propertyName: string,
   out: ModelRefSite[],
   depth = 0
 ): void {
   if (depth > MODEL_REF_MAX_DEPTH) return;
   if (Array.isArray(value)) {
     value.forEach((item, index) =>
-      collectModelRefs(item, `${path}[${index}]`, out, depth + 1)
+      collectModelRefs(item, `${path}[${index}]`, propertyName, out, depth + 1)
     );
     return;
   }
-  if (!isObjectLike(value)) return;
+  if (!isRecord(value)) return;
   if (isModelRef(value)) {
-    out.push({ path, ref: value });
+    out.push({ path, propertyName, ref: value });
     return;
   }
-  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-    collectModelRefs(child, path ? `${path}.${key}` : key, out, depth + 1);
+  for (const [key, child] of Object.entries(value)) {
+    collectModelRefs(
+      child,
+      path ? `${path}.${key}` : key,
+      propertyName,
+      out,
+      depth + 1
+    );
   }
+}
+
+/** Model references in one node's declared and dynamic property bags. */
+function collectNodeModelRefs(node: GraphValidationNode): ModelRefSite[] {
+  const sites: ModelRefSite[] = [];
+  for (const [propName, value] of Object.entries(readProperties(node))) {
+    collectModelRefs(value, propName, propName, sites);
+  }
+  for (const [propName, value] of Object.entries(readDynamicProperties(node))) {
+    collectModelRefs(value, propName, propName, sites);
+  }
+  return sites;
 }
 
 /**
@@ -389,7 +418,11 @@ function resolveSourceHandleType(
   sourceMeta: NodeMetadata | undefined,
   issues: GraphValidationIssue[]
 ): string {
-  if (!sourceMeta || !edge.sourceHandle || isReservedHandle(edge.sourceHandle)) {
+  if (
+    !sourceMeta ||
+    !edge.sourceHandle ||
+    isReservedHandle(edge.sourceHandle)
+  ) {
     return "";
   }
 
@@ -460,7 +493,11 @@ function resolveTargetHandleType(
   targetMeta: NodeMetadata | undefined,
   issues: GraphValidationIssue[]
 ): TargetHandleType {
-  if (!targetMeta || !edge.targetHandle || isReservedHandle(edge.targetHandle)) {
+  if (
+    !targetMeta ||
+    !edge.targetHandle ||
+    isReservedHandle(edge.targetHandle)
+  ) {
     return { type: "", typedDynamicSlot: false };
   }
 
@@ -612,21 +649,22 @@ function nearestModelIds(
     while (i < needle.length && i < other.length && needle[i] === other[i]) i++;
     return i;
   };
-  return [...known]
-    .map((candidate) => ({ candidate, score: prefixLen(candidate) }))
-    // A single shared character is noise, not a suggestion.
-    .filter((entry) => entry.score >= 3)
-    .sort(
-      (a, b) =>
-        b.score - a.score ||
-        Math.abs(a.candidate.length - id.length) -
-          Math.abs(b.candidate.length - id.length) ||
-        a.candidate.localeCompare(b.candidate)
-    )
-    .slice(0, limit)
-    .map((entry) => entry.candidate);
+  return (
+    [...known]
+      .map((candidate) => ({ candidate, score: prefixLen(candidate) }))
+      // A single shared character is noise, not a suggestion.
+      .filter((entry) => entry.score >= 3)
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          Math.abs(a.candidate.length - id.length) -
+            Math.abs(b.candidate.length - id.length) ||
+          a.candidate.localeCompare(b.candidate)
+      )
+      .slice(0, limit)
+      .map((entry) => entry.candidate)
+  );
 }
-
 
 /** The slice of the registry {@link collectModelSelectionIssues} needs. */
 export type ModelSelectionRegistry = Pick<
@@ -660,17 +698,7 @@ export function collectModelSelectionIssues(
   for (const node of graph.nodes ?? []) {
     const nodeId = String(node.id ?? "");
     const nodeType = String(node.type ?? "");
-    const sites: ModelRefSite[] = [];
-    for (const [propName, value] of Object.entries(readProperties(node))) {
-      collectModelRefs(value, propName, sites);
-    }
-    for (const [propName, value] of Object.entries(
-      readDynamicProperties(node)
-    )) {
-      collectModelRefs(value, propName, sites);
-    }
-
-    for (const { path, ref } of sites) {
+    for (const { path, ref } of collectNodeModelRefs(node)) {
       const modelId = modelIdOf(ref);
       const provider = modelProviderOf(ref);
 
@@ -732,7 +760,129 @@ export function collectModelSelectionIssues(
   return issues;
 }
 
+export interface SecretRequirementSite {
+  nodeId: string;
+  nodeType: string;
+  /** The credential name, e.g. `OPENAI_API_KEY`. */
+  key: string;
+  /** The declaration that introduced this credential requirement. */
+  source: "required_setting" | "code_secret";
+}
+
+/**
+ * Every credential name a graph's nodes declare, deduplicated per node.
+ *
+ * Split out of {@link collectMissingSecretIssues} so a host can resolve the
+ * names against its store first and hand back only the availability set —
+ * validation stays synchronous and store-shaped knowledge stays with the
+ * host that owns it.
+ */
+export function collectSecretRequirementSites(
+  graph: GraphValidationInput,
+  registry: Pick<GraphValidationRegistry, "has" | "getMetadata">
+): SecretRequirementSite[] {
+  const sites: SecretRequirementSite[] = [];
+  const seen = new Set<string>();
+  for (const node of graph.nodes ?? []) {
+    const nodeId = String(node.id ?? "");
+    const nodeType = String(node.type ?? "");
+    if (!nodeType || !registry.has(nodeType)) continue;
+    const meta = registry.getMetadata(nodeType);
+    for (const key of meta?.required_settings ?? []) {
+      if (!isNonEmptyString(key)) continue;
+      const dedupeKey = `${nodeId}\u0000${key}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      sites.push({ nodeId, nodeType, key, source: "required_setting" });
+    }
+    if (!isJsCodeNodeType(nodeType)) continue;
+    const declaredSecrets = readProperties(node).secrets;
+    if (!Array.isArray(declaredSecrets)) continue;
+    for (const value of declaredSecrets) {
+      if (!isNonEmptyString(value)) continue;
+      const dedupeKey = `${nodeId}\u0000${value}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      sites.push({ nodeId, nodeType, key: value, source: "code_secret" });
+    }
+  }
+  return sites;
+}
+
+/**
+ * Nodes whose declared credentials the supplied set cannot resolve.
+ *
+ * Both sources warn rather than error. A `required_settings` entry reaches
+ * `process()` as an empty string when absent, and some nodes treat that as
+ * optional at call time (a HuggingFace token widens the model catalog but is
+ * not the only way in), so absence does not prove a failed run. The Code
+ * node's list scopes reads rather than requiring them, for the same reason.
+ * The certain failure — a provider constructed without the credential its
+ * registration requires — is checked where the answer is certain, in the
+ * run preflight (`@nodetool-ai/execution`), against the provider registry.
+ *
+ * Fails toward silence like every catalog here: no set, nothing reported.
+ */
+export function collectMissingSecretIssues(
+  graph: GraphValidationInput,
+  registry: Pick<GraphValidationRegistry, "has" | "getMetadata">,
+  availableSecrets?: ReadonlySet<string> | null
+): GraphValidationIssue[] {
+  if (!availableSecrets) return [];
+  const issues: GraphValidationIssue[] = [];
+  for (const site of collectSecretRequirementSites(graph, registry)) {
+    if (availableSecrets.has(site.key)) continue;
+    issues.push({
+      severity: "warning",
+      code: "missing_secret",
+      nodeId: site.nodeId,
+      nodeType: site.nodeType,
+      message:
+        site.source === "code_secret"
+          ? `Node "${site.nodeId}" declares secret "${site.key}", which this ` +
+            "install cannot resolve — the body's reads of it will fail."
+          : `Node "${site.nodeId}" (${site.nodeType}) needs "${site.key}", ` +
+            "which this install cannot resolve. Set it in Settings → " +
+            "Credentials, or the node may fail when it runs."
+    });
+  }
+  return issues;
+}
+
+/**
+ * Distinct provider ids across every model reference in the graph, in walk
+ * order. The run preflight resolves each against the provider registry to
+ * refuse a graph whose credentials are missing before anything executes.
+ */
+export function collectModelProviders(graph: GraphValidationInput): string[] {
+  const providers = new Set<string>();
+  const connectedInputs = new Set(
+    (graph.edges ?? [])
+      .map(normalizeEdge)
+      .filter((edge) => !edge.isControl && edge.target && edge.targetHandle)
+      .map((edge) => `${edge.target}\u0000${edge.targetHandle}`)
+  );
+  for (const node of graph.nodes ?? []) {
+    const nodeId = String(node.id ?? "");
+    for (const { propertyName, ref } of collectNodeModelRefs(node)) {
+      if (connectedInputs.has(`${nodeId}\u0000${propertyName}`)) continue;
+      const provider = modelProviderOf(ref);
+      if (provider !== undefined) providers.add(provider);
+    }
+  }
+  return [...providers];
+}
+
 export interface GraphValidationOptions {
+  /**
+   * Exact credential names resolvable from the host's secret store. When set,
+   * a node that declares a credential this set lacks is reported as a
+   * `missing_secret` warning: the node may still run (some keys are optional
+   * at call time), so it informs rather than refuses. Undefined or null means
+   * no store was reachable and nothing is reported — absence of evidence is
+   * not evidence of a missing key.
+   */
+  availableSecrets?: ReadonlySet<string> | null;
   /**
    * Catalog the Code node bodies' imports resolve against. Defaults
    * to the process-wide catalog the host installed; pass `null` to check the
@@ -927,7 +1077,9 @@ export function validateGraph(
         });
       }
     }
-    for (const [slotName, slotType] of Object.entries(readDynamicOutputs(node))) {
+    for (const [slotName, slotType] of Object.entries(
+      readDynamicOutputs(node)
+    )) {
       for (const alias of portTypeAliases(slotType)) {
         issues.push({
           severity: "error",
@@ -1036,14 +1188,25 @@ export function validateGraph(
         });
       }
     }
-
   }
 
   // A model property naming a provider the runtime cannot construct, or an id
   // that provider does not offer, fails only once the node runs — after the
   // rest of the graph has already been paid for. Both are right there in the
   // saved properties.
-  issues.push(...collectModelSelectionIssues({ nodes: [...byId.values()] }, registry));
+  issues.push(
+    ...collectModelSelectionIssues({ nodes: [...byId.values()] }, registry)
+  );
+
+  // Declared credentials the supplied availability set cannot resolve — a
+  // warning per site, and nothing at all when no set was supplied.
+  issues.push(
+    ...collectMissingSecretIssues(
+      { nodes: [...byId.values()] },
+      registry,
+      options.availableSecrets
+    )
+  );
 
   // ── Fan-in: >1 edge into a handle is only legal when the handle's declared
   // type is a list. Mirrors the kernel's correlation-analysis rule so an

@@ -1026,9 +1026,11 @@ node types, missing required properties, unselected models, model properties
 naming an unregistered provider or a model id that provider does not offer,
 dangling and mis-typed edges, dynamic slots typed with a
 JSON-Schema/TypeScript name instead of NodeTool's (`integer` → `int`), and Code
-node bodies. Returns in well under a second, so it's the cheap pre-flight
-before an expensive `debug` run. Accepts a workflow id, JSON file, or DSL `.ts`
-file. File/DSL targets need no database.
+node bodies. On a DB-id target, where the store is reachable, it also warns
+about declared credentials (`required_settings`, a Code node's `secrets`) this
+install cannot resolve. Returns in well under a second, so it's the cheap
+pre-flight before an expensive `debug` run. Accepts a workflow id, JSON file,
+or DSL `.ts` file. File/DSL targets need no database.
 
 Model references are found wherever they sit — a top-level property, an entry
 in a `list[…_model]`, one nested in a settings object, or a dynamic slot value.
@@ -1040,7 +1042,9 @@ authoring agent's belt, `create_workflow` refuses to save a graph whose
 provider or model the model hallucinated — and
 `POST /api/workflows/:id/run|debug` refuses the run with a
 400 before the job row exists, instead of failing on the model node after the
-upstream half of the graph has been paid for.
+upstream half of the graph has been paid for. The same refusal covers
+credentials: a run whose selected providers have no resolvable key (secret
+store, then env) is refused with 400 naming each missing secret.
 
 A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
 not valid JavaScript, uses `export` at the top level, imports a specifier no

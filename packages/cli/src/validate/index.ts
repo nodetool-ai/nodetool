@@ -5,7 +5,9 @@
  * unit-tested in node-sdk's graph-validation.test.ts.
  */
 import {
+  collectSecretRequirementSites,
   validateGraph,
+  type GraphValidationRegistry,
   type GraphValidationReport,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
@@ -13,8 +15,7 @@ import {
   listRegisteredProviderIds,
   listOfflineModelIds
 } from "@nodetool-ai/runtime";
-import { buildFullRegistry } from "../node-registry.js";
-import { resolveTarget } from "../debug/index.js";
+import { resolveTarget } from "../debug/target.js";
 import type { DebugGraph, DebugTargetInfo } from "../debug/types.js";
 
 interface ValidateResult {
@@ -24,6 +25,16 @@ interface ValidateResult {
 
 interface ValidateDeps {
   loadFromDb: (id: string) => Promise<{ graph: DebugGraph } | null>;
+  /** Registry view supplied by tests or an embedding host. */
+  registry?: GraphValidationRegistry;
+  /**
+   * Answers which exact `keys` this install can resolve from its secret store.
+   * Omit where no store exists — file/DSL targets skip the missing-secret
+   * check entirely rather than guess.
+   */
+  availableSecrets?: (
+    keys: readonly string[]
+  ) => Promise<ReadonlySet<string>> | ReadonlySet<string>;
 }
 
 // Registering every node pack takes seconds and the result never changes
@@ -32,8 +43,11 @@ interface ValidateDeps {
 // in one process and must not pay it per graph.
 let cachedRegistry: NodeRegistry | null = null;
 
-function sharedRegistry(): NodeRegistry {
-  cachedRegistry ??= buildFullRegistry();
+async function sharedRegistry(): Promise<NodeRegistry> {
+  if (!cachedRegistry) {
+    const { buildFullRegistry } = await import("../node-registry.js");
+    cachedRegistry = buildFullRegistry();
+  }
   return cachedRegistry;
 }
 
@@ -42,20 +56,32 @@ export async function runValidate(
   deps: ValidateDeps
 ): Promise<ValidateResult> {
   const resolved = await resolveTarget(ref, deps.loadFromDb);
-  const registry = sharedRegistry();
-  // Supplied here rather than on NodeRegistry itself: the registry also runs in
-  // the browser, which has no provider registry to reach and should not pull
-  // the runtime into its bundle for this.
-  const report = validateGraph(resolved.graph, {
-    has: (t) => registry.has(t),
-    getMetadata: (t) => registry.getMetadata(t),
-    validateNode: (d, h) => registry.validateNode(d, h),
-    listProviderIds: () => listRegisteredProviderIds(),
-    // Manifest-backed providers and manifest-classified model types only;
-    // everything else returns undefined and goes unchecked rather than guessed
-    // at. ASR and language catalogs are not in any manifest.
-    listModelIds: (provider, modelType) =>
-      listOfflineModelIds(provider, modelType)
+  let registryView = deps.registry;
+  if (!registryView) {
+    const registry = await sharedRegistry();
+    registryView = {
+      has: (t) => registry.has(t),
+      getMetadata: (t) => registry.getMetadata(t),
+      validateNode: (d, h) => registry.validateNode(d, h),
+      listProviderIds: () => listRegisteredProviderIds(),
+      // Manifest-backed providers and manifest-classified model types only;
+      // everything else returns undefined and goes unchecked rather than
+      // guessed at. ASR and language catalogs are not in any manifest.
+      listModelIds: (provider: string, modelType: string) =>
+        listOfflineModelIds(provider, modelType)
+    };
+  }
+  // Declared credentials are collected first so the host resolves exactly
+  // those names — a store round trip per requirement, not per key in the DB.
+  let availableSecrets: ReadonlySet<string> | undefined;
+  if (resolved.info.source === "id" && deps.availableSecrets) {
+    const sites = collectSecretRequirementSites(resolved.graph, registryView);
+    availableSecrets = await deps.availableSecrets(
+      sites.map((site) => site.key)
+    );
+  }
+  const report = validateGraph(resolved.graph, registryView, {
+    availableSecrets
   });
   return { target: resolved.info, report };
 }

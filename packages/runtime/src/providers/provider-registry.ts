@@ -95,6 +95,15 @@ export function readCredentialEnv(key: string): string | undefined {
   return undefined;
 }
 
+/** Resolve one credential exactly as provider construction does. */
+export async function resolveCredentialValue(
+  key: string,
+  getSecret: GetSecret
+): Promise<string | undefined> {
+  const stored = await getSecret(key);
+  return stored || readCredentialEnv(key);
+}
+
 /**
  * Build a fresh provider instance, resolving any unset credential kwargs via
  * `getSecret` first, then `process.env` as fallback. The caller owns any
@@ -116,14 +125,9 @@ export async function getProvider(
   const kwargs = { ...registration.kwargs };
   for (const [key, value] of Object.entries(kwargs)) {
     if (value === "" || value == null) {
-      const fromSecret = await getSecret(key);
-      if (fromSecret) {
-        kwargs[key] = fromSecret;
-        continue;
-      }
-      const envVal = readCredentialEnv(key);
-      if (envVal) {
-        kwargs[key] = envVal;
+      const resolved = await resolveCredentialValue(key, getSecret);
+      if (resolved) {
+        kwargs[key] = resolved;
       }
     }
   }
@@ -190,8 +194,7 @@ export async function isProviderConfigured(
   if (required.length === 0) return true;
 
   for (const key of required) {
-    let value = await getSecret(key);
-    if (!value) value = readCredentialEnv(key);
+    const value = await resolveCredentialValue(key, getSecret);
     if (!value) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
       log.debug("isProviderConfigured: missing credential", {

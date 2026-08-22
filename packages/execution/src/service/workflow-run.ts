@@ -13,14 +13,21 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import { BoundedHandle, WorkflowRunner } from "@nodetool-ai/kernel";
-import { Job, Workflow } from "@nodetool-ai/models";
 import {
+  BoundedHandle,
+  rewriteBypassedNodes,
+  WorkflowRunner
+} from "@nodetool-ai/kernel";
+import { Job, Workflow, getSecret } from "@nodetool-ai/models";
+import {
+  collectModelProviders,
   collectModelSelectionIssues,
   hydrateGraphNodeFlags,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
 import {
+  getProviderSecretKey,
+  isProviderConfigured,
   listOfflineModelIds,
   listRegisteredProviderIds,
   type NodeExecutor,
@@ -50,6 +57,7 @@ import {
 import {
   isFunctionValue,
   isNumber,
+  isRecord,
   isString
 } from "../predicates.js";
 
@@ -187,6 +195,65 @@ export function modelSelectionErrors(
     .map(
       (issue) => `Node "${issue.nodeId}" (${issue.nodeType}): ${issue.message}`
     );
+}
+
+/** How the preflight resolves a credential — the way the coming run will. */
+export interface CredentialResolver {
+  resolveSecret: (
+    key: string
+  ) => Promise<string | null | undefined> | string | null | undefined;
+}
+
+/**
+ * Providers a graph selects whose required credentials this runtime cannot
+ * resolve, one message each.
+ *
+ * The provider registry knows exactly which kwargs are load-bearing (an empty
+ * declaration means "resolve from store, then env"), and a provider built
+ * without one throws the `*_API_KEY is required` error mid-run that this check
+ * exists to front-run. Unregistered ids are skipped: the model-selection check
+ * already reports those as errors, and guessing at an unknown provider's
+ * credentials would be noise.
+ */
+export async function unconfiguredProviderErrors(
+  graph: { nodes?: unknown; edges?: unknown },
+  resolver: CredentialResolver,
+  providerIds: readonly string[] = listRegisteredProviderIds()
+): Promise<string[]> {
+  const nodes = graph.nodes;
+  if (!Array.isArray(nodes)) return [];
+  const graphNodes = nodes.filter(isRecord);
+  const graphEdges = Array.isArray(graph.edges)
+    ? graph.edges.filter(isRecord)
+    : [];
+  const effectiveGraph = rewriteBypassedNodes(
+    normalizeGraph({ nodes: graphNodes, edges: graphEdges })
+  );
+  const known = new Set(providerIds);
+  const errors: string[] = [];
+  for (const provider of collectModelProviders({
+    nodes: effectiveGraph.nodes,
+    edges: effectiveGraph.edges
+  })) {
+    if (!known.has(provider)) continue;
+    if (
+      await isProviderConfigured(provider, (key) => resolver.resolveSecret(key))
+    ) {
+      continue;
+    }
+    const keyName = getProviderSecretKey(provider);
+    errors.push(
+      keyName
+        ? `Provider "${provider}" needs "${keyName}", which is not set on ` +
+            "this server. Store the secret " +
+            `"${keyName}" for this user (Settings → Credentials), or switch ` +
+            "the model to a provider you have configured."
+        : `Provider "${provider}" is missing its required configuration ` +
+            "(base URL or credential) on this server. Complete it in " +
+            "Settings → Providers before running."
+    );
+  }
+  return errors;
 }
 
 /** Mark a job failed and persist it, best effort. */
@@ -435,13 +502,26 @@ export async function runWorkflow(
     };
   }
 
+  // Same gate, one layer down: a provider that would construct without its
+  // key fails mid-run today, after the upstream half of the graph is paid
+  // for. Refuse here, before the job row exists, and name the secret.
+  const badCredentials = await unconfiguredProviderErrors(runnableGraph, {
+    resolveSecret: (key) => getSecret(key, userId)
+  });
+  if (badCredentials.length > 0) {
+    return {
+      kind: "error",
+      status: 400,
+      detail: `Workflow selects providers whose credentials are not configured:\n${badCredentials.join("\n")}`
+    };
+  }
+
   // Resolve the environment only after the cheap checks: a 404 on a missing
   // workflow or a 400 on a bad model selection must not depend on (or be
   // masked by) a cold runtime bootstrap.
-  const environment =
-    isFunctionValue(options.environment)
-      ? await options.environment()
-      : options.environment;
+  const environment = isFunctionValue(options.environment)
+    ? await options.environment()
+    : options.environment;
 
   const registry = environment.registry;
   const hasPythonNode = runnableGraph.nodes.some((node) => {

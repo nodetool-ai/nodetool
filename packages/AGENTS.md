@@ -153,7 +153,7 @@ close the build→verify loop. Run from source with `npm run dev:nodetool -- <cm
 
 | Command | Harness | When |
 |---|---|---|
-| `validate <id\|file>` (`validate.ts`) | Static graph check — unknown nodes, missing props, unselected models, unregistered providers, model ids the provider does not offer, dangling/mis-typed edges | **Cheap pre-flight before any run.** Sub-second; no DB for file/DSL targets. Core: `validateGraph` in `node-sdk` |
+| `validate <id\|file>` (`validate.ts`) | Static graph check — unknown nodes, missing props, unselected models, unavailable provider/model ids, dangling or mis-typed edges, and unresolved declared credentials on DB-id targets | **Cheap pre-flight before any run.** Sub-second; no DB for file/DSL targets. Core: `validateGraph` in `node-sdk` |
 | `debug <id\|file>` (`debug.ts`) | Run a workflow end-to-end on the headless kernel and bundle every message/log/output/error/trace; `--browser` adds a real Playwright surface, `--stages` per-stage shots, `--watch` a per-save verdict diff | Run-and-inspect; iterative troubleshooting |
 | `node run <type> --props '{…}'` (`node.ts`) | Single-node harness — instantiate one node, feed a prop bag, print what it emits; `--no-secrets` skips the DB | Isolate one node without authoring a graph |
 | `run <file>` / `workflows run <id>` | Execute a workflow (id, JSON, or DSL `.ts`) | Quick run by id/file |
