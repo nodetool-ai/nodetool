@@ -580,7 +580,11 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
           </FlexColumn>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Resources" compact>
+        {/*
+          CollapsibleSection defaults to open, so a section that starts closed
+          has to say so — omitting the prop made the header click collapse it.
+        */}
+        <CollapsibleSection title="Resources" defaultOpen={false} compact>
           <FlexColumn gap={SPACING.md} fullWidth>
             <Caption color="secondary">
               An asset, timeline, storyboard, or sketch a picker or gallery can
