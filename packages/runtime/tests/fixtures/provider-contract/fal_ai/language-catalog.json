@@ -1,0 +1,10 @@
+{
+  "data": [
+    {
+      "id": "openai/gpt-5.4-mini",
+      "name": "OpenAI: GPT-5.4 Mini",
+      "context_length": 400000,
+      "supported_parameters": ["tools", "tool_choice", "temperature", "top_p"]
+    }
+  ]
+}

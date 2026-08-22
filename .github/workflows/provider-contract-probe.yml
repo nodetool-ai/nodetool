@@ -1,0 +1,75 @@
+name: Provider Contract Probe
+
+# Nightly: ask each provider for one real response and decode it with the same
+# production decoder a run uses. A cassette proves NodeTool still handles a
+# response a provider gave us once; it cannot notice that the provider changed
+# the response today. This can. See docs/provider-contract-probes.md.
+#
+# Budget: one request and USD 0.05 per provider per run, enforced by the runner
+# and asserted by the offline test. Entries whose key is unset are skipped, so
+# a fork without secrets runs clean.
+#
+# Failure policy: a schema failure fails the job — the contract broke. A
+# network failure is reported and does not fail it, because a nightly job that
+# cries wolf on every provider blip stops being read.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # 04:40 UTC nightly — off the hour, clear of the other scheduled jobs.
+    - cron: "40 4 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-contract-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Decode today's provider responses
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build backend packages
+        # The probe runs the decoders out of the built runtime.
+        run: npm run build:packages
+
+      - name: Check the fixtures and positive controls first
+        # If the offline half is red, a live failure says nothing about the
+        # provider.
+        run: >-
+          npm run test --workspace=packages/runtime --
+          provider-contract-probes
+
+      - name: Probe live responses
+        id: probe
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FAL_API_KEY: ${{ secrets.FAL_API_KEY }}
+          KIE_API_KEY: ${{ secrets.KIE_API_KEY }}
+        run: npm run probe:providers -- --out provider-contract-report.json
+
+      - name: Upload the probe report
+        # The report holds response *shapes* and redacted messages, never a
+        # body — see summarizeShape in packages/runtime/src/providers/contract.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: provider-contract-report
+          path: provider-contract-report.json
+          if-no-files-found: warn

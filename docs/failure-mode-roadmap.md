@@ -114,48 +114,8 @@ method-existence test cannot detect this.
 The current implementation must fail the new test before the fix. Then run
 `npm run test --workspace=packages/runtime -- provider-decorator-inertness`.
 
-## 5. Detect generated provider metadata drift
 
-Status: OPEN.
-
-1. Add a deterministic fixture mode to the FAL and KIE generators. It reads
-   checked-in schema fixtures only, excludes live pricing and timestamps, and
-   fails if any requested fixture is absent. Keep live refresh as a separate
-   command.
-2. Add a checked-in generator manifest that lists every schema fixture and
-   generated output path. Generate into a temporary directory and compare only
-   those declared node-source and static-metadata outputs.
-3. Add root commands `generate:fal:check` and `generate:kie:check`.
-4. Create `.github/workflows/provider-codegen.yml`. Run both commands in strict
-   mode and assert each compared at least one file.
-5. Prove the gate by changing one generated metadata field, observing a
-   non-zero exit, and restoring it.
-6. Confirm that two consecutive fixture-mode runs are byte-stable.
-
-## 6. Add live provider contract probes
-
-Status: OPEN. This is separate from cassette replay.
-
-Old cassettes cannot detect a response that changed today. Start with OpenAI,
-Gemini, FAL, and KIE:
-
-1. Check in a probe manifest. Each entry names the provider, model or endpoint,
-   response decoder, maximum requests, and maximum USD cost. The first manifest
-   is limited to one request and USD 0.05 per provider per nightly run.
-2. Add raw HTTP response fixtures at each provider client boundary. Decoder
-   tests use these fixtures; normalized `CassetteProvider` replay remains a
-   separate contract test.
-3. Parse live responses through production decoders. Do not overwrite
-   checked-in cassettes automatically.
-4. Report network failures separately from schema failures.
-5. Redact credentials, prompts, user data, request IDs, and signed URLs from
-   retained artifacts.
-
-Acceptance: removing a field from a raw response fixture fails its decoder
-test; a changed live shape fails the nightly probe; retained artifacts contain
-no secrets or signed URLs.
-
-## 7. Inventory and consolidate SSRF screening
+## 5. Inventory and consolidate SSRF screening
 
 Status: OPEN. Evidence: #5101.
 
@@ -179,7 +139,7 @@ Tests must reject alternate IPv4 forms, IPv4-mapped IPv6, loopback, private
 networks, metadata addresses, and redirects to blocked addresses. Run
 `npm run test --workspace=packages/runtime -- safe-url`.
 
-## 8. Add property tests to seven pure helpers
+## 6. Add property tests to seven pure helpers
 
 Status: OPEN. Use one PR per row. Before adding `fast-check`, record why the
 current dependencies and table-driven tests are insufficient, check its latest
@@ -205,11 +165,11 @@ and stable source order as the tie-breaker for duplicate indexes in #5116.
 Split #4909 into one execution normalization property and one node-sdk
 validation property.
 
-## 9. Complete editor input-path coverage
+## 7. Complete editor input-path coverage
 
 Status: OPEN. Use three separate PRs.
 
-### 9A. Shortcut action mapping
+### 7A. Shortcut action mapping
 
 `web/src/config/shortcuts.ts` already owns shortcuts and rejects duplicate
 slugs. Add a typed action ID used by menus and handlers. Test missing actions,
@@ -217,7 +177,7 @@ duplicate normalized combinations within the same active editor context and
 OS, Electron-only actions in web menus, and the command-menu shortcut on
 Windows and macOS. Duplicate combinations in disjoint contexts remain valid.
 
-### 9B. Canvas drop journeys
+### 7B. Canvas drop journeys
 
 Add web Playwright journeys for file drop, node creation from a dropped
 connection at the cursor, and run-selected with multiple nodes. Use
@@ -226,7 +186,7 @@ Electron Playwright dependency, config, script, packaged-app fixture, and
 Windows CI job. Update `AGENTS.md` and Electron testing docs with the command.
 Run the case on Windows; a Windows-style string on macOS is not sufficient.
 
-### 9C. Dialog containment audit
+### 7C. Dialog containment audit
 
 `PositionedDialog` already clamps to the viewport. Enumerate other dialog
 primitives and direct users in a checked-in audit with a non-zero count. A
@@ -251,6 +211,35 @@ add one 600 x 600 px test per migrated primitive.
   table's own audit in `capability-coverage.test.ts`, the rule in
   `packages/agents/AGENTS.md`, and `.github/pull_request_template.md`.
 
+- **Live provider contract probes:** shipped 2026-08-22. The manifest
+  `packages/runtime/src/providers/contract/probe-manifest.ts` names, per entry,
+  the provider, the endpoint, the production decoder, a checked-in raw HTTP
+  response fixture, the required fields whose removal must break the check, and
+  — for one entry per provider — the single live request, capped at one request
+  and USD 0.05 per provider. The decoders were extracted out of the provider
+  methods (`decodeChatCompletion`, `decodeOpenAIModelList`,
+  `decodeGeminiGenerateContent`, `decodeGeminiModelsPage`,
+  `decodeFalLanguageCatalog`, the fal `extract*Url` family, `kieEnvelopeError`,
+  `decodeKieTaskSubmission`, `decodeKieRecordInfo`, `decodeKieResultUrls`), so
+  fixtures and live responses parse through the code a run uses. `runProbes`
+  reports network failures apart from schema failures, and retains only the
+  response shape (`summarizeShape`) plus redacted messages, so no credential,
+  prompt, request id, or signed URL reaches an artifact. Nightly:
+  `.github/workflows/provider-contract-probe.yml`; offline half:
+  `packages/runtime/tests/providers/provider-contract-probes.test.ts`, wired
+  into `harness gate` through the new `provider-clients` surface. Docs:
+  `docs/provider-contract-probes.md`.
+- **Generated provider metadata drift:** shipped 2026-08-22. Both generators
+  have a fixture mode — `packages/{fal,kie}-codegen/src/fixture-generate.ts` —
+  that reads only the schema fixtures under `fixtures/`, named by
+  `fixtures/generator-manifest.json`, with no network, no pricing, and no
+  timestamps. `scripts/provider-codegen-check.mjs` generates into a temporary
+  directory and diffs every declared node-source and static-metadata output
+  against `fixtures/expected/`, failing on a difference, an absent fixture, or a
+  run that compared nothing. Root commands `generate:fal:check` and
+  `generate:kie:check` and the workflow `.github/workflows/provider-codegen.yml`
+  run it; `fixture-generate.test.ts` in each package covers the same comparison,
+  byte stability, and the absent-fixture failures.
 - **Missing secrets in `validate_workflow`:** shipped 2026-08-22.
   `CapabilityRun.availableSecrets` carries the host's answer,
   `contextSecretAvailability` builds it from a context that can reach a store,

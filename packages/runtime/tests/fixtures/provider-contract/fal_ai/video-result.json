@@ -1,0 +1,8 @@
+{
+  "video": {
+    "url": "https://fal.media/files/example/contract-probe.mp4",
+    "content_type": "video/mp4",
+    "file_size": 1048576
+  },
+  "seed": 1234567890
+}

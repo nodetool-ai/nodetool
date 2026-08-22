@@ -87,7 +87,7 @@ interface GeminiFile {
 }
 
 /** A Gemini content part. */
-interface GeminiPart {
+export interface GeminiPart {
   text?: string;
   thought?: boolean;
   inlineData?: { mimeType: string; data: string };
@@ -532,6 +532,54 @@ function parseGeminiResponse(value: unknown): GeminiResponse {
   return response;
 }
 
+/** What a decoded `generateContent` body carries for the caller to shape. */
+export interface DecodedGeminiGeneration {
+  parts: GeminiPart[];
+  finishReason: string | null;
+  usage: GeminiResponse["usageMetadata"];
+}
+
+/**
+ * Decode a `:generateContent` body: validate the envelope, raise the API's own
+ * error or block reason, and return the first candidate's parts.
+ *
+ * The live contract probe and the checked-in raw-response fixtures
+ * (`packages/runtime/tests/fixtures/provider-contract/`) run this same
+ * function, so a wire change surfaces here rather than only on a real call.
+ */
+export function decodeGeminiGenerateContent(
+  value: unknown
+): DecodedGeminiGeneration {
+  const data = parseGeminiResponse(value);
+  const dataError = geminiResponseError(data);
+  if (dataError) throw dataError;
+  const candidate = data.candidates?.[0];
+  if (!candidate?.content?.parts) {
+    throw new Error("Gemini returned no candidates");
+  }
+  return {
+    parts: candidate.content.parts,
+    finishReason: candidate.finishReason ?? null,
+    usage: data.usageMetadata
+  };
+}
+
+/**
+ * Decode one page of `GET /models`. Throws when the page carries no `models`
+ * array; {@link GeminiProvider.getAvailableLanguageModels} treats that the same
+ * way it treats an unreachable listing.
+ */
+export function decodeGeminiModelsPage(value: unknown): GeminiModelsPage {
+  if (!isPlainObject(value)) {
+    throw new Error("Gemini model page is not an object");
+  }
+  const page = value as GeminiModelsPage;
+  if (!Array.isArray(page.models)) {
+    throw new Error("Gemini model page has no `models` array");
+  }
+  return page;
+}
+
 function normalizeEmbedding(values: number[]): number[] {
   const norm = Math.sqrt(values.reduce((sum, value) => sum + value * value, 0));
   return norm > 0 ? values.map((value) => value / norm) : values;
@@ -651,9 +699,8 @@ export class GeminiProvider extends BaseProvider {
           `${GEMINI_API_BASE}/models?${query}`
         );
         if (!response.ok) return [];
-        const payload = (await response.json()) as GeminiModelsPage;
-        if (!Array.isArray(payload.models)) return [];
-        items.push(...payload.models);
+        const payload = decodeGeminiModelsPage(await response.json());
+        items.push(...(payload.models ?? []));
         pageToken = payload.nextPageToken;
       } while (pageToken);
     } catch {
@@ -1274,19 +1321,11 @@ export class GeminiProvider extends BaseProvider {
       throw new Error(`Gemini API error ${response.status}: ${text}`);
     }
 
-    const data = parseGeminiResponse(await response.json());
+    const decoded = decodeGeminiGenerateContent(await response.json());
 
-    const dataError = geminiResponseError(data);
-    if (dataError) throw dataError;
+    this.trackGeminiUsage(model, decoded.usage);
 
-    this.trackGeminiUsage(model, data.usageMetadata);
-
-    const candidate = data.candidates?.[0];
-    if (!candidate?.content?.parts) {
-      throw new Error("Gemini returned no candidates");
-    }
-
-    return this.extractMessage(candidate.content.parts, reverseMap);
+    return this.extractMessage(decoded.parts, reverseMap);
   }
 
   /** Record token usage from a Gemini usageMetadata block (if present). */
