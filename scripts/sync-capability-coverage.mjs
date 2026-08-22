@@ -23,7 +23,7 @@ const ROOT = join(HERE, "..");
 const AGENTS = join(ROOT, "packages", "agents");
 const TABLE = join(ROOT, "packages/cli/src/harness/capability-table.ts");
 /** One fingerprint implementation, shared with the audit and the gate. */
-const { capabilityContractFingerprint } = await import(
+const { capabilityContractFingerprint, extractCoverageBlocks } = await import(
   pathToFileURL(join(ROOT, "packages/cli/dist/harness/capability-coverage.js")).href
 );
 const TESTS = join(AGENTS, "tests");
@@ -183,16 +183,27 @@ async function collectEvalCases() {
   return byCapability;
 }
 
-/** Gap notes from the table as it stands, so a rewrite never loses one. */
+/**
+ * Gap notes from the table as it stands, so a rewrite never loses one.
+ *
+ * Read out of the structural block scan rather than a regex over the whole
+ * file: a pattern that matched a run of concatenated string literals nested
+ * its quantifiers, which CodeQL correctly called exponential backtracking. A
+ * gap is always the block's last field, so it is the text between the `gap:`
+ * key and the closing brace.
+ */
 function existingGaps() {
   if (!existsSync(TABLE)) return new Map();
-  const source = readFileSync(TABLE, "utf8");
   const gaps = new Map();
-  const pattern =
-    /name:\s*"([a-z0-9_]+)",[\s\S]*?(?:gap:\s*((?:"(?:[^"\\]|\\.)*"\s*\+?\s*)+),)?\n\s*\},/g;
-  let match;
-  while ((match = pattern.exec(source)) !== null) {
-    if (match[2]) gaps.set(match[1], match[2].trim().replace(/,$/, ""));
+  for (const [name, block] of extractCoverageBlocks(
+    readFileSync(TABLE, "utf8")
+  )) {
+    // The rendered indentation, so a `gap:` inside a note cannot match.
+    const key = block.indexOf("\n    gap:");
+    if (key === -1) continue;
+    const body = block.slice(key + "\n    gap:".length, block.lastIndexOf("}"));
+    const trimmed = body.trim();
+    gaps.set(name, trimmed.endsWith(",") ? trimmed.slice(0, -1).trim() : trimmed);
   }
   return gaps;
 }
