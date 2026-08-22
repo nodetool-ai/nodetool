@@ -453,7 +453,9 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "packages/agents/src/capabilities/",
       "packages/agents/src/evals/",
-      "packages/cli/src/harness/capability-table.ts"
+      "packages/cli/src/harness/capability-table.ts",
+      "packages/cli/src/harness/capability-coverage.ts",
+      "scripts/sync-capability-coverage.mjs"
     ]
   },
   {
