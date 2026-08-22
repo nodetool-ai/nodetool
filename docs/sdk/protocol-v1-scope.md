@@ -114,6 +114,9 @@ must likewise ignore an unknown event type after safely advancing its stream
 position; they must not reinterpret it as a known event. Required fields are
 not removed or repurposed within protocol v1.
 
+The full v1 change rules, released-bundle layout, digest scheme, and semantic
+diff categories are specified in `docs/sdk/protocol-v1-compatibility.md`.
+
 ## Authentication boundary
 
 Current local discovery behavior is preserved by default. When NodeTool's
