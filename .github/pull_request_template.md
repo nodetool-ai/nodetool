@@ -7,10 +7,10 @@
 <!-- Commands you ran, with their result. Paste the failing output for any
      check you inverted to prove it can fail. -->
 
+- [ ] `npm run test:affected` (the full `npm run test` +
+      `npm run test:packages` pass is CI's job, not yours)
 - [ ] `npm run typecheck`
 - [ ] `npm run lint`
-- [ ] `npm run test` and `npm run test:packages` (or the packages
-      `nodetool affected` names)
 - [ ] `npm run dev:nodetool -- harness gate --base main`
 
 ## Agent capabilities
