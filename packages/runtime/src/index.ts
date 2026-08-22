@@ -181,6 +181,10 @@ export {
 } from "./python-graph-resolver.js";
 export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 export {
+  fetchExternalMedia,
+  privateMediaFetchAllowed
+} from "./external-media-fetch.js";
+export {
   assetRefToPromptToken,
   classifyAssetToken,
   classifyTextToken,

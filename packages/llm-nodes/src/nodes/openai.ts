@@ -4,6 +4,7 @@ import type {
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { fetchExternalMedia } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { isCallable, isString } from "./type-predicates.js";
 
@@ -588,7 +589,8 @@ async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
     return new Blob([buf]);
   }
   if (ref.uri && isString(ref.uri)) {
-    const r = await fetch(ref.uri);
+    // Workflow data — the media-ref egress policy decides.
+    const r = await fetchExternalMedia(ref.uri);
     return await r.blob();
   }
   throw new Error("Cannot convert ref to blob: no data or uri");

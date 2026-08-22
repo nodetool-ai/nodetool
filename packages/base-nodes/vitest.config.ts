@@ -42,6 +42,10 @@ export default defineConfig({
         "../agents/src/js-sandbox.ts"
       ),
       "@nodetool-ai/agents": resolve(__dirname, "../agents/src/index.ts"),
+      "@nodetool-ai/runtime/safe-url": resolve(
+        __dirname,
+        "../runtime/src/providers/safe-url.ts"
+      ),
       "@nodetool-ai/runtime/tracing": resolve(
         __dirname,
         "../runtime/src/tracing-helpers.ts"

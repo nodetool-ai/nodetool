@@ -6,6 +6,10 @@ export default defineConfig({
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),
       "@nodetool-ai/kernel": resolve(__dirname, "../kernel/src/index.ts"),
       // Subpaths before the root alias (Vite alias is prefix-based).
+      "@nodetool-ai/runtime/safe-url": resolve(
+        __dirname,
+        "../runtime/src/providers/safe-url.ts"
+      ),
       "@nodetool-ai/runtime/tracing": resolve(
         __dirname,
         "../runtime/src/tracing-helpers.ts"
