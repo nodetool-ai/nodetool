@@ -5,6 +5,7 @@ export default defineConfig({
     include: [
       "packages/*/tests/**/*.test.ts",
       "tools/oxlint/anti-slop/tests/**/*.test.ts",
+      "scripts/__tests__/**/*.test.mjs",
     ],
     coverage: {
       exclude: [

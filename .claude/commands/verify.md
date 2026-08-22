@@ -8,14 +8,17 @@ Run the pre-commit gate and fix what breaks.
 Run these three, in this order, and stop at the first failure:
 
 ```bash
+npm run test:affected
 npm run typecheck
 npm run lint
-npm run test
 ```
 
-Scope the work: if the change only touched one workspace, prefer the targeted
-script (`npm run typecheck:web`, `npm test --workspace=web`) over the full
-sweep, and only run everything before an actual commit.
+These three are the whole gate. `npm run test:affected` runs only the suites
+that depend on the diff — the affected backend packages through turbo, and
+`jest --findRelatedTests` in web/electron/mobile (their whole suite when a
+package they depend on changed). `npm run test:affected -- --dry-run` prints
+the plan without running it, and `-- --all` is the full pass if you want it.
+Do not run `npm run test` + `npm run test:packages` instead; CI runs those.
 
 If you changed anything under `packages/base-nodes`, `packages/node-sdk`,
 `fal-nodes`, `replicate-nodes`, or `elevenlabs-nodes`, run

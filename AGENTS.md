@@ -231,6 +231,7 @@ npm run lint             # Lint packages/*/src, web/src, electron, mobile/src
 npm run lint:fix         # Auto-fix linting issues
 npm run lint:anti-slop   # anti-slop backlog rules — report-only, not part of `lint`
 npm run test             # Run web, electron, and mobile tests
+npm run test:affected    # Only the suites that depend on changed code
 npm run check            # Workspace/lockfile/boundary checks, build:packages,
                          # typecheck, lint, test:packages, test
 ```
@@ -471,23 +472,49 @@ npm run electron:dev        # Electron against Vite server (requires conda env)
 
 ### Mandatory Post-Change Verification
 
-After **any** code change, run:
+After **any** code change, run these three — and only these three:
 
 ```bash
+npm run test:affected # Only the suites that depend on what changed
 npm run typecheck     # Type check web, electron, and mobile
 npm run lint          # Lint packages/*/src, web/src, electron, mobile/src
-npm run test          # Run web, electron, and mobile tests
-npm run test:packages # Run the backend package suites
 ```
 
-`npm run test` covers only web, electron, and mobile — backend packages are a
-separate run. All four must pass before the task is complete.
+All three must pass before the task is complete. Do not reach for the full
+`npm run test` + `npm run test:packages` pass instead: it is minutes of wall
+clock on a two-file change, and CI runs it on the PR anyway.
 
-Running suites per package instead is fine when the full run is too slow — but
-run every package `nodetool affected` names, not the ones you remember touching.
+`npm run test:affected` maps the diff — committed since the merge-base with
+`origin/main`, plus the working tree — onto workspaces with the same
+`computeAffected` behind `nodetool affected`, then runs:
+
+- the affected backend packages through `turbo run test`, so their dependencies
+  still build (`test` dependsOn `^build`);
+- `jest --findRelatedTests` in web/electron/mobile when only that app's own
+  files changed — the tests that actually import them;
+- an app's whole suite when a package it depends on changed. Jest's dependency
+  graph stops at the workspace root, so a change inside
+  `node_modules/@nodetool-ai/*` is invisible to `--findRelatedTests`;
+- everything, when a changed file belongs to no workspace and is not
+  documentation (root configs, `scripts/`, the lockfile).
+
+```bash
+npm run test:affected                              # the current diff
+npm run test:affected -- --dry-run                 # print the plan, run nothing
+npm run test:affected -- --base <ref>              # diff against another ref
+npm run test:affected -- packages/kernel/src/x.ts  # ask what a given file selects
+npm run test:affected -- --all                     # the full pass, when you want it
+```
+
+The selection rules are `buildPlan` in `scripts/test-affected.mjs`, pinned by
+`scripts/__tests__/test-affected.test.mjs` (run by `npm run test:packages`) —
+a mis-selection is silent, so changing a rule means changing that test.
+
 `lint` passing is not `test` passing: a change to `packages/websocket` that was
 linted and never tested broke two route suites, and CI found it rather than the
-author.
+author. And selection is only as good as the declared dependency graph — when a
+change crosses a seam the graph does not record (a fixture read from another
+package, a generated file), run the suites you know it reaches by hand.
 
 ### Claims, Checks, and Measurements
 
@@ -582,6 +609,7 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 | Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
 | Run a workflow (id, JSON, or DSL `.ts`) | `nodetool run <file>` / `nodetool workflows run <id> [--params …]` | `run_workflow`, `start_background_job` | varies |
 | Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
+| Run only the suites that depend on changed code (the pre-commit test pass) | `npm run test:affected [-- --dry-run]` | — | seconds–minutes |
 | Check that every agent capability names a check | `nodetool harness capabilities`; `npm run capabilities:check` | — | seconds |
 | Check a provider's live response against the decoder that reads it | `npm run probe:providers` (nightly; offline half runs on every provider diff) | — | seconds |
 | Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |

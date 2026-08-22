@@ -9,6 +9,9 @@
 npm run build            # Build all packages
 npm run test             # Run the web, electron, and mobile tests
 npm run test:packages    # Run the backend package tests
+npm run test:affected    # Run only the suites that depend on changed code
+                         # (scripts/test-affected.mjs; rules pinned by
+                         #  scripts/__tests__/test-affected.test.mjs)
 npm run clean            # Remove build artifacts and dependencies
 npm run clean:build      # Remove build artifacts only
 ```
