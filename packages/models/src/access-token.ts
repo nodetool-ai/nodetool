@@ -66,6 +66,27 @@ export function parseAccessToken(
   return { id, secret };
 }
 
+/**
+ * Hash the secret half for storage.
+ *
+ * SHA-256, deliberately, and not bcrypt/scrypt/argon2. A slow KDF buys
+ * resistance to offline guessing, which is worth paying for when the input is
+ * a human-chosen password with maybe 30 bits of entropy. This input is
+ * `randomBytes(SECRET_BYTES)` — 256 bits from a CSPRNG — so guessing it costs
+ * about 2^255 hashes whether each one takes a nanosecond or a second. The
+ * expensive hash would defend a property the entropy already holds.
+ *
+ * What it would cost is real: the auth hook verifies a token on *every*
+ * authenticated request, so a 250 ms KDF here is 250 ms on every API call and
+ * a self-inflicted denial of service. This is why API tokens across the
+ * industry are stored under fast hashes while passwords are not.
+ *
+ * CodeQL's `js/insufficient-password-hash` flags this, tracing the `?api_key=`
+ * websocket parameter into it and reading the token as a password. The
+ * exclusion is in `.github/codeql/codeql-config.yml`, and the premise it rests
+ * on — that the secret really is long and random — is pinned by
+ * `tests/access-token.test.ts`.
+ */
 function hashSecret(secret: string): string {
   return createHash("sha256").update(secret, "utf-8").digest("hex");
 }
