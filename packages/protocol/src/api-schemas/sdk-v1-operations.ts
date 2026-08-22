@@ -298,7 +298,9 @@ export function validateSdkV1OperationRegistry(
 
     if (operation.status === "implemented") {
       if (!isValidSchemaRef(operation.response?.schema)) {
-        issues.push(`implemented operation ${operation.id} has no response schema`);
+        issues.push(
+          `implemented operation ${operation.id} has no response schema`
+        );
       }
       if (
         operation.request.body?.kind === "json" &&
@@ -342,7 +344,9 @@ export function validateSdkV1OperationRegistry(
           );
         }
       } else if (!isValidSchemaRef(operation.message.event?.payload)) {
-        issues.push(`implemented operation ${operation.id} has no event schema`);
+        issues.push(
+          `implemented operation ${operation.id} has no event schema`
+        );
       }
       validatePolicy(operation, issues);
     }
@@ -376,3 +380,11 @@ export {
   sdkV1WebSocketOperations
 };
 export type { SdkV1HttpOperationMatch } from "./sdk-v1-http-operations.js";
+export type {
+  ImplementedSdkV1HttpOperation,
+  ImplementedSdkV1HttpOperationId
+} from "./sdk-v1-http-operations.js";
+export type {
+  ImplementedSdkV1WebSocketOperation,
+  ImplementedSdkV1WebSocketOperationId
+} from "./sdk-v1-websocket-operations.js";

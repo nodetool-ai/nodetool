@@ -2,12 +2,8 @@
  * Phase 0 inventory pin for the four SDK-related tRPC procedures and their
  * in-repository callers (docs/sdk/sdk-trpc-consolidation.md § Phase 0).
  *
- * These procedures are NOT unused: the unified WebSocket runner serves the
- * four SDK discovery commands through an in-process tRPC caller. Phase 3
- * migrates those call sites onto the shared service boundary — when it does,
- * this test is updated deliberately, together with the caller inventory in
- * docs/sdk/phase-0-baseline-2026-08-22.md. Until then, a rename, removal, or
- * silent extra caller fails here.
+ * Phase 3 retains these procedures as public wrappers over the shared SDK v1
+ * boundary. The unified WebSocket runner calls that boundary directly.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -45,6 +41,14 @@ function procedureDef(name: string): ProcedureDef {
 
 const RUNNER_SOURCE_URL = new URL(
   "../src/unified-websocket-runner.ts",
+  import.meta.url
+);
+const WORKFLOWS_ROUTER_SOURCE_URL = new URL(
+  "../src/trpc/routers/workflows.ts",
+  import.meta.url
+);
+const NODES_ROUTER_SOURCE_URL = new URL(
+  "../src/trpc/routers/nodes.ts",
   import.meta.url
 );
 
@@ -92,15 +96,15 @@ describe("SDK v1 tRPC procedure and caller inventory (Phase 0 pin)", () => {
     }
   });
 
-  it("pins the runner's in-process tRPC call sites for the SDK commands", () => {
+  it("keeps the runner off the in-process tRPC SDK procedures", () => {
     const source = readFileSync(RUNNER_SOURCE_URL, "utf8");
 
-    // One call site each. `caller.workflows.interface(` cannot match the
-    // plural form: the literal `(` follows `interface` in the pattern.
-    expect(countMatches(source, /caller\.workflows\.sdkSummaries\(/)).toBe(1);
-    expect(countMatches(source, /caller\.workflows\.interface\(/)).toBe(1);
-    expect(countMatches(source, /caller\.workflows\.interfaces\(/)).toBe(1);
-    expect(countMatches(source, /caller\.nodes\.sdkTypeInventory\(/)).toBe(1);
+    expect(countMatches(source, /caller\.workflows\.sdkSummaries\(/)).toBe(0);
+    expect(countMatches(source, /caller\.workflows\.interface\(/)).toBe(0);
+    expect(countMatches(source, /caller\.workflows\.interfaces\(/)).toBe(0);
+    expect(countMatches(source, /caller\.nodes\.sdkTypeInventory\(/)).toBe(0);
+    expect(countMatches(source, /handleSdkV1DiscoveryRpc\(command,/)).toBe(1);
+    expect(countMatches(source, /runSdkDiscoveryRpc\(command\)/)).toBe(1);
 
     // The commands that dispatch onto them, and the two lifecycle commands
     // that bypass tRPC via handleSdkV1LifecycleRpc.
@@ -118,5 +122,19 @@ describe("SDK v1 tRPC procedure and caller inventory (Phase 0 pin)", () => {
       ).toBe(1);
     }
     expect(countMatches(source, /runSdkLifecycleRpc\(command\)/)).toBe(1);
+  });
+
+  it("keeps the retained tRPC procedures as boundary wrappers", () => {
+    const workflows = readFileSync(WORKFLOWS_ROUTER_SOURCE_URL, "utf8");
+    const nodes = readFileSync(NODES_ROUTER_SOURCE_URL, "utf8");
+
+    for (const handlerId of [
+      "sdkRpc.list_workflow_summaries",
+      "sdkRpc.get_workflow_interface",
+      "sdkRpc.get_workflow_interfaces"
+    ]) {
+      expect(countMatches(workflows, new RegExp(`"${handlerId}"`))).toBe(1);
+    }
+    expect(countMatches(nodes, /"sdkRpc\.get_node_type_inventory"/)).toBe(1);
   });
 });

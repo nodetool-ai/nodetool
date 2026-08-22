@@ -56,7 +56,11 @@ export const sdkV1WebSocketMessages: readonly SdkV1WebSocketMessageEnvelope[] =
       description:
         "A correlated read-only SDK command. request_id must be non-empty.",
       contentType: "application/msgpack",
-      payload: { profile: "discovery", name: "RpcRequest", schema: sdkV1RpcRequest },
+      payload: {
+        profile: "discovery",
+        name: "RpcRequest",
+        schema: sdkV1RpcRequest
+      },
       operationKey: "sendSdkRpcRequest"
     },
     {
@@ -105,9 +109,14 @@ export const sdkV1WebSocketMessages: readonly SdkV1WebSocketMessageEnvelope[] =
       key: "jobEvent",
       action: "receive",
       name: "JobEvent",
-      description: "A planned ordered per-job event emitted after subscription.",
+      description:
+        "A planned ordered per-job event emitted after subscription.",
       contentType: "application/msgpack",
-      payload: { profile: "lifecycle", name: "JobEvent", schema: sdkV1JobEvent },
+      payload: {
+        profile: "lifecycle",
+        name: "JobEvent",
+        schema: sdkV1JobEvent
+      },
       operationKey: "receiveJobEvent"
     }
   ];
@@ -122,358 +131,377 @@ const lifecycleRpcEnvelopes = {
   response: "lifecycleRpcResponse"
 } as const;
 
-export const sdkV1WebSocketOperations: readonly SdkV1WebSocketOperationDeclaration[] =
-  [
-    {
-      id: "sdkRpc.list_workflow_summaries",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "list_workflow_summaries",
-      status: "implemented",
-      auth: "discovery",
-      feature: "workflow-interface",
-      message: {
-        request: {
-          envelope: sdkRpcEnvelopes.request,
-          payload: {
-            profile: "discovery",
-            name: "WorkflowSummariesInput",
-            schema: sdkWorkflowSummariesInput
-          }
-        },
-        response: {
-          envelope: sdkRpcEnvelopes.response,
-          payload: {
-            profile: "discovery",
-            name: "WorkflowSummariesOutput",
-            schema: sdkWorkflowSummariesOutput
-          }
+export const sdkV1WebSocketOperations = [
+  {
+    id: "sdkRpc.list_workflow_summaries",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "list_workflow_summaries",
+    status: "implemented",
+    auth: "discovery",
+    feature: "workflow-interface",
+    message: {
+      request: {
+        envelope: sdkRpcEnvelopes.request,
+        payload: {
+          profile: "discovery",
+          name: "WorkflowSummariesInput",
+          schema: sdkWorkflowSummariesInput
         }
       },
-      errors: [
-        { code: "INVALID_INPUT", description: "Invalid cursor or limit" },
-        { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
-      ]
+      response: {
+        envelope: sdkRpcEnvelopes.response,
+        payload: {
+          profile: "discovery",
+          name: "WorkflowSummariesOutput",
+          schema: sdkWorkflowSummariesOutput
+        }
+      }
     },
-    {
-      id: "sdkRpc.get_workflow_interface",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "get_workflow_interface",
-      status: "implemented",
-      auth: "discovery",
-      feature: "workflow-interface",
-      message: {
-        request: {
-          envelope: sdkRpcEnvelopes.request,
-          payload: {
-            profile: "discovery",
-            name: "WorkflowInterfaceInput",
-            schema: workflowInterfaceInput
-          }
-        },
-        response: {
-          envelope: sdkRpcEnvelopes.response,
-          payload: {
-            profile: "discovery",
-            name: "WorkflowInterface",
-            schema: workflowInterfaceV1
-          }
+    errors: [
+      { code: "INVALID_INPUT", description: "Invalid cursor or limit" },
+      { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
+    ]
+  },
+  {
+    id: "sdkRpc.get_workflow_interface",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "get_workflow_interface",
+    status: "implemented",
+    auth: "discovery",
+    feature: "workflow-interface",
+    message: {
+      request: {
+        envelope: sdkRpcEnvelopes.request,
+        payload: {
+          profile: "discovery",
+          name: "WorkflowInterfaceInput",
+          schema: workflowInterfaceInput
         }
       },
-      errors: [
-        { code: "INVALID_INPUT", description: "Unsupported interface version" },
-        { code: "WORKFLOW_NOT_FOUND", description: "Workflow not found" },
-        { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
-      ]
+      response: {
+        envelope: sdkRpcEnvelopes.response,
+        payload: {
+          profile: "discovery",
+          name: "WorkflowInterface",
+          schema: workflowInterfaceV1
+        }
+      }
     },
-    {
-      id: "sdkRpc.get_workflow_interfaces",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "get_workflow_interfaces",
-      status: "implemented",
-      auth: "discovery",
-      feature: "workflow-interface",
-      message: {
-        request: {
-          envelope: sdkRpcEnvelopes.request,
-          payload: {
-            profile: "discovery",
-            name: "WorkflowInterfacesInput",
-            schema: workflowInterfacesInput
-          }
-        },
-        response: {
-          envelope: sdkRpcEnvelopes.response,
-          payload: {
-            profile: "discovery",
-            name: "WorkflowInterfacesOutput",
-            schema: workflowInterfacesOutput
-          }
+    errors: [
+      { code: "INVALID_INPUT", description: "Unsupported interface version" },
+      { code: "WORKFLOW_NOT_FOUND", description: "Workflow not found" },
+      { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
+    ]
+  },
+  {
+    id: "sdkRpc.get_workflow_interfaces",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "get_workflow_interfaces",
+    status: "implemented",
+    auth: "discovery",
+    feature: "workflow-interface",
+    message: {
+      request: {
+        envelope: sdkRpcEnvelopes.request,
+        payload: {
+          profile: "discovery",
+          name: "WorkflowInterfacesInput",
+          schema: workflowInterfacesInput
         }
       },
-      errors: [
-        { code: "INVALID_INPUT", description: "Invalid request" },
-        { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
-      ]
+      response: {
+        envelope: sdkRpcEnvelopes.response,
+        payload: {
+          profile: "discovery",
+          name: "WorkflowInterfacesOutput",
+          schema: workflowInterfacesOutput
+        }
+      }
     },
-    {
-      id: "sdkRpc.get_node_type_inventory",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "get_node_type_inventory",
-      status: "implemented",
-      auth: "discovery",
-      feature: "workflow-interface",
-      message: {
-        request: {
-          envelope: sdkRpcEnvelopes.request,
-          payload: {
-            profile: "discovery",
-            name: "NodeTypeInventoryInput",
-            schema: sdkNodeTypeInventoryInput
-          }
-        },
-        response: {
-          envelope: sdkRpcEnvelopes.response,
-          payload: {
-            profile: "discovery",
-            name: "NodeTypeInventoryOutput",
-            schema: sdkNodeTypeInventoryOutput
-          }
+    errors: [
+      { code: "INVALID_INPUT", description: "Invalid request" },
+      { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
+    ]
+  },
+  {
+    id: "sdkRpc.get_node_type_inventory",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "get_node_type_inventory",
+    status: "implemented",
+    auth: "discovery",
+    feature: "workflow-interface",
+    message: {
+      request: {
+        envelope: sdkRpcEnvelopes.request,
+        payload: {
+          profile: "discovery",
+          name: "NodeTypeInventoryInput",
+          schema: sdkNodeTypeInventoryInput
         }
       },
-      errors: [
-        { code: "INVALID_INPUT", description: "Invalid cursor or limit" },
-        { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
-      ]
+      response: {
+        envelope: sdkRpcEnvelopes.response,
+        payload: {
+          profile: "discovery",
+          name: "NodeTypeInventoryOutput",
+          schema: sdkNodeTypeInventoryOutput
+        }
+      }
     },
-    {
-      id: "lifecycleRpc.get_capabilities",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "get_capabilities",
-      status: "implemented",
-      auth: "discovery",
-      feature: "lifecycle",
-      message: {
-        request: {
-          envelope: lifecycleRpcEnvelopes.request,
-          payload: {
-            profile: "lifecycle",
-            name: "CapabilitiesRequest",
-            schema: sdkV1CapabilitiesRequest
-          }
-        },
-        response: {
-          envelope: lifecycleRpcEnvelopes.response,
-          payload: {
-            profile: "lifecycle",
-            name: "Capabilities",
-            schema: sdkV1Capabilities
-          }
+    errors: [
+      { code: "INVALID_INPUT", description: "Invalid cursor or limit" },
+      { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
+    ]
+  },
+  {
+    id: "lifecycleRpc.get_capabilities",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "get_capabilities",
+    status: "implemented",
+    auth: "discovery",
+    feature: "lifecycle",
+    message: {
+      request: {
+        envelope: lifecycleRpcEnvelopes.request,
+        payload: {
+          profile: "lifecycle",
+          name: "CapabilitiesRequest",
+          schema: sdkV1CapabilitiesRequest
         }
       },
-      errors: [
-        { code: "SERVICE_UNAVAILABLE", description: "Capabilities are unavailable" }
-      ]
+      response: {
+        envelope: lifecycleRpcEnvelopes.response,
+        payload: {
+          profile: "lifecycle",
+          name: "Capabilities",
+          schema: sdkV1Capabilities
+        }
+      }
     },
-    {
-      id: "lifecycleRpc.preflight_workflow",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "preflight_workflow",
-      status: "implemented",
-      auth: "authenticated",
-      feature: "lifecycle",
-      message: {
-        request: {
-          envelope: lifecycleRpcEnvelopes.request,
-          payload: {
-            profile: "lifecycle",
-            name: "PreflightRequest",
-            schema: sdkV1PreflightRequest
-          }
-        },
-        response: {
-          envelope: lifecycleRpcEnvelopes.response,
-          payload: {
-            profile: "lifecycle",
-            name: "PreflightSummary",
-            schema: sdkV1PreflightSummary
-          }
+    errors: [
+      {
+        code: "SERVICE_UNAVAILABLE",
+        description: "Capabilities are unavailable"
+      }
+    ]
+  },
+  {
+    id: "lifecycleRpc.preflight_workflow",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "preflight_workflow",
+    status: "implemented",
+    auth: "authenticated",
+    feature: "lifecycle",
+    message: {
+      request: {
+        envelope: lifecycleRpcEnvelopes.request,
+        payload: {
+          profile: "lifecycle",
+          name: "PreflightRequest",
+          schema: sdkV1PreflightRequest
         }
       },
-      errors: [
-        { code: "INVALID_INPUT", description: "Invalid preflight request" },
-        { code: "WORKFLOW_NOT_FOUND", description: "Workflow not found" },
-        {
-          code: "SERVICE_UNAVAILABLE",
-          description: "Requested preflight level is unavailable"
+      response: {
+        envelope: lifecycleRpcEnvelopes.response,
+        payload: {
+          profile: "lifecycle",
+          name: "PreflightSummary",
+          schema: sdkV1PreflightSummary
         }
-      ]
+      }
     },
-    {
-      id: "lifecycleRpc.submit_job",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "submit_job",
-      status: "planned",
-      auth: "authenticated",
-      feature: "lifecycle",
-      message: {
-        request: {
-          envelope: lifecycleRpcEnvelopes.request,
-          payload: {
-            profile: "lifecycle",
-            name: "SubmitJobRequest",
-            schema: sdkV1SubmitJobRequest
-          }
-        },
-        response: {
-          envelope: lifecycleRpcEnvelopes.response,
-          payload: {
-            profile: "lifecycle",
-            name: "SubmitJobResponse",
-            schema: sdkV1SubmitJobResponse
-          }
+    errors: [
+      { code: "INVALID_INPUT", description: "Invalid preflight request" },
+      { code: "WORKFLOW_NOT_FOUND", description: "Workflow not found" },
+      {
+        code: "SERVICE_UNAVAILABLE",
+        description: "Requested preflight level is unavailable"
+      }
+    ]
+  },
+  {
+    id: "lifecycleRpc.submit_job",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "submit_job",
+    status: "planned",
+    auth: "authenticated",
+    feature: "lifecycle",
+    message: {
+      request: {
+        envelope: lifecycleRpcEnvelopes.request,
+        payload: {
+          profile: "lifecycle",
+          name: "SubmitJobRequest",
+          schema: sdkV1SubmitJobRequest
         }
       },
-      errors: [
-        { code: "INVALID_INPUT", description: "Invalid submission" },
-        {
-          code: "TOO_MANY_REQUESTS",
-          description: "Admission or rate limit exceeded"
-        },
-        { code: "SERVICE_UNAVAILABLE", description: "Execution is unavailable" }
-      ]
+      response: {
+        envelope: lifecycleRpcEnvelopes.response,
+        payload: {
+          profile: "lifecycle",
+          name: "SubmitJobResponse",
+          schema: sdkV1SubmitJobResponse
+        }
+      }
     },
-    {
-      id: "lifecycleRpc.get_job_snapshot",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "get_job_snapshot",
-      status: "planned",
-      auth: "authenticated",
-      feature: "lifecycle",
-      message: {
-        request: {
-          envelope: lifecycleRpcEnvelopes.request,
-          payload: {
-            profile: "lifecycle",
-            name: "JobRequest",
-            schema: sdkV1JobRequest
-          }
-        },
-        response: {
-          envelope: lifecycleRpcEnvelopes.response,
-          payload: {
-            profile: "lifecycle",
-            name: "JobSnapshot",
-            schema: sdkV1JobSnapshot
-          }
+    errors: [
+      { code: "INVALID_INPUT", description: "Invalid submission" },
+      {
+        code: "TOO_MANY_REQUESTS",
+        description: "Admission or rate limit exceeded"
+      },
+      { code: "SERVICE_UNAVAILABLE", description: "Execution is unavailable" }
+    ]
+  },
+  {
+    id: "lifecycleRpc.get_job_snapshot",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "get_job_snapshot",
+    status: "planned",
+    auth: "authenticated",
+    feature: "lifecycle",
+    message: {
+      request: {
+        envelope: lifecycleRpcEnvelopes.request,
+        payload: {
+          profile: "lifecycle",
+          name: "JobRequest",
+          schema: sdkV1JobRequest
         }
       },
-      errors: [
-        { code: "NOT_FOUND", description: "Job not found, inaccessible, or expired" }
-      ]
+      response: {
+        envelope: lifecycleRpcEnvelopes.response,
+        payload: {
+          profile: "lifecycle",
+          name: "JobSnapshot",
+          schema: sdkV1JobSnapshot
+        }
+      }
     },
-    {
-      id: "lifecycleRpc.subscribe_job",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "subscribe_job",
-      status: "planned",
-      auth: "authenticated",
-      feature: "lifecycle",
-      message: {
-        request: {
-          envelope: lifecycleRpcEnvelopes.request,
-          payload: {
-            profile: "lifecycle",
-            name: "SubscribeJobRequest",
-            schema: sdkV1SubscribeJobRequest
-          }
-        },
-        response: {
-          envelope: lifecycleRpcEnvelopes.response,
-          payload: {
-            profile: "lifecycle",
-            name: "SubscribeJobResponse",
-            schema: sdkV1SubscribeJobResponse
-          }
+    errors: [
+      {
+        code: "NOT_FOUND",
+        description: "Job not found, inaccessible, or expired"
+      }
+    ]
+  },
+  {
+    id: "lifecycleRpc.subscribe_job",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "subscribe_job",
+    status: "planned",
+    auth: "authenticated",
+    feature: "lifecycle",
+    message: {
+      request: {
+        envelope: lifecycleRpcEnvelopes.request,
+        payload: {
+          profile: "lifecycle",
+          name: "SubscribeJobRequest",
+          schema: sdkV1SubscribeJobRequest
         }
       },
-      errors: [
-        { code: "NOT_FOUND", description: "Job not found, inaccessible, or expired" }
-      ]
+      response: {
+        envelope: lifecycleRpcEnvelopes.response,
+        payload: {
+          profile: "lifecycle",
+          name: "SubscribeJobResponse",
+          schema: sdkV1SubscribeJobResponse
+        }
+      }
     },
-    {
-      id: "lifecycleRpc.cancel_job",
-      transport: "websocket",
-      direction: "request-response",
-      channel: sdkV1WebSocketChannel.key,
-      command: "cancel_job",
-      status: "planned",
-      auth: "authenticated",
-      feature: "lifecycle",
-      message: {
-        request: {
-          envelope: lifecycleRpcEnvelopes.request,
-          payload: {
-            profile: "lifecycle",
-            name: "JobRequest",
-            schema: sdkV1JobRequest
-          }
-        },
-        response: {
-          envelope: lifecycleRpcEnvelopes.response,
-          payload: {
-            profile: "lifecycle",
-            name: "CancelJobResponse",
-            schema: sdkV1CancelJobResponse
-          }
+    errors: [
+      {
+        code: "NOT_FOUND",
+        description: "Job not found, inaccessible, or expired"
+      }
+    ]
+  },
+  {
+    id: "lifecycleRpc.cancel_job",
+    transport: "websocket",
+    direction: "request-response",
+    channel: sdkV1WebSocketChannel.key,
+    command: "cancel_job",
+    status: "planned",
+    auth: "authenticated",
+    feature: "lifecycle",
+    message: {
+      request: {
+        envelope: lifecycleRpcEnvelopes.request,
+        payload: {
+          profile: "lifecycle",
+          name: "JobRequest",
+          schema: sdkV1JobRequest
         }
       },
-      errors: [
-        { code: "NOT_FOUND", description: "Job not found, inaccessible, or expired" }
-      ]
+      response: {
+        envelope: lifecycleRpcEnvelopes.response,
+        payload: {
+          profile: "lifecycle",
+          name: "CancelJobResponse",
+          schema: sdkV1CancelJobResponse
+        }
+      }
     },
-    {
-      id: "receiveJobEvent",
-      transport: "websocket",
-      direction: "server-event",
-      channel: sdkV1WebSocketChannel.key,
-      status: "planned",
-      auth: "authenticated",
-      feature: "lifecycle",
-      message: {
-        event: {
-          envelope: "jobEvent",
-          payload: {
-            profile: "lifecycle",
-            name: "JobEvent",
-            schema: sdkV1JobEvent
-          }
+    errors: [
+      {
+        code: "NOT_FOUND",
+        description: "Job not found, inaccessible, or expired"
+      }
+    ]
+  },
+  {
+    id: "receiveJobEvent",
+    transport: "websocket",
+    direction: "server-event",
+    channel: sdkV1WebSocketChannel.key,
+    status: "planned",
+    auth: "authenticated",
+    feature: "lifecycle",
+    message: {
+      event: {
+        envelope: "jobEvent",
+        payload: {
+          profile: "lifecycle",
+          name: "JobEvent",
+          schema: sdkV1JobEvent
         }
-      },
-      errors: []
-    }
-  ];
+      }
+    },
+    errors: []
+  }
+] as const satisfies readonly SdkV1WebSocketOperationDeclaration[];
 
-export const implementedSdkV1WebSocketOperations: readonly SdkV1WebSocketOperationDeclaration[] =
+export type ImplementedSdkV1WebSocketOperation = Extract<
+  (typeof sdkV1WebSocketOperations)[number],
+  { readonly status: "implemented" }
+>;
+export type ImplementedSdkV1WebSocketOperationId =
+  ImplementedSdkV1WebSocketOperation["id"];
+
+export const implementedSdkV1WebSocketOperations =
   sdkV1WebSocketOperations.filter(
-    (operation) => operation.status === "implemented"
+    (operation): operation is ImplementedSdkV1WebSocketOperation =>
+      operation.status === "implemented"
   );
 
 export function getSdkV1WebSocketOperation(

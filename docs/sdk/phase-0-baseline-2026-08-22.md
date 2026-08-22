@@ -27,6 +27,12 @@ The four files run 23 tests. The route plugins are booted exactly as
 `server.ts` boots them (same plugins, same raw-Buffer body parser); services
 are injected constants and the clock is frozen so bodies are byte-stable.
 
+> **Post-baseline note:** This document intentionally records the Phase 0
+> topology. Phase 3 later moved all 11 HTTP registrations into
+> `routes/sdk-v1.ts`, removed SDK ownership from `handleApiRequest`, and made
+> the four discovery WebSocket commands call the shared SDK boundary directly.
+> The fixtures and their bytes remain unchanged.
+
 ## HTTP inventory (11 implemented operations)
 
 All Fastify mounts are registered in `server.ts:1337-1339` through three

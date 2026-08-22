@@ -13,7 +13,8 @@ import {
   sdkNodeTypeInventoryOutput
 } from "@nodetool-ai/protocol/api-schemas/nodes.js";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
-import { getSdkNodeTypeInventory } from "../../sdk/sdk-node-type-inventory-service.js";
+import { resolveSdkV1Boundary } from "../../http-api.js";
+import { throwSdkV1TrpcError } from "../../sdk/sdk-v1-trpc-error.js";
 
 type NodeMetaOut = {
   node_type: string;
@@ -126,11 +127,17 @@ export const nodesRouter = router({
   sdkTypeInventory: protectedProcedure
     .input(sdkNodeTypeInventoryInput)
     .output(sdkNodeTypeInventoryOutput)
-    .query(({ ctx, input }) =>
-      getSdkNodeTypeInventory({
-        registry: ctx.registry,
-        pythonBridgeReady: ctx.getPythonBridgeReady(),
-        input
-      })
-    )
+    .query(async ({ ctx, input }) => {
+      try {
+        return await resolveSdkV1Boundary(ctx.apiOptions).handlers[
+          "sdkRpc.get_node_type_inventory"
+        ]({
+          registry: ctx.registry,
+          pythonBridgeReady: ctx.getPythonBridgeReady(),
+          request: input
+        });
+      } catch (error) {
+        throwSdkV1TrpcError(error);
+      }
+    })
 });

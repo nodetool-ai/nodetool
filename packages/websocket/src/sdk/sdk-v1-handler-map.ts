@@ -1,6 +1,7 @@
 import {
   implementedSdkV1HttpOperations,
-  implementedSdkV1WebSocketOperations
+  implementedSdkV1WebSocketOperations,
+  type SdkV1WebSocketOperationDeclaration
 } from "@nodetool-ai/protocol/api-schemas/sdk-v1-operations.js";
 import type { SdkV1Service } from "./sdk-v1-service.js";
 
@@ -97,13 +98,15 @@ export function assertSdkV1ImplementationCoverage(input: {
   readonly handlers: Readonly<Record<string, unknown>>;
   readonly eventPublishers: Readonly<Record<string, unknown>>;
 }): void {
+  const websocketOperations: readonly SdkV1WebSocketOperationDeclaration[] =
+    implementedSdkV1WebSocketOperations;
   const requestResponseIds = [
     ...implementedSdkV1HttpOperations.map((operation) => operation.id),
-    ...implementedSdkV1WebSocketOperations
+    ...websocketOperations
       .filter((operation) => operation.direction === "request-response")
       .map((operation) => operation.id)
   ];
-  const eventIds = implementedSdkV1WebSocketOperations
+  const eventIds = websocketOperations
     .filter((operation) => operation.direction === "server-event")
     .map((operation) => operation.id);
 

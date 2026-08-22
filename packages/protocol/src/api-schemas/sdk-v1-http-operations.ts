@@ -46,7 +46,7 @@ const opaquePathId = {
   jsonSchema: { minLength: 1, type: "string" }
 } as const;
 
-export const sdkV1HttpOperations: readonly SdkV1HttpOperationDeclaration[] = [
+export const sdkV1HttpOperations = [
   {
     id: "getNodeTypeInventory",
     transport: "http",
@@ -155,7 +155,10 @@ export const sdkV1HttpOperations: readonly SdkV1HttpOperationDeclaration[] = [
     },
     errors: [
       { status: "400", description: "Invalid catalog query" },
-      { status: "501", description: "Requested execution scope is not available" },
+      {
+        status: "501",
+        description: "Requested execution scope is not available"
+      },
       { status: "503", description: "Model catalog is unavailable" }
     ]
   },
@@ -196,7 +199,10 @@ export const sdkV1HttpOperations: readonly SdkV1HttpOperationDeclaration[] = [
     },
     errors: [
       { status: "400", description: "Invalid download query" },
-      { status: "501", description: "Requested execution scope is not available" }
+      {
+        status: "501",
+        description: "Requested execution scope is not available"
+      }
     ]
   },
   {
@@ -231,7 +237,10 @@ export const sdkV1HttpOperations: readonly SdkV1HttpOperationDeclaration[] = [
     },
     errors: [
       { status: "400", description: "Invalid download request" },
-      { status: "501", description: "Requested model download is not available" }
+      {
+        status: "501",
+        description: "Requested model download is not available"
+      }
     ]
   },
   {
@@ -476,7 +485,10 @@ export const sdkV1HttpOperations: readonly SdkV1HttpOperationDeclaration[] = [
     },
     errors: [
       { status: "400", description: "Invalid submission" },
-      { status: "409", description: "Idempotency or workflow revision conflict" },
+      {
+        status: "409",
+        description: "Idempotency or workflow revision conflict"
+      },
       { status: "422", description: "Preflight failed" },
       { status: "429", description: "Admission or rate limit exceeded" },
       { status: "503", description: "Execution is unavailable" }
@@ -538,10 +550,19 @@ export const sdkV1HttpOperations: readonly SdkV1HttpOperationDeclaration[] = [
       { status: "404", description: "Job not found, inaccessible, or expired" }
     ]
   }
-];
+] as const satisfies readonly SdkV1HttpOperationDeclaration[];
 
-export const implementedSdkV1HttpOperations: readonly SdkV1HttpOperationDeclaration[] =
-  sdkV1HttpOperations.filter((operation) => operation.status === "implemented");
+export type ImplementedSdkV1HttpOperation = Extract<
+  (typeof sdkV1HttpOperations)[number],
+  { readonly status: "implemented" }
+>;
+export type ImplementedSdkV1HttpOperationId =
+  ImplementedSdkV1HttpOperation["id"];
+
+export const implementedSdkV1HttpOperations = sdkV1HttpOperations.filter(
+  (operation): operation is ImplementedSdkV1HttpOperation =>
+    operation.status === "implemented"
+);
 
 export function getSdkV1HttpOperation(
   id: SdkV1HttpOperationId

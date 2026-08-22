@@ -1,53 +1,44 @@
-/**
- * Phase 0 inventory pin for the SDK v1 HTTP surface
- * (docs/sdk/sdk-trpc-consolidation.md § Phase 0).
- *
- * Two dispatchers serve overlapping subsets of the 11 implemented SDK v1
- * operations, and that asymmetry is the recorded drift risk:
- *
- *   1. The Fastify route plugins (routes/nodes.ts, routes/workflows.ts,
- *      routes/assets.ts, registered in server.ts) mount all 11 — the
- *      authoritative production surface.
- *   2. `handleApiRequest` in http-api.ts dispatches only 6 of them
- *      (node-types, capabilities, preflight, workflows, workflow-interfaces,
- *      workflows/:id/interface); the model catalog, model downloads, and
- *      temporary upload fall through to its 404.
- *
- * A change to either dispatcher's coverage must fail here and be reflected
- * deliberately in this inventory and the baseline record.
- */
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
 import Fastify from "fastify";
-import { initTestDb } from "@nodetool-ai/models";
+import { implementedSdkV1HttpOperations } from "@nodetool-ai/protocol/api-schemas/sdk-v1-operations.js";
 import { handleApiRequest } from "../src/http-api.js";
-import nodesRoutes from "../src/routes/nodes.js";
-import workflowsRoutes from "../src/routes/workflows.js";
 import assetsRoutes from "../src/routes/assets.js";
-import {
-  GOLDEN_BASE_ENV,
-  GOLDEN_PREFLIGHT_REQUEST,
-  GOLDEN_USER,
-  MISSING_WORKFLOW_ID,
-  WORKFLOW_ONE_ID,
-  makeGoldenApiOptions,
-  makeGoldenRegistry,
-  seedGoldenWorkflows
-} from "./sdk-v1-golden-harness.js";
+import nodesRoutes from "../src/routes/nodes.js";
+import sdkV1Routes from "../src/routes/sdk-v1.js";
+import workflowsRoutes from "../src/routes/workflows.js";
 
-/** The 11 implemented SDK v1 HTTP registrations (method + Fastify url). */
-const EXPECTED_SDK_V1_ROUTES = [
-  "GET /api/sdk/v1/capabilities",
-  "GET /api/sdk/v1/model-downloads",
-  "GET /api/sdk/v1/models",
-  "GET /api/sdk/v1/node-types",
-  "GET /api/sdk/v1/workflows",
-  "GET /api/workflows/:id/interface",
-  "POST /api/sdk/v1/assets/temporary",
-  "POST /api/sdk/v1/model-downloads",
-  "POST /api/sdk/v1/model-downloads/cancel",
-  "POST /api/sdk/v1/preflight",
-  "POST /api/sdk/v1/workflow-interfaces"
-] as const;
+function fastifyPath(path: string): string {
+  return path.replaceAll(/\{([^}]+)\}/g, ":$1");
+}
+
+function declaredRoutes(): string[] {
+  return implementedSdkV1HttpOperations
+    .map(
+      (operation) =>
+        `${operation.method} ${fastifyPath(operation.path)}`
+    )
+    .sort();
+}
+
+function implementedOpenApiRoutes(): string[] {
+  const document = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../protocol/schema/sdk-v1.openapi.implemented.json",
+        import.meta.url
+      ),
+      "utf8"
+    )
+  ) as { paths: Record<string, Record<string, unknown>> };
+  return Object.entries(document.paths)
+    .flatMap(([path, methods]) =>
+      Object.keys(methods).map(
+        (method) => `${method.toUpperCase()} ${fastifyPath(path)}`
+      )
+    )
+    .sort();
+}
 
 function isSdkV1Url(url: string): boolean {
   return (
@@ -55,162 +46,92 @@ function isSdkV1Url(url: string): boolean {
   );
 }
 
-describe("SDK v1 route inventory", () => {
-  const apiOptions = makeGoldenApiOptions(makeGoldenRegistry());
-
-  beforeAll(async () => {
-    for (const [key, value] of Object.entries(GOLDEN_BASE_ENV)) {
-      vi.stubEnv(key, value);
+async function registrationsFor(
+  plugins: Array<typeof sdkV1Routes>
+): Promise<string[]> {
+  const registrations: string[] = [];
+  const app = Fastify({ logger: false });
+  app.addHook("onRoute", (route) => {
+    const config = route.config as
+      | {
+          sdkV1Operation?: { method: string; path: string };
+          sdkV1MethodFallback?: true;
+        }
+      | undefined;
+    const sdkOperation = config?.sdkV1Operation;
+    if (sdkOperation) {
+      registrations.push(
+        `${sdkOperation.method} ${fastifyPath(sdkOperation.path)}`
+      );
+      return;
     }
-    initTestDb();
-    await seedGoldenWorkflows();
+    if (config?.sdkV1MethodFallback) return;
+    const methods = Array.isArray(route.method) ? route.method : [route.method];
+    for (const method of methods) {
+      if (method !== "HEAD") registrations.push(`${method} ${route.url}`);
+    }
   });
-
-  afterAll(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it("registers exactly the 11 implemented operations on the Fastify plugins", async () => {
-    const registrations: string[] = [];
-    const app = Fastify({ logger: false });
-    app.addHook("onRoute", (route) => {
-      const methods = Array.isArray(route.method)
-        ? route.method
-        : [route.method];
-      for (const method of methods) {
-        // Fastify auto-registers HEAD next to every GET (exposeHeadRoutes);
-        // only explicit registrations are inventory.
-        if (method === "HEAD") continue;
-        registrations.push(`${method} ${route.url}`);
-      }
-    });
-    const routeOpts = { apiOptions };
-    await app.register(assetsRoutes, routeOpts);
-    await app.register(workflowsRoutes, routeOpts);
-    await app.register(nodesRoutes, routeOpts);
-    await app.ready();
-    await app.close();
-
-    const sdkRoutes = registrations.filter((registration) =>
-      isSdkV1Url(registration.split(" ")[1])
-    );
-    expect(sdkRoutes.sort()).toEqual([...EXPECTED_SDK_V1_ROUTES]);
-  });
-
-  interface DispatcherProbe {
-    name: string;
-    request: () => Request;
-    /** For covered probes: the status that proves the handler ran. */
-    status?: number;
+  for (const plugin of plugins) {
+    await app.register(plugin, { apiOptions: {} });
   }
+  await app.ready();
+  await app.close();
+  return registrations;
+}
 
-  const jsonRequest = (path: string, body: unknown): Request =>
-    new Request(`http://localhost${path}`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-user-id": GOLDEN_USER
-      },
-      body: JSON.stringify(body)
-    });
+describe("SDK v1 route inventory", () => {
+  it("matches the operation registry and implemented OpenAPI exactly", async () => {
+    const registered = (await registrationsFor([sdkV1Routes])).sort();
 
-  const getRequest = (path: string): Request =>
-    new Request(`http://localhost${path}`, {
-      headers: { "x-user-id": GOLDEN_USER }
-    });
+    expect(registered).toEqual(declaredRoutes());
+    expect(registered).toEqual(implementedOpenApiRoutes());
+  });
 
-  // The six operations `handleApiRequest` covers, each proven by a
-  // handler-shaped response …
-  const COVERED: DispatcherProbe[] = [
-    {
-      name: "GET /api/sdk/v1/node-types",
-      request: () => getRequest("/api/sdk/v1/node-types?limit=1"),
-      status: 200
-    },
-    {
-      name: "GET /api/sdk/v1/capabilities",
-      request: () => getRequest("/api/sdk/v1/capabilities"),
-      status: 200
-    },
-    {
-      name: "POST /api/sdk/v1/preflight",
-      request: () =>
-        jsonRequest("/api/sdk/v1/preflight", GOLDEN_PREFLIGHT_REQUEST),
-      status: 200
-    },
-    {
-      name: "GET /api/sdk/v1/workflows",
-      request: () => getRequest("/api/sdk/v1/workflows?limit=10"),
-      status: 200
-    },
-    {
-      name: "POST /api/sdk/v1/workflow-interfaces",
-      request: () =>
-        jsonRequest("/api/sdk/v1/workflow-interfaces", {
-          ids: [WORKFLOW_ONE_ID],
-          version: 1
-        }),
-      status: 200
-    },
-    {
-      // SDK-shaped WORKFLOW_NOT_FOUND, not the dispatcher's fall-through 404.
-      name: "GET /api/workflows/:id/interface",
-      request: () =>
-        getRequest(`/api/workflows/${MISSING_WORKFLOW_ID}/interface?version=1`),
-      status: 404
-    }
-  ];
+  it("keeps all SDK routes out of the feature route plugins", async () => {
+    const registered = await registrationsFor([
+      assetsRoutes,
+      workflowsRoutes,
+      nodesRoutes
+    ]);
 
-  // … and the five it does NOT cover, proven by its literal fall-through
-  // body even though every backing service is injected and enabled.
-  const UNCOVERED: DispatcherProbe[] = [
-    {
-      name: "GET /api/sdk/v1/models",
-      request: () => getRequest("/api/sdk/v1/models")
-    },
-    {
-      name: "GET /api/sdk/v1/model-downloads",
-      request: () => getRequest("/api/sdk/v1/model-downloads")
-    },
-    {
-      name: "POST /api/sdk/v1/model-downloads",
-      request: () =>
-        jsonRequest("/api/sdk/v1/model-downloads", {
-          repo_id: "sdk-golden/model",
-          model_type: "hf.text_generation"
-        })
-    },
-    {
-      name: "POST /api/sdk/v1/model-downloads/cancel",
-      request: () =>
-        jsonRequest("/api/sdk/v1/model-downloads/cancel", {
-          operation_id: "mdl_sdk_golden"
-        })
-    },
-    {
-      name: "POST /api/sdk/v1/assets/temporary",
-      request: () => jsonRequest("/api/sdk/v1/assets/temporary", {})
-    }
-  ];
+    expect(
+      registered.filter((registration) =>
+        isSdkV1Url(registration.split(" ")[1])
+      )
+    ).toEqual([]);
+  });
 
-  it("http-api.ts second dispatcher covers exactly its recorded 6-route subset", async () => {
-    for (const probe of COVERED) {
-      const response = await handleApiRequest(probe.request(), apiOptions);
-      const body = (await response.json()) as Record<string, unknown>;
-      expect(response.status, probe.name).toBe(probe.status);
-      // Never the dispatcher's own fall-through.
-      expect(body, probe.name).not.toEqual({ detail: "Not found" });
-      if (probe.name.endsWith("/interface")) {
-        expect(body.code, probe.name).toBe("WORKFLOW_NOT_FOUND");
-      }
-    }
-
-    for (const probe of UNCOVERED) {
-      const response = await handleApiRequest(probe.request(), apiOptions);
-      expect(response.status, probe.name).toBe(404);
-      expect(await response.json(), probe.name).toEqual({
-        detail: "Not found"
+  it("keeps the old http-api dispatcher out of SDK route ownership", async () => {
+    const requests = implementedSdkV1HttpOperations
+      .filter((operation) => operation.path.startsWith("/api/sdk/v1/"))
+      .map((operation) => {
+      const path = operation.path
+        .replace("{id}", "missing-workflow")
+        .replace("{job_id}", "missing-job");
+      return new Request(`http://localhost${path}`, {
+        method: operation.method,
+        headers:
+          operation.method === "POST"
+            ? { "content-type": "application/json" }
+            : undefined,
+        body: operation.method === "POST" ? "{}" : undefined
       });
+      });
+
+    for (const request of requests) {
+      const response = await handleApiRequest(request, {});
+      expect(response.status, `${request.method} ${request.url}`).toBe(404);
+      expect(await response.json()).toEqual({ detail: "Not found" });
     }
+
+    // The compatibility route overlaps the generic `/api/workflows/:id`
+    // dispatcher shape, so source ownership is the unambiguous assertion.
+    const dispatcherSource = readFileSync(
+      new URL("../src/http-api.ts", import.meta.url),
+      "utf8"
+    );
+    expect(dispatcherSource).not.toContain(
+      'subPath === "interface"'
+    );
   });
 });

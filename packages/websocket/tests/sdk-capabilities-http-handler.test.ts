@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SdkV1Capabilities } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
-import { handleApiRequest } from "../src/http-api.js";
 import { handleSdkV1Capabilities } from "../src/sdk/sdk-capabilities-http-handler.js";
 import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
 import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
+import { requestSdkV1Route } from "./sdk-v1-fastify-test-helper.js";
 
 const capabilities = {
   protocol_version: "1",
@@ -125,8 +125,8 @@ describe("standalone SDK capabilities HTTP handler", () => {
     expect(getCapabilities).not.toHaveBeenCalled();
   });
 
-  it("is registered and default-on in the HTTP dispatcher", async () => {
-    const response = await handleApiRequest(request(), {
+  it("is registered and default-on in the Fastify route plugin", async () => {
+    const response = await requestSdkV1Route(request(), {
       sdkV1Boundary: boundary({ getCapabilities: () => capabilities })
     });
 
@@ -134,10 +134,10 @@ describe("standalone SDK capabilities HTTP handler", () => {
     expect(await response.json()).toEqual(capabilities);
   });
 
-  it("uses an injected live provider through the HTTP dispatcher", async () => {
+  it("uses an injected live provider through the Fastify route plugin", async () => {
     vi.stubEnv("NODETOOL_DISABLE_SDK_LIFECYCLE_V1", "0");
     try {
-      const response = await handleApiRequest(request(), {
+      const response = await requestSdkV1Route(request(), {
         sdkV1Boundary: boundary({ getCapabilities: () => capabilities })
       });
 

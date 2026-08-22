@@ -2490,28 +2490,8 @@ export async function handleApiRequest(
     return handleNodeMetadata(request, options);
   }
 
-  if (pathname === "/api/sdk/v1/node-types") {
-    return handleSdkNodeTypeInventory(request, options);
-  }
-
-  if (pathname === "/api/sdk/v1/capabilities") {
-    return handleSdkCapabilities(request, options);
-  }
-
-  if (pathname === "/api/sdk/v1/preflight") {
-    return handleSdkPreflight(request, options);
-  }
-
   if (pathname === "/api/workflows") {
     return handleWorkflowsRoot(request, options);
-  }
-
-  if (pathname === "/api/sdk/v1/workflows") {
-    return handleSdkWorkflowSummaries(request, options);
-  }
-
-  if (pathname === "/api/sdk/v1/workflow-interfaces") {
-    return handleWorkflowInterfaces(request, options);
   }
 
   if (pathname === "/api/workflows/names") {
@@ -2619,9 +2599,6 @@ export async function handleApiRequest(
       }
       if (subPath === "dsl-export") {
         return handleWorkflowDslExport(request, workflowId, options);
-      }
-      if (subPath === "interface") {
-        return handleWorkflowInterface(request, workflowId, options);
       }
       if (subPath === "export-bundle") {
         return handleWorkflowExportBundle(request, workflowId, options);

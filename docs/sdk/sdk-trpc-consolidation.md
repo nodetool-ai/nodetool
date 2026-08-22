@@ -145,22 +145,25 @@ prefix.
 authentication or `NODETOOL_REQUIRE_SDK_AUTH_V1` can still require
 authentication for discovery routes.
 
-The Fastify route modules mount handlers through `bridge()` into WHATWG
-`Request`/`Response` handlers. `http-api.ts` also dispatches a subset of these
-routes. The Fastify mounts are authoritative today, and the second dispatcher
-is a drift risk.
+At investigation time, the Fastify route modules mounted handlers through
+`bridge()` into WHATWG `Request`/`Response` handlers while `http-api.ts` also
+dispatched a subset. Phase 3 replaces those duplicate registrations with one
+declaration-driven Fastify plugin and removes the SDK entries from the second
+dispatcher.
 
 ### 4.2 WebSocket and tRPC overlap in `nodetool`
 
 - `handleSdkV1LifecycleRpc` handles `get_capabilities` and
   `preflight_workflow`.
-- The unified WebSocket runner calls these tRPC procedures in process:
+- At investigation time, the unified WebSocket runner called these tRPC
+  procedures in process:
   - `workflows.sdkSummaries`;
   - `workflows.interface`;
   - `workflows.interfaces`;
   - `nodes.sdkTypeInventory`.
-- These procedures are therefore not unused. Any rename or removal requires a
-  caller migration and a consumer audit.
+- Phase 3 removes that internal hop but retains the procedures as thin wrappers
+  for external compatibility. Any rename or removal still requires a consumer
+  audit.
 - Current tRPC uses plain JSON without a transformer. This makes binary
   temporary upload a poor tRPC operation.
 - tRPC is mounted at `/trpc`; protected procedures read the authenticated user
@@ -426,10 +429,7 @@ route completeness.
 - [x] Generate implemented-only and full-manifest profiles.
 - [x] Fail when operation IDs or method/path pairs are duplicated.
 - [x] Fail when an implemented route lacks schemas, declared errors, or policy.
-- [ ] Fail when a registered route and implemented OpenAPI inventory differ.
-      (Today both sides are pinned by separate tests against the same
-      11-route list; the direct comparison lands with the Phase 3 route
-      plugin, where registration is derived from the declarations.)
+- [x] Fail when a registered route and implemented OpenAPI inventory differ.
 - [x] Add deterministic bundle generation and digest verification.
 - [x] Add a semantic contract diff that labels additive, risky, and breaking
       changes.
@@ -484,40 +484,40 @@ declared contract.
 
 #### Phase 3A - Prove a shadow facade
 
-- [ ] Add a temporary opt-in or test-only shadow mount for every implemented
+- [x] Add a temporary opt-in or test-only shadow mount for every implemented
       HTTP declaration. Use `/api/sdk-next/v1` where possible and an explicit
       test-only alias for the compatible non-prefixed workflow-interface route.
-- [ ] Compare old and shadow routes for bodies, headers, content types, status
+- [x] Compare old and shadow routes for bodies, headers, content types, status
       codes, authentication, feature flags, and errors.
-- [ ] Include reverse-proxy subpaths and URL/query encoding in parity tests.
-- [ ] Do not expose planned operations from the shadow mount.
+- [x] Include reverse-proxy subpaths and URL/query encoding in parity tests.
+- [x] Do not expose planned operations from the shadow mount.
 
 #### Phase 3B - Cut over HTTP registration
 
-- [ ] Add one SDK v1 Fastify route plugin driven by the HTTP declarations.
-- [ ] Keep the compatible public path for the single-workflow interface.
-- [ ] Keep multipart upload on its binary adapter path.
-- [ ] Remove duplicate `http-api.ts` dispatch entries only after parity passes
+- [x] Add one SDK v1 Fastify route plugin driven by the HTTP declarations.
+- [x] Keep the compatible public path for the single-workflow interface.
+- [x] Keep multipart upload on its binary adapter path.
+- [x] Remove duplicate `http-api.ts` dispatch entries only after parity passes
       and no supported caller depends on that internal dispatcher.
-- [ ] Remove the shadow mount after the real mounts use the same registration
+- [x] Remove the shadow mount after the real mounts use the same registration
       path.
 
 #### Phase 3C - Converge SDK WebSocket calls
 
-- [ ] Make lifecycle commands call the shared handler/service boundary.
-- [ ] Replace the unified WebSocket runner's in-process tRPC hop with typed
+- [x] Make lifecycle commands call the shared handler/service boundary.
+- [x] Replace the unified WebSocket runner's in-process tRPC hop with typed
       handler/service calls where this does not alter scheduling or envelopes.
-- [ ] Preserve caller identity and scopes, local-trust behavior, runner
+- [x] Preserve caller identity and scopes, local-trust behavior, runner
       registration, `sdk_execution_target`, correlation IDs, cancellation,
       reconnect, event order, and MessagePack bytes.
 
 #### Phase 3D - Retain thin tRPC adapters
 
-- [ ] Make the four current SDK-related procedures call the same boundary.
-- [ ] Apply normal tRPC auth plus the declared SDK policy to direct calls.
-- [ ] Keep summary and full-result procedures separate.
-- [ ] Do not add a JSON temporary-upload procedure.
-- [ ] Keep existing names until the consumer audit and compatibility policy
+- [x] Make the four current SDK-related procedures call the same boundary.
+- [x] Apply normal tRPC auth plus the declared SDK policy to direct calls.
+- [x] Keep summary and full-result procedures separate.
+- [x] Do not add a JSON temporary-upload procedure.
+- [x] Keep existing names until the consumer audit and compatibility policy
       permit deprecation.
 
 Exit criteria:

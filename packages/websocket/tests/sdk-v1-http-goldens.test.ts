@@ -23,7 +23,6 @@ import {
 } from "vitest";
 import { initTestDb } from "@nodetool-ai/models";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
-import { handleApiRequest } from "../src/http-api.js";
 import { handleSdkV1TemporaryAssetUpload } from "../src/sdk/sdk-temporary-asset-upload-http-handler.js";
 import { createSdkV1TemporaryAssetService } from "../src/sdk/sdk-temporary-asset-service.js";
 import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
@@ -862,7 +861,9 @@ describe("SDK v1 HTTP goldens", () => {
     }
     capture.mutate?.();
     try {
-      if (capture.via === "fastify") {
+      // `via` records the Phase 0 baseline owner. After the Phase 3 cutover,
+      // every JSON operation replays through the declaration-driven plugin.
+      if (capture.via !== "handler") {
         const spec = capture.request;
         const hasBody = spec.body !== null;
         const response = await golden.app.inject({
@@ -886,10 +887,7 @@ describe("SDK v1 HTTP goldens", () => {
         };
       }
       const request = toWebRequest(capture.request);
-      const response =
-        capture.via === "http-api-dispatcher"
-          ? await handleApiRequest(request, golden.apiOptions)
-          : await handleSdkV1TemporaryAssetUpload(request, {
+      const response = await handleSdkV1TemporaryAssetUpload(request, {
               boundary: createSdkV1ImplementationBoundary(
                 createSdkV1Service({
                   temporaryAssetService: createSdkV1TemporaryAssetService({
@@ -903,8 +901,8 @@ describe("SDK v1 HTTP goldens", () => {
                   })
                 })
               ),
-              getConfiguredMaxUploadBytes: () => UPLOAD_MAX_BYTES
-            });
+        getConfiguredMaxUploadBytes: () => UPLOAD_MAX_BYTES
+      });
       const contentType = response.headers.get("content-type");
       return {
         status: response.status,

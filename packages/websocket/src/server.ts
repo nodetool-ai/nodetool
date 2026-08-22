@@ -108,6 +108,7 @@ import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute, { describeMissingAnonKey } from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
+import sdkV1Routes from "./routes/sdk-v1.js";
 import workflowsRoutes from "./routes/workflows.js";
 import nodesRoutes from "./routes/nodes.js";
 import storageRoutes from "./routes/storage.js";
@@ -1347,6 +1348,7 @@ await app.register(configRoute);
 // All HTTP API routes receive apiOptions
 const routeOpts = { apiOptions };
 
+await app.register(sdkV1Routes, routeOpts);
 await app.register(assetsRoutes, routeOpts);
 await app.register(workflowsRoutes, routeOpts);
 await app.register(nodesRoutes, routeOpts);

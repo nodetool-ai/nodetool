@@ -38,6 +38,7 @@ import { getTempAdapter } from "../src/lib/storage.js";
 import nodesRoutes from "../src/routes/nodes.js";
 import workflowsRoutes from "../src/routes/workflows.js";
 import assetsRoutes from "../src/routes/assets.js";
+import sdkV1Routes from "../src/routes/sdk-v1.js";
 
 // ── Fixture IO ─────────────────────────────────────────────────────────────
 
@@ -337,8 +338,9 @@ export interface GoldenApp {
 }
 
 /**
- * Boots the three production route plugins that mount every SDK v1 HTTP
- * route (server.ts registers the same plugins). The onRequest hook mirrors
+ * Boots the declaration-driven production SDK v1 route plugin plus the
+ * surrounding feature plugins (server.ts registers the same plugins). The
+ * onRequest hook mirrors
  * the server's authenticated-identity contract: `bridge()` forwards only
  * `request.userId`, so tests authenticate by sending `x-user-id`.
  */
@@ -357,6 +359,7 @@ export async function makeGoldenApp(): Promise<GoldenApp> {
     request.userId = typeof userId === "string" ? userId : null;
   });
   const routeOpts = { apiOptions };
+  await app.register(sdkV1Routes, routeOpts);
   await app.register(assetsRoutes, routeOpts);
   await app.register(workflowsRoutes, routeOpts);
   await app.register(nodesRoutes, routeOpts);

@@ -1,9 +1,9 @@
 /**
  * Phase 0 golden replay for the six implemented SDK v1 WebSocket commands
  * (docs/sdk/sdk-trpc-consolidation.md § Phase 0): the four discovery
- * commands the runner serves through its in-process tRPC caller
+ * commands the runner now serves through the shared SDK v1 boundary
  * (list_workflow_summaries, get_workflow_interface, get_workflow_interfaces,
- * get_node_type_inventory) and the two lifecycle commands served by
+ * get_node_type_inventory) and the two lifecycle commands served through
  * handleSdkV1LifecycleRpc (get_capabilities, preflight_workflow), plus two
  * feature-disabled error envelopes.
  *
