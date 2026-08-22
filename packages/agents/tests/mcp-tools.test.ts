@@ -819,6 +819,128 @@ describe("validate_workflow", () => {
   });
 });
 
+// The credential half. `validate_workflow` reported a graph as clean when the
+// node it names needs a key nobody has set — the same graph `nodetool validate`
+// warns about on a DB target — because nothing on this surface ever asked the
+// store.
+describe("validate_workflow missing credentials", () => {
+  const KEYED = "ns.NeedsKey";
+  const keyedRegistry = {
+    has: (type: string) => type === KEYED,
+    getMetadata: () => ({
+      properties: [],
+      outputs: [],
+      required_settings: ["FAL_API_KEY"]
+    }),
+    validateNode: () => []
+  } as unknown as NodeRegistry;
+
+  const graph = {
+    nodes: [{ id: "n1", type: KEYED, properties: {} }],
+    edges: []
+  };
+
+  /** What the host answers for the keys the graph declares. */
+  function validatorWith(
+    available: string[] | null,
+    extra: CapabilityDeps = {}
+  ): Tool {
+    const deps: CapabilityDeps = {
+      nodeRegistry: keyedRegistry,
+      modelCatalogs: RUNTIME_MODEL_CATALOGS,
+      ...extra
+    };
+    if (available !== null) {
+      deps.availableSecrets = (keys) =>
+        new Set(keys.filter((key) => available.includes(key)));
+    }
+    return capTool("validate_workflow", deps);
+  }
+
+  type Report = {
+    ok: boolean;
+    issues: Array<{ code: string; message: string; nodeId?: string }>;
+  };
+
+  it("warns, naming the key and where to set it", async () => {
+    const result = (await validatorWith([]).process(ctx, { graph })) as Report;
+    const issue = result.issues.find((i) => i.code === "missing_secret");
+    expect(issue?.nodeId).toBe("n1");
+    expect(issue?.message).toContain("FAL_API_KEY");
+    expect(issue?.message).toContain("Settings → Credentials");
+    // A warning informs; it does not refuse the graph.
+    expect(result.ok).toBe(true);
+  });
+
+  it("stays silent once the host resolves the key", async () => {
+    const result = (await validatorWith(["FAL_API_KEY"]).process(ctx, {
+      graph
+    })) as Report;
+    expect(result.issues.some((i) => i.code === "missing_secret")).toBe(false);
+  });
+
+  it("reports nothing when the run carries no resolver", async () => {
+    const result = (await validatorWith(null).process(ctx, {
+      graph
+    })) as Report;
+    expect(result.issues.some((i) => i.code === "missing_secret")).toBe(false);
+    expect(result.ok).toBe(true);
+  });
+
+  it("asks only for the names the graph declares", async () => {
+    const asked: string[][] = [];
+    const tool = capTool("validate_workflow", {
+      nodeRegistry: keyedRegistry,
+      modelCatalogs: RUNTIME_MODEL_CATALOGS,
+      availableSecrets: (keys) => {
+        asked.push([...keys]);
+        return new Set<string>();
+      }
+    });
+    await tool.process(ctx, { graph });
+    expect(asked).toEqual([["FAL_API_KEY"]]);
+  });
+
+  it("does not ask at all when the graph declares nothing", async () => {
+    const asked: string[][] = [];
+    const bareRegistry = {
+      has: () => true,
+      getMetadata: () => ({ properties: [], outputs: [] }),
+      validateNode: () => []
+    } as unknown as NodeRegistry;
+    const tool = capTool("validate_workflow", {
+      nodeRegistry: bareRegistry,
+      modelCatalogs: RUNTIME_MODEL_CATALOGS,
+      availableSecrets: (keys) => {
+        asked.push([...keys]);
+        return new Set<string>();
+      }
+    });
+    await tool.process(ctx, {
+      graph: { nodes: [{ id: "n1", type: "ns.A" }], edges: [] }
+    });
+    expect(asked).toEqual([]);
+  });
+
+  // Pointing a headless agent at `request_secret` sends it at a call that
+  // fails closed, so the mention is gated on the run being able to serve it.
+  it("names request_secret only when the run can raise the dialog", async () => {
+    const withDialog = (await validatorWith([], {
+      secretPrompt: async () => "saved"
+    }).process(ctx, { graph })) as Report;
+    expect(
+      withDialog.issues.find((i) => i.code === "missing_secret")?.message
+    ).toContain("request_secret");
+
+    const headless = (await validatorWith([]).process(ctx, {
+      graph
+    })) as Report;
+    expect(
+      headless.issues.find((i) => i.code === "missing_secret")?.message
+    ).not.toContain("request_secret");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Timeline / Sketch validation
 // ---------------------------------------------------------------------------

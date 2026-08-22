@@ -181,6 +181,7 @@ import {
   gateTools,
   capabilityFromTool,
   createCapabilityRun,
+  contextSecretAvailability,
   UNGATED,
   extractInjectableImages,
   PLAN_APPROVAL_CONTEXT_KEY,
@@ -5732,7 +5733,11 @@ export class UnifiedWebSocketRunner {
       clock: codeactClock
     };
     const gatedRun = (context: ProcessingContext): CapabilityRun =>
-      createCapabilityRun({ context, gate: chatGate });
+      createCapabilityRun({
+        context,
+        gate: chatGate,
+        availableSecrets: contextSecretAvailability(context)
+      });
     const rawToolbelt: Tool[] = [
       ...getAgentToolbelt(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
@@ -5810,6 +5815,7 @@ export class UnifiedWebSocketRunner {
           // Ungated on purpose, as before: spawning a child loop has no side
           // effect of its own, and the child's tools are the gated `baseTools`.
           gate: UNGATED,
+          availableSecrets: contextSecretAvailability(context),
           subAgent: subAgentRuntime
         });
       serverTools.unshift(toolForCapabilityName("run_subtask", delegationRun));
@@ -5917,6 +5923,7 @@ export class UnifiedWebSocketRunner {
     this.chatCapabilityRun = createCapabilityRun({
       context: ctx,
       gate: chatGate,
+      availableSecrets: contextSecretAvailability(ctx),
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,

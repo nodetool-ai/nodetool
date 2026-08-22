@@ -258,6 +258,14 @@ add one 600 x 600 px test per migrated primitive.
 
 ## Completed work
 
+- **Missing secrets in `validate_workflow`:** shipped 2026-08-22.
+  `CapabilityRun.availableSecrets` carries the host's answer,
+  `contextSecretAvailability` builds it from a context that can reach a store,
+  and `getAllMcpTools` takes the factory as `secretAvailability`. The
+  `missing_secret` issue names the key and Settings → Credentials, and adds
+  `request_secret` only where the run can raise the dialog. Covered by
+  `packages/agents/tests/mcp-tools.test.ts` and the call-site audit
+  `capability-run-secrets-audit.test.ts`.
 - **Workflow credential preflight:** shipped 2026-08-22 in node-sdk,
   execution, and CLI. The two execution credential suites cover it.
 - **`ExecutionSession` preflight:** shipped 2026-08-22. The model and
