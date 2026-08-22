@@ -65,6 +65,23 @@ async function openWorkflow(workflowId) {
       ? state.__nodetoolGraphQueues
       : (state.__nodetoolGraphQueues = {});
   const queueKey = String((snap && snap.workflow_id) || workflowId || "__focused__");
+
+  // A ui_get_graph served from the saved row ("source": "server") is a
+  // read-only snapshot: no editor is open, so every queued write would fail at
+  // commit with "No node store". Say so here instead, before any op is queued.
+  const editable =
+    !snap || typeof snap.source !== "string" || snap.source === "editor";
+  const __requireEditable = () => {
+    if (!editable) {
+      throw new Error(
+        "openWorkflow(): this snapshot came from the server because no editor " +
+          "is open for workflow " + JSON.stringify(queueKey) + " — reads work, " +
+          "but every write would fail at commit(). Open it first: " +
+          "ui_open_document({type: 'workflow', id: <id>}) or ui_open_workflow" +
+          "({workflow_id: <id>}), then reopen it with openWorkflow."
+      );
+    }
+  };
   const storedOps = queueRoot[queueKey];
   const ops = Array.isArray(storedOps) ? storedOps : [];
   queueRoot[queueKey] = ops;
@@ -79,6 +96,7 @@ async function openWorkflow(workflowId) {
 
   const model = {
     workflowId: (snap && snap.workflow_id) || workflowId || null,
+    editable,
     nodes: [],
     edges: [],
     node(id) {
@@ -91,6 +109,7 @@ async function openWorkflow(workflowId) {
       return found;
     },
     addNode(id, type, properties, position) {
+      __requireEditable();
       if (model.nodes.some((n) => n.id === id)) {
         throw new Error('A node with id "' + id + '" already exists.');
       }
@@ -110,6 +129,19 @@ async function openWorkflow(workflowId) {
       });
     },
     connect(sourceId, sourceHandle, targetId, targetHandle) {
+      __requireEditable();
+      if (!model.nodes.some((n) => n.id === sourceId)) {
+        throw new Error(
+          "connect(): source node not found: " + sourceId + ". Known: " +
+            model.nodes.map((n) => n.id).join(", ")
+        );
+      }
+      if (!model.nodes.some((n) => n.id === targetId)) {
+        throw new Error(
+          "connect(): target node not found: " + targetId + ". Known: " +
+            model.nodes.map((n) => n.id).join(", ")
+        );
+      }
       edgeSeq++;
       const localEdgeId = "pending_edge_" + edgeSeq;
       ops.push({
@@ -134,6 +166,7 @@ async function openWorkflow(workflowId) {
       return edge;
     },
     removeNode(id) {
+      __requireEditable();
       model.node(id);
       const addIndex = ops.findIndex(
         (op) => op.tool === "ui_add_node" && op.args.id === id
@@ -158,6 +191,7 @@ async function openWorkflow(workflowId) {
       model.edges = model.edges.filter((e) => e.source !== id && e.target !== id);
     },
     removeEdge(edgeId) {
+      __requireEditable();
       const edge = model.edges.find((e) => e.id === edgeId);
       if (!edge) throw new Error("Edge not found: " + edgeId);
       if (edge.pending) {
@@ -180,6 +214,21 @@ async function openWorkflow(workflowId) {
       return ops.length;
     },
     async commit() {
+      // Queued ops survive between actions, so the queue can outlive its
+      // editor: action one queues writes, the tab closes, and this snapshot
+      // now comes from the server. Replaying them would fail mid-queue with
+      // "No node store" — refuse up front instead. An empty queue is just a
+      // refresh and stays allowed on a read-only snapshot.
+      if (ops.length > 0 && !editable) {
+        throw new Error(
+          "commit(): " + ops.length + " operation(s) were queued while an " +
+            "editor was open, but workflow " + JSON.stringify(queueKey) +
+            " has no editor any more (this snapshot comes from the server). " +
+            "Replaying them would fail with 'No node store'. Open the " +
+            "workflow again with ui_open_document or ui_open_workflow, reopen " +
+            "it here with openWorkflow(), and rebuild the edits."
+        );
+      }
       let applied = 0;
       while (ops.length > 0) {
         const op = ops[0];
@@ -202,7 +251,9 @@ async function openWorkflow(workflowId) {
             "commit() failed on " + op.tool + " " + JSON.stringify(op.args).slice(0, 300) +
             ": " + (e && e.message ? e.message : String(e)) +
             ". " + applied + " ops were applied; the failed op and " + (ops.length - 1) +
-            " later ops are still queued — fix the problem and call commit() again."
+            " later ops are still queued — fix the problem and call commit() again." +
+            " To drop a queued connection instead, call wf.removeEdge('" +
+            (op.localEdgeId || "<edge id>") + "') for its pending edge."
           );
         }
         ops.shift();
@@ -224,6 +275,7 @@ async function openWorkflow(workflowId) {
       properties:
         data.properties && typeof data.properties === "object" ? data.properties : {},
       set(props) {
+        __requireEditable();
         ops.push({
           tool: "ui_update_node_data",
           args: __wfArgs({ node_id: view.id, data: { properties: props } })
@@ -232,6 +284,7 @@ async function openWorkflow(workflowId) {
         return view;
       },
       setTitle(title) {
+        __requireEditable();
         ops.push({
           tool: "ui_set_node_title",
           args: __wfArgs({ node_id: view.id, title })
@@ -240,6 +293,7 @@ async function openWorkflow(workflowId) {
         return view;
       },
       moveTo(x, y) {
+        __requireEditable();
         ops.push({
           tool: "ui_move_node",
           args: __wfArgs({ node_id: view.id, position: { x, y } })
@@ -345,6 +399,9 @@ await wf.commit();                            // applies the queued ops, then re
 
 - \`wf.nodes\` / \`wf.edges\` are local mirrors; \`wf.node(id)\` returns a node
   with \`.set(props)\`, \`.setTitle(t)\`, \`.moveTo(x, y)\`, \`.remove()\`.
+- Check \`wf.editable\` before editing. \`false\` means no editor is open for
+  that workflow (the snapshot came from the server), so writes are refused —
+  open the workflow with \`ui_open_document\` and reopen it first.
 - \`wf.removeNode(id)\` / \`wf.removeEdge(id)\` delete; removing a not-yet-
   committed edge just cancels its queued op.
 - Mutators are synchronous and only queue work; nothing changes in the editor

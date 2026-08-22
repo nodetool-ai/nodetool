@@ -76,6 +76,7 @@ import {
 } from "./execute-code-contract.js";
 import { searchTools } from "../tools/tool-search.js";
 import { buildCodeActSystemPrompt } from "./prompt.js";
+import { annotateFailure } from "./action-diagnostics.js";
 import {
   mountActionModules,
   packagePromptLines,
@@ -816,8 +817,10 @@ export class CodeActExecutor {
       if (outcome.success) {
         if (outcome.result !== undefined) observation.result = outcome.result;
       } else {
-        observation.error = outcome.error;
-        if (outcome.stack) observation.stack = outcome.stack;
+        Object.assign(
+          observation,
+          annotateFailure(outcome.error, outcome.stack, this.prelude, code)
+        );
       }
       if (outcome.logs && outcome.logs.length > 0) {
         observation.logs = outcome.logs;

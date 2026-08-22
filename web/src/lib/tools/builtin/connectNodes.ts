@@ -10,7 +10,39 @@ import {
 } from "../../../utils/handleUtils";
 import { isConnectable } from "../../../utils/TypeHandler";
 import { wouldCreateCycle } from "../../../utils/graphCycle";
+import { isCodeNodeType } from "../../../utils/codeNodeHandles";
 import useMetadataStore from "../../../stores/MetadataStore";
+
+/**
+ * The hint every handle-not-found error carries for a Code node. Its ports are
+ * inferred from the body, so a name the body never mentions does not exist —
+ * one agent wired to `undesired_state` three times before reading that from an
+ * error that only listed names. Property handles and dynamic handles are listed
+ * separately because the property list (code, secrets, timeout…) reads like
+ * noise next to the real ports.
+ */
+function codePortHint(): string {
+  return (
+    "On a nodetool.code.Code node, a dynamic port exists only once the body " +
+    "reads inputs.<name> (or writes output(\"<name>\", …) — update the body " +
+    "first with ui_update_node_data, then connect."
+  );
+}
+
+function formatAvailableHandles(
+  handles: readonly { name: string; isDynamic: boolean }[]
+): string {
+  const propertyHandles = handles.filter((h) => !h.isDynamic);
+  const dynamicHandles = handles.filter((h) => h.isDynamic);
+  const parts: string[] = [];
+  if (dynamicHandles.length > 0) {
+    parts.push(`ports: [${dynamicHandles.map((h) => h.name).join(", ")}]`);
+  }
+  if (propertyHandles.length > 0) {
+    parts.push(`properties: [${propertyHandles.map((h) => h.name).join(", ")}]`);
+  }
+  return parts.join(" ") || "none";
+}
 
 FrontendToolRegistry.register({
   name: "ui_connect_nodes",
@@ -53,21 +85,19 @@ FrontendToolRegistry.register({
 
     const srcHandle = findOutputHandle(src, source_handle, srcMetadata);
     if (!srcHandle) {
-      const available = getAllOutputHandles(src, srcMetadata)
-        .map((h) => h.name)
-        .join(", ");
       throw new Error(
-        `Source handle '${source_handle}' not found on ${src.type} (id=${source_node_id}). Available outputs: [${available || "none"}]`
+        `Source handle '${source_handle}' not found on ${src.type} (id=${source_node_id}). ` +
+          `Available outputs — ${formatAvailableHandles(getAllOutputHandles(src, srcMetadata))}.` +
+          (isCodeNodeType(src.type) ? ` ${codePortHint()}` : "")
       );
     }
 
     const tgtHandle = findInputHandle(tgt, target_handle, tgtMetadata);
     if (!tgtHandle) {
-      const available = getAllInputHandles(tgt, tgtMetadata)
-        .map((h) => h.name)
-        .join(", ");
       throw new Error(
-        `Target handle '${target_handle}' not found on ${tgt.type} (id=${target_node_id}). Available inputs: [${available || "none"}]`
+        `Target handle '${target_handle}' not found on ${tgt.type} (id=${target_node_id}). ` +
+          `Available inputs — ${formatAvailableHandles(getAllInputHandles(tgt, tgtMetadata))}.` +
+          (isCodeNodeType(tgt.type) ? ` ${codePortHint()}` : "")
       );
     }
 

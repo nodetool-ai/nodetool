@@ -86,6 +86,7 @@ import {
   GRAPH_MODEL_TOOL_NAMES,
   hasGraphModelTools
 } from "./graph-model.js";
+import { annotateFailure } from "./action-diagnostics.js";
 import {
   NODETOOL_API_PRELUDE_FULL,
   buildNodetoolApiPromptSection,
@@ -631,8 +632,10 @@ export function createChatCodeActSession(
     if (outcome.success) {
       if (outcome.result !== undefined) observation.result = outcome.result;
     } else {
-      observation.error = outcome.error;
-      if (outcome.stack) observation.stack = outcome.stack;
+      Object.assign(
+        observation,
+        annotateFailure(outcome.error, outcome.stack, prelude, code)
+      );
     }
     if (outcome.logs && outcome.logs.length > 0) {
       observation.logs = outcome.logs;

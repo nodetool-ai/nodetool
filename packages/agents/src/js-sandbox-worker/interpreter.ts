@@ -366,6 +366,36 @@ ${body}
 })();`;
 }
 
+/**
+ * How many module lines {@link buildEntryModule} (or {@link wrapCode}) place
+ * before the first line of the code it was given.
+ *
+ * QuickJS reports stack positions in the wrapped entry module, so an error on
+ * the guest's line N sits at `N + offset` in the source the user wrote. The
+ * hoisted-import path spends one extra leading line (the joined imports) over
+ * the plain wrapper, and which path applied is decided by the same acorn parse
+ * {@link buildEntryModule} runs — so the offset must come from here, not be
+ * guessed by callers.
+ */
+export function entryBodyLineOffset(code: string): number {
+  try {
+    const program = acorn.parse(code, {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      allowAwaitOutsideFunction: true,
+      allowReturnOutsideFunction: true
+    });
+    const hasImports = program.body.some(
+      (node) => node.type === "ImportDeclaration"
+    );
+    return hasImports ? 3 : 2;
+  } catch {
+    // Unparsable code takes the wrapCode path — the same path its syntax
+    // error will be reported against.
+    return 2;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Guest module loading
 // ---------------------------------------------------------------------------

@@ -71,9 +71,14 @@ interface FakeGraph {
 
 /**
  * A fake chat tool router over an in-memory graph document. Returns JSON
- * strings the way the chat runner's `executeTool` does.
+ * strings the way the chat runner's `executeTool` does. `source` rides on the
+ * ui_get_graph answer the way the real tool's editor/server split reports —
+ * pass a function to change it between actions (an editor tab closing).
  */
-function createFakeRouter(graph: FakeGraph) {
+function createFakeRouter(
+  graph: FakeGraph,
+  source?: string | (() => string | undefined)
+) {
   const calls: ChatCodeActToolCall[] = [];
   let edgeSeq = 0;
   const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
@@ -86,13 +91,16 @@ function createFakeRouter(graph: FakeGraph) {
         });
       case "ui_always_fails":
         return JSON.stringify({ error: "boom", message: "always fails" });
-      case "ui_get_graph":
+      case "ui_get_graph": {
+        const resolved = typeof source === "function" ? source() : source;
         return JSON.stringify({
           ok: true,
           workflow_id: args["workflow_id"] ?? "wf1",
+          ...(resolved ? { source: resolved } : {}),
           nodes: graph.nodes,
           edges: graph.edges
         });
+      }
       case "ui_add_node":
         graph.nodes.push({
           id: args["id"],
@@ -152,6 +160,7 @@ async function runAction(
     result?: unknown;
     error?: string;
     logs?: string[];
+    stack?: string;
     toolCalls: number;
   };
 }
@@ -186,6 +195,22 @@ describe("createChatCodeActSession", () => {
     expect(obs.toolCalls).toBe(1);
     expect(calls[0]).toMatchObject({ name: "ui_add" });
     expect(calls[0].id).toMatch(/^codeact_[0-9a-f-]{36}_1$/);
+  });
+
+  it("reports error positions against the action's own code", async () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      "const a = 1;\nthrow new Error('boom-line-2');"
+    );
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain("boom-line-2");
+    // The frame names the action's line 2 — not prelude-offset user-code:N.
+    expect(obs.stack).toMatch(/action:2:\d+/);
+    // The offending source line rides under it.
+    expect(obs.stack).toContain("your code, line 2");
+    expect(obs.stack).toContain("throw new Error('boom-line-2');");
   });
 
   it("uses distinct bridged tool-call ids for separate sessions", async () => {
@@ -425,7 +450,12 @@ return { pendingBefore, pendingAfter: wf.pending(), summary, nodeIds: wf.nodes.m
   });
 
   it("keeps the failed op and the rest of the queue when commit fails", async () => {
-    const graph: FakeGraph = { nodes: [], edges: [] };
+    const graph: FakeGraph = {
+      nodes: [
+        { id: "z", type: "t.Z", position: { x: 0, y: 0 }, data: { properties: {} } }
+      ],
+      edges: []
+    };
     const { executeTool, calls } = createFakeRouter(graph);
     const session = makeSession(
       [...GENERIC_TOOLS, ...GRAPH_TOOLS],
@@ -436,8 +466,8 @@ return { pendingBefore, pendingAfter: wf.pending(), summary, nodeIds: wf.nodes.m
       `
 const wf = await openWorkflow("wf1");
 wf.addNode("a", "t.A", {});
-wf.connect("a", "output", "missing", "bad");
-wf.addNode("b", "t.B", {});
+wf.connect("a", "output", "z", "bad");
+wf.node("z").setTitle("later");
 let failure = null;
 try {
   await wf.commit();
@@ -451,13 +481,20 @@ return { failure, pending: wf.pending() };
     const result = obs.result as { failure: string; pending: number };
     expect(result.failure).toContain("ui_connect_nodes");
     expect(result.failure).toContain("1 ops were applied");
-    // Failed connect + the later add stay queued for a retry.
+    // The error names how to drop the doomed queued connection.
+    expect(result.failure).toContain("wf.removeEdge('pending_edge_1')");
+    // Failed connect + the later set stay queued for a retry.
     expect(result.pending).toBe(2);
     expect(calls.filter((c) => c.name === "ui_add_node")).toHaveLength(1);
   });
 
   it("recovers a failed commit queue in the next code action", async () => {
-    const graph: FakeGraph = { nodes: [], edges: [] };
+    const graph: FakeGraph = {
+      nodes: [
+        { id: "z", type: "t.Z", position: { x: 0, y: 0 }, data: { properties: {} } }
+      ],
+      edges: []
+    };
     const { executeTool } = createFakeRouter(graph);
     const session = makeSession(
       [...GENERIC_TOOLS, ...GRAPH_TOOLS],
@@ -469,8 +506,8 @@ return { failure, pending: wf.pending() };
       `
 const wf = await openWorkflow("wf1");
 wf.addNode("a", "t.A", {});
-wf.connect("a", "output", "missing", "bad");
-wf.addNode("b", "t.B", {});
+wf.connect("a", "output", "z", "bad");
+wf.node("z").setTitle("later");
 await wf.commit();
 `
     );
@@ -494,7 +531,8 @@ return { pendingBefore, summary, nodeIds: wf.nodes.map((node) => node.id) };
     expect(recovered.result).toMatchObject({
       pendingBefore: 2,
       summary: { applied: 1, nodes: 2, edges: 0 },
-      nodeIds: ["a", "b"]
+      // Snapshot nodes load first, then the replayed queued add.
+      nodeIds: ["z", "a"]
     });
   });
 
@@ -576,6 +614,136 @@ return { before, edges: wf.edges.length };
     };
     expect(result.before).toEqual({ title: "Old node", value: 1 });
     expect(calls.some((c) => c.name === "ui_delete_edge")).toBe(true);
+  });
+
+  it("refuses writes on a server-sourced snapshot and names the remedy", async () => {
+    const graph: FakeGraph = {
+      nodes: [
+        {
+          id: "n1",
+          type: "t.Old",
+          position: { x: 0, y: 0 },
+          data: { properties: {} }
+        }
+      ],
+      edges: []
+    };
+    const { executeTool, calls } = createFakeRouter(graph, "server");
+    const session = makeSession(
+      [...GENERIC_TOOLS, ...GRAPH_TOOLS],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `
+const wf = await openWorkflow("wf1");
+let failure = null;
+try {
+  wf.addNode("a", "t.A", {});
+} catch (e) {
+  failure = e.message;
+}
+return { editable: wf.editable, failure, reads: wf.nodes.map((n) => n.id) };
+`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toMatchObject({
+      editable: false,
+      reads: ["n1"]
+    });
+    const result = obs.result as { failure: string };
+    expect(result.failure).toContain("no editor");
+    expect(result.failure).toContain("ui_open_document");
+    // The write was refused before anything was queued or sent.
+    expect(calls.filter((c) => c.name !== "ui_get_graph")).toHaveLength(0);
+  });
+
+  it("refuses connect() to a node the mirror has never seen", async () => {
+    const graph: FakeGraph = { nodes: [], edges: [] };
+    const { executeTool } = createFakeRouter(graph);
+    const session = makeSession(
+      [...GENERIC_TOOLS, ...GRAPH_TOOLS],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `
+const wf = await openWorkflow("wf1");
+let failure = null;
+try {
+  wf.connect("ghost", "output", "also_ghost", "input");
+} catch (e) {
+  failure = e.message;
+}
+return { failure, pending: wf.pending() };
+`
+    );
+    expect(obs.ok).toBe(true);
+    const result = obs.result as { failure: string; pending: number };
+    // The error names the missing id up front instead of failing at commit.
+    expect(result.failure).toContain("source node not found: ghost");
+    expect(result.pending).toBe(0);
+  });
+
+  it("refuses to send queued writes after the editor closes", async () => {
+    const graph: FakeGraph = { nodes: [], edges: [] };
+    let source: string | undefined;
+    const { executeTool, calls } = createFakeRouter(graph, () => source);
+    const session = makeSession(
+      [...GENERIC_TOOLS, ...GRAPH_TOOLS],
+      executeTool
+    );
+
+    // Editor open: queue a write and leave it uncommitted. The queue persists
+    // in the session state across actions.
+    const queued = await runAction(
+      session,
+      `
+const wf = await openWorkflow("wf1");
+wf.addNode("a", "t.A", {});
+return { editable: wf.editable, pending: wf.pending() };
+`
+    );
+    expect(queued.ok).toBe(true);
+    expect(queued.result).toMatchObject({ editable: true, pending: 1 });
+
+    // The tab closes; the next ui_get_graph answers from the server row.
+    source = "server";
+    const refused = await runAction(
+      session,
+      `
+const wf = await openWorkflow("wf1");
+let failure = null;
+try {
+  await wf.commit();
+} catch (e) {
+  failure = e.message;
+}
+return { editable: wf.editable, failure, pendingAfter: wf.pending() };
+`
+    );
+    expect(refused.ok).toBe(true);
+    const result = refused.result as {
+      editable: boolean;
+      failure: string;
+      pendingAfter: number;
+    };
+    expect(result.editable).toBe(false);
+    expect(result.failure).toContain("no editor any more");
+    expect(result.failure).toContain("ui_open_document");
+    expect(result.pendingAfter).toBe(1);
+    // Nothing reached the belt but the reads.
+    expect(calls.filter((c) => c.name !== "ui_get_graph")).toHaveLength(0);
+
+    // The queue survives the refusal, so an editor can pick the work up again.
+    const stillQueued = await runAction(
+      session,
+      `
+const wf = await openWorkflow("wf1");
+return { pending: wf.pending() };
+`
+    );
+    expect(stillQueued.result).toMatchObject({ pending: 1 });
   });
 });
 

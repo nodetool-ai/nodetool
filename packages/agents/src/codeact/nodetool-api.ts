@@ -654,13 +654,29 @@ const nodetool = (() => {
       },
       open(id) {
         if (typeof openWorkflow !== "function") {
+          // Thrown synchronously: a caller without await still sees it.
           throw new Error(
             "nodetool.workflows.open: the graph editing tools (ui_*) are " +
             "not in this toolbelt. Author a graph with the sandbox DSL " +
             "package instead, then create() it."
           );
         }
-        return openWorkflow(id);
+        return openWorkflow(id).catch((e) => {
+          const msg = e && e.message ? e.message : String(e);
+          // A browser bridge that is gone (window reloaded before the editor
+          // panel re-registered) used to surface as this bare sentence, which
+          // left one agent retrying the identical call for several turns.
+          if (/Frontend tool runtime state is not initialized/i.test(msg)) {
+            throw new Error(
+              "nodetool.workflows.open: " + msg +
+              " The browser bridge answers nothing right now. Ask the user to " +
+              "open (or reload) the NodeTool workspace window and retry once " +
+              "the editor has loaded; meanwhile get_workflow still reads saved " +
+              "graphs and create_workflow saves new ones."
+            );
+          }
+          throw e;
+        });
       }
     },
 

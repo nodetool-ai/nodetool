@@ -8,15 +8,22 @@ This directory contains integrations with external libraries (WebSocket, Supabas
 
 ### Frontend Tools
 
-- Prefix tool names with `ui_` to distinguish from backend tools (e.g., `ui_add_node`).
+- Prefix tool names with `ui_` to distinguish from backend tools (e.g. `ui_add_node`).
 - Define JSON Schema for all tool parameters with descriptions.
 - Mark required vs optional parameters.
-- Always return `{ success: true }` or `{ success: false, error: message }`.
+- `execute` returns the result payload on success (`{ok: true, …}` where the
+  tool reports status). On failure, throw `Error` — do not return
+  `{success: false}`. The runners own error conversion:
+  `GlobalWebSocketManager` catches the throw and answers the server with
+  `{ok: false, error: message}`, and tests pin rejection with
+  `.rejects.toThrow(...)` for every failure path.
 - A tool that mutates a document also returns `url` — the `<kind>://<id>`
   resource link (e.g. `timeline://tl_7#clip=cl_2`) built with `docUrl`
   (`tools/builtin/resourceLinks.ts`), so the agent can link what it changed.
   Read-only and selection tools return no `url`.
-- Handle errors inside `execute` — don't let exceptions propagate.
+- Write actionable errors. A failure is what the calling agent reads to
+  recover — name the remedy (which tool opens the document, which handle
+  exists) rather than restating the input.
 
 ### WebSocket
 
