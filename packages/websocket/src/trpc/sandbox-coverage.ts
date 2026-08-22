@@ -49,6 +49,26 @@ export type SandboxApiVerdict =
 export const SANDBOX_API_COVERAGE: Readonly<
   Record<string, SandboxApiVerdict>
 > = {
+  "agentAccess.createToken": {
+    withheld:
+      "Minting a bearer token is granting a third party the user's whole " +
+      "account. A run that could mint one outlives every bound it has."
+  },
+  "agentAccess.listTokens": {
+    withheld:
+      "Enumerating a user's credentials, including which are live. Nothing " +
+      "a run does needs the list."
+  },
+  "agentAccess.mcpConnection": {
+    withheld:
+      "Describes the remote-access surface and whether it checks a " +
+      "credential. Reconnaissance for the two above."
+  },
+  "agentAccess.revokeToken": {
+    withheld:
+      "Revoking another agent's credential is denial of service against " +
+      "the user's own tooling."
+  },
   "applications.beginInvocation": {
     withheld:
       "Spend governance. A run that could raise its own ceiling is " +

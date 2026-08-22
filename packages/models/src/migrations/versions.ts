@@ -2759,6 +2759,38 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_external_identity_user");
       await db.execute("DROP TABLE IF EXISTS external_identities");
     }
+  },
+
+  // ── Create access_tokens ────────────────────────────────────────────
+  // Revocable bearer tokens an external agent presents instead of a session.
+  // Only a hash of the secret half is stored; the row id is the token's
+  // public half, so verification is one indexed read.
+  {
+    version: "20260822_000000",
+    name: "create_access_tokens",
+    createsTables: ["access_tokens"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS access_tokens (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          secret_hash TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          expires_at TEXT,
+          last_used_at TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_access_token_user
+        ON access_tokens (user_id)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_access_token_user");
+      await db.execute("DROP TABLE IF EXISTS access_tokens");
+    }
   }
 ];
 

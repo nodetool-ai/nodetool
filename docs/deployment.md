@@ -35,6 +35,7 @@ see the [End-to-End Deployment Guide](deployment-e2e-guide.md).
 | **Tune GPU/memory/volumes for the server container** | [Docker Resource Management](docker-resource-management.md) |
 | **Use Supabase for auth/storage** | [Supabase Deployment Integration](supabase-deployment.md) |
 | **Set up TLS/HTTPS** | [Self-Hosted Deployment](self-hosted-deployment.md) |
+| **Connect Claude Code or another MCP client to a deployed server** | [MCP on a Production Server](mcp-production.md) |
 
 ---
 

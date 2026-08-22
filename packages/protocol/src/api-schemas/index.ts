@@ -1,5 +1,6 @@
 export * from "./api-error-code.js";
 export * from "./error-helpers.js";
+export * as agentAccess from "./agent-access.js";
 export * as assets from "./assets.js";
 export * as codeGen from "./code-gen.js";
 export * as collections from "./collections.js";

@@ -8,6 +8,7 @@ import { customProvidersRouter } from "./routers/custom-providers.js";
 import { creditsRouter } from "./routers/credits.js";
 import { extensionRouter } from "./routers/extension.js";
 import { filesRouter } from "./routers/files.js";
+import { agentAccessRouter } from "./routers/agent-access.js";
 import { integrationsRouter } from "./routers/integrations.js";
 import { jobsRouter } from "./routers/jobs.js";
 import { jsScriptsRouter } from "./routers/js-scripts.js";
@@ -50,6 +51,7 @@ export const appRouter = router({
   jobs: jobsRouter,
   jsScripts: jsScriptsRouter,
   triggers: triggersRouter,
+  agentAccess: agentAccessRouter,
   mcpConfig: mcpConfigRouter,
   messages: messagesRouter,
   models: modelsRouter,
