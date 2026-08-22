@@ -1,11 +1,11 @@
-import { asMock } from "../../../../test-utils/doubles";
+import { asMock, stub } from "../../../../test-utils/doubles";
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { MessageView } from "../MessageView";
 import mockTheme from "../../../../__mocks__/themeMock";
-import { Message } from "../../../../stores/ApiTypes";
+import { Asset, Message } from "../../../../stores/ApiTypes";
 import { useAssetStore } from "../../../../stores/AssetStore";
 import { useWorkspaceTabsStore } from "../../../../stores/WorkspaceTabsStore";
 import { useNotificationStore } from "../../../../stores/NotificationStore";
@@ -49,10 +49,9 @@ describe("MessageView save markdown asset", () => {
 
   beforeEach(() => {
     useAssetStore.setState({
-      createAsset: jest.fn(async () => ({
-        id: "asset-1",
-        name: "Hello.md"
-      }))
+      createAsset: jest.fn(async () =>
+        stub<Asset>({ id: "asset-1", name: "Hello.md" })
+      )
     });
     useWorkspaceTabsStore.setState({
       openTab: jest.fn(() => "text:asset-1")
