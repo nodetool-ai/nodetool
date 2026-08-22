@@ -117,6 +117,31 @@ with no gap note, or a surface referencing a harness that does not exist);
 closed. `packages/cli/tests/harness-registry.test.ts` enforces the same
 invariants in CI, so the registry cannot rot silently.
 
+## The capability table
+
+A surface is coarse: `packages/agents/` is one path, so the gate cannot tell a
+diff that *adds* a capability from one that renames a local variable. Five
+capabilities shipped through that hole with nothing exercising them.
+
+`packages/cli/src/harness/capability-table.ts` closes it, with the registry's
+invariant one rung down: no capability without a check or a documented gap.
+Each entry names the implementation file, the suites a selfcheck runs over the
+capability, the eval cases whose `requiredTools` demand it, or the gap note
+saying what a check for it would look like.
+
+```bash
+npm run capabilities:sync                        # rewrite from the live registry
+npm run capabilities:check                       # fail when stale or uncovered
+npm run dev:nodetool -- harness capabilities     # coverage + documented gaps
+```
+
+Only `gap` is written by hand; the sync derives the rest and preserves the
+notes. Each entry also carries a fingerprint of what the capability declares —
+name, description, input schema, category, `needsToolCallId` — which is what
+lets `harness gate --base <ref>` demand a mapping change from a contract change
+and nothing from a refactor. Details:
+[packages/agents/AGENTS.md § Capability coverage](../packages/agents/AGENTS.md).
+
 ## The gate
 
 ```bash
@@ -138,8 +163,9 @@ a real node hermetically. Touch `packages/kernel/` and the kernel's journeys
 run; touch `packages/agents/src/app-build/` and the build harness proves
 itself; touch nothing mapped and nothing runs.
 
-Exit code: non-zero when any selfcheck fails, or — with `--strict` — when the
-diff touches a surface only a gap note covers. Harnesses that need a target,
+Exit code: non-zero when any selfcheck fails, when a capability's declared
+contract moved without its coverage mapping moving with it, or — with
+`--strict` — when the diff touches a surface only a gap note covers. Harnesses that need a target,
 key, or model are printed as manual work; the gate never silently narrows what
 "checked" means (rule 7).
 
