@@ -115,35 +115,13 @@ The current implementation must fail the new test before the fix. Then run
 `npm run test --workspace=packages/runtime -- provider-decorator-inertness`.
 
 
-## 5. Require an eval case for each agent capability
-
-Status: OPEN. Evidence: #5095, #5100, #5103, #5105, and #5107.
-
-1. Add a capability registry that maps each exported capability name to its
-   implementation file, scripted selfcheck ID, and eval case IDs/files. Do not
-   use broad `SurfaceEntry.paths` as capability coverage.
-2. Audit exports from capability implementation and specification files. Fail
-   when a new exported capability has no mapping. Infrastructure and adapter
-   files are outside this export audit.
-3. `nodetool harness gate --base <ref>` requires a new or changed mapping only
-   when a capability is added or its declared contract changes. Ordinary
-   refactors run the existing mapped checks without requiring an eval edit.
-4. Extend `packages/cli/tests/harness-registry.test.ts` with fixtures for a new
-   unmapped export and a mapped capability.
-5. Add the rule to `packages/agents/AGENTS.md` and create
-   `.github/pull_request_template.md`.
-6. Invert each new gate once and record the failing command in the PR.
-
-Tests must cover a capability-only failure, a capability-plus-eval pass, an
-unregistered-file failure, and a non-agent surface that needs no eval.
-
-## 6. Inventory and consolidate SSRF screening
+## 5. Inventory and consolidate SSRF screening
 
 Status: DONE, shipped 2026-08-22. See **SSRF screening inventory and
 consolidation** under [Completed work](#completed-work). The numbering stays so
 older references still resolve.
 
-## 7. Add property tests to seven pure helpers
+## 6. Add property tests to seven pure helpers
 
 Status: OPEN. Use one PR per row. Before adding `fast-check`, record why the
 current dependencies and table-driven tests are insufficient, check its latest
@@ -169,11 +147,11 @@ and stable source order as the tie-breaker for duplicate indexes in #5116.
 Split #4909 into one execution normalization property and one node-sdk
 validation property.
 
-## 8. Complete editor input-path coverage
+## 7. Complete editor input-path coverage
 
 Status: OPEN. Use three separate PRs.
 
-### 8A. Shortcut action mapping
+### 7A. Shortcut action mapping
 
 `web/src/config/shortcuts.ts` already owns shortcuts and rejects duplicate
 slugs. Add a typed action ID used by menus and handlers. Test missing actions,
@@ -181,7 +159,7 @@ duplicate normalized combinations within the same active editor context and
 OS, Electron-only actions in web menus, and the command-menu shortcut on
 Windows and macOS. Duplicate combinations in disjoint contexts remain valid.
 
-### 8B. Canvas drop journeys
+### 7B. Canvas drop journeys
 
 Add web Playwright journeys for file drop, node creation from a dropped
 connection at the cursor, and run-selected with multiple nodes. Use
@@ -190,7 +168,7 @@ Electron Playwright dependency, config, script, packaged-app fixture, and
 Windows CI job. Update `AGENTS.md` and Electron testing docs with the command.
 Run the case on Windows; a Windows-style string on macOS is not sufficient.
 
-### 8C. Dialog containment audit
+### 7C. Dialog containment audit
 
 `PositionedDialog` already clamps to the viewport. Enumerate other dialog
 primitives and direct users in a checked-in audit with a non-zero count. A
@@ -199,6 +177,21 @@ viewport or its content cannot scroll into view. Migrate failing callers and
 add one 600 x 600 px test per migrated primitive.
 
 ## Completed work
+
+- **An eval case or a suite for each agent capability:** shipped 2026-08-22.
+  `packages/cli/src/harness/capability-table.ts` names all 201 exported
+  capabilities — 193 covered, 8 carrying a written gap note — with the
+  implementation file, the suites the `capability-suites` selfcheck runs, and
+  the eval cases whose `expect.requiredTools` demand them.
+  `scripts/sync-capability-coverage.mjs` (`npm run capabilities:sync` /
+  `:check`) derives everything but the gap notes from the live registry, the
+  agent suites, and the eval case files, so a new capability with no check
+  fails the check rather than review. Each entry carries a fingerprint of what
+  the capability declares, and `nodetool harness gate --base <ref>` refuses a
+  contract change whose coverage mapping stood still while saying nothing about
+  a refactor. Fixtures in `packages/cli/tests/harness-registry.test.ts`, the
+  table's own audit in `capability-coverage.test.ts`, the rule in
+  `packages/agents/AGENTS.md`, and `.github/pull_request_template.md`.
 
 - **Live provider contract probes:** shipped 2026-08-22. The manifest
   `packages/runtime/src/providers/contract/probe-manifest.ts` names, per entry,

@@ -582,6 +582,7 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 | Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
 | Run a workflow (id, JSON, or DSL `.ts`) | `nodetool run <file>` / `nodetool workflows run <id> [--params …]` | `run_workflow`, `start_background_job` | varies |
 | Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
+| Check that every agent capability names a check | `nodetool harness capabilities`; `npm run capabilities:check` | — | seconds |
 | Check a provider's live response against the decoder that reads it | `npm run probe:providers` (nightly; offline half runs on every provider diff) | — | seconds |
 | Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |
 | Check a script↔storyboard link (extract, scaffold, joint assemble) | no command of its own — the pure-function suites the `script-storyboard-link` harness entry names, run by `harness gate` on diffs touching either surface | `get_storyboard`, `get_script` (link state, drift, orphans), `validate_timeline` on the assembled output | seconds |
@@ -1793,7 +1794,20 @@ npm run dev:nodetool -- harness audit --strict   # exit 1 while any gap remains
 npm run dev:nodetool -- harness gate --base main # run the selfchecks this diff demands
 npm run dev:nodetool -- harness gate --dry-run   # plan only
 npm run dev:nodetool -- harness gate --all       # every selfcheck (--expensive to widen)
+npm run dev:nodetool -- harness capabilities     # capability coverage + documented gaps
 ```
+
+`capabilities` is the same invariant one rung down, over
+`packages/cli/src/harness/capability-table.ts`: every exported agent capability
+names the suites a selfcheck runs over it, the eval cases that drive a model
+through it, or a written gap note. The table is derived —
+`npm run capabilities:sync` rewrites it from the live registry, the agent
+suites and the eval case files, and `npm run capabilities:check` fails when it
+is stale or when a new capability arrives with no check and no gap note. It
+also carries a fingerprint of what each capability *declares*, so
+`harness gate --base <ref>` can refuse a contract change that left its coverage
+mapping untouched while saying nothing about an ordinary refactor. See
+[packages/agents/AGENTS.md § Capability coverage](packages/agents/AGENTS.md).
 
 ### nodetool reliability (Cross-Surface Journey Diffs)
 

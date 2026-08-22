@@ -394,6 +394,31 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "capability-suites",
+    title: "Agent capability suites (per-capability contract tests)",
+    // No CLI command owns a capability: the surface is the wire name a guest
+    // or a model calls. The checked-in suites are the headless surface, and
+    // `packages/cli/src/harness/capability-table.ts` says which suite covers
+    // which capability — the audit fails on one that names none.
+    command:
+      "npm run test --workspace=packages/agents -- capabilities capability " +
+      "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
+      "sandbox-package-docs sandbox-package-listing",
+    kind: "static",
+    capabilities: ["no-db", "gated"],
+    docs: "packages/agents/AGENTS.md § Capability coverage",
+    selfcheck: {
+      // `capabilities:check` re-derives the table from the live registry, so
+      // a capability added without a mapping fails here rather than in review.
+      command:
+        "npm run capabilities:check && " +
+        "npm run test --workspace=packages/agents -- capabilities capability " +
+        "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
+        "sandbox-package-docs sandbox-package-listing",
+      cost: "cheap"
+    }
+  },
+  {
     id: "provider-codegen",
     title: "Generated provider metadata drift (FAL and KIE fixture mode)",
     command:
@@ -451,6 +476,18 @@ export const SURFACES: SurfaceEntry[] = [
       // The CLI-facing example graphs. `npm run validate:examples` scans them,
       // so a diff that edits one runs the validate selfcheck.
       "examples/workflows/"
+    ]
+  },
+  {
+    id: "agent-capabilities",
+    title: "Agent capabilities (the wire names a guest or a model calls)",
+    harnesses: ["capability-suites", "eval"],
+    paths: [
+      "packages/agents/src/capabilities/",
+      "packages/agents/src/evals/",
+      "packages/cli/src/harness/capability-table.ts",
+      "packages/cli/src/harness/capability-coverage.ts",
+      "scripts/sync-capability-coverage.mjs"
     ]
   },
   {
