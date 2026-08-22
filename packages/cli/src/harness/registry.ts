@@ -394,6 +394,21 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "provider-codegen",
+    title: "Generated provider metadata drift (FAL and KIE fixture mode)",
+    command:
+      "npm run generate:fal:check && npm run generate:kie:check",
+    kind: "static",
+    capabilities: ["json", "no-db", "gated"],
+    docs: "AGENTS.md § Generated provider metadata has a drift gate",
+    selfcheck: {
+      command:
+        "npm run generate:fal:check -- --strict && " +
+        "npm run generate:kie:check -- --strict",
+      cost: "cheap"
+    }
+  },
+  {
     id: "harness-audit",
     title: "Harness coverage audit (this registry)",
     command: "nodetool harness audit [--strict]",
@@ -616,6 +631,18 @@ export const SURFACES: SurfaceEntry[] = [
       "scripts/bundle-backend.mjs",
       "scripts/verify-backend-bundle.mjs",
       "packages/config/src/package-asset-registry.ts"
+    ]
+  },
+  {
+    id: "provider-codegen",
+    title: "Generated FAL and KIE provider metadata (node manifests, node source)",
+    harnesses: ["provider-codegen"],
+    paths: [
+      "packages/fal-codegen/",
+      "packages/kie-codegen/",
+      "packages/fal-nodes/src/fal-manifest.json",
+      "packages/kie-nodes/src/kie-manifest.json",
+      "scripts/provider-codegen-check.mjs"
     ]
   },
   {
