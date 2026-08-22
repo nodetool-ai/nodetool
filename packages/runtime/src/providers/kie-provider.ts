@@ -289,20 +289,85 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
  * through. Mirrors kie-base's `checkStatus` — without this a failed job returns
  * a 200 that the poll loop reads as "not done yet" and runs to full timeout.
  */
-function checkStatus(data: Record<string, unknown>): void {
+/** The `code` values KIE returns inside an HTTP-200 error envelope. */
+const KIE_ERROR_CODES: Record<number, string> = {
+  401: "Unauthorized",
+  402: "Insufficient Credits",
+  404: "Not Found",
+  422: "Validation Error",
+  429: "Rate Limited",
+  455: "Service Unavailable",
+  500: "Server Error",
+  501: "Generation Failed",
+  505: "Feature Disabled"
+};
+
+/**
+ * Classify a KIE response envelope. Returns the error KIE announced inside an
+ * otherwise-successful HTTP response, or null when the envelope is not an
+ * error. The live contract probe reads this to check that the error envelope
+ * still looks the way the provider expects.
+ */
+export function kieEnvelopeError(
+  data: Record<string, unknown>
+): { code: number; label: string; message: string } | null {
   const code = Number(data.code);
-  const map: Record<number, string> = {
-    401: "Unauthorized",
-    402: "Insufficient Credits",
-    404: "Not Found",
-    422: "Validation Error",
-    429: "Rate Limited",
-    455: "Service Unavailable",
-    500: "Server Error",
-    501: "Generation Failed",
-    505: "Feature Disabled"
-  };
-  if (map[code]) throw new Error(`${map[code]}: ${JSON.stringify(data)}`);
+  const label = KIE_ERROR_CODES[code];
+  if (!label) return null;
+  const message = isString(data.msg) ? data.msg : "";
+  return { code, label, message };
+}
+
+function checkStatus(data: Record<string, unknown>): void {
+  const error = kieEnvelopeError(data);
+  if (error) throw new Error(`${error.label}: ${JSON.stringify(data)}`);
+}
+
+/** Decode a `createTask` body into the task id it announces. */
+export function decodeKieTaskSubmission(data: Record<string, unknown>): string {
+  checkStatus(data);
+  const taskId = (data.data as Record<string, unknown>)?.taskId;
+  if (!isString(taskId) || taskId.length === 0) {
+    throw new Error(`No taskId in Kie response: ${JSON.stringify(data)}`);
+  }
+  return taskId;
+}
+
+/** Decode a `recordInfo` body into the job state the poller branches on. */
+export function decodeKieRecordInfo(data: Record<string, unknown>): {
+  state: string;
+  failMsg: string;
+} {
+  checkStatus(data);
+  const payload = (data.data as Record<string, unknown>) ?? {};
+  const state = payload.state;
+  if (!isString(state) || state.length === 0) {
+    throw new Error(`No state in Kie recordInfo: ${JSON.stringify(data)}`);
+  }
+  return { state, failMsg: isString(payload.failMsg) ? payload.failMsg : "" };
+}
+
+/**
+ * Decode the result URLs out of a finished `recordInfo` body. KIE nests them
+ * as a JSON *string* under `data.resultJson`, so this is two decodes.
+ */
+export function decodeKieResultUrls(data: Record<string, unknown>): string[] {
+  checkStatus(data);
+  const resultJsonStr = (data.data as Record<string, unknown>)?.resultJson;
+  if (!isString(resultJsonStr)) {
+    throw new Error("No resultJson in Kie response");
+  }
+  let resultData: Record<string, unknown>;
+  try {
+    resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
+  } catch {
+    throw new Error("Kie resultJson is not JSON");
+  }
+  const resultUrls = resultData.resultUrls;
+  if (!Array.isArray(resultUrls) || resultUrls.length === 0) {
+    throw new Error("No resultUrls in Kie resultJson");
+  }
+  return resultUrls.filter(isString);
 }
 
 /**
@@ -493,11 +558,7 @@ async function submitTask(
   if (!res.ok) {
     throw new Error(`Kie submit failed: ${res.status} ${JSON.stringify(data)}`);
   }
-  const taskId = (data.data as Record<string, unknown>)?.taskId as string;
-  if (!taskId) {
-    throw new Error(`No taskId in Kie response: ${JSON.stringify(data)}`);
-  }
-  return taskId;
+  return decodeKieTaskSubmission(data);
 }
 
 /**
@@ -549,13 +610,14 @@ async function pollUntilDone(
       continue;
     }
     consecutiveErrors = 0;
-    const data = await parseKieJson(res, "recordInfo");
-    const state = (data.data as Record<string, unknown>)?.state as string;
+    const { state, failMsg } = decodeKieRecordInfo(
+      await parseKieJson(res, "recordInfo")
+    );
     if (state === "success") return;
     if (state === "failed" || state === "fail") {
-      const msg =
-        (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
-      throw new Error(`Kie task failed: ${msg} (taskId: ${taskId})`);
+      throw new Error(
+        `Kie task failed: ${failMsg || "Unknown error"} (taskId: ${taskId})`
+      );
     }
     await sleep(pollInterval, signal);
   }
@@ -594,13 +656,9 @@ async function downloadResultBytes(
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
   const res = await fetch(url, { headers: headers(apiKey), signal });
   if (!res.ok) throw new Error(`Failed to get Kie result: ${res.status}`);
-  const data = await parseKieJson(res, "recordInfo");
-  const resultJsonStr = (data.data as Record<string, unknown>)
-    ?.resultJson as string;
-  if (!resultJsonStr) throw new Error("No resultJson in Kie response");
-  const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
-  const resultUrls = resultData.resultUrls as string[];
-  if (!resultUrls?.length) throw new Error("No resultUrls in Kie resultJson");
+  const resultUrls = decodeKieResultUrls(
+    await parseKieJson(res, "recordInfo")
+  );
   const dlRes = await safeFetch(resultUrls[0], { signal });
   if (!dlRes.ok) {
     throw new Error(`Failed to download from ${resultUrls[0]}`);
@@ -632,11 +690,7 @@ async function submitSuno(
   if (!res.ok) {
     throw new Error(`Kie submit failed: ${res.status} ${JSON.stringify(data)}`);
   }
-  const taskId = (data.data as Record<string, unknown>)?.taskId as string;
-  if (!taskId) {
-    throw new Error(`No taskId in Kie response: ${JSON.stringify(data)}`);
-  }
-  return taskId;
+  return decodeKieTaskSubmission(data);
 }
 
 /** Poll the Suno record-info endpoint until the task reaches a terminal state. */

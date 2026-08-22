@@ -1,0 +1,17 @@
+{
+  "models": [
+    {
+      "name": "models/gemini-3-flash",
+      "version": "001",
+      "displayName": "Gemini 3 Flash",
+      "description": "Fast and versatile multimodal model.",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "streamGenerateContent"
+      ]
+    }
+  ]
+}

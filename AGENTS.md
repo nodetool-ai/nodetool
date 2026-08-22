@@ -580,6 +580,7 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 | Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
 | Run a workflow (id, JSON, or DSL `.ts`) | `nodetool run <file>` / `nodetool workflows run <id> [--params …]` | `run_workflow`, `start_background_job` | varies |
 | Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
+| Check a provider's live response against the decoder that reads it | `npm run probe:providers` (nightly; offline half runs on every provider diff) | — | seconds |
 | Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |
 | Check a script↔storyboard link (extract, scaffold, joint assemble) | no command of its own — the pure-function suites the `script-storyboard-link` harness entry names, run by `harness gate` on diffs touching either surface | `get_storyboard`, `get_script` (link state, drift, orphans), `validate_timeline` on the assembled output | seconds |
 | Jobs & assets | `nodetool jobs …` / `nodetool assets …` | `list_jobs`, `get_job`, `get_job_logs`, `list_assets`, `get_asset` | — |
@@ -1735,6 +1736,36 @@ npm run dev:nodetool -- affected --base main           # diff against a ref
 npm run dev:nodetool -- affected packages/cli/src/x.ts # explicit files
 npm run dev:nodetool -- affected --json
 ```
+
+### npm run probe:providers (Provider Contract Probes)
+
+Asks OpenAI, Gemini, fal, and KIE for one real response each and decodes it with
+the same production decoder a run uses. A cassette proves NodeTool still handles
+a response a provider gave us *once*; it cannot notice that the provider changed
+the response today.
+
+```bash
+npm run probe:providers                      # one request per provider, keys from env
+npm run probe:providers -- --json --out report.json
+npm run probe:providers -- --only openai.chat-completion
+npm run probe:providers -- --strict-network  # also fail on an unreachable provider
+```
+
+The offline half needs no key and runs on every diff touching
+`packages/runtime/src/providers/`: each manifest entry decodes a checked-in raw
+HTTP response fixture, and every declared required field is deleted once to
+prove the check can fail
+(`npm run test --workspace=packages/runtime -- provider-contract-probes`).
+
+**Network failures are reported apart from schema failures.** No body reaching
+the decoder (DNS, timeout, 5xx, an HTML gateway page) is a network failure and
+does not fail the nightly job; a response that no longer decodes is a schema
+failure and does. Budget: one request and USD 0.05 per provider per run,
+enforced by the runner. Retained artifacts hold response *shapes* and redacted
+messages, never a body — no credential, prompt, request id, or signed URL
+survives. Manifest:
+`packages/runtime/src/providers/contract/probe-manifest.ts`. Details:
+[docs/provider-contract-probes.md](docs/provider-contract-probes.md).
 
 ### nodetool harness (Registry, Coverage Audit, and the Gate)
 

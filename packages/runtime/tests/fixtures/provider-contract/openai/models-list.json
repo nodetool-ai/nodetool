@@ -1,0 +1,23 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "gpt-5.4-mini",
+      "object": "model",
+      "created": 1755820800,
+      "owned_by": "system"
+    },
+    {
+      "id": "whisper-1",
+      "object": "model",
+      "created": 1677532384,
+      "owned_by": "openai-internal"
+    },
+    {
+      "id": "text-embedding-3-large",
+      "object": "model",
+      "created": 1705953180,
+      "owned_by": "system"
+    }
+  ]
+}

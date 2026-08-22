@@ -1,0 +1,15 @@
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "taskId": "contract-probe-task",
+    "model": "google/nano-banana",
+    "state": "success",
+    "param": "{}",
+    "resultJson": "{\"resultUrls\":[\"https://file.kie.ai/example/contract-probe.png\"]}",
+    "failCode": null,
+    "failMsg": null,
+    "completeTime": 1755820800000,
+    "createTime": 1755820790000
+  }
+}

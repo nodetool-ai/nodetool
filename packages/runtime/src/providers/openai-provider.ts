@@ -249,6 +249,36 @@ function isOpenAIResponsesModel(model: string): boolean {
   return /^gpt-5(?:[.-]|$)/.test(id);
 }
 
+/**
+ * Decode a `GET /v1/models` body into the language models it announces.
+ *
+ * Split out of {@link OpenAIProvider.getAvailableLanguageModels} so the live
+ * contract probe and its raw-response fixtures parse a real production
+ * response the same way the provider does. Strict on the envelope: a body
+ * without a `data` array throws, and the caller decides what to fall back to.
+ */
+export function decodeOpenAIModelList(
+  payload: unknown,
+  options: { provider: ProviderId; onlyResponsesModels: boolean }
+): LanguageModel[] {
+  if (!isRecord(payload)) {
+    throw new Error("OpenAI model list is not an object");
+  }
+  const rows = payload.data;
+  if (!Array.isArray(rows)) {
+    throw new Error("OpenAI model list has no `data` array");
+  }
+  return rows
+    .filter(isRecord)
+    .filter((row): row is { id: string } => isString(row.id) && row.id.length > 0)
+    .filter((row) => !options.onlyResponsesModels || isOpenAIResponsesModel(row.id))
+    .map((row) => ({
+      id: row.id,
+      name: row.id,
+      provider: options.provider
+    }));
+}
+
 function responsesSystemPrompt(messages: Message[]): string {
   return messages
     .filter((m) => m.role === "system")
@@ -385,21 +415,17 @@ export class OpenAIProvider extends BaseProvider {
       return isOpenAI ? OPENAI_FALLBACK_MODELS : [];
     }
 
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string }>;
-    };
-    const rows = payload.data ?? [];
-    const models = rows
-      .filter(
-        (row): row is { id: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .filter((row) => !isOpenAI || isOpenAIResponsesModel(row.id))
-      .map((row) => ({
-        id: row.id,
-        name: row.id,
-        provider: this.provider
-      }));
+    let models: LanguageModel[];
+    try {
+      models = decodeOpenAIModelList(await response.json(), {
+        provider: this.provider,
+        onlyResponsesModels: isOpenAI
+      });
+    } catch {
+      // A body OpenAI's own decoder rejects is the same situation as an
+      // unreachable listing: fall back rather than fail model discovery.
+      return isOpenAI ? OPENAI_FALLBACK_MODELS : [];
+    }
     if (models.length === 0 && isOpenAI) {
       return OPENAI_FALLBACK_MODELS;
     }
