@@ -9,7 +9,10 @@
  */
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { getSecret } from "@nodetool-ai/models";
-import { ExecutionSession } from "@nodetool-ai/execution";
+import {
+  ExecutionSession,
+  isExecutionPreflightError
+} from "@nodetool-ai/execution";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
 import { summarizeInterventions } from "@nodetool-ai/execution/debug";
@@ -106,7 +109,32 @@ export async function runOnServer(
     sessionOptions.supervisor = supervisor.handle;
     sessionOptions.captureMessages = true;
   }
-  const session = await ExecutionSession.create(sessionOptions);
+  // A run this runtime cannot honour (unknown model, unregistered provider,
+  // missing credential) is refused by `create()` before the kernel starts.
+  // The harness's job is to report why a run did not happen, so the refusal
+  // becomes a failed report rather than a thrown stack.
+  let session: ExecutionSession;
+  try {
+    session = await ExecutionSession.create(sessionOptions);
+  } catch (err) {
+    if (!isExecutionPreflightError(err)) throw err;
+    supervisor?.handle.close();
+    const summary = collectExecutionSummary([]);
+    summary.status = "failed";
+    summary.error = err.message;
+    return {
+      report: {
+        surface: "server",
+        ok: false,
+        status: "failed",
+        error: err.message,
+        durationMs: Date.now() - startedAt,
+        summary,
+        trace: null
+      },
+      rawMessages: []
+    };
+  }
 
   const interventionLines = supervisor
     ? streamInterventionLines(

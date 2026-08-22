@@ -92,3 +92,7 @@
 ## 2026-05-25 - O(N^2) Array finding optimization in Dataframe Components
 **Learning:** Found an $O(N^2)$ performance bottleneck when adding new columns in `web/src/components/properties/DataframeProperty.tsx`, `web/src/components/properties/DataframeEditorModal.tsx`, and `web/src/components/properties/RecordTypeProperty.tsx`. Generating a unique column name used `while (columns.find(...))` looping over all existing columns. For dataframes with a large number of columns, iterating the whole array per increment caused unnecessary allocations and computation overhead.
 **Action:** Pre-computed a `Set` of existing column names before the loop to allow $O(1)$ lookup via `Set.has()`, effectively reducing the time complexity to $O(N)$.
+
+## 2026-05-25 - O(N^2) Bottleneck in Timeline Clip Merging
+**Learning:** Found an $O(N^2)$ performance bottleneck in `web/src/stores/timeline/TimelineStore.ts` inside `mergeClipsAtTime` where `clips.find(...)` was called inside a loop over `clips`. For large timelines with many clips, deleting a marker (which triggers merging) caused significant UI thread stalling.
+**Action:** Replaced the nested `.find()` with a pre-computed `Map` that groups candidate clips by a string key (`${trackId}::${currentAssetId}`) and filters them by end time in a single $O(N)$ pass before the main loop. This drops the overall time complexity to $O(N)$ and eliminates the stall.

@@ -89,6 +89,8 @@ import {
   isObjectLike,
   isString
 } from "../../utils/typePredicates";
+import { resolveInlineMediaSource } from "../../utils/resolveMediaUri";
+import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
 
 const styles = (theme: Theme) =>
   css({
@@ -371,14 +373,16 @@ const resolvePreviewValue = (
   return values.length === 1 ? values[0] : values;
 };
 
-type ImagePreviewSource = string | Uint8Array;
+type ImagePreviewSource = ResolvedMediaUrl | "" | Uint8Array;
 
 const isNumberArray = (value: unknown[]): value is number[] =>
   value.length > 0 && value.every((item) => isNumber(item));
 
 const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined => {
   if (isString(value)) {
-    return value;
+    // A stored `asset://` locator resolves to nothing here on purpose: the
+    // caller falls through to `OutputRenderer`, which does the asset lookup.
+    return resolveInlineMediaSource(value);
   }
   if (value instanceof Uint8Array) {
     return value;
@@ -396,15 +400,15 @@ const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined =>
   }
 
   if (isString(value.uri) && value.uri) {
-    return value.uri;
+    return resolveInlineMediaSource(value.uri);
   }
   if (isString(value.url) && value.url) {
-    return value.url;
+    return resolveInlineMediaSource(value.url);
   }
 
   const data = value.data;
   if (isString(data)) {
-    return data;
+    return resolveInlineMediaSource(data);
   }
   if (data instanceof Uint8Array) {
     return data;

@@ -125,7 +125,17 @@ export async function* runWorkflowAsAgent(
     captureMessages: true
   };
   if (supervisor) sessionOptions.supervisor = supervisor;
-  const session = await ExecutionSession.create(sessionOptions);
+  // `create()` refuses a graph this runtime cannot honour (unknown model,
+  // unregistered provider, missing credential) before the kernel starts. The
+  // refusal is the caller's to report, but the forwarding listener is this
+  // function's to remove — otherwise a refused run leaves one attached.
+  let session: ExecutionSession;
+  try {
+    session = await ExecutionSession.create(sessionOptions);
+  } catch (err) {
+    removeListener();
+    throw err;
+  }
 
   const onAbort = (): void => session.cancel("cancelled");
   if (signal?.aborted) session.cancel("cancelled");

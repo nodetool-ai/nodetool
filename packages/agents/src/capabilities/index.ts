@@ -6,6 +6,7 @@
 
 export { PERMISSION_CATEGORIES } from "./types.js";
 export type {
+  AvailableSecretsResolver,
   CapabilitySpec,
   CapabilityImpl,
   CapabilityRun,
@@ -53,6 +54,7 @@ export {
 export type { CapabilityRunSource } from "./adapters.js";
 export {
   UNGATED,
+  contextSecretAvailability,
   createCapabilityRun,
   resolveCapabilityMessage,
   ungatedCapabilityRun

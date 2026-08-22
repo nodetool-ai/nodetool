@@ -43,6 +43,7 @@ import {
   toolForCapabilityName,
   UNGATED,
   createCapabilityRun,
+  contextSecretAvailability,
   type CapabilityRun,
   NODETOOL_API_NAMESPACE_TOOLS,
   MCP_GUEST_CONTRACT,
@@ -342,6 +343,7 @@ function collectBridgedTools(
       createCapabilityRun({
         context,
         gate: UNGATED,
+        availableSecrets: contextSecretAvailability(context),
         loaders: { timeline: loadTimelineForUser }
       })
     ),
@@ -351,6 +353,7 @@ function collectBridgedTools(
       createCapabilityRun({
         context,
         gate: UNGATED,
+        availableSecrets: contextSecretAvailability(context),
         loaders: { sketch: loadSketchForUser }
       })
     ),
@@ -369,7 +372,12 @@ function collectBridgedTools(
     ].map((name) => toolForCapabilityName(name)),
     ...["find_model", "list_models"].map((name) =>
       toolForCapabilityName(name, (context) =>
-        createCapabilityRun({ context, gate: UNGATED, providers })
+        createCapabilityRun({
+          context,
+          gate: UNGATED,
+          availableSecrets: contextSecretAvailability(context),
+          providers
+        })
       )
     )
   ];
@@ -643,6 +651,7 @@ export function registerAgentMcpTools(
       sessionAllow: new Set<string>(),
       requestApproval: async () => "allow"
     },
+    availableSecrets: contextSecretAvailability(context),
     nodeRegistry: options.registry,
     ...mcpToolHostDeps({
       registry: options.registry,

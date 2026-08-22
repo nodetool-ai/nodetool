@@ -38,7 +38,8 @@ import {
   SPACING,
   getSpacingPx,
   IconButton,
-  MagicGenerationFill
+  MagicGenerationFill,
+  ResponsiveImage
 } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
@@ -149,8 +150,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
   bindingStatus
 }) => {
   const isGroup = layer.type === "group";
-  // Resolve the image ref to a fetchable URL — a raw `asset://` locator is not
-  // a path any <img src> can load.
+  // Whether the layer has a thumbnail at all; `ResponsiveImage` resolves the
+  // locator itself, since a raw `asset://` is not a path any <img> can load.
   const layerImage = isGroup ? null : getLayerDataImageUrl(layer.data);
   const thumbnailSrc = useResolvedMediaUri(layerImage) ?? null;
   const isLayerGenerating =
@@ -265,10 +266,11 @@ const LayerItem: React.FC<LayerItemProps> = ({
             sx={{ position: "relative", flexShrink: 0 }}
           >
             {thumbnailSrc ? (
-              <img
+              <ResponsiveImage
                 className="layer-thumbnail"
-                src={thumbnailSrc}
+                locator={layerImage}
                 alt={layer.name}
+                fit="contain"
                 draggable={false}
                 onClick={(e) => {
                   if (e.ctrlKey || e.metaKey) {

@@ -5,6 +5,7 @@ import { asImageRef, isRawRgbaRef } from "../../utils/imageRef";
 import { rawRgbaToPngDataUrl } from "../../lib/workflow/materializeBrowserOutputs";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 import { isString } from "../../utils/typePredicates";
+import { resolveInlineMediaSource } from "../../utils/resolveMediaUri";
 
 interface ImageRefPreviewProps {
   /** A node output/input value in any of the shapes `asImageRef` understands. */
@@ -49,14 +50,18 @@ const ImageRefPreview: React.FC<ImageRefPreviewProps> = ({
     // materializeBrowserOutputs before it reaches here; encode any that slips
     // through to a data URL so the <img> path can render it.
     return (
-      <ImageView source={rawRgbaToPngDataUrl(ref.data, ref.width, ref.height)} />
+      <ImageView
+        source={resolveInlineMediaSource(
+          rawRgbaToPngDataUrl(ref.data, ref.width, ref.height)
+        )}
+      />
     );
   }
   if (ref?.uri) {
     return <ImageView source={resolvedUri} />;
   }
   if (isString(ref?.data) && ref.data) {
-    return <ImageView source={ref.data} />;
+    return <ImageView source={resolveInlineMediaSource(ref.data)} />;
   }
   if (ref?.data instanceof Uint8Array) {
     return <ImageView source={ref.data} />;

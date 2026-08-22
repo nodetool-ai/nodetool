@@ -24,7 +24,9 @@ import {
   FONT_SIZE_SANS,
   SPACING,
   Z_INDEX,
-  getSpacingPx
+  getSpacingPx,
+  AudioPlayback,
+  VideoPlayer
 } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
@@ -47,12 +49,12 @@ import {
   type MediaLocator
 } from "../../../hooks/useResolvedMediaUri";
 import { isString } from "../../../utils/typePredicates";
+import { resolveInlineMediaSource } from "../../../utils/resolveMediaUri";
 
 /** Edge length of a generated-media thumbnail tile (px). */
 const THUMBNAIL_SIZE = 120;
 
-const VIDEO_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
-const AUDIO_STYLE: React.CSSProperties = { width: "100%", padding: getSpacingPx(SPACING.lg) };
+const AUDIO_SX = { width: "100%", padding: getSpacingPx(SPACING.lg) } as const;
 
 type ChatMessageWithMedia = Message & {
   media_generation?: MediaGenerationRequest | null;
@@ -272,20 +274,15 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
     [addBlocksToCanvas, mediaContents]
   );
 
-  // Generated media persists as `asset://<asset_id>`, which no renderer can
-  // fetch — resolve every tile's ref to the asset's `get_url` up front, since
-  // the grid below maps over the list and cannot call a hook per item.
-  const mediaLocators = useMemo(
+  // The video and audio tiles hand their locator to a primitive that resolves
+  // it. `ImageView` takes an already-resolved URL, and the grid below maps over
+  // the list and cannot call a hook per item — so resolve the image refs here.
+  const imageLocators = useMemo(
     (): MediaLocator[] =>
-      mediaContents.map((c) => {
-        if (isImageContent(c)) return c.image;
-        if (isVideoContent(c)) return c.video;
-        if (isAudioContent(c)) return c.audio;
-        return undefined;
-      }),
+      mediaContents.map((c) => (isImageContent(c) ? c.image : undefined)),
     [mediaContents]
   );
-  const resolvedMediaSrcs = useResolvedMediaUris(mediaLocators);
+  const resolvedImageSrcs = useResolvedMediaUris(imageLocators);
 
   const prompt = useMemo(() => {
     const content = message.content;
@@ -410,8 +407,8 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
           : mediaContents.map((c, i) => {
           if (isImageContent(c)) {
             const src =
-              resolvedMediaSrcs[i] ||
-              (c.image?.data as string | undefined) ||
+              resolvedImageSrcs[i] ??
+              resolveInlineMediaSource(c.image?.data as string | undefined) ??
               "";
             const key = c.image?.asset_id || c.image?.uri || `media-${i}`;
             return (
@@ -435,7 +432,6 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             );
           }
           if (isVideoContent(c)) {
-            const src = resolvedMediaSrcs[i] ?? "";
             const key = c.video?.asset_id || c.video?.uri || `media-${i}`;
             return (
               <div
@@ -443,14 +439,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                 draggable
                 onDragStart={(e) => handleDragStart(e, c)}
               >
-                <video
-                  src={src}
-                  controls
-                  preload="metadata"
-                  playsInline
-                  aria-label="Generated video"
-                  style={VIDEO_STYLE}
-                />
+                <VideoPlayer locator={c.video} label="Generated video" />
                 {isCanvasAvailable && (
                   <ToolbarIconButton
                     className="add-to-canvas-button"
@@ -465,7 +454,6 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             );
           }
           if (isAudioContent(c)) {
-            const src = resolvedMediaSrcs[i] ?? "";
             const key = c.audio?.asset_id || c.audio?.uri || `media-${i}`;
             return (
               <div
@@ -474,12 +462,10 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                 draggable
                 onDragStart={(e) => handleDragStart(e, c)}
               >
-                <audio
-                  src={src}
-                  controls
-                  preload="metadata"
-                  aria-label="Generated audio"
-                  style={AUDIO_STYLE}
+                <AudioPlayback
+                  locator={c.audio}
+                  label="Generated audio"
+                  sx={AUDIO_SX}
                 />
                 {isCanvasAvailable && (
                   <ToolbarIconButton

@@ -20,7 +20,11 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 
 import { useAssetStore } from "../stores/AssetStore";
 import { assetIdFromLocator } from "../utils/mediaRef";
-import { resolveStaticMediaUri } from "../utils/resolveMediaUri";
+import {
+  asResolvedMediaUrl,
+  resolveStaticMediaUri
+} from "../utils/resolveMediaUri";
+import type { ResolvedMediaUrl } from "../utils/resolveMediaUri";
 import { isString } from "../utils/typePredicates";
 
 /** Anything carrying a media locator: a bare URI or a `*Ref` with `asset_id`. */
@@ -56,7 +60,7 @@ const locatorParts = (
  * URL; its `content_type` is the answer.
  */
 export type ResolvedMedia = {
-  url: string | undefined;
+  url: ResolvedMediaUrl | undefined;
   contentType: string | undefined;
   /**
    * True while the asset lookup is still in flight. A caller that renders
@@ -87,17 +91,23 @@ export function useResolvedMedia(source: MediaLocator): ResolvedMedia {
   });
 
   if (staticUrl !== null) {
-    return { url: staticUrl || undefined, contentType: undefined, pending: false };
+    return {
+      url: asResolvedMediaUrl(staticUrl) ?? undefined,
+      contentType: undefined,
+      pending: false
+    };
   }
   return {
-    url: asset?.get_url ?? undefined,
+    url: asResolvedMediaUrl(asset?.get_url) ?? undefined,
     contentType: asset?.content_type ?? undefined,
     // A disabled query reports `pending` forever, so gate on the id path.
     pending: needsAsset && isPending && !isError
   };
 }
 
-export function useResolvedMediaUri(source: MediaLocator): string | undefined {
+export function useResolvedMediaUri(
+  source: MediaLocator
+): ResolvedMediaUrl | undefined {
   return useResolvedMedia(source).url;
 }
 
@@ -107,7 +117,7 @@ export function useResolvedMediaUri(source: MediaLocator): string | undefined {
  */
 export function useResolvedMediaUris(
   sources: MediaLocator[]
-): (string | undefined)[] {
+): (ResolvedMediaUrl | undefined)[] {
   const getAsset = useAssetStore((state) => state.get);
   const parts = sources.map(locatorParts);
   const staticUrls = parts.map(({ uri }) => resolveStaticMediaUri(uri));
@@ -122,8 +132,8 @@ export function useResolvedMediaUris(
 
   return staticUrls.map((staticUrl, i) =>
     staticUrl !== null
-      ? staticUrl || undefined
-      : (results[i]?.data?.get_url ?? undefined)
+      ? (asResolvedMediaUrl(staticUrl) ?? undefined)
+      : (asResolvedMediaUrl(results[i]?.data?.get_url) ?? undefined)
   );
 }
 

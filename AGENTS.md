@@ -97,6 +97,7 @@ protocol → config → security → auth → storage
 
 - **State management**: Zustand stores (web/src/stores/), React Context wraps Zustand, TanStack Query for server state
 - **UI Primitives (MANDATORY)**: All frontend UI must use primitives from `web/src/components/ui_primitives/`. **Never import raw MUI components** (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) outside of `ui_primitives/` or `editor_ui/`. See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the decision tree, migration rules, and full catalog of 90+ primitives. When touching any file, migrate raw MUI usage to primitives.
+- **Media rendering (MANDATORY)**: `asset://<id>` is a stored identifier, not a URL — the bytes live under `<user_id>/<asset_id>.<ext>` and, on the cloud backends, behind a signed URL only the server can mint. Never set `src`/`poster` from a locator. Render stored media through `ResponsiveImage`, `VideoPlayer`, or `AudioPlayback` with a `locator` prop; those primitives resolve it. Their `src` prop takes a `ResolvedMediaUrl`, minted only by `utils/resolveMediaUri.ts` and `hooks/useResolvedMediaUri.ts`, so a raw string does not typecheck. The lint rule `design-tokens/no-unresolved-media-src` rejects a locator literal in a JSX url attribute; the rendering surfaces are inventoried in `web/src/__tests__/mediaResolutionBoundary.test.ts`.
 - **Design tokens (MANDATORY)**: See **[docs/DESIGN.md](docs/DESIGN.md)** for the token systems — `SPACING` (4px grid), `TYPOGRAPHY` (4-size scale), `BORDER_RADIUS`, `MOTION`, `Z_INDEX`. **Never** hardcode border radii (`4`, `10`, `18px`), transition strings (`"all 200ms ease"`), font sizes (`"14px"`, `"0.85rem"`), or off-grid spacing (`5px`, `10px`, `13px`). Use the named constants from `ui_primitives`. When touching any UI file, fix violations in the same PR.
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
 - **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
@@ -237,13 +238,13 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 16,912 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,907 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-59 trees is 531 pairs, and 247 of them are already at zero — so a rule still
+59 trees is 531 pairs, and 253 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
 fifty-six packages, and those fifty-six are ratcheted today rather than after
 the last one lands. Seven rules are at zero everywhere and sit in the enforced
@@ -281,7 +282,7 @@ inside a function returning `v is T` is the rule's sanctioned form, so working
 the backlog means consolidating repeated inline checks into named predicates
 (each tree has a predicate module: `packages/protocol/src/predicates.ts`,
 `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
-deleting guards. It is enforced for the twenty-one trees at zero on it (read the
+deleting guards. It is enforced for the twenty-two trees at zero on it (read the
 list off the enforced config), with the decoder `packages/protocol/src/typecheck.ts`
 exempt: in the package that owns the schemas, an inline `typeof` means someone
 bypassed the parse. One tradeoff: predicates take `value: unknown`, so
@@ -301,27 +302,27 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7082 | 11 / 59 |
-| `no-unsafe-dictionary-type` | 4346 | 11 / 59 |
-| `no-unknown-parameters` | 1964 | 14 / 59 |
-| `no-module-mocking` | 1471 | 56 / 59 |
-| `no-known-value-widening` | 749 | 17 / 59 |
-| `no-runtime-typeof` | 548 | 21 / 59 |
-| `no-implicit-return-type` | 451 | 30 / 59 |
+| `require-safety-comment-for-type-assertion` | 7081 | 12 / 59 |
+| `no-unsafe-dictionary-type` | 4339 | 12 / 59 |
+| `no-unknown-parameters` | 1956 | 15 / 59 |
+| `no-module-mocking` | 1484 | 56 / 59 |
+| `no-known-value-widening` | 753 | 18 / 59 |
+| `no-runtime-typeof` | 541 | 22 / 59 |
+| `no-implicit-return-type` | 450 | 31 / 59 |
 | `no-unknown-returns` | 247 | 41 / 59 |
-| `no-chained-type-assertions` | 54 | 46 / 59 |
+| `no-chained-type-assertions` | 56 | 46 / 59 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,471 findings but zero in 56 of 59 trees: it is
+`no-module-mocking` is 1,484 findings but zero in 56 of 59 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Eleven trees are at zero on all nine rules:
+a boundary get named. Twelve trees are at zero on all nine rules:
 `packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/config`,
-`packages/document-nodes`, `packages/model-pricing`, `packages/nodes-utils`,
-`packages/reve-nodes`, `packages/sdk`, `packages/security`,
-`packages/workflow-runner`.
+`packages/document-nodes`, `packages/kie-codegen`, `packages/model-pricing`,
+`packages/nodes-utils`, `packages/reve-nodes`, `packages/sdk`,
+`packages/security`, `packages/workflow-runner`.
 
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps
@@ -1071,6 +1072,18 @@ The same check is exposed to agents through the **`validate_workflow`** tool:
 pass an inline `graph` ({nodes, edges}) to check a graph being built, or a
 `workflow_id` to fetch and validate a saved one. The validator core is
 `validateGraph` in `@nodetool-ai/node-sdk`.
+
+The credential warning reaches that tool too, on a graph as well as a saved
+workflow. The run answers which of the declared names this install holds
+(`CapabilityRun.availableSecrets`, built from the context by
+`contextSecretAvailability`), and the issue tells the agent where a person sets
+one — plus `request_secret` where the run can raise that dialog, and never on a
+headless run, where the call fails closed. A run with no reachable store
+carries no callback and the check is skipped: nothing could answer, and
+reporting every declared key as absent would warn on every graph. The hosts
+that inject are audited by
+`packages/agents/tests/capability-run-secrets-audit.test.ts`, which records the
+runs that deliberately omit it and how many calls each is allowed.
 
 ### nodetool timeline validate / debug (Timeline Harness)
 
@@ -2140,6 +2153,7 @@ See [packages/agents/AGENTS.md](packages/agents/AGENTS.md) for agent architectur
 - Use theme values for spacing, colors, and typography — never hardcode hex colors or pixel values.
 - Prefer composition over deep prop drilling.
 - If no primitive exists for your use case, **create a new primitive** in `ui_primitives/` rather than using raw MUI.
+- Render stored media (`asset://`, a `*Ref`) with `ResponsiveImage` / `VideoPlayer` / `AudioPlayback` and a `locator` prop — never a raw `<img>`/`<video>`/`<audio>` whose `src` is a locator. See [STRATEGY.md § Media](web/src/components/ui_primitives/STRATEGY.md).
 
 ### Design Token Rules (see [docs/DESIGN.md](docs/DESIGN.md) for full reference)
 
