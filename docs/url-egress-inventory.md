@@ -11,9 +11,9 @@ the server making a request on a stranger's behalf from inside the perimeter,
 which is how `http://169.254.169.254/latest/meta-data/` gets read.
 
 The machine-readable list is
-[`packages/runtime/tests/url-egress-inventory.ts`](../packages/runtime/tests/url-egress-inventory.ts);
-the audit that keeps it honest is `url-egress-audit.test.ts` beside it. Run
-both with `npm run test --workspace=packages/runtime -- url-egress`.
+`packages/runtime/tests/url-egress-inventory.ts`; the audit that keeps it honest
+is `url-egress-audit.test.ts` beside it. Run both with
+`npm run test --workspace=packages/runtime -- url-egress`.
 
 ## The policy
 
