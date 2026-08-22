@@ -82,10 +82,10 @@ export function parseAccessToken(
  * industry are stored under fast hashes while passwords are not.
  *
  * CodeQL's `js/insufficient-password-hash` flags this, tracing the `?api_key=`
- * websocket parameter into it and reading the token as a password. The
- * exclusion is in `.github/codeql/codeql-config.yml`, and the premise it rests
- * on — that the secret really is long and random — is pinned by
- * `tests/access-token.test.ts`.
+ * websocket parameter into it and reading the token as a password. The premise
+ * that makes it a false positive — that the secret really is long and random —
+ * is pinned by `tests/access-token.test.ts`, so it fails here rather than
+ * going quietly stale.
  */
 function hashSecret(secret: string): string {
   return createHash("sha256").update(secret, "utf-8").digest("hex");

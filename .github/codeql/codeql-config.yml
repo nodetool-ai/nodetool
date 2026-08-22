@@ -11,17 +11,3 @@ query-filters:
       id: js/missing-rate-limiting
       paths:
         - packages/websocket/src/server.ts
-
-# CodeQL's js/insufficient-password-hash reads the access token's secret half as
-# a password and objects to SHA-256. It is a bearer token, not a password:
-# AccessToken.mint builds it from randomBytes(32) — 256 bits from a CSPRNG — so
-# guessing costs ~2^255 hashes at any per-hash price, and a slow KDF would
-# defend a property the entropy already holds. It would also run on every
-# authenticated request, since the auth hook verifies a token per request.
-# The premise is enforced rather than asserted: packages/models/tests/
-# access-token.test.ts pins the secret's length and uniqueness, so shortening
-# it or sourcing it from anything but randomBytes fails the suite.
-  - exclude:
-      id: js/insufficient-password-hash
-      paths:
-        - packages/models/src/access-token.ts
