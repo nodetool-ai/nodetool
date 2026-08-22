@@ -158,8 +158,8 @@ disabled in production". Set `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1` to
 override that on a host where you do want the worker. The flag alone is not
 enough on the published Docker image: it ships no Python worker, so derive an
 image that installs `nodetool-core` and point `NODETOOL_PYTHON` at that
-interpreter. See [Self-hosted deployment › MCP over HTTP and Python
-nodes](self-hosted-deployment.md#mcp-over-http-and-python-nodes).
+interpreter. See
+[Self-hosted deployment](self-hosted-deployment.md#mcp-over-http-and-python-nodes).
 
 The three `NODETOOL_PYTHON_*_TIMEOUT_MS` variables bound how long the server
 waits on the worker. Raise `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` past its
