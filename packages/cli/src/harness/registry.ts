@@ -415,7 +415,10 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/runtime/",
       "packages/node-sdk/",
       "packages/base-nodes/",
-      "reliability/"
+      "reliability/",
+      // The CLI-facing example graphs. `npm run validate:examples` scans them,
+      // so a diff that edits one runs the validate selfcheck.
+      "examples/workflows/"
     ]
   },
   {

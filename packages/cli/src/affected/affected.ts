@@ -27,7 +27,24 @@ export interface PackageInfo {
   dir: string;
   /** Internal `@nodetool-ai/*` dependencies declared in package.json. */
   internalDeps: string[];
+  /** Extra repo-relative dirs this workspace owns — see EXTRA_WORKSPACE_PATHS. */
+  ownedPaths?: string[];
 }
+
+/**
+ * Directories that belong to a workspace without living inside it.
+ *
+ * `reliability/journeys/` holds the journey manifests, fixtures, and goldens
+ * the reliability harness runs; editing one changes what
+ * `nodetool reliability run` does, but the files sit outside
+ * `reliability/harness/`, so a path-prefix match alone reports them as
+ * belonging to no workspace.
+ */
+export const EXTRA_WORKSPACE_PATHS: Readonly<
+  Record<string, readonly string[]>
+> = {
+  "@nodetool-ai/reliability-harness": ["reliability/journeys"]
+};
 
 export interface AffectedResult {
   /** Workspaces directly containing a changed file. */
@@ -43,17 +60,26 @@ export interface AffectedResult {
 }
 
 /** Top-level non-package workspaces that consume packages but have no dependents. */
-const TOP_LEVEL_WORKSPACES = ["web", "electron", "mobile"] as const;
+export const TOP_LEVEL_WORKSPACES = ["web", "electron", "mobile"] as const;
 
 function matchWorkspace(
   file: string,
   packages: ReadonlyArray<PackageInfo>
 ): string | null {
   const norm = file.replace(/^\.\//, "").replace(/\\/g, "/");
-  // Most specific (longest dir) first so packages/foo-bar wins over packages/foo.
-  const sorted = [...packages].sort((a, b) => b.dir.length - a.dir.length);
-  for (const pkg of sorted) {
-    if (norm === pkg.dir || norm.startsWith(pkg.dir + "/")) return pkg.name;
+  const owned: Array<{ path: string; name: string }> = [];
+  for (const pkg of packages) {
+    owned.push({ path: pkg.dir, name: pkg.name });
+    for (const extra of pkg.ownedPaths ?? []) {
+      owned.push({ path: extra, name: pkg.name });
+    }
+  }
+  // Most specific (longest path) first so packages/foo-bar wins over packages/foo.
+  owned.sort((a, b) => b.path.length - a.path.length);
+  for (const entry of owned) {
+    if (norm === entry.path || norm.startsWith(entry.path + "/")) {
+      return entry.name;
+    }
   }
   for (const top of TOP_LEVEL_WORKSPACES) {
     if (norm === top || norm.startsWith(top + "/")) return top;

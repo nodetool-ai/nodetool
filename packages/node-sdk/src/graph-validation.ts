@@ -10,7 +10,10 @@
  * Takes a {@link GraphValidationRegistry} (the slice of NodeRegistry it needs)
  * so it can be unit-tested with a fake and reused by the CLI and agent tools.
  */
-import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
+import {
+  migrateGraphNodeTypes,
+  type DynamicSlotMeta
+} from "@nodetool-ai/protocol";
 import {
   getProcessSandboxModuleCatalog,
   type SandboxModuleCatalog
@@ -920,10 +923,16 @@ export function collectJsScriptLinks(
 }
 
 export function validateGraph(
-  graph: GraphValidationInput,
+  rawGraph: GraphValidationInput,
   registry: GraphValidationRegistry,
   options: GraphValidationOptions = {}
 ): GraphValidationReport {
+  // Validate what the runner will execute. `Graph.loadFromDict` rewrites
+  // removed node types through NODE_TYPE_MIGRATIONS on every load, so a saved
+  // graph carrying one runs fine — but validating the raw graph reported the
+  // migrated-away type as `unknown_node` and refused it. Two shipped examples
+  // (text_transforms_cli, text_regex_parse_cli) sat in exactly that gap.
+  const graph = migrateGraphNodeTypes(rawGraph);
   const sandboxModuleCatalog =
     options.sandboxModuleCatalog !== undefined
       ? options.sandboxModuleCatalog
