@@ -126,6 +126,19 @@ export type SecretPrompt = (
 ) => Promise<SecretPromptStatus>;
 
 /**
+ * Which of `keys` this host's secret store can resolve.
+ *
+ * The graph validator needs an availability *set*, not values, and it fails
+ * toward silence: a run that carries no resolver reports no missing
+ * credential, because "no store was reachable" is not evidence that a key is
+ * absent. A host installs one only where it can actually answer — see
+ * {@link CapabilityRun.availableSecrets}.
+ */
+export type AvailableSecretsResolver = (
+  keys: readonly string[]
+) => Promise<ReadonlySet<string>> | ReadonlySet<string>;
+
+/**
  * provider, model, `parentTools()`, `forwardMessage` — what `run_subtask` and
  * `run_search` take as constructor options today.
  */
@@ -151,6 +164,14 @@ export interface CapabilityRun {
   readonly secretPrompt?: SecretPrompt;
   /** What `run_subtask` / `run_search` need. */
   readonly subAgent?: SubAgentRuntime;
+  /**
+   * Answers which declared credentials this install holds, so
+   * `validate_workflow` can report a graph whose nodes need a key nobody has
+   * set — the same `missing_secret` warning `nodetool validate` gives on a DB
+   * target. Absent on a run with no reachable store (a hermetic eval), and
+   * the check is then skipped rather than guessed at.
+   */
+  readonly availableSecrets?: AvailableSecretsResolver;
   // The injected singletons `getAllMcpTools` takes today (mcp-tools.ts).
   readonly nodeRegistry?: NodeRegistry;
   readonly providers?: Record<string, BaseProvider>;

@@ -114,8 +114,13 @@ describe("unconfiguredProviderErrors", () => {
   });
 
   it("ignores a saved model replaced by an incoming data edge", async () => {
+    // The source node has to exist: `normalizeGraph` prunes an edge whose
+    // endpoints it cannot find, and a pruned edge shadows nothing.
     const graph = {
-      ...graphWithProvider("openai"),
+      nodes: [
+        { id: "model-source", type: "test.ModelSource", properties: {} },
+        ...graphWithProvider("openai").nodes
+      ],
       edges: [
         {
           source: "model-source",

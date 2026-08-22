@@ -14,6 +14,7 @@ import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 import { useMediaOverlay } from "./MediaOverlayContext";
 import { isString } from "../../utils/typePredicates";
+import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
 
 const hoverStyles = css({
   ".image-dimensions": {
@@ -37,7 +38,12 @@ const hoverStyles = css({
 });
 
 interface ImageViewProps {
-  source?: string | Uint8Array;
+  /**
+   * Bytes, or a URL media resolution already produced. The brand is the point:
+   * an `asset://` locator fetches nowhere, so it cannot be handed here — call
+   * `useResolvedMediaUri` (or render `ResponsiveImage locator=…`) first.
+   */
+  source?: ResolvedMediaUrl | "" | Uint8Array;
   /**
    * Preview bitmap from the in-browser runner (zero-copy transport). When set
    * it takes precedence over `source`: the frame is painted straight onto a

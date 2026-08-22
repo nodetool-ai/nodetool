@@ -831,6 +831,70 @@ export const motionTokensRule = {
   },
 };
 
+const UNRESOLVED_MEDIA_MESSAGE =
+  "A stored media locator (asset://, memory://) is an identifier, not a URL — it fetches nowhere. Pass it to a locator-aware primitive (<ResponsiveImage locator=…>, <VideoPlayer locator=…>, <AudioPlayback locator=…>) or resolve it with useResolvedMediaUri first. See utils/resolveMediaUri.ts.";
+
+/** Attributes whose value a browser fetches. */
+const MEDIA_URL_ATTRS = new Set(["src", "poster", "href", "source"]);
+
+/** Schemes that only NodeTool's own media resolution can turn into a URL. */
+const UNRESOLVED_SCHEME = /^(asset|memory):\/\//;
+
+/**
+ * Reject a stored media locator written straight into a JSX URL attribute.
+ *
+ * `asset://<id>` is a valid *stored* locator — the bytes live under
+ * `<user_id>/<asset_id>.<ext>` and, on the cloud backends, behind a signed URL
+ * only the server can mint. Handing it to `<img src>` renders nothing, which is
+ * how #4873/#4929/#5028/#5078/#5122/#5123 all happened. Media resolution is the
+ * rendering boundary; the type system enforces it for values, and this rule
+ * enforces it for literals, which have no type to brand.
+ */
+export const noUnresolvedMediaSrcRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Reject an unresolved media locator literal in a JSX URL attribute.",
+    },
+    schema: [],
+    messages: { raw: UNRESOLVED_MEDIA_MESSAGE },
+  },
+  create(context) {
+    const attrName = (node) =>
+      node.name?.type === "JSXIdentifier" ? node.name.name : null;
+    const isLocator = (text) =>
+      typeof text === "string" && UNRESOLVED_SCHEME.test(text.trim());
+    return {
+      JSXAttribute(node) {
+        const name = attrName(node);
+        if (!name || !MEDIA_URL_ATTRS.has(name)) return;
+        const value = node.value;
+        if (!value) return;
+        // src="asset://…"
+        if (value.type === "Literal" && isLocator(value.value)) {
+          context.report({ node: value, messageId: "raw" });
+          return;
+        }
+        if (value.type !== "JSXExpressionContainer") return;
+        const expr = value.expression;
+        // src={"asset://…"}
+        if (expr.type === "Literal" && isLocator(expr.value)) {
+          context.report({ node: expr, messageId: "raw" });
+          return;
+        }
+        // src={`asset://${id}`} — only the leading quasi can carry the scheme.
+        if (
+          expr.type === "TemplateLiteral" &&
+          isLocator(expr.quasis[0]?.value.raw)
+        ) {
+          context.report({ node: expr, messageId: "raw" });
+        }
+      },
+    };
+  },
+};
+
 // Local plugin exposing the design-token rules for the gate config.
 export const designTokensPlugin = {
   rules: {
@@ -841,5 +905,6 @@ export const designTokensPlugin = {
     "zindex-tokens": zIndexTokensRule,
     "motion-tokens": motionTokensRule,
     "no-raw-mui": noRawMuiRule,
+    "no-unresolved-media-src": noUnresolvedMediaSrcRule,
   },
 };

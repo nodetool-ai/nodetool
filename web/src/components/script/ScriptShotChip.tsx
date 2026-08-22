@@ -15,7 +15,8 @@ import {
   Tooltip,
   BORDER_RADIUS,
   SPACING,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  ResponsiveImage
 } from "../ui_primitives";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
@@ -55,7 +56,16 @@ const ScriptShotChipInner = ({ shot, onOpen }: ScriptShotChipProps) => {
           "& img": { width: "100%", height: "100%", objectFit: "cover" }
         }}
       >
-        {uri ? <img src={uri} alt="" /> : `#${shot.index + 1}`}
+        {uri ? (
+          <ResponsiveImage
+            locator={shot.keyframe}
+            alt=""
+            fit="cover"
+            sx={{ width: "100%", height: "100%" }}
+          />
+        ) : (
+          `#${shot.index + 1}`
+        )}
       </Box>
     </Tooltip>
   );

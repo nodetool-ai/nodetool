@@ -10,10 +10,24 @@ import { Box, BoxProps, Skeleton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import BrokenImageIcon from "@mui/icons-material/BrokenImage";
 import { MOTION } from "./tokens";
+import {
+  useResolvedMediaUri,
+  type MediaLocator
+} from "../../hooks/useResolvedMediaUri";
+import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
 
 export interface ResponsiveImageProps extends Omit<BoxProps, 'onError'> {
-  /** Image source URL */
-  src: string;
+  /**
+   * A resolved image URL. Only media resolution mints this type — an
+   * `asset://` locator is not one, so pass `locator` instead.
+   */
+  src?: ResolvedMediaUrl | "";
+  /**
+   * A stored media locator (`asset://<id>`, a `*Ref`, or any other scheme).
+   * The component resolves it before setting `src`, so a caller never has to.
+   * Mutually exclusive with `src`.
+   */
+  locator?: MediaLocator;
   /** Alt text for accessibility */
   alt: string;
   /** Aspect ratio (e.g., "16/9", "1/1", "4/3") */
@@ -32,26 +46,10 @@ export interface ResponsiveImageProps extends Omit<BoxProps, 'onError'> {
   onLoad?: () => void;
 }
 
-/**
- * ResponsiveImage - An image with loading and error states
- *
- * @example
- * // Basic usage
- * <ResponsiveImage src="/photo.jpg" alt="A photo" />
- *
- * @example
- * // Fixed aspect ratio with cover
- * <ResponsiveImage src={url} alt="Thumbnail" aspectRatio="16/9" fit="cover" />
- *
- * @example
- * // With loading skeleton
- * <ResponsiveImage src={url} alt="Preview" showSkeleton borderRadius={8} />
- *
- * @example
- * // Square avatar-like image
- * <ResponsiveImage src={avatarUrl} alt="User" aspectRatio="1/1" fit="cover" borderRadius="50%" />
- */
-export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
+/** The rendering half: `src` is already resolved. */
+const ResolvedImage: React.FC<
+  Omit<ResponsiveImageProps, "locator"> & { src?: ResolvedMediaUrl | "" }
+> = ({
   src,
   alt,
   aspectRatio,
@@ -126,7 +124,7 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
       )}
       <Box
         component="img"
-        src={src}
+        src={src || undefined}
         alt={alt}
         onLoad={handleLoad}
         onError={handleError}
@@ -142,5 +140,49 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
     </Box>
   );
 };
+
+ResolvedImage.displayName = "ResolvedImage";
+
+/**
+ * The locator branch. Split into its own component so `ResponsiveImage`'s
+ * plain-URL callers never mount the asset query — the hook needs a
+ * `QueryClientProvider`, and a `src`-only caller has nothing to look up.
+ */
+const LocatorImage: React.FC<
+  Omit<ResponsiveImageProps, "src"> & { locator: MediaLocator }
+> = ({ locator, ...rest }) => (
+  <ResolvedImage {...rest} src={useResolvedMediaUri(locator) ?? ""} />
+);
+
+LocatorImage.displayName = "LocatorImage";
+
+/**
+ * ResponsiveImage - An image with loading and error states
+ *
+ * @example
+ * // Basic usage
+ * <ResponsiveImage locator="/photo.jpg" alt="A photo" />
+ *
+ * @example
+ * // Fixed aspect ratio with cover
+ * <ResponsiveImage locator={imageRef} alt="Thumbnail" aspectRatio="16/9" fit="cover" />
+ *
+ * @example
+ * // With loading skeleton
+ * <ResponsiveImage locator="asset://abc123" alt="Preview" showSkeleton borderRadius={8} />
+ *
+ * @example
+ * // A URL media resolution already produced
+ * <ResponsiveImage src={resolvedUrl} alt="User" aspectRatio="1/1" fit="cover" />
+ */
+export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
+  locator,
+  ...rest
+}) =>
+  locator === undefined ? (
+    <ResolvedImage {...rest} />
+  ) : (
+    <LocatorImage {...rest} locator={locator} />
+  );
 
 ResponsiveImage.displayName = "ResponsiveImage";

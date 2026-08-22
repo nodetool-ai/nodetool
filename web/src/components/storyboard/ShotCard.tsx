@@ -143,8 +143,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const isGenerating =
     shot.status === "keyframe_generating" || shot.status === "clip_generating";
   const camera = cameraLine(shot);
-  // The clip's `uri` is an `asset://` locator — the player needs the asset's
-  // own `get_url`.
+  // Whether there is a clip to show at all: the player itself resolves the
+  // `asset://` locator, but the card renders the keyframe when it cannot.
   const clipUri = useResolvedMediaUri(shot.clip);
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
 
@@ -206,7 +206,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     >
       <Box sx={previewSx}>
         {clipUri ? (
-          <VideoPlayer src={clipUri} />
+          <VideoPlayer locator={shot.clip} />
         ) : (
           <ImageRefPreview
             value={shot.keyframe}

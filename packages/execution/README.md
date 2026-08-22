@@ -82,6 +82,7 @@ const session = await ExecutionSession.create({
   limits: { runTimeoutMs, bufferLimit },  // nodeTimeoutMs: not yet supported, see above
   requireTerminalResult: true,  // optional — output-name rewriting
   captureMessages: true,        // optional — required to read `messages` below
+  catalogs, providerConfiguration,  // optional — preflight, see below
 });
 
 // Only with `captureMessages: true`, and only if you actually drain it:
@@ -98,6 +99,16 @@ session.cancel("reason");     // the ONLY cancel; limits.runTimeoutMs = cancel("
 
 const result = await session.result;  // RunResult — never rejects
 ```
+
+`create()` refuses before it spends anything. After normalization — and ahead
+of the Python bridge, `persistence.onAccepted`, and the kernel — it checks the
+graph's model selections against the provider catalogs and each selected
+provider's credentials against `context.getSecret`, and throws
+`ExecutionPreflightError` (`.issues` is the machine-readable list, `.message`
+the text a host prints). Without it a missing key failed at the node that
+needed it, after the upstream half of the graph had already run and billed.
+`catalogs` and `providerConfiguration` default to the process-wide provider
+registry; a host whose providers are not in that registry must pass both.
 
 Inside the facade: `hydrateGraphNodeFlags` (plus the graph normalization
 `headless-job-runner.ts` used to do inline — editor-only pruning, `data` →

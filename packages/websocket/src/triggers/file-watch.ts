@@ -78,6 +78,15 @@ interface RunFileWatchSweepOptions {
   notify?: (event: FileWatchNotifyEvent) => void;
   /** Injectable clock for deterministic tests. Defaults to `Date.now`. */
   now?: () => number;
+  /** Injectable watcher boundary for deterministic tests. */
+  watch?: (
+    watchPath: string,
+    options: { recursive: boolean; persistent: boolean },
+    listener: (
+      eventType: "rename" | "change",
+      filename: string | Buffer | null
+    ) => void
+  ) => fs.FSWatcher;
 }
 
 interface StartFileWatchOptions extends RunFileWatchSweepOptions {
@@ -256,7 +265,8 @@ function attachWatcher(
     );
   };
 
-  return fs.watch(
+  const watch = opts.watch ?? fs.watch;
+  return watch(
     watchPath,
     { recursive, persistent: true },
     (eventType, filename) => {
@@ -272,6 +282,10 @@ function attachWatcher(
           handleEvent("deleted", fullPath, false);
         }
       } else if (eventType === "change") {
+        // macOS can report a change for the watched directory itself using
+        // its basename. Joining that name to watchPath produces a nonexistent
+        // duplicate path, which is not a valid modified-file event.
+        if (!exists) return;
         handleEvent("modified", fullPath, isDirectory);
       }
     }
@@ -569,10 +583,12 @@ export function startFileWatch(opts: StartFileWatchOptions): FileWatchHandle {
   const intervalMs = opts.intervalMs ?? DEFAULT_SWEEP_INTERVAL_MS;
   const state = createFileWatchState();
 
-  let stopped = false;
+  let sweepPromise: Promise<void> | null = null;
 
   const sweep = (): void => {
-    void runFileWatchSweepOnce(state, opts)
+    if (sweepPromise) return;
+
+    sweepPromise = runFileWatchSweepOnce(state, opts)
       .catch((err) => {
         log.warn(
           "File-watch sweep failed",
@@ -580,10 +596,7 @@ export function startFileWatch(opts: StartFileWatchOptions): FileWatchHandle {
         );
       })
       .finally(() => {
-        // A sweep still in flight when the handle was called would otherwise
-        // attach its watchers into an already-emptied state map and leak them
-        // past shutdown, delivering events into the next process life.
-        if (stopped) void stopFileWatch(state);
+        sweepPromise = null;
       });
   };
 
@@ -594,8 +607,11 @@ export function startFileWatch(opts: StartFileWatchOptions): FileWatchHandle {
   }
 
   return async () => {
-    stopped = true;
     clearInterval(timer);
+    // A sweep that was already running can attach watchers after this call
+    // begins. Wait for it before closing the state so the returned promise
+    // means that teardown is complete.
+    await sweepPromise;
     await stopFileWatch(state);
   };
 }

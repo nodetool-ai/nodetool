@@ -409,6 +409,9 @@ export type { CheckerDropzoneProps } from "./CheckerDropzone";
 export { VideoPlayer } from "./VideoPlayer";
 export type { VideoPlayerProps } from "./VideoPlayer";
 
+export { AudioPlayback } from "./AudioPlayback";
+export type { AudioPlaybackProps } from "./AudioPlayback";
+
 export { DynamicInputButton } from "./DynamicInputButton";
 export type { DynamicInputButtonProps } from "./DynamicInputButton";
 
