@@ -1,10 +1,13 @@
 import type { FastifyPluginAsync } from "fastify";
 import { bridge } from "../lib/bridge.js";
-import type { HttpApiOptions } from "../http-api.js";
-import { handleAssetsRoot, handleExtractAudio } from "../http-api.js";
+import {
+  handleAssetsRoot,
+  handleExtractAudio,
+  resolveSdkV1Boundary,
+  type HttpApiOptions
+} from "../http-api.js";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { ApiErrorCode, apiError } from "../error-codes.js";
-import { getTempAdapter } from "../lib/storage.js";
 import { handleSdkV1TemporaryAssetUpload } from "../sdk/sdk-temporary-asset-upload-http-handler.js";
 
 interface RouteOptions {
@@ -220,7 +223,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.post("/api/sdk/v1/assets/temporary", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleSdkV1TemporaryAssetUpload(request, {
-        storage: getTempAdapter()
+        boundary: resolveSdkV1Boundary(apiOptions)
       })
     );
   });

@@ -31,6 +31,10 @@ import type {
 } from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
 import type { HttpApiOptions } from "../src/http-api.js";
 import { SdkModelDownloadServiceError } from "../src/sdk/sdk-model-download-service.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1TemporaryAssetService } from "../src/sdk/sdk-temporary-asset-service.js";
+import { getTempAdapter } from "../src/lib/storage.js";
 import nodesRoutes from "../src/routes/nodes.js";
 import workflowsRoutes from "../src/routes/workflows.js";
 import assetsRoutes from "../src/routes/assets.js";
@@ -289,36 +293,43 @@ export const goldenFailureState = { capabilitiesFail: false };
 export function makeGoldenApiOptions(registry: NodeRegistry): HttpApiOptions {
   return {
     registry,
-    getSdkCapabilities: () => {
-      if (goldenFailureState.capabilitiesFail) {
-        throw new Error("secret capability backend detail");
-      }
-      return GOLDEN_CAPABILITIES;
-    },
-    sdkPreflightService: {
-      preflight: async () => GOLDEN_PREFLIGHT_SUMMARY
-    },
-    sdkModelCatalogService: {
-      list: () => GOLDEN_MODEL_CATALOG
-    },
-    sdkModelDownloadService: {
-      start: () => GOLDEN_DOWNLOAD_STATE,
-      list: () => ({ version: "1", downloads: [GOLDEN_DOWNLOAD_STATE] }),
-      cancel: ({ operationId }) => {
-        if (operationId !== GOLDEN_DOWNLOAD_STATE.operation_id) {
-          throw new SdkModelDownloadServiceError(
-            404,
-            "MODEL_DOWNLOAD_NOT_FOUND",
-            "Model download operation was not found."
-          );
-        }
-        return CANCELLED_DOWNLOAD_STATE;
-      }
-    }
+    sdkV1Boundary: createSdkV1ImplementationBoundary(
+      createSdkV1Service({
+        getCapabilities: () => {
+          if (goldenFailureState.capabilitiesFail) {
+            throw new Error("secret capability backend detail");
+          }
+          return GOLDEN_CAPABILITIES;
+        },
+        preflightService: {
+          preflight: async () => GOLDEN_PREFLIGHT_SUMMARY
+        },
+        modelCatalogService: {
+          list: () => GOLDEN_MODEL_CATALOG
+        },
+        modelDownloadService: {
+          start: () => GOLDEN_DOWNLOAD_STATE,
+          list: () => ({ version: "1", downloads: [GOLDEN_DOWNLOAD_STATE] }),
+          cancel: ({ operationId }) => {
+            if (operationId !== GOLDEN_DOWNLOAD_STATE.operation_id) {
+              throw new SdkModelDownloadServiceError(
+                404,
+                "MODEL_DOWNLOAD_NOT_FOUND",
+                "Model download operation was not found."
+              );
+            }
+            return CANCELLED_DOWNLOAD_STATE;
+          }
+        },
+        temporaryAssetService: createSdkV1TemporaryAssetService({
+          getStorage: getTempAdapter
+        })
+      })
+    )
   };
 }
 
-// ── Fastify app with the real SDK route plugins ────────────────────────────
+// â”€â”€ Fastify app with the real SDK route plugins â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface GoldenApp {
   app: FastifyInstance;

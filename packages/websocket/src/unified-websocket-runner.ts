@@ -205,7 +205,7 @@ import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
-import type { HttpApiOptions } from "./http-api.js";
+import { resolveSdkV1Boundary, type HttpApiOptions } from "./http-api.js";
 import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
 import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
 import type {
@@ -8636,22 +8636,8 @@ export class UnifiedWebSocketRunner {
     command: WebSocketCommandEnvelope
   ): Promise<Record<string, unknown> | null> {
     const response = await handleSdkV1LifecycleRpc(command, {
-      getCapabilities: () => {
-        if (!this.apiOptions?.getSdkCapabilities) {
-          throw new Error("SDK capabilities service is unavailable.");
-        }
-        return this.apiOptions.getSdkCapabilities();
-      },
-      preflightService: {
-        preflight: (input) => {
-          if (!this.apiOptions?.sdkPreflightService) {
-            throw new Error("SDK preflight service is unavailable.");
-          }
-          return this.apiOptions.sdkPreflightService.preflight(input);
-        }
-      },
+      boundary: resolveSdkV1Boundary(this.apiOptions ?? {}),
       getPrincipal: () => (this.userId ? { userId: this.userId } : null),
-      environment: process.env,
       onInternalError: (error) =>
         this.logError("SDK lifecycle RPC failed", error)
     });

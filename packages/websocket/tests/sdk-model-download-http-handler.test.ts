@@ -12,6 +12,8 @@ import {
   SdkModelDownloadServiceError,
   type SdkV1ModelDownloadService
 } from "../src/sdk/sdk-model-download-service.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 
 const state: SdkV1ModelDownloadState = {
   version: "1",
@@ -33,7 +35,9 @@ const state: SdkV1ModelDownloadState = {
 
 function options(service: SdkV1ModelDownloadService) {
   return {
-    service,
+    boundary: createSdkV1ImplementationBoundary(
+      createSdkV1Service({ modelDownloadService: service })
+    ),
     getUserId: () => "alice",
     onInternalError: vi.fn()
   };

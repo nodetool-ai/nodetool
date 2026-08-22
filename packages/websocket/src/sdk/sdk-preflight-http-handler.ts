@@ -1,32 +1,18 @@
+import { sdkV1PreflightRequest } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
+import type { SdkV1PreflightPrincipal } from "./sdk-preflight-orchestrator.js";
+import type { SdkV1ImplementationBoundary } from "./sdk-v1-handler-map.js";
 import {
-  sdkV1PreflightRequest,
-  type SdkV1PreflightRequest,
-  type SdkV1PreflightSummary
-} from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
-import { isSdkLifecycleV1Enabled } from "./sdk-feature-flags.js";
-import {
-  SdkV1PreflightServiceError,
-  type SdkV1PreflightPrincipal
-} from "./sdk-preflight-orchestrator.js";
-
-export interface SdkV1PreflightHttpService {
-  preflight(input: {
-    request: SdkV1PreflightRequest;
-    principal: SdkV1PreflightPrincipal;
-  }): Promise<SdkV1PreflightSummary>;
-}
+  normalizeSdkV1ServiceError,
+  reportSdkV1InternalError,
+  sdkV1HttpError
+} from "./sdk-v1-service-error.js";
 
 interface HandleSdkV1PreflightOptions {
-  service: SdkV1PreflightHttpService;
-  /**
-   * Resolves only the server-authenticated principal. Implementations must not
-   * trust an x-user-id value supplied directly by a remote caller.
-   */
-  getPrincipal: (
+  readonly boundary: SdkV1ImplementationBoundary;
+  readonly getPrincipal: (
     request: Request
   ) => Promise<SdkV1PreflightPrincipal | null> | SdkV1PreflightPrincipal | null;
-  environment?: NodeJS.ProcessEnv;
-  onInternalError?: (error: unknown) => void;
+  readonly onInternalError?: (error: unknown) => void;
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -53,23 +39,16 @@ function errorResponse(
   );
 }
 
-function reportInternalError(
-  callback: ((error: unknown) => void) | undefined,
-  error: unknown
-): void {
-  try {
-    callback?.(error);
-  } catch {
-    // Diagnostics must not replace the redacted public response.
-  }
+function serviceErrorResponse(
+  error: unknown,
+  options: HandleSdkV1PreflightOptions
+): Response {
+  const normalized = normalizeSdkV1ServiceError(error);
+  reportSdkV1InternalError(normalized, options.onInternalError);
+  const mapped = sdkV1HttpError(normalized);
+  return jsonResponse(mapped.body, mapped.status);
 }
 
-/**
- * Standalone HTTP adapter for side-effect-free SDK workflow preflight.
- *
- * This leaf handler is intentionally absent from the production dispatcher
- * until the Phase 0 Electron/VL gate permits lifecycle routes to be added.
- */
 export async function handleSdkV1Preflight(
   request: Request,
   options: HandleSdkV1PreflightOptions
@@ -77,12 +56,10 @@ export async function handleSdkV1Preflight(
   if (request.method !== "POST") {
     return errorResponse(405, "METHOD_NOT_ALLOWED", "Method not allowed");
   }
-  if (!isSdkLifecycleV1Enabled(options.environment)) {
-    return errorResponse(
-      503,
-      "SDK_LIFECYCLE_DISABLED",
-      "SDK lifecycle v1 is disabled"
-    );
+  try {
+    options.boundary.service.assertLifecycleAvailable();
+  } catch (error) {
+    return serviceErrorResponse(error, options);
   }
   if (
     !(request.headers.get("content-type") ?? "")
@@ -108,30 +85,13 @@ export async function handleSdkV1Preflight(
   }
 
   try {
-    const principal = await options.getPrincipal(request);
-    if (!principal) {
-      return errorResponse(
-        401,
-        "AUTHENTICATION_REQUIRED",
-        "Authentication required"
-      );
-    }
     return jsonResponse(
-      await options.service.preflight({
+      await options.boundary.handlers.preflightWorkflow({
         request: parsed.data,
-        principal
+        principal: await options.getPrincipal(request)
       })
     );
   } catch (error) {
-    if (error instanceof SdkV1PreflightServiceError) {
-      const status = error.code === "WORKFLOW_NOT_FOUND" ? 404 : 503;
-      const message =
-        error.code === "WORKFLOW_NOT_FOUND"
-          ? "Workflow not found."
-          : "Requested preflight level is not available.";
-      return errorResponse(status, error.code, message, error.retryable);
-    }
-    reportInternalError(options.onInternalError, error);
-    return errorResponse(500, "INTERNAL_ERROR", "Internal server error", true);
+    return serviceErrorResponse(error, options);
   }
 }

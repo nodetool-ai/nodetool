@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { SdkV1Capabilities } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
 import { handleApiRequest } from "../src/http-api.js";
 import { handleSdkV1Capabilities } from "../src/sdk/sdk-capabilities-http-handler.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 
 const capabilities = {
   protocol_version: "1",
@@ -27,12 +29,26 @@ const capabilities = {
 const request = (method = "GET") =>
   new Request("http://localhost/api/sdk/v1/capabilities", { method });
 
+function boundary(input: {
+  getCapabilities: () => SdkV1Capabilities;
+  environment?: NodeJS.ProcessEnv;
+}) {
+  return createSdkV1ImplementationBoundary(
+    createSdkV1Service({
+      getCapabilities: input.getCapabilities,
+      getEnvironment: () => input.environment ?? {}
+    })
+  );
+}
+
 describe("standalone SDK capabilities HTTP handler", () => {
   it("honors the server kill switch without evaluating runtime state", async () => {
     const getCapabilities = vi.fn(() => capabilities);
     const response = await handleSdkV1Capabilities(request(), {
-      getCapabilities,
-      environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "1" }
+      boundary: boundary({
+        getCapabilities,
+        environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "1" }
+      })
     });
 
     expect(response.status).toBe(503);
@@ -47,8 +63,7 @@ describe("standalone SDK capabilities HTTP handler", () => {
 
   it("returns a capability snapshot by default", async () => {
     const response = await handleSdkV1Capabilities(request(), {
-      getCapabilities: () => capabilities,
-      environment: {}
+      boundary: boundary({ getCapabilities: () => capabilities })
     });
 
     expect(response.status).toBe(200);
@@ -58,10 +73,12 @@ describe("standalone SDK capabilities HTTP handler", () => {
   it("redacts unexpected provider failures", async () => {
     const onInternalError = vi.fn();
     const response = await handleSdkV1Capabilities(request(), {
-      getCapabilities: () => {
-        throw new Error("secret backend detail");
-      },
-      environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0" },
+      boundary: boundary({
+        getCapabilities: () => {
+          throw new Error("secret backend detail");
+        },
+        environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0" }
+      }),
       onInternalError
     });
 
@@ -77,10 +94,12 @@ describe("standalone SDK capabilities HTTP handler", () => {
 
   it("still redacts failures when the diagnostic callback also throws", async () => {
     const response = await handleSdkV1Capabilities(request(), {
-      getCapabilities: () => {
-        throw new Error("secret provider detail");
-      },
-      environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0" },
+      boundary: boundary({
+        getCapabilities: () => {
+          throw new Error("secret provider detail");
+        },
+        environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0" }
+      }),
       onInternalError: () => {
         throw new Error("logger unavailable");
       }
@@ -96,8 +115,10 @@ describe("standalone SDK capabilities HTTP handler", () => {
   it("rejects unsupported methods before evaluating the provider", async () => {
     const getCapabilities = vi.fn(() => capabilities);
     const response = await handleSdkV1Capabilities(request("POST"), {
-      getCapabilities,
-      environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0" }
+      boundary: boundary({
+        getCapabilities,
+        environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0" }
+      })
     });
 
     expect(response.status).toBe(405);
@@ -106,7 +127,7 @@ describe("standalone SDK capabilities HTTP handler", () => {
 
   it("is registered and default-on in the HTTP dispatcher", async () => {
     const response = await handleApiRequest(request(), {
-      getSdkCapabilities: () => capabilities
+      sdkV1Boundary: boundary({ getCapabilities: () => capabilities })
     });
 
     expect(response.status).toBe(200);
@@ -117,7 +138,7 @@ describe("standalone SDK capabilities HTTP handler", () => {
     vi.stubEnv("NODETOOL_DISABLE_SDK_LIFECYCLE_V1", "0");
     try {
       const response = await handleApiRequest(request(), {
-        getSdkCapabilities: () => capabilities
+        sdkV1Boundary: boundary({ getCapabilities: () => capabilities })
       });
 
       expect(response.status).toBe(200);

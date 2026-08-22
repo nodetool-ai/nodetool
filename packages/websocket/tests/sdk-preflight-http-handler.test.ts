@@ -9,6 +9,8 @@ import {
   type SdkV1PreflightPrincipal
 } from "../src/sdk/sdk-preflight-orchestrator.js";
 import { handleSdkV1Preflight } from "../src/sdk/sdk-preflight-http-handler.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 
 const requestBody: SdkV1PreflightRequest = {
   workflow_id: "workflow-1",
@@ -52,13 +54,21 @@ function enabledOptions(
     onInternalError?: (error: unknown) => void;
   } = {}
 ) {
+  const service = {
+    preflight: overrides.preflight ?? vi.fn(async () => summary)
+  };
   return {
-    service: {
-      preflight: overrides.preflight ?? vi.fn(async () => summary)
-    },
+    boundary: createSdkV1ImplementationBoundary(
+      createSdkV1Service({
+        preflightService: service,
+        getEnvironment: () => ({
+          NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0"
+        })
+      })
+    ),
+    service,
     getPrincipal:
       overrides.getPrincipal ?? vi.fn(() => ({ userId: "authenticated-user" })),
-    environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0" },
     onInternalError: overrides.onInternalError
   };
 }
@@ -68,9 +78,15 @@ describe("standalone SDK preflight HTTP handler", () => {
     const preflight = vi.fn(async () => summary);
     const getPrincipal = vi.fn(() => ({ userId: "authenticated-user" }));
     const response = await handleSdkV1Preflight(request("{"), {
-      service: { preflight },
-      getPrincipal,
-      environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "1" }
+      boundary: createSdkV1ImplementationBoundary(
+        createSdkV1Service({
+          preflightService: { preflight },
+          getEnvironment: () => ({
+            NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "1"
+          })
+        })
+      ),
+      getPrincipal
     });
 
     expect(response.status).toBe(503);
@@ -212,7 +228,16 @@ describe("standalone SDK preflight HTTP handler", () => {
             "x-user-id": "user-7"
           }
         }),
-        { sdkPreflightService: { preflight } }
+        {
+          sdkV1Boundary: createSdkV1ImplementationBoundary(
+            createSdkV1Service({
+              preflightService: { preflight },
+              getEnvironment: () => ({
+                NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0"
+              })
+            })
+          )
+        }
       );
 
       expect(response.status).toBe(200);

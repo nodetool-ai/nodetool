@@ -455,20 +455,20 @@ Exit criteria:
 
 Purpose: remove duplicated behavior before changing route registration.
 
-- [ ] Define `SdkV1ServiceError` and transport mappings.
-- [ ] Define the typed handler map from implemented request/response operation
+- [x] Define `SdkV1ServiceError` and transport mappings.
+- [x] Define the typed handler map from implemented request/response operation
       IDs and an event-publisher completeness check.
-- [ ] Migrate one read-only operation as a proof of the boundary.
-- [ ] Prove its REST, WebSocket or tRPC forms remain byte/semantically equal as
+- [x] Migrate one read-only operation as a proof of the boundary.
+- [x] Prove its REST, WebSocket or tRPC forms remain byte/semantically equal as
       applicable.
-- [ ] Migrate workflow summaries and interfaces.
-- [ ] Migrate node inventory, capabilities, and preflight.
-- [ ] Migrate model catalog and model-download lifecycle.
-- [ ] Move temporary-storage behavior behind a shared service while keeping
+- [x] Migrate workflow summaries and interfaces.
+- [x] Migrate node inventory, capabilities, and preflight.
+- [x] Migrate model catalog and model-download lifecycle.
+- [x] Move temporary-storage behavior behind a shared service while keeping
       multipart parsing at the HTTP edge.
-- [ ] Keep existing domain services focused; split the facade by concern if it
+- [x] Keep existing domain services focused; split the facade by concern if it
       starts accumulating business logic.
-- [ ] Keep focused service tests and add facade contract tests.
+- [x] Keep focused service tests and add facade contract tests.
 
 Exit criteria:
 

@@ -25,6 +25,9 @@ import { initTestDb } from "@nodetool-ai/models";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { handleApiRequest } from "../src/http-api.js";
 import { handleSdkV1TemporaryAssetUpload } from "../src/sdk/sdk-temporary-asset-upload-http-handler.js";
+import { createSdkV1TemporaryAssetService } from "../src/sdk/sdk-temporary-asset-service.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 import {
   FROZEN_NOW,
   GOLDEN_BASE_ENV,
@@ -130,7 +133,10 @@ function effectiveFlags(
   return flags;
 }
 
-function get(path: string, headers: Record<string, string> = {}): HttpRequestSpec {
+function get(
+  path: string,
+  headers: Record<string, string> = {}
+): HttpRequestSpec {
   return { method: "GET", path, headers, body: null, multipart: null };
 }
 
@@ -153,7 +159,7 @@ const AUTH = { "x-user-id": GOLDEN_USER };
 const NO_AUTH_CAPTURE_NOTE =
   "No in-route 401: getUserId falls back to x-user-id/'1' and server.ts " +
   "enforces authentication in its onRequest hook (server.ts:897) before " +
-  "routing, answering 401 {\"error\":\"Unauthorized\"} outside the handlers.";
+  'routing, answering 401 {"error":"Unauthorized"} outside the handlers.';
 
 const NO_FLAG_NOTE =
   "No feature flag applies: the handler checks neither " +
@@ -454,13 +460,21 @@ const OPERATIONS: OperationSpec[] = [
         name: "success",
         via: "fastify",
         env: {},
-        request: postJson("/api/sdk/v1/preflight", GOLDEN_PREFLIGHT_REQUEST, AUTH)
+        request: postJson(
+          "/api/sdk/v1/preflight",
+          GOLDEN_PREFLIGHT_REQUEST,
+          AUTH
+        )
       },
       {
         name: "feature_disabled",
         via: "fastify",
         env: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "1" },
-        request: postJson("/api/sdk/v1/preflight", GOLDEN_PREFLIGHT_REQUEST, AUTH)
+        request: postJson(
+          "/api/sdk/v1/preflight",
+          GOLDEN_PREFLIGHT_REQUEST,
+          AUTH
+        )
       },
       {
         // The one operation with an in-handler 401: no authenticated
@@ -619,13 +633,19 @@ const OPERATIONS: OperationSpec[] = [
         name: "success",
         via: "fastify",
         env: {},
-        request: get(`/api/workflows/${WORKFLOW_ONE_ID}/interface?version=1`, AUTH)
+        request: get(
+          `/api/workflows/${WORKFLOW_ONE_ID}/interface?version=1`,
+          AUTH
+        )
       },
       {
         name: "feature_disabled",
         via: "fastify",
         env: { NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1: "1" },
-        request: get(`/api/workflows/${WORKFLOW_ONE_ID}/interface?version=1`, AUTH)
+        request: get(
+          `/api/workflows/${WORKFLOW_ONE_ID}/interface?version=1`,
+          AUTH
+        )
       },
       {
         // The version check runs before the feature flag: a missing or
@@ -870,10 +890,20 @@ describe("SDK v1 HTTP goldens", () => {
         capture.via === "http-api-dispatcher"
           ? await handleApiRequest(request, golden.apiOptions)
           : await handleSdkV1TemporaryAssetUpload(request, {
-              storage: new InMemoryStorageAdapter(),
-              createId: () => UPLOAD_ID,
-              getConfiguredMaxUploadBytes: () => UPLOAD_MAX_BYTES,
-              environment: { ...GOLDEN_BASE_ENV, ...capture.env }
+              boundary: createSdkV1ImplementationBoundary(
+                createSdkV1Service({
+                  temporaryAssetService: createSdkV1TemporaryAssetService({
+                    getStorage: () => new InMemoryStorageAdapter(),
+                    createId: () => UPLOAD_ID,
+                    getConfiguredMaxUploadBytes: () => UPLOAD_MAX_BYTES
+                  }),
+                  getEnvironment: () => ({
+                    ...GOLDEN_BASE_ENV,
+                    ...capture.env
+                  })
+                })
+              ),
+              getConfiguredMaxUploadBytes: () => UPLOAD_MAX_BYTES
             });
       const contentType = response.headers.get("content-type");
       return {
