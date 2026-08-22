@@ -1,624 +1,834 @@
-# SDK v1 ↔ tRPC consolidation: design and execution plan
+# SDK v1 contract convergence: canonical cross-repository plan
 
-_Status: proposed. Written 2026-08-22. Owner: backend. Execution target: one
-agent, task by task, in the order given under [§6](#6-execution-plan)._
+**Status:** Canonical plan
 
-## 1. Decision
+**Last updated:** 2026-08-22
 
-NodeTool has two HTTP contracts for the same server logic: the tRPC router at
-`/trpc` (33 sub-routers, used by `web/`, `packages/sdk`, and the WS runner) and
-the hand-written `/api/sdk/v1/*` REST surface in `packages/websocket/src/sdk/`
-(11 routes + 2 WS RPC commands, PRs #4550, #4670, #4676, #5082, one out-of-tree
-C#/VL consumer). Four concerns are implemented once and adapted twice; five
-features exist only behind `/api/sdk/v1`.
+**Repositories:** `nodetool`, `nodetool-sdk`
 
-We consolidate on **one procedure per concern, defined in the tRPC router**, and
-turn `/api/sdk/v1` into a **declared REST facade**: a route table in
-`@nodetool-ai/protocol` that maps a path to a procedure, which
-`packages/websocket` mounts generically and the protocol generator turns into
-`sdk-v1.openapi.json`. The SDK-only features (preflight, model downloads,
-temporary upload, unified model catalog, capabilities) move into the core
-routers under their real names, because none of them is SDK-specific. The
-external URLs, JSON shapes, status codes, and error bodies of `/api/sdk/v1` do
-not change; a golden-file diff proves it on every PR.
+**Public protocol:** SDK v1 HTTP and WebSocket contracts
 
-What this removes: six hand-written HTTP handlers, the `/api/sdk/v1` branches in
-`http-api.ts` and three route files, two unused tRPC twins
-(`workflows.sdkSummaries`, `nodes.sdkTypeInventory`), the hand-built OpenAPI
-path table in `generate-sdk-protocol.ts`, the unmounted `models-api.ts`, and two
-of three SDK feature flags.
+This is the only active plan for SDK contract convergence. It combines the
+server consolidation work with the C# SDK drift-prevention and usability work.
+All task status, design changes, and acceptance evidence belong in this file.
 
-## 2. Current state (measured 2026-08-22)
+## 1. Outcome
 
-### 2.1 The `/api/sdk/v1` surface
+Simplify the SDK implementation without removing any supported function:
 
-All mounts go through `bridge()` (`packages/websocket/src/lib/bridge.ts`) into a
-WHATWG `Request`/`Response` handler.
+1. Keep the existing SDK v1 HTTP paths and WebSocket messages stable.
+2. Implement each SDK operation through one transport-neutral server path.
+3. Declare each public HTTP or WebSocket operation once and generate route and
+   contract artifacts from the shared operation registry.
+4. Keep REST, WebSocket, and retained tRPC procedures as thin adapters.
+5. Publish a deterministic contract bundle with each NodeTool release.
+6. Make `nodetool-sdk` pin and mechanically consume that bundle.
+7. Detect server/SDK drift before either repository releases.
+8. Make the C# connection/session facade the normal entry point while keeping
+   all low-level clients and individual execution controls.
 
-| # | Route | Mount | Leaf | Auth today |
-|---|---|---|---|---|
-| 1 | `GET /api/sdk/v1/node-types` | `routes/nodes.ts:40` | `sdk/sdk-node-type-inventory-service.ts` `getSdkNodeTypeInventory` | public (discovery) |
-| 2 | `GET /api/sdk/v1/capabilities` | `routes/nodes.ts:46` | `sdk/sdk-capabilities-http-handler.ts` → `sdk-runtime-capabilities-service.ts` | public; 503 when lifecycle flag off |
-| 3 | `GET /api/sdk/v1/models` | `routes/nodes.ts:52` | `sdk/sdk-model-catalog-http-handler.ts` → `sdk-model-catalog-service.ts` `getSdkV1ModelCatalog` | public (discovery) |
-| 4 | `GET /api/sdk/v1/model-downloads` | `routes/nodes.ts:58` | `sdk/sdk-model-download-http-handler.ts` → `sdk-model-download-service.ts` | authenticated |
-| 5 | `POST /api/sdk/v1/model-downloads` | `routes/nodes.ts:64` | same; 202 | authenticated |
-| 6 | `POST /api/sdk/v1/model-downloads/cancel` | `routes/nodes.ts:70` | same | authenticated |
-| 7 | `POST /api/sdk/v1/preflight` | `routes/nodes.ts:76` | `sdk/sdk-preflight-http-handler.ts` → `sdk-preflight-orchestrator.ts` `runSdkV1Preflight` | authenticated (`x-user-id`); 415 without JSON content-type; 503 when flag off |
-| 8 | `GET /api/sdk/v1/workflows` | `routes/workflows.ts:111` | `workflow-interface-service.ts` `listWorkflowSummariesV1` | public (discovery) |
-| 9 | `POST /api/sdk/v1/workflow-interfaces` | `routes/workflows.ts:117` | `workflow-interface-service.ts` `getWorkflowInterfacesV1` | public (discovery) |
-| 10 | `GET /api/workflows/:id/interface?version=1` | `routes/workflows.ts:183` | `workflow-interface-service.ts` `getWorkflowInterfaceV1` | public (discovery) |
-| 11 | `POST /api/sdk/v1/assets/temporary` | `routes/assets.ts:220` | `sdk/sdk-temporary-asset-upload-http-handler.ts` (multipart, `getTempAdapter()`) | authenticated; 413 over cap |
+This reduces drift between NodeTool and the C# SDK. Moving the C# client to raw
+tRPC would not solve drift by itself. It would replace a stable, language-neutral
+contract with tRPC URL encoding, envelopes, and internal procedure names.
 
-WS: `handleSdkV1LifecycleRpc` (`sdk/sdk-lifecycle-rpc-handler.ts:84`), called
-from `unified-websocket-runner.ts:8638`; commands `get_capabilities`,
-`preflight_workflow`. `plugins/websocket.ts:188-218` pushes
-`sdk_execution_target {runner_id}` and registers the runner in
-`SdkLiveRunnerRegistry`.
+## 2. Decisions
 
-A second dispatcher, `handleApiRequest` (`http-api.ts:2517`), mounts five of the
-routes again (`:2562-2582`). The Fastify mounts are authoritative.
+### 2.1 Public transport decisions
 
-Policy and flags: `sdk/sdk-route-policy.ts` (`isSdkV1DiscoveryRequest`,
-`isSdkV1AuthenticationRequired`), enforced in `server.ts:895-901`;
-`sdk/sdk-feature-flags.ts` defines `NODETOOL_REQUIRE_SDK_AUTH_V1`,
-`NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1`, `NODETOOL_DISABLE_SDK_LIFECYCLE_V1`.
+- `/api/sdk/v1` remains the public HTTP contract for non-TypeScript SDKs.
+- Existing SDK WebSocket commands and MessagePack envelopes remain public.
+- tRPC remains an internal TypeScript transport and adapter. Its dotted
+  procedure names are not part of the public SDK contract.
+- Public C# types do not expose tRPC request or response envelopes.
+- Existing paths, methods, status codes, JSON names, content types, WebSocket
+  commands, and MessagePack map keys and envelope shapes do not change during
+  convergence.
 
-Contract artifacts: `packages/protocol/schema/sdk-v1.{openapi,asyncapi,discovery.schema,lifecycle.schema,manifest}.json`,
-generated by `packages/protocol/scripts/generate-sdk-protocol.ts` from a
-hand-maintained path table, checked by
-`packages/protocol/tests/sdk-protocol-artifacts.test.ts` and
-`npm run check:sdk-protocol --workspace=packages/protocol`. The baseline request
-fixture is `packages/protocol/fixtures/sdk-v1-baseline.json`.
+### 2.2 Implementation decisions
 
-Tests: 30 files `packages/websocket/tests/sdk-*.test.ts` plus
-`http-api-extra-coverage.test.ts:193,321,458`.
+- A protocol operation registry owns stable operation IDs, transport metadata,
+  schemas, authentication policy, feature policy, errors, and implementation
+  status. Its HTTP declarations include methods and paths; its WebSocket
+  declarations include commands/events and directions.
+- A typed server handler map, keyed by request/response operation IDs, owns the
+  binding to server code. Event publishers have a separate completeness check.
+  The protocol package does not contain tRPC procedure-name strings.
+- A transport-neutral SDK service facade coordinates existing domain services.
+  It is not a replacement for those services and must not become a large class
+  containing all business logic.
+- REST, SDK WebSocket, and retained tRPC procedures call the same service
+  methods and translate only transport concerns.
+- Temporary asset upload remains a multipart Fastify adapter over the shared
+  temporary-storage service. It is not exposed as JSON or base64 tRPC input.
 
-### 2.2 The tRPC surface
+### 2.3 Compatibility decisions
 
-Mounted at `/trpc` (`server.ts:1231-1258`), `@trpc/server ^11`, **no
-transformer** (plain JSON), `allowMethodOverride: true`, `maxParamLength: 8000`.
-Auth: `protectedProcedure` (`trpc/middleware.ts`) reads `ctx.userId`, set from
-`req.userId` by the Fastify auth hook (`trpc/context.ts:75-86`). Errors:
-`trpc/error-formatter.ts` adds `data.apiCode`. In-process calls already exist:
-`unified-websocket-runner.ts:206-207` uses `createCallerFactory(appRouter)`.
+- Preserve these independent controls and their current error behavior:
+  - `NODETOOL_REQUIRE_SDK_AUTH_V1`;
+  - `NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1`;
+  - `NODETOOL_DISABLE_SDK_LIFECYCLE_V1`.
+- Do not replace the two feature switches with one switch. Discovery and
+  lifecycle must remain independently controllable.
+- Direct tRPC access to an SDK-related procedure must apply the same normal
+  authentication and SDK policy as the corresponding public operation.
+- Keep separate procedures when response shapes differ. Do not add a
+  `fields=full|summary` mode to `workflows.list`.
+- Do not remove `/ws/download` or change the web model-download flow as part of
+  core convergence. That is separate product work with separate measurements.
+- Do not delete focused handler or service tests merely because golden tests
+  exist. Remove a test only after equivalent coverage is demonstrated.
 
-### 2.3 Overlap matrix
+## 3. Repository ownership and phase map
 
-| Concern | `/api/sdk/v1` | tRPC | Same service? |
-|---|---|---|---|
-| list workflows | #8 | `workflows.list` (`trpc/routers/workflows.ts:509`), `workflows.sdkSummaries` (`:472`, **no caller**) | yes |
-| workflow interface | #9, #10 | `workflows.interface` (`:546`), `workflows.interfaces` (`:561`) | yes |
-| node types | #1 | `nodes.list` (`trpc/routers/nodes.ts:62`), `nodes.sdkTypeInventory` (`:126`, **no caller**) | yes |
-| model catalog | #3 | `models.*` (~30 per-modality procedures, `trpc/routers/models.ts`) | no |
-| capabilities | #2 | none (`/api/config`, `healthz`, `settings.list` are partial) | — |
-| preflight | #7 + WS | none; inline gates in `packages/execution/src/service/workflow-run.ts:484-506` | — |
-| model download | #4–6 | none; dev-only `GET /ws/download` socket (`plugins/websocket.ts:272-360`) | — |
-| temporary upload | #11 | none; `assets.createUpload/finalizeUpload` for durable assets | — |
+Repository labels used throughout this plan:
 
-Consumers: **none in this repo.** `packages/sdk` uses `/trpc` + `/ws` only. The
-sole client is the C#/VL SDK described in
-`docs/sdk/non-regression-baseline-2026-07-24.md:17-30`, out of tree. The web
-app calls none of `workflows.sdkSummaries`, `nodes.sdkTypeInventory`,
-`workflows.interface`, `workflows.interfaces`.
+- **`[nodetool]`** means work only in `M:/P/NODETOOL/____REPOS____/nodetool`.
+- **`[nodetool-sdk]`** means work only in
+  `M:/P/NODETOOL/____REPOS____/nodetool-sdk`.
+- **`[both]`** means coordinated changes or verification in both repositories.
+  A joint phase should still use separate, independently releasable pull
+  requests unless a shared CI job requires both checkouts.
 
-## 3. Goals and non-goals
+| Phase | Owner            | Purpose              | Main output                                        |
+| ----- | ---------------- | -------------------- | -------------------------------------------------- |
+| 0     | `[nodetool]`     | Freeze and measure   | Current contract inventory and goldens             |
+| 1     | `[nodetool]`     | Declare and publish  | Route declaration and deterministic bundle         |
+| 2     | `[nodetool]`     | Unify implementation | Service facade and stable service errors           |
+| 3     | `[nodetool]`     | Converge adapters    | One route plugin; thin REST, WS, and tRPC adapters |
+| 4     | `[nodetool-sdk]` | Consume mechanically | Pinned bundle and generated/verified C# wire layer |
+| 5     | `[both]`         | Prevent drift        | Cross-repository conformance and compatibility CI  |
+| 6     | `[both]`         | Measure options      | Reproducible execution and upload benchmarks       |
+| 7     | `[nodetool-sdk]` | Simplify C# use      | Primary session facade and measured presets        |
+| 8     | `[both]`         | Release safely       | Additive releases, migration, and later cleanup    |
 
-Goals:
+Phases 0 through 3 establish the producer boundary in `nodetool`. Phase 4
+starts only after the first deterministic bundle exists. Phase 5 becomes a
+release gate. Phase 6 must finish before Phase 7 names or recommends a
+low-latency preset.
 
-1. One implementation and one typed procedure per concern. Every HTTP route and
-   every WS RPC command is an adapter over a tRPC procedure.
-2. The `/api/sdk/v1` contract is **generated from the same declaration that
-   mounts it**, so the OpenAPI document cannot drift from the server.
-3. Zero wire change for the C#/VL client: same paths, methods, query/body
-   shapes, response JSON, status codes, error bodies. Proven by golden diff.
-4. Preflight, model downloads, temporary upload, catalog, and capabilities
-   become core product features reachable from `web/`, `packages/sdk`, and the
-   CLI.
-5. Fewer flags and fewer files.
+## 4. Confirmed current state
 
-Non-goals:
+The following inventory was measured on 2026-08-22. Phase 0 must refresh file
+locations and counts if the implementation changes before work starts.
 
-- Implementing the `planned` lifecycle routes (`/api/sdk/v1/jobs*`). They stay
-  `x-nodetool-implementation: planned` in the schema. This plan makes them
-  cheaper to add later (one table row + one procedure).
-- Replacing `/api/sdk/v1` with direct tRPC calls from C#. tRPC's URL/batch
-  encoding is a poor external contract; a versioned REST path with an OpenAPI
-  document is the right surface for non-TS SDKs.
-- Changing `packages/sdk` (the TS client). It already uses tRPC.
-- Migrating the web app's model pickers to the unified catalog. Enabled, not
-  done here.
+### 4.1 Public HTTP surface in `nodetool`
 
-## 4. Design
+| Operation              | Public route                                 | Current policy                                  |
+| ---------------------- | -------------------------------------------- | ----------------------------------------------- |
+| Node type inventory    | `GET /api/sdk/v1/node-types`                 | Discovery; workflow-interface flag applies      |
+| Capabilities           | `GET /api/sdk/v1/capabilities`               | Discovery; lifecycle flag applies               |
+| Model catalog          | `GET /api/sdk/v1/models`                     | Discovery                                       |
+| List model downloads   | `GET /api/sdk/v1/model-downloads`            | Authenticated                                   |
+| Start model download   | `POST /api/sdk/v1/model-downloads`           | Authenticated                                   |
+| Cancel model download  | `POST /api/sdk/v1/model-downloads/cancel`    | Authenticated                                   |
+| Preflight workflow     | `POST /api/sdk/v1/preflight`                 | Authenticated; lifecycle flag applies           |
+| Workflow summaries     | `GET /api/sdk/v1/workflows`                  | Discovery; workflow-interface flag applies      |
+| Workflow interfaces    | `POST /api/sdk/v1/workflow-interfaces`       | Discovery; workflow-interface flag applies      |
+| One workflow interface | `GET /api/workflows/:id/interface?version=1` | Discovery; workflow-interface flag applies      |
+| Temporary asset upload | `POST /api/sdk/v1/assets/temporary`          | Authenticated multipart; lifecycle flag applies |
 
-### 4.1 The route table (`@nodetool-ai/protocol`)
+The ten `/api/sdk/v1` operations use nine paths because
+`model-downloads` supports both `GET` and `POST`. The single-workflow interface
+is a public SDK v1 operation even though its compatible URL is outside the SDK
+prefix.
 
-New file `packages/protocol/src/api-schemas/sdk-v1-routes.ts`. Pure data, no
-server imports — `protocol` is the base package and the generator runs there.
+"Discovery" describes the route's default SDK policy. Normal server
+authentication or `NODETOOL_REQUIRE_SDK_AUTH_V1` can still require
+authentication for discovery routes.
+
+The Fastify route modules mount handlers through `bridge()` into WHATWG
+`Request`/`Response` handlers. `http-api.ts` also dispatches a subset of these
+routes. The Fastify mounts are authoritative today, and the second dispatcher
+is a drift risk.
+
+### 4.2 WebSocket and tRPC overlap in `nodetool`
+
+- `handleSdkV1LifecycleRpc` handles `get_capabilities` and
+  `preflight_workflow`.
+- The unified WebSocket runner calls these tRPC procedures in process:
+  - `workflows.sdkSummaries`;
+  - `workflows.interface`;
+  - `workflows.interfaces`;
+  - `nodes.sdkTypeInventory`.
+- These procedures are therefore not unused. Any rename or removal requires a
+  caller migration and a consumer audit.
+- Current tRPC uses plain JSON without a transformer. This makes binary
+  temporary upload a poor tRPC operation.
+- tRPC is mounted at `/trpc`; protected procedures read the authenticated user
+  from the request context. The SDK policy is separate and must not be bypassed
+  by a new direct caller.
+
+### 4.3 Existing contract material
+
+`packages/protocol` already contains generated SDK v1 OpenAPI, AsyncAPI, JSON
+schemas, a manifest, and a baseline fixture. Generation starts from a
+hand-maintained path table. The route registrations and that path table can
+still diverge.
+
+The known focused parity baseline at the time of investigation was 3 test
+files and 28 passing tests after rebuilding stale workspace dependencies. It
+covers REST, tRPC, and SDK WebSocket parity for the focused operations. Phase 0
+must record the exact commands and commits used for the new baseline.
+
+### 4.4 Current consumer boundary
+
+- The C#/VL SDK in `nodetool-sdk` is the public out-of-tree consumer.
+- The TypeScript package uses tRPC and `/ws`; it does not depend on the public
+  C# HTTP surface in the same way.
+- The NodeTool web application does not currently call the public SDK routes.
+- The server and C# SDK duplicate some endpoint, DTO, and error knowledge, so
+  they can drift even when each repository's local tests pass.
+
+### 4.5 Existing execution controls
+
+The WebSocket `run_job.execution_options` contract already carries the main
+performance and durability controls:
+
+- persistence mode;
+- event detail;
+- asset persistence.
+
+The current C# `WorkflowExecutionOptions` defaults are job persistence, full
+events, and temporary asset persistence. Other NodeTool clients can use server
+defaults with different asset behavior. The consolidation must keep every
+individual option and both sets of current defaults. A named preset is only a
+C# usability layer over these controls.
+
+## 5. Target architecture
+
+```mermaid
+flowchart LR
+  D["SDK v1 operation registry"] --> A["OpenAPI, AsyncAPI, JSON Schema, manifest"]
+  D --> R["Typed server handler map"]
+  D --> E["WebSocket publisher completeness checks"]
+  R --> S["Transport-neutral SDK service facade"]
+  S --> X["Existing domain services"]
+  H["REST adapter"] --> R
+  W["SDK WebSocket adapter"] --> R
+  T["Retained tRPC adapters"] --> R
+  A --> B["Deterministic released contract bundle"]
+  B --> C["Pinned C# wire layer"]
+  C --> P["Stable handwritten C# public API"]
+```
+
+### 5.1 Protocol operation registry in `[nodetool]`
+
+Add declarations such as
+`packages/protocol/src/api-schemas/sdk-v1-http-operations.ts` and
+`sdk-v1-websocket-operations.ts`, backed by shared operation metadata types.
+Each implemented or planned operation declares:
+
+- a stable operation ID;
+- implementation status: `implemented` or `planned`;
+- transport and direction;
+- an HTTP method and path, or a WebSocket command/event identity and channel;
+- applicable path, query, header, body, or message schemas;
+- response schema and content type when applicable;
+- authentication and feature policy identifiers;
+- declared public error codes and statuses;
+- a binary or streaming marker where JSON generation does not apply.
+
+The declarations must not import server packages or name tRPC procedures. A
+representative shape is:
 
 ```ts
-import { z } from "zod";
+type SdkV1OperationCommon = {
+  id: SdkV1OperationId;
+  status: "implemented" | "planned";
+  auth: "discovery" | "authenticated";
+  feature: "workflow-interface" | "lifecycle" | null;
+  errors: readonly SdkV1ErrorDeclaration[];
+};
 
-export const SDK_V1_ROUTE_AUTH = {
-  discovery: "discovery",       // public unless NODETOOL_REQUIRE_SDK_AUTH_V1 or server enforceAuth
-  authenticated: "authenticated"
-} as const;
-
-export interface SdkV1RouteDeclaration<TIn extends z.ZodTypeAny, TOut extends z.ZodTypeAny> {
-  /** Stable identifier, also the OpenAPI operationId. */
-  id: string;
-  method: "GET" | "POST";
-  /** Fastify-style path. `:id` params are bound into the input. */
-  path: string;
-  /** Dotted tRPC procedure path, e.g. "workflows.interfaces". */
-  procedure: string;
-  /** Where the input comes from. GET → query (+params); POST → JSON body (+params). */
-  input: TIn;
-  output: TOut;
-  auth: keyof typeof SDK_V1_ROUTE_AUTH;
-  /** Feature group this route belongs to (see §4.5). */
-  feature: "discovery" | "lifecycle";
-  /** Success status when not 200. */
-  successStatus?: 202;
-  /** Request content type when not JSON. */
-  contentType?: "multipart/form-data";
-  /** Error codes this route documents (for OpenAPI responses). */
-  errors: ReadonlyArray<{ status: number; code: string }>;
-  summary: string;
-}
-
-export const SDK_V1_ROUTES = [
-  { id: "getSdkCapabilities",   method: "GET",  path: "/api/sdk/v1/capabilities",          procedure: "system.capabilities",     input: z.object({}), output: sdkV1Capabilities,            auth: "discovery",     feature: "lifecycle", errors: [...] },
-  { id: "listSdkNodeTypes",     method: "GET",  path: "/api/sdk/v1/node-types",            procedure: "nodes.list",              input: sdkNodeTypeInventoryInput, output: sdkNodeTypeInventoryOutput, auth: "discovery", feature: "discovery", errors: [...] },
-  { id: "listSdkWorkflows",     method: "GET",  path: "/api/sdk/v1/workflows",             procedure: "workflows.list",          input: sdkWorkflowSummariesInput, output: sdkWorkflowSummariesOutput, auth: "discovery", feature: "discovery", errors: [...] },
-  { id: "getWorkflowInterface", method: "GET",  path: "/api/workflows/:id/interface",      procedure: "workflows.interface",     input: workflowInterfaceInput,    output: workflowInterfaceV1,        auth: "discovery", feature: "discovery", errors: [...] },
-  { id: "getWorkflowInterfaces",method: "POST", path: "/api/sdk/v1/workflow-interfaces",   procedure: "workflows.interfaces",    input: workflowInterfacesInput,   output: workflowInterfacesOutput,   auth: "discovery", feature: "discovery", errors: [...] },
-  { id: "getSdkModelCatalog",   method: "GET",  path: "/api/sdk/v1/models",                procedure: "models.catalog",          input: sdkV1ModelCatalogQuery,    output: sdkV1ModelCatalog,          auth: "discovery", feature: "discovery", errors: [...] },
-  { id: "listModelDownloads",   method: "GET",  path: "/api/sdk/v1/model-downloads",       procedure: "models.downloads.list",   input: sdkV1ModelDownloadQuery,   output: sdkV1ModelDownloadSnapshot, auth: "authenticated", feature: "lifecycle", errors: [...] },
-  { id: "startModelDownload",   method: "POST", path: "/api/sdk/v1/model-downloads",       procedure: "models.downloads.start",  input: sdkV1ModelDownloadStartRequest, output: sdkV1ModelDownloadState, auth: "authenticated", feature: "lifecycle", successStatus: 202, errors: [...] },
-  { id: "cancelModelDownload",  method: "POST", path: "/api/sdk/v1/model-downloads/cancel",procedure: "models.downloads.cancel", input: sdkV1ModelDownloadCancelRequest, output: sdkV1ModelDownloadState, auth: "authenticated", feature: "lifecycle", errors: [...] },
-  { id: "preflightWorkflow",    method: "POST", path: "/api/sdk/v1/preflight",             procedure: "workflows.preflight",     input: sdkV1PreflightRequest,     output: sdkV1PreflightSummary,      auth: "authenticated", feature: "lifecycle", errors: [...] },
-  { id: "uploadTemporaryAsset", method: "POST", path: "/api/sdk/v1/assets/temporary",      procedure: "assets.uploadTemporary",  input: sdkV1TemporaryAssetUploadInput, output: sdkV1TemporaryAssetUpload, auth: "authenticated", feature: "lifecycle", contentType: "multipart/form-data", errors: [...] }
-] as const satisfies readonly SdkV1RouteDeclaration<z.ZodTypeAny, z.ZodTypeAny>[];
+type SdkV1OperationDeclaration = SdkV1OperationCommon &
+  (
+    | {
+        transport: "http";
+        method: "GET" | "POST";
+        path: string;
+        request: SdkV1HttpRequestSchemas;
+        response: SdkV1HttpResponseDeclaration;
+      }
+    | {
+        transport: "websocket";
+        direction: "request-response" | "server-event";
+        channel: string;
+        command?: string;
+        message: SdkV1MessageDeclaration;
+      }
+  );
 ```
 
-The existing zod schemas in `packages/protocol/src/api-schemas/{workflows,nodes,sdk-models-v1,sdk-lifecycle-v1}.ts`
-are reused unchanged; that is what keeps the wire shapes identical.
+Generate OpenAPI paths from HTTP declarations and AsyncAPI channels/messages
+from WebSocket declarations. A generated channel can be marked `partial` when
+it contains both implemented and planned operation variants. Generate an
+implemented-only profile for client generation so planned job operations
+cannot appear as callable C# methods.
 
-Query-string inputs: GET routes receive strings. Each GET input schema must
-coerce (`z.coerce.number()`, `z.enum`) or the table entry supplies a
-`decodeQuery(raw: Record<string,string>) => unknown` step. Today's handlers
-already do this per route (`sdk-model-catalog-http-handler.ts:36`,
-`sdk-model-download-http-handler.ts:110`); the facade does it once, from the
-schema. Task 1.2 audits every GET input schema for coercion.
+### 5.2 Typed handler map and service facade in `[nodetool]`
 
-Two constraints on the table, enforced by a test in `protocol`:
+Define a server handler type from each request/response declaration's input and
+output schema. Require an exhaustive handler map for all implemented
+request/response operation IDs. Check server-event publishers separately
+against implemented event declarations. This gives compile-time or CI failures
+for missing implementations and avoids runtime lookup by a dotted tRPC string.
 
-- `procedure` must name a procedure that exists on `AppRouter` — checked in
-  `packages/websocket/tests/sdk-v1-routes.test.ts` (protocol cannot see the
-  router; websocket can).
-- `(method, path)` pairs are unique; `id`s are unique.
+The handler map calls a transport-neutral facade such as `SdkV1Service`. The
+facade may be a small collection of domain-focused services rather than one
+class. It should coordinate:
 
-### 4.2 The facade runtime (`packages/websocket`)
+- workflow discovery and interface lookup;
+- node type inventory;
+- runtime capabilities;
+- workflow preflight;
+- model catalog and download lifecycle;
+- temporary asset storage.
 
-New file `packages/websocket/src/sdk/sdk-v1-facade.ts` exporting
-`registerSdkV1Routes(app: FastifyInstance, deps)`. For each row:
+Existing domain services remain the source of business behavior. The facade
+owns common input validation, authorization requirements, feature policy,
+correlation metadata, and stable service errors where those concerns are
+shared.
 
-```
-app.route({ method, url: path, handler })
-handler:
-  1. feature gate          → 503 {code: SDK_LIFECYCLE_DISABLED | SDK_WORKFLOW_INTERFACE_DISABLED, ...}   (§4.5)
-  2. content-type check    → 415 UNSUPPORTED_MEDIA_TYPE for POST JSON routes without application/json   (preserves today's preflight behaviour; apply uniformly — see Task 1.5 for the golden check)
-  3. build raw input       → GET: {...query, ...params}; POST JSON: {...body, ...params}; multipart: parsed by the one bespoke handler (§4.6)
-  4. ctx = createContext({ req })          (same factory tRPC uses; req.userId from the auth hook)
-  5. caller = createCallerFactory(appRouter)(ctx)
-  6. result = await resolveProcedure(caller, row.procedure)(input)   — the procedure validates input with its own .input() schema
-  7. reply.code(row.successStatus ?? 200).send(result)
-  catch TRPCError → mapTrpcErrorToSdkV1HttpError (§4.4)
-```
+### 5.3 Stable transport-neutral errors in `[nodetool]`
 
-`resolveProcedure` walks the dotted path on the caller object
-(`caller.workflows.interfaces`). It throws at registration time — not at
-request time — if the path does not resolve, so a typo fails server boot.
+Define an `SdkV1ServiceError` with at least:
 
-The `x-user-id` principal logic in `http-api.ts:handleSdkPreflight` is
-replaced by `ctx.userId`. Task 1.4 verifies both come from the same auth hook
-(the hook sets `req.userId`; the header is what the hook reads/sets) so
-behaviour is identical.
+- stable SDK error code;
+- safe public message;
+- logical status/category;
+- retryability when applicable;
+- internal cause and logging context that are never serialized directly.
 
-`handleApiRequest` (`http-api.ts:2517`) loses its five `/api/sdk/v1` branches.
-Its remaining callers must be checked (Task 1.6): if anything other than tests
-routes SDK paths through it, the facade exposes a `handleSdkV1Request(request)`
-WHATWG twin built on the same table; otherwise the branches are deleted.
+Map it at each edge:
 
-### 4.3 Procedures (where the logic lives after the move)
+- REST maps it to the existing SDK error JSON and HTTP status;
+- SDK WebSocket maps it to the existing RPC error envelope;
+- tRPC maps it to `TRPCError` and the existing `data.apiCode` shape.
 
-| Procedure | Status | Body |
-|---|---|---|
-| `workflows.list` | exists | add optional `fields: "full" \| "summary"` (default `"full"`); `"summary"` returns `sdkWorkflowSummariesOutput` via `listWorkflowSummariesV1`. Facade row passes `fields: "summary"` as a fixed input override (table field `inputDefaults`). Delete `workflows.sdkSummaries`. |
-| `workflows.interface`, `workflows.interfaces` | exist | unchanged; the `?version=1` requirement is already in `workflowInterfaceInput` |
-| `nodes.list` | exists | add optional `cursor`/`limit` paging in the inventory shape — or keep a dedicated `nodes.typeInventory` if merging the two response shapes (`{nodes}` vs `{types, cursor, next_cursor, registry_revision…}`) is not clean. **Decision for the executor:** keep `nodes.typeInventory` (renamed from `sdkTypeInventory`), because the output shapes differ and the SDK shape carries registry provenance the editor's list does not. Delete nothing but rename. |
-| `models.catalog` | new | moves `getSdkV1ModelCatalog` from `sdk-model-catalog-service.ts` (file moves to `src/models/model-catalog-service.ts`). `protectedProcedure` becomes `publicProcedure` **only if** the route is discovery; today the handler resolves `x-user-id` optionally, so use `publicProcedure` and pass `ctx.userId ?? null` through. |
-| `models.downloads.list/start/cancel` | new sub-router | wraps `createSdkV1ModelDownloadService` (file moves to `src/models/model-download-service.ts`); the service instance lives in `apiOptions` as today (`server.ts:1069`), reached via `ctx.apiOptions`. |
-| `workflows.preflight` | new | `runSdkV1Preflight` with `ctx.apiOptions.sdkPreflightService`; input `sdkV1PreflightRequest`, output `sdkV1PreflightSummary`. Principal = `ctx.userId` (protected). |
-| `system.capabilities` | new router `system` | `ctx.apiOptions.getSdkCapabilities()`; `publicProcedure`. Add `system` to `trpc/router.ts`. |
-| `assets.uploadTemporary` | new | see §4.6 |
+Golden tests must prove existing public error bodies exactly. Content-type and
+validation behavior are route-specific compatibility requirements, not global
+defaults to normalize during this work.
 
-The WS lifecycle RPC (`sdk-lifecycle-rpc-handler.ts`) calls the same two
-procedures through the caller the runner already holds, instead of the
-orchestrator directly. The 2 commands keep their names and error shapes
-(`sdkV1RpcError`); only the body of the handler changes.
+### 5.4 Adapter rules in `[nodetool]`
 
-Each router file exports nothing SDK-named; "SDK" survives only in the protocol
-schema names (wire contract) and in the facade file.
+REST adapters may parse HTTP, enforce the declared route policy, call the typed
+handler, and serialize the declared response. They contain no domain logic.
 
-### 4.4 Error mapping
+SDK WebSocket adapters preserve existing commands and MessagePack envelopes.
+They call the typed handlers or service facade directly. They do not need an
+in-process tRPC hop once parity is proven.
 
-Today's REST errors are `sdkV1HttpError {code, message, retryable, detail}`
-with route-specific codes (`AUTHENTICATION_REQUIRED`, `WORKFLOW_NOT_FOUND`,
-`PREFLIGHT_LEVEL_UNAVAILABLE`, `SDK_LIFECYCLE_DISABLED`,
-`SDK_WORKFLOW_INTERFACE_DISABLED`, `SDK_NODE_TYPE_INVENTORY_DISABLED`,
-`UPLOAD_TOO_LARGE`, `UNSUPPORTED_WORKFLOW_INTERFACE_VERSION`, …). The exact
-list is read off the current handlers and tests in Task 1.5 and written into
-`errors` on each table row.
+Retained tRPC procedures call the same typed handler or service method. Keep
+separate procedures for summary and full response shapes. Audit direct users
+before any procedure rename. A later neutral name such as
+`workflows.summaries` or `nodes.typeInventory` may be added, but cleanup is not
+a core acceptance condition.
 
-The procedures throw `TRPCError` with `cause: { apiCode }` via `throwApiError`
-(existing pattern, `trpc/error-formatter.ts`). New file
-`packages/websocket/src/sdk/sdk-v1-error-mapping.ts`:
+Temporary multipart upload stays a dedicated Fastify adapter. Do not register
+an `assets.uploadTemporary` tRPC procedure with `Uint8Array`, JSON, or base64
+input. The adapter calls the shared temporary-storage service directly.
 
-```
-TRPCError.code      → HTTP status   (UNAUTHORIZED 401, FORBIDDEN 403, NOT_FOUND 404,
-                                     BAD_REQUEST 400, UNSUPPORTED_MEDIA_TYPE 415,
-                                     PAYLOAD_TOO_LARGE 413, PRECONDITION_FAILED 503 (feature off),
-                                     TOO_MANY_REQUESTS 429, INTERNAL_SERVER_ERROR 500)
-body.code           → cause.sdkCode ?? legacy mapping from apiCode (table in this file)
-body.retryable      → from RETRYABLE_ERROR_CODES in protocol/sdk-v1.ts
-body.detail         → error.message
-```
+### 5.5 Deterministic contract bundle in `[nodetool]`
 
-Where a procedure needs to emit an SDK-specific code (e.g.
-`PREFLIGHT_LEVEL_UNAVAILABLE`), it throws `TRPCError` with
-`cause: { apiCode, sdkCode: "PREFLIGHT_LEVEL_UNAVAILABLE" }`. The tRPC error
-formatter ignores `sdkCode`; the facade reads it. This keeps the tRPC wire
-shape unchanged for web clients.
+Build one versioned archive that contains:
 
-Zod input failures inside the procedure surface as `BAD_REQUEST` with
-`cause instanceof ZodError`; the facade maps to 400 with the code today's
-handlers use for a bad query (`INVALID_INPUT` per the legacy mapping, or the
-route's declared code — Task 1.5 decides per route from the golden tests).
+- OpenAPI for implemented HTTP operations;
+- AsyncAPI for public SDK WebSocket operations;
+- JSON schemas for requests, responses, and stable errors;
+- the complete operation manifest with implemented/planned status;
+- JSON golden success and error fixtures;
+- exact MessagePack golden frames and their semantic JSON form;
+- per-file SHA-256 digests and one bundle digest;
+- protocol compatibility rules and the producing NodeTool commit/release.
 
-### 4.5 Feature flags and auth policy
+Generation must be deterministic: stable ordering, line endings, archive
+metadata, and digests. Publish the same bytes as a NodeTool release asset and
+inside `@nodetool-ai/protocol`, or publish one location plus a verified pointer.
+If both locations are used, their bundle digests must match.
 
-Collapse to two switches in `sdk-feature-flags.ts`:
+### 5.6 C# consumption boundary in `[nodetool-sdk]`
 
-- `NODETOOL_DISABLE_SDK_V1=1` — disables every row in `SDK_V1_ROUTES` and the
-  WS RPC commands (503, code `SDK_DISABLED`).
-- `NODETOOL_REQUIRE_SDK_AUTH_V1=1` — unchanged meaning.
+Pin the NodeTool release, protocol version, and bundle digest in
+`contracts/sdk-v1/`. Normal builds and tests must work offline.
 
-`NODETOOL_DISABLE_SDK_LIFECYCLE_V1` and
-`NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1` are kept **as aliases for one
-release** (either set → all disabled, with a startup warning naming the new
-var), then removed. Their per-group codes (`SDK_LIFECYCLE_DISABLED`,
-`SDK_WORKFLOW_INTERFACE_DISABLED`, `SDK_NODE_TYPE_INVENTORY_DISABLED`) are
-emitted per `feature` group while the aliases exist, so the golden tests keep
-passing; after alias removal the code is `SDK_DISABLED` and the golden is
-regenerated once, deliberately, in its own commit.
+Generate or mechanically verify only the internal wire layer:
 
-`isSdkV1DiscoveryRequest` (`sdk-route-policy.ts`) is rewritten to read
-`SDK_V1_ROUTES` (`auth === "discovery"`) instead of the hard-coded list. The
-`server.ts:895-901` hook is unchanged. `docs/configuration.md:444-446` is
-updated.
+- endpoint paths and methods;
+- HTTP request and response DTOs;
+- stable error DTOs;
+- JSON property and enum serialization metadata.
 
-### 4.6 Temporary asset upload
+Keep the public C# interfaces, domain records, low-level clients, and
+`SdkApiException` handwritten and source compatible. Map wire DTOs to public
+types in one place. Keep the MessagePack execution runtime handwritten, but
+verify its envelopes and bytes against AsyncAPI and goldens.
 
-Multipart does not fit the JSON facade. Keep one bespoke Fastify route,
-registered from the same table row (`contentType: "multipart/form-data"`
-selects the multipart path in `registerSdkV1Routes`): it parses the form,
-enforces `getMaxUploadBytes()` (413 `UPLOAD_TOO_LARGE`), then calls
-`caller.assets.uploadTemporary({ name, content_type, size, bytes })`, whose
-body is today's `sdk-temporary-asset-upload-http-handler.ts` storage logic
-(moved to `src/assets/temporary-upload.ts`). Bytes cross as a `Uint8Array`
-in-process; the procedure is marked non-batchable and not meant for remote
-tRPC callers (document in the router). The OpenAPI row declares the multipart
-request body exactly as today's generator does.
-
-### 4.7 Contract artifacts
-
-`generate-sdk-protocol.ts` stops hand-listing paths. It imports
-`SDK_V1_ROUTES` and emits one OpenAPI operation per row
-(`operationId = row.id`, parameters from the input schema for GET, request body
-from it for POST, `200/202` response from the output schema, error responses
-from `row.errors`). Schemas are produced with zod 4's `z.toJSONSchema` as today.
-The `planned` `/jobs*` operations stay as they are (a separate static list in
-the generator, clearly marked), untouched by this plan.
-
-`sdk-protocol-artifacts.test.ts` keeps its path assertions and gains one: the
-set of `paths` in the generated document equals the set of `(method, path)` in
-`SDK_V1_ROUTES` ∪ the planned list. `npm run check:sdk-protocol` stays the CI
-gate.
-
-### 4.8 Alternatives rejected
-
-- **`trpc-to-openapi`** (`meta.openapi` per procedure + generated Fastify
-  handler). Rejected: the generator lives in `protocol`, which cannot import the
-  router, so the table would still have to exist in `protocol` — the dependency
-  buys only the Fastify adapter, which is ~150 lines here. Zod 4 support in that
-  package was also unverified at the time of writing. Revisit if the table grows
-  past ~30 rows.
-- **Drop REST, C# calls `/trpc`.** Rejected, §3.
-- **Keep both, add tests.** Rejected: two hand-written contracts for one API is
-  the thing being fixed.
-
-## 5. Compatibility guarantees and how they are proven
-
-1. **Golden OpenAPI.** Before any code moves, copy
-   `packages/protocol/schema/sdk-v1.openapi.json` to
-   `packages/protocol/fixtures/sdk-v1.openapi.golden.json`. A test asserts the
-   generated document equals the golden, modulo a documented allowlist of
-   fields (`info.x-generated-at`, ordering). Regenerating the golden is a
-   separate commit with a one-line reason.
-2. **Golden HTTP transcripts.** New `packages/websocket/tests/sdk-v1-facade-golden.test.ts`
-   boots the Fastify app with the fake runtime (`src/fake-runtime.ts`, as the
-   existing `http-api-extra-coverage.test.ts` does) and replays every request in
-   `packages/protocol/fixtures/sdk-v1-baseline.json` plus one request per error
-   path listed in §4.4, asserting status, headers (`content-type`), and body
-   against recorded fixtures. **Record the fixtures in Task 1.1 against the
-   current handlers, before the facade exists** — that is the only way the test
-   can prove equivalence.
-3. **Prove the checks can fail** (AGENTS.md § Claims, Checks, and Measurements):
-   in Task 1.1 flip one expected status in a fixture, watch the test go red,
-   restore. Same for the golden diff.
-4. The three existing flag env vars keep working for one release (§4.5).
-5. The C#/VL owner (heavy-d) reviews the golden diff on the PR that lands
-   Phase 1; the PR description links the two fixture files.
+Evaluate available OpenAPI generators before selecting one. Require
+deterministic, reviewable output, correct nullable annotations, snake-case wire
+names, additive response-field tolerance, and compatibility with the SDK's
+supported .NET targets. If none meet these requirements, add a focused
+repository generator from the published schemas.
 
 ## 6. Execution plan
 
-Conventions for every task: branch from `main`; one PR per task unless marked
-"same PR"; after any change run `npm run dev:nodetool -- affected` and the
-suites it names, then `npm run typecheck`, `npm run lint`, and
-`npm run test --workspace=packages/websocket` and `--workspace=packages/protocol`
-(both are always affected here). `npm run check:sdk-protocol
---workspace=packages/protocol` must pass. `nodetool harness gate --base main`
-before opening the PR. Commit messages: conventional, scope `sdk` or `trpc`.
+### Phase 0 `[nodetool]` - Freeze and measure the current contract
 
-Size: S ≤ 150 LOC, M ≤ 400, L > 400 (split if L).
+Purpose: make hidden behavior explicit before moving code.
 
-### Phase 0 — Freeze the contract (no behaviour change)
+- [ ] Record the exact server commit and commands for the baseline.
+- [ ] Inventory every implemented and planned SDK HTTP operation.
+- [ ] Inventory every public SDK WebSocket command and event.
+- [ ] Inventory each SDK-related tRPC procedure and all in-repository callers.
+- [ ] Audit known out-of-repository tRPC consumers before planning removal.
+- [ ] Record route ownership, auth policy, feature policy, request limits,
+      content types, statuses, headers, error shapes, and retry semantics.
+- [ ] Capture JSON success and error goldens for every HTTP operation.
+- [ ] Capture exact MessagePack fixtures for public WebSocket requests,
+      responses, events, and errors.
+- [ ] Capture multipart upload size-limit, filename, media-type, temporary-ID,
+      and cleanup behavior.
+- [ ] Add route and WebSocket inventory tests around the current declarations.
+- [ ] Prove each new drift check fails by changing one fixture or declaration
+      in a temporary local test change, then restore it.
 
-**Task 0.1 — Record goldens.** (M)
-- Copy `schema/sdk-v1.openapi.json` → `fixtures/sdk-v1.openapi.golden.json`
-  in `packages/protocol`. Add `tests/sdk-v1-openapi-golden.test.ts` comparing
-  the generator output to it.
-- Add `packages/websocket/tests/sdk-v1-facade-golden.test.ts`: boot the app as
-  `http-api-extra-coverage.test.ts` does; issue every request from
-  `fixtures/sdk-v1-baseline.json` and one per error path in §2.1's "Auth
-  today" column and the handler tests (401 preflight without principal, 415
-  preflight without JSON, 404 unknown workflow, 400 `version=2` interface,
-  413 oversize temp upload, 503 each flag); write the responses to
-  `packages/websocket/tests/fixtures/sdk-v1-golden/*.json` with a
-  `--update-goldens` env (`NODETOOL_UPDATE_SDK_GOLDENS=1`).
-- Flip one status, run, see red, restore.
-- Acceptance: both new tests green on `main` + this diff; both proven red once.
+Exit criteria:
 
-**Task 0.2 — Route table in protocol.** (M, same PR as 0.1 is fine)
-- Create `packages/protocol/src/api-schemas/sdk-v1-routes.ts` per §4.1 with
-  the 11 rows, `procedure` names as listed in §4.3 (the target names, even
-  though some procedures do not exist yet — nothing reads the field yet).
-- Export from `packages/protocol/src/api-schemas/index.ts` (or wherever the
-  api-schemas barrel is; check `packages/protocol/src/index.ts`).
-- Add `packages/protocol/tests/sdk-v1-routes.test.ts`: unique ids, unique
-  `(method,path)`, every `input`/`output` is a zod schema, GET inputs accept an
-  all-string record (coercion audit — this is Task 1.2's check, written now so
-  it fails until 1.2 lands; mark `.todo` on the rows that fail and list them).
-- Acceptance: typecheck green; test green except the listed `.todo`s.
+- Current public behavior is reproducible without reading handler code.
+- Active tRPC callers are correctly identified.
+- Goldens include feature-disabled and authentication failures.
+- No runtime behavior has changed.
 
-### Phase 1 — The facade (contract-preserving)
+### Phase 1 `[nodetool]` - Declare and publish the contract
 
-**Task 1.1 — Procedures that are renames or already exist.** (S)
-- `nodes.sdkTypeInventory` → `nodes.typeInventory` (`trpc/routers/nodes.ts:126`).
-- `workflows.list`: add `fields` option; when `"summary"`, return
-  `listWorkflowSummariesV1` output. Delete `workflows.sdkSummaries`
-  (`trpc/routers/workflows.ts:472`). Add `inputDefaults: { fields: "summary" }`
-  support to the table type and the row for `GET /api/sdk/v1/workflows`.
-- Verify with `grep -rn "sdkSummaries\|sdkTypeInventory" web/ packages/ electron/ mobile/`
-  → only the router and its tests.
-- Acceptance: router tests updated; `web` typecheck unaffected.
+Purpose: make one machine-readable declaration drive public artifacts and
+route completeness.
 
-**Task 1.2 — Query coercion audit.** (S)
-- For each GET row, make the input schema parse an all-string record
-  (`z.coerce.number().int().min(0)` for `cursor`/`limit`, enums as-is). Check
-  that existing tRPC callers (web) still typecheck — coercion widens input
-  types; if a web call site breaks, add a separate `…Query` schema for the row
-  instead of changing the procedure input.
-- Clear the `.todo`s from Task 0.2's test.
+- [ ] Add HTTP and WebSocket operation declarations to `packages/protocol`.
+- [ ] Give every operation a stable ID and explicit implementation status.
+- [ ] Include the compatible non-prefixed workflow-interface route.
+- [ ] Mark temporary upload as multipart/binary.
+- [ ] Generate OpenAPI route entries from HTTP declarations.
+- [ ] Generate or validate AsyncAPI command, event, and direction inventory
+      from WebSocket declarations.
+- [ ] Generate implemented-only and full-manifest profiles.
+- [ ] Fail when operation IDs or method/path pairs are duplicated.
+- [ ] Fail when an implemented route lacks schemas, declared errors, or policy.
+- [ ] Fail when a registered route and implemented OpenAPI inventory differ.
+- [ ] Add deterministic bundle generation and digest verification.
+- [ ] Add a semantic contract diff that labels additive, risky, and breaking
+      changes.
+- [ ] Document v1 rules: response additions are tolerated; request changes
+      need an explicit version or capability decision when inputs are strict.
 
-**Task 1.3 — New procedures for SDK-only concerns.** (L → split into 1.3a/b/c)
-- 1.3a `system` router: create `trpc/routers/system.ts` with
-  `capabilities: publicProcedure.output(sdkV1Capabilities).query(({ctx}) => ctx.apiOptions.getSdkCapabilities())`;
-  register in `trpc/router.ts`. Move `sdk-capabilities-service.ts` and
-  `sdk-runtime-capabilities-service.ts` to `src/system/` (rename without the
-  `sdk-` prefix). Update `server.ts` imports.
-- 1.3b `models.catalog` + `models.downloads.{list,start,cancel}`: move
-  `sdk-model-catalog-service.ts`, `sdk-model-download-service.ts`,
-  `sdk-cached-model-inventory.ts`, `sdk-huggingface-download-state.ts` to
-  `src/models/`. Procedures read the service from `ctx.apiOptions`
-  (`sdkModelDownloadService`, `sdkModelCatalogService` — rename the option
-  keys to `modelDownloadService`, `modelCatalogService`). Errors: map
-  `SdkModelDownloadServiceError` / `SdkModelCatalogServiceError` to
-  `TRPCError` with `cause.sdkCode` = the existing code string.
-- 1.3c `workflows.preflight`: `protectedProcedure.input(sdkV1PreflightRequest).output(sdkV1PreflightSummary)`;
-  body = `runSdkV1Preflight({ principal: {userId: ctx.userId}, request: input, service: ctx.apiOptions.preflightService })`.
-  Move `sdk-preflight-*.ts`, `sdk-*-probe.ts`, `sdk-execution-target-readiness.ts`,
-  `sdk-worker-readiness-adapter.ts`, `sdk-live-runner-registry.ts` to
-  `src/preflight/` (drop the `sdk-` prefix). `SdkV1PreflightServiceError` →
-  `TRPCError` with `cause.sdkCode`.
-- Each sub-task: move file with `git mv`, update imports, keep the 30 existing
-  test files passing (rename them alongside), add one router test per
-  procedure that calls it through `createCallerFactory`.
-- Acceptance: all moved tests green; new procedures reachable over `/trpc`
-  (one curl in the PR description).
+Exit criteria:
 
-**Task 1.4 — The facade runtime.** (M)
-- Create `src/sdk/sdk-v1-facade.ts` (`registerSdkV1Routes`) and
-  `src/sdk/sdk-v1-error-mapping.ts` per §4.2/§4.4.
-- Registration-time procedure resolution; a boot test asserts every row
-  resolves against `appRouter` (`tests/sdk-v1-routes.test.ts` in websocket).
-- Auth: confirm where `req.userId` is set (grep `userId =` in
-  `src/plugins/` and `server.ts:880-905`) and that the SDK handlers'
-  `x-user-id` read is the same source. Record the finding in the PR.
-- Mount `registerSdkV1Routes(app, …)` in `server.ts` next to the tRPC plugin
-  (after the auth hook is installed). Do **not** remove the old mounts yet.
-- Register the facade under a temporary prefix `/api/sdk-next/v1` for this
-  task only, and extend the golden test to run every fixture against both
-  prefixes and assert equality. This is the equivalence proof.
-- Acceptance: golden test green against both prefixes.
+- Repeated generation produces byte-identical artifacts.
+- Planned job operations are visible in the full manifest but excluded from
+  the normal C# generation input.
+- Changing an operation declaration changes the generated artifacts or fails
+  CI.
 
-**Task 1.5 — Error-code parity.** (S, same PR as 1.4 if small)
-- Read every code string emitted by `src/sdk/*-http-handler.ts` and the
-  handler tests; fill `errors` on each table row; make the mapping in
-  `sdk-v1-error-mapping.ts` produce the same `(status, code, retryable)` for
-  every golden error fixture. Content-type 415 rule: apply to every JSON POST
-  row; if a golden shows a POST route that today accepts a missing
-  content-type, mark that row `contentTypeLenient: true` rather than change the
-  wire.
-- Acceptance: error fixtures green on the `/api/sdk-next` prefix.
+### Phase 2 `[nodetool]` - Add the transport-neutral service boundary
 
-**Task 1.6 — Cut over and delete.** (M)
-- Switch the facade prefix to `/api/sdk/v1` (and `/api/workflows/:id/interface`);
-  remove the temporary prefix.
-- Delete: `src/sdk/sdk-capabilities-http-handler.ts`,
-  `sdk-model-catalog-http-handler.ts`, `sdk-model-download-http-handler.ts`,
-  `sdk-preflight-http-handler.ts`; the `handleSdk*` wrappers in `http-api.ts`
-  (`:215-340`, `:1929`, `:1994`, `:2046-2120`); the mounts in
-  `routes/nodes.ts:40-82`, `routes/workflows.ts:111-120,183-190`,
-  `routes/assets.ts:220` (replaced by the table-driven multipart route, §4.6);
-  `http-api.ts:2562-2582` branches after confirming `handleApiRequest`'s
-  callers (`grep -rn handleApiRequest packages/ electron/`): if only tests,
-  delete; if Electron or the e2e server routes through it, add
-  `handleSdkV1Request(request)` on the same table.
-- Rewrite `sdk-route-policy.ts` to read the table.
-- Delete the corresponding handler test files; the golden test is their
-  replacement.
-- Acceptance: golden tests green on the real prefix; `grep -rn "handleSdk"
-  packages/websocket/src` → only the facade; full `packages/websocket` suite
-  green; `docs/api-reference.md:66-75` and the curl examples at `:1117-1790`
-  still accurate (re-run three of them against a local server, paste output in
-  the PR).
+Purpose: remove duplicated behavior before changing route registration.
 
-**Task 1.7 — WS RPC through the caller.** (S)
-- `sdk-lifecycle-rpc-handler.ts`: `get_capabilities` → `caller.system.capabilities()`,
-  `preflight_workflow` → `caller.workflows.preflight(data)`; map `TRPCError` →
-  `sdkV1RpcError` (`trpcCode`, `apiCode`, `code = sdkCode ?? …`). The runner
-  already holds a caller (`unified-websocket-runner.ts:206`); pass it in.
-- Keep `tests/sdk-lifecycle-rpc-handler.test.ts` green; its expectations are
-  the RPC golden.
+- [ ] Define `SdkV1ServiceError` and transport mappings.
+- [ ] Define the typed handler map from implemented request/response operation
+      IDs and an event-publisher completeness check.
+- [ ] Migrate one read-only operation as a proof of the boundary.
+- [ ] Prove its REST, WebSocket or tRPC forms remain byte/semantically equal as
+      applicable.
+- [ ] Migrate workflow summaries and interfaces.
+- [ ] Migrate node inventory, capabilities, and preflight.
+- [ ] Migrate model catalog and model-download lifecycle.
+- [ ] Move temporary-storage behavior behind a shared service while keeping
+      multipart parsing at the HTTP edge.
+- [ ] Keep existing domain services focused; split the facade by concern if it
+      starts accumulating business logic.
+- [ ] Keep focused service tests and add facade contract tests.
 
-**Task 1.8 — Generator from the table.** (M)
-- `generate-sdk-protocol.ts`: replace the hand-listed operations with a loop
-  over `SDK_V1_ROUTES`. Keep the `planned` jobs operations as a static list.
-- Run `npm run generate:sdk-protocol`; diff against
-  `fixtures/sdk-v1.openapi.golden.json`. Expected: byte-identical after
-  sorting. Any difference is either a generator bug (fix) or a documented
-  improvement (e.g. an error response that was missing from the hand list) —
-  the latter goes in its own commit with the golden regenerated and the reason
-  in the message.
-- Extend `sdk-protocol-artifacts.test.ts` with the path-set assertion (§4.7).
+Exit criteria:
 
-**Task 1.9 — Flags.** (S)
-- `sdk-feature-flags.ts`: add `NODETOOL_DISABLE_SDK_V1`; make the two old
-  disable vars aliases with a startup warning (log once in `server.ts`).
-  Per-group 503 codes preserved while aliases exist (§4.5).
-- Update `docs/configuration.md:444-446`, `docs/sdk/lifecycle-v1-draft.md:35-39`.
-- Add a `docs/sdk/CHANGELOG.md` entry: "aliases removed in the release after
-  `<version>`".
+- Each implemented request/response operation has one service/handler path,
+  and each implemented event has one declared publisher path.
+- Adapters no longer duplicate validation, feature checks, or error decisions.
+- Existing flags remain independent and retain existing public errors.
 
-### Phase 2 — Make the promoted features real product features
+### Phase 3 `[nodetool]` - Converge REST, WebSocket, and tRPC adapters
 
-Each is its own PR; each is independent of the others.
+Purpose: make registrations and transport wrappers unable to drift from the
+declared contract.
 
-**Task 2.1 — Preflight replaces the inline run gates.** (M)
-- `packages/execution/src/service/workflow-run.ts:484-506`: call the static
-  preflight level (`buildSdkV1StaticPreflight` → renamed
-  `buildStaticPreflight`) and refuse with 400 listing its `issues`, instead of
-  the separate `modelSelectionErrors` + `unconfiguredProviderErrors` calls.
-  Keep the two helpers only if the preflight builder does not already cover
-  them — verify by reading `static-preflight-service.ts`; the credential check
-  is the likely gap, so add it there (it is exactly what
-  `packages/execution/tests/workflow-run-credentials.test.ts` pins).
-- `nodetool validate <id>` (`packages/cli/src/commands/validate.ts`): on a
-  DB-id target, call `workflows.preflight` at level `availability` through an
-  in-process caller, and print `requirements` as warnings. File targets stay
-  on `validateGraph`.
-- Acceptance: `packages/execution` and `packages/cli` suites green; the
-  existing 400 messages unchanged (pin with the two new execution tests in the
-  working tree).
+#### Phase 3A - Prove a shadow facade
 
-**Task 2.2 — Web uses `models.downloads.*`; retire `/ws/download`.** (L, split)
-- 2.2a Find the web download dialog (`grep -rn "ws/download\|start_download" web/src`).
-  Replace with `trpc.models.downloads.start` + a 1 s `trpc.models.downloads.list`
-  poll while any download is active (the snapshot carries progress). Keep the
-  socket code path behind a flag for one release.
-- 2.2b Delete `plugins/websocket.ts:272-360` and the dev-only branch.
-- Acceptance: download a small HF model in the web UI against a dev server;
-  screenshot in the PR; `web` tests for the dialog green.
+- [ ] Add a temporary opt-in or test-only shadow mount for every implemented
+      HTTP declaration. Use `/api/sdk-next/v1` where possible and an explicit
+      test-only alias for the compatible non-prefixed workflow-interface route.
+- [ ] Compare old and shadow routes for bodies, headers, content types, status
+      codes, authentication, feature flags, and errors.
+- [ ] Include reverse-proxy subpaths and URL/query encoding in parity tests.
+- [ ] Do not expose planned operations from the shadow mount.
 
-**Task 2.3 — `assets.uploadTemporary` in the TS SDK and the CLI.** (S)
-- `packages/sdk`: expose `uploadTemporaryAsset(file)` that POSTs multipart to
-  `/api/sdk/v1/assets/temporary` (REST, not tRPC — bytes).
-- `nodetool run` / `workflows run`: accept `--input-file name=path` and upload
-  through it when the target is `--api-url`.
+#### Phase 3B - Cut over HTTP registration
 
-**Task 2.4 — `models.catalog` for the web pickers.** (deferred; not in this plan's
-acceptance)
-- Write a one-page note under `docs/` on replacing the per-modality
-  `models.*ByProvider` procedures with `models.catalog` filters. No code.
+- [ ] Add one SDK v1 Fastify route plugin driven by the HTTP declarations.
+- [ ] Keep the compatible public path for the single-workflow interface.
+- [ ] Keep multipart upload on its binary adapter path.
+- [ ] Remove duplicate `http-api.ts` dispatch entries only after parity passes
+      and no supported caller depends on that internal dispatcher.
+- [ ] Remove the shadow mount after the real mounts use the same registration
+      path.
 
-### Phase 3 — Cleanup
+#### Phase 3C - Converge SDK WebSocket calls
 
-**Task 3.1 — Delete `models-api.ts`.** (S) `packages/websocket/src/models-api.ts`
-is unmounted except for `registerPythonProviders` and `relayWorkerDownload`
-(`server.ts:68`). Move those two to `src/models/`, delete the file and the
-`tests/models-api-*.test.ts` suites that only test the dead dispatcher (keep
-any that test the two surviving functions).
+- [ ] Make lifecycle commands call the shared handler/service boundary.
+- [ ] Replace the unified WebSocket runner's in-process tRPC hop with typed
+      handler/service calls where this does not alter scheduling or envelopes.
+- [ ] Preserve caller identity and scopes, local-trust behavior, runner
+      registration, `sdk_execution_target`, correlation IDs, cancellation,
+      reconnect, event order, and MessagePack bytes.
 
-**Task 3.2 — Remove flag aliases.** (S) One release after 1.9: delete the two
-alias vars, regenerate the golden once (codes become `SDK_DISABLED`), note it in
-`docs/sdk/CHANGELOG.md`.
+#### Phase 3D - Retain thin tRPC adapters
 
-**Task 3.3 — Docs sweep.** (S) `docs/api-reference.md` § SDK: state that the
-route table is `packages/protocol/src/api-schemas/sdk-v1-routes.ts` and how to
-add a row. `AGENTS.md` § Architecture gets one line under `websocket/`. Remove
-the "Phase 0 Electron/VL gate" wording from `sdk-preflight-http-handler.ts`'s
-successor comments (it was signed off 2026-07-24).
+- [ ] Make the four current SDK-related procedures call the same boundary.
+- [ ] Apply normal tRPC auth plus the declared SDK policy to direct calls.
+- [ ] Keep summary and full-result procedures separate.
+- [ ] Do not add a JSON temporary-upload procedure.
+- [ ] Keep existing names until the consumer audit and compatibility policy
+      permit deprecation.
 
-**Task 3.4 — Harness registry.** (S) `packages/cli/src/harness/registry.ts`:
-add the SDK facade as a surface with its harness = the two golden tests, so
-`nodetool harness gate` runs them on any diff touching
-`packages/protocol/src/api-schemas/sdk-*`, `packages/websocket/src/sdk/`, or the
-promoted router files.
+Exit criteria:
 
-## 7. Risks
+- One plugin visibly owns all public SDK HTTP registrations.
+- HTTP route inventory equals implemented OpenAPI inventory.
+- SDK WebSocket command/event inventory equals implemented AsyncAPI inventory.
+- REST, WebSocket, and retained tRPC adapters contain transport logic only.
+- All Phase 0 goldens still pass.
 
-| Risk | Mitigation |
-|---|---|
-| A wire difference slips past the goldens (e.g. key order, `null` vs absent) | Goldens compare parsed JSON with explicit `undefined`-vs-`null` handling; Task 0.1 records raw bodies and the comparator is strict on presence. Ask heavy-d to run the C# suite (102 tests) against a branch server before merge of Task 1.6. |
-| `createCallerFactory` bypasses Fastify hooks (rate limit, logging) the old routes had | The facade is a normal Fastify route; only the procedure body runs through the caller, so `onRequest`/auth hooks still apply. Verify by asserting 401 behaviour in the goldens with auth enforced. |
-| Coercing GET inputs widens a procedure's input type for web callers | Task 1.2's rule: if a web call site breaks, introduce a separate query schema for the row, do not change the procedure. |
-| Multipart through the caller holds the whole file in memory | Same as today (`sdk-temporary-asset-upload-http-handler.ts` buffers); cap unchanged (`getMaxUploadBytes()`). |
-| `handleApiRequest` is used by Electron's packaged server or the e2e server | Task 1.6 greps first; a WHATWG twin on the same table costs ~40 lines. |
-| The `planned` jobs operations drift from the real ones when someone implements them | They become table rows at that point; the path-set test forces it. |
+### Phase 4 `[nodetool-sdk]` - Pin and consume the contract
 
-## 8. Done criteria
+Purpose: replace handwritten server-contract duplication with a mechanical,
+reviewable update.
 
-- `packages/websocket/src/sdk/` contains only `sdk-v1-facade.ts`,
-  `sdk-v1-error-mapping.ts`, `sdk-feature-flags.ts`, `sdk-route-policy.ts`,
-  `sdk-lifecycle-rpc-handler.ts`.
-- `grep -rn "handleSdk" packages/websocket/src` → the facade only.
-- `SDK_V1_ROUTES` has 11 rows; every row resolves on `AppRouter` at boot.
-- `sdk-v1.openapi.json` is generated from the table and equals the golden
-  (or the golden was regenerated in a commit whose message says why).
-- Golden HTTP transcript test green on `/api/sdk/v1`; proven red once.
-- `workflows.preflight`, `models.catalog`, `models.downloads.*`,
-  `system.capabilities`, `assets.uploadTemporary` are callable over `/trpc`.
-- One disable flag (plus aliases until Task 3.2).
-- `npm run check` green; `nodetool harness gate --base main` green.
+- [ ] Add `contracts/sdk-v1/` with the pinned manifest and bundle, or a lock
+      file plus a verified local cache.
+- [ ] Record NodeTool release, protocol version, bundle digest, and minimum
+      supported server version.
+- [ ] Add an explicit contract-update command that fetches or copies a named
+      release, verifies digests, regenerates the wire layer, runs conformance
+      tests, and prints a semantic diff.
+- [ ] Keep normal build and test commands offline.
+- [ ] Run the generator evaluation described in Section 5.6.
+- [ ] Generate or mechanically verify internal HTTP wire DTOs, errors,
+      endpoints, methods, and serialization metadata.
+- [ ] Map internal wire types to the existing public types in one module.
+- [ ] Add a freshness check that fails after manual generated-file edits.
+- [ ] Verify handwritten MessagePack code against the pinned fixtures.
+- [ ] Preserve `INodetoolClient`, `IWorkflowDiscoveryClient`, model services,
+      execution clients, session APIs, injected `HttpClient` ownership,
+      cancellation, retries, token refresh, request IDs, and proxy subpaths.
+
+Exit criteria:
+
+- A contract update produces a deterministic C# wire-layer diff.
+- Existing public C# consumers compile unchanged.
+- Every pinned JSON and MessagePack fixture is consumed successfully or fails
+  with the documented safe behavior.
+
+### Phase 5 `[both]` - Add cross-repository conformance CI
+
+Purpose: detect incompatible drift before release, not after SDK users report
+it.
+
+#### `[nodetool]` producer gates
+
+- [ ] Validate every golden JSON fixture against generated schemas.
+- [ ] Validate exact MessagePack fixtures.
+- [ ] Verify route and command inventories against OpenAPI and AsyncAPI.
+- [ ] Run REST, WebSocket, and retained tRPC parity tests.
+- [ ] Fail on removed required response fields, repurposed fields, stricter v1
+      inputs, or changed retry semantics without an explicit protocol decision.
+- [ ] Build and publish the candidate contract bundle in release CI.
+
+#### `[nodetool-sdk]` consumer gates
+
+- [ ] Deserialize every success and stable error fixture.
+- [ ] Decode every MessagePack fixture and compare its public meaning.
+- [ ] Re-encode supported C# requests and validate them against request schemas.
+- [ ] Prove unknown additional response fields are ignored.
+- [ ] Prove invalid enum values and missing required fields fail safely.
+- [ ] Run against every supported .NET target and the VL adapter/package build.
+
+#### `[both]` compatibility matrix and update flow
+
+- [ ] Test SDK main against the minimum supported NodeTool release, latest
+      release, and NodeTool main/candidate contract.
+- [ ] Test a released SDK against NodeTool main before a contract-affecting
+      NodeTool release.
+- [ ] Treat documented feature-disabled responses as supported outcomes.
+- [ ] Publish the tested server/SDK matrix with SDK releases.
+- [ ] Open an automated, review-required SDK contract update when NodeTool
+      publishes a new digest. Include manifest, generated changes, semantic
+      diff, test results, and any proposed minimum-version change.
+- [ ] Never auto-merge a contract update.
+
+Exit criteria:
+
+- Drift in routes, schemas, errors, or MessagePack frames fails before release.
+- Contract updates are reproducible and reviewable.
+- Supported server/SDK combinations are explicit.
+
+### Phase 6 `[both]` - Benchmark execution options and binary transfer
+
+Purpose: base SDK convenience presets and transport choices on measurements.
+
+#### `[nodetool]` benchmark support
+
+- [ ] Expose or record server timing for database, asset, thumbnail, and queue
+      work without changing public response semantics.
+- [ ] Keep multipart temporary upload as the binary baseline.
+- [ ] Record server commit, configuration, hardware, workflow IDs, and raw
+      results.
+
+#### `[nodetool-sdk]` benchmark runner
+
+- [ ] Cover a primitive no-media workflow, repeated image input/output, one
+      generated image, streaming text, streaming audio, and a large temporary
+      upload.
+- [ ] Compare job/session persistence, full/outputs/terminal events, and
+      automatic/temporary asset persistence.
+- [ ] Measure connection and capability negotiation time, upload time,
+      submission-to-first-output, total time, event count and bytes, database
+      and asset time, allocations, peak memory, reconnect, and terminal result.
+- [ ] Prove multipart upload is faster or more memory-safe than a JSON/base64
+      alternative for representative media.
+- [ ] Verify that terminal-only delivery intentionally withholds provisional
+      outputs and is not presented as interactive streaming.
+
+Exit criteria:
+
+- Results are reproducible from stored configuration and raw data.
+- Any proposed low-latency preset has a measured benefit and documented
+  durability/delivery costs.
+- No transport change is justified only by assumption.
+
+### Phase 7 `[nodetool-sdk]` - Simplify the public C# experience
+
+Purpose: make the common path small without hiding advanced controls.
+
+- [ ] Make `NodeToolConnectionSession` the primary documented entry point.
+- [ ] Let the session coordinate discovery, capabilities, preflight, model
+      catalog/downloads, execution, and asset transfer.
+- [ ] Preserve design-time HTTP fallback when WebSocket is unavailable.
+- [ ] Keep low-level HTTP and WebSocket clients public for advanced use,
+      testing, and host adapters.
+- [ ] Keep every `WorkflowExecutionOptions` value independently settable.
+- [ ] Add named presets only if Phase 6 supports them. Candidate names:
+  - `Default`: job persistence, full events, and temporary assets, matching
+    current C# defaults;
+  - `LowLatencyInteractive`: session persistence, output-only events, and
+    temporary assets;
+  - `Durable`: job persistence, full events, and automatic asset-library
+    persistence.
+- [ ] Implement presets as immutable factories/values that callers can copy and
+      override.
+- [ ] Negotiate non-default values through capabilities before submission.
+- [ ] Return a clear compatibility error for an unsupported requested option;
+      never silently change semantics.
+- [ ] Document history, reconnect, event delivery, temporary retention, and
+      asset-library visibility for each preset.
+
+Exit criteria:
+
+- Ordinary SDK use needs one connection/session abstraction.
+- Existing code and low-level control remain supported.
+- Presets preserve server defaults and expose their tradeoffs.
+
+### Phase 8 `[both]` - Release, migrate, and clean up
+
+Purpose: ship additively and avoid a state where one released repository needs
+an unreleased contract from the other.
+
+#### Release A `[nodetool]`
+
+- [ ] Ship the typed operation registry, service boundary, and thin adapters.
+- [ ] Keep all public routes, commands, payloads, flags, and tRPC wrappers.
+- [ ] Publish the first deterministic contract bundle.
+
+#### Release B `[nodetool-sdk]`
+
+- [ ] Pin the Release A bundle.
+- [ ] Land generated or verified wire types behind the existing C# API.
+- [ ] Publish the first compatibility matrix.
+
+#### Release C `[nodetool-sdk]`
+
+- [ ] Document the primary session facade.
+- [ ] Add only the presets supported by Phase 6 measurements.
+- [ ] Keep individual options and low-level clients.
+
+#### Later cleanup `[nodetool]`
+
+- [ ] Deprecate unused SDK-specific tRPC procedures only if the consumer audit
+      and normal compatibility policy permit it.
+- [ ] Remove obsolete adapter files only after focused and golden coverage is
+      equivalent.
+- [ ] Never use internal cleanup to remove public SDK HTTP or WebSocket
+      operations.
+
+Exit criteria:
+
+- Each release works with the documented already-released counterpart.
+- No supported caller needs a flag day.
+- Deprecations include evidence, notice, and a migration path.
+
+## 7. Optional product follow-ups, outside core acceptance
+
+These suggestions may use the shared service boundary later, but they must not
+delay or broaden the core convergence work:
+
+- `[nodetool]` let the web app adopt the unified model catalog/download service;
+- `[nodetool]` let the CLI use temporary multipart upload;
+- `[nodetool]` expose preflight in more TypeScript product flows;
+- `[nodetool]` evaluate an SDK-prefixed alias for the single-workflow interface
+  in a future protocol version;
+- `[nodetool]` evaluate retirement of `/ws/download` only in a separate design
+  with real-time behavior, server load, compatibility, and benchmark evidence.
+
+These follow-ups may add adapters. They must not create a second business-logic
+implementation or change SDK v1 behavior without the normal protocol process.
+
+## 8. Verification matrix
+
+### 8.1 `[nodetool]` focused gates
+
+- `packages/protocol` generation, schema, digest, and freshness tests;
+- SDK HTTP declaration and Fastify registration inventory tests;
+- SDK WebSocket declaration and publisher/dispatcher inventory tests;
+- HTTP success/error golden tests for every operation;
+- SDK lifecycle RPC and MessagePack golden tests;
+- workflow-interface REST/tRPC/WebSocket parity tests;
+- node inventory and summary caller tests;
+- authentication and feature-policy matrix tests;
+- model catalog and model-download lifecycle tests;
+- multipart temporary-upload limits and cleanup tests;
+- reverse-proxy subpath and URL/query encoding tests;
+- affected TypeScript builds and lint.
+
+### 8.2 `[nodetool-sdk]` focused gates
+
+- contract digest and generated-code freshness checks;
+- all HTTP route success/error fixtures;
+- all MessagePack request, response, event, and error fixtures;
+- unknown response-field tolerance and strict required-field tests;
+- session ownership, cancellation, retry, request-ID, token refresh, and
+  redaction tests;
+- discovery, interface, capabilities, preflight, models, downloads, and assets;
+- execution negotiation, streaming, cancellation, reconnect, and terminal
+  result tests;
+- all supported .NET targets, NuGet API compatibility, and VL package build.
+
+### 8.3 `[both]` release gates
+
+- live local-server SDK smoke test;
+- authenticated-server smoke test;
+- reverse-proxy subpath smoke test;
+- minimum, latest, and candidate compatibility matrix;
+- NodeTool web, Electron, CLI, C# SDK, and VL non-regression checks relevant to
+  the changed services;
+- published artifact digest equals the digest pinned by the SDK update.
+
+## 9. Pull request sequence
+
+Keep each change reviewable, reversible, and usable without an unreleased
+counterpart.
+
+1. **`[nodetool]` PR 1:** Phase 0 inventory, goldens, and drift checks.
+2. **`[nodetool]` PR 2:** operation registry, implemented/planned profiles, and
+   generated OpenAPI and AsyncAPI inventories.
+3. **`[nodetool]` PR 3:** deterministic contract bundle and semantic diff.
+4. **`[nodetool]` PR 4:** service error plus one read-only operation as proof.
+5. **`[nodetool]` PR 5:** remaining discovery, capability, and preflight
+   operations.
+6. **`[nodetool]` PR 6:** models, downloads, temporary storage, and one route
+   plugin.
+7. **`[nodetool]` PR 7:** direct shared-boundary WebSocket calls and retained
+   thin tRPC wrappers.
+8. **`[nodetool-sdk]` PR 1:** pin bundle and add conformance tests without
+   production-code changes.
+9. **`[nodetool-sdk]` PR 2:** generated or mechanically verified internal wire
+   layer behind the existing public API.
+10. **`[both]` CI changes:** compatibility matrix and review-required contract
+    update automation.
+11. **`[both]` benchmark changes:** server timing evidence and SDK runner.
+12. **`[nodetool-sdk]` PR 3:** primary facade documentation and measured
+    presets.
+13. **`[nodetool]` later cleanup:** tRPC or adapter deprecation only after the
+    audit and compatibility window.
+
+## 10. Risks and controls
+
+| Risk                                               | Control                                                                                           |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| The facade becomes a large class                   | Keep domain services separate; the facade coordinates contract operations and shared policy only. |
+| The route table becomes coupled to tRPC            | Store stable operation IDs, never dotted procedure-name strings.                                  |
+| A direct tRPC call bypasses SDK auth policy        | Use shared declared policy and explicit middleware tests for direct and in-process calls.         |
+| Generated C# code changes the public API           | Keep it internal and map through the existing handwritten API.                                    |
+| Planned jobs appear in generated clients           | Generate clients only from the implemented profile.                                               |
+| REST and WebSocket errors diverge                  | Use one service error plus cross-transport goldens.                                               |
+| A flag consolidation removes operational control   | Preserve both feature flags and the auth override independently.                                  |
+| A procedure thought to be unused breaks the runner | Maintain the caller inventory and migrate callers before deprecation.                             |
+| New response fields break C#                       | Test additive-field tolerance against every fixture.                                              |
+| Strict request changes break protocol v1           | Require a protocol version or capability decision.                                                |
+| Multipart becomes JSON/base64                      | Keep a binary-route architecture test and benchmark guard.                                        |
+| CI depends on the network                          | Pin verified artifacts locally; fetch only during explicit updates.                               |
+| Contract generation creates noisy diffs            | Require deterministic output and a semantic review summary.                                       |
+| A convenience preset loses durability              | Preserve defaults, require explicit selection, negotiate support, and document behavior.          |
+| Web download migration changes real-time behavior  | Keep it outside core acceptance and require separate measurements.                                |
+
+## 11. Definition of done
+
+- [ ] One NodeTool service/handler path implements each request/response
+      operation, and one declared publisher path emits each server event.
+- [ ] Protocol declarations match the implemented HTTP registration,
+      WebSocket dispatcher, and event-publisher inventories.
+- [ ] REST, SDK WebSocket, and retained tRPC adapters are thin and equivalent.
+- [ ] All public SDK v1 routes, messages, errors, flags, and defaults remain
+      compatible.
+- [ ] Multipart upload, MessagePack execution, streaming, cancellation, and
+      reconnect behavior remain intact.
+- [ ] NodeTool publishes one deterministic contract bundle per release.
+- [ ] `nodetool-sdk` pins and verifies that bundle offline.
+- [ ] C# wire changes are generated or mechanically verified.
+- [ ] The handwritten public C# API remains source compatible.
+- [ ] Cross-repository CI detects incompatible drift before release.
+- [ ] The tested NodeTool/SDK version matrix is published.
+- [ ] The primary C# facade reduces common setup without removing low-level
+      access.
+- [ ] Any named performance preset is measured, explicit, and overrideable.
+- [ ] No tRPC procedure or focused test is removed without audit and equivalent
+      coverage.
+- [ ] Optional product follow-ups are tracked separately from this plan's core
+      acceptance.
+
+## 12. Questions resolved within the phases
+
+These do not block the plan. Each has a named decision point:
+
+1. **Phase 0:** Are there supported external consumers of the four active
+   SDK-related tRPC procedures?
+2. **Phase 1:** Will release assets and `@nodetool-ai/protocol` both carry the
+   bundle? If yes, they must carry identical bytes and digests.
+3. **Phase 1:** Which planned operations must remain visible in the full
+   manifest while being excluded from generated clients?
+4. **Phase 4:** Which generator meets the internal-wire-layer requirements, or
+   is a focused repository generator safer?
+5. **Phase 6:** What measured thresholds justify the name
+   `LowLatencyInteractive`?
+6. **Separate product plan:** Should a future protocol add an SDK-prefixed alias
+   for the single-workflow interface or replace `/ws/download`?
+
+Until a question is resolved, use the compatibility-preserving choice: retain
+public operations and active internal wrappers, keep individual execution
+options, pin generated artifacts, and keep tRPC details out of the public C#
+contract.
