@@ -54,7 +54,9 @@ export async function generateKieConfigs(
 
       nodes.push(node);
     } catch (error) {
-      failures.push(`${entry.url}: ${(error as Error).message}`);
+      failures.push(
+        `${entry.url}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 

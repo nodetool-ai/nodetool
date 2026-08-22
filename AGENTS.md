@@ -237,13 +237,13 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 16,912 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,907 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-59 trees is 531 pairs, and 247 of them are already at zero — so a rule still
+59 trees is 531 pairs, and 253 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
 fifty-six packages, and those fifty-six are ratcheted today rather than after
 the last one lands. Seven rules are at zero everywhere and sit in the enforced
@@ -281,7 +281,7 @@ inside a function returning `v is T` is the rule's sanctioned form, so working
 the backlog means consolidating repeated inline checks into named predicates
 (each tree has a predicate module: `packages/protocol/src/predicates.ts`,
 `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
-deleting guards. It is enforced for the twenty-one trees at zero on it (read the
+deleting guards. It is enforced for the twenty-two trees at zero on it (read the
 list off the enforced config), with the decoder `packages/protocol/src/typecheck.ts`
 exempt: in the package that owns the schemas, an inline `typeof` means someone
 bypassed the parse. One tradeoff: predicates take `value: unknown`, so
@@ -301,27 +301,27 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7082 | 11 / 59 |
-| `no-unsafe-dictionary-type` | 4346 | 11 / 59 |
-| `no-unknown-parameters` | 1964 | 14 / 59 |
-| `no-module-mocking` | 1471 | 56 / 59 |
-| `no-known-value-widening` | 749 | 17 / 59 |
-| `no-runtime-typeof` | 548 | 21 / 59 |
-| `no-implicit-return-type` | 451 | 30 / 59 |
+| `require-safety-comment-for-type-assertion` | 7081 | 12 / 59 |
+| `no-unsafe-dictionary-type` | 4339 | 12 / 59 |
+| `no-unknown-parameters` | 1956 | 15 / 59 |
+| `no-module-mocking` | 1484 | 56 / 59 |
+| `no-known-value-widening` | 753 | 18 / 59 |
+| `no-runtime-typeof` | 541 | 22 / 59 |
+| `no-implicit-return-type` | 450 | 31 / 59 |
 | `no-unknown-returns` | 247 | 41 / 59 |
-| `no-chained-type-assertions` | 54 | 46 / 59 |
+| `no-chained-type-assertions` | 56 | 46 / 59 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,471 findings but zero in 56 of 59 trees: it is
+`no-module-mocking` is 1,484 findings but zero in 56 of 59 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Eleven trees are at zero on all nine rules:
+a boundary get named. Twelve trees are at zero on all nine rules:
 `packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/config`,
-`packages/document-nodes`, `packages/model-pricing`, `packages/nodes-utils`,
-`packages/reve-nodes`, `packages/sdk`, `packages/security`,
-`packages/workflow-runner`.
+`packages/document-nodes`, `packages/kie-codegen`, `packages/model-pricing`,
+`packages/nodes-utils`, `packages/reve-nodes`, `packages/sdk`,
+`packages/security`, `packages/workflow-runner`.
 
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps

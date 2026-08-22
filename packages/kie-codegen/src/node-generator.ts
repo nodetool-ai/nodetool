@@ -6,7 +6,14 @@
  */
 
 import { classifyFields, classNameToTitle } from "@nodetool-ai/node-sdk";
-import type { NodeConfig, ModuleConfig, FieldDef } from "./types.js";
+import type {
+  NodeConfig,
+  ModuleConfig,
+  FieldDef,
+  JsonRecord,
+  JsonValue
+} from "./types.js";
+import { isJsonString } from "./types.js";
 
 function castFn(type: string): string {
   switch (type) {
@@ -20,14 +27,23 @@ function castFn(type: string): string {
   }
 }
 
-function defaultLiteral(def: unknown, type: string): string {
+/** A default emitted verbatim rather than as a scalar: media ref, list, or `null`. */
+function isStructuredDefault(
+  value: FieldDef["default"]
+): value is JsonRecord | JsonValue[] | null {
+  return typeof value === "object";
+}
+
+function defaultLiteral(
+  def: FieldDef["default"],
+  type: FieldDef["type"]
+): string {
   if (def === null || def === undefined) {
     return type === "bool" ? "false" : '""';
   }
-  if (typeof def === "string") return JSON.stringify(def);
-  if (typeof def === "boolean") return String(def);
-  if (typeof def === "number") return String(def);
-  return JSON.stringify(def);
+  return isJsonString(def) || isStructuredDefault(def)
+    ? JSON.stringify(def)
+    : String(def);
 }
 
 function fieldToVarName(name: string): string {
@@ -146,7 +162,7 @@ export class KieNodeGenerator {
     const parts: string[] = [];
     parts.push(`type: ${JSON.stringify(field.type)}`);
     if (field.default !== undefined) {
-      if (isAssetType(field.type) && typeof field.default === "object") {
+      if (isAssetType(field.type) && isStructuredDefault(field.default)) {
         parts.push(`default: ${JSON.stringify(field.default)}`);
       } else {
         parts.push(`default: ${defaultLiteral(field.default, field.type)}`);
