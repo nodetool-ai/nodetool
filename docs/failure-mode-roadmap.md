@@ -42,36 +42,29 @@ Acceptance:
 - Production without the enable flag returns 404.
 - `npm run test --workspace=packages/websocket` passes.
 
-## 2. Run workflow preflight in `ExecutionSession`
+## 2. Include missing secrets in `validate_workflow`
 
 Status: OPEN.
 
-`runWorkflow` rejects bad models, providers, and credentials before job
-acceptance. `ExecutionSession.create` does not, so `workflows run` can fail
-after upstream work has started.
+`validate_workflow` calls `validateGraph` in
+`packages/agents/src/capabilities/workflows.ts`. Changing
+`modelSelectionError` does not change this capability.
 
 Implementation:
 
-1. Add optional model catalogs and an optional provider-configuration checker
-   to `ExecutionSessionOptions`. Default both to the runtime implementations
-   used by `runWorkflow`. A custom provider host must supply both.
-2. Select the `ProcessingContext` before bridge connection.
-3. After normalization, call `modelSelectionErrors` and the selected
-   provider-configuration checker.
-4. Resolve secrets with `(key) => context.getSecret(key)`. Do not import the
-   models database into `session.ts`.
-5. Refuse before Python bridge connection and `persistence.onAccepted`.
-6. Add a typed `ExecutionPreflightError` whose issue list is the common refusal
-   contract used by the CLI and service adapters.
-7. Update all hosts enumerated by
-   `execution-session-hydration-audit.test.ts`. Custom-provider hosts must pass
-   their catalogs.
+1. Add optional `availableSecrets(keys)` to `CreateCapabilityRunOptions` and
+   propagate it through `createCapabilityRun` to `CapabilityRun`.
+2. Pass it to `validateGraph` from `validate_workflow`.
+3. Enumerate every `createCapabilityRun` call site in an audit test. Server,
+   CLI, and MCP hosts with a real secret resolver must inject a callback that
+   uses their `ProcessingContext`. Hermetic eval hosts must omit it explicitly.
+4. A `missing_secret` issue must name the key and direct the agent to
+   Settings > Credentials. Mention `request_secret` only when that capability
+   is present in the run's registered capability set.
 
-Add `packages/execution/tests/session-preflight.test.ts`. Cover unknown models,
-unregistered providers, missing credentials, default and injected secret
-resolvers, no bridge connection, and no persistence acceptance.
-
-Run `npm run test --workspace=packages/execution -- session-preflight`.
+Tests must show that a missing key produces an issue, an available key clears
+it, and an absent callback preserves current output. Run
+`npm run test --workspace=packages/agents -- workflows`.
 
 ## 3. Make media resolution the browser rendering boundary
 
@@ -275,6 +268,13 @@ add one 600 x 600 px test per migrated primitive.
   `capability-run-secrets-audit.test.ts`.
 - **Workflow credential preflight:** shipped 2026-08-22 in node-sdk,
   execution, and CLI. The two execution credential suites cover it.
+- **`ExecutionSession` preflight:** shipped 2026-08-22. The model and
+  credential checks moved to `packages/execution/src/preflight.ts` (no models
+  import), `ExecutionSession.create` selects its context and refuses through
+  `ExecutionPreflightError` before the Python bridge and
+  `persistence.onAccepted`, and `runWorkflow` refuses through the same
+  contract. `session-preflight.test.ts` covers both directions;
+  `execution-session-hydration-audit.test.ts` audits every host.
 - **Production Python opt-in:**
   `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1` is implemented in
   `python-stdio-bridge.ts` and documented in `docs/configuration.md`.

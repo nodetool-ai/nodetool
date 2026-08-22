@@ -15,6 +15,7 @@
 import { randomUUID } from "node:crypto";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession } from "../session.js";
+import { isExecutionPreflightError } from "../preflight.js";
 import { collectExecutionSummary } from "../debug/collector.js";
 import type {
   AppServerRunInput,
@@ -67,7 +68,30 @@ export function createAppServerRunner(
     if (input.timeoutMs !== undefined) {
       sessionOptions.limits = { runTimeoutMs: input.timeoutMs };
     }
-    const session = await ExecutionSession.create(sessionOptions);
+    // A graph this runtime cannot honour is refused before the kernel starts.
+    // The simulator's contract is a report, so a refusal becomes a failed run
+    // it can complain about — not a throw out of the simulation.
+    let session: ExecutionSession;
+    try {
+      session = await ExecutionSession.create(sessionOptions);
+    } catch (err) {
+      if (!isExecutionPreflightError(err)) throw err;
+      const summary = collectExecutionSummary([]);
+      summary.status = "failed";
+      summary.error = err.message;
+      return {
+        report: {
+          surface: "server",
+          ok: false,
+          status: "failed",
+          error: err.message,
+          durationMs: Date.now() - startedAt,
+          summary,
+          trace: null
+        },
+        rawMessages: []
+      };
+    }
     // `session.result` never rejects: a kernel failure resolves as
     // `status: "failed"`, which the simulator turns into a complaint.
     const result = await session.result;

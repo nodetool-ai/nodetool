@@ -158,14 +158,23 @@ export async function* executeAgentGraph(
   // registry. `resolveNodeType` is what also resolves `propertyTypes`, without
   // which every `list[...]` handle reads as non-list — see
   // packages/execution/tests/execution-session-hydration-audit.test.ts.
-  const session = await ExecutionSession.create({
-    graph: toRawGraphInput(resolvedGraph),
-    registry,
-    resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
-    context: runContext,
-    params: opts.inputs ?? {},
-    captureMessages: true
-  });
+  // A refusal from `create()` (unknown model, unregistered provider, missing
+  // credential) is the caller's to report; the forwarding listener is this
+  // function's to remove before it propagates.
+  let session: ExecutionSession;
+  try {
+    session = await ExecutionSession.create({
+      graph: toRawGraphInput(resolvedGraph),
+      registry,
+      resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
+      context: runContext,
+      params: opts.inputs ?? {},
+      captureMessages: true
+    });
+  } catch (err) {
+    removeListener();
+    throw err;
+  }
 
   // An outer abort must stop the kernel run itself — without this the graph
   // keeps executing (and burning provider calls) until it finishes on its
