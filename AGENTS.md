@@ -1072,6 +1072,18 @@ pass an inline `graph` ({nodes, edges}) to check a graph being built, or a
 `workflow_id` to fetch and validate a saved one. The validator core is
 `validateGraph` in `@nodetool-ai/node-sdk`.
 
+The credential warning reaches that tool too, on a graph as well as a saved
+workflow. The run answers which of the declared names this install holds
+(`CapabilityRun.availableSecrets`, built from the context by
+`contextSecretAvailability`), and the issue tells the agent where a person sets
+one — plus `request_secret` where the run can raise that dialog, and never on a
+headless run, where the call fails closed. A run with no reachable store
+carries no callback and the check is skipped: nothing could answer, and
+reporting every declared key as absent would warn on every graph. The hosts
+that inject are audited by
+`packages/agents/tests/capability-run-secrets-audit.test.ts`, which records the
+runs that deliberately omit it and how many calls each is allowed.
+
 ### nodetool timeline validate / debug (Timeline Harness)
 
 Checks a timeline sequence without rendering it, and replays a scripted edit

@@ -11,6 +11,7 @@
  */
 
 import { workflowToDsl } from "@nodetool-ai/dsl";
+import { contextSecretAvailability } from "@nodetool-ai/agents";
 import type {
   ExampleWorkflowCatalog,
   GetAllMcpToolsOptions
@@ -65,10 +66,17 @@ export function mcpToolHostDeps(
   options: HttpApiOptions = {}
 ): Pick<
   GetAllMcpToolsOptions,
-  "examples" | "exportDsl" | "listPackageAssets" | "workflowEnvironment"
+  | "examples"
+  | "exportDsl"
+  | "listPackageAssets"
+  | "workflowEnvironment"
+  | "secretAvailability"
 > {
   return {
     examples: createExampleWorkflowCatalog(options),
+    // This server has a secret store, so `validate_workflow` can tell a
+    // credential nobody set from one it simply could not look up.
+    secretAvailability: contextSecretAvailability,
     exportDsl: (graph, opts) =>
       workflowToDsl(
         graph as Parameters<typeof workflowToDsl>[0],

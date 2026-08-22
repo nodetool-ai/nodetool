@@ -73,31 +73,7 @@ resolvers, no bridge connection, and no persistence acceptance.
 
 Run `npm run test --workspace=packages/execution -- session-preflight`.
 
-## 3. Include missing secrets in `validate_workflow`
-
-Status: OPEN.
-
-`validate_workflow` calls `validateGraph` in
-`packages/agents/src/capabilities/workflows.ts`. Changing
-`modelSelectionError` does not change this capability.
-
-Implementation:
-
-1. Add optional `availableSecrets(keys)` to `CreateCapabilityRunOptions` and
-   propagate it through `createCapabilityRun` to `CapabilityRun`.
-2. Pass it to `validateGraph` from `validate_workflow`.
-3. Enumerate every `createCapabilityRun` call site in an audit test. Server,
-   CLI, and MCP hosts with a real secret resolver must inject a callback that
-   uses their `ProcessingContext`. Hermetic eval hosts must omit it explicitly.
-4. A `missing_secret` issue must name the key and direct the agent to
-   Settings > Credentials. Mention `request_secret` only when that capability
-   is present in the run's registered capability set.
-
-Tests must show that a missing key produces an issue, an available key clears
-it, and an absent callback preserves current output. Run
-`npm run test --workspace=packages/agents -- workflows`.
-
-## 4. Make media resolution the browser rendering boundary
+## 3. Make media resolution the browser rendering boundary
 
 Status: OPEN. Follow-up to #4873, #4929, #5028, #5078, #5122, and #5123.
 
@@ -122,7 +98,7 @@ Acceptance: upload -> graph input -> render works for image, video, and audio;
 the primitives cover stored locators and HTTPS URLs; the lint fixture proves
 the rule can fail.
 
-## 5. Preserve provider behavior through decorators
+## 4. Preserve provider behavior through decorators
 
 Status: OPEN. Issue #5109.
 
@@ -145,7 +121,7 @@ method-existence test cannot detect this.
 The current implementation must fail the new test before the fix. Then run
 `npm run test --workspace=packages/runtime -- provider-decorator-inertness`.
 
-## 6. Detect generated provider metadata drift
+## 5. Detect generated provider metadata drift
 
 Status: OPEN.
 
@@ -163,7 +139,7 @@ Status: OPEN.
    non-zero exit, and restoring it.
 6. Confirm that two consecutive fixture-mode runs are byte-stable.
 
-## 7. Add live provider contract probes
+## 6. Add live provider contract probes
 
 Status: OPEN. This is separate from cassette replay.
 
@@ -186,7 +162,7 @@ Acceptance: removing a field from a raw response fixture fails its decoder
 test; a changed live shape fails the nightly probe; retained artifacts contain
 no secrets or signed URLs.
 
-## 8. Require an eval case for each agent capability
+## 7. Require an eval case for each agent capability
 
 Status: OPEN. Evidence: #5095, #5100, #5103, #5105, and #5107.
 
@@ -208,7 +184,7 @@ Status: OPEN. Evidence: #5095, #5100, #5103, #5105, and #5107.
 Tests must cover a capability-only failure, a capability-plus-eval pass, an
 unregistered-file failure, and a non-agent surface that needs no eval.
 
-## 9. Inventory and consolidate SSRF screening
+## 8. Inventory and consolidate SSRF screening
 
 Status: OPEN. Evidence: #5101.
 
@@ -232,7 +208,7 @@ Tests must reject alternate IPv4 forms, IPv4-mapped IPv6, loopback, private
 networks, metadata addresses, and redirects to blocked addresses. Run
 `npm run test --workspace=packages/runtime -- safe-url`.
 
-## 10. Add property tests to seven pure helpers
+## 9. Add property tests to seven pure helpers
 
 Status: OPEN. Use one PR per row. Before adding `fast-check`, record why the
 current dependencies and table-driven tests are insufficient, check its latest
@@ -258,11 +234,11 @@ and stable source order as the tie-breaker for duplicate indexes in #5116.
 Split #4909 into one execution normalization property and one node-sdk
 validation property.
 
-## 11. Complete editor input-path coverage
+## 10. Complete editor input-path coverage
 
 Status: OPEN. Use three separate PRs.
 
-### 11A. Shortcut action mapping
+### 10A. Shortcut action mapping
 
 `web/src/config/shortcuts.ts` already owns shortcuts and rejects duplicate
 slugs. Add a typed action ID used by menus and handlers. Test missing actions,
@@ -270,7 +246,7 @@ duplicate normalized combinations within the same active editor context and
 OS, Electron-only actions in web menus, and the command-menu shortcut on
 Windows and macOS. Duplicate combinations in disjoint contexts remain valid.
 
-### 11B. Canvas drop journeys
+### 10B. Canvas drop journeys
 
 Add web Playwright journeys for file drop, node creation from a dropped
 connection at the cursor, and run-selected with multiple nodes. Use
@@ -279,7 +255,7 @@ Electron Playwright dependency, config, script, packaged-app fixture, and
 Windows CI job. Update `AGENTS.md` and Electron testing docs with the command.
 Run the case on Windows; a Windows-style string on macOS is not sufficient.
 
-### 11C. Dialog containment audit
+### 10C. Dialog containment audit
 
 `PositionedDialog` already clamps to the viewport. Enumerate other dialog
 primitives and direct users in a checked-in audit with a non-zero count. A
@@ -289,6 +265,14 @@ add one 600 x 600 px test per migrated primitive.
 
 ## Completed work
 
+- **Missing secrets in `validate_workflow`:** shipped 2026-08-22.
+  `CapabilityRun.availableSecrets` carries the host's answer,
+  `contextSecretAvailability` builds it from a context that can reach a store,
+  and `getAllMcpTools` takes the factory as `secretAvailability`. The
+  `missing_secret` issue names the key and Settings → Credentials, and adds
+  `request_secret` only where the run can raise the dialog. Covered by
+  `packages/agents/tests/mcp-tools.test.ts` and the call-site audit
+  `capability-run-secrets-audit.test.ts`.
 - **Workflow credential preflight:** shipped 2026-08-22 in node-sdk,
   execution, and CLI. The two execution credential suites cover it.
 - **Production Python opt-in:**

@@ -28,6 +28,7 @@ import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
 import {
   createCapabilityRun,
+  contextSecretAvailability,
   getBuiltinTools,
   toolForCapabilityName,
   UNGATED
@@ -259,6 +260,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       createCapabilityRun({
         context,
         gate: UNGATED,
+        availableSecrets: contextSecretAvailability(context),
         subAgent: {
           provider: prov,
           model: opts.model,
