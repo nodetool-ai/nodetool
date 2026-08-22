@@ -240,6 +240,16 @@ export default function StudioPage() {
                     Try NodeTool Cloud →
                   </a>
                 </div>
+                <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-400">
+                  Build with connected nodes instead of a single prompt. Read
+                  the{" "}
+                  <a
+                    href="/node-based-ai"
+                    className="font-medium text-amber-200 underline underline-offset-2 hover:text-amber-100"
+                  >
+                    visual node-based AI guide
+                  </a>{" "}and start from an editable template.
+                </p>
               </div>
               <div className="relative lg:col-span-7">
                 <div

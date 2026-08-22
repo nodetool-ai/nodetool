@@ -220,6 +220,11 @@ export const competitors: Competitor[] = [
   {
     slug: "weavy",
     name: "Weavy",
+    seo: {
+      title: "Weavy Alternative — Now Figma Weave | NodeTool",
+      description:
+        "Looking for a Weavy alternative? Weavy is now Figma Weave. Compare NodeTool's open-source, self-hosted canvas, your own API keys, and workflows you own.",
+    },
     footerName: "Weavy (Figma Weave)",
     theme: "blue",
     category: "Creative canvas",
@@ -293,6 +298,11 @@ export const competitors: Competitor[] = [
   {
     slug: "figma-weave",
     name: "Figma Weave",
+    seo: {
+      title: "Figma Weave Alternative: Open-Source, Self-Hosted | NodeTool",
+      description:
+        "Compare an open-source, self-hosted Figma Weave alternative. NodeTool gives you your own API keys, local models, and workflows you can run and own.",
+    },
     theme: "violet",
     category: "Creative canvas",
     og: {

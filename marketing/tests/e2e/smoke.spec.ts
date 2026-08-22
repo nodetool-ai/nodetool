@@ -59,6 +59,16 @@ test.describe("marketing smoke", () => {
       "LM Studio Alternatives for Local AI Workflows | NodeTool",
     );
 
+    await page.goto("/alternatives/figma-weave");
+    await expect(page).toHaveTitle(
+      "Figma Weave Alternative: Open-Source, Self-Hosted | NodeTool",
+    );
+
+    await page.goto("/alternatives/weavy");
+    await expect(page).toHaveTitle(
+      "Weavy Alternative — Now Figma Weave | NodeTool",
+    );
+
     await page.goto("/tasks/lip-sync");
     await expect(page).toHaveTitle("Best AI Lip Sync Models & Workflows — NodeTool");
     await expect(
@@ -75,5 +85,28 @@ test.describe("marketing smoke", () => {
     await expect(
       page.getByRole("link", { name: "Weavy comparison" }),
     ).toHaveAttribute("href", "/alternatives/weavy");
+
+    await page.goto("/templates");
+    await expect(
+      page.getByRole("link", { name: "runnable mini apps" }),
+    ).toHaveAttribute("href", "/apps");
+    await expect(
+      page.getByRole("link", { name: "node-based AI workflows" }),
+    ).toHaveAttribute("href", "/node-based-ai");
+
+    await page.goto("/use-cases/movie-poster");
+    await expect(
+      page.getByRole("link", { name: "Build a movie trailer" }),
+    ).toHaveAttribute("href", "/use-cases/movie-trailer");
+
+    await page.goto("/use-cases/product-video");
+    await expect(
+      page.getByRole("link", { name: "Build a movie trailer" }),
+    ).toHaveAttribute("href", "/use-cases/movie-trailer");
+
+    await page.goto("/studio");
+    await expect(
+      page.getByRole("link", { name: "visual node-based AI guide" }),
+    ).toHaveAttribute("href", "/node-based-ai");
   });
 });
