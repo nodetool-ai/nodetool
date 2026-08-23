@@ -20,8 +20,12 @@ module.exports = {
     // Shared timeline engine (split/trim/factories), also from source.
     '^@nodetool-ai/timeline$': '<rootDir>/../packages/timeline/src/index.ts',
     '^@nodetool-ai/gpu$': '<rootDir>/../packages/gpu/src/index.ts',
-    // Dependency-free protocol module, wired on its own so `zod` (reached via
-    // the package entry point's `toolSchemas`) stays out of mobile.
+    // Jest runs in CJS mode, so compile the current protocol source instead of
+    // parsing the package's ESM dist directly. Production still uses the dist.
+    '^@nodetool-ai/protocol$':
+      '<rootDir>/../packages/protocol/src/index.ts',
+    // Keep dependency-free helpers on narrow source entry points so they do
+    // not pull in the full protocol graph by themselves.
     '^@nodetool-ai/protocol/triggers$':
       '<rootDir>/../packages/protocol/src/triggers.ts',
     // Those packages' sources use ESM `.js` specifiers for their own modules.
