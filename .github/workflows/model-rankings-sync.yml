@@ -8,6 +8,28 @@ name: Model Rankings Sync
 # a diff a human should see before it ships. This opens a PR and never pushes to
 # main. When nothing moved the script rewrites nothing and no PR is opened.
 #
+# Opening that PR needs a token GitHub lets create pull requests, and the
+# default `GITHUB_TOKEN` is not one unless the repository enables Settings >
+# Actions > General > "Allow GitHub Actions to create and approve pull
+# requests". Without it the API answers "GitHub Actions is not permitted to
+# create or approve pull requests" and the branch is pushed with nothing to
+# review. Three paths, tried in order — the same chain the GenSpend pricing
+# sync uses:
+#
+#   1. `PRICING_SYNC_TOKEN` (a PAT or App token with `contents: write` and
+#      `pull-requests: write`), if the secret is set.
+#   2. `GITHUB_TOKEN`, which works where the repository setting above is on.
+#   3. The Claude GitHub App, via `anthropics/claude-code-action`. The action
+#      trades an OIDC token for an App installation token, and App tokens are
+#      not covered by the Actions restriction. It needs no repository admin and
+#      no new secret, at the cost of one small model run — only on the nights a
+#      rank actually moved, and only when 1 and 2 both failed.
+#
+# `create-pull-request` pushes the branch before it calls the API, so by the
+# time path 3 runs the commit already exists and the agent only has to open the
+# PR against it. If every path fails the job prints the compare link and exits
+# non-zero — a moved rank with no PR is not a green run.
+#
 # The sync needs no provider API keys and no built packages: the canonical slugs
 # and their provider routes come from the shipped GenSpend price catalog in the
 # same package. It does need `ARTIFICIAL_ANALYSIS_API_KEY` — without one the
@@ -20,6 +42,10 @@ on:
     - cron: "50 3 * * *"
 
 permissions:
+  # id-token: the Claude action exchanges an OIDC token for a Claude GitHub App
+  # installation token. That identity may open pull requests; GITHUB_TOKEN may
+  # not unless the repository allows it.
+  id-token: write
   contents: write
   pull-requests: write
 
@@ -56,56 +82,146 @@ jobs:
 
       - name: Detect changes
         id: diff
+        # The PR body goes to a file rather than a step output: both the
+        # create-pull-request path and the Claude fallback read the same bytes,
+        # so the two cannot describe the same diff differently.
         run: |
           set -euo pipefail
           if git diff --quiet -- packages/model-pricing/src/generated/model-rankings.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            {
-              echo "summary<<EOF"
-              node -e "
-                const a = require('./packages/model-pricing/src/generated/model-rankings.json');
-                const report = require('./model-rankings-report.json');
-                console.log(\`\${report.canonicalModels} canonical models over \${report.routes} provider routes (ranks last moved \${a.generatedAt}).\`);
-                console.log('');
-                console.log('| Task | Leaderboard rows | Canonical models | Status |');
-                console.log('| --- | --- | --- | --- |');
-                for (const t of report.tasks) {
-                  console.log(\`| \${t.task} | \${t.rows} | \${t.matched} | \${t.error ?? 'ok'} |\`);
-                }
-                const stragglers = report.unmatched.length + report.ambiguous.length;
-                if (stragglers > 0) console.log(\`\n\${stragglers} leaderboard row(s) matched no canonical model or matched two — see the run log.\`);
-              "
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "Nightly refresh of the model quality rankings. Rankings via"
+            echo "[artificialanalysis.ai](https://artificialanalysis.ai)."
+            echo
+            node -e "
+              const a = require('./packages/model-pricing/src/generated/model-rankings.json');
+              const report = require('./model-rankings-report.json');
+              console.log(\`\${report.canonicalModels} canonical models over \${report.routes} provider routes (ranks last moved \${a.generatedAt}).\`);
+              console.log('');
+              console.log('| Task | Leaderboard rows | Canonical models | Status |');
+              console.log('| --- | --- | --- | --- |');
+              for (const t of report.tasks) {
+                console.log(\`| \${t.task} | \${t.rows} | \${t.matched} | \${t.error ?? 'ok'} |\`);
+              }
+              const stragglers = report.unmatched.length + report.ambiguous.length;
+              if (stragglers > 0) console.log(\`\n\${stragglers} leaderboard row(s) matched no canonical model or matched two — see the run log.\`);
+            "
+            echo
+            echo "These ranks order what \`find_model\` picks and what the model picker"
+            echo "shows first, so read the diff before merging:"
+            echo
+            echo "- [ ] No task disappeared from the artifact (a dropped task means a"
+            echo "      leaderboard response the parser did not recognize)"
+            echo "- [ ] Every route of one \`canonical\` still carries identical \`tasks\`"
+            echo "- [ ] No model gained a rank on a task it cannot perform"
+            echo "- [ ] New canonical models name the model they claim to rank"
+            echo
+            echo "Unmatched and ambiguous rows are listed in the run log and the"
+            echo "\`model-rankings-report\` artifact — pin or block them in"
+            echo "\`scripts/rankings/aliases.json\`."
+          } > "$RUNNER_TEMP/pr-body.md"
 
       - name: Open PR
+        id: pr
         if: steps.diff.outputs.changed == 'true'
+        continue-on-error: true
         uses: peter-evans/create-pull-request@v8
         with:
+          # Falls back to GITHUB_TOKEN, which only opens a PR where the
+          # repository allows Actions to. See the header comment.
+          token: ${{ secrets.PRICING_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
           branch: chore/model-rankings-sync
           base: main
           add-paths: packages/model-pricing/src/generated/model-rankings.json
           commit-message: "chore(rankings): sync model rankings artifact"
           title: "chore(rankings): sync model rankings artifact"
-          body: |
-            Nightly refresh of the model quality rankings. Rankings via
-            [artificialanalysis.ai](https://artificialanalysis.ai).
-
-            ${{ steps.diff.outputs.summary }}
-
-            These ranks order what `find_model` picks and what the model picker
-            shows first, so read the diff before merging:
-
-            - [ ] No task disappeared from the artifact (a dropped task means a
-                  leaderboard response the parser did not recognize)
-            - [ ] Every route of one `canonical` still carries identical `tasks`
-            - [ ] No model gained a rank on a task it cannot perform
-            - [ ] New canonical models name the model they claim to rank
-
-            Unmatched and ambiguous rows are listed in the run log and the
-            `model-rankings-report` artifact — pin or block them in
-            `scripts/rankings/aliases.json`.
+          body-path: ${{ runner.temp }}/pr-body.md
           delete-branch: true
+
+      - name: Does the PR exist?
+        id: check
+        if: steps.diff.outputs.changed == 'true'
+        # Read the state rather than trust the step outcome. create-pull-request
+        # reports failure for a refused *creation* and for a refused push alike,
+        # and only the first is worth a model run.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BRANCH=chore/model-rankings-sync
+          PUSHED=$(gh api "repos/${{ github.repository }}/branches/$BRANCH" --jq .commit.sha 2>/dev/null || true)
+          OPEN=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq 'length')
+          echo "pushed=${PUSHED:-}" >> "$GITHUB_OUTPUT"
+          echo "open=$OPEN" >> "$GITHUB_OUTPUT"
+          echo "Branch head: ${PUSHED:-<not pushed>} · open PRs for it: $OPEN"
+
+      - name: Open PR as the Claude GitHub App
+        # Only when the branch is pushed and nothing points at it. The App token
+        # this action mints is the one identity in this job GitHub lets open a
+        # PR without a repository setting or a new secret.
+        if: >-
+          steps.diff.outputs.changed == 'true'
+          && steps.check.outputs.pushed != ''
+          && steps.check.outputs.open == '0'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1.0.193
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Read,CreatePullRequest"
+          prompt: |
+            # Open one pull request. Change nothing else.
+
+            The branch `chore/model-rankings-sync` is already pushed to this
+            repository and already carries the commit. Your only job is to open
+            a pull request for it, because the token that pushed it is not
+            allowed to open one.
+
+            - head: `chore/model-rankings-sync`
+            - base: `main`
+            - title: `chore(rankings): sync model rankings artifact`
+            - body: the exact contents of `${{ runner.temp }}/pr-body.md`
+
+            Read that file and use it verbatim as the body. Do not summarize it,
+            add to it, or write your own. Do not edit any file in the working
+            tree, do not commit, and do not push — the diff under review was
+            generated by this workflow and must reach the reviewer untouched.
+
+            If a pull request for that branch already exists, do nothing and say
+            so.
+
+      - name: Report a blocked PR
+        # Re-read the state instead of trusting the fallback's outcome. Whatever
+        # happened above, the question is the same one: does a moved rank have a
+        # PR pointing at it?
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: chore/model-rankings-sync
+        run: |
+          set -euo pipefail
+          NUM=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
+          if [ -n "$NUM" ]; then
+            echo "Pull request #$NUM is open for $BRANCH." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          COMPARE="${{ github.server_url }}/${{ github.repository }}/compare/main...$BRANCH?expand=1"
+          {
+            echo "## Model rankings sync: ranks moved, PR not opened"
+            echo
+            echo "The refreshed artifact is on \`$BRANCH\`. Open it by hand:"
+            echo
+            echo "$COMPARE"
+            echo
+            echo "Every path failed. To fix the next run, do one of:"
+            echo
+            echo "- enable **Settings > Actions > General > Allow GitHub Actions to create and approve pull requests**,"
+            echo "- add a \`PRICING_SYNC_TOKEN\` secret (PAT or App token with \`contents: write\` and \`pull-requests: write\`), or"
+            echo "- check the **Open PR as the Claude GitHub App** step above — a bad \`CLAUDE_CODE_OAUTH_TOKEN\` or a missing App installation shows there."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Ranks moved but no pull request was opened. Review $COMPARE"
+          exit 1
