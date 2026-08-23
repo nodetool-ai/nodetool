@@ -438,6 +438,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "a third party. A run that could start or delete a download " +
       "could fill the disk or remove a model other runs depend on."
   },
+  "models.ollamaDelete": {
+    withheld:
+      "Model management writes to host disk and pulls gigabytes from " +
+      "a third party. A run that could start or delete a download " +
+      "could fill the disk or remove a model other runs depend on."
+  },
   "models.providers": { capability: "list_provider_models" },
   "models.pullOllamaModel": {
     withheld:

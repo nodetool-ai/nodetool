@@ -11,6 +11,7 @@ import {
   listRegisteredProviderIds,
   RECOMMENDED_MODELS,
   OLLAMA_DEFAULT_URL,
+  OllamaProvider,
   LMSTUDIO_DEFAULT_URL,
   type ProviderId,
   type RecommendedUnifiedModel
@@ -1430,6 +1431,26 @@ export const modelsRouter = router({
       []
     )
   ),
+
+  /**
+   * Delete a model from the local Ollama server. Returns false when Ollama is
+   * not configured or does not have the model.
+   */
+  ollamaDelete: protectedProcedure
+    .input(z.object({ model: z.string().min(1) }))
+    .output(z.boolean())
+    .mutation(async ({ ctx, input }) =>
+      safeProviderCall(
+        "ollama delete",
+        { provider: "ollama", userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider("ollama", ctx.userId);
+          if (!(instance instanceof OllamaProvider)) return false;
+          return instance.deleteModel(input.model);
+        },
+        false
+      )
+    ),
 
   llmByProvider: protectedProcedure
     .input(providerInput)
