@@ -10,6 +10,12 @@
  * is read at call time, so a host that fills the map lazily — the MCP mount
  * does — still serves the models it resolved after construction.
  *
+ * `find_model` is where an agent's default model choice is made: with no hint
+ * from the caller it answers with the model that tops the quality leaderboard
+ * for the task (see {@link SCORE_TIERS}), so an agent that just asks for a
+ * capability gets the best model for the job rather than the first one a
+ * provider happens to list.
+ *
  * Design: docs/tool-class-retirement-design.md § Migration.
  */
 
@@ -317,11 +323,43 @@ function hintMatch(model: AnyModel, hints: Set<string>): boolean {
 }
 
 /**
- * The most a leaderboard position can add to a candidate's score. Below every
- * explicit preference (recommended +100, provider hint +200, model hint +250),
- * so a user who named a provider or a model still gets it first: rankings
- * order the field, they never overrule the caller.
+ * The score ladder. Each tier outranks the sum of every tier below it, so the
+ * order between two candidates is a decision rather than an arithmetic
+ * accident:
+ *
+ * | tier | addend | when |
+ * |---|---:|---|
+ * | model hint | 2000 | the caller named this model |
+ * | provider hint | 1000 | the caller named this provider |
+ * | prefer_local | 500 | the caller asked for local and this runs locally |
+ * | leaderboard | 200 + 0…80 | the artifact ranks this model for the task |
+ * | recommended | 100 | `RECOMMENDED_MODELS` pins it and nothing ranks it |
+ * | downloaded | 30 | a local provider serves it |
+ *
+ * What the ladder decides: with no hint from the caller, the default pick is
+ * the model that tops the leaderboard for the task — `find_model`, and so
+ * `nodetool.models.pick`, answer with the best model for the job rather than
+ * with whichever one the static `RECOMMENDED_MODELS` list happens to pin.
+ * The pinned list still orders what the artifact says nothing about: language,
+ * embedding and ASR models, local models, and any model the rankings have
+ * never heard of.
+ *
+ * A caller's own preference still wins: naming a provider or a model, or
+ * asking for local, outranks any leaderboard position. Rankings order the
+ * field; they never overrule the caller.
  */
+export const SCORE_TIERS = {
+  modelHint: 2000,
+  providerHint: 1000,
+  preferLocal: 500,
+  ranked: 200,
+  recommended: 100,
+  downloaded: 30,
+  /** Nudge against a hosted model when the caller asked for local. */
+  remote: -5
+} as const;
+
+/** The most a leaderboard *position* adds, on top of {@link SCORE_TIERS}.ranked. */
 export const RANK_BONUS_MAX = 80;
 
 /**
@@ -456,17 +494,6 @@ export function scoreCandidate(
   const { providerId, model } = input;
   const downloaded = LOCAL_PROVIDER_IDS.has(providerId);
 
-  let score = 0;
-  if (input.recommended) score += 100;
-  if (downloaded) score += 30;
-  // Explicit user preferences outrank the default recommended bonus.
-  if (input.providerHint && providerId === input.providerHint) score += 200;
-  if (hintMatch(model, input.modelHints)) score += 250;
-  if (input.preferLocal && downloaded) score += 150;
-  else if (input.preferLocal && !downloaded) score -= 5;
-
-  // Quality last and bounded at +80: it orders the field below every
-  // preference the caller stated.
   const ranking = rankCandidate(
     providerId,
     model.id,
@@ -474,7 +501,27 @@ export function scoreCandidate(
     input.rankedCapability,
     artifact
   );
-  score += ranking.bonus;
+  const ranked = ranking.fields.rank !== undefined;
+
+  let score = 0;
+  if (downloaded) score += SCORE_TIERS.downloaded;
+  if (input.providerHint && providerId === input.providerHint) {
+    score += SCORE_TIERS.providerHint;
+  }
+  if (hintMatch(model, input.modelHints)) score += SCORE_TIERS.modelHint;
+  if (input.preferLocal) {
+    score += downloaded ? SCORE_TIERS.preferLocal : SCORE_TIERS.remote;
+  }
+
+  if (ranked) {
+    // The leaderboard decides among the models it covers, so a candidate it
+    // ranks does not also take the recommended bonus: +100 on top of a 0…80
+    // span would let the static list reorder the leaderboard, which is the
+    // blindness this term exists to fix.
+    score += SCORE_TIERS.ranked + ranking.bonus;
+  } else if (input.recommended) {
+    score += SCORE_TIERS.recommended;
+  }
 
   return { score, downloaded, fields: ranking.fields };
 }
@@ -651,13 +698,33 @@ const findModel: CapabilityExport = {
     const answer: FindModelAnswer = {
       capability,
       total: collected.length,
-      results: collected.slice(0, limit)
+      results: bestRoutePerModel(collected).slice(0, limit)
     };
     if (queryMatched !== undefined) answer.query_matched = queryMatched;
     if (notes.length > 0) answer.note = notes.join(" ");
     return answer;
   }
 };
+
+/**
+ * One row per canonical model: its best-scoring route, in the order the sort
+ * left them. Without this a top-5 for `text_to_image` is five routes to the
+ * same leaderboard leader (atlascloud's two endpoints, kie's, openai's) and
+ * the caller sees one model. The routes that drop out are not lost — each
+ * survivor names them in `alternate_routes`.
+ *
+ * A candidate the artifact does not group carries no `canonical` and is never
+ * collapsed: two unranked models are two models.
+ */
+function bestRoutePerModel(results: FindModelResult[]): FindModelResult[] {
+  const seen = new Set<string>();
+  return results.filter((result) => {
+    if (!result.canonical) return true;
+    if (seen.has(result.canonical)) return false;
+    seen.add(result.canonical);
+    return true;
+  });
+}
 
 /** One ranked candidate `find_model` returns. */
 interface RankedModel extends CandidateRankingFields {

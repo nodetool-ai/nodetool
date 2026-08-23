@@ -4,11 +4,13 @@
  * leaderboard after them, one row per canonical model.
  *
  * The helper takes the artifact as a parameter, so a fixture drives it
- * directly — nothing here mocks a module, and the endpoint tests below run
- * against the shipped (empty) artifact.
+ * directly — nothing here mocks a module. The endpoint tests below run
+ * against the shipped artifact, whose contents the nightly sync rewrites, so
+ * they assert the merge's invariants rather than a fixed list of models.
  */
 import { describe, it, expect } from "vitest";
 import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
+import { rankedForTask } from "@nodetool-ai/model-pricing";
 import type { ModelRankingsArtifact } from "@nodetool-ai/model-pricing";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 import {
@@ -129,34 +131,83 @@ describe("mergeRankedRecommendations", () => {
 });
 
 describe("recommended endpoints with the shipped artifact", () => {
-  const cases: Array<[string, string]> = [
-    ["/recommended/image/text-to-image", "text_to_image"],
-    ["/recommended/image/image-to-image", "image_to_image"],
-    ["/recommended/video/text-to-video", "text_to_video"],
-    ["/recommended/video/image-to-video", "image_to_video"]
+  /**
+   * What the endpoint must answer for a ranked task, whatever the sync last
+   * wrote: the pinned entries first and unchanged, then the task's
+   * leaderboard in rank order, one row per canonical model, and nothing
+   * listed twice.
+   */
+  async function expectPinnedThenRanked(
+    path: string,
+    task: string,
+    base: UnifiedModel[],
+    type: string
+  ): Promise<void> {
+    const res = await handleModelsApiRequest(get(path));
+    expect(res!.status).toBe(200);
+    const body = (await res!.json()) as UnifiedModel[];
+
+    expect(body.slice(0, base.length)).toEqual(
+      JSON.parse(JSON.stringify(base))
+    );
+
+    const pinnedKeys = new Set(
+      base.map((model) => `${model.provider ?? ""}::${model.id}`)
+    );
+    const expectedTail = rankedForTask(task)
+      .filter(
+        (entry) =>
+          !entry.routes.some((route) =>
+            pinnedKeys.has(`${route.provider}::${route.modelId}`)
+          )
+      )
+      .map((entry) => entry.name);
+    expect(body.slice(base.length).map((model) => model.name)).toEqual(
+      expectedTail
+    );
+
+    for (const model of body.slice(base.length)) {
+      expect(model.type).toBe(type);
+    }
+    const keys = body.map((model) => `${model.provider ?? ""}::${model.id}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  }
+
+  const cases: Array<[string, string, string]> = [
+    ["/recommended/image/text-to-image", "text_to_image", "image_model"],
+    ["/recommended/image/image-to-image", "image_to_image", "image_model"],
+    ["/recommended/video/text-to-video", "text_to_video", "video_model"],
+    ["/recommended/video/image-to-video", "image_to_video", "video_model"]
   ];
 
-  for (const [path, task] of cases) {
-    it(`GET ${path} still returns exactly the pinned entries`, async () => {
-      const res = await handleModelsApiRequest(get(path));
-      expect(res!.status).toBe(200);
-      expect(await res!.json()).toEqual(
-        JSON.parse(JSON.stringify(pinned(task)))
-      );
+  for (const [path, task, type] of cases) {
+    it(`GET ${path} pins first, then the ${task} leaderboard`, async () => {
+      await expectPinnedThenRanked(path, task, pinned(task), type);
     });
   }
 
-  it("GET /recommended/tts and /recommended/music are unchanged", async () => {
-    const tts = await handleModelsApiRequest(get("/recommended/tts"));
-    const music = await handleModelsApiRequest(get("/recommended/music"));
-    const byModality = (modality: string): unknown =>
-      JSON.parse(
-        JSON.stringify(
-          RECOMMENDED_MODELS.filter((model) => model.modality === modality)
-        )
-      );
+  it("GET /recommended/tts and /recommended/music merge by modality", async () => {
+    const byModality = (modality: string): UnifiedModel[] =>
+      RECOMMENDED_MODELS.filter((model) => model.modality === modality);
 
-    expect(await tts!.json()).toEqual(byModality("tts"));
-    expect(await music!.json()).toEqual(byModality("music"));
+    await expectPinnedThenRanked(
+      "/recommended/tts",
+      "text_to_speech",
+      byModality("tts"),
+      "tts_model"
+    );
+    await expectPinnedThenRanked(
+      "/recommended/music",
+      "text_to_music",
+      byModality("music"),
+      "music_model"
+    );
+  });
+
+  it("has something to merge, so the assertions above are not vacuous", () => {
+    // A leaderboard that answered with nothing would make every tail above an
+    // empty list, and the endpoint tests would pass on an empty artifact.
+    expect(rankedForTask("text_to_image").length).toBeGreaterThan(0);
+    expect(rankedForTask("text_to_video").length).toBeGreaterThan(0);
   });
 });
