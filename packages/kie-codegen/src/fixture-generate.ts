@@ -18,7 +18,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { KieSchemaFetcher } from "./schema-fetcher.js";
 import { KieSchemaParser } from "./schema-parser.js";
-import { KieNodeGenerator } from "./node-generator.js";
+import { generateModule } from "./node-generator.js";
 import {
   MODULE_NAMES,
   buildKieModuleConfigs,
@@ -74,7 +74,6 @@ export async function generateKieFixtureOutputs(
   const manifest = await readKieGeneratorManifest(fixturesDir);
   const fetcher = new KieSchemaFetcher();
   const parser = new KieSchemaParser();
-  const generator = new KieNodeGenerator();
 
   const llms = await readFile(join(fixturesDir, manifest.llms), "utf8");
   const entries = new Map(
@@ -125,7 +124,7 @@ export async function generateKieFixtureOutputs(
       output.path,
       kind === "configs"
         ? renderKieConfigModule(config)
-        : `${generator.generateModule(config)}\n`
+        : `${generateModule(config)}\n`
     );
   }
   return files;

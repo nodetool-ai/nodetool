@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { KieNodeGenerator } from "../src/node-generator.js";
+import { generateModule } from "../src/node-generator.js";
 import type { NodeConfig, ModuleConfig, FieldDef } from "../src/types.js";
 
 // ---------------------------------------------------------------------------
@@ -38,25 +38,23 @@ function makeModule(overrides: Partial<ModuleConfig> = {}): ModuleConfig {
 // generateModule() — full module
 // ---------------------------------------------------------------------------
 
-describe("KieNodeGenerator.generateModule()", () => {
-  const gen = new KieNodeGenerator();
-
+describe("generateModule()", () => {
   it("generates imports with BaseNode and prop", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).toContain(
       'import { BaseNode, prop } from "@nodetool-ai/node-sdk"'
     );
   });
 
   it("generates imports from kie-base", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).toContain("getApiKey");
     expect(code).toContain("kieExecuteTask");
     expect(code).toContain("isRefSet");
   });
 
   it("includes kieExecuteSunoTask import when useSuno is set", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ useSuno: true })]
       })
@@ -65,12 +63,12 @@ describe("KieNodeGenerator.generateModule()", () => {
   });
 
   it("does not include kieExecuteSunoTask import when not needed", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).not.toContain("kieExecuteSunoTask");
   });
 
   it("includes uploadImageInput when image uploads are configured", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -84,7 +82,7 @@ describe("KieNodeGenerator.generateModule()", () => {
   });
 
   it("includes uploadAudioInput when audio uploads are configured", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -98,7 +96,7 @@ describe("KieNodeGenerator.generateModule()", () => {
   });
 
   it("includes uploadVideoInput when video uploads are configured", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -112,7 +110,7 @@ describe("KieNodeGenerator.generateModule()", () => {
   });
 
   it("generates export array with correct module name", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).toContain(
       "export const KIE_IMAGE_NODES: readonly NodeClass[]"
     );
@@ -120,14 +118,14 @@ describe("KieNodeGenerator.generateModule()", () => {
   });
 
   it("converts dashes to underscores in export array name", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({ moduleName: "text-to-image" })
     );
     expect(code).toContain("KIE_TEXT_TO_IMAGE_NODES");
   });
 
   it("generates multiple node classes", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({ className: "ModelA" }),
@@ -147,15 +145,13 @@ describe("KieNodeGenerator.generateModule()", () => {
 // ---------------------------------------------------------------------------
 
 describe("Class structure", () => {
-  const gen = new KieNodeGenerator();
-
   it("generates correct nodeType", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).toContain('static readonly nodeType = "kie.image.TestModel"');
   });
 
   it("generates correct title", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ title: "My Custom Title" })]
       })
@@ -164,7 +160,7 @@ describe("Class structure", () => {
   });
 
   it("auto-generates title from className when not provided", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ className: "FluxProDev", title: "" })]
       })
@@ -177,7 +173,7 @@ describe("Class structure", () => {
   });
 
   it("generates description", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ description: "Generate an image" })]
       })
@@ -186,7 +182,7 @@ describe("Class structure", () => {
   });
 
   it("escapes backticks in description", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ description: "Use `this` model" })]
       })
@@ -195,7 +191,7 @@ describe("Class structure", () => {
   });
 
   it("generates metadataOutputTypes", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ outputType: "audio" })]
       })
@@ -206,14 +202,14 @@ describe("Class structure", () => {
   });
 
   it("generates requiredSettings with KIE_API_KEY", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).toContain(
       'static readonly requiredSettings = ["KIE_API_KEY"]'
     );
   });
 
   it("extends BaseNode", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).toContain("extends BaseNode");
   });
 });
@@ -223,10 +219,8 @@ describe("Class structure", () => {
 // ---------------------------------------------------------------------------
 
 describe("@prop decorators", () => {
-  const gen = new KieNodeGenerator();
-
   it("generates @prop for str field", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -241,7 +235,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates @prop for int field", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -254,7 +248,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates @prop for float field", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -269,7 +263,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates @prop for bool field", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -282,7 +276,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates default false for bool with undefined default", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -296,7 +290,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates default empty string for str with no default", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -309,7 +303,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates enum values", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -328,7 +322,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates title in @prop", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -341,7 +335,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates description in @prop", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -359,7 +353,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates min and max in @prop", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -375,7 +369,7 @@ describe("@prop decorators", () => {
   });
 
   it("generates declare for each field", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -397,20 +391,18 @@ describe("@prop decorators", () => {
 // ---------------------------------------------------------------------------
 
 describe("process() method", () => {
-  const gen = new KieNodeGenerator();
-
   it("calls getApiKey", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).toContain("const apiKey = getApiKey(this._secrets)");
   });
 
   it("builds params object", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).toContain("const params: Record<string, unknown> = {}");
   });
 
   it("casts str fields with String()", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -423,7 +415,7 @@ describe("process() method", () => {
   });
 
   it("casts int fields with Number()", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -436,7 +428,7 @@ describe("process() method", () => {
   });
 
   it("casts float fields with Number()", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -451,7 +443,7 @@ describe("process() method", () => {
   });
 
   it("casts bool fields with Boolean()", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -464,7 +456,7 @@ describe("process() method", () => {
   });
 
   it("calls kieExecuteTask for standard nodes", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ modelId: "my-model-v1" })]
       })
@@ -473,7 +465,7 @@ describe("process() method", () => {
   });
 
   it("calls kieExecuteSunoTask for Suno nodes", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ useSuno: true })]
       })
@@ -482,7 +474,7 @@ describe("process() method", () => {
   });
 
   it("returns output with correct type", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ outputType: "audio" })]
       })
@@ -493,7 +485,7 @@ describe("process() method", () => {
   });
 
   it("uses pollInterval and maxAttempts from node config", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [makeNode({ pollInterval: 5000, maxAttempts: 100 })]
       })
@@ -502,7 +494,7 @@ describe("process() method", () => {
   });
 
   it("falls back to module defaults for poll config", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         defaultPollInterval: 3000,
         defaultMaxAttempts: 150,
@@ -513,7 +505,7 @@ describe("process() method", () => {
   });
 
   it("falls back to hardcoded defaults (2000, 300)", () => {
-    const code = gen.generateModule(makeModule());
+    const code = generateModule(makeModule());
     expect(code).toContain("2000, 300)");
   });
 });
@@ -523,10 +515,8 @@ describe("process() method", () => {
 // ---------------------------------------------------------------------------
 
 describe("Validation rules", () => {
-  const gen = new KieNodeGenerator();
-
   it("generates not_empty validation", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -540,7 +530,7 @@ describe("Validation rules", () => {
   });
 
   it("uses custom validation message", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -559,7 +549,7 @@ describe("Validation rules", () => {
   });
 
   it("uses default validation message when none provided", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -577,10 +567,8 @@ describe("Validation rules", () => {
 // ---------------------------------------------------------------------------
 
 describe("Upload handling", () => {
-  const gen = new KieNodeGenerator();
-
   it("generates single image upload", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -595,7 +583,7 @@ describe("Upload handling", () => {
   });
 
   it("generates single audio upload", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -609,7 +597,7 @@ describe("Upload handling", () => {
   });
 
   it("generates list upload", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -625,7 +613,7 @@ describe("Upload handling", () => {
   });
 
   it("generates list video upload", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -641,7 +629,7 @@ describe("Upload handling", () => {
   });
 
   it("generates list audio upload", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -657,7 +645,7 @@ describe("Upload handling", () => {
   });
 
   it("generates grouped uploads into array param", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -689,7 +677,7 @@ describe("Upload handling", () => {
   });
 
   it("uses custom paramName for upload", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -710,10 +698,8 @@ describe("Upload handling", () => {
 // ---------------------------------------------------------------------------
 
 describe("Conditional fields", () => {
-  const gen = new KieNodeGenerator();
-
   it("generates gte_zero condition", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -728,7 +714,7 @@ describe("Conditional fields", () => {
   });
 
   it("generates truthy condition", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -747,10 +733,8 @@ describe("Conditional fields", () => {
 // ---------------------------------------------------------------------------
 
 describe("Parameter name mapping", () => {
-  const gen = new KieNodeGenerator();
-
   it("uses paramNames to map field to API param", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
@@ -772,10 +756,8 @@ describe("Parameter name mapping", () => {
 // ---------------------------------------------------------------------------
 
 describe("Reserved field names", () => {
-  const gen = new KieNodeGenerator();
-
   it("skips asset-type fields in params (handled by uploads)", () => {
-    const code = gen.generateModule(
+    const code = generateModule(
       makeModule({
         nodes: [
           makeNode({
