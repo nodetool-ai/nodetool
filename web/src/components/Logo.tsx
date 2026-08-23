@@ -25,8 +25,8 @@ const logoStyles = (
   css({
     display: "flex",
     alignItems: "center",
+    justifyContent: "center",
     gap: getSpacingPx(SPACING.xxl),
-    margin: `${getSpacingPx(SPACING.micro)} 0 0 0`,
     ".nt": {
       fontFamily: theme.fontFamily1,
       fontWeight: 600,
@@ -65,8 +65,8 @@ const logoStyles = (
     },
     ".logo-image": {
       cursor: "pointer",
-      width: "20px",
-      height: "20px",
+      width: "16px",
+      height: "16px",
       filter: invertLogo ? "invert(1)" : undefined
     }
   });
