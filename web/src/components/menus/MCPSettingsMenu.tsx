@@ -10,6 +10,7 @@ import InstallDesktopIcon from "@mui/icons-material/InstallDesktop";
 import { Text, FlexRow, FlexColumn, NavButton } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import AgentAccessSection from "./AgentAccessSection";
 import { trpcClient } from "../../trpc/client";
 
 interface TargetStatus {
@@ -54,10 +55,14 @@ const MCPSettingsMenu = () => {
     (state) => state.addNotification
   );
 
+  // Installing into a local client config only means something when the
+  // server runs on this machine; on a shared host the procedure answers 503.
+  // A failure is therefore an answer, not an error to retry or report.
   const { data, isLoading } = useQuery({
     queryKey: ["mcp-status"],
     queryFn: fetchMcpStatus,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: false
   });
 
   const installMutation = useMutation({
@@ -178,20 +183,22 @@ const MCPSettingsMenu = () => {
           collections as tools.
         </Text>
 
-        {data?.defaultUrl && (
-          <Text
-            className="description"
-            sx={{ mb: 2, fontFamily: "monospace", opacity: 0.6 }}
-          >
-            Server URL: {data.defaultUrl}
-          </Text>
-        )}
-
         {isLoading && <Text sx={{ padding: "1em" }}>Loading…</Text>}
 
         {data && (
           <>
             <div className="settings-section">
+              <Text sx={{ fontWeight: 500, mb: 0.5 }}>
+                Install on this machine
+              </Text>
+              {data.defaultUrl && (
+                <Text
+                  className="description"
+                  sx={{ mb: 1, fontFamily: "monospace", opacity: 0.6 }}
+                >
+                  {data.defaultUrl}
+                </Text>
+              )}
               {data.targets.map((t) => (
                 <div key={t.target} className="settings-item">
                   <FlexRow align="center" justify="space-between" fullWidth>
@@ -292,6 +299,8 @@ const MCPSettingsMenu = () => {
             </FlexRow>
           </div>
         )}
+
+        <AgentAccessSection />
       </div>
     </div>
   );

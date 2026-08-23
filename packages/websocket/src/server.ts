@@ -58,13 +58,16 @@ import {
   type WorkerConnection
 } from "@nodetool-ai/compute";
 import {
+  AccessToken,
   getWorkerProfile,
   initDb,
   initPostgresDb,
+  isAccessToken,
   migrateSqliteDb,
   runSeeds,
   touchWorkerInstance
 } from "@nodetool-ai/models";
+import { isMcpHttpEnabled, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
 import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
 import { syncCustomProviderRegistry } from "./custom-providers.js";
 
@@ -685,8 +688,8 @@ const host = process.env["HOST"] ?? (isProduction ? "0.0.0.0" : "127.0.0.1");
 // The `/mcp` streamable-HTTP mount. Off in production by default: it carries
 // the full agent toolbelt for whichever user it binds, so a deployment opts in
 // with NODETOOL_ENABLE_MCP=1 and authenticates the agent like any other client.
-const mcpHttpEnabled =
-  !isProduction || process.env["NODETOOL_ENABLE_MCP"] === "1";
+// The gate is shared with the settings UI, which reports it (see lib/mcp-mount).
+const mcpHttpEnabled = isMcpHttpEnabled();
 
 // Reverse proxies whose X-Forwarded-For header may be trusted to determine the
 // real client IP. Comma-separated IPs/CIDRs (e.g. "127.0.0.1,10.0.0.0/8").
@@ -951,10 +954,29 @@ app.addHook("onRequest", async (req, reply) => {
       )
     : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
 
+  // Access tokens (`ntk_`) are the credential a person mints in the app and
+  // pastes into an MCP client's config. They authenticate in every auth mode,
+  // including local: a self-hoster exposing /mcp beyond loopback should be
+  // able to hand out a revocable per-agent token rather than widen
+  // NODETOOL_TRUST_LOCAL_NETWORKS. A token that fails here falls through, so
+  // an expired or revoked one is refused by the mode's own rules.
+  if (token && isAccessToken(token)) {
+    const accessToken = await AccessToken.verify(token);
+    if (accessToken) {
+      req.userId = accessToken.user_id;
+      req.authToken = token;
+      void accessToken.touch().catch(() => {
+        // last_used_at is a convenience for the revoke UI; a failed write
+        // must not fail the request it was recording.
+      });
+      return;
+    }
+  }
+
   // Delegated tokens (a messaging bridge acting as the linked user) are
-  // checked first, and only when they announce themselves by prefix. Anything
-  // else — including a delegated token that is expired or tampered with —
-  // falls through to the configured provider, which rejects it.
+  // checked only when they announce themselves by prefix. Anything else —
+  // including a delegated token that is expired or tampered with — falls
+  // through to the configured provider, which rejects it.
   if (delegatedProvider && token && isDelegatedToken(token)) {
     const delegated = await delegatedProvider.verifyToken(token);
     if (delegated.ok) {
@@ -1447,7 +1469,7 @@ if (mcpHttpEnabled) {
   });
 } else {
   log.info(
-    "MCP over HTTP (/mcp) disabled in production; set NODETOOL_ENABLE_MCP=1 to enable"
+    `MCP over HTTP (/mcp) disabled in production; set ${MCP_ENABLE_FLAG}=1 to enable`
   );
 }
 

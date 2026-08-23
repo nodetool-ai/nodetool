@@ -710,7 +710,10 @@ startup instructions, retries in the background, and hot-attaches (with
 `list_changed` notifications) when the server appears — including after a
 mid-session app restart. User config in the bundle: server URL (default
 `http://127.0.0.1:7777/mcp`) and an optional bearer token. For CLI agents
-(Claude Code, Codex) use `nodetool mcp install` instead.
+(Claude Code, Codex) use `nodetool mcp install` instead. To reach a *deployed*
+server rather than a local one, the client points at `/mcp` with a token minted
+in **Settings → MCP → Connect an agent remotely** — see
+[docs/mcp-production.md](docs/mcp-production.md).
 
 Every release builds and attaches `nodetool-<version>.mcpb` to the GitHub
 Release (`release.yaml`, built once on Linux since the bundle is

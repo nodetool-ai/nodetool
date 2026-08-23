@@ -258,6 +258,8 @@ export { RunLease } from "./run-lease.js";
 export { TriggerInput } from "./trigger-input.js";
 export { RunInboxMessage } from "./run-inbox-message.js";
 export { TriggerRegistration } from "./trigger-registration.js";
+export { AccessToken, isAccessToken, parseAccessToken, ACCESS_TOKEN_PREFIX } from "./access-token.js";
+export type { MintedAccessToken, CreateAccessTokenParams } from "./access-token.js";
 export { ExternalIdentity } from "./external-identity.js";
 export type { LinkExternalIdentityParams } from "./external-identity.js";
 

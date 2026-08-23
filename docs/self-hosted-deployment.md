@@ -362,18 +362,27 @@ id in the `mcp-session-id` header is scoped to its owner — a second user
 presenting the same id gets `404 Session not found`, the same answer as an id
 that never existed.
 
-How an agent authenticates depends on the server's auth mode:
+How an agent authenticates:
 
+- **A token minted in the app** — the short path, and the one to reach for
+  first. **Settings → MCP → Connect an agent remotely** hands back a
+  ready-to-paste `claude mcp add` command carrying the URL and a bearer token.
+  The token is revocable one at a time, stored only as a hash, and works in
+  every auth mode.
 - **Supabase mode** (`SUPABASE_URL` + `SUPABASE_KEY`): the agent sends a
   Supabase access token as `Authorization: Bearer <jwt>`, like any web client.
-  The MCP session then belongs to that Supabase user.
+  Fine for a script that already signs in; the JWT expires within the hour, so
+  it is a poor fit for a config file.
 - **Local mode behind a VPN**: set `NODETOOL_TRUST_LOCAL_NETWORKS` to the VPN's
   CIDR. Requests from that range are trusted as user `1` with no token. Scope it
   to the VPN — anything reaching the server from a trusted range gets the whole
-  toolbelt.
+  toolbelt, and there is nothing to revoke afterwards.
 - **A bot or bridge**: mint a delegated token through the integration routes
   (`NODETOOL_INTEGRATION_TOKEN`) and send it as the bearer token. The session
   binds the linked account rather than a shared identity.
+
+Full walkthrough, including how to check a setup and what each error answer
+means: [MCP on a production server](mcp-production.md).
 
 Not covered by the flag: the tRPC `mcpConfig` router stays disabled in
 production. It edits MCP *client* config files on the server's filesystem, which
