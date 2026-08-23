@@ -9,6 +9,8 @@ const mcpConnection = jest.fn();
 const listTokens = jest.fn();
 const createToken = jest.fn();
 const revokeToken = jest.fn();
+const listOauthGrants = jest.fn();
+const revokeOauthGrant = jest.fn();
 
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
@@ -16,7 +18,13 @@ jest.mock("../../../trpc/client", () => ({
       mcpConnection: { query: (...args: unknown[]) => mcpConnection(...args) },
       listTokens: { query: (...args: unknown[]) => listTokens(...args) },
       createToken: { mutate: (...args: unknown[]) => createToken(...args) },
-      revokeToken: { mutate: (...args: unknown[]) => revokeToken(...args) }
+      revokeToken: { mutate: (...args: unknown[]) => revokeToken(...args) },
+      listOauthGrants: {
+        query: (...args: unknown[]) => listOauthGrants(...args)
+      },
+      revokeOauthGrant: {
+        mutate: (...args: unknown[]) => revokeOauthGrant(...args)
+      }
     }
   }
 }));
@@ -52,6 +60,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mcpConnection.mockResolvedValue(ENABLED);
   listTokens.mockResolvedValue({ tokens: [] });
+  listOauthGrants.mockResolvedValue({ grants: [] });
 });
 
 describe("AgentAccessSection", () => {
@@ -165,5 +174,43 @@ describe("AgentAccessSection", () => {
     expect(
       await screen.findByText(/checks no credential/i)
     ).toBeInTheDocument();
+  });
+
+  it("shows an empty state when no MCP client is connected", async () => {
+    renderSection();
+    expect(
+      await screen.findByText(/no mcp client has connected yet/i)
+    ).toBeInTheDocument();
+  });
+
+  it("lists connected MCP clients and revokes one after confirming", async () => {
+    listOauthGrants.mockResolvedValue({
+      grants: [
+        {
+          id: "grant_1",
+          client_name: "Claude Code",
+          client_id: "ntc_abc123",
+          created_at: "2026-08-01T00:00:00.000Z",
+          scope: "mcp"
+        }
+      ]
+    });
+    revokeOauthGrant.mockResolvedValue({ ok: true });
+    const user = userEvent.setup();
+    renderSection();
+
+    expect(await screen.findByText("Claude Code")).toBeInTheDocument();
+    expect(screen.getByText(/ntc_abc123/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /revoke/i }));
+    // Revoking is confirmed via a dialog, not fired straight from the list.
+    expect(revokeOauthGrant).not.toHaveBeenCalled();
+
+    await user.click(
+      await screen.findByRole("button", { name: /disconnect/i })
+    );
+    await waitFor(() =>
+      expect(revokeOauthGrant).toHaveBeenCalledWith({ grant_id: "grant_1" })
+    );
   });
 });

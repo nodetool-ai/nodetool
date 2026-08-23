@@ -18,6 +18,7 @@ import {
   AlertBanner,
   Caption,
   CopyButton,
+  Dialog,
   FlexColumn,
   FlexRow,
   NavButton,
@@ -33,6 +34,7 @@ import { trpcClient } from "../../trpc/client";
 
 type Connection = agentAccess.McpConnectionOutput;
 type TokenSummary = agentAccess.AccessTokenSummary;
+type OauthGrant = agentAccess.OauthGrantSummary;
 
 /** Lifetimes the UI offers. "Never" is the default: a token in a config file
  * that silently stops working months later is a bad afternoon. */
@@ -88,6 +90,8 @@ const AgentAccessSection = () => {
   // The plaintext of the token just minted. Held for this render only — the
   // server keeps a hash, so once this is gone it is gone everywhere.
   const [freshToken, setFreshToken] = useState<string | null>(null);
+  // The grant pending a revoke confirmation, or null when the dialog is closed.
+  const [grantToRevoke, setGrantToRevoke] = useState<OauthGrant | null>(null);
 
   const { data: connection } = useQuery({
     queryKey: ["mcp-connection"],
@@ -127,6 +131,33 @@ const AgentAccessSection = () => {
     }
   });
 
+  const { data: grantList, isLoading: grantsLoading } = useQuery({
+    queryKey: ["oauth-grants"],
+    queryFn: () => trpcClient.agentAccess.listOauthGrants.query(),
+    refetchOnWindowFocus: false
+  });
+
+  const revokeGrant = useMutation({
+    mutationFn: (grantId: string) =>
+      trpcClient.agentAccess.revokeOauthGrant.mutate({ grant_id: grantId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["oauth-grants"] });
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "Client disconnected"
+      });
+    },
+    onError: (err) => {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Could not disconnect the client: ${err}`
+      });
+    },
+    onSettled: () => setGrantToRevoke(null)
+  });
+
   const handleCreate = useCallback(() => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -138,6 +169,7 @@ const AgentAccessSection = () => {
 
   const url = resolveMcpUrl(connection);
   const tokens = tokenList?.tokens ?? [];
+  const grants = grantList?.grants ?? [];
   const snippets = useMemo(
     () => configSnippets(url, freshToken),
     [url, freshToken]
@@ -285,6 +317,60 @@ const AgentAccessSection = () => {
           ))}
         </FlexColumn>
       )}
+
+      <FlexColumn gap={0} sx={{ mt: 2 }}>
+        <Caption sx={{ mb: 0.5 }}>Connected MCP clients</Caption>
+        {grantsLoading && <Text sx={{ padding: "1em" }}>Loading…</Text>}
+        {!grantsLoading && grants.length === 0 && (
+          <Text className="description">No MCP client has connected yet.</Text>
+        )}
+        {grants.map((grant: OauthGrant) => (
+          <div key={grant.id} className="settings-item">
+            <FlexRow align="center" justify="space-between" fullWidth>
+              <FlexColumn gap={0}>
+                <Text sx={{ fontWeight: 500 }}>{grant.client_name}</Text>
+                <Text
+                  className="description"
+                  sx={{ fontSize: "var(--fontSizeSmall) !important" }}
+                >
+                  Connected {formatStamp(grant.created_at)} · {grant.client_id}
+                </Text>
+              </FlexColumn>
+              <NavButton
+                icon={<RemoveCircleOutlineIcon />}
+                label="Revoke"
+                disabled={revokeGrant.isPending}
+                onClick={() => setGrantToRevoke(grant)}
+                navSize="small"
+                sx={{
+                  padding: "0.25em 1em",
+                  minWidth: "unset",
+                  fontSize: theme.fontSizeSmall
+                }}
+              />
+            </FlexRow>
+          </div>
+        ))}
+      </FlexColumn>
+
+      <Dialog
+        open={grantToRevoke !== null}
+        onClose={() => setGrantToRevoke(null)}
+        title="Disconnect this client?"
+        showActions
+        confirmText="Disconnect"
+        cancelText="Cancel"
+        isLoading={revokeGrant.isPending}
+        onCancel={() => setGrantToRevoke(null)}
+        onConfirm={() => {
+          if (grantToRevoke) revokeGrant.mutate(grantToRevoke.id);
+        }}
+      >
+        <Text>
+          {grantToRevoke?.client_name} will no longer be able to reach this
+          server. It will need to reconnect and be approved again.
+        </Text>
+      </Dialog>
     </div>
   );
 };
