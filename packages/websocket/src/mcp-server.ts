@@ -34,6 +34,13 @@ export interface McpServerOptions {
     userId: string;
     source: "stdio-local" | "local-dev-http" | "http-session";
   };
+  /**
+   * `WWW-Authenticate` challenge to attach to a `scopeRefusal()` 401 (the
+   * mount's own auth hook already computed it — see `server.ts`'s
+   * `mcpBearerChallenge`). Undefined when the OAuth flow is unconfigured or
+   * disabled, in which case the refusal carries no header, same as before.
+   */
+  unauthorizedChallenge?: string;
 }
 
 /**
@@ -126,14 +133,16 @@ export function getLocalMcpServerUrl(): string {
 }
 
 /** JSON-RPC refusal for an initialize the mount cannot scope to a user. */
-function scopeRefusal(): Response {
+function scopeRefusal(challenge?: string): Response {
+  const headers = new Headers({ "content-type": "application/json" });
+  if (challenge) headers.set("WWW-Authenticate", challenge);
   return new Response(
     JSON.stringify({
       jsonrpc: "2.0",
       id: null,
       error: { code: -32001, message: MCP_SCOPE_REQUIRED_MESSAGE }
     }),
-    { status: 401, headers: { "content-type": "application/json" } }
+    { status: 401, headers }
   );
 }
 
@@ -170,7 +179,7 @@ export async function handleMcpHttpRequest(
     // initialize, rather than answering with an empty surface.
     if (!options?.agentToolsScope) {
       log.warn("Refusing MCP session: no authenticated user to bind");
-      return scopeRefusal();
+      return scopeRefusal(options?.unauthorizedChallenge);
     }
 
     // New session — create transport and server

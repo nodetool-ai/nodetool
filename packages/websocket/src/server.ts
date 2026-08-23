@@ -63,11 +63,15 @@ import {
   initDb,
   initPostgresDb,
   isAccessToken,
+  McpOauthToken,
+  MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   migrateSqliteDb,
   runSeeds,
   touchWorkerInstance
 } from "@nodetool-ai/models";
-import { isMcpHttpEnabled, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
+import { isMcpHttpEnabled, configuredMcpUrl, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
+import { buildBearerChallenge } from "./oauth/www-authenticate.js";
+import { canonicalResource } from "./oauth/validate.js";
 import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
 import { syncCustomProviderRegistry } from "./custom-providers.js";
 
@@ -118,6 +122,7 @@ import nodesRoutes from "./routes/nodes.js";
 import storageRoutes from "./routes/storage.js";
 import openaiRoutes from "./routes/openai.js";
 import oauthRoutes from "./routes/oauth.js";
+import { oauthAsRoutes } from "./routes/oauth-as.js";
 import {
   isSdkV1AuthenticationRequired,
   isSdkV1DiscoveryRequest
@@ -689,6 +694,21 @@ const host = process.env["HOST"] ?? (isProduction ? "0.0.0.0" : "127.0.0.1");
 // The gate is shared with the settings UI, which reports it (see lib/mcp-mount).
 const mcpHttpEnabled = isMcpHttpEnabled();
 
+// The `WWW-Authenticate` challenge for an unauthenticated or invalid `/mcp`
+// request (docs/mcp-oauth-design.md § "401 challenge"). Emitted only when the
+// OAuth flow can actually complete: the mount is registered, the operator
+// configured a public URL the AS can name itself with, and the escape hatch
+// is not set. A server with none of that answers the plain 401 it always
+// has — nothing here changes for it.
+function mcpBearerChallenge(error?: "invalid_token"): string | undefined {
+  if (!mcpHttpEnabled) return undefined;
+  if (process.env["NODETOOL_DISABLE_MCP_OAUTH"] === "1") return undefined;
+  const mcpUrl = configuredMcpUrl();
+  if (!mcpUrl) return undefined;
+  const publicUrl = mcpUrl.slice(0, -"/mcp".length);
+  return buildBearerChallenge({ publicUrl, error });
+}
+
 // Reverse proxies whose X-Forwarded-For header may be trusted to determine the
 // real client IP. Comma-separated IPs/CIDRs (e.g. "127.0.0.1,10.0.0.0/8").
 // When empty, X-Forwarded-For is NOT trusted: req.ip falls back to the socket
@@ -955,6 +975,36 @@ app.addHook("onRequest", async (req, reply) => {
       )
     : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
 
+  // MCP OAuth access tokens (`nta_`) authorize `/mcp` ONLY — the audience
+  // binding is structural, not claim-parsing (docs/mcp-oauth-design.md §
+  // "Token model and storage"). A valid token whose stored `resource` no
+  // longer matches this deployment's canonical `/mcp` URI (the server was
+  // rehosted since it was minted) or that is presented outside `/mcp` is
+  // denied with `invalid_token`, never silently ignored — falling through to
+  // the `ntk_`/session checks below would let an audience-scoped credential
+  // be probed against the rest of the API.
+  if (token && token.startsWith(MCP_OAUTH_ACCESS_TOKEN_PREFIX)) {
+    const verified = await McpOauthToken.verifyAccess(token);
+    const pathname = req.url.split("?")[0] ?? "/";
+    if (
+      verified &&
+      pathname.startsWith("/mcp") &&
+      configuredMcpUrl() !== null &&
+      verified.resource === canonicalResource(configuredMcpUrl()!.slice(0, -"/mcp".length))
+    ) {
+      req.userId = verified.userId;
+      req.authToken = token;
+      return;
+    }
+    denyUnauthorized(
+      req,
+      reply,
+      { error: "invalid_token" },
+      mcpBearerChallenge("invalid_token")
+    );
+    return;
+  }
+
   // Access tokens (`ntk_`) are the credential a person mints in the app and
   // pastes into an MCP client's config. They authenticate in every auth mode,
   // including local: a self-hoster exposing /mcp beyond loopback should be
@@ -987,14 +1037,26 @@ app.addHook("onRequest", async (req, reply) => {
     }
   }
 
+  // /mcp gets a WWW-Authenticate challenge on every unauthenticated/invalid
+  // denial below it — but only when the OAuth flow can actually complete
+  // (see mcpBearerChallenge). Every other path is unaffected.
+  const challenge = pathname.startsWith("/mcp")
+    ? mcpBearerChallenge()
+    : undefined;
+
   if (supabaseMode) {
     if (!token) {
-      denyUnauthorized(req, reply, { error: "Unauthorized" });
+      denyUnauthorized(req, reply, { error: "Unauthorized" }, challenge);
       return;
     }
     const result = await supabaseProvider!.verifyToken(token);
     if (!result.ok) {
-      denyUnauthorized(req, reply, { error: result.error ?? "Unauthorized" });
+      denyUnauthorized(
+        req,
+        reply,
+        { error: result.error ?? "Unauthorized" },
+        challenge
+      );
       return;
     }
     req.userId = result.userId ?? null;
@@ -1002,9 +1064,12 @@ app.addHook("onRequest", async (req, reply) => {
     return;
   }
 
-  denyUnauthorized(req, reply, {
-    error: "Remote access requires authentication"
-  });
+  denyUnauthorized(
+    req,
+    reply,
+    { error: "Remote access requires authentication" },
+    challenge
+  );
 });
 
 // Multi-instance only: a handshake asking to resume a run that another machine
@@ -1371,6 +1436,12 @@ await app.register(nodesRoutes, routeOpts);
 await app.register(storageRoutes, routeOpts);
 await app.register(openaiRoutes, routeOpts);
 await app.register(oauthRoutes, routeOpts);
+// MCP OAuth 2.1 AS + well-known discovery routes (docs/mcp-oauth-design.md).
+// Self-contained: registers its own content-type parsers on its own
+// encapsulated context, so it is unaffected by the raw-buffer parser the
+// outer app installs above. 404s every route on its own when the flow is
+// unconfigured or NODETOOL_DISABLE_MCP_OAUTH=1 — nothing to gate here.
+await app.register(oauthAsRoutes);
 await app.register(workspaceRoutes, routeOpts);
 
 // A cloud deployment keeps workspaces in the asset bucket rather than on the
@@ -1453,7 +1524,8 @@ if (mcpHttpEnabled) {
             userId: req.userId,
             source: isProduction ? "http-session" : "local-dev-http"
           }
-        : undefined
+        : undefined,
+      unauthorizedChallenge: mcpBearerChallenge()
     });
     if (!response) {
       reply.status(404).send({ error: "Not found" });
@@ -1522,7 +1594,12 @@ app.setNotFoundHandler((req, reply) => {
     !pathname.startsWith("/health") &&
     !pathname.startsWith("/ws") &&
     !pathname.startsWith("/v1") &&
-    !pathname.startsWith("/oauth") &&
+    !pathname.startsWith("/.well-known/") &&
+    // /oauth/consent is the one /oauth path that IS the SPA — the MCP OAuth
+    // consent page (docs/mcp-oauth-design.md). Every other /oauth/* path is
+    // an AS API route (authorize/token/register/revoke), and unmatched
+    // requests there must 404 rather than get served index.html.
+    (pathname === "/oauth/consent" || !pathname.startsWith("/oauth")) &&
     !pathname.startsWith("/trpc") &&
     !pathname.startsWith("/mcp") &&
     !pathname.includes(".")
