@@ -45,6 +45,24 @@ The budget is **one request and USD 0.05 per provider per run**, enforced by
 `liveGap` why there is no live probe; most say the same thing — a live result
 would mean paying for a generation. Raising the budget is how those become live.
 
+### Probing a different model
+
+The two live chat probes send a fixed model id: `gpt-5.4-mini` for
+`openai.chat-completion`, `gemini-3-flash` for `gemini.generate-content`.
+`NODETOOL_PROBE_OPENAI_MODEL` and `NODETOOL_PROBE_GEMINI_MODEL` override them,
+so you can ask whether a model you are about to adopt answers in the shape the
+decoder reads, without editing the manifest.
+
+```bash
+NODETOOL_PROBE_OPENAI_MODEL=gpt-5.4 \
+  npm run probe:providers -- --only openai.chat-completion
+```
+
+The budget does not follow the override. `runProbes` charges the entry's
+declared `estimatedCostUsd` — USD 0.001 for both — not what the request actually
+cost, so an override onto an expensive model spends more than the ledger says it
+did. The request cap still holds at one per provider.
+
 ## Network failures are not schema failures
 
 `runProbes` separates them, and the nightly job treats them differently:
