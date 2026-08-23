@@ -1,10 +1,28 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ChartConfig, ChartData, ChartSeries } from "@nodetool-ai/protocol";
 import { asRows } from "./data.js";
 
 /** Output handles ChartRendererLibNode.process() emits. */
 type ChartRendererLibNodeOutputs = {
   output: { type: string; data: string };
 };
+
+type ChartType = "bar" | "line" | "scatter";
+
+/** Seaborn plot kinds a chart config can name, mapped to what chart.js draws. */
+const PLOT_TYPE_CHARTS = {
+  scatter: "scatter",
+  line: "line",
+  barplot: "bar",
+  histplot: "bar",
+  boxplot: "bar",
+  pointplot: "line",
+  countplot: "bar"
+} as const satisfies Record<string, ChartType>;
+
+function isPlotType(plot: string): plot is keyof typeof PLOT_TYPE_CHARTS {
+  return Object.hasOwn(PLOT_TYPE_CHARTS, plot);
+}
 
 export class ChartRendererLibNode extends BaseNode {
   static readonly nodeType = "lib.charts.ChartRenderer";
@@ -123,7 +141,7 @@ export class ChartRendererLibNode extends BaseNode {
   declare trim_margins: any;
 
   async process(): Promise<ChartRendererLibNodeOutputs> {
-    const config = (this.chart_config ?? {}) as Record<string, unknown>;
+    const config: ChartConfig = this.chart_config ?? { type: "chart_config" };
     const width = Number(this.width ?? 640);
     const height = Number(this.height ?? 480);
 
@@ -159,28 +177,25 @@ export class ChartRendererLibNode extends BaseNode {
     // "ctx.moveTo is not a function". Restore @napi-rs/canvas's real Path2D
     // for the duration of rendering.
     const previousPath2D = globalThis.Path2D;
+    // SAFETY: `lib.dom` types `Path2D` as a global class, so its declared type
+    // admits neither skia's constructor here nor the `delete` below. The
+    // `finally` restores exactly what `previousPath2D` captured.
     (globalThis as { Path2D?: unknown }).Path2D = napiPath2D;
 
     const { Chart, registerables } = ChartJS;
     Chart.register(...registerables);
 
-    const configData = (config.data ?? {}) as Record<string, unknown>;
-    const series = (configData.series ?? []) as Array<Record<string, unknown>>;
-
-    // Determine chart type from first series (default to bar)
-    const plotTypeMap: Record<string, string> = {
-      scatter: "scatter",
-      line: "line",
-      barplot: "bar",
-      histplot: "bar",
-      boxplot: "bar",
-      pointplot: "line",
-      countplot: "bar"
+    const configData: ChartData = config.data ?? {
+      type: "chart_data",
+      series: []
     };
+    const series: ChartSeries[] = configData.series ?? [];
 
-    const firstSeries = series[0] ?? {};
+    const firstSeries: ChartSeries = series[0] ?? {};
     const plotType = String(firstSeries.plot_type ?? "barplot").toLowerCase();
-    const chartType = plotTypeMap[plotType] ?? "bar";
+    const chartType: ChartType = isPlotType(plotType)
+      ? PLOT_TYPE_CHARTS[plotType]
+      : "bar";
 
     // Extract x and y column indices
     const xCol = String(firstSeries.x ?? colNames[0] ?? "");
@@ -210,7 +225,7 @@ export class ChartRendererLibNode extends BaseNode {
         : [{ label: yCol, data: values }];
 
     const chartConfig = {
-      type: chartType as "bar" | "line" | "scatter",
+      type: chartType,
       data: { labels, datasets },
       options: {
         responsive: false,
@@ -258,6 +273,8 @@ export class ChartRendererLibNode extends BaseNode {
       chart.destroy();
     } finally {
       if (previousPath2D === undefined) {
+        // SAFETY: nothing declared `Path2D` before this render, so removing the
+        // one installed above restores the environment the node inherited.
         delete (globalThis as { Path2D?: unknown }).Path2D;
       } else {
         globalThis.Path2D = previousPath2D;
