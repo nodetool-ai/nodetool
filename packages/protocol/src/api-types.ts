@@ -1364,7 +1364,7 @@ export interface HuggingFaceModel {
 export interface UnifiedModel {
   id: string;
   name: string;
-  provider?: Provider;
+  provider?: Provider | null;
   type?: string | null;
   repo_id?: string | null;
   path?: string | null;
