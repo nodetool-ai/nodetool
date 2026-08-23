@@ -56,24 +56,31 @@ const useNamespaceTree = (): NamespaceTree => {
     [isApiKeySet]
   );
 
-  // Get unique namespaces and sort them (enabled first, then disabled)
+  // Get unique namespaces and sort them (enabled first, then disabled).
+  // Deduping with `findIndex` inside a filter was quadratic over the thousands
+  // of node types the registry ships. The gates below are pure functions of the
+  // namespace string, so deduping first cannot change the result.
   const uniqueNamespaces = useMemo(() => {
-    const namespaces = Object.values(metadata)
-      .map((node) => node.namespace)
-      .filter((namespace) => namespace !== "default")
-      .filter(
-        (namespace) =>
-          !isNamespaceHiddenByOptionalPacks(namespace, enabledPacks)
-      )
+    const seen = new Set<string>();
+    const namespaces: string[] = [];
+
+    for (const node of Object.values(metadata)) {
+      const namespace = node.namespace;
+      if (namespace === "default" || seen.has(namespace)) {
+        continue;
+      }
+      seen.add(namespace);
+      if (isNamespaceHiddenByOptionalPacks(namespace, enabledPacks)) {
+        continue;
+      }
       // API key is the source of truth for providers: hide a key-gated
       // namespace until its key is set. Locally-run packs are never gated.
-      .filter((namespace) => {
-        const requiredKey = getKeyGateForNamespace(namespace);
-        return requiredKey === null || isApiKeySet(requiredKey);
-      })
-      .filter(
-        (value, index, self) => index === self.findIndex((t) => t === value)
-      );
+      const requiredKey = getKeyGateForNamespace(namespace);
+      if (requiredKey !== null && !isApiKeySet(requiredKey)) {
+        continue;
+      }
+      namespaces.push(namespace);
+    }
 
     return namespaces.sort((a, b) => {
       const aDisabled = isNamespaceDisabled(a);

@@ -94,11 +94,20 @@ export function snippetNodeType(snippet: CodeSnippet): string {
   return `${SNIPPET_NODE_PREFIX}${categoryToSlug(snippet.category)}.${snippet.id.replace(/-/g, "_")}`;
 }
 
+// `snippetNodeType` runs four regex replaces, and the node menu asks this once
+// per visible row on every keystroke — a scan re-derived all 180+ per lookup.
+let snippetIndex: Map<string, CodeSnippet> | null = null;
+
 /** Look up a snippet by its virtual node_type */
 export function findSnippetByNodeType(
   nodeType: string
 ): CodeSnippet | undefined {
-  return CODE_SNIPPETS.find((s) => snippetNodeType(s) === nodeType);
+  if (!snippetIndex) {
+    snippetIndex = new Map(
+      CODE_SNIPPETS.map((snippet) => [snippetNodeType(snippet), snippet])
+    );
+  }
+  return snippetIndex.get(nodeType);
 }
 
 /** Generate metadata records for all snippets */

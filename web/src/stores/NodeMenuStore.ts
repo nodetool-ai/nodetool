@@ -119,8 +119,19 @@ export const createNodeMenuStore = () =>
     let hoveredNodeTimeout: ReturnType<typeof setTimeout> | null = null;
     let pendingSearchId = 0;
 
-    const getFilteredMetadata = () =>
-      Object.values(useMetadataStore.getState().metadata);
+    // A fresh `Object.values` per keystroke also missed the array-keyed index
+    // cache downstream in `computeSearchResults`. `setMetadata` replaces the
+    // record wholesale, so its identity is a sound cache key.
+    let metadataSource: Record<string, NodeMetadata> | null = null;
+    let metadataValues: NodeMetadata[] = [];
+    const getFilteredMetadata = () => {
+      const metadata = useMetadataStore.getState().metadata;
+      if (metadata !== metadataSource) {
+        metadataSource = metadata;
+        metadataValues = Object.values(metadata);
+      }
+      return metadataValues;
+    };
     const filterNodes = (nodes: NodeMetadata[]) =>
       filterNodesUtil(
         nodes,
