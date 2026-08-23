@@ -773,33 +773,33 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 
 #### Phase 8C `[nodetool-sdk]` - Make the session the only normal entry point
 
-- [ ] Pin the replacement NodeTool bundle and regenerate internal wire
+- [x] Pin the replacement NodeTool bundle and regenerate internal wire
       metadata. The update must report every removed command and changed path.
-- [ ] Remove SDK MessagePack discovery fixtures, DTO mappings, conformance
+- [x] Remove SDK MessagePack discovery fixtures, DTO mappings, conformance
       tests, request correlation, retry paths, and dispatch code. Keep all
       execution/event MessagePack coverage.
-- [ ] Remove `IWorkflowDiscoveryClient` from `INodeToolExecutionClient`.
+- [x] Remove `IWorkflowDiscoveryClient` from `INodeToolExecutionClient`.
       Discovery, capabilities, models, downloads, preflight, and asset control
       use HTTP. Execution and live events use WebSocket.
-- [ ] Remove `UseWebSocketDiscovery` from VL settings, pins, factories, tests,
+- [x] Remove `UseWebSocketDiscovery` from VL settings, pins, factories, tests,
       and documentation. Migrate VL discovery to session-owned HTTP services.
-- [ ] Inventory every public low-level client method. For each unique useful
+- [x] Inventory every public low-level client method. For each unique useful
       function, expose a session or domain-service method before hiding the raw
       client. Do not preserve duplicate transport-specific forms.
-- [ ] Add missing session operations for graph execution, node execution,
+- [x] Add missing session operations for graph execution, node execution,
       connection status, cancellation, and any internal VL/TestConsole need
       found by the inventory.
-- [ ] Make `NodeToolConnectionManager`, raw HTTP/WebSocket clients, and session
+- [x] Make `NodeToolConnectionManager`, raw HTTP/WebSocket clients, and session
       client getters internal. Remove `CurrentClient`, `GetApiClientAsync()`,
       `GetConnectedClientAsync()`, and `NodeToolSessionServices.Api` from the
       public surface after internal callers migrate.
-- [ ] Replace the default `NodetoolClient` constructor, mutable `Configure()`,
+- [x] Replace the default `NodetoolClient` constructor, mutable `Configure()`,
       `NodetoolOptions`, and duplicate endpoint/token option paths with one
       immutable connection profile.
-- [ ] Replace source-compatibility default interface methods and duplicate
+- [x] Replace source-compatibility default interface methods and duplicate
       execution overloads with one canonical method per operation. Keep
       independent `WorkflowExecutionOptions` values.
-- [ ] Update the C#, VL, TestConsole, README, examples, and package API tests to
+- [x] Update the C#, VL, TestConsole, README, examples, and package API tests to
       show only the session-first path.
 
 #### Phase 8D `[both]` - Replace and freeze the baseline
@@ -810,16 +810,22 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 - [x] Replace Phase 0 HTTP and MessagePack goldens once. Delete obsolete
       discovery RPC fixtures, add the complete execution-wire fixtures, and do
       not teach tests to accept both contracts.
-- [ ] Generate a new deterministic NodeTool bundle, pin its exact digest in the
+- [x] Generate a new deterministic NodeTool bundle, pin its exact digest in the
       SDK, and prove that a second generation is byte-identical.
-- [ ] Run NodeTool HTTP/service/auth/feature-policy tests and the full protocol
+- [x] Run NodeTool HTTP/service/auth/feature-policy tests and the full protocol
       and websocket package tests.
-- [ ] Run C# contract, session, execution, asset, model, VL, package, and lint
+- [x] Run C# contract, session, execution, asset, model, VL, package, and lint
       gates. Prove there is no WebSocket connection during discovery.
-- [ ] Run web, mobile, and Electron tRPC tests affected by removed procedures or
+- [x] Run web, mobile, and Electron tRPC tests affected by removed procedures or
       shared link configuration.
-- [ ] Mark the replacement fixtures as the release baseline. From this point,
+- [x] Mark the replacement fixtures as the release baseline. From this point,
       fixture changes require an explicit protocol review again.
+
+Verification note (2026-08-23): the SDK Release package gate passed with 222
+core tests, 139 VL unit tests, and 5 VL document tests (1 live-server test
+skipped). The full NodeTool WebSocket run passed 2,315 tests and retained four
+known Windows/environment baseline failures in local-file access, executable
+bit detection, and workspace storage setup; no SDK/tRPC-changed test failed.
 
 Exit criteria:
 
