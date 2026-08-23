@@ -58,6 +58,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Script → voiced takes → timeline, without authoring a workflow
   "list_scripts",
+  "create_script",
   "get_script",
   "voice_script_lines",
   "assemble_script_timeline",
@@ -78,6 +79,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Sketch snapshot history (find a sketch, pin a state, roll one back)
   "list_sketches",
   "create_sketch",
+  "get_sketch",
   "list_sketch_versions",
   "get_sketch_version",
   "create_sketch_version",
@@ -87,6 +89,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)
   "list_timelines",
+  "get_timeline",
   "list_timeline_versions",
   "get_timeline_version",
   "create_timeline_version",
@@ -106,6 +109,11 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "validate_js_script",
   "run_js_script",
   "test_js_script",
+  "list_js_script_versions",
+  "get_js_script_version",
+  "create_js_script_version",
+  "restore_js_script_version",
+  "delete_js_script_version",
 
   // Vision (lazy image loading: handles → pixels on demand)
   "list_images",

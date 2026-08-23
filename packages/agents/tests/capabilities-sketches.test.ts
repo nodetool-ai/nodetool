@@ -63,6 +63,7 @@ async function makeSketch(
 const PAIRS: Array<[string, () => Tool]> = [
   ["list_sketches", () => toolForCapabilityName("list_sketches")],
   ["create_sketch", () => toolForCapabilityName("create_sketch")],
+  ["get_sketch", () => toolForCapabilityName("get_sketch")],
   ["list_sketch_versions", () => toolForCapabilityName("list_sketch_versions")],
   ["get_sketch_version", () => toolForCapabilityName("get_sketch_version")],
   [
@@ -87,6 +88,7 @@ describe("sketches capability module", () => {
     expect(sketches.exports.map((e) => e.spec.name)).toEqual([
       "list_sketches",
       "create_sketch",
+      "get_sketch",
       "list_sketch_versions",
       "get_sketch_version",
       "create_sketch_version",
@@ -214,6 +216,23 @@ describe("sketches capability behaviour", () => {
       sketches: unknown[];
     };
     expect(other.sketches).toEqual([]);
+  });
+
+  it("reads a stored sketch, and hides another user's", async () => {
+    const row = await makeSketch();
+
+    const read = (await run().invoke("get_sketch", {
+      image_document_id: row.id
+    })) as {
+      sketch: { id: string; width: number; document: { sketch: unknown } };
+    };
+    expect(read.sketch).toMatchObject({ id: row.id, width: 1024 });
+    expect(read.sketch.document.sketch).toBeDefined();
+
+    const other = (await run("other").invoke("get_sketch", {
+      image_document_id: row.id
+    })) as { error: string };
+    expect(other.error).toContain("was not found");
   });
 
   it("snapshots, reads, and restores a version", async () => {

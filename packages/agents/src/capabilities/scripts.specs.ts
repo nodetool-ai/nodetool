@@ -153,6 +153,37 @@ export const DERIVE_STORYBOARD_SCHEMA: JsonSchema = {
   required: ["script_id"]
 };
 
+export const CREATE_SCRIPT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    name: { type: "string", description: "Name of the new script." },
+    project_id: {
+      type: "string",
+      description: "Project to create the script in (default 'default')."
+    },
+    id: {
+      type: "string",
+      description:
+        "Id to create it under. An id that already exists is returned as-is, " +
+        "so a retry does not duplicate the script."
+    }
+  },
+  required: ["name"]
+};
+
+export const createScriptSpec: CapabilitySpec = {
+  name: "create_script",
+  description:
+    "Create an empty script and return its id. This is the first step of " +
+    "writing one headlessly: create it, then add speakers and lines with " +
+    "edit_script, and voice them with voice_script_lines. Use " +
+    "extract_script_from_storyboard instead when the words already exist as " +
+    "shot dialogue on a board.",
+  inputSchema: CREATE_SCRIPT_SCHEMA,
+  category: "write",
+  userMessage: (params) => `Creating script ${String(params["name"])}`
+};
+
 export const listScriptsSpec: CapabilitySpec = {
   name: "list_scripts",
   description:
@@ -271,6 +302,7 @@ export const deleteScriptSpec: CapabilitySpec = {
 /** Every spec this module declares, in declaration order. */
 export const scriptsSpecs: readonly CapabilitySpec[] = [
   listScriptsSpec,
+  createScriptSpec,
   getScriptSpec,
   voiceScriptLinesSpec,
   assembleScriptTimelineSpec,

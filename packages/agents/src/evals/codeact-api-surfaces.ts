@@ -206,6 +206,7 @@ interface Shot {
   slug: string;
   action: string;
   duration_seconds: number;
+  duration_source: "audio" | "manual";
   still: string | null;
   clip: string | null;
   revision: number;
@@ -500,6 +501,7 @@ function createWorld() {
               slug: "wide-lighthouse",
               action: "Wide of the lighthouse at dusk",
               duration_seconds: 4,
+              duration_source: "manual",
               still: "asset://still_shot_1",
               clip: null,
               revision: 1
@@ -509,6 +511,7 @@ function createWorld() {
               slug: "keeper-door",
               action: "The keeper closes the door",
               duration_seconds: 3,
+              duration_source: "manual",
               still: null,
               clip: null,
               revision: 1
@@ -518,6 +521,7 @@ function createWorld() {
               slug: "beam-sweep",
               action: "The beam sweeps across the water",
               duration_seconds: 5,
+              duration_source: "manual",
               still: null,
               clip: null,
               revision: 1
@@ -879,6 +883,16 @@ function applyScriptOp(doc: ScriptDoc, op: Record<string, unknown>): void {
   }
 }
 
+/** The two sources a shot's duration may come from; anything else is an error. */
+function durationSource(
+  value: unknown,
+  fallback?: "audio" | "manual"
+): "audio" | "manual" {
+  if (value === undefined && fallback !== undefined) return fallback;
+  if (value === "audio" || value === "manual") return value;
+  throw new Error('duration_source must be "audio" or "manual"');
+}
+
 function applyStoryboardOp(
   doc: StoryboardDoc,
   op: Record<string, unknown>
@@ -894,6 +908,7 @@ function applyStoryboardOp(
         slug: slug(action).slice(0, 24),
         action,
         duration_seconds: num(op["duration_seconds"], 3),
+        duration_source: durationSource(op["duration_source"], "manual"),
         still: null,
         clip: null,
         revision: 1
@@ -910,7 +925,7 @@ function applyStoryboardOp(
       doc.shots.splice(Math.max(0, num(op["index"], 0)), 0, shot);
       return;
     }
-    case "set_shot": {
+    case "update_shot": {
       const target = str(op["target"]);
       const shot = doc.shots.find((s) => s.id === target || s.slug === target);
       if (!shot) throw new Error(`no shot matching "${target}"`);
@@ -922,11 +937,24 @@ function applyStoryboardOp(
           shot.duration_seconds
         );
       }
+      if (op["duration_source"] !== undefined) {
+        shot.duration_source = durationSource(op["duration_source"]);
+      }
+      return;
+    }
+    case "remove_shot": {
+      const target = str(op["target"]);
+      const at = doc.shots.findIndex(
+        (s) => s.id === target || s.slug === target
+      );
+      if (at < 0) throw new Error(`no shot matching "${target}"`);
+      doc.shots.splice(at, 1);
       return;
     }
     default:
       throw new Error(
-        `unknown op "${kind}" — try get_state, add_shot, reorder_shot, set_shot`
+        `unknown op "${kind}" — try get_state, add_shot, update_shot, ` +
+          "remove_shot, reorder_shot"
       );
   }
 }
@@ -2208,6 +2236,7 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
             slug: shot.slug,
             action: shot.action,
             duration_seconds: shot.duration_seconds,
+            duration_source: shot.duration_source,
             has_still: shot.still !== null,
             has_clip: shot.clip !== null,
             revision: shot.revision
@@ -2640,6 +2669,32 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
         );
       },
       resultCheckLabel: "voiced line_2,line_3; 3 clips in tl_scr_intro"
+    }
+  },
+  {
+    id: "storyboard-direct-shots",
+    description: "Direct a board's shot list headlessly, before anything renders",
+    namespaces: ["storyboards"],
+    objective:
+      "Board sb_lighthouse needs one more beat. Add a closing shot — the " +
+      "lamp goes dark — as the last shot, 2 seconds long, timed off its " +
+      "audio rather than a fixed length, and drop the shot showing the " +
+      "keeper closing the door. Change nothing else and render nothing. " +
+      "Finish with {shots, lastAction, lastDurationSource} read back from " +
+      "the board.",
+    outputSchema: obj(
+      { shots: N, lastAction: S, lastDurationSource: S },
+      ["shots", "lastAction", "lastDurationSource"]
+    ),
+    expect: {
+      requiredTools: ["edit_storyboard", "get_storyboard"],
+      forbiddenTools: ["render_storyboard_stills", "render_storyboard_clips"],
+      maxActions: 4,
+      resultCheck: (r: unknown) =>
+        asNumber(field(r, "shots")) === 3 &&
+        /lamp/i.test(asString(field(r, "lastAction"))) &&
+        asString(field(r, "lastDurationSource")) === "audio",
+      resultCheckLabel: "3 shots, closing lamp shot timed off audio"
     }
   },
   {

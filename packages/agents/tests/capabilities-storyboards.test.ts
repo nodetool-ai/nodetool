@@ -246,6 +246,44 @@ describe("storyboards capability behaviour", () => {
   beforeEach(() => initTestDb());
   afterEach(() => ModelObserver.clear());
 
+  it("sets a shot's duration source, and refuses an unknown one", async () => {
+    const context = ctx();
+    const created = (await run(context).invoke("create_storyboard", {
+      name: "Interview"
+    })) as { storyboard_id: string };
+
+    const edited = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [
+        {
+          op: "add_shot",
+          action: "Talking head",
+          duration_seconds: 4,
+          duration_source: "audio"
+        }
+      ]
+    })) as { applied: number };
+    expect(edited.applied).toBe(1);
+
+    const read = (await run(context).invoke("get_storyboard", {
+      storyboard_id: created.storyboard_id
+    })) as { shots: Array<{ id: string; duration_source?: string }> };
+    expect(read.shots[0].duration_source).toBe("audio");
+
+    const refused = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [
+        {
+          op: "update_shot",
+          target: read.shots[0].id,
+          duration_source: "vibes"
+        }
+      ]
+    })) as { failed: number; ops: Array<{ ok: boolean; error?: string }> };
+    expect(refused.failed).toBe(1);
+    expect(refused.ops[0].error).toContain('"audio" or "manual"');
+  });
+
   it("creates a blank board the caller can then edit", async () => {
     const context = ctx();
     const created = (await run(context).invoke("create_storyboard", {

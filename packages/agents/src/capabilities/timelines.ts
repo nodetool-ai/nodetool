@@ -36,6 +36,7 @@ import type {
 } from "./types.js";
 import {
   listTimelinesSpec,
+  getTimelineSpec,
   listTimelineVersionsSpec,
   getTimelineVersionSpec,
   createTimelineVersionSpec,
@@ -47,6 +48,7 @@ import {
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
   LIST_TIMELINES_SCHEMA,
+  GET_TIMELINE_SCHEMA,
   LIST_TIMELINE_VERSIONS_SCHEMA,
   GET_TIMELINE_VERSION_SCHEMA,
   CREATE_TIMELINE_VERSION_SCHEMA,
@@ -63,6 +65,7 @@ export {
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
   LIST_TIMELINES_SCHEMA,
+  GET_TIMELINE_SCHEMA,
   LIST_TIMELINE_VERSIONS_SCHEMA,
   GET_TIMELINE_VERSION_SCHEMA,
   CREATE_TIMELINE_VERSION_SCHEMA,
@@ -182,6 +185,15 @@ const listTimelines: CapabilityExport = {
         updated_at: row.updated_at
       }))
     };
+  }
+};
+
+const getTimeline: CapabilityExport = {
+  spec: getTimelineSpec,
+  impl: async (run, params) => {
+    const seq = await loadTimeline(run, params["timeline_id"]);
+    if (isError(seq)) return seq;
+    return { timeline: seq.toTimelineSequence() };
   }
 };
 
@@ -713,6 +725,7 @@ const deleteTimeline: CapabilityExport = {
 };
 export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   listTimelines,
+  getTimeline,
   listTimelineVersions,
   getTimelineVersion,
   createTimelineVersion,
@@ -730,6 +743,7 @@ export const module: CapabilityModule = {
 
 export {
   listTimelines,
+  getTimeline,
   listTimelineVersions,
   getTimelineVersion,
   createTimelineVersion,
