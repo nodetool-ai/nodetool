@@ -10,7 +10,8 @@ import { GZIP_THRESHOLD } from "./compression.js";
 export async function bridge(
   req: FastifyRequest,
   reply: FastifyReply,
-  handler: (request: Request) => Promise<Response>
+  handler: (request: Request) => Promise<Response>,
+  authenticatedUserIdHeader = "x-user-id"
 ): Promise<void> {
   const proto =
     (req.headers["x-forwarded-proto"] as string | undefined) ?? "http";
@@ -30,8 +31,9 @@ export async function bridge(
   // this, a client could inject an identity on auth-exempt/public routes (where
   // req.userId is unset) and impersonate other users downstream.
   headers.delete("x-user-id");
+  headers.delete(authenticatedUserIdHeader);
   if (req.userId != null) {
-    headers.set("x-user-id", req.userId);
+    headers.set(authenticatedUserIdHeader, req.userId);
   }
 
   const method = req.method;

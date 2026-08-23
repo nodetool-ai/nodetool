@@ -77,60 +77,66 @@ function fastifyPath(path: string, prefix = ""): string {
 function createSdkV1RouteHandlers(
   apiOptions: HttpApiOptions
 ): Readonly<Record<ImplementedSdkV1HttpOperationId, SdkV1FastifyHandler>> {
+  const identityHeader = apiOptions.userIdHeader ?? "x-user-id";
+  const sdkBridge = (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    handler: (webRequest: Request) => Promise<Response>
+  ) => bridge(request, reply, handler, identityHeader);
   return {
     getNodeTypeInventory: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleSdkNodeTypeInventory(webRequest, apiOptions)
       );
     },
     getCapabilities: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleSdkCapabilities(webRequest, apiOptions)
       );
     },
     listModels: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleSdkModelCatalog(webRequest, apiOptions)
       );
     },
     listModelDownloads: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleSdkModelDownloads(webRequest, apiOptions)
       );
     },
     startModelDownload: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleSdkModelDownloadStart(webRequest, apiOptions)
       );
     },
     cancelModelDownload: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleSdkModelDownloadCancel(webRequest, apiOptions)
       );
     },
     preflightWorkflow: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleSdkPreflight(webRequest, apiOptions)
       );
     },
     listWorkflowSummaries: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleSdkWorkflowSummaries(webRequest, apiOptions)
       );
     },
     getWorkflowInterfaces: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleWorkflowInterfaces(webRequest, apiOptions)
       );
     },
     getWorkflowInterface: async (request, reply) => {
       const { id } = request.params as { readonly id: string };
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleWorkflowInterface(webRequest, id, apiOptions)
       );
     },
     uploadTemporaryAsset: async (request, reply) => {
-      await bridge(request, reply, (webRequest) =>
+      await sdkBridge(request, reply, (webRequest) =>
         handleSdkV1TemporaryAssetUpload(webRequest, {
           boundary: resolveSdkV1Boundary(apiOptions)
         })
@@ -147,7 +153,7 @@ const sdkV1Routes: FastifyPluginAsync<SdkV1RoutesOptions> = async (
   const handlers = createSdkV1RouteHandlers(options.apiOptions);
   const operationsByPath = new Map<
     string,
-    typeof implementedSdkV1HttpOperations[number][]
+    (typeof implementedSdkV1HttpOperations)[number][]
   >();
   for (const operation of implementedSdkV1HttpOperations) {
     app.route({

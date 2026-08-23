@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import Fastify from "fastify";
 import { initTestDb } from "@nodetool-ai/models";
 import type { ImplementedSdkV1HttpOperationId } from "@nodetool-ai/protocol/api-schemas/sdk-v1-operations.js";
+import { handleApiRequest } from "../src/http-api.js";
 import sdkV1Routes from "../src/routes/sdk-v1.js";
 import {
   GOLDEN_USER,
@@ -75,12 +76,21 @@ const PROBES = {
   }
 } satisfies Readonly<Record<ImplementedSdkV1HttpOperationId, Probe>>;
 
-describe("SDK v1 Fastify shadow parity", () => {
+const COMPATIBILITY_OPERATION_IDS = [
+  "getNodeTypeInventory",
+  "getCapabilities",
+  "preflightWorkflow",
+  "listWorkflowSummaries",
+  "getWorkflowInterfaces",
+  "getWorkflowInterface"
+] as const satisfies readonly ImplementedSdkV1HttpOperationId[];
+
+describe("SDK v1 Fastify and direct-dispatcher parity", () => {
   beforeAll(() => {
     initTestDb();
   });
 
-  it("matches every production route under a reverse-proxy subpath", async () => {
+  it("matches every route retained by the public direct dispatcher", async () => {
     const registry = makeGoldenRegistry();
     const apiOptions = makeGoldenApiOptions(registry);
     const app = Fastify({ logger: false });
@@ -89,10 +99,6 @@ describe("SDK v1 Fastify shadow parity", () => {
       request.userId = typeof userId === "string" ? userId : null;
     });
     await app.register(sdkV1Routes, { apiOptions });
-    await app.register(sdkV1Routes, {
-      apiOptions,
-      routePrefix: "/__sdk-v1-shadow"
-    });
     await app.ready();
 
     try {
@@ -103,28 +109,24 @@ describe("SDK v1 Fastify shadow parity", () => {
           headers: probe.headers,
           payload: probe.payload
         });
-        const shadow = await app.inject({
-          method: probe.method,
-          url: `/__sdk-v1-shadow${probe.path}`,
-          headers: probe.headers,
-          payload: probe.payload
-        });
-
-        expect(shadow.statusCode, operationId).toBe(production.statusCode);
-        const stableHeaders = (headers: typeof shadow.headers) =>
-          Object.fromEntries(
-            Object.entries(headers).filter(
-              ([name]) => !["connection", "date", "keep-alive"].includes(name)
-            )
-          );
-        expect(stableHeaders(shadow.headers), operationId).toEqual(
-          stableHeaders(production.headers)
+        const direct = await handleApiRequest(
+          new Request(`http://localhost${probe.path}`, {
+            method: probe.method,
+            headers: probe.headers,
+            body: probe.method === "POST" ? probe.payload : undefined
+          }),
+          apiOptions
         );
-        expect(shadow.body, operationId).toBe(production.body);
+
+        expect(production.statusCode, operationId).toBe(direct.status);
+        expect(production.headers["content-type"], operationId).toBe(
+          direct.headers.get("content-type") ?? undefined
+        );
+        expect(production.body, operationId).toBe(await direct.text());
       };
 
-      for (const [operationId, probe] of Object.entries(PROBES)) {
-        await compare(operationId, probe);
+      for (const operationId of COMPATIBILITY_OPERATION_IDS) {
+        await compare(operationId, PROBES[operationId]);
       }
 
       await compare("preflight authentication failure", {
@@ -145,6 +147,33 @@ describe("SDK v1 Fastify shadow parity", () => {
       }
     } finally {
       vi.unstubAllEnvs();
+      await app.close();
+    }
+  });
+
+  it("forwards authenticated identity through a custom configured header", async () => {
+    const registry = makeGoldenRegistry();
+    const apiOptions = {
+      ...makeGoldenApiOptions(registry),
+      userIdHeader: "x-tenant-id"
+    };
+    const app = Fastify({ logger: false });
+    app.addHook("onRequest", async (request) => {
+      request.userId = GOLDEN_USER;
+    });
+    await app.register(sdkV1Routes, { apiOptions });
+    await app.ready();
+
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/sdk/v1/preflight",
+        headers: { "content-type": "application/json" },
+        payload: JSON.stringify({ workflow_id: "workflow-1" })
+      });
+
+      expect(response.statusCode).not.toBe(401);
+    } finally {
       await app.close();
     }
   });

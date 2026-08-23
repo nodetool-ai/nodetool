@@ -81,6 +81,8 @@ export async function handleSdkV1TemporaryAssetUpload(
     }
     file = value;
   } catch {
+    // Malformed multipart bodies are expected client input errors. Do not
+    // expose the parser exception or report it as an internal service failure.
     return errorResponse(400, "INVALID_REQUEST", "Invalid multipart form data");
   }
 

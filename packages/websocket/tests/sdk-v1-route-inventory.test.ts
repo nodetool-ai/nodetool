@@ -14,10 +14,7 @@ function fastifyPath(path: string): string {
 
 function declaredRoutes(): string[] {
   return implementedSdkV1HttpOperations
-    .map(
-      (operation) =>
-        `${operation.method} ${fastifyPath(operation.path)}`
-    )
+    .map((operation) => `${operation.method} ${fastifyPath(operation.path)}`)
     .sort();
 }
 
@@ -101,37 +98,29 @@ describe("SDK v1 route inventory", () => {
     ).toEqual([]);
   });
 
-  it("keeps the old http-api dispatcher out of SDK route ownership", async () => {
+  it("preserves the SDK routes historically owned by handleApiRequest", async () => {
+    const compatibilityOperationIds = new Set([
+      "getNodeTypeInventory",
+      "getCapabilities",
+      "preflightWorkflow",
+      "listWorkflowSummaries",
+      "getWorkflowInterfaces",
+      "getWorkflowInterface"
+    ]);
     const requests = implementedSdkV1HttpOperations
-      .filter((operation) => operation.path.startsWith("/api/sdk/v1/"))
+      .filter((operation) => compatibilityOperationIds.has(operation.id))
       .map((operation) => {
-      const path = operation.path
-        .replace("{id}", "missing-workflow")
-        .replace("{job_id}", "missing-job");
-      return new Request(`http://localhost${path}`, {
-        method: operation.method,
-        headers:
-          operation.method === "POST"
-            ? { "content-type": "application/json" }
-            : undefined,
-        body: operation.method === "POST" ? "{}" : undefined
-      });
+        const path = operation.path.replace("{id}", "missing-workflow");
+        const method = operation.method === "GET" ? "POST" : "GET";
+        return new Request(`http://localhost${path}`, { method });
       });
 
     for (const request of requests) {
       const response = await handleApiRequest(request, {});
-      expect(response.status, `${request.method} ${request.url}`).toBe(404);
-      expect(await response.json()).toEqual({ detail: "Not found" });
+      expect(response.status, `${request.method} ${request.url}`).toBe(405);
+      expect(await response.json()).toMatchObject({
+        detail: "Method not allowed"
+      });
     }
-
-    // The compatibility route overlaps the generic `/api/workflows/:id`
-    // dispatcher shape, so source ownership is the unambiguous assertion.
-    const dispatcherSource = readFileSync(
-      new URL("../src/http-api.ts", import.meta.url),
-      "utf8"
-    );
-    expect(dispatcherSource).not.toContain(
-      'subPath === "interface"'
-    );
   });
 });
