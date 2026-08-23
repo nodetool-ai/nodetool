@@ -15,10 +15,14 @@
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai/studio)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-Describe what you want; the agent builds the workflow, runs it, and repairs what
-fails. Image, video, audio, and language models wire into one canvas that also
-holds a video timeline and a layered paint surface. It runs on your machine,
-against your own provider keys, at provider prices.
+NodeTool is an open-source creative AI suite that runs on your machine. A
+node-based canvas, a multi-track video timeline, and a layered sketch editor
+share one workspace, and every major AI model, cloud or local, wires into all
+three.
+
+It is agent-first: every action you can take in the UI is also an agent tool,
+so an agent can wire a graph, paint a layer, cut a clip, or place a widget on
+the same surfaces you use, then run the result and repair what fails.
 
 ![NodeTool: one prompt fanned out to four video models on the canvas](demo_canvas.gif)
 
@@ -32,9 +36,7 @@ against your own provider keys, at provider prices.
 
 **Studio** is the free desktop app. Workflows, keys, and files stay local; it
 runs offline against Ollama, MLX, or GGUF models, and connects to cloud
-providers when you give it a key. **[Cloud](https://nodetool.ai/cloud)** (alpha)
-is the same workspace in a browser with nothing to install — also bring-your-own
-keys.
+providers when you give it a key.
 
 No GPU is needed to start: with a provider key the models run on their servers.
 A GPU only matters once you want inference on your own machine.
