@@ -32,6 +32,7 @@ export interface PendingAuthorizeRequest {
 interface CodeEntry {
   request: PendingAuthorizeRequest;
   userId: string;
+  grantId: string;
   createdAt: number;
   consumed: boolean;
 }
@@ -89,13 +90,23 @@ export class PendingStore {
     return request;
   }
 
-  /** Mint an authorization code for an approved request. Returns the code. */
-  putCode(input: { request: PendingAuthorizeRequest; userId: string }): string {
+  /**
+   * Mint an authorization code for an approved request. Returns the code.
+   * `grantId` is the consent record the approval created — the token
+   * endpoint mints tokens for exactly that grant, and revokes it on code
+   * replay, so consent and redemption never produce two grant rows.
+   */
+  putCode(input: {
+    request: PendingAuthorizeRequest;
+    userId: string;
+    grantId: string;
+  }): string {
     this.pruneCodes();
     const code = randomBytes(32).toString("base64url");
     this.codes.set(code, {
       request: input.request,
       userId: input.userId,
+      grantId: input.grantId,
       createdAt: Date.now(),
       consumed: false
     });
@@ -107,9 +118,12 @@ export class PendingStore {
    * is true when this code was already consumed once — the OAuth 2.1 code
    * replay rule: the caller must revoke every token minted from this code.
    */
-  consumeCode(
-    code: string
-  ): { request: PendingAuthorizeRequest; userId: string; consumedBefore: boolean } | null {
+  consumeCode(code: string): {
+    request: PendingAuthorizeRequest;
+    userId: string;
+    grantId: string;
+    consumedBefore: boolean;
+  } | null {
     this.pruneCodes();
     const entry = this.codes.get(code);
     if (!entry) {
@@ -121,7 +135,12 @@ export class PendingStore {
     }
     const consumedBefore = entry.consumed;
     entry.consumed = true;
-    return { request: entry.request, userId: entry.userId, consumedBefore };
+    return {
+      request: entry.request,
+      userId: entry.userId,
+      grantId: entry.grantId,
+      consumedBefore
+    };
   }
 }
 

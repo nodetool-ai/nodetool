@@ -187,14 +187,18 @@ export const agentAccessRouter = router({
       if (!request) {
         throwApiError(ApiErrorCode.NOT_FOUND, OAUTH_REQUEST_NOT_FOUND);
       }
-      await McpOauthGrant.create({
+      const grant = await McpOauthGrant.create({
         user_id: ctx.userId,
         client_id: request.clientId,
         client_name: request.clientName,
         scope: request.scope,
         resource: request.resource
       });
-      const code = pendingStore.putCode({ request, userId: ctx.userId });
+      const code = pendingStore.putCode({
+        request,
+        userId: ctx.userId,
+        grantId: grant.id
+      });
       return {
         redirect_url: buildRedirectUrl(request.redirectUri, {
           code,

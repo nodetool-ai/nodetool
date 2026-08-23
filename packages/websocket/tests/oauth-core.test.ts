@@ -221,7 +221,7 @@ describe("PendingStore", () => {
 
   it("putCode/consumeCode round-trips and reports single consumption", () => {
     const request = { ...baseRequest(), id: "req-1", createdAt: Date.now() };
-    const code = store.putCode({ request, userId: "user-1" });
+    const code = store.putCode({ request, userId: "user-1", grantId: "grant-1" });
     const result = store.consumeCode(code);
     expect(result?.consumedBefore).toBe(false);
     expect(result?.userId).toBe("user-1");
@@ -229,7 +229,7 @@ describe("PendingStore", () => {
 
   it("reports consumedBefore=true on a second consumption of the same code", () => {
     const request = { ...baseRequest(), id: "req-1", createdAt: Date.now() };
-    const code = store.putCode({ request, userId: "user-1" });
+    const code = store.putCode({ request, userId: "user-1", grantId: "grant-1" });
     store.consumeCode(code);
     const replay = store.consumeCode(code);
     expect(replay?.consumedBefore).toBe(true);
@@ -239,7 +239,7 @@ describe("PendingStore", () => {
     vi.useFakeTimers();
     try {
       const request = { ...baseRequest(), id: "req-1", createdAt: Date.now() };
-      const code = store.putCode({ request, userId: "user-1" });
+      const code = store.putCode({ request, userId: "user-1", grantId: "grant-1" });
       vi.advanceTimersByTime(600_001);
       expect(store.consumeCode(code)).toBeNull();
     } finally {
