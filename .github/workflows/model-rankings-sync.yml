@@ -10,7 +10,7 @@ name: Model Rankings Sync
 #
 # The sync needs no provider API keys and no built packages: the canonical slugs
 # and their provider routes come from the shipped GenSpend price catalog in the
-# same package. It does need `ARTIFICIALANALYSIS_API_KEY` — without one the
+# same package. It does need `ARTIFICIAL_ANALYSIS_API_KEY` — without one the
 # script exits 0 having fetched nothing, which is what a fork gets.
 
 on:
@@ -43,7 +43,7 @@ jobs:
 
       - name: Sync rankings
         env:
-          ARTIFICIALANALYSIS_API_KEY: ${{ secrets.ARTIFICIALANALYSIS_API_KEY }}
+          ARTIFICIAL_ANALYSIS_API_KEY: ${{ secrets.ARTIFICIAL_ANALYSIS_API_KEY }}
         run: npm run sync:model-rankings -- --report model-rankings-report.json
 
       - name: Upload match report

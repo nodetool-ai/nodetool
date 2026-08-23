@@ -21,7 +21,7 @@
  *   node scripts/sync-model-rankings.mjs --report r.json
  *   node scripts/sync-model-rankings.mjs --from-dir fixtures/   # <task>.json each
  *
- * Needs `ARTIFICIALANALYSIS_API_KEY` unless `--from-dir` is given. Without one
+ * Needs `ARTIFICIAL_ANALYSIS_API_KEY` unless `--from-dir` is given. Without one
  * the run is a no-op that exits 0: a fork's CI has no secret, and a missing key
  * is not a broken pipeline.
  *
@@ -313,10 +313,10 @@ async function main() {
     return;
   }
 
-  const apiKey = process.env.ARTIFICIALANALYSIS_API_KEY ?? "";
+  const apiKey = process.env.ARTIFICIAL_ANALYSIS_API_KEY ?? "";
   if (!args.fromDir && !apiKey) {
     console.log(
-      "skipped: no ARTIFICIALANALYSIS_API_KEY — nothing fetched, artifact left as shipped."
+      "skipped: no ARTIFICIAL_ANALYSIS_API_KEY — nothing fetched, artifact left as shipped."
     );
     return;
   }
