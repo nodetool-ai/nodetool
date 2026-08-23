@@ -69,7 +69,11 @@ function issuerOrigin(): string {
       "MCP public URL is not configured."
     );
   }
-  return new URL(mcpUrl).origin;
+  // Strip the `/mcp` suffix configuredMcpUrl appended, keeping any sub-path:
+  // RFC 9207 clients string-compare `iss` against the metadata `issuer`,
+  // which preserves the path — `new URL(...).origin` would drop it and fail
+  // every path-mounted deployment.
+  return mcpUrl.slice(0, -"/mcp".length);
 }
 
 /** Append the authorize-response query params onto a registered redirect
@@ -186,6 +190,15 @@ export const agentAccessRouter = router({
       const request = pendingStore.consumeRequest(input.request_id);
       if (!request) {
         throwApiError(ApiErrorCode.NOT_FOUND, OAUTH_REQUEST_NOT_FOUND);
+      }
+      // Re-consent supersedes: revoke any live grant this client already
+      // holds, so "Connected MCP clients" shows one row per client and
+      // revoking it disconnects the client for real.
+      const existing = await McpOauthGrant.listForUser(ctx.userId);
+      for (const prior of existing) {
+        if (prior.client_id === request.clientId) {
+          await McpOauthGrant.revoke(ctx.userId, prior.id);
+        }
       }
       const grant = await McpOauthGrant.create({
         user_id: ctx.userId,

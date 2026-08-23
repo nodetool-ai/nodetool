@@ -327,6 +327,31 @@ describe("fetchClientMetadata", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("aborts an oversize streamed body without buffering it", async () => {
+    const url = "https://client.example.com/streamed.json";
+    // A server that streams forever after fast headers: the capped reader
+    // must cancel at the 64KB cap instead of buffering toward arrayBuffer.
+    let chunksServed = 0;
+    const chunk = new TextEncoder().encode("y".repeat(8 * 1024));
+    const endless = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        chunksServed += 1;
+        controller.enqueue(chunk);
+      }
+    });
+    const fetchImpl = vi.fn(async () =>
+      new Response(endless, {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      })
+    ) as unknown as typeof fetch;
+    const result = await fetchClientMetadata(url, fetchImpl);
+    expect(result.ok).toBe(false);
+    // Stopped at the cap: 64KB / 8KB chunks, plus at most a small readahead
+    // — nowhere near unbounded.
+    expect(chunksServed).toBeLessThan(20);
+  });
+
   it("rejects an oversize body", async () => {
     const url = "https://client.example.com/oversize.json";
     const huge = "x".repeat(70 * 1024);

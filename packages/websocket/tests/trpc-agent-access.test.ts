@@ -317,6 +317,36 @@ describe("agentAccess OAuth consent", () => {
   });
 });
 
+describe("agentAccess OAuth consent — iss and grant uniqueness", () => {
+  it("preserves a sub-path in iss (RFC 9207 string comparison)", async () => {
+    process.env.NODETOOL_PUBLIC_URL = "https://nodetool.example.com/base";
+    const caller = createCaller(makeCtx("user-a"));
+    const requestId = parkRequest();
+    const { redirect_url } = await caller.agentAccess.approveOauthRequest({
+      request_id: requestId
+    });
+    const iss = new URL(redirect_url).searchParams.get("iss");
+    // new URL(...).origin would say https://nodetool.example.com and every
+    // conforming client would reject the response against the metadata
+    // issuer https://nodetool.example.com/base.
+    expect(iss).toBe("https://nodetool.example.com/base");
+  });
+
+  it("re-consent supersedes: one active grant per (user, client)", async () => {
+    process.env.NODETOOL_PUBLIC_URL = "https://nodetool.example.com";
+    const caller = createCaller(makeCtx("user-a"));
+    await caller.agentAccess.approveOauthRequest({
+      request_id: parkRequest()
+    });
+    await caller.agentAccess.approveOauthRequest({
+      request_id: parkRequest()
+    });
+    const { grants } = await caller.agentAccess.listOauthGrants();
+    const forClient = grants.filter((g) => g.client_id === "ntc_abc123");
+    expect(forClient).toHaveLength(1);
+  });
+});
+
 describe("agentAccess OAuth grants", () => {
   it("lists a user's active grants, excluding revoked ones", async () => {
     const caller = createCaller(makeCtx("user-a"));

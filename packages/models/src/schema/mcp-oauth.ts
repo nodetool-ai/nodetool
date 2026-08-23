@@ -1,4 +1,4 @@
-import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { jsonText } from "./helpers.js";
 
 /**
@@ -58,6 +58,6 @@ export const mcpOauthTokens = sqliteTable(
   },
   (table) => [
     index("idx_mcp_oauth_token_grant").on(table.grant_id),
-    index("idx_mcp_oauth_token_rotated_from").on(table.rotated_from)
+    uniqueIndex("idx_mcp_oauth_token_rotated_from").on(table.rotated_from)
   ]
 );

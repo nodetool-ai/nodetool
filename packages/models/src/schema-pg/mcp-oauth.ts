@@ -1,4 +1,4 @@
-import { pgTable, text, index } from "drizzle-orm/pg-core";
+import { pgTable, text, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { jsonText } from "./helpers.js";
 
 /** PostgreSQL twin of `schema/mcp-oauth.ts`. */
@@ -38,6 +38,6 @@ export const mcpOauthTokens = pgTable(
   },
   (table) => [
     index("idx_mcp_oauth_token_grant").on(table.grant_id),
-    index("idx_mcp_oauth_token_rotated_from").on(table.rotated_from)
+    uniqueIndex("idx_mcp_oauth_token_rotated_from").on(table.rotated_from)
   ]
 );

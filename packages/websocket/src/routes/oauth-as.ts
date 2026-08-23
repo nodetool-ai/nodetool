@@ -32,7 +32,7 @@ import {
   McpOauthToken,
   MCP_OAUTH_ACCESS_TTL_MS
 } from "@nodetool-ai/models";
-import { configuredMcpUrl } from "../lib/mcp-mount.js";
+import { configuredMcpUrl, isMcpHttpEnabled } from "../lib/mcp-mount.js";
 import {
   buildProtectedResourceMetadata,
   buildAuthServerMetadata
@@ -70,10 +70,25 @@ function resolvePublicUrl(): string | null {
 }
 
 /** The base URL, or null when the flow is disabled or unconfigured — every
- * handler's single gate. */
+ * handler's single gate. The AS exists only where the resource it issues
+ * for is mounted (`isMcpHttpEnabled`, the same gate as `/mcp` itself):
+ * otherwise a production server with a public URL but no MCP mount would
+ * accept anonymous registrations and mint credentials for nothing. A
+ * non-HTTPS issuer is refused unless it is loopback (the local-dev case) —
+ * the design's "AS endpoints HTTPS in production" check. */
 function resolveEnabledPublicUrl(): string | null {
   if (process.env[DISABLE_ENV_VAR] === "1") return null;
-  return resolvePublicUrl();
+  if (!isMcpHttpEnabled(process.env)) return null;
+  const publicUrl = resolvePublicUrl();
+  if (!publicUrl) return null;
+  try {
+    const url = new URL(publicUrl);
+    const loopback = url.hostname === "127.0.0.1" || url.hostname === "localhost";
+    if (url.protocol !== "https:" && !loopback) return null;
+  } catch {
+    return null;
+  }
+  return publicUrl;
 }
 
 function notFound(reply: FastifyReply): FastifyReply {
@@ -184,11 +199,59 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       .send(build(publicUrl));
   }
 
-  app.get("/.well-known/oauth-protected-resource/mcp", async (_req, reply) =>
-    serveWellKnown(reply, buildProtectedResourceMetadata)
+  /** The issuer's path component with no trailing slash — "" when the
+   * public URL is at the origin root. RFC 8414/9728 path-insertion appends
+   * this to the well-known prefix, so a sub-path deployment's documents
+   * live at `/.well-known/<suffix>/<issuer-path>[...]`. */
+  function issuerPath(publicUrl: string): string {
+    const path = new URL(publicUrl).pathname;
+    return path === "/" ? "" : path.replace(/\/$/, "");
+  }
+
+  function serveWellKnownAt(
+    req: { params: unknown },
+    reply: FastifyReply,
+    expectedSuffixPath: (publicUrl: string) => string,
+    build: (publicUrl: string) => unknown
+  ): FastifyReply {
+    const publicUrl = resolveEnabledPublicUrl();
+    if (!publicUrl) return notFound(reply);
+    const wildcard = (req.params as Record<string, string>)["*"] ?? "";
+    if (`/${wildcard}` !== expectedSuffixPath(publicUrl)) {
+      return notFound(reply);
+    }
+    return reply
+      .status(200)
+      .header("Cache-Control", "public, max-age=3600")
+      .type("application/json")
+      .send(build(publicUrl));
+  }
+
+  // Path-inserted forms (the only valid forms when the issuer carries a
+  // sub-path): metadata for issuer https://host/base lives at
+  // /.well-known/oauth-authorization-server/base, and the protected-resource
+  // document for https://host/base/mcp at
+  // /.well-known/oauth-protected-resource/base/mcp. A root deployment's
+  // resource form /.well-known/oauth-protected-resource/mcp is the same
+  // wildcard with issuerPath = "".
+  app.get("/.well-known/oauth-protected-resource/*", async (req, reply) =>
+    serveWellKnownAt(
+      req,
+      reply,
+      (publicUrl) => `${issuerPath(publicUrl)}/mcp`,
+      buildProtectedResourceMetadata
+    )
   );
   app.get("/.well-known/oauth-protected-resource", async (_req, reply) =>
     serveWellKnown(reply, buildProtectedResourceMetadata)
+  );
+  app.get("/.well-known/oauth-authorization-server/*", async (req, reply) =>
+    serveWellKnownAt(
+      req,
+      reply,
+      (publicUrl) => issuerPath(publicUrl) || "/",
+      buildAuthServerMetadata
+    )
   );
   app.get("/.well-known/oauth-authorization-server", async (_req, reply) =>
     serveWellKnown(reply, buildAuthServerMetadata)
@@ -436,6 +499,25 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
         "invalid_grant",
         "refresh token reuse detected — the grant has been revoked"
       );
+    }
+
+    // RFC 6749 §3.2.1: when the client identifies itself, the refresh chain
+    // must belong to it. Public clients may omit client_id; a mismatched one
+    // is a valid token presented under the wrong identity — a compromise
+    // signal, handled like refresh reuse: the whole grant is revoked,
+    // including the pair the rotation just minted.
+    const presentedClientId = params.get("client_id");
+    if (presentedClientId !== null) {
+      const grant = await McpOauthGrant.get(result.grantId);
+      if (!grant || grant.client_id !== presentedClientId) {
+        await McpOauthToken.revokeByRawToken(result.refreshToken);
+        return oauthError(
+          reply,
+          400,
+          "invalid_grant",
+          "client_id does not match the grant"
+        );
+      }
     }
 
     return reply.status(200).send({

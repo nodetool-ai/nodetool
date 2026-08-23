@@ -117,6 +117,11 @@ export class PendingStore {
    * Consume an authorization code at the token endpoint. `consumedBefore`
    * is true when this code was already consumed once — the OAuth 2.1 code
    * replay rule: the caller must revoke every token minted from this code.
+   *
+   * The replay signal lives only as long as the code entry (CODE_TTL_MS):
+   * a replay arriving after the prune window returns plain null and revokes
+   * nothing. Accepted narrowing — a leaked code is valuable immediately or
+   * not at all, and the 10-minute window covers the realistic race.
    */
   consumeCode(code: string): {
     request: PendingAuthorizeRequest;

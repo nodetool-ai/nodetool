@@ -157,6 +157,88 @@ describe("NODETOOL_DISABLE_MCP_OAUTH", () => {
   });
 });
 
+describe("AS gate follows the /mcp mount gate", () => {
+  it("404s the AS when production has no NODETOOL_ENABLE_MCP", async () => {
+    const prevEnv = process.env["NODETOOL_ENV"];
+    const prevEnable = process.env["NODETOOL_ENABLE_MCP"];
+    process.env["NODETOOL_ENV"] = "production";
+    delete process.env["NODETOOL_ENABLE_MCP"];
+    try {
+      const app = await buildApp();
+      const res = await app.inject({
+        method: "GET",
+        url: "/.well-known/oauth-authorization-server"
+      });
+      // The resource isn't mounted, so the AS that issues for it must not
+      // exist either — no anonymous /oauth/register rows, no CIMD fetches.
+      expect(res.statusCode).toBe(404);
+      const reg = await app.inject({
+        method: "POST",
+        url: "/oauth/register",
+        payload: JSON.stringify({
+          client_name: "x",
+          redirect_uris: ["https://client.example/cb"],
+          token_endpoint_auth_method: "none"
+        }),
+        headers: { "content-type": "application/json" }
+      });
+      expect(reg.statusCode).toBe(404);
+    } finally {
+      if (prevEnv === undefined) delete process.env["NODETOOL_ENV"];
+      else process.env["NODETOOL_ENV"] = prevEnv;
+      if (prevEnable === undefined) delete process.env["NODETOOL_ENABLE_MCP"];
+      else process.env["NODETOOL_ENABLE_MCP"] = prevEnable;
+    }
+  });
+
+  it("404s the AS when the public URL is http on a non-loopback host", async () => {
+    const prev = process.env["NODETOOL_PUBLIC_URL"];
+    process.env["NODETOOL_PUBLIC_URL"] = "http://mcp.example.com";
+    try {
+      const app = await buildApp();
+      const res = await app.inject({
+        method: "GET",
+        url: "/.well-known/oauth-authorization-server"
+      });
+      expect(res.statusCode).toBe(404);
+    } finally {
+      if (prev === undefined) delete process.env["NODETOOL_PUBLIC_URL"];
+      else process.env["NODETOOL_PUBLIC_URL"] = prev;
+    }
+  });
+});
+
+describe("path-bearing public URL", () => {
+  it("serves the RFC 8414/9728 path-inserted well-known forms", async () => {
+    const prev = process.env["NODETOOL_PUBLIC_URL"];
+    process.env["NODETOOL_PUBLIC_URL"] = "https://host.example/base";
+    try {
+      const app = await buildApp();
+      const as = await app.inject({
+        method: "GET",
+        url: "/.well-known/oauth-authorization-server/base"
+      });
+      expect(as.statusCode).toBe(200);
+      expect(as.json().issuer).toBe("https://host.example/base");
+      const pr = await app.inject({
+        method: "GET",
+        url: "/.well-known/oauth-protected-resource/base/mcp"
+      });
+      expect(pr.statusCode).toBe(200);
+      expect(pr.json().resource).toBe("https://host.example/base/mcp");
+      // A suffix that isn't this issuer's path is nobody's document.
+      const wrong = await app.inject({
+        method: "GET",
+        url: "/.well-known/oauth-authorization-server/other"
+      });
+      expect(wrong.statusCode).toBe(404);
+    } finally {
+      if (prev === undefined) delete process.env["NODETOOL_PUBLIC_URL"];
+      else process.env["NODETOOL_PUBLIC_URL"] = prev;
+    }
+  });
+});
+
 describe("POST /oauth/register", () => {
   it("registers a public client and returns an ntc_ id", async () => {
     const app = await buildApp();
@@ -199,9 +281,9 @@ describe("POST /oauth/register", () => {
 });
 
 /** Drives register → authorize → GET the request out of `pendingStore`
- * (standing in for the consent page) → mint a code via `pendingStore`
- * directly (standing in for T4's `approveOauthRequest`, not implemented
- * yet in this wave) → token. */
+ * (standing in for the consent page), then mirrors what the committed
+ * `approveOauthRequest` does: create the grant and mint a code via
+ * `pendingStore` carrying its id. */
 async function authorizeAndApprove(
   app: FastifyInstance,
   overrides: {
@@ -219,6 +301,7 @@ async function authorizeAndApprove(
   verifier: string;
   code: string;
   requestId: string;
+  grantId: string;
 }> {
   const { client_id: clientId } = await registerClient(app);
   const { verifier, challenge } = pkcePair();
@@ -501,14 +584,9 @@ describe("POST /oauth/token — authorization_code", () => {
     expect(first.statusCode).toBe(200);
     const { access_token: accessToken } = first.json();
 
-    // First-issue tokens verify.
-    const introspectBefore = await app.inject({
-      method: "POST",
-      url: "/oauth/revoke",
-      payload: new URLSearchParams({ token: "nta_probe_not-a-real-check" }).toString(),
-      headers
-    });
-    expect(introspectBefore.statusCode).toBe(200); // sanity: revoke endpoint itself always 200s
+    // First-issue tokens verify before the replay.
+    const { McpOauthToken: TokenModel } = await import("@nodetool-ai/models");
+    expect(await TokenModel.verifyAccess(accessToken)).not.toBeNull();
 
     // Replay the same code.
     const replay = await app.inject({ method: "POST", url: "/oauth/token", payload: exchangeBody, headers });
@@ -610,6 +688,55 @@ describe("POST /oauth/token — refresh_token", () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe("invalid_request");
+  });
+});
+
+describe("refresh_token client binding", () => {
+  it("a wrong client_id on a valid refresh token revokes the grant", async () => {
+    const app = await buildApp();
+    const { clientId, redirectUri, verifier, code } = await authorizeAndApprove(app);
+    const headers = { "content-type": "application/x-www-form-urlencoded" };
+    const issued = await app.inject({
+      method: "POST",
+      url: "/oauth/token",
+      payload: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_verifier: verifier
+      }).toString(),
+      headers
+    });
+    expect(issued.statusCode).toBe(200);
+    const { refresh_token: refreshToken } = issued.json();
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/oauth/token",
+      payload: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+        client_id: "ntc_someoneelse"
+      }).toString(),
+      headers
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("invalid_grant");
+
+    // A compromise signal revokes the grant: the same refresh token is now
+    // dead even under the right identity.
+    const retry = await app.inject({
+      method: "POST",
+      url: "/oauth/token",
+      payload: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+        client_id: clientId
+      }).toString(),
+      headers
+    });
+    expect(retry.statusCode).toBe(400);
   });
 });
 

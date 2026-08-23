@@ -2848,7 +2848,7 @@ export const migrations: MigrationDef[] = [
         ON mcp_oauth_tokens (grant_id)
       `);
       await db.execute(`
-        CREATE INDEX IF NOT EXISTS idx_mcp_oauth_token_rotated_from
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_oauth_token_rotated_from
         ON mcp_oauth_tokens (rotated_from)
       `);
     },

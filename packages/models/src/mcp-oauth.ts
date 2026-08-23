@@ -155,9 +155,10 @@ export class McpOauthClient extends DBModel {
   }
 
   /**
-   * Delete client rows with no grant that were created before `olderThanMs`
-   * ago. A client that a user never approved (or fully revoked) is dead
-   * weight; one with an active grant is left alone regardless of age.
+   * Delete client rows with no grant row at all that were created before
+   * `olderThanMs` ago. A client the user never approved is dead weight; one
+   * with any grant — active or revoked — is kept, because the revoked grant
+   * row is the user-visible record of who was once connected.
    * Returns the number of rows deleted.
    */
   static async gcUnused(olderThanMs: number): Promise<number> {
@@ -321,11 +322,17 @@ function mintTokenRow(
   grant_id: string,
   kind: "access" | "refresh",
   ttlMs: number,
-  rotatedFrom: string | null = null
+  rotatedFrom: string | null = null,
+  absoluteExpiry: Date | null = null
 ): MintedTokenRow {
   const id = randomBytes(TOKEN_ID_BYTES).toString("hex");
   const secret = randomBytes(TOKEN_SECRET_BYTES).toString("base64url");
-  const expiresAt = new Date(Date.now() + ttlMs);
+  const fromTtl = new Date(Date.now() + ttlMs);
+  // A rotated refresh token inherits its chain's expiry: the 30-day refresh
+  // lifetime is absolute from first mint, not sliding — a client that
+  // rotates monthly must still re-consent when the chain runs out.
+  const expiresAt =
+    absoluteExpiry && absoluteExpiry < fromTtl ? absoluteExpiry : fromTtl;
   return {
     id,
     grant_id,
@@ -506,10 +513,25 @@ export class McpOauthToken extends DBModel {
       record.grant_id,
       "refresh",
       MCP_OAUTH_REFRESH_TTL_MS,
-      record.id
+      record.id,
+      new Date(record.expires_at)
     );
+    // The refresh row goes first: the unique index on `rotated_from` makes
+    // it the atomic claim on this rotation. Two concurrent presentations of
+    // the same token both pass the successor check above, but only one
+    // insert survives the constraint — the loser is a reuse presentation,
+    // and reuse revokes the grant.
+    try {
+      await saveTokenRow(refresh);
+    } catch {
+      await McpOauthToken.revokeGrantTokens(record.grant_id);
+      await db
+        .update(mcpOauthGrants)
+        .set({ revoked_at: isoNow() })
+        .where(eq(mcpOauthGrants.id, record.grant_id));
+      return { reuseDetected: true };
+    }
     await saveTokenRow(access);
-    await saveTokenRow(refresh);
     return {
       accessToken: rawToken(access),
       refreshToken: rawToken(refresh),
@@ -526,9 +548,14 @@ export class McpOauthToken extends DBModel {
   }
 
   /**
-   * Revoke a single presented token (RFC 7009): `nta_` or `ntr_`. Returns
-   * whether a matching row was found and deleted — the route always answers
-   * 200 either way, per spec.
+   * Revoke a presented token (RFC 7009): `nta_` or `ntr_`. Returns whether
+   * a matching row was found — the route always answers 200 either way.
+   *
+   * An access token deletes only its own row. A refresh token revokes the
+   * whole grant (RFC 7009 §2.1): deleting just the presented row would
+   * erase the `rotated_from` link that reuse detection depends on, letting
+   * an exfiltrated *ancestor* refresh token rotate successfully after the
+   * user "disconnected" the client.
    */
   static async revokeByRawToken(token: string): Promise<boolean> {
     const parsed =
@@ -546,6 +573,14 @@ export class McpOauthToken extends DBModel {
     const record = new McpOauthToken(row as Record<string, unknown>);
     if (!digestsMatch(record.secret_hash, hashSecret(parsed.secret))) {
       return false;
+    }
+    if (record.kind === "refresh") {
+      await McpOauthToken.revokeGrantTokens(record.grant_id);
+      await db
+        .update(mcpOauthGrants)
+        .set({ revoked_at: isoNow() })
+        .where(eq(mcpOauthGrants.id, record.grant_id));
+      return true;
     }
     await record.delete();
     return true;

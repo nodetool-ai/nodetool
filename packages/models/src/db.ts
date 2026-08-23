@@ -1381,7 +1381,7 @@ function getCreateSchemaSql(): string {
       "last_used_at" text
     );
     CREATE INDEX IF NOT EXISTS "idx_mcp_oauth_token_grant" ON "mcp_oauth_tokens" ("grant_id");
-    CREATE INDEX IF NOT EXISTS "idx_mcp_oauth_token_rotated_from" ON "mcp_oauth_tokens" ("rotated_from");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_mcp_oauth_token_rotated_from" ON "mcp_oauth_tokens" ("rotated_from");
   `;
 }
 

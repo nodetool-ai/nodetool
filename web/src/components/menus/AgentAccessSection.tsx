@@ -242,7 +242,7 @@ const AgentAccessSection = () => {
           color="primary"
           disabled={!name.trim() || createToken.isPending}
           onClick={handleCreate}
-          sx={{ padding: "0.4em 1.5em", whiteSpace: "nowrap" }}
+          sx={{ padding: `${SPACING.sm}px ${SPACING.xl}px`, whiteSpace: "nowrap" }}
         />
       </FlexRow>
 
@@ -279,7 +279,7 @@ const AgentAccessSection = () => {
         </FlexColumn>
       )}
 
-      {tokensLoading && <Text sx={{ padding: "1em" }}>Loading tokens…</Text>}
+      {tokensLoading && <Text sx={{ padding: `${SPACING.md}px` }}>Loading tokens…</Text>}
 
       {tokens.length > 0 && (
         <FlexColumn gap={0}>
@@ -307,7 +307,7 @@ const AgentAccessSection = () => {
                   onClick={() => revokeToken.mutate(token.id)}
                   navSize="small"
                   sx={{
-                    padding: "0.25em 1em",
+                    padding: `${SPACING.xs}px ${SPACING.md}px`,
                     minWidth: "unset",
                     fontSize: theme.fontSizeSmall
                   }}
@@ -320,7 +320,7 @@ const AgentAccessSection = () => {
 
       <FlexColumn gap={0} sx={{ mt: 2 }}>
         <Caption sx={{ mb: 0.5 }}>Connected MCP clients</Caption>
-        {grantsLoading && <Text sx={{ padding: "1em" }}>Loading…</Text>}
+        {grantsLoading && <Text sx={{ padding: `${SPACING.md}px` }}>Loading…</Text>}
         {!grantsLoading && grants.length === 0 && (
           <Text className="description">No MCP client has connected yet.</Text>
         )}
@@ -343,7 +343,7 @@ const AgentAccessSection = () => {
                 onClick={() => setGrantToRevoke(grant)}
                 navSize="small"
                 sx={{
-                  padding: "0.25em 1em",
+                  padding: `${SPACING.xs}px ${SPACING.md}px`,
                   minWidth: "unset",
                   fontSize: theme.fontSizeSmall
                 }}

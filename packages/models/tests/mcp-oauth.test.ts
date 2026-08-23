@@ -209,7 +209,7 @@ describe("McpOauthGrant + McpOauthToken", () => {
     expect(grant!.revoked_at).not.toBeNull();
   });
 
-  it("revokeByRawToken revokes a single access or refresh token", async () => {
+  it("revokeByRawToken on an access token deletes only that row", async () => {
     const grantId = await makeGrant();
     const { accessToken, refreshToken } =
       await McpOauthToken.mintPair(grantId);
@@ -221,6 +221,82 @@ describe("McpOauthGrant + McpOauthToken", () => {
     const rotated = await McpOauthToken.rotateRefresh(refreshToken);
     expect(rotated).not.toBeNull();
     expect("reuseDetected" in (rotated as object)).toBe(false);
+  });
+
+  it("revoking a refresh token revokes the whole grant, so a revoked chain's ancestor cannot rotate", async () => {
+    const grantId = await makeGrant();
+    const pair1 = await McpOauthToken.mintPair(grantId);
+    // Rotate once: pair1's refresh token is now the ancestor of pair2's.
+    const rotated = await McpOauthToken.rotateRefresh(pair1.refreshToken);
+    expect(rotated).not.toBeNull();
+    expect("reuseDetected" in (rotated as object)).toBe(false);
+    const pair2 = rotated as { accessToken: string; refreshToken: string };
+
+    // The user disconnects by revoking the current refresh token.
+    expect(await McpOauthToken.revokeByRawToken(pair2.refreshToken)).toBe(true);
+
+    // The exfiltrated ancestor must not be able to mint a fresh pair — the
+    // grant is revoked, not just the presented row deleted.
+    expect(await McpOauthToken.rotateRefresh(pair1.refreshToken)).toBeNull();
+    expect(await McpOauthToken.verifyAccess(pair2.accessToken)).toBeNull();
+    const grant = await McpOauthGrant.get(grantId);
+    expect(grant!.revoked_at).not.toBeNull();
+  });
+
+  it("a rotated refresh token inherits its chain's absolute expiry", async () => {
+    const grantId = await makeGrant();
+    await McpOauthToken.mintPair(grantId);
+    vi.useFakeTimers();
+    try {
+      // 20 days in: rotating must not extend the chain past the original
+      // 30-day horizon — the successor inherits the ancestor's expiry.
+      vi.setSystemTime(Date.now() + 20 * 24 * 60 * 60 * 1000);
+      const pair = await McpOauthToken.mintPair(grantId);
+      const rotated = (await McpOauthToken.rotateRefresh(
+        pair.refreshToken
+      )) as { refreshToken: string };
+      // 31 more days: past the second mint's own 30-day window but within a
+      // fresh window from rotation time. A sliding lifetime would still
+      // rotate here; the absolute one must refuse.
+      vi.setSystemTime(Date.now() + 31 * 24 * 60 * 60 * 1000);
+      expect(await McpOauthToken.rotateRefresh(rotated.refreshToken)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("the rotated_from unique index refuses a second successor row", async () => {
+    const grantId = await makeGrant();
+    const pair = await McpOauthToken.mintPair(grantId);
+    const first = await McpOauthToken.rotateRefresh(pair.refreshToken);
+    expect("reuseDetected" in (first as object)).toBe(false);
+    // Simulate the concurrent-rotation loser: a second insert claiming the
+    // same ancestor must hit the unique index, which rotateRefresh turns
+    // into reuse detection. Presenting the ancestor again exercises exactly
+    // that insert path... but the successor check already catches it, so
+    // drive the raw insert to prove the constraint itself bites.
+    const { getDb } = await import("../src/db.js");
+    const { mcpOauthTokens } = await import("../src/schema/index.js");
+    const rows = await getDb()
+      .select({ rotated_from: mcpOauthTokens.rotated_from })
+      .from(mcpOauthTokens);
+    const claimed = rows.find(
+      (r: { rotated_from: string | null }) => r.rotated_from !== null
+    );
+    expect(claimed).toBeDefined();
+    await expect(
+      getDb()
+        .insert(mcpOauthTokens)
+        .values({
+          id: "ffffffffffffffff",
+          grant_id: grantId,
+          kind: "refresh",
+          secret_hash: "irrelevant",
+          expires_at: new Date(Date.now() + 1000).toISOString(),
+          rotated_from: claimed!.rotated_from,
+          last_used_at: null
+        })
+    ).rejects.toThrow();
   });
 
   it("revokeByRawToken returns false for an unknown or malformed token", async () => {

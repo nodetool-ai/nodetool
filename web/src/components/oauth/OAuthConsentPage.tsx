@@ -7,7 +7,7 @@
  * lets the signed-in user approve or deny. Both actions resolve to a redirect
  * URL the SPA navigates the browser to; this page never builds one itself.
  */
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import CheckIcon from "@mui/icons-material/Check";
@@ -62,21 +62,10 @@ const OAuthConsentPage = () => {
   const busy = approve.isPending || deny.isPending;
   const mutationError = approve.error ?? deny.error;
 
-  const containerStyle = useMemo(
-    () => ({
-      display: "flex",
-      flexDirection: "column" as const,
-      alignItems: "center",
-      justifyContent: "center",
-      minHeight: "60vh",
-      padding: `${SPACING.xl}px`
-    }),
-    []
-  );
 
   if (!requestId) {
     return (
-      <div style={containerStyle}>
+      <FlexColumn align="center" justify="center" sx={{ minHeight: "60vh", padding: `${SPACING.xl}px` }}>
         <FlexColumn
           gap={2}
           align="center"
@@ -88,21 +77,21 @@ const OAuthConsentPage = () => {
             MCP client.
           </Text>
         </FlexColumn>
-      </div>
+      </FlexColumn>
     );
   }
 
   if (isLoading) {
     return (
-      <div style={containerStyle}>
+      <FlexColumn align="center" justify="center" sx={{ minHeight: "60vh", padding: `${SPACING.xl}px` }}>
         <LoadingSpinner size="large" />
-      </div>
+      </FlexColumn>
     );
   }
 
   if (loadError || !request) {
     return (
-      <div style={containerStyle}>
+      <FlexColumn align="center" justify="center" sx={{ minHeight: "60vh", padding: `${SPACING.xl}px` }}>
         <FlexColumn
           gap={2}
           align="center"
@@ -116,14 +105,14 @@ const OAuthConsentPage = () => {
             connection from your MCP client.
           </Text>
         </FlexColumn>
-      </div>
+      </FlexColumn>
     );
   }
 
   return (
-    <div style={containerStyle}>
+    <FlexColumn align="center" justify="center" sx={{ minHeight: "60vh", padding: `${SPACING.xl}px` }}>
       <FlexColumn gap={2} sx={{ width: "100%", maxWidth: "480px" }}>
-        <Text sx={{ fontWeight: 500, fontSize: "1.2em" }}>
+        <Text size="big" sx={{ fontWeight: 500 }}>
           {request.client_name}
         </Text>
         <Text className="description">
@@ -162,7 +151,7 @@ const OAuthConsentPage = () => {
             label="Deny"
             disabled={busy}
             onClick={handleDeny}
-            sx={{ padding: "0.4em 1.5em" }}
+            sx={{ padding: `${SPACING.sm}px ${SPACING.xl}px` }}
           />
           <NavButton
             icon={<CheckIcon />}
@@ -170,11 +159,11 @@ const OAuthConsentPage = () => {
             color="primary"
             disabled={busy}
             onClick={handleApprove}
-            sx={{ padding: "0.4em 1.5em" }}
+            sx={{ padding: `${SPACING.sm}px ${SPACING.xl}px` }}
           />
         </FlexRow>
       </FlexColumn>
-    </div>
+    </FlexColumn>
   );
 };
 
