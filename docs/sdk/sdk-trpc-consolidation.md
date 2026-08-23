@@ -767,7 +767,7 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 - [x] Use `createCallerFactory` only at a transport boundary or in integration
       tests. Shared server behavior belongs in domain services, not calls from
       one tRPC procedure to another.
-- [ ] Log expected client/authentication errors at an appropriate level and
+- [x] Log expected client/authentication errors at an appropriate level and
       keep unexpected server/output-validation errors at error level with the
       request ID.
 

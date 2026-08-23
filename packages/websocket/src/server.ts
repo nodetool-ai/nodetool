@@ -152,11 +152,8 @@ import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
 import kieWebhookRoute from "./routes/kie-webhook.js";
 import { createIntegrationRoutes } from "./routes/integrations.js";
-import {
-  isNonEmptyString,
-  isObjectLike,
-  isString
-} from "./lib/wire-values.js";
+import { isNonEmptyString, isString } from "./lib/wire-values.js";
+import { logTrpcRequestError } from "./trpc/error-logging.js";
 
 /** The Node `process` as Electron extends it. `type` is absent elsewhere. */
 type ElectronProcess = typeof process & { readonly type?: string };
@@ -406,9 +403,7 @@ print(json.dumps(sorted(roots)))
     try {
       const roots = JSON.parse(proc.stdout.trim()) as string[];
       if (Array.isArray(roots)) {
-        return roots.filter(
-          (p) => isNonEmptyString(p) && existsSync(p)
-        );
+        return roots.filter((p) => isNonEmptyString(p) && existsSync(p));
       }
     } catch {
       // try next python executable
@@ -595,10 +590,7 @@ async function probeWorkerHealth(
 }
 
 function logPythonBridgeDiagnostics(context: string): void {
-  const loadErrors =
-    (
-      localBridge
-    ).getLoadErrors?.() ?? [];
+  const loadErrors = localBridge.getLoadErrors?.() ?? [];
   if (loadErrors.length === 0) return;
   log.warn(`Python bridge ${context} with ${loadErrors.length} load error(s)`);
   for (const entry of loadErrors.slice(0, 10)) {
@@ -887,7 +879,10 @@ if (integrationServiceToken && !integrationsEnabled) {
 // server that never mints one never reads the key.
 let cachedDelegatedKey: Buffer | null = null;
 const delegatedSigningKey = (): Buffer =>
-  (cachedDelegatedKey ??= deriveKey(getMasterKey(), "nodetool-delegated-token"));
+  (cachedDelegatedKey ??= deriveKey(
+    getMasterKey(),
+    "nodetool-delegated-token"
+  ));
 
 const delegatedProvider = integrationsEnabled
   ? new DelegatedTokenProvider(delegatedSigningKey)
@@ -1093,9 +1088,7 @@ function listRegistryRecommendedModels(): UnifiedModel[] {
         models.push({
           ...parsed.data,
           provider:
-            parsed.data.provider == null
-              ? undefined
-              : parsed.data.provider
+            parsed.data.provider == null ? undefined : parsed.data.provider
         });
       }
     }
@@ -1287,20 +1280,12 @@ await app.register(fastifyTRPCPlugin, {
     // flag the server rejects POST-to-query with 405, leaving panels empty.
     allowMethodOverride: true,
     maxBatchSize: TRPC_MAX_BATCH_SIZE,
-    onError({ path, error }) {
-      log.error(
-        `tRPC error on ${path}`,
-        error instanceof Error ? error : new Error(String(error))
-      );
-      // Surface inner ZodError details (output validation failures) so callers
-      // can diagnose the offending fields instead of seeing only "Output
-      // validation failed".
-      const cause = error.cause;
-      if (isObjectLike(cause) && "issues" in cause) {
-        log.error(
-          `tRPC error cause on ${path}: ${JSON.stringify(cause.issues)}`
-        );
-      }
+    onError({ path, error, req }) {
+      logTrpcRequestError(log, {
+        path,
+        error,
+        requestId: req.id
+      });
     }
   } satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"]
 });
@@ -1339,9 +1324,7 @@ await app.register(websocketPlugin, {
     log.info(
       `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
     );
-    (
-      pythonBridge
-    )
+    pythonBridge
       .getWorkerStatus?.()
       ?.then((status) => {
         log.info(`Python bridge status [${startupMs()}]`, {
@@ -1454,7 +1437,7 @@ if (mcpHttpEnabled) {
         : requestBody,
       // `duplex` is required by Node's fetch when streaming bodies but is
       // missing from some `@types/node`/`undici-types` versions of RequestInit.
-      ...({ duplex: "half" })
+      ...{ duplex: "half" }
     } as RequestInit);
 
     // The scope is the user the auth hook resolved for this request. With no
@@ -1686,9 +1669,7 @@ if (pythonBridge.isAvailable()) {
       log.info(
         `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
       );
-      (
-        pythonBridge
-      )
+      pythonBridge
         .getWorkerStatus?.()
         ?.then((status) => {
           log.info(`Python bridge status [${startupMs()}]`, {
