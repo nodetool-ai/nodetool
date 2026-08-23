@@ -49,6 +49,16 @@ import { isClientIdUrl, fetchClientMetadata } from "../oauth/cimd.js";
 
 const DISABLE_ENV_VAR = "NODETOOL_DISABLE_MCP_OAUTH";
 
+/**
+ * Per-route @fastify/rate-limit config, picked up by the server's globally
+ * registered limiter via its onRoute hook. Tighter than the global cap:
+ * these endpoints issue and redeem credentials, so a flood is a guessing
+ * attack, not load. Register is tightest — anonymous writes a DB row.
+ * Inert when no limiter is registered (standalone plugin tests).
+ */
+const OAUTH_ROUTE_RATE_LIMIT = { max: 30, timeWindow: "1 minute" };
+const OAUTH_REGISTER_RATE_LIMIT = { max: 10, timeWindow: "1 minute" };
+
 /** `<PUBLIC_URL>` with no trailing `/mcp` — the base every T2 builder takes.
  * Derived from `configuredMcpUrl()` only, per the pinned contract ("never
  * re-derive from env directly"): that function already appends `/mcp`
@@ -186,7 +196,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
 
   // ── GET /oauth/authorize ─────────────────────────────────────────────
 
-  app.get("/oauth/authorize", async (req, reply) => {
+  app.get("/oauth/authorize", { config: { rateLimit: OAUTH_ROUTE_RATE_LIMIT } }, async (req, reply) => {
     const publicUrl = resolveEnabledPublicUrl();
     if (!publicUrl) return notFound(reply);
 
@@ -295,7 +305,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
 
   // ── POST /oauth/token ────────────────────────────────────────────────
 
-  app.post("/oauth/token", async (req, reply) => {
+  app.post("/oauth/token", { config: { rateLimit: OAUTH_ROUTE_RATE_LIMIT } }, async (req, reply) => {
     const publicUrl = resolveEnabledPublicUrl();
     if (!publicUrl) return notFound(reply);
 
@@ -439,7 +449,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
 
   // ── POST /oauth/register (RFC 7591) ─────────────────────────────────
 
-  app.post("/oauth/register", async (req, reply) => {
+  app.post("/oauth/register", { config: { rateLimit: OAUTH_REGISTER_RATE_LIMIT } }, async (req, reply) => {
     const publicUrl = resolveEnabledPublicUrl();
     if (!publicUrl) return notFound(reply);
 
@@ -517,7 +527,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
 
   // ── POST /oauth/revoke (RFC 7009) ───────────────────────────────────
 
-  app.post("/oauth/revoke", async (req, reply) => {
+  app.post("/oauth/revoke", { config: { rateLimit: OAUTH_ROUTE_RATE_LIMIT } }, async (req, reply) => {
     const publicUrl = resolveEnabledPublicUrl();
     if (!publicUrl) return notFound(reply);
 
