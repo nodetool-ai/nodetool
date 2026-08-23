@@ -132,6 +132,28 @@ describe("useClipboardContentPaste", () => {
     installGlobal("api", undefined);
   });
 
+  /** The `File` the hook handed to `uploadAsset`. */
+  const uploadedFile = (): File => {
+    expect(mockUploadAsset).toHaveBeenCalledTimes(1);
+    return mockUploadAsset.mock.calls[0][0].file as File;
+  };
+
+  /** Puts file paths on the clipboard the way Electron reports them. */
+  const installClipboardFiles = (
+    paths: string[],
+    extra: Record<string, jest.Mock> = {}
+  ): void => {
+    installGlobal("api", {
+      clipboard: {
+        getContentInfo: jest
+          .fn()
+          .mockResolvedValue({ hasFiles: true, formats: ["public.file-url"] }),
+        readFilePaths: jest.fn().mockResolvedValue(paths),
+        ...extra
+      }
+    });
+  };
+
   it("returns handleContentPaste and hasClipboardContent functions", () => {
     const { result } = renderHook(() => useClipboardContentPaste());
     expect(result.current.handleContentPaste).toBeDefined();
@@ -212,6 +234,167 @@ describe("useClipboardContentPaste", () => {
         })
       );
       global.fetch = originalFetch;
+    });
+
+    it("names the uploaded file from the image's mime subtype", async () => {
+      installGlobal("api", {
+        clipboard: {
+          readImage: jest
+            .fn()
+            .mockResolvedValue("data:image/svg+xml;base64,PHN2Zy8+")
+        }
+      });
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        blob: async () => new Blob(["<svg/>"], { type: "image/svg+xml" })
+      } as Response);
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+      await act(async () => {
+        await result.current.handleContentPaste();
+      });
+
+      expect(uploadedFile().name).toBe("clipboard-image.svg");
+      expect(uploadedFile().type).toBe("image/svg+xml");
+      global.fetch = originalFetch;
+    });
+
+    it("falls back to png when the blob carries no mime type", async () => {
+      installGlobal("api", {
+        clipboard: {
+          readImage: jest.fn().mockResolvedValue("data:image/png;base64,AA==")
+        }
+      });
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        blob: async () => new Blob(["x"])
+      } as Response);
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+      await act(async () => {
+        await result.current.handleContentPaste();
+      });
+
+      expect(uploadedFile().name).toBe("clipboard-image.png");
+      expect(uploadedFile().type).toBe("image/png");
+      global.fetch = originalFetch;
+    });
+
+    it("creates a String node holding the path of a non-image file", async () => {
+      installClipboardFiles(["/tmp/notes.txt"]);
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+      let handled = false;
+      await act(async () => {
+        handled = await result.current.handleContentPaste();
+      });
+
+      expect(handled).toBe(true);
+      expect(mockAddNode).toHaveBeenCalledTimes(1);
+      expect(mockAddNode.mock.calls[0][0].data.properties.value).toBe(
+        "/tmp/notes.txt"
+      );
+      expect(mockUploadAsset).not.toHaveBeenCalled();
+    });
+
+    it("uploads an image file path read through the Electron buffer API", async () => {
+      installClipboardFiles(["C:\\pics\\shot.PNG"], {
+        readFileBuffer: jest.fn().mockResolvedValue({
+          buffer: new Uint8Array([1, 2, 3]),
+          mimeType: "image/png"
+        })
+      });
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+      let handled = false;
+      await act(async () => {
+        handled = await result.current.handleContentPaste();
+      });
+
+      expect(handled).toBe(true);
+      expect(uploadedFile().name).toBe("shot.PNG");
+      expect(uploadedFile().type).toBe("image/png");
+      expect(mockAddNode).not.toHaveBeenCalled();
+    });
+
+    it("returns false for an image file path when readFileBuffer is missing", async () => {
+      installClipboardFiles(["/tmp/photo.jpg"]);
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+      let handled = true;
+      await act(async () => {
+        handled = await result.current.handleContentPaste();
+      });
+
+      expect(handled).toBe(false);
+      expect(mockUploadAsset).not.toHaveBeenCalled();
+      expect(mockAddNode).not.toHaveBeenCalled();
+    });
+
+    it("returns false when readFileBuffer yields nothing", async () => {
+      installClipboardFiles(["/tmp/photo.jpg"], {
+        readFileBuffer: jest.fn().mockResolvedValue(null)
+      });
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+      let handled = true;
+      await act(async () => {
+        handled = await result.current.handleContentPaste();
+      });
+
+      expect(handled).toBe(false);
+      expect(mockUploadAsset).not.toHaveBeenCalled();
+    });
+
+    it("returns false when readFileBuffer throws", async () => {
+      installClipboardFiles(["/tmp/photo.jpg"], {
+        readFileBuffer: jest.fn().mockRejectedValue(new Error("EACCES"))
+      });
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+      let handled = true;
+      await act(async () => {
+        handled = await result.current.handleContentPaste();
+      });
+
+      expect(handled).toBe(false);
+      expect(mockUploadAsset).not.toHaveBeenCalled();
+    });
+
+    it("creates a String node from clipboard text", async () => {
+      installGlobal("api", {
+        clipboard: {
+          readText: jest.fn().mockResolvedValue("hello canvas")
+        }
+      });
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+      let handled = false;
+      await act(async () => {
+        handled = await result.current.handleContentPaste();
+      });
+
+      expect(handled).toBe(true);
+      expect(mockAddNode.mock.calls[0][0].data.properties.value).toBe(
+        "hello canvas"
+      );
+    });
+
+    it("returns false when the String node metadata is missing", async () => {
+      mockGetMetadata.mockReturnValue(undefined);
+      installGlobal("api", {
+        clipboard: { readText: jest.fn().mockResolvedValue("hello") }
+      });
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+      let handled = false;
+      await act(async () => {
+        handled = await result.current.handleContentPaste();
+      });
+
+      // The node is never created, but the paste still counts as handled.
+      expect(handled).toBe(true);
+      expect(mockAddNode).not.toHaveBeenCalled();
     });
   });
 

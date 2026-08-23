@@ -43,6 +43,13 @@ const IMAGE_FILE_EXTENSIONS = [
   "tif"
 ];
 
+/** The mime subtype without its suffix (`image/svg+xml` → `svg`), else png. */
+function imageExtensionFromMimeType(mimeType: string | undefined): string {
+  const parts = mimeType?.split("/") ?? [];
+  if (parts.length !== 2) return "png";
+  return parts[1].split("+")[0] || "png";
+}
+
 /**
  * Supported clipboard content types
  */
@@ -381,6 +388,69 @@ export const useClipboardContentPaste = () => {
     [createNode, addNode, getMetadata]
   );
 
+  /** Fire-and-forget: the Image node appears once the upload completes. */
+  const uploadImageFile = useCallback(
+    (
+      file: File,
+      position: { x: number; y: number },
+      failureMessage: string
+    ) => {
+      uploadAsset({
+        file,
+        source: "clipboard",
+        workflow_id: workflow.id,
+        parent_id: currentFolderId || user?.id,
+        onCompleted: (uploadedAsset: Asset) => {
+          createImageNode(uploadedAsset, position);
+        },
+        onFailed: (error: string) => {
+          addNotification({ type: "error", alert: true, content: error });
+          console.error(failureMessage, error);
+        }
+      });
+    },
+    [
+      uploadAsset,
+      workflow.id,
+      currentFolderId,
+      user?.id,
+      createImageNode,
+      addNotification
+    ]
+  );
+
+  /**
+   * A non-image path becomes a String node holding the path. An image is read
+   * through Electron and uploaded; false means this build could not read it.
+   */
+  const pasteFilePath = useCallback(
+    async (
+      filePath: string,
+      position: { x: number; y: number }
+    ): Promise<boolean> => {
+      const ext = filePath.split(".").pop()?.toLowerCase() || "";
+      if (!IMAGE_FILE_EXTENSIONS.includes(ext)) {
+        createStringNode(filePath, position);
+        return true;
+      }
+      if (!window.api?.clipboard?.readFileBuffer) return false;
+      try {
+        const result = await window.api.clipboard.readFileBuffer(filePath);
+        if (!result) return false;
+        const fileName = filePath.split(/[/\\]/).pop() || `file.${ext}`;
+        const file = new File([result.buffer as BlobPart], fileName, {
+          type: result.mimeType
+        });
+        uploadImageFile(file, position, "Failed to upload file from clipboard:");
+        return true;
+      } catch (error) {
+        console.error("Failed to read file as data URL:", error);
+        return false;
+      }
+    },
+    [createStringNode, uploadImageFile]
+  );
+
   /**
    * Handles the paste of clipboard content.
    * Returns true if content was handled, false if not (allowing fallback to node paste).
@@ -405,133 +475,42 @@ export const useClipboardContentPaste = () => {
     const content = await readClipboardContent();
 
     switch (content.type) {
-      case "file":
-        if (Array.isArray(content.data)) {
-          // Handle file paths from clipboard
-          // Currently processes only the first file - future enhancement could support multiple files
-          const filePaths = content.data;
-          console.info(
-            `Handling ${filePaths.length} file(s) from clipboard (processing first file)`
-          );
+      case "file": {
+        if (!Array.isArray(content.data)) return false;
+        // Only the first path is pasted — multi-file paste is not supported.
+        console.info(
+          `Handling ${content.data.length} file(s) from clipboard (processing first file)`
+        );
+        if (content.data.length === 0) return false;
+        return pasteFilePath(content.data[0], position);
+      }
 
-          if (filePaths.length > 0) {
-            const filePath = filePaths[0];
-            const ext = filePath.split(".").pop()?.toLowerCase() || "";
-
-            if (IMAGE_FILE_EXTENSIONS.includes(ext)) {
-              // Read image file using Electron API
-              if (window.api?.clipboard?.readFileBuffer) {
-                try {
-                  const result =
-                    await window.api.clipboard.readFileBuffer(filePath);
-                  if (result) {
-                    const fileName =
-                      filePath.split(/[/\\]/).pop() || `file.${ext}`;
-                    const file = new File([result.buffer as BlobPart], fileName, {
-                      type: result.mimeType
-                    });
-
-                    // Upload the image as an asset
-                    uploadAsset({
-                      file,
-                      source: "clipboard",
-                      workflow_id: workflow.id,
-                      parent_id: currentFolderId || user?.id,
-                      onCompleted: (uploadedAsset: Asset) => {
-                        createImageNode(uploadedAsset, position);
-                      },
-                      onFailed: (error: string) => {
-                        addNotification({
-                          type: "error",
-                          alert: true,
-                          content: error
-                        });
-                        console.error(
-                          "Failed to upload file from clipboard:",
-                          error
-                        );
-                      }
-                    });
-                    return true;
-                  }
-                } catch (error) {
-                  console.error("Failed to read file as data URL:", error);
-                }
-              }
-            } else {
-              // For non-image files, create a string node with the file path
-              createStringNode(filePath, position);
-              return true;
-            }
-          }
-        }
-        break;
-
-      case "image":
-        if (content.data instanceof Blob) {
-          // Extract file extension from MIME type with validation
-          let extension = "png"; // default
-          if (content.mimeType && content.mimeType.includes("/")) {
-            const parts = content.mimeType.split("/");
-            if (parts.length === 2 && parts[1]) {
-              // Handle special cases like "image/svg+xml"
-              extension = parts[1].split("+")[0] || "png";
-            }
-          }
-          const file = new File(
-            [content.data],
-            `clipboard-image.${extension}`,
-            {
-              type: content.mimeType || "image/png"
-            }
-          );
-
-          // Upload the image as an asset
-          uploadAsset({
-            file,
-            source: "clipboard",
-            workflow_id: workflow.id,
-            parent_id: currentFolderId || user?.id,
-            onCompleted: (uploadedAsset: Asset) => {
-              createImageNode(uploadedAsset, position);
-            },
-            onFailed: (error: string) => {
-              addNotification({
-                type: "error",
-                alert: true,
-                content: error
-              });
-              console.error("Failed to upload clipboard image:", error);
-            }
-          });
-          return true;
-        }
-        break;
+      case "image": {
+        if (!(content.data instanceof Blob)) return false;
+        const extension = imageExtensionFromMimeType(content.mimeType);
+        const file = new File([content.data], `clipboard-image.${extension}`, {
+          type: content.mimeType || "image/png"
+        });
+        uploadImageFile(file, position, "Failed to upload clipboard image:");
+        return true;
+      }
 
       case "html":
       case "rtf":
       case "text":
-        if (isString(content.data)) {
-          createStringNode(content.data, position);
-          return true;
-        }
-        break;
+        if (!isString(content.data)) return false;
+        createStringNode(content.data, position);
+        return true;
 
       case "unknown":
       default:
         return false;
     }
-
-    return false;
   }, [
     reactFlow,
     readClipboardContent,
-    uploadAsset,
-    addNotification,
-    workflow.id,
-    currentFolderId,
-    user?.id,
-    createImageNode,
+    pasteFilePath,
+    uploadImageFile,
     createStringNode
   ]);
 
