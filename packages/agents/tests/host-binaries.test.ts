@@ -15,7 +15,7 @@ describe("runHostBinary", () => {
   it("runs a PATH binary with argv and no shell", async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
     try {
-      const result = await runHostBinary("true", [], {
+      const result = await runHostBinary(process.execPath, ["-e", ""], {
         cwd,
         timeoutMs: 5000
       });

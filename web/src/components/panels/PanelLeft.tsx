@@ -167,7 +167,7 @@ const styles = (
       gap: getSpacingPx(SPACING.md),
       backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      paddingTop: "2px",
+      paddingTop: getSpacingPx(SPACING.micro),
       paddingBottom: getSpacingPx(SPACING.lg), // was 10px
 
       "& .toolbar-divider": {

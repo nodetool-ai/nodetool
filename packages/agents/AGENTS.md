@@ -77,6 +77,18 @@ User-authored JS from a CodeAct action and `nodetool.code.Code` runs in a
 in its own WASM heap, so runaway or malicious code can't corrupt the host V8
 heap the way it could under the previous `node:vm` implementation.
 
+Windows test portability: filesystem-containment tests must use
+`tests/_helpers/filesystem-links.ts` instead of calling `symlink()` directly.
+The helper creates directory junctions on Windows, so the tests do not require
+Developer Mode or elevation, and regular directory symlinks elsewhere.
+Normalize paths before comparing them with repository-style `/` paths, and use
+Node itself for cross-platform process-spawn tests instead of POSIX utilities
+such as `true`.
+Normalize wrapper-produced module IDs before matching them: QuickJS uses `\`
+on Windows and `/` on POSIX. Keep native media fixtures on software encoders;
+a Windows hardware probe can find a codec that the installed driver cannot
+open.
+
 On Node the interpreter runs on a **`worker_threads` worker**
 (`src/js-sandbox-worker/`): `buildSandbox` and every host bridge stay on the
 main thread, the worker rebuilds each bridge as an RPC proxy over the port, and

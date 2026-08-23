@@ -738,7 +738,7 @@ return {
   textToCodeMigration(
     "nodetool.text.Replace",
     "return { output: inputs.text.replaceAll(inputs.search, inputs.replacement) };",
-    { old: "search", new_value: "replacement" }
+    { old: "search", new: "replacement", new_value: "replacement" }
   ),
   textToCodeMigration(
     "nodetool.text.ToString",
@@ -833,7 +833,8 @@ function renameKeys(
   if (!isPlainObject(container)) return undefined;
   let next: Record<string, unknown> | undefined;
   for (const [from, to] of Object.entries(renames)) {
-    if (from in container && !(to in container)) {
+    const current = next ?? container;
+    if (from in current && !(to in current)) {
       next ??= { ...container };
       next[to] = next[from];
       delete next[from];

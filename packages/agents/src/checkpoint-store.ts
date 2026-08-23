@@ -435,4 +435,9 @@ export class FileCheckpointStore implements CheckpointStore {
   async loadFromDisk(): Promise<void> {
     await this.ensureLoaded();
   }
+
+  /** Resolve once every checkpoint persist scheduled so far has completed. */
+  async flush(): Promise<void> {
+    await this.persistQueue;
+  }
 }

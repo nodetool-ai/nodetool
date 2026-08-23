@@ -259,13 +259,13 @@ describe("migrateGraphNodeTypes", () => {
       });
     });
 
-    it("migrates Replace to Code and renames old/new_value to search/replacement", () => {
+    it("migrates current Replace properties to Code inputs", () => {
       const graph = {
         nodes: [
           {
             id: "n1",
             type: "nodetool.text.Replace",
-            data: { text: "hello world", old: "world", new_value: "there" }
+            data: { text: "hello world", old: "world", new: "there" }
           }
         ],
         edges: []
@@ -282,6 +282,49 @@ describe("migrateGraphNodeTypes", () => {
         search: "world",
         replacement: "there"
       });
+    });
+
+    it("migrates the legacy Replace new_value property", () => {
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.text.Replace",
+            data: { text: "hello world", old: "world", new_value: "there" }
+          }
+        ],
+        edges: []
+      };
+
+      const result = migrateGraphNodeTypes(graph);
+
+      expect(result.nodes[0].dynamic_properties).toEqual({
+        text: "hello world",
+        search: "world",
+        replacement: "there"
+      });
+    });
+
+    it("renames a legacy Replace edge without stored input data", () => {
+      const graph = {
+        nodes: [
+          { id: "source", type: "nodetool.text.Prompt", data: {} },
+          { id: "replace", type: "nodetool.text.Replace", data: {} }
+        ],
+        edges: [
+          {
+            source: "source",
+            sourceHandle: "output",
+            target: "replace",
+            targetHandle: "new_value"
+          }
+        ]
+      };
+
+      const result = migrateGraphNodeTypes(graph);
+
+      expect(result.edges[0].targetHandle).toBe("replacement");
+      expect(result.nodes[1].type).toBe("nodetool.code.Code");
     });
 
     it("keeps reading the per-instance properties the removed node had", () => {

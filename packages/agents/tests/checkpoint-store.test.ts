@@ -164,7 +164,7 @@ describe("FileCheckpointStore", () => {
     const writer = new FileCheckpointStore(file);
     await writer.loadFromDisk();
     writer.save("run1", ckpt);
-    await new Promise((r) => setTimeout(r, 20));
+    await writer.flush();
 
     const reader = new FileCheckpointStore(file);
     await reader.loadFromDisk();

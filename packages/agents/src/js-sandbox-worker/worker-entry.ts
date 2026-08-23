@@ -20,8 +20,8 @@
 import { loadQuickJs } from "@sebastianwessel/quickjs";
 import { importNodeBuiltin } from "@nodetool-ai/config";
 
-import { MAX_RANDOM_BYTES } from "../js-sandbox.js";
 import { toGuestBytes } from "../sandbox-bytes.js";
+import { MAX_RANDOM_BYTES } from "../sandbox-constants.js";
 import {
   registerTypedArraySerializers,
   runInterpreter,

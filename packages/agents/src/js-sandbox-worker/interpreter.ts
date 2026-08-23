@@ -30,20 +30,24 @@ import {
 import * as acorn from "acorn";
 import { Scope } from "quickjs-emscripten-core";
 import {
-  generateSandboxHostFacade,
-  generateSandboxWasmFacade,
-  sandboxHostModule,
   SANDBOX_CAPABILITY_BRIDGE_SOURCE,
   SANDBOX_CAPABILITY_BRIDGE_SPECIFIER,
-  SANDBOX_CAPABILITY_DISPATCH_GLOBAL,
+  SANDBOX_CAPABILITY_DISPATCH_GLOBAL
+} from "@nodetool-ai/protocol/sandbox-capability";
+import {
+  generateSandboxHostFacade,
+  sandboxHostModule,
   SANDBOX_HOST_BRIDGE_SOURCE,
   SANDBOX_HOST_BRIDGE_SPECIFIER,
-  SANDBOX_HOST_DISPATCH_GLOBAL,
+  SANDBOX_HOST_DISPATCH_GLOBAL
+} from "@nodetool-ai/protocol/sandbox-host";
+import {
+  generateSandboxWasmFacade,
   SANDBOX_WASM_BRIDGE_SOURCE,
   SANDBOX_WASM_BRIDGE_SPECIFIER,
-  SANDBOX_WASM_DISPATCH_GLOBAL,
-  type SandboxModuleResolution
-} from "@nodetool-ai/protocol";
+  SANDBOX_WASM_DISPATCH_GLOBAL
+} from "@nodetool-ai/protocol/sandbox-wasm";
+import type { SandboxModuleResolution } from "@nodetool-ai/protocol/sandbox-package";
 
 import {
   CANVAS_GRADIENT_FACTORIES,
@@ -56,8 +60,11 @@ import {
   SANDBOX_BYTES_MARKER,
   type GuestBytes
 } from "../sandbox-bytes.js";
-import { MEDIA_REF_MEMBERS } from "../sandbox-media-ref.js";
-import { BOOTSTRAP_MODULE_SOURCES } from "../sandbox-bootstrap-modules.js";
+import { MEDIA_REF_MEMBERS } from "../sandbox-constants.js";
+import {
+  BOOTSTRAP_MODULE_SOURCES,
+  normalizeBootstrapModuleId
+} from "../sandbox-bootstrap-modules.js";
 import {
   decodeGuestPayload,
   encodeHostRecord,
@@ -668,7 +675,9 @@ export function createGuestModuleHost(
             // The wrapper's own compat preamble. Most of what it compiles into
             // every fresh runtime, the init prelude deletes a moment later, so
             // it is served something cheaper — see BOOTSTRAP_MODULE_SOURCES.
-            const stub = BOOTSTRAP_MODULE_SOURCES.get(moduleName);
+            const stub = BOOTSTRAP_MODULE_SOURCES.get(
+              normalizeBootstrapModuleId(moduleName)
+            );
             if (stub !== undefined) return { value: stub };
             return fallback(moduleName, context);
           }
