@@ -28,8 +28,8 @@ the same surfaces you use, then run the result and repair what fails.
 | **Windows** | [Download Studio](https://nodetool.ai/studio) | Windows 10+, 8GB+ RAM, 20GB space |
 | **Linux** | [Download Studio](https://nodetool.ai/studio) | Ubuntu 22+, 8GB+ RAM |
 
-**Studio** is the free desktop app. Workflows, keys, and files stay local; it
-runs offline against Ollama, MLX, or GGUF models, and connects to cloud
+**Nodetool** is a free desktop app. Workflows, keys, and files stay local; it
+runs offline against local models, or connects to cloud
 providers when you give it a key.
 
 No GPU is needed to start: with a provider key the models run on their servers.
