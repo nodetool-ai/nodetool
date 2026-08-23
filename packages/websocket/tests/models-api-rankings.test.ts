@@ -4,8 +4,9 @@
  * leaderboard after them, one row per canonical model.
  *
  * The helper takes the artifact as a parameter, so a fixture drives it
- * directly — nothing here mocks a module, and the endpoint tests below run
- * against the shipped (empty) artifact.
+ * directly — nothing here mocks a module. The endpoint tests below run against
+ * the shipped artifact, which the nightly sync rewrites, so they pin the merge
+ * contract rather than the rows it produces today.
  */
 import { describe, it, expect } from "vitest";
 import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
@@ -68,6 +69,16 @@ const ARTIFACT: ModelRankingsArtifact = {
 const pinned = (task: string): UnifiedModel[] =>
   RECOMMENDED_MODELS.filter((model) => model.task === task);
 
+/** What an endpoint answers before the merge: its modality, then its task. */
+const base = (modality: string, task?: string): UnifiedModel[] =>
+  RECOMMENDED_MODELS.filter(
+    (model) => model.modality === modality && (!task || model.task === task)
+  );
+
+/** The response shape: JSON drops undefined fields the in-memory value keeps. */
+const json = (models: UnifiedModel[]): UnifiedModel[] =>
+  JSON.parse(JSON.stringify(models)) as UnifiedModel[];
+
 function get(path: string): Request {
   return new Request(`http://localhost/api/models${path}`, { method: "GET" });
 }
@@ -129,34 +140,57 @@ describe("mergeRankedRecommendations", () => {
 });
 
 describe("recommended endpoints with the shipped artifact", () => {
-  const cases: Array<[string, string]> = [
-    ["/recommended/image/text-to-image", "text_to_image"],
-    ["/recommended/image/image-to-image", "image_to_image"],
-    ["/recommended/video/text-to-video", "text_to_video"],
-    ["/recommended/video/image-to-video", "image_to_video"]
+  /** Each endpoint, the task it merges, and the pinned base it merges onto. */
+  const cases: Array<[string, string, UnifiedModel[]]> = [
+    ["/recommended/image/text-to-image", "text_to_image", base("image", "text_to_image")],
+    ["/recommended/image/image-to-image", "image_to_image", base("image", "image_to_image")],
+    ["/recommended/video/text-to-video", "text_to_video", base("video", "text_to_video")],
+    ["/recommended/video/image-to-video", "image_to_video", base("video", "image_to_video")],
+    ["/recommended/tts", "text_to_speech", base("tts")],
+    ["/recommended/music", "text_to_music", base("music")]
   ];
 
-  for (const [path, task] of cases) {
-    it(`GET ${path} still returns exactly the pinned entries`, async () => {
+  /**
+   * The shipped artifact is rewritten by the nightly sync, so what an endpoint
+   * appends today is not what it appends next week. Pin the contract instead:
+   * each endpoint merges the leaderboard for its own task onto its own pinned
+   * base, and every row it adds is a usable model of the task's type.
+   */
+  for (const [path, task, pinnedBase] of cases) {
+    it(`GET ${path} merges the ${task} leaderboard onto the pinned entries`, async () => {
       const res = await handleModelsApiRequest(get(path));
       expect(res!.status).toBe(200);
-      expect(await res!.json()).toEqual(
-        JSON.parse(JSON.stringify(pinned(task)))
-      );
+      const body = (await res!.json()) as UnifiedModel[];
+
+      const head = json(pinnedBase);
+      expect(body.slice(0, head.length)).toEqual(head);
+      expect(body).toEqual(json(mergeRankedRecommendations(pinnedBase, task)));
+
+      // The type comes off the pinned entries, not off RANKED_TASK_MODEL_TYPE:
+      // reading the table the merge reads would assert it against itself.
+      const types = new Set(head.map((model) => model.type));
+      expect(types.size, `${path} pins one model type`).toBe(1);
+      const [type] = types;
+      for (const model of body.slice(head.length)) {
+        expect(model.type, model.id).toBe(type);
+        expect(model.id, path).not.toBe("");
+        expect(model.name, model.id).not.toBe("");
+        expect(model.provider, model.id).toBeTruthy();
+        expect(model.downloaded, model.id).toBe(false);
+        expect(model.repo_id, model.id).toBeNull();
+        expect(model.path, model.id).toBeNull();
+      }
+
+      const keys = body.map((model) => `${model.provider ?? ""}::${model.id}`);
+      expect(new Set(keys).size, "one row per provider route").toBe(keys.length);
     });
   }
 
-  it("GET /recommended/tts and /recommended/music are unchanged", async () => {
-    const tts = await handleModelsApiRequest(get("/recommended/tts"));
-    const music = await handleModelsApiRequest(get("/recommended/music"));
-    const byModality = (modality: string): unknown =>
-      JSON.parse(
-        JSON.stringify(
-          RECOMMENDED_MODELS.filter((model) => model.modality === modality)
-        )
-      );
-
-    expect(await tts!.json()).toEqual(byModality("tts"));
-    expect(await music!.json()).toEqual(byModality("music"));
+  it("leaves an endpoint with no ranked surface at its pinned entries", async () => {
+    // `/recommended/asr` never calls the merge, so no leaderboard can reach it
+    // however full the artifact gets.
+    const res = await handleModelsApiRequest(get("/recommended/asr"));
+    expect(res!.status).toBe(200);
+    expect(await res!.json()).toEqual(json(base("asr")));
   });
 });
