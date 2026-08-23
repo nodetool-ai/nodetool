@@ -1,7 +1,5 @@
 # NodeTool
 
-**The open-source, agent-first creative workspace.**
-
 *Every model. Your keys. Your canvas.*
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
@@ -9,22 +7,20 @@
 [![Latest Release](https://img.shields.io/github/v/release/nodetool-ai/nodetool?display_name=tag&sort=semver)](https://github.com/nodetool-ai/nodetool/releases/latest)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
-
-[![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://nodetool.ai/studio)
-[![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai/studio)
-[![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai/studio)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
+
+![NodeTool demo](demo_canvas.gif)
+
+*One prompt fanned out to four video models on the canvas.*
 
 NodeTool is an open-source creative AI suite that runs on your machine. A
 node-based canvas, a multi-track video timeline, and a layered sketch editor
-share one workspace, and every major AI model, cloud or local, wires into all
-three.
+share one workspace, and every major AI model, cloud or local, plugs straight
+in.
 
 It is agent-first: every action you can take in the UI is also an agent tool,
 so an agent can wire a graph, paint a layer, cut a clip, or place a widget on
 the same surfaces you use, then run the result and repair what fails.
-
-![NodeTool: one prompt fanned out to four video models on the canvas](demo_canvas.gif)
 
 ## Get NodeTool
 
