@@ -166,7 +166,8 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
       description:
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
         "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
-        "duration_seconds?, entity_ids?, location_id?, notes?, index?}, " +
+        "duration_seconds?, duration_source?, entity_ids?, location_id?, "+
+        "notes?, index?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
         "reorder_shot {target, index}, set_board {brief?, style?, " +
         "aspect_ratio?, entity_ids?}. `target` is a shot id, its 0-based " +

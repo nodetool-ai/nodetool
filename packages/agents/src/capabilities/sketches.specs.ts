@@ -39,6 +39,17 @@ export const LIST_SKETCHES_SCHEMA: JsonSchema = {
   }
 };
 
+export const GET_SKETCH_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    image_document_id: {
+      type: "string",
+      description: "Sketch (image document) id, from list_sketches."
+    }
+  },
+  required: ["image_document_id"]
+};
+
 export const LIST_SKETCH_VERSIONS_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -220,6 +231,19 @@ export const createSketchSpec: CapabilitySpec = {
   }
 };
 
+export const getSketchSpec: CapabilitySpec = {
+  name: "get_sketch",
+  description:
+    "Read a saved sketch: its canvas size, background, layers and their " +
+    "workflow bindings. This is the stored document edit_sketch writes and " +
+    "validate_sketch checks — read it before editing so layer ids come from " +
+    "the document rather than a guess. Layer bitmaps stay opaque.",
+  inputSchema: GET_SKETCH_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Reading sketch ${String(params["image_document_id"])}`
+};
+
 export const listSketchVersionsSpec: CapabilitySpec = {
   name: "list_sketch_versions",
   description:
@@ -362,6 +386,7 @@ export const deleteSketchSpec: CapabilitySpec = {
 export const sketchesSpecs: readonly CapabilitySpec[] = [
   listSketchesSpec,
   createSketchSpec,
+  getSketchSpec,
   listSketchVersionsSpec,
   getSketchVersionSpec,
   createSketchVersionSpec,

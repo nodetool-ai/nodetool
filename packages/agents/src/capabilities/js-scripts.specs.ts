@@ -11,6 +11,21 @@
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
 
+/** Snapshots one `list_js_script_versions` call returns unless asked otherwise. */
+export const DEFAULT_VERSION_LIMIT = 20;
+
+/** Ceiling on that limit, so one call cannot walk a whole history. */
+export const MAX_VERSION_LIMIT = 100;
+
+export const SAVE_TYPE_PROPERTY = {
+  type: "string" as const,
+  enum: ["manual", "autosave", "restore"],
+  description:
+    "Only versions of this kind: 'manual' (a save someone asked for), " +
+    "'autosave' (taken on a document write), 'restore' (the pre-restore " +
+    "snapshot). Omit for all of them."
+};
+
 /** How deep a chain of script invocations may go before it is refused. */
 export const MAX_JS_SCRIPT_DEPTH = 4;
 
@@ -252,6 +267,132 @@ export const deleteJsScriptSpec: CapabilitySpec = {
   userMessage: (params) => `Deleting JS script ${params["script_id"]}`
 };
 
+
+const VERSION_SCRIPT_ID = {
+  type: "string" as const,
+  description: "The JS script's id (from list_js_scripts)."
+};
+
+export const LIST_JS_SCRIPT_VERSIONS_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    js_script_id: VERSION_SCRIPT_ID,
+    save_type: SAVE_TYPE_PROPERTY,
+    limit: {
+      type: "number",
+      description: `Max versions to return (default ${DEFAULT_VERSION_LIMIT}, max ${MAX_VERSION_LIMIT}).`
+    }
+  },
+  required: ["js_script_id"]
+};
+
+export const GET_JS_SCRIPT_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    js_script_id: VERSION_SCRIPT_ID,
+    version: {
+      type: "number",
+      description: "Version number, as reported by list_js_script_versions."
+    }
+  },
+  required: ["js_script_id", "version"]
+};
+
+export const CREATE_JS_SCRIPT_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    js_script_id: VERSION_SCRIPT_ID,
+    name: {
+      type: "string",
+      description: "Label for the snapshot, shown in the version list."
+    }
+  },
+  required: ["js_script_id"]
+};
+
+export const RESTORE_JS_SCRIPT_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    js_script_id: VERSION_SCRIPT_ID,
+    version: {
+      type: "number",
+      description: "Version number to restore."
+    }
+  },
+  required: ["js_script_id", "version"]
+};
+
+export const DELETE_JS_SCRIPT_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    js_script_id: VERSION_SCRIPT_ID,
+    version: {
+      type: "number",
+      description: "Version number to delete."
+    }
+  },
+  required: ["js_script_id", "version"]
+};
+
+export const listJsScriptVersionsSpec: CapabilitySpec = {
+  name: "list_js_script_versions",
+  description:
+    "List a JS script's saved snapshots, newest first: version number, name, " +
+    "save type and when it was taken. Read one with get_js_script_version " +
+    "before restoring it.",
+  inputSchema: LIST_JS_SCRIPT_VERSIONS_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Listing versions of JS script ${String(params["js_script_id"])}`
+};
+
+export const getJsScriptVersionSpec: CapabilitySpec = {
+  name: "get_js_script_version",
+  description:
+    "Read one saved snapshot's document without restoring it — the way to " +
+    "compare an old body against the current one, or to lift code out of a " +
+    "version the script has since moved past.",
+  inputSchema: GET_JS_SCRIPT_VERSION_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Reading version ${String(params["version"])} of JS script ${String(params["js_script_id"])}`
+};
+
+export const createJsScriptVersionSpec: CapabilitySpec = {
+  name: "create_js_script_version",
+  description:
+    "Snapshot a JS script's current document as a new manual version, so an " +
+    "edit that goes wrong can be undone. Autosaves happen on their own; this " +
+    "is the save someone asks for.",
+  inputSchema: CREATE_JS_SCRIPT_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Saving a version of JS script ${String(params["js_script_id"])}`
+};
+
+export const restoreJsScriptVersionSpec: CapabilitySpec = {
+  name: "restore_js_script_version",
+  description:
+    "Restore a saved snapshot onto the JS script. The current document is " +
+    "snapshotted first, so a restore is itself undoable. An old document is " +
+    "checked against today's schema: validation errors refuse the restore.",
+  inputSchema: RESTORE_JS_SCRIPT_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Restoring JS script ${String(params["js_script_id"])} to version ${String(params["version"])}`
+};
+
+export const deleteJsScriptVersionSpec: CapabilitySpec = {
+  name: "delete_js_script_version",
+  description:
+    "Delete one saved snapshot of a JS script. The script itself is " +
+    "untouched. This cannot be undone.",
+  inputSchema: DELETE_JS_SCRIPT_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Deleting version ${String(params["version"])} of JS script ${String(params["js_script_id"])}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const jsScriptsSpecs: readonly CapabilitySpec[] = [
   listJsScriptsSpec,
@@ -260,5 +401,10 @@ export const jsScriptsSpecs: readonly CapabilitySpec[] = [
   validateJsScriptSpec,
   runJsScriptSpec,
   testJsScriptSpec,
+  listJsScriptVersionsSpec,
+  getJsScriptVersionSpec,
+  createJsScriptVersionSpec,
+  restoreJsScriptVersionSpec,
+  deleteJsScriptVersionSpec,
   deleteJsScriptSpec
 ];

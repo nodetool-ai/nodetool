@@ -31,6 +31,7 @@ import type {
 import {
   listSketchesSpec,
   createSketchSpec,
+  getSketchSpec,
   listSketchVersionsSpec,
   getSketchVersionSpec,
   createSketchVersionSpec,
@@ -43,6 +44,7 @@ import {
   SAVE_TYPE_PROPERTY,
   LIST_SKETCHES_SCHEMA,
   CREATE_SKETCH_SCHEMA,
+  GET_SKETCH_SCHEMA,
   LIST_SKETCH_VERSIONS_SCHEMA,
   GET_SKETCH_VERSION_SCHEMA,
   CREATE_SKETCH_VERSION_SCHEMA,
@@ -66,6 +68,7 @@ export {
   SAVE_TYPE_PROPERTY,
   LIST_SKETCHES_SCHEMA,
   CREATE_SKETCH_SCHEMA,
+  GET_SKETCH_SCHEMA,
   LIST_SKETCH_VERSIONS_SCHEMA,
   GET_SKETCH_VERSION_SCHEMA,
   CREATE_SKETCH_VERSION_SCHEMA,
@@ -306,6 +309,15 @@ const listSketches: CapabilityExport = {
         updated_at: row.updated_at
       }))
     };
+  }
+};
+
+const getSketch: CapabilityExport = {
+  spec: getSketchSpec,
+  impl: async (run, params) => {
+    const doc = await loadSketch(run, params["image_document_id"]);
+    if (isError(doc)) return doc;
+    return { sketch: doc.toResponse() };
   }
 };
 
@@ -978,6 +990,7 @@ const deleteSketch: CapabilityExport = {
 export const SKETCH_CAPABILITIES: readonly CapabilityExport[] = [
   listSketches,
   createSketch,
+  getSketch,
   listSketchVersions,
   getSketchVersion,
   createSketchVersion,
@@ -996,6 +1009,7 @@ export const module: CapabilityModule = {
 export {
   listSketches,
   createSketch,
+  getSketch,
   listSketchVersions,
   getSketchVersion,
   createSketchVersion,

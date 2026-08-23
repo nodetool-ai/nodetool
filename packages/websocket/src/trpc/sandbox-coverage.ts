@@ -300,31 +300,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "jsScripts.create": { capability: "save_js_script" },
   "jsScripts.delete": { capability: "delete_js_script" },
-  "jsScripts.documentVersions.create": {
-    gap:
-      "Version history for JS scripts. The timeline and sketch " +
-      "equivalents have capabilities; this one does not yet."
-  },
-  "jsScripts.documentVersions.delete": {
-    gap:
-      "Version history for JS scripts. The timeline and sketch " +
-      "equivalents have capabilities; this one does not yet."
-  },
-  "jsScripts.documentVersions.get": {
-    gap:
-      "Version history for JS scripts. The timeline and sketch " +
-      "equivalents have capabilities; this one does not yet."
-  },
-  "jsScripts.documentVersions.list": {
-    gap:
-      "Version history for JS scripts. The timeline and sketch " +
-      "equivalents have capabilities; this one does not yet."
-  },
-  "jsScripts.documentVersions.restore": {
-    gap:
-      "Version history for JS scripts. The timeline and sketch " +
-      "equivalents have capabilities; this one does not yet."
-  },
+  "jsScripts.documentVersions.create": { capability: "create_js_script_version" },
+  "jsScripts.documentVersions.delete": { capability: "delete_js_script_version" },
+  "jsScripts.documentVersions.get": { capability: "get_js_script_version" },
+  "jsScripts.documentVersions.list": { capability: "list_js_script_versions" },
+  "jsScripts.documentVersions.restore": { capability: "restore_js_script_version" },
   "jsScripts.get": { capability: "get_js_script" },
   "jsScripts.list": { capability: "list_js_scripts" },
   "jsScripts.palette": {
@@ -612,11 +592,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "capability; the envelope exists so an app widget can bind " +
       "without knowing which kind it holds."
   },
-  "scripts.create": {
-    gap:
-      "derive_storyboard_from_script creates one from a board; a bare " +
-      "create has no capability yet."
-  },
+  "scripts.create": { capability: "create_script" },
   "scripts.delete": { capability: "delete_script" },
   "scripts.get": { capability: "get_script" },
   "scripts.list": { capability: "list_scripts" },
@@ -659,11 +635,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "sketch.documentVersions.get": { capability: "get_sketch_version" },
   "sketch.documentVersions.list": { capability: "list_sketch_versions" },
   "sketch.documentVersions.restore": { capability: "restore_sketch_version" },
-  "sketch.get": {
-    gap:
-      "list_sketches names them and validate_sketch checks one, but " +
-      "there is no read of a stored sketch document."
-  },
+  "sketch.get": { capability: "get_sketch" },
   "sketch.layers.create": {
     elsewhere:
       "Per-layer generation takes and layer editing are the editor's " +
@@ -738,11 +710,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "timeline.create": { capability: "assemble_script_timeline" },
   "timeline.delete": { capability: "delete_timeline" },
-  "timeline.get": {
-    gap:
-      "list_timelines names them and validate_timeline checks a " +
-      "document, but there is no read of a stored sequence."
-  },
+  "timeline.get": { capability: "get_timeline" },
   "timeline.list": { capability: "list_timelines" },
   "timeline.update": { capability: "edit_timeline" },
   "timeline.versions.create": { capability: "create_timeline_version" },

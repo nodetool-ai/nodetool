@@ -34,7 +34,7 @@ import type {
   JsScriptDocument,
   JsScriptTestCase
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import type { JsScript } from "@nodetool-ai/models";
+import type { JsScript, JsScriptVersion } from "@nodetool-ai/models";
 import type { JsScriptValidation } from "@nodetool-ai/execution/js-script-debug";
 import type {
   CapabilityExport,
@@ -50,6 +50,13 @@ import {
   validateJsScriptSpec,
   runJsScriptSpec,
   testJsScriptSpec,
+  listJsScriptVersionsSpec,
+  getJsScriptVersionSpec,
+  createJsScriptVersionSpec,
+  restoreJsScriptVersionSpec,
+  deleteJsScriptVersionSpec,
+  DEFAULT_VERSION_LIMIT,
+  MAX_VERSION_LIMIT,
   MAX_JS_SCRIPT_DEPTH,
   MAX_JS_SCRIPT_TIMEOUT_SECONDS,
   deleteJsScriptSpec
@@ -57,6 +64,8 @@ import {
 import { isNonBlankString, isRecord } from "../utils/type-guards.js";
 
 export {
+  DEFAULT_VERSION_LIMIT,
+  MAX_VERSION_LIMIT,
   MAX_JS_SCRIPT_DEPTH,
   MAX_JS_SCRIPT_TIMEOUT_SECONDS
 } from "./js-scripts.specs.js";
@@ -581,6 +590,206 @@ const deleteJsScript: CapabilityExport = {
       : { error: `JS script ${id} was not found, or it is not yours.` };
   }
 };
+
+// ---------------------------------------------------------------------------
+// Version history
+// ---------------------------------------------------------------------------
+
+/** The list-item shape the tRPC router returns for a snapshot. */
+function toVersionListItem(version: JsScriptVersion) {
+  return {
+    id: version.id,
+    version: version.version,
+    name: version.name,
+    saveType: version.save_type,
+    createdAt: version.created_at
+  };
+}
+
+/**
+ * A snapshot's document is JSON text on SQLite and an object on Postgres, so
+ * parse only when it is a string. A row that is neither is corrupt, and saying
+ * so beats handing back a string the caller will treat as a document.
+ */
+function parseVersionDocument(raw: unknown): unknown | ToolError {
+  if (typeof raw !== "string") return raw;
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return { error: "The stored version document is not valid JSON." };
+  }
+}
+
+function versionNumber(value: unknown): number | ToolError {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) {
+    return {
+      error:
+        "version must be a positive integer (use list_js_script_versions to see the available ones)."
+    };
+  }
+  return n;
+}
+
+const listJsScriptVersions: CapabilityExport = {
+  spec: listJsScriptVersionsSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params);
+    if (isError(script)) return script;
+
+    const { JsScriptVersion } = await import("@nodetool-ai/models");
+    const limit = Math.max(
+      1,
+      Math.min(Number(params["limit"]) || DEFAULT_VERSION_LIMIT, MAX_VERSION_LIMIT)
+    );
+    const saveType = stringParam(params["save_type"]);
+    const options: { limit: number; saveType?: string } = { limit };
+    if (saveType) options.saveType = saveType;
+    const versions = await JsScriptVersion.listForScript(script.id, options);
+    return {
+      js_script_id: script.id,
+      name: script.name,
+      versions: versions.map(toVersionListItem)
+    };
+  }
+};
+
+const getJsScriptVersion: CapabilityExport = {
+  spec: getJsScriptVersionSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params);
+    if (isError(script)) return script;
+
+    const number = versionNumber(params["version"]);
+    if (isError(number)) return number;
+
+    const { JsScriptVersion } = await import("@nodetool-ai/models");
+    const version = await JsScriptVersion.findByVersion(script.id, number);
+    if (!version) {
+      return {
+        error: `JS script ${script.id} has no version ${number}. Call list_js_script_versions to see the available ones.`
+      };
+    }
+
+    const document = parseVersionDocument(version.document);
+    if (isError(document)) return document;
+
+    return {
+      js_script_id: script.id,
+      ...toVersionListItem(version),
+      document
+    };
+  }
+};
+
+const createJsScriptVersion: CapabilityExport = {
+  spec: createJsScriptVersionSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params);
+    if (isError(script)) return script;
+
+    const { JsScriptVersion } = await import("@nodetool-ai/models");
+    const version = await JsScriptVersion.snapshot(script, {
+      saveType: "manual",
+      name: stringParam(params["name"]) ?? null
+    });
+    return {
+      ok: true,
+      js_script_id: script.id,
+      ...toVersionListItem(version)
+    };
+  }
+};
+
+const restoreJsScriptVersion: CapabilityExport = {
+  spec: restoreJsScriptVersionSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params);
+    if (isError(script)) return script;
+
+    const number = versionNumber(params["version"]);
+    if (isError(number)) return number;
+
+    const { JsScript, JsScriptVersion } = await import("@nodetool-ai/models");
+    const version = await JsScriptVersion.findByVersion(script.id, number);
+    if (!version) {
+      return {
+        error: `JS script ${script.id} has no version ${number}. Call list_js_script_versions to see the available ones.`
+      };
+    }
+
+    const document = parseVersionDocument(version.document);
+    if (isError(document)) return document;
+
+    // An old document is restored against today's schema, so what it used to
+    // pass is not what it passes now. Errors refuse the restore; warnings ride
+    // back with the restored script.
+    const validation = await validateDocument(run, document);
+    if (!validation.ok) {
+      return {
+        ok: false,
+        restored: false,
+        error:
+          `Version ${number} does not validate against today's schema, so it ` +
+          "was not restored: " +
+          validation.errors.map((issue) => issue.message).join("; "),
+        validation
+      };
+    }
+
+    // Snapshot what is about to be overwritten first, so a restore is itself
+    // undoable.
+    const undo = await JsScriptVersion.snapshot(script, {
+      saveType: "restore",
+      name: `Before restore to v${number}`
+    });
+
+    const updated = await JsScript.updateFieldsIfUnchanged(
+      script.id,
+      script.updated_at,
+      { document: JSON.stringify(document) }
+    );
+    if (!updated) {
+      return {
+        error:
+          `JS script ${script.id} was modified while restoring version ` +
+          `${number}; nothing was written. Retry the restore.`
+      };
+    }
+
+    return {
+      ok: true,
+      restored: true,
+      js_script_id: script.id,
+      version: number,
+      undo_version: undo.version,
+      updated_at: updated.updated_at,
+      validation
+    };
+  }
+};
+
+const deleteJsScriptVersion: CapabilityExport = {
+  spec: deleteJsScriptVersionSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params);
+    if (isError(script)) return script;
+
+    const number = versionNumber(params["version"]);
+    if (isError(number)) return number;
+
+    const { JsScriptVersion } = await import("@nodetool-ai/models");
+    const version = await JsScriptVersion.findByVersion(script.id, number);
+    if (!version) {
+      return {
+        error: `JS script ${script.id} has no version ${number}. Call list_js_script_versions to see the available ones.`
+      };
+    }
+    await version.delete();
+    return { ok: true, js_script_id: script.id, version: number, deleted: true };
+  }
+};
+
 export const JS_SCRIPT_CAPABILITIES: readonly CapabilityExport[] = [
   listJsScripts,
   getJsScript,
@@ -588,6 +797,11 @@ export const JS_SCRIPT_CAPABILITIES: readonly CapabilityExport[] = [
   validateJsScript,
   runJsScript,
   testJsScript,
+  listJsScriptVersions,
+  getJsScriptVersion,
+  createJsScriptVersion,
+  restoreJsScriptVersion,
+  deleteJsScriptVersion,
   deleteJsScript
 ];
 
@@ -603,5 +817,10 @@ export {
   validateJsScript,
   runJsScript,
   testJsScript,
+  listJsScriptVersions,
+  getJsScriptVersion,
+  createJsScriptVersion,
+  restoreJsScriptVersion,
+  deleteJsScriptVersion,
   deleteJsScript
 };

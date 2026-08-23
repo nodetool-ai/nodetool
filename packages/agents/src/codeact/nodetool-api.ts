@@ -113,6 +113,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   apps: ["list_apps", "get_app", "create_app", "edit_app", "debug_app"],
   timelines: [
     "list_timelines",
+    "get_timeline",
     "list_timeline_versions",
     "get_timeline_version",
     "create_timeline_version",
@@ -124,6 +125,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   sketches: [
     "list_sketches",
     "create_sketch",
+    "get_sketch",
     "list_sketch_versions",
     "get_sketch_version",
     "create_sketch_version",
@@ -134,6 +136,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   scripts: [
     "list_scripts",
+    "create_script",
     "get_script",
     "voice_script_lines",
     "assemble_script_timeline",
@@ -1030,6 +1033,7 @@ const nodetool = (() => {
 
     timelines: {
       list: (opts) => __need("list_timelines")(__merge(opts)),
+      get: (id) => __need("get_timeline")({ timeline_id: id }),
       versions: (id, opts) =>
         __need("list_timeline_versions")(__merge(opts, { timeline_id: id })),
       getVersion: (id, version) =>
@@ -1059,6 +1063,7 @@ const nodetool = (() => {
       /** Create a blank sketch. Pass {width, height} for the canvas size. */
       create: (name, opts) =>
         __need("create_sketch")(__merge(opts, { name: name })),
+      get: (id) => __need("get_sketch")({ image_document_id: id }),
       versions: (id, opts) =>
         __need("list_sketch_versions")(
           __merge(opts, { image_document_id: id })
@@ -1093,6 +1098,9 @@ const nodetool = (() => {
 
     scripts: {
       list: (opts) => __need("list_scripts")(__merge(opts)),
+      /** Create an empty script. Pass {project_id} to place it. */
+      create: (name, opts) =>
+        __need("create_script")(__merge(opts, { name: name })),
       get: (id) => __need("get_script")({ script_id: id }),
       voice: (id, opts) =>
         __need("voice_script_lines")(__merge(opts, { script_id: id })),

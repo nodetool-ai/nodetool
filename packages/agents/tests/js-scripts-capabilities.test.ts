@@ -780,3 +780,91 @@ describe("permission categories", () => {
     expect(belt).toContain("list_workflows");
   });
 });
+
+describe("js script version history", () => {
+  const call = (name: string, args: Record<string, unknown>) =>
+    toolForCapabilityName(name).execute(context(), args);
+
+  it("snapshots, lists, reads, restores and deletes a version", async () => {
+    const script = await makeScript({
+      code: 'await output("n", 1);',
+      outputs: [{ name: "n", type: "int" }]
+    });
+
+    const created = (await call("create_js_script_version", {
+      js_script_id: script.id,
+      name: "before the rewrite"
+    })) as { ok: boolean; version: number };
+    expect(created.ok).toBe(true);
+
+    const listed = (await call("list_js_script_versions", {
+      js_script_id: script.id
+    })) as { versions: Array<{ version: number; name: string }> };
+    expect(listed.versions[0]).toMatchObject({ name: "before the rewrite" });
+
+    const read = (await call("get_js_script_version", {
+      js_script_id: script.id,
+      version: created.version
+    })) as { document: { code: string } };
+    expect(read.document.code).toContain('output("n", 1)');
+
+    // Move the script on, then put the snapshot back.
+    await JsScript.updateFieldsIfUnchanged(script.id, script.updated_at, {
+      document: JSON.stringify(
+        document({
+          code: 'await output("n", 2);',
+          outputs: [{ name: "n", type: "int" }]
+        })
+      )
+    });
+
+    const restored = (await call("restore_js_script_version", {
+      js_script_id: script.id,
+      version: created.version
+    })) as { ok: boolean; undo_version: number };
+    expect(restored.ok).toBe(true);
+    expect(restored.undo_version).toBeGreaterThan(created.version);
+
+    const after = await JsScript.findById(script.id);
+    expect(after?.toDocument().code).toContain('output("n", 1)');
+
+    const deleted = (await call("delete_js_script_version", {
+      js_script_id: script.id,
+      version: created.version
+    })) as { deleted: boolean };
+    expect(deleted.deleted).toBe(true);
+
+    const missing = (await call("get_js_script_version", {
+      js_script_id: script.id,
+      version: created.version
+    })) as { error: string };
+    expect(missing.error).toContain(`has no version ${created.version}`);
+  });
+
+  it("refuses to restore a snapshot that no longer validates", async () => {
+    const script = await makeScript({ code: 'await output("n", 1);' });
+    // A snapshot taken while the document still declared no outputs; today the
+    // body emits one the ports do not carry.
+    const created = (await call("create_js_script_version", {
+      js_script_id: script.id
+    })) as { version: number };
+
+    const result = (await call("restore_js_script_version", {
+      js_script_id: script.id,
+      version: created.version
+    })) as { ok: boolean; restored: boolean; error: string };
+    expect(result).toMatchObject({ ok: false, restored: false });
+    expect(result.error).toContain("does not validate");
+  });
+
+  it("hides a script owned by another user", async () => {
+    const script = await makeScript({ code: 'await output("n", 1);' });
+    const result = (await toolForCapabilityName(
+      "list_js_script_versions"
+    ).execute(
+      new ProcessingContext({ jobId: "job-other", userId: "other" }),
+      { js_script_id: script.id }
+    )) as { error: string };
+    expect(result.error).toContain("was not found");
+  });
+});

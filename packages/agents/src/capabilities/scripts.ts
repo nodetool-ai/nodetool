@@ -55,6 +55,7 @@ import type {
 } from "./types.js";
 import {
   listScriptsSpec,
+  createScriptSpec,
   getScriptSpec,
   voiceScriptLinesSpec,
   assembleScriptTimelineSpec,
@@ -434,6 +435,58 @@ const listScripts: CapabilityExport = {
           updated_at: row.updated_at
         };
       })
+    };
+  }
+};
+
+const createScript: CapabilityExport = {
+  spec: createScriptSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const name = params["name"];
+    if (!isNonBlankString(name)) {
+      return { error: "name is required and must be a non-empty string." };
+    }
+    const { Script, emptyScriptDocument } = await import("@nodetool-ai/models");
+
+    const requestedId = isNonBlankString(params["id"])
+      ? params["id"].trim()
+      : undefined;
+    if (requestedId) {
+      const existing = await Script.findById(requestedId);
+      if (existing) {
+        // A script someone else owns reads as taken, not as theirs to read.
+        if (existing.user_id !== userId) {
+          return { error: `A script with id ${requestedId} already exists.` };
+        }
+        return {
+          ok: true,
+          script_id: existing.id,
+          name: existing.name,
+          project_id: existing.project_id,
+          updated_at: existing.updated_at
+        };
+      }
+    }
+
+    const fields: ConstructorParameters<typeof Script>[0] = {
+      user_id: userId,
+      project_id: isNonBlankString(params["project_id"])
+        ? params["project_id"].trim()
+        : "default",
+      name: name.trim(),
+      document: JSON.stringify(emptyScriptDocument())
+    };
+    if (requestedId) fields.id = requestedId;
+    const script = new Script(fields);
+    await script.save();
+    return {
+      ok: true,
+      script_id: script.id,
+      name: script.name,
+      project_id: script.project_id,
+      updated_at: script.updated_at
     };
   }
 };
@@ -1517,6 +1570,7 @@ const deleteScript: CapabilityExport = {
 };
 export const SCRIPT_CAPABILITIES: readonly CapabilityExport[] = [
   listScripts,
+  createScript,
   getScript,
   voiceScriptLines,
   assembleScriptTimeline,
@@ -1532,6 +1586,7 @@ export const module: CapabilityModule = {
 
 export {
   listScripts,
+  createScript,
   getScript,
   voiceScriptLines,
   assembleScriptTimeline,

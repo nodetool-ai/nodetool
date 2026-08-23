@@ -1175,6 +1175,13 @@ function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
     }
     next.duration_seconds = seconds;
   }
+  if (args["duration_source"] !== undefined) {
+    const source = String(args["duration_source"]);
+    if (source !== "audio" && source !== "manual") {
+      throw new Error('duration_source must be "audio" or "manual".');
+    }
+    next.duration_source = source;
+  }
   if (Array.isArray(args["entity_ids"])) {
     next.entity_ids = args["entity_ids"].map(String);
   }

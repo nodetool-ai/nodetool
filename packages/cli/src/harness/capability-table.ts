@@ -1523,6 +1523,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "get_timeline",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "1f500cb8f942",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
     name: "list_timeline_versions",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
@@ -1647,6 +1657,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "get_sketch",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "0ccfe3a6d5d1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+    ],
+  },
+  {
     name: "list_sketch_versions",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",
@@ -1745,6 +1765,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",
     contract: "915ad505a9f2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+  },
+  {
+    name: "create_script",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "ceac594f5274",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-scripts.test.ts",
@@ -1852,6 +1882,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
     ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["storyboard-direct-shots"],
+      },
+    ],
   },
   {
     name: "render_storyboard_stills",
@@ -1915,10 +1951,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "96f72be32609",
+    contract: "14c59598a296",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["storyboard-direct-shots"],
+      },
     ],
   },
   {
@@ -2068,6 +2110,56 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "js-scripts",
     impl: "packages/agents/src/capabilities/js-scripts.ts",
     contract: "db2fc27723bc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "list_js_script_versions",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "1251a24e6d23",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "get_js_script_version",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "36cb408aac3f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "create_js_script_version",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "d75395b3484a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "restore_js_script_version",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "7573bab23a6b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "delete_js_script_version",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "bdbdca988955",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/js-scripts-capabilities.test.ts",

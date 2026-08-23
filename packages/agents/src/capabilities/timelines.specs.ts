@@ -39,6 +39,17 @@ export const LIST_TIMELINES_SCHEMA: JsonSchema = {
   }
 };
 
+export const GET_TIMELINE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "Timeline sequence id (from list_timelines)."
+    }
+  },
+  required: ["timeline_id"]
+};
+
 export const LIST_TIMELINE_VERSIONS_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -165,6 +176,18 @@ export const listTimelinesSpec: CapabilitySpec = {
   inputSchema: LIST_TIMELINES_SCHEMA,
   category: "read",
   userMessage: () => "Listing timelines"
+};
+
+export const getTimelineSpec: CapabilitySpec = {
+  name: "get_timeline",
+  description:
+    "Read a saved timeline sequence: its fps, size, duration, tracks, clips " +
+    "and markers. This is the stored document edit_timeline writes and " +
+    "validate_timeline checks — read it before editing so clip and track ids " +
+    "come from the sequence rather than a guess.",
+  inputSchema: GET_TIMELINE_SCHEMA,
+  category: "read",
+  userMessage: (params) => `Reading timeline ${String(params["timeline_id"])}`
 };
 
 export const listTimelineVersionsSpec: CapabilitySpec = {
@@ -307,6 +330,7 @@ export const deleteTimelineSpec: CapabilitySpec = {
 /** Every spec this module declares, in declaration order. */
 export const timelinesSpecs: readonly CapabilitySpec[] = [
   listTimelinesSpec,
+  getTimelineSpec,
   listTimelineVersionsSpec,
   getTimelineVersionSpec,
   createTimelineVersionSpec,

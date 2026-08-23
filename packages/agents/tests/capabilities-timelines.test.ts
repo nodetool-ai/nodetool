@@ -78,6 +78,7 @@ async function makeTimeline(
 /** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
   ["list_timelines", () => toolForCapabilityName("list_timelines")],
+  ["get_timeline", () => toolForCapabilityName("get_timeline")],
   [
     "list_timeline_versions",
     () => toolForCapabilityName("list_timeline_versions")
@@ -104,6 +105,7 @@ describe("timelines capability module", () => {
     expect(capabilityModuleIssues("timelines", timelines)).toEqual([]);
     expect(timelines.exports.map((e) => e.spec.name)).toEqual([
       "list_timelines",
+      "get_timeline",
       "list_timeline_versions",
       "get_timeline_version",
       "create_timeline_version",
@@ -171,6 +173,21 @@ describe("timelines capability behaviour", () => {
       timelines: unknown[];
     };
     expect(other.timelines).toEqual([]);
+  });
+
+  it("reads a stored sequence, and hides another user's", async () => {
+    const row = await makeTimeline();
+
+    const read = (await run().invoke("get_timeline", {
+      timeline_id: row.id
+    })) as { timeline: { id: string; fps: number; clips: unknown[] } };
+    expect(read.timeline).toMatchObject({ id: row.id, fps: 30 });
+    expect(read.timeline.clips).toHaveLength(1);
+
+    const other = (await run("other").invoke("get_timeline", {
+      timeline_id: row.id
+    })) as { error: string };
+    expect(other.error).toContain("was not found");
   });
 
   it("snapshots, reads, and restores a version", async () => {
