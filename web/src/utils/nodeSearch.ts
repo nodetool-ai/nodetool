@@ -88,6 +88,21 @@ let globalIndexesHash: string = "";
 // when the caller passes the same array reference (the common case).
 const HASH_CACHE = new WeakMap<readonly NodeMetadata[], string>();
 
+// Filtering out the `default` namespace handed `ensureIndexes` a fresh array on
+// every keystroke, missing HASH_CACHE and re-hashing the whole catalog. Keyed on
+// the input array, so a new metadata catalog still produces a new filtered one.
+const DEFAULT_NAMESPACE_CACHE = new WeakMap<NodeMetadata[], NodeMetadata[]>();
+
+function withoutDefaultNamespace(metadata: NodeMetadata[]): NodeMetadata[] {
+  const cached = DEFAULT_NAMESPACE_CACHE.get(metadata);
+  if (cached) {
+    return cached;
+  }
+  const filtered = metadata.filter((node) => node.namespace !== "default");
+  DEFAULT_NAMESPACE_CACHE.set(metadata, filtered);
+  return filtered;
+}
+
 const PREFIX_TREE_FIELDS: SearchField[] = [
   { field: "title", weight: 1.0 },
   { field: "namespace", weight: 0.8 },
@@ -364,9 +379,7 @@ export function computeSearchResults(
   const hasSearchTerm = term.trim().length > 0;
   const hasTypeFilters = selectedInputType || selectedOutputType;
   // Filter out default namespace nodes
-  const filteredMetadata = metadata.filter(
-    (node) => node.namespace !== "default"
-  );
+  const filteredMetadata = withoutDefaultNamespace(metadata);
 
   // Apply provider filtering before type/path filtering so all follow-up
   // logic works on a consistent subset.

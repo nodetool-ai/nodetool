@@ -74,41 +74,44 @@ export function searchTermsFromQuery(query: string): string[] {
   return Array.from(terms);
 }
 
+// `lowerTerms` arrive lower-cased from `rank`. Scoring is field-major so a long
+// field (a node's description) is lower-cased once per item, not once per term.
 function fieldScore(
   field: string | undefined,
-  term: string,
+  lowerTerms: readonly string[],
   weight: number,
   exactTokenBonus: number
 ): number {
   if (!field) return 0;
   const lower = field.toLowerCase();
-  if (!lower.includes(term)) return 0;
 
-  let score = weight;
-  const tokens = lower.split(/[\s._\-/]+/).filter(Boolean);
-  if (tokens.includes(term)) {
-    score += weight * exactTokenBonus;
+  let score = 0;
+  let tokens: string[] | null = null;
+  for (const term of lowerTerms) {
+    if (!lower.includes(term)) continue;
+    score += weight;
+    if (tokens === null) {
+      tokens = lower.split(/[\s._\-/]+/).filter(Boolean);
+    }
+    if (tokens.includes(term)) {
+      score += weight * exactTokenBonus;
+    }
   }
   return score;
 }
 
 function scoreItem<T>(
   item: T,
-  terms: readonly string[],
+  lowerTerms: readonly string[],
   config: RankConfig<T>
 ): number {
-  if (terms.length === 0) return 0;
-  if (config.prefilter && !config.prefilter(item)) return 0;
+  if (lowerTerms.length === 0) return 0;
 
   const exactBonus = config.exactTokenBonus ?? DEFAULT_EXACT_TOKEN_BONUS;
 
   let raw = 0;
-  for (const rawTerm of terms) {
-    const term = rawTerm.toLowerCase();
-    if (!term) continue;
-    for (const field of config.fields) {
-      raw += fieldScore(field.get(item), term, field.weight, exactBonus);
-    }
+  for (const field of config.fields) {
+    raw += fieldScore(field.get(item), lowerTerms, field.weight, exactBonus);
   }
 
   if (raw === 0) return 0;
@@ -128,6 +131,9 @@ export function rank<T>(
   const boostedBonus = config.boostedBonus ?? DEFAULT_BOOSTED_BONUS;
 
   const hasTerms = terms.some((term) => term.trim().length > 0);
+  const lowerTerms = terms
+    .map((term) => term.toLowerCase())
+    .filter((term) => term.length > 0);
   const scored: Scored<T>[] = [];
 
   for (const item of items) {
@@ -135,7 +141,7 @@ export function rank<T>(
 
     const key = config.keyFn(item);
     const candidateBoost = getCandidateBoost(config.candidateBoosts, key);
-    const baseScore = hasTerms ? scoreItem(item, terms, config) : 0;
+    const baseScore = hasTerms ? scoreItem(item, lowerTerms, config) : 0;
     const matchedByCandidateOnly =
       config.includeCandidateOnlyMatches === true && candidateBoost > 0;
 
