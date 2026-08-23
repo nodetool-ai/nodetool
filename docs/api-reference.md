@@ -36,7 +36,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Workflows | `/api/debug/sessions/{id}`        | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | State of an interactive run: the escalation it is parked on, or its final report |
 | Workflows | `/api/debug/sessions/{id}/verdict` | `POST`           | Depends on `AUTH_PROVIDER`                     | no                          | Answer the parked escalation, then wait for the next one or the final report |
 | Workflows | `/api/debug/sessions/{id}/cancel` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Cancel the run and return its final report |
-| Workflows | `/api/workflows/{id}/interface`   | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | One workflow's input and output pins; `?version=1` is required |
+| SDK       | `/api/sdk/v1/workflows/{id}/interface` | `GET`        | Depends on `AUTH_PROVIDER`                     | no                          | One workflow's input and output pins; `?version=1` is required |
 | Workflows | `/api/workflows/public`           | `GET`             | none                                           | no                          | Workflows the owner marked `access: "public"` |
 | Workflows | `/api/workflows/public/{id}`      | `GET`             | none                                           | no                          | One public workflow; `404` when it is not public |
 | Examples  | `/api/workflows/examples`         | `GET`             | none                                           | no                          | Shipped example templates — metadata only, `graph` is empty |
@@ -1192,14 +1192,14 @@ node registry moved under it.
 
 Two environment flags can switch parts of this family off, and they cover
 different routes. `NODETOOL_DISABLE_SDK_LIFECYCLE_V1=1` disables this route,
-`/preflight`, `/assets/temporary`, and the model-download routes, which then
+`/preflight`, and `/assets/temporary`, which then
 answer `503` with `{"code": "SDK_LIFECYCLE_DISABLED", …}`.
 `NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1=1` disables the discovery routes —
 `/node-types`, `/workflows`, `/workflow-interfaces`, and
-`/api/workflows/{id}/interface` — which answer `503` with
+`/api/sdk/v1/workflows/{id}/interface` — which answer `503` with
 `SDK_WORKFLOW_INTERFACE_DISABLED`, except `/node-types`, which reports
 `SDK_NODE_TYPE_INVENTORY_DISABLED`. The model catalog at `/api/sdk/v1/models`
-is unaffected by either. See
+and the model-download routes are unaffected by either. See
 [Configuration](configuration.md#environment-variables-index).
 
 ### The Node Type Inventory
@@ -1283,12 +1283,12 @@ Two routes answer what a workflow takes and returns, without fetching its graph.
 Use them to build a form, validate a parameter bag, or decide which outputs to
 subscribe to.
 
-`GET /api/workflows/{id}/interface?version=1` covers one workflow. The
+`GET /api/sdk/v1/workflows/{id}/interface?version=1` covers one workflow. The
 `version=1` query parameter is required — omitting it is a `400`
 (`{"code": "UNSUPPORTED_WORKFLOW_INTERFACE_VERSION", …}`), not a default:
 
 ```bash
-curl "http://localhost:7777/api/workflows/<workflow_id>/interface?version=1" \
+curl "http://localhost:7777/api/sdk/v1/workflows/<workflow_id>/interface?version=1" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -1596,7 +1596,7 @@ script does not declare as an input is a `400`:
 }
 ```
 
-The script runs inside its own envelope — its declared sandbox packages, its
+The script runs inside its own envelope — the packs its body imports, its
 declared secrets, and its own `timeoutSeconds` — so nothing in the request
 widens what it may reach. A body that throws is **not** an HTTP error: the
 response is `200` with `ok: false` and the message in `error`, because a script
