@@ -1,10 +1,13 @@
-import type { SdkV1Capabilities } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
-import { isSdkLifecycleV1Enabled } from "./sdk-feature-flags.js";
+import type { SdkV1ImplementationBoundary } from "./sdk-v1-handler-map.js";
+import {
+  normalizeSdkV1ServiceError,
+  reportSdkV1InternalError,
+  sdkV1HttpError
+} from "./sdk-v1-service-error.js";
 
 interface HandleSdkV1CapabilitiesOptions {
-  getCapabilities: () => Promise<SdkV1Capabilities> | SdkV1Capabilities;
-  environment?: NodeJS.ProcessEnv;
-  onInternalError?: (error: unknown) => void;
+  readonly boundary: SdkV1ImplementationBoundary;
+  readonly onInternalError?: (error: unknown) => void;
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -31,14 +34,16 @@ function errorResponse(
   );
 }
 
-/**
- * Standalone HTTP adapter for the future capabilities route.
- *
- * Deliberately not imported by the current HTTP dispatcher. Keeping this leaf
- * handler isolated allows its contract and failure behavior to be verified
- * before the Phase 0 Electron/VL non-regression gate enables production
- * routing.
- */
+function serviceErrorResponse(
+  error: unknown,
+  options: HandleSdkV1CapabilitiesOptions
+): Response {
+  const normalized = normalizeSdkV1ServiceError(error);
+  reportSdkV1InternalError(normalized, options.onInternalError);
+  const mapped = sdkV1HttpError(normalized);
+  return jsonResponse(mapped.body, mapped.status);
+}
+
 export async function handleSdkV1Capabilities(
   request: Request,
   options: HandleSdkV1CapabilitiesOptions
@@ -46,22 +51,12 @@ export async function handleSdkV1Capabilities(
   if (request.method !== "GET") {
     return errorResponse(405, "METHOD_NOT_ALLOWED", "Method not allowed");
   }
-  if (!isSdkLifecycleV1Enabled(options.environment)) {
-    return errorResponse(
-      503,
-      "SDK_LIFECYCLE_DISABLED",
-      "SDK lifecycle v1 is disabled"
-    );
-  }
 
   try {
-    return jsonResponse(await options.getCapabilities());
+    return jsonResponse(
+      await options.boundary.handlers.getCapabilities(undefined)
+    );
   } catch (error) {
-    try {
-      options.onInternalError?.(error);
-    } catch {
-      // Error reporting must never replace the redacted public response.
-    }
-    return errorResponse(500, "INTERNAL_ERROR", "Internal server error", true);
+    return serviceErrorResponse(error, options);
   }
 }

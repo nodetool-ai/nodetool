@@ -1,18 +1,15 @@
-import { randomUUID } from "node:crypto";
+import { getMaxUploadBytes } from "@nodetool-ai/storage";
+import type { SdkV1ImplementationBoundary } from "./sdk-v1-handler-map.js";
 import {
-  sdkV1TemporaryAssetUpload,
-  type SdkV1TemporaryAssetUpload
-} from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
-import { getMaxUploadBytes, type StorageAdapter } from "@nodetool-ai/storage";
-import { getAssetFileName } from "../lib/asset-paths.js";
-import { isSdkLifecycleV1Enabled } from "./sdk-feature-flags.js";
+  normalizeSdkV1ServiceError,
+  reportSdkV1InternalError,
+  sdkV1HttpError
+} from "./sdk-v1-service-error.js";
 
 interface HandleSdkV1TemporaryAssetUploadOptions {
-  storage: StorageAdapter;
-  environment?: NodeJS.ProcessEnv;
-  getConfiguredMaxUploadBytes?: () => number;
-  createId?: () => string;
-  onInternalError?: (error: unknown) => void;
+  readonly boundary: SdkV1ImplementationBoundary;
+  readonly getConfiguredMaxUploadBytes?: () => number;
+  readonly onInternalError?: (error: unknown) => void;
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -39,13 +36,16 @@ function errorResponse(
   );
 }
 
-/**
- * Stores one execution input directly in temporary storage.
- *
- * This deliberately creates no Asset row and no thumbnail. The returned URI
- * is consumed by the workflow runtime through its temporary storage adapter.
- * Retention is therefore controlled by the configured temporary store.
- */
+function serviceErrorResponse(
+  error: unknown,
+  options: HandleSdkV1TemporaryAssetUploadOptions
+): Response {
+  const normalized = normalizeSdkV1ServiceError(error);
+  reportSdkV1InternalError(normalized, options.onInternalError);
+  const mapped = sdkV1HttpError(normalized);
+  return jsonResponse(mapped.body, mapped.status);
+}
+
 export async function handleSdkV1TemporaryAssetUpload(
   request: Request,
   options: HandleSdkV1TemporaryAssetUploadOptions
@@ -53,12 +53,10 @@ export async function handleSdkV1TemporaryAssetUpload(
   if (request.method !== "POST") {
     return errorResponse(405, "METHOD_NOT_ALLOWED", "Method not allowed");
   }
-  if (!isSdkLifecycleV1Enabled(options.environment)) {
-    return errorResponse(
-      503,
-      "SDK_LIFECYCLE_DISABLED",
-      "SDK lifecycle v1 is disabled"
-    );
+  try {
+    options.boundary.service.assertLifecycleAvailable();
+  } catch (error) {
+    return serviceErrorResponse(error, options);
   }
 
   const contentType = request.headers.get("content-type") ?? "";
@@ -69,9 +67,6 @@ export async function handleSdkV1TemporaryAssetUpload(
       "Expected multipart/form-data"
     );
   }
-
-  const maxUploadBytes =
-    options.getConfiguredMaxUploadBytes?.() ?? getMaxUploadBytes();
 
   let file: File;
   try {
@@ -86,9 +81,13 @@ export async function handleSdkV1TemporaryAssetUpload(
     }
     file = value;
   } catch {
+    // Malformed multipart bodies are expected client input errors. Do not
+    // expose the parser exception or report it as an internal service failure.
     return errorResponse(400, "INVALID_REQUEST", "Invalid multipart form data");
   }
 
+  const maxUploadBytes =
+    options.getConfiguredMaxUploadBytes?.() ?? getMaxUploadBytes();
   if (file.size > maxUploadBytes) {
     return errorResponse(
       413,
@@ -98,29 +97,14 @@ export async function handleSdkV1TemporaryAssetUpload(
   }
 
   try {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const mediaType = file.type || "application/octet-stream";
-    const id = (options.createId ?? randomUUID)();
-    const key = `temp/sdk-inputs/${getAssetFileName(id, mediaType)}`;
-    const storedUri = await options.storage.store(key, bytes, mediaType);
-    const uri = storedUri.startsWith("file://")
-      ? `/api/storage/${key}`
-      : storedUri;
-    const result: SdkV1TemporaryAssetUpload = {
-      version: 1,
-      uri,
-      name: file.name || getAssetFileName(id, mediaType),
-      content_type: mediaType,
-      size: bytes.byteLength,
-      expires_at: null
-    };
-    return jsonResponse(sdkV1TemporaryAssetUpload.parse(result));
+    return jsonResponse(
+      await options.boundary.handlers.uploadTemporaryAsset({
+        bytes: new Uint8Array(await file.arrayBuffer()),
+        contentType: file.type || "application/octet-stream",
+        name: file.name
+      })
+    );
   } catch (error) {
-    try {
-      options.onInternalError?.(error);
-    } catch {
-      // Error reporting must never replace the redacted public response.
-    }
-    return errorResponse(500, "INTERNAL_ERROR", "Internal server error", true);
+    return serviceErrorResponse(error, options);
   }
 }

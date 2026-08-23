@@ -1,0 +1,75 @@
+{
+  "fixture_version": 1,
+  "command": "get_workflow_interfaces",
+  "env": {
+    "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+    "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+    "NODETOOL_REQUIRE_SDK_AUTH_V1": "0",
+    "NODETOOL_PACKS_CONFIG": "/nonexistent/sdk-v1-golden-packs.json"
+  },
+  "request": {
+    "command": "get_workflow_interfaces",
+    "request_id": "sdk-golden-get_workflow_interfaces",
+    "data": {
+      "ids": [
+        "wf-sdk-golden-1",
+        "wf-sdk-golden-missing"
+      ],
+      "version": 1
+    }
+  },
+  "response": {
+    "type": "rpc_response",
+    "request_id": "sdk-golden-get_workflow_interfaces",
+    "command": "get_workflow_interfaces",
+    "result": {
+      "interfaces": [
+        {
+          "version": 1,
+          "workflow_id": "wf-sdk-golden-1",
+          "etag": "e77c846cf9f74bfab94dc2ee810b5f56",
+          "source": "server",
+          "inputs": [
+            {
+              "node_id": "input-1",
+              "name": "prompt",
+              "description": "",
+              "type": {
+                "type": "str",
+                "optional": false,
+                "type_args": [],
+                "type_name": null
+              },
+              "required": true,
+              "default": "hello"
+            }
+          ],
+          "outputs": [
+            {
+              "node_id": "output-1",
+              "name": "text",
+              "description": "",
+              "type": {
+                "type": "str",
+                "optional": false,
+                "type_args": [],
+                "type_name": null
+              },
+              "stream": false
+            }
+          ],
+          "diagnostics": []
+        }
+      ],
+      "errors": [
+        {
+          "workflow_id": "wf-sdk-golden-missing",
+          "code": "workflow_not_found",
+          "message": "Workflow not found"
+        }
+      ]
+    }
+  },
+  "messagepack_request_hex": "de0003a7636f6d6d616e64b76765745f776f726b666c6f775f696e7465726661636573aa726571756573745f6964d92273646b2d676f6c64656e2d6765745f776f726b666c6f775f696e7465726661636573a464617461de0002a369647392af77662d73646b2d676f6c64656e2d31b577662d73646b2d676f6c64656e2d6d697373696e67a776657273696f6e01",
+  "messagepack_response_hex": "de0004a474797065ac7270635f726573706f6e7365aa726571756573745f6964d92273646b2d676f6c64656e2d6765745f776f726b666c6f775f696e7465726661636573a7636f6d6d616e64b76765745f776f726b666c6f775f696e7465726661636573a6726573756c74de0002aa696e746572666163657391de0007a776657273696f6e01ab776f726b666c6f775f6964af77662d73646b2d676f6c64656e2d31a465746167d9206537376338343663663966373462666162393464633265653831306235663536a6736f75726365a6736572766572a6696e7075747391de0006a76e6f64655f6964a7696e7075742d31a46e616d65a670726f6d7074ab6465736372697074696f6ea0a474797065de0004a474797065a3737472a86f7074696f6e616cc2a9747970655f6172677390a9747970655f6e616d65c0a87265717569726564c3a764656661756c74a568656c6c6fa76f75747075747391de0005a76e6f64655f6964a86f75747075742d31a46e616d65a474657874ab6465736372697074696f6ea0a474797065de0004a474797065a3737472a86f7074696f6e616cc2a9747970655f6172677390a9747970655f6e616d65c0a673747265616dc2ab646961676e6f737469637390a66572726f727391de0003ab776f726b666c6f775f6964b577662d73646b2d676f6c64656e2d6d697373696e67a4636f6465b2776f726b666c6f775f6e6f745f666f756e64a76d657373616765b2576f726b666c6f77206e6f7420666f756e64"
+}

@@ -1,0 +1,89 @@
+{
+  "captures": {
+    "bad_input": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": {},
+        "headers": {
+          "content-type": "application/json",
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/model-downloads"
+      },
+      "response": {
+        "body": {
+          "code": "INVALID_INPUT",
+          "detail": "Invalid model download request",
+          "message": "Invalid model download request",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 400
+      },
+      "via": "fastify"
+    },
+    "success": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": {
+          "model_type": "hf.text_generation",
+          "repo_id": "sdk-golden/model"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/model-downloads"
+      },
+      "response": {
+        "body": {
+          "current_files": [],
+          "downloaded_bytes": 0,
+          "downloaded_files": 0,
+          "error": null,
+          "model_type": "hf.text_generation",
+          "operation_id": "mdl_sdk_golden",
+          "path": null,
+          "repo_id": "sdk-golden/model",
+          "scope": "local",
+          "started_at": "2026-08-22T12:00:00.000Z",
+          "status": "start",
+          "total_bytes": 0,
+          "total_files": 0,
+          "updated_at": "2026-08-22T12:00:00.000Z",
+          "version": "1"
+        },
+        "content_type": "application/json",
+        "status": 202
+      },
+      "via": "fastify"
+    }
+  },
+  "fixture_version": 1,
+  "not_captured": {
+    "auth_failure": "No in-route 401: getUserId falls back to x-user-id/'1' and server.ts enforces authentication in its onRequest hook (server.ts:897) before routing, answering 401 {\"error\":\"Unauthorized\"} outside the handlers.",
+    "feature_disabled": "No feature flag applies: the handler checks neither NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1 nor NODETOOL_DISABLE_SDK_LIFECYCLE_V1.",
+    "method_not_allowed": "GET on this path is the list operation and PUT answers Fastify's 404; the standalone handler's 405 is pinned by tests/sdk-model-download-http-handler.test.ts."
+  },
+  "operation": "model_download_start",
+  "route": {
+    "auth": "authenticated",
+    "feature_flag": null,
+    "in_http_api_dispatcher": false,
+    "method": "POST",
+    "owner": "packages/websocket/src/routes/nodes.ts",
+    "path": "/api/sdk/v1/model-downloads"
+  }
+}

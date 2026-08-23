@@ -12,6 +12,8 @@ import type {
   SdkV1PreflightRequest,
   SdkV1PreflightSummary
 } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -61,7 +63,8 @@ function decodeAll(ws: MockWebSocket): Record<string, unknown>[] {
   return [...binary, ...text];
 }
 
-const asAny = (r: UnifiedWebSocketRunner) => r as unknown as Record<string, any>;
+const asAny = (r: UnifiedWebSocketRunner) =>
+  r as unknown as Record<string, any>;
 
 describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", () => {
   let ws: MockWebSocket;
@@ -74,13 +77,17 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
   });
 
   it("clear_models returns the managed-by-provider message", async () => {
-    const res = await runner.handleCommand({ command: "clear_models", data: {} });
+    const res = await runner.handleCommand({
+      command: "clear_models",
+      data: {}
+    });
     expect(res?.message).toContain("Model clearing");
   });
 
   it("reconnect_job / resume_job / cancel_job require a job_id", async () => {
     expect(
-      (await runner.handleCommand({ command: "reconnect_job", data: {} }))?.error
+      (await runner.handleCommand({ command: "reconnect_job", data: {} }))
+        ?.error
     ).toBe("job_id is required");
     expect(
       (await runner.handleCommand({ command: "resume_job", data: {} }))?.error
@@ -201,8 +208,12 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
 
   it("update_node_properties validates inputs and reports applied", async () => {
     expect(
-      (await runner.handleCommand({ command: "update_node_properties", data: {} }))
-        ?.error
+      (
+        await runner.handleCommand({
+          command: "update_node_properties",
+          data: {}
+        })
+      )?.error
     ).toBe("job_id is required");
     expect(
       (
@@ -247,13 +258,20 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
 
   it("set_mode rejects an invalid mode and accepts binary/text", async () => {
     expect(
-      (await runner.handleCommand({ command: "set_mode", data: { mode: "xml" } }))
-        ?.error
+      (
+        await runner.handleCommand({
+          command: "set_mode",
+          data: { mode: "xml" }
+        })
+      )?.error
     ).toBe("mode must be binary or text");
     expect(runner.mode).toBe("binary");
     await runner.handleCommand({ command: "set_mode", data: { mode: "text" } });
     expect(runner.mode).toBe("text");
-    await runner.handleCommand({ command: "set_mode", data: { mode: "binary" } });
+    await runner.handleCommand({
+      command: "set_mode",
+      data: { mode: "binary" }
+    });
     expect(runner.mode).toBe("binary");
   });
 
@@ -323,8 +341,15 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
       resolveExecutor,
       userId: "user-7",
       apiOptions: {
-        getSdkCapabilities: () => capabilities,
-        sdkPreflightService: { preflight }
+        sdkV1Boundary: createSdkV1ImplementationBoundary(
+          createSdkV1Service({
+            getCapabilities: () => capabilities,
+            preflightService: { preflight },
+            getEnvironment: () => ({
+              NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0"
+            })
+          })
+        )
       }
     });
     const lifecycleSocket = new MockWebSocket();
@@ -461,7 +486,9 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
       job_id: "J",
       workflow_id: "wf"
     });
-    const all = runner.getStatus() as { active_jobs: Array<{ job_id: string }> };
+    const all = runner.getStatus() as {
+      active_jobs: Array<{ job_id: string }>;
+    };
     expect(all.active_jobs.map((j) => j.job_id)).toContain("J");
   });
 
@@ -492,7 +519,8 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     // (lifecycle.running-after-job-terminal). The RPC response above is the
     // immediate acknowledgement.
     const cancelled = decodeAll(ws).filter(
-      (m) => m.type === "job_update" && m.status === "cancelled" && m.job_id === "J"
+      (m) =>
+        m.type === "job_update" && m.status === "cancelled" && m.job_id === "J"
     );
     expect(cancelled.length).toBe(0);
   });
@@ -624,9 +652,7 @@ describe("UnifiedWebSocketRunner lifecycle — sendMessage encoding", () => {
   });
 
   it("is a no-op when no websocket is attached", async () => {
-    await expect(
-      runner.sendMessage({ type: "x" })
-    ).resolves.toBeUndefined();
+    await expect(runner.sendMessage({ type: "x" })).resolves.toBeUndefined();
     expect(ws.sentBytes).toHaveLength(0);
   });
 
@@ -727,7 +753,10 @@ describe("UnifiedWebSocketRunner lifecycle — receiveMessages dispatch", () => 
     });
     ws.queue.push({ type: "websocket.disconnect" });
     await runner.receiveMessages();
-    const manifest = asAny(runner).clientToolsManifest as Record<string, unknown>;
+    const manifest = asAny(runner).clientToolsManifest as Record<
+      string,
+      unknown
+    >;
     expect(Object.keys(manifest)).toEqual(["good_tool"]);
   });
 
@@ -987,7 +1016,8 @@ describe("UnifiedWebSocketRunner lifecycle — run_job + beforeRunJob failure", 
       data: { job_id: "BR1", workflow_id: "wf", graph, params: {} }
     });
     const failed = decodeAll(ws).find(
-      (m) => m.type === "job_update" && m.status === "failed" && m.job_id === "BR1"
+      (m) =>
+        m.type === "job_update" && m.status === "failed" && m.job_id === "BR1"
     );
     expect(failed).toBeDefined();
     expect(failed?.error).toBe("bridge down");

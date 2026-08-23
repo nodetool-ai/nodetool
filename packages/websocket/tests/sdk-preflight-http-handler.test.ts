@@ -3,12 +3,14 @@ import type {
   SdkV1PreflightRequest,
   SdkV1PreflightSummary
 } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
-import { handleApiRequest } from "../src/http-api.js";
 import {
   SdkV1PreflightServiceError,
   type SdkV1PreflightPrincipal
 } from "../src/sdk/sdk-preflight-orchestrator.js";
 import { handleSdkV1Preflight } from "../src/sdk/sdk-preflight-http-handler.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
+import { requestSdkV1Route } from "./sdk-v1-fastify-test-helper.js";
 
 const requestBody: SdkV1PreflightRequest = {
   workflow_id: "workflow-1",
@@ -52,13 +54,21 @@ function enabledOptions(
     onInternalError?: (error: unknown) => void;
   } = {}
 ) {
+  const service = {
+    preflight: overrides.preflight ?? vi.fn(async () => summary)
+  };
   return {
-    service: {
-      preflight: overrides.preflight ?? vi.fn(async () => summary)
-    },
+    boundary: createSdkV1ImplementationBoundary(
+      createSdkV1Service({
+        preflightService: service,
+        getEnvironment: () => ({
+          NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0"
+        })
+      })
+    ),
+    service,
     getPrincipal:
       overrides.getPrincipal ?? vi.fn(() => ({ userId: "authenticated-user" })),
-    environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0" },
     onInternalError: overrides.onInternalError
   };
 }
@@ -68,9 +78,15 @@ describe("standalone SDK preflight HTTP handler", () => {
     const preflight = vi.fn(async () => summary);
     const getPrincipal = vi.fn(() => ({ userId: "authenticated-user" }));
     const response = await handleSdkV1Preflight(request("{"), {
-      service: { preflight },
-      getPrincipal,
-      environment: { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "1" }
+      boundary: createSdkV1ImplementationBoundary(
+        createSdkV1Service({
+          preflightService: { preflight },
+          getEnvironment: () => ({
+            NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "1"
+          })
+        })
+      ),
+      getPrincipal
     });
 
     expect(response.status).toBe(503);
@@ -190,9 +206,9 @@ describe("standalone SDK preflight HTTP handler", () => {
     });
   });
 
-  it("is registered in the HTTP dispatcher and honors the kill switch", async () => {
+  it("is registered in the Fastify route plugin and honors the kill switch", async () => {
     vi.stubEnv("NODETOOL_DISABLE_SDK_LIFECYCLE_V1", "1");
-    const response = await handleApiRequest(request(), {});
+    const response = await requestSdkV1Route(request(), {});
 
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({
@@ -201,18 +217,27 @@ describe("standalone SDK preflight HTTP handler", () => {
     vi.unstubAllEnvs();
   });
 
-  it("dispatches through the HTTP API with the authenticated principal", async () => {
+  it("dispatches through the Fastify route plugin with the authenticated principal", async () => {
     vi.stubEnv("NODETOOL_DISABLE_SDK_LIFECYCLE_V1", "0");
     const preflight = vi.fn(async () => summary);
     try {
-      const response = await handleApiRequest(
+      const response = await requestSdkV1Route(
         request(requestBody, {
           headers: {
             "content-type": "application/json",
             "x-user-id": "user-7"
           }
         }),
-        { sdkPreflightService: { preflight } }
+        {
+          sdkV1Boundary: createSdkV1ImplementationBoundary(
+            createSdkV1Service({
+              preflightService: { preflight },
+              getEnvironment: () => ({
+                NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0"
+              })
+            })
+          )
+        }
       );
 
       expect(response.status).toBe(200);

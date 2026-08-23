@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
+import Ajv2020, { type ValidateFunction } from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import { generateSdkProtocolArtifacts } from "../scripts/generate-sdk-protocol.js";
+
+type JsonSchema = Record<string, unknown>;
 
 interface ProtocolManifest {
   artifacts: Array<{
@@ -26,6 +29,39 @@ interface BaselineFixture {
 
 function normalizeLineEndings(value: string): string {
   return value.replaceAll("\r\n", "\n");
+}
+
+function schemaDefinition(bundle: JsonSchema, name: string): ValidateFunction {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  addFormats(ajv);
+  return ajv.compile({
+    ...bundle,
+    $ref: `#/$defs/${name}`
+  });
+}
+
+function expectAllDefinitionsToCompile(bundle: JsonSchema): void {
+  const schemaId = bundle.$id;
+  const definitions = bundle.$defs;
+  if (
+    typeof schemaId !== "string" ||
+    definitions === null ||
+    typeof definitions !== "object" ||
+    Array.isArray(definitions)
+  ) {
+    throw new Error("SDK schema bundle must declare an $id and object $defs");
+  }
+
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  addFormats(ajv);
+  ajv.addSchema(bundle);
+  for (const name of Object.keys(definitions)) {
+    expect(() =>
+      ajv.compile({
+        $ref: `${schemaId}#/$defs/${name}`
+      })
+    ).not.toThrow();
+  }
 }
 
 describe("generated public SDK protocol artifacts", () => {
@@ -94,9 +130,9 @@ describe("generated public SDK protocol artifacts", () => {
   });
 
   it("validates baseline payloads from the committed JSON Schema", () => {
-    const bundle = JSON.parse(artifacts["sdk-v1.discovery.schema.json"]) as {
-      $defs: Record<string, Parameters<typeof z.fromJSONSchema>[0]>;
-    };
+    const bundle = JSON.parse(
+      artifacts["sdk-v1.discovery.schema.json"]
+    ) as JsonSchema;
     const fixturePath = new URL(
       "../fixtures/sdk-v1-baseline.json",
       import.meta.url
@@ -105,32 +141,39 @@ describe("generated public SDK protocol artifacts", () => {
       readFileSync(fixturePath, "utf8")
     ) as BaselineFixture;
 
-    expect(() =>
-      z
-        .fromJSONSchema(bundle.$defs.WorkflowSummariesOutput!)
-        .parse(fixture.rest.summaries.response)
-    ).not.toThrow();
-    expect(() =>
-      z
-        .fromJSONSchema(bundle.$defs.WorkflowInterface!)
-        .parse(fixture.rest.interface.response)
-    ).not.toThrow();
-    expect(() =>
-      z
-        .fromJSONSchema(bundle.$defs.RpcRequest!)
-        .parse(fixture.websocket.request)
-    ).not.toThrow();
-    expect(() =>
-      z
-        .fromJSONSchema(bundle.$defs.RpcResponse!)
-        .parse(fixture.websocket.response)
-    ).not.toThrow();
+    expect(
+      schemaDefinition(
+        bundle,
+        "WorkflowSummariesOutput"
+      )(fixture.rest.summaries.response)
+    ).toBe(true);
+    expect(
+      schemaDefinition(
+        bundle,
+        "WorkflowInterface"
+      )(fixture.rest.interface.response)
+    ).toBe(true);
+    expect(
+      schemaDefinition(bundle, "RpcRequest")(fixture.websocket.request)
+    ).toBe(true);
+    expect(
+      schemaDefinition(bundle, "RpcResponse")(fixture.websocket.response)
+    ).toBe(true);
   });
 
+  it("publishes schema bundles with resolvable component references", () => {
+    expectAllDefinitionsToCompile(
+      JSON.parse(artifacts["sdk-v1.discovery.schema.json"]) as JsonSchema
+    );
+    expectAllDefinitionsToCompile(
+      JSON.parse(artifacts["sdk-v1.lifecycle.schema.json"]) as JsonSchema
+    );
+  }, 20_000);
+
   it("allows additive response fields but keeps requests strict", () => {
-    const bundle = JSON.parse(artifacts["sdk-v1.discovery.schema.json"]) as {
-      $defs: Record<string, Parameters<typeof z.fromJSONSchema>[0]>;
-    };
+    const bundle = JSON.parse(
+      artifacts["sdk-v1.discovery.schema.json"]
+    ) as JsonSchema;
     const fixturePath = new URL(
       "../fixtures/sdk-v1-baseline.json",
       import.meta.url
@@ -149,11 +192,7 @@ describe("generated public SDK protocol artifacts", () => {
       future_request_field: "not in protocol v1"
     };
 
-    expect(() =>
-      z.fromJSONSchema(bundle.$defs.RpcResponse!).parse(futureResponse)
-    ).not.toThrow();
-    expect(() =>
-      z.fromJSONSchema(bundle.$defs.RpcRequest!).parse(futureRequest)
-    ).toThrow();
+    expect(schemaDefinition(bundle, "RpcResponse")(futureResponse)).toBe(true);
+    expect(schemaDefinition(bundle, "RpcRequest")(futureRequest)).toBe(false);
   });
 });

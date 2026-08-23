@@ -1,45 +1,31 @@
 import {
   sdkV1LifecycleRpcRequest,
   sdkV1LifecycleRpcResponse,
-  type SdkV1Capabilities,
-  type SdkV1LifecycleRpcResponse,
-  type SdkV1PreflightRequest,
-  type SdkV1PreflightSummary
+  type SdkV1LifecycleRpcResponse
 } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
-import { isSdkLifecycleV1Enabled } from "./sdk-feature-flags.js";
-import {
-  SdkV1PreflightServiceError,
-  type SdkV1PreflightPrincipal
-} from "./sdk-preflight-orchestrator.js";
 import {
   isNonEmptyString,
   isObjectLike,
   isString
 } from "../lib/wire-values.js";
+import type { SdkV1PreflightPrincipal } from "./sdk-preflight-orchestrator.js";
+import type { SdkV1ImplementationBoundary } from "./sdk-v1-handler-map.js";
+import {
+  normalizeSdkV1ServiceError,
+  reportSdkV1InternalError,
+  sdkV1RpcError,
+  type SdkV1RpcErrorBody
+} from "./sdk-v1-service-error.js";
 
-const SUPPORTED_COMMANDS = new Set([
-  "get_capabilities",
-  "preflight_workflow"
-]);
+const SUPPORTED_COMMANDS = new Set(["get_capabilities", "preflight_workflow"]);
 
 interface HandleSdkV1LifecycleRpcOptions {
-  getCapabilities: () => Promise<SdkV1Capabilities> | SdkV1Capabilities;
-  preflightService: {
-    preflight(input: {
-      request: SdkV1PreflightRequest;
-      principal: SdkV1PreflightPrincipal;
-    }): Promise<SdkV1PreflightSummary>;
-  };
-  /**
-   * Resolves the principal already authenticated for the WebSocket
-   * connection. It must not read identity from command data.
-   */
-  getPrincipal: () =>
+  readonly boundary: SdkV1ImplementationBoundary;
+  readonly getPrincipal: () =>
     | Promise<SdkV1PreflightPrincipal | null>
     | SdkV1PreflightPrincipal
     | null;
-  environment?: NodeJS.ProcessEnv;
-  onInternalError?: (error: unknown) => void;
+  readonly onInternalError?: (error: unknown) => void;
 }
 
 function rpcResponse(
@@ -51,36 +37,27 @@ function rpcResponse(
 function rpcError(
   requestId: string,
   command: "get_capabilities" | "preflight_workflow",
-  code: string,
-  message: string,
-  retryable = false
+  error: SdkV1RpcErrorBody
 ): SdkV1LifecycleRpcResponse {
   return rpcResponse({
     type: "rpc_response",
     request_id: requestId,
     command,
-    error: { code, message, retryable }
+    error
   });
 }
 
-function reportInternalError(
-  callback: ((error: unknown) => void) | undefined,
-  error: unknown
-): void {
-  try {
-    callback?.(error);
-  } catch {
-    // Diagnostics must not replace the redacted public response.
-  }
+function serviceErrorResponse(
+  requestId: string,
+  command: "get_capabilities" | "preflight_workflow",
+  error: unknown,
+  options: HandleSdkV1LifecycleRpcOptions
+): SdkV1LifecycleRpcResponse {
+  const normalized = normalizeSdkV1ServiceError(error);
+  reportSdkV1InternalError(normalized, options.onInternalError);
+  return rpcError(requestId, command, sdkV1RpcError(normalized));
 }
 
-/**
- * Standalone WebSocket adapter for the read-only SDK lifecycle commands.
- *
- * This adapter is also used by the production runner when the lifecycle
- * feature flag is enabled. A null result means the command belongs to a later
- * lifecycle phase or is not a lifecycle command.
- */
 export async function handleSdkV1LifecycleRpc(
   input: unknown,
   options: HandleSdkV1LifecycleRpcOptions
@@ -100,27 +77,21 @@ export async function handleSdkV1LifecycleRpc(
     return null;
   }
 
-  const ownedCommand = command as
-    | "get_capabilities"
-    | "preflight_workflow";
+  const ownedCommand = command as "get_capabilities" | "preflight_workflow";
 
-  if (!isSdkLifecycleV1Enabled(options.environment)) {
-    return rpcError(
-      requestId,
-      ownedCommand,
-      "SDK_LIFECYCLE_DISABLED",
-      "SDK lifecycle v1 is disabled"
-    );
+  try {
+    options.boundary.service.assertLifecycleAvailable();
+  } catch (error) {
+    return serviceErrorResponse(requestId, ownedCommand, error, options);
   }
 
   const parsed = sdkV1LifecycleRpcRequest.safeParse(input);
   if (!parsed.success) {
-    return rpcError(
-      requestId,
-      ownedCommand,
-      "INVALID_REQUEST",
-      "Invalid request"
-    );
+    return rpcError(requestId, ownedCommand, {
+      code: "INVALID_REQUEST",
+      message: "Invalid request",
+      retryable: false
+    });
   }
   if (
     parsed.data.command !== "get_capabilities" &&
@@ -135,36 +106,28 @@ export async function handleSdkV1LifecycleRpc(
         type: "rpc_response",
         request_id: parsed.data.request_id,
         command: parsed.data.command,
-        result: await options.getCapabilities()
+        result:
+          await options.boundary.handlers["lifecycleRpc.get_capabilities"](
+            undefined
+          )
       });
     } catch (error) {
-      reportInternalError(options.onInternalError, error);
-      return rpcError(
+      return serviceErrorResponse(
         requestId,
         parsed.data.command,
-        "INTERNAL_ERROR",
-        "Internal server error",
-        true
+        error,
+        options
       );
     }
   }
 
   try {
-    const principal = await options.getPrincipal();
-    if (!principal) {
-      return rpcError(
-        requestId,
-        parsed.data.command,
-        "AUTHENTICATION_REQUIRED",
-        "Authentication required"
-      );
-    }
-
-    const result: SdkV1PreflightSummary =
-      await options.preflightService.preflight({
-        request: parsed.data.data,
-        principal
-      });
+    const result = await options.boundary.handlers[
+      "lifecycleRpc.preflight_workflow"
+    ]({
+      request: parsed.data.data,
+      principal: await options.getPrincipal()
+    });
     return rpcResponse({
       type: "rpc_response",
       request_id: parsed.data.request_id,
@@ -172,26 +135,6 @@ export async function handleSdkV1LifecycleRpc(
       result
     });
   } catch (error) {
-    if (error instanceof SdkV1PreflightServiceError) {
-      const message =
-        error.code === "WORKFLOW_NOT_FOUND"
-          ? "Workflow not found."
-          : "Requested preflight level is not available.";
-      return rpcError(
-        requestId,
-        parsed.data.command,
-        error.code,
-        message,
-        error.retryable
-      );
-    }
-    reportInternalError(options.onInternalError, error);
-    return rpcError(
-      requestId,
-      parsed.data.command,
-      "INTERNAL_ERROR",
-      "Internal server error",
-      true
-    );
+    return serviceErrorResponse(requestId, parsed.data.command, error, options);
   }
 }

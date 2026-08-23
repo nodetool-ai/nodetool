@@ -1,0 +1,45 @@
+{
+  "fixture_version": 1,
+  "command": "list_workflow_summaries",
+  "env": {
+    "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+    "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+    "NODETOOL_REQUIRE_SDK_AUTH_V1": "0",
+    "NODETOOL_PACKS_CONFIG": "/nonexistent/sdk-v1-golden-packs.json"
+  },
+  "request": {
+    "command": "list_workflow_summaries",
+    "request_id": "sdk-golden-list_workflow_summaries",
+    "data": {
+      "limit": 50
+    }
+  },
+  "response": {
+    "type": "rpc_response",
+    "request_id": "sdk-golden-list_workflow_summaries",
+    "command": "list_workflow_summaries",
+    "result": {
+      "workflows": [
+        {
+          "id": "wf-sdk-golden-2",
+          "name": "SDK Golden Two",
+          "description": "Second deterministic SDK v1 golden workflow",
+          "revision": "2026-08-22T12:00:00.001Z",
+          "registry_revision": 0,
+          "run_mode": "workflow"
+        },
+        {
+          "id": "wf-sdk-golden-1",
+          "name": "SDK Golden One",
+          "description": "Deterministic SDK v1 golden workflow",
+          "revision": "2026-08-22T12:00:00.001Z",
+          "registry_revision": 0,
+          "run_mode": "workflow"
+        }
+      ],
+      "next": null
+    }
+  },
+  "messagepack_request_hex": "de0003a7636f6d6d616e64b76c6973745f776f726b666c6f775f73756d6d6172696573aa726571756573745f6964d92273646b2d676f6c64656e2d6c6973745f776f726b666c6f775f73756d6d6172696573a464617461de0001a56c696d697432",
+  "messagepack_response_hex": "de0004a474797065ac7270635f726573706f6e7365aa726571756573745f6964d92273646b2d676f6c64656e2d6c6973745f776f726b666c6f775f73756d6d6172696573a7636f6d6d616e64b76c6973745f776f726b666c6f775f73756d6d6172696573a6726573756c74de0002a9776f726b666c6f777392de0006a26964af77662d73646b2d676f6c64656e2d32a46e616d65ae53444b20476f6c64656e2054776fab6465736372697074696f6ed92b5365636f6e642064657465726d696e69737469632053444b20763120676f6c64656e20776f726b666c6f77a87265766973696f6eb8323032362d30382d32325431323a30303a30302e3030315ab172656769737472795f7265766973696f6e00a872756e5f6d6f6465a8776f726b666c6f77de0006a26964af77662d73646b2d676f6c64656e2d31a46e616d65ae53444b20476f6c64656e204f6e65ab6465736372697074696f6ed92444657465726d696e69737469632053444b20763120676f6c64656e20776f726b666c6f77a87265766973696f6eb8323032362d30382d32325431323a30303a30302e3030315ab172656769737472795f7265766973696f6e00a872756e5f6d6f6465a8776f726b666c6f77a46e657874c0"
+}

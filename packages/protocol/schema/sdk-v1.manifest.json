@@ -10,19 +10,39 @@
       "media_type": "application/vnd.oai.openapi+json;version=3.1",
       "path": "sdk-v1.openapi.json",
       "profile": "discovery",
-      "sha256": "b126b0bc030397ab12c49784563480c235a23e9a8ca93f9b8dc6ee2be132f0f2"
+      "sha256": "900230d25e4a28367e40b56e8c9f6027855a6a47467b7668fec32215556cab8b"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.lifecycle.schema.json",
       "profile": "lifecycle-draft",
-      "sha256": "f1ed6231d998d85662fb9ecc7c978500428a24d2ac51b1ae1ce6eb9c37b08d0f"
+      "sha256": "f45a929adf96b3d9a5889c21bc94b80c9d32188510f8d95c75d97bba26283de1"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.discovery.schema.json",
       "profile": "discovery",
-      "sha256": "a386e224e19b23a55cbb760c5877f9a5e64ba67438d525fe8d7fe58ee5ede982"
+      "sha256": "2e13e3b2c70c7fd96a2014fce6b8db1b79b17e279221913576a972a10abb9194"
+    },
+    {
+      "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
+      "path": "sdk-v1.asyncapi.implemented.json",
+      "profile": "discovery",
+      "sha256": "184538a5b8a1e352314cab952eac9726051b3123969f3bf3ba9f14899ac6c54b",
+      "variant": "implemented"
+    },
+    {
+      "media_type": "application/vnd.oai.openapi+json;version=3.1",
+      "path": "sdk-v1.openapi.implemented.json",
+      "profile": "discovery",
+      "sha256": "a990d499128643b49a9573cb6a0f55ba2ca8eb636373d54dee6f41299edf128f",
+      "variant": "implemented"
+    },
+    {
+      "media_type": "application/json",
+      "path": "sdk-v1.operations.json",
+      "profile": "operations",
+      "sha256": "6a9b8c3837c03a7d835d89a0bafc2e62d36d079ac1cb92cc578dd24a50f255bf"
     }
   ],
   "default_websocket_encoding": "messagepack",

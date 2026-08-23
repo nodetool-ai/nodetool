@@ -1,5 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import { handleSdkV1ModelCatalog } from "../src/sdk/sdk-model-catalog-http-handler.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import {
+  createSdkV1Service,
+  type SdkV1ServiceOptions
+} from "../src/sdk/sdk-v1-service.js";
+
+type ModelCatalogService = NonNullable<
+  SdkV1ServiceOptions["modelCatalogService"]
+>;
+
+function boundary(list: ModelCatalogService["list"]) {
+  return createSdkV1ImplementationBoundary(
+    createSdkV1Service({ modelCatalogService: { list } })
+  );
+}
 
 const emptyCatalog = {
   version: "1" as const,
@@ -17,7 +32,7 @@ describe("SDK model catalog HTTP handler", () => {
         "http://localhost/api/sdk/v1/models?compatibility=language_model&limit=25"
       ),
       {
-        service: { list },
+        boundary: boundary(list),
         getUserId: () => "alice"
       }
     );
@@ -37,7 +52,7 @@ describe("SDK model catalog HTTP handler", () => {
     const response = await handleSdkV1ModelCatalog(
       new Request("http://localhost/api/sdk/v1/models?limit=501"),
       {
-        service: { list: vi.fn() },
+        boundary: boundary(vi.fn()),
         getUserId: () => "1"
       }
     );

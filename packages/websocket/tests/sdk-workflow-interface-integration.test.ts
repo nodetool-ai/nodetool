@@ -19,6 +19,7 @@ import {
   type NodeMetadata
 } from "@nodetool-ai/node-sdk";
 import workflowsRoutes from "../src/routes/workflows.js";
+import sdkV1Routes from "../src/routes/sdk-v1.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -202,7 +203,9 @@ describe("SDK workflow-interface transport integration", () => {
       const userId = request.headers["x-user-id"];
       request.userId = typeof userId === "string" ? userId : null;
     });
-    await app.register(workflowsRoutes, { apiOptions: { registry } });
+    const routeOptions = { apiOptions: { registry } };
+    await app.register(sdkV1Routes, routeOptions);
+    await app.register(workflowsRoutes, routeOptions);
     await app.ready();
   });
 

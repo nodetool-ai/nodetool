@@ -1,0 +1,179 @@
+{
+  "captures": {
+    "bad_input": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/workflows/wf-sdk-golden-1/interface"
+      },
+      "response": {
+        "body": {
+          "code": "UNSUPPORTED_WORKFLOW_INTERFACE_VERSION",
+          "detail": "Workflow interface version 1 is required",
+          "message": "Workflow interface version 1 is required",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 400
+      },
+      "via": "fastify"
+    },
+    "feature_disabled": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "1",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/workflows/wf-sdk-golden-1/interface?version=1"
+      },
+      "response": {
+        "body": {
+          "code": "SDK_WORKFLOW_INTERFACE_DISABLED",
+          "detail": "SDK workflow interface v1 is disabled",
+          "message": "SDK workflow interface v1 is disabled",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 503
+      },
+      "via": "fastify"
+    },
+    "method_not_allowed": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/workflows/wf-sdk-golden-1/interface"
+      },
+      "response": {
+        "body": {
+          "detail": "Method not allowed"
+        },
+        "content_type": "application/json",
+        "status": 405
+      },
+      "via": "http-api-dispatcher"
+    },
+    "not_found": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/workflows/wf-sdk-golden-missing/interface?version=1"
+      },
+      "response": {
+        "body": {
+          "code": "WORKFLOW_NOT_FOUND",
+          "detail": "Workflow not found",
+          "message": "Workflow not found",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 404
+      },
+      "via": "fastify"
+    },
+    "success": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/workflows/wf-sdk-golden-1/interface?version=1"
+      },
+      "response": {
+        "body": {
+          "diagnostics": [],
+          "etag": "e77c846cf9f74bfab94dc2ee810b5f56",
+          "inputs": [
+            {
+              "default": "hello",
+              "description": "",
+              "name": "prompt",
+              "node_id": "input-1",
+              "required": true,
+              "type": {
+                "optional": false,
+                "type": "str",
+                "type_args": [],
+                "type_name": null
+              }
+            }
+          ],
+          "outputs": [
+            {
+              "description": "",
+              "name": "text",
+              "node_id": "output-1",
+              "stream": false,
+              "type": {
+                "optional": false,
+                "type": "str",
+                "type_args": [],
+                "type_name": null
+              }
+            }
+          ],
+          "source": "server",
+          "version": 1,
+          "workflow_id": "wf-sdk-golden-1"
+        },
+        "content_type": "application/json",
+        "status": 200
+      },
+      "via": "fastify"
+    }
+  },
+  "fixture_version": 1,
+  "not_captured": {
+    "auth_failure": "An unauthorized viewer receives the same 404 WORKFLOW_NOT_FOUND as a missing id (see not_found); pinned across transports by tests/sdk-workflow-interface-integration.test.ts."
+  },
+  "operation": "workflow_interface",
+  "route": {
+    "auth": "discovery",
+    "feature_flag": "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1",
+    "in_http_api_dispatcher": true,
+    "method": "GET",
+    "owner": "packages/websocket/src/routes/workflows.ts",
+    "path": "/api/workflows/:id/interface"
+  }
+}

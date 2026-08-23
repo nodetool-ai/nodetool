@@ -8,6 +8,8 @@ import { handleSdkV1LifecycleRpc } from "../src/sdk/sdk-lifecycle-rpc-handler.js
 import { handleSdkV1Capabilities } from "../src/sdk/sdk-capabilities-http-handler.js";
 import { handleSdkV1Preflight } from "../src/sdk/sdk-preflight-http-handler.js";
 import { SdkV1PreflightServiceError } from "../src/sdk/sdk-preflight-orchestrator.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 
 const enabled = { NODETOOL_DISABLE_SDK_LIFECYCLE_V1: "0" };
 
@@ -61,14 +63,19 @@ function options(
     onInternalError?: (error: unknown) => void;
   } = {}
 ) {
+  const boundary = createSdkV1ImplementationBoundary(
+    createSdkV1Service({
+      getCapabilities: overrides.getCapabilities ?? (() => capabilities),
+      preflightService: {
+        preflight: overrides.preflight ?? vi.fn(async () => preflightSummary)
+      },
+      getEnvironment: () => overrides.environment ?? enabled
+    })
+  );
   return {
-    getCapabilities: overrides.getCapabilities ?? (() => capabilities),
-    preflightService: {
-      preflight: overrides.preflight ?? vi.fn(async () => preflightSummary)
-    },
+    boundary,
     getPrincipal:
       overrides.getPrincipal ?? (() => ({ userId: "authenticated-user" })),
-    environment: overrides.environment ?? enabled,
     onInternalError: overrides.onInternalError
   };
 }
@@ -131,7 +138,7 @@ describe("standalone SDK lifecycle WebSocket handler", () => {
   it("matches the successful HTTP payloads", async () => {
     const capabilityHttp = await handleSdkV1Capabilities(
       new Request("http://localhost/api/sdk/v1/capabilities"),
-      { getCapabilities: () => capabilities, environment: enabled }
+      { boundary: options().boundary }
     );
     const capabilityRpc = await handleSdkV1LifecycleRpc(
       {
@@ -149,9 +156,8 @@ describe("standalone SDK lifecycle WebSocket handler", () => {
         body: JSON.stringify(preflightRequest)
       }),
       {
-        service: { preflight: async () => preflightSummary },
-        getPrincipal: () => ({ userId: "authenticated-user" }),
-        environment: enabled
+        boundary: options().boundary,
+        getPrincipal: () => ({ userId: "authenticated-user" })
       }
     );
     const preflightRpc = await handleSdkV1LifecycleRpc(

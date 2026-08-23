@@ -3,15 +3,17 @@ import {
   sdkV1ModelDownloadQuery,
   sdkV1ModelDownloadStartRequest
 } from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
+import type { SdkV1ImplementationBoundary } from "./sdk-v1-handler-map.js";
 import {
-  SdkModelDownloadServiceError,
-  type SdkV1ModelDownloadService
-} from "./sdk-model-download-service.js";
+  normalizeSdkV1ServiceError,
+  reportSdkV1InternalError,
+  sdkV1HttpError
+} from "./sdk-v1-service-error.js";
 
 interface HandleSdkV1ModelDownloadOptions {
-  service: SdkV1ModelDownloadService;
-  getUserId: (request: Request) => string;
-  onInternalError?: (error: unknown) => void;
+  readonly boundary: SdkV1ImplementationBoundary;
+  readonly getUserId: (request: Request) => string;
+  readonly onInternalError?: (error: unknown) => void;
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -32,7 +34,6 @@ function errorResponse(
   );
 }
 
-/** A decoded JSON request body, before a schema validates its shape. */
 type JsonValue =
   | string
   | number
@@ -51,22 +52,14 @@ async function parseJson(request: Request): Promise<JsonValue> {
   }
 }
 
-function serviceError(error: unknown): Response | null {
-  return error instanceof SdkModelDownloadServiceError
-    ? errorResponse(error.statusCode, error.code, error.message)
-    : null;
-}
-
-function reportInternalError(
+function serviceErrorResponse(
   error: unknown,
   options: HandleSdkV1ModelDownloadOptions
 ): Response {
-  try {
-    options.onInternalError?.(error);
-  } catch {
-    // Error reporting must not replace the redacted public response.
-  }
-  return errorResponse(500, "INTERNAL_ERROR", "Internal server error");
+  const normalized = normalizeSdkV1ServiceError(error);
+  reportSdkV1InternalError(normalized, options.onInternalError);
+  const mapped = sdkV1HttpError(normalized);
+  return jsonResponse(mapped.body, mapped.status);
 }
 
 export async function handleSdkV1ModelDownloadStart(
@@ -88,14 +81,14 @@ export async function handleSdkV1ModelDownloadStart(
   }
   try {
     return jsonResponse(
-      options.service.start({
+      await options.boundary.handlers.startModelDownload({
         userId: options.getUserId(request),
         request: parsed.data
       }),
       202
     );
   } catch (error) {
-    return serviceError(error) ?? reportInternalError(error, options);
+    return serviceErrorResponse(error, options);
   }
 }
 
@@ -114,13 +107,13 @@ export async function handleSdkV1ModelDownloads(
   }
   try {
     return jsonResponse(
-      options.service.list({
+      await options.boundary.handlers.listModelDownloads({
         userId: options.getUserId(request),
         query: parsed.data
       })
     );
   } catch (error) {
-    return serviceError(error) ?? reportInternalError(error, options);
+    return serviceErrorResponse(error, options);
   }
 }
 
@@ -143,12 +136,12 @@ export async function handleSdkV1ModelDownloadCancel(
   }
   try {
     return jsonResponse(
-      options.service.cancel({
+      await options.boundary.handlers.cancelModelDownload({
         userId: options.getUserId(request),
         operationId: parsed.data.operation_id
       })
     );
   } catch (error) {
-    return serviceError(error) ?? reportInternalError(error, options);
+    return serviceErrorResponse(error, options);
   }
 }

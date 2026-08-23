@@ -211,9 +211,10 @@ import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
-import type { HttpApiOptions } from "./http-api.js";
+import { resolveSdkV1Boundary, type HttpApiOptions } from "./http-api.js";
 import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
 import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
+import { handleSdkV1DiscoveryRpc } from "./sdk/sdk-discovery-rpc-handler.js";
 import type {
   FrontendRendererRegistry,
   FrontendRendererToolCall,
@@ -8589,28 +8590,35 @@ export class UnifiedWebSocketRunner {
     command: WebSocketCommandEnvelope
   ): Promise<Record<string, unknown> | null> {
     const response = await handleSdkV1LifecycleRpc(command, {
-      getCapabilities: () => {
-        if (!this.apiOptions?.getSdkCapabilities) {
-          throw new Error("SDK capabilities service is unavailable.");
-        }
-        return this.apiOptions.getSdkCapabilities();
-      },
-      preflightService: {
-        preflight: (input) => {
-          if (!this.apiOptions?.sdkPreflightService) {
-            throw new Error("SDK preflight service is unavailable.");
-          }
-          return this.apiOptions.sdkPreflightService.preflight(input);
-        }
-      },
+      boundary: resolveSdkV1Boundary(this.apiOptions ?? {}),
       getPrincipal: () => (this.userId ? { userId: this.userId } : null),
-      environment: process.env,
       onInternalError: (error) =>
         this.logError("SDK lifecycle RPC failed", error)
     });
 
     if (!response) {
       return { error: "Unknown SDK lifecycle command" };
+    }
+    await this.sendMessage(response);
+    return null;
+  }
+
+  private async runSdkDiscoveryRpc(
+    command: WebSocketCommandEnvelope
+  ): Promise<Record<string, unknown> | null> {
+    if (!this.nodeRegistry || !this.apiOptions) {
+      throw new Error("SDK RPC commands require nodeRegistry and apiOptions");
+    }
+    const response = await handleSdkV1DiscoveryRpc(command, {
+      boundary: resolveSdkV1Boundary(this.apiOptions),
+      userId: this.userId,
+      registry: this.nodeRegistry,
+      pythonBridgeReady: this.getPythonBridgeReady?.() ?? true,
+      onInternalError: (error) =>
+        this.logError("SDK discovery RPC failed", error)
+    });
+    if (!response) {
+      return { error: "Unknown SDK discovery command" };
     }
     await this.sendMessage(response);
     return null;
@@ -8961,30 +8969,11 @@ export class UnifiedWebSocketRunner {
           caller.workflows.get({ id: String(data.id ?? "") })
         );
       }
-      case "list_workflow_summaries": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.workflows.sdkSummaries(
-            data as Parameters<typeof caller.workflows.sdkSummaries>[0]
-          )
-        );
-      }
-      case "get_workflow_interface": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.workflows.interface(
-            data as Parameters<typeof caller.workflows.interface>[0]
-          )
-        );
-      }
-      case "get_workflow_interfaces": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.workflows.interfaces(
-            data as Parameters<typeof caller.workflows.interfaces>[0]
-          )
-        );
-      }
+      case "list_workflow_summaries":
+      case "get_workflow_interface":
+      case "get_workflow_interfaces":
+      case "get_node_type_inventory":
+        return this.runSdkDiscoveryRpc(command);
       case "list_assets": {
         const caller = this.getTrpcCaller();
         return this.runRpc(command, () =>
@@ -9007,14 +8996,6 @@ export class UnifiedWebSocketRunner {
         const caller = this.getTrpcCaller();
         return this.runRpc(command, () =>
           caller.nodes.get({ node_type: String(data.node_type ?? "") })
-        );
-      }
-      case "get_node_type_inventory": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.nodes.sdkTypeInventory(
-            data as Parameters<typeof caller.nodes.sdkTypeInventory>[0]
-          )
         );
       }
       case "get_capabilities":
