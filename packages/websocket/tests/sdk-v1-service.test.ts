@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  implementedSdkV1HttpOperations,
-  implementedSdkV1WebSocketOperations
+  implementedSdkV1HttpOperations
 } from "@nodetool-ai/protocol/api-schemas/sdk-v1-operations.js";
 import type { SdkV1Capabilities } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
 import { SdkV1PreflightServiceError } from "../src/sdk/sdk-preflight-orchestrator.js";
@@ -11,8 +10,7 @@ import {
 } from "../src/sdk/sdk-v1-handler-map.js";
 import {
   SdkV1ServiceError,
-  sdkV1HttpError,
-  sdkV1RpcError
+  sdkV1HttpError
 } from "../src/sdk/sdk-v1-service-error.js";
 import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 
@@ -40,36 +38,25 @@ const capabilities: SdkV1Capabilities = {
 describe("SDK v1 implementation boundary", () => {
   it("covers every implemented request/response declaration exactly", () => {
     const boundary = createSdkV1ImplementationBoundary(createSdkV1Service());
-    const expected = [
-      ...implementedSdkV1HttpOperations.map((operation) => operation.id),
-      ...implementedSdkV1WebSocketOperations
-        .filter((operation) => operation.direction === "request-response")
-        .map((operation) => operation.id)
-    ].sort();
+    const expected = implementedSdkV1HttpOperations
+      .map((operation) => operation.id)
+      .sort();
 
     expect(Object.keys(boundary.handlers).sort()).toEqual(expected);
-    expect(Object.keys(boundary.eventPublishers)).toEqual([]);
   });
 
-  it("fails for missing handlers and undeclared event publishers", () => {
+  it("fails for missing handlers", () => {
     const boundary = createSdkV1ImplementationBoundary(createSdkV1Service());
     const { getCapabilities: _missing, ...missingHandler } = boundary.handlers;
 
     expect(() =>
       assertSdkV1ImplementationCoverage({
-        handlers: missingHandler,
-        eventPublishers: boundary.eventPublishers
+        handlers: missingHandler
       })
     ).toThrow(/getCapabilities/);
-    expect(() =>
-      assertSdkV1ImplementationCoverage({
-        handlers: boundary.handlers,
-        eventPublishers: { receiveJobEvent: vi.fn() }
-      })
-    ).toThrow(/server-event publisher coverage/);
   });
 
-  it("uses the same service method for HTTP and lifecycle capability IDs", async () => {
+  it("uses the capability service through the HTTP handler ID", async () => {
     const getCapabilities = vi.fn(() => capabilities);
     const boundary = createSdkV1ImplementationBoundary(
       createSdkV1Service({
@@ -83,10 +70,7 @@ describe("SDK v1 implementation boundary", () => {
     await expect(boundary.handlers.getCapabilities(undefined)).resolves.toEqual(
       capabilities
     );
-    await expect(
-      boundary.handlers["lifecycleRpc.get_capabilities"](undefined)
-    ).resolves.toEqual(capabilities);
-    expect(getCapabilities).toHaveBeenCalledTimes(2);
+    expect(getCapabilities).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -115,14 +99,8 @@ describe("SDK v1 service errors", () => {
         body: {
           code: "PUBLIC_CODE",
           message: "Safe message",
-          retryable: category === "internal",
-          detail: "Safe message"
+          retryable: category === "internal"
         }
-      });
-      expect(sdkV1RpcError(error)).toEqual({
-        code: "PUBLIC_CODE",
-        message: "Safe message",
-        retryable: category === "internal"
       });
     }
   );

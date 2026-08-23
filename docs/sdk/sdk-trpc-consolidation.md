@@ -709,117 +709,123 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 
 #### Phase 8A `[nodetool]` - Remove duplicate SDK transports
 
-- [ ] Repeat the Phase 0 caller audit against the current branch. Record every
+- [x] Repeat the Phase 0 caller audit against the current branch. Record every
       in-repository caller of the four SDK-specific tRPC procedures and six SDK
       discovery/lifecycle WebSocket commands.
-- [ ] Inventory the actual C# execution wire before deleting any WebSocket
+- [x] Inventory the actual C# execution wire before deleting any WebSocket
       declaration: `run_job`, `cancel_job`, `reconnect_job`, `stream_input`,
       `end_input_stream`, `update_node_properties`, and every response, live
       event, replay, terminal result, and error that the SDK consumes.
-- [ ] Add that execution inventory to the SDK v1 WebSocket registry, AsyncAPI,
+- [x] Add that execution inventory to the SDK v1 WebSocket registry, AsyncAPI,
       dispatcher/publisher completeness checks, and byte-exact MessagePack
       goldens. The six discovery/lifecycle RPC declarations may be removed only
       after the replacement execution contract is complete.
-- [ ] Remove `nodes.sdkTypeInventory`, `workflows.sdkSummaries`,
+- [x] Remove `nodes.sdkTypeInventory`, `workflows.sdkSummaries`,
       `workflows.interface`, and `workflows.interfaces` after the audit confirms
       that no TypeScript product caller uses them.
-- [ ] Remove `sdk-v1-trpc-error.ts`, related sandbox inventory entries, and
+- [x] Remove `sdk-v1-trpc-error.ts`, related sandbox inventory entries, and
       tRPC-only parity tests after equivalent HTTP service coverage exists.
-- [ ] Remove the six SDK discovery/lifecycle WebSocket commands. Keep the
+- [x] Remove the six SDK discovery/lifecycle WebSocket commands. Keep the
       WebSocket transport, execution commands, job correlation, cancellation,
       reconnect, replay, streaming outputs, and live events.
-- [ ] Remove unimplemented SDK lifecycle job declarations from the public v1
+- [x] Remove unimplemented SDK lifecycle job declarations from the public v1
       manifest. Keep roadmap items in design notes, not client input schemas.
-- [ ] Move the single workflow-interface operation from
+- [x] Move the single workflow-interface operation from
       `/api/workflows/{id}/interface` to
       `/api/sdk/v1/workflows/{id}/interface`.
-- [ ] Give every SDK HTTP failure exactly
+- [x] Give every SDK HTTP failure exactly
       `{ "code": string, "message": string, "retryable": boolean }`, one
       declared status mapping, and `application/json`. Remove the duplicate
       `detail` field, legacy method fallbacks, Fastify 404 emulation, legacy RPC
       error fields, and validation-order exceptions.
-- [ ] Make the declaration-driven Fastify plugin call the typed boundary
+- [x] Make the declaration-driven Fastify plugin call the typed boundary
       directly. Delete Fetch/Fastify bridges and focused HTTP adapter files
       that have no remaining caller.
-- [ ] Require the SDK implementation boundary at server construction. Remove
+- [x] Require the SDK implementation boundary at server construction. Remove
       the fallback `WeakMap` boundary after all tests inject it explicitly.
-- [ ] Keep multipart temporary upload as the only specialized SDK HTTP adapter.
+- [x] Keep multipart temporary upload as the only specialized SDK HTTP adapter.
       It must still call the same typed service and error mapper.
 
 #### Phase 8B `[nodetool]` - Keep tRPC focused and enforce its contract
 
-- [ ] Keep tRPC for the web, mobile, Electron, and other TypeScript product
+- [x] Keep tRPC for the web, mobile, Electron, and other TypeScript product
       callers. Do not expose it as the C# SDK wire protocol.
-- [ ] Set the server `maxBatchSize` to the same value as the clients'
+- [x] Set the server `maxBatchSize` to the same value as the clients'
       `httpBatchLink.maxItems` limit. Keep POST method override for batched
       queries and add a test that rejects an oversized batch.
-- [ ] Add Zod output schemas to the remaining 33 of 218 tRPC procedures found by
+- [x] Add Zod output schemas to the remaining 33 of 218 tRPC procedures found by
       the 2026-08-23 AST inventory: 3 in `jobs`, 14 in `models`, 2 in
       `triggers`, and 14 in `worker`. Add an inventory test that prevents new
       unvalidated procedures.
-- [ ] Put the web React and vanilla clients behind one shared link factory so
+- [x] Put the web React and vanilla clients behind one shared link factory so
       authentication, `maxItems`, POST override, logging, and base URL handling
       cannot drift. Keep mobile and Electron limits in the same tested policy.
-- [ ] Keep plain JSON serialization. Add a transformer only if a product route
+- [x] Keep plain JSON serialization. Add a transformer only if a product route
       has a measured need for `Date`, `Map`, `Set`, or another non-JSON value.
-- [ ] Keep execution streaming on the existing MessagePack WebSocket. Do not
+- [x] Keep execution streaming on the existing MessagePack WebSocket. Do not
       add a second tRPC subscription socket or SSE path for the SDK.
-- [ ] Use `createCallerFactory` only at a transport boundary or in integration
+- [x] Use `createCallerFactory` only at a transport boundary or in integration
       tests. Shared server behavior belongs in domain services, not calls from
       one tRPC procedure to another.
-- [ ] Log expected client/authentication errors at an appropriate level and
+- [x] Log expected client/authentication errors at an appropriate level and
       keep unexpected server/output-validation errors at error level with the
       request ID.
 
 #### Phase 8C `[nodetool-sdk]` - Make the session the only normal entry point
 
-- [ ] Pin the replacement NodeTool bundle and regenerate internal wire
+- [x] Pin the replacement NodeTool bundle and regenerate internal wire
       metadata. The update must report every removed command and changed path.
-- [ ] Remove SDK MessagePack discovery fixtures, DTO mappings, conformance
+- [x] Remove SDK MessagePack discovery fixtures, DTO mappings, conformance
       tests, request correlation, retry paths, and dispatch code. Keep all
       execution/event MessagePack coverage.
-- [ ] Remove `IWorkflowDiscoveryClient` from `INodeToolExecutionClient`.
+- [x] Remove `IWorkflowDiscoveryClient` from `INodeToolExecutionClient`.
       Discovery, capabilities, models, downloads, preflight, and asset control
       use HTTP. Execution and live events use WebSocket.
-- [ ] Remove `UseWebSocketDiscovery` from VL settings, pins, factories, tests,
+- [x] Remove `UseWebSocketDiscovery` from VL settings, pins, factories, tests,
       and documentation. Migrate VL discovery to session-owned HTTP services.
-- [ ] Inventory every public low-level client method. For each unique useful
+- [x] Inventory every public low-level client method. For each unique useful
       function, expose a session or domain-service method before hiding the raw
       client. Do not preserve duplicate transport-specific forms.
-- [ ] Add missing session operations for graph execution, node execution,
+- [x] Add missing session operations for graph execution, node execution,
       connection status, cancellation, and any internal VL/TestConsole need
       found by the inventory.
-- [ ] Make `NodeToolConnectionManager`, raw HTTP/WebSocket clients, and session
+- [x] Make `NodeToolConnectionManager`, raw HTTP/WebSocket clients, and session
       client getters internal. Remove `CurrentClient`, `GetApiClientAsync()`,
       `GetConnectedClientAsync()`, and `NodeToolSessionServices.Api` from the
       public surface after internal callers migrate.
-- [ ] Replace the default `NodetoolClient` constructor, mutable `Configure()`,
+- [x] Replace the default `NodetoolClient` constructor, mutable `Configure()`,
       `NodetoolOptions`, and duplicate endpoint/token option paths with one
       immutable connection profile.
-- [ ] Replace source-compatibility default interface methods and duplicate
+- [x] Replace source-compatibility default interface methods and duplicate
       execution overloads with one canonical method per operation. Keep
       independent `WorkflowExecutionOptions` values.
-- [ ] Update the C#, VL, TestConsole, README, examples, and package API tests to
+- [x] Update the C#, VL, TestConsole, README, examples, and package API tests to
       show only the session-first path.
 
 #### Phase 8D `[both]` - Replace and freeze the baseline
 
-- [ ] Commit the protocol reset separately from mechanical generated-file
+- [x] Commit the protocol reset separately from mechanical generated-file
       changes. Include the semantic operation diff and the old/new fixture
       inventory in the commit or review notes.
-- [ ] Replace Phase 0 HTTP and MessagePack goldens once. Delete obsolete
+- [x] Replace Phase 0 HTTP and MessagePack goldens once. Delete obsolete
       discovery RPC fixtures, add the complete execution-wire fixtures, and do
       not teach tests to accept both contracts.
-- [ ] Generate a new deterministic NodeTool bundle, pin its exact digest in the
+- [x] Generate a new deterministic NodeTool bundle, pin its exact digest in the
       SDK, and prove that a second generation is byte-identical.
-- [ ] Run NodeTool HTTP/service/auth/feature-policy tests and the full protocol
+- [x] Run NodeTool HTTP/service/auth/feature-policy tests and the full protocol
       and websocket package tests.
-- [ ] Run C# contract, session, execution, asset, model, VL, package, and lint
+- [x] Run C# contract, session, execution, asset, model, VL, package, and lint
       gates. Prove there is no WebSocket connection during discovery.
-- [ ] Run web, mobile, and Electron tRPC tests affected by removed procedures or
+- [x] Run web, mobile, and Electron tRPC tests affected by removed procedures or
       shared link configuration.
-- [ ] Mark the replacement fixtures as the release baseline. From this point,
+- [x] Mark the replacement fixtures as the release baseline. From this point,
       fixture changes require an explicit protocol review again.
+
+Verification note (2026-08-23): the SDK Release package gate passed with 222
+core tests, 139 VL unit tests, and 5 VL document tests (1 live-server test
+skipped). The full NodeTool WebSocket run passed 2,315 tests and retained four
+known Windows/environment baseline failures in local-file access, executable
+bit detection, and workspace storage setup; no SDK/tRPC-changed test failed.
 
 Exit criteria:
 
@@ -858,6 +864,12 @@ claiming compatibility with an unreleased baseline.
 - [ ] Verify authenticated and reverse-proxy-subpath deployments.
 - [ ] Publish a one-row compatibility matrix for the first release. Add older
       rows only after a second supported release exists.
+
+Preparation note (2026-08-23): the locally packed `Nodetool.SDK 0.1.6` was
+restored into a clean temporary .NET 8 project. The project compiled and ran
+using only the package API, confirmed that raw transport types are not
+exported, and confirmed that creating session-owned HTTP services does not
+open a WebSocket. Published-artifact and live-server checks remain open.
 
 Exit criteria:
 

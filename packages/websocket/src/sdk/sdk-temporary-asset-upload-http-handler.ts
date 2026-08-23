@@ -29,8 +29,7 @@ function errorResponse(
     {
       code,
       message,
-      retryable,
-      detail: message
+      retryable
     },
     status
   );

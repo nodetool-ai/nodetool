@@ -27,7 +27,6 @@
       "response": {
         "body": {
           "code": "AUTHENTICATION_REQUIRED",
-          "detail": "Authentication required",
           "message": "Authentication required",
           "retryable": false
         },
@@ -55,7 +54,6 @@
       "response": {
         "body": {
           "code": "INVALID_REQUEST",
-          "detail": "Invalid preflight request",
           "message": "Invalid preflight request",
           "retryable": false
         },
@@ -92,7 +90,6 @@
       "response": {
         "body": {
           "code": "SDK_LIFECYCLE_DISABLED",
-          "detail": "SDK lifecycle v1 is disabled",
           "message": "SDK lifecycle v1 is disabled",
           "retryable": false
         },
@@ -118,15 +115,14 @@
       },
       "response": {
         "body": {
-          "code": "METHOD_NOT_ALLOWED",
-          "detail": "Method not allowed",
-          "message": "Method not allowed",
+          "code": "NOT_FOUND",
+          "message": "SDK endpoint not found",
           "retryable": false
         },
         "content_type": "application/json",
-        "status": 405
+        "status": 404
       },
-      "via": "http-api-dispatcher"
+      "via": "fastify"
     },
     "success": {
       "env": {
@@ -188,7 +184,6 @@
       "response": {
         "body": {
           "code": "UNSUPPORTED_MEDIA_TYPE",
-          "detail": "Content-Type must be application/json",
           "message": "Content-Type must be application/json",
           "retryable": false
         },
@@ -204,9 +199,8 @@
   "route": {
     "auth": "authenticated",
     "feature_flag": "NODETOOL_DISABLE_SDK_LIFECYCLE_V1",
-    "in_http_api_dispatcher": true,
     "method": "POST",
-    "owner": "packages/websocket/src/routes/nodes.ts",
+    "owner": "packages/websocket/src/routes/sdk-v1.ts",
     "path": "/api/sdk/v1/preflight"
   }
 }

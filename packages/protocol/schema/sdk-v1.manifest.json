@@ -4,45 +4,51 @@
       "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
       "path": "sdk-v1.asyncapi.json",
       "profile": "discovery",
-      "sha256": "ae9450d4c080d002d5701dfd9a1fe6148708e5b1f054444d55de18053b8367ce"
+      "sha256": "395fde319c64f7e827adaf52c3807890eedea92aea2e9bc9707af04c5352cb58"
     },
     {
       "media_type": "application/vnd.oai.openapi+json;version=3.1",
       "path": "sdk-v1.openapi.json",
       "profile": "discovery",
-      "sha256": "900230d25e4a28367e40b56e8c9f6027855a6a47467b7668fec32215556cab8b"
+      "sha256": "8ffca265fd4064f951e7d550acc9dabb2e0c6b909f141472468fc0558ed04d29"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.lifecycle.schema.json",
       "profile": "lifecycle-draft",
-      "sha256": "f45a929adf96b3d9a5889c21bc94b80c9d32188510f8d95c75d97bba26283de1"
+      "sha256": "a22c7eb9dfc193bcc123034f2006880e12960ef8fbe7c6e3c65578d12ae01672"
+    },
+    {
+      "media_type": "application/schema+json",
+      "path": "sdk-v1.execution.schema.json",
+      "profile": "execution",
+      "sha256": "fdbbcb892655ee62aa768f0601b850569194ed620cb7bfb5e3aba16af0feb42a"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.discovery.schema.json",
       "profile": "discovery",
-      "sha256": "2e13e3b2c70c7fd96a2014fce6b8db1b79b17e279221913576a972a10abb9194"
+      "sha256": "f121c65742848fc411de2b40b98b3661cee4bb7402f246038179b853d782189b"
     },
     {
       "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
       "path": "sdk-v1.asyncapi.implemented.json",
       "profile": "discovery",
-      "sha256": "184538a5b8a1e352314cab952eac9726051b3123969f3bf3ba9f14899ac6c54b",
+      "sha256": "395fde319c64f7e827adaf52c3807890eedea92aea2e9bc9707af04c5352cb58",
       "variant": "implemented"
     },
     {
       "media_type": "application/vnd.oai.openapi+json;version=3.1",
       "path": "sdk-v1.openapi.implemented.json",
       "profile": "discovery",
-      "sha256": "a990d499128643b49a9573cb6a0f55ba2ca8eb636373d54dee6f41299edf128f",
+      "sha256": "8ffca265fd4064f951e7d550acc9dabb2e0c6b909f141472468fc0558ed04d29",
       "variant": "implemented"
     },
     {
       "media_type": "application/json",
       "path": "sdk-v1.operations.json",
       "profile": "operations",
-      "sha256": "6a9b8c3837c03a7d835d89a0bafc2e62d36d079ac1cb92cc578dd24a50f255bf"
+      "sha256": "8a8e2138c1c2476bad0050cb55777aa2aa5d08f8943bae9c4f8bfe46d9eea7ae"
     }
   ],
   "default_websocket_encoding": "messagepack",
@@ -57,6 +63,7 @@
   "protocol_version": "1",
   "public_profiles": [
     "discovery",
+    "execution",
     "model_catalog",
     "model_download"
   ],

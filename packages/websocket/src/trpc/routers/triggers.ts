@@ -24,6 +24,31 @@ const fireInput = z.object({
 
 const listByWorkflowInput = z.object({ workflowId: z.string() });
 
+const editorRegistrationOutput = z.object({
+  id: z.string(),
+  workflow_id: z.string(),
+  node_id: z.string(),
+  kind: z.string(),
+  enabled: z.boolean(),
+  last_fired_at: z.string().nullable(),
+  last_error: z.string().nullable(),
+  disabled_reason: z.string().nullable(),
+  consecutive_failures: z.number(),
+  run_count: z.number(),
+  expires_at: z.string().nullable(),
+  max_runs: z.number().nullable(),
+  next_fire_at: z.string().nullable(),
+  interval_seconds: z.number().nullable(),
+  webhook_token: z.string().nullable(),
+  webhook_secret: z.string().nullable()
+});
+
+const listByWorkflowOutput = z.object({
+  triggers: z.array(editorRegistrationOutput)
+});
+
+const fireOutput = z.object({ job_id: z.string() });
+
 /**
  * A registration as the editor needs it. Unlike `jobs.triggersRunning`, this
  * includes disabled rows — a trigger that has never been armed still needs a
@@ -70,6 +95,7 @@ export const triggersRouter = router({
   /** Every registration for one workflow the caller owns, enabled or not. */
   listByWorkflow: protectedProcedure
     .input(listByWorkflowInput)
+    .output(listByWorkflowOutput)
     .query(async ({ ctx, input }) => {
       const registrations = await TriggerRegistration.findByWorkflow(
         input.workflowId
@@ -81,31 +107,32 @@ export const triggersRouter = router({
       };
     }),
 
-  fire: protectedProcedure.input(fireInput).mutation(async ({ ctx, input }) => {
-    const reg = (await TriggerRegistration.get(
-      input.registrationId
-    ));
-    if (!reg || reg.user_id !== ctx.userId) {
-      throwApiError(ApiErrorCode.NOT_FOUND, "Trigger registration not found");
-    }
-    // Refuse before delivering, not after. The dispatcher rejects a disabled
-    // registration too, but by then the input is durably stored — and since
-    // a pass only scans *enabled* registrations, it would sit unprocessed
-    // until someone re-armed the trigger and then fire as a surprise.
-    if (reg.enabled !== 1) {
-      throwApiError(
-        ApiErrorCode.INVALID_INPUT,
-        "Trigger is not active — activate it before firing"
-      );
-    }
-    const inputId = input.idempotencyKey ?? createTimeOrderedUuid();
-    await getTriggerWakeupService().deliverTriggerInput({
-      runId: reg.workflow_id,
-      nodeId: reg.node_id,
-      inputId,
-      payload: input.payload ?? {}
-    });
-    const { jobId } = await dispatchInput(inputId);
-    return { job_id: jobId };
-  })
+  fire: protectedProcedure
+    .input(fireInput)
+    .output(fireOutput)
+    .mutation(async ({ ctx, input }) => {
+      const reg = await TriggerRegistration.get(input.registrationId);
+      if (!reg || reg.user_id !== ctx.userId) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Trigger registration not found");
+      }
+      // Refuse before delivering, not after. The dispatcher rejects a disabled
+      // registration too, but by then the input is durably stored — and since
+      // a pass only scans *enabled* registrations, it would sit unprocessed
+      // until someone re-armed the trigger and then fire as a surprise.
+      if (reg.enabled !== 1) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "Trigger is not active — activate it before firing"
+        );
+      }
+      const inputId = input.idempotencyKey ?? createTimeOrderedUuid();
+      await getTriggerWakeupService().deliverTriggerInput({
+        runId: reg.workflow_id,
+        nodeId: reg.node_id,
+        inputId,
+        payload: input.payload ?? {}
+      });
+      const { jobId } = await dispatchInput(inputId);
+      return { job_id: jobId };
+    })
 });

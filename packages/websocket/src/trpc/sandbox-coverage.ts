@@ -522,10 +522,6 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Whether a Replicate token is configured; list_secrets reports " +
       "the same thing by name."
   },
-  "nodes.sdkTypeInventory": {
-    gap:
-      "Type inventory for SDK codegen; no headless consumer."
-  },
   "packs.getTrust": {
     withheld:
       "Pack installation and trust decide which third-party code the " +
@@ -870,15 +866,6 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "workflows.delete": { capability: "delete_workflow" },
   "workflows.examples": { capability: "get_example_workflow" },
   "workflows.get": { capability: "get_workflow" },
-  "workflows.interface": {
-    elsewhere:
-      "validate_workflow and get_workflow report a graph's inputs and " +
-      "outputs."
-  },
-  "workflows.interfaces": {
-    elsewhere:
-      "As workflows.interface, in bulk."
-  },
   "workflows.list": { capability: "list_workflows" },
   "workflows.public.get": {
     elsewhere:
@@ -887,11 +874,6 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "workflows.public.list": {
     elsewhere:
       "list_workflows and get_example_workflow cover discovery."
-  },
-  "workflows.sdkSummaries": {
-    elsewhere:
-      "Summaries for SDK codegen; list_workflows is the headless " +
-      "listing."
   },
   "workflows.sharing.accept": {
     withheld:

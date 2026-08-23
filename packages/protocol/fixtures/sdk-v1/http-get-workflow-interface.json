@@ -13,12 +13,11 @@
         },
         "method": "GET",
         "multipart": null,
-        "path": "/api/workflows/wf-sdk-golden-1/interface"
+        "path": "/api/sdk/v1/workflows/wf-sdk-golden-1/interface"
       },
       "response": {
         "body": {
           "code": "UNSUPPORTED_WORKFLOW_INTERFACE_VERSION",
-          "detail": "Workflow interface version 1 is required",
           "message": "Workflow interface version 1 is required",
           "retryable": false
         },
@@ -40,12 +39,11 @@
         },
         "method": "GET",
         "multipart": null,
-        "path": "/api/workflows/wf-sdk-golden-1/interface?version=1"
+        "path": "/api/sdk/v1/workflows/wf-sdk-golden-1/interface?version=1"
       },
       "response": {
         "body": {
           "code": "SDK_WORKFLOW_INTERFACE_DISABLED",
-          "detail": "SDK workflow interface v1 is disabled",
           "message": "SDK workflow interface v1 is disabled",
           "retryable": false
         },
@@ -67,16 +65,18 @@
         },
         "method": "POST",
         "multipart": null,
-        "path": "/api/workflows/wf-sdk-golden-1/interface"
+        "path": "/api/sdk/v1/workflows/wf-sdk-golden-1/interface"
       },
       "response": {
         "body": {
-          "detail": "Method not allowed"
+          "code": "NOT_FOUND",
+          "message": "SDK endpoint not found",
+          "retryable": false
         },
         "content_type": "application/json",
-        "status": 405
+        "status": 404
       },
-      "via": "http-api-dispatcher"
+      "via": "fastify"
     },
     "not_found": {
       "env": {
@@ -91,12 +91,11 @@
         },
         "method": "GET",
         "multipart": null,
-        "path": "/api/workflows/wf-sdk-golden-missing/interface?version=1"
+        "path": "/api/sdk/v1/workflows/wf-sdk-golden-missing/interface?version=1"
       },
       "response": {
         "body": {
           "code": "WORKFLOW_NOT_FOUND",
-          "detail": "Workflow not found",
           "message": "Workflow not found",
           "retryable": false
         },
@@ -118,7 +117,7 @@
         },
         "method": "GET",
         "multipart": null,
-        "path": "/api/workflows/wf-sdk-golden-1/interface?version=1"
+        "path": "/api/sdk/v1/workflows/wf-sdk-golden-1/interface?version=1"
       },
       "response": {
         "body": {
@@ -171,9 +170,8 @@
   "route": {
     "auth": "discovery",
     "feature_flag": "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1",
-    "in_http_api_dispatcher": true,
     "method": "GET",
-    "owner": "packages/websocket/src/routes/workflows.ts",
-    "path": "/api/workflows/:id/interface"
+    "owner": "packages/websocket/src/routes/sdk-v1.ts",
+    "path": "/api/sdk/v1/workflows/:id/interface"
   }
 }

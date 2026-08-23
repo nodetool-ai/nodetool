@@ -39,6 +39,7 @@ schema/sdk-v1.asyncapi.json           full WebSocket contract
 schema/sdk-v1.asyncapi.implemented.json implemented-only WebSocket profile
 schema/sdk-v1.discovery.schema.json   discovery request/response components
 schema/sdk-v1.lifecycle.schema.json   lifecycle request/response components
+schema/sdk-v1.execution.schema.json   execution command/event components
 schema/sdk-v1.operations.json         operation manifest with status per operation
 schema/sdk-v1.manifest.json           artifact manifest with per-artifact digests
 fixtures/…                            JSON goldens and MessagePack hex captures

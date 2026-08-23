@@ -40,11 +40,6 @@ import {
   type NodeMetadata,
   NodeRegistry
 } from "@nodetool-ai/node-sdk";
-import {
-  sdkWorkflowSummariesInput,
-  workflowInterfacesInput
-} from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import { sdkNodeTypeInventoryInput } from "@nodetool-ai/protocol/api-schemas/nodes.js";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
@@ -91,25 +86,7 @@ import {
   type BundledWorkflow
 } from "./lib/workflow-bundle.js";
 import { syncRegistrations } from "./triggers/registration-sync.js";
-import { handleSdkV1Capabilities } from "./sdk/sdk-capabilities-http-handler.js";
-import { handleSdkV1Preflight } from "./sdk/sdk-preflight-http-handler.js";
-import { handleSdkV1ModelCatalog } from "./sdk/sdk-model-catalog-http-handler.js";
-import {
-  handleSdkV1ModelDownloadCancel,
-  handleSdkV1ModelDownloads,
-  handleSdkV1ModelDownloadStart
-} from "./sdk/sdk-model-download-http-handler.js";
-import {
-  createSdkV1ImplementationBoundary,
-  type SdkV1ImplementationBoundary
-} from "./sdk/sdk-v1-handler-map.js";
-import { createSdkV1Service } from "./sdk/sdk-v1-service.js";
-import { createSdkV1TemporaryAssetService } from "./sdk/sdk-temporary-asset-service.js";
-import {
-  normalizeSdkV1ServiceError,
-  reportSdkV1InternalError,
-  sdkV1HttpError
-} from "./sdk/sdk-v1-service-error.js";
+import type { SdkV1ImplementationBoundary } from "./sdk/sdk-v1-handler-map.js";
 import { z } from "zod";
 import {
   isNonEmptyString,
@@ -195,128 +172,6 @@ export interface HttpApiOptions {
   packageAssetsRoots?: string[];
 }
 
-const fallbackSdkV1Boundaries = new WeakMap<
-  HttpApiOptions,
-  SdkV1ImplementationBoundary
->();
-
-export function resolveSdkV1Boundary(
-  options: HttpApiOptions
-): SdkV1ImplementationBoundary {
-  if (options.sdkV1Boundary) {
-    return options.sdkV1Boundary;
-  }
-  const existing = fallbackSdkV1Boundaries.get(options);
-  if (existing) {
-    return existing;
-  }
-  const boundary = createSdkV1ImplementationBoundary(
-    createSdkV1Service({
-      temporaryAssetService: createSdkV1TemporaryAssetService({
-        getStorage: getTempAdapter
-      })
-    })
-  );
-  fallbackSdkV1Boundaries.set(options, boundary);
-  return boundary;
-}
-
-export async function handleSdkCapabilities(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  return handleSdkV1Capabilities(request, {
-    boundary: resolveSdkV1Boundary(options),
-    onInternalError: (error) => {
-      log.error(
-        "SDK capability provider failed",
-        error instanceof Error ? error : new Error(String(error))
-      );
-    }
-  });
-}
-
-export async function handleSdkPreflight(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  return handleSdkV1Preflight(request, {
-    boundary: resolveSdkV1Boundary(options),
-    getPrincipal: (authenticatedRequest) => {
-      const userId = authenticatedRequest.headers.get(
-        options.userIdHeader ?? "x-user-id"
-      );
-      return userId ? { userId } : null;
-    },
-    onInternalError: (error) => {
-      log.error(
-        "SDK preflight failed",
-        error instanceof Error ? error : new Error(String(error))
-      );
-    }
-  });
-}
-
-export async function handleSdkModelCatalog(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  return handleSdkV1ModelCatalog(request, {
-    boundary: resolveSdkV1Boundary(options),
-    getUserId: (authenticatedRequest) =>
-      getUserId(authenticatedRequest, options.userIdHeader ?? "x-user-id"),
-    onInternalError: (error) => {
-      log.error(
-        "SDK model catalog failed",
-        error instanceof Error ? error : new Error(String(error))
-      );
-    }
-  });
-}
-
-function sdkModelDownloadHandlerOptions(options: HttpApiOptions) {
-  return {
-    boundary: resolveSdkV1Boundary(options),
-    getUserId: (request: Request) =>
-      getUserId(request, options.userIdHeader ?? "x-user-id"),
-    onInternalError: (error: unknown) => {
-      log.error(
-        "SDK model download failed",
-        error instanceof Error ? error : new Error(String(error))
-      );
-    }
-  };
-}
-
-export async function handleSdkModelDownloadStart(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  return handleSdkV1ModelDownloadStart(
-    request,
-    sdkModelDownloadHandlerOptions(options)
-  );
-}
-
-export async function handleSdkModelDownloads(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  return handleSdkV1ModelDownloads(
-    request,
-    sdkModelDownloadHandlerOptions(options)
-  );
-}
-
-export async function handleSdkModelDownloadCancel(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  return handleSdkV1ModelDownloadCancel(
-    request,
-    sdkModelDownloadHandlerOptions(options)
-  );
-}
 
 // Lazily created storage handler — recreated if options change
 let _storageHandler: ((request: Request) => Promise<Response>) | null = null;
@@ -578,36 +433,6 @@ function jsonResponse(data: unknown, init?: ResponseInit): Response {
       ...(init?.headers ?? {})
     }
   });
-}
-
-function sdkErrorResponse(
-  status: number,
-  code: string,
-  message: string,
-  retryable = false
-): Response {
-  return jsonResponse(
-    {
-      code,
-      message,
-      retryable,
-      // Retained additively while current SDK clients migrate to `message`.
-      detail: message
-    },
-    { status }
-  );
-}
-
-function sdkV1ServiceErrorResponse(error: unknown): Response {
-  const normalized = normalizeSdkV1ServiceError(error);
-  reportSdkV1InternalError(normalized, (cause) => {
-    log.error(
-      "SDK v1 service failed",
-      cause instanceof Error ? cause : new Error(String(cause))
-    );
-  });
-  const mapped = sdkV1HttpError(normalized);
-  return jsonResponse(mapped.body, { status: mapped.status });
 }
 
 function errorResponse(status: number, detail: string): Response {
@@ -1912,153 +1737,6 @@ export async function handleWorkflowsRoot(
   return errorResponse(405, "Method not allowed");
 }
 
-export async function handleSdkNodeTypeInventory(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const url = new URL(request.url);
-  type InventoryQueryFields = { cursor?: number; limit?: number };
-  const inventoryQuery: InventoryQueryFields = {};
-  if (url.searchParams.has("cursor")) {
-    inventoryQuery.cursor = Number(url.searchParams.get("cursor"));
-  }
-  if (url.searchParams.has("limit")) {
-    inventoryQuery.limit = Number(url.searchParams.get("limit"));
-  }
-  const parsed = sdkNodeTypeInventoryInput.safeParse(inventoryQuery);
-  if (!parsed.success) {
-    return sdkErrorResponse(
-      400,
-      "INVALID_INPUT",
-      "cursor must be >= 0 and limit 1..100"
-    );
-  }
-
-  try {
-    const registry =
-      options.registry ??
-      (await getWorkflowRuntimeEnvironment(options)).registry;
-    return jsonResponse(
-      await resolveSdkV1Boundary(options).handlers.getNodeTypeInventory({
-        request: parsed.data,
-        registry,
-        pythonBridgeReady: options.getPythonBridgeReady?.() ?? false
-      })
-    );
-  } catch (error) {
-    return sdkV1ServiceErrorResponse(error);
-  }
-}
-
-export async function handleSdkWorkflowSummaries(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const url = new URL(request.url);
-  type SummariesQueryFields = { limit?: number; cursor?: string };
-  const summariesQuery: SummariesQueryFields = {};
-  if (url.searchParams.has("limit")) {
-    summariesQuery.limit = Number(url.searchParams.get("limit"));
-  }
-  const cursorParam = url.searchParams.get("cursor");
-  if (cursorParam) {
-    summariesQuery.cursor = cursorParam;
-  }
-  const parsed = sdkWorkflowSummariesInput.safeParse(summariesQuery);
-  if (!parsed.success) {
-    return sdkErrorResponse(
-      400,
-      "INVALID_INPUT",
-      "Invalid workflow summary query"
-    );
-  }
-  try {
-    return jsonResponse(
-      await resolveSdkV1Boundary(options).handlers.listWorkflowSummaries({
-        userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
-        request: parsed.data,
-        registryRevision: Number.isSafeInteger(options.registry?.revision)
-          ? options.registry!.revision
-          : null
-      })
-    );
-  } catch (error) {
-    return sdkV1ServiceErrorResponse(error);
-  }
-}
-
-export async function handleWorkflowInterface(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const url = new URL(request.url);
-  if (url.searchParams.get("version") !== "1") {
-    return sdkErrorResponse(
-      400,
-      "UNSUPPORTED_WORKFLOW_INTERFACE_VERSION",
-      "Workflow interface version 1 is required"
-    );
-  }
-  try {
-    resolveSdkV1Boundary(options).service.assertWorkflowInterfaceAvailable();
-    const registry =
-      options.registry ??
-      (await getWorkflowRuntimeEnvironment(options)).registry;
-    return jsonResponse(
-      await resolveSdkV1Boundary(options).handlers.getWorkflowInterface({
-        userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
-        workflowId,
-        registry
-      })
-    );
-  } catch (error) {
-    return sdkV1ServiceErrorResponse(error);
-  }
-}
-
-export async function handleWorkflowInterfaces(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const body = await readJsonBody(request);
-  const parsed = workflowInterfacesInput.safeParse(body);
-  if (!parsed.success) {
-    return sdkErrorResponse(
-      400,
-      "INVALID_INPUT",
-      "Expected 1 to 100 unique workflow ids"
-    );
-  }
-  try {
-    resolveSdkV1Boundary(options).service.assertWorkflowInterfaceAvailable();
-    const registry =
-      options.registry ??
-      (await getWorkflowRuntimeEnvironment(options)).registry;
-    return jsonResponse(
-      await resolveSdkV1Boundary(options).handlers.getWorkflowInterfaces({
-        userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
-        request: parsed.data,
-        registry
-      })
-    );
-  } catch (error) {
-    return sdkV1ServiceErrorResponse(error);
-  }
-}
-
 export async function handlePublicWorkflows(
   request: Request
 ): Promise<Response> {
@@ -2490,29 +2168,6 @@ export async function handleApiRequest(
     return handleNodeMetadata(request, options);
   }
 
-  // Keep the SDK routes available to createHttpApiServer and other callers of
-  // this public Web Request dispatcher. Fastify uses the declaration-driven
-  // plugin, but these consumers do not pass through Fastify.
-  if (pathname === "/api/sdk/v1/node-types") {
-    return handleSdkNodeTypeInventory(request, options);
-  }
-
-  if (pathname === "/api/sdk/v1/capabilities") {
-    return handleSdkCapabilities(request, options);
-  }
-
-  if (pathname === "/api/sdk/v1/preflight") {
-    return handleSdkPreflight(request, options);
-  }
-
-  if (pathname === "/api/sdk/v1/workflows") {
-    return handleSdkWorkflowSummaries(request, options);
-  }
-
-  if (pathname === "/api/sdk/v1/workflow-interfaces") {
-    return handleWorkflowInterfaces(request, options);
-  }
-
   if (pathname === "/api/workflows") {
     return handleWorkflowsRoot(request, options);
   }
@@ -2622,9 +2277,6 @@ export async function handleApiRequest(
       }
       if (subPath === "dsl-export") {
         return handleWorkflowDslExport(request, workflowId, options);
-      }
-      if (subPath === "interface") {
-        return handleWorkflowInterface(request, workflowId, options);
       }
       if (subPath === "export-bundle") {
         return handleWorkflowExportBundle(request, workflowId, options);

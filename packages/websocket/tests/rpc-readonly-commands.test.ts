@@ -1,6 +1,6 @@
 /**
  * Integration tests for the read-only RPC commands exposed on the unified
- * WebSocket, including the compact SDK workflow discovery surface.
+ * WebSocket.
  *
  * Drives the runner with a MockWebSocket and asserts that each request
  * produces a single `rpc_response` frame correlated by `request_id`.
@@ -20,14 +20,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     Workflow: {
       ...actual.Workflow,
       get: vi.fn(),
-      getManyByIds: vi.fn(),
       find: vi.fn(),
-      paginate: vi.fn(),
-      paginateSummaries: vi.fn()
-    },
-    WorkflowCollaborator: {
-      ...actual.WorkflowCollaborator,
-      grantedWorkflowIds: vi.fn()
+      paginate: vi.fn()
     },
     Asset: {
       ...actual.Asset,
@@ -45,7 +39,7 @@ vi.mock("@nodetool-ai/config", async (orig) => {
   };
 });
 
-import { Workflow, WorkflowCollaborator, Asset } from "@nodetool-ai/models";
+import { Workflow, Asset } from "@nodetool-ai/models";
 import {
   NodeRegistry,
   type NodeMetadata
@@ -249,158 +243,6 @@ describe("RPC read-only commands", () => {
       expect(out.result).toBeUndefined();
       const error = out.error as Record<string, unknown>;
       expect(error.trpcCode).toBe("NOT_FOUND");
-    });
-  });
-
-  describe("SDK workflow interface commands", () => {
-    beforeEach(() => {
-      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
-    });
-
-    afterEach(() => {
-      vi.unstubAllEnvs();
-    });
-
-    it("returns compact workflow summaries without graph data", async () => {
-      (Workflow.paginateSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([
-        [
-          {
-            id: "wf-1",
-            name: "Test",
-            description: "A test workflow",
-            updated_at: "2026-04-17T00:00:00Z",
-            run_mode: "workflow"
-          }
-        ],
-        ""
-      ]);
-
-      const out = await runOne(ws, runner, {
-        command: "list_workflow_summaries",
-        request_id: "sdk-1",
-        data: { limit: 50 }
-      });
-
-      expect(out.type).toBe("rpc_response");
-      expect(out.command).toBe("list_workflow_summaries");
-      expect(out.request_id).toBe("sdk-1");
-      const result = out.result as {
-        workflows: Array<Record<string, unknown>>;
-      };
-      expect(result.workflows[0]).toMatchObject({ id: "wf-1", name: "Test" });
-      expect(result.workflows[0]).not.toHaveProperty("graph");
-    });
-
-    it("returns one graph-derived workflow interface", async () => {
-      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
-        makeWorkflow({ id: "wf-42", user_id: "1" })
-      );
-
-      const out = await runOne(ws, runner, {
-        command: "get_workflow_interface",
-        request_id: "sdk-2",
-        data: { id: "wf-42", version: 1 }
-      });
-
-      expect(out.type).toBe("rpc_response");
-      expect(out.command).toBe("get_workflow_interface");
-      expect(out.result).toMatchObject({
-        version: 1,
-        workflow_id: "wf-42",
-        source: "server",
-        inputs: [],
-        outputs: []
-      });
-    });
-
-    it("returns a bounded graph-derived workflow interface batch", async () => {
-      const first = makeWorkflow({ id: "wf-1", user_id: "1" });
-      const second = makeWorkflow({ id: "wf-2", user_id: "1" });
-      (Workflow.getManyByIds as ReturnType<typeof vi.fn>).mockResolvedValue(
-        new Map([
-          [first.id, first],
-          [second.id, second]
-        ])
-      );
-      (
-        WorkflowCollaborator.grantedWorkflowIds as ReturnType<typeof vi.fn>
-      ).mockResolvedValue(new Set());
-
-      const out = await runOne(ws, runner, {
-        command: "get_workflow_interfaces",
-        request_id: "sdk-3",
-        data: { ids: ["wf-2", "missing", "wf-1"], version: 1 }
-      });
-
-      expect(out.type).toBe("rpc_response");
-      expect(out.command).toBe("get_workflow_interfaces");
-      const result = out.result as {
-        interfaces: Array<{ workflow_id: string }>;
-        errors: Array<{ workflow_id: string; code: string }>;
-      };
-      expect(result.interfaces.map((item) => item.workflow_id)).toEqual([
-        "wf-2",
-        "wf-1"
-      ]);
-      expect(result.errors).toEqual([
-        {
-          workflow_id: "missing",
-          code: "workflow_not_found",
-          message: "Workflow not found"
-        }
-      ]);
-    });
-
-    it("returns the bounded recursive node type inventory", async () => {
-      const out = await runOne(ws, runner, {
-        command: "get_node_type_inventory",
-        request_id: "sdk-types",
-        data: { cursor: 0, limit: 10 }
-      });
-
-      expect(out.type).toBe("rpc_response");
-      expect(out.command).toBe("get_node_type_inventory");
-      expect(out.request_id).toBe("sdk-types");
-      expect(out.result).toMatchObject({
-        version: 1,
-        registry_ready: true,
-        python_bridge_ready: true,
-        node_count: 1,
-        provenance_counts: { typescript: 1 },
-        cursor: 0,
-        next_cursor: null,
-        types: []
-      });
-    });
-
-    it("reports the feature flag state through the correlated error", async () => {
-      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
-
-      const out = await runOne(ws, runner, {
-        command: "get_workflow_interface",
-        request_id: "sdk-disabled",
-        data: { id: "wf-1", version: 1 }
-      });
-
-      expect(out.type).toBe("rpc_response");
-      expect(out.request_id).toBe("sdk-disabled");
-      expect(out.error).toMatchObject({
-        apiCode: "SERVICE_UNAVAILABLE"
-      });
-      expect(Workflow.get).not.toHaveBeenCalled();
-    });
-
-    it("validates interface batches at the shared tRPC boundary", async () => {
-      const out = await runOne(ws, runner, {
-        command: "get_workflow_interfaces",
-        request_id: "sdk-invalid",
-        data: { ids: [], version: 1 }
-      });
-
-      expect(out.type).toBe("rpc_response");
-      expect(out.request_id).toBe("sdk-invalid");
-      expect(out.error).toMatchObject({ trpcCode: "BAD_REQUEST" });
-      expect(Workflow.getManyByIds).not.toHaveBeenCalled();
     });
   });
 

@@ -38,6 +38,69 @@ const idInput = z.object({ id: z.string().min(1) });
 const profileNameInput = z.object({ name: z.string().min(1) });
 const provisionInput = z.object({ profileName: z.string().min(1) });
 
+const workerStatusSchema = z.enum([
+  "provisioning",
+  "running",
+  "attached",
+  "stopping",
+  "stopped",
+  "terminated",
+  "error"
+]);
+
+const workerProfileOutput = z.object({
+  id: z.string(),
+  name: z.string(),
+  target: targetSchema,
+  image: z.string(),
+  spec: z.record(z.string(), z.unknown()),
+  token_policy: z.enum(["generate", "fixed"]),
+  idle_timeout_minutes: z.number().nullable(),
+  max_lifetime_minutes: z.number().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
+const workerInstanceOutput = z.object({
+  id: z.string(),
+  profile_name: z.string(),
+  target: targetSchema,
+  provider_ref: z.string(),
+  ws_url: z.string(),
+  token: z.string().nullable(),
+  status: workerStatusSchema,
+  attached_to: z.string().nullable(),
+  created_at: z.string(),
+  last_activity_at: z.string(),
+  estimated_cost_usd: z.number().nullable()
+});
+
+const okOutput = z.object({ ok: z.literal(true) });
+const apiKeyStatusOutput = z.object({
+  runpod: z.boolean(),
+  vast: z.boolean()
+});
+const connectionOutput = z.object({
+  wsUrl: z.string(),
+  token: z.string().nullable()
+});
+const reconcileOutput = z.object({
+  orphans: z.array(
+    z.object({
+      target: targetSchema,
+      providerRef: z.string(),
+      status: workerStatusSchema
+    })
+  ),
+  liveCount: z.number(),
+  estimatedCostUsd: z.number()
+});
+const healthOutput = z.object({
+  healthy: z.boolean(),
+  protocolVersion: z.number().optional(),
+  error: z.string().optional()
+});
+
 /** Pull the wired `WorkerManager` from context or fail loudly. */
 function requireManager(manager: WorkerManager | undefined): WorkerManager {
   if (!manager) {
@@ -63,9 +126,7 @@ function requireRepoint(
 }
 
 /** Pull the wired worker health-probe function from context or fail loudly. */
-function requireProbe(
-  probe: ProbeWorkerHealth | undefined
-): ProbeWorkerHealth {
+function requireProbe(probe: ProbeWorkerHealth | undefined): ProbeWorkerHealth {
   if (!probe) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
@@ -76,12 +137,13 @@ function requireProbe(
 }
 
 const profilesRouter = router({
-  list: protectedProcedure.query(({ ctx }) =>
-    requireManager(ctx.workerManager).listProfiles()
-  ),
+  list: protectedProcedure
+    .output(z.array(workerProfileOutput))
+    .query(({ ctx }) => requireManager(ctx.workerManager).listProfiles()),
 
   create: protectedProcedure
     .input(profileCreateInput)
+    .output(workerProfileOutput)
     .mutation(({ ctx, input }) =>
       requireManager(ctx.workerManager).createProfile({
         name: input.name,
@@ -96,6 +158,7 @@ const profilesRouter = router({
 
   delete: protectedProcedure
     .input(profileNameInput)
+    .output(okOutput)
     .mutation(async ({ ctx, input }) => {
       await requireManager(ctx.workerManager).deleteProfile(input.name);
       return { ok: true as const };
@@ -103,9 +166,9 @@ const profilesRouter = router({
 });
 
 const instancesRouter = router({
-  list: protectedProcedure.query(({ ctx }) =>
-    requireManager(ctx.workerManager).list()
-  )
+  list: protectedProcedure
+    .output(z.array(workerInstanceOutput))
+    .query(({ ctx }) => requireManager(ctx.workerManager).list())
 });
 
 export const workerRouter = router({
@@ -115,18 +178,20 @@ export const workerRouter = router({
   // Whether each provider's API key is available (secret store OR env) — the
   // same resolution provisioning uses, so the UI doesn't false-warn on an
   // env-provided key.
-  apiKeyStatus: protectedProcedure.query(({ ctx }) =>
-    requireManager(ctx.workerManager).apiKeyStatus()
-  ),
+  apiKeyStatus: protectedProcedure
+    .output(apiKeyStatusOutput)
+    .query(({ ctx }) => requireManager(ctx.workerManager).apiKeyStatus()),
 
   provision: protectedProcedure
     .input(provisionInput)
+    .output(workerInstanceOutput)
     .mutation(({ ctx, input }) =>
       requireManager(ctx.workerManager).provision(input.profileName)
     ),
 
   stop: protectedProcedure
     .input(idInput)
+    .output(workerInstanceOutput)
     .mutation(({ ctx, input }) =>
       requireManager(ctx.workerManager).stop(input.id)
     ),
@@ -135,6 +200,7 @@ export const workerRouter = router({
   // if the provider cannot re-allocate a GPU.
   resume: protectedProcedure
     .input(idInput)
+    .output(workerInstanceOutput)
     .mutation(({ ctx, input }) =>
       requireManager(ctx.workerManager).resume(input.id)
     ),
@@ -142,18 +208,19 @@ export const workerRouter = router({
   // Destroy a worker and its volume — the real teardown that stops all billing.
   terminate: protectedProcedure
     .input(idInput)
+    .output(workerInstanceOutput)
     .mutation(({ ctx, input }) =>
       requireManager(ctx.workerManager).terminate(input.id)
     ),
 
-  stopAll: protectedProcedure.mutation(async ({ ctx }) => {
+  stopAll: protectedProcedure.output(okOutput).mutation(async ({ ctx }) => {
     await requireManager(ctx.workerManager).stopAll();
     return { ok: true as const };
   }),
 
-  reconcile: protectedProcedure.mutation(({ ctx }) =>
-    requireManager(ctx.workerManager).reconcile()
-  ),
+  reconcile: protectedProcedure
+    .output(reconcileOutput)
+    .mutation(({ ctx }) => requireManager(ctx.workerManager).reconcile()),
 
   /**
    * Health-probe a worker that is `running` but not yet attached: open a
@@ -163,15 +230,17 @@ export const workerRouter = router({
    */
   health: protectedProcedure
     .input(idInput)
+    .output(healthOutput)
     .query(async ({ ctx, input }) => {
-      const connection = await requireManager(
-        ctx.workerManager
-      ).connectionInfo(input.id);
+      const connection = await requireManager(ctx.workerManager).connectionInfo(
+        input.id
+      );
       return requireProbe(ctx.probeWorkerHealth)(connection);
     }),
 
   attach: protectedProcedure
     .input(idInput)
+    .output(connectionOutput)
     .mutation(async ({ ctx, input }) => {
       const connection = await requireManager(ctx.workerManager).attach(
         input.id
@@ -187,7 +256,7 @@ export const workerRouter = router({
       return connection;
     }),
 
-  detach: protectedProcedure.mutation(async ({ ctx }) => {
+  detach: protectedProcedure.output(okOutput).mutation(async ({ ctx }) => {
     await requireManager(ctx.workerManager).detach();
     await requireRepoint(ctx.repointPythonBridge)(null);
     return { ok: true as const };

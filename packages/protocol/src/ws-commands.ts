@@ -53,16 +53,10 @@ export const UNIFIED_COMMAND_TYPES = [
   "stop",
   "list_workflows",
   "get_workflow",
-  "list_workflow_summaries",
-  "get_workflow_interface",
-  "get_workflow_interfaces",
   "list_assets",
   "get_asset",
   "list_nodes",
   "get_node",
-  "get_node_type_inventory",
-  "get_capabilities",
-  "preflight_workflow",
   "generate_media",
   "transcribe_audio"
 ] as const;
@@ -269,16 +263,10 @@ export const commandDataSchemas = {
   stop: looseDataSchema,
   list_workflows: looseDataSchema,
   get_workflow: looseDataSchema,
-  list_workflow_summaries: looseDataSchema,
-  get_workflow_interface: looseDataSchema,
-  get_workflow_interfaces: looseDataSchema,
   list_assets: looseDataSchema,
   get_asset: looseDataSchema,
   list_nodes: looseDataSchema,
   get_node: looseDataSchema,
-  get_node_type_inventory: looseDataSchema,
-  get_capabilities: looseDataSchema,
-  preflight_workflow: looseDataSchema,
   generate_media: looseDataSchema,
   transcribe_audio: looseDataSchema
 } satisfies Record<UnifiedCommandType, z.ZodTypeAny>;

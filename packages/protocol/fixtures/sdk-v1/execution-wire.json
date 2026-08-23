@@ -1,0 +1,121 @@
+{
+  "fixture_version": 1,
+  "encoding": "messagepack",
+  "frames": [
+    {
+      "name": "run_job_command",
+      "direction": "client",
+      "message": {
+        "command": "run_job",
+        "type": "run_job",
+        "request_id": null,
+        "data": {
+          "type": "run_job_request",
+          "job_type": "workflow",
+          "job_id": "job-123",
+          "execution_strategy": "threaded",
+          "workflow_id": "workflow-456",
+          "user_id": "",
+          "auth_token": "",
+          "api_url": null,
+          "env": null,
+          "graph": null,
+          "params": { "prompt": "hello" },
+          "explicit_types": false,
+          "require_terminal_result": true,
+          "execution_options": {
+            "persistence": "job",
+            "event_detail": "full",
+            "asset_persistence": "auto"
+          },
+          "resource_limits": null
+        }
+      },
+      "messagepack_hex": "de0004a7636f6d6d616e64a772756e5f6a6f62a474797065a772756e5f6a6f62aa726571756573745f6964c0a464617461de000fa474797065af72756e5f6a6f625f72657175657374a86a6f625f74797065a8776f726b666c6f77a66a6f625f6964a76a6f622d313233b2657865637574696f6e5f7374726174656779a87468726561646564ab776f726b666c6f775f6964ac776f726b666c6f772d343536a7757365725f6964a0aa617574685f746f6b656ea0a76170695f75726cc0a3656e76c0a56772617068c0a6706172616d73de0001a670726f6d7074a568656c6c6fae6578706c696369745f7479706573c2b7726571756972655f7465726d696e616c5f726573756c74c3b1657865637574696f6e5f6f7074696f6e73de0003ab70657273697374656e6365a36a6f62ac6576656e745f64657461696ca466756c6cb161737365745f70657273697374656e6365a46175746faf7265736f757263655f6c696d697473c0"
+    },
+    {
+      "name": "cancel_job_command",
+      "direction": "client",
+      "message": { "command": "cancel_job", "type": "cancel_job", "request_id": null, "data": { "job_id": "job-123", "workflow_id": null } },
+      "messagepack_hex": "de0004a7636f6d6d616e64aa63616e63656c5f6a6f62a474797065aa63616e63656c5f6a6f62aa726571756573745f6964c0a464617461de0002a66a6f625f6964a76a6f622d313233ab776f726b666c6f775f6964c0"
+    },
+    {
+      "name": "reconnect_job_command",
+      "direction": "client",
+      "message": { "command": "reconnect_job", "type": "reconnect_job", "request_id": null, "data": { "job_id": "job-123", "workflow_id": "workflow-456" } },
+      "messagepack_hex": "de0004a7636f6d6d616e64ad7265636f6e6e6563745f6a6f62a474797065ad7265636f6e6e6563745f6a6f62aa726571756573745f6964c0a464617461de0002a66a6f625f6964a76a6f622d313233ab776f726b666c6f775f6964ac776f726b666c6f772d343536"
+    },
+    {
+      "name": "stream_input_command",
+      "direction": "client",
+      "message": { "command": "stream_input", "type": "stream_input", "request_id": null, "data": { "job_id": "job-123", "workflow_id": "workflow-456", "input": "prompt", "handle": null, "value": "hello" } },
+      "messagepack_hex": "de0004a7636f6d6d616e64ac73747265616d5f696e707574a474797065ac73747265616d5f696e707574aa726571756573745f6964c0a464617461de0005a66a6f625f6964a76a6f622d313233ab776f726b666c6f775f6964ac776f726b666c6f772d343536a5696e707574a670726f6d7074a668616e646c65c0a576616c7565a568656c6c6f"
+    },
+    {
+      "name": "end_input_stream_command",
+      "direction": "client",
+      "message": { "command": "end_input_stream", "type": "end_input_stream", "request_id": null, "data": { "job_id": "job-123", "workflow_id": "workflow-456", "input": "prompt", "handle": null } },
+      "messagepack_hex": "de0004a7636f6d6d616e64b0656e645f696e7075745f73747265616da474797065b0656e645f696e7075745f73747265616daa726571756573745f6964c0a464617461de0004a66a6f625f6964a76a6f622d313233ab776f726b666c6f775f6964ac776f726b666c6f772d343536a5696e707574a670726f6d7074a668616e646c65c0"
+    },
+    {
+      "name": "update_node_properties_command",
+      "direction": "client",
+      "message": { "command": "update_node_properties", "type": "update_node_properties", "request_id": null, "data": { "job_id": "job-123", "workflow_id": "workflow-456", "node_id": "node-789", "properties": { "gain": 0.5, "enabled": true } } },
+      "messagepack_hex": "de0004a7636f6d6d616e64b67570646174655f6e6f64655f70726f70657274696573a474797065b67570646174655f6e6f64655f70726f70657274696573aa726571756573745f6964c0a464617461de0004a66a6f625f6964a76a6f622d313233ab776f726b666c6f775f6964ac776f726b666c6f772d343536a76e6f64655f6964a86e6f64652d373839aa70726f70657274696573de0002a46761696ecb3fe0000000000000a7656e61626c6564c3"
+    },
+    {
+      "name": "execution_target_event",
+      "direction": "server",
+      "message": { "type": "sdk_execution_target", "runner_id": "runner-abc" },
+      "messagepack_hex": "de0002a474797065b473646b5f657865637574696f6e5f746172676574a972756e6e65725f6964aa72756e6e65722d616263"
+    },
+    {
+      "name": "replay_header_event",
+      "direction": "server",
+      "message": { "type": "job_resumed", "job_id": "job-123", "workflow_id": "workflow-456", "status": "running", "last_seq": 4, "replay_count": 2, "replay_incomplete": false },
+      "messagepack_hex": "de0007a474797065ab6a6f625f726573756d6564a66a6f625f6964a76a6f622d313233ab776f726b666c6f775f6964ac776f726b666c6f772d343536a6737461747573a772756e6e696e67a86c6173745f73657104ac7265706c61795f636f756e7402b17265706c61795f696e636f6d706c657465c2"
+    },
+    {
+      "name": "job_running_event",
+      "direction": "server",
+      "message": { "type": "job_update", "status": "running", "job_id": "job-123", "workflow_id": "workflow-456", "message": "Workflow started" },
+      "messagepack_hex": "de0005a474797065aa6a6f625f757064617465a6737461747573a772756e6e696e67a66a6f625f6964a76a6f622d313233ab776f726b666c6f775f6964ac776f726b666c6f772d343536a76d657373616765b0576f726b666c6f772073746172746564"
+    },
+    {
+      "name": "node_update_event",
+      "direction": "server",
+      "message": { "type": "node_update", "node_id": "node-789", "node_name": "Prompt", "node_type": "nodetool.constant.String", "status": "completed", "result": { "output": "hello" }, "workflow_id": "workflow-456", "job_id": "job-123" },
+      "messagepack_hex": "de0008a474797065ab6e6f64655f757064617465a76e6f64655f6964a86e6f64652d373839a96e6f64655f6e616d65a650726f6d7074a96e6f64655f74797065b86e6f6465746f6f6c2e636f6e7374616e742e537472696e67a6737461747573a9636f6d706c65746564a6726573756c74de0001a66f7574707574a568656c6c6fab776f726b666c6f775f6964ac776f726b666c6f772d343536a66a6f625f6964a76a6f622d313233"
+    },
+    {
+      "name": "node_progress_event",
+      "direction": "server",
+      "message": { "type": "node_progress", "node_id": "node-789", "progress": 50, "total": 100, "chunk": "half", "workflow_id": "workflow-456", "job_id": "job-123" },
+      "messagepack_hex": "de0007a474797065ad6e6f64655f70726f6772657373a76e6f64655f6964a86e6f64652d373839a870726f677265737332a5746f74616c64a56368756e6ba468616c66ab776f726b666c6f775f6964ac776f726b666c6f772d343536a66a6f625f6964a76a6f622d313233"
+    },
+    {
+      "name": "output_update_event",
+      "direction": "server",
+      "message": { "type": "output_update", "node_id": "node-789", "node_name": "Prompt", "output_name": "output", "value": "hello", "output_type": "string", "metadata": {}, "disposition": "replace", "done": true, "workflow_id": "workflow-456", "job_id": "job-123" },
+      "messagepack_hex": "de000ba474797065ad6f75747075745f757064617465a76e6f64655f6964a86e6f64652d373839a96e6f64655f6e616d65a650726f6d7074ab6f75747075745f6e616d65a66f7574707574a576616c7565a568656c6c6fab6f75747075745f74797065a6737472696e67a86d65746164617461de0000ab646973706f736974696f6ea77265706c616365a4646f6e65c3ab776f726b666c6f775f6964ac776f726b666c6f772d343536a66a6f625f6964a76a6f622d313233"
+    },
+    {
+      "name": "chunk_event",
+      "direction": "server",
+      "message": { "type": "chunk", "node_id": "node-789", "workflow_id": "workflow-456", "job_id": "job-123", "content_type": "text", "content": "hello", "done": true },
+      "messagepack_hex": "de0007a474797065a56368756e6ba76e6f64655f6964a86e6f64652d373839ab776f726b666c6f775f6964ac776f726b666c6f772d343536a66a6f625f6964a76a6f622d313233ac636f6e74656e745f74797065a474657874a7636f6e74656e74a568656c6c6fa4646f6e65c3"
+    },
+    {
+      "name": "terminal_result_event",
+      "direction": "server",
+      "message": { "type": "job_update", "status": "completed", "job_id": "job-123", "workflow_id": "workflow-456", "result": { "outputs": { "node789": { "output": "hello" } } }, "duration": 1.25 },
+      "messagepack_hex": "de0006a474797065aa6a6f625f757064617465a6737461747573a9636f6d706c65746564a66a6f625f6964a76a6f622d313233ab776f726b666c6f775f6964ac776f726b666c6f772d343536a6726573756c74de0001a76f757470757473de0001a76e6f6465373839de0001a66f7574707574a568656c6c6fa86475726174696f6ecb3ff4000000000000"
+    },
+    {
+      "name": "protocol_rejection_event",
+      "direction": "server",
+      "message": { "error": "invalid_command", "details": "Malformed 'run_job' data: data.job_id is required", "job_id": "job-123" },
+      "messagepack_hex": "de0003a56572726f72af696e76616c69645f636f6d6d616e64a764657461696c73d9314d616c666f726d6564202772756e5f6a6f622720646174613a20646174612e6a6f625f6964206973207265717569726564a66a6f625f6964a76a6f622d313233"
+    }
+  ]
+}

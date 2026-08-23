@@ -31,15 +31,21 @@ import { useWorkers } from "../useWorkers";
 import type { WorkerInstance, WorkerProfile } from "../useWorkers";
 
 const mockProfilesList = jest.mocked(trpcClient.worker.profiles.list.query);
-const mockProfilesCreate = jest.mocked(trpcClient.worker.profiles.create.mutate);
-const mockProfilesDelete = jest.mocked(trpcClient.worker.profiles.delete.mutate);
+const mockProfilesCreate = jest.mocked(
+  trpcClient.worker.profiles.create.mutate
+);
+const mockProfilesDelete = jest.mocked(
+  trpcClient.worker.profiles.delete.mutate
+);
 const mockInstancesList = jest.mocked(trpcClient.worker.instances.list.query);
 const mockProvision = jest.mocked(trpcClient.worker.provision.mutate);
 const mockStop = jest.mocked(trpcClient.worker.stop.mutate);
 const mockAttach = jest.mocked(trpcClient.worker.attach.mutate);
 const mockDetach = jest.mocked(trpcClient.worker.detach.mutate);
 
-const makeProfile = (overrides: Partial<WorkerProfile> = {}) => ({
+const makeProfile = (
+  overrides: Partial<WorkerProfile> = {}
+): WorkerProfile => ({
   id: "p-1",
   name: "hf-a40",
   target: "runpod",
@@ -53,7 +59,9 @@ const makeProfile = (overrides: Partial<WorkerProfile> = {}) => ({
   ...overrides
 });
 
-const makeInstance = (overrides: Partial<WorkerInstance> = {}) => ({
+const makeInstance = (
+  overrides: Partial<WorkerInstance> = {}
+): WorkerInstance => ({
   id: "i-1",
   profile_name: "hf-a40",
   target: "runpod",

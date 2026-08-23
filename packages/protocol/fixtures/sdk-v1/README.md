@@ -1,62 +1,49 @@
-# SDK v1 Phase 0 golden fixtures
+# SDK v1 golden fixtures
 
-Captured baseline for every implemented SDK v1 operation
-(docs/sdk/sdk-trpc-consolidation.md, Phase 0). The replay tests live in
-`packages/websocket/tests/`:
+The committed fixtures cover every implemented SDK v1 HTTP operation and the
+public execution wire. Replay tests live in `packages/websocket/tests/`:
 
-- `sdk-v1-http-goldens.test.ts` reads `http-*.json`
-- `sdk-v1-ws-goldens.test.ts` reads `ws-*.json`
+- `sdk-v1-http-goldens.test.ts` reads `http-*.json`.
+- `sdk-v1-execution-contract.test.ts` reads `execution-wire.json`.
 
-Baseline record: `docs/sdk/phase-0-baseline-2026-08-22.md`.
+The original capture record is
+`docs/sdk/phase-0-baseline-2026-08-22.md`. The Phase 8 pre-release cleanup
+intentionally removes the unused compatibility transports recorded there.
 
-## HTTP fixtures (`http-*.json`)
+## HTTP fixtures
 
-One file per operation. `route` names the owning Fastify route module, the
-auth policy, the feature flag, and whether the `http-api.ts` second
-dispatcher also serves the path. `captures` maps a capture name to:
+There is one `http-*.json` file per operation. `route` records the owning
+Fastify route, authentication policy, and feature flag. Each capture records:
 
-- `via` — the dispatch path that produced it: `fastify` (the production
-  route plugins), `http-api-dispatcher` (`handleApiRequest`), or `handler`
-  (the multipart upload handler, the only injection point for `createId`
-  and the upload limit).
-- `env` — the three SDK flags with their effective values for the capture.
-- `request` — method, path (with query), the headers the test sends, the
-  JSON body, and a `multipart` descriptor for upload captures (the real
-  multipart boundary is random and is not recorded).
-- `response` — status, content type, and the exact JSON body.
+- `via`: `fastify` for the production route plugin or `handler` for the
+  specialized multipart upload adapter.
+- `env`: the effective SDK feature flags.
+- `request`: method, path, headers, JSON body, and optional multipart details.
+- `response`: status, content type, and exact JSON body.
 
-`not_captured` explains every standard error class (feature-disabled, auth
-failure, method-not-allowed) that has no capture, and where that behavior is
-pinned instead.
+`not_captured` explains any standard error class without a fixture and where
+that behavior is tested.
 
-## WebSocket fixtures (`ws-*.json`)
+## Execution fixture
 
-One file per command capture, including two feature-disabled error
-envelopes. Each records the request and response envelopes plus their exact
-MessagePack encoding (`messagepack_request_hex`, `messagepack_response_hex`,
-via `packWebSocketMessage`). Key order in `request`/`response` is wire
-order — these two objects are deliberately not key-sorted, because the test
-asserts they re-encode to the recorded bytes.
+`execution-wire.json` freezes all six C# SDK commands plus target selection,
+replay, live updates, terminal results, and protocol rejection events. Its test
+also verifies that the operation registry and live runner switch have the same
+complete command inventory.
 
 ## Determinism
 
-Captures are byte-stable because the tests pin every input: `Date` is
-frozen (workflow timestamps and etags derive from it), workflow ids are
-fixed, all SDK services (capabilities, preflight, model catalog, model
-downloads) are injected constants, the upload id and limit are injected,
-and `NODETOOL_PACKS_CONFIG` points at a nonexistent file so
-`unavailable_packs` reflects only the in-repo pack catalog. Nothing in
-these fixtures is volatile; a diff means the public contract moved.
+The tests pin all inputs that could otherwise vary: time, workflow ids,
+services, upload ids and limits, and pack configuration. A fixture diff must
+therefore represent a deliberate public contract change.
 
 ## Regenerating
 
 ```bash
 cd packages/websocket
-NODETOOL_UPDATE_SDK_V1_GOLDENS=1 npx vitest run tests/sdk-v1-http-goldens.test.ts tests/sdk-v1-ws-goldens.test.ts
-npx vitest run tests/sdk-v1-http-goldens.test.ts tests/sdk-v1-ws-goldens.test.ts
+NODETOOL_UPDATE_SDK_V1_GOLDENS=1 npx vitest run tests/sdk-v1-http-goldens.test.ts
+npx vitest run tests/sdk-v1-http-goldens.test.ts tests/sdk-v1-execution-contract.test.ts
 ```
 
-Review the fixture diff before committing: during convergence
-(Phases 1 to 3) the public bodies and bytes must not change, so a
-regeneration that alters anything other than a deliberately-versioned
-contract change is a regression, not an update.
+Review fixture changes before committing them. After the deliberate Phase 8
+contract cleanup, any unreviewed byte change is a regression.

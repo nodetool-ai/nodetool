@@ -1,508 +1,210 @@
-/**
- * Declared public SDK v1 WebSocket operations. The `sdkRpc` channel
- * multiplexes correlated RPC commands over two envelope message pairs plus a
- * planned server-event stream; each command is declared as its own operation
- * so implementation status, policy, and schemas are per-command. The
- * generator derives the AsyncAPI channel, message, and operation inventory
- * from `sdkV1WebSocketMessages` and marks an envelope `partial` when it mixes
- * implemented and planned command variants.
- */
+/** Public SDK v1 workflow-execution WebSocket operations. */
 import type {
+  SdkV1SchemaRef,
+  SdkV1WebSocketCommand,
   SdkV1WebSocketMessageEnvelope,
   SdkV1WebSocketOperationDeclaration,
   SdkV1WebSocketOperationId
 } from "./sdk-v1-operations.js";
 import {
-  sdkNodeTypeInventoryInput,
-  sdkNodeTypeInventoryOutput
-} from "./nodes.js";
-import { sdkV1RpcRequest, sdkV1RpcResponse } from "./sdk-v1.js";
-import {
-  sdkWorkflowSummariesInput,
-  sdkWorkflowSummariesOutput,
-  workflowInterfaceInput,
-  workflowInterfacesInput,
-  workflowInterfacesOutput,
-  workflowInterfaceV1
-} from "./workflows.js";
-import {
-  sdkV1CancelJobResponse,
-  sdkV1Capabilities,
-  sdkV1CapabilitiesRequest,
-  sdkV1JobEvent,
-  sdkV1JobRequest,
-  sdkV1JobSnapshot,
-  sdkV1LifecycleRpcRequest,
-  sdkV1LifecycleRpcResponse,
-  sdkV1PreflightRequest,
-  sdkV1PreflightSummary,
-  sdkV1SubmitJobRequest,
-  sdkV1SubmitJobResponse,
-  sdkV1SubscribeJobRequest,
-  sdkV1SubscribeJobResponse
-} from "./sdk-lifecycle-v1.js";
+  sdkV1CancelJobCommand,
+  sdkV1Chunk,
+  sdkV1EndInputStreamCommand,
+  sdkV1ExecutionCommand,
+  sdkV1ExecutionEvent,
+  sdkV1ExecutionTarget,
+  sdkV1JobResumed,
+  sdkV1JobUpdate,
+  sdkV1NodeProgress,
+  sdkV1NodeUpdate,
+  sdkV1OutputUpdate,
+  sdkV1ProtocolRejection,
+  sdkV1ReconnectJobCommand,
+  sdkV1RunJobCommand,
+  sdkV1StreamInputCommand,
+  sdkV1UpdateNodePropertiesCommand
+} from "./sdk-execution-v1.js";
 
 export const sdkV1WebSocketChannel = {
-  key: "sdkRpc",
+  key: "sdkExecution",
   address: "/ws"
 } as const;
 
 export const sdkV1WebSocketMessages: readonly SdkV1WebSocketMessageEnvelope[] =
   [
     {
-      key: "sdkRpcRequest",
+      key: "executionCommand",
       action: "send",
-      name: "SdkRpcRequest",
+      name: "SdkExecutionCommand",
       description:
-        "A correlated read-only SDK command. request_id must be non-empty.",
+        "An authenticated SDK workflow-execution command encoded as MessagePack.",
       contentType: "application/msgpack",
       payload: {
-        profile: "discovery",
-        name: "RpcRequest",
-        schema: sdkV1RpcRequest
+        profile: "execution",
+        name: "ExecutionCommand",
+        schema: sdkV1ExecutionCommand
       },
-      operationKey: "sendSdkRpcRequest"
+      operationKey: "sendExecutionCommand"
     },
     {
-      key: "sdkRpcResponse",
+      key: "executionEvent",
       action: "receive",
-      name: "SdkRpcResponse",
+      name: "SdkExecutionEvent",
       description:
-        "Exactly one result or error response correlated by request_id.",
+        "An execution target, replay header, live job event, terminal result, or protocol rejection.",
       contentType: "application/msgpack",
       payload: {
-        profile: "discovery",
-        name: "RpcResponse",
-        schema: sdkV1RpcResponse
+        profile: "execution",
+        name: "ExecutionEvent",
+        schema: sdkV1ExecutionEvent
       },
-      operationKey: "receiveSdkRpcResponse"
-    },
-    {
-      key: "lifecycleRpcRequest",
-      action: "send",
-      name: "LifecycleRpcRequest",
-      description:
-        "Capabilities and preflight are implemented behind the lifecycle feature flag; later job lifecycle commands remain planned.",
-      contentType: "application/msgpack",
-      payload: {
-        profile: "lifecycle",
-        name: "LifecycleRpcRequest",
-        schema: sdkV1LifecycleRpcRequest
-      },
-      operationKey: "sendLifecycleRpcRequest"
-    },
-    {
-      key: "lifecycleRpcResponse",
-      action: "receive",
-      name: "LifecycleRpcResponse",
-      description:
-        "A correlated lifecycle response. Capabilities and preflight are implemented; later job lifecycle responses remain planned.",
-      contentType: "application/msgpack",
-      payload: {
-        profile: "lifecycle",
-        name: "LifecycleRpcResponse",
-        schema: sdkV1LifecycleRpcResponse
-      },
-      operationKey: "receiveLifecycleRpcResponse"
-    },
-    {
-      key: "jobEvent",
-      action: "receive",
-      name: "JobEvent",
-      description:
-        "A planned ordered per-job event emitted after subscription.",
-      contentType: "application/msgpack",
-      payload: {
-        profile: "lifecycle",
-        name: "JobEvent",
-        schema: sdkV1JobEvent
-      },
-      operationKey: "receiveJobEvent"
+      operationKey: "receiveExecutionEvent"
     }
   ];
 
-const sdkRpcEnvelopes = {
-  request: "sdkRpcRequest",
-  response: "sdkRpcResponse"
-} as const;
+function executionClientCommand<
+  Id extends SdkV1WebSocketOperationId,
+  Command extends SdkV1WebSocketCommand
+>(
+  id: Id,
+  command: Command,
+  name: string,
+  schema: SdkV1SchemaRef["schema"]
+): SdkV1WebSocketOperationDeclaration & {
+  readonly id: Id;
+  readonly status: "implemented";
+} {
+  return {
+    id,
+    transport: "websocket",
+    direction: "client-command",
+    channel: sdkV1WebSocketChannel.key,
+    command,
+    status: "implemented",
+    auth: "authenticated",
+    feature: "execution",
+    message: {
+      request: {
+        envelope: "executionCommand",
+        payload: { profile: "execution", name, schema }
+      }
+    },
+    errors: [
+      {
+        code: "invalid_command",
+        description: "The command envelope or payload is invalid"
+      }
+    ]
+  };
+}
 
-const lifecycleRpcEnvelopes = {
-  request: "lifecycleRpcRequest",
-  response: "lifecycleRpcResponse"
-} as const;
-
-export const sdkV1WebSocketOperations = [
-  {
-    id: "sdkRpc.list_workflow_summaries",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "list_workflow_summaries",
-    status: "implemented",
-    auth: "discovery",
-    feature: "workflow-interface",
-    message: {
-      request: {
-        envelope: sdkRpcEnvelopes.request,
-        payload: {
-          profile: "discovery",
-          name: "WorkflowSummariesInput",
-          schema: sdkWorkflowSummariesInput
-        }
-      },
-      response: {
-        envelope: sdkRpcEnvelopes.response,
-        payload: {
-          profile: "discovery",
-          name: "WorkflowSummariesOutput",
-          schema: sdkWorkflowSummariesOutput
-        }
-      }
-    },
-    errors: [
-      { code: "INVALID_INPUT", description: "Invalid cursor or limit" },
-      { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
-    ]
-  },
-  {
-    id: "sdkRpc.get_workflow_interface",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "get_workflow_interface",
-    status: "implemented",
-    auth: "discovery",
-    feature: "workflow-interface",
-    message: {
-      request: {
-        envelope: sdkRpcEnvelopes.request,
-        payload: {
-          profile: "discovery",
-          name: "WorkflowInterfaceInput",
-          schema: workflowInterfaceInput
-        }
-      },
-      response: {
-        envelope: sdkRpcEnvelopes.response,
-        payload: {
-          profile: "discovery",
-          name: "WorkflowInterface",
-          schema: workflowInterfaceV1
-        }
-      }
-    },
-    errors: [
-      { code: "INVALID_INPUT", description: "Unsupported interface version" },
-      { code: "WORKFLOW_NOT_FOUND", description: "Workflow not found" },
-      { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
-    ]
-  },
-  {
-    id: "sdkRpc.get_workflow_interfaces",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "get_workflow_interfaces",
-    status: "implemented",
-    auth: "discovery",
-    feature: "workflow-interface",
-    message: {
-      request: {
-        envelope: sdkRpcEnvelopes.request,
-        payload: {
-          profile: "discovery",
-          name: "WorkflowInterfacesInput",
-          schema: workflowInterfacesInput
-        }
-      },
-      response: {
-        envelope: sdkRpcEnvelopes.response,
-        payload: {
-          profile: "discovery",
-          name: "WorkflowInterfacesOutput",
-          schema: workflowInterfacesOutput
-        }
-      }
-    },
-    errors: [
-      { code: "INVALID_INPUT", description: "Invalid request" },
-      { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
-    ]
-  },
-  {
-    id: "sdkRpc.get_node_type_inventory",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "get_node_type_inventory",
-    status: "implemented",
-    auth: "discovery",
-    feature: "workflow-interface",
-    message: {
-      request: {
-        envelope: sdkRpcEnvelopes.request,
-        payload: {
-          profile: "discovery",
-          name: "NodeTypeInventoryInput",
-          schema: sdkNodeTypeInventoryInput
-        }
-      },
-      response: {
-        envelope: sdkRpcEnvelopes.response,
-        payload: {
-          profile: "discovery",
-          name: "NodeTypeInventoryOutput",
-          schema: sdkNodeTypeInventoryOutput
-        }
-      }
-    },
-    errors: [
-      { code: "INVALID_INPUT", description: "Invalid cursor or limit" },
-      { code: "SERVICE_UNAVAILABLE", description: "SDK discovery is disabled" }
-    ]
-  },
-  {
-    id: "lifecycleRpc.get_capabilities",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "get_capabilities",
-    status: "implemented",
-    auth: "discovery",
-    feature: "lifecycle",
-    message: {
-      request: {
-        envelope: lifecycleRpcEnvelopes.request,
-        payload: {
-          profile: "lifecycle",
-          name: "CapabilitiesRequest",
-          schema: sdkV1CapabilitiesRequest
-        }
-      },
-      response: {
-        envelope: lifecycleRpcEnvelopes.response,
-        payload: {
-          profile: "lifecycle",
-          name: "Capabilities",
-          schema: sdkV1Capabilities
-        }
-      }
-    },
-    errors: [
-      {
-        code: "SERVICE_UNAVAILABLE",
-        description: "Capabilities are unavailable"
-      }
-    ]
-  },
-  {
-    id: "lifecycleRpc.preflight_workflow",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "preflight_workflow",
-    status: "implemented",
-    auth: "authenticated",
-    feature: "lifecycle",
-    message: {
-      request: {
-        envelope: lifecycleRpcEnvelopes.request,
-        payload: {
-          profile: "lifecycle",
-          name: "PreflightRequest",
-          schema: sdkV1PreflightRequest
-        }
-      },
-      response: {
-        envelope: lifecycleRpcEnvelopes.response,
-        payload: {
-          profile: "lifecycle",
-          name: "PreflightSummary",
-          schema: sdkV1PreflightSummary
-        }
-      }
-    },
-    errors: [
-      { code: "INVALID_INPUT", description: "Invalid preflight request" },
-      { code: "WORKFLOW_NOT_FOUND", description: "Workflow not found" },
-      {
-        code: "SERVICE_UNAVAILABLE",
-        description: "Requested preflight level is unavailable"
-      }
-    ]
-  },
-  {
-    id: "lifecycleRpc.submit_job",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "submit_job",
-    status: "planned",
-    auth: "authenticated",
-    feature: "lifecycle",
-    message: {
-      request: {
-        envelope: lifecycleRpcEnvelopes.request,
-        payload: {
-          profile: "lifecycle",
-          name: "SubmitJobRequest",
-          schema: sdkV1SubmitJobRequest
-        }
-      },
-      response: {
-        envelope: lifecycleRpcEnvelopes.response,
-        payload: {
-          profile: "lifecycle",
-          name: "SubmitJobResponse",
-          schema: sdkV1SubmitJobResponse
-        }
-      }
-    },
-    errors: [
-      { code: "INVALID_INPUT", description: "Invalid submission" },
-      {
-        code: "TOO_MANY_REQUESTS",
-        description: "Admission or rate limit exceeded"
-      },
-      { code: "SERVICE_UNAVAILABLE", description: "Execution is unavailable" }
-    ]
-  },
-  {
-    id: "lifecycleRpc.get_job_snapshot",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "get_job_snapshot",
-    status: "planned",
-    auth: "authenticated",
-    feature: "lifecycle",
-    message: {
-      request: {
-        envelope: lifecycleRpcEnvelopes.request,
-        payload: {
-          profile: "lifecycle",
-          name: "JobRequest",
-          schema: sdkV1JobRequest
-        }
-      },
-      response: {
-        envelope: lifecycleRpcEnvelopes.response,
-        payload: {
-          profile: "lifecycle",
-          name: "JobSnapshot",
-          schema: sdkV1JobSnapshot
-        }
-      }
-    },
-    errors: [
-      {
-        code: "NOT_FOUND",
-        description: "Job not found, inaccessible, or expired"
-      }
-    ]
-  },
-  {
-    id: "lifecycleRpc.subscribe_job",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "subscribe_job",
-    status: "planned",
-    auth: "authenticated",
-    feature: "lifecycle",
-    message: {
-      request: {
-        envelope: lifecycleRpcEnvelopes.request,
-        payload: {
-          profile: "lifecycle",
-          name: "SubscribeJobRequest",
-          schema: sdkV1SubscribeJobRequest
-        }
-      },
-      response: {
-        envelope: lifecycleRpcEnvelopes.response,
-        payload: {
-          profile: "lifecycle",
-          name: "SubscribeJobResponse",
-          schema: sdkV1SubscribeJobResponse
-        }
-      }
-    },
-    errors: [
-      {
-        code: "NOT_FOUND",
-        description: "Job not found, inaccessible, or expired"
-      }
-    ]
-  },
-  {
-    id: "lifecycleRpc.cancel_job",
-    transport: "websocket",
-    direction: "request-response",
-    channel: sdkV1WebSocketChannel.key,
-    command: "cancel_job",
-    status: "planned",
-    auth: "authenticated",
-    feature: "lifecycle",
-    message: {
-      request: {
-        envelope: lifecycleRpcEnvelopes.request,
-        payload: {
-          profile: "lifecycle",
-          name: "JobRequest",
-          schema: sdkV1JobRequest
-        }
-      },
-      response: {
-        envelope: lifecycleRpcEnvelopes.response,
-        payload: {
-          profile: "lifecycle",
-          name: "CancelJobResponse",
-          schema: sdkV1CancelJobResponse
-        }
-      }
-    },
-    errors: [
-      {
-        code: "NOT_FOUND",
-        description: "Job not found, inaccessible, or expired"
-      }
-    ]
-  },
-  {
-    id: "receiveJobEvent",
+function executionServerEvent<Id extends SdkV1WebSocketOperationId>(
+  id: Id,
+  name: string,
+  schema: SdkV1SchemaRef["schema"]
+): SdkV1WebSocketOperationDeclaration & {
+  readonly id: Id;
+  readonly status: "implemented";
+} {
+  return {
+    id,
     transport: "websocket",
     direction: "server-event",
     channel: sdkV1WebSocketChannel.key,
-    status: "planned",
+    status: "implemented",
     auth: "authenticated",
-    feature: "lifecycle",
+    feature: "execution",
     message: {
       event: {
-        envelope: "jobEvent",
-        payload: {
-          profile: "lifecycle",
-          name: "JobEvent",
-          schema: sdkV1JobEvent
-        }
+        envelope: "executionEvent",
+        payload: { profile: "execution", name, schema }
       }
     },
     errors: []
-  }
+  };
+}
+
+export const sdkV1WebSocketOperations = [
+  executionClientCommand(
+    "execution.run_job",
+    "run_job",
+    "RunJobCommand",
+    sdkV1RunJobCommand
+  ),
+  executionClientCommand(
+    "execution.cancel_job",
+    "cancel_job",
+    "CancelJobCommand",
+    sdkV1CancelJobCommand
+  ),
+  executionClientCommand(
+    "execution.reconnect_job",
+    "reconnect_job",
+    "ReconnectJobCommand",
+    sdkV1ReconnectJobCommand
+  ),
+  executionClientCommand(
+    "execution.stream_input",
+    "stream_input",
+    "StreamInputCommand",
+    sdkV1StreamInputCommand
+  ),
+  executionClientCommand(
+    "execution.end_input_stream",
+    "end_input_stream",
+    "EndInputStreamCommand",
+    sdkV1EndInputStreamCommand
+  ),
+  executionClientCommand(
+    "execution.update_node_properties",
+    "update_node_properties",
+    "UpdateNodePropertiesCommand",
+    sdkV1UpdateNodePropertiesCommand
+  ),
+  executionServerEvent(
+    "execution.execution_target",
+    "ExecutionTarget",
+    sdkV1ExecutionTarget
+  ),
+  executionServerEvent(
+    "execution.job_resumed",
+    "JobResumed",
+    sdkV1JobResumed
+  ),
+  executionServerEvent(
+    "execution.job_update",
+    "JobUpdate",
+    sdkV1JobUpdate
+  ),
+  executionServerEvent(
+    "execution.node_update",
+    "NodeUpdate",
+    sdkV1NodeUpdate
+  ),
+  executionServerEvent(
+    "execution.node_progress",
+    "NodeProgress",
+    sdkV1NodeProgress
+  ),
+  executionServerEvent(
+    "execution.output_update",
+    "OutputUpdate",
+    sdkV1OutputUpdate
+  ),
+  executionServerEvent("execution.chunk", "Chunk", sdkV1Chunk),
+  executionServerEvent(
+    "execution.protocol_rejection",
+    "ProtocolRejection",
+    sdkV1ProtocolRejection
+  )
 ] as const satisfies readonly SdkV1WebSocketOperationDeclaration[];
 
-export type ImplementedSdkV1WebSocketOperation = Extract<
-  (typeof sdkV1WebSocketOperations)[number],
-  { readonly status: "implemented" }
->;
+export type ImplementedSdkV1WebSocketOperation =
+  (typeof sdkV1WebSocketOperations)[number];
 export type ImplementedSdkV1WebSocketOperationId =
   ImplementedSdkV1WebSocketOperation["id"];
 
-export const implementedSdkV1WebSocketOperations =
-  sdkV1WebSocketOperations.filter(
-    (operation): operation is ImplementedSdkV1WebSocketOperation =>
-      operation.status === "implemented"
-  );
+export const implementedSdkV1WebSocketOperations = sdkV1WebSocketOperations;
 
 export function getSdkV1WebSocketOperation(
   id: SdkV1WebSocketOperationId

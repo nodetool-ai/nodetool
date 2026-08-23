@@ -2,11 +2,14 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import Fastify from "fastify";
 import { implementedSdkV1HttpOperations } from "@nodetool-ai/protocol/api-schemas/sdk-v1-operations.js";
-import { handleApiRequest } from "../src/http-api.js";
 import assetsRoutes from "../src/routes/assets.js";
 import nodesRoutes from "../src/routes/nodes.js";
 import sdkV1Routes from "../src/routes/sdk-v1.js";
 import workflowsRoutes from "../src/routes/workflows.js";
+import {
+  makeGoldenApiOptions,
+  makeGoldenRegistry
+} from "./sdk-v1-golden-harness.js";
 
 function fastifyPath(path: string): string {
   return path.replaceAll(/\{([^}]+)\}/g, ":$1");
@@ -38,9 +41,7 @@ function implementedOpenApiRoutes(): string[] {
 }
 
 function isSdkV1Url(url: string): boolean {
-  return (
-    url.startsWith("/api/sdk/v1/") || url === "/api/workflows/:id/interface"
-  );
+  return url.startsWith("/api/sdk/v1/");
 }
 
 async function registrationsFor(
@@ -52,7 +53,7 @@ async function registrationsFor(
     const config = route.config as
       | {
           sdkV1Operation?: { method: string; path: string };
-          sdkV1MethodFallback?: true;
+          sdkV1NotFound?: true;
         }
       | undefined;
     const sdkOperation = config?.sdkV1Operation;
@@ -62,14 +63,15 @@ async function registrationsFor(
       );
       return;
     }
-    if (config?.sdkV1MethodFallback) return;
+    if (config?.sdkV1NotFound) return;
     const methods = Array.isArray(route.method) ? route.method : [route.method];
     for (const method of methods) {
       if (method !== "HEAD") registrations.push(`${method} ${route.url}`);
     }
   });
+  const apiOptions = makeGoldenApiOptions(makeGoldenRegistry());
   for (const plugin of plugins) {
-    await app.register(plugin, { apiOptions: {} });
+    await app.register(plugin, { apiOptions });
   }
   await app.ready();
   await app.close();
@@ -98,29 +100,33 @@ describe("SDK v1 route inventory", () => {
     ).toEqual([]);
   });
 
-  it("preserves the SDK routes historically owned by handleApiRequest", async () => {
-    const compatibilityOperationIds = new Set([
-      "getNodeTypeInventory",
-      "getCapabilities",
-      "preflightWorkflow",
-      "listWorkflowSummaries",
-      "getWorkflowInterfaces",
-      "getWorkflowInterface"
-    ]);
-    const requests = implementedSdkV1HttpOperations
-      .filter((operation) => compatibilityOperationIds.has(operation.id))
-      .map((operation) => {
-        const path = operation.path.replace("{id}", "missing-workflow");
-        const method = operation.method === "GET" ? "POST" : "GET";
-        return new Request(`http://localhost${path}`, { method });
-      });
+  it("keeps normalized SDK not-found handling scoped to the SDK prefix", async () => {
+    const app = Fastify({ logger: false });
+    await app.register(sdkV1Routes, {
+      apiOptions: makeGoldenApiOptions(makeGoldenRegistry())
+    });
 
-    for (const request of requests) {
-      const response = await handleApiRequest(request, {});
-      expect(response.status, `${request.method} ${request.url}`).toBe(405);
-      expect(await response.json()).toMatchObject({
-        detail: "Method not allowed"
-      });
-    }
+    const sdkMissing = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/not-an-operation"
+    });
+    expect(sdkMissing.statusCode).toBe(404);
+    expect(sdkMissing.json()).toEqual({
+      code: "NOT_FOUND",
+      message: "SDK endpoint not found",
+      retryable: false
+    });
+
+    const productMissing = await app.inject({
+      method: "GET",
+      url: "/api/not-an-sdk-operation"
+    });
+    expect(productMissing.statusCode).toBe(404);
+    expect(productMissing.json()).toMatchObject({
+      error: "Not Found",
+      statusCode: 404
+    });
+
+    await app.close();
   });
 });
