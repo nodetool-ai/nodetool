@@ -9,11 +9,18 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AccessToken, ModelObserver, initTestDb } from "@nodetool-ai/models";
+import {
+  AccessToken,
+  McpOauthGrant,
+  ModelObserver,
+  initTestDb
+} from "@nodetool-ai/models";
 
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
+import { pendingStore } from "../src/oauth/pending-store.js";
+import type { PendingAuthorizeRequest } from "../src/oauth/pending-store.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -178,5 +185,182 @@ describe("agentAccess mcpConnection", () => {
     expect(
       (await createCaller(makeCtx("user-a")).agentAccess.mcpConnection()).auth_mode
     ).toBe("token");
+  });
+});
+
+/** Park a pending `/oauth/authorize` request the way the (T3) route plugin
+ * does, so the tRPC procedures under test have something to act on. */
+function parkRequest(
+  overrides: Partial<Omit<PendingAuthorizeRequest, "id" | "createdAt">> = {}
+): string {
+  return pendingStore.putRequest({
+    clientId: "ntc_abc123",
+    clientName: "Test Client",
+    redirectUri: "https://client.example.com/callback",
+    codeChallenge: "challenge",
+    scope: "mcp",
+    resource: "https://nodetool.example.com/mcp",
+    redirectHostIsLoopbackOnly: false,
+    ...overrides
+  });
+}
+
+describe("agentAccess OAuth consent", () => {
+  beforeEach(() => {
+    process.env.NODETOOL_PUBLIC_URL = "https://nodetool.example.com";
+  });
+
+  it("reports a pending request's details without consuming it", async () => {
+    const caller = createCaller(makeCtx("user-a"));
+    const requestId = parkRequest({ state: "xyz" });
+
+    const first = await caller.agentAccess.getOauthRequest({
+      request_id: requestId
+    });
+    expect(first).toEqual({
+      client_name: "Test Client",
+      redirect_host: "client.example.com",
+      scope: "mcp",
+      loopback_only: false
+    });
+
+    // Reading again still works — get does not consume.
+    const second = await caller.agentAccess.getOauthRequest({
+      request_id: requestId
+    });
+    expect(second).toEqual(first);
+  });
+
+  it("returns null for an unknown request_id", async () => {
+    const caller = createCaller(makeCtx("user-a"));
+    expect(
+      await caller.agentAccess.getOauthRequest({ request_id: "does-not-exist" })
+    ).toBeNull();
+  });
+
+  it("approves a request: mints a grant, and the redirect carries code, state, and iss", async () => {
+    const caller = createCaller(makeCtx("user-a"));
+    const requestId = parkRequest({ state: "s1" });
+
+    const { redirect_url } = await caller.agentAccess.approveOauthRequest({
+      request_id: requestId
+    });
+    const url = new URL(redirect_url);
+    expect(url.origin + url.pathname).toBe(
+      "https://client.example.com/callback"
+    );
+    expect(url.searchParams.get("code")).toBeTruthy();
+    expect(url.searchParams.get("state")).toBe("s1");
+    expect(url.searchParams.get("iss")).toBe("https://nodetool.example.com");
+
+    const grants = await McpOauthGrant.listForUser("user-a");
+    expect(grants).toHaveLength(1);
+    expect(grants[0].client_name).toBe("Test Client");
+    expect(grants[0].client_id).toBe("ntc_abc123");
+
+    // The request is single-use — approving it again fails.
+    await expect(
+      caller.agentAccess.approveOauthRequest({ request_id: requestId })
+    ).rejects.toThrow();
+  });
+
+  it("omits state from the redirect when the client never sent one", async () => {
+    const caller = createCaller(makeCtx("user-a"));
+    const requestId = parkRequest();
+
+    const { redirect_url } = await caller.agentAccess.approveOauthRequest({
+      request_id: requestId
+    });
+    expect(new URL(redirect_url).searchParams.has("state")).toBe(false);
+  });
+
+  it("denies a request without minting a grant, redirecting with access_denied", async () => {
+    const caller = createCaller(makeCtx("user-a"));
+    const requestId = parkRequest({ state: "s2" });
+
+    const { redirect_url } = await caller.agentAccess.denyOauthRequest({
+      request_id: requestId
+    });
+    const url = new URL(redirect_url);
+    expect(url.searchParams.get("error")).toBe("access_denied");
+    expect(url.searchParams.get("state")).toBe("s2");
+    expect(url.searchParams.get("iss")).toBe("https://nodetool.example.com");
+
+    expect(await McpOauthGrant.listForUser("user-a")).toHaveLength(0);
+  });
+
+  it("rejects an expired or unknown request_id with NOT_FOUND", async () => {
+    const caller = createCaller(makeCtx("user-a"));
+    await expect(
+      caller.agentAccess.approveOauthRequest({ request_id: "never-existed" })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(
+      caller.agentAccess.denyOauthRequest({ request_id: "never-existed" })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("refuses every OAuth procedure without a session", async () => {
+    const anonymous = createCaller(makeCtx(null));
+    await expect(
+      anonymous.agentAccess.getOauthRequest({ request_id: "x" })
+    ).rejects.toThrow();
+    await expect(
+      anonymous.agentAccess.approveOauthRequest({ request_id: "x" })
+    ).rejects.toThrow();
+    await expect(
+      anonymous.agentAccess.denyOauthRequest({ request_id: "x" })
+    ).rejects.toThrow();
+    await expect(anonymous.agentAccess.listOauthGrants()).rejects.toThrow();
+    await expect(
+      anonymous.agentAccess.revokeOauthGrant({ grant_id: "x" })
+    ).rejects.toThrow();
+  });
+});
+
+describe("agentAccess OAuth grants", () => {
+  it("lists a user's active grants, excluding revoked ones", async () => {
+    const caller = createCaller(makeCtx("user-a"));
+    const { id: grant1 } = await McpOauthGrant.create({
+      user_id: "user-a",
+      client_id: "ntc_one",
+      client_name: "Client One",
+      scope: "mcp",
+      resource: "https://nodetool.example.com/mcp"
+    });
+    await McpOauthGrant.create({
+      user_id: "user-a",
+      client_id: "ntc_two",
+      client_name: "Client Two",
+      scope: "mcp",
+      resource: "https://nodetool.example.com/mcp"
+    });
+
+    expect(await McpOauthGrant.revoke("user-a", grant1)).toBe(true);
+
+    const { grants } = await caller.agentAccess.listOauthGrants();
+    expect(grants).toHaveLength(1);
+    expect(grants[0].client_name).toBe("Client Two");
+  });
+
+  it("only lists and revokes the caller's own grants", async () => {
+    const { id: grantId } = await McpOauthGrant.create({
+      user_id: "user-a",
+      client_id: "ntc_one",
+      client_name: "Client One",
+      scope: "mcp",
+      resource: "https://nodetool.example.com/mcp"
+    });
+
+    const other = createCaller(makeCtx("user-b"));
+    expect((await other.agentAccess.listOauthGrants()).grants).toHaveLength(0);
+    expect(
+      await other.agentAccess.revokeOauthGrant({ grant_id: grantId })
+    ).toEqual({ ok: false });
+
+    const owner = createCaller(makeCtx("user-a"));
+    expect(
+      await owner.agentAccess.revokeOauthGrant({ grant_id: grantId })
+    ).toEqual({ ok: true });
+    expect((await owner.agentAccess.listOauthGrants()).grants).toHaveLength(0);
   });
 });
