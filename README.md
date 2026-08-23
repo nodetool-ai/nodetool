@@ -11,10 +11,8 @@
 
 ![NodeTool demo](demo_canvas.gif)
 
-*One prompt fanned out to four video models on the canvas.*
-
 NodeTool is an open-source creative AI suite that runs on your machine. A
-node-based canvas, a multi-track video timeline, and a layered sketch editor
+node-based canvas, a video timeline, a sketch editor, storyboards and mini-apps
 share one workspace, and every major AI model, cloud or local, plugs straight
 in.
 
