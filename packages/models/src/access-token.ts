@@ -87,12 +87,12 @@ export function parseAccessToken(
  * is pinned by `tests/access-token.test.ts`, so it fails here rather than
  * going quietly stale.
  */
-function hashSecret(secret: string): string {
+export function hashSecret(secret: string): string {
   return createHash("sha256").update(secret, "utf-8").digest("hex");
 }
 
 /** Constant-time comparison of two hex digests of equal length. */
-function digestsMatch(a: string, b: string): boolean {
+export function digestsMatch(a: string, b: string): boolean {
   const left = Buffer.from(a, "utf-8");
   const right = Buffer.from(b, "utf-8");
   return left.length === right.length && timingSafeEqual(left, right);

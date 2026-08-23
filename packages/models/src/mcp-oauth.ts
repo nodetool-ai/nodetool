@@ -22,7 +22,8 @@
  *   though the row is still there to hash-compare against.
  */
 
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes } from "node:crypto";
+import { digestsMatch, hashSecret } from "./access-token.js";
 import { and, eq, isNull, lt, notInArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
@@ -46,24 +47,6 @@ export const MCP_OAUTH_REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const CLIENT_ID_BYTES = 16;
 const TOKEN_ID_BYTES = 8;
 const TOKEN_SECRET_BYTES = 32;
-
-/**
- * Hash a token secret for storage. SHA-256, not a slow KDF — see the long
- * comment on `access-token.ts`'s `hashSecret`, which applies verbatim: the
- * input is 256 bits from a CSPRNG, so a fast hash costs an attacker exactly
- * as much as a slow one, and a slow one would cost this module's own auth
- * hook on every `/mcp` request.
- */
-function hashSecret(secret: string): string {
-  return createHash("sha256").update(secret, "utf-8").digest("hex");
-}
-
-/** Constant-time comparison of two hex digests of equal length. */
-function digestsMatch(a: string, b: string): boolean {
-  const left = Buffer.from(a, "utf-8");
-  const right = Buffer.from(b, "utf-8");
-  return left.length === right.length && timingSafeEqual(left, right);
-}
 
 /** Split `<prefix><id>_<secret>` into its halves, or null when it does not
  * start with `prefix` or is malformed. */
