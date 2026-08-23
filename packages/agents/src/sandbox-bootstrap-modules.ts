@@ -90,6 +90,11 @@ export const BOOTSTRAP_MODULE_SOURCES: ReadonlyMap<string, string> = new Map([
   ["/node_modules/util", UTIL_MODULE]
 ]);
 
+/** Use one module-id shape across the wrapper's POSIX and Windows normalizers. */
+export function normalizeBootstrapModuleId(moduleId: string): string {
+  return moduleId.replaceAll("\\", "/");
+}
+
 /**
  * The globals the bootstrap no longer installs, in the order a reader would
  * check them. Exported so a test can assert they are gone at the source rather

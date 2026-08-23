@@ -11,13 +11,13 @@ import {
   readFile,
   writeFile,
   mkdir,
-  utimes,
-  symlink
+  utimes
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, isAbsolute } from "node:path";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { createLocalWorkspace } from "@nodetool-ai/runtime";
+import { createDirectoryLink } from "./_helpers/filesystem-links.js";
 
 let workspace: string;
 
@@ -171,9 +171,8 @@ describe("GrepTool", () => {
     // A secret file outside the workspace, symlinked in, must not be read.
     const outside = await mkdtemp(join(tmpdir(), "cc-secret-"));
     try {
-      const secret = join(outside, "id_rsa");
-      await writeFile(secret, "SUPER_SECRET_KEY_MATERIAL\n");
-      await symlink(secret, join(workspace, "notes"));
+      await writeFile(join(outside, "id_rsa"), "SUPER_SECRET_KEY_MATERIAL\n");
+      await createDirectoryLink(outside, join(workspace, "notes"));
 
       // Directory walk must not surface the symlink's target contents.
       const walk: any = await toolForCapabilityName("grep").process(ctxFor(workspace), {
@@ -185,7 +184,7 @@ describe("GrepTool", () => {
       // Targeting the symlink directly must be refused as outside the workspace.
       const direct: any = await toolForCapabilityName("grep").process(ctxFor(workspace), {
         pattern: ".",
-        path: "notes"
+        path: "notes/id_rsa"
       });
       expect(direct.success).toBe(false);
       expect(String(direct.error)).toMatch(/outside the workspace/i);
@@ -216,10 +215,10 @@ describe("EditFileTool symlink containment", () => {
     try {
       const secret = join(outside, "secret.txt");
       await writeFile(secret, "original secret\n");
-      await symlink(secret, join(workspace, "link.txt"));
+      await createDirectoryLink(outside, join(workspace, "outside"));
 
       const res: any = await toolForCapabilityName("edit_file").process(ctxFor(workspace), {
-        path: "link.txt",
+        path: "outside/secret.txt",
         old_string: "original secret",
         new_string: "PWNED"
       });
@@ -235,7 +234,7 @@ describe("EditFileTool symlink containment", () => {
   it("refuses to create a file under a symlinked-out directory", async () => {
     const outside = await mkdtemp(join(tmpdir(), "cc-outdir-"));
     try {
-      await symlink(outside, join(workspace, "outdir"));
+      await createDirectoryLink(outside, join(workspace, "outdir"));
       const res: any = await toolForCapabilityName("edit_file").process(ctxFor(workspace), {
         path: "outdir/new.txt",
         old_string: "",
@@ -252,19 +251,23 @@ describe("EditFileTool symlink containment", () => {
     // Regression: access() follows symlinks, so a dangling in-workspace symlink
     // (target outside the root, not yet created) looked absent and the create
     // was allowed, writing the file outside the workspace via the link.
-    const outsideTarget = join(
-      tmpdir(),
-      `cc-nonexistent-${Date.now()}`,
-      "evil.txt"
-    );
-    await symlink(outsideTarget, join(workspace, "link.txt"));
+    const outsideTarget = await mkdtemp(join(tmpdir(), "cc-dangling-"));
+    await createDirectoryLink(outsideTarget, join(workspace, "outside"));
+    await rm(outsideTarget, { recursive: true, force: true });
     const res: any = await toolForCapabilityName("edit_file").process(ctxFor(workspace), {
-      path: "link.txt",
+      path: "outside/evil.txt",
       old_string: "",
       new_string: "should not escape"
     });
     expect(res.success).toBe(false);
-    expect(String(res.error)).toMatch(/outside the workspace/i);
+    if (process.platform === "win32") {
+      // A dangling junction cannot be traversed on Windows, so the filesystem
+      // stops the write before the realpath containment check can classify it.
+      expect(String(res.error)).toMatch(/ENOENT|no such file or directory/i);
+    } else {
+      expect(String(res.error)).toMatch(/outside the workspace/i);
+    }
+    await expect(readFile(join(outsideTarget, "evil.txt"))).rejects.toThrow();
   });
 });
 
@@ -273,7 +276,7 @@ describe("GlobTool symlink containment", () => {
     const outside = await mkdtemp(join(tmpdir(), "cc-globout-"));
     try {
       await writeFile(join(outside, "leak.txt"), "x");
-      await symlink(outside, join(workspace, "out"));
+      await createDirectoryLink(outside, join(workspace, "out"));
       const res: any = await toolForCapabilityName("glob").process(ctxFor(workspace), {
         pattern: "**/*",
         path: "out"

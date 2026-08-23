@@ -10,6 +10,7 @@
 
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { createLocalWorkspace } from "@nodetool-ai/runtime";
+import { createDirectoryLink } from "./_helpers/filesystem-links.js";
 import {
   runInSandbox,
   buildSandbox,
@@ -357,15 +358,14 @@ describe("buildSandbox", () => {
 
 describe("buildSandbox workspace symlink containment", () => {
   it("blocks reads/writes through a symlink that escapes the workspace", async () => {
-    const { mkdtemp, rm, writeFile, symlink } =
-      await import("node:fs/promises");
+    const { mkdtemp, rm, writeFile } = await import("node:fs/promises");
     const { tmpdir } = await import("node:os");
     const { join, isAbsolute } = await import("node:path");
     const ws = await mkdtemp(join(tmpdir(), "sbx-ws-"));
     const outside = await mkdtemp(join(tmpdir(), "sbx-out-"));
     try {
       await writeFile(join(outside, "secret.txt"), "SECRET\n");
-      await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
+      await createDirectoryLink(outside, join(ws, "outside"));
       const context = {
         workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
@@ -375,10 +375,12 @@ describe("buildSandbox workspace symlink containment", () => {
         read: (p: string) => Promise<string>;
         write: (p: string, c: string) => Promise<void>;
       };
-      await expect(workspace.read("link.txt")).rejects.toThrow(
+      await expect(workspace.read("outside/secret.txt")).rejects.toThrow(
         /outside the workspace/i
       );
-      await expect(workspace.write("link.txt", "PWNED")).rejects.toThrow(
+      await expect(
+        workspace.write("outside/secret.txt", "PWNED")
+      ).rejects.toThrow(
         /outside the workspace/i
       );
       // Host file untouched.
@@ -1613,7 +1615,7 @@ describe("runInSandbox workspace binary I/O", () => {
   });
 
   it("blocks copy and move that escape the workspace via a symlink", async () => {
-    const { mkdtemp, rm, writeFile, symlink, readdir } =
+    const { mkdtemp, rm, writeFile, readdir } =
       await import("node:fs/promises");
     const { tmpdir } = await import("node:os");
     const { join, isAbsolute } = await import("node:path");
@@ -1624,8 +1626,7 @@ describe("runInSandbox workspace binary I/O", () => {
       await writeFile(join(ws, "inside.txt"), "ok");
       // A symlink pointing out of the workspace: lexical containment passes,
       // so only the realpath check can catch it.
-      await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
-      await symlink(outside, join(ws, "outdir"));
+      await createDirectoryLink(outside, join(ws, "outdir"));
       const context = {
         workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
@@ -1636,9 +1637,9 @@ describe("runInSandbox workspace binary I/O", () => {
         move: (s: string, d: string) => Promise<void>;
       };
       // Reading out through a symlinked source.
-      await expect(workspace.copy("link.txt", "stolen.txt")).rejects.toThrow(
-        /outside the workspace/i
-      );
+      await expect(
+        workspace.copy("outdir/secret.txt", "stolen.txt")
+      ).rejects.toThrow(/outside the workspace/i);
       // Writing out through a symlinked destination directory.
       await expect(
         workspace.copy("inside.txt", "outdir/planted.txt")
@@ -1658,7 +1659,7 @@ describe("runInSandbox workspace binary I/O", () => {
   });
 
   it("blocks binary writes through an escaping symlink", async () => {
-    const { mkdtemp, rm, writeFile, symlink, readFile } =
+    const { mkdtemp, rm, writeFile, readFile } =
       await import("node:fs/promises");
     const { tmpdir } = await import("node:os");
     const { join, isAbsolute } = await import("node:path");
@@ -1666,7 +1667,7 @@ describe("runInSandbox workspace binary I/O", () => {
     const outside = await mkdtemp(join(tmpdir(), "sbx-out-"));
     try {
       await writeFile(join(outside, "secret.bin"), "SECRET");
-      await symlink(join(outside, "secret.bin"), join(ws, "link.bin"));
+      await createDirectoryLink(outside, join(ws, "outside"));
       const context = {
         workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
@@ -1677,13 +1678,13 @@ describe("runInSandbox workspace binary I/O", () => {
         writeBytes: (p: string, d: Uint8Array) => Promise<void>;
         remove: (p: string) => Promise<void>;
       };
-      await expect(workspace.readBytes("link.bin")).rejects.toThrow(
+      await expect(workspace.readBytes("outside/secret.bin")).rejects.toThrow(
         /outside the workspace/i
       );
       await expect(
-        workspace.writeBytes("link.bin", new Uint8Array([1]))
+        workspace.writeBytes("outside/secret.bin", new Uint8Array([1]))
       ).rejects.toThrow(/outside the workspace/i);
-      await expect(workspace.remove("link.bin")).rejects.toThrow(
+      await expect(workspace.remove("outside/secret.bin")).rejects.toThrow(
         /outside the workspace/i
       );
       expect(await readFile(join(outside, "secret.bin"), "utf-8")).toBe(

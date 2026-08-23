@@ -61,7 +61,10 @@ import {
   type GuestBytes
 } from "../sandbox-bytes.js";
 import { MEDIA_REF_MEMBERS } from "../sandbox-constants.js";
-import { BOOTSTRAP_MODULE_SOURCES } from "../sandbox-bootstrap-modules.js";
+import {
+  BOOTSTRAP_MODULE_SOURCES,
+  normalizeBootstrapModuleId
+} from "../sandbox-bootstrap-modules.js";
 import {
   decodeGuestPayload,
   encodeHostRecord,
@@ -672,7 +675,9 @@ export function createGuestModuleHost(
             // The wrapper's own compat preamble. Most of what it compiles into
             // every fresh runtime, the init prelude deletes a moment later, so
             // it is served something cheaper — see BOOTSTRAP_MODULE_SOURCES.
-            const stub = BOOTSTRAP_MODULE_SOURCES.get(moduleName);
+            const stub = BOOTSTRAP_MODULE_SOURCES.get(
+              normalizeBootstrapModuleId(moduleName)
+            );
             if (stub !== undefined) return { value: stub };
             return fallback(moduleName, context);
           }

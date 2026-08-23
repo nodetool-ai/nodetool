@@ -138,7 +138,7 @@ function auditedSites(): Array<{ file: string; site: string }> {
     if (!source.includes("createCapabilityRun(")) continue;
     for (const site of callSites(source)) {
       found.push({
-        file: relative(repoRoot, file),
+        file: relative(repoRoot, file).replaceAll("\\", "/"),
         site: resolvedSite(source, site)
       });
     }

@@ -8,11 +8,12 @@
  * metadata service).
  */
 import { spawnSync } from "node:child_process";
-import { mkdtemp, mkdir, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runHostBinary } from "../src/host-binaries.js";
+import { createDirectoryLink } from "./_helpers/filesystem-links.js";
 import {
   FFMPEG_PROTOCOL_WHITELIST,
   MAX_DOWNLOAD_BYTES,
@@ -87,14 +88,14 @@ describe("confineArgvToWorkspace", () => {
   });
 
   it("refuses an in-workspace symlink that points out", async () => {
-    await symlink(path.join(outside, "secret.txt"), path.join(workspace, "link"));
-    expect(await refusal(["-i", "link"])).toContain(
+    await createDirectoryLink(outside, path.join(workspace, "outside"));
+    expect(await refusal(["-i", "outside/secret.txt"])).toContain(
       "resolves outside the workspace"
     );
   });
 
   it("refuses writing through a symlinked directory", async () => {
-    await symlink(outside, path.join(workspace, "out"));
+    await createDirectoryLink(outside, path.join(workspace, "out"));
     expect(await refusal(["out/new.mp4"])).toContain(
       "resolves outside the workspace"
     );

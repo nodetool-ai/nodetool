@@ -21,7 +21,8 @@ import {
 // (packages/workflow-runner/e2e) runs the same cases in a real Chromium.
 import {
   BOOTSTRAP_DROPPED_GLOBALS,
-  BOOTSTRAP_MODULE_SOURCES
+  BOOTSTRAP_MODULE_SOURCES,
+  normalizeBootstrapModuleId
 } from "../src/sandbox-bootstrap-modules.js";
 import { loadQuickJs } from "@sebastianwessel/quickjs";
 import * as quickJsVariant from "@jitl/quickjs-ng-wasmfile-release-sync";
@@ -204,7 +205,7 @@ describe("the compat bootstrap loads our stubs", () => {
       getModuleLoader: (fs: never, runtimeOptions: never) => {
         const loader = host.options.getModuleLoader!(fs, runtimeOptions);
         return (name: string, context: never) => {
-          requested.push(name);
+          requested.push(normalizeBootstrapModuleId(name));
           return loader(name, context);
         };
       }

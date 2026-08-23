@@ -49,7 +49,13 @@ const FRAMES = 7;
 async function silentMp4(): Promise<Uint8Array> {
   const target = new BufferTarget();
   const output = new Output({ format: new Mp4OutputFormat(), target });
-  const source = new VideoSampleSource({ codec: "avc", bitrate: 100_000 });
+  const source = new VideoSampleSource({
+    codec: "avc",
+    bitrate: 100_000,
+    // A hardware probe can find NVENC even when the installed driver cannot
+    // open it. Use a software encoder so the fixture is portable and stable.
+    hardwareAcceleration: "prefer-software"
+  });
   output.addVideoTrack(source, { frameRate: FPS });
   await output.start();
   for (let frame = 0; frame < FRAMES; frame += 1) {
