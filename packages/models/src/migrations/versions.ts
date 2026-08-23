@@ -2791,6 +2791,75 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_access_token_user");
       await db.execute("DROP TABLE IF EXISTS access_tokens");
     }
+  },
+
+  // ── Create MCP OAuth tables ─────────────────────────────────────────
+  // DCR clients, per-(user, client) grants, and the access/refresh tokens
+  // minted for a grant. Same secret-hash scheme as access_tokens; see
+  // docs/mcp-oauth-design.md § "Token model and storage".
+  {
+    version: "20260823_000000",
+    name: "create_mcp_oauth_tables",
+    createsTables: [
+      "mcp_oauth_clients",
+      "mcp_oauth_grants",
+      "mcp_oauth_tokens"
+    ],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS mcp_oauth_clients (
+          id TEXT PRIMARY KEY,
+          client_name TEXT NOT NULL,
+          redirect_uris TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          last_used_at TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS mcp_oauth_grants (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          client_name TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          resource TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          revoked_at TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_mcp_oauth_grant_user
+        ON mcp_oauth_grants (user_id)
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS mcp_oauth_tokens (
+          id TEXT PRIMARY KEY,
+          grant_id TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          secret_hash TEXT NOT NULL,
+          expires_at TEXT NOT NULL,
+          rotated_from TEXT,
+          last_used_at TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_mcp_oauth_token_grant
+        ON mcp_oauth_tokens (grant_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_mcp_oauth_token_rotated_from
+        ON mcp_oauth_tokens (rotated_from)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_mcp_oauth_token_rotated_from");
+      await db.execute("DROP INDEX IF EXISTS idx_mcp_oauth_token_grant");
+      await db.execute("DROP TABLE IF EXISTS mcp_oauth_tokens");
+      await db.execute("DROP INDEX IF EXISTS idx_mcp_oauth_grant_user");
+      await db.execute("DROP TABLE IF EXISTS mcp_oauth_grants");
+      await db.execute("DROP TABLE IF EXISTS mcp_oauth_clients");
+    }
   }
 ];
 

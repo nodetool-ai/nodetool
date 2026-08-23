@@ -377,6 +377,32 @@ const TABLE_COLUMNS = {
     expires_at: "text",
     last_used_at: "text"
   },
+  mcp_oauth_clients: {
+    id: "text",
+    client_name: "text",
+    redirect_uris: "text",
+    created_at: "text",
+    last_used_at: "text"
+  },
+  mcp_oauth_grants: {
+    id: "text",
+    user_id: "text",
+    client_id: "text",
+    client_name: "text",
+    scope: "text",
+    resource: "text",
+    created_at: "text",
+    revoked_at: "text"
+  },
+  mcp_oauth_tokens: {
+    id: "text",
+    grant_id: "text",
+    kind: "text",
+    secret_hash: "text",
+    expires_at: "text",
+    rotated_from: "text",
+    last_used_at: "text"
+  },
   nodetool_thread_memories: {
     id: "text",
     user_id: "text",
@@ -1324,6 +1350,38 @@ function getCreateSchemaSql(): string {
       "last_used_at" text
     );
     CREATE INDEX IF NOT EXISTS "idx_access_token_user" ON "access_tokens" ("user_id");
+
+    CREATE TABLE IF NOT EXISTS "mcp_oauth_clients" (
+      "id" text PRIMARY KEY NOT NULL,
+      "client_name" text NOT NULL,
+      "redirect_uris" text NOT NULL,
+      "created_at" text NOT NULL,
+      "last_used_at" text
+    );
+
+    CREATE TABLE IF NOT EXISTS "mcp_oauth_grants" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "client_id" text NOT NULL,
+      "client_name" text NOT NULL,
+      "scope" text NOT NULL,
+      "resource" text NOT NULL,
+      "created_at" text NOT NULL,
+      "revoked_at" text
+    );
+    CREATE INDEX IF NOT EXISTS "idx_mcp_oauth_grant_user" ON "mcp_oauth_grants" ("user_id");
+
+    CREATE TABLE IF NOT EXISTS "mcp_oauth_tokens" (
+      "id" text PRIMARY KEY NOT NULL,
+      "grant_id" text NOT NULL,
+      "kind" text NOT NULL,
+      "secret_hash" text NOT NULL,
+      "expires_at" text NOT NULL,
+      "rotated_from" text,
+      "last_used_at" text
+    );
+    CREATE INDEX IF NOT EXISTS "idx_mcp_oauth_token_grant" ON "mcp_oauth_tokens" ("grant_id");
+    CREATE INDEX IF NOT EXISTS "idx_mcp_oauth_token_rotated_from" ON "mcp_oauth_tokens" ("rotated_from");
   `;
 }
 
