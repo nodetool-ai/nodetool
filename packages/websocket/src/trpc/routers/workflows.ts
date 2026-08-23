@@ -42,8 +42,6 @@ import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { syncRegistrations } from "../../triggers/registration-sync.js";
-import { resolveSdkV1Boundary } from "../../http-api.js";
-import { throwSdkV1TrpcError } from "../../sdk/sdk-v1-trpc-error.js";
 import {
   listInput,
   listOutput,
@@ -69,12 +67,6 @@ import {
   terminalOutputsInput,
   terminalOutputsOutput,
   workflowResponse,
-  workflowInterfaceInput,
-  workflowInterfaceV1,
-  workflowInterfacesInput,
-  workflowInterfacesOutput,
-  sdkWorkflowSummariesInput,
-  sdkWorkflowSummariesOutput,
   graph as graphSchema,
   sharingGetInput,
   sharingGetOutput,
@@ -451,25 +443,6 @@ function buildExampleWorkflows(apiOptions: {
 // ── Router ─────────────────────────────────────────────────────────────────
 
 export const workflowsRouter = router({
-  sdkSummaries: protectedProcedure
-    .input(sdkWorkflowSummariesInput)
-    .output(sdkWorkflowSummariesOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        return await resolveSdkV1Boundary(ctx.apiOptions).handlers[
-          "sdkRpc.list_workflow_summaries"
-        ]({
-          userId: ctx.userId,
-          request: input,
-          registryRevision: Number.isSafeInteger(ctx.registry.revision)
-            ? ctx.registry.revision
-            : null
-        });
-      } catch (error) {
-        throwSdkV1TrpcError(error);
-      }
-    }),
-
   // ── list (GET /api/workflows) ─────────────────────────────────────────────
   list: protectedProcedure
     .input(listInput)
@@ -504,42 +477,6 @@ export const workflowsRouter = router({
         "viewer"
       );
       return toWorkflowResponse(workflow);
-    }),
-
-  // SDK-only, versioned workflow contract. Existing workflow responses remain
-  // unchanged, and the flag lets deployments roll this out independently.
-  interface: protectedProcedure
-    .input(workflowInterfaceInput)
-    .output(workflowInterfaceV1)
-    .query(async ({ ctx, input }) => {
-      try {
-        return await resolveSdkV1Boundary(ctx.apiOptions).handlers[
-          "sdkRpc.get_workflow_interface"
-        ]({
-          userId: ctx.userId,
-          workflowId: input.id,
-          registry: ctx.registry
-        });
-      } catch (error) {
-        throwSdkV1TrpcError(error);
-      }
-    }),
-
-  interfaces: protectedProcedure
-    .input(workflowInterfacesInput)
-    .output(workflowInterfacesOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        return await resolveSdkV1Boundary(ctx.apiOptions).handlers[
-          "sdkRpc.get_workflow_interfaces"
-        ]({
-          userId: ctx.userId,
-          request: input,
-          registry: ctx.registry
-        });
-      } catch (error) {
-        throwSdkV1TrpcError(error);
-      }
     }),
 
   // ── create (POST /api/workflows) ─────────────────────────────────────────

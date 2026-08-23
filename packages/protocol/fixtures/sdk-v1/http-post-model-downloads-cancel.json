@@ -19,7 +19,6 @@
       "response": {
         "body": {
           "code": "INVALID_INPUT",
-          "detail": "Invalid model download cancellation request",
           "message": "Invalid model download cancellation request",
           "retryable": false
         },
@@ -49,7 +48,6 @@
       "response": {
         "body": {
           "code": "MODEL_DOWNLOAD_NOT_FOUND",
-          "detail": "Model download operation was not found.",
           "message": "Model download operation was not found.",
           "retryable": false
         },
@@ -116,11 +114,11 @@
       },
       "response": {
         "body": {
-          "error": "Not Found",
-          "message": "Route GET:/api/sdk/v1/model-downloads/cancel not found",
-          "statusCode": 404
+          "code": "NOT_FOUND",
+          "message": "SDK endpoint not found",
+          "retryable": false
         },
-        "content_type": "application/json; charset=utf-8",
+        "content_type": "application/json",
         "status": 404
       },
       "via": "fastify"
@@ -135,9 +133,8 @@
   "route": {
     "auth": "authenticated",
     "feature_flag": null,
-    "in_http_api_dispatcher": false,
     "method": "POST",
-    "owner": "packages/websocket/src/routes/nodes.ts",
+    "owner": "packages/websocket/src/routes/sdk-v1.ts",
     "path": "/api/sdk/v1/model-downloads/cancel"
   }
 }

@@ -720,30 +720,30 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
       dispatcher/publisher completeness checks, and byte-exact MessagePack
       goldens. The six discovery/lifecycle RPC declarations may be removed only
       after the replacement execution contract is complete.
-- [ ] Remove `nodes.sdkTypeInventory`, `workflows.sdkSummaries`,
+- [x] Remove `nodes.sdkTypeInventory`, `workflows.sdkSummaries`,
       `workflows.interface`, and `workflows.interfaces` after the audit confirms
       that no TypeScript product caller uses them.
-- [ ] Remove `sdk-v1-trpc-error.ts`, related sandbox inventory entries, and
+- [x] Remove `sdk-v1-trpc-error.ts`, related sandbox inventory entries, and
       tRPC-only parity tests after equivalent HTTP service coverage exists.
-- [ ] Remove the six SDK discovery/lifecycle WebSocket commands. Keep the
+- [x] Remove the six SDK discovery/lifecycle WebSocket commands. Keep the
       WebSocket transport, execution commands, job correlation, cancellation,
       reconnect, replay, streaming outputs, and live events.
 - [x] Remove unimplemented SDK lifecycle job declarations from the public v1
       manifest. Keep roadmap items in design notes, not client input schemas.
-- [ ] Move the single workflow-interface operation from
+- [x] Move the single workflow-interface operation from
       `/api/workflows/{id}/interface` to
       `/api/sdk/v1/workflows/{id}/interface`.
-- [ ] Give every SDK HTTP failure exactly
+- [x] Give every SDK HTTP failure exactly
       `{ "code": string, "message": string, "retryable": boolean }`, one
       declared status mapping, and `application/json`. Remove the duplicate
       `detail` field, legacy method fallbacks, Fastify 404 emulation, legacy RPC
       error fields, and validation-order exceptions.
-- [ ] Make the declaration-driven Fastify plugin call the typed boundary
+- [x] Make the declaration-driven Fastify plugin call the typed boundary
       directly. Delete Fetch/Fastify bridges and focused HTTP adapter files
       that have no remaining caller.
-- [ ] Require the SDK implementation boundary at server construction. Remove
+- [x] Require the SDK implementation boundary at server construction. Remove
       the fallback `WeakMap` boundary after all tests inject it explicitly.
-- [ ] Keep multipart temporary upload as the only specialized SDK HTTP adapter.
+- [x] Keep multipart temporary upload as the only specialized SDK HTTP adapter.
       It must still call the same typed service and error mapper.
 
 #### Phase 8B `[nodetool]` - Keep tRPC focused and enforce its contract
@@ -807,7 +807,7 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 - [ ] Commit the protocol reset separately from mechanical generated-file
       changes. Include the semantic operation diff and the old/new fixture
       inventory in the commit or review notes.
-- [ ] Replace Phase 0 HTTP and MessagePack goldens once. Delete obsolete
+- [x] Replace Phase 0 HTTP and MessagePack goldens once. Delete obsolete
       discovery RPC fixtures, add the complete execution-wire fixtures, and do
       not teach tests to accept both contracts.
 - [ ] Generate a new deterministic NodeTool bundle, pin its exact digest in the

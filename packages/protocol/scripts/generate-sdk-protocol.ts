@@ -19,10 +19,7 @@ import {
 } from "../src/api-schemas/sdk-models-v1.js";
 import {
   sdkV1Error,
-  sdkV1HttpError,
-  sdkV1RpcError,
-  sdkV1RpcRequest,
-  sdkV1RpcResponse
+  sdkV1HttpError
 } from "../src/api-schemas/sdk-v1.js";
 import {
   sdkWorkflowSummariesInput,
@@ -33,29 +30,10 @@ import {
   workflowInterfacesOutput
 } from "../src/api-schemas/workflows.js";
 import {
-  sdkV1AssetReference,
-  sdkV1CancelJobResponse,
   sdkV1Capabilities,
-  sdkV1CapabilitiesRequest,
-  sdkV1CostActual,
-  sdkV1CostSummary,
-  sdkV1JobEvent,
-  sdkV1JobRequest,
-  sdkV1JobSnapshot,
-  sdkV1JobStatus,
-  sdkV1LifecycleRpcRequest,
-  sdkV1LifecycleRpcResponse,
   sdkV1PreflightRequest,
   sdkV1PreflightSummary,
-  sdkV1Requirement,
-  sdkV1ResultManifest,
-  sdkV1SubmitJobRequest,
-  sdkV1SubmitJobResponse,
-  sdkV1SubscribeJobRequest,
-  sdkV1SubscribeJobResponse,
-  sdkV1TemporaryAssetUpload,
-  sdkV1TerminalJobStatus,
-  sdkV1ValidationIssue
+  sdkV1TemporaryAssetUpload
 } from "../src/api-schemas/sdk-lifecycle-v1.js";
 import {
   sdkV1CancelJobCommand,
@@ -245,9 +223,6 @@ const discoveryComponents: Record<string, ComponentEntry> = {
   ModelCatalogQuery: inputComponent(sdkV1ModelCatalogQuery),
   NodeTypeInventoryInput: inputComponent(sdkNodeTypeInventoryInput),
   NodeTypeInventoryOutput: outputComponent(sdkNodeTypeInventoryOutput),
-  RpcError: outputComponent(sdkV1RpcError),
-  RpcRequest: inputComponent(sdkV1RpcRequest),
-  RpcResponse: outputComponent(sdkV1RpcResponse),
   WorkflowInterface: outputComponent(workflowInterfaceV1),
   WorkflowInterfaceInput: inputComponent(workflowInterfaceInput),
   WorkflowInterfacesInput: inputComponent(workflowInterfacesInput),
@@ -257,18 +232,7 @@ const discoveryComponents: Record<string, ComponentEntry> = {
 };
 
 const lifecycleComponents: Record<string, ComponentEntry> = {
-  AssetReference: outputComponent(sdkV1AssetReference),
-  CancelJobResponse: outputComponent(sdkV1CancelJobResponse),
   Capabilities: outputComponent(sdkV1Capabilities),
-  CapabilitiesRequest: inputComponent(sdkV1CapabilitiesRequest),
-  CostActual: outputComponent(sdkV1CostActual),
-  CostSummary: outputComponent(sdkV1CostSummary),
-  JobEvent: outputComponent(sdkV1JobEvent),
-  JobRequest: inputComponent(sdkV1JobRequest),
-  JobSnapshot: outputComponent(sdkV1JobSnapshot),
-  JobStatus: outputComponent(sdkV1JobStatus),
-  LifecycleRpcRequest: inputComponent(sdkV1LifecycleRpcRequest),
-  LifecycleRpcResponse: outputComponent(sdkV1LifecycleRpcResponse),
   ModelDownloadCancelRequest: inputComponent(sdkV1ModelDownloadCancelRequest),
   ModelDownloadQuery: inputComponent(sdkV1ModelDownloadQuery),
   ModelDownloadSnapshot: outputComponent(sdkV1ModelDownloadSnapshot),
@@ -276,15 +240,7 @@ const lifecycleComponents: Record<string, ComponentEntry> = {
   ModelDownloadState: outputComponent(sdkV1ModelDownloadState),
   PreflightRequest: inputComponent(sdkV1PreflightRequest),
   PreflightSummary: outputComponent(sdkV1PreflightSummary),
-  Requirement: outputComponent(sdkV1Requirement),
-  ResultManifest: outputComponent(sdkV1ResultManifest),
-  SubmitJobRequest: inputComponent(sdkV1SubmitJobRequest),
-  SubmitJobResponse: outputComponent(sdkV1SubmitJobResponse),
-  SubscribeJobRequest: inputComponent(sdkV1SubscribeJobRequest),
-  SubscribeJobResponse: outputComponent(sdkV1SubscribeJobResponse),
-  TemporaryAssetUpload: outputComponent(sdkV1TemporaryAssetUpload),
-  TerminalJobStatus: outputComponent(sdkV1TerminalJobStatus),
-  ValidationIssue: outputComponent(sdkV1ValidationIssue)
+  TemporaryAssetUpload: outputComponent(sdkV1TemporaryAssetUpload)
 };
 
 const executionComponents: Record<string, ComponentEntry> = {
@@ -546,12 +502,6 @@ function openApiDocument(
 function operationEnvelopes(
   operation: SdkV1WebSocketOperationDeclaration
 ): readonly SdkV1WebSocketMessageKey[] {
-  if (operation.direction === "request-response") {
-    return [
-      operation.message.request.envelope,
-      operation.message.response.envelope
-    ];
-  }
   if (operation.direction === "client-command") {
     return [operation.message.request.envelope];
   }
@@ -744,25 +694,14 @@ function webSocketOperationManifest(
     feature: operation.feature,
     id: operation.id,
     message:
-      operation.direction === "request-response"
+      operation.direction === "client-command"
         ? {
             request: {
               envelope: operation.message.request.envelope,
               payload: refPointer(operation.message.request.payload)
-            },
-            response: {
-              envelope: operation.message.response.envelope,
-              payload: refPointer(operation.message.response.payload)
             }
           }
-        : operation.direction === "client-command"
-          ? {
-              request: {
-                envelope: operation.message.request.envelope,
-                payload: refPointer(operation.message.request.payload)
-              }
-            }
-          : {
+        : {
             event: {
               envelope: operation.message.event.envelope,
               payload: refPointer(operation.message.event.payload)

@@ -1,58 +1,36 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  getSdkV1SafeErrorMessage,
   isSdkV1RetryableError,
-  sdkV1HttpError,
-  sdkV1RpcRequest,
-  sdkV1RpcResponse
+  sdkV1HttpError
 } from "../src/api-schemas/sdk-v1.js";
 import {
   sdkWorkflowSummariesOutput,
   workflowInterfaceV1
 } from "../src/api-schemas/workflows.js";
 
-interface BaselineFixture {
-  rest: {
-    summaries: { response: unknown };
-    interface: { response: unknown };
-  };
-  websocket: {
-    request: unknown;
-    response: unknown;
+interface HttpFixture {
+  captures: {
+    success: { response: { body: unknown } };
   };
 }
 
-function loadFixture(): BaselineFixture {
-  const path = new URL("../fixtures/sdk-v1-baseline.json", import.meta.url);
-  return JSON.parse(readFileSync(path, "utf8")) as BaselineFixture;
+function loadSuccess(name: string): unknown {
+  const path = new URL(`../fixtures/sdk-v1/${name}`, import.meta.url);
+  const fixture = JSON.parse(readFileSync(path, "utf8")) as HttpFixture;
+  return fixture.captures.success.response.body;
 }
 
-describe("public SDK v1 baseline schemas", () => {
-  const fixture = loadFixture();
-
+describe("public SDK v1 schemas", () => {
   it("validates the captured REST discovery responses", () => {
     expect(() =>
-      sdkWorkflowSummariesOutput.parse(fixture.rest.summaries.response)
+      sdkWorkflowSummariesOutput.parse(loadSuccess("http-get-workflows.json"))
     ).not.toThrow();
     expect(() =>
-      workflowInterfaceV1.parse(fixture.rest.interface.response)
+      workflowInterfaceV1.parse(
+        loadSuccess("http-get-workflow-interface.json")
+      )
     ).not.toThrow();
-  });
-
-  it("validates the correlated WebSocket request and response", () => {
-    expect(() => sdkV1RpcRequest.parse(fixture.websocket.request)).not.toThrow();
-    expect(() =>
-      sdkV1RpcResponse.parse(fixture.websocket.response)
-    ).not.toThrow();
-  });
-
-  it("rejects an uncorrelated SDK request", () => {
-    const request = {
-      ...(fixture.websocket.request as Record<string, unknown>)
-    };
-    delete request.request_id;
-    expect(() => sdkV1RpcRequest.parse(request)).toThrow();
   });
 
   it("validates the additive HTTP error envelope", () => {
@@ -60,8 +38,7 @@ describe("public SDK v1 baseline schemas", () => {
       sdkV1HttpError.parse({
         code: "WORKFLOW_NOT_FOUND",
         message: "Workflow not found",
-        retryable: false,
-        detail: "Workflow not found"
+        retryable: false
       })
     ).toMatchObject({
       code: "WORKFLOW_NOT_FOUND",
@@ -78,20 +55,5 @@ describe("public SDK v1 baseline schemas", () => {
       )
     ).toBe(false);
     expect(isSdkV1RetryableError("WORKFLOW_NOT_FOUND")).toBe(false);
-  });
-
-  it("maps internal SDK errors to safe public messages", () => {
-    expect(
-      getSdkV1SafeErrorMessage(
-        "INTERNAL_ERROR",
-        "database password was hunter2"
-      )
-    ).toBe("Internal server error");
-    expect(
-      getSdkV1SafeErrorMessage(
-        "SERVICE_UNAVAILABLE",
-        "SDK workflow interface v1 is disabled"
-      )
-    ).toBe("SDK discovery is disabled");
   });
 });

@@ -683,16 +683,10 @@ export type UnifiedCommandType =
   | "stop"
   | "list_workflows"
   | "get_workflow"
-  | "list_workflow_summaries"
-  | "get_workflow_interface"
-  | "get_workflow_interfaces"
   | "list_assets"
   | "get_asset"
   | "list_nodes"
   | "get_node"
-  | "get_node_type_inventory"
-  | "get_capabilities"
-  | "preflight_workflow"
   | "generate_media"
   | "transcribe_audio";
 
@@ -708,16 +702,10 @@ export type UnifiedCommandType =
 export type RpcCommandType =
   | "list_workflows"
   | "get_workflow"
-  | "list_workflow_summaries"
-  | "get_workflow_interface"
-  | "get_workflow_interfaces"
   | "list_assets"
   | "get_asset"
   | "list_nodes"
   | "get_node"
-  | "get_node_type_inventory"
-  | "get_capabilities"
-  | "preflight_workflow"
   | "generate_media"
   | "transcribe_audio";
 

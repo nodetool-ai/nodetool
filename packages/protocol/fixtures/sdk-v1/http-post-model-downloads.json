@@ -19,7 +19,6 @@
       "response": {
         "body": {
           "code": "INVALID_INPUT",
-          "detail": "Invalid model download request",
           "message": "Invalid model download request",
           "retryable": false
         },
@@ -75,15 +74,14 @@
   "not_captured": {
     "auth_failure": "No in-route 401: getUserId falls back to x-user-id/'1' and server.ts enforces authentication in its onRequest hook (server.ts:897) before routing, answering 401 {\"error\":\"Unauthorized\"} outside the handlers.",
     "feature_disabled": "No feature flag applies: the handler checks neither NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1 nor NODETOOL_DISABLE_SDK_LIFECYCLE_V1.",
-    "method_not_allowed": "GET on this path is the list operation and PUT answers Fastify's 404; the standalone handler's 405 is pinned by tests/sdk-model-download-http-handler.test.ts."
+    "method_not_allowed": "GET on this path is the list operation; other wrong methods use the SDK plugin's normalized 404 response."
   },
   "operation": "model_download_start",
   "route": {
     "auth": "authenticated",
     "feature_flag": null,
-    "in_http_api_dispatcher": false,
     "method": "POST",
-    "owner": "packages/websocket/src/routes/nodes.ts",
+    "owner": "packages/websocket/src/routes/sdk-v1.ts",
     "path": "/api/sdk/v1/model-downloads"
   }
 }

@@ -73,7 +73,7 @@ import { syncCustomProviderRegistry } from "./custom-providers.js";
 
 /** User id the auth middleware assigns in local (no-account) mode. */
 const LOCAL_USER_ID = "1";
-import type { HttpApiOptions } from "./http-api.js";
+import type { SdkV1RouteApiOptions } from "./routes/sdk-v1.js";
 import { handleMcpHttpRequest } from "./mcp-server.js";
 
 import Fastify, { type FastifyInstance } from "fastify";
@@ -1125,7 +1125,7 @@ const sdkModelDownloadService = createSdkV1ModelDownloadService({
     pythonBridge.cancelModelDownload(operationId)
 });
 
-const apiOptions: HttpApiOptions = {
+const apiOptions: SdkV1RouteApiOptions = {
   metadataRoots,
   registry,
   getPythonBridgeReady,

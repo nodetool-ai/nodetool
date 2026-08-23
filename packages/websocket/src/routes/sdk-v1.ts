@@ -1,34 +1,46 @@
+import { gzipSync } from "node:zlib";
 import type {
   FastifyPluginAsync,
   FastifyReply,
-  FastifyRequest,
-  HTTPMethods
+  FastifyRequest
 } from "fastify";
 import {
   implementedSdkV1HttpOperations,
   type ImplementedSdkV1HttpOperationId
 } from "@nodetool-ai/protocol/api-schemas/sdk-v1-operations.js";
+import { sdkNodeTypeInventoryInput } from "@nodetool-ai/protocol/api-schemas/nodes.js";
+import {
+  sdkV1ModelCatalogQuery,
+  sdkV1ModelDownloadCancelRequest,
+  sdkV1ModelDownloadQuery,
+  sdkV1ModelDownloadStartRequest
+} from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
+import { sdkV1PreflightRequest } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
+import {
+  sdkWorkflowSummariesInput,
+  workflowInterfacesInput
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { GZIP_THRESHOLD } from "../lib/compression.js";
 import { bridge } from "../lib/bridge.js";
 import {
-  handleSdkCapabilities,
-  handleSdkModelCatalog,
-  handleSdkModelDownloadCancel,
-  handleSdkModelDownloads,
-  handleSdkModelDownloadStart,
-  handleSdkNodeTypeInventory,
-  handleSdkPreflight,
-  handleSdkWorkflowSummaries,
-  handleWorkflowInterface,
-  handleWorkflowInterfaces,
-  resolveSdkV1Boundary,
+  getWorkflowRuntimeEnvironment,
   type HttpApiOptions
 } from "../http-api.js";
 import { handleSdkV1TemporaryAssetUpload } from "../sdk/sdk-temporary-asset-upload-http-handler.js";
+import type { SdkV1ImplementationBoundary } from "../sdk/sdk-v1-handler-map.js";
+import {
+  normalizeSdkV1ServiceError,
+  reportSdkV1InternalError,
+  sdkV1HttpError
+} from "../sdk/sdk-v1-service-error.js";
+import { createLogger } from "@nodetool-ai/config";
+
+export type SdkV1RouteApiOptions = HttpApiOptions & {
+  readonly sdkV1Boundary: SdkV1ImplementationBoundary;
+};
 
 interface SdkV1RoutesOptions {
-  readonly apiOptions: HttpApiOptions;
-  /** Test-only or temporary mount prefix used for shadow parity checks. */
-  readonly routePrefix?: string;
+  readonly apiOptions: SdkV1RouteApiOptions;
 }
 
 declare module "fastify" {
@@ -38,30 +50,17 @@ declare module "fastify" {
       readonly method: "GET" | "POST";
       readonly path: string;
     };
-    sdkV1MethodFallback?: true;
+    sdkV1NotFound?: true;
   }
 }
 
-const SDK_V1_ROUTABLE_METHODS: HTTPMethods[] = [
-  "DELETE",
-  "GET",
-  "HEAD",
-  "OPTIONS",
-  "PATCH",
-  "POST",
-  "PUT"
-];
+const log = createLogger("nodetool.websocket.sdk-v1");
 
-// These operations historically also passed through handleApiRequest, which
-// returned its handler-owned 405 envelope for a wrong method. The other SDK
-// routes were Fastify-only and therefore retain Fastify's frozen 404 instead.
-const LEGACY_METHOD_HANDLER_IDS = new Set<ImplementedSdkV1HttpOperationId>([
-  "getNodeTypeInventory",
-  "getCapabilities",
+const SDK_V1_JSON_BODY_OPERATIONS = new Set<ImplementedSdkV1HttpOperationId>([
+  "startModelDownload",
+  "cancelModelDownload",
   "preflightWorkflow",
-  "listWorkflowSummaries",
-  "getWorkflowInterfaces",
-  "getWorkflowInterface"
+  "getWorkflowInterfaces"
 ]);
 
 type SdkV1FastifyHandler = (
@@ -69,77 +68,349 @@ type SdkV1FastifyHandler = (
   reply: FastifyReply
 ) => Promise<void>;
 
-function fastifyPath(path: string, prefix = ""): string {
-  const normalizedPrefix = prefix.endsWith("/") ? prefix.slice(0, -1) : prefix;
-  return `${normalizedPrefix}${path}`.replaceAll(/\{([^}]+)\}/g, ":$1");
+function fastifyPath(path: string): string {
+  return path.replaceAll(/\{([^}]+)\}/g, ":$1");
+}
+
+function acceptsGzip(request: FastifyRequest): boolean {
+  const value = request.headers["accept-encoding"];
+  return (Array.isArray(value) ? value.join(", ") : (value ?? "")).includes(
+    "gzip"
+  );
+}
+
+function sendJson(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  body: unknown,
+  status = 200
+): void {
+  const bytes = Buffer.from(JSON.stringify(body), "utf8");
+  reply.code(status).type("application/json");
+  if (bytes.length > GZIP_THRESHOLD && acceptsGzip(request)) {
+    const compressed = gzipSync(bytes);
+    reply.header("content-encoding", "gzip");
+    reply.header("content-length", String(compressed.length));
+    reply.send(compressed);
+    return;
+  }
+  reply.header("content-length", String(bytes.length));
+  reply.send(bytes);
+}
+
+function sendError(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  status: number,
+  code: string,
+  message: string,
+  retryable = false
+): void {
+  sendJson(request, reply, { code, message, retryable }, status);
+}
+
+function sendServiceError(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  error: unknown
+): void {
+  const normalized = normalizeSdkV1ServiceError(error);
+  reportSdkV1InternalError(normalized, (cause) => {
+    log.error(
+      "SDK v1 service failed",
+      cause instanceof Error ? cause : new Error(String(cause))
+    );
+  });
+  const mapped = sdkV1HttpError(normalized);
+  sendJson(request, reply, mapped.body, mapped.status);
+}
+
+function userId(request: FastifyRequest): string {
+  return request.userId ?? "1";
+}
+
+function queryRecord(request: FastifyRequest): Record<string, unknown> {
+  return (request.query ?? {}) as Record<string, unknown>;
 }
 
 function createSdkV1RouteHandlers(
-  apiOptions: HttpApiOptions
+  apiOptions: SdkV1RouteApiOptions
 ): Readonly<Record<ImplementedSdkV1HttpOperationId, SdkV1FastifyHandler>> {
-  const identityHeader = apiOptions.userIdHeader ?? "x-user-id";
-  const sdkBridge = (
-    request: FastifyRequest,
-    reply: FastifyReply,
-    handler: (webRequest: Request) => Promise<Response>
-  ) => bridge(request, reply, handler, identityHeader);
+  const boundary = apiOptions.sdkV1Boundary;
+
   return {
     getNodeTypeInventory: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleSdkNodeTypeInventory(webRequest, apiOptions)
-      );
+      const raw = queryRecord(request);
+      const parsed = sdkNodeTypeInventoryInput.safeParse({
+        ...(raw.cursor === undefined ? {} : { cursor: Number(raw.cursor) }),
+        ...(raw.limit === undefined ? {} : { limit: Number(raw.limit) })
+      });
+      if (!parsed.success) {
+        sendError(
+          request,
+          reply,
+          400,
+          "INVALID_INPUT",
+          "cursor must be >= 0 and limit 1..100"
+        );
+        return;
+      }
+      try {
+        const registry =
+          apiOptions.registry ??
+          (await getWorkflowRuntimeEnvironment(apiOptions)).registry;
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.getNodeTypeInventory({
+            request: parsed.data,
+            registry,
+            pythonBridgeReady: apiOptions.getPythonBridgeReady?.() ?? false
+          })
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     getCapabilities: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleSdkCapabilities(webRequest, apiOptions)
-      );
+      try {
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.getCapabilities(undefined)
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     listModels: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleSdkModelCatalog(webRequest, apiOptions)
-      );
+      const parsed = sdkV1ModelCatalogQuery.safeParse(queryRecord(request));
+      if (!parsed.success) {
+        sendError(
+          request,
+          reply,
+          400,
+          "INVALID_INPUT",
+          "Invalid model catalog query"
+        );
+        return;
+      }
+      try {
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.listModels({
+            userId: userId(request),
+            query: parsed.data
+          })
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     listModelDownloads: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleSdkModelDownloads(webRequest, apiOptions)
-      );
+      const parsed = sdkV1ModelDownloadQuery.safeParse(queryRecord(request));
+      if (!parsed.success) {
+        sendError(
+          request,
+          reply,
+          400,
+          "INVALID_INPUT",
+          "Invalid model download query"
+        );
+        return;
+      }
+      try {
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.listModelDownloads({
+            userId: userId(request),
+            query: parsed.data
+          })
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     startModelDownload: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleSdkModelDownloadStart(webRequest, apiOptions)
-      );
+      const parsed = sdkV1ModelDownloadStartRequest.safeParse(request.body);
+      if (!parsed.success) {
+        sendError(
+          request,
+          reply,
+          400,
+          "INVALID_INPUT",
+          "Invalid model download request"
+        );
+        return;
+      }
+      try {
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.startModelDownload({
+            userId: userId(request),
+            request: parsed.data
+          }),
+          202
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     cancelModelDownload: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleSdkModelDownloadCancel(webRequest, apiOptions)
-      );
+      const parsed = sdkV1ModelDownloadCancelRequest.safeParse(request.body);
+      if (!parsed.success) {
+        sendError(
+          request,
+          reply,
+          400,
+          "INVALID_INPUT",
+          "Invalid model download cancellation request"
+        );
+        return;
+      }
+      try {
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.cancelModelDownload({
+            userId: userId(request),
+            operationId: parsed.data.operation_id
+          })
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     preflightWorkflow: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleSdkPreflight(webRequest, apiOptions)
-      );
+      const parsed = sdkV1PreflightRequest.safeParse(request.body);
+      if (!parsed.success) {
+        sendError(
+          request,
+          reply,
+          400,
+          "INVALID_REQUEST",
+          "Invalid preflight request"
+        );
+        return;
+      }
+      try {
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.preflightWorkflow({
+            request: parsed.data,
+            principal: request.userId ? { userId: request.userId } : null
+          })
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     listWorkflowSummaries: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleSdkWorkflowSummaries(webRequest, apiOptions)
-      );
+      const raw = queryRecord(request);
+      const parsed = sdkWorkflowSummariesInput.safeParse({
+        ...(raw.limit === undefined ? {} : { limit: Number(raw.limit) }),
+        ...(typeof raw.cursor === "string" ? { cursor: raw.cursor } : {})
+      });
+      if (!parsed.success) {
+        sendError(request, reply, 400, "INVALID_INPUT", "Invalid workflow summary query");
+        return;
+      }
+      try {
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.listWorkflowSummaries({
+            userId: userId(request),
+            request: parsed.data,
+            registryRevision: Number.isSafeInteger(apiOptions.registry?.revision)
+              ? apiOptions.registry!.revision
+              : null
+          })
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     getWorkflowInterfaces: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleWorkflowInterfaces(webRequest, apiOptions)
-      );
+      const parsed = workflowInterfacesInput.safeParse(request.body);
+      if (!parsed.success) {
+        sendError(
+          request,
+          reply,
+          400,
+          "INVALID_INPUT",
+          "Expected 1 to 100 unique workflow ids"
+        );
+        return;
+      }
+      try {
+        const registry =
+          apiOptions.registry ??
+          (await getWorkflowRuntimeEnvironment(apiOptions)).registry;
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.getWorkflowInterfaces({
+            userId: userId(request),
+            request: parsed.data,
+            registry
+          })
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     getWorkflowInterface: async (request, reply) => {
       const { id } = request.params as { readonly id: string };
-      await sdkBridge(request, reply, (webRequest) =>
-        handleWorkflowInterface(webRequest, id, apiOptions)
-      );
+      const { version } = queryRecord(request);
+      if (version !== "1") {
+        sendError(
+          request,
+          reply,
+          400,
+          "UNSUPPORTED_WORKFLOW_INTERFACE_VERSION",
+          "Workflow interface version 1 is required"
+        );
+        return;
+      }
+      try {
+        const registry =
+          apiOptions.registry ??
+          (await getWorkflowRuntimeEnvironment(apiOptions)).registry;
+        sendJson(
+          request,
+          reply,
+          await boundary.handlers.getWorkflowInterface({
+            userId: userId(request),
+            workflowId: id,
+            registry
+          })
+        );
+      } catch (error) {
+        sendServiceError(request, reply, error);
+      }
     },
+
     uploadTemporaryAsset: async (request, reply) => {
-      await sdkBridge(request, reply, (webRequest) =>
-        handleSdkV1TemporaryAssetUpload(webRequest, {
-          boundary: resolveSdkV1Boundary(apiOptions)
-        })
+      await bridge(
+        request,
+        reply,
+        (webRequest) =>
+          handleSdkV1TemporaryAssetUpload(webRequest, { boundary }),
+        apiOptions.userIdHeader ?? "x-user-id"
       );
     }
   };
@@ -151,14 +422,79 @@ const sdkV1Routes: FastifyPluginAsync<SdkV1RoutesOptions> = async (
   options
 ) => {
   const handlers = createSdkV1RouteHandlers(options.apiOptions);
-  const operationsByPath = new Map<
-    string,
-    (typeof implementedSdkV1HttpOperations)[number][]
-  >();
+
+  app.setErrorHandler((error, request, reply) => {
+    const statusCode =
+      error !== null &&
+      typeof error === "object" &&
+      "statusCode" in error &&
+      typeof error.statusCode === "number"
+        ? error.statusCode
+        : 500;
+    if (statusCode === 415) {
+      sendError(
+        request,
+        reply,
+        415,
+        "UNSUPPORTED_MEDIA_TYPE",
+        "Content-Type must be application/json"
+      );
+      return;
+    }
+    if (statusCode === 400) {
+      sendError(request, reply, 400, "INVALID_REQUEST", "Invalid JSON body");
+      return;
+    }
+    log.error("SDK v1 route failed", error);
+    sendError(
+      request,
+      reply,
+      500,
+      "INTERNAL_ERROR",
+      "Internal server error"
+    );
+  });
+
+  app.addHook("preValidation", async (request, reply) => {
+    const operation = request.routeOptions.config.sdkV1Operation;
+    if (!operation || !SDK_V1_JSON_BODY_OPERATIONS.has(operation.id)) {
+      return;
+    }
+    const contentType = request.headers["content-type"];
+    if (
+      typeof contentType !== "string" ||
+      !contentType.toLowerCase().startsWith("application/json")
+    ) {
+      sendError(
+        request,
+        reply,
+        415,
+        "UNSUPPORTED_MEDIA_TYPE",
+        "Content-Type must be application/json"
+      );
+      return;
+    }
+    if (
+      Buffer.isBuffer(request.body) ||
+      request.body instanceof Uint8Array ||
+      typeof request.body === "string"
+    ) {
+      try {
+        const text =
+          typeof request.body === "string"
+            ? request.body
+            : Buffer.from(request.body).toString("utf8");
+        request.body = JSON.parse(text) as unknown;
+      } catch {
+        sendError(request, reply, 400, "INVALID_REQUEST", "Invalid JSON body");
+      }
+    }
+  });
+
   for (const operation of implementedSdkV1HttpOperations) {
     app.route({
       method: operation.method,
-      url: fastifyPath(operation.path, options.routePrefix),
+      url: fastifyPath(operation.path),
       exposeHeadRoute: false,
       config: {
         sdkV1Operation: {
@@ -169,33 +505,17 @@ const sdkV1Routes: FastifyPluginAsync<SdkV1RoutesOptions> = async (
       },
       handler: handlers[operation.id]
     });
-    const pathOperations = operationsByPath.get(operation.path) ?? [];
-    pathOperations.push(operation);
-    operationsByPath.set(operation.path, pathOperations);
   }
 
-  for (const [path, pathOperations] of operationsByPath) {
-    if (
-      !pathOperations.some((operation) =>
-        LEGACY_METHOD_HANDLER_IDS.has(operation.id)
-      )
-    ) {
-      continue;
-    }
-    const declaredMethods = new Set<HTTPMethods>(
-      pathOperations.map((operation) => operation.method)
-    );
-    const fallbackMethods = SDK_V1_ROUTABLE_METHODS.filter(
-      (method) => !declaredMethods.has(method)
-    );
-    if (fallbackMethods.length === 0) continue;
-    const fallbackOperation = pathOperations[0]!;
+  const notFoundHandler: SdkV1FastifyHandler = async (request, reply) => {
+    sendError(request, reply, 404, "NOT_FOUND", "SDK endpoint not found");
+  };
+  for (const path of ["/api/sdk/v1", "/api/sdk/v1/*"]) {
     app.route({
-      method: fallbackMethods,
-      url: fastifyPath(path, options.routePrefix),
-      exposeHeadRoute: false,
-      config: { sdkV1MethodFallback: true },
-      handler: handlers[fallbackOperation.id]
+      method: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      url: fastifyPath(path),
+      config: { sdkV1NotFound: true },
+      handler: notFoundHandler
     });
   }
 };

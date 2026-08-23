@@ -1,7 +1,7 @@
 # Phase 8A caller and execution-wire audit
 
-Date: 2026-08-23  
-NodeTool base: `origin/main` at `7729d6691a`  
+Date: 2026-08-23
+NodeTool base: `origin/main` at `7729d6691a`
 SDK audit checkout: `nodetool-sdk` at `2c57c93`
 
 This audit replaces the Phase 0 compatibility inventory. It defines what the

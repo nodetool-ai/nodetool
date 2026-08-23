@@ -32,10 +32,10 @@ function implementedWs(): SdkV1WebSocketOperationDeclaration {
 
 describe("SDK v1 operation registry", () => {
   it("declares the expected operation inventory", () => {
-    expect(sdkV1HttpOperations).toHaveLength(14);
+    expect(sdkV1HttpOperations).toHaveLength(11);
     expect(implementedSdkV1HttpOperations).toHaveLength(11);
-    expect(sdkV1WebSocketOperations).toHaveLength(20);
-    expect(implementedSdkV1WebSocketOperations).toHaveLength(20);
+    expect(sdkV1WebSocketOperations).toHaveLength(14);
+    expect(implementedSdkV1WebSocketOperations).toHaveLength(14);
   });
 
   it("accepts the shipped declarations", () => {
@@ -80,7 +80,7 @@ describe("SDK v1 operation registry", () => {
       websocket: [...sdkV1WebSocketOperations, { ...original, id: doctoredId }]
     };
     expect(() => validateSdkV1OperationRegistry(doctored)).toThrow(
-      /duplicate WebSocket channel identity sdkRpc:/
+      /duplicate WebSocket channel identity sdkExecution:/
     );
   });
 
@@ -122,8 +122,8 @@ describe("SDK v1 operation registry", () => {
     const doctored = {
       ...registry,
       websocket: sdkV1WebSocketOperations.map((operation) =>
-        operation.id === "sdkRpc.list_workflow_summaries" &&
-        operation.direction === "request-response"
+        operation.id === "execution.run_job" &&
+        operation.direction === "client-command"
           ? {
               ...operation,
               message: {
@@ -138,7 +138,7 @@ describe("SDK v1 operation registry", () => {
       )
     };
     expect(() => validateSdkV1OperationRegistry(doctored)).toThrow(
-      "implemented operation sdkRpc.list_workflow_summaries has no request/response schemas"
+      "implemented operation execution.run_job has no request schema"
     );
   });
 
@@ -160,7 +160,7 @@ describe("SDK v1 operation registry", () => {
   it("looks up operations by id across both transports", () => {
     expect(getSdkV1Operation("preflightWorkflow")?.transport).toBe("http");
     expect(
-      getSdkV1Operation("lifecycleRpc.preflight_workflow")?.transport
+      getSdkV1Operation("execution.run_job")?.transport
     ).toBe("websocket");
     expect(getSdkV1Operation("nonexistentOperation")).toBeUndefined();
   });
@@ -181,24 +181,11 @@ describe("matchSdkV1HttpOperation", () => {
   it("binds path parameters on parameterized routes", () => {
     const interfaceMatch = matchSdkV1HttpOperation(
       "GET",
-      "/api/workflows/wf-123/interface"
+      "/api/sdk/v1/workflows/wf-123/interface"
     );
     expect(interfaceMatch?.operation.id).toBe("getWorkflowInterface");
     expect(interfaceMatch?.params).toEqual({ id: "wf-123" });
 
-    const snapshotMatch = matchSdkV1HttpOperation(
-      "GET",
-      "/api/sdk/v1/jobs/job-9"
-    );
-    expect(snapshotMatch?.operation.id).toBe("getJobSnapshot");
-    expect(snapshotMatch?.params).toEqual({ job_id: "job-9" });
-
-    const cancelMatch = matchSdkV1HttpOperation(
-      "POST",
-      "/api/sdk/v1/jobs/job-9/cancel"
-    );
-    expect(cancelMatch?.operation.id).toBe("cancelJob");
-    expect(cancelMatch?.params).toEqual({ job_id: "job-9" });
   });
 
   it("normalizes the method casing", () => {
@@ -279,7 +266,7 @@ describe("generated operation profiles", () => {
     const document = JSON.parse(
       artifacts["sdk-v1.openapi.json"]
     ) as OpenApiDocument;
-    expect(Object.keys(document.paths)).toHaveLength(13);
+    expect(Object.keys(document.paths)).toHaveLength(10);
     expect(openApiOperationIds(document)).toEqual(
       sdkV1HttpOperations.map((operation) => operation.id).sort()
     );
@@ -315,21 +302,13 @@ describe("generated operation profiles", () => {
   it("limits the implemented AsyncAPI profile to implemented envelopes", () => {
     const raw = artifacts["sdk-v1.asyncapi.implemented.json"];
     const document = JSON.parse(raw) as AsyncApiDocument;
-    expect(Object.keys(document.channels.sdkRpc.messages).sort()).toEqual([
+    expect(Object.keys(document.channels.sdkExecution.messages).sort()).toEqual([
       "executionCommand",
-      "executionEvent",
-      "lifecycleRpcRequest",
-      "lifecycleRpcResponse",
-      "sdkRpcRequest",
-      "sdkRpcResponse"
+      "executionEvent"
     ]);
     expect(Object.keys(document.operations).sort()).toEqual([
       "receiveExecutionEvent",
-      "receiveLifecycleRpcResponse",
-      "receiveSdkRpcResponse",
-      "sendExecutionCommand",
-      "sendLifecycleRpcRequest",
-      "sendSdkRpcRequest"
+      "sendExecutionCommand"
     ]);
     expect(raw).not.toContain('"x-nodetool-implementation": "planned"');
     expect(raw).not.toContain('"x-nodetool-implementation": "partial"');
@@ -337,8 +316,8 @@ describe("generated operation profiles", () => {
     const full = JSON.parse(
       artifacts["sdk-v1.asyncapi.json"]
     ) as AsyncApiDocument;
-    expect(Object.keys(full.channels.sdkRpc.messages)).toEqual(
-      Object.keys(document.channels.sdkRpc.messages)
+    expect(Object.keys(full.channels.sdkExecution.messages)).toEqual(
+      Object.keys(document.channels.sdkExecution.messages)
     );
     expect(Object.keys(full.operations)).toEqual(Object.keys(document.operations));
   });
@@ -395,15 +374,6 @@ describe("generated operation profiles", () => {
         schema: { kind: "query-property" }
       }
     ]);
-
-    const submitJob = manifest.operations.find(
-      (operation) => operation.id === "submitJob"
-    );
-    expect(submitJob?.request?.body).toMatchObject({
-      content_type: "application/json",
-      kind: "json",
-      required: true
-    });
 
     const upload = manifest.operations.find(
       (operation) => operation.id === "uploadTemporaryAsset"

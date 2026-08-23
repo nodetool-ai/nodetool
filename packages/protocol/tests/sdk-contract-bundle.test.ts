@@ -155,7 +155,7 @@ describe("SDK contract bundle builder", () => {
     );
   });
 
-  it("bundles the schema artifacts, baseline fixture, and compatibility doc", () => {
+  it("bundles the schema artifacts, execution fixture, and compatibility doc", () => {
     const paths = new Set(first.index.files.map((file) => file.path));
     for (const artifact of [
       "schema/sdk-v1.openapi.json",
@@ -167,7 +167,7 @@ describe("SDK contract bundle builder", () => {
       "schema/sdk-v1.execution.schema.json",
       "schema/sdk-v1.operations.json",
       "schema/sdk-v1.manifest.json",
-      "fixtures/sdk-v1-baseline.json",
+      "fixtures/sdk-v1/execution-wire.json",
       "docs/protocol-v1-compatibility.md"
     ]) {
       expect(paths.has(artifact), artifact).toBe(true);

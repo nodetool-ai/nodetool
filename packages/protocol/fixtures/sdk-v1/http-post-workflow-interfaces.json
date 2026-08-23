@@ -22,7 +22,6 @@
       "response": {
         "body": {
           "code": "INVALID_INPUT",
-          "detail": "Expected 1 to 100 unique workflow ids",
           "message": "Expected 1 to 100 unique workflow ids",
           "retryable": false
         },
@@ -55,7 +54,6 @@
       "response": {
         "body": {
           "code": "SDK_WORKFLOW_INTERFACE_DISABLED",
-          "detail": "SDK workflow interface v1 is disabled",
           "message": "SDK workflow interface v1 is disabled",
           "retryable": false
         },
@@ -81,12 +79,14 @@
       },
       "response": {
         "body": {
-          "detail": "Method not allowed"
+          "code": "NOT_FOUND",
+          "message": "SDK endpoint not found",
+          "retryable": false
         },
         "content_type": "application/json",
-        "status": 405
+        "status": 404
       },
-      "via": "http-api-dispatcher"
+      "via": "fastify"
     },
     "success": {
       "env": {
@@ -209,9 +209,8 @@
   "route": {
     "auth": "discovery",
     "feature_flag": "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1",
-    "in_http_api_dispatcher": true,
     "method": "POST",
-    "owner": "packages/websocket/src/routes/workflows.ts",
+    "owner": "packages/websocket/src/routes/sdk-v1.ts",
     "path": "/api/sdk/v1/workflow-interfaces"
   }
 }

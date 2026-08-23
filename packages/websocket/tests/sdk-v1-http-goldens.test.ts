@@ -63,7 +63,7 @@ interface HttpRequestSpec {
   multipart: MultipartSpec | null;
 }
 
-type CaptureVia = "fastify" | "http-api-dispatcher" | "handler";
+type CaptureVia = "fastify" | "handler";
 
 interface CaptureSpec {
   name: string;
@@ -80,7 +80,6 @@ interface RouteMeta {
   method: string;
   path: string;
   owner: string;
-  in_http_api_dispatcher: boolean;
   auth: "discovery" | "authenticated";
   feature_flag: string | null;
 }
@@ -173,8 +172,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "GET",
       path: "/api/sdk/v1/node-types",
-      owner: "packages/websocket/src/routes/nodes.ts",
-      in_http_api_dispatcher: true,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "discovery",
       feature_flag: "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1"
     },
@@ -202,7 +200,7 @@ const OPERATIONS: OperationSpec[] = [
         // Legacy {detail} body — only reachable through the second
         // dispatcher; the Fastify mount has no POST binding (404 instead).
         name: "method_not_allowed",
-        via: "http-api-dispatcher",
+        via: "fastify",
         env: {},
         request: {
           method: "POST",
@@ -220,8 +218,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "GET",
       path: "/api/sdk/v1/capabilities",
-      owner: "packages/websocket/src/routes/nodes.ts",
-      in_http_api_dispatcher: true,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "discovery",
       feature_flag: "NODETOOL_DISABLE_SDK_LIFECYCLE_V1"
     },
@@ -256,7 +253,7 @@ const OPERATIONS: OperationSpec[] = [
       },
       {
         name: "method_not_allowed",
-        via: "http-api-dispatcher",
+        via: "fastify",
         env: {},
         request: {
           method: "POST",
@@ -274,8 +271,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "GET",
       path: "/api/sdk/v1/models",
-      owner: "packages/websocket/src/routes/nodes.ts",
-      in_http_api_dispatcher: false,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "discovery",
       feature_flag: null
     },
@@ -283,10 +279,8 @@ const OPERATIONS: OperationSpec[] = [
       feature_disabled: NO_FLAG_NOTE,
       auth_failure: NO_AUTH_CAPTURE_NOTE,
       method_not_allowed:
-        "The Fastify server has no POST binding for this path, so a wrong " +
-        "method answers Fastify's 404 (see wrong_method_unrouted). The " +
-        "standalone handler's 405 is pinned by " +
-        "tests/sdk-model-catalog-http-handler.test.ts."
+        "Wrong methods use the SDK plugin's normalized 404 response (see " +
+        "wrong_method_unrouted)."
     },
     captures: [
       {
@@ -318,8 +312,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "GET",
       path: "/api/sdk/v1/model-downloads",
-      owner: "packages/websocket/src/routes/nodes.ts",
-      in_http_api_dispatcher: false,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "authenticated",
       feature_flag: null
     },
@@ -360,8 +353,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "POST",
       path: "/api/sdk/v1/model-downloads",
-      owner: "packages/websocket/src/routes/nodes.ts",
-      in_http_api_dispatcher: false,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "authenticated",
       feature_flag: null
     },
@@ -369,9 +361,8 @@ const OPERATIONS: OperationSpec[] = [
       feature_disabled: NO_FLAG_NOTE,
       auth_failure: NO_AUTH_CAPTURE_NOTE,
       method_not_allowed:
-        "GET on this path is the list operation and PUT answers Fastify's " +
-        "404; the standalone handler's 405 is pinned by " +
-        "tests/sdk-model-download-http-handler.test.ts."
+        "GET on this path is the list operation; other wrong methods use the " +
+        "SDK plugin's normalized 404 response."
     },
     captures: [
       {
@@ -398,8 +389,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "POST",
       path: "/api/sdk/v1/model-downloads/cancel",
-      owner: "packages/websocket/src/routes/nodes.ts",
-      in_http_api_dispatcher: false,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "authenticated",
       feature_flag: null
     },
@@ -448,8 +438,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "POST",
       path: "/api/sdk/v1/preflight",
-      owner: "packages/websocket/src/routes/nodes.ts",
-      in_http_api_dispatcher: true,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "authenticated",
       feature_flag: "NODETOOL_DISABLE_SDK_LIFECYCLE_V1"
     },
@@ -503,7 +492,7 @@ const OPERATIONS: OperationSpec[] = [
       },
       {
         name: "method_not_allowed",
-        via: "http-api-dispatcher",
+        via: "fastify",
         env: {},
         request: get("/api/sdk/v1/preflight", AUTH)
       }
@@ -515,8 +504,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "GET",
       path: "/api/sdk/v1/workflows",
-      owner: "packages/websocket/src/routes/workflows.ts",
-      in_http_api_dispatcher: true,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "discovery",
       feature_flag: "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1"
     },
@@ -542,7 +530,7 @@ const OPERATIONS: OperationSpec[] = [
       },
       {
         name: "method_not_allowed",
-        via: "http-api-dispatcher",
+        via: "fastify",
         env: {},
         request: {
           method: "POST",
@@ -560,8 +548,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "POST",
       path: "/api/sdk/v1/workflow-interfaces",
-      owner: "packages/websocket/src/routes/workflows.ts",
-      in_http_api_dispatcher: true,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "discovery",
       feature_flag: "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1"
     },
@@ -604,7 +591,7 @@ const OPERATIONS: OperationSpec[] = [
       },
       {
         name: "method_not_allowed",
-        via: "http-api-dispatcher",
+        via: "fastify",
         env: {},
         request: get("/api/sdk/v1/workflow-interfaces", AUTH)
       }
@@ -615,9 +602,8 @@ const OPERATIONS: OperationSpec[] = [
     operation: "workflow_interface",
     route: {
       method: "GET",
-      path: "/api/workflows/:id/interface",
-      owner: "packages/websocket/src/routes/workflows.ts",
-      in_http_api_dispatcher: true,
+      path: "/api/sdk/v1/workflows/:id/interface",
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "discovery",
       feature_flag: "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1"
     },
@@ -633,7 +619,7 @@ const OPERATIONS: OperationSpec[] = [
         via: "fastify",
         env: {},
         request: get(
-          `/api/workflows/${WORKFLOW_ONE_ID}/interface?version=1`,
+          `/api/sdk/v1/workflows/${WORKFLOW_ONE_ID}/interface?version=1`,
           AUTH
         )
       },
@@ -642,7 +628,7 @@ const OPERATIONS: OperationSpec[] = [
         via: "fastify",
         env: { NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1: "1" },
         request: get(
-          `/api/workflows/${WORKFLOW_ONE_ID}/interface?version=1`,
+          `/api/sdk/v1/workflows/${WORKFLOW_ONE_ID}/interface?version=1`,
           AUTH
         )
       },
@@ -652,24 +638,27 @@ const OPERATIONS: OperationSpec[] = [
         name: "bad_input",
         via: "fastify",
         env: {},
-        request: get(`/api/workflows/${WORKFLOW_ONE_ID}/interface`, AUTH)
+        request: get(
+          `/api/sdk/v1/workflows/${WORKFLOW_ONE_ID}/interface`,
+          AUTH
+        )
       },
       {
         name: "not_found",
         via: "fastify",
         env: {},
         request: get(
-          `/api/workflows/${MISSING_WORKFLOW_ID}/interface?version=1`,
+          `/api/sdk/v1/workflows/${MISSING_WORKFLOW_ID}/interface?version=1`,
           AUTH
         )
       },
       {
         name: "method_not_allowed",
-        via: "http-api-dispatcher",
+        via: "fastify",
         env: {},
         request: {
           method: "POST",
-          path: `/api/workflows/${WORKFLOW_ONE_ID}/interface`,
+          path: `/api/sdk/v1/workflows/${WORKFLOW_ONE_ID}/interface`,
           headers: AUTH,
           body: null,
           multipart: null
@@ -683,8 +672,7 @@ const OPERATIONS: OperationSpec[] = [
     route: {
       method: "POST",
       path: "/api/sdk/v1/assets/temporary",
-      owner: "packages/websocket/src/routes/assets.ts",
-      in_http_api_dispatcher: false,
+      owner: "packages/websocket/src/routes/sdk-v1.ts",
       auth: "authenticated",
       feature_flag: "NODETOOL_DISABLE_SDK_LIFECYCLE_V1"
     },
@@ -870,11 +858,7 @@ describe("SDK v1 HTTP goldens", () => {
           method: spec.method as "GET" | "POST" | "PUT",
           url: spec.path,
           headers: spec.headers,
-          payload: hasBody
-            ? typeof spec.body === "string"
-              ? spec.body
-              : JSON.stringify(spec.body)
-            : undefined
+          payload: hasBody ? spec.body : undefined
         });
         const contentType = response.headers["content-type"];
         return {
@@ -956,7 +940,9 @@ describe("SDK v1 HTTP goldens", () => {
         expect(recorded.request, label).toEqual(capture.request);
 
         const live = await execute(capture);
-        expect(live.status, label).toBe(recorded.response.status);
+        expect(live.status, `${label}: ${JSON.stringify(live.body)}`).toBe(
+          recorded.response.status
+        );
         expect(live.content_type, label).toBe(recorded.response.content_type);
         expect(live.body, label).toEqual(recorded.response.body);
       }

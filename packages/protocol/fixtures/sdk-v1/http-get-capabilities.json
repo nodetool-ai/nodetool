@@ -18,7 +18,6 @@
       "response": {
         "body": {
           "code": "SDK_LIFECYCLE_DISABLED",
-          "detail": "SDK lifecycle v1 is disabled",
           "message": "SDK lifecycle v1 is disabled",
           "retryable": false
         },
@@ -45,7 +44,6 @@
       "response": {
         "body": {
           "code": "INTERNAL_ERROR",
-          "detail": "Internal server error",
           "message": "Internal server error",
           "retryable": true
         },
@@ -71,15 +69,14 @@
       },
       "response": {
         "body": {
-          "code": "METHOD_NOT_ALLOWED",
-          "detail": "Method not allowed",
-          "message": "Method not allowed",
+          "code": "NOT_FOUND",
+          "message": "SDK endpoint not found",
           "retryable": false
         },
         "content_type": "application/json",
-        "status": 405
+        "status": 404
       },
-      "via": "http-api-dispatcher"
+      "via": "fastify"
     },
     "success": {
       "env": {
@@ -138,9 +135,8 @@
   "route": {
     "auth": "discovery",
     "feature_flag": "NODETOOL_DISABLE_SDK_LIFECYCLE_V1",
-    "in_http_api_dispatcher": true,
     "method": "GET",
-    "owner": "packages/websocket/src/routes/nodes.ts",
+    "owner": "packages/websocket/src/routes/sdk-v1.ts",
     "path": "/api/sdk/v1/capabilities"
   }
 }

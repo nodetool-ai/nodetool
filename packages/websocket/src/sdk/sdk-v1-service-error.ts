@@ -11,13 +11,6 @@ export interface SdkV1HttpErrorBody {
   readonly code: string;
   readonly message: string;
   readonly retryable: boolean;
-  readonly detail: string;
-}
-
-export interface SdkV1RpcErrorBody {
-  readonly code: string;
-  readonly message: string;
-  readonly retryable: boolean;
 }
 
 export class SdkV1ServiceError extends Error {
@@ -86,17 +79,8 @@ export function sdkV1HttpError(error: SdkV1ServiceError): {
     body: {
       code: error.code,
       message: error.publicMessage,
-      retryable: error.retryable,
-      detail: error.publicMessage
+      retryable: error.retryable
     }
-  };
-}
-
-export function sdkV1RpcError(error: SdkV1ServiceError): SdkV1RpcErrorBody {
-  return {
-    code: error.code,
-    message: error.publicMessage,
-    retryable: error.retryable
   };
 }
 

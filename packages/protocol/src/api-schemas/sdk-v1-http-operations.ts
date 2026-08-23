@@ -2,7 +2,7 @@
  * Declared public SDK v1 HTTP operations. One entry per operation currently
  * published in `schema/sdk-v1.openapi.json`; the generator derives the OpenAPI
  * `paths` table from these declarations, so every string here is contract
- * surface. Planned operations stay declared with `status: "planned"`.
+ * surface.
  */
 import type {
   SdkV1HttpOperationDeclaration,
@@ -29,13 +29,9 @@ import {
   workflowInterfaceV1
 } from "./workflows.js";
 import {
-  sdkV1CancelJobResponse,
   sdkV1Capabilities,
-  sdkV1JobSnapshot,
   sdkV1PreflightRequest,
   sdkV1PreflightSummary,
-  sdkV1SubmitJobRequest,
-  sdkV1SubmitJobResponse,
   sdkV1TemporaryAssetUpload
 } from "./sdk-lifecycle-v1.js";
 
@@ -389,7 +385,7 @@ export const sdkV1HttpOperations = [
     id: "getWorkflowInterface",
     transport: "http",
     method: "GET",
-    path: "/api/workflows/{id}/interface",
+    path: "/api/sdk/v1/workflows/{id}/interface",
     status: "implemented",
     auth: "discovery",
     feature: "workflow-interface",
@@ -451,103 +447,6 @@ export const sdkV1HttpOperations = [
       { status: "400", description: "Invalid multipart upload" },
       { status: "413", description: "Upload exceeds the configured limit" },
       { status: "503", description: "SDK lifecycle is unavailable" }
-    ]
-  },
-  {
-    id: "submitJob",
-    transport: "http",
-    method: "POST",
-    path: "/api/sdk/v1/jobs",
-    status: "planned",
-    auth: "authenticated",
-    feature: "lifecycle",
-    summary: "Submit one idempotent workflow job",
-    request: {
-      body: {
-        kind: "json",
-        required: true,
-        schema: {
-          profile: "lifecycle",
-          name: "SubmitJobRequest",
-          schema: sdkV1SubmitJobRequest
-        }
-      }
-    },
-    response: {
-      status: "202",
-      description: "Persisted job acknowledgement",
-      contentType: "application/json",
-      schema: {
-        profile: "lifecycle",
-        name: "SubmitJobResponse",
-        schema: sdkV1SubmitJobResponse
-      }
-    },
-    errors: [
-      { status: "400", description: "Invalid submission" },
-      {
-        status: "409",
-        description: "Idempotency or workflow revision conflict"
-      },
-      { status: "422", description: "Preflight failed" },
-      { status: "429", description: "Admission or rate limit exceeded" },
-      { status: "503", description: "Execution is unavailable" }
-    ]
-  },
-  {
-    id: "getJobSnapshot",
-    transport: "http",
-    method: "GET",
-    path: "/api/sdk/v1/jobs/{job_id}",
-    status: "planned",
-    auth: "authenticated",
-    feature: "lifecycle",
-    summary: "Get an authoritative job snapshot",
-    request: {
-      parameters: [
-        { name: "job_id", in: "path", required: true, schema: opaquePathId }
-      ]
-    },
-    response: {
-      status: "200",
-      description: "Authoritative job snapshot",
-      contentType: "application/json",
-      schema: {
-        profile: "lifecycle",
-        name: "JobSnapshot",
-        schema: sdkV1JobSnapshot
-      }
-    },
-    errors: [
-      { status: "404", description: "Job not found, inaccessible, or expired" }
-    ]
-  },
-  {
-    id: "cancelJob",
-    transport: "http",
-    method: "POST",
-    path: "/api/sdk/v1/jobs/{job_id}/cancel",
-    status: "planned",
-    auth: "authenticated",
-    feature: "lifecycle",
-    summary: "Request idempotent job cancellation",
-    request: {
-      parameters: [
-        { name: "job_id", in: "path", required: true, schema: opaquePathId }
-      ]
-    },
-    response: {
-      status: "200",
-      description: "Cancellation acknowledgement or existing terminal state",
-      contentType: "application/json",
-      schema: {
-        profile: "lifecycle",
-        name: "CancelJobResponse",
-        schema: sdkV1CancelJobResponse
-      }
-    },
-    errors: [
-      { status: "404", description: "Job not found, inaccessible, or expired" }
     ]
   }
 ] as const satisfies readonly SdkV1HttpOperationDeclaration[];

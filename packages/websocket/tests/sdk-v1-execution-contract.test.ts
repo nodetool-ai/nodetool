@@ -5,6 +5,8 @@ import {
   sdkV1ExecutionEvent
 } from "../../protocol/src/api-schemas/sdk-execution-v1.js";
 import { sdkV1WebSocketOperations } from "../../protocol/src/api-schemas/sdk-v1-websocket-operations.js";
+import { processingMessageSchemas } from "../../protocol/src/messages.js";
+import { outboundControlMessageSchemas } from "../../protocol/src/ws-commands.js";
 import {
   packWebSocketMessage,
   unpackWebSocketMessage
@@ -45,6 +47,10 @@ const declaredExecutionCommands = sdkV1WebSocketOperations
 
 const runnerSource = readFileSync(
   new URL("../src/unified-websocket-runner.ts", import.meta.url),
+  "utf8"
+);
+const websocketPluginSource = readFileSync(
+  new URL("../src/plugins/websocket.ts", import.meta.url),
   "utf8"
 );
 
@@ -115,5 +121,26 @@ describe("SDK v1 execution contract", () => {
       "terminal_result_event",
       "protocol_rejection_event"
     ]);
+
+    for (const type of [
+      "job_update",
+      "node_update",
+      "node_progress",
+      "output_update",
+      "chunk"
+    ] as const) {
+      expect(processingMessageSchemas[type], `${type}: publisher schema`).toBeDefined();
+    }
+    expect(outboundControlMessageSchemas.job_resumed).toBeDefined();
+    expect(websocketPluginSource).toContain('type: "sdk_execution_target"');
+    for (const rejection of [
+      "invalid_frame",
+      "invalid_message",
+      "invalid_command"
+    ]) {
+      expect(runnerSource, `${rejection}: live rejection publisher`).toContain(
+        `error: "${rejection}"`
+      );
+    }
   });
 });

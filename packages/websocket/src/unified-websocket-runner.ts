@@ -137,9 +137,7 @@ import type {
   SupervisorRunOptions
 } from "@nodetool-ai/protocol";
 import {
-  getSdkV1SafeErrorMessage,
-  isSdkV1RetryableError,
-  sdkV1RpcCommand
+  isSdkV1RetryableError
 } from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 import type {
   UnifiedCommandType,
@@ -211,10 +209,8 @@ import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
-import { resolveSdkV1Boundary, type HttpApiOptions } from "./http-api.js";
+import type { HttpApiOptions } from "./http-api.js";
 import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
-import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
-import { handleSdkV1DiscoveryRpc } from "./sdk/sdk-discovery-rpc-handler.js";
 import type {
   FrontendRendererRegistry,
   FrontendRendererToolCall,
@@ -8566,12 +8562,9 @@ export class UnifiedWebSocketRunner {
       };
       const code = trpc.cause?.apiCode ?? trpc.code ?? "INTERNAL_ERROR";
       const internalMessage = trpc.message ?? String(err);
-      const publicMessage = sdkV1RpcCommand.safeParse(command.command).success
-        ? getSdkV1SafeErrorMessage(code, internalMessage)
-        : internalMessage;
       const error: RpcErrorPayload = {
         code,
-        message: publicMessage,
+        message: internalMessage,
         retryable: isSdkV1RetryableError(code, internalMessage),
         apiCode: trpc.cause?.apiCode ?? null,
         trpcCode: trpc.code
@@ -8583,44 +8576,6 @@ export class UnifiedWebSocketRunner {
         error
       });
     }
-    return null;
-  }
-
-  private async runSdkLifecycleRpc(
-    command: WebSocketCommandEnvelope
-  ): Promise<Record<string, unknown> | null> {
-    const response = await handleSdkV1LifecycleRpc(command, {
-      boundary: resolveSdkV1Boundary(this.apiOptions ?? {}),
-      getPrincipal: () => (this.userId ? { userId: this.userId } : null),
-      onInternalError: (error) =>
-        this.logError("SDK lifecycle RPC failed", error)
-    });
-
-    if (!response) {
-      return { error: "Unknown SDK lifecycle command" };
-    }
-    await this.sendMessage(response);
-    return null;
-  }
-
-  private async runSdkDiscoveryRpc(
-    command: WebSocketCommandEnvelope
-  ): Promise<Record<string, unknown> | null> {
-    if (!this.nodeRegistry || !this.apiOptions) {
-      throw new Error("SDK RPC commands require nodeRegistry and apiOptions");
-    }
-    const response = await handleSdkV1DiscoveryRpc(command, {
-      boundary: resolveSdkV1Boundary(this.apiOptions),
-      userId: this.userId,
-      registry: this.nodeRegistry,
-      pythonBridgeReady: this.getPythonBridgeReady?.() ?? true,
-      onInternalError: (error) =>
-        this.logError("SDK discovery RPC failed", error)
-    });
-    if (!response) {
-      return { error: "Unknown SDK discovery command" };
-    }
-    await this.sendMessage(response);
     return null;
   }
 
@@ -8969,11 +8924,6 @@ export class UnifiedWebSocketRunner {
           caller.workflows.get({ id: String(data.id ?? "") })
         );
       }
-      case "list_workflow_summaries":
-      case "get_workflow_interface":
-      case "get_workflow_interfaces":
-      case "get_node_type_inventory":
-        return this.runSdkDiscoveryRpc(command);
       case "list_assets": {
         const caller = this.getTrpcCaller();
         return this.runRpc(command, () =>
@@ -8998,9 +8948,6 @@ export class UnifiedWebSocketRunner {
           caller.nodes.get({ node_type: String(data.node_type ?? "") })
         );
       }
-      case "get_capabilities":
-      case "preflight_workflow":
-        return this.runSdkLifecycleRpc(command);
       case "generate_media": {
         const rawMode = data.mode;
         const mode: "image" | "image_edit" | "inpaint" | "video" | "audio" =

@@ -1,6 +1,6 @@
 /**
  * Shared harness for the Phase 0 SDK v1 golden tests
- * (sdk-v1-http-goldens, sdk-v1-ws-goldens, sdk-v1-route-inventory).
+ * (sdk-v1-http-goldens and sdk-v1-route-inventory).
  *
  * Everything here exists to make captures byte-stable:
  *   - `Date` is frozen by the tests (vi.useFakeTimers, toFake: ["Date"]) so
@@ -29,10 +29,10 @@ import type {
   SdkV1ModelCatalog,
   SdkV1ModelDownloadState
 } from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
-import type { HttpApiOptions } from "../src/http-api.js";
 import { SdkModelDownloadServiceError } from "../src/sdk/sdk-model-download-service.js";
 import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import type { SdkV1RouteApiOptions } from "../src/routes/sdk-v1.js";
 import { createSdkV1TemporaryAssetService } from "../src/sdk/sdk-temporary-asset-service.js";
 import { getTempAdapter } from "../src/lib/storage.js";
 import nodesRoutes from "../src/routes/nodes.js";
@@ -291,7 +291,9 @@ export const CANCELLED_DOWNLOAD_STATE: SdkV1ModelDownloadState = {
 /** Toggle to capture the redacted 500 body for `GET /api/sdk/v1/capabilities`. */
 export const goldenFailureState = { capabilitiesFail: false };
 
-export function makeGoldenApiOptions(registry: NodeRegistry): HttpApiOptions {
+export function makeGoldenApiOptions(
+  registry: NodeRegistry
+): SdkV1RouteApiOptions {
   return {
     registry,
     sdkV1Boundary: createSdkV1ImplementationBoundary(
@@ -334,7 +336,7 @@ export function makeGoldenApiOptions(registry: NodeRegistry): HttpApiOptions {
 
 export interface GoldenApp {
   app: FastifyInstance;
-  apiOptions: HttpApiOptions;
+  apiOptions: SdkV1RouteApiOptions;
 }
 
 /**

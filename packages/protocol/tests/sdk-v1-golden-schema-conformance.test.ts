@@ -26,12 +26,6 @@ interface HttpGoldenFixture {
   };
 }
 
-interface WebSocketGoldenFixture {
-  command: string;
-  request: unknown;
-  response: unknown;
-}
-
 interface ExecutionWireFixture {
   frames: Array<{
     direction: "client" | "server";
@@ -58,9 +52,6 @@ const artifacts = generateSdkProtocolArtifacts();
 const fixtureDirectory = new URL("../fixtures/sdk-v1/", import.meta.url);
 const httpFixtureNames = readdirSync(fixtureDirectory)
   .filter((name) => name.startsWith("http-") && name.endsWith(".json"))
-  .sort();
-const websocketFixtureNames = readdirSync(fixtureDirectory)
-  .filter((name) => name.startsWith("ws-") && name.endsWith(".json"))
   .sort();
 
 const openApi = JSON.parse(
@@ -192,36 +183,7 @@ describe("SDK v1 golden/schema conformance", () => {
 
     expect(httpFixtureNames).toHaveLength(11);
     expect(captureCount).toBe(45);
-    expect(transportOnlyCount).toBe(7);
-  });
-
-  it("validates every WebSocket request and response against generated schemas", () => {
-    for (const fixtureName of websocketFixtureNames) {
-      const fixture = readFixture<WebSocketGoldenFixture>(fixtureName);
-      const lifecycle = ["get_capabilities", "preflight_workflow"].includes(
-        fixture.command
-      );
-      const bundleName = lifecycle
-        ? "sdk-v1.lifecycle.schema.json"
-        : "sdk-v1.discovery.schema.json";
-      const requestDefinition = lifecycle ? "LifecycleRpcRequest" : "RpcRequest";
-      const responseDefinition = lifecycle
-        ? "LifecycleRpcResponse"
-        : "RpcResponse";
-
-      expectSchemaMatch(
-        { $ref: `./${bundleName}#/$defs/${requestDefinition}` },
-        fixture.request,
-        `${fixtureName}/request`
-      );
-      expectSchemaMatch(
-        { $ref: `./${bundleName}#/$defs/${responseDefinition}` },
-        fixture.response,
-        `${fixtureName}/response`
-      );
-    }
-
-    expect(websocketFixtureNames).toHaveLength(8);
+    expect(transportOnlyCount).toBe(0);
   });
 
   it("validates every execution golden against the execution schema", () => {
