@@ -1,7 +1,7 @@
 {
   "asyncapi": "3.0.0",
   "channels": {
-    "sdkRpc": {
+    "sdkExecution": {
       "address": "/ws",
       "messages": {
         "executionCommand": {
@@ -19,38 +19,6 @@
           "payload": {
             "$ref": "./sdk-v1.execution.schema.json#/$defs/ExecutionEvent"
           }
-        },
-        "lifecycleRpcRequest": {
-          "contentType": "application/msgpack",
-          "description": "Capabilities and preflight commands behind the lifecycle feature flag.",
-          "name": "LifecycleRpcRequest",
-          "payload": {
-            "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/LifecycleRpcRequest"
-          }
-        },
-        "lifecycleRpcResponse": {
-          "contentType": "application/msgpack",
-          "description": "A correlated capabilities or preflight response.",
-          "name": "LifecycleRpcResponse",
-          "payload": {
-            "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/LifecycleRpcResponse"
-          }
-        },
-        "sdkRpcRequest": {
-          "contentType": "application/msgpack",
-          "description": "A correlated read-only SDK command. request_id must be non-empty.",
-          "name": "SdkRpcRequest",
-          "payload": {
-            "$ref": "./sdk-v1.discovery.schema.json#/$defs/RpcRequest"
-          }
-        },
-        "sdkRpcResponse": {
-          "contentType": "application/msgpack",
-          "description": "Exactly one result or error response correlated by request_id.",
-          "name": "SdkRpcResponse",
-          "payload": {
-            "$ref": "./sdk-v1.discovery.schema.json#/$defs/RpcResponse"
-          }
         }
       }
     }
@@ -64,66 +32,22 @@
     "receiveExecutionEvent": {
       "action": "receive",
       "channel": {
-        "$ref": "#/channels/sdkRpc"
+        "$ref": "#/channels/sdkExecution"
       },
       "messages": [
         {
-          "$ref": "#/channels/sdkRpc/messages/executionEvent"
-        }
-      ]
-    },
-    "receiveLifecycleRpcResponse": {
-      "action": "receive",
-      "channel": {
-        "$ref": "#/channels/sdkRpc"
-      },
-      "messages": [
-        {
-          "$ref": "#/channels/sdkRpc/messages/lifecycleRpcResponse"
-        }
-      ]
-    },
-    "receiveSdkRpcResponse": {
-      "action": "receive",
-      "channel": {
-        "$ref": "#/channels/sdkRpc"
-      },
-      "messages": [
-        {
-          "$ref": "#/channels/sdkRpc/messages/sdkRpcResponse"
+          "$ref": "#/channels/sdkExecution/messages/executionEvent"
         }
       ]
     },
     "sendExecutionCommand": {
       "action": "send",
       "channel": {
-        "$ref": "#/channels/sdkRpc"
+        "$ref": "#/channels/sdkExecution"
       },
       "messages": [
         {
-          "$ref": "#/channels/sdkRpc/messages/executionCommand"
-        }
-      ]
-    },
-    "sendLifecycleRpcRequest": {
-      "action": "send",
-      "channel": {
-        "$ref": "#/channels/sdkRpc"
-      },
-      "messages": [
-        {
-          "$ref": "#/channels/sdkRpc/messages/lifecycleRpcRequest"
-        }
-      ]
-    },
-    "sendSdkRpcRequest": {
-      "action": "send",
-      "channel": {
-        "$ref": "#/channels/sdkRpc"
-      },
-      "messages": [
-        {
-          "$ref": "#/channels/sdkRpc/messages/sdkRpcRequest"
+          "$ref": "#/channels/sdkExecution/messages/executionCommand"
         }
       ]
     }

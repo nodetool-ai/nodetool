@@ -634,7 +634,7 @@
         "summary": "List compact workflow summaries"
       }
     },
-    "/api/workflows/{id}/interface": {
+    "/api/sdk/v1/workflows/{id}/interface": {
       "get": {
         "operationId": "getWorkflowInterface",
         "parameters": [
