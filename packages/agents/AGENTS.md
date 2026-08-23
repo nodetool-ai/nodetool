@@ -459,6 +459,19 @@ around every tool- and plan-approval round trip.
   `describeEngineFailure` turns them into an actionable message instead of raw
   assertion text. Anything not attributable to the engine is re-thrown, so a
   genuine host bug still crashes.
+- The wrapper's Node-compat bootstrap is served cheaper sources
+  (`src/sandbox-bootstrap-modules.ts`). Before our sandboxed function is called
+  it compiles ~12KB of polyfills — `node:buffer`, `node:util`, `node:url`,
+  `Headers`, `Request`, `Response` — into the fresh runtime, and the init
+  prelude then deletes `Buffer`, `Headers`, `Request` and `Response`. Those
+  imports resolve through *our* module loader, so four are served as empty
+  modules and `node:util` as the `TextEncoder`/`TextDecoder` pair the guest
+  keeps; `node:url` still comes from the wrapper, because `URL` and
+  `URLSearchParams` are capabilities and a hand-rolled URL parser is not a
+  saving worth making. Measured: 5.96ms → 3.28ms of per-run setup, against
+  0.34ms for a bare QuickJS context. A wrapper release that renames these
+  modules loses the saving silently, so `tests/js-sandbox-modules.test.ts`
+  asserts that every id we stub is one the bootstrap actually requests.
 - Structured data crosses as JSON, not as handles
   (`src/sandbox-json-transport.ts`). The wrapper marshals an object node by node
   — four `evalCode` compilations plus a descriptor copy per property — so a run
