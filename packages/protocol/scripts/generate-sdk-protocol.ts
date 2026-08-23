@@ -57,6 +57,24 @@ import {
   sdkV1TerminalJobStatus,
   sdkV1ValidationIssue
 } from "../src/api-schemas/sdk-lifecycle-v1.js";
+import {
+  sdkV1CancelJobCommand,
+  sdkV1Chunk,
+  sdkV1EndInputStreamCommand,
+  sdkV1ExecutionCommand,
+  sdkV1ExecutionEvent,
+  sdkV1ExecutionTarget,
+  sdkV1JobResumed,
+  sdkV1JobUpdate,
+  sdkV1NodeProgress,
+  sdkV1NodeUpdate,
+  sdkV1OutputUpdate,
+  sdkV1ProtocolRejection,
+  sdkV1ReconnectJobCommand,
+  sdkV1RunJobCommand,
+  sdkV1StreamInputCommand,
+  sdkV1UpdateNodePropertiesCommand
+} from "../src/api-schemas/sdk-execution-v1.js";
 import type {
   SdkV1HttpErrorDeclaration,
   SdkV1HttpOperationDeclaration,
@@ -78,6 +96,7 @@ import {
 const PROTOCOL_VERSION = "1";
 const SCHEMA_FILE = "sdk-v1.discovery.schema.json";
 const LIFECYCLE_SCHEMA_FILE = "sdk-v1.lifecycle.schema.json";
+const EXECUTION_SCHEMA_FILE = "sdk-v1.execution.schema.json";
 const OPENAPI_FILE = "sdk-v1.openapi.json";
 const OPENAPI_IMPLEMENTED_FILE = "sdk-v1.openapi.implemented.json";
 const ASYNCAPI_FILE = "sdk-v1.asyncapi.json";
@@ -268,6 +287,25 @@ const lifecycleComponents: Record<string, ComponentEntry> = {
   ValidationIssue: outputComponent(sdkV1ValidationIssue)
 };
 
+const executionComponents: Record<string, ComponentEntry> = {
+  CancelJobCommand: inputComponent(sdkV1CancelJobCommand),
+  Chunk: outputComponent(sdkV1Chunk),
+  EndInputStreamCommand: inputComponent(sdkV1EndInputStreamCommand),
+  ExecutionCommand: inputComponent(sdkV1ExecutionCommand),
+  ExecutionEvent: outputComponent(sdkV1ExecutionEvent),
+  ExecutionTarget: outputComponent(sdkV1ExecutionTarget),
+  JobResumed: outputComponent(sdkV1JobResumed),
+  JobUpdate: outputComponent(sdkV1JobUpdate),
+  NodeProgress: outputComponent(sdkV1NodeProgress),
+  NodeUpdate: outputComponent(sdkV1NodeUpdate),
+  OutputUpdate: outputComponent(sdkV1OutputUpdate),
+  ProtocolRejection: outputComponent(sdkV1ProtocolRejection),
+  ReconnectJobCommand: inputComponent(sdkV1ReconnectJobCommand),
+  RunJobCommand: inputComponent(sdkV1RunJobCommand),
+  StreamInputCommand: inputComponent(sdkV1StreamInputCommand),
+  UpdateNodePropertiesCommand: inputComponent(sdkV1UpdateNodePropertiesCommand)
+};
+
 function buildDefs(
   components: Record<string, ComponentEntry>
 ): Record<string, JsonValue> {
@@ -281,14 +319,21 @@ function buildDefs(
 
 const discoveryDefs = buildDefs(discoveryComponents);
 const lifecycleDefs = buildDefs(lifecycleComponents);
+const executionDefs = buildDefs(executionComponents);
 
 function schemaFileFor(profile: SdkV1SchemaRef["profile"]): string {
-  return profile === "discovery" ? SCHEMA_FILE : LIFECYCLE_SCHEMA_FILE;
+  if (profile === "discovery") return SCHEMA_FILE;
+  if (profile === "lifecycle") return LIFECYCLE_SCHEMA_FILE;
+  return EXECUTION_SCHEMA_FILE;
 }
 
 function componentEntryFor(ref: SdkV1SchemaRef): ComponentEntry {
   const table =
-    ref.profile === "discovery" ? discoveryComponents : lifecycleComponents;
+    ref.profile === "discovery"
+      ? discoveryComponents
+      : ref.profile === "lifecycle"
+        ? lifecycleComponents
+        : executionComponents;
   const entry = table[ref.name];
   if (!entry) {
     throw new Error(
@@ -315,7 +360,12 @@ function refPointer(ref: SdkV1SchemaRef): string {
 
 function queryPropertyRef(query: SdkV1SchemaRef, property: string): JsonValue {
   componentEntryFor(query);
-  const defs = query.profile === "discovery" ? discoveryDefs : lifecycleDefs;
+  const defs =
+    query.profile === "discovery"
+      ? discoveryDefs
+      : query.profile === "lifecycle"
+        ? lifecycleDefs
+        : executionDefs;
   const definition = defs[query.name];
   const properties =
     definition !== null &&
@@ -476,8 +526,8 @@ function openApiDocument(
     },
     info: {
       description:
-        "Draft HTTP contract for the feature-flagged NodeTool SDK v1 discovery profile.",
-      title: "NodeTool SDK discovery API",
+        "HTTP contract for NodeTool SDK v1 discovery and lifecycle operations.",
+      title: "NodeTool SDK HTTP API",
       version: PROTOCOL_VERSION
     },
     openapi: "3.1.0",
@@ -496,16 +546,19 @@ function openApiDocument(
 function operationEnvelopes(
   operation: SdkV1WebSocketOperationDeclaration
 ): readonly SdkV1WebSocketMessageKey[] {
-  return operation.direction === "request-response"
-    ? [operation.message.request.envelope, operation.message.response.envelope]
-    : [operation.message.event.envelope];
+  if (operation.direction === "request-response") {
+    return [
+      operation.message.request.envelope,
+      operation.message.response.envelope
+    ];
+  }
+  if (operation.direction === "client-command") {
+    return [operation.message.request.envelope];
+  }
+  return [operation.message.event.envelope];
 }
 
-/**
- * An envelope shared by implemented and planned command variants is marked
- * `partial`; one used only by planned operations is `planned`; a fully
- * implemented envelope carries no marker.
- */
+/** Marks generated envelopes whose declared operations are not all implemented. */
 function envelopeMarker(
   key: SdkV1WebSocketMessageKey
 ): "planned" | "partial" | undefined {
@@ -582,8 +635,8 @@ function asyncApiDocument(
     },
     info: {
       description:
-        "Draft MessagePack WebSocket contract for NodeTool SDK v1 discovery. JSON text remains diagnostic compatibility behavior.",
-      title: "NodeTool SDK discovery WebSocket API",
+        "MessagePack WebSocket contract for NodeTool SDK v1 RPC and workflow execution. JSON text remains diagnostic compatibility behavior.",
+      title: "NodeTool SDK WebSocket API",
       version: PROTOCOL_VERSION
     },
     operations,
@@ -680,7 +733,7 @@ function webSocketOperationManifest(
   return {
     auth: operation.auth,
     channel: operation.channel,
-    ...(operation.direction === "request-response"
+    ...(operation.direction !== "server-event"
       ? { command: operation.command }
       : {}),
     direction: operation.direction,
@@ -702,7 +755,14 @@ function webSocketOperationManifest(
               payload: refPointer(operation.message.response.payload)
             }
           }
-        : {
+        : operation.direction === "client-command"
+          ? {
+              request: {
+                envelope: operation.message.request.envelope,
+                payload: refPointer(operation.message.request.payload)
+              }
+            }
+          : {
             event: {
               envelope: operation.message.event.envelope,
               payload: refPointer(operation.message.event.payload)
@@ -733,6 +793,15 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
     description:
       "Draft public NodeTool SDK v1 capabilities, preflight, jobs, events, results, and asset-reference components.",
     title: "NodeTool SDK v1 lifecycle profiles"
+  });
+
+  const executionSchema = serialize({
+    $defs: executionDefs,
+    $id: "https://nodetool.ai/schemas/sdk/v1/execution.schema.json",
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    description:
+      "Public NodeTool SDK v1 MessagePack workflow-execution components.",
+    title: "NodeTool SDK v1 execution profile"
   });
 
   const openApi = serialize(openApiDocument(sdkV1HttpOperations));
@@ -792,6 +861,11 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
       mediaType: "application/schema+json",
       profile: "lifecycle-draft"
     },
+    [EXECUTION_SCHEMA_FILE]: {
+      content: executionSchema,
+      mediaType: "application/schema+json",
+      profile: "execution"
+    },
     [SCHEMA_FILE]: {
       content: schema,
       mediaType: "application/schema+json",
@@ -828,7 +902,12 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
     manifest_version: 1,
     optional_profiles: ["assets", "jobs", "agent", "offline-bundles"],
     protocol_version: PROTOCOL_VERSION,
-    public_profiles: ["discovery", "model_catalog", "model_download"],
+    public_profiles: [
+      "discovery",
+      "execution",
+      "model_catalog",
+      "model_download"
+    ],
     status: "draft"
   });
 

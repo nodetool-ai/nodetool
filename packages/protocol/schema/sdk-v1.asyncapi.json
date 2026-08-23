@@ -4,32 +4,37 @@
     "sdkRpc": {
       "address": "/ws",
       "messages": {
-        "jobEvent": {
+        "executionCommand": {
           "contentType": "application/msgpack",
-          "description": "A planned ordered per-job event emitted after subscription.",
-          "name": "JobEvent",
+          "description": "An authenticated SDK workflow-execution command encoded as MessagePack.",
+          "name": "SdkExecutionCommand",
           "payload": {
-            "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/JobEvent"
-          },
-          "x-nodetool-implementation": "planned"
+            "$ref": "./sdk-v1.execution.schema.json#/$defs/ExecutionCommand"
+          }
+        },
+        "executionEvent": {
+          "contentType": "application/msgpack",
+          "description": "An execution target, replay header, live job event, terminal result, or protocol rejection.",
+          "name": "SdkExecutionEvent",
+          "payload": {
+            "$ref": "./sdk-v1.execution.schema.json#/$defs/ExecutionEvent"
+          }
         },
         "lifecycleRpcRequest": {
           "contentType": "application/msgpack",
-          "description": "Capabilities and preflight are implemented behind the lifecycle feature flag; later job lifecycle commands remain planned.",
+          "description": "Capabilities and preflight commands behind the lifecycle feature flag.",
           "name": "LifecycleRpcRequest",
           "payload": {
             "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/LifecycleRpcRequest"
-          },
-          "x-nodetool-implementation": "partial"
+          }
         },
         "lifecycleRpcResponse": {
           "contentType": "application/msgpack",
-          "description": "A correlated lifecycle response. Capabilities and preflight are implemented; later job lifecycle responses remain planned.",
+          "description": "A correlated capabilities or preflight response.",
           "name": "LifecycleRpcResponse",
           "payload": {
             "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/LifecycleRpcResponse"
-          },
-          "x-nodetool-implementation": "partial"
+          }
         },
         "sdkRpcRequest": {
           "contentType": "application/msgpack",
@@ -51,22 +56,21 @@
     }
   },
   "info": {
-    "description": "Draft MessagePack WebSocket contract for NodeTool SDK v1 discovery. JSON text remains diagnostic compatibility behavior.",
-    "title": "NodeTool SDK discovery WebSocket API",
+    "description": "MessagePack WebSocket contract for NodeTool SDK v1 RPC and workflow execution. JSON text remains diagnostic compatibility behavior.",
+    "title": "NodeTool SDK WebSocket API",
     "version": "1"
   },
   "operations": {
-    "receiveJobEvent": {
+    "receiveExecutionEvent": {
       "action": "receive",
       "channel": {
         "$ref": "#/channels/sdkRpc"
       },
       "messages": [
         {
-          "$ref": "#/channels/sdkRpc/messages/jobEvent"
+          "$ref": "#/channels/sdkRpc/messages/executionEvent"
         }
-      ],
-      "x-nodetool-implementation": "planned"
+      ]
     },
     "receiveLifecycleRpcResponse": {
       "action": "receive",
@@ -77,8 +81,7 @@
         {
           "$ref": "#/channels/sdkRpc/messages/lifecycleRpcResponse"
         }
-      ],
-      "x-nodetool-implementation": "partial"
+      ]
     },
     "receiveSdkRpcResponse": {
       "action": "receive",
@@ -91,6 +94,17 @@
         }
       ]
     },
+    "sendExecutionCommand": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/sdkRpc"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/sdkRpc/messages/executionCommand"
+        }
+      ]
+    },
     "sendLifecycleRpcRequest": {
       "action": "send",
       "channel": {
@@ -100,8 +114,7 @@
         {
           "$ref": "#/channels/sdkRpc/messages/lifecycleRpcRequest"
         }
-      ],
-      "x-nodetool-implementation": "partial"
+      ]
     },
     "sendSdkRpcRequest": {
       "action": "send",

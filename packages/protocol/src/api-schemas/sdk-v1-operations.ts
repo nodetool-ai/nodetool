@@ -8,6 +8,7 @@
 import type { z } from "zod";
 import type { SdkV1RpcCommand } from "./sdk-v1.js";
 import type { SdkV1LifecycleRpcCommand } from "./sdk-lifecycle-v1.js";
+import type { SdkV1ExecutionCommand } from "./sdk-execution-v1.js";
 import {
   getSdkV1HttpOperation,
   implementedSdkV1HttpOperations,
@@ -24,7 +25,11 @@ import {
 
 export type SdkV1OperationStatus = "implemented" | "planned";
 export type SdkV1OperationAuth = "discovery" | "authenticated";
-export type SdkV1OperationFeature = "workflow-interface" | "lifecycle" | null;
+export type SdkV1OperationFeature =
+  | "workflow-interface"
+  | "lifecycle"
+  | "execution"
+  | null;
 
 export type SdkV1HttpOperationId =
   | "getNodeTypeInventory"
@@ -49,11 +54,20 @@ export type SdkV1WebSocketOperationId =
   | "sdkRpc.get_node_type_inventory"
   | "lifecycleRpc.get_capabilities"
   | "lifecycleRpc.preflight_workflow"
-  | "lifecycleRpc.submit_job"
-  | "lifecycleRpc.get_job_snapshot"
-  | "lifecycleRpc.subscribe_job"
-  | "lifecycleRpc.cancel_job"
-  | "receiveJobEvent";
+  | "execution.run_job"
+  | "execution.cancel_job"
+  | "execution.reconnect_job"
+  | "execution.stream_input"
+  | "execution.end_input_stream"
+  | "execution.update_node_properties"
+  | "execution.execution_target"
+  | "execution.job_resumed"
+  | "execution.job_update"
+  | "execution.node_update"
+  | "execution.node_progress"
+  | "execution.output_update"
+  | "execution.chunk"
+  | "execution.protocol_rejection";
 
 export type SdkV1OperationId = SdkV1HttpOperationId | SdkV1WebSocketOperationId;
 
@@ -66,7 +80,7 @@ export type SdkV1JsonValue =
   | { readonly [key: string]: SdkV1JsonValue };
 
 /** Which generated JSON Schema file carries a referenced component. */
-export type SdkV1SchemaProfile = "discovery" | "lifecycle";
+export type SdkV1SchemaProfile = "discovery" | "lifecycle" | "execution";
 
 /**
  * A reference to one generated `$defs` component. `schema` is the Zod source
@@ -162,17 +176,28 @@ export type SdkV1HttpOperationDeclaration = SdkV1OperationCommonBase<
 
 export type SdkV1WebSocketRequestMessageKey =
   | "sdkRpcRequest"
-  | "lifecycleRpcRequest";
+  | "lifecycleRpcRequest"
+  | "executionCommand";
 export type SdkV1WebSocketResponseMessageKey =
   | "sdkRpcResponse"
   | "lifecycleRpcResponse";
-export type SdkV1WebSocketEventMessageKey = "jobEvent";
+export type SdkV1WebSocketEventMessageKey = "jobEvent" | "executionEvent";
 export type SdkV1WebSocketMessageKey =
   | SdkV1WebSocketRequestMessageKey
   | SdkV1WebSocketResponseMessageKey
   | SdkV1WebSocketEventMessageKey;
 
-export type SdkV1WebSocketCommand = SdkV1RpcCommand | SdkV1LifecycleRpcCommand;
+export type SdkV1WebSocketCommand =
+  | SdkV1RpcCommand
+  | SdkV1LifecycleRpcCommand
+  | SdkV1ExecutionCommand["command"];
+
+export type SdkV1ClientCommandMessageDeclaration = {
+  readonly request: {
+    readonly envelope: SdkV1WebSocketRequestMessageKey;
+    readonly payload: SdkV1SchemaRef;
+  };
+};
 
 export type SdkV1RequestResponseMessageDeclaration = {
   readonly request: {
@@ -194,6 +219,7 @@ export type SdkV1ServerEventMessageDeclaration = {
 
 export type SdkV1MessageDeclaration =
   | SdkV1RequestResponseMessageDeclaration
+  | SdkV1ClientCommandMessageDeclaration
   | SdkV1ServerEventMessageDeclaration;
 
 export type SdkV1WebSocketOperationDeclaration = SdkV1OperationCommonBase<
@@ -207,6 +233,11 @@ export type SdkV1WebSocketOperationDeclaration = SdkV1OperationCommonBase<
         readonly direction: "request-response";
         readonly command: SdkV1WebSocketCommand;
         readonly message: SdkV1RequestResponseMessageDeclaration;
+      }
+    | {
+        readonly direction: "client-command";
+        readonly command: SdkV1WebSocketCommand;
+        readonly message: SdkV1ClientCommandMessageDeclaration;
       }
     | {
         readonly direction: "server-event";
@@ -248,7 +279,9 @@ function isValidSchemaRef(
     ref !== undefined &&
     typeof ref.name === "string" &&
     ref.name.length > 0 &&
-    (ref.profile === "discovery" || ref.profile === "lifecycle") &&
+    (ref.profile === "discovery" ||
+      ref.profile === "lifecycle" ||
+      ref.profile === "execution") &&
     ref.schema !== undefined &&
     ref.schema !== null
   );
@@ -265,7 +298,8 @@ function validatePolicy(
     !Object.hasOwn(operation, "feature") ||
     (operation.feature !== null &&
       operation.feature !== "workflow-interface" &&
-      operation.feature !== "lifecycle")
+      operation.feature !== "lifecycle" &&
+      operation.feature !== "execution")
   ) {
     issues.push(`operation ${operation.id} has no feature policy`);
   }
@@ -320,9 +354,9 @@ export function validateSdkV1OperationRegistry(
   const seenChannelIdentities = new Set<string>();
   for (const operation of registry.websocket) {
     const identity =
-      operation.direction === "request-response"
-        ? `${operation.channel}:${operation.command}`
-        : `${operation.channel}:event:${operation.message.event.envelope}`;
+      operation.direction === "server-event"
+        ? `${operation.channel}:event:${operation.id}`
+        : `${operation.channel}:${operation.command}`;
     if (seenChannelIdentities.has(identity)) {
       issues.push(`duplicate WebSocket channel identity ${identity}`);
     }
@@ -336,6 +370,17 @@ export function validateSdkV1OperationRegistry(
         ) {
           issues.push(
             `implemented operation ${operation.id} has no request/response schemas`
+          );
+        }
+        if (operation.errors.length === 0) {
+          issues.push(
+            `implemented operation ${operation.id} declares no errors`
+          );
+        }
+      } else if (operation.direction === "client-command") {
+        if (!isValidSchemaRef(operation.message.request?.payload)) {
+          issues.push(
+            `implemented operation ${operation.id} has no request schema`
           );
         }
         if (operation.errors.length === 0) {

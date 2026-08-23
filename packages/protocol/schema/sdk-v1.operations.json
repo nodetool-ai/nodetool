@@ -70,6 +70,266 @@
       "transport": "http"
     },
     {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "cancel_job",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.cancel_job",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/CancelJobCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.chunk",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/Chunk"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "end_input_stream",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.end_input_stream",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/EndInputStreamCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.execution_target",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/ExecutionTarget"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.job_resumed",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/JobResumed"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.job_update",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/JobUpdate"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.node_progress",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/NodeProgress"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.node_update",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/NodeUpdate"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.output_update",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/OutputUpdate"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.protocol_rejection",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/ProtocolRejection"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "reconnect_job",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.reconnect_job",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/ReconnectJobCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "run_job",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.run_job",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/RunJobCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "stream_input",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.stream_input",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/StreamInputCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkRpc",
+      "command": "update_node_properties",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.update_node_properties",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/UpdateNodePropertiesCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
       "auth": "discovery",
       "errors": [
         {
@@ -264,32 +524,6 @@
       "transport": "http"
     },
     {
-      "auth": "authenticated",
-      "channel": "sdkRpc",
-      "command": "cancel_job",
-      "direction": "request-response",
-      "errors": [
-        {
-          "code": "NOT_FOUND",
-          "description": "Job not found, inaccessible, or expired"
-        }
-      ],
-      "feature": "lifecycle",
-      "id": "lifecycleRpc.cancel_job",
-      "message": {
-        "request": {
-          "envelope": "lifecycleRpcRequest",
-          "payload": "sdk-v1.lifecycle.schema.json#/$defs/JobRequest"
-        },
-        "response": {
-          "envelope": "lifecycleRpcResponse",
-          "payload": "sdk-v1.lifecycle.schema.json#/$defs/CancelJobResponse"
-        }
-      },
-      "status": "planned",
-      "transport": "websocket"
-    },
-    {
       "auth": "discovery",
       "channel": "sdkRpc",
       "command": "get_capabilities",
@@ -313,32 +547,6 @@
         }
       },
       "status": "implemented",
-      "transport": "websocket"
-    },
-    {
-      "auth": "authenticated",
-      "channel": "sdkRpc",
-      "command": "get_job_snapshot",
-      "direction": "request-response",
-      "errors": [
-        {
-          "code": "NOT_FOUND",
-          "description": "Job not found, inaccessible, or expired"
-        }
-      ],
-      "feature": "lifecycle",
-      "id": "lifecycleRpc.get_job_snapshot",
-      "message": {
-        "request": {
-          "envelope": "lifecycleRpcRequest",
-          "payload": "sdk-v1.lifecycle.schema.json#/$defs/JobRequest"
-        },
-        "response": {
-          "envelope": "lifecycleRpcResponse",
-          "payload": "sdk-v1.lifecycle.schema.json#/$defs/JobSnapshot"
-        }
-      },
-      "status": "planned",
       "transport": "websocket"
     },
     {
@@ -373,66 +581,6 @@
         }
       },
       "status": "implemented",
-      "transport": "websocket"
-    },
-    {
-      "auth": "authenticated",
-      "channel": "sdkRpc",
-      "command": "submit_job",
-      "direction": "request-response",
-      "errors": [
-        {
-          "code": "INVALID_INPUT",
-          "description": "Invalid submission"
-        },
-        {
-          "code": "TOO_MANY_REQUESTS",
-          "description": "Admission or rate limit exceeded"
-        },
-        {
-          "code": "SERVICE_UNAVAILABLE",
-          "description": "Execution is unavailable"
-        }
-      ],
-      "feature": "lifecycle",
-      "id": "lifecycleRpc.submit_job",
-      "message": {
-        "request": {
-          "envelope": "lifecycleRpcRequest",
-          "payload": "sdk-v1.lifecycle.schema.json#/$defs/SubmitJobRequest"
-        },
-        "response": {
-          "envelope": "lifecycleRpcResponse",
-          "payload": "sdk-v1.lifecycle.schema.json#/$defs/SubmitJobResponse"
-        }
-      },
-      "status": "planned",
-      "transport": "websocket"
-    },
-    {
-      "auth": "authenticated",
-      "channel": "sdkRpc",
-      "command": "subscribe_job",
-      "direction": "request-response",
-      "errors": [
-        {
-          "code": "NOT_FOUND",
-          "description": "Job not found, inaccessible, or expired"
-        }
-      ],
-      "feature": "lifecycle",
-      "id": "lifecycleRpc.subscribe_job",
-      "message": {
-        "request": {
-          "envelope": "lifecycleRpcRequest",
-          "payload": "sdk-v1.lifecycle.schema.json#/$defs/SubscribeJobRequest"
-        },
-        "response": {
-          "envelope": "lifecycleRpcResponse",
-          "payload": "sdk-v1.lifecycle.schema.json#/$defs/SubscribeJobResponse"
-        }
-      },
-      "status": "planned",
       "transport": "websocket"
     },
     {
@@ -641,22 +789,6 @@
       },
       "status": "implemented",
       "transport": "http"
-    },
-    {
-      "auth": "authenticated",
-      "channel": "sdkRpc",
-      "direction": "server-event",
-      "errors": [],
-      "feature": "lifecycle",
-      "id": "receiveJobEvent",
-      "message": {
-        "event": {
-          "envelope": "jobEvent",
-          "payload": "sdk-v1.lifecycle.schema.json#/$defs/JobEvent"
-        }
-      },
-      "status": "planned",
-      "transport": "websocket"
     },
     {
       "auth": "discovery",

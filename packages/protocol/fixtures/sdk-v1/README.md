@@ -6,6 +6,7 @@ Captured baseline for every implemented SDK v1 operation
 
 - `sdk-v1-http-goldens.test.ts` reads `http-*.json`
 - `sdk-v1-ws-goldens.test.ts` reads `ws-*.json`
+- `sdk-v1-execution-contract.test.ts` reads `execution-wire.json`
 
 Baseline record: `docs/sdk/phase-0-baseline-2026-08-22.md`.
 
@@ -37,6 +38,11 @@ MessagePack encoding (`messagepack_request_hex`, `messagepack_response_hex`,
 via `packWebSocketMessage`). Key order in `request`/`response` is wire
 order — these two objects are deliberately not key-sorted, because the test
 asserts they re-encode to the recorded bytes.
+
+`execution-wire.json` separately freezes the first public execution profile:
+all six C# SDK commands plus target selection, replay, live updates, terminal
+results, and protocol rejection events. Its test also checks that the command
+registry and live runner switch have the same complete command inventory.
 
 ## Determinism
 

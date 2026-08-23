@@ -709,14 +709,14 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 
 #### Phase 8A `[nodetool]` - Remove duplicate SDK transports
 
-- [ ] Repeat the Phase 0 caller audit against the current branch. Record every
+- [x] Repeat the Phase 0 caller audit against the current branch. Record every
       in-repository caller of the four SDK-specific tRPC procedures and six SDK
       discovery/lifecycle WebSocket commands.
-- [ ] Inventory the actual C# execution wire before deleting any WebSocket
+- [x] Inventory the actual C# execution wire before deleting any WebSocket
       declaration: `run_job`, `cancel_job`, `reconnect_job`, `stream_input`,
       `end_input_stream`, `update_node_properties`, and every response, live
       event, replay, terminal result, and error that the SDK consumes.
-- [ ] Add that execution inventory to the SDK v1 WebSocket registry, AsyncAPI,
+- [x] Add that execution inventory to the SDK v1 WebSocket registry, AsyncAPI,
       dispatcher/publisher completeness checks, and byte-exact MessagePack
       goldens. The six discovery/lifecycle RPC declarations may be removed only
       after the replacement execution contract is complete.
@@ -728,7 +728,7 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 - [ ] Remove the six SDK discovery/lifecycle WebSocket commands. Keep the
       WebSocket transport, execution commands, job correlation, cancellation,
       reconnect, replay, streaming outputs, and live events.
-- [ ] Remove unimplemented SDK lifecycle job declarations from the public v1
+- [x] Remove unimplemented SDK lifecycle job declarations from the public v1
       manifest. Keep roadmap items in design notes, not client input schemas.
 - [ ] Move the single workflow-interface operation from
       `/api/workflows/{id}/interface` to

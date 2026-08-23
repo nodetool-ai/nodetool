@@ -4,19 +4,25 @@
       "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
       "path": "sdk-v1.asyncapi.json",
       "profile": "discovery",
-      "sha256": "ae9450d4c080d002d5701dfd9a1fe6148708e5b1f054444d55de18053b8367ce"
+      "sha256": "f0220c9ed2a4dff2dfbebbc4b1ec5776a31f3a0133ab4c3c2e0baf9b07a24fc2"
     },
     {
       "media_type": "application/vnd.oai.openapi+json;version=3.1",
       "path": "sdk-v1.openapi.json",
       "profile": "discovery",
-      "sha256": "900230d25e4a28367e40b56e8c9f6027855a6a47467b7668fec32215556cab8b"
+      "sha256": "5ec7dd21b8eff74f0477c8a146e0428abdbf23b5b8e639fc84e49d3269452d2f"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.lifecycle.schema.json",
       "profile": "lifecycle-draft",
       "sha256": "f45a929adf96b3d9a5889c21bc94b80c9d32188510f8d95c75d97bba26283de1"
+    },
+    {
+      "media_type": "application/schema+json",
+      "path": "sdk-v1.execution.schema.json",
+      "profile": "execution",
+      "sha256": "fdbbcb892655ee62aa768f0601b850569194ed620cb7bfb5e3aba16af0feb42a"
     },
     {
       "media_type": "application/schema+json",
@@ -28,21 +34,21 @@
       "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
       "path": "sdk-v1.asyncapi.implemented.json",
       "profile": "discovery",
-      "sha256": "184538a5b8a1e352314cab952eac9726051b3123969f3bf3ba9f14899ac6c54b",
+      "sha256": "f0220c9ed2a4dff2dfbebbc4b1ec5776a31f3a0133ab4c3c2e0baf9b07a24fc2",
       "variant": "implemented"
     },
     {
       "media_type": "application/vnd.oai.openapi+json;version=3.1",
       "path": "sdk-v1.openapi.implemented.json",
       "profile": "discovery",
-      "sha256": "a990d499128643b49a9573cb6a0f55ba2ca8eb636373d54dee6f41299edf128f",
+      "sha256": "021aed78be2899347b55f5b6709959071d57087bf322be4b33f927205709f38e",
       "variant": "implemented"
     },
     {
       "media_type": "application/json",
       "path": "sdk-v1.operations.json",
       "profile": "operations",
-      "sha256": "6a9b8c3837c03a7d835d89a0bafc2e62d36d079ac1cb92cc578dd24a50f255bf"
+      "sha256": "b493b49bba7087f7c99f4a14060aa67cef03bff70b8c4d93da0178dfed9922cd"
     }
   ],
   "default_websocket_encoding": "messagepack",
@@ -57,6 +63,7 @@
   "protocol_version": "1",
   "public_profiles": [
     "discovery",
+    "execution",
     "model_catalog",
     "model_download"
   ],

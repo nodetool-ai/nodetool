@@ -34,8 +34,8 @@ describe("SDK v1 operation registry", () => {
   it("declares the expected operation inventory", () => {
     expect(sdkV1HttpOperations).toHaveLength(14);
     expect(implementedSdkV1HttpOperations).toHaveLength(11);
-    expect(sdkV1WebSocketOperations).toHaveLength(11);
-    expect(implementedSdkV1WebSocketOperations).toHaveLength(6);
+    expect(sdkV1WebSocketOperations).toHaveLength(20);
+    expect(implementedSdkV1WebSocketOperations).toHaveLength(20);
   });
 
   it("accepts the shipped declarations", () => {
@@ -316,26 +316,31 @@ describe("generated operation profiles", () => {
     const raw = artifacts["sdk-v1.asyncapi.implemented.json"];
     const document = JSON.parse(raw) as AsyncApiDocument;
     expect(Object.keys(document.channels.sdkRpc.messages).sort()).toEqual([
+      "executionCommand",
+      "executionEvent",
       "lifecycleRpcRequest",
       "lifecycleRpcResponse",
       "sdkRpcRequest",
       "sdkRpcResponse"
     ]);
     expect(Object.keys(document.operations).sort()).toEqual([
+      "receiveExecutionEvent",
       "receiveLifecycleRpcResponse",
       "receiveSdkRpcResponse",
+      "sendExecutionCommand",
       "sendLifecycleRpcRequest",
       "sendSdkRpcRequest"
     ]);
     expect(raw).not.toContain('"x-nodetool-implementation": "planned"');
-    // Lifecycle envelopes still mix implemented and planned commands.
-    expect(raw).toContain('"x-nodetool-implementation": "partial"');
+    expect(raw).not.toContain('"x-nodetool-implementation": "partial"');
 
     const full = JSON.parse(
       artifacts["sdk-v1.asyncapi.json"]
     ) as AsyncApiDocument;
-    expect(Object.keys(full.channels.sdkRpc.messages)).toContain("jobEvent");
-    expect(Object.keys(full.operations)).toContain("receiveJobEvent");
+    expect(Object.keys(full.channels.sdkRpc.messages)).toEqual(
+      Object.keys(document.channels.sdkRpc.messages)
+    );
+    expect(Object.keys(full.operations)).toEqual(Object.keys(document.operations));
   });
 
   it("emits an operations manifest matching the declarations 1:1", () => {
@@ -424,7 +429,7 @@ describe("generated operation profiles", () => {
         status: declaration.status,
         transport: "websocket"
       });
-      if (declaration.direction === "request-response") {
+      if (declaration.direction !== "server-event") {
         expect(entry?.command).toBe(declaration.command);
       } else {
         expect(entry?.command).toBeUndefined();
@@ -445,6 +450,7 @@ describe("generated operation profiles", () => {
     for (const path of [
       "sdk-v1.openapi.implemented.json",
       "sdk-v1.asyncapi.implemented.json",
+      "sdk-v1.execution.schema.json",
       "sdk-v1.operations.json"
     ]) {
       const entry = manifest.artifacts.find(

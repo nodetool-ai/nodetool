@@ -32,6 +32,14 @@ interface WebSocketGoldenFixture {
   response: unknown;
 }
 
+interface ExecutionWireFixture {
+  frames: Array<{
+    direction: "client" | "server";
+    message: unknown;
+    name: string;
+  }>;
+}
+
 interface OpenApiOperation {
   requestBody?: {
     content: Record<string, { schema: JsonSchema }>;
@@ -59,7 +67,11 @@ const openApi = JSON.parse(
   artifacts["sdk-v1.openapi.implemented.json"]
 ) as OpenApiDocument;
 const schemaBundles = new Map(
-  ["sdk-v1.discovery.schema.json", "sdk-v1.lifecycle.schema.json"].map(
+  [
+    "sdk-v1.discovery.schema.json",
+    "sdk-v1.lifecycle.schema.json",
+    "sdk-v1.execution.schema.json"
+  ].map(
     (name) => [name, JSON.parse(artifacts[name]) as JsonSchema]
   )
 );
@@ -210,5 +222,23 @@ describe("SDK v1 golden/schema conformance", () => {
     }
 
     expect(websocketFixtureNames).toHaveLength(8);
+  });
+
+  it("validates every execution golden against the execution schema", () => {
+    const fixture = readFixture<ExecutionWireFixture>("execution-wire.json");
+
+    for (const frame of fixture.frames) {
+      const definition =
+        frame.direction === "client" ? "ExecutionCommand" : "ExecutionEvent";
+      expectSchemaMatch(
+        {
+          $ref: `./sdk-v1.execution.schema.json#/$defs/${definition}`
+        },
+        frame.message,
+        frame.name
+      );
+    }
+
+    expect(fixture.frames).toHaveLength(15);
   });
 });

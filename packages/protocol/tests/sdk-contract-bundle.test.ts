@@ -164,6 +164,7 @@ describe("SDK contract bundle builder", () => {
       "schema/sdk-v1.asyncapi.implemented.json",
       "schema/sdk-v1.discovery.schema.json",
       "schema/sdk-v1.lifecycle.schema.json",
+      "schema/sdk-v1.execution.schema.json",
       "schema/sdk-v1.operations.json",
       "schema/sdk-v1.manifest.json",
       "fixtures/sdk-v1-baseline.json",

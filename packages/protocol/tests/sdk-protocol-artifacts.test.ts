@@ -83,6 +83,7 @@ describe("generated public SDK protocol artifacts", () => {
 
     expect(manifest.protocol_version).toBe("1");
     expect(manifest.public_profiles).toContain("discovery");
+    expect(manifest.public_profiles).toContain("execution");
     for (const artifact of manifest.artifacts) {
       const content = artifacts[artifact.path];
       expect(content, artifact.path).toBeDefined();
@@ -126,7 +127,11 @@ describe("generated public SDK protocol artifacts", () => {
     expect(asyncApi.operations.sendSdkRpcRequest?.action).toBe("send");
     expect(asyncApi.operations.receiveSdkRpcResponse?.action).toBe("receive");
     expect(asyncApi.operations.sendLifecycleRpcRequest?.action).toBe("send");
-    expect(asyncApi.operations.receiveJobEvent?.action).toBe("receive");
+    expect(asyncApi.operations.receiveLifecycleRpcResponse?.action).toBe(
+      "receive"
+    );
+    expect(asyncApi.operations.sendExecutionCommand?.action).toBe("send");
+    expect(asyncApi.operations.receiveExecutionEvent?.action).toBe("receive");
   });
 
   it("validates baseline payloads from the committed JSON Schema", () => {
@@ -167,6 +172,9 @@ describe("generated public SDK protocol artifacts", () => {
     );
     expectAllDefinitionsToCompile(
       JSON.parse(artifacts["sdk-v1.lifecycle.schema.json"]) as JsonSchema
+    );
+    expectAllDefinitionsToCompile(
+      JSON.parse(artifacts["sdk-v1.execution.schema.json"]) as JsonSchema
     );
   }, 20_000);
 

@@ -695,7 +695,8 @@ function resolveInDirectory(
 
 const SCHEMA_FILE_NAMES = [
   "sdk-v1.discovery.schema.json",
-  "sdk-v1.lifecycle.schema.json"
+  "sdk-v1.lifecycle.schema.json",
+  "sdk-v1.execution.schema.json"
 ];
 
 function loadTarget(argument: string): ContractTarget {
