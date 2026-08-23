@@ -237,7 +237,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "find_model",
     module: "models",
     impl: "packages/agents/src/capabilities/models.ts",
-    contract: "93b414be8776",
+    contract: "035763b68b4a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-models.test.ts",
