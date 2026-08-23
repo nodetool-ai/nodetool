@@ -836,6 +836,39 @@ export class ConcatTextNode extends BaseNode {
   }
 }
 
+type ReplaceTextNodeOutputs = {
+  output: string;
+};
+
+export class ReplaceTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.Replace";
+  static readonly retrySafe = true;
+  static readonly cacheTtl = "forever";
+  static readonly title = "Replace";
+  static readonly description = "Replaces all occurrences of text.";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  @prop({ type: "str", default: "", title: "Text" })
+  declare text: string;
+
+  @prop({ type: "str", default: "", title: "Old" })
+  declare old: string;
+
+  @prop({ type: "str", default: "", title: "New" })
+  declare new: string;
+
+  async process(): Promise<ReplaceTextNodeOutputs> {
+    return {
+      output: String(this.text ?? "").replaceAll(
+        String(this.old ?? ""),
+        String(this.new ?? "")
+      )
+    };
+  }
+}
+
 /** Output handles CollectTextNode.process() emits. */
 type CollectTextNodeOutputs = {
   output: string;
@@ -996,6 +1029,7 @@ export const TEXT_EXTRA_NODES = tagAsServer([
   FilterStringNode,
   FilterRegexStringNode,
   ConcatTextNode,
+  ReplaceTextNode,
   CollectTextNode,
   PromptNode,
   TemplateTextNode

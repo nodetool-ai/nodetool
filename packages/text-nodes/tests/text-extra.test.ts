@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ConcatTextNode } from "@nodetool-ai/text-nodes";
+import { ConcatTextNode, ReplaceTextNode } from "@nodetool-ai/text-nodes";
 
 // CountTokensNode is gone — tiktoken reaches the sandbox as the
 // @nodetool-ai/sandbox-tokens host pack, covered by
@@ -48,5 +48,25 @@ describe("ConcatTextNode — flattens list inputs", () => {
     node.setDynamic("body", ["x", "y"]);
     node.setDynamic("outro", ">");
     expect((await node.process()).output).toBe("<xy>");
+  });
+});
+
+describe("ReplaceTextNode", () => {
+  it("replaces every occurrence", async () => {
+    const node = new ReplaceTextNode();
+    node.text = "one fish, two fish";
+    node.old = "fish";
+    node.new = "cat";
+
+    expect((await node.process()).output).toBe("one cat, two cat");
+  });
+
+  it("uses an empty replacement instead of the string undefined", async () => {
+    const node = new ReplaceTextNode();
+    node.text = "hello world";
+    node.old = " world";
+    Reflect.set(node, "new", undefined);
+
+    expect((await node.process()).output).toBe("hello");
   });
 });
