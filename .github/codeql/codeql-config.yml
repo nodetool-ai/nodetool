@@ -11,7 +11,3 @@ query-filters:
       id: js/missing-rate-limiting
       paths:
         - packages/websocket/src/server.ts
-        # Test harnesses build in-process Fastify apps with inline route
-        # handlers driven by fastify.inject — never a listening socket, so
-        # there is nothing to rate-limit.
-        - packages/websocket/tests
