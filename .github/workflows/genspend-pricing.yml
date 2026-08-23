@@ -9,6 +9,16 @@ name: GenSpend Pricing Sync
 # this opens a PR and never pushes to main. When nothing moved the script
 # rewrites nothing and no PR is opened.
 #
+# Opening that PR needs a token GitHub lets create pull requests. The default
+# `GITHUB_TOKEN` is not one unless the repository enables Settings > Actions >
+# General > "Allow GitHub Actions to create and approve pull requests"; without
+# it the API answers "GitHub Actions is not permitted to create or approve pull
+# requests" and the branch is pushed with nothing to review. Set a
+# `PRICING_SYNC_TOKEN` secret (a PAT or App token with `contents: write` and
+# `pull-requests: write`) to open the PR as that identity instead. When neither
+# is available the job pushes the branch, prints the compare link, and fails —
+# a moved price with no PR is not a green run.
+#
 # The sync matches GenSpend models against the models each provider enumerates
 # in NodeTool, so it needs the backend packages built. No provider API keys: the
 # listings it reads are static or manifest-backed, and the GenSpend API is
@@ -96,9 +106,14 @@ jobs:
           fi
 
       - name: Open PR
+        id: pr
         if: steps.diff.outputs.changed == 'true'
+        continue-on-error: true
         uses: peter-evans/create-pull-request@v8
         with:
+          # Falls back to GITHUB_TOKEN, which only works where the repository
+          # allows Actions to create pull requests. See the header comment.
+          token: ${{ secrets.PRICING_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
           branch: chore/genspend-pricing-sync
           base: main
           add-paths: packages/model-pricing/src/generated/genspend-pricing.json
@@ -124,3 +139,28 @@ jobs:
             `genspend-coverage` artifact — pin any that should be priced in
             `scripts/genspend/aliases.json`.
           delete-branch: true
+
+      - name: Report a blocked PR
+        # create-pull-request pushes the branch before it calls the API, so a
+        # refusal here leaves the change on the branch with nothing pointing at
+        # it. Say where it went and how to unblock the next run, and stay red.
+        if: steps.diff.outputs.changed == 'true' && steps.pr.outcome != 'success'
+        env:
+          BRANCH: chore/genspend-pricing-sync
+        run: |
+          set -euo pipefail
+          COMPARE="${{ github.server_url }}/${{ github.repository }}/compare/main...$BRANCH?expand=1"
+          {
+            echo "## GenSpend price sync: prices moved, PR not opened"
+            echo
+            echo "The refreshed catalog is pushed to \`$BRANCH\`. Open it by hand:"
+            echo
+            echo "$COMPARE"
+            echo
+            echo "To let the next run open the PR itself, either:"
+            echo
+            echo "- enable **Settings > Actions > General > Allow GitHub Actions to create and approve pull requests**, or"
+            echo "- add a \`PRICING_SYNC_TOKEN\` secret (PAT or App token with \`contents: write\` and \`pull-requests: write\`)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Prices moved but no pull request was opened. Review $COMPARE"
+          exit 1
