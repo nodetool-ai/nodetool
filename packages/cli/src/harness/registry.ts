@@ -630,6 +630,32 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "model3d",
+    title: "3D models (glTF scenes, ui_3d_* tools, model3d capabilities)",
+    harnesses: ["capability-suites", "eval"],
+    paths: [
+      "packages/model3d/",
+      "packages/agents/src/capabilities/model3d.ts",
+      "packages/agents/src/capabilities/model3d.specs.ts",
+      "packages/agents/src/evals/surfaces/model3d.ts",
+      "web/src/components/model_editor/",
+      "web/src/components/workspace/Model3DSurface.tsx",
+      "web/src/lib/tools/builtin/model3d.ts"
+    ]
+  },
+  {
+    id: "entities",
+    title: "Entity library (ingredients, prompt injection, ui_entity_* tools)",
+    harnesses: ["capability-suites"],
+    paths: [
+      "packages/agents/src/capabilities/entities.ts",
+      "packages/agents/src/capabilities/entities.specs.ts",
+      "web/src/components/entities/",
+      "web/src/serverState/useEntities.ts",
+      "web/src/lib/tools/builtin/entities.ts"
+    ]
+  },
+  {
     id: "sandbox-packages",
     title: "Sandbox packages (guest modules, host modules, npm compilation, catalog)",
     harnesses: ["packs-compile", "validate"],

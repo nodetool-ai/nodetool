@@ -35,6 +35,7 @@ import { collectionsSpecs } from "./collections.specs.js";
 import { costsSpecs } from "./costs.specs.js";
 import { documentsSpecs } from "./documents.specs.js";
 import { emailSpecs } from "./email.specs.js";
+import { entitiesSpecs } from "./entities.specs.js";
 import { filesSpecs } from "./files.specs.js";
 import { flowSpecs } from "./flow.specs.js";
 import { googleSpecs } from "./google.specs.js";
@@ -42,6 +43,7 @@ import { jobsSpecs } from "./jobs.specs.js";
 import { jsScriptsSpecs } from "./js-scripts.specs.js";
 import { mediaSpecs } from "./media.specs.js";
 import { memorySpecs } from "./memory.specs.js";
+import { model3dSpecs } from "./model3d.specs.js";
 import { modelsSpecs } from "./models.specs.js";
 import { nodesSpecs } from "./nodes.specs.js";
 import { packsSpecs } from "./packs.specs.js";
@@ -84,8 +86,10 @@ const MODULES: Readonly<Record<string, Loader>> = {
   threads: () => import("./threads.js").then((m) => m.module),
   timelines: () => import("./timelines.js").then((m) => m.module),
   sketches: () => import("./sketches.js").then((m) => m.module),
+  model3d: () => import("./model3d.js").then((m) => m.module),
   scripts: () => import("./scripts.js").then((m) => m.module),
   storyboards: () => import("./storyboards.js").then((m) => m.module),
+  entities: () => import("./entities.js").then((m) => m.module),
   code: () => import("./code.js").then((m) => m.module),
   flow: () => import("./flow.js").then((m) => m.module),
   "js-scripts": () => import("./js-scripts.js").then((m) => m.module),
@@ -125,8 +129,10 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "threads",
   "timelines",
   "sketches",
+  "model3d",
   "scripts",
   "storyboards",
+  "entities",
   "code",
   "flow",
   "js-scripts",
@@ -171,8 +177,10 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   threads: threadsSpecs,
   timelines: timelinesSpecs,
   sketches: sketchesSpecs,
+  model3d: model3dSpecs,
   scripts: scriptsSpecs,
   storyboards: storyboardsSpecs,
+  entities: entitiesSpecs,
   code: codeSpecs,
   flow: flowSpecs,
   "js-scripts": jsScriptsSpecs,

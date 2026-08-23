@@ -1,0 +1,342 @@
+/**
+ * The `model3d` capability module — the headless twin of the `ui_3d_*` tools.
+ *
+ * Beyond the drift/category/spec-parity checks every namespace gets, what is
+ * specific here is the loop the browser tools cannot run without an editor:
+ * create a scene, read it back, edit it, and have the bytes on the asset be the
+ * edited document.
+ */
+
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { Asset, initTestDb } from "@nodetool-ai/models";
+import {
+  MODEL3D_CAPABILITIES,
+  module as model3dModule
+} from "../src/capabilities/model3d.js";
+import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
+import {
+  capabilityModuleIssues,
+  loadCapabilityModule
+} from "../src/capabilities/registry.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
+import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+
+const USER = "user-model3d";
+
+/**
+ * A context backed by an in-memory object store, standing in for the server's
+ * asset model interfaces: `createAsset` mints a row and keeps the bytes,
+ * `updateAssetBytes` overwrites them, `resolveAssetBytes` reads them back.
+ */
+function makeContext(): {
+  context: ProcessingContext;
+  bytesOf: (assetId: string) => Uint8Array | undefined;
+} {
+  const store = new Map<string, Uint8Array>();
+  const context = {
+    userId: USER,
+    createAsset: async (args: {
+      name: string;
+      contentType: string;
+      content: Uint8Array;
+    }) => {
+      const asset = (await Asset.create({
+        user_id: USER,
+        name: args.name,
+        content_type: args.contentType
+      })) as Asset;
+      store.set(asset.id, args.content);
+      return { id: asset.id };
+    },
+    updateAssetBytes: async (args: {
+      assetId: string;
+      content: Uint8Array;
+    }) => {
+      const asset = await Asset.find(USER, args.assetId);
+      if (!asset) return null;
+      store.set(args.assetId, args.content);
+      return {
+        id: asset.id,
+        content_type: asset.content_type,
+        name: asset.name,
+        metadata: null
+      };
+    },
+    resolveAssetBytes: async (uri: string) => {
+      const id = uri.replace(/^asset:\/\//, "").replace(/\.(glb|gltf)$/i, "");
+      return { bytes: store.get(id) ?? null, attempts: [] };
+    }
+  } as unknown as ProcessingContext;
+  return { context, bytesOf: (assetId) => store.get(assetId) };
+}
+
+const runWith = (context: ProcessingContext) =>
+  createCapabilityRun({ context, gate: UNGATED });
+
+interface SceneObject {
+  uuid: string;
+  name: string;
+  type: string;
+  visible: boolean;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  materialColor?: string;
+}
+
+beforeEach(() => {
+  initTestDb();
+});
+
+describe("model3d capability module", () => {
+  it("is registered and drift-clean", async () => {
+    const loaded = await loadCapabilityModule("model3d");
+    expect(loaded).toBe(model3dModule);
+    expect(capabilityModuleIssues("model3d", loaded)).toEqual([]);
+  });
+
+  it("carries the five wire names", () => {
+    expect(MODEL3D_CAPABILITIES.map((e) => e.spec.name)).toEqual([
+      "list_model3ds",
+      "create_model3d",
+      "get_model3d",
+      "edit_model3d",
+      "validate_model3d"
+    ]);
+  });
+
+  it("classifies every capability the way the gate does", () => {
+    for (const entry of MODEL3D_CAPABILITIES) {
+      expect([entry.spec.name, entry.spec.category]).toEqual([
+        entry.spec.name,
+        permissionCategoryFor(entry.spec.name)
+      ]);
+    }
+  });
+
+  it("renders as a Tool, spec for spec", () => {
+    for (const entry of MODEL3D_CAPABILITIES) {
+      const tool = toolForCapabilityName(entry.spec.name);
+      expect(tool.description).toBe(entry.spec.description);
+      expect(tool.inputSchema).toEqual(entry.spec.inputSchema);
+    }
+  });
+});
+
+describe("model3d capabilities against the database", () => {
+  it("builds, reads, edits and re-reads a scene with no editor open", async () => {
+    const { context, bytesOf } = makeContext();
+    const run = runWith(context);
+
+    const created = (await run.invoke("create_model3d", {
+      name: "studio",
+      ops: [
+        { op: "add_object", kind: "box", name: "Crate" },
+        { op: "add_object", kind: "directionalLight" }
+      ]
+    })) as { model_id: string; name: string; url: string };
+    expect(created.name).toBe("studio.gltf");
+    expect(created.url).toBe(`asset://${created.model_id}.gltf`);
+
+    const listed = (await run.invoke("list_model3ds", {})) as {
+      models: Array<{ model_id: string; name: string }>;
+    };
+    expect(listed.models).toEqual([
+      expect.objectContaining({ model_id: created.model_id, name: "studio.gltf" })
+    ]);
+
+    const scene = (await run.invoke("get_model3d", {
+      model_id: created.model_id
+    })) as { objects: SceneObject[]; bounds: { size: number[] } | null };
+    expect(scene.objects.map((o) => [o.name, o.type])).toEqual([
+      ["Crate", "Mesh"],
+      ["Directional Light", "DirectionalLight"]
+    ]);
+    expect(scene.bounds?.size).toEqual([1, 1, 1]);
+
+    const edited = (await run.invoke("edit_model3d", {
+      model_id: created.model_id,
+      ops: [
+        { op: "set_transform", target: "Crate", position: [0, 2, 0] },
+        { op: "set_material_color", target: "Crate", color: "#ff8800" },
+        { op: "rename_object", target: "Crate", name: "Cargo" }
+      ]
+    })) as {
+      objects: SceneObject[];
+      validation: { ok: boolean; summary: string };
+    };
+    expect(edited.validation).toMatchObject({ ok: true });
+    expect(edited.objects[0]).toMatchObject({
+      name: "Cargo",
+      position: [0, 2, 0],
+      materialColor: "#ff8800"
+    });
+
+    // The edit is on the asset, not only in the reply: a fresh read sees it.
+    const reread = (await run.invoke("get_model3d", {
+      model_id: `asset://${created.model_id}.gltf`
+    })) as { objects: SceneObject[] };
+    expect(reread.objects[0].name).toBe("Cargo");
+    expect(bytesOf(created.model_id)).toBeDefined();
+  });
+
+  it("accepts an asset id with the scheme and extension still on it", async () => {
+    const { context } = makeContext();
+    const run = runWith(context);
+    const created = (await run.invoke("create_model3d", { name: "bare.glb" })) as {
+      model_id: string;
+      name: string;
+    };
+    expect(created.name).toBe("bare.glb");
+    const scene = (await run.invoke("get_model3d", {
+      model_id: `${created.model_id}.gltf`
+    })) as { objects: unknown[] };
+    expect(scene.objects).toEqual([]);
+  });
+
+  it("lists a .glb stored with a generic content type", async () => {
+    const { context } = makeContext();
+    const run = runWith(context);
+    // What an upload usually looks like before `normalizeAssetContentType`
+    // gets a say: the extension is the only thing that says "3D model".
+    const uploaded = (await Asset.create({
+      user_id: USER,
+      name: "scan.glb",
+      content_type: "application/octet-stream"
+    })) as Asset;
+    await Asset.create({
+      user_id: USER,
+      name: "notes.bin",
+      content_type: "application/octet-stream"
+    });
+
+    const listed = (await run.invoke("list_model3ds", {})) as {
+      models: Array<{ model_id: string; name: string }>;
+    };
+    expect(listed.models.map((m) => m.name)).toEqual(["scan.glb"]);
+    expect(listed.models[0].model_id).toBe(uploaded.id);
+  });
+
+  it("reports a missing model, another user's model, and a non-model asset", async () => {
+    const { context } = makeContext();
+    const run = runWith(context);
+
+    expect(
+      await run.invoke("get_model3d", { model_id: "nope" })
+    ).toMatchObject({ error: expect.stringMatching(/was not found/) });
+
+    const theirs = (await Asset.create({
+      user_id: "someone-else",
+      name: "theirs.glb",
+      content_type: "model/gltf-binary"
+    })) as Asset;
+    expect(
+      await run.invoke("get_model3d", { model_id: theirs.id })
+    ).toMatchObject({ error: expect.stringMatching(/was not found/) });
+
+    const png = (await Asset.create({
+      user_id: USER,
+      name: "cover.png",
+      content_type: "image/png"
+    })) as Asset;
+    expect(await run.invoke("get_model3d", { model_id: png.id })).toMatchObject({
+      error: expect.stringMatching(/not a \.glb\/\.gltf model/)
+    });
+  });
+
+  it("names the operation that failed and leaves the stored model alone", async () => {
+    const { context, bytesOf } = makeContext();
+    const run = runWith(context);
+    const created = (await run.invoke("create_model3d", {
+      name: "scene",
+      ops: [{ op: "add_object", kind: "box" }]
+    })) as { model_id: string };
+    const before = bytesOf(created.model_id);
+
+    expect(
+      await run.invoke("edit_model3d", {
+        model_id: created.model_id,
+        ops: [
+          { op: "rename_object", target: "Box", name: "Crate" },
+          { op: "set_material_color", target: "Ghost", color: "#ffffff" }
+        ]
+      })
+    ).toMatchObject({
+      error: expect.stringMatching(
+        /ops\[1\] \(set_material_color\) failed: No object found matching "Ghost"/
+      )
+    });
+    expect(bytesOf(created.model_id)).toBe(before);
+
+    expect(
+      await run.invoke("edit_model3d", {
+        model_id: created.model_id,
+        ops: [{ op: "explode" }]
+      })
+    ).toMatchObject({ error: expect.stringMatching(/expected one of/) });
+
+    // A well-named operation with missing arguments is the shape a model
+    // actually produces; it must report, not fill in a default.
+    expect(
+      await run.invoke("edit_model3d", {
+        model_id: created.model_id,
+        ops: [{ op: "set_visibility", target: "Box" }]
+      })
+    ).toMatchObject({
+      error: expect.stringMatching(/ops\[0\] \(set_visibility\).*true or false/)
+    });
+    expect(
+      await run.invoke("edit_model3d", {
+        model_id: created.model_id,
+        ops: [{ op: "add_object" }]
+      })
+    ).toMatchObject({ error: expect.stringMatching(/add_object.kind/) });
+
+    expect(
+      await run.invoke("edit_model3d", { model_id: created.model_id, ops: [] })
+    ).toMatchObject({ error: expect.stringMatching(/non-empty array/) });
+  });
+
+  it("validates an inline document as well as a stored one", async () => {
+    const { context } = makeContext();
+    const run = runWith(context);
+
+    const inline = (await run.invoke("validate_model3d", {
+      document: { asset: { version: "2.0" }, scene: 4, scenes: [{ nodes: [] }] }
+    })) as { ok: boolean; errors: Array<{ message: string }>; summary: string };
+    expect(inline.ok).toBe(false);
+    expect(inline.errors[0].message).toMatch(/scene is 4/);
+    expect(inline.summary).toMatch(/1 error/);
+
+    const created = (await run.invoke("create_model3d", {
+      name: "lit",
+      ops: [
+        { op: "add_object", kind: "sphere" },
+        { op: "add_object", kind: "pointLight" }
+      ]
+    })) as { model_id: string };
+    expect(
+      await run.invoke("validate_model3d", { model_id: created.model_id })
+    ).toMatchObject({ ok: true, summary: "No issues found." });
+
+    expect(await run.invoke("validate_model3d", {})).toMatchObject({
+      error: expect.stringMatching(/model_id.*document/)
+    });
+  });
+
+  it("reports a save that cannot land instead of claiming success", async () => {
+    const { context } = makeContext();
+    const run = runWith(context);
+    const created = (await run.invoke("create_model3d", { name: "scene" })) as {
+      model_id: string;
+    };
+    vi.spyOn(context, "updateAssetBytes").mockResolvedValue(null);
+
+    expect(
+      await run.invoke("edit_model3d", {
+        model_id: created.model_id,
+        ops: [{ op: "add_object", kind: "box" }]
+      })
+    ).toMatchObject({ error: expect.stringMatching(/not found when saving/) });
+  });
+});

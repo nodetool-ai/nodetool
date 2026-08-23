@@ -48,7 +48,7 @@ Talk to the user in ASD-STE100 Simplified Technical English.
 ## Architecture
 
 ```
-packages/           # 56 npm workspace packages (TypeScript backend)
+packages/           # 57 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -67,6 +67,8 @@ packages/           # 56 npm workspace packages (TypeScript backend)
   app-runtime/      # Mini-app document, bindings, instance state, streaming fold
                     # (shared by web, the CLI `app debug` harness, and mobile)
   model-pricing/    # Unit price for a selected FAL/kie/GenSpend model (web + runner)
+  model3d/          # glTF scene document: read/write, primitive geometry, the
+                    # editor's scene ops, validation (web + model3d capabilities)
   sandbox-compiler/ # Compiles a pack's npm dependency into a guest module
                     # (esbuild bundle, scope-aware scan, QuickJS admission probe)
   sandbox-packs/    # Shipped library packs — config-only manifest + SKILL.md each,
@@ -614,6 +616,8 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 | Check a provider's live response against the decoder that reads it | `npm run probe:providers` (nightly; offline half runs on every provider diff) | — | seconds |
 | Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |
 | Check a script↔storyboard link (extract, scaffold, joint assemble) | no command of its own — the pure-function suites the `script-storyboard-link` harness entry names, run by `harness gate` on diffs touching either surface | `get_storyboard`, `get_script` (link state, drift, orphans), `validate_timeline` on the assembled output | seconds |
+| Build or fix a 3D scene with no editor open | no command of its own — the `capability-suites` selfcheck the `model3d` harness entry names | `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d` | sub-second |
+| Season a prompt with the entity library | no command of its own — the `capability-suites` selfcheck the `entities` harness entry names | `list_entities`, `get_entity`, `apply_entities` | sub-second |
 | Jobs & assets | `nodetool jobs …` / `nodetool assets …` | `list_jobs`, `get_job`, `get_job_logs`, `list_assets`, `get_asset` | — |
 | Agent/chat REPL (one unified agent loop, no mode to select) | `nodetool-chat` (`npm run dev:chat`) | — | — |
 | Deploy + remote ops (Docker/SSH/RunPod/GCP/Supabase) | `nodetool deploy <init\|plan\|apply\|status\|logs\|destroy>`; `deploy workflows <sync\|run>`, `deploy database`, `deploy collections` | — | — |
@@ -1358,6 +1362,46 @@ matches one done in the UI. Code:
 `packages/agents/src/tools/storyboard-render-tools.ts`. The `ui_storyboard_*`
 tools remain the path when the board is open in a browser and the user should
 watch it fill in.
+
+### 3D scene tools (no editor, no browser)
+
+An agent builds and fixes a 3D model without an editor open:
+**`list_model3ds`** finds the `.glb`/`.gltf` assets, **`create_model3d`** makes
+one holding an empty glTF scene (optionally applying operations in the same
+call), **`get_model3d`** lists every object with its transform, visibility and
+material color plus the scene's world-space bounds, **`edit_model3d`** runs the
+`ui_3d_*` verbs — add and delete primitives and lights, set transforms, rename,
+show and hide, recolor, select — against the stored document and saves it back
+over the same asset, and **`validate_model3d`** checks a document statically.
+
+The operations, the units (Euler degrees, CSS hex) and the "uuid or name"
+addressing live in `@nodetool-ai/model3d`, shared with the browser editor, so a
+model built headlessly opens there unchanged and an edit touches only the nodes
+it names — an imported model keeps its meshes, textures, skins and animations.
+Object ids are stamped into `node.extras.nodetool_id`, because glTF addresses
+nodes by array index and a delete renumbers them.
+
+The camera has no headless equivalent: `ui_3d_frame_scene` and
+`ui_3d_capture_view` need a WebGL context, and `get_model3d`'s bounds are what
+answers "how big is this and where is it" without one. Implementations:
+`packages/agents/src/capabilities/model3d.ts`. The `ui_3d_*` tools remain the
+path when the model is open in a browser.
+
+### Entity library tools (no browser)
+
+The reusable production entities — characters, locations, styles, props — are
+image assets carrying a marker under `metadata.nodetool_entity`.
+**`list_entities`** lists them (filtered by kind or text), **`get_entity`**
+reads one in full, and **`apply_entities`** pastes their descriptors into a
+prompt and returns the reference-image asset ids to pass to an image model.
+
+The injection rule is `injectEntities` in `@nodetool-ai/protocol`, shared with
+the browser's `ui_entity_apply` and the Director node: with explicit
+`entity_ids` exactly those apply, otherwise the entities whose name appears in
+the text (all of them when the text is empty). An id that resolves to nothing
+comes back in `missing_entity_ids` — otherwise the prompt returns unseasoned
+and looks fine. Implementations:
+`packages/agents/src/capabilities/entities.ts`.
 
 ### Code authoring tools (no workflow, no browser)
 

@@ -1761,6 +1761,56 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_model3ds",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "a2b4b5c96430",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "create_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "fe21d44be4b5",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "get_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "4405bcfef4c1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "edit_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "1cb386cf7cbd",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "validate_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "e317eef26924",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
     name: "list_scripts",
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",
@@ -1982,6 +2032,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "list_entities",
+    module: "entities",
+    impl: "packages/agents/src/capabilities/entities.ts",
+    contract: "2ddba3ac5165",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-entities.test.ts",
+    ],
+  },
+  {
+    name: "get_entity",
+    module: "entities",
+    impl: "packages/agents/src/capabilities/entities.ts",
+    contract: "6af0acba8645",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-entities.test.ts",
+    ],
+  },
+  {
+    name: "apply_entities",
+    module: "entities",
+    impl: "packages/agents/src/capabilities/entities.ts",
+    contract: "34c14b907c14",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-entities.test.ts",
     ],
   },
   {

@@ -72,6 +72,82 @@ export function isEntity(value: unknown): value is Entity {
   );
 }
 
+/** What {@link injectEntities} adds to a prompt. */
+export interface EntityInjection {
+  /** The prompt with a "Consistency references" block appended, when any applied. */
+  prompt: string;
+  /** Asset ids of the applied entities' reference images, in order. */
+  referenceAssetIds: string[];
+  /** The entities that applied, so a caller can report what it seasoned with. */
+  applied: Entity[];
+}
+
+/**
+ * Paste entity descriptors into a prompt, the mechanism that holds a character
+ * or a look steady across shots.
+ *
+ * An entity applies when its id is in `entityIds` (an explicit selection), or —
+ * with no ids given — when its name appears in the text. Empty text means every
+ * entity applies, which is what the pickers rely on when seasoning a prompt the
+ * user has not written yet.
+ *
+ * Pure and shared: the browser's `ui_entity_apply` tool, the `apply_entities`
+ * capability and the Director node all season a prompt through this, so what a
+ * model sees does not depend on which surface asked.
+ */
+export function injectEntities(
+  text: string,
+  entities: readonly Entity[],
+  entityIds?: readonly string[]
+): EntityInjection {
+  const base = text ?? "";
+  const lower = base.toLowerCase();
+  const empty = base.trim().length === 0;
+  const explicit = entityIds && entityIds.length > 0 ? new Set(entityIds) : null;
+
+  const lines: string[] = [];
+  const referenceAssetIds: string[] = [];
+  const applied: Entity[] = [];
+  const seen = new Set<string>();
+
+  for (const entity of entities) {
+    const descriptor = (entity.descriptor ?? "").trim();
+    if (!descriptor) {
+      continue;
+    }
+    const name = (entity.name ?? "").trim();
+    const matches = explicit
+      ? explicit.has(entity.id)
+      : empty || (name.length > 0 && lower.includes(name.toLowerCase()));
+    if (!matches) {
+      continue;
+    }
+
+    const key = `${name}: ${descriptor}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+
+    applied.push(entity);
+    lines.push(name ? `- ${name}: ${descriptor}` : `- ${descriptor}`);
+    for (const image of entity.reference_images ?? []) {
+      if (image.asset_id) {
+        referenceAssetIds.push(image.asset_id);
+      }
+    }
+  }
+
+  return {
+    prompt:
+      lines.length > 0
+        ? `${base}\n\nConsistency references:\n${lines.join("\n")}`
+        : base,
+    referenceAssetIds,
+    applied
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Direction layer
 // ---------------------------------------------------------------------------

@@ -9,8 +9,17 @@
 import { describe, expect, it, vi } from "vitest";
 
 const createAssetModelInterface = vi.fn(async () => ({ id: "asset-1" }));
+const updateAssetBytesModelInterface = vi.fn(async () => ({
+  id: "asset-1",
+  content_type: "image/png",
+  name: "generated.png",
+  metadata: null
+}));
 
-vi.mock("@nodetool-ai/websocket/assets", () => ({ createAssetModelInterface }));
+vi.mock("@nodetool-ai/websocket/assets", () => ({
+  createAssetModelInterface,
+  updateAssetBytesModelInterface
+}));
 vi.mock("@nodetool-ai/models", () => ({
   getSecret: vi.fn(async (key: string) =>
     key === "FAL_API_KEY" ? "fal-secret" : null

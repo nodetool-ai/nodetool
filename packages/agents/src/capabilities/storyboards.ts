@@ -18,14 +18,12 @@
 
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import type {
-  Asset,
   Script,
   Storyboard,
   StoryboardDocument
 } from "@nodetool-ai/models";
 import type {
   Entity,
-  EntityKind,
   ImageRef,
   Screenplay,
   ScriptLinkDocument,
@@ -66,7 +64,6 @@ import {
 import {
   isNonBlankString,
   isNumber,
-  isObjectLike,
   isRecord,
   isString
 } from "../utils/type-guards.js";
@@ -89,14 +86,6 @@ export {
 const MAX_SHOTS_PER_CALL = 24;
 /** Attempts to land a document write before reporting a conflict. */
 const CAS_ATTEMPTS = 5;
-
-const ENTITY_METADATA_KEY = "nodetool_entity";
-const ENTITY_KINDS: ReadonlySet<string> = new Set([
-  "character",
-  "location",
-  "style",
-  "prop"
-]);
 
 interface BoardHandle {
   row: Storyboard;
@@ -324,30 +313,6 @@ async function patchShot(
   };
 }
 
-/** Read an entity marker off an asset, mirroring the library's storage rule. */
-function entityFromAsset(
-  asset: Asset,
-  mimeToExt: Record<string, string>
-): Entity | null {
-  const metadata = asset.metadata;
-  const raw = metadata?.[ENTITY_METADATA_KEY];
-  if (!isObjectLike(raw)) return null;
-  const marker = raw as Record<string, unknown>;
-  const kind = isString(marker.kind) ? marker.kind : "";
-  if (!ENTITY_KINDS.has(kind)) return null;
-  const ext = mimeToExt[asset.content_type] ?? "png";
-  return {
-    type: "entity",
-    id: asset.id,
-    kind: kind as EntityKind,
-    name: isString(marker.name) ? marker.name : "",
-    descriptor: isString(marker.descriptor) ? marker.descriptor : "",
-    reference_images: [
-      { type: "image", asset_id: asset.id, uri: `asset://${asset.id}.${ext}` }
-    ]
-  };
-}
-
 /** The board's library entities, dropping ids that no longer resolve. */
 async function loadBoardEntities(
   context: ProcessingContext,
@@ -356,12 +321,12 @@ async function loadBoardEntities(
   const ids = doc.entityIds ?? [];
   if (ids.length === 0 || !context.userId) return [];
   const { Asset } = await import("@nodetool-ai/models");
-  const { MIME_TO_EXT } = await import("../tools/asset-persist.js");
+  const { entityFromAsset } = await import("./entities.js");
   const loaded = await Promise.all(
     ids.map(async (id) => {
       try {
         const asset = await Asset.find(context.userId, id);
-        return asset ? entityFromAsset(asset, MIME_TO_EXT) : null;
+        return asset ? entityFromAsset(asset) : null;
       } catch {
         return null;
       }

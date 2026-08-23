@@ -26,6 +26,7 @@
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/model-pricing": "*",
+    "@nodetool-ai/model3d": "*",
     "@nodetool-ai/models": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",

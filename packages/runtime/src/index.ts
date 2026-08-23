@@ -15,6 +15,7 @@ export {
   getDefaultModelInterfaces,
   type AssetOutputMode,
   type CacheAdapter,
+  type AssetInfoEntry,
   type FolderAssetEntry,
   type ProcessingContextModelInterfaces,
   type InjectedTool,
