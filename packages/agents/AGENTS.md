@@ -459,6 +459,34 @@ around every tool- and plan-approval round trip.
   `describeEngineFailure` turns them into an actionable message instead of raw
   assertion text. Anything not attributable to the engine is re-thrown, so a
   genuine host bug still crashes.
+- The wrapper's Node-compat bootstrap is served cheaper sources
+  (`src/sandbox-bootstrap-modules.ts`). Before our sandboxed function is called
+  it compiles ~12KB of polyfills — `node:buffer`, `node:util`, `node:url`,
+  `Headers`, `Request`, `Response` — into the fresh runtime, and the init
+  prelude then deletes `Buffer`, `Headers`, `Request` and `Response`. Those
+  imports resolve through *our* module loader, so four are served as empty
+  modules and `node:util` as the `TextEncoder`/`TextDecoder` pair the guest
+  keeps; `node:url` still comes from the wrapper, because `URL` and
+  `URLSearchParams` are capabilities and a hand-rolled URL parser is not a
+  saving worth making. Measured: 5.96ms → 3.28ms of per-run setup, against
+  0.34ms for a bare QuickJS context. A wrapper release that renames these
+  modules loses the saving silently, so `tests/js-sandbox-modules.test.ts`
+  asserts that every id we stub is one the bootstrap actually requests.
+- Structured data crosses as JSON, not as handles
+  (`src/sandbox-json-transport.ts`). The wrapper marshals an object node by node
+  — four `evalCode` compilations plus a descriptor copy per property — so a run
+  handed 5 000 rows spent ~2 s reading them and ~0.8 s handing them back before
+  running a line of its own. The guest now builds its result with
+  `JSON.stringify` and the host parses it, the host encodes injected globals for
+  the prelude to parse, and `emit`/`output` arguments take the same path;
+  measured 17–35× on those shapes. Typed arrays and strings over 8 KB ride a
+  sidecar the marshaler moves whole, so bytes keep the fast native serializer
+  and a megabyte of text is not escaped and unescaped. Dates, non-finite
+  numbers and `undefined` properties carry markers. A value the encoder cannot
+  represent (a function, a bigint, a `Map`, a class instance) falls back to the
+  wrapper's marshaling; a **cycle** is refused by name, because the fallback
+  follows it until the runtime aborts. Benchmark:
+  `npm run bench:sandbox --workspace=packages/agents`.
 - Binary crosses the boundary asymmetrically. Guest → host is handled by the
   typed-array serializers (`addSerializer`), so a guest `Uint8Array` reaches a
   bridge as a native one. Host → guest is not: a returned `Uint8Array` arrives

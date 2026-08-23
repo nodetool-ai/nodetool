@@ -3,8 +3,9 @@
 Status: passes 1–3 and 4a are implemented (accessors + artifact in
 `packages/model-pricing`, the rankings sync + nightly workflow, the
 `find_model` rank term, the enriched `/api/models/recommended/*`
-endpoints). The picker work in pass 4 and the first real rankings
-artifact (which lands via the nightly sync PR) are still open.
+endpoints), and the first real artifact has landed — 168 routes, ranked
+across five tasks. Rankings now *lead* the agent's default model choice
+(§4 below). The picker work in pass 4 is still open.
 
 ## The problem
 
@@ -180,11 +181,32 @@ rankedForTask(task): RankedCanonicalModel[]             // leaderboard, canonica
 ### 4. Consumers
 
 **`find_model` / `nodetool.models.pick`** (`packages/agents/src/capabilities/models.ts`).
-Today's score is additive: recommended +100, provider hint +200, model hint
-+250, local +150. Add one bounded term — `normalized × 80` for the requested
-task — below the explicit-preference bonuses, so a user hint still outranks
-a leaderboard, and attach `rank`/`of`/`canonical` to the returned
-candidates. Two routes to one canonical model collapse to the better-priced
+The score is a ladder of tiers, each above the sum of everything below it
+(`SCORE_TIERS`): model hint 2000, provider hint 1000, `prefer_local` 500,
+a leaderboard position 200 + `normalized × 80`, `RECOMMENDED_MODELS` 100,
+locally served 30. Two consequences worth stating plainly:
+
+- **Rankings lead the default pick.** With no hint from the caller, the
+  first hit is the top of the leaderboard for the task. The first version
+  of this term sat *below* the recommended bonus (≤ 80 against +100), which
+  meant the hand-pinned list still decided every default: `find_model
+  ("text_to_video")` answered with `openai:sora-2`, a model the artifact
+  does not rank at all, over the rank-1 route. An agent asking only for a
+  capability now gets the best model for the job.
+- **A ranked candidate does not also take the recommended bonus.** +100 on
+  top of a 0…80 span would let the static list reorder the leaderboard,
+  which is the blindness the term exists to fix. `RECOMMENDED_MODELS`
+  keeps ordering what the artifact says nothing about — language,
+  embedding and ASR models, local models, anything unmatched.
+
+Results are also one row per canonical model rather than one per route:
+`gpt-image-2` is reachable through atlascloud (two endpoints), kie (two) and
+openai, and a top-5 of five routes to one model shows an agent one model. The
+best-scoring route survives, the rest are listed under its `alternate_routes`.
+
+A preference the caller actually stated — a provider, a model, `prefer_local`
+— still outranks any leaderboard position. Each candidate carries
+`rank`/`of`/`canonical` in the answer. Two routes to one canonical model collapse to the better-priced
 one in the top results, with the alternates listed under it. The agent
 answer the draft asked for ("Kling 3 Pro, FAL, rank 2 of 41, $0.18/s — also
 via kie at $0.14/s") falls out of `routesFor` + `getGenspendPrice`, both

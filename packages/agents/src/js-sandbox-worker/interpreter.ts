@@ -57,6 +57,15 @@ import {
   type GuestBytes
 } from "../sandbox-bytes.js";
 import { MEDIA_REF_MEMBERS } from "../sandbox-media-ref.js";
+import { BOOTSTRAP_MODULE_SOURCES } from "../sandbox-bootstrap-modules.js";
+import {
+  decodeGuestPayload,
+  encodeHostRecord,
+  GUEST_GLOBALS_JSON_BINDING,
+  GUEST_GLOBALS_SIDECAR_BINDING,
+  GUEST_JSON_TRANSPORT_SOURCE,
+  GUEST_MARSHAL_GLOBAL
+} from "../sandbox-json-transport.js";
 import type { ResolvedSandboxLimits } from "../js-sandbox.js";
 import { isFunction, isObjectLike } from "../utils/type-guards.js";
 
@@ -299,11 +308,28 @@ export const BLOCKED_TIMER_GLOBALS = [
  * the timer globals the engine re-installs per evaluation (see
  * {@link BLOCKED_TIMER_GLOBALS}).
  */
-export function wrapCode(code: string, prelude = ""): string {
+export function wrapCode(
+  code: string,
+  prelude = "",
+  encodeResult = false
+): string {
+  const [open, close] = resultEncoding(encodeResult);
   return `${dropTimersStatement()}${prelude}
-export default await (async () => {
+export default ${open}await (async () => {
 ${code}
-})();`;
+})()${close};`;
+}
+
+/**
+ * Wrap the module's default export in the guest's JSON encoder, or leave it
+ * alone. Both halves sit on the lines the IIFE already occupies, so
+ * {@link entryBodyLineOffset} — and every stack trace mapped through it — is
+ * unchanged either way.
+ */
+function resultEncoding(encodeResult: boolean): [string, string] {
+  return encodeResult
+    ? [`globalThis.${GUEST_MARSHAL_GLOBAL}(`, ")"]
+    : ["", ""];
 }
 
 function dropTimersStatement(): string {
@@ -329,7 +355,11 @@ function dropTimersStatement(): string {
  * denies them at runtime (see {@link createGuestModuleHost}); rewriting them
  * here would only move a runtime denial into a confusing compile-time one.
  */
-export function buildEntryModule(code: string, prelude = ""): string {
+export function buildEntryModule(
+  code: string,
+  prelude = "",
+  encodeResult = false
+): string {
   let program: acorn.Program;
   try {
     program = acorn.parse(code, {
@@ -339,13 +369,13 @@ export function buildEntryModule(code: string, prelude = ""): string {
       allowReturnOutsideFunction: true
     });
   } catch {
-    return wrapCode(code, prelude);
+    return wrapCode(code, prelude, encodeResult);
   }
 
   const imports = program.body.filter(
     (node): node is acorn.ImportDeclaration => node.type === "ImportDeclaration"
   );
-  if (imports.length === 0) return wrapCode(code, prelude);
+  if (imports.length === 0) return wrapCode(code, prelude, encodeResult);
 
   const hoisted: string[] = [];
   let body = "";
@@ -359,11 +389,12 @@ export function buildEntryModule(code: string, prelude = ""): string {
   }
   body += code.slice(cursor);
 
+  const [open, close] = resultEncoding(encodeResult);
   return `${hoisted.join(" ")}
 ${dropTimersStatement()}${prelude}
-export default await (async () => {
+export default ${open}await (async () => {
 ${body}
-})();`;
+})()${close};`;
 }
 
 /**
@@ -484,8 +515,9 @@ export interface GuestModuleHost {
  *
  * 1. **bootstrap** — the wrapper's `import 'node:buffer'` and the rest of its
  *    compat preamble run before our sandboxed function is called. They resolve
- *    through the library's own normalizer and loader, or the runtime never
- *    starts.
+ *    through the library's own normalizer, and through its loader for anything
+ *    {@link BOOTSTRAP_MODULE_SOURCES} does not serve a cheaper source for, or
+ *    the runtime never starts.
  * 2. **guest, linking** — only the run's declared specifiers and their
  *    intra-pack siblings resolve. Everything else — `node:*`, the compat
  *    modules the bootstrap warmed, absolute paths, `../` escapes, encoded
@@ -632,7 +664,14 @@ export function createGuestModuleHost(
           }
           const source = sources.get(moduleName);
           if (source !== undefined) return { value: `${hardening}${source}` };
-          if (phase === "bootstrap") return fallback(moduleName, context);
+          if (phase === "bootstrap") {
+            // The wrapper's own compat preamble. Most of what it compiles into
+            // every fresh runtime, the init prelude deletes a moment later, so
+            // it is served something cheaper — see BOOTSTRAP_MODULE_SOURCES.
+            const stub = BOOTSTRAP_MODULE_SOURCES.get(moduleName);
+            if (stub !== undefined) return { value: stub };
+            return fallback(moduleName, context);
+          }
           return {
             error: new Error(`Module "${moduleName}" is not available`)
           };
@@ -796,8 +835,14 @@ export async function runInterpreter(
       bridges.getSecret = wrap(bridges.getSecret as never);
       bridges.assetToSandbox = wrap(bridges.assetToSandbox as never);
       bridges.sandboxToAsset = wrap(bridges.sandboxToAsset as never);
-      bridges.emit = wrap(bridges.emit as never);
-      bridges.output = wrap(bridges.output as never);
+      // The guest hands these an encoded payload (see the prelude): decode it
+      // back into a value before the host sink ever sees it.
+      const decodeValueArg =
+        (fn: (name: unknown, value: unknown) => Promise<unknown>) =>
+        async (name: unknown, payload: unknown) =>
+          fn(name, decodeGuestPayload(payload));
+      bridges.emit = wrap(decodeValueArg(bridges.emit as never));
+      bridges.output = wrap(decodeValueArg(bridges.output as never));
       // The input bridges are not in EXPOSED_BRIDGE_NAMES — the prelude
       // captures them, builds `stream` on top, and deletes them. The take is
       // async like every other host call; the open probe is synchronous and
@@ -876,11 +921,42 @@ export async function runInterpreter(
       // the guest and throws inside the library's detached marshaling
       // continuation. `guardHostProcess` on the caller's side keeps that from
       // killing the process, but the run still fails.
+      // Data globals cross as one JSON string the prelude parses, because the
+      // wrapper installs an object property-by-property — ~400 µs per object
+      // node, which a Code node fed a few thousand rows pays before its first
+      // statement. A value JSON plus the transport's markers cannot carry
+      // (a function, a cycle, a class instance) keeps the wrapper's own path.
+      const dataGlobals: Record<string, unknown> = {};
       for (const [name, value] of Object.entries(globals)) {
-        bridges[name] =
-          isFunction(value)
-            ? wrap(value as (...a: unknown[]) => Promise<unknown>)
-            : value;
+        if (isFunction(value)) {
+          bridges[name] = wrap(value as (...a: unknown[]) => Promise<unknown>);
+        } else if (value === null || typeof value !== "object") {
+          // A primitive crosses as a primitive: `newString` is one copy, while
+          // JSON would escape the text only to parse it back again.
+          bridges[name] = value;
+        } else {
+          dataGlobals[name] = value;
+        }
+      }
+      if (Object.keys(dataGlobals).length > 0) {
+        const encoded = encodeHostRecord(dataGlobals);
+        if (encoded.cyclic.length > 0) {
+          // The fallback cannot take these: the wrapper's marshaler follows a
+          // cycle until the runtime aborts, which fails the run with an
+          // assertion instead of saying what was wrong with the input.
+          throw new Error(
+            `Cannot pass ${encoded.cyclic
+              .map((name) => `"${name}"`)
+              .join(", ")} into the sandbox: the value refers back to itself`
+          );
+        }
+        bridges[GUEST_GLOBALS_JSON_BINDING] = encoded.json;
+        if (encoded.sidecar.length > 0) {
+          bridges[GUEST_GLOBALS_SIDECAR_BINDING] = encoded.sidecar;
+        }
+        for (const name of encoded.skipped) {
+          bridges[name] = dataGlobals[name];
+        }
       }
 
       // `expose` manages its own internal Scope; the second arg is unused.
@@ -991,8 +1067,15 @@ globalThis.sleep = __wrap(globalThis.sleep);
 globalThis.getSecret = __wrap(globalThis.getSecret);
 globalThis.assetToSandbox = __wrap(globalThis.assetToSandbox);
 globalThis.sandboxToAsset = __wrap(globalThis.sandboxToAsset);
-globalThis.emit = __wrap(globalThis.emit);
-globalThis.output = __wrap(globalThis.output);
+// emit and output carry the run's data, so their argument takes the same
+// JSON transport the result does — a single \`emit(rows)\` otherwise pays the
+// wrapper's per-object marshal on the way out.
+const __rawEmit = __wrap(globalThis.emit);
+const __rawOutput = __wrap(globalThis.output);
+globalThis.emit = (name, value) =>
+  __rawEmit(name, globalThis.${GUEST_MARSHAL_GLOBAL}(value));
+globalThis.output = (name, value) =>
+  __rawOutput(name, globalThis.${GUEST_MARSHAL_GLOBAL}(value));
 const __ws = globalThis.workspace;
 globalThis.workspace = {
   read: __wrap(__ws.read),
@@ -1202,6 +1285,7 @@ globalThis.crypto = {
   digest: __wrap(__crypto.digest),
   hmac: __wrap(__crypto.hmac)
 };
+${GUEST_JSON_TRANSPORT_SOURCE}
 ${DELETED_GUEST_GLOBALS.map((n) => `delete globalThis.${n};`).join("\n")}
 ${
   wasmCall === undefined
@@ -1247,7 +1331,8 @@ export default true;`,
             capabilityCall === undefined
               ? ""
               : ` delete globalThis.${SANDBOX_CAPABILITY_DISPATCH_GLOBAL};`
-          }`
+          }`,
+          true
         ),
         "user-code"
       );
@@ -1263,20 +1348,27 @@ export default true;`,
       // across invocations.
       let syncedGlobals: Record<string, unknown> | undefined;
       if (syncTargetNames.length > 0) {
-        const extractor = `export default {${syncTargetNames
+        const extractor = `export default globalThis.${GUEST_MARSHAL_GLOBAL}({${syncTargetNames
           .map(
             (n) =>
               `${n}: (typeof ${n} !== 'undefined' && ${n} !== null) ? ${n} : null`
           )
-          .join(", ")}};`;
+          .join(", ")}});`;
         const syncResp = await evalCode(extractor, "sandbox-sync");
-        if (syncResp.ok && isObjectLike(syncResp.data)) {
-          syncedGlobals = syncResp.data as Record<string, unknown>;
+        if (syncResp.ok) {
+          const decoded = decodeGuestPayload(syncResp.data);
+          if (isObjectLike(decoded)) {
+            syncedGlobals = decoded;
+          }
         }
       }
 
       return userResult.ok
-        ? { ok: true, data: userResult.data, syncedGlobals }
+        ? {
+            ok: true,
+            data: decodeGuestPayload(userResult.data),
+            syncedGlobals
+          }
         : { ok: false, error: userResult.error, syncedGlobals };
     },
     {

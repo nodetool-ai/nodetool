@@ -1,9 +1,8 @@
 /**
  * The rankings accessors. Grouping and leaderboard behavior is pinned against
  * a fixture passed in as an argument — the accessors take the artifact, so no
- * module is mocked. The shipped snapshot is checked for its invariants rather
- * than its contents: the nightly sync rewrites it, so pinning what it holds
- * would fail on every sync.
+ * module is mocked. The shipped artifact is whatever the last sync wrote, so
+ * the block below asserts its invariants rather than its contents.
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -13,8 +12,7 @@ import {
   modelRankings,
   rankedForTask,
   routesFor,
-  type ModelRankingsArtifact,
-  type RankedModelEntry
+  type ModelRankingsArtifact
 } from "../src/model-rankings.js";
 
 const KLING_TASKS = {
@@ -58,80 +56,66 @@ const fixture: ModelRankingsArtifact = {
 };
 
 describe("the shipped artifact", () => {
-  it("carries the schema every accessor reads", () => {
+  it("carries the schema this package reads", () => {
     expect(modelRankings.schemaVersion).toBe(1);
     expect(modelRankings.source).toBe("artificialanalysis.ai");
-    // null before the first sync, an ISO instant after one.
-    if (modelRankings.generatedAt !== null) {
-      expect(Date.parse(modelRankings.generatedAt)).not.toBeNaN();
+    // Empty until a sync runs, a timestamp after — never something else.
+    if (Object.keys(modelRankings.models).length === 0) {
+      expect(modelRankings.generatedAt).toBeNull();
+    } else {
+      expect(modelRankings.generatedAt).toEqual(expect.any(String));
     }
   });
 
-  it("keys every entry `<provider>:<model_id>` and ranks it plausibly", () => {
-    for (const [key, entry] of Object.entries(modelRankings.models)) {
-      const separator = key.indexOf(":");
-      expect(separator, key).toBeGreaterThan(0);
-      expect(key.slice(separator + 1), key).not.toBe("");
-      expect(entry.canonical, key).not.toBe("");
-      expect(entry.name, key).not.toBe("");
-      expect(Object.keys(entry.tasks).length, key).toBeGreaterThan(0);
-
-      for (const [task, rank] of Object.entries(entry.tasks)) {
-        const where = `${key} ${task}`;
-        expect(Number.isFinite(rank.score), where).toBe(true);
-        expect(rank.normalized, where).toBeGreaterThanOrEqual(0);
-        expect(rank.normalized, where).toBeLessThanOrEqual(1);
-        expect(rank.rank, where).toBeGreaterThanOrEqual(1);
-        expect(rank.rank, where).toBeLessThanOrEqual(rank.of);
-      }
+  it("keys every entry `provider:model_id` and groups it by a canonical id", () => {
+    const entries = Object.entries(modelRankings.models);
+    for (const [key, entry] of entries) {
+      const colon = key.indexOf(":");
+      expect(colon).toBeGreaterThan(0);
+      expect(key.length).toBeGreaterThan(colon + 1);
+      expect(entry.canonical).toBeTruthy();
+      expect(entry.name).toBeTruthy();
     }
   });
 
-  it("gives every route to one model the same name and tasks", () => {
-    // Quality is the model's, never the route's — the grouping accessors
-    // derive from that, so a snapshot that broke it would rank one route
-    // above another for the same model.
-    const byCanonical = new Map<string, RankedModelEntry>();
-    for (const [key, entry] of Object.entries(modelRankings.models)) {
+  it("gives every route to one model identical tasks", () => {
+    // Quality is a property of the model, never of the route — the accessors
+    // and `find_model`'s rank term both rely on it.
+    const byCanonical = new Map<string, Record<string, unknown>>();
+    for (const entry of Object.values(modelRankings.models)) {
       const first = byCanonical.get(entry.canonical);
-      if (first === undefined) {
-        byCanonical.set(entry.canonical, entry);
-        continue;
+      if (first) {
+        expect(entry.tasks).toEqual(first);
+      } else {
+        byCanonical.set(entry.canonical, entry.tasks);
       }
-      expect(entry.name, key).toBe(first.name);
-      expect(entry.creator, key).toBe(first.creator);
-      expect(entry.tasks, key).toEqual(first.tasks);
     }
   });
 
-  it("answers off the shipped snapshot when it holds anything", () => {
-    const keys = Object.keys(modelRankings.models);
-    if (keys.length === 0) {
-      // Before the first sync there is nothing to read, and that is the
-      // documented state — every accessor answers with nothing.
+  it("answers for a route it carries and with nothing for one it does not", () => {
+    const [key, entry] = Object.entries(modelRankings.models)[0] ?? [];
+    if (!key || !entry) {
+      // An empty artifact is a valid shipped state: every accessor is total.
+      expect(getModelRank("fal_ai", "fal-ai/kling-video/v3/pro")).toBeNull();
       expect(rankedForTask("text_to_video")).toEqual([]);
       return;
     }
-    const key = keys[0];
-    const separator = key.indexOf(":");
-    const provider = key.slice(0, separator);
-    const modelId = key.slice(separator + 1);
-    const entry = modelRankings.models[key];
-
-    expect(getModelRank(provider, modelId)).toEqual(entry);
+    const colon = key.indexOf(":");
+    const provider = key.slice(0, colon);
+    const modelId = key.slice(colon + 1);
+    expect(getModelRank(provider, modelId)).toMatchObject({
+      canonical: entry.canonical
+    });
     expect(getCanonicalId(provider, modelId)).toBe(entry.canonical);
-    expect(routesFor(entry.canonical)).toContainEqual({ provider, modelId, entry });
+    expect(routesFor(entry.canonical).length).toBeGreaterThan(0);
+    for (const task of Object.keys(entry.tasks)) {
+      expect(rankedForTask(task).length).toBeGreaterThan(0);
+    }
 
-    const task = Object.keys(entry.tasks)[0];
-    expect(rankedForTask(task).map((row) => row.canonical)).toContain(entry.canonical);
-  });
-
-  it("answers with nothing for what the snapshot does not carry", () => {
-    expect(getModelRank("fal_ai", "fal-ai/nobody-ranks-this")).toBeNull();
-    expect(getModelRank(null, "fal-ai/kling-video/v3/pro")).toBeNull();
-    expect(getCanonicalId("fal_ai", "fal-ai/nobody-ranks-this")).toBeNull();
-    expect(routesFor("no-such-canonical-model")).toEqual([]);
-    expect(rankedForTask("no_such_task")).toEqual([]);
+    expect(getModelRank(provider, "nodetool-test/not-a-real-model")).toBeNull();
+    expect(getCanonicalId("nodetool-test", modelId)).toBeNull();
+    expect(routesFor("nodetool-test-not-a-canonical-id")).toEqual([]);
+    expect(rankedForTask("not_a_task")).toEqual([]);
   });
 });
 

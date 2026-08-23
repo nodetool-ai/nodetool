@@ -687,9 +687,9 @@ const nodetool = (() => {
       find: (capability, opts) =>
         __need("find_model")(__merge(opts, { capability: capability })),
       /**
-       * Resolve ONE model for a capability — the top-ranked hit, ready to
-       * pass to nodetool.media.*. To put it in a node's model property,
-       * assign the result's "ref" field verbatim (the flat fields use
+       * Resolve ONE model for a capability — the leaderboard's best for that
+       * task, ready to pass to nodetool.media.*. To put it in a node's model
+       * property, assign the result's "ref" field verbatim (the flat fields use
        * "model_id"; the property wants "id"). Throws when no configured
        * provider offers the capability.
        */
@@ -1223,8 +1223,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.models\` — model discovery. \`find_model\` / \`list_models\` are
   direct tool calls, so a plain lookup is one call and not an action; these are
   the same lookups from inside an action, where a picked model feeds the next
-  call. \`await pick(capability)\` resolves ONE ranked model
-  (e.g. \`pick("text_to_image")\` → \`{provider, model_id, ref}\`). When the user
+  call. \`await pick(capability)\` resolves ONE model — the best for that job,
+  the top of the quality leaderboard for image, video, speech and music
+  (e.g. \`pick("text_to_image")\` → \`{provider, model_id, ref}\`). Do not shop
+  around: pick with no options IS the good default. When the user
   named a model, search for it in the SAME call:
   \`pick("text_to_image", {query: "flux schnell"})\` — \`query\` is free text over
   model id and name, and \`pick\` throws when nothing matches instead of
