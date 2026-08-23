@@ -222,14 +222,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   );
 
   const { generateKeyframe, generateClip } = useGenerateShot();
+  // A shot that cannot start records the reason on itself (its card shows it,
+  // and it is toasted), so one failure must not stop the rest of the batch.
   const handleGenerateAllStills = useCallback(() => {
     for (const shot of pendingStills) {
-      void generateKeyframe(boardId, shot);
+      void generateKeyframe(boardId, shot).catch(() => undefined);
     }
   }, [pendingStills, generateKeyframe, boardId]);
   const handleGenerateAllClips = useCallback(() => {
     for (const shot of pendingClips) {
-      void generateClip(boardId, shot);
+      void generateClip(boardId, shot).catch(() => undefined);
     }
   }, [pendingClips, generateClip, boardId]);
 

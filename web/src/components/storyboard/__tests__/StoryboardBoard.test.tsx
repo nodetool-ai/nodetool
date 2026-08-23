@@ -54,8 +54,8 @@ jest.mock("../ScriptLinkControl", () => ({
 
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
-    generateKeyframe: jest.fn(),
-    generateClip: jest.fn()
+    generateKeyframe: jest.fn(async () => undefined),
+    generateClip: jest.fn(async () => undefined)
   })
 }));
 
