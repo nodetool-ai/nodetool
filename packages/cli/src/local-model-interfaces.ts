@@ -25,11 +25,11 @@ type TimelineDocument = Parameters<
 export async function localModelInterfaces(): Promise<ProcessingContextModelInterfaces> {
   // The `/assets` subpath, not the package root: the root entry pulls in the
   // WebSocket runner and the HTTP server, which a local run does not need.
-  const { createAssetModelInterface } = await import(
-    "@nodetool-ai/websocket/assets"
-  );
+  const { createAssetModelInterface, updateAssetBytesModelInterface } =
+    await import("@nodetool-ai/websocket/assets");
   return {
     createAsset: createAssetModelInterface,
+    updateAssetBytes: updateAssetBytesModelInterface,
     // Timeline nodes persist their sequence rather than passing it down the
     // graph, so `AddClips` and everything after it needs these to run at all.
     getTimelineSequence: async ({ userId, id }) => {

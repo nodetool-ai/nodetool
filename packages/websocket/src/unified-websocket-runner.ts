@@ -204,7 +204,10 @@ import {
   type LongTermMemory
 } from "@nodetool-ai/agents";
 import { RunNodeTool } from "./agent/run-node-tool.js";
-import { createAssetModelInterface } from "./lib/asset-model-interface.js";
+import {
+  createAssetModelInterface,
+  updateAssetBytesModelInterface
+} from "./lib/asset-model-interface.js";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
@@ -947,6 +950,7 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
     // Shared with MCP sessions and workflow runs (lib/asset-model-interface):
     // one persistence path, one home-folder default.
     createAsset: createAssetModelInterface,
+    updateAssetBytes: updateAssetBytesModelInterface,
     createMessage: async ({ userId, req }) => {
       // Persist an AgentNode thread message. `content` / `tool_calls` are stored
       // raw — the `content` column is a jsonText type that serializes them, so

@@ -70,7 +70,10 @@ import {
 } from "@nodetool-ai/config";
 import { join } from "node:path";
 import { getAssetAdapter } from "./lib/storage.js";
-import { createAssetModelInterface } from "./lib/asset-model-interface.js";
+import {
+  createAssetModelInterface,
+  updateAssetBytesModelInterface
+} from "./lib/asset-model-interface.js";
 import type { McpServerOptions } from "./mcp-server.js";
 import type { FrontendRendererService } from "./frontend-renderer-registry.js";
 import {
@@ -118,6 +121,7 @@ function buildAgentToolContext(userId: string): ProcessingContext {
   });
   context.setModelInterfaces({
     createAsset: createAssetModelInterface,
+    updateAssetBytes: updateAssetBytesModelInterface,
     getAssetInfo: async ({ userId, assetId }) => {
       const asset = await Asset.find(userId, assetId);
       if (!asset) return null;

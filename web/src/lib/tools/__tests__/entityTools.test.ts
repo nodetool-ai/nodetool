@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import type { Entity } from "@nodetool-ai/protocol";
+import { injectEntities, type Entity } from "@nodetool-ai/protocol";
 
 const mockAsset = {
   id: "asset-1",
@@ -42,7 +42,7 @@ jest.mock("../../../trpc/client", () => ({
   }
 }));
 
-import { injectEntities } from "../builtin/entities";
+import "../builtin/entities";
 import { FrontendToolRegistry } from "../frontendTools";
 
 const noopCtx = {

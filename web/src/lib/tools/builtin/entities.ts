@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Entity } from "@nodetool-ai/protocol";
+import { injectEntities, type Entity } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { trpcClient } from "../../../trpc/client";
 import { assetToEntity } from "../../../serverState/useEntities";
@@ -25,61 +25,6 @@ async function fetchEntities(): Promise<Entity[]> {
     }
   }
   return entities;
-}
-
-/**
- * Inject entity descriptors into a prompt. An entity contributes when its id is
- * in `entityIds` (explicit selection), or — when no ids are given — when its
- * name appears in the text (or the text is empty, meaning all apply). Mirrors
- * the server-side `injectEntities` shape in the Director node.
- */
-export function injectEntities(
-  text: string,
-  entities: Entity[],
-  entityIds?: string[]
-) {
-  const base = text ?? "";
-  const lower = base.toLowerCase();
-  const empty = base.trim().length === 0;
-  const explicit =
-    entityIds && entityIds.length > 0 ? new Set(entityIds) : null;
-
-  const lines: string[] = [];
-  const referenceAssetIds: string[] = [];
-  const seen = new Set<string>();
-
-  for (const entity of entities) {
-    const descriptor = (entity.descriptor ?? "").trim();
-    if (!descriptor) {
-      continue;
-    }
-    const name = (entity.name ?? "").trim();
-    const matches = explicit
-      ? explicit.has(entity.id)
-      : empty || (name.length > 0 && lower.includes(name.toLowerCase()));
-    if (!matches) {
-      continue;
-    }
-
-    const key = `${name}: ${descriptor}`;
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-
-    lines.push(name ? `- ${name}: ${descriptor}` : `- ${descriptor}`);
-    for (const image of entity.reference_images ?? []) {
-      if (image.asset_id) {
-        referenceAssetIds.push(image.asset_id);
-      }
-    }
-  }
-
-  const prompt =
-    lines.length > 0
-      ? `${base}\n\nConsistency references:\n${lines.join("\n")}`
-      : base;
-  return { prompt, referenceAssetIds };
 }
 
 FrontendToolRegistry.register({

@@ -476,6 +476,21 @@ export interface ProcessingContextModelInterfaces {
    */
   createAsset?: (args: AssetCreateParamsLike) => Promise<unknown>;
   /**
+   * Replace an existing asset's bytes in place, keeping its id. Returns `null`
+   * when the asset does not exist or is not owned by the user.
+   *
+   * An editing loop needs this: creating a new asset per save would give the
+   * caller a different id after every edit, and the handles it already handed
+   * out would point at a stale version.
+   */
+  updateAssetBytes?: (args: {
+    userId: string;
+    assetId: string;
+    content: Uint8Array;
+    contentType?: string;
+    name?: string;
+  }) => Promise<AssetInfoEntry | null>;
+  /**
    * Recursively list the non-folder assets contained in `folderId`. Returns
    * `null` when the id is not a folder (or does not exist) so callers can tell
    * "not a folder" apart from "empty folder" (`[]`).
@@ -2394,6 +2409,20 @@ export class ProcessingContext {
     nodeId?: string | null;
   }): Promise<unknown> {
     return this.createAsset(args);
+  }
+
+  /**
+   * Replace an owned asset's bytes, keeping its id. Null when the asset is
+   * missing or belongs to someone else.
+   */
+  async updateAssetBytes(args: {
+    assetId: string;
+    content: Uint8Array;
+    contentType?: string;
+    name?: string;
+  }): Promise<AssetInfoEntry | null> {
+    const fn = this.requireModelInterface("updateAssetBytes");
+    return fn({ userId: this.userId, ...args });
   }
 
   /** Load a persisted sketch (image document) owned by the current user. */

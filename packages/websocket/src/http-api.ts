@@ -51,7 +51,10 @@ import {
   type PythonBridge,
   type StorageAdapter
 } from "@nodetool-ai/runtime";
-import { createAssetModelInterface } from "./lib/asset-model-interface.js";
+import {
+  createAssetModelInterface,
+  updateAssetBytesModelInterface
+} from "./lib/asset-model-interface.js";
 import { verdictSchema } from "@nodetool-ai/protocol";
 import {
   cancelDebugSession,
@@ -373,7 +376,8 @@ export async function getWorkflowRuntimeEnvironment(
         // that stores an image needs it on every host, not just chat turns.
         configureContext: (context: ProcessingContext) => {
           context.setModelInterfaces({
-            createAsset: createAssetModelInterface
+            createAsset: createAssetModelInterface,
+            updateAssetBytes: updateAssetBytesModelInterface
           });
         },
         // The stores the run reads through. `asset://<id>` inputs — every

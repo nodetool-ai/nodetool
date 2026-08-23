@@ -7,6 +7,7 @@
     "packages/timeline",
     "packages/app-runtime",
     "packages/image-editor",
+    "packages/model3d",
     "packages/kernel",
     "packages/runtime",
     "packages/models",

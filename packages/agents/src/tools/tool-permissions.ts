@@ -96,6 +96,14 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   get_message: "read",
   validate_timeline: "read",
   validate_sketch: "read",
+  validate_model3d: "read",
+  list_model3ds: "read",
+  get_model3d: "read",
+  // The ingredients library: reading entities and seasoning a prompt with
+  // their descriptors touches nothing.
+  list_entities: "read",
+  get_entity: "read",
+  apply_entities: "read",
   validate_js_script: "read",
   list_js_scripts: "read",
   get_js_script: "read",
@@ -224,6 +232,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // Document edits: each rewrites a stored document under a CAS.
   edit_timeline: "write",
   edit_sketch: "write",
+  // Writes the glTF back over the asset it came from.
+  edit_model3d: "write",
+  create_model3d: "write",
   save_js_script: "write",
   edit_script: "write",
   edit_storyboard: "write",
