@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:mutation": "stryker run",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "bench:sandbox": "tsx bench/sandbox-boundary.ts"
   },
   "dependencies": {
     "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
