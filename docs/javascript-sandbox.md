@@ -43,11 +43,20 @@ process and shared. Each invocation gets a fresh runtime and context.
    the body of a top-level-awaited async IIFE, so `return value` becomes the
    module's default export. Code acorn cannot parse falls through to `wrapCode`
    unchanged, so a syntax error reaches the user as they wrote it.
-4. **Install the module loader** — only when the run declares modules. Without
-   `modules`, no loader exists and every `import` resolves nothing.
+4. **Install the module loader** — always, because it is also what the wrapper's
+   own Node-compat preamble resolves through. That preamble compiles ~12KB of
+   polyfills into every fresh runtime, and the prelude below deletes most of what
+   they install, so `BOOTSTRAP_MODULE_SOURCES` (`sandbox-bootstrap-modules.ts`)
+   serves four of them as empty modules and `node:util` as the two classes the
+   guest keeps. `node:url` still comes from the wrapper: `URL` and
+   `URLSearchParams` are guest capabilities. Measured: 5.96ms → 3.28ms of setup
+   per run. Guest specifiers resolve only what the run declares; without
+   `modules`, every guest `import` resolves nothing.
 5. **Init prelude.** `eval`, `Function` and the wrapper's unconditional stubs
    (`Buffer`, `process`, `env`, `Headers`, `Request`, `Response`, `performance`)
-   are deleted. The entry module additionally deletes the timer globals, which
+   are deleted. Four of those no longer exist to delete — the bootstrap above
+   never installs them — and the deletions stay as the guard for a wrapper
+   release that puts them back some other way. The entry module additionally deletes the timer globals, which
    the wrapper library re-installs on every evaluation.
 6. **Run**, under an interrupt handler on a CPU deadline and a wall-clock race.
 7. **Serialize.** The guest encodes its result with the JSON transport (see

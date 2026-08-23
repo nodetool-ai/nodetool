@@ -57,6 +57,7 @@ import {
   type GuestBytes
 } from "../sandbox-bytes.js";
 import { MEDIA_REF_MEMBERS } from "../sandbox-media-ref.js";
+import { BOOTSTRAP_MODULE_SOURCES } from "../sandbox-bootstrap-modules.js";
 import {
   decodeGuestPayload,
   encodeHostRecord,
@@ -514,8 +515,9 @@ export interface GuestModuleHost {
  *
  * 1. **bootstrap** — the wrapper's `import 'node:buffer'` and the rest of its
  *    compat preamble run before our sandboxed function is called. They resolve
- *    through the library's own normalizer and loader, or the runtime never
- *    starts.
+ *    through the library's own normalizer, and through its loader for anything
+ *    {@link BOOTSTRAP_MODULE_SOURCES} does not serve a cheaper source for, or
+ *    the runtime never starts.
  * 2. **guest, linking** — only the run's declared specifiers and their
  *    intra-pack siblings resolve. Everything else — `node:*`, the compat
  *    modules the bootstrap warmed, absolute paths, `../` escapes, encoded
@@ -662,7 +664,14 @@ export function createGuestModuleHost(
           }
           const source = sources.get(moduleName);
           if (source !== undefined) return { value: `${hardening}${source}` };
-          if (phase === "bootstrap") return fallback(moduleName, context);
+          if (phase === "bootstrap") {
+            // The wrapper's own compat preamble. Most of what it compiles into
+            // every fresh runtime, the init prelude deletes a moment later, so
+            // it is served something cheaper — see BOOTSTRAP_MODULE_SOURCES.
+            const stub = BOOTSTRAP_MODULE_SOURCES.get(moduleName);
+            if (stub !== undefined) return { value: stub };
+            return fallback(moduleName, context);
+          }
           return {
             error: new Error(`Module "${moduleName}" is not available`)
           };
