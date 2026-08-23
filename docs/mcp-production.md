@@ -13,7 +13,9 @@ both. For the surrounding deployment, see
 
 The published image, `fly.toml`, and `docker-compose.yml` all set
 `NODETOOL_ENV=production`, and `/mcp` is off in that mode. The endpoint carries
-the full toolbelt for whichever user it binds, so a deployment opts in:
+the full toolbelt for whichever user it binds, so a deployment opts in. The
+NodeTool production deploy does it in `fly.toml`'s `[env]`; a compose file does
+it the same way:
 
 ```yaml
 environment:

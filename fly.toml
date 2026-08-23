@@ -30,6 +30,12 @@ primary_region = "fra"   # next to the Supabase DB (aws eu-central-1 / Frankfurt
   # migration lock — a slow migration could time the lock out and crash-loop a
   # second machine. One release-phase run avoids that entirely.
   NODETOOL_MIGRATE_ON_BOOT = "0"
+  # Register the /mcp streamable-HTTP mount, which is off by default under
+  # NODETOOL_ENV=production. It is not a second door: the same auth hook as
+  # /api runs first, and the session binds the user that hook resolved, so an
+  # agent needs a token minted in Settings -> MCP -> Connect an agent remotely.
+  # See docs/mcp-production.md.
+  NODETOOL_ENABLE_MCP = "1"
 
 # Fly runs release_command once, in a temporary machine on the new image,
 # BEFORE any app machine is updated — and aborts the deploy if it exits
