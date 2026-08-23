@@ -31,9 +31,13 @@ export function isWebSocketUpgrade(req: FastifyRequest): boolean {
 export function denyUnauthorized(
   req: FastifyRequest,
   reply: FastifyReply,
-  body: { error: string }
+  body: { error: string },
+  challenge?: string
 ): void {
   if (!isWebSocketUpgrade(req)) {
+    if (challenge) {
+      reply.header("WWW-Authenticate", challenge);
+    }
     reply.status(401).send(body);
     return;
   }

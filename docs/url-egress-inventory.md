@@ -101,6 +101,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | MiniMax image download | `packages/minimax-nodes/src/nodes/text-to-image.ts` | provider response |
 | Gemini node video download | `packages/llm-nodes/src/nodes/gemini.ts` | provider response |
 | provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
+| MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
 
 The provider row is ten files, each downloading a URL a provider's response
 named:
