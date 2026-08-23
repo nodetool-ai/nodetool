@@ -32,7 +32,7 @@ import {
   McpOauthToken,
   MCP_OAUTH_ACCESS_TTL_MS
 } from "@nodetool-ai/models";
-import { configuredMcpUrl, isMcpHttpEnabled } from "../lib/mcp-mount.js";
+import { enabledPublicUrl as resolveEnabledPublicUrl } from "../oauth/gate.js";
 import {
   buildProtectedResourceMetadata,
   buildAuthServerMetadata
@@ -47,8 +47,6 @@ import { verifyS256 } from "../oauth/pkce.js";
 import { pendingStore } from "../oauth/pending-store.js";
 import { isClientIdUrl, fetchClientMetadata } from "../oauth/cimd.js";
 
-const DISABLE_ENV_VAR = "NODETOOL_DISABLE_MCP_OAUTH";
-
 /**
  * Per-route @fastify/rate-limit config, picked up by the server's globally
  * registered limiter via its onRoute hook. Tighter than the global cap:
@@ -58,38 +56,6 @@ const DISABLE_ENV_VAR = "NODETOOL_DISABLE_MCP_OAUTH";
  */
 const OAUTH_ROUTE_RATE_LIMIT = { max: 30, timeWindow: "1 minute" };
 const OAUTH_REGISTER_RATE_LIMIT = { max: 10, timeWindow: "1 minute" };
-
-/** `<PUBLIC_URL>` with no trailing `/mcp` — the base every T2 builder takes.
- * Derived from `configuredMcpUrl()` only, per the pinned contract ("never
- * re-derive from env directly"): that function already appends `/mcp`
- * exactly once, so stripping it back off recovers the base. */
-function resolvePublicUrl(): string | null {
-  const mcpUrl = configuredMcpUrl();
-  if (!mcpUrl) return null;
-  return mcpUrl.slice(0, -"/mcp".length);
-}
-
-/** The base URL, or null when the flow is disabled or unconfigured — every
- * handler's single gate. The AS exists only where the resource it issues
- * for is mounted (`isMcpHttpEnabled`, the same gate as `/mcp` itself):
- * otherwise a production server with a public URL but no MCP mount would
- * accept anonymous registrations and mint credentials for nothing. A
- * non-HTTPS issuer is refused unless it is loopback (the local-dev case) —
- * the design's "AS endpoints HTTPS in production" check. */
-function resolveEnabledPublicUrl(): string | null {
-  if (process.env[DISABLE_ENV_VAR] === "1") return null;
-  if (!isMcpHttpEnabled(process.env)) return null;
-  const publicUrl = resolvePublicUrl();
-  if (!publicUrl) return null;
-  try {
-    const url = new URL(publicUrl);
-    const loopback = url.hostname === "127.0.0.1" || url.hostname === "localhost";
-    if (url.protocol !== "https:" && !loopback) return null;
-  } catch {
-    return null;
-  }
-  return publicUrl;
-}
 
 function notFound(reply: FastifyReply): FastifyReply {
   return reply.status(404).send({ error: "not_found" });

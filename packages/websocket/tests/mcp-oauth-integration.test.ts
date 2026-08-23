@@ -31,9 +31,10 @@ import {
 import { oauthAsRoutes } from "../src/routes/oauth-as.js";
 import { isPublicMcpOauthAsRequest } from "../src/lib/public-routes.js";
 import { denyUnauthorized } from "../src/lib/ws-upgrade.js";
-import { buildBearerChallenge } from "../src/oauth/www-authenticate.js";
-import { canonicalResource } from "../src/oauth/validate.js";
-import { configuredMcpUrl } from "../src/lib/mcp-mount.js";
+import {
+  authenticateMcpAccessToken,
+  mcpBearerChallenge
+} from "../src/oauth/gate.js";
 import { handleMcpHttpRequest } from "../src/mcp-server.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -58,21 +59,6 @@ function pkcePair(): { verifier: string; challenge: string } {
     .update(verifier, "ascii")
     .digest("base64url");
   return { verifier, challenge };
-}
-
-/**
- * Same `WWW-Authenticate` gate as `server.ts`'s `mcpBearerChallenge`:
- * emitted only when the flow can complete (a public URL is configured, the
- * escape hatch is unset).
- */
-function mcpBearerChallenge(error?: "invalid_token"): string | undefined {
-  if (process.env["NODETOOL_DISABLE_MCP_OAUTH"] === "1") return undefined;
-  const mcpUrl = configuredMcpUrl();
-  if (!mcpUrl) return undefined;
-  return buildBearerChallenge({
-    publicUrl: mcpUrl.slice(0, -"/mcp".length),
-    error
-  });
 }
 
 async function buildApp(): Promise<FastifyInstance> {
@@ -100,24 +86,15 @@ async function buildApp(): Promise<FastifyInstance> {
         : undefined;
 
     if (token && token.startsWith("nta_")) {
-      const verified = await McpOauthToken.verifyAccess(token);
-      const mcpUrl = configuredMcpUrl();
-      if (
-        verified &&
-        pathname.startsWith("/mcp") &&
-        mcpUrl !== null &&
-        verified.resource === canonicalResource(mcpUrl.slice(0, -"/mcp".length))
-      ) {
-        req.userId = verified.userId;
+      // The real decision from oauth/gate.ts — the same one server.ts's
+      // hook calls, so gate changes fail here instead of drifting.
+      const decision = await authenticateMcpAccessToken(token, pathname);
+      if (decision.ok) {
+        req.userId = decision.userId;
         req.authToken = token;
         return;
       }
-      denyUnauthorized(
-        req,
-        reply,
-        { error: "invalid_token" },
-        mcpBearerChallenge("invalid_token")
-      );
+      denyUnauthorized(req, reply, { error: "invalid_token" }, decision.challenge);
       return;
     }
 
@@ -389,6 +366,31 @@ describe("(c) nta_ audience restriction", () => {
     });
     expect(res.statusCode).toBe(401);
     expect(res.json().error).toBe("invalid_token");
+    // The challenge must not bleed onto the wider API surface: only /mcp
+    // denials advertise the OAuth flow.
+    expect(res.headers["www-authenticate"]).toBeUndefined();
+  });
+
+  it("a pre-minted nta_ token stops authenticating once NODETOOL_DISABLE_MCP_OAUTH=1", async () => {
+    const app = await buildApp();
+    const accessToken = await mintAccessToken(app);
+    process.env["NODETOOL_DISABLE_MCP_OAUTH"] = "1";
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/mcp",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        authorization: `Bearer ${accessToken}`
+      },
+      payload: initializeBody
+    });
+    // The flag turns the whole flow off at once: outstanding access tokens
+    // are refused immediately, not honored for their remaining hour —
+    // which is what makes configuration.md's "token paste is the only way
+    // to connect" true the moment the flag is set.
+    expect(res.statusCode).toBe(401);
   });
 });
 

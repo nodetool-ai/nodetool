@@ -280,7 +280,7 @@ impossible because `/mcp` mints nothing and forwards nothing.
 |---|---|---|
 | Flow enabled | when `NODETOOL_PUBLIC_URL` is set (else unchanged: loopback trust means most local clients never see a 401) | when `NODETOOL_ENABLE_MCP=1` and `NODETOOL_PUBLIC_URL` set — same gate as the mount |
 | User auth at consent | trusted-local (`userId: "1"`) | Supabase web session |
-| Issuer scheme | `http://localhost` tolerated (spec permits loopback redirect URIs; a non-TLS non-loopback issuer is refused at boot) | HTTPS required |
+| Issuer scheme | `http://localhost` tolerated (spec permits loopback redirect URIs; a non-TLS non-loopback issuer disables the flow per request: no challenge, AS routes 404) | HTTPS required |
 
 No new enable flag: the ability to answer the challenge is derived from
 configuration that already exists. `NODETOOL_DISABLE_MCP_OAUTH=1` is the
@@ -297,7 +297,7 @@ escape hatch for an operator who wants token-paste only.
 - No token passthrough: `/mcp` never forwards inbound bearers upstream — unchanged invariant.
 - CIMD fetch through `safeFetch` (SSRF), size/time caps, `client_id` equality — authorize.
 - Consent shows client name + redirect host, warns on loopback-only URIs — consent page.
-- AS endpoints HTTPS in production; loopback exception local — boot check.
+- AS endpoints HTTPS in production; loopback exception local — enforced per request by the shared gate (`oauth/gate.ts`).
 - Secrets stored hashed; raw token appears once in the token response — token model.
 - Rate limits on `/oauth/token` and `/oauth/register` — existing `fastifyRateLimit`.
 

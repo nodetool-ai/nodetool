@@ -64,7 +64,9 @@ token immediately.
 `NODETOOL_PUBLIC_URL` is required because the server has to name its own
 `/mcp` resource and authorization endpoints in the discovery documents it
 serves — without it, the flow cannot start and clients fall back to token
-paste. `NODETOOL_DISABLE_MCP_OAUTH=1` turns the whole discovery + AS surface
+paste. The URL must be HTTPS, or loopback (`http://127.0.0.1`,
+`http://localhost`) for local development; with a plain-HTTP public URL the
+flow stays off and `/mcp` answers the plain 401. `NODETOOL_DISABLE_MCP_OAUTH=1` turns the whole discovery + AS surface
 off (no challenge header, the OAuth routes 404) for an operator who wants
 token-paste as the only path. See
 [MCP OAuth design](mcp-oauth-design.md) for the full protocol.
@@ -150,7 +152,7 @@ answers mean:
 | Answer | Cause |
 |---|---|
 | `404` | The mount is off. Set `NODETOOL_ENABLE_MCP=1` and restart. |
-| `401` | No token, or one that is wrong, revoked, or expired. Check `WWW-Authenticate` for `error="invalid_token"` versus no error at all (no token sent). |
+| `401` | No token, or one that is wrong, revoked, or expired. `WWW-Authenticate` with `error="invalid_token"` means an `nta_` token failed; without an `error` param, either no token was sent or a non-OAuth token (`ntk_`, Supabase) was refused. No header at all means the OAuth flow is not configured on this server. |
 | `404` on a request that carries a session id | That session belongs to another user. Initialize a new one. |
 
 ## What stays local

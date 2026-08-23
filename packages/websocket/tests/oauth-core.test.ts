@@ -70,6 +70,14 @@ describe("buildAuthServerMetadata", () => {
 // ── www-authenticate.ts ─────────────────────────────────────────────────
 
 describe("buildBearerChallenge", () => {
+  it("uses RFC 9728 path insertion for a sub-path issuer", () => {
+    expect(
+      buildBearerChallenge({ publicUrl: "https://host.example/base" })
+    ).toBe(
+      'Bearer resource_metadata="https://host.example/.well-known/oauth-protected-resource/base/mcp", scope="mcp"'
+    );
+  });
+
   it("builds the challenge without an error", () => {
     expect(buildBearerChallenge({ publicUrl: PUBLIC_URL })).toBe(
       'Bearer resource_metadata="https://nodetool.example.com/.well-known/oauth-protected-resource/mcp", scope="mcp"'

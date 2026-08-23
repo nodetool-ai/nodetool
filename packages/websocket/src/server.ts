@@ -63,15 +63,16 @@ import {
   initDb,
   initPostgresDb,
   isAccessToken,
-  McpOauthToken,
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   migrateSqliteDb,
   runSeeds,
   touchWorkerInstance
 } from "@nodetool-ai/models";
-import { isMcpHttpEnabled, configuredMcpUrl, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
-import { buildBearerChallenge } from "./oauth/www-authenticate.js";
-import { canonicalResource } from "./oauth/validate.js";
+import { isMcpHttpEnabled, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
+import {
+  authenticateMcpAccessToken,
+  mcpBearerChallenge
+} from "./oauth/gate.js";
 import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
 import { syncCustomProviderRegistry } from "./custom-providers.js";
 
@@ -695,19 +696,10 @@ const host = process.env["HOST"] ?? (isProduction ? "0.0.0.0" : "127.0.0.1");
 const mcpHttpEnabled = isMcpHttpEnabled();
 
 // The `WWW-Authenticate` challenge for an unauthenticated or invalid `/mcp`
-// request (docs/mcp-oauth-design.md § "401 challenge"). Emitted only when the
-// OAuth flow can actually complete: the mount is registered, the operator
-// configured a public URL the AS can name itself with, and the escape hatch
-// is not set. A server with none of that answers the plain 401 it always
-// has — nothing here changes for it.
-function mcpBearerChallenge(error?: "invalid_token"): string | undefined {
-  if (!mcpHttpEnabled) return undefined;
-  if (process.env["NODETOOL_DISABLE_MCP_OAUTH"] === "1") return undefined;
-  const mcpUrl = configuredMcpUrl();
-  if (!mcpUrl) return undefined;
-  const publicUrl = mcpUrl.slice(0, -"/mcp".length);
-  return buildBearerChallenge({ publicUrl, error });
-}
+// request (docs/mcp-oauth-design.md § "401 challenge") comes from
+// `oauth/gate.ts` — the same gate the AS routes use, so the server never
+// advertises a discovery flow the AS answers with 404. A server where the
+// flow cannot complete answers the plain 401 it always has.
 
 // Reverse proxies whose X-Forwarded-For header may be trusted to determine the
 // real client IP. Comma-separated IPs/CIDRs (e.g. "127.0.0.1,10.0.0.0/8").
@@ -984,24 +976,16 @@ app.addHook("onRequest", async (req, reply) => {
   // the `ntk_`/session checks below would let an audience-scoped credential
   // be probed against the rest of the API.
   if (token && token.startsWith(MCP_OAUTH_ACCESS_TOKEN_PREFIX)) {
-    const verified = await McpOauthToken.verifyAccess(token);
-    const pathname = req.url.split("?")[0] ?? "/";
-    if (
-      verified &&
-      pathname.startsWith("/mcp") &&
-      configuredMcpUrl() !== null &&
-      verified.resource === canonicalResource(configuredMcpUrl()!.slice(0, -"/mcp".length))
-    ) {
-      req.userId = verified.userId;
+    const decision = await authenticateMcpAccessToken(
+      token,
+      req.url.split("?")[0] ?? "/"
+    );
+    if (decision.ok) {
+      req.userId = decision.userId;
       req.authToken = token;
       return;
     }
-    denyUnauthorized(
-      req,
-      reply,
-      { error: "invalid_token" },
-      mcpBearerChallenge("invalid_token")
-    );
+    denyUnauthorized(req, reply, { error: "invalid_token" }, decision.challenge);
     return;
   }
 
