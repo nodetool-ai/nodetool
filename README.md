@@ -9,7 +9,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-![NodeTool demo](demo_canvas.gif)
+![NodeTool node editor](marketing/public/screen_canvas.webp)
 
 NodeTool is an open-source creative AI suite that runs on your machine. A
 node-based canvas, a video timeline, a sketch editor, storyboards and mini-apps
@@ -132,10 +132,9 @@ cost. See the [agent guide](https://docs.nodetool.ai/agents/) and
 These surfaces share one workspace, and an agent can drive every one of them.
 Full tours live at [docs.nodetool.ai](https://docs.nodetool.ai).
 
-<details>
-<summary><b>Node editor</b> — build a pipeline by chaining steps</summary>
+### Node editor — build a pipeline by chaining steps
 
-![NodeTool canvas](screen_canvas.png)
+![NodeTool node editor](marketing/public/screen_workflow.webp)
 
 Double-click to search and add a node, or drag a connection into empty space to
 see compatible next steps. Connector handles are color-coded and the editor
@@ -146,10 +145,9 @@ large graphs.
 
 [Getting started guide →](https://docs.nodetool.ai/getting-started)
 
-</details>
+### Mini apps & app builder — put an interface in front of a workflow
 
-<details>
-<summary><b>Mini apps & app builder</b> — put an interface in front of a workflow</summary>
+![NodeTool app builder](marketing/public/screen_app_builder.png)
 
 A workflow is a graph; a mini app is the interface on top of it. Drag fields,
 buttons, and result displays onto a screen, wire each one to an input or output,
@@ -176,10 +174,9 @@ workflow it binds — and import it anywhere.
 [App builder guide →](https://docs.nodetool.ai/app-builder) ·
 [Mini apps guide →](https://docs.nodetool.ai/mini-apps)
 
-</details>
+### Storyboard — plan a film shot by shot before you pay for video
 
-<details>
-<summary><b>Storyboard</b> — plan a film shot by shot before you pay for video</summary>
+![NodeTool storyboard](marketing/public/screen_storyboard.png)
 
 Write a brief and a visual style, pick a shot count, and press **Direct**: the
 Director node returns a typed screenplay — logline, style bible, narration,
@@ -204,10 +201,9 @@ with `render_storyboard_stills`, `render_storyboard_clips`, and
 
 [Creative agent guide →](https://docs.nodetool.ai/creative-agent)
 
-</details>
+### Script editor — narration as a document, audio derived from it
 
-<details>
-<summary><b>Script editor</b> — narration as a document, audio derived from it</summary>
+![NodeTool script editor — the transcript panel beside the sequence it assembles into](.github/assets/creative-agent/assembled-timeline.png)
 
 A script lives on its own, line by line and section by section, and the text is
 the source of truth.
@@ -225,10 +221,7 @@ An agent does the same without the editor open: `voice_script_lines` voices
 every draft or stale line with its cast voice, and `assemble_script_timeline`
 cuts the result into a saved sequence that `validate_timeline` then checks.
 
-</details>
-
-<details>
-<summary><b>Video editor</b> — a generation-aware multi-track timeline</summary>
+### Video editor — a generation-aware multi-track timeline
 
 ![NodeTool video editor](screen_video_editor.png)
 
@@ -240,10 +233,9 @@ export the sequence to MP4.
 
 [Video editor guide →](https://docs.nodetool.ai/video-editor)
 
-</details>
+### Sketch editor — paint and generate on the same layers
 
-<details>
-<summary><b>Sketch editor</b> — paint and generate on the same layers</summary>
+![NodeTool sketch editor](marketing/public/screen_sketch_editor.webp)
 
 Draw and paint with real brushes, build a composition in layers with blend modes
 and masks, then bind a layer to a model or one of your own workflows and
@@ -255,10 +247,7 @@ per-layer outputs — no export/import round-trip. It pairs with the editing nod
 
 [Sketch editor guide →](https://docs.nodetool.ai/sketch-editor)
 
-</details>
-
-<details>
-<summary><b>JS scripts</b> — ten lines of JavaScript instead of a graph</summary>
+### JS scripts — ten lines of JavaScript instead of a graph
 
 Reshape an API response, merge two lists, format a date. A JS script is a named,
 versioned document for exactly that — a body with declared input and output
@@ -285,8 +274,6 @@ Agents get the same surface through `list_js_scripts`, `save_js_script`,
 `run_js_script`, and `test_js_script`. See
 [docs/js-script-document-design.md](docs/js-script-document-design.md) and the
 [JavaScript sandbox](docs/javascript-sandbox.md).
-
-</details>
 
 ## How NodeTool compares
 
