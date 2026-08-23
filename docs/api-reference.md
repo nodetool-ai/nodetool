@@ -44,6 +44,10 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Examples  | `/api/workflows/examples/thumbnails/{filename}` | `GET` | none                                     | no                          | Example thumbnail; `.jpg` and `.png` only |
 | Examples  | `/api/workflows/examples/{package}/{example}` | `GET`  | none                                           | no                          | One example with its full `graph`, unlike the list; `404` when the package has no example by that name |
 | Triggers  | `/api/webhooks/{token}`           | `POST`            | `x-webhook-secret` header (no session)         | no                          | Deliver an event to a `webhook` trigger registration; wakes the workflow without waiting for the next poll |
+| Integrations | `/api/integrations/{provider}/link/start` | `POST`     | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Mint a one-time link code and the URL that redeems it; 10-minute TTL |
+| Integrations | `/api/integrations/{provider}/link/complete` | `POST`  | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Redeem a link code, binding the external account to a NodeTool user |
+| Integrations | `/api/integrations/{provider}/token` | `POST`            | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Exchange a linked external id for a one-hour delegated user token; `409` in local single-user mode |
+| Integrations | `/api/integrations/{provider}/link` | `DELETE`           | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Unlink an external account; `{"unlinked": false}` when it was not linked |
 | Nodes     | `/api/nodes/metadata`             | `GET`             | none                                           | no                          | The node registry the editor loads at boot; slim summaries by default, one node's full metadata with `?node_type=` |
 | Workspaces | `/api/workspaces/{id}/download/{path}` | `GET`        | Depends on `AUTH_PROVIDER`                     | streaming                   | One file out of a workspace as an attachment; `403` when `NODETOOL_ENV=production` |
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
@@ -313,6 +317,125 @@ curl -X POST "http://localhost:7777/api/webhooks/nosuchtoken" \
 ```json
 { "error": "Unknown webhook token" }
 ```
+
+### Linking an External Messaging Account
+
+A messaging bridge — the `nodetool telegram` bot, and later Discord — is not a
+browser and holds no user credential. It proves *which external account* is
+speaking, and the server decides which NodeTool user that is. The four
+`/api/integrations/{provider}/*` routes are that exchange. `{provider}` is
+`telegram` or `discord`; anything else is `400`.
+
+These routes authenticate with `NODETOOL_INTEGRATION_TOKEN` — the server's own
+service token, sent as a bearer and compared in constant time — rather than a
+session, which is why they sit outside the session-auth hook the way the webhook
+route does. **A server with that variable unset, or set to fewer than 16
+characters, never registers them: every path answers `404`, not `401`.** Set the
+same value on the bridge process.
+
+Linking runs in one of two directions, and which one you are in decides which
+route redeems the code. Either way the code is 24 random bytes, base64url, good
+for ten minutes and spent on first use.
+
+**Bot-initiated.** The bridge mints a code bound to the external account and
+sends the URL into the chat:
+
+```bash
+curl -X POST "http://localhost:7777/api/integrations/telegram/link/start" \
+  -H "Authorization: Bearer $NODETOOL_INTEGRATION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "482913044"}'
+```
+
+```json
+{
+  "code": "Yb3xK9_qLm2vR7nT4pWzA1sD6fG8hJ0c",
+  "url": "http://localhost:7777/integrations/link?code=Yb3xK9_qLm2vR7nT4pWzA1sD6fG8hJ0c",
+  "expires_at": "2026-08-23T12:41:07.000Z"
+}
+```
+
+`url` is built from the request's own `Host` header unless `NODETOOL_PUBLIC_URL`
+is set — set that when the bridge reaches the server at an address the user's
+browser cannot, such as `http://nodetool:7777` inside a compose network.
+
+The bridge stops there. The user opens that URL, and the confirmation page spends
+the code over tRPC (`integrations.describeLinkCode`, then
+`integrations.confirmLink`) under their own session, so the account that gets
+linked is the one they are signed in as — never one the code named.
+
+**Web-initiated.** The mirror image, and the one `/link/complete` exists for.
+Settings → Integrations mints a code bound to the signed-in user
+(`integrations.createLinkCode`) and renders it as `t.me/<bot>?start=<code>`.
+Pressing **Start** delivers `/start <code>` to the bot, which redeems it with the
+external id it can see:
+
+```bash
+curl -X POST "http://localhost:7777/api/integrations/telegram/link/complete" \
+  -H "Authorization: Bearer $NODETOOL_INTEGRATION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "482913044", "code": "Yb3xK9_qLm2vR7nT4pWzA1sD6fG8hJ0c"}'
+```
+
+```json
+{ "linked": true }
+```
+
+A user-bound code already carries the user who minted it, and that user wins, so
+`user_id` in the body is ignored here. Send it only when redeeming a code that
+`link/start` minted — a code bound to an external account names no user, and the
+call is `400` without one.
+
+With the link in place either way, the bridge exchanges identity for access on
+every connection:
+
+```bash
+curl -X POST "http://localhost:7777/api/integrations/telegram/token" \
+  -H "Authorization: Bearer $NODETOOL_INTEGRATION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "482913044"}'
+```
+
+```json
+{
+  "token": "ndt_eyJ2IjoxLCJ1IjoiM2Y5YSIsImUiOjE3ODc0OTE4Njd9.9c1f…",
+  "expires_at": "2026-08-23T13:31:07.000Z",
+  "user_id": "3f9a…"
+}
+```
+
+The token lasts one hour and authenticates as that user on `/ws`, `/trpc`, and
+asset URLs. Tenant isolation is then the server's usual rules — threads, tools,
+permissions, and cost tracking all stay server-side, and the bridge holds no
+conversation state of its own.
+
+Unlinking takes the external id in the body of a `DELETE`:
+
+```bash
+curl -X DELETE "http://localhost:7777/api/integrations/telegram/link" \
+  -H "Authorization: Bearer $NODETOOL_INTEGRATION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "482913044"}'
+```
+
+```json
+{ "unlinked": true }
+```
+
+`"unlinked": false` means there was nothing to remove. The failures across all
+four routes:
+
+| Status | Meaning |
+|--------|---------|
+| `404`  | The routes are not registered (`NODETOOL_INTEGRATION_TOKEN` unset or under 16 characters), or — on `/token` — the external id is not linked to any user |
+| `401`  | Missing or wrong service token |
+| `400`  | Unknown `provider`, missing `external_id`, or a code issued for a different account |
+| `410`  | The link code expired or was already used |
+| `409`  | `/token` only: the server runs in local single-user mode, where every request is already user `1`, so a delegated token would isolate nothing. Run with an enforcing auth provider (Supabase) |
+
+Design and the bot's side of the flow:
+[Telegram bot design](telegram-bot-design.md). The bridge command is
+[`nodetool telegram`](cli.md#nodetool-telegram).
 
 ### Chat API (OpenAI-Compatible)
 

@@ -269,6 +269,18 @@ hand only when driving the Playwright spec directly.
   under the repo root. The resolved path is printed in the server's readiness
   line.
 
+- `NODETOOL_TEST_CHROME` — the Chrome binary the `packages/automation-nodes`
+  integration suite drives. Branded Google Chrome silently ignores
+  `--load-extension`, so the suite needs Chrome for Testing; `test:integration`
+  installs one under `<repo>/chrome` and the harness finds it there. Point this
+  at a binary you already have to skip that download. `CHROME_PATH` is read as a
+  fallback, and a path that does not exist is ignored rather than fatal.
+
+```bash
+NODETOOL_TEST_CHROME=/opt/chrome-for-testing/chrome \
+  npm run test:integration --workspace=packages/automation-nodes
+```
+
 The graph, output directory, and run params come from `NODETOOL_DEBUG_GRAPH`,
 `NODETOOL_DEBUG_OUT`, and `NODETOOL_DEBUG_PARAMS`:
 
@@ -495,6 +507,9 @@ missing binary.
 | `NODETOOL_ADMIN_TOKEN` | Admin bearer token the `nodetool deploy` user and database subcommands send to a remote deployment | yes | Equivalent to their `--token` flag, which wins when both are set. Without either, an interactive shell prompts for it and a non-interactive one exits `1`. See [Deployment](deployment.md) |
 | `NODETOOL_TSC_HEAP_MB` | V8 heap (MiB) given to the `tsc --build` child processes `npm run build:packages` spawns | no | Build-time only, not read by the server. Default `8192`, passed as `--max-old-space-size`. Digits only — any other value falls back to the default. Ignored entirely when `NODE_OPTIONS` already carries a `--max-old-space-size`, so your own tuning is never overwritten. Raise it when a build dies with `JavaScript heap out of memory` |
 | `NODETOOL_BUNDLE_PLATFORM` / `NODETOOL_BUNDLE_ARCH` | Target the backend-bundle staging and verification scripts prune prebuilt binaries to | no | Build-time only, not read by the server. Default to `process.platform` / `process.arch`; set both only when cross-building. See [Backend bundle targeting](#backend-bundle-targeting) |
+| `NODETOOL_FETCH_ALL_NODE_RUNTIMES` | Download the Node binaries for every packaging target, not just the host's | no | Build-time only, not read by the server. `1` exactly — any other value is ignored. Turns `electron/scripts/fetch-node-runtime.mjs` from the host target into all four (`darwin-arm64`, `darwin-x64`, `win32-x64`, `linux-x64`). A target named on the command line wins over both. The fetch is idempotent, so a cached binary is skipped |
+| `NODETOOL_PROBE_OPENAI_MODEL` / `NODETOOL_PROBE_GEMINI_MODEL` | Model the live provider contract probe sends | no | Read only by `npm run probe:providers`. Default `gpt-5.4-mini` and `gemini-3-flash`. The per-provider budget is charged at the manifest's declared estimate, not what the override actually costs. See [Provider contract probes](provider-contract-probes.md#probing-a-different-model) |
+| `NODETOOL_TEST_CHROME` | Chrome binary the `packages/automation-nodes` integration suite drives | no | Test-only. Must be Chromium or Chrome for Testing — branded Google Chrome ignores `--load-extension`. `CHROME_PATH` is the fallback; a path that does not exist is ignored, and the harness then looks under `<repo>/chrome`. See [Test harness settings](#test-harness-settings) |
 
 Use `nodetool settings show` to view resolved values and verify the merge order.
 
