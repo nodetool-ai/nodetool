@@ -789,7 +789,7 @@ nodetool sketch versions delete <image_document_id> 3 --yes
 ### `nodetool jsscript`
 
 A JS script is a named, versioned script document: a body plus declared ports,
-sandbox packages, secrets, a timeout, and saved test cases. The target of every
+secrets, a timeout, and saved test cases. The target of every
 subcommand is a script JSON file (a bare `JsScriptDocument` or anything carrying
 one under `document`) or a `js_scripts` row id.
 

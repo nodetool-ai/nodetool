@@ -272,8 +272,8 @@ which is what `MAX_CANVAS_OPS` really bounds — for heavy composition reach for
 before it is drawn.
 
 Libraries are **imports**, never globals. Every library the sandbox offers is a
-sandbox package a node declares in `packages` and imports at the top of its
-body; there is no `data.*` namespace any more. Two kinds:
+sandbox package a node imports at the top of its body — the import *is* the
+declaration; there is no `data.*` namespace any more. Two kinds:
 
 - **Guest packs** — the M3 compiler bundles the library into QuickJS:
   `@nodetool-ai/sandbox-yaml` (js-yaml), `-dates` (date-fns), `-markdown`
@@ -328,8 +328,9 @@ a forged manifest, every limit) and
 `packages/sandbox-compiler/tests/packs.test.ts` (every shipped pack through the
 real install path).
 
-The guest's own loader serves only the sandbox packages a run declares — a Code
-node's `packages` property, or a CodeAct session's allowlist; dynamic `import()`
+The guest's own loader serves only the sandbox packages a run may reach — for a
+Code node, the packs its body statically imports, resolved against the host's
+catalog; for a CodeAct session, its allowlist. Dynamic `import()`
 and `require` never resolve. The browser runner fetches those modules over
 `GET /api/sandbox-modules/*` and verifies each body before it runs, so the same
 rules hold client-side.
@@ -806,8 +807,8 @@ spreadsheet, list calendars, delete an event. The capability is the only Google
 surface now, and it is two things at once — an agent tool and a guest import.
 
 ```js
-// Code node `packages`: nothing to declare — capability modules are mounted
-// by the host, not installed as packs.
+// Nothing to install — capability modules are mounted by the host, not
+// resolved as packs from the catalog.
 import { drive_search, gmail_send_message } from "@nodetool-ai/sandbox-nodetool/google";
 
 const { files } = await drive_search({ query: "name contains 'invoice'" });

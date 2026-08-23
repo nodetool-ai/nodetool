@@ -240,7 +240,7 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 16,907 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,975 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
@@ -304,18 +304,18 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7081 | 12 / 59 |
-| `no-unsafe-dictionary-type` | 4339 | 12 / 59 |
-| `no-unknown-parameters` | 1956 | 15 / 59 |
-| `no-module-mocking` | 1484 | 56 / 59 |
-| `no-known-value-widening` | 753 | 18 / 59 |
-| `no-runtime-typeof` | 541 | 22 / 59 |
+| `require-safety-comment-for-type-assertion` | 7100 | 12 / 59 |
+| `no-unsafe-dictionary-type` | 4357 | 12 / 59 |
+| `no-unknown-parameters` | 1954 | 15 / 59 |
+| `no-module-mocking` | 1488 | 56 / 59 |
+| `no-known-value-widening` | 766 | 18 / 59 |
+| `no-runtime-typeof` | 553 | 22 / 59 |
 | `no-implicit-return-type` | 450 | 31 / 59 |
-| `no-unknown-returns` | 247 | 41 / 59 |
+| `no-unknown-returns` | 251 | 41 / 59 |
 | `no-chained-type-assertions` | 56 | 46 / 59 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,484 findings but zero in 56 of 59 trees: it is
+`no-module-mocking` is 1,488 findings but zero in 56 of 59 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
@@ -1263,7 +1263,7 @@ bitmaps stay opaque to that check.
 ### nodetool jsscript (JS Script Harness)
 
 A JS script is a named, versioned script document — a body plus declared ports,
-sandbox packages, secrets, a timeout, and saved test cases
+secrets, a timeout, and saved test cases
 ([docs/js-script-document-design.md](docs/js-script-document-design.md)). The
 target of every command is a script JSON file (a bare `JsScriptDocument` or
 anything carrying one under `document`) or a `js_scripts` row id. A path that
@@ -1363,7 +1363,7 @@ watch it fill in.
 
 An agent writes, checks, and debugs a `nodetool.code.Code` body without
 authoring a workflow: **`validate_code`** runs the same static check the
-workflow validator runs (syntax, imports against declared sandbox packages,
+workflow validator runs (syntax, imports against the installed catalog,
 undefined names, undeclared `inputs.*` reads, outputs unset on a return path),
 **`run_code`** executes a body in the QuickJS sandbox with given inputs and
 returns outputs, logs, and error (`yield` bodies return the collected

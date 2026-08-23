@@ -15,7 +15,8 @@ npm install @nodetool-ai/code-nodes
 **Code execution** — `nodetool.code.Code` runs JavaScript in a QuickJS WASM
 sandbox with `fetch()`, workspace file access, secrets, and media helpers.
 Dynamic inputs arrive on the `inputs` object; the returned object becomes the
-outputs. Libraries are sandbox packages the node declares and imports. Full
+outputs. Libraries are sandbox packs the body imports — the node declares no
+packages; the host resolves each specifier against the installed catalog. Full
 reference: [JavaScript Sandbox](https://docs.nodetool.ai/javascript-sandbox).
 
 **Claude Code Agent** (`nodetool.agents.ClaudeCodeAgent`) — run Claude Code
