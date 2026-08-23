@@ -1,5 +1,10 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { InputMode, OutputCorrelation, Platform } from "@nodetool-ai/protocol";
+import type {
+  ColumnDef,
+  InputMode,
+  OutputCorrelation,
+  Platform
+} from "@nodetool-ai/protocol";
 import {
   loadNodeFsPromises,
   loadNodePath
@@ -9,18 +14,66 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
 
-type Row = Record<string, unknown>;
+/**
+ * One dataframe cell. CSV parsing yields the scalars; a dataframe another node
+ * built can carry nested JSON in a cell, which these nodes pass through
+ * untouched.
+ */
+export type CellValue =
+  | string
+  | number
+  | boolean
+  | null
+  | CellValue[]
+  | { [column: string]: CellValue };
 
-function columnName(col: unknown): string {
-  if (col && typeof col === "object" && "name" in col) {
-    const name = (col as { name?: unknown }).name;
-    if (typeof name === "string") return name;
-    return String(name ?? "");
-  }
-  return String(col);
+/** A dataframe row keyed by column name. */
+export type Row = { [column: string]: CellValue };
+
+/** The `{ rows }` dataframe these nodes emit and {@link asRows} reads back. */
+type RowsDataframe = { rows: Row[] };
+
+/**
+ * A column header as a dataframe payload carries it: the protocol's `ColumnDef`
+ * for a `DataframeRef`, or a bare name for a hand-built `{ columns, data }`.
+ */
+type ColumnHeader = ColumnDef | string;
+
+/**
+ * A dataframe that wraps its rows instead of being an array of them: `{ rows }`
+ * from these nodes, or the `{ columns, data }` column matrix a `DataframeRef`
+ * carries.
+ */
+type DataframeEnvelope = {
+  rows?: DataframeInput;
+  data?: DataframeInput;
+  columns?: ColumnHeader[];
+};
+
+/** Whatever a `dataframe` property holds by the time it reaches these nodes. */
+export type DataframeInput = DataframeEnvelope | CellValue | undefined;
+
+function isRow(value: CellValue): value is Row {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function rowsFromColumnData(columns: unknown[], data: unknown[][]): Row[] {
+function isEnvelope(value: DataframeInput): value is DataframeEnvelope {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isColumnDef(header: ColumnHeader): header is ColumnDef {
+  return typeof header === "object" && header !== null && "name" in header;
+}
+
+/** `header.name` is untrusted despite `ColumnDef` declaring it a string. */
+function columnName(header: ColumnHeader): string {
+  return isColumnDef(header) ? String(header.name ?? "") : String(header);
+}
+
+function rowsFromColumnData(
+  columns: readonly ColumnHeader[],
+  data: readonly CellValue[][]
+): Row[] {
   const names = columns.map(columnName).filter((name) => name.length > 0);
   if (names.length === 0) return [];
 
@@ -33,35 +86,30 @@ function rowsFromColumnData(columns: unknown[], data: unknown[][]): Row[] {
   });
 }
 
-function isArrayMatrix(data: unknown[]): data is unknown[][] {
+function isArrayMatrix(data: readonly CellValue[]): data is CellValue[][] {
   if (data.length === 0) return true;
   return data.every((row) => Array.isArray(row));
 }
 
-export function asRows(value: unknown): Row[] {
+export function asRows(value: DataframeInput): Row[] {
   if (Array.isArray(value)) {
-    return value
-      .filter(
-        (x): x is Row => !!x && typeof x === "object" && !Array.isArray(x)
-      )
-      .map((x) => ({ ...x }));
+    return value.filter(isRow).map((row) => ({ ...row }));
   }
-  if (value && typeof value === "object") {
-    const obj = value as { rows?: unknown; data?: unknown; columns?: unknown };
-    if (Array.isArray(obj.rows)) return asRows(obj.rows);
+  if (isEnvelope(value)) {
+    if (Array.isArray(value.rows)) return asRows(value.rows);
     if (
-      Array.isArray(obj.columns) &&
-      Array.isArray(obj.data) &&
-      isArrayMatrix(obj.data)
+      Array.isArray(value.columns) &&
+      Array.isArray(value.data) &&
+      isArrayMatrix(value.data)
     ) {
-      return rowsFromColumnData(obj.columns, obj.data);
+      return rowsFromColumnData(value.columns, value.data);
     }
-    if (Array.isArray(obj.data)) return asRows(obj.data);
+    if (Array.isArray(value.data)) return asRows(value.data);
   }
   return [];
 }
 
-function toDataframe(rows: Row[]) {
+function toDataframe(rows: Row[]): RowsDataframe {
   return { rows };
 }
 
@@ -78,8 +126,8 @@ function parseCsv(csv: string): Row[] {
   );
 }
 
-/** Output handles ForEachRowNode.genProcess() emits. */
-type ForEachRowNodeStreamOutputs = {
+/** Output handles ForEachRowNode emits — all of them from genProcess(). */
+type ForEachRowNodeOutputs = {
   row: Row;
   index: number;
 };
@@ -118,17 +166,25 @@ export class ForEachRowNode extends BaseNode {
   })
   declare dataframe: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<Partial<ForEachRowNodeOutputs>> {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<ForEachRowNodeStreamOutputs> {
+  async *genProcess(): AsyncGenerator<ForEachRowNodeOutputs> {
     const rows = asRows(this.dataframe);
     for (const [index, row] of rows.entries()) {
       yield { row, index };
     }
   }
 }
+
+/** Output handles LoadCSVAssetsNode emits; genProcess() emits them in batches. */
+type LoadCSVAssetsNodeOutputs = {
+  dataframe: RowsDataframe;
+  name: string;
+  dataframes: RowsDataframe[];
+  names: string[];
+};
 
 export class LoadCSVAssetsNode extends BaseNode {
   static readonly nodeType = "nodetool.data.LoadCSVAssets";
@@ -167,8 +223,8 @@ export class LoadCSVAssetsNode extends BaseNode {
   })
   declare folder: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const allDataframes: unknown[] = [];
+  async process(): Promise<LoadCSVAssetsNodeOutputs> {
+    const allDataframes: RowsDataframe[] = [];
     const allNames: string[] = [];
     for await (const item of this._collectItems()) {
       allDataframes.push(item.dataframe);
@@ -183,7 +239,7 @@ export class LoadCSVAssetsNode extends BaseNode {
   }
 
   private async *_collectItems(): AsyncGenerator<{
-    dataframe: unknown;
+    dataframe: RowsDataframe;
     name: string;
   }> {
     const folder = String(this.folder ?? ".");
@@ -199,8 +255,8 @@ export class LoadCSVAssetsNode extends BaseNode {
     }
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const allDataframes: unknown[] = [];
+  async *genProcess(): AsyncGenerator<Partial<LoadCSVAssetsNodeOutputs>> {
+    const allDataframes: RowsDataframe[] = [];
     const allNames: string[] = [];
     for await (const item of this._collectItems()) {
       allDataframes.push(item.dataframe);

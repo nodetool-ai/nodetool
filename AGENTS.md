@@ -248,12 +248,12 @@ exactly one of them:
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-59 trees is 531 pairs, and 253 of them are already at zero — so a rule still
+60 trees is 540 pairs, and 262 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
-fifty-six packages, and those fifty-six are ratcheted today rather than after
-the last one lands. Seven rules are at zero everywhere and sit in the enforced
-config's top-level `rules`; the rest are enforced per-path, one override block
-per rule listing the trees at zero for it.
+fifty-seven packages, and those fifty-seven are ratcheted today rather than
+after the last one lands. Seven rules are at zero everywhere and sit in the
+enforced config's top-level `rules`; the rest are enforced per-path, one
+override block per rule listing the trees at zero for it.
 
 `.github/workflows/anti-slop-ratchet.yaml` runs this loop daily: measure, fix
 one tree, regenerate the overrides, and induce a failure to prove the new ones
@@ -271,7 +271,7 @@ before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
 lints one tree per oxlint invocation and rejects any tree whose scan touched
 zero files: oxlint does not expand `packages/*/src` itself, and a glob that
 reaches it unexpanded lints nothing while reporting nothing — which is
-indistinguishable from a clean tree, and would ratchet all 531 pairs on a
+indistinguishable from a clean tree, and would ratchet all 540 pairs on a
 broken run.
 
 A rule that does not fit NodeTool is deleted from the plugin
@@ -286,8 +286,9 @@ inside a function returning `v is T` is the rule's sanctioned form, so working
 the backlog means consolidating repeated inline checks into named predicates
 (each tree has a predicate module: `packages/protocol/src/predicates.ts`,
 `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
-deleting guards. It is enforced for the twenty-two trees at zero on it (read the
-list off the enforced config), with the decoder `packages/protocol/src/typecheck.ts`
+deleting guards. It is enforced for the twenty-three trees at zero on it (read
+the list off the enforced config), with the decoder
+`packages/protocol/src/typecheck.ts`
 exempt: in the package that owns the schemas, an inline `typeof` means someone
 bypassed the parse. One tradeoff: predicates take `value: unknown`, so
 consolidation moves findings into `no-unknown-parameters`, which is why that
@@ -306,18 +307,18 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7100 | 12 / 59 |
-| `no-unsafe-dictionary-type` | 4357 | 12 / 59 |
-| `no-unknown-parameters` | 1954 | 15 / 59 |
-| `no-module-mocking` | 1488 | 56 / 59 |
-| `no-known-value-widening` | 766 | 18 / 59 |
-| `no-runtime-typeof` | 553 | 22 / 59 |
-| `no-implicit-return-type` | 450 | 31 / 59 |
-| `no-unknown-returns` | 251 | 41 / 59 |
-| `no-chained-type-assertions` | 56 | 46 / 59 |
+| `require-safety-comment-for-type-assertion` | 7126 | 13 / 60 |
+| `no-unsafe-dictionary-type` | 4377 | 13 / 60 |
+| `no-unknown-parameters` | 1967 | 16 / 60 |
+| `no-module-mocking` | 1492 | 57 / 60 |
+| `no-known-value-widening` | 774 | 19 / 60 |
+| `no-runtime-typeof` | 582 | 23 / 60 |
+| `no-implicit-return-type` | 449 | 32 / 60 |
+| `no-unknown-returns` | 253 | 42 / 60 |
+| `no-chained-type-assertions` | 56 | 47 / 60 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,488 findings but zero in 56 of 59 trees: it is
+`no-module-mocking` is 1,492 findings but zero in 57 of 60 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
