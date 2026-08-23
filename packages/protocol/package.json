@@ -55,6 +55,24 @@
       "import": "./dist/sandbox-package.js",
       "default": "./dist/sandbox-package.js"
     },
+    "./sandbox-capability": {
+      "nodetool-dev": "./src/sandbox-capability.ts",
+      "types": "./dist/sandbox-capability.d.ts",
+      "import": "./dist/sandbox-capability.js",
+      "default": "./dist/sandbox-capability.js"
+    },
+    "./sandbox-host": {
+      "nodetool-dev": "./src/sandbox-host.ts",
+      "types": "./dist/sandbox-host.d.ts",
+      "import": "./dist/sandbox-host.js",
+      "default": "./dist/sandbox-host.js"
+    },
+    "./sandbox-wasm": {
+      "nodetool-dev": "./src/sandbox-wasm.ts",
+      "types": "./dist/sandbox-wasm.d.ts",
+      "import": "./dist/sandbox-wasm.js",
+      "default": "./dist/sandbox-wasm.js"
+    },
     "./api-schemas": {
       "nodetool-dev": "./src/api-schemas/index.ts",
       "types": "./dist/api-schemas/index.d.ts",

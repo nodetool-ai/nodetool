@@ -291,11 +291,6 @@ export interface NodeTypeMigration {
    */
   renameProperties?: Record<string, string>;
   /**
-   * Apply a same-type compatibility migration only when this field is saved
-   * on the node or used by an incoming edge.
-   */
-  whenPropertyPresent?: string;
-  /**
    * Move every remaining `data`/`properties` entry (after `renameProperties`
    * runs) into `dynamic_properties` — used when `to` is a node that reads its
    * configuration through a dynamic `inputs` bag rather than declared static
@@ -740,12 +735,11 @@ return {
     "nodetool.text.SurroundWith",
     "return { output: inputs.prefix + inputs.text + inputs.suffix };"
   ),
-  {
-    from: "nodetool.text.Replace",
-    to: "nodetool.text.Replace",
-    renameProperties: { new_value: "new" },
-    whenPropertyPresent: "new_value"
-  },
+  textToCodeMigration(
+    "nodetool.text.Replace",
+    "return { output: inputs.text.replaceAll(inputs.search, inputs.replacement) };",
+    { old: "search", new: "replacement", new_value: "replacement" }
+  ),
   textToCodeMigration(
     "nodetool.text.ToString",
     // mode was a real per-instance property ("str" for a plain string, "repr"
@@ -839,39 +833,14 @@ function renameKeys(
   if (!isPlainObject(container)) return undefined;
   let next: Record<string, unknown> | undefined;
   for (const [from, to] of Object.entries(renames)) {
-    if (from in container && !(to in container)) {
+    const current = next ?? container;
+    if (from in current && !(to in current)) {
       next ??= { ...container };
       next[to] = next[from];
       delete next[from];
     }
   }
   return next;
-}
-
-function migrationApplies(
-  graph: MigratableGraph,
-  node: Record<string, unknown>,
-  migration: NodeTypeMigration
-): boolean {
-  const propertyName = migration.whenPropertyPresent;
-  if (!propertyName) return true;
-  if (isPlainObject(node.data) && propertyName in node.data) return true;
-  if (isPlainObject(node.properties) && propertyName in node.properties) {
-    return true;
-  }
-  if (
-    isPlainObject(node.dynamic_properties) &&
-    propertyName in node.dynamic_properties
-  ) {
-    return true;
-  }
-  if (!isString(node.id) || !Array.isArray(graph.edges)) return false;
-  return graph.edges.some(
-    (edge) =>
-      isPlainObject(edge) &&
-      edge.target === node.id &&
-      edge.targetHandle === propertyName
-  );
 }
 
 /** A raw workflow graph shape loose enough for migration before validation. */
@@ -896,7 +865,7 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
   const nodes = graph.nodes.map((node) => {
     if (!isPlainObject(node) || !isString(node.type)) return node;
     const migration = MIGRATION_BY_FROM.get(node.type);
-    if (!migration || !migrationApplies(graph, node, migration)) return node;
+    if (!migration) return node;
     changed = true;
     const next: Record<string, unknown> = { ...node, type: migration.to };
     if (migration.renameProperties) {

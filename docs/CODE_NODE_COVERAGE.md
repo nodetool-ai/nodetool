@@ -122,7 +122,7 @@ workspace file work are all in reach. Anything needing `sharp`, `pdf-lib`,
 These are done except for the deletion. Each has a shipping snippet with
 equivalent code; the node class is a second implementation of the same thing.
 
-### `nodetool.text` — 33 of 50
+### `nodetool.text` — 34 of 50
 
 | Node | Snippet |
 | --- | --- |
@@ -137,6 +137,7 @@ equivalent code; the node class is a second implementation of the same thing.
 | `StripAccents` | Strip Accents |
 | `RemovePunctuation` | Remove Punctuation |
 | `Slugify` | Slugify |
+| `Replace` | Replace |
 | `Slice` `Extract` | Extract Substring |
 | `Split` | Split |
 | `Join` | Join Array |
@@ -164,10 +165,9 @@ equivalent code; the node class is a second implementation of the same thing.
 `HasLength` is the one text node in this class without a snippet; **Measure
 Length** returns chars/words/lines and the comparison is one more expression.
 
-The 13 that stay as classes: `Prompt` and `Template` (variable editors,
+The 12 that stay as classes: `Prompt` and `Template` (variable editors,
 `{{var}}` substitution UI), `Concat` (dynamic-input card), `Collect` (streaming
-fold), `Replace` (avoids QuickJS startup for frequent single-node calls),
-`Embedding`, `AutomaticSpeechRecognition`,
+fold), `Embedding`, `AutomaticSpeechRecognition`,
 `SaveText`, `SaveTextFile`, `LoadTextAssets`,
 `LoadTextFolder` (asset system), `FilterString`, `FilterRegexString` (stream
 operators). HTML-to-text conversion moved to the `@nodetool-ai/sandbox-html`

@@ -114,6 +114,7 @@ import {
 import { runInWorker } from "./js-sandbox-worker/host.js";
 import { assertFetchUrlAllowed } from "./network-guard.js";
 import type { RunInWorkerOptions } from "./js-sandbox-worker/host.js";
+import { MAX_RANDOM_BYTES } from "./sandbox-constants.js";
 import {
   deriveBridgeShape,
   precheckCloneSafety,
@@ -163,8 +164,7 @@ export const FETCH_TIMEOUT_MS = 15_000;
 export const MAX_FETCH_REDIRECTS = 5;
 /** Locale used by the `format` bridge when the caller names none. */
 export const DEFAULT_FORMAT_LOCALE = "en-US";
-/** Largest `crypto.getRandomValues` request the bridge will serve. */
-export const MAX_RANDOM_BYTES = 65_536;
+export { MAX_RANDOM_BYTES };
 /** Progress reports forwarded to the host per run; further calls are dropped. */
 export const MAX_PROGRESS_CALLS = 1000;
 /** Console lines forwarded to {@link RunSandboxOptions.onLog} per run. */

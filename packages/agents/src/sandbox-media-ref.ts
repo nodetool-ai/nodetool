@@ -18,6 +18,7 @@ import { loadMediaRefBytes, type MediaRefValue } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import { toGuestBytes, type GuestBytes } from "./sandbox-bytes.js";
+export { MEDIA_REF_MEMBERS } from "./sandbox-constants.js";
 import {
   isNonBlankString,
   isNonEmptyString,
@@ -574,14 +575,3 @@ export function createMediaRefBridge(
       buildRef("video", "media.toVideo", bytes, options, context)
   };
 }
-
-/** Member names, in the order the guest prelude re-wraps them. */
-export const MEDIA_REF_MEMBERS = [
-  "bytes",
-  "text",
-  "info",
-  "toDocument",
-  "toImage",
-  "toAudio",
-  "toVideo"
-] as const;

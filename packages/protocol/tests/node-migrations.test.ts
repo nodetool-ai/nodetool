@@ -259,7 +259,7 @@ describe("migrateGraphNodeTypes", () => {
       });
     });
 
-    it("leaves current Replace properties on the native node", () => {
+    it("migrates current Replace properties to Code inputs", () => {
       const graph = {
         nodes: [
           {
@@ -271,11 +271,20 @@ describe("migrateGraphNodeTypes", () => {
         edges: []
       };
       const result = migrateGraphNodeTypes(graph);
+      const node = result.nodes[0];
 
-      expect(result).toBe(graph);
+      expect(node.type).toBe("nodetool.code.Code");
+      expect(node.data.code).toBe(
+        "return { output: inputs.text.replaceAll(inputs.search, inputs.replacement) };"
+      );
+      expect(node.dynamic_properties).toEqual({
+        text: "hello world",
+        search: "world",
+        replacement: "there"
+      });
     });
 
-    it("renames the legacy Replace new_value property", () => {
+    it("migrates the legacy Replace new_value property", () => {
       const graph = {
         nodes: [
           {
@@ -289,14 +298,10 @@ describe("migrateGraphNodeTypes", () => {
 
       const result = migrateGraphNodeTypes(graph);
 
-      expect(result.nodes[0]).toEqual({
-        id: "n1",
-        type: "nodetool.text.Replace",
-        data: {
-          text: "hello world",
-          old: "world",
-          new: "there"
-        }
+      expect(result.nodes[0].dynamic_properties).toEqual({
+        text: "hello world",
+        search: "world",
+        replacement: "there"
       });
     });
 
@@ -318,8 +323,8 @@ describe("migrateGraphNodeTypes", () => {
 
       const result = migrateGraphNodeTypes(graph);
 
-      expect(result.edges[0].targetHandle).toBe("new");
-      expect(result.nodes[1].type).toBe("nodetool.text.Replace");
+      expect(result.edges[0].targetHandle).toBe("replacement");
+      expect(result.nodes[1].type).toBe("nodetool.code.Code");
     });
 
     it("keeps reading the per-instance properties the removed node had", () => {
@@ -377,6 +382,7 @@ describe("migrateGraphNodeTypes", () => {
         "nodetool.text.Length",
         "nodetool.text.IndexOf",
         "nodetool.text.SurroundWith",
+        "nodetool.text.Replace",
         "nodetool.text.ToString",
         "nodetool.text.Join"
       ];
