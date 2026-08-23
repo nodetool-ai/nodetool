@@ -753,7 +753,7 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 - [x] Set the server `maxBatchSize` to the same value as the clients'
       `httpBatchLink.maxItems` limit. Keep POST method override for batched
       queries and add a test that rejects an oversized batch.
-- [ ] Add Zod output schemas to the remaining 33 of 218 tRPC procedures found by
+- [x] Add Zod output schemas to the remaining 33 of 218 tRPC procedures found by
       the 2026-08-23 AST inventory: 3 in `jobs`, 14 in `models`, 2 in
       `triggers`, and 14 in `worker`. Add an inventory test that prevents new
       unvalidated procedures.

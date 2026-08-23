@@ -92,6 +92,25 @@ function toTriggerRegistrationResponse(
 
 const triggerIdInput = z.object({ id: z.string() });
 
+const triggerRegistrationOutput = z.object({
+  id: z.string(),
+  workflow_id: z.string(),
+  node_id: z.string(),
+  kind: z.string(),
+  enabled: z.boolean(),
+  last_fired_at: z.string().nullable(),
+  last_error: z.string().nullable(),
+  disabled_reason: z.string().nullable(),
+  consecutive_failures: z.number(),
+  run_count: z.number(),
+  expires_at: z.string().nullable(),
+  max_runs: z.number().nullable()
+});
+
+const runningTriggersOutput = z.object({
+  triggers: z.array(triggerRegistrationOutput)
+});
+
 async function requireOwnedRegistration(
   id: string,
   userId: string
@@ -152,18 +171,21 @@ export const jobsRouter = router({
   // its own is exactly what a workflow list has to surface, and dropping it
   // from this response made it vanish silently instead (PRD §8).
   // `enabled` distinguishes the two.
-  triggersRunning: protectedProcedure.query(async ({ ctx }) => {
-    const registrations = await TriggerRegistration.findByUser(ctx.userId);
-    return {
-      triggers: registrations
-        .filter((r) => r.enabled === 1 || r.disabled_reason !== null)
-        .map((r) => toTriggerRegistrationResponse(r))
-    };
-  }),
+  triggersRunning: protectedProcedure
+    .output(runningTriggersOutput)
+    .query(async ({ ctx }) => {
+      const registrations = await TriggerRegistration.findByUser(ctx.userId);
+      return {
+        triggers: registrations
+          .filter((r) => r.enabled === 1 || r.disabled_reason !== null)
+          .map((r) => toTriggerRegistrationResponse(r))
+      };
+    }),
 
   // ── triggerStart (POST /api/jobs/triggers/:id/start) ────────────────────
   triggerStart: protectedProcedure
     .input(triggerIdInput)
+    .output(triggerRegistrationOutput)
     .mutation(async ({ ctx, input }) => {
       const registration = await requireOwnedRegistration(input.id, ctx.userId);
       const wasEnabled = registration.enabled === 1;
@@ -189,6 +211,7 @@ export const jobsRouter = router({
   // ── triggerStop (POST /api/jobs/triggers/:id/stop) ──────────────────────
   triggerStop: protectedProcedure
     .input(triggerIdInput)
+    .output(triggerRegistrationOutput)
     .mutation(async ({ ctx, input }) => {
       const registration = await requireOwnedRegistration(input.id, ctx.userId);
       registration.enabled = 0;

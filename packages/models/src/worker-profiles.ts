@@ -18,10 +18,10 @@ export type TokenPolicy = "generate" | "fixed";
 export interface WorkerProfile {
   id: string;
   name: string;
-  target: string;
+  target: WorkerTarget;
   image: string;
   spec: Record<string, unknown>;
-  token_policy: string;
+  token_policy: TokenPolicy;
   idle_timeout_minutes: number | null;
   max_lifetime_minutes: number | null;
   created_at: string;
@@ -30,10 +30,10 @@ export interface WorkerProfile {
 
 export interface CreateWorkerProfileInput {
   name: string;
-  target: WorkerTarget | string;
+  target: WorkerTarget;
   image: string;
   spec?: Record<string, unknown>;
-  token_policy: TokenPolicy | string;
+  token_policy: TokenPolicy;
   idle_timeout_minutes?: number | null;
   max_lifetime_minutes?: number | null;
 }
@@ -133,10 +133,10 @@ function toProfile(row: typeof workerProfiles.$inferSelect): WorkerProfile {
   return {
     id: row.id,
     name: row.name,
-    target: row.target,
+    target: row.target as WorkerTarget,
     image: row.image,
     spec: row.spec,
-    token_policy: row.token_policy,
+    token_policy: row.token_policy as TokenPolicy,
     idle_timeout_minutes: row.idle_timeout_minutes,
     max_lifetime_minutes: row.max_lifetime_minutes,
     created_at: row.created_at,

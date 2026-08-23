@@ -1166,33 +1166,38 @@ export const modelsRouter = router({
    */
   recommended: protectedProcedure
     .input(recommendedInput)
+    .output(modelsListOutput)
     .query(async ({ input, ctx }) => {
       return getRecommendedModels(input.check_servers ?? false, ctx.userId);
     }),
 
-  recommendedImageTextToImage: protectedProcedure.query(() =>
-    selectRecommended("image", "text_to_image")
-  ),
+  recommendedImageTextToImage: protectedProcedure
+    .output(modelsListOutput)
+    .query(() => selectRecommended("image", "text_to_image")),
 
-  recommendedImageImageToImage: protectedProcedure.query(() =>
-    selectRecommended("image", "image_to_image")
-  ),
+  recommendedImageImageToImage: protectedProcedure
+    .output(modelsListOutput)
+    .query(() => selectRecommended("image", "image_to_image")),
 
-  recommendedLanguageEmbedding: protectedProcedure.query(() =>
-    selectRecommended("language", "embedding")
-  ),
+  recommendedLanguageEmbedding: protectedProcedure
+    .output(modelsListOutput)
+    .query(() => selectRecommended("language", "embedding")),
 
-  recommendedAsr: protectedProcedure.query(() => selectRecommended("asr")),
+  recommendedAsr: protectedProcedure
+    .output(modelsListOutput)
+    .query(() => selectRecommended("asr")),
 
-  recommendedTts: protectedProcedure.query(() => selectRecommended("tts")),
+  recommendedTts: protectedProcedure
+    .output(modelsListOutput)
+    .query(() => selectRecommended("tts")),
 
-  recommendedVideoTextToVideo: protectedProcedure.query(() =>
-    selectRecommended("video", "text_to_video")
-  ),
+  recommendedVideoTextToVideo: protectedProcedure
+    .output(modelsListOutput)
+    .query(() => selectRecommended("video", "text_to_video")),
 
-  recommendedVideoImageToVideo: protectedProcedure.query(() =>
-    selectRecommended("video", "image_to_video")
-  ),
+  recommendedVideoImageToVideo: protectedProcedure
+    .output(modelsListOutput)
+    .query(() => selectRecommended("video", "image_to_video")),
 
   /**
    * All models available to the user for a given task kind. Aggregates the
@@ -1202,6 +1207,7 @@ export const modelsRouter = router({
    */
   availableForKind: protectedProcedure
     .input(availableForKindInput)
+    .output(modelsListOutput)
     .query(async ({ ctx, input }) => {
       const fromProviders = await collectProviderModelsForKind(
         ctx.userId,
@@ -1222,7 +1228,9 @@ export const modelsRouter = router({
   /**
    * All models (recommended + provider models + HF cached).
    */
-  all: protectedProcedure.query(async ({ ctx }) => getAllModels(ctx.userId)),
+  all: protectedProcedure
+    .output(modelsListOutput)
+    .query(async ({ ctx }) => getAllModels(ctx.userId)),
 
   /**
    * HuggingFace cached models. `scope: "worker"` lists the attached worker's
@@ -1521,7 +1529,7 @@ export const modelsRouter = router({
       )
     ),
 
-  tts: protectedProcedure.query(async ({ ctx }) => {
+  tts: protectedProcedure.output(modelsListOutput).query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
       availableIds.map((providerId) =>
@@ -1562,7 +1570,7 @@ export const modelsRouter = router({
       return resolveProviderModelExecution(models, [input.provider]);
     }),
 
-  music: protectedProcedure.query(async ({ ctx }) => {
+  music: protectedProcedure.output(modelsListOutput).query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
       availableIds.map((providerId) =>
@@ -1602,7 +1610,7 @@ export const modelsRouter = router({
       )
     ),
 
-  asr: protectedProcedure.query(async ({ ctx }) => {
+  asr: protectedProcedure.output(modelsListOutput).query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
       availableIds.map((providerId) =>
@@ -1642,7 +1650,7 @@ export const modelsRouter = router({
       )
     ),
 
-  video: protectedProcedure.query(async ({ ctx }) => {
+  video: protectedProcedure.output(modelsListOutput).query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
       availableIds.map((providerId) =>
