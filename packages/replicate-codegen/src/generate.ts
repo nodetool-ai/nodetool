@@ -14,7 +14,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SchemaFetcher } from "./schema-fetcher.js";
 import { SchemaParser } from "./schema-parser.js";
-import { NodeGenerator } from "./node-generator.js";
+import { applyConfig } from "./node-generator.js";
 import { MetadataParser } from "./metadata-parser.js";
 import type { PackageMetadata } from "./metadata-parser.js";
 import { allConfigs } from "./configs/index.js";
@@ -50,7 +50,6 @@ async function fetchSpecsFromConfig(
 ): Promise<GeneratedSpecs> {
   const fetcher = new SchemaFetcher();
   const parser = new SchemaParser();
-  const generator = new NodeGenerator();
   const specs: NodeSpec[] = [];
   const failures: GenerationFailure[] = [];
 
@@ -61,7 +60,7 @@ async function fetchSpecsFromConfig(
       const spec = parser.parse(schema);
       spec.endpointId = modelId;
       const nodeConfig = config.configs[modelId];
-      specs.push(nodeConfig ? generator.applyConfig(spec, nodeConfig) : spec);
+      specs.push(nodeConfig ? applyConfig(spec, nodeConfig) : spec);
     } catch (error) {
       failures.push({ modelId, error });
       console.error(`  ERROR: ${modelId}: ${errorMessage(error)}`);
@@ -131,7 +130,6 @@ async function generateManifestFromMetadata(
   const metadata: PackageMetadata = JSON.parse(raw);
 
   const metaParser = new MetadataParser();
-  const generator = new NodeGenerator();
   const configIndex = buildConfigIndex();
   const moduleMap = metaParser.parseAll(metadata);
 
@@ -156,9 +154,7 @@ async function generateManifestFromMetadata(
 
       spec.endpointId = modelId;
       const nodeConfig = moduleConfig.configs[modelId];
-      const applied = nodeConfig
-        ? generator.applyConfig(spec, nodeConfig)
-        : spec;
+      const applied = nodeConfig ? applyConfig(spec, nodeConfig) : spec;
 
       if (manifest.some((m) => m.className === applied.className)) continue;
 
