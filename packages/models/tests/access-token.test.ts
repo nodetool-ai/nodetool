@@ -40,8 +40,8 @@ describe("AccessToken model", () => {
     expect(record.secret_hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  // The CodeQL exclusion for js/insufficient-password-hash rests on the secret
-  // being long and random rather than on the hash being slow. These two pin
+  // Calling CodeQL's js/insufficient-password-hash a false positive here rests
+  // on the secret being long and random, not on the hash being slow. These two pin
   // that premise: shorten the secret or draw it from anything weaker than a
   // CSPRNG and the justification stops holding here, not in review.
   it("draws a secret long enough that a fast hash is not the weak link", async () => {

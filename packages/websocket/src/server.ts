@@ -893,9 +893,11 @@ app.decorateRequest("authToken", null);
 
 // Global @fastify/rate-limit (registered above) runs before this hook on every
 // request, including public auth exemptions handled by isPublicAuthExemptRoute.
-// CodeQL js/missing-rate-limiting is excluded for this file in
-// .github/codeql/codeql-config.yml — the query does not attribute global
-// Fastify plugins to hook handlers.
+// CodeQL js/missing-rate-limiting does not attribute a global Fastify plugin to
+// a hook handler, so it would read this as unlimited. It ships in
+// security-extended, which our default-setup code scanning does not run, so it
+// never fires here. Nothing excludes it either: default setup reads no config
+// file, so suppressing an alert means dismissing it in the Security UI.
 app.addHook("onRequest", async (req, reply) => {
   // Let CORS preflight through — the @fastify/cors plugin handles OPTIONS responses
   if (req.method === "OPTIONS") return;
