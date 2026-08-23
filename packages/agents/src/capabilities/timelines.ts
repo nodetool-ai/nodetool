@@ -25,7 +25,10 @@ import type {
   TimelineSequenceVersion
 } from "@nodetool-ai/models";
 import type { TimelineValidation } from "@nodetool-ai/execution/timeline-debug";
-import type { TimelineBridgeFinalState } from "../evals/surfaces/timeline.js";
+import type {
+  TimelineBridgeAsset,
+  TimelineBridgeFinalState
+} from "../evals/surfaces/timeline.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -33,22 +36,27 @@ import type {
 } from "./types.js";
 import {
   listTimelinesSpec,
+  getTimelineSpec,
   listTimelineVersionsSpec,
   getTimelineVersionSpec,
   createTimelineVersionSpec,
   restoreTimelineVersionSpec,
+  deleteTimelineVersionSpec,
   editTimelineSpec,
   validateTimelineSpec,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
   LIST_TIMELINES_SCHEMA,
+  GET_TIMELINE_SCHEMA,
   LIST_TIMELINE_VERSIONS_SCHEMA,
   GET_TIMELINE_VERSION_SCHEMA,
   CREATE_TIMELINE_VERSION_SCHEMA,
   RESTORE_TIMELINE_VERSION_SCHEMA,
+  DELETE_TIMELINE_VERSION_SCHEMA,
   EDIT_TIMELINE_SCHEMA,
-  VALIDATE_TIMELINE_SCHEMA
+  VALIDATE_TIMELINE_SCHEMA,
+  deleteTimelineSpec
 } from "./timelines.specs.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
@@ -57,10 +65,12 @@ export {
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
   LIST_TIMELINES_SCHEMA,
+  GET_TIMELINE_SCHEMA,
   LIST_TIMELINE_VERSIONS_SCHEMA,
   GET_TIMELINE_VERSION_SCHEMA,
   CREATE_TIMELINE_VERSION_SCHEMA,
   RESTORE_TIMELINE_VERSION_SCHEMA,
+  DELETE_TIMELINE_VERSION_SCHEMA,
   EDIT_TIMELINE_SCHEMA,
   VALIDATE_TIMELINE_SCHEMA
 } from "./timelines.specs.js";
@@ -175,6 +185,15 @@ const listTimelines: CapabilityExport = {
         updated_at: row.updated_at
       }))
     };
+  }
+};
+
+const getTimeline: CapabilityExport = {
+  spec: getTimelineSpec,
+  impl: async (run, params) => {
+    const seq = await loadTimeline(run, params["timeline_id"]);
+    if (isError(seq)) return seq;
+    return { timeline: seq.toTimelineSequence() };
   }
 };
 
@@ -341,6 +360,31 @@ const restoreTimelineVersion: CapabilityExport = {
   }
 };
 
+const deleteTimelineVersion: CapabilityExport = {
+  spec: deleteTimelineVersionSpec,
+  impl: async (run, params) => {
+    const seq = await loadTimeline(run, params["timeline_id"]);
+    if (isError(seq)) return seq;
+
+    const number = versionNumber(params["version"]);
+    if (isError(number)) return number;
+
+    const { TimelineSequenceVersion } = await import("@nodetool-ai/models");
+    const version = await TimelineSequenceVersion.findByVersion(seq.id, number);
+    if (!version) {
+      return {
+        error: `Timeline ${seq.id} has no version ${number}. Call list_timeline_versions to see the available ones.`
+      };
+    }
+    await version.delete();
+    return {
+      ok: true,
+      timeline_id: seq.id,
+      deleted_version: number
+    };
+  }
+};
+
 // ---------------------------------------------------------------------------
 // edit_timeline
 // ---------------------------------------------------------------------------
@@ -413,12 +457,54 @@ interface ApplyOutcome {
 }
 
 /**
+ * Read one of the caller's assets for `add_media_clip`.
+ *
+ * The ref a model has in hand is whatever `list_assets` printed — a bare id or
+ * an `asset://<id>.<ext>` URI — so both resolve here.
+ */
+async function resolveTimelineAsset(
+  run: CapabilityRun,
+  ref: string
+): Promise<TimelineBridgeAsset | null> {
+  const id = ref.startsWith("asset://")
+    ? ref.slice("asset://".length).replace(/\.[A-Za-z0-9]{1,8}$/, "")
+    : ref;
+  if (!id) return null;
+  const userId = run.context.userId;
+  if (!userId) return null;
+  const { Asset } = await import("@nodetool-ai/models");
+  // `find` is already user-scoped: someone else's asset reads as missing.
+  const asset = await Asset.find(userId, id);
+  if (!asset) return null;
+  const thumbnails = isRecord(asset.metadata)
+    ? asset.metadata["thumbnails"]
+    : undefined;
+  const thumbnailAssetId =
+    Array.isArray(thumbnails) && isString(thumbnails[0])
+      ? thumbnails[0]
+      : undefined;
+  const resolved: TimelineBridgeAsset = {
+    id: asset.id,
+    name: asset.name,
+    contentType: asset.content_type
+  };
+  // `duration` is seconds and often null — assets are catalogued without
+  // probing. The bridge falls back to its own default when it is missing.
+  if (isFiniteNumber(asset.duration) && asset.duration > 0) {
+    resolved.durationMs = Math.round(asset.duration * 1000);
+  }
+  if (thumbnailAssetId) resolved.thumbnailAssetId = thumbnailAssetId;
+  return resolved;
+}
+
+/**
  * Run `ops` against a bridge seeded from `document`.
  *
  * A failing op is recorded and the script continues: stopping at the first
  * error hides every problem behind it, and the caller wants the whole picture.
  */
 async function applyOps(
+  run: CapabilityRun,
   sequence: TimelineSequence,
   document: TimelineDocument,
   ops: ParsedOp[]
@@ -432,7 +518,8 @@ async function applyOps(
       height: sequence.height,
       tracks: document.tracks,
       clips: document.clips
-    }
+    },
+    resolveAsset: (ref) => resolveTimelineAsset(run, ref)
   });
   const byName = new Map(
     bridge.tools
@@ -490,7 +577,7 @@ const editTimeline: CapabilityExport = {
         return { error: `Timeline ${timelineId} was not found.` };
       }
       const document = sequence.toDocument();
-      const { records, state } = await applyOps(sequence, document, ops);
+      const { records, state } = await applyOps(run, sequence, document, ops);
 
       // Markers and the transcript ride along untouched: no timeline operation
       // edits them, so the stored copies stay authoritative.
@@ -615,14 +702,38 @@ const validateTimeline: CapabilityExport = {
 };
 
 /** Every timeline capability, in the order the tool files declared them. */
+/**
+ * Delete a timeline sequence the caller owns.
+ *
+ * The ownership check and the version cascade are `TimelineSequence.deleteOwned`, the
+ * same function the tRPC route calls — a delete is not a place for two copies
+ * of one rule, and version rows outliving their document would be unreachable
+ * garbage. Missing and not-yours are one answer.
+ */
+const deleteTimeline: CapabilityExport = {
+  spec: deleteTimelineSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const { TimelineSequence } = await import("@nodetool-ai/models");
+    const id = String(params["timeline_id"]);
+    const deleted = await TimelineSequence.deleteOwned(userId, id);
+    return deleted
+      ? { timeline_id: id, deleted: true }
+      : { error: `Timeline sequence ${id} was not found, or it is not yours.` };
+  }
+};
 export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   listTimelines,
+  getTimeline,
   listTimelineVersions,
   getTimelineVersion,
   createTimelineVersion,
   restoreTimelineVersion,
+  deleteTimelineVersion,
   editTimeline,
-  validateTimeline
+  validateTimeline,
+  deleteTimeline
 ];
 
 export const module: CapabilityModule = {
@@ -632,10 +743,13 @@ export const module: CapabilityModule = {
 
 export {
   listTimelines,
+  getTimeline,
   listTimelineVersions,
   getTimelineVersion,
   createTimelineVersion,
   restoreTimelineVersion,
+  deleteTimelineVersion,
   editTimeline,
-  validateTimeline
+  validateTimeline,
+  deleteTimeline
 };

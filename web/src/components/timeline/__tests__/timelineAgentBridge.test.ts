@@ -9,6 +9,7 @@ import type { TimelineAgentHandler } from "../timelineAgentBridge";
 const makeMockHandler = (): TimelineAgentHandler => ({
   getSnapshot: jest.fn(),
   addTrack: jest.fn(),
+  addMediaClip: jest.fn(),
   addTextClip: jest.fn(),
   addShapeClip: jest.fn(),
   generateClip: jest.fn(),

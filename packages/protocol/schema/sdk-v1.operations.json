@@ -1,0 +1,732 @@
+{
+  "generated_from": "@nodetool-ai/protocol",
+  "operations": [
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid cancellation request",
+          "status": "400"
+        },
+        {
+          "description": "Download operation was not found",
+          "status": "404"
+        }
+      ],
+      "feature": null,
+      "id": "cancelModelDownload",
+      "method": "POST",
+      "path": "/api/sdk/v1/model-downloads/cancel",
+      "request": {
+        "body": {
+          "content_type": "application/json",
+          "kind": "json",
+          "required": true,
+          "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadCancelRequest"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadState",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "command": "cancel_job",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.cancel_job",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/CancelJobCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.chunk",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/Chunk"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "command": "end_input_stream",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.end_input_stream",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/EndInputStreamCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.execution_target",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/ExecutionTarget"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.job_resumed",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/JobResumed"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.job_update",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/JobUpdate"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.node_progress",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/NodeProgress"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.node_update",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/NodeUpdate"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.output_update",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/OutputUpdate"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "direction": "server-event",
+      "errors": [],
+      "feature": "execution",
+      "id": "execution.protocol_rejection",
+      "message": {
+        "event": {
+          "envelope": "executionEvent",
+          "payload": "sdk-v1.execution.schema.json#/$defs/ProtocolRejection"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "command": "reconnect_job",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.reconnect_job",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/ReconnectJobCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "command": "run_job",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.run_job",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/RunJobCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "command": "stream_input",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.stream_input",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/StreamInputCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "authenticated",
+      "channel": "sdkExecution",
+      "command": "update_node_properties",
+      "direction": "client-command",
+      "errors": [
+        {
+          "code": "invalid_command",
+          "description": "The command envelope or payload is invalid"
+        }
+      ],
+      "feature": "execution",
+      "id": "execution.update_node_properties",
+      "message": {
+        "request": {
+          "envelope": "executionCommand",
+          "payload": "sdk-v1.execution.schema.json#/$defs/UpdateNodePropertiesCommand"
+        }
+      },
+      "status": "implemented",
+      "transport": "websocket"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Capabilities are unavailable",
+          "status": "503"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "getCapabilities",
+      "method": "GET",
+      "path": "/api/sdk/v1/capabilities",
+      "request": {},
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/Capabilities",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Invalid cursor or limit",
+          "status": "400"
+        },
+        {
+          "description": "SDK discovery is disabled",
+          "status": "503"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "getNodeTypeInventory",
+      "method": "GET",
+      "path": "/api/sdk/v1/node-types",
+      "request": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          }
+        ],
+        "query": "sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryInput"
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryOutput",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Unsupported interface version",
+          "status": "400"
+        },
+        {
+          "description": "Workflow not found or not accessible",
+          "status": "404"
+        },
+        {
+          "description": "Workflow graph is invalid",
+          "status": "422"
+        },
+        {
+          "description": "SDK discovery is disabled",
+          "status": "503"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "getWorkflowInterface",
+      "method": "GET",
+      "path": "/api/sdk/v1/workflows/{id}/interface",
+      "request": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "json_schema": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "kind": "inline"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "json_schema": {
+                "const": 1,
+                "type": "integer"
+              },
+              "kind": "inline"
+            }
+          }
+        ]
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterface",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Invalid request",
+          "status": "400"
+        },
+        {
+          "description": "SDK discovery is disabled",
+          "status": "503"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "getWorkflowInterfaces",
+      "method": "POST",
+      "path": "/api/sdk/v1/workflow-interfaces",
+      "request": {
+        "body": {
+          "content_type": "application/json",
+          "kind": "json",
+          "required": true,
+          "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterfacesInput"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterfacesOutput",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid download query",
+          "status": "400"
+        },
+        {
+          "description": "Requested execution scope is not available",
+          "status": "501"
+        }
+      ],
+      "feature": null,
+      "id": "listModelDownloads",
+      "method": "GET",
+      "path": "/api/sdk/v1/model-downloads",
+      "request": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operation_id",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          }
+        ],
+        "query": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadQuery"
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadSnapshot",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Invalid catalog query",
+          "status": "400"
+        },
+        {
+          "description": "Requested execution scope is not available",
+          "status": "501"
+        },
+        {
+          "description": "Model catalog is unavailable",
+          "status": "503"
+        }
+      ],
+      "feature": null,
+      "id": "listModels",
+      "method": "GET",
+      "path": "/api/sdk/v1/models",
+      "request": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "compatibility",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "availability",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          }
+        ],
+        "query": "sdk-v1.discovery.schema.json#/$defs/ModelCatalogQuery"
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/ModelCatalog",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "discovery",
+      "errors": [
+        {
+          "description": "Invalid cursor or limit",
+          "status": "400"
+        },
+        {
+          "description": "SDK discovery is disabled",
+          "status": "503"
+        }
+      ],
+      "feature": "workflow-interface",
+      "id": "listWorkflowSummaries",
+      "method": "GET",
+      "path": "/api/sdk/v1/workflows",
+      "request": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          }
+        ],
+        "query": "sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesInput"
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesOutput",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid preflight request",
+          "status": "400"
+        },
+        {
+          "description": "Workflow not found or inaccessible",
+          "status": "404"
+        },
+        {
+          "description": "Requested preflight level is unavailable",
+          "status": "503"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "preflightWorkflow",
+      "method": "POST",
+      "path": "/api/sdk/v1/preflight",
+      "request": {
+        "body": {
+          "content_type": "application/json",
+          "kind": "json",
+          "required": true,
+          "schema": "sdk-v1.lifecycle.schema.json#/$defs/PreflightRequest"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/PreflightSummary",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid download request",
+          "status": "400"
+        },
+        {
+          "description": "Requested model download is not available",
+          "status": "501"
+        }
+      ],
+      "feature": null,
+      "id": "startModelDownload",
+      "method": "POST",
+      "path": "/api/sdk/v1/model-downloads",
+      "request": {
+        "body": {
+          "content_type": "application/json",
+          "kind": "json",
+          "required": true,
+          "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadStartRequest"
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadState",
+        "status": "202"
+      },
+      "status": "implemented",
+      "transport": "http"
+    },
+    {
+      "auth": "authenticated",
+      "errors": [
+        {
+          "description": "Invalid multipart upload",
+          "status": "400"
+        },
+        {
+          "description": "Upload exceeds the configured limit",
+          "status": "413"
+        },
+        {
+          "description": "SDK lifecycle is unavailable",
+          "status": "503"
+        }
+      ],
+      "feature": "lifecycle",
+      "id": "uploadTemporaryAsset",
+      "method": "POST",
+      "path": "/api/sdk/v1/assets/temporary",
+      "request": {
+        "body": {
+          "binary": true,
+          "content_type": "multipart/form-data",
+          "field": "file",
+          "kind": "binary-multipart",
+          "required": true
+        }
+      },
+      "response": {
+        "content_type": "application/json",
+        "schema": "sdk-v1.lifecycle.schema.json#/$defs/TemporaryAssetUpload",
+        "status": "200"
+      },
+      "status": "implemented",
+      "transport": "http"
+    }
+  ],
+  "protocol_version": "1"
+}

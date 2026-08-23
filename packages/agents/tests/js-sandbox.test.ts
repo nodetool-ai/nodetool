@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import {
   runInSandbox,
   buildSandbox,
@@ -19,7 +20,9 @@ import {
   resolveSandboxLimits,
   MAX_OUTPUT_SIZE,
   MAX_FETCH_CALLS,
-  GUEST_MEMORY_LIMIT
+  GUEST_MEMORY_LIMIT,
+  MAX_CONSOLE_LOGS,
+  MAX_CONSOLE_LOG_CHARS
 } from "../src/js-sandbox.js";
 
 // ---------------------------------------------------------------------------
@@ -364,6 +367,7 @@ describe("buildSandbox workspace symlink containment", () => {
       await writeFile(join(outside, "secret.txt"), "SECRET\n");
       await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
       const context = {
+        workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
       } as never;
       const { sandbox } = buildSandbox(context);
@@ -428,6 +432,33 @@ describe("runInSandbox", () => {
     expect(result.success).toBe(true);
     expect(result.logs).toContain("hello");
     expect(result.logs).toContain("[warn] warning");
+  });
+
+  it("forwards console output to onLog as it happens", async () => {
+    const seen: Array<[string, string]> = [];
+    const result = await runInSandbox({
+      code: `
+        console.log("hello", 1);
+        console.info("note");
+        console.warn("warning");
+        console.error("boom");
+        return "done";
+      `,
+      onLog: (level, message) => seen.push([level, message])
+    });
+    expect(result.success).toBe(true);
+    expect(seen).toEqual([
+      ["log", "hello 1"],
+      ["info", "note"],
+      ["warn", "warning"],
+      ["error", "boom"]
+    ]);
+    expect(result.logs).toEqual([
+      "hello 1",
+      "[info] note",
+      "[warn] warning",
+      "[error] boom"
+    ]);
   });
 
   it("reports syntax errors", async () => {
@@ -1341,7 +1372,8 @@ describe("runInSandbox workspace binary I/O", () => {
     const { join, isAbsolute } = await import("node:path");
     const dir = await mkdtemp(join(tmpdir(), "sbx-bin-"));
     const context = {
-      resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(dir, p))
+      workspace: createLocalWorkspace(dir),
+        resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(dir, p))
     } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
     try {
       await fn(context, dir);
@@ -1432,13 +1464,18 @@ describe("runInSandbox workspace binary I/O", () => {
     try {
       await writeFile(join(outside, "secret.txt"), "SECRET");
       const context = {
+        workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
       } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
       const code = `return await workspace.read(${JSON.stringify(join(outside, "secret.txt"))});`;
 
+      // An absolute path is read as workspace-relative, so the guest lands on
+      // `<ws>/tmp/…/secret.txt` — which is not there. What matters is that the
+      // real secret never comes back; whether the refusal reads as "missing"
+      // or "outside" is not the security property.
       const confined = await runInSandbox({ code, context });
       expect(confined.success).toBe(false);
-      expect(confined.error).toMatch(/outside the workspace/i);
+      expect(JSON.stringify(confined)).not.toContain("SECRET");
 
       const hostMode = await runInSandbox({
         code,
@@ -1455,7 +1492,7 @@ describe("runInSandbox workspace binary I/O", () => {
         globals: { filesystemAccess: "host" }
       });
       expect(spoofed.success).toBe(false);
-      expect(spoofed.error).toMatch(/outside the workspace/i);
+      expect(JSON.stringify(spoofed)).not.toContain("SECRET");
     } finally {
       await rm(ws, { recursive: true, force: true });
       await rm(outside, { recursive: true, force: true });
@@ -1590,6 +1627,7 @@ describe("runInSandbox workspace binary I/O", () => {
       await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
       await symlink(outside, join(ws, "outdir"));
       const context = {
+        workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
       } as never;
       const { sandbox } = buildSandbox(context);
@@ -1608,10 +1646,10 @@ describe("runInSandbox workspace binary I/O", () => {
       await expect(
         workspace.move("inside.txt", "outdir/planted.txt")
       ).rejects.toThrow(/outside the workspace/i);
-      // Absolute escape, no symlink involved.
-      await expect(
-        workspace.copy("inside.txt", join(outside, "planted.txt"))
-      ).rejects.toThrow(/outside the workspace/i);
+      // Absolute escape, no symlink involved: the destination is read as
+      // workspace-relative, so the copy lands inside the workspace. The
+      // property under test is that nothing is planted outside it.
+      await workspace.copy("inside.txt", join(outside, "planted.txt"));
       expect(await readdir(outside)).toEqual(["secret.txt"]);
     } finally {
       await rm(ws, { recursive: true, force: true });
@@ -1630,6 +1668,7 @@ describe("runInSandbox workspace binary I/O", () => {
       await writeFile(join(outside, "secret.bin"), "SECRET");
       await symlink(join(outside, "secret.bin"), join(ws, "link.bin"));
       const context = {
+        workspace: createLocalWorkspace(ws),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
       } as never;
       const { sandbox } = buildSandbox(context);
@@ -1918,6 +1957,96 @@ describe("progress bridge", () => {
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// console log forwarding
+// ---------------------------------------------------------------------------
+
+describe("console log forwarding", () => {
+  it("forwards from the host console object immediately", () => {
+    const seen: Array<[string, string]> = [];
+    const { sandbox, getLogs } = buildSandbox(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      (level, message) => seen.push([level, message])
+    );
+    const con = sandbox.console as {
+      log: (...a: unknown[]) => void;
+      warn: (...a: unknown[]) => void;
+    };
+    con.log("hello", { n: 1 });
+    con.warn("careful");
+    expect(seen).toEqual([
+      ["log", "hello {\n  \"n\": 1\n}"],
+      ["warn", "careful"]
+    ]);
+    expect(getLogs()).toEqual(["hello {\n  \"n\": 1\n}", "[warn] careful"]);
+  });
+
+  it("truncates a forwarded line but keeps the full line in logs", () => {
+    const seen: string[] = [];
+    const { sandbox, getLogs } = buildSandbox(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      (_level, message) => seen.push(message)
+    );
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    const long = "x".repeat(MAX_CONSOLE_LOG_CHARS + 50);
+    con.log(long);
+    expect(seen[0]).toHaveLength(MAX_CONSOLE_LOG_CHARS);
+    expect(getLogs()[0]).toHaveLength(MAX_CONSOLE_LOG_CHARS + 50);
+  });
+
+  it("stops forwarding after MAX_CONSOLE_LOGS but still collects", () => {
+    const seen: string[] = [];
+    const { sandbox, getLogs } = buildSandbox(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      (_level, message) => seen.push(message)
+    );
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    for (let i = 0; i < MAX_CONSOLE_LOGS + 25; i++) {
+      con.log(String(i));
+    }
+    expect(seen).toHaveLength(MAX_CONSOLE_LOGS);
+    expect(getLogs()).toHaveLength(MAX_CONSOLE_LOGS + 25);
+  });
+
+  it("stops forwarding once the run is cancelled", () => {
+    const seen: string[] = [];
+    const controller = new AbortController();
+    const { sandbox } = buildSandbox(
+      undefined,
+      controller.signal,
+      undefined,
+      undefined,
+      (_level, message) => seen.push(message)
+    );
+    const con = sandbox.console as { log: (...a: unknown[]) => void };
+    con.log("before");
+    controller.abort();
+    con.log("after");
+    expect(seen).toEqual(["before"]);
+  });
+
+  it("swallows a throwing sink so the guest still succeeds", async () => {
+    const result = await runInSandbox({
+      code: `console.log("hi"); return 1;`,
+      onLog: () => {
+        throw new Error("sink failed");
+      }
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(1);
+    expect(result.logs).toEqual(["hi"]);
   });
 });
 

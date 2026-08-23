@@ -4,6 +4,7 @@ import {
   getProvider,
   isProviderConfigured,
   readCredentialEnv,
+  resolveCredentialValue,
   unregisterProvider
 } from "../../src/providers/provider-registry.js";
 import { FakeProvider } from "../../src/providers/fake-provider.js";
@@ -69,6 +70,22 @@ describe("credential env aliases", () => {
     } finally {
       unregisterProvider(id);
     }
+  });
+
+  it("resolves the same alias value used by provider construction", async () => {
+    delete process.env.FAL_API_KEY;
+    process.env.FAL_KEY = "alias";
+    await expect(
+      resolveCredentialValue("FAL_API_KEY", noSecrets)
+    ).resolves.toBe("alias");
+  });
+
+  it("does not count an empty stored value as configured", async () => {
+    delete process.env.FAL_API_KEY;
+    delete process.env.FAL_KEY;
+    await expect(
+      resolveCredentialValue("FAL_API_KEY", async () => "")
+    ).resolves.toBeUndefined();
   });
 
   it("passes the alias value into the provider constructor", async () => {

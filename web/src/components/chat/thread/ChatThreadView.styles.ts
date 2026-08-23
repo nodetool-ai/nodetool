@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, TYPOGRAPHY } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS, TYPOGRAPHY, SPACING } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
@@ -539,6 +539,34 @@ export const createStyles = (theme: Theme) => ({
 
     ".chat-message.has-tool-calls .tool-call-card + .tool-call-card": {
       marginTop: theme.spacing(1)
+    },
+
+    ".tool-call-run-preview": {
+      color: theme.vars.palette.text.secondary,
+      lineHeight: 1.3,
+      paddingRight: theme.spacing(SPACING.sm)
+    },
+
+    ".tool-call-run-progress": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.secondary,
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap"
+    },
+
+    ".tool-call-run-items": {
+      borderTop: `1px solid ${theme.vars.palette.divider}`
+    },
+
+    ".tool-call-run-items .tool-call-card": {
+      background: "transparent",
+      borderRadius: 0
+    },
+
+    ".tool-call-run-items .tool-call-card + .tool-call-card": {
+      marginTop: 0,
+      borderTop: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".chat-message.has-tool-calls .markdown": {

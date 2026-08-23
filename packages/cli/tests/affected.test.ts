@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   computeAffected,
   DECORATOR_PACKAGES,
+  EXTRA_WORKSPACE_PATHS,
   type PackageInfo
 } from "../src/affected/affected.js";
 
@@ -87,5 +91,71 @@ describe("computeAffected", () => {
   it("exposes the documented decorator package set", () => {
     expect(DECORATOR_PACKAGES.has("@nodetool-ai/base-nodes")).toBe(true);
     expect(DECORATOR_PACKAGES.has("@nodetool-ai/cli")).toBe(false);
+  });
+
+  it("maps a workspace outside packages/ to itself", () => {
+    const pkgs: PackageInfo[] = [
+      ...PKGS,
+      {
+        name: "@nodetool-ai/reliability-harness",
+        dir: "reliability/harness",
+        internalDeps: ["@nodetool-ai/node-sdk"]
+      }
+    ];
+    const r = computeAffected(["reliability/harness/src/index.ts"], pkgs);
+    expect(r.changed).toEqual(["@nodetool-ai/reliability-harness"]);
+    expect(r.unmatched).toEqual([]);
+    expect(r.commands).toContain(
+      "npm run test --workspace=reliability/harness"
+    );
+  });
+
+  it("maps a workspace's extra owned dirs to it", () => {
+    const pkgs: PackageInfo[] = [
+      {
+        name: "@nodetool-ai/reliability-harness",
+        dir: "reliability/harness",
+        internalDeps: [],
+        ownedPaths: ["reliability/journeys"]
+      }
+    ];
+    const r = computeAffected(
+      ["reliability/journeys/linear-text-pipeline/workflow.json"],
+      pkgs
+    );
+    expect(r.changed).toEqual(["@nodetool-ai/reliability-harness"]);
+    expect(r.unmatched).toEqual([]);
+  });
+});
+
+describe("EXTRA_WORKSPACE_PATHS", () => {
+  const repoRoot = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    ".."
+  );
+
+  it("names workspaces the root package.json declares", () => {
+    const workspaces = new Set<string>(
+      (
+        JSON.parse(
+          readFileSync(join(repoRoot, "package.json"), "utf8")
+        ) as { workspaces?: string[] }
+      ).workspaces ?? []
+    );
+    for (const name of Object.keys(EXTRA_WORKSPACE_PATHS)) {
+      const owner = [...workspaces].find((dir) => {
+        try {
+          const pkg = JSON.parse(
+            readFileSync(join(repoRoot, dir, "package.json"), "utf8")
+          ) as { name?: string };
+          return pkg.name === name;
+        } catch {
+          return false;
+        }
+      });
+      expect(owner, `no workspace is named ${name}`).toBeDefined();
+    }
   });
 });

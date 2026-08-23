@@ -2,19 +2,21 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { DocsHelpLink, Text, thinScrollbarStyles, MOTION, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  Text,
+  thinScrollbarStyles,
+  MOTION,
+  FONT_WEIGHT,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
+import PanelHeadline from "../ui/PanelHeadline";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -28,7 +30,8 @@ import { rankSearchNodes } from "../../utils/nodeSearch";
 import {
   filterNodesForCategory,
   NODE_SUBCATEGORIES,
-  getNodeSubcategory
+  getNodeSubcategory,
+  getTopLevelCategory
 } from "../../config/quickAccessCategories";
 import type { NodeCategoryId } from "../../stores/PanelStore";
 import type { NodeMetadata } from "../../stores/ApiTypes";
@@ -53,16 +56,6 @@ const styles = (theme: Theme, isMobile: boolean) =>
       padding: isMobile
         ? theme.spacing(SPACING.micro, SPACING.xs, SPACING.xs, SPACING.xs)
         : theme.spacing(SPACING.sm, SPACING.lg, SPACING.xs, SPACING.lg)
-    },
-    ".nl-title": {
-      fontSize: "var(--fontSizeNormal)",
-      fontWeight: FONT_WEIGHT.semibold,
-      letterSpacing: "-0.01em",
-      color: theme.vars.palette.text.primary
-    },
-    ".nl-header .docs-help-link": {
-      marginLeft: "auto",
-      padding: 2
     },
     ".nl-count": {
       display: "inline-flex",
@@ -420,11 +413,12 @@ const NodeLibrary = memo<NodeLibraryProps>(
     return (
       <div css={cssStyles} className="nl-root">
         <div className="nl-header">
-          <Text className="nl-title" component="h2">
-            Node library
-          </Text>
-          <span className="nl-count">{nodes.length}</span>
-          <DocsHelpLink topic="nodes" label="Node reference" />
+          <PanelHeadline
+            title="Nodes"
+            docsTopic="nodes"
+            description={getTopLevelCategory("nodes").description}
+            actions={<span className="nl-count">{nodes.length}</span>}
+          />
         </div>
 
         <div className="nl-search">
@@ -451,7 +445,11 @@ const NodeLibrary = memo<NodeLibraryProps>(
 
         <div className="nl-body">
           <div className="nl-browse">
-            <nav className="nl-rail" role="tablist" aria-label="Node categories">
+            <nav
+              className="nl-rail"
+              role="tablist"
+              aria-label="Node categories"
+            >
               {NODE_SUBCATEGORIES.map((sub) => (
                 <button
                   key={sub.id}

@@ -101,6 +101,7 @@ describe("storyboard render tools", () => {
     expect(names).toEqual(
       expect.arrayContaining([
         "list_storyboards",
+        "create_storyboard",
         "get_storyboard",
         "render_storyboard_stills",
         "render_storyboard_clips",
@@ -109,6 +110,7 @@ describe("storyboard render tools", () => {
       ])
     );
     expect(permissionCategoryFor("get_storyboard")).toBe("read");
+    expect(permissionCategoryFor("create_storyboard")).toBe("write");
     expect(permissionCategoryFor("render_storyboard_clips")).toBe("write");
   });
 

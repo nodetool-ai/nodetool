@@ -64,6 +64,28 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_timeline_add_media_clip",
+  description:
+    "Place an existing asset — a video, image, or audio file already in the library — on the specified timeline sequence. `asset` is an asset id or `asset://<id>.<ext>` URI. Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset unless `durationMs` overrides it.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    asset: z.string().trim().min(1),
+    trackId: z.string().optional(),
+    startMs: z.number().optional(),
+    durationMs: z.number().optional(),
+    name: z.string().optional()
+  }),
+  async execute({ timeline_id, ...args }) {
+    const clip = await getTimelineAgentHandler(timeline_id).addMediaClip(args);
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_timeline_add_text_clip",
   description:
     "Add authored text to the specified timeline sequence. It goes on an overlay track, creating one when needed, lasts 3000ms by default, and accepts the same motion presets as media clips.",

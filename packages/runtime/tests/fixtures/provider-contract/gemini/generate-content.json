@@ -1,0 +1,19 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [{ "text": "ok" }],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 5,
+    "candidatesTokenCount": 2,
+    "totalTokenCount": 7
+  },
+  "modelVersion": "gemini-3-flash",
+  "responseId": "contract-probe"
+}

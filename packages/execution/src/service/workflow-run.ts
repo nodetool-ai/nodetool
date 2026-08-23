@@ -14,20 +14,25 @@
 
 import { createLogger } from "@nodetool-ai/config";
 import { BoundedHandle, WorkflowRunner } from "@nodetool-ai/kernel";
-import { Job, Workflow } from "@nodetool-ai/models";
+import { Job, Workflow, getSecret } from "@nodetool-ai/models";
 import {
-  collectModelSelectionIssues,
   hydrateGraphNodeFlags,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
-import {
-  listOfflineModelIds,
-  listRegisteredProviderIds,
-  type NodeExecutor,
-  type ProcessingContext
+import type {
+  NodeExecutor,
+  ProcessingContext,
+  StorageAdapter,
+  Workspace
 } from "@nodetool-ai/runtime";
 import { normalizeGraph } from "../normalize-graph.js";
+import {
+  collectPreflightIssues,
+  formatPreflightDetail,
+  type RunModelCatalogs
+} from "../preflight.js";
 import { collectExecutionSummary } from "../debug/collector.js";
+import type { ExecutionSummary } from "../debug/types.js";
 import {
   buildRunVerdict,
   collectInterventionWarnings
@@ -44,11 +49,22 @@ import {
   buildWorkspaceExecutionContext,
   resolveWorkflowWorkspace
 } from "./workflow-workspace.js";
-import {
-  isFunctionValue,
-  isNumber,
-  isString
-} from "../predicates.js";
+import { isFunctionValue, isNumber, isString } from "../predicates.js";
+
+// The preflight moved to `../preflight.ts` so `ExecutionSession` can run the
+// same checks without importing the models database. Re-exported here because
+// this module is where every host already reaches for them.
+export {
+  modelSelectionErrors,
+  unconfiguredProviderErrors,
+  formatPreflightDetail,
+  ExecutionPreflightError
+} from "../preflight.js";
+export type {
+  CredentialResolver,
+  ExecutionPreflightIssue,
+  RunModelCatalogs
+} from "../preflight.js";
 
 const log = createLogger("nodetool.execution.workflow-run");
 
@@ -74,22 +90,14 @@ export interface WorkflowRunEnvironment {
    * nodes that persist artifacts — every image Output — fail their run.
    */
   configureContext?: (context: ProcessingContext) => void;
+  /**
+   * The store `asset://<id>` inputs resolve through, and the temp store for
+   * runtime-materialized refs. A host that brings neither runs with a context
+   * that can write assets but not read them.
+   */
+  assetStorage?: StorageAdapter | null;
+  storage?: StorageAdapter | null;
 }
-
-/** Provider/model catalogs the pre-flight checks a graph's selections against. */
-export interface RunModelCatalogs {
-  listProviderIds: () => readonly string[];
-  listModelIds: (
-    provider: string,
-    modelType: string
-  ) => readonly string[] | undefined;
-}
-
-const RUNTIME_CATALOGS: RunModelCatalogs = {
-  listProviderIds: () => listRegisteredProviderIds(),
-  listModelIds: (provider, modelType) =>
-    listOfflineModelIds(provider, modelType)
-};
 
 export interface RunWorkflowOptions {
   workflowId: string;
@@ -104,7 +112,11 @@ export interface RunWorkflowOptions {
   params?: Record<string, unknown>;
   /** Return the full debug report (summary + verdict) instead of the run row. */
   debug?: boolean;
-  /** Reported back on the payload; the run itself is identical. */
+  /**
+   * Detach the run: the call returns as soon as the job row exists, and the
+   * run finishes on its own, writing its status and outputs onto the job.
+   * The caller polls `get_job` (or `nodetool.jobs.wait`) for the result.
+   */
   background?: boolean;
   /**
    * Bubble node failures up to the caller instead of resolving them here: the
@@ -120,9 +132,9 @@ export interface RunWorkflowOptions {
    * do) keeps controlling it. Defaults to the workspace stored on the workflow.
    */
   resolveWorkspace?: (
-    workflowId: string,
+    workflowId: string | null,
     userId: string
-  ) => Promise<string | null>;
+  ) => Promise<Workspace | null>;
   catalogs?: RunModelCatalogs;
 }
 
@@ -161,20 +173,6 @@ export function boundedRunOption(
   return Math.min(value, max);
 }
 
-/** Model selections in a graph that no configured provider can honour. */
-export function modelSelectionErrors(
-  graph: { nodes?: unknown },
-  catalogs: RunModelCatalogs = RUNTIME_CATALOGS
-): string[] {
-  const nodes = graph.nodes;
-  if (!Array.isArray(nodes)) return [];
-  return collectModelSelectionIssues({ nodes: nodes as never[] }, catalogs)
-    .filter((issue) => issue.severity === "error")
-    .map(
-      (issue) => `Node "${issue.nodeId}" (${issue.nodeType}): ${issue.message}`
-    );
-}
-
 /** Mark a job failed and persist it, best effort. */
 async function markJobFailed(job: Job, message: string): Promise<void> {
   try {
@@ -188,6 +186,93 @@ async function markJobFailed(job: Job, message: string): Promise<void> {
   }
 }
 
+/**
+ * How much serialized output a job row will carry. Outputs are normally
+ * asset refs and short strings; a run that emits a megabyte of text should
+ * not turn every `get_job` into that megabyte, so past this the row records
+ * the handle names instead and the caller reads the values from the assets.
+ */
+export const MAX_PERSISTED_OUTPUT_BYTES = 256_000;
+
+/** What the row holds instead of an outputs bag it cannot carry. */
+export interface OmittedOutputs {
+  omitted: true;
+  reason: string;
+  handles: string[];
+}
+
+/**
+ * The outputs to store on the job row, or a marker naming the handles when
+ * they are too big to keep. Pure so the size rule is pinned by a test.
+ */
+export function persistableOutputs(
+  outputs: Record<string, unknown>
+): Record<string, unknown> | OmittedOutputs {
+  let size: number;
+  try {
+    size = JSON.stringify(outputs).length;
+  } catch {
+    // Circular or otherwise unserializable — the row cannot hold it either.
+    size = Number.POSITIVE_INFINITY;
+  }
+  if (size <= MAX_PERSISTED_OUTPUT_BYTES) return outputs;
+  const omitted: OmittedOutputs = {
+    omitted: true,
+    reason:
+      `Outputs were ${Number.isFinite(size) ? `${size} bytes` : "not serializable"}, ` +
+      `over the ${MAX_PERSISTED_OUTPUT_BYTES}-byte limit for a job row. ` +
+      "Re-run the workflow with run_workflow to read them, or read the " +
+      "assets the run produced.",
+    handles: Object.keys(outputs)
+  };
+  return omitted;
+}
+
+/** How many log entries a job row keeps — the tail, which explains a failure. */
+export const MAX_PERSISTED_LOG_ENTRIES = 200;
+
+/** Per-entry ceiling, so one runaway line cannot fill the row. */
+const MAX_LOG_CONTENT_CHARS = 2000;
+
+/** One persisted log line, in the shape `get_job_logs` hands back. */
+export interface PersistedJobLog extends Record<string, unknown> {
+  severity: string;
+  node_id: string | null;
+  node_name: string | null;
+  content: string;
+}
+
+/**
+ * The run's log tail plus one line per node that failed.
+ *
+ * `job.logs` had no writer at all: every `get_job_logs` call answered
+ * `total_logs: 0`, and `debug_workflow` reported an empty `logs` array, so the
+ * one tool an agent reaches for after a background run went wrong could not
+ * tell it anything. The messages are already folded for the debug payload;
+ * this keeps the part that survives the run.
+ */
+export function persistableLogs(summary: ExecutionSummary): PersistedJobLog[] {
+  const entries: PersistedJobLog[] = summary.logs.map((log) => ({
+    severity: log.severity,
+    node_id: log.nodeId,
+    node_name: log.nodeName ?? null,
+    content: log.content.slice(0, MAX_LOG_CONTENT_CHARS)
+  }));
+  for (const node of summary.nodes) {
+    if (!node.error) continue;
+    entries.push({
+      severity: "error",
+      node_id: node.nodeId,
+      node_name: node.nodeName ?? null,
+      content: `${node.nodeType ?? "node"} failed: ${node.error}`.slice(
+        0,
+        MAX_LOG_CONTENT_CHARS
+      )
+    });
+  }
+  return entries.slice(-MAX_PERSISTED_LOG_ENTRIES);
+}
+
 async function finalizeWorkflowRunJob(
   job: Job,
   result: WorkflowRunResult
@@ -199,6 +284,14 @@ async function finalizeWorkflowRunJob(
   } else {
     job.markFailed(result.error ?? "Workflow run failed");
   }
+  // Without this a detached run had nowhere to leave its results: the job row
+  // carried a status and nothing else, so `get_job` on a completed background
+  // job answered "completed" and the caller could never read what it produced.
+  job.metadata_json = {
+    ...(job.metadata_json ?? {}),
+    outputs: persistableOutputs(result.outputs ?? {})
+  };
+  job.logs = persistableLogs(collectExecutionSummary(result.messages));
   await job.save();
 }
 
@@ -317,22 +410,28 @@ export async function runWorkflow(
   // legacy `type`.
   const runnableGraph = normalizeGraph(workflow.getGraph());
 
-  const badModels = modelSelectionErrors(runnableGraph, options.catalogs);
-  if (badModels.length > 0) {
+  // The same refusal `ExecutionSession` raises, one layer up: a provider that
+  // would construct without its key fails mid-run today, after the upstream
+  // half of the graph is paid for. Refuse here, before the job row exists,
+  // and name the secret.
+  const preflightIssues = await collectPreflightIssues(runnableGraph, {
+    catalogs: options.catalogs,
+    resolveSecret: (key) => getSecret(key, userId)
+  });
+  if (preflightIssues.length > 0) {
     return {
       kind: "error",
       status: 400,
-      detail: `Workflow selects providers or models this runtime cannot honour:\n${badModels.join("\n")}`
+      detail: formatPreflightDetail(preflightIssues)
     };
   }
 
   // Resolve the environment only after the cheap checks: a 404 on a missing
   // workflow or a 400 on a bad model selection must not depend on (or be
   // masked by) a cold runtime bootstrap.
-  const environment =
-    isFunctionValue(options.environment)
-      ? await options.environment()
-      : options.environment;
+  const environment = isFunctionValue(options.environment)
+    ? await options.environment()
+    : options.environment;
 
   const registry = environment.registry;
   const hasPythonNode = runnableGraph.nodes.some((node) => {
@@ -363,7 +462,7 @@ export async function runWorkflow(
   let interactiveHandle: InteractiveEscalationHandle | null = null;
   let supervisorHandle: BoundedHandle | null = null;
   try {
-    const workspaceDir = await (
+    const workspace = await (
       options.resolveWorkspace ?? resolveWorkflowWorkspace
     )(workflowId, userId);
     if (interactive) {
@@ -411,7 +510,9 @@ export async function runWorkflow(
           jobId: job.id,
           workflowId,
           userId,
-          workspaceDir
+          workspace,
+          storage: environment.storage ?? null,
+          assetStorage: environment.assetStorage ?? null
         });
         // The host attaches its model interfaces (asset persistence, …) —
         // without them an Output node that stores an image fails the run.
@@ -428,6 +529,40 @@ export async function runWorkflow(
     const message = error instanceof Error ? error.message : String(error);
     await markJobFailed(job, message);
     throw error instanceof Error ? error : new Error(message);
+  }
+
+  if (!interactive && (options.background ?? false)) {
+    // Detached: the payload is the receipt, not the result. Awaiting the run
+    // here made `background: true` a label on a blocking call — an agent that
+    // started a two-minute render still had to sit through it, and its turn
+    // was cancelled before the job it started could be reported.
+    void (async () => {
+      try {
+        const result = await runner.run(
+          { job_id: job.id, workflow_id: workflowId, params },
+          hydratedGraph
+        );
+        await finalizeWorkflowRunJob(job, result);
+      } catch (error) {
+        await markJobFailed(
+          job,
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    })();
+    return {
+      kind: "payload",
+      payload: {
+        job_id: job.id,
+        // The jobs API keys every other answer on `id`; a receipt that spells
+        // it only `job_id` sent callers to `get_job(undefined)`.
+        id: job.id,
+        workflow_id: workflowId,
+        status: "running",
+        background: true,
+        poll: `Poll get_job with job_id "${job.id}" until it settles; its outputs are on the settled job.`
+      }
+    };
   }
 
   if (!interactive) {

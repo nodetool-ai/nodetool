@@ -5,15 +5,26 @@ import type { BaseProvider } from "./base-provider.js";
 const log = createLogger("nodetool.runtime.provider-registry");
 
 /** A provider class as the registry constructs it: from its resolved kwargs. */
-type ProviderConstructor = new (kwargs: Record<string, unknown>) => BaseProvider;
+type ProviderConstructor = new (
+  kwargs: Record<string, unknown>
+) => BaseProvider;
 
-interface ProviderRegistration {
+export type ProviderAccess = "in_process" | "local_service" | "remote_api";
+
+export interface ProviderRegistrationMetadata {
+  /** Describes where model inference runs, independently from cache state. */
+  access: ProviderAccess;
+  displayName: string;
+}
+
+export interface ProviderRegistration {
   cls: ProviderConstructor;
   kwargs: Record<string, unknown>;
   // Keys that should be resolved from the secret store / env when available,
   // but are NOT required for the provider to be considered configured. The
   // mapped value is the fallback default used when nothing is resolvable.
   optionalKwargs: Record<string, unknown>;
+  metadata: ProviderRegistrationMetadata;
 }
 
 /**
@@ -31,9 +42,18 @@ export function registerProvider(
   providerId: string,
   cls: ProviderConstructor,
   kwargs: Record<string, unknown> = {},
-  optionalKwargs: Record<string, unknown> = {}
+  optionalKwargs: Record<string, unknown> = {},
+  metadata: Partial<ProviderRegistrationMetadata> = {}
 ): void {
-  _PROVIDER_REGISTRY.set(providerId, { cls, kwargs, optionalKwargs });
+  _PROVIDER_REGISTRY.set(providerId, {
+    cls,
+    kwargs,
+    optionalKwargs,
+    metadata: {
+      access: metadata.access ?? "remote_api",
+      displayName: metadata.displayName ?? providerId
+    }
+  });
 }
 
 export function getRegisteredProvider(
@@ -75,6 +95,15 @@ export function readCredentialEnv(key: string): string | undefined {
   return undefined;
 }
 
+/** Resolve one credential exactly as provider construction does. */
+export async function resolveCredentialValue(
+  key: string,
+  getSecret: GetSecret
+): Promise<string | undefined> {
+  const stored = await getSecret(key);
+  return stored || readCredentialEnv(key);
+}
+
 /**
  * Build a fresh provider instance, resolving any unset credential kwargs via
  * `getSecret` first, then `process.env` as fallback. The caller owns any
@@ -96,14 +125,9 @@ export async function getProvider(
   const kwargs = { ...registration.kwargs };
   for (const [key, value] of Object.entries(kwargs)) {
     if (value === "" || value == null) {
-      const fromSecret = await getSecret(key);
-      if (fromSecret) {
-        kwargs[key] = fromSecret;
-        continue;
-      }
-      const envVal = readCredentialEnv(key);
-      if (envVal) {
-        kwargs[key] = envVal;
+      const resolved = await resolveCredentialValue(key, getSecret);
+      if (resolved) {
+        kwargs[key] = resolved;
       }
     }
   }
@@ -162,8 +186,7 @@ export async function isProviderConfigured(
   // Python providers) and excluded from the credentials check.
   const required = Object.entries(reg.kwargs)
     .filter(
-      ([key, value]) =>
-        (value === "" || value == null) && !key.startsWith("_")
+      ([key, value]) => (value === "" || value == null) && !key.startsWith("_")
     )
     .map(([key]) => key);
 
@@ -171,8 +194,7 @@ export async function isProviderConfigured(
   if (required.length === 0) return true;
 
   for (const key of required) {
-    let value = await getSecret(key);
-    if (!value) value = readCredentialEnv(key);
+    const value = await resolveCredentialValue(key, getSecret);
     if (!value) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
       log.debug("isProviderConfigured: missing credential", {

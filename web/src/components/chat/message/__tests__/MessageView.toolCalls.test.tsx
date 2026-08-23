@@ -149,6 +149,106 @@ describe("MessageView tool-call grouping", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText("Search")).toBeInTheDocument();
   });
+
+  it("collapses consecutive same-tool calls into one closed run", () => {
+    renderView({
+      id: "m-run",
+      role: "assistant",
+      tool_calls: [
+        {
+          id: "a",
+          name: "web_search",
+          args: { query: "facebook ads" },
+          message: "Searching the web"
+        },
+        {
+          id: "b",
+          name: "web_search",
+          args: { query: "tiktok creative" },
+          message: "Searching the web"
+        },
+        {
+          id: "c",
+          name: "web_search",
+          args: { query: "linkedin tests" },
+          message: "Searching the web"
+        }
+      ]
+    } as Message);
+
+    expect(
+      screen.queryByText(/tool execution chain/i)
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Searching the web")).toBeInTheDocument();
+    expect(screen.getByText("web_search ×3")).toBeInTheDocument();
+    expect(
+      screen.getByText("facebook ads · tiktok creative · linkedin tests")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("0/3 completed")).not.toBeInTheDocument();
+    expect(document.querySelector(".tool-call-run-items")).toBeNull();
+  });
+
+  it("expands a tool-call run to show each call", async () => {
+    const user = userEvent.setup();
+    renderView({
+      id: "m-run-open",
+      role: "assistant",
+      tool_calls: [
+        {
+          id: "a",
+          name: "web_search",
+          args: { query: "one" },
+          message: "Searching the web"
+        },
+        {
+          id: "b",
+          name: "web_search",
+          args: { query: "two" },
+          message: "Searching the web"
+        }
+      ]
+    } as Message);
+
+    await user.click(
+      screen.getByRole("button", { name: /searching the web, 2 web_search/i })
+    );
+
+    expect(document.querySelectorAll(".tool-call-run-items .tool-call-card"))
+      .toHaveLength(2);
+  });
+
+  it("keeps execute_code cards ungrouped next to a search run", () => {
+    renderView({
+      id: "m-mixed",
+      role: "assistant",
+      tool_calls: [
+        {
+          id: "code",
+          name: "execute_code",
+          args: { title: "Planning ad framework research", code: "1" }
+        },
+        {
+          id: "a",
+          name: "web_search",
+          args: { query: "one" },
+          message: "Searching the web"
+        },
+        {
+          id: "b",
+          name: "web_search",
+          args: { query: "two" },
+          message: "Searching the web"
+        }
+      ]
+    } as Message);
+
+    expect(screen.getByText("Tool execution chain")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /planning ad framework research/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText("web_search ×2")).toBeInTheDocument();
+    expect(screen.getByText("0/3 completed")).toBeInTheDocument();
+  });
 });
 
 describe("MessageView CodeAct actions", () => {

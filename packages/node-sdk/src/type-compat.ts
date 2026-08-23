@@ -7,7 +7,10 @@
  * `dynamic_inputs`. The protocol's `TypeMetadata` *class* names its children
  * `args` instead of `type_args`, so both spellings are accepted.
  */
-import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
+import {
+  areTypeNamesCompatible,
+  type DynamicSlotMeta
+} from "@nodetool-ai/protocol";
 import { isBoolean, isNumber, isString } from "./type-predicates.js";
 
 /** Structural view of a type-metadata object, whatever produced it. */
@@ -50,21 +53,6 @@ const PERMISSIVE_TYPES: ReadonlySet<string> = new Set([
   "dict"
 ]);
 
-/**
- * Unordered pairs of distinct base types the editor's connection policy
- * allows, so the validator must not flag them (`web/src/utils/TypeHandler.ts`):
- * `str ↔ enum` (an enum value is a string, a string parses as an enum value)
- * and `cv ↔ chunk` (Eurorack interop — control voltage rides the chunk wire).
- */
-const COMPATIBLE_PAIRS: ReadonlySet<string> = new Set([
-  "enum|str",
-  "chunk|cv"
-]);
-
-function isAllowedPair(a: string, b: string): boolean {
-  return COMPATIBLE_PAIRS.has(a < b ? `${a}|${b}` : `${b}|${a}`);
-}
-
 function baseType(t: string): string {
   const i = t.indexOf("[");
   return i >= 0 ? t.slice(0, i) : t;
@@ -86,9 +74,7 @@ export function typesIncompatible(
   const t = baseType(targetType);
   if (PERMISSIVE_TYPES.has(s) || PERMISSIVE_TYPES.has(t)) return false;
   if (s !== sourceType || t !== targetType) return false; // generic container — skip
-  const numeric = new Set(["int", "float"]);
-  if (numeric.has(s) && numeric.has(t)) return false;
-  if (isAllowedPair(s, t)) return false;
+  if (areTypeNamesCompatible(s, t)) return false;
   return s !== t;
 }
 

@@ -272,6 +272,18 @@ export interface ClipAnimationInput {
   };
 }
 
+/** Place an asset the library already holds as a clip. */
+export interface TimelineAddMediaClipOptions {
+  /** Asset id or `asset://<id>.<ext>` URI. */
+  asset: string;
+  trackId?: string;
+  startMs?: number;
+  /** Overrides the asset's own duration. */
+  durationMs?: number;
+  /** Overrides the asset's name as the clip label. */
+  name?: string;
+}
+
 /** How {@link TimelineAgentHandler.setClipAnimations} applies its inputs. */
 export type ClipAnimationMode = "add" | "replace";
 
@@ -290,6 +302,13 @@ export interface TimelineAgentHandler {
   generateClip: (
     opts: TimelineGenerateOptions
   ) => Promise<TimelineGenerateResult>;
+  /**
+   * Place an existing library asset. Async because the asset row is fetched
+   * for its media type, duration and thumbnail.
+   */
+  addMediaClip: (
+    opts: TimelineAddMediaClipOptions
+  ) => Promise<TimelineClipNode>;
   addTextClip: (opts: TimelineAddTextClipOptions) => TimelineClipNode;
   addShapeClip: (opts: TimelineAddShapeClipOptions) => TimelineClipNode;
   /** Split a clip at the given time (defaults to the playhead). */

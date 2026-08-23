@@ -61,6 +61,7 @@ export {
 } from "./tools/mcp-tools.js";
 export type {
   GetAllMcpToolsOptions,
+  SecretAvailabilityFactory,
   ExampleWorkflowCatalog,
   WorkflowDslExporter,
   PackageAssetLister,
@@ -101,12 +102,15 @@ export {
   toolForCapabilityName,
   capabilityFromTool,
   capabilitySpec,
+  capabilityModuleOf,
   listCapabilitySpecs,
   createCapabilityRun,
+  contextSecretAvailability,
   resolveCapabilityMessage,
   UNGATED
 } from "./capabilities/index.js";
 export type {
+  AvailableSecretsResolver,
   CapabilitySpec,
   CapabilityImpl,
   CapabilityRun,

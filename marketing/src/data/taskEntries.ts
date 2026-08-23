@@ -207,18 +207,18 @@ export const taskEntries: TaskEntry[] = [
   },
   {
     route: "/tasks/lip-sync",
-    title: title("Lip Sync"),
+    title: "Best AI Lip Sync Models & Workflows — NodeTool",
     description:
-      "Sync a talking face to any audio with AI. Compare lip-sync models, run NodeTool workflows, and build talking-head and avatar pipelines.",
+      "Create AI lip-sync videos from a portrait or video and an audio track. Compare lip-sync models and build talking-head workflows in NodeTool.",
     priority: 0.6,
     changeFrequency: "weekly",
     indexable: true,
     slug: "lip-sync",
     task: "Lip Sync",
     modality: "video",
-    headline: "AI Lip-Sync Models & Workflows",
+    headline: "AI Lip Sync: Best Models & Workflows",
     subhead:
-      "Make any face speak your audio. Pick a lip-sync model, wire it into a NodeTool workflow, and drive talking-head and avatar videos from a voice track.",
+      "Turn a portrait or existing video into a talking-head clip synced to speech. Choose a lip-sync model, connect audio in a NodeTool workflow, and create avatar videos.",
     nodeTypeMatch: [],
     tagMatch: ["video", "avatar", "lip-sync"],
     models: [

@@ -3,6 +3,7 @@ import {
   httpBatchLink,
   type CreateTRPCClient
 } from "@trpc/client";
+import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { ChatSocket, type WebSocketCtor } from "./chat.js";
 
@@ -84,7 +85,7 @@ export function createNodetoolClient(
         // segment, and Fastify's router rejects a segment over `maxParamLength`
         // with a 404. A model-picker mount batched 116 procedures into a ~2900
         // char path and got nothing back.
-        maxItems: 20,
+        maxItems: TRPC_MAX_BATCH_SIZE,
         // POST keeps the batched input in the request body instead of the URL,
         // so large batches stay under reverse-proxy URL-length limits. See #3979.
         methodOverride: "POST",

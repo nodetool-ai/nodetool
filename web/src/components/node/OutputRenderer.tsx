@@ -144,6 +144,8 @@ import { RealtimeAudioOutputFromChunks } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
+import { resolveInlineMediaSource } from "../../utils/resolveMediaUri";
+import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
 
 const LazyTimelineRenderer = React.lazy(() => import("../timeline/TimelineRenderer"));
 const LazyAudioPlayer = React.lazy(() => import("../audio/AudioPlayer"));
@@ -548,11 +550,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return (v.data as (string | Uint8Array)[]).map((item) => (
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(item), seen)}
-              source={item}
+              source={resolveInlineMediaSource(item)}
             />
           ));
         } else {
-          let imageSource: string | Uint8Array;
+          let imageSource: ResolvedMediaUrl | "" | Uint8Array;
           if (
             v.mimeType === RAW_RGBA_MIME &&
             v.data instanceof Uint8Array &&
@@ -560,11 +562,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             isNumber(v.height)
           ) {
             // Raw RGBA can't be decoded by <img>; encode to a PNG data URL.
-            imageSource = rawRgbaToPngDataUrl(
-              v.data,
-              v.width,
-              v.height
-            );
+            imageSource =
+              resolveInlineMediaSource(
+                rawRgbaToPngDataUrl(v.data, v.width, v.height)
+              ) ?? "";
           } else if (isStoredUri(v.uri)) {
             imageSource = signedValueUrl;
           } else if (v.data instanceof Uint8Array) {
@@ -572,7 +573,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           } else if (Array.isArray(v.data)) {
             imageSource = new Uint8Array(v.data as number[]);
           } else if (isString(v.data)) {
-            imageSource = v.data;
+            imageSource = resolveInlineMediaSource(v.data) ?? "";
           } else {
             imageSource = "";
           }
@@ -686,6 +687,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <video
             ref={videoRef}
             controls
+            // iOS Safari plays a video inline only with `playsinline`, and
+            // decodes no frame at all without a preload hint — without both,
+            // the element paints an empty box on a phone.
+            playsInline
+            preload="metadata"
             // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
             // the native controls (scrub, volume) get the mouse events.
             className="nodrag nopan"

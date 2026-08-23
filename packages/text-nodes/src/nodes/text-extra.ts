@@ -10,7 +10,15 @@ import {
   base64ToBytes
 } from "@nodetool-ai/nodes-utils";
 import type { TemplateVars } from "@nodetool-ai/nodes-utils";
-import { loadNodeFsPromises, loadNodePath } from "@nodetool-ai/nodes-utils";
+import {
+  loadNodeFsPromises,
+  loadNodePath,
+  folderPathOf,
+  writeSavedFile,
+  VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
+  SAVE_TO_WORKSPACE_DESCRIPTION,
+  SAVE_TO_WORKSPACE_TITLE
+} from "@nodetool-ai/nodes-utils";
 import {
   isFunction,
   isNonEmptyString,
@@ -292,16 +300,26 @@ export class SaveTextFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "text"
   };
+  static readonly inlineFields: string[] = ["save_to_workspace"];
   static readonly inputFields: string[] = ["text"];
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
 
   @prop({
+    type: "bool",
+    default: true,
+    title: SAVE_TO_WORKSPACE_TITLE,
+    description: SAVE_TO_WORKSPACE_DESCRIPTION
+  })
+  declare save_to_workspace: any;
+
+  @prop({
     type: "str",
     default: "",
     title: "Folder",
-    description: "Path to the output folder."
+    description: "Path to the output folder.",
+    json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
   declare folder: any;
 
@@ -314,18 +332,24 @@ export class SaveTextFileNode extends BaseNode {
   })
   declare name: any;
 
-  async process(): Promise<SaveTextFileNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<SaveTextFileNodeOutputs> {
     const text = String(this.text ?? "");
-    const folder = String(this.folder ?? "");
-    const name = formatFilename(String(this.name ?? "output.txt"));
-    if (!folder) {
-      throw new Error("folder cannot be empty");
+    const saveToWorkspace = this.save_to_workspace === true;
+    const folder = folderPathOf(this.folder);
+    if (!folder && !(saveToWorkspace && context?.workspace)) {
+      throw new Error(
+        "No destination: set a folder, or turn on \"Save to workspace\" and assign a workspace to this workflow."
+      );
     }
     const fs = await loadNodeFsPromises();
-    const path = await loadNodePath();
-    await fs.mkdir(folder, { recursive: true });
-    const fsPath = path.join(folder, name);
-    await fs.writeFile(fsPath, text, "utf-8");
+    const fsPath = await writeSavedFile({
+      folder: this.folder,
+      filename: formatFilename(String(this.name ?? "output.txt")),
+      saveToWorkspace,
+      workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
+      bytes: text
+    });
     // The output `uri` is a portable, URI-style path (forward slashes) so
     // downstream nodes and the web UI never have to special-case Windows.
     const uri = fsPath.replace(/\\/g, "/");

@@ -1,8 +1,18 @@
-import { memo } from "react";
+import { Fragment, memo } from "react";
 
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import {
+  Divider,
+  FlexColumn,
+  SPACING,
+  Tooltip,
+  ToolbarIconButton
+} from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { LEFT_PANEL_TOP_LEVEL } from "../../config/quickAccessCategories";
+import { LEFT_PANEL_GROUPS } from "../../config/quickAccessCategories";
+import type {
+  LeftPanelGroup,
+  LeftPanelTopLevelCategory
+} from "../../config/quickAccessCategories";
 import type { LeftPanelView } from "../../stores/PanelStore";
 
 interface QuickAccessSidebarProps {
@@ -19,31 +29,63 @@ interface QuickAccessSidebarProps {
  * buttons — the parent provides container styling via `.vertical-toolbar`.
  */
 const QuickAccessSidebar = memo<QuickAccessSidebarProps>(
-  ({ activeCategory, onCategoryClick, hiddenViews, labelOverrides }) => (
-    <>
-      {LEFT_PANEL_TOP_LEVEL.filter(
-        (cat) => !hiddenViews?.includes(cat.id)
-      ).map((cat) => {
-        const label = labelOverrides?.[cat.id] ?? cat.label;
-        return (
-          <Tooltip
-            key={cat.id}
-            title={label}
-            placement="right-start"
-            delay={TOOLTIP_ENTER_DELAY}
-          >
-            <ToolbarIconButton
-              tabIndex={-1}
-              ariaLabel={label}
-              className={activeCategory === cat.id ? "active" : ""}
-              onClick={() => onCategoryClick(cat.id)}
-              icon={cat.icon}
-            />
-          </Tooltip>
-        );
-      })}
-    </>
-  )
+  ({ activeCategory, onCategoryClick, hiddenViews, labelOverrides }) => {
+    const visibleGroups = LEFT_PANEL_GROUPS.map((group) => ({
+      ...group,
+      categories: group.categories.filter(
+        (category) => !hiddenViews?.includes(category.id)
+      )
+    })).filter((group) => group.categories.length > 0);
+    const topGroups = visibleGroups.filter(
+      (group) => group.placement === "top"
+    );
+    const bottomGroups = visibleGroups.filter(
+      (group) => group.placement === "bottom"
+    );
+
+    const renderCategory = (category: LeftPanelTopLevelCategory) => {
+      const label = labelOverrides?.[category.id] ?? category.label;
+      return (
+        <Tooltip
+          key={category.id}
+          title={label}
+          placement="right-start"
+          delay={TOOLTIP_ENTER_DELAY}
+        >
+          <ToolbarIconButton
+            tabIndex={-1}
+            ariaLabel={label}
+            className={activeCategory === category.id ? "active" : ""}
+            onClick={() => onCategoryClick(category.id)}
+            icon={category.icon}
+          />
+        </Tooltip>
+      );
+    };
+
+    const renderGroups = (groups: readonly LeftPanelGroup[]) =>
+      groups.map((group, index) => (
+        <Fragment key={group.id}>
+          {index > 0 && (
+            <Divider className="toolbar-divider" sx={{ mx: SPACING.lg }} />
+          )}
+          <FlexColumn className="quick-access-group" gap={SPACING.md}>
+            {group.categories.map(renderCategory)}
+          </FlexColumn>
+        </Fragment>
+      ));
+
+    return (
+      <>
+        <FlexColumn className="quick-access-top" gap={SPACING.md}>
+          {renderGroups(topGroups)}
+        </FlexColumn>
+        <FlexColumn className="quick-access-bottom" gap={SPACING.md}>
+          {renderGroups(bottomGroups)}
+        </FlexColumn>
+      </>
+    );
+  }
 );
 
 QuickAccessSidebar.displayName = "QuickAccessSidebar";

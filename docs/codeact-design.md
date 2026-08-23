@@ -10,8 +10,9 @@ The action space of the agent step loop. The older loop had the model emit one
 JSON tool call per action, the host execute it, and the result come back as a
 tool message — one round trip per tool. Under CodeAct the model acts by writing
 a JavaScript program; the program runs in the
-QuickJS sandbox where the same toolbelt is exposed as async functions
-(`tools.web_search(...)`), and one round trip can chain, loop over, branch on,
+QuickJS sandbox where the same toolbelt is imported as async functions
+(`import { web_search } from "@nodetool-ai/sandbox-nodetool/web"`), and one
+round trip can chain, loop over, branch on,
 and post-process any number of tool calls. The program's output — return value,
 console logs, thrown error — comes back as the observation for the next turn.
 
@@ -69,8 +70,11 @@ transport being free text.
 Inside the sandbox, on top of the standard surface (`console`, `fetch`,
 `workspace`, `crypto`, `data`, `format`, …), the action gets:
 
-- **`tools.<name>(args)`** — one async function per tool in the step's
-  toolbelt. Calls bridge to `Tool.executeTool` on the host. A tool that
+- **`import { <name> } from "@nodetool-ai/sandbox-nodetool/<namespace>"`** —
+  one async function per tool in the step's toolbelt, reached by import; there
+  is no `tools.<name>()` global. A name a capability module owns comes from
+  that namespace, and a tool the session added at its call site comes from
+  `.../session`. Calls bridge to `Tool.executeTool` on the host. A tool that
   returns an `{error}` payload throws in the guest, so `try/catch` is the
   error-handling idiom. Per-action tool-call cap (`maxToolCallsPerAction`,
   default 50) so a runaway loop can't drain budgets silently.
@@ -122,8 +126,9 @@ provider transcript only carries `execute_code`.
    observations small — return summaries, stash payloads in `state` or
    memory).
 2. The tool catalog as **typed signatures**, generated from each tool's JSON
-   schema (`await tools.browse({url: string, timeout?: number})` + first
-   sentence of the description) — and only for the **resident** set. The
+   schema (`await browse({url: string, timeout?: number})` + first
+   sentence of the description), grouped under the `import` statement that
+   makes each group callable — and only for the **resident** set. The
    high-traffic tools nearly every step reaches for (the whole search family
    — `web_search`, `search_nodes`, `run_search`, `asset_search`, `grep`,
    `glob` — plus the Claude-agent
@@ -136,7 +141,7 @@ provider transcript only carries `execute_code`.
    description. Deferred tools remain callable — the split spends prompt
    tokens, not capability. This is the progressive-disclosure half of the
    Anthropic MCP result.
-3. A condensed sandbox API reference (what exists beyond `tools.*`, what is
+3. A condensed sandbox API reference (what exists beyond the imports, what is
    blocked, the key limits) derived from the same manifest the Code-node
    prompt uses, so it cannot advertise an API the sandbox doesn't marshal.
 4. The output-schema section for schema'd steps.
@@ -149,7 +154,7 @@ contract.
 
 The action executes with the same privileges tool mode already grants:
 
-- Every `tools.*` function is a tool the model could have called directly; the
+- Every imported function is a tool the model could have called directly; the
   bridge adds **no** capability. Per-step `tools` allow-lists stay a privilege
   boundary — a codeact step only sees its allowed subset.
 - The sandbox's own limits bound the new part (arbitrary computation): CPU via
@@ -182,7 +187,7 @@ envelope) instead of the toolbelt; discovery is the in-sandbox
 `createChatCodeActSession` (`packages/agents/src/codeact/chat-codeact.ts`): a
 chat toolbelt mixes server tools with client (`ui_*`) tools that exist
 server-side only as schemas, so instead of `buildToolBridge` the session
-bridges `tools.<name>()` to the chat runner's own `executeTool` router —
+routes every imported belt name to the chat runner's own `executeTool` router —
 permission gating, client round-trips over the ToolBridge, and asset
 materialization all stay where they are. `state` persists across the turn's
 actions; there is no `finish()` — a plain assistant message ends the turn, and
@@ -195,6 +200,31 @@ with the budget it had when it asked. Without it the action's wall clock ran
 through the prompt and killed the program mid-wait — the dialog was still on
 screen, and answering it resolved nothing. Tests:
 `packages/websocket/tests/chat-codeact-approval.test.ts`.
+
+### Auto mode reads the action's declared risk
+
+Auto mode used to mean "every call runs, no prompts", which made a code action
+the one place a user could lose work they never agreed to lose: the per-call
+ladder answers `allow` for every category, so a program that deletes a
+workflow ran exactly like one that counted rows.
+
+So `execute_code` carries one more required option, `risk` (`"low"` | `"high"`),
+next to `title` and `code`. The model declares it; the host reads it before a
+line of the program runs
+(`admitCodeAction`, `packages/agents/src/codeact/execute-code-contract.ts`).
+In auto mode a `low` action runs unattended and a `high` one asks once — for
+the whole action, because the action, not the bridged call, is what the user is
+being shown. A denied action never runs, and the refusal is the observation.
+"Allow for this chat" is keyed on `execute_code` itself, so it stops the asking
+for the rest of the thread.
+
+It fails closed: a call with no `risk`, or one carrying anything outside the
+enum, reads as `high`. Plan and default modes are untouched — their per-call
+ladder already blocks or asks, and a second question per action would only
+double the prompts. Hosts with no one to ask (the MCP mount, the security
+monitor's pass in `Agent`) carry an always-allow `requestApproval`, so nothing
+there can deadlock. Tests:
+`packages/agents/tests/codeact-action-risk.test.ts`.
 
 ## Workflow graph editing: the JS object model
 

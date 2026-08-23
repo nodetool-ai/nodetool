@@ -468,8 +468,8 @@ window.runBrowserNodesInBrowser = async (
 
 /**
  * Run one shared sandbox-module fixture through the production browser chain:
- * a catalog seeded in-page → the Code node's `packages` resolution → the guest
- * loader inside QuickJS.
+ * a catalog seeded in-page → the specifiers the Code node's body imports →
+ * the guest loader inside QuickJS.
  *
  * The fixtures are the same data the Node suite drives
  * (`packages/agents/tests/js-sandbox-modules.test.ts`), so the two runtimes are
@@ -518,7 +518,6 @@ window.runSandboxFixtureInBrowser = async (
             name: "out",
             properties: {
               code: fixture.code,
-              packages: fixture.modules.map((module) => module.specifier),
               dynamic_outputs: {}
             }
           }

@@ -545,9 +545,21 @@ export const InspectorPillInput = memo(function InspectorPillInput({
     };
   }, []);
 
+  // A scrub re-renders this pill per rAF; no style reads the dragged value.
+  const hasScrub = !!scrub;
+  const wrapCss = useMemo(
+    () => pillWrapStyles(theme, disabled, focused, hasScrub),
+    [theme, disabled, focused, hasScrub]
+  );
+  const inputCss = useMemo(
+    () => pillInputStyles(theme, hasScrub, focused),
+    [theme, hasScrub, focused]
+  );
+  const unitCss = useMemo(() => pillUnitStyles(theme), [theme]);
+
   return (
     <div
-      css={pillWrapStyles(theme, disabled, focused, !!scrub)}
+      css={wrapCss}
       style={minWidth ? { minWidth } : undefined}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -560,7 +572,7 @@ export const InspectorPillInput = memo(function InspectorPillInput({
         // size=1 kills the input's ~20-char intrinsic width so the pill
         // sizes from minWidth instead of overflowing narrow panels.
         size={1}
-        css={pillInputStyles(theme, !!scrub, focused)}
+        css={inputCss}
         value={draft}
         placeholder={placeholder}
         disabled={disabled}
@@ -573,7 +585,7 @@ export const InspectorPillInput = memo(function InspectorPillInput({
         }}
         onKeyDown={handleKeyDown}
       />
-      {unit && <span css={pillUnitStyles(theme)}>{unit}</span>}
+      {unit && <span css={unitCss}>{unit}</span>}
     </div>
   );
 });
@@ -912,9 +924,14 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
       if (origin !== undefined) onChange(origin);
     }, [origin, onChange]);
 
+    // Dragging the slider re-renders this row once per animation frame.
+    const rowCss = useMemo(() => sliderRowStyles(theme), [theme]);
+    const labelCss = useMemo(() => sliderLabelStyles(theme), [theme]);
+    const valueCss = useMemo(() => sliderValueStyles(theme), [theme]);
+
     return (
-      <div css={sliderRowStyles(theme)}>
-        <span css={sliderLabelStyles(theme)} title={label}>
+      <div css={rowCss}>
+        <span css={labelCss} title={label}>
           {label}
         </span>
         <div
@@ -935,7 +952,7 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
             onChangeCommitted={handleChangeCommitted}
           />
         </div>
-        <span css={sliderValueStyles(theme)}>{display}</span>
+        <span css={valueCss}>{display}</span>
       </div>
     );
   }

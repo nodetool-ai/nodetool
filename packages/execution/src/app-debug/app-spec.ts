@@ -97,9 +97,9 @@ const parseEvents = (raw: unknown): AppEventSpec[] => {
   const events: AppEventSpec[] = [];
   for (const item of raw) {
     if (!isRecord(item)) continue;
-    const trigger = item.trigger === "change" ? "change" : "click";
+    if (item.trigger !== "click" && item.trigger !== "change") continue;
     events.push({
-      trigger,
+      trigger: item.trigger,
       kind: str(item.kind) ?? "run",
       // The builder stores "" for unset key/value — normalize to undefined.
       key: str(item.key) || undefined,

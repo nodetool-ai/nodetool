@@ -1,6 +1,6 @@
 /**
  * The `nodetool` object model — the agent-facing JS API for the CodeAct
- * sandbox. Where `tools.<name>()` is the raw RPC surface, `nodetool.*` is the
+ * sandbox. Where an imported capability is the raw RPC surface, `nodetool.*` is the
  * platform as objects: workflows, models, assets,
  * jobs, collections, timelines, sketches, scripts, and storyboards, plus a
  * bounded-concurrency `batch()` for fan-out (run a workflow once per CSV row,
@@ -10,7 +10,7 @@
  * gating, routing, and validation stay where they are. A method whose backing
  * tool is missing from the belt throws a message naming the tool instead of a
  * TypeError. The prelude assumes `CODEACT_PRELUDE` ran first (it uses
- * `tools.*`); `nodetool.workflows.open()` additionally uses `openWorkflow`
+ * the belt); `nodetool.workflows.open()` additionally uses `openWorkflow`
  * from the graph-model prelude when that is loaded.
  */
 
@@ -27,6 +27,11 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "list_workflows",
     "get_workflow",
     "create_workflow",
+    "list_workflow_versions",
+    "get_workflow_version",
+    "create_workflow_version",
+    "restore_workflow_version",
+    "delete_workflow_version",
     "run_workflow",
     "start_background_job",
     "debug_workflow",
@@ -36,7 +41,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   // Documented in the sandbox-packages section rather than in the namespace
   // list, but covered here so the two discovery tools are not also catalogued
-  // as raw `tools.*` signatures.
+  // as raw catalog signatures.
   packs: ["list_sandbox_packages", "get_sandbox_package_docs"],
   nodes: ["search_nodes", "get_node_info", "list_nodes", "run_node"],
   agents: ["run_subtask"],
@@ -105,27 +110,33 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "vector_text_search",
     "vector_hybrid_search"
   ],
-  apps: ["debug_app"],
+  apps: ["list_apps", "get_app", "create_app", "edit_app", "debug_app"],
   timelines: [
     "list_timelines",
+    "get_timeline",
     "list_timeline_versions",
     "get_timeline_version",
     "create_timeline_version",
     "restore_timeline_version",
+    "delete_timeline_version",
     "validate_timeline",
     "edit_timeline"
   ],
   sketches: [
     "list_sketches",
+    "create_sketch",
+    "get_sketch",
     "list_sketch_versions",
     "get_sketch_version",
     "create_sketch_version",
     "restore_sketch_version",
+    "delete_sketch_version",
     "validate_sketch",
     "edit_sketch"
   ],
   scripts: [
     "list_scripts",
+    "create_script",
     "get_script",
     "voice_script_lines",
     "assemble_script_timeline",
@@ -133,6 +144,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   storyboards: [
     "list_storyboards",
+    "create_storyboard",
     "get_storyboard",
     "render_storyboard_stills",
     "render_storyboard_clips",
@@ -153,7 +165,7 @@ export function hasNodetoolApiTools(toolNames: Iterable<string>): boolean {
 
 /**
  * The belt tools the object model wraps — the ones the prompt should NOT
- * also document as raw `tools.*` calls. One surface per capability: wrapped
+ * also document as raw catalog signatures. One surface per capability: wrapped
  * tools stay callable through the bridge, but the catalog documents only the
  * `nodetool.*` form.
  */
@@ -172,26 +184,43 @@ export function nodetoolApiCoveredToolNames(
 
 /**
  * Guest-side prelude defining the global `nodetool`. Plain QuickJS-safe JS —
- * no host bridges of its own; every effect goes through `tools.*`.
+ * no host bridges of its own; every effect goes through `__callBeltTool`.
  */
 export const NODETOOL_API_PRELUDE = `
 const nodetool = (() => {
-  // What the belt carries is \`__toolNames\`, not what reading a property
-  // answers: \`tools\` hands back a thrower for a name it does not have, so
-  // probing it would report every capability as present.
+  // \`__toolNames\` is the belt, and the object model calls it through
+  // \`__callBeltTool\` rather than through a global belt object — there is no
+  // longer one for it to read.
   const __belt = new Set(__toolNames);
   const __has = (name) => __belt.has(name);
   const __need = (name) => {
-    const fn = __belt.has(name) ? tools[name] : undefined;
-    if (typeof fn !== "function") {
+    if (!__belt.has(name)) {
       throw new Error(
         'nodetool: tool "' + name + '" is not in this toolbelt, so this ' +
         "method is unavailable here. nodetool.searchTools() lists what is."
       );
     }
-    return fn;
+    return __callBeltTool(name);
   };
   const __merge = (a, b) => Object.assign({}, a || {}, b || {});
+
+  /**
+   * A job id from either an id or a job/receipt object. \`start()\` answers with
+   * a record, and reaching for the wrong field on it used to reach the tool as
+   * \`job_id: undefined\`, which came back as "Job undefined was not found" —
+   * a message about a job rather than about the call that asked for it.
+   */
+  const __jobId = (idOrJob, method) => {
+    if (typeof idOrJob === "string" && idOrJob) return idOrJob;
+    if (idOrJob && typeof idOrJob === "object") {
+      const id = idOrJob.job_id || idOrJob.id;
+      if (typeof id === "string" && id) return id;
+    }
+    throw new Error(
+      "nodetool.jobs." + method + ": no job id. Pass the id string, or the " +
+      "record nodetool.workflows.start() returned (its id is job_id)."
+    );
+  };
 
   /**
    * Accept a GraphBuilder, a bare {nodes, edges}, or a workflow record —
@@ -543,10 +572,31 @@ const nodetool = (() => {
         __need("create_workflow")(
           __merge(opts, { name: name, graph: __graphJson(graph) })
         ),
+      versions: (id, opts) =>
+        __need("list_workflow_versions")(__merge(opts, { workflow_id: id })),
+      getVersion: (id, version) =>
+        __need("get_workflow_version")({ workflow_id: id, version: version }),
+      snapshot: (id, opts) =>
+        __need("create_workflow_version")(__merge(opts, { workflow_id: id })),
+      restore: (id, version) =>
+        __need("restore_workflow_version")({
+          workflow_id: id,
+          version: version
+        }),
+      deleteVersion: (id, version) =>
+        __need("delete_workflow_version")({
+          workflow_id: id,
+          version: version
+        }),
       run: (id, params, opts) =>
         __need("run_workflow")(
           __merge(opts, { workflow_id: id, params: params || {} })
         ),
+      /**
+       * Start a run and return a receipt — {job_id, id, status: "running"} —
+       * without waiting for it. Pass it to nodetool.jobs.wait() and read the
+       * settled job's outputs.
+       */
       start: (id, params) =>
         __need("start_background_job")({
           workflow_id: id,
@@ -607,13 +657,29 @@ const nodetool = (() => {
       },
       open(id) {
         if (typeof openWorkflow !== "function") {
+          // Thrown synchronously: a caller without await still sees it.
           throw new Error(
             "nodetool.workflows.open: the graph editing tools (ui_*) are " +
             "not in this toolbelt. Author a graph with the sandbox DSL " +
             "package instead, then create() it."
           );
         }
-        return openWorkflow(id);
+        return openWorkflow(id).catch((e) => {
+          const msg = e && e.message ? e.message : String(e);
+          // A browser bridge that is gone (window reloaded before the editor
+          // panel re-registered) used to surface as this bare sentence, which
+          // left one agent retrying the identical call for several turns.
+          if (/Frontend tool runtime state is not initialized/i.test(msg)) {
+            throw new Error(
+              "nodetool.workflows.open: " + msg +
+              " The browser bridge answers nothing right now. Ask the user to " +
+              "open (or reload) the NodeTool workspace window and retry once " +
+              "the editor has loaded; meanwhile get_workflow still reads saved " +
+              "graphs and create_workflow saves new ones."
+            );
+          }
+          throw e;
+        });
       }
     },
 
@@ -895,8 +961,10 @@ const nodetool = (() => {
 
     jobs: {
       list: (opts) => __need("list_jobs")(__merge(opts)),
-      get: (id) => __need("get_job")({ job_id: id }),
-      logs: (id, opts) => __need("get_job_logs")(__merge(opts, { job_id: id })),
+      /** The job row, including the run's outputs once it has settled. */
+      get: (id) => __need("get_job")({ job_id: __jobId(id, "get") }),
+      logs: (id, opts) =>
+        __need("get_job_logs")(__merge(opts, { job_id: __jobId(id, "logs") })),
       /**
        * Poll a background job until it settles, then return the job record.
        * Terminal statuses are completed / failed / cancelled / error (the
@@ -904,18 +972,19 @@ const nodetool = (() => {
        * and the last status seen.
        */
       async wait(id, opts) {
+        const jobId = __jobId(id, "wait");
         const pollMs = Math.max(1000, (opts && opts.pollMs) || 3000);
         const timeoutMs = (opts && opts.timeoutMs) || 600000;
         const terminal = ["completed", "failed", "cancelled", "error"];
         const deadline = Date.now() + timeoutMs;
         let status = "unknown";
         for (;;) {
-          const job = await api.jobs.get(id);
+          const job = await api.jobs.get(jobId);
           status = (job && (job.status || job.state)) || "unknown";
           if (terminal.indexOf(status) >= 0) return job;
           if (Date.now() >= deadline) {
             throw new Error(
-              "nodetool.jobs.wait: job " + id + " did not finish within " +
+              "nodetool.jobs.wait: job " + jobId + " did not finish within " +
               timeoutMs + "ms (last status: " + status + "). Poll it with " +
               "nodetool.jobs.get(id) or read nodetool.jobs.logs(id)."
             );
@@ -948,6 +1017,15 @@ const nodetool = (() => {
     },
 
     apps: {
+      list: (opts) => __need("list_apps")(__merge(opts)),
+      get: (id) => __need("get_app")({ application_id: id }),
+      /** Create an empty app and get its id back. */
+      create: (name, opts) => __need("create_app")(__merge(opts, { name: name })),
+      /** Apply App Builder steps to a saved app, then save it. */
+      edit: (id, steps, opts) =>
+        __need("edit_app")(
+          __merge(opts, { application_id: id, steps: steps })
+        ),
       /** Validate + simulate a saved app. {run: false} is the free check. */
       debug: (id, opts) =>
         __need("debug_app")(__merge(opts, { application_id: id }))
@@ -955,6 +1033,7 @@ const nodetool = (() => {
 
     timelines: {
       list: (opts) => __need("list_timelines")(__merge(opts)),
+      get: (id) => __need("get_timeline")({ timeline_id: id }),
       versions: (id, opts) =>
         __need("list_timeline_versions")(__merge(opts, { timeline_id: id })),
       getVersion: (id, version) =>
@@ -963,6 +1042,11 @@ const nodetool = (() => {
         __need("create_timeline_version")(__merge(opts, { timeline_id: id })),
       restore: (id, version) =>
         __need("restore_timeline_version")({
+          timeline_id: id,
+          version: version
+        }),
+      deleteVersion: (id, version) =>
+        __need("delete_timeline_version")({
           timeline_id: id,
           version: version
         }),
@@ -976,6 +1060,10 @@ const nodetool = (() => {
 
     sketches: {
       list: (opts) => __need("list_sketches")(__merge(opts)),
+      /** Create a blank sketch. Pass {width, height} for the canvas size. */
+      create: (name, opts) =>
+        __need("create_sketch")(__merge(opts, { name: name })),
+      get: (id) => __need("get_sketch")({ image_document_id: id }),
       versions: (id, opts) =>
         __need("list_sketch_versions")(
           __merge(opts, { image_document_id: id })
@@ -994,6 +1082,11 @@ const nodetool = (() => {
           image_document_id: id,
           version: version
         }),
+      deleteVersion: (id, version) =>
+        __need("delete_sketch_version")({
+          image_document_id: id,
+          version: version
+        }),
       validate: (target) =>
         typeof target === "string"
           ? __need("validate_sketch")({ image_document_id: target })
@@ -1005,6 +1098,9 @@ const nodetool = (() => {
 
     scripts: {
       list: (opts) => __need("list_scripts")(__merge(opts)),
+      /** Create an empty script. Pass {project_id} to place it. */
+      create: (name, opts) =>
+        __need("create_script")(__merge(opts, { name: name })),
       get: (id) => __need("get_script")({ script_id: id }),
       voice: (id, opts) =>
         __need("voice_script_lines")(__merge(opts, { script_id: id })),
@@ -1016,6 +1112,9 @@ const nodetool = (() => {
 
     storyboards: {
       list: (opts) => __need("list_storyboards")(__merge(opts)),
+      /** Create a blank storyboard. Pass {brief, style, aspect_ratio} for board settings. */
+      create: (name, opts) =>
+        __need("create_storyboard")(__merge(opts, { name: name })),
       get: (id) => __need("get_storyboard")({ storyboard_id: id }),
       renderStills: (id, opts) =>
         __need("render_storyboard_stills")(
@@ -1071,7 +1170,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.workflows\` — \`list()\` returns \`{workflows}\`
   (an envelope, not a bare array), \`get(id)\`, \`run(id, params, {interactive})\`,
   \`start(id, params)\` (background job), \`debug(id, params)\`, \`validate(idOrGraph)\`,
-  \`create(name, graph, {description, tags})\`, \`open(id?)\` (the editable object
+  \`create(name, graph, {description, tags})\`, \`versions(id)\`, \`getVersion(id, n)\`,
+  \`snapshot(id, {name})\`, \`restore(id, n)\`, \`deleteVersion(id, n)\`,
+  \`open(id?)\` (the editable object
   model — see the graph-editing section). An interactive run returns an
   escalation: answer it with \`resolve(sessionId, escalationId, action,
   {outputs, reason, apply_to})\` — retry/substitute/skip/end_stream/fail — and
@@ -1130,7 +1231,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   returning something else. \`find(capability,
   {query, provider_hint, prefer_local, limit})\` for the ranked list (returns
   \`{results}\`),
-  \`list({provider, model_type})\` to browse, \`forProvider(provider)\` for one
+  \`list({provider, model_type})\` to browse (also \`{results}\` — neither
+  answers with a bare array), \`forProvider(provider)\` for one
   provider's own catalog. Never guess a model id — pick one, then pass it to
   \`nodetool.media.*\`. To set a node's model property, assign the result's
   \`ref\` verbatim (it is the typed \`{type, provider, id, name}\` value the
@@ -1164,8 +1266,13 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`understandVideo(video, prompt, videoModel, {max_tokens})\` reads a whole clip
   with a model that takes video (Gemini) and answers \`prompt\` as \`{text}\` —
   describe it, summarize it, or pull the on-screen text out.
-  Host binaries: \`ffmpeg(args, {output_file, timeout_seconds})\` runs ffmpeg
-  in the workspace (no shell, workspace paths only, no URL inputs);
+  Host binaries: \`ffmpeg(args, {inputs, output_file, timeout_seconds})\` runs
+  ffmpeg in the workspace (no shell, workspace paths only, no URL inputs).
+  \`inputs\` stages refs under workspace names first, which is how an asset
+  reaches ffmpeg — concatenating two of them is one call:
+  \`ffmpeg(["-i", "a.mp4", "-i", "b.mp4", "-filter_complex",
+  "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]", "-map", "[v]", "-map", "[a]",
+  "out.mp4"], {inputs: {"a.mp4": uriA, "b.mp4": uriB}, output_file: "out.mp4"})\`;
   \`ffprobe(path)\` reads a file's format and streams before you decide what to
   run; \`downloadVideo(url, outputFile, {format,
   timeout_seconds})\` downloads with yt-dlp. Browse pages with
@@ -1249,11 +1356,13 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "jobs",
     doc: `- \`nodetool.jobs\` — \`list({workflow_id})\`, \`get(jobId)\`, \`logs(jobId)\`,
   \`await wait(jobId, {timeoutMs, pollMs})\` polls until the job settles
-  (completed/failed/cancelled) and returns the job. Pair it with
-  \`nodetool.workflows.start(id, params)\`: start the run, do other work, then
-  \`wait\` on the job id instead of blocking on \`run()\`. \`wait\` replaces a
-  \`get()\` polling loop — start, wait, and read the result in one action,
-  never one \`get()\` per action.`
+  (completed/failed/cancelled) and returns the job, whose \`outputs\` hold what
+  the run produced. Pair it with
+  \`nodetool.workflows.start(id, params)\`: start the run — it returns a
+  receipt immediately, it does not wait — do other work, then \`wait\` on
+  \`receipt.job_id\` instead of blocking on \`run()\`. \`wait\` replaces a
+  \`get()\` polling loop — start, wait, and read \`settled.outputs\` in one
+  action, never one \`get()\` per action.`
   },
   {
     namespace: "collections",
@@ -1266,28 +1375,37 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "apps",
-    doc: `- \`nodetool.apps\` — \`debug(applicationId, {params, interact, run,
-  poll})\` validates and simulates a saved app; \`{run: false}\` is the free,
-  instant wiring check. Build an app by driving the \`ui_app_*\` editor tools
-  and checking each change with \`{run: false}\`.`
+    doc: `- \`nodetool.apps\` — \`list()\`, \`get(id)\`, \`create(name,
+  {description, from_workflow_id})\`, \`edit(id, steps)\` and
+  \`debug(applicationId, {params, interact, run, poll})\`. Build an app by
+  creating it, then driving the App Builder tools through \`edit\`:
+  \`[{tool: "add_operation", input: {…}}, {tool: "add_component", input: {…}}]\`
+  — \`edit(id, [])\` returns every tool and its schema. \`debug\` with
+  \`{run: false}\` is the free, instant wiring check after each change.`
   },
   {
     namespace: "timelines",
-    doc: `- \`nodetool.timelines\` — \`list()\`, \`validate(idOrDocument)\`, \`versions(id)\`,
-  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`, and
+    doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`), \`validate(idOrDocument)\`, \`versions(id)\`,
+  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`,
+  \`deleteVersion(id, n)\`, and
   \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:
   "audio"}, {op: "add_text_clip", text: "Hi"}, {op: "split_clip", target:
   "shot", atMs: 3000}, {op: "animate_clip", target: "Hi", animations:
-  [{role: "in", preset: "fade"}]}]\`. Start with \`{op: "get_state"}\` for ids.`
+  [{role: "in", preset: "fade"}]}]\`. Start with \`{op: "get_state"}\` for ids.
+  Existing library media goes on with \`{op: "add_media_clip", asset:
+  "asset://<id>.mp4"}\`, which appends after the track's last clip — so one
+  call per asset lays them end to end.`
   },
   {
     namespace: "sketches",
-    doc: `- \`nodetool.sketches\` — \`list()\`, \`validate(idOrDocument)\`, \`versions(id)\`,
-  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`, and
-  \`edit(id, ops)\` for layer structure server-side: \`[{op: "add_layer", name:
-  "Shadow"}, {op: "set_layer_props", target: "Shadow", opacity: 0.4,
-  blendMode: "multiply"}]\`. Pixels are never touched — painting and
-  generation stay with an open editor or a workflow run.`
+    doc: `- \`nodetool.sketches\` — \`list()\`, \`create(name, {width, height})\`,
+  \`validate(idOrDocument)\`, \`versions(id)\`, \`getVersion(id, n)\`,
+  \`snapshot(id, {name})\`, \`restore(id, n)\`, \`deleteVersion(id, n)\`, and \`edit(id, ops)\` for layer
+  structure server-side: \`[{op: "add_layer", name: "Shadow"}, {op:
+  "set_layer_props", target: "Shadow", opacity: 0.4, blendMode:
+  "multiply"}]\`. Create a blank canvas first, then edit. Pixels are never
+  touched — painting and generation stay with an open editor or a workflow
+  run.`
   },
   {
     namespace: "scripts",
@@ -1299,11 +1417,13 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "storyboards",
-    doc: `- \`nodetool.storyboards\` — \`list()\`, \`get(id)\`, \`renderStills(id, {targets})\`,
+    doc: `- \`nodetool.storyboards\` — \`list()\`, \`create(name, {brief, style,
+  aspect_ratio})\`, \`get(id)\`, \`renderStills(id, {targets})\`,
   \`renderClips(id, {targets})\`, \`reviseClip(id, target, instruction)\`,
   \`assembleTimeline(id)\`, and \`edit(id, ops)\` for the shot list:
   \`[{op: "add_shot", action: "Wide of the lighthouse at dusk",
-  duration_seconds: 4}, {op: "reorder_shot", target: "shot_2", index: 0}]\`.`
+  duration_seconds: 4}, {op: "reorder_shot", target: "shot_2", index: 0}]\`.
+  Create a blank board first, then add shots with \`edit\`.`
   }
 ];
 
@@ -1461,7 +1581,7 @@ export function buildNodetoolApiPromptSection(
   const sections: string[] = [
     NODETOOL_API_SECTION_HEADER,
     `Platform objects — workflows, models, media, documents — are
-driven through \`nodetool.*\`, not through raw \`tools.*\` calls. The backing
+driven through \`nodetool.*\`, not through the raw imported calls. The backing
 tools are deliberately absent from the tool catalog above; this object model
 is their one documented surface. \`nodetool.capabilities()\` reports what is
 available. A method whose backing tool is missing throws and names the tool.`,

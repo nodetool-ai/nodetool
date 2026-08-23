@@ -278,6 +278,26 @@ describe("ApplicationAppBuilder", () => {
     );
   });
 
+  it("reports the bound workflow so the surface can dock the agent", async () => {
+    const onAgentWorkflowIdChange = jest.fn();
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <ThemeProvider theme={mockTheme}>
+          <ApplicationAppBuilder
+            applicationId="app-1"
+            onAgentWorkflowIdChange={onAgentWorkflowIdChange}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() =>
+      expect(onAgentWorkflowIdChange).toHaveBeenCalledWith("wf-1")
+    );
+  });
+
   it("opens on a canvas even before a workflow is bound", () => {
     state.application = {
       ...application,

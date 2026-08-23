@@ -1,4 +1,4 @@
-import { StateIconButton } from "../ui_primitives";
+import { ToolbarIconButton } from "../ui_primitives";
 import { useColorScheme } from "@mui/material/styles";
 import LightMode from "@mui/icons-material/LightMode";
 import DarkMode from "@mui/icons-material/DarkMode";
@@ -17,18 +17,13 @@ export const ThemeToggle = memo(function ThemeToggle() {
   }
 
   return (
-    <StateIconButton
+    <ToolbarIconButton
+      className="theme-toggle"
       icon={mode === "dark" ? <LightMode /> : <DarkMode />}
       tooltip={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+      tooltipPlacement="right-start"
       onClick={toggleTheme}
       size="small"
-      color="default"
-      sx={{
-        marginLeft: 1,
-        scale: 0.85,
-        color: "var(--palette-text-primary)",
-        border: `1px solid var(--palette-grey-600)`
-      }}
     />
   );
 });

@@ -142,12 +142,17 @@ Exposed guest surface: `console`, `fetch`, `sleep`, `getSecret`,
 `crypto.{randomUUID,getRandomValues,digest,hmac}` (WebCrypto-backed — `digest`
 and `hmac` take SHA-1/256/384/512 and accept string or `Uint8Array` input, both
 returning a `Uint8Array`), `workspace.{read,write,list,readBytes,writeBytes,
-stat,root,copy,move,mkdir,remove}` (requires a `ProcessingContext`; `remove`
-deletes one file or one empty directory, never a tree; `copy`/`move` check the
-source for read containment and the destination for write containment;
+stat,root,copy,move,mkdir,remove}` (requires a `ProcessingContext` carrying a
+`Workspace`; `remove` deletes one file or one empty directory, never a tree;
 `stat` returns `{exists, size, isDirectory, isFile, isSymlink, modifiedMs,
 createdMs, accessedMs}` and reports a missing path as `exists: false` rather
-than throwing), the pure guest-side helpers
+than throwing). Those calls go through `context.workspace`, not `node:fs`, so a
+Code node behaves the same whether the run's workspace is a folder or a prefix
+in object storage; `root()` answers the real directory when there is one and
+`/workspace` otherwise, and containment is the workspace's own rule rather than
+a symlink check here. `filesystemAccess: "host"` — the `lib.os` escape hatch a
+host opts into, never guest code — still resolves real paths through
+`node:fs`, the pure guest-side helpers
 `toBase64`/`fromBase64`/`toHex`/`fromHex`/`parallelMap`/`createCanvas`
 (UUIDs come from `crypto.randomUUID` and UTF-8 from the native
 `TextEncoder`/`TextDecoder` — the old `uuid`/`utf8Encode`/`utf8Decode`
@@ -267,8 +272,8 @@ which is what `MAX_CANVAS_OPS` really bounds — for heavy composition reach for
 before it is drawn.
 
 Libraries are **imports**, never globals. Every library the sandbox offers is a
-sandbox package a node declares in `packages` and imports at the top of its
-body; there is no `data.*` namespace any more. Two kinds:
+sandbox package a node imports at the top of its body — the import *is* the
+declaration; there is no `data.*` namespace any more. Two kinds:
 
 - **Guest packs** — the M3 compiler bundles the library into QuickJS:
   `@nodetool-ai/sandbox-yaml` (js-yaml), `-dates` (date-fns), `-markdown`
@@ -323,8 +328,9 @@ a forged manifest, every limit) and
 `packages/sandbox-compiler/tests/packs.test.ts` (every shipped pack through the
 real install path).
 
-The guest's own loader serves only the sandbox packages a run declares — a Code
-node's `packages` property, or a CodeAct session's allowlist; dynamic `import()`
+The guest's own loader serves only the sandbox packages a run may reach — for a
+Code node, the packs its body statically imports, resolved against the host's
+catalog; for a CodeAct session, its allowlist. Dynamic `import()`
 and `require` never resolve. The browser runner fetches those modules over
 `GET /api/sandbox-modules/*` and verifies each body before it runs, so the same
 rules hold client-side.
@@ -564,6 +570,17 @@ be two things to keep in step. `CapabilitySpec.zodSchema` carries the Zod schema
 for the few capabilities whose identity is one (`view_image`, `list_images`, the
 eight `ui_*` document tools), so `Tool.execute` still validates on the way in.
 
+What the registry deliberately does *not* serve is written down where the API
+it mirrors lives: `packages/websocket/src/trpc/sandbox-coverage.ts` classifies
+every tRPC procedure as covered by a capability, reachable through a
+differently-shaped one, withheld with the risk stated, or a recorded gap.
+`packages/websocket/tests/sandbox-api-coverage.test.ts` walks the live router
+and fails in both directions, so a new procedure cannot land unclassified and a
+stale verdict cannot outlive what it judged. The rule the withheld set follows:
+a run may act on the rows its own user owns, and may not touch credentials,
+billing, other tenants, host control, the transcript of its own behaviour, or
+anything that grants a third party access.
+
 `DECLARED_CAPABILITY_MODULES` is the module list a reviewer reads. Three drift
 walks keep everything honest. `capabilityModuleDrift()` reports a declared module with no loader,
 a loader nobody declared, an export with no category or no schema, and one name
@@ -588,15 +605,17 @@ const { workflows } = await list_workflows({ limit: 20 });
 ```
 
 Exports carry the wire name — `list_workflows`, not `listWorkflows` — so the
-prompt, the MCP surface and `tools.*` all say one string. The facade generator
+prompt, the MCP surface and the belt all say one string. The facade generator
 and specifier shape live in `@nodetool-ai/protocol`
 (`sandbox-capability.ts`); the module list stays in the registry here, and the
 *host* decides which modules a session mounts. A third-party pack can never
 declare one. `createCapabilityDispatcher` validates module key, export name and
 argument list on every call, then delegates to `invoke` — it never gates on its
-own, so the import path and `tools.*` reach one implementation past one gate.
-The `nodetool` global survives as a generated shim over the imports for one
-release.
+own, so the import path and the belt bridge reach one implementation past one
+gate. The flat `tools.<name>()` global is gone: every capability is an import,
+and what a session added at its own call site is grafted onto `.../session`
+(client `ui_*` tools onto `.../ui`) so one import shape covers everything. The
+`nodetool` object model stays a global.
 
 **Import direction is one-way: `capabilities/` imports
 `tools/tool-permissions.ts`, never the reverse.** That is why `gateTools` sits
@@ -607,6 +626,48 @@ edge made the bundled backend's module wrappers an async cycle —
 breaks a synchronous cycle, and `server.mjs` died on an unsettled top-level
 await before it served `/health`. `npm run backend:smoke` is the check that
 catches it; a passing `vitest` run will not.
+
+## Capability coverage — every capability names its check
+
+`SurfaceEntry.paths` in the harness registry is coarse on purpose:
+`packages/agents/` is one path, so a diff that *adds* a capability lights up
+exactly the checks a diff that renames a local variable does. Five capabilities
+shipped through that hole before anyone noticed nothing exercised them
+(#5095, #5100, #5103, #5105, #5107).
+
+So there is a second table one rung down:
+**`packages/cli/src/harness/capability-table.ts`**. One entry per exported
+capability, naming the file that implements it, the checked-in suites a
+selfcheck runs over it, the eval cases whose `expect.requiredTools` demand it,
+and — where nothing does yet — a written gap note. The invariant is the
+registry's: **no capability without a check or a documented gap.**
+
+Everything mechanical is derived, so the table cannot rot:
+
+```bash
+npm run capabilities:sync     # rewrite the table from the live registry
+npm run capabilities:check    # fail if it is stale (CI, and the gate)
+npm run dev:nodetool -- harness capabilities [--json] [--strict]
+```
+
+`name`, `module`, `contract`, `suites` and `evals` come from
+`scripts/sync-capability-coverage.mjs`, which reads the live specs, scans the
+agent suites, and imports the eval case files. The one hand-written field is
+`gap`, and the sync preserves it. A capability that names every other
+capability by construction — the category snapshot in
+`capabilities-registry.test.ts`, the belt walk in `capabilities-coverage.test.ts`
+— is excluded from suite attribution; counting them would make everything look
+covered.
+
+**Adding a capability means adding its check.** Write the eval case or the
+suite first; `npm run capabilities:check` fails on a new capability with
+neither, and it will not accept a gap note that still says TODO. Changing what
+a capability *declares* — its description, input schema, category, or
+`needsToolCallId` — moves its `contract` fingerprint, and
+`nodetool harness gate --base <ref>` then refuses a diff that left the coverage
+mapping untouched: say which case covers the new contract, or write down why
+there isn't one. A refactor that leaves the contract alone demands nothing and
+runs the mapped checks as usual.
 
 ## The core API is in-process (`src/tools/mcp-tools.ts`)
 
@@ -694,6 +755,7 @@ result as an asset, and write it back onto the persisted board.
 | Tool | Does |
 |---|---|
 | `list_storyboards` | Boards newest first, with per-board still/clip counts |
+| `create_storyboard` | Blank board (then `edit_storyboard` adds shots) |
 | `get_storyboard` | Shots with ids, status, and whether each has a still/clip |
 | `render_storyboard_stills` | `text_to_image` per shot → the shot's keyframe |
 | `render_storyboard_clips` | `image_to_video` seeded by the keyframe → the shot's clip |
@@ -745,8 +807,8 @@ spreadsheet, list calendars, delete an event. The capability is the only Google
 surface now, and it is two things at once — an agent tool and a guest import.
 
 ```js
-// Code node `packages`: nothing to declare — capability modules are mounted
-// by the host, not installed as packs.
+// Nothing to install — capability modules are mounted by the host, not
+// resolved as packs from the catalog.
 import { drive_search, gmail_send_message } from "@nodetool-ai/sandbox-nodetool/google";
 
 const { files } = await drive_search({ query: "name contains 'invoice'" });
@@ -885,7 +947,8 @@ every task failed throws instead of compiling a deliverable out of nothing.
 
 The action space of the step loop, and the only one. Each step acts by writing
 JavaScript that runs in the QuickJS sandbox with the toolbelt exposed as
-`tools.<name>()` functions, a `state` object that persists across actions
+imports from `@nodetool-ai/sandbox-nodetool/<namespace>`, a `state` object
+that persists across actions
 (including after a throw), and `finish(result)` for host-validated completion.
 The prompt tells the model to assign each generate/speak result to `state`
 immediately and reuse it — `return` is the observation only. Design and the
@@ -902,7 +965,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   trained on, so a tool call beats a sandbox round trip that only forwards one.
   They stay on the belt — `nodetool.web`, `nodetool.agents` and hand-written
   fan-out call them from code — but the prompt documents them once, under
-  "Direct tools", instead of as a `tools.*` signature. `splitCoreTools` /
+  "Direct tools", instead of as a catalog signature. `splitCoreTools` /
   `buildCoreProviderTools` in `src/codeact/tool-api.ts`.
 - Discovery goes top level with it. `DISCOVERY_TOOL_NAMES` (`find_model`,
   `list_models`, `list_provider_models`, `search_nodes`, `get_node_info`,
@@ -927,7 +990,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   missing an injected dependency (no node registry, say) advertises no node
   tools instead of a tool that cannot run. Before this the mount registered
   only `execute_code` and `view_image`: everything was still reachable as
-  `tools.*` inside an action, but every discovery question cost a sandbox round
+  an import inside an action, but every discovery question cost a sandbox round
   trip, which is the tax the direct set exists to remove.
 - On `claude_agent_sdk` the built-in wins outright. The provider drops every
   tool `SDK_NATIVE_TOOL_REPLACEMENTS` maps (`read_file`→`Read`,
@@ -969,7 +1032,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   add a failure mode: `SupervisorAgent` and the app-build spec stage.
 - Chat turns run in it too: the websocket runner swaps the toolbelt
   for `execute_code` (+ the core set, + `view_image`) via `createChatCodeActSession`
-  (`src/codeact/chat-codeact.ts`), which bridges `tools.<name>()` to the chat
+  (`src/codeact/chat-codeact.ts`), which routes every imported belt name to the chat
   runner's own tool router instead of `buildToolBridge` — permission gating
   and client (`ui_*`) round-trips stay where they are. When the belt carries
   the `ui_*` workflow document tools, actions also get the graph object model
@@ -981,7 +1044,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `packages/cli/src/chat-codeact.ts`.
 - Both executors also load the `nodetool` object model
   (`src/codeact/nodetool-api.ts`): the platform as objects instead of raw
-  `tools.*` calls — `nodetool.workflows` (list/get/run/start/debug/validate/
+  imports — `nodetool.workflows` (list/get/run/start/debug/validate/
   create/open), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
   workflow once per CSV row), `nodetool.models` (`pick(capability)` resolves
   one ranked model; `find`/`list` for the long form; `forProvider(provider)`
@@ -1879,8 +1942,10 @@ Plans are validated before execution:
 
 Steps can enforce structured output via JSON schema:
 - `additionalProperties: false` enforced automatically
-- Schema'd steps finalize ONLY through the `finish_step` tool — there is no JSON-from-text extraction path. If `finish_step` is never called, the step fails on `maxIterations` and emits an explicit error result.
+- Schema'd steps finalize ONLY through the finishing tool — `finish_step` in tool mode, `finish()` in a CodeAct action. There is no JSON-from-text extraction path, so a step that never calls it fails and emits an explicit error result.
 - Unstructured steps (no schema) finalize when the model emits a no-tool-call assistant message; that text becomes the result.
+- Two things make that contract visible to a model that believes `return graph` finished the step, because the observation for the losing move used to be indistinguishable from success. A CodeAct observation for a schema'd step that returned a value without finishing carries `finished: false` and a `note` — which says so explicitly when the returned value already matched the schema. And a schema'd step whose turn ended in prose is re-prompted with the contract, at most `MAX_FINISH_NUDGES` (2) times, before it fails.
+- The failure message names the terminal state it actually hit: the provider's error, `exceeded N iterations` only when the loop really used its budget, else "ended after N action(s) / model turn(s) without calling finish", quoting the model's last message.
 
 ### Skills System
 

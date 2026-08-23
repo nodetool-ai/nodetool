@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { tmpdir } from "node:os";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
 import {
@@ -29,12 +28,14 @@ import {
   isRecord,
   isString
 } from "./lib/wire-values.js";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
 import {
   resourceEvents,
   type ResourceChangePayload
 } from "./resource-events.js";
-import { createSystemStatsSampler } from "./system-stats.js";
+import {
+  createSystemStatsSampler,
+  systemStatsBroadcastEnabled
+} from "./system-stats.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import {
   resolveContentUrls,
@@ -47,7 +48,11 @@ import {
   type NodeTypeResolver,
   type NodeValidator
 } from "@nodetool-ai/kernel";
-import { ExecutionSession, toRawGraphInput } from "@nodetool-ai/execution";
+import {
+  ExecutionSession,
+  isExecutionPreflightError,
+  toRawGraphInput
+} from "@nodetool-ai/execution";
 import { createRunSupervisor } from "./run-supervisor.js";
 import {
   chatTurnRegistry,
@@ -108,11 +113,13 @@ import {
   ACTIVE_MODEL_CONTEXT_KEY,
   DIRECT_TOOL_NAMES,
   encodeRawRgbaToPng,
+  fetchExternalMedia,
   getCostReconciler,
   getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
   isProviderMessageEvent,
-  type ActiveModelSelection
+  type ActiveModelSelection,
+  type Workspace
 } from "@nodetool-ai/runtime";
 import {
   isRawRgbaImage,
@@ -130,9 +137,7 @@ import type {
   SupervisorRunOptions
 } from "@nodetool-ai/protocol";
 import {
-  getSdkV1SafeErrorMessage,
-  isSdkV1RetryableError,
-  sdkV1RpcCommand
+  isSdkV1RetryableError
 } from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 import type {
   UnifiedCommandType,
@@ -175,6 +180,7 @@ import {
   gateTools,
   capabilityFromTool,
   createCapabilityRun,
+  contextSecretAvailability,
   UNGATED,
   extractInjectableImages,
   PLAN_APPROVAL_CONTEXT_KEY,
@@ -205,7 +211,6 @@ import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
-import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
 import type {
   FrontendRendererRegistry,
   FrontendRendererToolCall,
@@ -319,89 +324,6 @@ function lastMatchingProviderSession(
       : null;
   }
   return null;
-}
-
-/**
- * Return `true` when the given http(s) URL appears to point at a public
- * destination (not a loopback, link-local, or RFC1918 private address).
- *
- * Used before `fetch`ing URLs supplied by chat clients to resolve source
- * images — without this gate, an authenticated user could coerce the server
- * into reading internal services via `http://169.254.169.254/...`,
- * `http://localhost:6379/...`, etc. The check is conservative: unparseable
- * URLs and literal IP addresses in private ranges are refused. DNS-based
- * bypass is still possible, so this is a defense-in-depth measure and not a
- * full SSRF mitigation; intended for complementing network-level egress
- * filtering.
- */
-function isSafeExternalUrl(url: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return false;
-  }
-  // Normalise IPv6 hostnames: WHATWG URL may return them with or without
-  // surrounding brackets depending on the runtime.
-  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (!host) return false;
-  if (
-    host === "localhost" ||
-    host === "ip6-localhost" ||
-    host === "ip6-loopback" ||
-    host.endsWith(".localhost") ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal")
-  ) {
-    return false;
-  }
-  // Decimal-encoded IPv4 (e.g. 2130706433 = 127.0.0.1). WHATWG URL
-  // normalises these in most runtimes, but guard here for completeness.
-  if (/^\d+$/.test(host)) {
-    const n = parseInt(host, 10);
-    if (n < 0 || n > 0xffffffff) return false;
-    const a = (n >>> 24) & 0xff;
-    const b = (n >>> 16) & 0xff;
-    const c = (n >>> 8) & 0xff;
-    const d = n & 0xff;
-    return isSafeExternalUrl(`http://${a}.${b}.${c}.${d}/`);
-  }
-  // IPv4 literal check
-  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (ipv4) {
-    const [a, b] = ipv4.slice(1).map((n) => parseInt(n, 10));
-    // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16,
-    // 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 (CGNAT)
-    if (a === 0 || a === 10 || a === 127) return false;
-    if (a === 169 && b === 254) return false;
-    if (a === 172 && b >= 16 && b <= 31) return false;
-    if (a === 192 && b === 168) return false;
-    if (a === 100 && b >= 64 && b <= 127) return false;
-  }
-  // IPv6 literal — refuse loopback / ULA / link-local / unspecified ranges.
-  if (host.includes(":")) {
-    if (host === "::" || host === "::1") return false;
-    if (host.startsWith("fc") || host.startsWith("fd")) return false; // ULA fc00::/7
-    if (host.startsWith("fe80:")) return false; // link-local
-    // IPv4-mapped IPv6 (::ffff:x.x.x.x in dotted-quad or hex form). WHATWG
-    // URL serialises these as ::ffff:hhhh:hhhh; match both to be safe.
-    const v4DotMatch = host.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (v4DotMatch) return isSafeExternalUrl(`http://${v4DotMatch[1]}/`);
-    const v4HexMatch = host.match(/^::ffff:([0-9a-f]+):([0-9a-f]+)$/);
-    if (v4HexMatch) {
-      const hi = parseInt(v4HexMatch[1], 16);
-      const lo = parseInt(v4HexMatch[2], 16);
-      const a = (hi >>> 8) & 0xff;
-      const b = hi & 0xff;
-      const c = (lo >>> 8) & 0xff;
-      const d = lo & 0xff;
-      return isSafeExternalUrl(`http://${a}.${b}.${c}.${d}/`);
-    }
-  }
-  return true;
 }
 
 function sanitizeLargeText(
@@ -726,20 +648,21 @@ async function readBytesFromUri(uri: string): Promise<Uint8Array | null> {
       return Uint8Array.from(Buffer.from(uri.slice(commaIdx + 1), "base64"));
     }
     if (uri.startsWith("http://") || uri.startsWith("https://")) {
-      // The uri comes from a user-authored workflow's output, so gate it
-      // against SSRF (internal/link-local hosts) exactly like
-      // resolveSourceImageBytes does — otherwise an auto-save node could make
-      // the server fetch cloud-metadata / internal services.
-      if (!isSafeExternalUrl(uri)) {
-        log.warn(`readBytesFromUri refused unsafe URL: ${uri}`);
-        return null;
-      }
-      const resp = await fetch(uri);
+      // The uri comes from a user-authored workflow's output, so it is fetched
+      // under the media-ref egress policy — otherwise an auto-save node could
+      // make the server read cloud-metadata / internal services. A refusal
+      // throws; the catch below reports it and answers "no bytes".
+      const resp = await fetchExternalMedia(uri);
       if (!resp.ok) return null;
       return new Uint8Array(await resp.arrayBuffer());
     }
-  } catch {
-    // Failed to read bytes — non-fatal
+  } catch (err) {
+    // Failed to read bytes — non-fatal, but say which uri and why: a refused
+    // URL and a dead host are different problems for whoever reads the log.
+    log.warn("readBytesFromUri failed", {
+      uri,
+      error: err instanceof Error ? err.message : String(err)
+    });
   }
   return null;
 }
@@ -1192,7 +1115,12 @@ function createRuntimeContext(opts: {
   workflowId?: string | null;
   threadId?: string | null;
   userId: string;
-  workspaceDir: string | null;
+  /**
+   * The run's workspace — a local folder or a prefix in the deployment's
+   * object storage, resolved by `workspaceResolver`. Null when the host wired
+   * none, and file operations then say so instead of writing elsewhere.
+   */
+  workspace: Workspace | null;
   authToken?: string | null;
   assetOutputMode?:
     | "native"
@@ -1205,14 +1133,6 @@ function createRuntimeContext(opts: {
 }): RuntimeProcessingContext {
   const storagePath = getAssetStoragePath();
   const tempAdapter = getTempAdapter();
-  // The agent's "workspace" — where file_read / file_write / file_list land.
-  // Local: a FileStorageAdapter rooted at workspaceDir. Cloud: callers can
-  // wire a different StorageAdapter when constructing the runner; for now
-  // we fall back to a workspaceDir-backed FileStorageAdapter when one is
-  // present, leaving cloud wiring to the deployment-specific runner.
-  const workspaceAdapter = opts.workspaceDir
-    ? new FileStorageAdapter(opts.workspaceDir)
-    : null;
   const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
@@ -1223,7 +1143,10 @@ function createRuntimeContext(opts: {
     // `x-user-id` and 404s for every user but `1` — the reference then reached
     // the provider verbatim and died in the SSRF guard.
     assetStorage: getAssetAdapter(),
-    workspaceStorage: workspaceAdapter,
+    // Where file_read / file_write / file_list land. A folder on a local
+    // install, a key prefix in the asset bucket on a cloud one — the tools
+    // cannot tell which and do not branch on it.
+    workspace: opts.workspace,
     authToken: opts.authToken,
     tempUrlResolver: createTempUrlResolver(tempAdapter, storagePath)
   });
@@ -1263,9 +1186,11 @@ export const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Repl
 # Your toolbelt
 You act mostly by writing JavaScript: \`execute_code\` runs one action in a
 sandbox where the platform is the \`nodetool.*\` object model and every other
-tool is \`tools.<name>()\`. The CodeAct section that follows this prompt carries
-the exact signatures — read it there, and prefer the \`nodetool.*\` form over the
-raw tool it wraps.
+capability is a static \`import\` from \`@nodetool-ai/sandbox-nodetool/<namespace>\`.
+There is no \`tools.<name>()\` global. The CodeAct section that follows this
+prompt carries the exact signatures, each group headed by the import line to
+copy — read it there, and prefer the \`nodetool.*\` form over the raw capability
+it wraps.
 - \`nodetool.workflows\`, \`nodetool.nodes\`,
   \`nodetool.models\`, \`nodetool.media\`, \`nodetool.assets\`, \`nodetool.jobs\`,
   \`nodetool.collections\`, \`nodetool.apps\`, \`nodetool.memory\`, and the
@@ -1274,11 +1199,13 @@ raw tool it wraps.
 - A few tools stay ordinary tool calls, documented under "Direct tools": the
   file set, search, web fetch, \`todo_write\`, \`run_subtask\`, and \`view_image\`.
   Call one directly when a single call is the whole step.
-- \`tools.run_search\` is the one delegation tool with no \`nodetool.*\` form.
+- \`run_search\` is the one delegation tool with no \`nodetool.*\` form; import it
+  from \`@nodetool-ai/sandbox-nodetool/agents\`.
 - Everything else — the \`ui_*\` resource editors above all — is name-only in the
-  catalog. Find it inside an action with \`await nodetool.searchTools("query")\`, then
-  call it as \`tools.<name>()\`. Raise \`max_results\` (\`nodetool.searchTools("+timeline",
-  20)\`) to see a whole family instead of concluding a capability is missing.
+  catalog. Find it inside an action with \`await nodetool.searchTools("query")\`:
+  each hit carries the \`import\` line to write. Raise \`max_results\`
+  (\`nodetool.searchTools("+timeline", 20)\`) to see a whole family instead of
+  concluding a capability is missing.
 
 # Working in actions
 One action can do several steps: search for a node, read its info, wire it, and
@@ -1299,9 +1226,9 @@ of assuming the only way forward is a workflow.
   verify with \`nodetool.apps.debug\` — \`{run: false}\` after every wiring change
   is free and instant. A whole app is that loop, not a single call.
 - **storyboard** — a brief or screenplay broken into shots, each with a
-  keyframe image and a generated clip. \`nodetool.storyboards\` reads a board,
-  edits the shot list, renders stills and clips, and assembles them into a
-  timeline without an open editor; \`nodetool.searchTools("+ui_storyboard", 20)\` edits
+  keyframe image and a generated clip. \`nodetool.storyboards\` creates a blank
+  board, reads it, edits the shot list, renders stills and clips, and assembles
+  them into a timeline without an open editor; \`nodetool.searchTools("+ui_storyboard", 20)\` edits
   the open one.
 - **script** — speakers, lines, and a voice take per line. \`nodetool.scripts\`
   reads any script by id and reports which lines still need voicing, edits the
@@ -1313,11 +1240,12 @@ of assuming the only way forward is a workflow.
   (\`versions\`/\`getVersion\`/\`snapshot\`/\`restore\`) — none of it needs an open
   editor. \`nodetool.searchTools("+ui_timeline", 20)\` edits the open one. A timeline can
   be previewed inline in chat; see "Linking resources".
-- **sketch** — a layered image document. \`nodetool.sketches\` lists, validates,
-  edits the layer stack, and keeps the same snapshot history — but never
-  touches pixels. Painting, generating into a layer, and rendering to an asset
-  live in \`nodetool.searchTools("+ui_sketch", 20)\`, on the open document. A sketch can
-  be previewed inline in chat; see "Linking resources".
+- **sketch** — a layered image document. \`nodetool.sketches\` creates a blank
+  canvas, lists, validates, edits the layer stack, and keeps the same snapshot
+  history — but never touches pixels. Painting, generating into a layer, and
+  rendering to an asset live in \`nodetool.searchTools("+ui_sketch", 20)\`, on
+  the open document. A sketch can be previewed inline in chat; see "Linking
+  resources".
 - **model3d** — a 3D scene. Family \`nodetool.searchTools("+ui_3d", 20)\`: add and
   transform objects, set materials, capture a view as an image.
 - **collection** — a vector store for RAG. \`nodetool.collections\`: index,
@@ -1381,16 +1309,19 @@ widget's final state and a pass/fail verdict.
 - One \`{run: true}\` before you call the app done. A run executes the real
   workflows and spends real money: check often, run once.
 - In the App Builder the saved row is stale mid-edit, so grade the live draft
-  instead: \`tools.debug_app({document})\`, which is what the \`ui_app_debug\`
+  instead: \`debug_app({document})\` imported from
+  \`@nodetool-ai/sandbox-nodetool/apps\`, which is what the \`ui_app_debug\`
   tool does. Pass an application id for a saved app you are not editing.
 
 # Image and media
-When tools return media URLs, embed them as markdown image / link tags.
-Image URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
-\`asset://b7953a3877e2437bbc1bc51792fcd222.png\`) — embed these verbatim as
-markdown images: \`![](asset://<id>.<ext>)\`. The chat UI resolves \`asset://\`
-to a fetchable URL and renders the image inline; do not rewrite it to an HTTP
-URL or wrap it in a code block.
+When tools return media URLs, embed them as markdown images.
+Media URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
+\`asset://b7953a3877e2437bbc1bc51792fcd222.png\` or
+\`asset://51f0fcd92a05488caf261eb22bbf98df.mp4\`) — embed these verbatim as
+markdown images: \`![label](asset://<id>.<ext>)\`. The chat UI resolves
+\`asset://\` to a fetchable URL and plays video and audio inline; do not
+rewrite it to an HTTP URL, wrap it in a code block, or use a plain markdown
+link (\`[label](asset://…)\`) for media.
 
 # Linking resources
 Resources are addressable as \`<kind>://<id>\`, optionally with a sub-target
@@ -1400,9 +1331,9 @@ or change a resource, link it once in your reply as a markdown link with a
 human-readable label — \`[Beach intro](storyboard://sb_x#shot=s3)\` — so the
 user can open it. Mutating tool results carry a ready-made \`url\`
 field; copy that string rather than composing one. At most one link per
-resource per reply, and never link a resource you only looked up. Images are
-the exception: show them inline per "Image and media" above instead of
-linking them.
+resource per reply, and never link a resource you only looked up. Images,
+video, and audio are the exception: show them inline per "Image and media"
+above instead of linking them.
 
 Sketches and timelines can be SHOWN inline, not just linked. Embed one with
 image syntax on its own line — \`![Label](sketch://<id>)\` or
@@ -1454,8 +1385,14 @@ const PERMISSION_MODE_PROMPTS = {
     "retry it — explain or propose an alternative.\n",
   auto:
     "\n# Permission mode: AUTO\n" +
-    "All tools run automatically without prompting. Be deliberate with actions " +
-    "that write, run, or have external side effects.\n"
+    "Tool calls inside a code action run without prompting, so the `risk` you " +
+    "declare on each `execute_code` call is what protects the user: a `low` " +
+    "action runs unattended, a `high` one asks them once before any of it " +
+    "runs. Declare `high` whenever the program deletes or overwrites " +
+    "something, publishes or sends anything outside this account, or spends " +
+    "real money — and whenever you are unsure. Keep the destructive or costly " +
+    "part in its own action so the routine work around it still runs " +
+    "unattended.\n"
 } satisfies Record<PermissionMode, string>;
 
 /**
@@ -1496,11 +1433,15 @@ export function focusedUiToolNames(
 }
 
 /**
- * How the CodeAct prompt spells a guest tool call: `await tools.<name>({…})`.
- * Models sometimes emit that member expression verbatim as a top-level tool
- * name, so the router strips it before looking the tool up.
+ * The member expression the retired guest toolbelt was called through:
+ * `await tools.<name>({…})`. Models trained on it still emit it verbatim as a
+ * top-level tool name, so the router strips the prefix before looking the tool
+ * up. Nothing inside the sandbox produces it any more.
  */
 const GUEST_TOOL_PREFIX = "tools.";
+
+/** Threads whose codeact `state` this connection keeps between turns. */
+const MAX_CODEACT_STATE_THREADS = 8;
 
 /** Recover the plain tool name from a `tools.<name>` slip. */
 export function normalizeToolCallName(name: string): string {
@@ -1517,8 +1458,10 @@ export function normalizeToolCallName(name: string): string {
  */
 export function unroutableToolMessage(name: string): string {
   return (
-    `Unknown tool "${name}". Tools are callable inside execute_code as: ` +
-    `await tools.<name>({...}). Use nodetool.searchTools() to discover tools.`
+    `Unknown tool "${name}". Capabilities are callable inside execute_code ` +
+    `after importing them: import { <name> } from ` +
+    `"@nodetool-ai/sandbox-nodetool/<namespace>". Use ` +
+    `nodetool.searchTools("${name}") to get the namespace and the signature.`
   );
 }
 
@@ -1963,6 +1906,15 @@ class ToolBridge {
     waiter.resolve(payload);
   }
 
+  /** Resolve every waiter in `scope` with the same payload. */
+  resolveScope(scope: string, payload: Record<string, unknown>): void {
+    for (const waiter of [...this.waiters.values()]) {
+      if (waiter.scope === scope) {
+        waiter.resolve(payload);
+      }
+    }
+  }
+
   rejectResult(toolCallId: string, error: Error): void {
     const waiter = this.waiters.get(toolCallId);
     if (!waiter) return;
@@ -2019,10 +1971,24 @@ export interface UnifiedWebSocketRunnerOptions {
     userId: string
   ) => Promise<BaseProvider>;
   getSystemStats?: () => Record<string, unknown>;
+  /**
+   * Whether to broadcast `system_stats` to this client. Defaults to off on a
+   * server that enforces auth: there the CPU/RAM belong to a shared container
+   * the user does not own, so the readout is both wrong for them and a report
+   * on someone else's host. Defaults to on for a local install, which is the
+   * machine the numbers describe. See `systemStatsBroadcastEnabled`, which
+   * also reads the `NODETOOL_SYSTEM_STATS` override.
+   */
+  systemStatsEnabled?: boolean;
+  /**
+   * Resolve the workspace directory for a run. `workflowId` is null for a chat
+   * turn, which resolves to the user's default workspace — chat writes files
+   * too, and they belong somewhere the user can find them.
+   */
   workspaceResolver?: (
-    workflowId: string,
+    workflowId: string | null,
     userId: string
-  ) => Promise<string | null>;
+  ) => Promise<Workspace | null>;
   /** Called before a workflow job starts — used to lazily connect the Python bridge. */
   beforeRunJob?: (graph: {
     nodes: ReadonlyArray<NodeDescriptor>;
@@ -2084,6 +2050,7 @@ export class UnifiedWebSocketRunner {
   private resolveNodeType?: UnifiedWebSocketRunnerOptions["resolveNodeType"];
   private resolveProvider?: UnifiedWebSocketRunnerOptions["resolveProvider"];
   private getSystemStats: () => Record<string, unknown>;
+  private systemStatsEnabled: boolean;
   private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
   private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
@@ -2149,12 +2116,49 @@ export class UnifiedWebSocketRunner {
    */
   private chatSessionAllow = new Map<string, Set<string>>();
   /**
+   * Live permission mode for an in-flight turn. `set_permission_mode` writes
+   * here so switching to Auto mid-turn applies to the next gated call.
+   */
+  private chatTurnPermissionMode = new Map<string, { value: PermissionMode }>();
+  /**
    * The capability run for the chat turn this connection is executing — the
    * gate, the context, and everything a capability needs that only exists per
    * turn. Built beside the toolbelt; the sandbox still calls the belt, and PR
    * 11 is what switches the guest onto `run.invoke`.
    */
   private chatCapabilityRun: CapabilityRun | null = null;
+  /**
+   * CodeAct `state` per thread, so a turn can reuse what the previous turn
+   * produced. A session is built per turn; without this, a model that parked a
+   * generated video in `state` read `undefined` on the follow-up question and
+   * regenerated it — twice, in the session this fixes. Bounded: the oldest
+   * thread's state is dropped past {@link MAX_CODEACT_STATE_THREADS}, and a
+   * turn with no thread id gets a throwaway object.
+   */
+  private readonly codeactStateByThread = new Map<
+    string,
+    Record<string, unknown>
+  >();
+
+  /** The `state` object this turn's codeact session reads and writes. */
+  private codeactStateFor(threadId: string | null): Record<string, unknown> {
+    if (!threadId) return {};
+    const existing = this.codeactStateByThread.get(threadId);
+    if (existing) {
+      // Re-insert so the eviction below drops the least recently used thread.
+      this.codeactStateByThread.delete(threadId);
+      this.codeactStateByThread.set(threadId, existing);
+      return existing;
+    }
+    const fresh: Record<string, unknown> = {};
+    this.codeactStateByThread.set(threadId, fresh);
+    while (this.codeactStateByThread.size > MAX_CODEACT_STATE_THREADS) {
+      const oldest = this.codeactStateByThread.keys().next().value;
+      if (oldest === undefined) break;
+      this.codeactStateByThread.delete(oldest);
+    }
+    return fresh;
+  }
   /** The run built for the last chat turn — what PR 11 hands to the sandbox. */
   getChatCapabilityRun(): CapabilityRun | null {
     return this.chatCapabilityRun;
@@ -2370,6 +2374,8 @@ export class UnifiedWebSocketRunner {
     this.apiOptions = options.apiOptions;
     this.frontendRendererRegistry = options.frontendRendererRegistry;
     this.getSystemStats = options.getSystemStats ?? createSystemStatsSampler();
+    this.systemStatsEnabled =
+      options.systemStatsEnabled ?? systemStatsBroadcastEnabled();
   }
 
   isRendererConnected(): boolean {
@@ -3579,16 +3585,15 @@ export class UnifiedWebSocketRunner {
     }
     const preRunMs = performance.now() - phaseStartedAt;
 
-    const workspaceDir =
-      workflowId && this.workspaceResolver
-        ? await this.workspaceResolver(workflowId, userId)
-        : null;
+    const workspace = this.workspaceResolver
+      ? await this.workspaceResolver(workflowId ?? null, userId)
+      : null;
 
     const context = createRuntimeContext({
       jobId,
       workflowId,
       userId,
-      workspaceDir,
+      workspace,
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url",
       persistOutputAssets: executionOptions.assetPersistence === "auto"
     });
@@ -3717,7 +3722,25 @@ export class UnifiedWebSocketRunner {
     if (supervisor) {
       sessionOptions.supervisor = supervisor;
     }
-    const session = await ExecutionSession.create(sessionOptions);
+    // A graph this runtime cannot honour (unknown model, unregistered
+    // provider, missing credential) is refused before the kernel starts.
+    // Route it through the same terminal `job_update` a failed pre-run hook
+    // uses: a bare throw reaches handleCommand as a generic `invalid_command`
+    // the UI never associates with the job, so the run appears to spin
+    // forever instead of failing with the reason.
+    let session: ExecutionSession;
+    try {
+      session = await ExecutionSession.create(sessionOptions);
+    } catch (err) {
+      if (!isExecutionPreflightError(err)) throw err;
+      await this.emitBeforeRunFailure(
+        jobId,
+        workflowId,
+        err,
+        executionOptions.persistence === "job"
+      );
+      return;
+    }
 
     const active: ActiveJob = {
       jobId,
@@ -4691,11 +4714,17 @@ export class UnifiedWebSocketRunner {
       content: rawContent ?? "",
       toolCallId: isString(m.tool_call_id) ? m.tool_call_id : null,
       toolCalls: Array.isArray(m.tool_calls)
-        ? (m.tool_calls as Array<{
-            id: string;
-            name: string;
-            args: Record<string, unknown>;
-          }>)
+        ? (m.tool_calls as Array<ProviderToolCall>).map((tc) => {
+            const call: ProviderToolCall = {
+              id: tc.id,
+              name: tc.name,
+              args: tc.args
+            };
+            if (isString(tc.thought_signature)) {
+              call.thought_signature = tc.thought_signature;
+            }
+            return call;
+          })
         : null,
       threadId: m.thread_id
     };
@@ -5244,7 +5273,9 @@ export class UnifiedWebSocketRunner {
       jobId,
       workflowId: null,
       userId,
-      workspaceDir: tmpdir(),
+      workspace: this.workspaceResolver
+        ? await this.workspaceResolver(null, userId)
+        : null,
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
     });
     this.attachPlanApproval(context, threadId);
@@ -5265,19 +5296,28 @@ export class UnifiedWebSocketRunner {
       );
     }
 
-    const session = await ExecutionSession.create({
-      graph: toRawGraphInput(graph),
-      resolveExecutor: (node) =>
-        this.resolveExecutor(
-          node as { id: string; type: string; [key: string]: unknown }
-        ),
-      bridgeFactory: async () => null,
-      jobLifecycleBridge: this.pythonBridge ?? null,
-      jobId,
-      context,
-      params: {},
-      validateNode: this.validateNode
-    });
+    // A node selecting a model this runtime cannot honour is refused before
+    // the kernel starts; the tool answers with the reason, like every other
+    // preparation failure here.
+    let session: ExecutionSession;
+    try {
+      session = await ExecutionSession.create({
+        graph: toRawGraphInput(graph),
+        resolveExecutor: (node) =>
+          this.resolveExecutor(
+            node as { id: string; type: string; [key: string]: unknown }
+          ),
+        bridgeFactory: async () => null,
+        jobLifecycleBridge: this.pythonBridge ?? null,
+        jobId,
+        context,
+        params: {},
+        validateNode: this.validateNode
+      });
+    } catch (err) {
+      if (!isExecutionPreflightError(err)) throw err;
+      return { error: err.message };
+    }
     const result = await session.result;
 
     // Capture the node's completed result from the streamed updates.
@@ -5595,8 +5635,12 @@ export class UnifiedWebSocketRunner {
     // the user's, not the program's, and charged to the action's wall clock it
     // would kill the very program that asked.
     const codeactClock = createSandboxClock();
+    const liveMode = { value: permissionMode };
+    this.chatTurnPermissionMode.set(threadId, liveMode);
     const chatGate: PermissionGateOptions = {
-      mode: permissionMode,
+      get mode() {
+        return liveMode.value;
+      },
       sessionAllow,
       requestApproval: async (
         request: ApprovalRequest
@@ -5605,7 +5649,11 @@ export class UnifiedWebSocketRunner {
       clock: codeactClock
     };
     const gatedRun = (context: ProcessingContext): CapabilityRun =>
-      createCapabilityRun({ context, gate: chatGate });
+      createCapabilityRun({
+        context,
+        gate: chatGate,
+        availableSecrets: contextSecretAvailability(context)
+      });
     const rawToolbelt: Tool[] = [
       ...getAgentToolbelt(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
@@ -5683,6 +5731,7 @@ export class UnifiedWebSocketRunner {
           // Ungated on purpose, as before: spawning a child loop has no side
           // effect of its own, and the child's tools are the gated `baseTools`.
           gate: UNGATED,
+          availableSecrets: contextSecretAvailability(context),
           subAgent: subAgentRuntime
         });
       serverTools.unshift(toolForCapabilityName("run_subtask", delegationRun));
@@ -5752,16 +5801,18 @@ export class UnifiedWebSocketRunner {
     });
 
     // Create a processing context for tool execution
-    const chatWorkspaceDir =
-      workflowId && this.workspaceResolver
-        ? await this.workspaceResolver(workflowId, userId)
-        : tmpdir();
+    // A chat turn without a workflow still resolves a workspace — the user's
+    // default one. It used to fall back to the whole OS temp dir, which is
+    // neither bounded nor anywhere the user would look for what an agent wrote.
+    const chatWorkspace = this.workspaceResolver
+      ? await this.workspaceResolver(workflowId ?? null, userId)
+      : null;
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       workflowId,
       threadId: threadId || null,
       userId,
-      workspaceDir: chatWorkspaceDir,
+      workspace: chatWorkspace,
       authToken: this.authToken
     });
     const detachPredictions = attachChatPredictionForwarder(
@@ -5788,6 +5839,7 @@ export class UnifiedWebSocketRunner {
     this.chatCapabilityRun = createCapabilityRun({
       context: ctx,
       gate: chatGate,
+      availableSecrets: contextSecretAvailability(ctx),
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,
@@ -5848,7 +5900,8 @@ export class UnifiedWebSocketRunner {
         context: ctx,
         signal,
         clock: codeactClock,
-        capabilityRun: this.chatCapabilityRun ?? undefined
+        capabilityRun: this.chatCapabilityRun ?? undefined,
+        state: this.codeactStateFor(threadId || null)
       });
       providerToolSchemas.push(codeactSession.providerTool);
       providerToolSchemas.push(...directSchemas);
@@ -6137,7 +6190,10 @@ export class UnifiedWebSocketRunner {
               id: tc.id,
               name: tc.name,
               args: tc.args,
-              result: null
+              result: null,
+              // Gemini 3 rejects a history that replays a function call
+              // without the signature it issued, so it rides into the DB.
+              thought_signature: tc.thought_signature ?? null
             }))
           : null;
         for (const tc of toolCalls ?? []) {
@@ -6198,7 +6254,7 @@ export class UnifiedWebSocketRunner {
         executeTool: useTools ? effectiveExecuteTool : undefined,
         maxIterations: MAX_TOOL_ROUNDS,
         sequentialTools: session ? true : undefined,
-        workspaceDir: chatWorkspaceDir ?? undefined,
+        workspaceDir: chatWorkspace?.localDir ?? undefined,
         signal
       })) {
         // A newer turn has taken over. Stop driving the client, but do NOT
@@ -7462,23 +7518,19 @@ export class UnifiedWebSocketRunner {
               }
             }
           } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
-            if (!isSafeExternalUrl(uri)) {
-              log.warn(
-                "resolveSourceImageBytes: refusing to fetch non-public URL",
-                { uri }
-              );
-            } else {
-              try {
-                const resp = await fetch(uri);
-                if (resp.ok) {
-                  return new Uint8Array(await resp.arrayBuffer());
-                }
-              } catch (err) {
-                log.warn("resolveSourceImageBytes: fetch failed", {
-                  uri,
-                  error: err instanceof Error ? err.message : String(err)
-                });
+            // A chat client picked this uri, so the media-ref egress policy
+            // decides — including on every redirect hop, which the predicate
+            // this replaced never saw.
+            try {
+              const resp = await fetchExternalMedia(uri);
+              if (resp.ok) {
+                return new Uint8Array(await resp.arrayBuffer());
               }
+            } catch (err) {
+              log.warn("resolveSourceImageBytes: fetch failed", {
+                uri,
+                error: err instanceof Error ? err.message : String(err)
+              });
             }
           }
         }
@@ -7595,14 +7647,14 @@ export class UnifiedWebSocketRunner {
       }
 
       // Create processing context
-      const workspaceDir = this.workspaceResolver
+      const workspace = this.workspaceResolver
         ? await this.workspaceResolver(workflowId, userId)
         : null;
       const context = createRuntimeContext({
         jobId,
         workflowId,
         userId,
-        workspaceDir,
+        workspace,
         assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
       });
 
@@ -8510,12 +8562,9 @@ export class UnifiedWebSocketRunner {
       };
       const code = trpc.cause?.apiCode ?? trpc.code ?? "INTERNAL_ERROR";
       const internalMessage = trpc.message ?? String(err);
-      const publicMessage = sdkV1RpcCommand.safeParse(command.command).success
-        ? getSdkV1SafeErrorMessage(code, internalMessage)
-        : internalMessage;
       const error: RpcErrorPayload = {
         code,
-        message: publicMessage,
+        message: internalMessage,
         retryable: isSdkV1RetryableError(code, internalMessage),
         apiCode: trpc.cause?.apiCode ?? null,
         trpcCode: trpc.code
@@ -8527,37 +8576,6 @@ export class UnifiedWebSocketRunner {
         error
       });
     }
-    return null;
-  }
-
-  private async runSdkLifecycleRpc(
-    command: WebSocketCommandEnvelope
-  ): Promise<Record<string, unknown> | null> {
-    const response = await handleSdkV1LifecycleRpc(command, {
-      getCapabilities: () => {
-        if (!this.apiOptions?.getSdkCapabilities) {
-          throw new Error("SDK capabilities service is unavailable.");
-        }
-        return this.apiOptions.getSdkCapabilities();
-      },
-      preflightService: {
-        preflight: (input) => {
-          if (!this.apiOptions?.sdkPreflightService) {
-            throw new Error("SDK preflight service is unavailable.");
-          }
-          return this.apiOptions.sdkPreflightService.preflight(input);
-        }
-      },
-      getPrincipal: () => (this.userId ? { userId: this.userId } : null),
-      environment: process.env,
-      onInternalError: (error) =>
-        this.logError("SDK lifecycle RPC failed", error)
-    });
-
-    if (!response) {
-      return { error: "Unknown SDK lifecycle command" };
-    }
-    await this.sendMessage(response);
     return null;
   }
 
@@ -8698,6 +8716,24 @@ export class UnifiedWebSocketRunner {
         }
         this.mode = mode;
         return { message: `Mode set to ${mode}` };
+      }
+      case "set_permission_mode": {
+        const threadId = data.thread_id;
+        const mode = data.permission_mode;
+        if (!isNonEmptyString(threadId)) {
+          return { error: "thread_id is required for set_permission_mode" };
+        }
+        if (mode !== "plan" && mode !== "default" && mode !== "auto") {
+          return { error: "permission_mode must be plan, default, or auto" };
+        }
+        const liveMode = this.chatTurnPermissionMode.get(threadId);
+        if (liveMode) {
+          liveMode.value = mode;
+        }
+        if (mode === "auto") {
+          this.approvalBridge.resolveScope(threadId, { decision: "allow" });
+        }
+        return { message: `Permission mode set to ${mode}`, thread_id: threadId };
       }
       case "chat_message": {
         const threadId = data.thread_id;
@@ -8888,30 +8924,6 @@ export class UnifiedWebSocketRunner {
           caller.workflows.get({ id: String(data.id ?? "") })
         );
       }
-      case "list_workflow_summaries": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.workflows.sdkSummaries(
-            data as Parameters<typeof caller.workflows.sdkSummaries>[0]
-          )
-        );
-      }
-      case "get_workflow_interface": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.workflows.interface(
-            data as Parameters<typeof caller.workflows.interface>[0]
-          )
-        );
-      }
-      case "get_workflow_interfaces": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.workflows.interfaces(
-            data as Parameters<typeof caller.workflows.interfaces>[0]
-          )
-        );
-      }
       case "list_assets": {
         const caller = this.getTrpcCaller();
         return this.runRpc(command, () =>
@@ -8936,17 +8948,6 @@ export class UnifiedWebSocketRunner {
           caller.nodes.get({ node_type: String(data.node_type ?? "") })
         );
       }
-      case "get_node_type_inventory": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.nodes.sdkTypeInventory(
-            data as Parameters<typeof caller.nodes.sdkTypeInventory>[0]
-          )
-        );
-      }
-      case "get_capabilities":
-      case "preflight_workflow":
-        return this.runSdkLifecycleRpc(command);
       case "generate_media": {
         const rawMode = data.mode;
         const mode: "image" | "image_edit" | "inpaint" | "video" | "audio" =
@@ -9049,6 +9050,9 @@ export class UnifiedWebSocketRunner {
 
   private startStatsBroadcast(): void {
     this.stopStatsBroadcast();
+    if (!this.systemStatsEnabled) {
+      return;
+    }
     const send = () => {
       this.sendMessage({
         type: "system_stats",

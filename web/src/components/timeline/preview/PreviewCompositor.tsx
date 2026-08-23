@@ -77,9 +77,8 @@ const PRELOAD_LOOKAHEAD_MS = 30_000;
 const IMAGE_CACHE_MAX = 64;
 
 const compositorStyles = css({
-  position: "relative",
-  width: "100%",
-  height: "100%",
+  position: "absolute",
+  inset: 0,
   backgroundColor: "#000",
   overflow: "hidden",
   display: "flex",
@@ -428,6 +427,10 @@ export const PreviewCompositor: React.FC = memo(() => {
         canvas.width = w;
         canvas.height = h;
         compositorRef.current?.resize(w, h);
+        compositorRef.current?.setLayers(
+          buildLayersRef.current(currentTimeMsRef.current)
+        );
+        compositorRef.current?.render();
       }
     };
     apply();

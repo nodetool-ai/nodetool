@@ -14,6 +14,7 @@ import {
 } from "./base-model.js";
 import { getDb } from "./db.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
+import { TimelineSequenceVersion } from "./timeline-sequence-version.js";
 
 export class TimelineSequenceConflictError extends Error {
   constructor(id: string) {
@@ -160,6 +161,24 @@ export class TimelineSequence extends DBModel {
       created_at: seq.createdAt,
       updated_at: seq.updatedAt
     });
+  }
+
+  /**
+   * Delete a timeline sequence the caller owns, and everything that hung off it.
+   *
+   * The ownership test lives here rather than in each caller because there are
+   * two of them — the tRPC route and the sandbox's `delete_timeline`
+   * capability — and a delete is not a place for two copies of one rule.
+   * Missing and not-yours are the same answer, so a caller cannot probe ids.
+   */
+  static async deleteOwned(userId: string, id: string): Promise<boolean> {
+    const row = await TimelineSequence.findById(id);
+    if (!row || row.user_id !== userId) return false;
+    await row.delete();
+    // Belt-and-braces with the FK cascade: version rows outliving their
+    // document would be unreachable garbage.
+    await TimelineSequenceVersion.deleteForTimeline(id);
+    return true;
   }
 
   static async findById(id: string): Promise<TimelineSequence | null> {

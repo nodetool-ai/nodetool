@@ -89,6 +89,24 @@ export function resolveCodeNodeTitle(
   return trimmedTitle ? trimmedTitle : metadataTitle;
 }
 
+const INPUT_NODE_PREFIX = "nodetool.input.";
+
+export function resolveNodeHeaderTitle(
+  nodeType: string,
+  dataTitle: string | undefined,
+  metadataTitle: string,
+  propertyName?: string
+): string {
+  if (nodeType.startsWith(INPUT_NODE_PREFIX)) {
+    const name = propertyName?.trim();
+    if (name) {
+      return name;
+    }
+    return metadataTitle;
+  }
+  return resolveCodeNodeTitle(nodeType, dataTitle, metadataTitle);
+}
+
 export function isCodeNodeTitleEditable(
   nodeType: string,
   data: Pick<NodeData, "codeNodeMode">

@@ -1,54 +1,19 @@
 import { createTRPCReact } from "@trpc/react-query";
 import {
   createTRPCClient,
-  httpBatchLink,
-  loggerLink,
   type TRPCClient
 } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
-import { BASE_URL } from "../stores/BASE_URL";
-import { isAuthRequired } from "../lib/runtimeConfig";
-import { supabase } from "../lib/supabaseClient";
+import { createTrpcLinks } from "./links";
 
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export const trpc = createTRPCReact<AppRouter>();
 
-async function authHeaders(): Promise<Record<string, string>> {
-  if (!isAuthRequired()) return {};
-  const {
-    data: { session }
-  } = await supabase.auth.getSession();
-  return session ? { Authorization: `Bearer ${session.access_token}` } : {};
-}
-
 export function createTRPCHttpClient(): Readonly<TRPCClient<AppRouter>> {
   return createTRPCClient<AppRouter>({
-    links: [
-      loggerLink({
-        enabled: (opts) =>
-          (typeof window !== "undefined" && import.meta.env.DEV) ||
-          (opts.direction === "down" && opts.result instanceof Error)
-      }),
-      httpBatchLink({
-        url: `${BASE_URL}/trpc`,
-        // Cap the batch: tRPC joins every procedure name into one URL path
-        // segment, and Fastify's router rejects a segment over `maxParamLength`
-        // with a 404. A model-picker mount batched 116 procedures into a ~2900
-        // char path and got nothing back.
-        maxItems: 20,
-        // Force batches to POST so the (potentially long) batched input rides
-        // in the request body instead of the URL. GET batches encode every
-        // procedure's input into the query string, which reverse proxies
-        // (e.g. Tailscale Serve) reject once the URL grows too long, returning
-        // 502 and leaving panels empty. See issue #3979.
-        methodOverride: "POST",
-        async headers() {
-          return authHeaders();
-        }
-      })
-    ]
+    links: createTrpcLinks()
   });
 }
 

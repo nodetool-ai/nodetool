@@ -20,7 +20,11 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 
 import { useAssetStore } from "../stores/AssetStore";
 import { assetIdFromLocator } from "../utils/mediaRef";
-import { resolveStaticMediaUri } from "../utils/resolveMediaUri";
+import {
+  asResolvedMediaUrl,
+  resolveStaticMediaUri
+} from "../utils/resolveMediaUri";
+import type { ResolvedMediaUrl } from "../utils/resolveMediaUri";
 import { isString } from "../utils/typePredicates";
 
 /** Anything carrying a media locator: a bare URI or a `*Ref` with `asset_id`. */
@@ -47,25 +51,64 @@ const locatorParts = (
   return { uri, assetId: declared ?? assetIdFromLocator(uri) };
 };
 
-export function useResolvedMediaUri(source: MediaLocator): string | undefined {
+/**
+ * The resolved URL plus the asset's own content type. `useResolvedMediaUri`
+ * is this hook's URL half — a caller that only renders needs no MIME type. A
+ * locator with no file extension (`asset://<id>`, what `save_asset` used to
+ * return) carries nothing a renderer can type the media by, so a saved mp4
+ * rendered as a broken image in chat. The asset row is already fetched for the
+ * URL; its `content_type` is the answer.
+ */
+export type ResolvedMedia = {
+  url: ResolvedMediaUrl | undefined;
+  contentType: string | undefined;
+  /**
+   * True while the asset lookup is still in flight. A caller that renders
+   * nothing without a URL needs this to tell "not yet" from "never": an asset
+   * whose row is gone, or whose object cannot be signed, resolves to no URL
+   * forever, and silently rendering nothing leaves the reader with an empty
+   * gap and no way to reach the media.
+   */
+  pending: boolean;
+};
+
+export function useResolvedMedia(source: MediaLocator): ResolvedMedia {
   const getAsset = useAssetStore((state) => state.get);
   const { uri, assetId } = locatorParts(source);
-
   const staticUrl = resolveStaticMediaUri(uri);
   // A locator that resolves without the server still needs the asset id path
   // disabled — hooks cannot be called conditionally, so gate the query instead.
   const needsAsset = staticUrl === null && Boolean(assetId);
 
-  const { data: asset } = useQuery({
+  const {
+    data: asset,
+    isPending,
+    isError
+  } = useQuery({
     queryKey: ["asset", assetId],
     queryFn: () => getAsset(assetId as string),
     enabled: needsAsset
   });
 
   if (staticUrl !== null) {
-    return staticUrl || undefined;
+    return {
+      url: asResolvedMediaUrl(staticUrl) ?? undefined,
+      contentType: undefined,
+      pending: false
+    };
   }
-  return asset?.get_url ?? undefined;
+  return {
+    url: asResolvedMediaUrl(asset?.get_url) ?? undefined,
+    contentType: asset?.content_type ?? undefined,
+    // A disabled query reports `pending` forever, so gate on the id path.
+    pending: needsAsset && isPending && !isError
+  };
+}
+
+export function useResolvedMediaUri(
+  source: MediaLocator
+): ResolvedMediaUrl | undefined {
+  return useResolvedMedia(source).url;
 }
 
 /**
@@ -74,7 +117,7 @@ export function useResolvedMediaUri(source: MediaLocator): string | undefined {
  */
 export function useResolvedMediaUris(
   sources: MediaLocator[]
-): (string | undefined)[] {
+): (ResolvedMediaUrl | undefined)[] {
   const getAsset = useAssetStore((state) => state.get);
   const parts = sources.map(locatorParts);
   const staticUrls = parts.map(({ uri }) => resolveStaticMediaUri(uri));
@@ -89,8 +132,8 @@ export function useResolvedMediaUris(
 
   return staticUrls.map((staticUrl, i) =>
     staticUrl !== null
-      ? staticUrl || undefined
-      : (results[i]?.data?.get_url ?? undefined)
+      ? (asResolvedMediaUrl(staticUrl) ?? undefined)
+      : (asResolvedMediaUrl(results[i]?.data?.get_url) ?? undefined)
   );
 }
 

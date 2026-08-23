@@ -40,7 +40,6 @@ const EMPTY: JsScriptCastDoc = {
     code: "",
     inputs: [],
     outputs: [],
-    packages: [],
     secrets: [],
     timeoutSeconds: 30,
     tests: []
@@ -90,8 +89,7 @@ const withCode: JsScriptCastDoc = {
   name: NAME,
   document: {
     ...withPorts.document,
-    code: CODE,
-    packages: [{ specifier: "@nodetool-ai/sandbox-csv" }]
+    code: CODE
   }
 };
 
@@ -157,7 +155,7 @@ export const jsScriptAssistantCast: JsScriptDocCast = {
       {
         id: CODE_CALL,
         name: "ui_jsscript_set_code",
-        args: { packages: ["@nodetool-ai/sandbox-csv"] }
+        args: { code: CODE }
       }
     ]),
     toolRunning(4800, CODE_CALL, "Writing the body…"),
@@ -166,7 +164,7 @@ export const jsScriptAssistantCast: JsScriptDocCast = {
       {
         id: CODE_CALL,
         name: "ui_jsscript_set_code",
-        args: { packages: ["@nodetool-ai/sandbox-csv"] },
+        args: { code: CODE },
         result: { issues: [] }
       },
       { id: TEST_CALL, name: "ui_jsscript_test", args: { cases: TESTS } }
@@ -178,7 +176,7 @@ export const jsScriptAssistantCast: JsScriptDocCast = {
       {
         id: CODE_CALL,
         name: "ui_jsscript_set_code",
-        args: { packages: ["@nodetool-ai/sandbox-csv"] },
+        args: { code: CODE },
         result: { issues: [] }
       },
       {

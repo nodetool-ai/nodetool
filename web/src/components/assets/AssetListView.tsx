@@ -14,6 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { isCoarsePointer } from "../../utils/isCoarsePointer";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -449,6 +450,10 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         onClick={(e) => {
           e.stopPropagation();
           handleSelectAsset(asset.id);
+          // Touch has no reliable dblclick, so a tap has to both select and open.
+          if (isCoarsePointer()) {
+            onDoubleClick?.(asset);
+          }
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {

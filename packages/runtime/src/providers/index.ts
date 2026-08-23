@@ -24,7 +24,10 @@ import { MistralProvider } from "./mistral-provider.js";
 import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { TogetherProvider } from "./together-provider.js";
-import { AlibabaProvider } from "./alibaba-provider.js";
+import {
+  ALIBABA_DEFAULT_BASE_URL,
+  AlibabaProvider
+} from "./alibaba-provider.js";
 import { CerebrasProvider } from "./cerebras-provider.js";
 import { EvolinkProvider } from "./evolink-provider.js";
 import { GMIProvider } from "./gmi-provider.js";
@@ -52,6 +55,24 @@ import { VoyageProvider } from "./voyage-provider.js";
 import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
+export {
+  PROBE_MANIFEST,
+  probeProviders,
+  formatProbeReport,
+  runProbes,
+  redactText,
+  summarizeShape,
+  SHAPE_LITERAL_KEYS
+} from "./contract/index.js";
+export type {
+  LiveProbeSpec,
+  ProbeManifestEntry,
+  ProbeProvider,
+  ProbeReport,
+  ProbeResult,
+  ProbeStatus,
+  RunProbesOptions
+} from "./contract/index.js";
 export type { ProviderCapability } from "./base-provider.js";
 export {
   CORE_TOOL_NAMES,
@@ -62,6 +83,7 @@ export {
   sdkNativeReplacements
 } from "./core-tools.js";
 export {
+  isBlockedIpLiteral,
   isSafePublicHttpsUrl,
   assertSafePublicHttpsUrl,
   safeFetch
@@ -170,9 +192,15 @@ export {
   isProviderConfigured,
   listRegisteredProviderIds,
   readCredentialEnv,
+  resolveCredentialValue,
   unregisterProvider
 } from "./provider-registry.js";
-export type { GetSecret } from "./provider-registry.js";
+export type {
+  GetSecret,
+  ProviderAccess,
+  ProviderRegistration,
+  ProviderRegistrationMetadata
+} from "./provider-registry.js";
 export {
   annotateProviderError,
   httpStatusFromError,
@@ -277,11 +305,17 @@ export {
 // circuit the registry's resolution branch (which only re-resolves when the
 // kwarg is empty/null). Empty-string declarations force every getProvider()
 // call to ask the supplied `getSecret` (DB-then-env) at instantiation time.
-registerBuiltinProvider(PROVIDER_IDS.OPENAI, OpenAIProvider, { OPENAI_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.OPENAI, OpenAIProvider, {
+  OPENAI_API_KEY: ""
+});
 // Codex: OpenAI via ChatGPT OAuth login. The token (resolved + refreshed from
 // the stored OAuth credential by the host's getSecret) stands in for an API key.
-registerBuiltinProvider(PROVIDER_IDS.CODEX, CodexProvider, { CODEX_ACCESS_TOKEN: "" });
-registerBuiltinProvider(PROVIDER_IDS.ANTHROPIC, AnthropicProvider, { ANTHROPIC_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.CODEX, CodexProvider, {
+  CODEX_ACCESS_TOKEN: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.ANTHROPIC, AnthropicProvider, {
+  ANTHROPIC_API_KEY: ""
+});
 // Claude Agent SDK: Claude via the logged-in `claude` CLI subscription (no API
 // key). Registered with no credential kwargs — auth lives in the CLI's own
 // store, so the provider is always "configured"; a missing CLI or a missing
@@ -289,12 +323,22 @@ registerBuiltinProvider(PROVIDER_IDS.ANTHROPIC, AnthropicProvider, { ANTHROPIC_A
 // installs themselves) surfaces at call time. Pruned from the cloud profile
 // (in NON_CLOUD_PROVIDER_IDS) since it needs a local executable and subscription.
 registerBuiltinProvider(PROVIDER_IDS.CLAUDE_AGENT_SDK, ClaudeAgentProvider, {});
-registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, { GEMINI_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, {
+  GEMINI_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.GROQ, GroqProvider, { GROQ_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.MISTRAL, MistralProvider, { MISTRAL_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, { KIMI_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, { MINIMAX_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.REPLICATE, ReplicateProvider, { REPLICATE_API_TOKEN: "" });
+registerBuiltinProvider(PROVIDER_IDS.MISTRAL, MistralProvider, {
+  MISTRAL_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, {
+  KIMI_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, {
+  MINIMAX_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.REPLICATE, ReplicateProvider, {
+  REPLICATE_API_TOKEN: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.FAL_AI, FalProvider, { FAL_API_KEY: "" });
 // NodeTool's own managed models: curated delegates on platform-owned keys,
 // metered against the user's credit balance. Registered with no required
@@ -310,33 +354,66 @@ registerBuiltinProvider(
   }
 );
 registerBuiltinProvider(PROVIDER_IDS.KIE, KieProvider, { KIE_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.ELEVENLABS, ElevenLabsProvider, { ELEVENLABS_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.TOPAZ, TopazProvider, { TOPAZ_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.ELEVENLABS, ElevenLabsProvider, {
+  ELEVENLABS_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.TOPAZ, TopazProvider, {
+  TOPAZ_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.REVE, ReveProvider, { REVE_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.ATLASCLOUD, AtlasCloudProvider, { ATLASCLOUD_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.ATLASCLOUD, AtlasCloudProvider, {
+  ATLASCLOUD_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, { MESHY_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.RODIN, RodinProvider, { RODIN_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.OPENROUTER, OpenRouterProvider, { OPENROUTER_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, { TOGETHER_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.ALIBABA, AlibabaProvider, { DASHSCOPE_API_KEY: "", DASHSCOPE_BASE_URL: "" });
-registerBuiltinProvider(PROVIDER_IDS.CEREBRAS, CerebrasProvider, { CEREBRAS_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.EVOLINK, EvolinkProvider, { EVOLINK_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {
+  MESHY_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.RODIN, RodinProvider, {
+  RODIN_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.OPENROUTER, OpenRouterProvider, {
+  OPENROUTER_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, {
+  TOGETHER_API_KEY: ""
+});
+registerBuiltinProvider(
+  PROVIDER_IDS.ALIBABA,
+  AlibabaProvider,
+  { DASHSCOPE_API_KEY: "" },
+  { DASHSCOPE_BASE_URL: ALIBABA_DEFAULT_BASE_URL }
+);
+registerBuiltinProvider(PROVIDER_IDS.CEREBRAS, CerebrasProvider, {
+  CEREBRAS_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.EVOLINK, EvolinkProvider, {
+  EVOLINK_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.GMI, GMIProvider, { GMI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.META, MetaProvider, { META_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.COHERE, CohereProvider, { COHERE_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.VOYAGE, VoyageProvider, { VOYAGE_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.COHERE, CohereProvider, {
+  COHERE_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.VOYAGE, VoyageProvider, {
+  VOYAGE_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.JINA, JinaProvider, { JINA_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.DEEPSEEK, DeepSeekProvider, { DEEPSEEK_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.DEEPSEEK, DeepSeekProvider, {
+  DEEPSEEK_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.XAI, XAIProvider, { XAI_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.HUGGINGFACE, HuggingFaceProvider, { HF_TOKEN: "" });
+registerBuiltinProvider(PROVIDER_IDS.HUGGINGFACE, HuggingFaceProvider, {
+  HF_TOKEN: ""
+});
 
 // Local-only providers — require local servers/CLIs. Gated on the cloud
 // profile (not raw NODETOOL_ENV) so self-hosted production deployments that
 // set NODETOOL_NODE_PROFILE=full can point these at sidecar containers
 // (llama.cpp, vLLM, Ollama) while the commercial cloud keeps them off.
 const _envProcess =
-  typeof process !== "undefined" ? process : { env: {} as Record<string, string | undefined> };
+  typeof process !== "undefined"
+    ? process
+    : { env: {} as Record<string, string | undefined> };
 const _cloudProfile = isCloudProfileActive(
   _envProcess.env[CLOUD_PROFILE_ENV],
   _envProcess.env[NODE_ENV_VAR]
@@ -352,7 +429,8 @@ if (!_cloudProfile) {
     PROVIDER_IDS.OLLAMA,
     OllamaProvider,
     {},
-    { OLLAMA_API_URL: OLLAMA_DEFAULT_URL }
+    { OLLAMA_API_URL: OLLAMA_DEFAULT_URL },
+    { access: "local_service", displayName: "Ollama" }
   );
   // LM Studio: URL (and optional API key) are user-configurable via the
   // Settings → API Keys panel. Register them as optionalKwargs so the
@@ -368,13 +446,18 @@ if (!_cloudProfile) {
     {
       LMSTUDIO_API_URL: LMSTUDIO_DEFAULT_URL,
       LMSTUDIO_API_KEY: "lm-studio"
-    }
+    },
+    { access: "local_service", displayName: "LM Studio" }
   );
   // llama.cpp OpenAI-compatible server — URL only from Settings / env (no
   // default host). Empty kwarg keeps the provider "unavailable" until configured.
-  registerBuiltinProvider(PROVIDER_IDS.LLAMA_CPP, LlamaProvider, {
-    LLAMA_CPP_URL: ""
-  });
+  registerBuiltinProvider(
+    PROVIDER_IDS.LLAMA_CPP,
+    LlamaProvider,
+    { LLAMA_CPP_URL: "" },
+    {},
+    { access: "local_service", displayName: "llama.cpp server" }
+  );
   // In-process llama.cpp via the native node-llama-cpp binding. No secret
   // required; models are GGUF files under NODE_LLAMA_CPP_MODELS_DIR (defaults
   // to the shared llama.cpp cache). Optional GPU backend override.
@@ -385,14 +468,16 @@ if (!_cloudProfile) {
     {
       NODE_LLAMA_CPP_MODELS_DIR: "",
       NODE_LLAMA_CPP_GPU_BACKEND: ""
-    }
+    },
+    { access: "in_process", displayName: "llama.cpp local" }
   );
   // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.
   registerBuiltinProvider(
     PROVIDER_IDS.VLLM,
     VLLMProvider,
     { VLLM_BASE_URL: "" },
-    { VLLM_API_KEY: "sk-no-key-required" }
+    { VLLM_API_KEY: "sk-no-key-required" },
+    { access: "local_service", displayName: "vLLM" }
   );
 }
 

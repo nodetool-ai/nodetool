@@ -163,7 +163,15 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   modelPacks = [],
   modelType
 }: ModelMenuBaseProps<TModel>) {
-  const { models, isLoading, isFetching, error: fetchedError, providerErrors, loadingProgress, refetch } = modelData;
+  const {
+    models,
+    isLoading,
+    isFetching,
+    error: fetchedError,
+    providerErrors,
+    loadingProgress,
+    refetch
+  } = modelData;
 
   const isError = !!fetchedError;
   const theme = useTheme();
@@ -176,10 +184,11 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const selectedProvider = storeHook((s) => s.selectedProvider);
   const setSelectedProvider = storeHook((s) => s.setSelectedProvider);
 
-  const [customView, setCustomView] = useState<
-    "favorites" | "recent" | null
-  >(null);
-  const hasDownloads = !isProduction && (recommendedModels.length > 0 || modelPacks.length > 0);
+  const [customView, setCustomView] = useState<"favorites" | "recent" | null>(
+    null
+  );
+  const hasDownloads =
+    !isProduction && (recommendedModels.length > 0 || modelPacks.length > 0);
 
   const startDownload = useModelDownloadStore((s) => s.startDownload);
   const cacheStatuses = useHfCacheStatusStore((s) => s.statuses);
@@ -188,8 +197,12 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const ensureStatuses = useHfCacheStatusStore((s) => s.ensureStatuses);
 
   // A fresh `[]` fallback would re-key every memo in useModelMenuData.
-  const { providers: providersFromModels, filteredModels, favoriteModels, recentModels } =
-    useModelMenuData<TModel>(models ?? EMPTY_MODELS, storeHook);
+  const {
+    providers: providersFromModels,
+    filteredModels,
+    favoriteModels,
+    recentModels
+  } = useModelMenuData<TModel>(models ?? EMPTY_MODELS, storeHook);
 
   const providers = modelData.providers ?? providersFromModels;
 
@@ -206,15 +219,22 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     return filteredModels; // Respects provider selection
   }, [customView, favoriteModels, recentModels, filteredModels]);
 
-  const filteredModelsAdvanced = useMemo(
-    () =>
-      applyAdvancedModelFilters<TModel>(baseModels, {
-        selectedTypes,
-        sizeBucket,
-        families: []
-      }),
-    [baseModels, selectedTypes, sizeBucket]
-  );
+  const filteredModelsAdvanced = useMemo(() => {
+    const filtered = applyAdvancedModelFilters<TModel>(baseModels, {
+      selectedTypes,
+      sizeBucket,
+      families: []
+    });
+    return [...filtered].sort((left, right) => {
+      const rank = (model: TModel) =>
+        model.execution?.state === "unavailable"
+          ? 2
+          : model.execution?.state === "download_required"
+            ? 1
+            : 0;
+      return rank(left) - rank(right);
+    });
+  }, [baseModels, selectedTypes, sizeBucket]);
 
   const handleSelectModel = useCallback(
     (model: TModel) => {
@@ -271,7 +291,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     const q = search.trim().toLowerCase();
     return recommendedModels
       .filter((m) => isHfModel(m) || m.type === "llama_model")
-      .filter((m) => !selectableIds.has((m.repo_id || m.id || "").toLowerCase()))
+      .filter(
+        (m) => !selectableIds.has((m.repo_id || m.id || "").toLowerCase())
+      )
       .filter((m) => {
         if (!q) return true;
         return (
@@ -318,8 +340,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const getAvailability = useModelAvailability();
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const keyboardEnabled = true;
-
   const isRowAvailable = useCallback(
     (index: number) => getAvailability(filteredModelsAdvanced[index]).available,
     [filteredModelsAdvanced, getAvailability]
@@ -329,11 +349,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   // Enter selects the top-ranked match right after typing.
   React.useEffect(() => {
     setActiveIndex(
-      keyboardEnabled
-        ? firstAvailableIndex(filteredModelsAdvanced.length, isRowAvailable)
-        : -1
+      firstAvailableIndex(filteredModelsAdvanced.length, isRowAvailable)
     );
-  }, [filteredModelsAdvanced.length, keyboardEnabled, isRowAvailable]);
+  }, [filteredModelsAdvanced.length, isRowAvailable]);
 
   const stepActiveIndex = useCallback(
     (dir: 1 | -1) => {
@@ -350,32 +368,19 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   );
 
   const handleArrowDown = useCallback(() => {
-    if (keyboardEnabled) {
-      stepActiveIndex(1);
-    }
-  }, [keyboardEnabled, stepActiveIndex]);
+    stepActiveIndex(1);
+  }, [stepActiveIndex]);
 
   const handleArrowUp = useCallback(() => {
-    if (keyboardEnabled) {
-      stepActiveIndex(-1);
-    }
-  }, [keyboardEnabled, stepActiveIndex]);
+    stepActiveIndex(-1);
+  }, [stepActiveIndex]);
 
   const handleEnter = useCallback(() => {
-    if (!keyboardEnabled) {
-      return;
-    }
     const model = filteredModelsAdvanced[activeIndex];
     if (model && getAvailability(model).available) {
       handleSelectModel(model);
     }
-  }, [
-    keyboardEnabled,
-    filteredModelsAdvanced,
-    activeIndex,
-    getAvailability,
-    handleSelectModel
-  ]);
+  }, [filteredModelsAdvanced, activeIndex, getAvailability, handleSelectModel]);
 
   const handleRefresh = useCallback(async () => {
     if (!refetch || isFetching) {
@@ -502,6 +507,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     >
       <ProviderList
         providers={providers}
+        models={models ?? EMPTY_MODELS}
         isLoading={!!isLoading}
         isError={!!isError}
         storeHook={storeHook}
@@ -569,11 +575,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         }}
       >
         {quickViews}
-        <Divider
-          orientation="vertical"
-          flexItem
-          sx={{ my: 1, opacity: 0.6 }}
-        />
+        <Divider orientation="vertical" flexItem sx={{ my: 1, opacity: 0.6 }} />
         {providerRail}
       </FlexRow>
       {modelPane}
@@ -696,7 +698,15 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         </FlexRow>
       </FlexRow>
 
-      <Collapse in={!!(isLoading || isFetching || (providerErrors && providerErrors.length > 0))}>
+      <Collapse
+        in={
+          !!(
+            isLoading ||
+            isFetching ||
+            (providerErrors && providerErrors.length > 0)
+          )
+        }
+      >
         <FlexRow
           gap={1}
           align="center"
@@ -704,9 +714,10 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             px: 2,
             py: 1,
             borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            bgcolor: providerErrors && providerErrors.length > 0
-              ? theme.vars.palette.warning.main + "15"
-              : theme.vars.palette.action.hover,
+            bgcolor:
+              providerErrors && providerErrors.length > 0
+                ? theme.vars.palette.warning.main + "15"
+                : theme.vars.palette.action.hover,
             fontSize: "var(--fontSizeSmall)"
           }}
         >
@@ -729,16 +740,22 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                   </Caption>
                   {providerErrors.map((pe) => (
                     <Caption key={pe.provider} component="div" sx={{ mt: 0.5 }}>
-                      • {pe.provider}: {pe.error instanceof Error ? pe.error.message : "Unknown error"}
+                      • {pe.provider}:{" "}
+                      {pe.error instanceof Error
+                        ? pe.error.message
+                        : "Unknown error"}
                     </Caption>
                   ))}
                 </Box>
               }
             >
               <FlexRow gap={0.5} align="center" sx={{ cursor: "help" }}>
-                <WarningAmberIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                <WarningAmberIcon
+                  sx={{ fontSize: 16, color: "warning.main" }}
+                />
                 <Caption sx={{ color: "warning.main" }}>
-                  {providerErrors.length} provider{providerErrors.length > 1 ? "s" : ""} failed to load
+                  {providerErrors.length} provider
+                  {providerErrors.length > 1 ? "s" : ""} failed to load
                 </Caption>
               </FlexRow>
             </Tooltip>

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Rot detector for the shipped example workflows (packages/*/examples/**/*.json):
+// Rot detector for the shipped example workflows (packages/*/examples/**/*.json
+// and the repo-root examples/workflows/*.json):
 // nodes get renamed, properties change, models get deprecated, and a shipped
 // example that references a now-unknown node type or a missing required
 // property is broken for every new install. `nodetool validate` catches this
@@ -42,6 +43,49 @@ const repoRoot = resolve(scriptDir, "..");
 const cliValidate = join(repoRoot, "packages/cli/dist/validate/index.js");
 const cliRender = join(repoRoot, "packages/cli/dist/commands/validate.js");
 
+// Examples whose graphs drive nodes that exist only in the Python worker. The
+// TypeScript registry cannot know those types, so `unknown_node` for exactly
+// these names is expected — and nothing else is: every other issue in these
+// files still fails the gate. The list is also checked from the other side. A
+// name that stops firing (the node got a TypeScript port, or the example
+// stopped using it) fails the gate too, so an exemption cannot outlive the
+// reason it was written.
+//
+// Nothing else belongs here. A type that was *removed* from the registry with
+// a NODE_TYPE_MIGRATIONS entry is not unknown: `validateGraph` migrates the
+// graph first, exactly as `Graph.loadFromDict` does at run time.
+const PYTHON_ONLY_NODES = {
+  "examples/workflows/lib_librosa_mfcc_cli.json": ["lib.librosa.analysis.MFCC"],
+  "examples/workflows/lib_pedalboard_reverb_cli.json": ["lib.pedalboard.Reverb"]
+};
+
+/**
+ * Drop the `unknown_node` issues naming a declared Python-only type, and
+ * report which of them actually fired. Counts and `ok` are recomputed from
+ * what is left, so a file with nothing but exempt issues renders as valid.
+ */
+function withoutPythonOnlyNodes(report, allowed) {
+  if (allowed.length === 0) return { report, exercised: [] };
+  const allow = new Set(allowed);
+  const exercised = new Set();
+  const issues = report.issues.filter((issue) => {
+    const exempt =
+      issue.code === "unknown_node" && allow.has(issue.nodeType ?? "");
+    if (exempt) exercised.add(issue.nodeType);
+    return !exempt;
+  });
+  const counts = { errors: 0, warnings: 0, info: 0 };
+  for (const issue of issues) {
+    if (issue.severity === "error") counts.errors += 1;
+    else if (issue.severity === "warning") counts.warnings += 1;
+    else counts.info += 1;
+  }
+  return {
+    report: { ...report, issues, counts, ok: counts.errors === 0 },
+    exercised: [...exercised]
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Worker: validate one graph file per request, reusing one registry.
 // ---------------------------------------------------------------------------
@@ -63,15 +107,18 @@ if (!isMainThread) {
       return;
     }
     let output = null;
+    let exercised = [];
     try {
       const { report } = await runValidate(job.path, deps);
-      if (!report.ok || report.counts.warnings > 0) {
-        output = renderValidation(report).join("\n");
+      const filtered = withoutPythonOnlyNodes(report, job.pythonOnlyNodes ?? []);
+      exercised = filtered.exercised;
+      if (!filtered.report.ok || filtered.report.counts.warnings > 0) {
+        output = renderValidation(filtered.report).join("\n");
       }
     } catch (err) {
       output = err instanceof Error ? (err.stack ?? err.message) : String(err);
     }
-    parentPort.postMessage({ index: job.index, output });
+    parentPort.postMessage({ index: job.index, output, exercised });
   });
 
   // Ready for the first job.
@@ -85,7 +132,11 @@ if (!isMainThread) {
 // ---------------------------------------------------------------------------
 
 // Walk packages/**/examples/**/*.json — mirrors the `find packages -path
-// '*examples*' -name '*.json'` used by workflow-example-validation.yaml.
+// '*examples*' -name '*.json'` used by workflow-example-validation.yaml — and
+// examples/workflows/*.json at the repo root. The root tree sat outside the
+// scan, so a stale model id or node type there drifted with the gate green —
+// and those are the CLI-facing examples examples/workflows/README.md tells
+// people to run.
 function findExamples(dir) {
   const results = [];
   for (const entry of readdirSync(dir)) {
@@ -154,10 +205,19 @@ function runPool(jobs) {
             return;
           }
           const index = next++;
-          worker.postMessage({ index, path: jobs[index].path });
+          worker.postMessage({
+            index,
+            path: jobs[index].path,
+            pythonOnlyNodes: jobs[index].pythonOnlyNodes ?? []
+          });
         };
         worker.on("message", (msg) => {
-          if (!msg.ready) results[msg.index] = msg.output;
+          if (!msg.ready) {
+            results[msg.index] = {
+              output: msg.output,
+              exercised: msg.exercised ?? []
+            };
+          }
           send();
         });
         worker.on("error", rejectWorker);
@@ -168,11 +228,21 @@ function runPool(jobs) {
 }
 
 async function main() {
-  const examples = findExamples(join(repoRoot, "packages")).sort();
+  const packageExamples = findExamples(join(repoRoot, "packages")).sort();
+  const rootExamples = findExamples(join(repoRoot, "examples/workflows")).sort();
+
+  if (rootExamples.length === 0) {
+    console.error(
+      "No example JSON files found under examples/workflows/ — check the search path."
+    );
+    process.exit(1);
+  }
+
+  const examples = [...packageExamples, ...rootExamples];
   const bundles = examples.filter((f) => f.endsWith(".app.json"));
   const workflowExamples = examples.filter((f) => !f.endsWith(".app.json"));
 
-  if (workflowExamples.length === 0) {
+  if (packageExamples.length === 0) {
     console.error(
       "No example JSON files found under packages/**/examples/ — check the search path."
     );
@@ -195,7 +265,23 @@ async function main() {
   // main thread already knows is broken (an unparseable bundle, say).
   const jobs = [];
   for (const file of workflowExamples) {
-    jobs.push({ label: file.slice(repoRoot.length + 1), path: file });
+    const label = file.slice(repoRoot.length + 1);
+    jobs.push({
+      label,
+      path: file,
+      pythonOnlyNodes: PYTHON_ONLY_NODES[label] ?? []
+    });
+  }
+
+  const declaredFiles = Object.keys(PYTHON_ONLY_NODES).filter(
+    (label) => !jobs.some((job) => job.label === label)
+  );
+  if (declaredFiles.length > 0) {
+    console.error(
+      `PYTHON_ONLY_NODES names ${declaredFiles.length} file(s) the scan does not ` +
+        `reach:\n  ${declaredFiles.join("\n  ")}\nRemove the entry or fix the path.`
+    );
+    process.exit(1);
   }
 
   // Each bundle's embedded workflows are written to a scratch file and run
@@ -226,7 +312,24 @@ async function main() {
 
   const pending = jobs.filter((job) => job.path !== undefined);
   const outputs = await runPool(pending);
-  for (const [i, job] of pending.entries()) job.output = outputs[i];
+  for (const [i, job] of pending.entries()) {
+    job.output = outputs[i].output;
+    // An exemption that no longer fires is stale: the node was ported to
+    // TypeScript, or the example stopped using it. Either way the entry now
+    // hides whatever else it would cover, so it fails the gate.
+    const unused = (job.pythonOnlyNodes ?? []).filter(
+      (type) => !outputs[i].exercised.includes(type)
+    );
+    if (unused.length > 0) {
+      job.output = [
+        job.output,
+        `stale PYTHON_ONLY_NODES entry in scripts/validate-examples.mjs — ` +
+          `no longer reported as unknown: ${unused.join(", ")}`
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
+  }
 
   rmSync(scratch, { recursive: true, force: true });
 

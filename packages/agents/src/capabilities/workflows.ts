@@ -22,6 +22,7 @@
  */
 
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import type { GraphValidationReport } from "@nodetool-ai/node-sdk";
 import type { Workflow as WorkflowRow } from "@nodetool-ai/models";
 import {
   NO_EXAMPLES,
@@ -39,6 +40,8 @@ import {
   workflowRecord
 } from "../tools/mcp-tool-support.js";
 import { declareDynamicOutputsInGraph } from "../dynamic-slots.js";
+import { findCapability } from "./registry.js";
+import { REQUEST_SECRET_TOOL_NAME } from "./settings.specs.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -48,6 +51,14 @@ import {
   listWorkflowsSpec,
   getWorkflowSpec,
   createWorkflowSpec,
+  updateWorkflowSpec,
+  deleteWorkflowSpec,
+  listWorkflowVersionsSpec,
+  getWorkflowVersionSpec,
+  createWorkflowVersionSpec,
+  restoreWorkflowVersionSpec,
+  deleteWorkflowVersionSpec,
+  setWorkflowAccessSpec,
   runWorkflowCapabilitySpec,
   debugWorkflowSpec,
   resolveWorkflowEscalationSpec,
@@ -55,6 +66,8 @@ import {
   startBackgroundJobSpec,
   getExampleWorkflowSpec,
   exportWorkflowDigraphSpec,
+  DEFAULT_VERSION_LIMIT,
+  MAX_VERSION_LIMIT,
   LIST_WORKFLOWS_SCHEMA,
   CREATE_WORKFLOW_SCHEMA,
   RUN_WORKFLOW_SCHEMA,
@@ -182,6 +195,295 @@ const createWorkflow: CapabilityExport = {
       run_mode: "workflow"
     })) as WorkflowRow;
     return workflowRecord(created);
+  }
+};
+
+/**
+ * The one ownership test the three lifecycle capabilities share.
+ *
+ * `Workflow.find` is deliberately not it: that answers for a public workflow
+ * and for one shared with the caller as well, so writing a mutation on top of
+ * it would let a run rewrite or publish a workflow it can merely read. Missing
+ * and not-yours are one answer, so a caller cannot probe for ids.
+ */
+async function findOwnedWorkflow(
+  run: CapabilityRun,
+  id: string
+): Promise<WorkflowRow | null> {
+  const { Workflow } = await import("@nodetool-ai/models");
+  const wf = (await Workflow.get(id)) as WorkflowRow | null;
+  if (!wf || wf.user_id !== userIdOf(run.context)) return null;
+  return wf;
+}
+
+function notYours(id: string): { error: string } {
+  return { error: `Workflow ${id} was not found, or it is not yours.` };
+}
+
+const updateWorkflow: CapabilityExport = {
+  spec: updateWorkflowSpec,
+  impl: async (run, params) => {
+    const { Workflow } = await import("@nodetool-ai/models");
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const fields: Record<string, unknown> = {};
+    if (params["graph"] !== undefined) {
+      // The same three passes create_workflow runs, in the same order: an
+      // update that skipped them could store a graph the create path would
+      // have refused.
+      const authored = run.nodeRegistry
+        ? declareDynamicOutputsInGraph(params["graph"], run.nodeRegistry)
+        : params["graph"];
+      const graph = normalizeWorkflowGraph(authored);
+      const badModels = await modelSelectionError(
+        graph,
+        run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
+      );
+      if (badModels) return badModels;
+      fields.graph = graph;
+    }
+    if (isString(params["name"])) fields.name = params["name"];
+    if (isString(params["description"])) {
+      fields.description = params["description"];
+    }
+    if (Array.isArray(params["tags"])) fields.tags = params["tags"];
+    if (Object.keys(fields).length === 0) {
+      return { error: "Nothing to update — pass graph, name, description or tags." };
+    }
+
+    // `access` is not in the field set on purpose. Publishing is its own
+    // capability because it is its own permission class.
+    const expected = isString(params["expected_updated_at"])
+      ? params["expected_updated_at"]
+      : existing.updated_at;
+    const updated = await Workflow.updateFieldsIfUnchanged(
+      id,
+      expected,
+      fields as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2]
+    );
+    if (!updated) {
+      return {
+        error:
+          `Workflow ${id} changed since you read it — read it again and retry.`
+      };
+    }
+    return workflowRecord(updated as WorkflowRow);
+  }
+};
+
+const deleteWorkflow: CapabilityExport = {
+  spec: deleteWorkflowSpec,
+  impl: async (run, params) => {
+    const { Workflow } = await import("@nodetool-ai/models");
+    const id = String(params["workflow_id"]);
+    const deleted = await Workflow.deleteOwned(userIdOf(run.context), id);
+    return deleted ? { workflow_id: id, deleted: true } : notYours(id);
+  }
+};
+
+function versionNumber(value: unknown): number | { error: string } {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) {
+    return {
+      error:
+        "version must be a positive integer (use list_workflow_versions to see the available ones)."
+    };
+  }
+  return n;
+}
+
+function toVersionListItem(version: {
+  id: string;
+  version: number;
+  name: string | null;
+  description: string | null;
+  save_type: string;
+  created_at: string;
+}) {
+  return {
+    id: version.id,
+    version: version.version,
+    name: version.name,
+    description: version.description,
+    save_type: version.save_type,
+    created_at: version.created_at
+  };
+}
+
+const listWorkflowVersions: CapabilityExport = {
+  spec: listWorkflowVersionsSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const { WorkflowVersion } = await import("@nodetool-ai/models");
+    const limit = Math.max(
+      1,
+      Math.min(
+        Number(params["limit"]) || DEFAULT_VERSION_LIMIT,
+        MAX_VERSION_LIMIT
+      )
+    );
+    const versions = await WorkflowVersion.listForWorkflow(id, { limit });
+    return {
+      workflow_id: id,
+      name: existing.name,
+      versions: versions.map(toVersionListItem)
+    };
+  }
+};
+
+const getWorkflowVersion: CapabilityExport = {
+  spec: getWorkflowVersionSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const number = versionNumber(params["version"]);
+    if (typeof number !== "number") return number;
+
+    const { WorkflowVersion } = await import("@nodetool-ai/models");
+    const version = await WorkflowVersion.findByVersion(id, number);
+    if (!version) {
+      return {
+        error: `Workflow ${id} has no version ${number}. Call list_workflow_versions to see the available ones.`
+      };
+    }
+    return {
+      workflow_id: id,
+      ...toVersionListItem(version),
+      graph: version.graph
+    };
+  }
+};
+
+const createWorkflowVersion: CapabilityExport = {
+  spec: createWorkflowVersionSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const { WorkflowVersion } = await import("@nodetool-ai/models");
+    const nextVer = await WorkflowVersion.nextVersion(id);
+    const version = (await WorkflowVersion.create({
+      workflow_id: id,
+      user_id: userIdOf(run.context),
+      name: isString(params["name"]) ? params["name"] : null,
+      description: isString(params["description"])
+        ? params["description"]
+        : null,
+      graph: existing.graph,
+      version: nextVer,
+      save_type: "manual"
+    })) as InstanceType<typeof WorkflowVersion>;
+    return {
+      ok: true,
+      workflow_id: id,
+      ...toVersionListItem(version)
+    };
+  }
+};
+
+const restoreWorkflowVersion: CapabilityExport = {
+  spec: restoreWorkflowVersionSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const number = versionNumber(params["version"]);
+    if (typeof number !== "number") return number;
+
+    const { Workflow, WorkflowVersion } = await import("@nodetool-ai/models");
+    const version = await WorkflowVersion.findByVersion(id, number);
+    if (!version) {
+      return {
+        error: `Workflow ${id} has no version ${number}. Call list_workflow_versions to see the available ones.`
+      };
+    }
+
+    const undoVer = await WorkflowVersion.nextVersion(id);
+    const undo = (await WorkflowVersion.create({
+      workflow_id: id,
+      user_id: userIdOf(run.context),
+      name: `Before restore to v${number}`,
+      description: null,
+      graph: existing.graph,
+      version: undoVer,
+      save_type: "restore"
+    })) as InstanceType<typeof WorkflowVersion>;
+
+    const updated = await Workflow.updateFieldsIfUnchanged(
+      id,
+      existing.updated_at,
+      { graph: version.graph }
+    );
+    if (!updated) {
+      return {
+        error: `Workflow ${id} changed since you read it — read it again and retry.`,
+        undo_version: undo.version
+      };
+    }
+    return {
+      ok: true,
+      workflow_id: id,
+      restored_version: number,
+      undo_version: undo.version,
+      ...workflowRecord(updated as WorkflowRow)
+    };
+  }
+};
+
+const deleteWorkflowVersion: CapabilityExport = {
+  spec: deleteWorkflowVersionSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+
+    const number = versionNumber(params["version"]);
+    if (typeof number !== "number") return number;
+
+    const { WorkflowVersion } = await import("@nodetool-ai/models");
+    const version = await WorkflowVersion.findByVersion(id, number);
+    if (!version) {
+      return {
+        error: `Workflow ${id} has no version ${number}. Call list_workflow_versions to see the available ones.`
+      };
+    }
+    await version.delete();
+    return {
+      ok: true,
+      workflow_id: id,
+      deleted_version: number
+    };
+  }
+};
+
+const setWorkflowAccess: CapabilityExport = {
+  spec: setWorkflowAccessSpec,
+  impl: async (run, params) => {
+    const { Workflow } = await import("@nodetool-ai/models");
+    const id = String(params["workflow_id"]);
+    const access = params["access"] === "public" ? "public" : "private";
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+    const updated = await Workflow.updateFieldsIfUnchanged(
+      id,
+      existing.updated_at,
+      { access } as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2]
+    );
+    if (!updated) {
+      return {
+        error: `Workflow ${id} changed since it was read — retry.`
+      };
+    }
+    return { workflow_id: id, access };
   }
 };
 
@@ -365,24 +667,79 @@ const validateWorkflow: CapabilityExport = {
       nodes?: unknown[];
       edges?: unknown[];
     };
-    const { validateGraph } = await import("@nodetool-ai/node-sdk");
-    return validateGraph(
-      {
-        nodes: declared.nodes as never[],
-        edges: (declared.edges ?? []) as never[]
-      },
-      {
-        has: (type) => registry.has(type),
-        getMetadata: (type) => registry.getMetadata(type),
-        validateNode: (descriptor, connectedHandles) =>
-          registry.validateNode(descriptor, connectedHandles),
-        listProviderIds: () => catalogs.listProviderIds(),
-        listModelIds: (provider, modelType) =>
-          catalogs.listModelIds(provider, modelType)
-      }
+    const { collectSecretRequirementSites, validateGraph } = await import(
+      "@nodetool-ai/node-sdk"
     );
+    const registryView = {
+      has: (type: string) => registry.has(type),
+      getMetadata: (type: string) => registry.getMetadata(type),
+      validateNode: (
+        descriptor: Parameters<typeof registry.validateNode>[0],
+        connectedHandles: Parameters<typeof registry.validateNode>[1]
+      ) => registry.validateNode(descriptor, connectedHandles),
+      listProviderIds: () => catalogs.listProviderIds(),
+      listModelIds: (provider: string, modelType: string) =>
+        catalogs.listModelIds(provider, modelType)
+    };
+    const checked = {
+      nodes: declared.nodes as never[],
+      edges: (declared.edges ?? []) as never[]
+    };
+
+    // The credentials the graph's nodes declare are collected first so the
+    // host resolves exactly those names — one store round trip per
+    // requirement, not one per key it holds. A run with no reachable store
+    // carries no resolver and the check is skipped: reporting every declared
+    // key as missing because nothing could answer is the false alarm this
+    // whole path fails toward silence to avoid.
+    let availableSecrets: ReadonlySet<string> | undefined;
+    if (run.availableSecrets) {
+      const sites = collectSecretRequirementSites(checked, registryView);
+      if (sites.length > 0) {
+        availableSecrets = await run.availableSecrets(
+          sites.map((site) => site.key)
+        );
+      }
+    }
+
+    const report = validateGraph(checked, registryView, { availableSecrets });
+    return await withSecretRemediation(run, report);
   }
 };
+
+/**
+ * Tell the agent what to do about a `missing_secret` warning.
+ *
+ * The validator says a key is missing; only the run knows how this agent can
+ * get one set. Settings → Credentials is always the answer a person can act
+ * on; `request_secret` is added only where this run can actually serve it —
+ * it needs the capability *and* a host that can raise the dialog, and a
+ * headless run has neither, so naming it there sends the agent at a call that
+ * fails closed.
+ */
+async function withSecretRemediation(
+  run: CapabilityRun,
+  report: GraphValidationReport
+): Promise<GraphValidationReport> {
+  if (!report.issues.some((issue) => issue.code === "missing_secret")) {
+    return report;
+  }
+  const canAsk =
+    run.secretPrompt !== undefined &&
+    (await findCapability(REQUEST_SECRET_TOOL_NAME)) !== undefined;
+  const remediation = canAsk
+    ? "Ask the user to set it in Settings → Credentials, or call " +
+      `\`${REQUEST_SECRET_TOOL_NAME}\` to have them enter it now.`
+    : "Ask the user to set it in Settings → Credentials.";
+  return {
+    ...report,
+    issues: report.issues.map((issue) =>
+      issue.code === "missing_secret"
+        ? { ...issue, message: `${issue.message} ${remediation}` }
+        : issue
+    )
+  };
+}
 
 // ---------------------------------------------------------------------------
 // start_background_job
@@ -465,6 +822,14 @@ export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   listWorkflows,
   getWorkflow,
   createWorkflow,
+  updateWorkflow,
+  deleteWorkflow,
+  listWorkflowVersions,
+  getWorkflowVersion,
+  createWorkflowVersion,
+  restoreWorkflowVersion,
+  deleteWorkflowVersion,
+  setWorkflowAccess,
   runWorkflowCapability,
   debugWorkflow,
   resolveWorkflowEscalation,
@@ -483,6 +848,14 @@ export {
   listWorkflows,
   getWorkflow,
   createWorkflow,
+  updateWorkflow,
+  deleteWorkflow,
+  listWorkflowVersions,
+  getWorkflowVersion,
+  createWorkflowVersion,
+  restoreWorkflowVersion,
+  deleteWorkflowVersion,
+  setWorkflowAccess,
   runWorkflowCapability,
   debugWorkflow,
   resolveWorkflowEscalation,

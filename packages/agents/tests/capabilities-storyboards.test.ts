@@ -163,6 +163,7 @@ const sequenceOf = async (id: string): Promise<TimelineSequence> => {
 /** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
   ["list_storyboards", () => toolForCapabilityName("list_storyboards")],
+  ["create_storyboard", () => toolForCapabilityName("create_storyboard")],
   ["get_storyboard", () => toolForCapabilityName("get_storyboard")],
   [
     "render_storyboard_stills",
@@ -192,13 +193,15 @@ describe("storyboards capability module", () => {
     expect(capabilityModuleIssues("storyboards", storyboards)).toEqual([]);
     expect(storyboards.exports.map((e) => e.spec.name)).toEqual([
       "list_storyboards",
+      "create_storyboard",
       "get_storyboard",
       "render_storyboard_stills",
       "render_storyboard_clips",
       "revise_storyboard_clip",
       "assemble_storyboard_timeline",
       "edit_storyboard",
-      "extract_script_from_storyboard"
+      "extract_script_from_storyboard",
+      "delete_storyboard"
     ]);
   });
 
@@ -242,6 +245,115 @@ describe("storyboards capability module", () => {
 describe("storyboards capability behaviour", () => {
   beforeEach(() => initTestDb());
   afterEach(() => ModelObserver.clear());
+
+  it("sets a shot's duration source, and refuses an unknown one", async () => {
+    const context = ctx();
+    const created = (await run(context).invoke("create_storyboard", {
+      name: "Interview"
+    })) as { storyboard_id: string };
+
+    const edited = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [
+        {
+          op: "add_shot",
+          action: "Talking head",
+          duration_seconds: 4,
+          duration_source: "audio"
+        }
+      ]
+    })) as { applied: number };
+    expect(edited.applied).toBe(1);
+
+    const read = (await run(context).invoke("get_storyboard", {
+      storyboard_id: created.storyboard_id
+    })) as { shots: Array<{ id: string; duration_source?: string }> };
+    expect(read.shots[0].duration_source).toBe("audio");
+
+    const refused = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [
+        {
+          op: "update_shot",
+          target: read.shots[0].id,
+          duration_source: "vibes"
+        }
+      ]
+    })) as { failed: number; ops: Array<{ ok: boolean; error?: string }> };
+    expect(refused.failed).toBe(1);
+    expect(refused.ops[0].error).toContain('"audio" or "manual"');
+  });
+
+  it("creates a blank board the caller can then edit", async () => {
+    const context = ctx();
+    const created = (await run(context).invoke("create_storyboard", {
+      name: "Lighthouse",
+      brief: "A keeper at dusk",
+      style: "moody neon",
+      aspect_ratio: "2.39:1"
+    })) as {
+      ok: boolean;
+      storyboard_id: string;
+      name: string;
+      shots: number;
+    };
+    expect(created).toMatchObject({
+      ok: true,
+      name: "Lighthouse",
+      shots: 0
+    });
+    expect(created.storyboard_id).toBeTruthy();
+
+    const listed = (await run(context).invoke("list_storyboards", {})) as {
+      storyboards: Array<{ id: string; name: string; shots: number }>;
+    };
+    expect(listed.storyboards).toEqual([
+      expect.objectContaining({
+        id: created.storyboard_id,
+        name: "Lighthouse",
+        shots: 0
+      })
+    ]);
+
+    const edited = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [{ op: "add_shot", action: "Wide of the lighthouse at dusk" }]
+    })) as { applied: number; shots: Array<{ action: string }> };
+    expect(edited.applied).toBe(1);
+    expect(edited.shots.map((shot) => shot.action)).toEqual([
+      "Wide of the lighthouse at dusk"
+    ]);
+
+    const read = (await run(context).invoke("get_storyboard", {
+      storyboard_id: created.storyboard_id
+    })) as { brief: string; style: string; aspect_ratio: string };
+    expect(read).toMatchObject({
+      brief: "A keeper at dusk",
+      style: "moody neon",
+      aspect_ratio: "2.39:1"
+    });
+  });
+
+  it("returns the existing board when create is retried with the same id", async () => {
+    const context = ctx();
+    const first = (await run(context).invoke("create_storyboard", {
+      name: "Poster",
+      id: "board-1"
+    })) as { storyboard_id: string; name: string };
+    const second = (await run(context).invoke("create_storyboard", {
+      name: "Other",
+      id: "board-1"
+    })) as { storyboard_id: string; name: string };
+    expect(second.storyboard_id).toBe(first.storyboard_id);
+    expect(second.name).toBe("Poster");
+  });
+
+  it("refuses an empty name", async () => {
+    const result = (await run(ctx()).invoke("create_storyboard", {
+      name: "  "
+    })) as { error: string };
+    expect(result.error).toMatch(/name is required/);
+  });
 
   it("lists and reads a board, and hides another user's", async () => {
     const board = await makeBoard([

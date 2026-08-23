@@ -366,6 +366,36 @@ ${body}
 })();`;
 }
 
+/**
+ * How many module lines {@link buildEntryModule} (or {@link wrapCode}) place
+ * before the first line of the code it was given.
+ *
+ * QuickJS reports stack positions in the wrapped entry module, so an error on
+ * the guest's line N sits at `N + offset` in the source the user wrote. The
+ * hoisted-import path spends one extra leading line (the joined imports) over
+ * the plain wrapper, and which path applied is decided by the same acorn parse
+ * {@link buildEntryModule} runs — so the offset must come from here, not be
+ * guessed by callers.
+ */
+export function entryBodyLineOffset(code: string): number {
+  try {
+    const program = acorn.parse(code, {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      allowAwaitOutsideFunction: true,
+      allowReturnOutsideFunction: true
+    });
+    const hasImports = program.body.some(
+      (node) => node.type === "ImportDeclaration"
+    );
+    return hasImports ? 3 : 2;
+  } catch {
+    // Unparsable code takes the wrapCode path — the same path its syntax
+    // error will be reported against.
+    return 2;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Guest module loading
 // ---------------------------------------------------------------------------
@@ -474,7 +504,7 @@ export interface GuestModuleHost {
 export function createGuestModuleHost(
   modules: SandboxModuleResolution | undefined,
   capabilityFacades?: ReadonlyMap<string, string>
-): GuestModuleHost | undefined {
+): GuestModuleHost {
   const sources = new Map<string, string>();
   const specifiers = new Map<string, string>();
   const facades = new Set<string>();
@@ -525,7 +555,6 @@ export function createGuestModuleHost(
       sources.set(guestModuleId(module.packName, file.id), file.source);
     }
   }
-  if (sources.size === 0) return undefined;
   if (facades.size > 0)
     sources.set(WASM_BRIDGE_MODULE_ID, SANDBOX_WASM_BRIDGE_SOURCE);
   if (hostFacades.size > 0) {
@@ -585,7 +614,7 @@ export function createGuestModuleHost(
       );
     }
     return deny(
-      `"${requested}" is not a sandbox package declared by this node — add it to the node's packages declaration to import it`
+      `"${requested}" is not a sandbox package this run serves — only an installed pack the code imports resolves`
     );
   };
 
@@ -725,16 +754,17 @@ export async function runInterpreter(
     suspendedMs
   } = params;
 
-  const moduleHost =
-    modules || capabilityFacades
-      ? createGuestModuleHost(modules, capabilityFacades)
-      : undefined;
+  // Built for every run, including one that resolved nothing. An empty host
+  // serves no specifier and denies each by name; skipping it would leave the
+  // wrapper's own Node-compat modules (`node:buffer` and friends) reachable
+  // from guest code, which is the one thing the normalizer exists to stop.
+  const moduleHost = createGuestModuleHost(modules, capabilityFacades);
 
   return runSandboxed<InterpreterOutcome>(
     async ({ ctx, evalCode }) => {
       // Past this point the wrapper's own Node-compat bootstrap has run, so
       // nothing else may resolve outside the run's declared modules.
-      moduleHost?.enterGuestPhase();
+      moduleHost.enterGuestPhase();
       // A CPU-bound guest never yields to the host event loop, so an abort
       // listener can't fire and Promise.race can't help. QuickJS polls this
       // interrupt handler from inside the interpreter, which is the only
@@ -1221,7 +1251,7 @@ export default true;`,
         ),
         "user-code"
       );
-      moduleHost?.lockStaticGraph();
+      moduleHost.lockStaticGraph();
       const userResult = await pendingUserResult;
 
       // Read mutable globals back out. node:vm shared the host heap, so
@@ -1267,7 +1297,7 @@ export default true;`,
       // polyfill. Guest code has no business reading host-shaped environment
       // variables, so the stub carries nothing.
       env: {},
-      ...moduleHost?.options
+      ...moduleHost.options
     }
   );
 }

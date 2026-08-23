@@ -8,9 +8,12 @@
  *
  * Binary-input tasks (image/audio in) send the media as a base64 string in
  * `inputs`; binary-output tasks (image/video out) return raw bytes that we wrap
- * into the matching media ref. This keeps the package dependency-free — it only
- * needs `fetch` and `Buffer`, both available in the Node runtime.
+ * into the matching media ref. The only non-`fetch` dependency is
+ * `fetchExternalMedia`, the shared egress policy a caller-supplied media uri
+ * goes through (`docs/url-egress-inventory.md`).
  */
+
+import { fetchExternalMedia } from "@nodetool-ai/runtime";
 
 export const HF_ROUTER = "https://router.huggingface.co";
 
@@ -97,7 +100,8 @@ export async function refToBytes(
       throw new Error(`Failed to resolve media from ${uri}`);
     }
     if (isHttp) {
-      const res = await fetch(uri);
+      // Caller-supplied media uri — the media-ref egress policy decides.
+      const res = await fetchExternalMedia(uri);
       if (!res.ok) {
         throw new Error(`Failed to fetch media from ${uri}: ${res.status}`);
       }

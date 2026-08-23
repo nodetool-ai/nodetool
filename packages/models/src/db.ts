@@ -368,6 +368,15 @@ const TABLE_COLUMNS = {
     user_id: "text",
     linked_at: "text"
   },
+  access_tokens: {
+    id: "text",
+    user_id: "text",
+    name: "text",
+    secret_hash: "text",
+    created_at: "text",
+    expires_at: "text",
+    last_used_at: "text"
+  },
   nodetool_thread_memories: {
     id: "text",
     user_id: "text",
@@ -1304,6 +1313,17 @@ function getCreateSchemaSql(): string {
     );
     CREATE UNIQUE INDEX IF NOT EXISTS "idx_external_identity_provider_external" ON "external_identities" ("provider", "external_id");
     CREATE INDEX IF NOT EXISTS "idx_external_identity_user" ON "external_identities" ("user_id");
+
+    CREATE TABLE IF NOT EXISTS "access_tokens" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "name" text NOT NULL,
+      "secret_hash" text NOT NULL,
+      "created_at" text NOT NULL,
+      "expires_at" text,
+      "last_used_at" text
+    );
+    CREATE INDEX IF NOT EXISTS "idx_access_token_user" ON "access_tokens" ("user_id");
   `;
 }
 

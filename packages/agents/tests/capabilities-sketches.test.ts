@@ -62,6 +62,8 @@ async function makeSketch(
 /** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
   ["list_sketches", () => toolForCapabilityName("list_sketches")],
+  ["create_sketch", () => toolForCapabilityName("create_sketch")],
+  ["get_sketch", () => toolForCapabilityName("get_sketch")],
   ["list_sketch_versions", () => toolForCapabilityName("list_sketch_versions")],
   ["get_sketch_version", () => toolForCapabilityName("get_sketch_version")],
   [
@@ -72,6 +74,10 @@ const PAIRS: Array<[string, () => Tool]> = [
     "restore_sketch_version",
     () => toolForCapabilityName("restore_sketch_version")
   ],
+  [
+    "delete_sketch_version",
+    () => toolForCapabilityName("delete_sketch_version")
+  ],
   ["edit_sketch", () => toolForCapabilityName("edit_sketch")],
   ["validate_sketch", () => toolForCapabilityName("validate_sketch")]
 ];
@@ -81,12 +87,16 @@ describe("sketches capability module", () => {
     expect(capabilityModuleIssues("sketches", sketches)).toEqual([]);
     expect(sketches.exports.map((e) => e.spec.name)).toEqual([
       "list_sketches",
+      "create_sketch",
+      "get_sketch",
       "list_sketch_versions",
       "get_sketch_version",
       "create_sketch_version",
       "restore_sketch_version",
+      "delete_sketch_version",
       "edit_sketch",
-      "validate_sketch"
+      "validate_sketch",
+      "delete_sketch"
     ]);
   });
 
@@ -130,6 +140,62 @@ describe("sketches capability behaviour", () => {
   beforeEach(() => initTestDb());
   afterEach(() => ModelObserver.clear());
 
+  it("creates a blank sketch the caller can then edit", async () => {
+    const created = (await run().invoke("create_sketch", {
+      name: "Cover",
+      width: 512,
+      height: 256
+    })) as {
+      ok: boolean;
+      image_document_id: string;
+      width: number;
+      height: number;
+    };
+    expect(created).toMatchObject({
+      ok: true,
+      width: 512,
+      height: 256
+    });
+    expect(created.image_document_id).toBeTruthy();
+
+    const listed = (await run().invoke("list_sketches", {})) as {
+      sketches: Array<{ id: string; name: string }>;
+    };
+    expect(listed.sketches).toEqual([
+      expect.objectContaining({
+        id: created.image_document_id,
+        name: "Cover"
+      })
+    ]);
+
+    const edited = (await run().invoke("edit_sketch", {
+      image_document_id: created.image_document_id,
+      ops: [{ op: "add_layer", name: "Ink" }]
+    })) as { applied: number; layers: Array<{ name: string }> };
+    expect(edited.applied).toBe(1);
+    expect(edited.layers.map((layer) => layer.name)).toEqual(["Layer 1", "Ink"]);
+  });
+
+  it("returns the existing sketch when create is retried with the same id", async () => {
+    const first = (await run().invoke("create_sketch", {
+      name: "Poster",
+      id: "sketch-1"
+    })) as { image_document_id: string; name: string };
+    const second = (await run().invoke("create_sketch", {
+      name: "Other",
+      id: "sketch-1"
+    })) as { image_document_id: string; name: string };
+    expect(second.image_document_id).toBe(first.image_document_id);
+    expect(second.name).toBe("Poster");
+  });
+
+  it("refuses an empty name", async () => {
+    const result = (await run().invoke("create_sketch", { name: "  " })) as {
+      error: string;
+    };
+    expect(result.error).toMatch(/name is required/);
+  });
+
   it("lists, filters, and hides another user's sketches", async () => {
     const poster = await makeSketch();
     await makeSketch({ name: "Storyboard frame" });
@@ -150,6 +216,23 @@ describe("sketches capability behaviour", () => {
       sketches: unknown[];
     };
     expect(other.sketches).toEqual([]);
+  });
+
+  it("reads a stored sketch, and hides another user's", async () => {
+    const row = await makeSketch();
+
+    const read = (await run().invoke("get_sketch", {
+      image_document_id: row.id
+    })) as {
+      sketch: { id: string; width: number; document: { sketch: unknown } };
+    };
+    expect(read.sketch).toMatchObject({ id: row.id, width: 1024 });
+    expect(read.sketch.document.sketch).toBeDefined();
+
+    const other = (await run("other").invoke("get_sketch", {
+      image_document_id: row.id
+    })) as { error: string };
+    expect(other.error).toContain("was not found");
   });
 
   it("snapshots, reads, and restores a version", async () => {

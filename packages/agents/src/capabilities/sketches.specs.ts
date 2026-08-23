@@ -39,6 +39,17 @@ export const LIST_SKETCHES_SCHEMA: JsonSchema = {
   }
 };
 
+export const GET_SKETCH_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    image_document_id: {
+      type: "string",
+      description: "Sketch (image document) id, from list_sketches."
+    }
+  },
+  required: ["image_document_id"]
+};
+
 export const LIST_SKETCH_VERSIONS_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -169,6 +180,70 @@ export const listSketchesSpec: CapabilitySpec = {
   userMessage: () => "Listing sketches"
 };
 
+export const CREATE_SKETCH_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    name: {
+      type: "string",
+      description: "Name of the new sketch."
+    },
+    width: {
+      type: "number",
+      description: "Canvas width in pixels (default 1024)."
+    },
+    height: {
+      type: "number",
+      description: "Canvas height in pixels (default 1024)."
+    },
+    background_color: {
+      type: "string",
+      description: "Canvas background color (default #ffffff)."
+    },
+    project_id: {
+      type: "string",
+      description: "Project to create the sketch in (default 'default')."
+    },
+    id: {
+      type: "string",
+      description:
+        "Optional id. If a sketch with this id already exists and you " +
+        "own it, that row is returned instead of creating a duplicate."
+    }
+  },
+  required: ["name"]
+};
+
+export const createSketchSpec: CapabilitySpec = {
+  name: "create_sketch",
+  description:
+    "Create a blank sketch (image document) and return its id. This is the " +
+    "first step of drawing one headlessly: create it, then add and arrange " +
+    "layers with edit_sketch. An open editor picks the new document up once " +
+    "you open it. Pixels stay empty — painting and generation happen in an " +
+    "open editor or a workflow run.",
+  inputSchema: CREATE_SKETCH_SCHEMA,
+  category: "write",
+  userMessage: (params) => {
+    const name = params["name"];
+    return typeof name === "string" && name.trim()
+      ? `Creating sketch ${name}`
+      : "Creating sketch";
+  }
+};
+
+export const getSketchSpec: CapabilitySpec = {
+  name: "get_sketch",
+  description:
+    "Read a saved sketch: its canvas size, background, layers and their " +
+    "workflow bindings. This is the stored document edit_sketch writes and " +
+    "validate_sketch checks — read it before editing so layer ids come from " +
+    "the document rather than a guess. Layer bitmaps stay opaque.",
+  inputSchema: GET_SKETCH_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Reading sketch ${String(params["image_document_id"])}`
+};
+
 export const listSketchVersionsSpec: CapabilitySpec = {
   name: "list_sketch_versions",
   description:
@@ -223,6 +298,33 @@ export const restoreSketchVersionSpec: CapabilitySpec = {
     `Restoring sketch ${String(params["image_document_id"])} to v${String(params["version"])}`
 };
 
+export const DELETE_SKETCH_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    image_document_id: {
+      type: "string",
+      description: "Sketch id."
+    },
+    version: {
+      type: "number",
+      description: "Version number to delete, from list_sketch_versions."
+    }
+  },
+  required: ["image_document_id", "version"]
+};
+
+export const deleteSketchVersionSpec: CapabilitySpec = {
+  name: "delete_sketch_version",
+  description:
+    "Delete one whole-document snapshot of a sketch you own, addressed by " +
+    "version number (from list_sketch_versions). This cannot be undone. The " +
+    "live document is not changed.",
+  inputSchema: DELETE_SKETCH_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Deleting v${String(params["version"])} of sketch ${String(params["image_document_id"])}`
+};
+
 export const editSketchSpec: CapabilitySpec = {
   name: "edit_sketch",
   description:
@@ -260,13 +362,37 @@ export const validateSketchSpec: CapabilitySpec = {
       : "Validating sketch document"
 };
 
+export const deleteSketchSpec: CapabilitySpec = {
+  name: "delete_sketch",
+  description:
+    "Delete a sketch you own, together with its saved version history. " +
+    "This cannot be undone. A sketch belonging to another user is reported " +
+    "as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      image_document_id: {
+        type: "string",
+        description: "The sketch to delete. You must own it."
+      }
+    },
+    required: ["image_document_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting sketch ${params["image_document_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const sketchesSpecs: readonly CapabilitySpec[] = [
   listSketchesSpec,
+  createSketchSpec,
+  getSketchSpec,
   listSketchVersionsSpec,
   getSketchVersionSpec,
   createSketchVersionSpec,
   restoreSketchVersionSpec,
+  deleteSketchVersionSpec,
   editSketchSpec,
-  validateSketchSpec
+  validateSketchSpec,
+  deleteSketchSpec
 ];

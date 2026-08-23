@@ -43,12 +43,6 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { syncRegistrations } from "../../triggers/registration-sync.js";
 import {
-  getWorkflowInterfaceV1,
-  getWorkflowInterfacesV1,
-  listWorkflowSummariesV1,
-  WorkflowInterfaceServiceError
-} from "../../workflow-interface-service.js";
-import {
   listInput,
   listOutput,
   getInput,
@@ -73,12 +67,6 @@ import {
   terminalOutputsInput,
   terminalOutputsOutput,
   workflowResponse,
-  workflowInterfaceInput,
-  workflowInterfaceV1,
-  workflowInterfacesInput,
-  workflowInterfacesOutput,
-  sdkWorkflowSummariesInput,
-  sdkWorkflowSummariesOutput,
   graph as graphSchema,
   sharingGetInput,
   sharingGetOutput,
@@ -96,25 +84,9 @@ import {
   type WorkflowResponse,
   type VersionResponse
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import {
-  isNumber,
-  isString
-} from "../../lib/wire-values.js";
+import { isNumber, isString } from "../../lib/wire-values.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
-
-function throwWorkflowInterfaceError(error: unknown): never {
-  if (!(error instanceof WorkflowInterfaceServiceError)) {
-    throw error;
-  }
-  if (error.code === "feature_disabled") {
-    throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, error.message);
-  }
-  if (error.code === "workflow_not_found") {
-    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, error.message);
-  }
-  throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
-}
 
 /**
  * Reconcile `trigger_registrations` against the workflow's current graph.
@@ -166,7 +138,10 @@ async function requireWorkflowRole(
     throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
   }
   const role = await resolveWorkflowRole(workflow, userId);
-  const rank = { viewer: 1, editor: 2, owner: 3 } satisfies Record<WorkflowRole, number>;
+  const rank = { viewer: 1, editor: 2, owner: 3 } satisfies Record<
+    WorkflowRole,
+    number
+  >;
   if (!role || rank[role] < rank[minimum]) {
     throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
   }
@@ -364,10 +339,9 @@ function buildExamplesFromDir(
     try {
       const raw = readFileSync(nodePath.join(examplesDir, file), "utf8");
       const parsed = JSON.parse(raw) as Record<string, unknown>;
-      const name =
-        isString(parsed.name)
-          ? parsed.name
-          : file.replace(/\.json$/i, "");
+      const name = isString(parsed.name)
+        ? parsed.name
+        : file.replace(/\.json$/i, "");
       // Append ?v=<md5-8> via withCacheBuster so the browser invalidates
       // its cached thumbnail whenever the JPG is regenerated on disk.
       const jpgFile = `${name}.jpg`;
@@ -385,8 +359,7 @@ function buildExamplesFromDir(
         updated_at: now,
         name,
         tool_name: null,
-        description:
-          isString(parsed.description) ? parsed.description : "",
+        description: isString(parsed.description) ? parsed.description : "",
         tags: Array.isArray(parsed.tags)
           ? parsed.tags.filter((t: unknown) => isString(t))
           : [],
@@ -396,8 +369,9 @@ function buildExamplesFromDir(
         input_schema: null,
         output_schema: null,
         settings: null,
-        package_name:
-          isString(parsed.package_name) ? parsed.package_name : null,
+        package_name: isString(parsed.package_name)
+          ? parsed.package_name
+          : null,
         path: null,
         run_mode: null,
         workspace_id: null,
@@ -469,42 +443,6 @@ function buildExampleWorkflows(apiOptions: {
 // ── Router ─────────────────────────────────────────────────────────────────
 
 export const workflowsRouter = router({
-  sdkSummaries: protectedProcedure
-    .input(sdkWorkflowSummariesInput)
-    .output(sdkWorkflowSummariesOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        type ListInputFields = {
-          userId: string;
-          limit: number;
-          cursor?: string;
-        };
-        const listInput: ListInputFields = {
-          userId: ctx.userId,
-          limit: input.limit
-        };
-        if (input.cursor) {
-          listInput.cursor = input.cursor;
-        }
-        const result = await listWorkflowSummariesV1(listInput);
-        return {
-          workflows: result.workflows.map((workflow) => ({
-            id: workflow.id,
-            name: workflow.name,
-            description: workflow.description,
-            revision: workflow.updated_at,
-            registry_revision: Number.isSafeInteger(ctx.registry.revision)
-              ? ctx.registry.revision
-              : null,
-            run_mode: workflow.run_mode
-          })),
-          next: result.next
-        };
-      } catch (error) {
-        throwWorkflowInterfaceError(error);
-      }
-    }),
-
   // ── list (GET /api/workflows) ─────────────────────────────────────────────
   list: protectedProcedure
     .input(listInput)
@@ -539,38 +477,6 @@ export const workflowsRouter = router({
         "viewer"
       );
       return toWorkflowResponse(workflow);
-    }),
-
-  // SDK-only, versioned workflow contract. Existing workflow responses remain
-  // unchanged, and the flag lets deployments roll this out independently.
-  interface: protectedProcedure
-    .input(workflowInterfaceInput)
-    .output(workflowInterfaceV1)
-    .query(async ({ ctx, input }) => {
-      try {
-        return await getWorkflowInterfaceV1({
-          workflowId: input.id,
-          userId: ctx.userId,
-          registry: ctx.registry
-        });
-      } catch (error) {
-        throwWorkflowInterfaceError(error);
-      }
-    }),
-
-  interfaces: protectedProcedure
-    .input(workflowInterfacesInput)
-    .output(workflowInterfacesOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        return await getWorkflowInterfacesV1({
-          workflowIds: input.ids,
-          userId: ctx.userId,
-          registry: ctx.registry
-        });
-      } catch (error) {
-        throwWorkflowInterfaceError(error);
-      }
     }),
 
   // ── create (POST /api/workflows) ─────────────────────────────────────────
@@ -736,16 +642,14 @@ export const workflowsRouter = router({
     .input(deleteInput)
     .output(deleteOutput)
     .mutation(async ({ ctx, input }) => {
-      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow)
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      if (workflow.user_id !== ctx.userId) {
+      // Ownership, the row, and the grants that outlive it are one operation
+      // in `deleteOwned` — the sandbox's `delete_workflow` capability calls
+      // the same function, so the cascade cannot drift between the two.
+      const deleted = await Workflow.deleteOwned(ctx.userId, input.id);
+      if (!deleted) {
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
-      await workflow.delete();
       lastAutosaveTime.delete(input.id);
-      await WorkflowCollaborator.removeAllForWorkflow(input.id);
-      await WorkflowShare.removeAllForWorkflow(input.id);
       return { ok: true as const };
     }),
 
@@ -761,8 +665,9 @@ export const workflowsRouter = router({
       );
 
       const force = input.force === true;
-      const maxVersions =
-        isNumber(input.max_versions) ? input.max_versions : 10;
+      const maxVersions = isNumber(input.max_versions)
+        ? input.max_versions
+        : 10;
 
       // Rate-limit
       if (!force) {

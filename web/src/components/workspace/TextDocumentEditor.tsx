@@ -130,21 +130,29 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
     }
   });
 
-  // Seed the editor once the text arrives; the query cache stays the source of
-  // truth so re-opening the tab restores the last-saved content.
+  // Seed once the text is in the query cache (view mode already loaded it).
+  // A sibling reset-on-mount effect used to run in the same flush and write
+  // `content` back to null, so clicking Edit after View spun forever.
   useEffect(() => {
-    if (loadedText !== undefined && content === null) {
-      setContent(loadedText);
-      setSavedContent(loadedText);
+    if (loadedText === undefined) {
+      return;
     }
-  }, [loadedText, content]);
+    setContent((current) => (current === null ? loadedText : current));
+    setSavedContent((current) => (current === null ? loadedText : current));
+  }, [loadedText]);
 
   // Re-derive everything when the tab is pointed at a different asset.
+  const assetId = asset.id;
+  const previousAssetId = useRef(assetId);
   useEffect(() => {
+    if (previousAssetId.current === assetId) {
+      return;
+    }
+    previousAssetId.current = assetId;
     setContent(null);
     setSavedContent(null);
     setCsvDataframe(null);
-  }, [asset.id]);
+  }, [assetId]);
 
   const saveMutation = useMutation({
     mutationFn: (text: string) =>

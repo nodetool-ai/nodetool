@@ -341,10 +341,11 @@ nodetool workflows import-bundle my-pack.nodetool
 
 Check a workflow against the node registry **without running it**: unknown node
 types, missing required properties, dangling or mis-typed edges, model
-properties naming a provider or model id that does not exist, and
-`nodetool.code.Code` bodies that never return or leave an output unset. It
-finishes in well under a second, which makes it the cheap pre-flight before a
-run that costs money.
+properties naming a provider or model id that does not exist,
+and `nodetool.code.Code` bodies that never return or leave an output unset. On
+a workflow-id target, where the secret store is reachable, it also warns about
+declared credentials the install cannot resolve. It finishes in well under a
+second, which makes it the cheap pre-flight before a run that costs money.
 
 The target is a workflow id, a workflow JSON file, or a TypeScript DSL file.
 File targets need no database.
@@ -788,7 +789,7 @@ nodetool sketch versions delete <image_document_id> 3 --yes
 ### `nodetool jsscript`
 
 A JS script is a named, versioned script document: a body plus declared ports,
-sandbox packages, secrets, a timeout, and saved test cases. The target of every
+secrets, a timeout, and saved test cases. The target of every
 subcommand is a script JSON file (a bare `JsScriptDocument` or anything carrying
 one under `document`) or a `js_scripts` row id.
 
@@ -1322,7 +1323,7 @@ Exactly two tools land on `/mcp` and on `nodetool mcp serve`:
   graph editing tools), media generation (`generate_image`, `generate_video`, `generate_speech`,
   `transcribe_audio`, …), files (`read_file`, `write_file`, `edit_file`, `glob`, `grep`), web
   (`web_search`, `browser`, `http_request`), collections, documents, code execution, image
-  critique, and thread memory — as `nodetool.<namespace>.<method>()`, as `tools.<name>()`, or
+  critique, and thread memory — as `nodetool.<namespace>.<method>()`, by importing them, or
   found with `await nodetool.searchTools("query")`. Google Workspace tools appear only on
   deployments with a Google login.
 - **`view_image`** — direct, because image content cannot ride a sandbox action's JSON
@@ -1368,6 +1369,227 @@ See the [Agent CLI](agent-cli.md) reference for full details.
 
 > The `nodetool db` group (`migrate`, `status`, `baseline`, `rollback`) is documented under
 > [Database Migrations](#database-migrations) above.
+
+## Deployment and Workers
+
+Two different things, and the CLI keeps them apart. A **server** is long-lived
+and people connect in to it — `nodetool deploy` manages one over Docker. A
+**worker** is a rented GPU that a NodeTool instance connects out to, bills by
+the minute, and is meant to be torn down — `nodetool worker` provisions it. See
+[Deployment](deployment.md) for which one you want.
+
+### `nodetool deploy`
+
+Manage a Docker self-host server target described by a `deployment.yaml`.
+`init` scaffolds the file, `add` fills in one target, and every other
+subcommand names that target.
+
+The file lives in the user config directory, not the working directory:
+`~/Library/Application Support/nodetool/deployment.yaml` on macOS,
+`%APPDATA%\nodetool\deployment.yaml` on Windows, and
+`$XDG_CONFIG_HOME/nodetool/deployment.yaml` — falling back to
+`~/.config/nodetool/` — elsewhere. Run `nodetool deploy edit` to open it rather
+than guessing the path.
+
+**Subcommands:** `init`, `add`, `edit`, `list`, `show`, `plan`, `apply`,
+`status`, `logs`, `destroy`, plus the remote groups `workflows`, `database`,
+`collections` and the `users-*` verbs below.
+
+**Options:**
+
+- `--dry-run` — print what `apply` would do without executing it.
+- `-f, --follow` / `--tail <n>` / `--service <service>` — for `logs`; `--tail`
+  defaults to `100`.
+- `--force` — skip the `destroy` confirmation.
+- `--json` — machine-readable `list` output.
+
+```bash
+# Scaffold, describe, and review before touching the remote host
+nodetool deploy init
+nodetool deploy add my-server --type docker
+nodetool deploy plan my-server
+
+# Deploy and watch it
+nodetool deploy apply my-server
+nodetool deploy logs my-server --follow --tail 200
+
+# Open deployment.yaml in $EDITOR
+nodetool deploy edit
+```
+
+The full server walkthrough is [Deployment](deployment.md) and
+[Self-Hosted Deployment](self-hosted-deployment.md).
+
+#### Remote workflows, rows, and collections
+
+Once a target is up, three groups act on it over the admin API rather than on
+the local database:
+
+```bash
+# Push a local workflow and everything it references, then run it there
+nodetool deploy workflows sync my-server <workflow_id>
+nodetool deploy workflows list my-server
+nodetool deploy workflows run my-server <workflow_id> -p prompt="a red fox"
+nodetool deploy workflows delete my-server <workflow_id>
+
+# Read, upsert, and delete a single remote DB row
+nodetool deploy database get my-server users alice
+nodetool deploy database save my-server users '{"id":"alice","role":"admin"}'
+nodetool deploy database delete my-server users alice
+
+# Push a local RAG collection to the deployment
+nodetool deploy collections sync my-server my_docs
+```
+
+`workflows run` takes `-p, --param <k=v>`, repeatable. `<table>` is passed
+through to the deployment, which resolves it against its own adapters — the
+valid names are the remote server's tables, not a list this CLI holds. `save`
+takes the row as a positional JSON string, and `get` on a row that is not there
+answers `404`. `collections sync` uploads in batches of `--batch-size`,
+default `100`.
+
+#### API users on the deployment
+
+For a multi-user server, mint and rotate the tokens its API clients
+authenticate with. `--role` is `user` unless you pass `admin`.
+
+```bash
+nodetool deploy users-add my-server alice --role admin
+nodetool deploy users-list my-server
+nodetool deploy users-reset-token my-server alice
+nodetool deploy users-remove my-server alice
+```
+
+Every subcommand that touches a live deployment — the `users-*` verbs and the
+three remote groups above — sends an admin bearer token. `--token <token>`
+passes it explicitly and wins over `NODETOOL_ADMIN_TOKEN`; with neither, an
+interactive shell prompts and a non-interactive one exits `1`.
+
+### `nodetool worker`
+
+Provision, attach to, and tear down a rented GPU worker on RunPod or Vast. A
+worker bills by the minute, so `stop` is part of the workflow, not cleanup you
+get to postpone.
+
+**Subcommands:** `profile` (`add`, `list`, `rm`), `create`, `list`, `status`,
+`token`, `stop`, `models`
+
+**Options:**
+
+- `--target <runpod|vast>`, `--image <image>`, `--gpu <gpu>`, `--vcpu <n>` —
+  what to rent, on `profile add` or inline on `create`.
+- `--idle-timeout <minutes>` / `--max-lifetime <minutes>` — auto-stop when idle,
+  and a hard TTL. Both are the guard against a forgotten worker.
+- `--token-policy <generate|fixed>` — default `generate`.
+- `--profile <name>` / `--attach` — for `create`.
+- `--all` — for `stop`, stops every non-stopped worker.
+- `--json` — for `list`.
+
+```bash
+# Save a preset once, then rent from it
+nodetool worker profile add hf-a40 --target runpod \
+  --image ghcr.io/nodetool-ai/nodetool-worker:latest \
+  --gpu "NVIDIA A40" --idle-timeout 15
+nodetool worker create --profile hf-a40 --attach
+
+# Inspect and tear down
+nodetool worker list
+nodetool worker status <instance-id>
+nodetool worker stop --all
+```
+
+The full walkthrough, including what `--attach` changes locally, is
+[Worker Deployment](worker-deployment.md).
+
+#### `nodetool worker models`
+
+Manage the HuggingFace cache on the worker itself, over the WebSocket bridge —
+no NodeTool server has to be running. Pre-pulling weights here is what keeps the
+first run of a graph from paying the download on rented GPU time.
+
+The `[worker-id]` argument is optional: omit it and the command uses the
+currently attached worker, or errors telling you to attach one.
+
+**Options:**
+
+- `--repo-id <id>` — HuggingFace repo, `owner/name`. Required for `download`
+  and `delete`.
+- `--file-path <path>` — download a single file instead of the repo.
+- `-a, --allow-patterns <pattern>` / `-i, --ignore-patterns <pattern>` — glob
+  filters on `download`, both repeatable.
+- `--json` — for `list`.
+
+```bash
+# What is already cached on the attached worker
+nodetool worker models list
+
+# Pull weights ahead of a run — whole repo, then just the safetensors
+nodetool worker models download --repo-id stabilityai/sdxl-turbo
+nodetool worker models download --repo-id stabilityai/sdxl-turbo -a "*.safetensors"
+
+# Reclaim disk on a named worker
+nodetool worker models delete <worker-id> --repo-id stabilityai/sdxl-turbo
+```
+
+## Messaging Bridges
+
+### `nodetool telegram`
+
+Run the Telegram bridge: it turns private-chat messages into turns on the agent
+loop of a running NodeTool server, and streams the answers back. The bridge
+holds no conversation state and no user credentials — the agent loop, tools,
+permissions, threads, and cost tracking all stay on the server, which the
+bridge reaches over `/ws` as the linked user.
+
+Reach for it when you want NodeTool answering from a phone without opening the
+web UI. The server it talks to must have `NODETOOL_INTEGRATION_TOKEN` set, or
+the linking routes the bridge calls do not exist.
+
+**Subcommands:** `serve`, `register-commands`
+
+**Options:**
+
+- `--config <path>` — path to `telegram-bot.json`, relative to the working
+  directory. Both subcommands take it. Without the flag, `telegram-bot.json` is
+  read if it is there and skipped if it is not; a path you asked for explicitly
+  and that does not exist is an error.
+
+Configuration is environment variables plus that optional file. The env vars are
+listed in the
+[Environment Variables Index](configuration.md#environment-variables-index);
+the file carries only the tuning knobs:
+
+```jsonc
+// telegram-bot.json
+{
+  "allowUsers": [],       // Telegram user ids allowed to link; empty = anyone
+  "editThrottleMs": 1500, // minimum gap between edits of one streamed reply
+  "maxQueuedTurns": 3     // messages queued behind an in-flight turn
+}
+```
+
+```bash
+# Publish the bot's command list — a deploy step, not a boot step
+export TELEGRAM_BOT_TOKEN=123456:AA...
+export NODETOOL_INTEGRATION_TOKEN=the-same-value-the-server-has
+nodetool telegram register-commands
+
+# Long-poll the Bot API and serve turns
+nodetool telegram serve --config ./telegram-bot.json
+```
+
+Both subcommands validate the whole configuration before doing anything and
+print the fields that failed rather than a stack trace:
+
+```
+Invalid Telegram bridge environment:
+  TELEGRAM_BOT_TOKEN: TELEGRAM_BOT_TOKEN is required
+  NODETOOL_INTEGRATION_TOKEN: NODETOOL_INTEGRATION_TOKEN is required
+```
+
+`serve` polls with `getUpdates`. Webhook mode is not implemented yet, and
+setting `TELEGRAM_WEBHOOK_URL` makes `serve` refuse to start rather than
+silently polling. Design notes: [telegram-bot-design.md](telegram-bot-design.md).
 
 ## Development Tooling
 
@@ -1489,6 +1711,70 @@ Manual harnesses (need a target/key — run yourself):
 3 selfcheck(s) to run
 ```
 
+### `nodetool package`
+
+Manage TypeScript **node** packages — the packs that contribute node types to
+the registry. Not to be confused with `nodetool packs`, which handles the
+sandbox packs a Code node imports; the names are one letter apart and the
+subjects are unrelated.
+
+Reach for it when you are authoring a node pack: `init` scaffolds one, `list`
+tells you what this install has, and the three `*-docs` commands generate the
+Markdown that ships with a pack.
+
+**Subcommands:** `list`, `init`, `docs`, `node-docs`, `workflow-docs`
+
+#### `nodetool package list`
+
+List the installed packages with their node counts, or the registry's catalog
+with `--available`.
+
+```bash
+nodetool package list
+nodetool package list --available
+nodetool package list --json
+```
+
+```
+ name          │ version     │ description         │ nodes
+───────────────┼─────────────┼─────────────────────┼───────
+ nodetool-base │ 0.6.3-rc.41 │ Nodetool Base nodes │ 0
+```
+
+`--available` reads the index at `NODETOOL_PACKAGE_REGISTRY_URL`. See
+[Node Packs](node-packs.md) for what a pack is and how one is installed.
+
+#### `nodetool package init`
+
+Scaffold a new TypeScript node package in the current directory. Takes no
+options — it prompts for what it needs.
+
+```bash
+mkdir nodetool-my-nodes && cd nodetool-my-nodes
+nodetool package init
+```
+
+#### `nodetool package docs`, `node-docs`, `workflow-docs`
+
+Generate Markdown from the current package: `docs` writes one overview,
+`node-docs` writes a page per node, and `workflow-docs` documents the workflow
+JSONs a pack ships. Each takes `-v, --verbose`.
+
+**Options:**
+
+- `docs` — `-o, --output-dir <dir>` (default `docs`), `-c, --compact` for a
+  shorter overview.
+- `node-docs` — `-o, --output-dir <dir>` (default `docs/nodes`),
+  `-p, --package-name <name>` to emit only nodes under a namespace prefix.
+- `workflow-docs` — `-o, --output-dir <dir>` (default `docs/workflows`),
+  `-e, --examples-dir <dir>` to point at the workflow JSONs, and
+  `-p, --package-name <name>` to keep only those whose `package_name` matches.
+
+```bash
+nodetool package docs --compact
+nodetool package node-docs --package-name nodetool.text
+```
+
 ### `nodetool packs compile`
 
 Compile every npm-backed sandbox module of every installed pack. A pack can
@@ -1527,6 +1813,75 @@ Everything that stops a module short of admission is a named skip, not an
 error: `npm-module-builtin-import` (the dependency needs `node:*`),
 `npm-module-unresolved`, `npm-module-too-large` (1 MB cap),
 `npm-module-forbidden-global`, and `npm-module-probe-failed`.
+
+### `nodetool reliability`
+
+Run a reliability journey on more than one execution surface and diff each one
+against the kernel oracle. A journey is a small workflow plus the invariants its
+run must hold — lifecycle pairing, one terminal message, no leaked cleanup — and
+the point is that the kernel runner and the WebSocket server must produce the
+same stream for it. Reach for it when a change touches execution and you need to
+know whether the surfaces still agree.
+
+Journeys live in `reliability/journeys/`. The architecture behind them is
+[RELIABILITY_ARCHITECTURE.md](RELIABILITY_ARCHITECTURE.md).
+
+Working in the monorepo, run this one from the built CLI (`npm run nodetool --`)
+rather than from source: the journey fixtures use decorators, and the
+`dev:nodetool` transform rejects them with `Decorators are not valid here`.
+
+**Subcommands:** `list`, `run`, `update-goldens`
+
+#### `nodetool reliability list`
+
+List the journeys, each with its surfaces and the invariants it asserts. Takes
+`--json` for the full summaries.
+
+```bash
+nodetool reliability list
+nodetool reliability list --json
+```
+
+```
+linear-text-pipeline
+  Journey #1 (docs/RELIABILITY_ARCHITECTURE.md §5): input -> transform -> output.
+  The baseline — if this diverges across surfaces, everything is suspect.
+  surfaces: kernel, ws-server
+  invariants: lifecycle-pairing, terminal-uniqueness
+```
+
+#### `nodetool reliability run <journey>`
+
+Run one journey on the surfaces it declares and diff every non-oracle surface
+against the kernel oracle.
+
+**Options:**
+
+- `--surface <name>` — run only this surface, repeatable, overriding the
+  journey's own list. The kernel oracle is always included.
+- `--faults <name>` — inject this fault, repeatable, replacing the journey's
+  declared fault matrix. The provider-seam faults are implemented
+  (`provider-429`, `provider-500`, `provider-timeout`, `truncated-stream`,
+  `malformed-sse`, `slow-drip`, `cost-omission`); the `ws`/`bridge`/`host`/
+  `client` names parse but report as unimplemented.
+- `--diff` — print the full per-channel stream diff for a diverging surface.
+- `--json` — print the whole `CompareReport` instead of the summary.
+
+```bash
+nodetool reliability run linear-text-pipeline
+nodetool reliability run linear-text-pipeline --surface kernel
+nodetool reliability run mid-run-cancel-node --faults provider-429 --diff
+```
+
+#### `nodetool reliability update-goldens <journey>`
+
+Rewrite a journey's `expected/` fixtures from a fresh unfaulted kernel run. For
+a golden that legitimately moved — read the diff before committing it, since
+this command cannot tell a fixed bug from a new one.
+
+```bash
+nodetool reliability update-goldens linear-text-pipeline
+```
 
 ### `nodetool eval <suite>`
 
@@ -1582,4 +1937,3 @@ deterministic-over-llm   Pure string mechanics must not be solved with an LLM st
 - Set `NODETOOL_API_URL` environment variable to avoid specifying `--api-url` on every command.
 - Use `nodetool serve` to start the local backend server before running API commands.
 - See [Environment Variables](configuration.md#environment-variables-index) for a complete list of configurable variables.
-

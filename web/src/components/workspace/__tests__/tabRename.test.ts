@@ -9,6 +9,14 @@ describe("tabCanRename", () => {
     expect(tabCanRename("image")).toBe(true);
   });
 
+  it("allows rename on application tabs", () => {
+    expect(tabCanRename("application")).toBe(true);
+  });
+
+  it("allows rename on text tabs, including markdown assets", () => {
+    expect(tabCanRename("text")).toBe(true);
+  });
+
   it("blocks rename on page tabs", () => {
     expect(tabCanRename("page")).toBe(false);
   });

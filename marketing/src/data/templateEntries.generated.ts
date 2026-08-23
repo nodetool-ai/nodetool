@@ -2965,13 +2965,13 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "vector.Collection",
-        "label": "Collection",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.text.Join",
-        "label": "Join",
+        "type": "vector.Collection",
+        "label": "Collection",
         "count": 1
       },
       {
@@ -3085,8 +3085,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "join_context",
-          "type": "nodetool.text.Join",
-          "title": "Join",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 1080,
           "y": 120,
           "width": 280
@@ -9059,8 +9059,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.text.CountTokens",
-        "label": "Count Tokens",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -9110,8 +9110,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "ct",
-          "type": "nodetool.text.CountTokens",
-          "title": "Count Tokens",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 960,
           "y": 120,
           "width": 280
@@ -10620,6 +10620,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 3
       },
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 2
+      },
+      {
         "type": "nodetool.control.If",
         "label": "If",
         "count": 2
@@ -10635,18 +10640,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.code.Code",
-        "label": "Code",
-        "count": 1
-      },
-      {
         "type": "nodetool.generators.DataGenerator",
         "label": "Data Generator",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.Join",
-        "label": "Join",
         "count": 1
       },
       {
@@ -10780,8 +10775,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "transcript_join",
-          "type": "nodetool.text.Join",
-          "title": "Join",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 1030,
           "y": 40,
           "width": 280
@@ -15476,12 +15471,7 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.code.Code",
         "label": "Code",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.Join",
-        "label": "Join",
-        "count": 1
+        "count": 2
       },
       {
         "type": "nodetool.output.Output",
@@ -15517,8 +15507,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "jn",
-          "type": "nodetool.text.Join",
-          "title": "Join",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 680,
           "y": 180,
           "width": 280

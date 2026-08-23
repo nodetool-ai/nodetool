@@ -20,6 +20,16 @@ import type {
   RecommendedUnifiedModel
 } from "@nodetool-ai/runtime";
 import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
+import {
+  getModelRank,
+  modelRankings,
+  routesFor
+} from "@nodetool-ai/model-pricing/model-rankings";
+import type {
+  ModelRankingsArtifact,
+  RankedModelEntry,
+  TaskRank
+} from "@nodetool-ai/model-pricing/model-rankings";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -100,7 +110,7 @@ interface AnyModel {
   supportedTasks?: string[];
 }
 
-interface FindModelResult {
+interface FindModelResult extends CandidateRankingFields {
   provider: string;
   model_id: string;
   name: string;
@@ -228,6 +238,44 @@ async function fetchModelsForCapability(
   }
 }
 
+/**
+ * The task a capability asks a model to perform, where one model list serves
+ * two directions. `getAvailableVideoModels` answers with every video endpoint
+ * the provider has — text-to-video, image-to-video, lip-sync, upscalers — so
+ * without this a `text_to_video` search ranked `.../image-to-video` first and
+ * the generation call that followed failed with a 422 from the provider. The
+ * same holds for image models (`text_to_image` vs `image_to_image`).
+ *
+ * Capabilities whose model list is already single-purpose (tts, asr,
+ * embeddings, language) map to `null` and filter nothing.
+ */
+function capabilityTask(capability: SupportedCapability): string | null {
+  switch (capability) {
+    case "text_to_image":
+    case "image_to_image":
+    case "text_to_video":
+    case "image_to_video":
+      return capability;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Models that declare they can do this capability's task. A model that
+ * declares no tasks at all is kept — the alternative is hiding every model
+ * from a provider whose manifest carries no task information.
+ */
+function forCapabilityTask<T extends { model: AnyModel }>(
+  candidates: T[],
+  capability: SupportedCapability
+): { kept: T[]; dropped: number } {
+  const task = capabilityTask(capability);
+  if (!task) return { kept: candidates, dropped: 0 };
+  const kept = candidates.filter(({ model }) => taskMatch(model, task));
+  return { kept, dropped: candidates.length - kept.length };
+}
+
 function taskMatch(model: AnyModel, task: string | undefined): boolean {
   if (!task) return true;
   if (!model.supportedTasks || model.supportedTasks.length === 0) return true;
@@ -266,6 +314,169 @@ function hintMatch(model: AnyModel, hints: Set<string>): boolean {
     if (h && (id === h || id.includes(h))) return true;
   }
   return false;
+}
+
+/**
+ * The most a leaderboard position can add to a candidate's score. Below every
+ * explicit preference (recommended +100, provider hint +200, model hint +250),
+ * so a user who named a provider or a model still gets it first: rankings
+ * order the field, they never overrule the caller.
+ */
+export const RANK_BONUS_MAX = 80;
+
+/**
+ * Capabilities the rankings artifact covers. Language, embedding and ASR
+ * models are unranked by design (§1 of the design doc), so a candidate of one
+ * of those kinds gets no best-task fallback — only an exact task match, which
+ * cannot happen for them either.
+ */
+const RANKED_CAPABILITIES: ReadonlySet<SupportedCapability> = new Set<
+  SupportedCapability
+>([
+  "text_to_image",
+  "image_to_image",
+  "text_to_video",
+  "image_to_video",
+  "text_to_speech",
+  "text_to_music"
+]);
+
+/** One alternate provider route to the same canonical model. */
+interface RouteRef {
+  provider: string;
+  model_id: string;
+}
+
+/**
+ * What the rankings artifact adds to a candidate. Every field is omitted when
+ * the artifact says nothing, so an unranked model's result is the same shape
+ * `find_model` returned before rankings existed.
+ */
+export interface CandidateRankingFields {
+  /** GenSpend's `model_slug` — the id grouping this route with its siblings. */
+  canonical?: string;
+  /** The task whose leaderboard `rank`/`of` refer to. */
+  ranked_task?: string;
+  rank?: number;
+  of?: number;
+  /** Other providers serving the same canonical model. */
+  alternate_routes?: RouteRef[];
+}
+
+/** A candidate's ranking: the score addend and the fields to attach. */
+export interface CandidateRanking {
+  bonus: number;
+  fields: CandidateRankingFields;
+}
+
+/**
+ * The leaderboard row to report for a candidate: the requested task's, or —
+ * when the caller named no task and the capability is one rankings cover —
+ * the model's best normalized standing across the tasks it is ranked for.
+ */
+export function pickTaskRank(
+  entry: RankedModelEntry,
+  task: string | undefined,
+  allowBestTask: boolean
+): { task: string; rank: TaskRank } | null {
+  if (task) {
+    const exact = entry.tasks?.[task];
+    return exact ? { task, rank: exact } : null;
+  }
+  if (!allowBestTask) return null;
+  let best: { task: string; rank: TaskRank } | null = null;
+  for (const [name, rank] of Object.entries(entry.tasks ?? {})) {
+    if (!best || rank.normalized > best.rank.normalized) {
+      best = { task: name, rank };
+    }
+  }
+  return best;
+}
+
+/**
+ * Score addend and answer fields for one candidate route. Pure in the
+ * artifact so tests drive it with a fixture instead of mocking the module.
+ */
+export function rankCandidate(
+  provider: string,
+  modelId: string,
+  task: string | undefined,
+  allowBestTask: boolean,
+  artifact: ModelRankingsArtifact = modelRankings
+): CandidateRanking {
+  const entry = getModelRank(provider, modelId, artifact);
+  if (!entry) return { bonus: 0, fields: {} };
+
+  const fields: CandidateRankingFields = {};
+  if (entry.canonical) {
+    fields.canonical = entry.canonical;
+    const alternates = routesFor(entry.canonical, artifact)
+      .filter((r) => r.provider !== provider || r.modelId !== modelId)
+      .map((r): RouteRef => ({ provider: r.provider, model_id: r.modelId }));
+    if (alternates.length > 0) fields.alternate_routes = alternates;
+  }
+
+  const picked = pickTaskRank(entry, task, allowBestTask);
+  if (!picked) return { bonus: 0, fields };
+
+  fields.ranked_task = picked.task;
+  fields.rank = picked.rank.rank;
+  fields.of = picked.rank.of;
+  return {
+    bonus: Math.round(picked.rank.normalized * RANK_BONUS_MAX),
+    fields
+  };
+}
+
+/** Everything the ranking of one candidate depends on. */
+export interface CandidateScoreInput {
+  providerId: string;
+  model: AnyModel;
+  /** Whether the model is in `RECOMMENDED_MODELS` for this capability. */
+  recommended: boolean;
+  /** The requested task, or undefined when the caller named none. */
+  task?: string;
+  providerHint?: string;
+  modelHints: Set<string>;
+  preferLocal: boolean;
+  /** Whether rankings cover this capability — see {@link RANKED_CAPABILITIES}. */
+  rankedCapability: boolean;
+}
+
+/**
+ * One candidate's score and the ranking fields to attach to it. Additive and
+ * pure in the artifact, so the ordering between an explicit hint and a
+ * leaderboard position is pinned by a unit test with a fixture rather than by
+ * reading the constants.
+ */
+export function scoreCandidate(
+  input: CandidateScoreInput,
+  artifact: ModelRankingsArtifact = modelRankings
+): { score: number; downloaded: boolean; fields: CandidateRankingFields } {
+  const { providerId, model } = input;
+  const downloaded = LOCAL_PROVIDER_IDS.has(providerId);
+
+  let score = 0;
+  if (input.recommended) score += 100;
+  if (downloaded) score += 30;
+  // Explicit user preferences outrank the default recommended bonus.
+  if (input.providerHint && providerId === input.providerHint) score += 200;
+  if (hintMatch(model, input.modelHints)) score += 250;
+  if (input.preferLocal && downloaded) score += 150;
+  else if (input.preferLocal && !downloaded) score -= 5;
+
+  // Quality last and bounded at +80: it orders the field below every
+  // preference the caller stated.
+  const ranking = rankCandidate(
+    providerId,
+    model.id,
+    input.task,
+    input.rankedCapability,
+    artifact
+  );
+  score += ranking.bonus;
+
+  return { score, downloaded, fields: ranking.fields };
 }
 
 const findModel: CapabilityExport = {
@@ -350,10 +561,21 @@ const findModel: CapabilityExport = {
       }
     }
 
+    // Drop the models that cannot do what the capability asks before anything
+    // ranks or filters them: an `image_to_video` endpoint is not an answer to
+    // a `text_to_video` search, however well its name matches the query.
+    const forTask = forCapabilityTask(candidates, capability);
+    const capabilityCandidates = forTask.kept;
+
     const notes: string[] = [];
     if (unavailable.length > 0) {
       notes.push(
         `Skipped providers that cannot run here: ${unavailable.join(", ")}.`
+      );
+    }
+    if (forTask.dropped > 0 && capabilityCandidates.length === 0) {
+      notes.push(
+        `${forTask.dropped} model(s) were found but none declares ${capability}.`
       );
     }
     let words = queryWords(query ?? "");
@@ -363,18 +585,22 @@ const findModel: CapabilityExport = {
     // all, the unfiltered default ranking — and no way to tell why. A task no
     // model declares is read as a name search instead.
     const declaredTasks = new Set<string>();
-    for (const { model } of candidates) {
+    for (const { model } of capabilityCandidates) {
       for (const t of model.supportedTasks ?? []) declaredTasks.add(t);
     }
-    let pool: typeof candidates;
+    let pool: typeof capabilityCandidates;
+    // The task the rank term reads. A `task` no model declares was a name
+    // search all along, so it must not be looked up as a leaderboard either.
+    let rankTask = task;
     if (task && !declaredTasks.has(task)) {
-      pool = candidates;
+      pool = capabilityCandidates;
+      rankTask = undefined;
       words = [...words, ...queryWords(task)];
       notes.push(
         `No model declares task '${task}'; searched model names for it instead. Use \`query\` to search by name.`
       );
     } else {
-      pool = candidates.filter(({ model }) => taskMatch(model, task));
+      pool = capabilityCandidates.filter(({ model }) => taskMatch(model, task));
     }
 
     let queryMatched: boolean | undefined;
@@ -392,16 +618,16 @@ const findModel: CapabilityExport = {
 
     const collected: FindModelResult[] = pool.map(({ providerId, model }) => {
       const recommended = recommendedSet.has(`${providerId}::${model.id}`);
-      const downloaded = LOCAL_PROVIDER_IDS.has(providerId);
-
-      let score = 0;
-      if (recommended) score += 100;
-      if (downloaded) score += 30;
-      // Explicit user preferences outrank the default recommended bonus.
-      if (providerHint && providerId === providerHint) score += 200;
-      if (hintMatch(model, modelHints)) score += 250;
-      if (preferLocal && LOCAL_PROVIDER_IDS.has(providerId)) score += 150;
-      else if (preferLocal && !LOCAL_PROVIDER_IDS.has(providerId)) score -= 5;
+      const { score, downloaded, fields } = scoreCandidate({
+        providerId,
+        model,
+        recommended,
+        task: rankTask,
+        providerHint,
+        modelHints,
+        preferLocal,
+        rankedCapability: RANKED_CAPABILITIES.has(capability)
+      });
 
       return {
         provider: providerId,
@@ -410,7 +636,8 @@ const findModel: CapabilityExport = {
         downloaded,
         recommended,
         score,
-        ref: modelRef(capability, providerId, model.id, model.name)
+        ref: modelRef(capability, providerId, model.id, model.name),
+        ...fields
       };
     });
 
@@ -433,7 +660,7 @@ const findModel: CapabilityExport = {
 };
 
 /** One ranked candidate `find_model` returns. */
-interface RankedModel {
+interface RankedModel extends CandidateRankingFields {
   provider: string;
   model_id: string;
   name: string;

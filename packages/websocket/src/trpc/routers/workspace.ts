@@ -5,14 +5,20 @@
  * on REST because tRPC's JSON link doesn't carry binary payloads. The other
  * CRUD + listFiles (which returns JSON metadata) endpoints move here.
  *
- * Workspaces browse the local filesystem — disabled in production via the
- * `NODETOOL_ENV=production` env var.
+ * Pointing a workspace at an arbitrary host folder browses the local
+ * filesystem, so create/update/delete are disabled in production via the
+ * `NODETOOL_ENV=production` env var. Reading is not: every user has a default
+ * workspace, and in production it is the server-managed folder under the data
+ * dir — listing and downloading from that reaches nothing the deployment did
+ * not create itself.
  */
 
-import { stat, readdir, access } from "node:fs/promises";
+import { stat, access } from "node:fs/promises";
 import { existsSync, constants } from "node:fs";
-import { resolve, relative, join, isAbsolute, sep } from "node:path";
+import { isAbsolute } from "node:path";
 import { Workspace } from "@nodetool-ai/models";
+import type { WorkspaceEntry } from "@nodetool-ai/runtime";
+import { workspaceFromRow } from "../../lib/workflow-workspace.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -39,18 +45,38 @@ function toWorkspaceResponse(ws: Workspace): WorkspaceResponse {
     name: ws.name,
     path: ws.path,
     is_default: ws.is_default,
+    is_managed: ws.isManaged(),
     is_accessible: ws.isAccessible(),
     created_at: ws.created_at,
     updated_at: ws.updated_at
   };
 }
 
-/** Guard: workspace operations are disabled in production. */
+/** True when this deployment lets a user point a workspace at a host folder. */
+function canManageWorkspaces(): boolean {
+  return process.env["NODETOOL_ENV"] !== "production";
+}
+
+/** Guard: choosing a workspace folder is disabled in production. */
 function requireNonProduction(): void {
-  if (process.env["NODETOOL_ENV"] === "production") {
+  if (!canManageWorkspaces()) {
     throwApiError(
       ApiErrorCode.FORBIDDEN,
-      "Workspaces are disabled in production"
+      "Managing workspace folders is disabled in production"
+    );
+  }
+}
+
+/**
+ * Guard for the read paths: in production only the managed workspace may be
+ * read. A row created while the deployment ran locally can point anywhere on
+ * the host, and listFiles would happily enumerate it.
+ */
+function requireReadable(ws: Workspace): void {
+  if (!canManageWorkspaces() && !ws.isManaged()) {
+    throwApiError(
+      ApiErrorCode.FORBIDDEN,
+      "This workspace is not readable in production"
     );
   }
 }
@@ -94,12 +120,19 @@ export const workspaceRouter = router({
     .input(listInput)
     .output(listOutput)
     .query(async ({ ctx, input }) => {
-      requireNonProduction();
+      // Listing creates the default workspace when the user has none, so the
+      // editor never has to render a "no workspace" state and a run always has
+      // somewhere to write.
+      await Workspace.ensureDefault(ctx.userId);
       const [items] = await Workspace.paginate(ctx.userId, {
         limit: input.limit
       });
+      const readable = canManageWorkspaces()
+        ? items
+        : items.filter((ws) => ws.isManaged());
       return {
-        workspaces: items.map(toWorkspaceResponse),
+        workspaces: readable.map(toWorkspaceResponse),
+        can_manage: canManageWorkspaces(),
         next: null
       };
     }),
@@ -164,6 +197,13 @@ export const workspaceRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Workspace not found");
       }
 
+      if (ws.is_default) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "Cannot delete the default workspace"
+        );
+      }
+
       const hasWorkflows = await Workspace.hasLinkedWorkflows(input.id);
       if (hasWorkflows) {
         throwApiError(
@@ -180,58 +220,58 @@ export const workspaceRouter = router({
     .input(listFilesInput)
     .output(listFilesOutput)
     .query(async ({ ctx, input }) => {
-      requireNonProduction();
-      const workspace = await Workspace.find(ctx.userId, input.id);
-      if (!workspace) {
+      const row = await Workspace.find(ctx.userId, input.id);
+      if (!row) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Workspace not found");
       }
+      requireReadable(row);
 
-      const queryPath = input.path;
-      if (queryPath.startsWith("/")) {
+      if (input.path.startsWith("/")) {
         throwApiError(
           ApiErrorCode.INVALID_INPUT,
           "Absolute paths not allowed, use relative paths"
         );
       }
 
-      const workspacePath = resolve(workspace.path);
-      const resolvedPath = resolve(join(workspacePath, queryPath));
-
-      // Path traversal check — boundary-safe: a sibling like `/tmp/ws-evil`
-      // would pass a naive `startsWith("/tmp/ws")`, so use `path.relative`
-      // and require the result to be empty or a non-`..` relative path.
-      const rel = relative(workspacePath, resolvedPath);
-      // Segment-aware traversal check: a bare `startsWith("..")` also rejects a
-      // legitimate in-workspace entry named e.g. `..config`. Only `..` alone or
-      // a leading `../` segment actually escapes the workspace.
-      if (rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel)) {
-        throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+      // Listing goes through the workspace, so a cloud workspace (a prefix in
+      // object storage) browses exactly like a local folder. Containment is
+      // the workspace's own rule — there is no path arithmetic to get wrong
+      // here any more.
+      const workspace = workspaceFromRow(row);
+      if (!workspace) {
+        throwApiError(
+          ApiErrorCode.INTERNAL_ERROR,
+          "Workspace storage is not configured"
+        );
       }
 
-      let entries: string[];
+      let entries: WorkspaceEntry[];
       try {
-        entries = await readdir(resolvedPath);
-      } catch {
+        entries = await workspace.list(input.path === "." ? "" : input.path);
+      } catch (err) {
+        if (err instanceof Error && err.name === "WorkspacePathError") {
+          throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+        }
         throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
       }
 
-      const files: FileEntry[] = [];
-      for (const entry of entries) {
-        const entryRelative = join(queryPath === "." ? "" : queryPath, entry);
-        const fullPath = join(resolvedPath, entry);
-        try {
-          const s = await stat(fullPath);
-          files.push({
-            name: entry,
-            path: entryRelative,
-            size: s.size,
-            is_dir: s.isDirectory(),
-            modified_at: s.mtime.toISOString()
-          });
-        } catch {
-          // skip inaccessible entries
+      // An empty listing is either an empty directory or a path that is not
+      // there. Only a stat tells them apart, and the client shows a different
+      // thing for each — an empty folder, or an error.
+      if (entries.length === 0 && input.path !== "." && input.path !== "") {
+        const info = await workspace.stat(input.path).catch(() => null);
+        if (!info) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
         }
       }
+
+      const files: FileEntry[] = entries.map((entry) => ({
+        name: entry.name,
+        path: entry.path,
+        size: entry.size,
+        is_dir: entry.isDirectory,
+        modified_at: new Date(entry.modifiedAt).toISOString()
+      }));
       return files;
     })
 });

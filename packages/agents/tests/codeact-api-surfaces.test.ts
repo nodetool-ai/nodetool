@@ -194,6 +194,20 @@ const SOLUTIONS: Record<string, string[]> = {
        timelineId: timeline.timeline_id
      });`
   ],
+  "storyboard-direct-shots": [
+    `await nodetool.storyboards.edit("sb_lighthouse", [
+       {op: "add_shot", action: "The lamp goes dark",
+        duration_seconds: 2, duration_source: "audio"},
+       {op: "remove_shot", target: "keeper-door"}
+     ]);
+     const board = await nodetool.storyboards.get("sb_lighthouse");
+     const last = board.shots[board.shots.length - 1];
+     await finish({
+       shots: board.shots.length,
+       lastAction: last.action,
+       lastDurationSource: last.duration_source
+     });`
+  ],
   "storyboard-render-and-assemble": [
     `await nodetool.storyboards.renderStills("sb_lighthouse");
      await nodetool.storyboards.renderClips("sb_lighthouse");

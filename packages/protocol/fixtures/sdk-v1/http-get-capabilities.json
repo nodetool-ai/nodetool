@@ -1,0 +1,142 @@
+{
+  "captures": {
+    "feature_disabled": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "1",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/capabilities"
+      },
+      "response": {
+        "body": {
+          "code": "SDK_LIFECYCLE_DISABLED",
+          "message": "SDK lifecycle v1 is disabled",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 503
+      },
+      "via": "fastify"
+    },
+    "internal_error_redacted": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/capabilities"
+      },
+      "response": {
+        "body": {
+          "code": "INTERNAL_ERROR",
+          "message": "Internal server error",
+          "retryable": true
+        },
+        "content_type": "application/json",
+        "status": 500
+      },
+      "via": "fastify"
+    },
+    "method_not_allowed": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/capabilities"
+      },
+      "response": {
+        "body": {
+          "code": "NOT_FOUND",
+          "message": "SDK endpoint not found",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 404
+      },
+      "via": "fastify"
+    },
+    "success": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/capabilities"
+      },
+      "response": {
+        "body": {
+          "asset_uri_schemes": [
+            "asset"
+          ],
+          "auth_modes": [
+            "trusted_local"
+          ],
+          "default_encoding": "messagepack",
+          "limits": {
+            "max_inline_bytes": 0,
+            "max_job_event_replay": 0,
+            "max_queued_jobs": 0,
+            "max_rpc_batch": 1,
+            "max_upload_bytes": 1024,
+            "request_timeout_seconds": 30
+          },
+          "nodetool_version": "sdk-golden",
+          "profiles": {},
+          "protocol_version": "1",
+          "python_bridge": "disabled",
+          "registry_revision": 0,
+          "server_time": "2026-08-22T12:00:00.000Z",
+          "supported_encodings": [
+            "messagepack"
+          ]
+        },
+        "content_type": "application/json",
+        "status": 200
+      },
+      "via": "fastify"
+    }
+  },
+  "fixture_version": 1,
+  "not_captured": {
+    "auth_failure": "No in-route 401: getUserId falls back to x-user-id/'1' and server.ts enforces authentication in its onRequest hook (server.ts:897) before routing, answering 401 {\"error\":\"Unauthorized\"} outside the handlers.",
+    "bad_input": "The operation takes no input."
+  },
+  "operation": "capabilities",
+  "route": {
+    "auth": "discovery",
+    "feature_flag": "NODETOOL_DISABLE_SDK_LIFECYCLE_V1",
+    "method": "GET",
+    "owner": "packages/websocket/src/routes/sdk-v1.ts",
+    "path": "/api/sdk/v1/capabilities"
+  }
+}

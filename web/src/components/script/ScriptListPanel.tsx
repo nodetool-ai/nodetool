@@ -11,17 +11,13 @@ import {
   useRef,
   useState
 } from "react";
-import type { FocusEvent, KeyboardEvent, MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCreateScript, useScripts } from "../../hooks/script/useScripts";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
-import useContextMenuStore from "../../stores/ContextMenuStore";
-import {
-  useSidebarDocumentActionsStore,
-  type SidebarDocumentItem
-} from "../../stores/SidebarDocumentActionsStore";
+import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
+import { useSidebarDocumentMenu } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -32,117 +28,13 @@ import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
   EmptyState,
   FlexColumn,
-  FlexRow,
+  ListPanelItem,
   LoadingSpinner,
   Text,
   ToolbarIconButton,
-  TruncatedText,
   Tooltip,
   listPanelStyles
 } from "../ui_primitives";
-
-interface ScriptListItemProps {
-  id: string;
-  name: string;
-  active: boolean;
-  editing: boolean;
-  onOpen: (id: string, name: string) => void;
-  onContextMenu: (
-    event: MouseEvent<HTMLButtonElement>,
-    id: string,
-    name: string
-  ) => void;
-  onCommitRename: (id: string, newName: string) => void;
-  onCancelRename: () => void;
-}
-
-const ScriptListItem = memo(function ScriptListItem({
-  id,
-  name,
-  active,
-  editing,
-  onOpen,
-  onContextMenu,
-  onCommitRename,
-  onCancelRename
-}: ScriptListItemProps) {
-  const handleClick = useCallback(() => onOpen(id, name), [id, name, onOpen]);
-  const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => onContextMenu(event, id, name),
-    [id, name, onContextMenu]
-  );
-  const handleRenameKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      event.stopPropagation();
-      if (event.key === "Enter") {
-        onCommitRename(id, event.currentTarget.value);
-      } else if (event.key === "Escape") {
-        onCancelRename();
-      }
-    },
-    [id, onCommitRename, onCancelRename]
-  );
-  const handleRenameBlur = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      onCommitRename(id, event.currentTarget.value);
-    },
-    [id, onCommitRename]
-  );
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        onOpen(id, name);
-      }
-    },
-    [id, name, onOpen]
-  );
-
-  if (editing) {
-    return (
-      <div className={`list-panel-item ${active ? "active" : ""}`}>
-        <FlexRow align="center" gap={1} fullWidth>
-          <RecordVoiceOverOutlinedIcon className="list-panel-icon" />
-          <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-            <input
-              className="rename-input"
-              type="text"
-              defaultValue={name}
-              aria-label="Script name"
-              autoFocus
-              onFocus={(event) => event.currentTarget.select()}
-              onKeyDown={handleRenameKeyDown}
-              onBlur={handleRenameBlur}
-            />
-          </FlexColumn>
-        </FlexRow>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className={`list-panel-item ${active ? "active" : ""}`}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      onContextMenu={handleContextMenu}
-      aria-current={active ? "page" : undefined}
-    >
-      <FlexRow align="center" gap={1} fullWidth>
-        <RecordVoiceOverOutlinedIcon className="list-panel-icon" />
-        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-          <TruncatedText
-            component="span"
-            sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
-          >
-            {name || "Untitled script"}
-          </TruncatedText>
-        </FlexColumn>
-      </FlexRow>
-    </button>
-  );
-});
 
 export const CreateScriptButton = memo(function CreateScriptButton() {
   const createScript = useCreateScript();
@@ -253,32 +145,6 @@ const ScriptListPanel = () => {
       void utils.scripts.list.invalidate();
     }
   });
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const setActions = useSidebarDocumentActionsStore((state) => state.setActions);
-  const clearActions = useSidebarDocumentActionsStore(
-    (state) => state.clearActions
-  );
-
-  const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>, id: string, name: string) => {
-      event.preventDefault();
-      event.stopPropagation();
-      openContextMenu(
-        "sidebar-document-context-menu",
-        id,
-        event.clientX,
-        event.clientY,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { id, name }
-      );
-    },
-    [openContextMenu]
-  );
-
   const handleCommitRename = useCallback(
     (id: string, newName: string) => {
       const trimmed = newName.trim();
@@ -310,9 +176,19 @@ const ScriptListPanel = () => {
     [utils, createScript, updateScript]
   );
 
+  const handleRequestRename = useCallback((item: SidebarDocumentItem) => {
+    setEditingId(item.id);
+  }, []);
+
   const handleRequestDelete = useCallback((item: SidebarDocumentItem) => {
     setItemToDelete(item);
   }, []);
+
+  const handleContextMenu = useSidebarDocumentMenu({
+    onRename: handleRequestRename,
+    onDuplicate: handleDuplicate,
+    onDelete: handleRequestDelete
+  });
 
   const handleConfirmDelete = useCallback(() => {
     if (!itemToDelete) {
@@ -328,15 +204,6 @@ const ScriptListPanel = () => {
       }
     });
   }, [itemToDelete, deleteScript, utils]);
-
-  useEffect(() => {
-    setActions({
-      onRename: (item) => setEditingId(item.id),
-      onDuplicate: (item) => void handleDuplicate(item),
-      onDelete: handleRequestDelete
-    });
-    return () => clearActions();
-  }, [setActions, clearActions, handleDuplicate, handleRequestDelete]);
 
   return (
     <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
@@ -413,9 +280,12 @@ const ScriptListPanel = () => {
                       </Text>
                     </div>
                   )}
-                  <ScriptListItem
+                  <ListPanelItem
                     id={script.id}
                     name={script.name}
+                    fallbackName="Untitled script"
+                    renameLabel="Script name"
+                    icon={RecordVoiceOverOutlinedIcon}
                     active={script.id === activeScriptId}
                     editing={script.id === editingId}
                     onOpen={handleOpen}

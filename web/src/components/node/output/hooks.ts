@@ -6,6 +6,11 @@ import { trpc } from "../../../trpc/client";
 import { bitmapToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";
 import { fileUriToHttpUrl } from "../../../utils/localFile";
 import {
+  asResolvedMediaUrl,
+  type ResolvedMediaUrl
+} from "../../../utils/resolveMediaUri";
+import {
+  useResolvedMediaUri,
   useResolvedMediaUris,
   type MediaLocator
 } from "../../../hooks/useResolvedMediaUri";
@@ -74,13 +79,14 @@ export function toUint8Array(
 }
 
 /**
- * Extracts the storage key from an asset URI.
- * Handles asset:// and /api/storage/ schemes.
- * Returns null for other schemes.
+ * Extracts the storage key from a `/api/storage/` URI.
+ *
+ * `asset://<id>` is deliberately not a key: the object is
+ * `<user_id>/<asset_id>.<ext>`, so signing the bare id resolves nothing —
+ * `useSignedUrl` routes that scheme through the asset record instead.
  */
 function extractStorageKey(uri: string | null | undefined): string | null {
   if (!uri) return null;
-  if (uri.startsWith("asset://")) return uri.slice("asset://".length);
   if (uri.startsWith("/api/storage/")) return uri.slice("/api/storage/".length);
   return null;
 }
@@ -171,9 +177,20 @@ export function getMimeTypeFromUri(
  * For cloud backends (S3/Supabase), returns a pre-signed URL.
  * For the local file backend, returns the /api/storage/ URL.
  * Falls back to resolveAssetUri() while the query is loading.
+ *
+ * `asset://<id>` resolves through the asset record's own `get_url`, the same
+ * path the image branches take. Signing it as a storage key produced a URL for
+ * an object that does not exist — the bytes are `<user_id>/<asset_id>.<ext>`
+ * and the locator carries neither the owner prefix nor the extension — so
+ * every video and audio output whose ref was an extensionless `asset://`
+ * (what chat persistence and `save_asset` produce) rendered an empty element.
  */
-export function useSignedUrl(uri: string | undefined | null): string {
-  const key = extractStorageKey(uri);
+export function useSignedUrl(
+  uri: string | undefined | null
+): ResolvedMediaUrl | "" {
+  const isAssetUri = Boolean(uri?.startsWith("asset://"));
+  const assetUrl = useResolvedMediaUri(isAssetUri ? uri : undefined);
+  const key = isAssetUri ? null : extractStorageKey(uri);
   const { data } = trpc.storage.signUrl.useQuery(
     { key: key ?? "" },
     { enabled: Boolean(key), staleTime: 6 * 24 * 60 * 60 * 1000 }
@@ -183,9 +200,12 @@ export function useSignedUrl(uri: string | undefined | null): string {
   // streaming endpoint.
   const fileHttpUrl = fileUriToHttpUrl(uri);
   if (fileHttpUrl !== null) {
-    return fileHttpUrl;
+    return asResolvedMediaUrl(fileHttpUrl) ?? "";
   }
-  return data?.url ?? resolveAssetUri(uri);
+  if (isAssetUri) {
+    return assetUrl ?? "";
+  }
+  return asResolvedMediaUrl(data?.url ?? resolveAssetUri(uri)) ?? "";
 }
 
 function isVideoValue(value: unknown): value is VideoValue {

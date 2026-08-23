@@ -58,13 +58,12 @@ const call = (bridge: ReturnType<typeof createJsScriptToolBridge>) =>
   };
 
 describe("createJsScriptToolBridge", () => {
-  it("exposes the eight ui_jsscript_* tools", () => {
+  it("exposes the seven ui_jsscript_* tools", () => {
     expect(createJsScriptToolBridge().tools.map((t) => t.name).sort()).toEqual([
       "ui_jsscript_get_state",
       "ui_jsscript_run",
       "ui_jsscript_set_code",
       "ui_jsscript_set_meta",
-      "ui_jsscript_set_packages",
       "ui_jsscript_set_ports",
       "ui_jsscript_set_tests",
       "ui_jsscript_test"

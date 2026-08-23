@@ -5,6 +5,8 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Asset } from "../../stores/ApiTypes";
 import { LoadingSpinner, ScrollArea } from "../ui_primitives";
+import MarkdownRenderer from "../../utils/MarkdownRenderer";
+import { previewKind } from "../../utils/assetLanguage";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -40,6 +42,7 @@ const styles = (theme: Theme) =>
 
 const TextViewer: React.FC<TextViewerProps> = ({ asset }) => {
   const theme = useTheme();
+  const kind = previewKind(asset ?? {});
 
   const { data: document } = useQuery({
     queryKey: ["asset-text", asset?.get_url],
@@ -57,7 +60,11 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset }) => {
   return (
     <ScrollArea className="output text-viewer" css={styles(theme)} direction="vertical">
       {!document && <LoadingSpinner className="progress" />}
-      <div>{document}</div>
+      {document && kind === "markdown" ? (
+        <MarkdownRenderer content={document} fillContainer />
+      ) : (
+        <pre>{document}</pre>
+      )}
     </ScrollArea>
   );
 };

@@ -4,8 +4,14 @@
  * Port of Python's `nodetool.models.workspace`.
  */
 
-import { existsSync, accessSync, constants } from "node:fs";
+import { existsSync, accessSync, constants, mkdirSync } from "node:fs";
 import { eq, and } from "drizzle-orm";
+import { isAbsolute } from "node:path";
+import {
+  getManagedWorkspaceDir,
+  managedWorkspaceKey,
+  workspaceStorageKind
+} from "@nodetool-ai/config";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workspaces } from "./schema/workspaces.js";
@@ -41,7 +47,23 @@ export class Workspace extends DBModel {
     this.updated_at = new Date().toISOString();
   }
 
+  /**
+   * True when this workspace lives in object storage rather than on a disk.
+   *
+   * Decided by the shape of `path`, which needs no column and cannot drift: a
+   * local workspace's path is validated absolute on the way in (see the
+   * workspace router), so a relative one is a storage key prefix —
+   * `workspaces/<user>` — and nothing else.
+   */
+  isVirtual(): boolean {
+    return !isAbsolute(this.path);
+  }
+
   isAccessible(): boolean {
+    // A virtual workspace has no directory to probe. Storage either answers or
+    // reports its own error at call time; claiming it is inaccessible here
+    // would send every cloud run down the "no workspace" path.
+    if (this.isVirtual()) return true;
     if (!existsSync(this.path)) return false;
     try {
       accessSync(this.path, constants.W_OK);
@@ -101,6 +123,75 @@ export class Workspace extends DBModel {
       .where(eq(workflows.workspace_id, workspaceId))
       .limit(1);
     return row != null;
+  }
+
+  /**
+   * True when this workspace is the folder NodeTool manages for the user,
+   * rather than one they pointed at themselves.
+   *
+   * A managed workspace is the only one a cloud deployment exposes: its path is
+   * server-owned, so listing and downloading from it cannot reach host files a
+   * locally-created workspace row might still point at.
+   */
+  isManaged(): boolean {
+    return (
+      this.path === getManagedWorkspaceDir(this.user_id) ||
+      this.path === managedWorkspaceKey(this.user_id)
+    );
+  }
+
+  /**
+   * The user's default workspace, created if they have none.
+   *
+   * Every run needs somewhere bounded to read and write, so this never returns
+   * null: a user with workspaces but no default gets their first one promoted,
+   * and a user with none gets the managed folder under the data dir. Callers
+   * treat a failure to create the directory as fatal — running with no
+   * workspace is what this exists to prevent.
+   */
+  static async ensureDefault(userId: string): Promise<Workspace> {
+    const existing = await Workspace.getDefault(userId);
+    if (existing) {
+      // A managed folder can be missing after a data-dir wipe or a fresh
+      // container on the same database — recreate it rather than handing back
+      // an inaccessible workspace. A virtual one has nothing to recreate.
+      if (
+        existing.isManaged() &&
+        !existing.isVirtual() &&
+        !existsSync(existing.path)
+      ) {
+        mkdirSync(existing.path, { recursive: true });
+      }
+      return existing;
+    }
+
+    const [owned] = await Workspace.paginate(userId, { limit: 1 });
+    const first = owned[0];
+    if (first) {
+      first.is_default = true;
+      await first.save();
+      return first;
+    }
+
+    if (workspaceStorageKind() === "cloud") {
+      // No directory: the workspace is a key prefix in the same bucket the
+      // deployment keeps assets in, so it survives the machine being replaced.
+      return (await Workspace.create({
+        user_id: userId,
+        name: "Default",
+        path: managedWorkspaceKey(userId),
+        is_default: true
+      })) as Workspace;
+    }
+
+    const path = getManagedWorkspaceDir(userId);
+    mkdirSync(path, { recursive: true });
+    return (await Workspace.create({
+      user_id: userId,
+      name: "Default",
+      path,
+      is_default: true
+    })) as Workspace;
   }
 
   static async unsetOtherDefaults(userId: string): Promise<void> {

@@ -12,6 +12,7 @@ import type {
 } from "../../stores/ApiTypes";
 import type { TypeMetadata } from "../../stores/ApiTypes";
 import type { Node, Edge } from "../../stores/ApiTypes";
+import { isConnectable } from "../../utils/TypeHandler";
 
 /** Describes where a single input gets its data from. */
 export interface InputSource {
@@ -46,23 +47,22 @@ export interface ChainConnection {
   targetInput: string;
 }
 
+/**
+ * Whether a source output can feed a target input.
+ *
+ * Delegates to the graph editor's rule so the chain editor accepts exactly
+ * what dragging an edge on the canvas accepts (str → enum, T → list[T],
+ * unions, dicts, cv ↔ chunk), plus int → float, which is safe to widen and
+ * which the canvas rule leaves out.
+ */
 export function areTypesCompatible(
   source: TypeMetadata,
   target: TypeMetadata
 ): boolean {
-  if (source.type === "any" || target.type === "any") return true;
-  if (source.type === target.type) return true;
-  if (source.type === "int" && target.type === "float") return true;
-  if (target.type === "union" && target.type_args.length > 0) {
-    return target.type_args.some((arg) => areTypesCompatible(source, arg));
-  }
-  if (
-    source.type === "list" &&
-    target.type === "list" &&
-    source.type_args.length > 0 &&
-    target.type_args.length > 0
-  ) {
-    return areTypesCompatible(source.type_args[0], target.type_args[0]);
+  if (isConnectable(source, target)) return true;
+  // int widens to float, including inside a union or list target.
+  if (source.type === "int") {
+    return isConnectable({ ...source, type: "float" }, target);
   }
   return false;
 }
@@ -76,12 +76,35 @@ export function getCompatibleInputs(
   );
 }
 
+/**
+ * Rank a candidate input for an auto-connection.
+ * Higher wins; ties fall back to declaration order.
+ */
+function inputScore(prop: Property, outputName: string, outputType: TypeMetadata): number {
+  let score = 0;
+  if (prop.type.type === outputType.type) score += 4;
+  if (prop.name === outputName) score += 3;
+  if (prop.type.type === "any") score -= 2;
+  return score;
+}
+
 export function findBestInput(
   metadata: NodeMetadata,
-  outputType: TypeMetadata
+  outputType: TypeMetadata,
+  outputName = ""
 ): string | null {
   const compatible = getCompatibleInputs(metadata, outputType);
-  return compatible.length > 0 ? compatible[0].name : null;
+  if (compatible.length === 0) return null;
+  let best = compatible[0];
+  let bestScore = inputScore(best, outputName, outputType);
+  for (const prop of compatible.slice(1)) {
+    const score = inputScore(prop, outputName, outputType);
+    if (score > bestScore) {
+      best = prop;
+      bestScore = score;
+    }
+  }
+  return best.name;
 }
 
 export interface WorkflowGraph {
@@ -129,4 +152,35 @@ export function buildConnections(chain: ChainNode[]): ChainConnection[] {
     }
   }
   return connections;
+}
+
+/**
+ * Pick the input mappings a newly inserted node should start with.
+ *
+ * Walks backwards from the insertion point and takes the first earlier node
+ * that produces something this node can accept — its selected output first,
+ * then its other outputs. Returns an empty map when nothing matches.
+ */
+export function autoMapInputs(
+  metadata: NodeMetadata,
+  chain: ChainNode[],
+  index: number
+): InputMappings {
+  for (let i = Math.min(index, chain.length) - 1; i >= 0; i--) {
+    const prev = chain[i];
+    const outputs = [...prev.metadata.outputs].sort((a, b) => {
+      const aSel = a.name === prev.selectedOutput ? 0 : 1;
+      const bSel = b.name === prev.selectedOutput ? 0 : 1;
+      return aSel - bSel;
+    });
+    for (const output of outputs) {
+      const input = findBestInput(metadata, output.type, output.name);
+      if (input) {
+        return {
+          [input]: { sourceNodeId: prev.id, sourceOutput: output.name },
+        };
+      }
+    }
+  }
+  return {};
 }

@@ -39,6 +39,17 @@ export const LIST_TIMELINES_SCHEMA: JsonSchema = {
   }
 };
 
+export const GET_TIMELINE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "Timeline sequence id (from list_timelines)."
+    }
+  },
+  required: ["timeline_id"]
+};
+
 export const LIST_TIMELINE_VERSIONS_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -110,11 +121,13 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'Operations in order. Each is {"op": <name>, ...arguments}, e.g. ' +
         '{"op": "add_track", "type": "audio", "name": "Music"} or ' +
         '{"op": "animate_clip", "target": "Title", "animations": [{"role": "in", "preset": "fade"}]}. ' +
-        "Ops: get_state, add_track, add_text_clip, add_shape_clip, " +
+        "Ops: get_state, add_track, add_media_clip, add_text_clip, add_shape_clip, " +
         "split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_clip_binding, animate_clip, clear_animations, " +
         "list_animation_presets, select_clip, seek. Start with get_state to " +
-        "read track and clip ids.",
+        "read track and clip ids. To lay existing videos end to end, call " +
+        'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
+        '"asset://<id>.mp4"}) — each appends after the last.',
       items: { type: "object" }
     }
   },
@@ -163,6 +176,18 @@ export const listTimelinesSpec: CapabilitySpec = {
   inputSchema: LIST_TIMELINES_SCHEMA,
   category: "read",
   userMessage: () => "Listing timelines"
+};
+
+export const getTimelineSpec: CapabilitySpec = {
+  name: "get_timeline",
+  description:
+    "Read a saved timeline sequence: its fps, size, duration, tracks, clips " +
+    "and markers. This is the stored document edit_timeline writes and " +
+    "validate_timeline checks — read it before editing so clip and track ids " +
+    "come from the sequence rather than a guess.",
+  inputSchema: GET_TIMELINE_SCHEMA,
+  category: "read",
+  userMessage: (params) => `Reading timeline ${String(params["timeline_id"])}`
 };
 
 export const listTimelineVersionsSpec: CapabilitySpec = {
@@ -218,6 +243,33 @@ export const restoreTimelineVersionSpec: CapabilitySpec = {
     `Restoring timeline ${String(params["timeline_id"])} to v${String(params["version"])}`
 };
 
+export const DELETE_TIMELINE_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "Timeline sequence id."
+    },
+    version: {
+      type: "number",
+      description: "Version number to delete, from list_timeline_versions."
+    }
+  },
+  required: ["timeline_id", "version"]
+};
+
+export const deleteTimelineVersionSpec: CapabilitySpec = {
+  name: "delete_timeline_version",
+  description:
+    "Delete one snapshot of a timeline sequence you own, addressed by " +
+    "version number (from list_timeline_versions). This cannot be undone. " +
+    "The live sequence is not changed.",
+  inputSchema: DELETE_TIMELINE_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Deleting v${String(params["version"])} of timeline ${String(params["timeline_id"])}`
+};
+
 export const editTimelineSpec: CapabilitySpec = {
   name: "edit_timeline",
   description:
@@ -255,13 +307,36 @@ export const validateTimelineSpec: CapabilitySpec = {
       : "Validating timeline document"
 };
 
+export const deleteTimelineSpec: CapabilitySpec = {
+  name: "delete_timeline",
+  description:
+    "Delete a timeline sequence you own, together with its saved version history. " +
+    "This cannot be undone. A timeline sequence belonging to another user is reported " +
+    "as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      timeline_id: {
+        type: "string",
+        description: "The timeline sequence to delete. You must own it."
+      }
+    },
+    required: ["timeline_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting timeline sequence ${params["timeline_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const timelinesSpecs: readonly CapabilitySpec[] = [
   listTimelinesSpec,
+  getTimelineSpec,
   listTimelineVersionsSpec,
   getTimelineVersionSpec,
   createTimelineVersionSpec,
   restoreTimelineVersionSpec,
+  deleteTimelineVersionSpec,
   editTimelineSpec,
-  validateTimelineSpec
+  validateTimelineSpec,
+  deleteTimelineSpec
 ];

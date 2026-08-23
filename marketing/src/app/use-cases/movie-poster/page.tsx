@@ -4,6 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  ArrowRight,
   Download,
   Play,
   FileText,
@@ -397,6 +398,13 @@ export default function MoviePosterUseCase() {
                 icon={<Download className="h-5 w-5" />}
                 classNameOverride="inline-flex items-center justify-center gap-2 rounded-full bg-sky-500 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgba(56,189,248,0.6)] transition-all hover:bg-sky-400"
               />
+              <a
+                href="/use-cases/movie-trailer"
+                className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-8 py-3.5 text-sm font-semibold text-amber-200 transition-all hover:border-amber-400/50 hover:bg-amber-500/15"
+              >
+                Build a movie trailer
+                <ArrowRight className="h-4 w-4" />
+              </a>
               <a
                 href="/#use-cases"
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/5"

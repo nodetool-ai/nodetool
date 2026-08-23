@@ -25,13 +25,22 @@ export function middleware(request: NextRequest): NextResponse {
     return NextResponse.next();
   }
 
-  const response = NextResponse.next();
+  const acceptsMarkdown = request.headers
+    .get("accept")
+    ?.toLowerCase()
+    .includes("text/markdown");
+  const response = acceptsMarkdown
+    ? NextResponse.rewrite(new URL(markdownPath(canonicalPath), request.url))
+    : NextResponse.next();
   const canonicalUrl = new URL(canonicalPath, request.url).toString();
   const markdownUrl = new URL(markdownPath(canonicalPath), request.url).toString();
   response.headers.set(
     "Link",
     `<${canonicalUrl}>; rel="canonical", <${markdownUrl}>; rel="alternate"; type="text/markdown"`
   );
+  // The response representation changes when an agent requests Markdown.
+  // Keep a CDN from returning that cached representation to an HTML request.
+  response.headers.set("Vary", "Accept, Accept-Encoding");
   return response;
 }
 

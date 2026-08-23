@@ -21,7 +21,14 @@
  * imperative path.
  */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -133,6 +140,16 @@ export const Playhead: React.FC<PlayheadProps> = memo(
 
     const [hovered, setHovered] = useState(false);
     const [dragging, setDragging] = useState(false);
+
+    // Playback never re-renders this (see the header), but zoom and scroll do.
+    const hitAreaCss = useMemo(
+      () => hitAreaStyles(theme, dragging),
+      [theme, dragging]
+    );
+    const pillCss = useMemo(
+      () => pillStyles(theme, dragging, hovered),
+      [theme, dragging, hovered]
+    );
 
     const hitAreaRef = useRef<HTMLDivElement | null>(null);
     const pillRef = useRef<HTMLDivElement | null>(null);
@@ -262,7 +279,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
     return (
       <div
         ref={hitAreaRef}
-        css={hitAreaStyles(theme, dragging)}
+        css={hitAreaCss}
         style={{ height: heightPx }}
         data-testid="playhead"
         role="slider"
@@ -280,7 +297,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
       >
         <div
           ref={pillRef}
-          css={pillStyles(theme, dragging, hovered)}
+          css={pillCss}
           aria-hidden
           data-testid="playhead-pill"
         />

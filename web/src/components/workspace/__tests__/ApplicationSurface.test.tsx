@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { stub } from "../../../test-utils/doubles";
 
 const state: { error: Error | null } = { error: null };
 
@@ -26,11 +27,16 @@ jest.mock("../../../hooks/useApplications", () => ({
 }));
 
 const openTab = jest.fn();
+const setTitle = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   tabId: (type: string, ref: string) => `${type}:${ref}`,
   useWorkspaceTabsStore: <T,>(
-    selector: (s: { openTab: jest.Mock; activeTabId: string }) => T
-  ) => selector({ openTab, activeTabId: "application:app-1" })
+    selector: (s: {
+      openTab: jest.Mock;
+      setTitle: jest.Mock;
+      activeTabId: string;
+    }) => T
+  ) => selector({ openTab, setTitle, activeTabId: "application:app-1" })
 }));
 
 const linkedProps = jest.fn();
@@ -46,15 +52,40 @@ const builderMounted = jest.fn();
 jest.mock("../../appbuilder/ApplicationAppBuilder", () => ({
   __esModule: true,
   default: function MockApplicationAppBuilder({
-    applicationId
+    applicationId,
+    onAgentWorkflowIdChange
   }: {
     applicationId: string;
+    onAgentWorkflowIdChange?: (workflowId: string | undefined) => void;
   }) {
     React.useEffect(() => {
       builderMounted(applicationId);
-    }, [applicationId]);
+      onAgentWorkflowIdChange?.("wf-1");
+    }, [applicationId, onAgentWorkflowIdChange]);
     return <div data-testid="app-builder">{applicationId}</div>;
   }
+}));
+
+jest.mock("../../appbuilder/ApplicationRunView", () => ({
+  __esModule: true,
+  default: ({ applicationId }: { applicationId: string }) => (
+    <div data-testid="app-run">{applicationId}</div>
+  )
+}));
+
+jest.mock("../../appbuilder/AppBuilderAgentPanel", () => ({
+  __esModule: true,
+  default: ({
+    applicationId,
+    workflowId
+  }: {
+    applicationId: string;
+    workflowId?: string;
+  }) => (
+    <div data-testid="app-assistant">
+      {applicationId}:{workflowId ?? "none"}
+    </div>
+  )
 }));
 
 jest.mock("../../applications/ApplicationGovernancePanel", () => ({
@@ -73,9 +104,28 @@ const renderSurface = () =>
     </ThemeProvider>
   );
 
+const originalMatchMedia = window.matchMedia;
+
 beforeEach(() => {
   jest.clearAllMocks();
   state.error = null;
+  // Wide viewport: the assistant docks on the right of every view.
+  window.matchMedia = jest.fn((query: string) =>
+    stub<MediaQueryList>({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn()
+    })
+  );
+});
+
+afterEach(() => {
+  window.matchMedia = originalMatchMedia;
 });
 
 describe("ApplicationSurface", () => {
@@ -84,6 +134,8 @@ describe("ApplicationSurface", () => {
 
     expect(screen.getByTestId("app-builder")).toHaveTextContent("app-1");
     expect(screen.queryByTestId("governance")).not.toBeInTheDocument();
+    expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
+    expect(setTitle).toHaveBeenCalledWith("app-1", "application", "Translator");
   });
 
   it("switches to publish and budget controls", async () => {
@@ -103,9 +155,27 @@ describe("ApplicationSurface", () => {
     await user.click(screen.getByRole("button", { name: "Settings" }));
     await user.click(screen.getByRole("button", { name: "Design" }));
 
-    // One mount for the whole round trip: the canvas, its unsaved edits, and
-    // the agent thread beside it are the same ones the user left.
+    // One mount for the whole round trip: the canvas and its unsaved edits
+    // are the same ones the user left.
     expect(builderMounted).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the assistant on the right in design, run, and settings", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    expect(screen.getByTestId("assistant-side-dock")).toBeInTheDocument();
+    expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
+
+    await user.click(screen.getByRole("button", { name: "Run" }));
+    expect(screen.getByTestId("app-run")).toHaveTextContent("app-1");
+    expect(screen.getByTestId("assistant-side-dock")).toBeInTheDocument();
+    expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByTestId("governance")).toHaveTextContent("app-1");
+    expect(screen.getByTestId("assistant-side-dock")).toBeInTheDocument();
+    expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
   });
 
   it("links its workflows without opening one", () => {

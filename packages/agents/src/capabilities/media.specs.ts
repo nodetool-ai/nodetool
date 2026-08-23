@@ -23,11 +23,13 @@ export const GENERATE_IMAGE_SCHEMA: JsonSchema = {
   properties: {
     provider: {
       type: "string" as const,
-      description: "Provider id from find_model."
+      description:
+        "Provider id from find_model. Optional when `model` is a find_model hit or its `.ref`."
     },
     model: {
       type: "string" as const,
-      description: "Model id from find_model."
+      description:
+        "Model id from find_model, or the whole find_model hit / `.ref` object."
     },
     prompt: { type: "string" as const, description: "Text prompt." },
     output_file: {
@@ -48,11 +50,13 @@ export const EDIT_IMAGE_SCHEMA: JsonSchema = {
   properties: {
     provider: {
       type: "string" as const,
-      description: "Provider id from find_model."
+      description:
+        "Provider id from find_model. Optional when `model` is a find_model hit or its `.ref`."
     },
     model: {
       type: "string" as const,
-      description: "Model id from find_model."
+      description:
+        "Model id from find_model, or the whole find_model hit / `.ref` object."
     },
     input_file: {
       type: "string" as const,
@@ -78,8 +82,16 @@ export const EDIT_IMAGE_SCHEMA: JsonSchema = {
 export const GENERATE_VIDEO_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
-    provider: { type: "string" as const },
-    model: { type: "string" as const },
+    provider: {
+      type: "string" as const,
+      description:
+        "Provider id from find_model. Optional when `model` is a find_model hit or its `.ref`."
+    },
+    model: {
+      type: "string" as const,
+      description:
+        "Model id from find_model, or the whole find_model hit / `.ref` object."
+    },
     prompt: { type: "string" as const },
     output_file: {
       type: "string" as const,
@@ -331,7 +343,7 @@ export const editImageSpec: CapabilitySpec = {
 export const generateVideoSpec: CapabilitySpec = {
   name: "generate_video",
   description:
-    "Generate a video from a text prompt using a provider+model selected via find_model (capability=text_to_video). Result is saved as an asset (asset:// URI returned).",
+    "Generate a video from a text prompt using a provider+model selected via find_model (capability=text_to_video). Pass find_model's hit or its `.ref` as `model`, or `{provider, model}` strings. Result is saved as an asset (asset:// URI returned).",
   inputSchema: GENERATE_VIDEO_SCHEMA,
   category: "write",
   userMessage: (params) =>
@@ -453,9 +465,20 @@ export const FFMPEG_SCHEMA: JsonSchema = {
       items: { type: "string" as const },
       description:
         "ffmpeg arguments after the binary name. Paths are workspace-relative " +
-        "and cannot escape it; inputs may only open local files, so a URL is " +
-        "refused — download it first. " +
+        "and cannot escape it; ffmpeg opens local files only, so an " +
+        "asset:// URI or a URL in args is refused — name it in `inputs` " +
+        "instead. " +
         "Example: [\"-i\", \"in.mp4\", \"-vf\", \"scale=1280:-2\", \"out.mp4\"]."
+    },
+    inputs: {
+      type: "object" as const,
+      description:
+        "Files to copy into the workspace before the run, as " +
+        "{\"<workspace-relative name>\": \"<asset:// URI, /api/storage/ key, " +
+        "or data: URI>\"}. This is how an asset reaches ffmpeg: stage it, " +
+        "then use the name in args. At most 8 files, 100 MB each. " +
+        "Example: {\"a.mp4\": \"asset://<id>.mp4\", \"b.mp4\": \"asset://<id>.mp4\"}.",
+      additionalProperties: { type: "string" as const }
     },
     output_file: {
       type: "string" as const,
@@ -477,9 +500,11 @@ export const ffmpegSpec: CapabilitySpec = {
   description:
     "Run ffmpeg on workspace files. Pass argv after the binary name " +
     "(no shell). Paths are workspace-relative and confined to the " +
-    "workspace; inputs open local files only (no URLs, pipes, or device " +
-    "files). Install ffmpeg if the binary is missing. Use output_file to " +
-    "persist the result as an asset.",
+    "workspace; ffmpeg opens local files only (no URLs, pipes, or device " +
+    "files) — put asset:// URIs in `inputs` to stage them under workspace " +
+    "names first. Install ffmpeg if the binary is missing. Use output_file " +
+    "to persist the result as an asset. Concatenating two assets is one " +
+    "call: inputs {a.mp4, b.mp4} plus a concat filter_complex.",
   inputSchema: FFMPEG_SCHEMA,
   category: "execute",
   userMessage: (params) => {

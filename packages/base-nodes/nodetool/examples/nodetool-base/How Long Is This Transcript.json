@@ -85,10 +85,7 @@
         "id": "ct",
         "type": "nodetool.code.Code",
         "data": {
-          "code": "import { count } from \"@nodetool-ai/sandbox-tokens\";\nreturn { output: await count(String(inputs.text ?? \"\"), inputs.encoding ?? \"cl100k_base\") };",
-          "packages": [
-            "@nodetool-ai/sandbox-tokens"
-          ]
+          "code": "import { count } from \"@nodetool-ai/sandbox-tokens\";\nreturn { output: await count(String(inputs.text ?? \"\"), inputs.encoding ?? \"cl100k_base\") };"
         },
         "ui_properties": {
           "position": {

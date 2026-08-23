@@ -534,6 +534,86 @@ describe("dbMessageToProviderMessage filtering", () => {
 });
 
 
+// ── Gemini thought signatures ───────────────────────────────────────
+
+describe("tool-call thought signatures survive the database", () => {
+  let ws: MockWS;
+
+  beforeEach(() => {
+    setupModels();
+    ws = new MockWS();
+  });
+
+  it("persists a signature and replays it in the next turn's history", async () => {
+    const threadId = "t-sig";
+    await Thread.create({ id: threadId, user_id: "1", title: "" });
+    await Message.create({
+      thread_id: threadId,
+      user_id: "1",
+      role: "assistant",
+      content: null,
+      tool_calls: [
+        {
+          id: "c1",
+          name: "search",
+          args: {},
+          result: null,
+          thought_signature: "sig-from-gemini"
+        }
+      ]
+    });
+
+    let capturedMessages: unknown[] = [];
+    const provider = async () =>
+      ({
+        provider: "mock",
+        async *generateMessagesTraced(opts: any) {
+          capturedMessages = opts.messages;
+          yield { type: "chunk" as const, content: "hi" };
+        },
+        async generateMessageTraced() {
+          return {};
+        },
+        generateMessage: vi.fn(),
+        hasToolSupport: async () => false,
+        getAvailableLanguageModels: async () => [],
+        getAvailableImageModels: async () => [],
+        getAvailableVideoModels: async () => [],
+        getAvailableTTSModels: async () => [],
+        getAvailableASRModels: async () => [],
+        getAvailableEmbeddingModels: async () => [],
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
+      }) as any;
+
+    const runner = new UnifiedWebSocketRunner({
+      resolveExecutor: noop,
+      resolveProvider: provider
+    });
+    await runner.connect(ws);
+    await runner.handleCommand({
+      command: "chat_message",
+      data: {
+        thread_id: threadId,
+        content: "again",
+        provider: "mock",
+        model: "m"
+      }
+    });
+    await new Promise((r) => setTimeout(r, 150));
+
+    const replayed = (
+      capturedMessages as Array<{
+        role: string;
+        toolCalls?: Array<{ thought_signature?: string }> | null;
+      }>
+    ).find((m) => m.role === "assistant" && m.toolCalls?.length);
+    expect(replayed?.toolCalls?.[0].thought_signature).toBe("sig-from-gemini");
+
+    await runner.disconnect();
+  });
+});
+
 // ── saveMessageToDb ─────────────────────────────────────────────────
 
 describe("saveMessageToDb", () => {

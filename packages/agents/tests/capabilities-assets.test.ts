@@ -81,7 +81,8 @@ describe("assets capability module", () => {
       "asset_search",
       "asset_list",
       "list_images",
-      "view_image"
+      "view_image",
+      "update_asset"
     ]);
   });
 
@@ -182,6 +183,40 @@ describe("assets capabilities against the database", () => {
     expect(read.content).toBe("# hello");
   });
 
+  it("returns an asset_uri that carries the file extension", async () => {
+    let created = 1;
+    // `asset://<id>` alone types nothing: a chat embed of a saved mp4 rendered
+    // as an image and showed a blank tile.
+    // The library path: a context that persists through `createAsset`.
+    const ctx = makeContext({
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async () => ({ id: `as_${created++}` })
+    });
+    const saved = (await asTool("save_asset", ctx).process(ctx, {
+      name: "panda.mp4",
+      content_base64: Buffer.from([0, 1, 2, 3]).toString("base64"),
+      content_type: "video/mp4"
+    })) as Record<string, unknown>;
+    expect(saved.success).toBe(true);
+    expect(saved.asset_uri).toBe(`asset://${String(saved.asset_id)}.mp4`);
+
+    // No extension on the name — the content type still names one.
+    const unnamed = (await asTool("save_asset", ctx).process(ctx, {
+      name: "panda clip",
+      content_base64: Buffer.from([0, 1, 2, 3]).toString("base64"),
+      content_type: "video/mp4"
+    })) as Record<string, unknown>;
+    expect(unnamed.asset_uri).toBe(`asset://${String(unnamed.asset_id)}.mp4`);
+
+    // Neither names one — no suffix is better than a wrong one.
+    const opaque = (await asTool("save_asset", ctx).process(ctx, {
+      name: "blob",
+      content_base64: Buffer.from([0, 1, 2, 3]).toString("base64"),
+      content_type: "application/x-thing"
+    })) as Record<string, unknown>;
+    expect(opaque.asset_uri).toBe(`asset://${String(opaque.asset_id)}`);
+  });
+
   it("copies a stored file into the library from a /api/storage/ source, without base64", async () => {
     // The regression: a tool downloaded a video to storage and returned its
     // asset_url; the model's only way to make it a library asset was
@@ -246,6 +281,36 @@ describe("assets capabilities against the database", () => {
     }
   });
 
+  it("refuses a source that resolves to zero bytes", async () => {
+    // A storage adapter that answers with an empty buffer instead of null is
+    // what turned a failed copy into a 0-byte asset reported as saved.
+    const ctx = makeContext({
+      storage: {
+        retrieve: async () => new Uint8Array(0),
+        store: async (key: string) => `mem://${key}`,
+        uriForKey: (key: string) => `mem://${key}`
+      }
+    });
+
+    const saved = (await asTool("save_asset", ctx).process(ctx, {
+      name: "stitched.mp4",
+      source: "supabase://nodetool-temp/assets/missing.mp4",
+      content_type: "video/mp4"
+    })) as Record<string, unknown>;
+    expect(saved.success).toBe(false);
+    expect(String(saved.error)).toContain("0 bytes");
+  });
+
+  it("refuses base64 that decodes to nothing", async () => {
+    const ctx = makeContext();
+    const saved = (await asTool("save_asset", ctx).process(ctx, {
+      name: "empty.mp4",
+      content_base64: "",
+      content_type: "video/mp4"
+    })) as Record<string, unknown>;
+    expect(saved.success).toBe(false);
+  });
+
   it("refuses more than one content form and names a missing source", async () => {
     const ctx = makeContext();
     const both = (await asTool("save_asset", ctx).process(ctx, {
@@ -284,6 +349,88 @@ describe("view_image", () => {
       mimeType: "image/png"
     });
     expect(extractInjectableImages(result)).not.toBeNull();
+  });
+
+  it.each([
+    ["loopback", "http://localhost:7777/api/storage/abc.png"],
+    ["loopback by ip", "https://127.0.0.1:7777/api/storage/abc.png"],
+    ["cloud metadata", "http://169.254.169.254/latest/meta-data/iam"],
+    ["private range", "https://10.0.0.5/internal.png"],
+    ["plain http to a public host", "http://example.com/logo.png"]
+  ])("refuses a %s URL instead of handing it to the vision provider", async (
+    _label,
+    url
+  ) => {
+    // The passthrough hands `image_content.uri` to the vision provider, which
+    // fetches it from *their* network — so this is not an SSRF against our
+    // host. It is still the one model-supplied URL in this path that never met
+    // the guard every other outbound URL here meets, and `save_asset` already
+    // refuses exactly these through `safeFetch`.
+    const resolveAssetBytes = vi.fn(async () => ({
+      bytes: new Uint8Array(),
+      attempts: [] as string[]
+    }));
+    const ctx = makeContext({ resolveAssetBytes });
+    const result = (await asTool("view_image", ctx).process(ctx, {
+      image_id: url
+    })) as Record<string, unknown>;
+
+    expect(result.ok).toBeUndefined();
+    expect(result.image_content).toBeUndefined();
+    expect(String(result.error)).toContain("refused");
+    // Refused at the URL, not by falling through to an asset lookup.
+    expect(resolveAssetBytes).not.toHaveBeenCalled();
+  });
+
+  it("still passes a public https URL to the provider", async () => {
+    // The guard must not close the door it exists to leave open.
+    const ctx = makeContext();
+    const result = (await asTool("view_image", ctx).process(ctx, {
+      image_id: "https://example.com/logo.png"
+    })) as Record<string, unknown>;
+
+    expect(result.ok).toBe(true);
+    expect(result.image_content).toEqual({
+      uri: "https://example.com/logo.png",
+      mimeType: "image/png"
+    });
+  });
+
+  it("names why resolution failed instead of only naming the accepted forms", async () => {
+    // The shape a headless run hits: `save_asset` minted a real id, the row
+    // exists, and its bytes do not resolve. Reporting only "pass an asset id"
+    // sends an agent back round with the id it already had.
+    const ctx = makeContext({
+      resolveAssetBytes: vi.fn(async () => {
+        throw new Error("storage backend unreachable");
+      })
+    });
+    const result = (await asTool("view_image", ctx).process(ctx, {
+      image_id: "7bbcb4b593644b3abfe6abcfcd96aa60"
+    })) as Record<string, unknown>;
+
+    expect(String(result.error)).toContain("storage backend unreachable");
+    expect(String(result.error)).toContain("data: URI");
+    // It used to offer "http(s) URL" as an accepted form. That is what sent a
+    // headless agent guessing `localhost:7777` URL shapes for seven minutes
+    // while it held a valid id: the message recommended a form that cannot
+    // work here, and the guard then refused every attempt.
+    expect(String(result.error)).not.toContain("http(s)");
+    expect(String(result.error)).toContain("localhost");
+  });
+
+  it("says nothing resolved when the lookup answered with no bytes", async () => {
+    const ctx = makeContext({
+      resolveAssetBytes: vi.fn(async () => ({
+        bytes: new Uint8Array(),
+        attempts: [] as string[]
+      }))
+    });
+    const result = (await asTool("view_image", ctx).process(ctx, {
+      image_id: "empty-asset"
+    })) as Record<string, unknown>;
+
+    expect(String(result.error)).toContain("Nothing resolved for it");
   });
 
   it("runs the argument check the tool ran, with the same envelope", async () => {

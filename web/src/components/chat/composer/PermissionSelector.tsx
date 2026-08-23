@@ -33,7 +33,8 @@ const MODES: ModeItem[] = [
   {
     id: "auto",
     label: "Auto",
-    description: "Everything runs, no prompts.",
+    description:
+      "Routine work runs unattended. A step that deletes, publishes, or spends asks once.",
     tone: "success"
   }
 ];
@@ -94,7 +95,7 @@ const dotCss = (color: string) =>
 /**
  * Compact composer-footer dropdown for the per-thread permission mode. The
  * trigger shows the active mode (label + colored status dot) and opens a
- * three-item menu (Plan / Default / Auto), each with a one-line description
+ * three-item menu (Plan / Default / Auto), each with a short description
  * and a check on the active mode. Reads/writes the active thread's
  * `permissionMode` directly from GlobalChatStore.
  */
@@ -118,9 +119,7 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
 
   const handleSelect = useCallback(
     (next: PermissionMode) => {
-      if (selectedThreadId) {
-        setPermissionMode(selectedThreadId, next);
-      }
+      setPermissionMode(selectedThreadId, next);
       setOpen(false);
     },
     [selectedThreadId, setPermissionMode]
@@ -132,7 +131,7 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
         ref={buttonRef}
         className="permission-selector-trigger"
         icon={<span css={dotCss(dotColor(theme, activeMode.tone))} />}
-        title={`Permission: ${activeMode.label}`}
+        title={`Permission: ${activeMode.label} — ${activeMode.description}`}
         active={open}
         showChevron
         onClick={() => setOpen(true)}

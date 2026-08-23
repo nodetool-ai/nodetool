@@ -262,6 +262,8 @@ export {
 
 // Shared styles for the sidebar document list panels
 export { listPanelStyles } from "./listPanelStyles";
+export { ListPanelItem } from "./ListPanelItem";
+export type { ListPanelItemProps } from "./ListPanelItem";
 
 // Keyboard activation for non-native-button click targets
 export { activateOnKey } from "./keyboardActivation";
@@ -407,6 +409,9 @@ export type { CheckerDropzoneProps } from "./CheckerDropzone";
 export { VideoPlayer } from "./VideoPlayer";
 export type { VideoPlayerProps } from "./VideoPlayer";
 
+export { AudioPlayback } from "./AudioPlayback";
+export type { AudioPlaybackProps } from "./AudioPlayback";
+
 export { DynamicInputButton } from "./DynamicInputButton";
 export type { DynamicInputButtonProps } from "./DynamicInputButton";
 
@@ -457,6 +462,7 @@ export {
   Tab,
   ToggleButton,
   ToggleButtonGroup,
+  SvgIcon,
   Modal,
   Fade,
   Toolbar,
@@ -503,6 +509,7 @@ export type {
   TabProps,
   ToggleButtonProps,
   ToggleButtonGroupProps,
+  SvgIconProps,
   ModalProps,
   FadeProps,
   ToolbarProps,

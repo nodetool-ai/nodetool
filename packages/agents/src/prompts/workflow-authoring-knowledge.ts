@@ -285,12 +285,11 @@ the step wraps a model, a device, or an external service.
 - Sandbox API inside the body: \`fetch\`, \`workspace.*\`, \`crypto.*\`,
   \`format.*\`, \`image.*\`, \`parallelMap\`, \`sleep\`, \`progress\`,
   \`nodetool.secrets.get\`, plus core JavaScript.
-- **The toolbelt is in there too**, as \`tools.<name>(args)\` and the
-  \`nodetool.*\` object model — the same server-side belt an \`execute_code\`
-  action has, minus the browser-only \`ui_*\` tools. A call you ran in an
-  action (\`tools.run_apify_actor\`, \`nodetool.web.search\`, …) runs the same
-  way inside a body. \`__toolNames\` is the belt this host actually carries,
-  and a name it lacks throws saying so.
+- **The toolbelt is in there too**, imported: \`import { run_apify_actor }
+  from "@nodetool-ai/sandbox-nodetool/apify";\`, plus the \`nodetool.*\` object
+  model. It is the same server-side belt an \`execute_code\` action has, minus
+  the browser-only \`ui_*\` tools, so a call you ran in an action runs the same
+  way inside a body. There is no \`tools.<name>()\` global.
 - **Never paste a value you fetched while authoring into a body.** The node has
   to fetch it when it runs — a URL, id or result frozen into the code makes a
   workflow that returns the same stale answer forever and looks like it works.

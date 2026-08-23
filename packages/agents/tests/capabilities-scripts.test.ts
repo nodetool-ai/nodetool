@@ -128,6 +128,7 @@ async function makeScript(
 /** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
   ["list_scripts", () => toolForCapabilityName("list_scripts")],
+  ["create_script", () => toolForCapabilityName("create_script")],
   ["get_script", () => toolForCapabilityName("get_script")],
   ["voice_script_lines", () => toolForCapabilityName("voice_script_lines")],
   [
@@ -138,7 +139,8 @@ const PAIRS: Array<[string, () => Tool]> = [
   [
     "derive_storyboard_from_script",
     () => toolForCapabilityName("derive_storyboard_from_script")
-  ]
+  ],
+  ["delete_script", () => toolForCapabilityName("delete_script")]
 ];
 
 describe("scripts capability module", () => {
@@ -146,11 +148,13 @@ describe("scripts capability module", () => {
     expect(capabilityModuleIssues("scripts", scripts)).toEqual([]);
     expect(scripts.exports.map((e) => e.spec.name)).toEqual([
       "list_scripts",
+      "create_script",
       "get_script",
       "voice_script_lines",
       "assemble_script_timeline",
       "edit_script",
-      "derive_storyboard_from_script"
+      "derive_storyboard_from_script",
+      "delete_script"
     ]);
   });
 
@@ -217,6 +221,38 @@ describe("scripts capability behaviour", () => {
       ["l1", "draft"],
       ["l2", "no_voice"]
     ]);
+  });
+
+  it("creates an empty script, and returns it again on a retried id", async () => {
+    const { context } = ctx();
+
+    const created = (await run(context).invoke("create_script", {
+      name: "Narration",
+      id: "script-1"
+    })) as { ok: boolean; script_id: string; name: string };
+    expect(created).toMatchObject({
+      ok: true,
+      script_id: "script-1",
+      name: "Narration"
+    });
+
+    const read = (await run(context).invoke("get_script", {
+      script_id: created.script_id
+    })) as { cast: unknown[]; lines: unknown[] };
+    expect(read.cast).toEqual([]);
+    expect(read.lines).toEqual([]);
+
+    const retried = (await run(context).invoke("create_script", {
+      name: "Other",
+      id: "script-1"
+    })) as { script_id: string; name: string };
+    expect(retried).toMatchObject({ script_id: "script-1", name: "Narration" });
+
+    const taken = (await run(ctx("other").context).invoke("create_script", {
+      name: "Mine",
+      id: "script-1"
+    })) as { error: string };
+    expect(taken.error).toContain("already exists");
   });
 
   it("hides a script owned by another user", async () => {

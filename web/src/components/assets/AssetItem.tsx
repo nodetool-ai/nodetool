@@ -16,6 +16,7 @@ import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
 import { useActivateOnKey } from "../../hooks/useActivateOnKey";
+import { isCoarsePointer } from "../../utils/isCoarsePointer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -32,6 +33,9 @@ const styles = (theme: Theme) =>
       height: "100%",
       cursor: "grab",
       minHeight: "30px",
+      // Without this a phone waits for a second tap before dispatching the
+      // first click, and double-tap zooms the panel instead of opening.
+      touchAction: "manipulation",
       boxSizing: "border-box",
       WebkitBoxSizing: "border-box",
       MozBoxSizing: "border-box"
@@ -239,6 +243,14 @@ const styles = (theme: Theme) =>
       pointerEvents: "all",
       opacity: 1
     },
+    // A phone keeps :hover on the tile it last tapped, which would leave this
+    // button live over the thumbnail — the next tap deletes instead of opens.
+    // Touch deletes through the long-press context menu.
+    "@media (pointer: coarse)": {
+      ".asset-delete-overlay": {
+        display: "none"
+      }
+    },
     "&.image": {
       background: "transparent",
       backgroundRepeat: "no-repeat",
@@ -416,7 +428,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   // Memoize click handler to prevent unnecessary re-renders
   const handleItemClick = useCallback(() => {
     handleClick(onSelect, onClickParent, isParent);
-  }, [handleClick, onSelect, onClickParent, isParent]);
+    // Touch has no reliable dblclick, so a tap has to both select and open.
+    if (!isParent && isCoarsePointer()) {
+      onDoubleClick?.(asset);
+    }
+  }, [handleClick, onSelect, onClickParent, isParent, onDoubleClick, asset]);
 
   const handleItemKeyDown = useActivateOnKey(handleItemClick);
 
@@ -449,7 +465,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       onDragOver={handleDragOver}
     >
       {showDeleteButton && (
-        <div css={deleteButtonOverlayStyle}>
+        <div className="asset-delete-overlay" css={deleteButtonOverlayStyle}>
           <DeleteButton
             className="asset-delete"
             onClick={handleDelete}

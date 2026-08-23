@@ -93,6 +93,9 @@ export const languageFromAsset = (asset: TextAssetLike): string | undefined => {
   if (type === "application/javascript" || type === "application/typescript") {
     return "javascript";
   }
+  if (type === "text/markdown" || type === "text/x-markdown") {
+    return "markdown";
+  }
   if (type.startsWith("text/")) {
     return "plaintext";
   }

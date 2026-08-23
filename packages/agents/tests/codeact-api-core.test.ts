@@ -148,7 +148,7 @@ const SOLUTIONS: Record<string, string[]> = {
      });
      await finish({
        status: settled.status,
-       shout: settled.result.outputs.shout
+       shout: settled.outputs.shout
      });`
   ],
   "api-batch-existing-workflow": [

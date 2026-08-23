@@ -5,8 +5,8 @@ description: Exact decimal arithmetic inside a Code node or CodeAct action, with
 
 # Decimals in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-decimal`. One module, decimal.js. Declare it
-in the node's `packages` property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-decimal`. One module, decimal.js. Import it
+at the top of the body.
 
 ## Exact sums
 

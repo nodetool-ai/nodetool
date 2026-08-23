@@ -6,8 +6,8 @@
  * a handler on the code assistant bridge, so the chat agent's `ui_code_*`
  * tools read and mutate the same draft the editor shows — edits appear live.
  *
- * Nothing is persisted before Apply: Apply writes the draft code, ports, and
- * packages back to the node in one undoable update; Cancel leaves the node
+ * Nothing is persisted before Apply: Apply writes the draft code and ports
+ * back to the node in one undoable update; Cancel leaves the node
  * untouched (and the host's discard plan removes a node created only to open
  * the dialog).
  */
@@ -44,7 +44,7 @@ import type {
 import { registerCodeAssistantHandler } from "./codeAssistantBridge";
 import CodeAssistantChatPanel from "./CodeAssistantChatPanel";
 import ResizableSideDock from "../../chat/assistant/ResizableSideDock";
-import { isObjectLike, isString } from "../../../utils/typePredicates";
+import { isString } from "../../../utils/typePredicates";
 
 const CHAT_PANEL_WIDTH = 360;
 
@@ -58,20 +58,6 @@ interface CodeAssistantDialogProps {
   /** Set when launched from a destination handle (store request). */
   expectedOutput?: codeGen.CodeGenExpectedOutput;
 }
-
-/** A saved `packages` entry is a specifier string or a declaration object. */
-const packageSpecifier = (entry: unknown): string | null => {
-  if (isString(entry)) {
-    return entry;
-  }
-  if (isObjectLike(entry)) {
-    const specifier = (entry as { specifier?: unknown }).specifier;
-    if (isString(specifier)) {
-      return specifier;
-    }
-  }
-  return null;
-};
 
 const PortChips = ({
   label,
@@ -138,18 +124,10 @@ const CodeAssistantDialogInner = ({
         type: expectedOutput.type.type
       });
     }
-    const packages = (
-      Array.isArray(data?.properties?.packages)
-        ? (data.properties.packages as unknown[])
-        : []
-    )
-      .map(packageSpecifier)
-      .filter((specifier): specifier is string => specifier !== null);
     return {
       code,
       inputs: inputPorts,
       outputs: outputPorts,
-      packages,
       title: data?.title
     };
   });
@@ -161,21 +139,17 @@ const CodeAssistantDialogInner = ({
   const [draftOutputs, setDraftOutputs] = useState<CodeAssistantPort[]>(
     seed.outputs
   );
-  const [draftPackages, setDraftPackages] = useState<string[]>(seed.packages);
-
   // The bridge handler reads through refs so it always sees the latest draft
   // without re-registering on every keystroke.
   const draftRef = useRef({
     code: draftCode,
     inputs: draftInputs,
-    outputs: draftOutputs,
-    packages: draftPackages
+    outputs: draftOutputs
   });
   draftRef.current = {
     code: draftCode,
     inputs: draftInputs,
-    outputs: draftOutputs,
-    packages: draftPackages
+    outputs: draftOutputs
   };
 
   useEffect(
@@ -185,8 +159,7 @@ const CodeAssistantDialogInner = ({
           node_id: nodeId,
           code: draftRef.current.code,
           inputs: draftRef.current.inputs.map((port) => ({ ...port })),
-          outputs: draftRef.current.outputs.map((port) => ({ ...port })),
-          packages: [...draftRef.current.packages]
+          outputs: draftRef.current.outputs.map((port) => ({ ...port }))
         }),
         setCode: (code) => setDraftCode(code),
         setPorts: ({ inputs: nextInputs, outputs: nextOutputs }) => {
@@ -196,8 +169,7 @@ const CodeAssistantDialogInner = ({
           if (nextOutputs) {
             setDraftOutputs(nextOutputs.map((port) => ({ ...port })));
           }
-        },
-        setPackages: (packages) => setDraftPackages([...packages])
+        }
       }),
     [nodeId]
   );
@@ -221,7 +193,7 @@ const CodeAssistantDialogInner = ({
       onClose();
       return;
     }
-    const { code, inputs, outputs, packages } = draftRef.current;
+    const { code, inputs, outputs } = draftRef.current;
 
     const dynamic_inputs: Record<string, DynamicSlotDeclaration> = {};
     const dynamic_properties: Record<string, unknown> = {};
@@ -246,24 +218,14 @@ const CodeAssistantDialogInner = ({
       dynamic_outputs[port.name] = normalizeTypeMetadata(port.type);
     }
 
-    // Untouched packages keep the node's stored declarations (pack-version
-    // stamps included); a changed list is written as plain specifiers.
-    const packagesChanged =
-      packages.length !== seed.packages.length ||
-      packages.some((specifier, i) => specifier !== seed.packages[i]);
-
-    const properties = packagesChanged
-      ? { ...node.data.properties, code, packages }
-      : { ...node.data.properties, code };
-
     updateNodeData(nodeId, {
-      properties,
+      properties: { ...node.data.properties, code },
       dynamic_inputs,
       dynamic_properties,
       dynamic_outputs
     });
     onClose();
-  }, [findNode, nodeId, onClose, seed.packages, updateNodeData]);
+  }, [findNode, nodeId, onClose, updateNodeData]);
 
   const editorOptions = useMemo(
     () => ({
@@ -299,18 +261,6 @@ const CodeAssistantDialogInner = ({
             <Text weight={600}>{nodeTitle}</Text>
             <PortChips label="Inputs" ports={draftInputs} />
             <PortChips label="Outputs" ports={draftOutputs} />
-            {draftPackages.length > 0 && (
-              <FlexRow
-                gap={SPACING.xs}
-                align="center"
-                sx={{ flexWrap: "wrap" }}
-              >
-                <Label>Packages</Label>
-                {draftPackages.map((specifier) => (
-                  <Chip key={specifier} compact label={specifier} />
-                ))}
-              </FlexRow>
-            )}
           </FlexRow>
           <Box
             sx={{

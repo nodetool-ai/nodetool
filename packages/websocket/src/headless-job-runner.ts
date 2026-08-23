@@ -19,6 +19,7 @@
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   ExecutionSession,
+  isExecutionPreflightError,
   normalizeGraph,
   toRawGraphInput,
   type RunResult
@@ -32,6 +33,7 @@ import type { SupervisorRunOptions } from "@nodetool-ai/protocol";
 import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { createRunSupervisor } from "./run-supervisor.js";
 import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
+import { getAssetAdapter } from "./lib/storage.js";
 
 const log = createLogger("nodetool.websocket.headless-job");
 
@@ -180,15 +182,18 @@ export async function startHeadlessJob(
     });
   }
 
-  const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
+  const workspace = await resolveWorkflowWorkspace(workflowId, userId);
   const context = new ProcessingContext({
     jobId: job.id,
     workflowId,
     userId,
     secretResolver: getSecret,
     storage: new FileStorageAdapter(getDefaultAssetsPath()),
-    workspaceDir,
-    workspaceStorage: workspaceDir ? new FileStorageAdapter(workspaceDir) : null
+    // `asset://<id>` inputs resolve through the configured asset store, which
+    // is only the local assets dir on a `file` backend. Without it a triggered
+    // run on an S3/Supabase deployment reads every uploaded input as empty.
+    assetStorage: getAssetAdapter(),
+    workspace
   });
 
   log.info("Headless job started", {
@@ -228,7 +233,29 @@ export async function startHeadlessJob(
   if (supervisor) {
     sessionOptions.supervisor = supervisor;
   }
-  const session = await ExecutionSession.create(sessionOptions);
+  // The job row already exists, so a refusal must finalize it — a bare throw
+  // stranded it at "running" forever. `create()` refuses a graph this runtime
+  // cannot honour (unknown model, unregistered provider, missing credential)
+  // before the kernel starts.
+  let session: ExecutionSession;
+  try {
+    session = await ExecutionSession.create(sessionOptions);
+  } catch (err) {
+    if (!isExecutionPreflightError(err)) throw err;
+    await persistTerminalStatus(job.id, {
+      status: "failed",
+      error: err.message,
+      outputs: {},
+      messages: []
+    } as RunResult);
+    log.info("Headless job refused", { jobId: job.id, error: err.message });
+    return {
+      jobId: job.id,
+      status: "failed",
+      error: err.message,
+      outputs: {}
+    };
+  }
 
   const result = await session.result;
 

@@ -7,14 +7,67 @@ import type {
   EmbeddingModel
 } from "../stores/ApiTypes";
 import type { TypeTag, SizeBucket } from "../stores/ModelFiltersStore";
+import type { ModelExecutionAvailability } from "@nodetool-ai/protocol";
+import { isLocalhost } from "../lib/env";
 
-export type ModelSelectorModel =
+export type ModelSelectorModel = (
   | LanguageModel
   | EmbeddingModel
   | ImageModel
   | ASRModel
   | TTSModel
-  | VideoModel;
+  | VideoModel
+) & { execution?: ModelExecutionAvailability | null };
+
+const UNKNOWN_MODEL_EXECUTION: ModelExecutionAvailability = {
+  kind: "unavailable",
+  state: "unavailable",
+  label: "Unavailable",
+  reason: "Execution availability was not reported by this server."
+};
+
+export function executionForDisplay(
+  model: Pick<ModelSelectorModel, "execution">,
+  nodetoolHostIsLocal: boolean = isLocalhost
+): ModelExecutionAvailability {
+  const execution = model.execution ?? UNKNOWN_MODEL_EXECUTION;
+  if (
+    execution.execution_site !== "nodetool_host" ||
+    !nodetoolHostIsLocal
+  ) {
+    return execution;
+  }
+  return {
+    ...execution,
+    kind: "local",
+    label: "Local",
+    reason:
+      execution.state === "download_required"
+        ? "Download the model files before using it locally."
+        : execution.runtime_name
+          ? `Runs through ${execution.runtime_name} on this device.`
+          : "Runs on this device."
+  };
+}
+
+export function executionLabelsByProvider(
+  models: readonly ModelSelectorModel[],
+  nodetoolHostIsLocal: boolean = isLocalhost
+): Map<string, Set<ModelExecutionAvailability["label"]>> {
+  const labels = new Map<
+    string,
+    Set<ModelExecutionAvailability["label"]>
+  >();
+  for (const model of models) {
+    if (!model.provider) continue;
+    const providerLabels = labels.get(model.provider) ?? new Set();
+    providerLabels.add(
+      executionForDisplay(model, nodetoolHostIsLocal).label
+    );
+    labels.set(model.provider, providerLabels);
+  }
+  return labels;
+}
 
 type NormalizedModelMeta = {
   sizeB?: number; // billions of params
@@ -25,12 +78,24 @@ type NormalizedModelMeta = {
 };
 
 const bucketSizeByB = (b?: number) => {
-  if (b === null || b === undefined) {return undefined;}
-  if (b <= 2) {return "1-2B";}
-  if (b <= 7) {return "3-7B";}
-  if (b <= 15) {return "8-15B";}
-  if (b <= 34) {return "16-34B";}
-  if (b <= 70) {return "35-70B";}
+  if (b === null || b === undefined) {
+    return undefined;
+  }
+  if (b <= 2) {
+    return "1-2B";
+  }
+  if (b <= 7) {
+    return "3-7B";
+  }
+  if (b <= 15) {
+    return "8-15B";
+  }
+  if (b <= 34) {
+    return "16-34B";
+  }
+  if (b <= 70) {
+    return "35-70B";
+  }
   return "70B+";
 };
 
@@ -99,15 +164,21 @@ export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
       const hasMatchingType = selectedTypes.some((t) =>
         meta.typeTags.includes(t)
       );
-      if (!hasMatchingType) {return false;}
+      if (!hasMatchingType) {
+        return false;
+      }
     }
 
     if (sizeBucket !== null) {
-      if (meta.sizeBucket !== sizeBucket) {return false;}
+      if (meta.sizeBucket !== sizeBucket) {
+        return false;
+      }
     }
 
     if (families.length > 0) {
-      if (!meta.family || !families.includes(meta.family)) {return false;}
+      if (!meta.family || !families.includes(meta.family)) {
+        return false;
+      }
     }
 
     return true;

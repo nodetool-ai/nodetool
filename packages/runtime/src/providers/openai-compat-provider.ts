@@ -15,6 +15,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { OpenAIProvider } from "./openai-provider.js";
 import {
   OpenAICompatClient,
+  decodeChatCompletion,
   type ChatCompletionsRequest
 } from "./openai-compat/index.js";
 import type {
@@ -281,40 +282,24 @@ export class OpenAICompatProvider extends OpenAIProvider {
       signal: args.signal
     });
 
-    const choice = completion.choices?.[0];
-    if (!choice) {
+    let decoded;
+    try {
+      decoded = decodeChatCompletion(completion);
+    } catch {
+      // The decoder rejects exactly the bodies this path cannot turn into a
+      // message; keep the wording callers already match on.
       throw new Error(`${this.provider} returned no choices`);
     }
 
-    const usage = completion.usage;
-    if (usage) {
-      this.trackUsage(model, {
-        inputTokens: usage.prompt_tokens ?? 0,
-        outputTokens: usage.completion_tokens ?? 0,
-        cachedTokens: usage.prompt_tokens_details?.cached_tokens ?? 0
-      });
-    }
+    if (decoded.usage) this.trackUsage(model, decoded.usage);
 
-    const responseMessage = choice.message;
-    const toolCalls = Array.isArray(responseMessage?.tool_calls)
-      ? responseMessage.tool_calls
-          // Keep function calls, and entries with no `type` at all — some
-          // gateways omit it (the wire type marks `type` optional). The
-          // streaming path likewise accepts every tool-call delta. Only drop
-          // entries that explicitly declare a non-function type.
-          .filter((tc) => tc.type === "function" || tc.type === undefined)
-          .map((tc) =>
-            this.buildToolCall(
-              String(tc.id ?? ""),
-              String(tc.function?.name ?? ""),
-              tc.function?.arguments ?? undefined
-            )
-          )
-      : undefined;
+    const toolCalls = decoded.toolCalls?.map((tc) =>
+      this.buildToolCall(tc.id, tc.name, tc.arguments)
+    );
 
     return {
       role: "assistant",
-      content: responseMessage?.content ?? null,
+      content: decoded.content,
       toolCalls
     };
   }

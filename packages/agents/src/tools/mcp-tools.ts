@@ -23,6 +23,7 @@ import {
   UNGATED,
   createCapabilityRun,
   toolFromLazyCapability,
+  type AvailableSecretsResolver,
   type CapabilityRun
 } from "../capabilities/index.js";
 import { capabilitySpec } from "../capabilities/registry.js";
@@ -44,6 +45,7 @@ type RunSource = (context: ProcessingContext) => CapabilityRun;
 
 /** What a host injects into the workflow capabilities. */
 interface WorkflowCapabilityDeps {
+  secretAvailability?: SecretAvailabilityFactory;
   registry?: NodeRegistry;
   examples?: ExampleWorkflowCatalog;
   exportDsl?: WorkflowDslExporter;
@@ -61,6 +63,7 @@ function workflowCapabilityRun(
   return createCapabilityRun({
     context,
     gate: UNGATED,
+    availableSecrets: deps.secretAvailability?.(context),
     nodeRegistry: deps.registry,
     examples: deps.examples,
     exportDsl: deps.exportDsl,
@@ -172,7 +175,23 @@ export interface GetAllMcpToolsOptions {
    * registry but still benefits from these tools.
    */
   providers?: Record<string, BaseProvider>;
+  /**
+   * Builds the run's `availableSecrets` callback from its context — pass
+   * `contextSecretAvailability` where a real secret store backs the run. It is
+   * a factory rather than a callback because the belt is assembled once and
+   * every call brings its own `ProcessingContext`.
+   *
+   * Without it `validate_workflow` skips the `missing_secret` check, which is
+   * what a hermetic host wants: nothing can answer, and reporting every
+   * declared credential as absent would be a false alarm on every graph.
+   */
+  secretAvailability?: SecretAvailabilityFactory;
 }
+
+/** See {@link GetAllMcpToolsOptions.secretAvailability}. */
+export type SecretAvailabilityFactory = (
+  context: ProcessingContext
+) => AvailableSecretsResolver | undefined;
 
 export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
   // Every name here is a capability. The belt is assembled from the registry's
@@ -186,7 +205,8 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
       examples: options.examples,
       exportDsl: options.exportDsl,
       workflowEnvironment: options.workflowEnvironment,
-      listPackageAssets: options.listPackageAssets
+      listPackageAssets: options.listPackageAssets,
+      secretAvailability: options.secretAvailability
     });
 
   const withRun = (name: string, run: RunSource): Tool => {
@@ -202,6 +222,11 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     "list_workflows",
     "get_workflow",
     "create_workflow",
+    "list_workflow_versions",
+    "get_workflow_version",
+    "create_workflow_version",
+    "restore_workflow_version",
+    "delete_workflow_version",
     "run_workflow",
     "debug_workflow",
     "resolve_workflow_escalation",
@@ -209,8 +234,16 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     "get_example_workflow",
     "export_workflow_digraph",
     "start_background_job",
-    // apps
+    // apps — unlike the `ui_app_*` tools, these also work when the App
+    // Builder is not already open in the browser. Keep the whole headless
+    // app lifecycle on the chat belt so `nodetool.apps.*` never advertises a
+    // method whose backing capability is absent.
+    "list_apps",
+    "get_app",
+    "create_app",
+    "edit_app",
     "debug_app",
+    "delete_app",
     // jobs
     "list_jobs",
     "get_job",

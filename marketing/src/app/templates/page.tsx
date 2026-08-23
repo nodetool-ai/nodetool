@@ -13,7 +13,7 @@ const BASE_URL = "https://nodetool.ai";
 export const metadata: Metadata = {
   title: "AI Workflow Templates — NodeTool",
   description:
-    "Browse ready-to-run NodeTool workflow templates for image, video, audio, agents, and marketing. Open any of them in Studio and run it with your own keys.",
+    "Browse editable NodeTool workflow templates for image, video, audio, agents, and marketing. Open any in Studio, or explore simplified runnable mini apps.",
   alternates: { canonical: `${BASE_URL}/templates` },
 };
 
@@ -89,6 +89,23 @@ export default function TemplatesHub() {
               Ready-to-run NodeTool workflows for image, video, audio, agents,
               and marketing. Open one in Studio, connect your keys, and run it,
               then rearrange it to suit your own work.
+            </p>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-500">
+              Templates are editable workflow graphs: inspect the nodes,
+              change the connections, and make them your own. For a simpler
+              guided experience, browse the{" "}
+              <a
+                href="/apps"
+                className="text-sky-300 underline underline-offset-2 hover:text-sky-200"
+              >
+                runnable mini apps
+              </a>{" "}or learn how{" "}
+              <a
+                href="/node-based-ai"
+                className="text-sky-300 underline underline-offset-2 hover:text-sky-200"
+              >
+                node-based AI workflows
+              </a>{" "}work.
             </p>
             <div className="mt-8">
               <SmartDownloadButton

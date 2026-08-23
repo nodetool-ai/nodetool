@@ -13,7 +13,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { toolForCapabilityName } from "../../src/capabilities/lazy-tool.js";
 
@@ -54,8 +54,7 @@ function makeContext(stub: {
   assetCalls?: AssetCreateCall[];
 }): ProcessingContext {
   const ctx: Record<string, unknown> = {
-    workspaceDir,
-    workspaceStorage: new FileStorageAdapter(workspaceDir),
+    workspace: createLocalWorkspace(workspaceDir),
     resolveWorkspacePath: (p: string) => {
       const resolved = path.resolve(workspaceDir, p);
       if (!resolved.startsWith(workspaceDir + path.sep) && resolved !== workspaceDir) {

@@ -9,6 +9,7 @@
 import type { Command } from "commander";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
+import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 import {
   RECOMMENDED_MODELS,
   type RecommendedUnifiedModel
@@ -166,6 +167,7 @@ export function registerRecommendedCommand(models: Command): void {
               links: [
                 httpBatchLink({
                   url: `${opts.apiUrl}/trpc`,
+                  maxItems: TRPC_MAX_BATCH_SIZE,
                   // POST keeps the batched input in the request body instead of
                   // the URL, so large batches stay under reverse-proxy
                   // URL-length limits. See #3979.

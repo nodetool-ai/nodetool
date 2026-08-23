@@ -31,7 +31,11 @@ jest.mock("../../../stores/MetadataStore", () => {
   return { __esModule: true, default: store };
 });
 
-import { findOutputHandle, findInputHandle } from "../../../utils/handleUtils";
+import {
+  findOutputHandle,
+  findInputHandle,
+  getAllInputHandles,
+} from "../../../utils/handleUtils";
 import { isConnectable } from "../../../utils/TypeHandler";
 import { wouldCreateCycle } from "../../../utils/graphCycle";
 
@@ -305,5 +309,39 @@ describe("ui_connect_nodes tool", () => {
         { getState: () => state }
       )
     ).rejects.toThrow(/Target handle 'bad_input' not found/);
+  });
+
+  it("separates ports from properties and teaches the Code-node remedy", async () => {
+    mockedFindInputHandle.mockReturnValue(null);
+    (getAllInputHandles as jest.Mock).mockReturnValue([
+      { name: "audience", isDynamic: true },
+      { name: "code", isDynamic: false },
+      { name: "timeout", isDynamic: false },
+    ]);
+
+    const nodes = [
+      { id: "n1", type: "test.Source" },
+      { id: "n2", type: "nodetool.code.Code" },
+    ];
+    const store = createMockNodeStore(nodes);
+    const state = createMockState({
+      getNodeStore: jest.fn().mockReturnValue(store),
+    });
+
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_connect_nodes",
+        {
+          source_node_id: "n1",
+          source_handle: "output",
+          target_node_id: "n2",
+          target_handle: "undesired_state",
+        },
+        "tc-9",
+        { getState: () => state }
+      )
+    ).rejects.toThrow(
+      /ports: \[audience\].*properties: \[code, timeout\][\s\S]*dynamic port exists only once the body reads inputs\.<name>/
+    );
   });
 });

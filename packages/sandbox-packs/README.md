@@ -58,7 +58,7 @@ entry is `{"kind": "host", "host": "<id>"}` and the implementation lives in
 
 ### The service packs build requests; they never send one
 
-The last five packs replace the S3, Notion, Supabase, Twilio and Apify nodes.
+The last four packs replace the S3, Notion, Supabase and Twilio nodes.
 They are not libraries: each is a pure function that turns a description of a
 request into `{url, method, headers, body}`, or in `-aws`'s case into signed
 headers. The guest passes that to its own `fetch`, so the run's fetch cap, its

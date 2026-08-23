@@ -36,6 +36,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Workflows | `/api/debug/sessions/{id}`        | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | State of an interactive run: the escalation it is parked on, or its final report |
 | Workflows | `/api/debug/sessions/{id}/verdict` | `POST`           | Depends on `AUTH_PROVIDER`                     | no                          | Answer the parked escalation, then wait for the next one or the final report |
 | Workflows | `/api/debug/sessions/{id}/cancel` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Cancel the run and return its final report |
+| SDK       | `/api/sdk/v1/workflows/{id}/interface` | `GET`        | Depends on `AUTH_PROVIDER`                     | no                          | One workflow's input and output pins; `?version=1` is required |
 | Workflows | `/api/workflows/public`           | `GET`             | none                                           | no                          | Workflows the owner marked `access: "public"` |
 | Workflows | `/api/workflows/public/{id}`      | `GET`             | none                                           | no                          | One public workflow; `404` when it is not public |
 | Examples  | `/api/workflows/examples`         | `GET`             | none                                           | no                          | Shipped example templates — metadata only, `graph` is empty |
@@ -43,6 +44,10 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Examples  | `/api/workflows/examples/thumbnails/{filename}` | `GET` | none                                     | no                          | Example thumbnail; `.jpg` and `.png` only |
 | Examples  | `/api/workflows/examples/{package}/{example}` | `GET`  | none                                           | no                          | One example with its full `graph`, unlike the list; `404` when the package has no example by that name |
 | Triggers  | `/api/webhooks/{token}`           | `POST`            | `x-webhook-secret` header (no session)         | no                          | Deliver an event to a `webhook` trigger registration; wakes the workflow without waiting for the next poll |
+| Integrations | `/api/integrations/{provider}/link/start` | `POST`     | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Mint a one-time link code and the URL that redeems it; 10-minute TTL |
+| Integrations | `/api/integrations/{provider}/link/complete` | `POST`  | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Redeem a link code, binding the external account to a NodeTool user |
+| Integrations | `/api/integrations/{provider}/token` | `POST`            | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Exchange a linked external id for a one-hour delegated user token; `409` in local single-user mode |
+| Integrations | `/api/integrations/{provider}/link` | `DELETE`           | `NODETOOL_INTEGRATION_TOKEN` bearer (no session) | no                        | Unlink an external account; `{"unlinked": false}` when it was not linked |
 | Nodes     | `/api/nodes/metadata`             | `GET`             | none                                           | no                          | The node registry the editor loads at boot; slim summaries by default, one node's full metadata with `?node_type=` |
 | Workspaces | `/api/workspaces/{id}/download/{path}` | `GET`        | Depends on `AUTH_PROVIDER`                     | streaming                   | One file out of a workspace as an attachment; `403` when `NODETOOL_ENV=production` |
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
@@ -51,6 +56,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Assets    | `/api/assets/packages/{package}`  | `GET`             | none                                           | no                          | Stub — same empty page. Fetch a package's files by name, not by listing |
 | Assets    | `/api/assets/download`            | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Bulk ZIP download; `501` on this server |
 | Apps      | `/api/applications/{id}/released-document` | `GET`    | Depends on `AUTH_PROVIDER`                     | no                          | The snapshot a published app should run, with each operation's pinned graph; `null` when nothing is published |
+| Apps      | `/api/applications/{id}/export-bundle` | `GET`        | Depends on `AUTH_PROVIDER`                     | no                          | One app and the full graph of every workflow it binds, as a downloadable `ApplicationBundle` |
 | Apps      | `/api/applications/examples`      | `GET`             | none                                           | no                          | The shipped example apps — slug, name, description, workflow names, operation count |
 | Apps      | `/api/applications/examples/{slug}` | `GET`           | none                                           | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
 | Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Depends on `AUTH_PROVIDER`                     | no                          | Install an example into the caller's library, creating the workflows it binds |
@@ -60,6 +66,13 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Providers | `/api/kie/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's kie.ai credit balance; `204` when no `KIE_API_KEY` is configured |
 | Providers | `/api/kie/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Credit price per kie.ai model, one or more `?model_id=`; cached an hour |
 | Providers | `/api/kie/resolve-dynamic-schema` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Pasted kie.ai model docs to a node's dynamic properties, inputs, and outputs |
+| JS Scripts | `/api/js-scripts/{id}/run`       | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Run a saved JS script document in the sandbox and return its outputs |
+| SDK       | `/api/sdk/v1/capabilities`        | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | What this server supports — profiles, encodings, execution options, limits |
+| SDK       | `/api/sdk/v1/node-types`          | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Paged inventory of the pin types in the registry and which nodes use them |
+| SDK       | `/api/sdk/v1/workflows`           | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Workflow summaries with the revision an interface was read at |
+| SDK       | `/api/sdk/v1/workflow-interfaces` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Up to 100 workflows' interfaces in one call, with per-workflow errors |
+| SDK       | `/api/sdk/v1/preflight`           | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Whether a workflow is runnable, what it needs, and what it will cost |
+| SDK       | `/api/sdk/v1/assets/temporary`    | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Store one execution input in temporary storage; creates no asset row |
 | SDK       | `/api/sdk/v1/models`              | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Paged model catalog with per-model availability and the wire value a node property takes |
 | SDK       | `/api/sdk/v1/model-downloads`     | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Snapshot of this caller's model downloads, running and finished |
 | SDK       | `/api/sdk/v1/model-downloads`     | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Start a model download; `202` with the operation's first state |
@@ -304,6 +317,125 @@ curl -X POST "http://localhost:7777/api/webhooks/nosuchtoken" \
 ```json
 { "error": "Unknown webhook token" }
 ```
+
+### Linking an External Messaging Account
+
+A messaging bridge — the `nodetool telegram` bot, and later Discord — is not a
+browser and holds no user credential. It proves *which external account* is
+speaking, and the server decides which NodeTool user that is. The four
+`/api/integrations/{provider}/*` routes are that exchange. `{provider}` is
+`telegram` or `discord`; anything else is `400`.
+
+These routes authenticate with `NODETOOL_INTEGRATION_TOKEN` — the server's own
+service token, sent as a bearer and compared in constant time — rather than a
+session, which is why they sit outside the session-auth hook the way the webhook
+route does. **A server with that variable unset, or set to fewer than 16
+characters, never registers them: every path answers `404`, not `401`.** Set the
+same value on the bridge process.
+
+Linking runs in one of two directions, and which one you are in decides which
+route redeems the code. Either way the code is 24 random bytes, base64url, good
+for ten minutes and spent on first use.
+
+**Bot-initiated.** The bridge mints a code bound to the external account and
+sends the URL into the chat:
+
+```bash
+curl -X POST "http://localhost:7777/api/integrations/telegram/link/start" \
+  -H "Authorization: Bearer $NODETOOL_INTEGRATION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "482913044"}'
+```
+
+```json
+{
+  "code": "Yb3xK9_qLm2vR7nT4pWzA1sD6fG8hJ0c",
+  "url": "http://localhost:7777/integrations/link?code=Yb3xK9_qLm2vR7nT4pWzA1sD6fG8hJ0c",
+  "expires_at": "2026-08-23T12:41:07.000Z"
+}
+```
+
+`url` is built from the request's own `Host` header unless `NODETOOL_PUBLIC_URL`
+is set — set that when the bridge reaches the server at an address the user's
+browser cannot, such as `http://nodetool:7777` inside a compose network.
+
+The bridge stops there. The user opens that URL, and the confirmation page spends
+the code over tRPC (`integrations.describeLinkCode`, then
+`integrations.confirmLink`) under their own session, so the account that gets
+linked is the one they are signed in as — never one the code named.
+
+**Web-initiated.** The mirror image, and the one `/link/complete` exists for.
+Settings → Integrations mints a code bound to the signed-in user
+(`integrations.createLinkCode`) and renders it as `t.me/<bot>?start=<code>`.
+Pressing **Start** delivers `/start <code>` to the bot, which redeems it with the
+external id it can see:
+
+```bash
+curl -X POST "http://localhost:7777/api/integrations/telegram/link/complete" \
+  -H "Authorization: Bearer $NODETOOL_INTEGRATION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "482913044", "code": "Yb3xK9_qLm2vR7nT4pWzA1sD6fG8hJ0c"}'
+```
+
+```json
+{ "linked": true }
+```
+
+A user-bound code already carries the user who minted it, and that user wins, so
+`user_id` in the body is ignored here. Send it only when redeeming a code that
+`link/start` minted — a code bound to an external account names no user, and the
+call is `400` without one.
+
+With the link in place either way, the bridge exchanges identity for access on
+every connection:
+
+```bash
+curl -X POST "http://localhost:7777/api/integrations/telegram/token" \
+  -H "Authorization: Bearer $NODETOOL_INTEGRATION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "482913044"}'
+```
+
+```json
+{
+  "token": "ndt_eyJ2IjoxLCJ1IjoiM2Y5YSIsImUiOjE3ODc0OTE4Njd9.9c1f…",
+  "expires_at": "2026-08-23T13:31:07.000Z",
+  "user_id": "3f9a…"
+}
+```
+
+The token lasts one hour and authenticates as that user on `/ws`, `/trpc`, and
+asset URLs. Tenant isolation is then the server's usual rules — threads, tools,
+permissions, and cost tracking all stay server-side, and the bridge holds no
+conversation state of its own.
+
+Unlinking takes the external id in the body of a `DELETE`:
+
+```bash
+curl -X DELETE "http://localhost:7777/api/integrations/telegram/link" \
+  -H "Authorization: Bearer $NODETOOL_INTEGRATION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "482913044"}'
+```
+
+```json
+{ "unlinked": true }
+```
+
+`"unlinked": false` means there was nothing to remove. The failures across all
+four routes:
+
+| Status | Meaning |
+|--------|---------|
+| `404`  | The routes are not registered (`NODETOOL_INTEGRATION_TOKEN` unset or under 16 characters), or — on `/token` — the external id is not linked to any user |
+| `401`  | Missing or wrong service token |
+| `400`  | Unknown `provider`, missing `external_id`, or a code issued for a different account |
+| `410`  | The link code expired or was already used |
+| `409`  | `/token` only: the server runs in local single-user mode, where every request is already user `1`, so a delegated token would isolate nothing. Run with an enforcing auth provider (Supabase) |
+
+Design and the bot's side of the flow:
+[Telegram bot design](telegram-bot-design.md). The bridge command is
+[`nodetool telegram`](cli.md#nodetool-telegram).
 
 ### Chat API (OpenAI-Compatible)
 
@@ -1025,6 +1157,587 @@ template leaves one workflow row both apps point at.
 
 To install a bundle of your own instead of a shipped one, post it to
 `POST /api/applications/import-bundle`.
+
+### Exporting an App as a Bundle
+
+`GET /api/applications/{id}/export-bundle` is the other half of
+`import-bundle`: it packs one of the caller's apps and the full graph of every
+workflow its operations bind into a single `ApplicationBundle` JSON file. Reach
+for it to move an app between servers, or to check into git what
+`import-bundle` will recreate.
+
+```bash
+curl "http://localhost:7777/api/applications/<application_id>/export-bundle" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -O -J
+```
+
+The response is `application/json` with a `content-disposition` built from the
+app's name — `attachment; filename="Ask_Your_Documents.app.json"` — so `curl -OJ`
+writes it under that name. The body is the bundle:
+
+```json
+{
+  "schemaVersion": 1,
+  "name": "Ask Your Documents",
+  "description": "Retrieval-augmented answers with citations, and a fully local fallback…",
+  "app": {
+    "schemaVersion": 4,
+    "ui": { "root": {}, "content": [] },
+    "operations": [
+      {
+        "id": "ask",
+        "name": "Ask",
+        "workflowId": "chat-with-your-documents",
+        "inputs": { "question_input": { "from": "variable", "variableId": "question" } },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "workflows": [
+    {
+      "key": "chat-with-your-documents",
+      "name": "Chat With Your Documents",
+      "description": "Retrieval-augmented Q&A over your own documents…",
+      "graph": { "nodes": [], "edges": [] },
+      "version": null,
+      "graphHash": null
+    }
+  ],
+  "scripts": []
+}
+```
+
+The operation's `workflowId` is that workflow's `key` in this file, not a row
+id — which is what lets `import-bundle` create the workflows on the target
+server and rewrite the keys to whatever ids they get there. `scripts` carries
+any JS script documents the app binds, on the same terms.
+
+By default this exports the **draft** document. `?released=1` (or
+`?released=true`) exports the published snapshot instead — the document
+`GET /api/applications/{id}/released-document` returns, packed together with the
+graphs that release pinned:
+
+```bash
+curl "http://localhost:7777/api/applications/<application_id>/export-bundle?released=1" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o my.app.json
+```
+
+The two routes disagree about an app that has never been published, so pick by
+which answer you want to handle. `released-document` calls it a `200` with a
+`null` body; `export-bundle?released=1` calls it a `404` with
+`{"detail": "Application has no released version"}`.
+
+An id the caller does not own is also a `404`. The CLI wraps the same call as
+`nodetool apps export-bundle <id> [-o file] [--released]`.
+
+### What This Server Supports
+
+`GET /api/sdk/v1/capabilities` is the handshake an SDK client makes before
+anything else: which route families are live, which wire encodings the server
+speaks, what an execution request may ask for, and the numeric limits it will
+enforce. Read it once at startup instead of hard-coding assumptions about the
+server on the other end.
+
+```bash
+curl "http://localhost:7777/api/sdk/v1/capabilities" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "protocol_version": "1",
+  "nodetool_version": "0.7.0-rc.36",
+  "server_time": "2026-08-21T06:09:57.898Z",
+  "supported_encodings": ["messagepack", "json-text"],
+  "default_encoding": "messagepack",
+  "profiles": {
+    "discovery": "available",
+    "execution": "available",
+    "preflight": "available",
+    "model_catalog": "available",
+    "model_download": "available",
+    "temporary_asset_upload": "available"
+  },
+  "registry_revision": 2723,
+  "python_bridge": "starting",
+  "auth_modes": ["trusted_local"],
+  "asset_uri_schemes": ["asset"],
+  "execution_options": {
+    "persistence": ["job", "session"],
+    "event_detail": ["full", "outputs", "terminal"],
+    "asset_persistence": ["auto", "temporary"],
+    "defaults": {
+      "persistence": "job",
+      "event_detail": "full",
+      "asset_persistence": "temporary"
+    }
+  },
+  "limits": {
+    "max_rpc_batch": 100,
+    "max_inline_bytes": 0,
+    "max_upload_bytes": 1073741824,
+    "max_queued_jobs": 0,
+    "max_job_event_replay": 0,
+    "request_timeout_seconds": 30
+  }
+}
+```
+
+Each entry in `profiles` is `available`, `disabled`, or `unavailable`. On this
+server the map is a fixed list that always reports `available`, so it names the
+route families that exist rather than reporting which are switched on — a
+disabled family still shows `available` here and answers `503` when called. Do
+not gate on it; handle the `503`.
+
+In `limits`, only `max_upload_bytes` is a ceiling the server enforces — it
+tracks `NODETOOL_MAX_UPLOAD_BYTES` (1 GiB by default) and is what
+`/api/sdk/v1/assets/temporary` rejects an over-size file against. The rest are
+advertised figures this server does not itself enforce, and the zeros are not
+limits of zero: `max_inline_bytes` is `0` because the profile carries media by
+asset reference rather than promising any inline payload size, and
+`max_queued_jobs` and `max_job_event_replay` are `0` because it states no bound
+for them.
+
+`auth_modes` is `trusted_local` on a server with no enforcing auth provider and
+`bearer` once one is configured, so a client can tell whether it needs a token
+before it sends a request without one. `python_bridge` is `ready` once the
+Python bridge has connected and `starting` until then — including on a server
+with no Python installed, where it stays `starting` indefinitely rather than
+reporting `unavailable`. A workflow using Python nodes is not runnable until it
+reads `ready`. `registry_revision` is the same counter the
+node inventory and workflow summaries report, so a client can tell whether the
+node registry moved under it.
+
+Two environment flags can switch parts of this family off, and they cover
+different routes. `NODETOOL_DISABLE_SDK_LIFECYCLE_V1=1` disables this route,
+`/preflight`, and `/assets/temporary`, which then
+answer `503` with `{"code": "SDK_LIFECYCLE_DISABLED", …}`.
+`NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1=1` disables the discovery routes —
+`/node-types`, `/workflows`, `/workflow-interfaces`, and
+`/api/sdk/v1/workflows/{id}/interface` — which answer `503` with
+`SDK_WORKFLOW_INTERFACE_DISABLED`, except `/node-types`, which reports
+`SDK_NODE_TYPE_INVENTORY_DISABLED`. The model catalog at `/api/sdk/v1/models`
+and the model-download routes are unaffected by either. See
+[Configuration](configuration.md#environment-variables-index).
+
+### The Node Type Inventory
+
+`GET /api/sdk/v1/node-types` reports the pin types the loaded registry actually
+uses — one entry per type signature, how many nodes read or write it, and
+example pins to look at. Where `/api/nodes/metadata` is indexed by node, this
+is indexed by type, so it is the route to ask what a given type connects to
+without walking every node's metadata.
+
+```bash
+curl "http://localhost:7777/api/sdk/v1/node-types?limit=2" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "version": 1,
+  "registry_revision": 2723,
+  "registry_ready": true,
+  "python_bridge_ready": false,
+  "node_count": 2722,
+  "type_count": 1158,
+  "provenance_counts": { "typescript": 2722 },
+  "cursor": 0,
+  "next_cursor": 2,
+  "types": [
+    {
+      "signature": "any",
+      "type": "any",
+      "type_name": null,
+      "optional": false,
+      "type_args": [],
+      "values": [],
+      "values_truncated": false,
+      "input_uses": 74,
+      "output_uses": 54,
+      "node_count": 67,
+      "sources": { "typescript": 128 },
+      "examples": [
+        {
+          "node_type": "fal.vision.ArbiterImage",
+          "pin": "values",
+          "direction": "output"
+        }
+      ]
+    }
+  ],
+  "unavailable_packs": [
+    {
+      "id": "elevenlabs",
+      "name": "ElevenLabs",
+      "reason": "disabled by built-in pack configuration"
+    }
+  ]
+}
+```
+
+`cursor` (default `0`) and `limit` (`1`–`100`) page through the list; anything
+outside that range is a `400` (`{"code": "INVALID_INPUT", …}`). `next_cursor` is
+what to pass as the next `cursor`.
+
+`node_count` appears at both levels and means different things: at the top it
+is every node in the registry, and inside a type entry it is the nodes using
+that type. `type_count` is how many entries exist across all pages, and
+`provenance_counts` splits the registry by where the nodes came from —
+`typescript` here, with Python nodes appearing once the bridge is up.
+
+`input_uses` and `output_uses` count pins,
+not nodes, so one node with two pins of a type counts twice — `node_count` is
+the number of distinct node types. `examples` is capped at 5 entries, and for
+an enum type `values` is capped at 64 with `values_truncated` set when there
+were more. `unavailable_packs` names packs whose nodes are missing from these
+counts and why, so a type that looks absent can be traced to a pack that never
+loaded rather than to a registry bug. `python_bridge_ready` is `false` until
+the Python bridge connects, and Python-only types are absent while it is.
+
+### A Workflow's Input and Output Pins
+
+Two routes answer what a workflow takes and returns, without fetching its graph.
+Use them to build a form, validate a parameter bag, or decide which outputs to
+subscribe to.
+
+`GET /api/sdk/v1/workflows/{id}/interface?version=1` covers one workflow. The
+`version=1` query parameter is required — omitting it is a `400`
+(`{"code": "UNSUPPORTED_WORKFLOW_INTERFACE_VERSION", …}`), not a default:
+
+```bash
+curl "http://localhost:7777/api/sdk/v1/workflows/<workflow_id>/interface?version=1" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "version": 1,
+  "workflow_id": "23486bda2a46425fa8559f47c7c0adc9",
+  "etag": "777f80b8651d2e56d7e1861a11f12667",
+  "source": "server",
+  "inputs": [
+    {
+      "node_id": "in1",
+      "name": "prompt",
+      "description": "Text to echo",
+      "type": { "type": "str", "optional": false, "type_args": [], "type_name": null },
+      "required": true,
+      "default": ""
+    }
+  ],
+  "outputs": [
+    {
+      "node_id": "out1",
+      "name": "result",
+      "description": "The echoed text",
+      "type": { "type": "str", "optional": false, "type_args": [], "type_name": null },
+      "stream": false
+    }
+  ],
+  "diagnostics": []
+}
+```
+
+An input pin's `name` is the key to use in a run's `params`; an output pin's
+`name` is the key its value arrives under. `stream` marks an output that emits
+repeatedly rather than once. `etag` changes whenever the interface changes, so
+a client can cache a form against it and pass it back as `workflow_etag` on a
+preflight. A graph the server can read but not interpret comes back with
+entries in `diagnostics` (`severity`, `code`, `message`, and the `node_id` /
+`pin_name` at fault) rather than an error.
+
+`POST /api/sdk/v1/workflow-interfaces` does the same for 1–100 workflows in one
+call. Both fields are required, and the ids must be unique:
+
+```bash
+curl -X POST "http://localhost:7777/api/sdk/v1/workflow-interfaces" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"ids": ["23486bda2a46425fa8559f47c7c0adc9"], "version": 1}'
+```
+
+Each entry of `interfaces` is exactly the object the single-workflow route
+returns. One bad id does not fail the batch — it lands in `errors` instead, and
+the rest still come back:
+
+```json
+{
+  "interfaces": [
+    { "version": 1, "workflow_id": "23486bda2a46425fa8559f47c7c0adc9", "etag": "777f80b8651d2e56d7e1861a11f12667", "source": "server", "inputs": [], "outputs": [], "diagnostics": [] }
+  ],
+  "errors": [
+    { "workflow_id": "deadbeef", "code": "workflow_not_found", "message": "Workflow not found" }
+  ]
+}
+```
+
+`code` is `workflow_not_found` or `invalid_graph`. A malformed body — an empty
+list, over 100 ids, duplicate ids, or a missing `version` — is a `400`
+(`{"code": "INVALID_INPUT", "message": "Expected 1 to 100 unique workflow ids"}`)
+and nothing is returned.
+
+To find the ids in the first place, `GET /api/sdk/v1/workflows` lists the
+caller's workflows in the shape this family uses:
+
+```bash
+curl "http://localhost:7777/api/sdk/v1/workflows?limit=2" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "workflows": [
+    {
+      "id": "23486bda2a46425fa8559f47c7c0adc9",
+      "name": "Interface Demo",
+      "description": "Echoes a string input to an output",
+      "revision": "2026-08-21T06:10:04.279Z",
+      "registry_revision": 2723,
+      "run_mode": "workflow"
+    }
+  ],
+  "next": null
+}
+```
+
+`limit` is `1`–`100`, default `50`; outside that range is a `400`. Page by
+passing `next` back as `cursor` until it is `null`. `revision` is the
+workflow's own last-modified stamp and
+`registry_revision` the registry's, so a cached interface can be invalidated by
+either moving. This is the discovery-shaped sibling of `/api/workflows` — that
+route returns whole workflow records including graphs, this one returns only
+what a client needs to pick one.
+
+### Checking a Workflow Before Running It
+
+`POST /api/sdk/v1/preflight` answers whether a workflow can run right now, what
+it needs first, and what it will cost — before a job row exists and before any
+node is paid for:
+
+```bash
+curl -X POST "http://localhost:7777/api/sdk/v1/preflight" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "workflow_id": "23486bda2a46425fa8559f47c7c0adc9",
+    "workspace_id": null,
+    "workflow_etag": null,
+    "interface_version": 1,
+    "level": "availability",
+    "inputs": {"prompt": "hi"}
+  }'
+```
+
+```json
+{
+  "version": 1,
+  "level": "availability",
+  "workflow_id": "23486bda2a46425fa8559f47c7c0adc9",
+  "workflow_etag": "777f80b8651d2e56d7e1861a11f12667",
+  "runnable": true,
+  "issues": [],
+  "requirements": [
+    {
+      "kind": "node_pack",
+      "id": "base",
+      "name": "base",
+      "status": "available",
+      "blocking": true,
+      "message": null,
+      "details": { "node_ids": ["in1", "out1"] }
+    }
+  ],
+  "cost": {
+    "amount": 0,
+    "currency": "USD",
+    "confidence": "exact",
+    "unknown_cost_nodes": [],
+    "approval_required": false
+  }
+}
+```
+
+`level` picks how much work the check does, and each level costs more than the
+one before:
+
+| Level | What it decides |
+|-------|-----------------|
+| `static` | The graph and the inputs, against the registry. Requirements are listed but their `status` is `unknown` — nothing is probed |
+| `availability` | The same, plus a probe of each requirement: a pack becomes `available` or `missing`, a model `available`, `downloading`, or `unavailable`, a credential present or not. A probe that cannot decide reports `unknown` |
+| `execution` | The same, plus whether there is capacity to run it now — adds `worker` requirements for the server itself and for execution capacity |
+
+A requirement's `kind` is one of `provider`, `credential`, `model`,
+`node_pack`, `runtime`, `asset`, `worker`, or `approval`; `blocking` says
+whether `runnable` turns `false` without it. `issues` carries validation
+findings with `severity` `warning` or `error` — at `execution` level a server
+that cannot read its own capacity reports the warning
+`execution_capacity_unknown` and stays runnable, because an unknown queue depth
+is not a broken workflow.
+
+`cost.confidence` separates two different kinds of doubt. `exact` means every
+node priced exactly (as it does for a graph with nothing billable in it, where
+`amount` is `0`). `estimate` means everything priced but at least one price is
+itself an estimate. `partial` means some nodes could not be priced at all, and
+those are the ones `unknown_cost_nodes` names. `unknown` means none could — and
+that is the one case where `amount` is `null` rather than a number, so read
+`confidence` before displaying `amount`. `approval_required` compares the total
+against the server's own configured threshold, so gate a spend prompt on it
+rather than on a threshold of the client's.
+
+Passing the `etag` from the workflow's interface as `workflow_etag` checks the
+graph has not moved since you read it. When it has, the answer is still a `200`
+— `runnable` turns `false`, `issues` gains an `error` with code
+`workflow_etag_mismatch`, and the response's own `workflow_etag` is the current
+value, so a client can re-read the interface and try again. Pass `null` to skip
+the check. `execution_target` picks where the run would go —
+`{"kind": "local"}`, `{"kind": "worker", "worker_id": …}`, or
+`{"kind": "runner", "runner_id": …}` — and defaults to local.
+
+Every other field is required, including `workspace_id` and `inputs`, which
+take `null` and `{}` rather than being omitted. A body missing one is a `400`
+(`{"code": "INVALID_REQUEST", "message": "Invalid preflight request"}`).
+
+### Uploading an Execution Input
+
+`POST /api/sdk/v1/assets/temporary` puts one file where a workflow run can read
+it, without creating an asset row, a thumbnail, or anything the user will later
+have to clean out of their library. Use it for a run's inputs; use
+`POST /api/assets` when the file belongs in the asset library.
+
+The request is `multipart/form-data` with the file in a field named `file`:
+
+```bash
+curl -X POST "http://localhost:7777/api/sdk/v1/assets/temporary" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@sample.txt;type=text/plain"
+```
+
+```json
+{
+  "version": 1,
+  "uri": "/api/storage/temp/sdk-inputs/7d0571c6-6d9c-4c3c-9cc2-292f2b0a8574.txt",
+  "name": "sample.txt",
+  "content_type": "text/plain",
+  "size": 15,
+  "expires_at": null
+}
+```
+
+Pass `uri` as the value of the workflow input that takes the file. `expires_at`
+is `null` when the configured temporary store sets no expiry — retention is the
+store's, not this route's, so nothing here promises the file survives until the
+run starts. A body that is not multipart, or multipart without a `file` field,
+is a `400` — `{"code": "INVALID_REQUEST", "message": "Expected multipart/form-data"}`
+or `"Multipart field 'file' is required"`. A file over the server's upload
+limit — `limits.max_upload_bytes` from the capabilities route, 1 GiB by default
+— is a `413` (`{"code": "UPLOAD_TOO_LARGE", …}`).
+
+### Running a Saved JS Script
+
+`POST /api/js-scripts/{id}/run` executes a stored
+[JS script document](js-script-document-design.md) in the QuickJS sandbox and
+returns what it emitted. The web editor reads and writes scripts over
+`/trpc/jsScripts.*`; this is the one plain-HTTP door, for a run console, a mini
+app, or a client driving a script it did not author.
+
+`inputs` is keyed by the script's declared input ports. For a script declaring
+`numbers` whose body is:
+
+```js
+const total = inputs.numbers.reduce((a, b) => a + b, 0);
+await output("total", total);
+```
+
+```bash
+curl -X POST "http://localhost:7777/api/js-scripts/<script_id>/run" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"inputs": {"numbers": [1, 2, 3, 4]}}'
+```
+
+```json
+{
+  "ok": true,
+  "logs": [],
+  "duration_ms": 41,
+  "outputs": { "total": 10 },
+  "streamed": []
+}
+```
+
+`outputs` is keyed by the script's declared output ports, and `streamed` holds
+its `emit` calls in order — empty here because this body makes none.
+
+A body that pulls its inputs with `stream` rather than reading the `inputs`
+object is fed through `input_streams`, which stages a list of items per input
+handle. For a script whose body is:
+
+```js
+let total = 0;
+for await (const n of stream("numbers")) {
+  total += n;
+  await emit("running", total);
+}
+await output("total", total);
+```
+
+```bash
+curl -X POST "http://localhost:7777/api/js-scripts/<script_id>/run" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"inputs": {}, "input_streams": {"numbers": [1, 2, 3, 4]}}'
+```
+
+```json
+{
+  "ok": true,
+  "logs": [],
+  "duration_ms": 55,
+  "outputs": { "total": 10 },
+  "streamed": [
+    { "name": "running", "value": 1 },
+    { "name": "running", "value": 3 },
+    { "name": "running", "value": 6 },
+    { "name": "running", "value": 10 }
+  ]
+}
+```
+
+The two are not interchangeable: staging items for a body that reads
+`inputs.numbers` leaves that name undefined, and the run fails. A handle the
+script does not declare as an input is a `400`:
+
+```json
+{
+  "detail": "input_streams names nope, which this script does not declare as inputs"
+}
+```
+
+The script runs inside its own envelope — the packs its body imports, its
+declared secrets, and its own `timeoutSeconds` — so nothing in the request
+widens what it may reach. A body that throws is **not** an HTTP error: the
+response is `200` with `ok: false` and the message in `error`, because a script
+that failed is a result to show, not a transport failure.
+
+```json
+{
+  "ok": false,
+  "logs": [],
+  "duration_ms": 29,
+  "error": "TypeError: cannot read property 'reduce' of undefined"
+}
+```
+
+Scripts are per-user. An id belonging to someone else is a `404`
+(`{"detail": "JS script not found"}`), the same answer as an id that does not
+exist. The response is plain JSON — there is no streaming surface here, so
+`progress()` calls do not arrive as they happen.
 
 ### Listing Models an SDK Client Can Use
 

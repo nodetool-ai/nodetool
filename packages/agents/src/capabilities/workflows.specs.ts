@@ -60,6 +60,51 @@ export const CREATE_WORKFLOW_SCHEMA: JsonSchema = {
   required: ["name", "graph"]
 };
 
+export const UPDATE_WORKFLOW_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow to update. You must own it."
+    },
+    graph: {
+      type: "object",
+      description:
+        "The replacement graph, in the same shape create_workflow takes. Omit to leave the stored graph alone."
+    },
+    name: { type: "string", description: "New workflow name" },
+    description: { type: "string", description: "New description" },
+    tags: {
+      type: "array",
+      items: { type: "string" },
+      description: "Replacement tag list"
+    },
+    expected_updated_at: {
+      type: "string",
+      description:
+        "The updated_at you last read. The write is refused when the workflow changed since then. Omit to overwrite whatever is stored now."
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const SET_WORKFLOW_ACCESS_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow. You must own it."
+    },
+    access: {
+      type: "string",
+      enum: ["private", "public"],
+      description:
+        'Set "public" to publish the workflow to anyone who has the link, "private" to withdraw it.'
+    }
+  },
+  required: ["workflow_id", "access"]
+};
+
 export const RUN_WORKFLOW_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -217,6 +262,201 @@ export const createWorkflowSpec: CapabilitySpec = {
   userMessage: (params) => `Creating workflow '${params["name"]}'`
 };
 
+export const updateWorkflowSpec: CapabilitySpec = {
+  name: "update_workflow",
+  description:
+    "Update a workflow you own: its graph, name, description or tags. A " +
+    "replacement graph is checked the way create_workflow checks one, so an " +
+    "unregistered provider or an unknown model id is returned as an error " +
+    "rather than saved. Pass expected_updated_at to refuse the write if " +
+    "someone else changed the workflow since you read it.",
+  inputSchema: UPDATE_WORKFLOW_SCHEMA,
+  category: "write",
+  userMessage: (params) => `Updating workflow ${params["workflow_id"]}`
+};
+
+export const deleteWorkflowSpec: CapabilitySpec = {
+  name: "delete_workflow",
+  description:
+    "Delete a workflow you own, together with the collaborator grants and " +
+    "share links pointing at it. A workflow you do not own is reported as " +
+    "missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      workflow_id: {
+        type: "string",
+        description: "The ID of the workflow to delete. You must own it."
+      }
+    },
+    required: ["workflow_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting workflow ${params["workflow_id"]}`
+};
+
+export const DEFAULT_VERSION_LIMIT = 20;
+
+export const MAX_VERSION_LIMIT = 100;
+
+export const LIST_WORKFLOW_VERSIONS_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    limit: {
+      type: "number",
+      description: `Max versions to return (default ${DEFAULT_VERSION_LIMIT}, max ${MAX_VERSION_LIMIT}).`
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const GET_WORKFLOW_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    version: {
+      type: "number",
+      description: "Version number to read, from list_workflow_versions."
+    }
+  },
+  required: ["workflow_id", "version"]
+};
+
+export const CREATE_WORKFLOW_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    name: {
+      type: "string",
+      description: "Label for the snapshot, e.g. 'before the rewrite'."
+    },
+    description: {
+      type: "string",
+      description: "Optional note stored with the snapshot."
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const RESTORE_WORKFLOW_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    version: {
+      type: "number",
+      description: "Version number to restore, from list_workflow_versions."
+    }
+  },
+  required: ["workflow_id", "version"]
+};
+
+export const DELETE_WORKFLOW_VERSION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The ID of the workflow."
+    },
+    version: {
+      type: "number",
+      description: "Version number to delete, from list_workflow_versions."
+    }
+  },
+  required: ["workflow_id", "version"]
+};
+
+export const listWorkflowVersionsSpec: CapabilitySpec = {
+  name: "list_workflow_versions",
+  description:
+    "List a workflow's snapshots, newest first: version number, name, " +
+    "description, save type ('manual', 'autosave', 'restore'), and when it " +
+    "was taken. Call this before restoring — restore_workflow_version " +
+    "addresses a snapshot by its version number.",
+  inputSchema: LIST_WORKFLOW_VERSIONS_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Listing versions of workflow ${String(params["workflow_id"])}`
+};
+
+export const getWorkflowVersionSpec: CapabilitySpec = {
+  name: "get_workflow_version",
+  description:
+    "Read one snapshot of a workflow without restoring it: the version's " +
+    "metadata plus the graph it stored. Use this to inspect or compare " +
+    "versions before deciding which one to restore.",
+  inputSchema: GET_WORKFLOW_VERSION_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Reading v${String(params["version"])} of workflow ${String(params["workflow_id"])}`
+};
+
+export const createWorkflowVersionSpec: CapabilitySpec = {
+  name: "create_workflow_version",
+  description:
+    "Snapshot a workflow's current graph as a manual version, so it can be " +
+    "restored later. Take one before an edit the user may want undone. " +
+    "Returns the new version's number.",
+  inputSchema: CREATE_WORKFLOW_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Snapshotting workflow ${String(params["workflow_id"])}`
+};
+
+export const restoreWorkflowVersionSpec: CapabilitySpec = {
+  name: "restore_workflow_version",
+  description:
+    "Roll a workflow's graph back to one of its snapshots, addressed by " +
+    "version number (from list_workflow_versions). The graph being " +
+    "overwritten is snapshotted first, so the restore is itself undoable — " +
+    "restore that snapshot to come back.",
+  inputSchema: RESTORE_WORKFLOW_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Restoring workflow ${String(params["workflow_id"])} to v${String(params["version"])}`
+};
+
+export const deleteWorkflowVersionSpec: CapabilitySpec = {
+  name: "delete_workflow_version",
+  description:
+    "Delete one snapshot of a workflow you own, addressed by version number " +
+    "(from list_workflow_versions). This cannot be undone. The live graph is " +
+    "not changed.",
+  inputSchema: DELETE_WORKFLOW_VERSION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Deleting v${String(params["version"])} of workflow ${String(params["workflow_id"])}`
+};
+
+export const setWorkflowAccessSpec: CapabilitySpec = {
+  name: "set_workflow_access",
+  description:
+    "Publish a workflow you own, or withdraw it. A public workflow is " +
+    'readable by anyone who has its id, so "public" discloses the graph and ' +
+    "everything written into it outside your account.",
+  inputSchema: SET_WORKFLOW_ACCESS_SCHEMA,
+  // Publishing reaches outside the account, which is what `external` classes.
+  // It is not a `write`: the gate must ask even where an ordinary local write
+  // would not, and the disclosure cannot be taken back from whoever read it.
+  category: "external",
+  userMessage: (params) =>
+    params["access"] === "public"
+      ? `Publishing workflow ${params["workflow_id"]}`
+      : `Making workflow ${params["workflow_id"]} private`
+};
+
 export const runWorkflowCapabilitySpec: CapabilitySpec = {
   name: "run_workflow",
   description:
@@ -289,7 +529,10 @@ export const validateWorkflowSpec: CapabilitySpec = {
 export const startBackgroundJobSpec: CapabilitySpec = {
   name: "start_background_job",
   description:
-    "Start a workflow running in the background and return a job ID for tracking.",
+    "Start a workflow and return its job id immediately, without waiting for " +
+    "the run. Poll get_job with that id until it settles; the settled job " +
+    "carries the run's outputs. Use run_workflow instead when you want to " +
+    "block until the result is ready.",
   inputSchema: {
     type: "object",
     properties: {
@@ -360,6 +603,14 @@ export const workflowsSpecs: readonly CapabilitySpec[] = [
   listWorkflowsSpec,
   getWorkflowSpec,
   createWorkflowSpec,
+  updateWorkflowSpec,
+  deleteWorkflowSpec,
+  listWorkflowVersionsSpec,
+  getWorkflowVersionSpec,
+  createWorkflowVersionSpec,
+  restoreWorkflowVersionSpec,
+  deleteWorkflowVersionSpec,
+  setWorkflowAccessSpec,
   runWorkflowCapabilitySpec,
   debugWorkflowSpec,
   resolveWorkflowEscalationSpec,

@@ -42,6 +42,8 @@ vi.mock("@nodetool-ai/runtime", () => ({
   FileStorageAdapter: class {
     constructor(_root?: string) {}
   },
+  // The chat context builds the run's workspace from the --workspace path.
+  createLocalWorkspace: (dir: string) => ({ localDir: dir }),
   // This mock replaces the shared stub wholesale, so re-state the one other
   // export the CodeAct wiring reads.
   DIRECT_TOOL_NAMES: DIRECT_TOOL_NAMES_STUB
@@ -99,6 +101,26 @@ vi.mock("@nodetool-ai/agents", () => ({
   // The delegation tools reach the belt as capabilities now; the CLI names
   // them, so the mock answers by name.
   UNGATED: { mode: "auto", sessionAllow: new Set<string>() },
+  // A representative belt: one core tool (goes top level beside
+  // `execute_code`), one sandbox-only tool, and `view_image` — the one channel
+  // that puts pixels in front of the model, which the turn appends only when
+  // it finds it on the belt.
+  getBuiltinTools: () =>
+    ["read_file", "critique_image", "view_image"].map((name) => ({
+      name,
+      description: `stub ${name}`,
+      inputSchema: { type: "object" },
+      toProviderTool() {
+        return {
+          name: this.name,
+          description: this.description,
+          inputSchema: this.inputSchema
+        };
+      },
+      async process() {
+        return null;
+      }
+    })),
   createCapabilityRun: (options: unknown) => options,
   toolForCapabilityName: (name: string) => ({
     name,
@@ -421,11 +443,16 @@ describe("runStdinMode — direct provider chat", () => {
       tools: Array<{ name: string }>;
       messages: Array<{ role: string; content: string }>;
     };
-    // `run_subtask` is a core tool, so it rides alongside `execute_code`;
-    // everything else on the belt stays inside the sandbox.
+    // The split: core tools ride alongside `execute_code` (`run_subtask` from
+    // the delegation pair, `read_file` off the belt), and `view_image` is
+    // appended because pixels have no other channel. `critique_image` is on
+    // the same belt and is absent here — a non-core tool stays inside the
+    // sandbox, reachable by import rather than as a provider tool.
     expect(call.tools.map((t) => t.name)).toEqual([
       "execute_code",
-      "run_subtask"
+      "run_subtask",
+      "read_file",
+      "view_image"
     ]);
     expect(call.messages[0]).toEqual({
       role: "system",

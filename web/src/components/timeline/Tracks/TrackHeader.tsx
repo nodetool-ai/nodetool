@@ -8,7 +8,7 @@
  *   - Height resize handle at the bottom edge
  */
 
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -479,18 +479,43 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
     [uiStoreApi, timelineStoreApi, endTrackDrag, reorderTracks, track.id]
   );
 
+  // A resize drag re-renders this per pointermove, one header per track. Only
+  // the root style reads heightPx; the six icon buttons share two variants.
+  const headerCss = useMemo(
+    () => headerStyles(theme, heightPx, compact),
+    [theme, heightPx, compact]
+  );
+  const dropIndicatorCss = useMemo(
+    () => (dropEdge ? dropIndicatorStyles(theme, dropEdge) : undefined),
+    [theme, dropEdge]
+  );
+  const dragHandleCss = useMemo(() => dragHandleStyles(theme), [theme]);
+  const typeGlyphCss = useMemo(
+    () => typeGlyphStyles(theme, accent),
+    [theme, accent]
+  );
+  const nameInputCss = useMemo(() => nameInputStyles(theme), [theme]);
+  const indexChipCss = useMemo(() => indexChipStyles(theme), [theme]);
+  const controlsRowCss = useMemo(() => controlsRowStyles(compact), [compact]);
+  const iconButtonOnCss = useMemo(() => iconButtonStyles(theme, true), [theme]);
+  const iconButtonOffCss = useMemo(
+    () => iconButtonStyles(theme, false),
+    [theme]
+  );
+  const resizeHandleCss = useMemo(() => resizeHandleStyles(theme), [theme]);
+
   return (
     <>
     <div
       ref={headerRef}
-      css={headerStyles(theme, heightPx, compact)}
+      css={headerCss}
       data-testid={`track-header-${track.id}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       {dropEdge && (
         <div
-          css={dropIndicatorStyles(theme, dropEdge)}
+          css={dropIndicatorCss}
           data-testid={`track-drop-indicator-${track.id}-${dropEdge}`}
           aria-hidden
         />
@@ -500,7 +525,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         {!compact && (
           <>
             <div
-              css={dragHandleStyles(theme)}
+              css={dragHandleCss}
               draggable
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
@@ -513,7 +538,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
               <DragIndicatorIcon />
             </div>
             <div
-              css={typeGlyphStyles(theme, accent)}
+              css={typeGlyphCss}
               aria-hidden
               title={meta.label}
             >
@@ -524,7 +549,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         <div css={nameWrapStyles}>
           <input
             ref={inputRef}
-            css={nameInputStyles(theme)}
+            css={nameInputCss}
             value={editingName ? localName : track.name}
             readOnly={!editingName}
             onChange={(e) => setLocalName(e.target.value)}
@@ -534,7 +559,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
             aria-label={`Track name: ${track.name}`}
           />
           <span
-            css={indexChipStyles(theme)}
+            css={indexChipCss}
             aria-label={`${meta.label} track ${typedIndex}`}
             title={`${meta.label} ${typedIndex}`}
           >
@@ -546,13 +571,13 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
 
       {/* Controls row */}
       <div
-        css={controlsRowStyles(compact)}
+        css={controlsRowCss}
         className={compact ? "timeline-track-controls" : undefined}
       >
         <Tooltip title={track.visible ? "Hide track" : "Show track"}>
           <button
             type="button"
-            css={iconButtonStyles(theme, track.visible)}
+            css={track.visible ? iconButtonOnCss : iconButtonOffCss}
             onClick={() => setTrackVisible(track.id, !track.visible)}
             aria-label={track.visible ? "Hide track" : "Show track"}
             aria-pressed={!track.visible}
@@ -568,7 +593,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         <Tooltip title={track.locked ? "Unlock track" : "Lock track"}>
           <button
             type="button"
-            css={iconButtonStyles(theme, !track.locked)}
+            css={track.locked ? iconButtonOffCss : iconButtonOnCss}
             onClick={() => setTrackLocked(track.id, !track.locked)}
             aria-label={track.locked ? "Unlock track" : "Lock track"}
             aria-pressed={track.locked}
@@ -582,7 +607,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
             <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
               <button
                 type="button"
-                css={iconButtonStyles(theme, !track.muted)}
+                css={track.muted ? iconButtonOffCss : iconButtonOnCss}
                 onClick={() => setTrackMuted(track.id, !track.muted)}
                 aria-label={track.muted ? "Unmute" : "Mute"}
                 aria-pressed={!!track.muted}
@@ -594,7 +619,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
             <Tooltip title={track.solo ? "Unsolo" : "Solo"}>
               <button
                 type="button"
-                css={iconButtonStyles(theme, !!track.solo)}
+                css={track.solo ? iconButtonOnCss : iconButtonOffCss}
                 onClick={() => setTrackSolo(track.id, !track.solo)}
                 aria-label={track.solo ? "Unsolo" : "Solo"}
                 aria-pressed={!!track.solo}
@@ -623,7 +648,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
           >
             <button
               type="button"
-              css={iconButtonStyles(theme, hasActiveEffects || fxExpanded)}
+              css={hasActiveEffects || fxExpanded ? iconButtonOnCss : iconButtonOffCss}
               onClick={handleFxToggle}
               aria-label={fxExpanded ? "Hide effects chain" : "Show effects chain"}
               aria-pressed={fxExpanded}
@@ -637,7 +662,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         <Tooltip title="Remove track">
           <button
             type="button"
-            css={iconButtonStyles(theme, true)}
+            css={iconButtonOnCss}
             onClick={() => setConfirmRemoveOpen(true)}
             aria-label="Remove track"
           >
@@ -648,7 +673,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
 
       {/* Height resize handle */}
       <div
-        css={resizeHandleStyles(theme)}
+        css={resizeHandleCss}
         onPointerDown={handleResizePointerDown}
         onPointerMove={handleResizePointerMove}
         onPointerUp={handleResizePointerEnd}

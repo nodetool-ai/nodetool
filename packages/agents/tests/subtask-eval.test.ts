@@ -102,14 +102,18 @@ describe("runSubtaskEval (scripted provider, end-to-end)", () => {
     const provider = new ScriptedProvider([
       () => [
         action(
-          `await tools.run_subtask({
+          `import { run_subtask } from "@nodetool-ai/sandbox-nodetool/agents";
+           await run_subtask({
              description: "compute product",
              prompt: "Multiply 47 by 89 with the calculate tool and report it."
            });`
         )
       ],
       () => [
-        action(`await tools.calculate({ a: 47, op: "multiply", b: 89 });`)
+        action(
+          `import { calculate } from "@nodetool-ai/sandbox-nodetool/session";\n` +
+            `await calculate({ a: 47, op: "multiply", b: 89 });`
+        )
       ],
       () => [{ type: "chunk", content: "The product is 4183.", done: true }],
       () => [{ type: "chunk", content: "The result is 4183.", done: true }]
@@ -135,6 +139,53 @@ describe("runSubtaskEval (scripted provider, end-to-end)", () => {
     expect(result.checks.every((c) => c.pass)).toBe(true);
     expect(result.score).toBe(1);
     expect(report.summary.successRate).toBe(1);
+  });
+
+  it("does not report success for a run that never delegated", async () => {
+    // The parent does the work itself at depth 0 and answers correctly. Nothing
+    // throws, so the run is *live* — but every delegation check the case exists
+    // to test fails, and a suite that calls this a success is measuring nothing.
+    const action = (code: string) => ({
+      type: "tool_call" as const,
+      name: EXECUTE_CODE_TOOL_NAME,
+      args: { title: "Running a code action", code }
+    });
+    const provider = new ScriptedProvider([
+      () => [
+        action(
+          `import { calculate } from "@nodetool-ai/sandbox-nodetool/session";\n` +
+            `await calculate({ a: 47, op: "multiply", b: 89 });`
+        )
+      ],
+      () => [{ type: "chunk", content: "The product is 4183.", done: true }]
+    ]);
+
+    const computeCase = SUBTASK_EVAL_CASES.find(
+      (c) => c.id === "delegate-compute"
+    ) as SubtaskEvalCase;
+
+    const report = await runSubtaskEval({
+      provider,
+      model: "fake",
+      providers: { fake: provider },
+      cases: [computeCase]
+    });
+
+    const result = report.cases[0];
+    // The parent never delegated: no subtask, no depth-1 tool call.
+    expect(result.subtasks).toBe(0);
+    expect(result.maxDepth).toBe(0);
+    const failed = result.checks.filter((c) => !c.pass).map((c) => c.name);
+    expect(failed).toContain("child:calculate");
+    expect(failed).toContain("depth>=1");
+
+    // Liveness is still reported — the loop ran to a stop without a provider
+    // error — but it is not a result.
+    expect(report.summary.successRate).toBe(0);
+    expect(report.summary.completionRate).toBe(1);
+    expect(result.accepted).toBe(true);
+    expect(result.success).toBe(false);
+    expect(result.criticalFailures).toBeGreaterThan(0);
   });
 
   it("skips a case flagged needsModelProviders when none are configured", async () => {

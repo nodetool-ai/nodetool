@@ -35,8 +35,8 @@
           "value": {
             "type": "video_model",
             "provider": "fal_ai",
-            "id": "fal-ai/kling-video",
-            "name": "Kling"
+            "id": "fal-ai/kling-video/v3/standard/text-to-video",
+            "name": "Kling v3"
           }
         }
       },

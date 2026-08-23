@@ -11,17 +11,17 @@ import {
   useRef,
   useState
 } from "react";
-import type { DragEvent, FocusEvent, KeyboardEvent, MouseEvent } from "react";
+import type { DragEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
-import useContextMenuStore from "../../stores/ContextMenuStore";
+import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import {
-  useSidebarDocumentActionsStore,
-  type SidebarDocumentItem
-} from "../../stores/SidebarDocumentActionsStore";
+  useSidebarDocumentMenu,
+  type SidebarDocumentContextMenuHandler
+} from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -31,11 +31,10 @@ import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
   EmptyState,
   FlexColumn,
-  FlexRow,
+  ListPanelItem,
   LoadingSpinner,
   Text,
   ToolbarIconButton,
-  TruncatedText,
   Tooltip,
   BORDER_RADIUS,
   FONT_WEIGHT,
@@ -110,7 +109,7 @@ interface SketchListItemProps {
   active: boolean;
   editing: boolean;
   onOpen: (id: string, name: string) => void;
-  onContextMenu: (event: MouseEvent<HTMLButtonElement>, id: string, name: string) => void;
+  onContextMenu: SidebarDocumentContextMenuHandler;
   onCommitRename: (id: string, newName: string) => void;
   onCancelRename: () => void;
 }
@@ -128,37 +127,6 @@ const SketchListItem = memo(function SketchListItem({
 }: SketchListItemProps) {
   const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
   const clearDrag = useDragDropStore((state) => state.clearDrag);
-  const handleClick = useCallback(() => onOpen(id, name), [id, name, onOpen]);
-  const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => onContextMenu(event, id, name),
-    [id, name, onContextMenu]
-  );
-  const handleRenameKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      event.stopPropagation();
-      if (event.key === "Enter") {
-        onCommitRename(id, event.currentTarget.value);
-      } else if (event.key === "Escape") {
-        onCancelRename();
-      }
-    },
-    [id, onCommitRename, onCancelRename]
-  );
-  const handleRenameBlur = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      onCommitRename(id, event.currentTarget.value);
-    },
-    [id, onCommitRename]
-  );
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        onOpen(id, name);
-      }
-    },
-    [id, name, onOpen]
-  );
   const handleDragStart = useCallback(
     (event: DragEvent<HTMLButtonElement>) => {
       const payload = { id, name, updatedAt };
@@ -187,52 +155,23 @@ const SketchListItem = memo(function SketchListItem({
     clearDrag();
   }, [clearDrag]);
 
-  if (editing) {
-    return (
-      <div className={`list-panel-item ${active ? "active" : ""}`}>
-        <FlexRow align="center" gap={1} fullWidth>
-          <BrushOutlinedIcon className="list-panel-icon" />
-          <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-            <input
-              className="rename-input"
-              type="text"
-              defaultValue={name}
-              aria-label="Sketch name"
-              autoFocus
-              onFocus={(event) => event.currentTarget.select()}
-              onKeyDown={handleRenameKeyDown}
-              onBlur={handleRenameBlur}
-            />
-          </FlexColumn>
-        </FlexRow>
-      </div>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      className={`list-panel-item ${active ? "active" : ""}`}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      onContextMenu={handleContextMenu}
+    <ListPanelItem
+      id={id}
+      name={name}
+      fallbackName="Untitled sketch"
+      renameLabel="Sketch name"
+      icon={BrushOutlinedIcon}
+      active={active}
+      editing={editing}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      aria-current={active ? "page" : undefined}
-    >
-      <FlexRow align="center" gap={1} fullWidth>
-        <BrushOutlinedIcon className="list-panel-icon" />
-        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-          <TruncatedText
-            component="span"
-            sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
-          >
-            {name || "Untitled sketch"}
-          </TruncatedText>
-        </FlexColumn>
-      </FlexRow>
-    </button>
+      onOpen={onOpen}
+      onContextMenu={onContextMenu}
+      onCommitRename={onCommitRename}
+      onCancelRename={onCancelRename}
+    />
   );
 });
 
@@ -361,32 +300,6 @@ const SketchListPanel = () => {
       void utils.sketch.list.invalidate();
     }
   });
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const setActions = useSidebarDocumentActionsStore((state) => state.setActions);
-  const clearActions = useSidebarDocumentActionsStore(
-    (state) => state.clearActions
-  );
-
-  const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>, id: string, name: string) => {
-      event.preventDefault();
-      event.stopPropagation();
-      openContextMenu(
-        "sidebar-document-context-menu",
-        id,
-        event.clientX,
-        event.clientY,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { id, name }
-      );
-    },
-    [openContextMenu]
-  );
-
   const handleCommitRename = useCallback(
     (id: string, newName: string) => {
       const trimmed = newName.trim();
@@ -423,24 +336,25 @@ const SketchListPanel = () => {
     [utils, createSketch, updateSketch]
   );
 
+  const handleRequestRename = useCallback((item: SidebarDocumentItem) => {
+    setEditingId(item.id);
+  }, []);
+
   const handleRequestDelete = useCallback((item: SidebarDocumentItem) => {
     setItemToDelete(item);
   }, []);
+
+  const handleContextMenu = useSidebarDocumentMenu({
+    onRename: handleRequestRename,
+    onDuplicate: handleDuplicate,
+    onDelete: handleRequestDelete
+  });
 
   const handleConfirmDelete = useCallback(() => {
     if (itemToDelete) {
       deleteSketch.mutate({ id: itemToDelete.id });
     }
   }, [itemToDelete, deleteSketch]);
-
-  useEffect(() => {
-    setActions({
-      onRename: (item) => setEditingId(item.id),
-      onDuplicate: (item) => void handleDuplicate(item),
-      onDelete: handleRequestDelete
-    });
-    return () => clearActions();
-  }, [setActions, clearActions, handleDuplicate, handleRequestDelete]);
 
   return (
     <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>

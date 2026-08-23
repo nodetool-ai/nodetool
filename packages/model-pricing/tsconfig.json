@@ -10,7 +10,8 @@
   },
   "include": [
     "src",
-    "src/generated/genspend-pricing.json"
+    "src/generated/genspend-pricing.json",
+    "src/generated/model-rankings.json"
   ],
   "exclude": [
     "dist",

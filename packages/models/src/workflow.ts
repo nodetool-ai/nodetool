@@ -14,6 +14,7 @@ import {
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
+import { WorkflowShare } from "./workflow-share.js";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 export type AccessLevel = "private" | "public";
@@ -191,6 +192,29 @@ export class Workflow extends DBModel {
     const grant = await WorkflowCollaborator.findFor(workflowId, userId);
     if (grant) return wf;
     return null;
+  }
+
+  /**
+   * Delete a workflow the caller owns, together with everything that grants
+   * access to it.
+   *
+   * Ownership is checked here rather than by the caller because `find` is not
+   * an ownership test — it also answers for a public workflow and for one
+   * shared with the caller, so a delete written on top of it would let anyone
+   * remove any public workflow. Returns false when the row is missing or is
+   * not the caller's, which are deliberately the same answer.
+   *
+   * The collaborator and share rows go with it. A workflow row can be
+   * recreated under the same id; a grant left behind would then apply to a
+   * workflow its holder was never given.
+   */
+  static async deleteOwned(userId: string, id: string): Promise<boolean> {
+    const wf = await Workflow.get<Workflow>(id);
+    if (!wf || wf.user_id !== userId) return false;
+    await wf.delete();
+    await WorkflowCollaborator.removeAllForWorkflow(id);
+    await WorkflowShare.removeAllForWorkflow(id);
+    return true;
   }
 
   static async paginate(

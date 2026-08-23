@@ -14,6 +14,8 @@
  *     the Prompt, Format Text and Agent nodes.
  *   - `base64.ts` — Buffer-free base64 encode/decode usable in Node and the
  *     browser bundle alike.
+ *   - `save-target.ts` — the `save_to_workspace` toggle and the numbered
+ *     filenames every `Save*File` node shares.
  */
 
 export {
@@ -37,3 +39,19 @@ export { renderTemplate, referencedVariables } from "./template.js";
 export type { TemplateValue, TemplateVars } from "./template.js";
 
 export { base64ToBytes, bytesToBase64 } from "./base64.js";
+
+export {
+  SAVE_TO_WORKSPACE_TITLE,
+  SAVE_TO_WORKSPACE_DESCRIPTION,
+  VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
+  folderPathOf,
+  resolveSaveFolder,
+  uniqueFilePath,
+  resolveSaveTarget,
+  writeSavedFile
+} from "./save-target.js";
+export type {
+  SaveFolderOptions,
+  SaveTargetOptions,
+  SaveWorkspace
+} from "./save-target.js";

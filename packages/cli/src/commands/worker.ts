@@ -22,13 +22,14 @@
 import { Command } from "commander";
 
 import { WorkerManager } from "@nodetool-ai/compute";
-import { initDb } from "@nodetool-ai/models";
+import { initDb, type TokenPolicy } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath } from "@nodetool-ai/config";
 import { registerWorkerModelsCommands } from "./worker-models.js";
 
 const SUPPORTED_TARGETS = ["runpod", "vast"] as const;
 type SupportedTarget = (typeof SUPPORTED_TARGETS)[number];
+const TOKEN_POLICIES = ["generate", "fixed"] as const satisfies readonly TokenPolicy[];
 
 // ---------------------------------------------------------------------------
 // Output helpers
@@ -119,6 +120,15 @@ function assertTarget(value: string): SupportedTarget {
     );
   }
   return value as SupportedTarget;
+}
+
+function assertTokenPolicy(value: string): TokenPolicy {
+  if (!TOKEN_POLICIES.includes(value as TokenPolicy)) {
+    throw new Error(
+      `Invalid --token-policy '${value}': expected one of ${TOKEN_POLICIES.join(", ")}.`
+    );
+  }
+  return value as TokenPolicy;
 }
 
 /**
@@ -220,7 +230,7 @@ function registerProfile(worker: Command): void {
             target,
             image: opts.image,
             spec: specFromFlags(opts),
-            token_policy: opts.tokenPolicy,
+            token_policy: assertTokenPolicy(opts.tokenPolicy),
             idle_timeout_minutes: parsePositiveMinutes(
               opts.idleTimeout,
               "--idle-timeout"
@@ -324,7 +334,7 @@ function registerCreate(worker: Command): void {
               target,
               image: opts.image,
               spec: specFromFlags(opts),
-              token_policy: opts.tokenPolicy,
+              token_policy: assertTokenPolicy(opts.tokenPolicy),
               idle_timeout_minutes: parsePositiveMinutes(
                 opts.idleTimeout,
                 "--idle-timeout"

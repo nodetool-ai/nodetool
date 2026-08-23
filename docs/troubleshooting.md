@@ -122,8 +122,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 
 | From Type | To Type | Solution Node |
 |-----------|---------|---------------|
-| `String` | `List[String]` | `nodetool.text.Split` |
-| Anything else | Anything else | `nodetool.code.Code` — return the shape the next node wants |
+| Anything | Anything else | `nodetool.code.Code` — return the shape the next node wants |
 
 ---
 
@@ -202,7 +201,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 **Cause 2: Poor chunking strategy**
 - **Symptoms:** Retrieved text is too short/long or cuts off mid-sentence
 - **Fix:** 
-  - Use `nodetool.text.RegexSplit` for semantic chunking
+  - Use `nodetool.code.Code` to split on a semantic boundary
   - Adjust chunk size (typical: 500-1000 tokens)
   - Add overlap between chunks (typical: 50-100 tokens)
 

@@ -21,10 +21,10 @@
     "@nodetool-ai/config": "*",
     "@nodetool-ai/protocol": "*",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
-    "@opentelemetry/resources": "^2.6.0",
-    "@opentelemetry/sdk-node": "^0.218.0",
-    "@opentelemetry/sdk-trace-base": "^2.6.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.221.0",
+    "@opentelemetry/resources": "^2.10.0",
+    "@opentelemetry/sdk-node": "^0.221.0",
+    "@opentelemetry/sdk-trace-base": "^2.10.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@pydantic/genai-prices": "^0.0.69",
     "js-tiktoken": "^1.0.21",
@@ -72,6 +72,12 @@
       "types": "./dist/context.d.ts",
       "import": "./dist/context.js",
       "default": "./dist/context.js"
+    },
+    "./safe-url": {
+      "nodetool-dev": "./src/providers/safe-url.ts",
+      "types": "./dist/providers/safe-url.d.ts",
+      "import": "./dist/providers/safe-url.js",
+      "default": "./dist/providers/safe-url.js"
     },
     "./media-ref-bytes": {
       "nodetool-dev": "./src/media-ref-bytes.ts",

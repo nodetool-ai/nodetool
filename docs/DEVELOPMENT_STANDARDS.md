@@ -279,7 +279,7 @@ Reports land in each package's gitignored `reports/mutation/` directory.
 - **Error handler is centralized.** Use `fastify.setErrorHandler` — don't try/catch every route.
 - **Hooks**: prefer `onRequest` and `onResponse` over `preHandler` for cross-cutting concerns.
 - **No `app.get('*', ...)`** catch-alls except for the documented SPA fallback.
-- **WebSocket handlers** must register a heartbeat (ping/pong) and a connection timeout. Idle connections close after `WS_IDLE_TIMEOUT_MS` (configurable).
+- **WebSocket handlers** must register a heartbeat (ping/pong) and a connection timeout. Idle connections close after `NODETOOL_WS_IDLE_TIMEOUT_MS` (default 70000).
 - **MsgPack on the wire, not JSON**, for the workflow WebSocket. REST uses JSON.
 - **Backpressure**: WebSocket senders check `socket.bufferedAmount`. Drop or pause when above threshold.
 

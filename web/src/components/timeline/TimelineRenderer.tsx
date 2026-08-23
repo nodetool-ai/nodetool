@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useEffect, useMemo } from "react";
+import React, { memo, useEffect, useLayoutEffect, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { TimelineSequence } from "@nodetool-ai/timeline";
@@ -13,10 +13,9 @@ import {
   SPACING,
   Z_INDEX
 } from "../ui_primitives";
-import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import {
-  useTimelinePlaybackStoreApi,
-  useTimelineStoreApi
+  createTimelineInstance,
+  TimelineProvider
 } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 
@@ -67,17 +66,6 @@ const TimelineRendererContent: React.FC<TimelineRendererProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => rendererStyles(theme), [theme]);
-  const timelineStore = useTimelineStoreApi();
-  const playbackStore = useTimelinePlaybackStoreApi();
-
-  useEffect(() => {
-    timelineStore.getState().loadSequence(sequence);
-    playbackStore.getState().seek(firstPreviewTime(sequence));
-    return () => {
-      playbackStore.getState().stop();
-      timelineStore.getState().reset();
-    };
-  }, [playbackStore, sequence, timelineStore]);
 
   const rootClassName = className
     ? `timeline-renderer ${className}`
@@ -95,6 +83,8 @@ const TimelineRendererContent: React.FC<TimelineRendererProps> = ({
         fps={sequence.fps}
         sequenceWidth={sequence.width}
         sequenceHeight={sequence.height}
+        showDuration={false}
+        showFps={false}
       />
       {showMetadata && (
         <FlexColumn className="timeline-renderer__meta" padding={PADDING.micro}>
@@ -107,10 +97,33 @@ const TimelineRendererContent: React.FC<TimelineRendererProps> = ({
   );
 };
 
-const TimelineRenderer: React.FC<TimelineRendererProps> = (props) => (
-  <TimelineProvider active={false}>
-    <TimelineRendererContent {...props} />
-  </TimelineProvider>
-);
+const TimelineRenderer: React.FC<TimelineRendererProps> = (props) => {
+  // First sequence only — identity changes reload in useLayoutEffect.
+  const instance = useMemo(() => {
+    const next = createTimelineInstance();
+    next.doc.getState().loadSequence(props.sequence);
+    next.playback.getState().seek(firstPreviewTime(props.sequence));
+    return next;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useLayoutEffect(() => {
+    instance.doc.getState().loadSequence(props.sequence);
+    instance.playback.getState().seek(firstPreviewTime(props.sequence));
+  }, [instance, props.sequence]);
+
+  useEffect(() => {
+    return () => {
+      instance.playback.getState().stop();
+      instance.doc.getState().reset();
+    };
+  }, [instance]);
+
+  return (
+    <TimelineProvider instance={instance} active={false}>
+      <TimelineRendererContent {...props} />
+    </TimelineProvider>
+  );
+};
 
 export default memo(TimelineRenderer);

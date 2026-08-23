@@ -23,6 +23,8 @@ interface ManifestInputField {
   apiParamName?: string;
   propType: string;
   enumValues?: string[];
+  /** Whether the endpoint refuses the call without this field. */
+  required?: boolean;
 }
 
 /**
@@ -183,12 +185,60 @@ export function matchesAny(haystack: string, ...needles: string[]): boolean {
   return needles.some((n) => haystack.includes(n));
 }
 
+/**
+ * Endpoints that take an existing clip and hand back another one. Their ids
+ * never spell out "video-to-video", so without this list they fall through to
+ * the generator branch and turn up in the text/image-to-video pickers with no
+ * video to work on.
+ */
+const VIDEO_SOURCE_KEYWORDS = [
+  "extend-video",
+  "extend video",
+  "reframe",
+  "retake",
+  "edit-video",
+  "video-edit",
+  "video edit",
+  "restyle",
+  "outpaint",
+  "inpaint",
+  "background-removal",
+  "background removal",
+  "interpolation",
+  "dubbing",
+  "eraser"
+];
+
+/** A bare `/extend` path segment (`.../ltx-video-13b-dev/extend`). */
+const EXTEND_SEGMENT = /(^|[/\- ])extend([/\- ]|$)/;
+
+/**
+ * Endpoints that need a still (or several) to start from, named in ways the
+ * plain "image-to-video" test misses. They are image-conditioned only: a text
+ * prompt alone is not a call these accept.
+ */
+const IMAGE_CONDITIONED_KEYWORDS = [
+  "first-last-frame-to-video",
+  "first last frame to video",
+  "start-end-to-video",
+  "keyframes-to-video",
+  "frames-to-video",
+  "reference-to-video"
+];
+
 export function inferVideoTasks(name: string, id: string): string[] {
   const hay = `${id} ${name}`.toLowerCase();
   const tasks: string[] = [];
   // Specialized video transforms — kept out of the text/image generation lists.
   if (matchesAny(hay, "lipsync", "lip-sync", "lip sync")) {
     return ["lip_sync"];
+  }
+  // Audio-conditioned generators (LTX's audio-to-video, talking-avatar
+  // endpoints) need a recording, so neither generation picker can call one.
+  // `image-audio-to-video` matches here too, and belongs here: without the
+  // audio the call fails whatever image it gets.
+  if (matchesAny(hay, "audio-to-video", "audio to video", "speech-to-video")) {
+    return ["audio_to_video"];
   }
   if (
     matchesAny(hay, "video-to-video", "video to video", "videotovideo", "v2v")
@@ -212,6 +262,15 @@ export function inferVideoTasks(name: string, id: string): string[] {
     )
   ) {
     return ["video_to_video"];
+  }
+  if (
+    matchesAny(hay, ...VIDEO_SOURCE_KEYWORDS) ||
+    EXTEND_SEGMENT.test(id.toLowerCase())
+  ) {
+    return ["video_to_video"];
+  }
+  if (matchesAny(hay, ...IMAGE_CONDITIONED_KEYWORDS)) {
+    return ["image_to_video"];
   }
   if (matchesAny(hay, "text-to-video", "text to video", "texttovideo")) {
     tasks.push("text_to_video");
@@ -338,6 +397,55 @@ export function loadVideoModels(
   return buildVideoModels(loadManifest(packageName, exportPath), provider);
 }
 
+/**
+ * Does this entry refuse the call without an input of `kind`?
+ *
+ * The declaration, not the name: a manifest field marked `required` is the
+ * endpoint's own statement that it cannot run without that media. Kie's
+ * `uploads` descriptors carry no requiredness, so they answer false and the
+ * name-based inference stands.
+ */
+export function requiresMediaInput(
+  n: ManifestNode,
+  kind: "image" | "video"
+): boolean {
+  // Stryker disable next-line ArrayDeclaration: an entry with no inputFields declares nothing required either way.
+  return (n.inputFields ?? []).some((f) => {
+    const t = f.propType.toLowerCase();
+    return f.required === true && (t === kind || t === `list[${kind}]`);
+  });
+}
+
+/**
+ * Drop the generation tasks an entry's own declared inputs rule out, and fall
+ * back to the transform task when that leaves nothing.
+ *
+ * Inference reads names, and a name is often silent about direction — which is
+ * why an ambiguous generator is tagged with both. A *required* image input is
+ * not silent: `alibaba/qwen-image-3/edit` cannot generate from a prompt alone,
+ * and it was the top-ranked `text_to_image` answer a live session got, because
+ * nothing here read the field that says so.
+ *
+ * Only ever subtracts. Explicit `supportedTasks` never reach this.
+ */
+export function narrowTasksByRequiredInputs(
+  tasks: string[],
+  n: ManifestNode,
+  kind: "image" | "video"
+): string[] {
+  const generationTask = kind === "image" ? "text_to_image" : "text_to_video";
+  const transformTask = kind === "image" ? "image_to_image" : "video_to_video";
+  const drop = new Set<string>();
+  if (requiresMediaInput(n, "image")) drop.add(generationTask);
+  if (kind === "video" && requiresMediaInput(n, "video")) {
+    drop.add("text_to_video");
+    drop.add("image_to_video");
+  }
+  if (drop.size === 0) return tasks;
+  const kept = tasks.filter((t) => !drop.has(t));
+  return kept.length > 0 ? kept : [transformTask];
+}
+
 /** Pure transform: manifest nodes → deduplicated, task-tagged video models. */
 export function buildVideoModels(
   manifest: ManifestNode[],
@@ -350,7 +458,9 @@ export function buildVideoModels(
     const id = nodeId(n);
     if (!id) continue;
     const name = nodeName(n);
-    const tasks = explicitTasks(n) ?? inferVideoTasks(name, id);
+    const tasks =
+      explicitTasks(n) ??
+      narrowTasksByRequiredInputs(inferVideoTasks(name, id), n, "video");
 
     const existing = seen.get(id);
     if (existing) {
@@ -643,7 +753,10 @@ export function buildImageModels(
     // Copy so the mask-input augmentation below never mutates the manifest
     // node's own `supportedTasks` array (which `loadManifest` memoizes and
     // shares across every caller).
-    const tasks = [...(explicitTasks(n) ?? inferImageTasks(name, id))];
+    const tasks = [
+      ...(explicitTasks(n) ??
+        narrowTasksByRequiredInputs(inferImageTasks(name, id), n, "image"))
+    ];
     // Endpoints that declare a mask image input support inpainting (mask-guided
     // editing). Tag them so the inpaint capability/picker can find them.
     if (

@@ -109,7 +109,11 @@ export function jobRecord(job: Job) {
     started_at: job.started_at ?? null,
     finished_at: job.finished_at ?? null,
     error: job.error_message ?? job.error ?? null,
-    cost: job.cost ?? null
+    cost: job.cost ?? null,
+    // What the run produced, once it settled. A completed job used to report
+    // only that it had completed, so an agent that started a background run
+    // had no way to read its result.
+    outputs: job.runOutputs()
   };
 }
 

@@ -11,6 +11,7 @@ import {
   type FastifyTRPCPluginOptions
 } from "@trpc/server/adapters/fastify";
 import { initTestDb } from "@nodetool-ai/models";
+import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 import { appRouter, type AppRouter } from "../src/trpc/router.js";
 import { createContextFactory } from "../src/trpc/context.js";
 import type { Context } from "../src/trpc/context.js";
@@ -65,7 +66,7 @@ beforeAll(async () => {
   // settings table, so the router needs a database to answer at all.
   initTestDb();
 
-  app = Fastify();
+  app = Fastify({ routerOptions: { maxParamLength: 8000 } });
 
   // Add userId to every request from the x-user-id header (mimics auth middleware)
   app.decorateRequest("userId", null);
@@ -84,7 +85,9 @@ beforeAll(async () => {
     prefix: "/trpc",
     trpcOptions: {
       router: appRouter,
-      createContext
+      createContext,
+      allowMethodOverride: true,
+      maxBatchSize: TRPC_MAX_BATCH_SIZE
     } satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"]
   });
 
@@ -138,6 +141,26 @@ async function trpcMutation(
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe("tRPC HTTP smoke tests", () => {
+  it("rejects a batch larger than the shared client limit", async () => {
+    const count = TRPC_MAX_BATCH_SIZE + 1;
+    const procedures = Array.from({ length: count }, () => "healthz").join(",");
+    const inputs = Object.fromEntries(
+      Array.from({ length: count }, (_, index) => [index, null])
+    );
+
+    const response = await fetch(
+      `${trpcUrl(procedures)}?batch=1`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(inputs)
+      }
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toContain("Batch call exceeds maximum size");
+  });
+
   describe("healthz (public query)", () => {
     it("returns ok: true", async () => {
       const res = await trpcQuery("healthz");

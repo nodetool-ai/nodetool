@@ -39,6 +39,12 @@ interface KieNodeTypePricingBundle {
   byNodeType: Record<string, KieUnitPricingEntry>;
 }
 
+/** What a generation run writes: per-node-type prices, and the catalog they came from. */
+export interface KiePricingBundles {
+  byNodeType: KieNodeTypePricingBundle;
+  catalog: KieUnitPricingCatalog;
+}
+
 export function nodeTypeFor(entry: KieManifestPricingEntry): string {
   return `kie.${entry.moduleName}.${entry.className}`;
 }
@@ -47,7 +53,7 @@ export function buildKiePricingBundles(
   manifest: readonly KieManifestPricingEntry[],
   catalog: Record<string, KieModelPricingSummary>,
   writtenAt: string,
-) {
+): KiePricingBundles {
   const byNodeType: Record<string, KieUnitPricingEntry> = {};
 
   for (const entry of manifest) {
@@ -89,10 +95,7 @@ export function pricingPaths(manifestPath: string): PricingOutputPaths {
 }
 
 export async function writeKiePricingBundles(
-  bundles: {
-    byNodeType: KieNodeTypePricingBundle;
-    catalog: KieUnitPricingCatalog;
-  },
+  bundles: KiePricingBundles,
   paths: PricingOutputPaths,
 ): Promise<void> {
   await mkdir(dirname(paths.byNodeTypePath), { recursive: true });

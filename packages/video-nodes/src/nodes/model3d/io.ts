@@ -6,36 +6,12 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import { DEFAULT_FOLDER, DEFAULT_MODEL_3D } from "./defaults.js";
 import { dateName, extFormat, filePath, modelRef, modelRefToBytes } from "./utils.js";
-
-const MAX_NON_OVERWRITE_ATTEMPTS = 1000;
-
-async function writeWithSuffixWhenNeeded(
-  fullPath: string,
-  bytes: Uint8Array
-): Promise<string> {
-  const parsed = path.parse(fullPath);
-  for (let i = 0; i < MAX_NON_OVERWRITE_ATTEMPTS; i++) {
-    const candidate =
-      i === 0
-        ? path.join(parsed.dir, parsed.base)
-        : path.join(parsed.dir, `${parsed.name}-${i}${parsed.ext}`);
-    try {
-      await fs.writeFile(candidate, bytes, { flag: "wx" });
-      return candidate;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
-        const message =
-          error instanceof Error ? error.message : String(error);
-        throw new Error(
-          `Failed to write model file "${candidate}": ${message}`
-        );
-      }
-    }
-  }
-  throw new Error(
-    `Could not find an available filename for "${parsed.base}" after ${MAX_NON_OVERWRITE_ATTEMPTS} attempts`
-  );
-}
+import {
+  writeSavedFile,
+  VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
+  SAVE_TO_WORKSPACE_DESCRIPTION,
+  SAVE_TO_WORKSPACE_TITLE
+} from "@nodetool-ai/nodes-utils";
 
 /** Output handles LoadModel3DFileNode.process() emits. */
 type LoadModel3DFileNodeOutputs = {
@@ -83,7 +59,7 @@ export class SaveModel3DFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
-  static readonly inlineFields = ["filename"];
+  static readonly inlineFields = ["save_to_workspace", "filename"];
   static readonly inputFields = ["model"];
 
   @prop({
@@ -95,10 +71,19 @@ export class SaveModel3DFileNode extends BaseNode {
   declare model: any;
 
   @prop({
+    type: "bool",
+    default: true,
+    title: SAVE_TO_WORKSPACE_TITLE,
+    description: SAVE_TO_WORKSPACE_DESCRIPTION
+  })
+  declare save_to_workspace: any;
+
+  @prop({
     type: "str",
     default: "",
     title: "Folder",
-    description: "Folder where the file will be saved"
+    description: "Folder where the file will be saved",
+    json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
   declare folder: any;
 
@@ -121,18 +106,16 @@ export class SaveModel3DFileNode extends BaseNode {
   declare overwrite: any;
 
   async process(context?: ProcessingContext): Promise<SaveModel3DFileNodeOutputs> {
-    const folder = String(this.folder ?? ".");
-    const filename = dateName(String(this.filename ?? "model.glb"));
-    const overwrite = this.overwrite === true;
-    await fs.mkdir(path.resolve(folder), { recursive: true });
     const bytes = await modelRefToBytes(this.model, context);
-    const full = path.resolve(folder, filename);
-    const targetPath = overwrite
-      ? full
-      : await writeWithSuffixWhenNeeded(full, bytes);
-    if (overwrite) {
-      await fs.writeFile(targetPath, bytes);
-    }
+    const targetPath = await writeSavedFile({
+      folder: this.folder,
+      filename: dateName(String(this.filename ?? "model.glb")),
+      saveToWorkspace: this.save_to_workspace,
+      workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
+      overwrite: this.overwrite,
+      bytes
+    });
 
     return {
       output: modelRef(bytes, {

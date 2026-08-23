@@ -7,9 +7,18 @@ function resolveDbPath(
   context: ProcessingContext | undefined,
   databaseName: string
 ): string {
-  const workspaceDir = context?.workspaceDir;
+  // SQLite opens the file directly and holds it open across statements, so a
+  // staged copy would diverge from the workspace the moment a second run
+  // touched it. This node therefore needs a workspace that is a real folder.
+  const workspaceDir = context?.workspace?.localDir ?? context?.workspaceDir;
   if (!workspaceDir) {
-    throw new Error("workspace_dir is required for SQLite operations");
+    throw new Error(
+      context?.workspace
+        ? "SQLite needs a workspace that is a folder on the machine running " +
+          "the workflow. This run's workspace is cloud storage, which cannot " +
+          "back a live database file."
+        : "A workspace is required for SQLite operations"
+    );
   }
   return join(workspaceDir, databaseName);
 }

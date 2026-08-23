@@ -21,7 +21,10 @@ import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
-import type { Intervention } from "@nodetool-ai/protocol";
+import {
+  TRPC_MAX_BATCH_SIZE,
+  type Intervention
+} from "@nodetool-ai/protocol";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   initDb,
@@ -41,6 +44,7 @@ import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   ExecutionSession,
+  isExecutionPreflightError,
   type RawGraphInput
 } from "@nodetool-ai/execution";
 import {
@@ -58,6 +62,7 @@ import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 import {
   ProcessingContext,
   FileStorageAdapter,
+  createLocalWorkspace,
   initTelemetry
 } from "@nodetool-ai/runtime";
 import type { AssetOutputMode } from "@nodetool-ai/runtime";
@@ -151,6 +156,7 @@ function createApiClient(apiUrl: string) {
     links: [
       httpBatchLink({
         url: `${apiUrl}/trpc`,
+        maxItems: TRPC_MAX_BATCH_SIZE,
         // POST keeps the batched input in the request body instead of the URL,
         // so large batches stay under reverse-proxy URL-length limits. See #3979.
         methodOverride: "POST"
@@ -304,6 +310,15 @@ function asJson(data: unknown): void {
 // installing them before `setupDb()` is safe.
 await installLocalModelInterfaces();
 
+/**
+ * What to print when a run command fails. A preflight refusal already reads as
+ * a complete explanation — printing the error class in front of it only buries
+ * the secret name the user has to go set.
+ */
+function describeRunFailure(error: unknown): string {
+  return isExecutionPreflightError(error) ? error.message : String(error);
+}
+
 // ---------------------------------------------------------------------------
 // info
 // ---------------------------------------------------------------------------
@@ -418,7 +433,7 @@ addSupervisorOptions(
         }
       }
     } catch (e) {
-      console.error(String(e));
+      console.error(describeRunFailure(e));
       process.exit(1);
     }
   }
@@ -752,7 +767,7 @@ addSupervisorOptions(
       // workspace-driving nodes land in the same directory as a server run.
       const { resolveWorkflowWorkspace } =
         await import("@nodetool-ai/websocket");
-      const workspaceDir = workflowId
+      const assignedWorkspace = workflowId
         ? await resolveWorkflowWorkspace(workflowId, "1")
         : null;
       const ASSET_OUTPUT_MODES = [
@@ -774,20 +789,25 @@ addSupervisorOptions(
         );
       }
 
-      // `workspace` mode writes each output into <workspace>/assets, so it
-      // needs a directory even when the run has no saved workflow (a JSON or
-      // DSL file target). Fall back to ./nodetool-output so a bare
-      // `workflows run file.json --asset-output-mode workspace` produces
-      // files in the current directory rather than failing.
-      const effectiveWorkspaceDir =
+      // `--workspace <dir>` wins, then whatever the workflow is assigned.
+      // `workspace` asset mode writes each output into <workspace>/assets, so
+      // it needs somewhere to write even when the run has no saved workflow (a
+      // JSON or DSL file target). Fall back to ./nodetool-output so a bare
+      // `workflows run file.json --asset-output-mode workspace` produces files
+      // in the current directory rather than failing.
+      const overrideWorkspaceDir =
         opts.workspace ??
-        workspaceDir ??
-        (assetOutputMode === "workspace"
-          ? resolve(process.cwd(), "nodetool-output")
-          : null);
-      if (effectiveWorkspaceDir) {
-        mkdirSync(effectiveWorkspaceDir, { recursive: true });
+        (assignedWorkspace
+          ? null
+          : assetOutputMode === "workspace"
+            ? resolve(process.cwd(), "nodetool-output")
+            : null);
+      if (overrideWorkspaceDir) {
+        mkdirSync(overrideWorkspaceDir, { recursive: true });
       }
+      const runWorkspace = overrideWorkspaceDir
+        ? createLocalWorkspace(overrideWorkspaceDir)
+        : assignedWorkspace;
 
       const assetStorage = new FileStorageAdapter(getDefaultAssetsPath());
       const context = new ProcessingContext({
@@ -797,10 +817,7 @@ addSupervisorOptions(
         secretResolver: getSecret,
         storage: assetStorage,
         assetOutputMode,
-        workspaceDir: effectiveWorkspaceDir,
-        workspaceStorage: effectiveWorkspaceDir
-          ? new FileStorageAdapter(effectiveWorkspaceDir)
-          : null
+        workspace: runWorkspace
       });
 
       const supervisor = supervisorConfig
@@ -885,7 +902,7 @@ addSupervisorOptions(
 
       process.exit(result.status === "completed" ? 0 : 1);
     } catch (e) {
-      console.error(String(e));
+      console.error(describeRunFailure(e));
       process.exit(1);
     }
   }

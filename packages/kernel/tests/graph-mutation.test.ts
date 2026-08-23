@@ -632,6 +632,19 @@ describe("Graph – validation methods", () => {
     expect(() => new Graph({ nodes, edges }).validateEdgeTypes()).not.toThrow();
   });
 
+  it("validateEdgeTypes accepts a string output connected to an enum input", () => {
+    const nodes = [
+      n("a", "t", { outputs: { code: "str" } }),
+      n("b", "t", { propertyTypes: { code: "enum" } })
+    ];
+    const graph = new Graph({
+      nodes,
+      edges: [e("a", "code", "b", "code", { id: "e14_select_input_code" })]
+    });
+
+    expect(() => graph.validate()).not.toThrow();
+  });
+
   it("validate() runs all three checks", () => {
     const g = new Graph({
       nodes: [n("a", "t")],

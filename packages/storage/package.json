@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
-    "@openclaw/fs-safe": "^0.1.2"
+    "@openclaw/fs-safe": "^0.5.6"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",

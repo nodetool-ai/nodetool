@@ -15,17 +15,19 @@
  * covers `randomUUID`, `getRandomValues`, `digest`, and `hmac`
  * (WebCrypto-backed); `workspace` covers text and binary reads/writes plus
  * `stat`, `mkdir`, and `remove`; `progress` forwards a percentage and label to
- * the host caller (rate-limited); `format` exposes host `Intl` number, date,
+ * the host caller (rate-limited); `console.*` appends to the run's `logs`
+ * array and, when the caller set {@link RunSandboxOptions.onLog}, forwards
+ * each line live (capped); `format` exposes host `Intl` number, date,
  * relative-time and list formatting, which QuickJS itself does not ship.
  * Every quantitative limit (fetch calls, response body, output size,
  * guest heap, stack, fetch timeout) is overridable per invocation through
  * `RunSandboxOptions.limits`, clamped to hard ceilings.
  *
  * The guest imports nothing by default — without `RunSandboxOptions.modules`
- * there is no loader at all, so user code cannot `import`/`require` anything.
- * With it, the run's declared sandbox packages and their intra-pack siblings
- * are the only importable modules (see {@link createGuestModuleHost}), and
- * dynamic `import()` stays denied.
+ * every specifier is denied by name, so user code cannot `import`/`require`
+ * anything. With it, the run's resolved sandbox packages and their intra-pack
+ * siblings are the only importable modules (see {@link createGuestModuleHost}),
+ * and dynamic `import()` stays denied.
  *
  * **Every library the sandbox offers is an importable module.** Some are guest
  * modules the compiler admitted (js-yaml, date-fns); the rest are *host
@@ -33,7 +35,7 @@
  * host behind a generated ESM facade over a per-run dispatcher
  * (`host-modules/`), because they need Node builtins the guest lacks or carry a
  * limit the guest could not enforce. Either way the guest writes `import`, and
- * the pack has to be installed and declared. The remaining globals — `fetch`,
+ * the pack has to be installed. The remaining globals — `fetch`,
  * `workspace`, `getSecret`, the asset bridges, `format.*` (Intl), `crypto.*`
  * (WebCrypto), `image.*`/`canvas.*` — are not libraries: they are the
  * capabilities the node granted this run.
@@ -140,7 +142,7 @@ const quickJsVariant = (
 ).default;
 import { importNodeBuiltin } from "@nodetool-ai/config";
 import type { AssetRef } from "@nodetool-ai/protocol";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext, Workspace } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -165,6 +167,10 @@ export const DEFAULT_FORMAT_LOCALE = "en-US";
 export const MAX_RANDOM_BYTES = 65_536;
 /** Progress reports forwarded to the host per run; further calls are dropped. */
 export const MAX_PROGRESS_CALLS = 1000;
+/** Console lines forwarded to {@link RunSandboxOptions.onLog} per run. */
+export const MAX_CONSOLE_LOGS = 1000;
+/** Longest console line forwarded to the host. The collected `logs` array is not truncated. */
+export const MAX_CONSOLE_LOG_CHARS = 4000;
 /**
  * Emitted values a run may deliver. Unlike progress reports, emits are never
  * dropped or rate-limited — every value reaches the host in call order — so the
@@ -196,6 +202,21 @@ export const INPUT_STREAM_SUSPEND_ALLOWANCE_MS = MAX_ENGINE_TIMEOUT_MS;
 export type SandboxProgressCallback = (
   progress: number,
   message?: string
+) => void;
+
+/** Guest `console.*` method that produced a line. */
+export type SandboxLogLevel = "log" | "info" | "warn" | "error";
+
+/**
+ * Host sink for guest `console.*` calls. Synchronous and fire-and-forget:
+ * a failing sink does not take the guest down. At most
+ * {@link MAX_CONSOLE_LOGS} lines are forwarded, each truncated to
+ * {@link MAX_CONSOLE_LOG_CHARS}. The run's `logs` array still collects every
+ * line. Without a callback the guest console still writes that array.
+ */
+export type SandboxLogCallback = (
+  level: SandboxLogLevel,
+  message: string
 ) => void;
 
 /**
@@ -919,6 +940,8 @@ export interface SandboxResult {
  *                 {@link resolveSandboxLimits}.
  * @param onProgress Optional sink for guest `progress()` calls. Without one the
  *                 guest function is a no-op.
+ * @param onLog    Optional sink for guest `console.*` calls. Without one the
+ *                 lines still land in {@link SandboxResult}'s `getLogs`.
  * @param onEmit   Optional sink for guest `emit()` calls. Without one the values
  *                 are collected and handed back through `getEmitted`.
  * @param streams  Optional input bridges behind the guest `stream` global.
@@ -933,6 +956,7 @@ export function buildSandbox(
   signal?: AbortSignal,
   limits?: SandboxLimits,
   onProgress?: SandboxProgressCallback,
+  onLog?: SandboxLogCallback,
   onEmit?: SandboxEmitCallback,
   streams?: SandboxInputStreams,
   resolveMediaRef?: (where: string, ref: unknown) => Promise<Uint8Array>,
@@ -945,19 +969,41 @@ export function buildSandbox(
   const logs: string[] = [];
   const resolvedLimits = resolveSandboxLimits(limits);
   let fetchCount = 0;
+  let forwardedLogs = 0;
+
+  const pushConsole = (
+    level: SandboxLogLevel,
+    prefix: string,
+    args: unknown[]
+  ): void => {
+    const line = args.map(formatArg).join(" ");
+    logs.push(prefix + line);
+    if (!onLog || signal?.aborted) return;
+    if (forwardedLogs >= MAX_CONSOLE_LOGS) return;
+    forwardedLogs++;
+    const message =
+      line.length > MAX_CONSOLE_LOG_CHARS
+        ? line.slice(0, MAX_CONSOLE_LOG_CHARS)
+        : line;
+    try {
+      onLog(level, message);
+    } catch {
+      // A failing host sink must not take the guest run down with it.
+    }
+  };
 
   const console = {
     log: (...args: unknown[]) => {
-      logs.push(args.map(formatArg).join(" "));
+      pushConsole("log", "", args);
     },
     warn: (...args: unknown[]) => {
-      logs.push("[warn] " + args.map(formatArg).join(" "));
+      pushConsole("warn", "[warn] ", args);
     },
     error: (...args: unknown[]) => {
-      logs.push("[error] " + args.map(formatArg).join(" "));
+      pushConsole("error", "[error] ", args);
     },
     info: (...args: unknown[]) => {
-      logs.push("[info] " + args.map(formatArg).join(" "));
+      pushConsole("info", "[info] ", args);
     }
   };
 
@@ -1245,6 +1291,18 @@ export function buildSandbox(
         return undefined;
       };
 
+  /** What `workspace.stat` answers for a path that is not there. */
+  const MISSING_STAT: Record<string, unknown> = {
+    exists: false,
+    size: 0,
+    isDirectory: false,
+    isFile: false,
+    isSymlink: false,
+    modifiedMs: 0,
+    createdMs: 0,
+    accessedMs: 0
+  };
+
   /**
    * Resolve a guest path under the configured filesystem scope.
    *
@@ -1279,163 +1337,214 @@ export function buildSandbox(
     return fullPath;
   };
 
-  const workspace = context
-    ? {
-        read: async (path: string): Promise<string> => {
-          const fs = await loadFsPromises();
-          const fullPath = await resolveGuestPath(context, path, false);
-          return fs.readFile(fullPath, "utf-8");
-        },
-        write: async (path: string, content: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          const fullPath = await resolveGuestPath(context, path, true);
-          await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
-          await fs.writeFile(fullPath, content, "utf-8");
-        },
-        list: async (path: string): Promise<string[]> => {
-          const fs = await loadFsPromises();
-          const fullPath = await resolveGuestPath(context, path, false);
-          return fs.readdir(fullPath);
-        },
-        readBytes: async (path: string): Promise<Record<string, string>> => {
-          const fs = await loadFsPromises();
-          const fullPath = await resolveGuestPath(context, path, false);
-          return toGuestBytes(new Uint8Array(await fs.readFile(fullPath)));
-        },
-        writeBytes: async (path: string, data: unknown): Promise<void> => {
-          const bytes =
-            data instanceof Uint8Array ? data : toNativeUint8Array(data);
-          const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          const fullPath = await resolveGuestPath(context, path, true);
-          await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
-          await fs.writeFile(fullPath, bytes);
-        },
-        // A missing path is an answer, not a failure: guest code asking
-        // "does this exist?" should not have to wrap the call in try/catch.
-        // `lstat` (not `stat`) so a symlink reports as itself rather than as
-        // whatever it points at.
-        stat: async (path: string): Promise<Record<string, unknown>> => {
-          const fs = await loadFsPromises();
-          // Resolved as a write, not a read: the queried path may legitimately
-          // not exist, and the read path resolves it with `realpath`, which
-          // throws on a missing file and so would report every absent path as
-          // an escape. The write path decides containment from the nearest
-          // existing ancestor instead. A path that *does* exist is still
-          // realpath-checked, so a symlink out of the workspace is caught.
-          const fullPath = await resolveGuestPath(context, path, true);
-          let info;
-          try {
-            info = await fs.lstat(fullPath);
-          } catch {
-            return {
-              exists: false,
-              size: 0,
-              isDirectory: false,
-              isFile: false,
-              isSymlink: false,
-              modifiedMs: 0,
-              createdMs: 0,
-              accessedMs: 0
-            };
-          }
-          return {
-            exists: true,
-            size: info.size,
-            isDirectory: info.isDirectory(),
-            isFile: info.isFile(),
-            isSymlink: info.isSymbolicLink(),
-            modifiedMs: info.mtimeMs,
-            createdMs: info.birthtimeMs,
-            accessedMs: info.atimeMs
-          };
-        },
-        /** Absolute path of the workspace root — the base for relative paths. */
-        root: async (): Promise<string> => {
-          return context.resolveWorkspacePath(".");
-        },
-        copy: async (src: string, dest: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          // Source is a read, destination is a write — the asymmetry matters:
-          // a write target may not exist yet, so it is checked via its nearest
-          // existing ancestor.
-          const fullSrc = await resolveGuestPath(context, src, false);
-          const fullDest = await resolveGuestPath(context, dest, true);
-          await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
-          await fs.copyFile(fullSrc, fullDest);
-        },
-        move: async (src: string, dest: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          // A move unlinks the source, so it is a write on both ends.
-          const fullSrc = await resolveGuestPath(context, src, true);
-          const fullDest = await resolveGuestPath(context, dest, true);
-          await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
-          await fs.rename(fullSrc, fullDest);
-        },
-        mkdir: async (path: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          const fullPath = await resolveGuestPath(context, path, true);
-          await fs.mkdir(fullPath, { recursive: true });
-        },
-        remove: async (path: string): Promise<void> => {
-          const fs = await loadFsPromises();
-          // Resolved as a write. `recursive: false` keeps this to one file or
-          // one empty directory — guest code cannot delete a whole subtree in
-          // a single call, in either filesystem mode.
-          const fullPath = await resolveGuestPath(context, path, true);
-          const info = await fs.lstat(fullPath);
-          if (info.isDirectory()) {
-            // rmdir refuses a non-empty directory, which is the point.
-            await fs.rmdir(fullPath);
-          } else {
-            await fs.rm(fullPath, { recursive: false });
-          }
-        }
+  /**
+   * The guest's `workspace.*` API.
+   *
+   * Three shapes, picked once: no context at all (every call explains itself),
+   * `filesystemAccess: "host"` (the `lib.os` escape hatch — real paths, no
+   * containment, host opt-in only), and the normal case, which goes through
+   * `context.workspace` and therefore works the same whether the run's
+   * workspace is a folder or a prefix in object storage.
+   */
+  const hostFsWorkspace = (ctx: ProcessingContext) => ({
+    read: async (path: string): Promise<string> => {
+      const fs = await loadFsPromises();
+      return fs.readFile(await resolveGuestPath(ctx, path, false), "utf-8");
+    },
+    write: async (path: string, content: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      const nodePath = await loadNodePath();
+      const fullPath = await resolveGuestPath(ctx, path, true);
+      await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
+      await fs.writeFile(fullPath, content, "utf-8");
+    },
+    list: async (path: string): Promise<string[]> => {
+      const fs = await loadFsPromises();
+      return fs.readdir(await resolveGuestPath(ctx, path, false));
+    },
+    readBytes: async (path: string): Promise<Record<string, string>> => {
+      const fs = await loadFsPromises();
+      const fullPath = await resolveGuestPath(ctx, path, false);
+      return toGuestBytes(new Uint8Array(await fs.readFile(fullPath)));
+    },
+    writeBytes: async (path: string, data: unknown): Promise<void> => {
+      const bytes = data instanceof Uint8Array ? data : toNativeUint8Array(data);
+      const fs = await loadFsPromises();
+      const nodePath = await loadNodePath();
+      const fullPath = await resolveGuestPath(ctx, path, true);
+      await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
+      await fs.writeFile(fullPath, bytes);
+    },
+    stat: async (path: string): Promise<Record<string, unknown>> => {
+      const fs = await loadFsPromises();
+      const fullPath = await resolveGuestPath(ctx, path, true);
+      let info;
+      try {
+        info = await fs.lstat(fullPath);
+      } catch {
+        return MISSING_STAT;
       }
-    : {
-        read: async (_path: string): Promise<string> => {
-          throw new Error("workspace.read is not available without a context");
-        },
-        write: async (_path: string, _content: string): Promise<void> => {
-          throw new Error("workspace.write is not available without a context");
-        },
-        list: async (_path: string): Promise<string[]> => {
-          throw new Error("workspace.list is not available without a context");
-        },
-        readBytes: async (_path: string): Promise<Record<string, string>> => {
-          throw new Error(
-            "workspace.readBytes is not available without a context"
-          );
-        },
-        writeBytes: async (_path: string, _data: unknown): Promise<void> => {
-          throw new Error(
-            "workspace.writeBytes is not available without a context"
-          );
-        },
-        stat: async (_path: string): Promise<Record<string, unknown>> => {
-          throw new Error("workspace.stat is not available without a context");
-        },
-        root: async (): Promise<string> => {
-          throw new Error("workspace.root is not available without a context");
-        },
-        copy: async (_src: string, _dest: string): Promise<void> => {
-          throw new Error("workspace.copy is not available without a context");
-        },
-        move: async (_src: string, _dest: string): Promise<void> => {
-          throw new Error("workspace.move is not available without a context");
-        },
-        mkdir: async (_path: string): Promise<void> => {
-          throw new Error("workspace.mkdir is not available without a context");
-        },
-        remove: async (_path: string): Promise<void> => {
-          throw new Error(
-            "workspace.remove is not available without a context"
-          );
-        }
+      return {
+        exists: true,
+        size: info.size,
+        isDirectory: info.isDirectory(),
+        isFile: info.isFile(),
+        isSymlink: info.isSymbolicLink(),
+        modifiedMs: info.mtimeMs,
+        createdMs: info.birthtimeMs,
+        accessedMs: info.atimeMs
       };
+    },
+    root: async (): Promise<string> => ctx.resolveWorkspacePath("."),
+    copy: async (src: string, dest: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      const nodePath = await loadNodePath();
+      const fullSrc = await resolveGuestPath(ctx, src, false);
+      const fullDest = await resolveGuestPath(ctx, dest, true);
+      await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
+      await fs.copyFile(fullSrc, fullDest);
+    },
+    move: async (src: string, dest: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      const nodePath = await loadNodePath();
+      const fullSrc = await resolveGuestPath(ctx, src, true);
+      const fullDest = await resolveGuestPath(ctx, dest, true);
+      await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
+      await fs.rename(fullSrc, fullDest);
+    },
+    mkdir: async (path: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      await fs.mkdir(await resolveGuestPath(ctx, path, true), {
+        recursive: true
+      });
+    },
+    remove: async (path: string): Promise<void> => {
+      const fs = await loadFsPromises();
+      const fullPath = await resolveGuestPath(ctx, path, true);
+      const info = await fs.lstat(fullPath);
+      if (info.isDirectory()) {
+        // rmdir refuses a non-empty directory, which is the point.
+        await fs.rmdir(fullPath);
+      } else {
+        await fs.rm(fullPath, { recursive: false });
+      }
+    }
+  });
+
+  const backedWorkspace = (ws: Workspace) => ({
+    read: async (path: string): Promise<string> => {
+      const text = await ws.readText(path);
+      if (text === null) throw new Error(`ENOENT: no such file: ${path}`);
+      return text;
+    },
+    write: async (path: string, content: string): Promise<void> => {
+      await ws.write(path, content);
+    },
+    // Names only, like readdir — the guest joins them onto the path it asked
+    // about, which is how the pre-existing scripts use this.
+    list: async (path: string): Promise<string[]> =>
+      (await ws.list(path)).map((entry) => entry.name),
+    readBytes: async (path: string): Promise<Record<string, string>> => {
+      const bytes = await ws.read(path);
+      if (bytes === null) throw new Error(`ENOENT: no such file: ${path}`);
+      return toGuestBytes(bytes);
+    },
+    writeBytes: async (path: string, data: unknown): Promise<void> => {
+      const bytes = data instanceof Uint8Array ? data : toNativeUint8Array(data);
+      await ws.write(path, bytes);
+    },
+    // A missing path is an answer, not a failure: guest code asking
+    // "does this exist?" should not have to wrap the call in try/catch.
+    stat: async (path: string): Promise<Record<string, unknown>> => {
+      let info;
+      try {
+        info = await ws.stat(path);
+      } catch {
+        return MISSING_STAT;
+      }
+      if (!info) return MISSING_STAT;
+      return {
+        exists: true,
+        size: info.size,
+        isDirectory: info.isDirectory,
+        isFile: !info.isDirectory,
+        // Nothing reachable through a workspace is a symlink: an object store
+        // cannot hold one, and the local backend refuses to follow one out of
+        // the root.
+        isSymlink: false,
+        modifiedMs: info.modifiedAt,
+        createdMs: info.modifiedAt,
+        accessedMs: info.modifiedAt
+      };
+    },
+    /**
+     * The base for relative paths. A real directory when the workspace has
+     * one; otherwise `/workspace`, which every workspace path accepts as its
+     * own root, so a script that joins onto it keeps working.
+     */
+    root: async (): Promise<string> => ws.localDir ?? "/workspace",
+    copy: async (src: string, dest: string): Promise<void> => {
+      await ws.copy(src, dest);
+    },
+    move: async (src: string, dest: string): Promise<void> => {
+      await ws.move(src, dest);
+    },
+    mkdir: async (path: string): Promise<void> => {
+      await ws.mkdir(path);
+    },
+    remove: async (path: string): Promise<void> => {
+      // One file or one empty directory — guest code cannot delete a whole
+      // subtree in a single call, in any filesystem mode.
+      const info = await ws.stat(path);
+      if (info?.isDirectory) {
+        const children = await ws.list(path);
+        if (children.length > 0) {
+          throw new Error(`ENOTEMPTY: directory not empty: ${path}`);
+        }
+        await ws.deleteAll(path);
+        return;
+      }
+      if (!(await ws.delete(path))) {
+        throw new Error(`ENOENT: no such file: ${path}`);
+      }
+    }
+  });
+
+  const unavailable = (api: string) => async (): Promise<never> => {
+    throw new Error(`workspace.${api} is not available without a context`);
+  };
+
+  const workspace = !context
+    ? {
+        read: unavailable("read"),
+        write: unavailable("write"),
+        list: unavailable("list"),
+        readBytes: unavailable("readBytes"),
+        writeBytes: unavailable("writeBytes"),
+        stat: unavailable("stat"),
+        root: unavailable("root"),
+        copy: unavailable("copy"),
+        move: unavailable("move"),
+        mkdir: unavailable("mkdir"),
+        remove: unavailable("remove")
+      }
+    : resolvedLimits.filesystemAccess === "host"
+      ? hostFsWorkspace(context)
+      : context.workspace
+        ? backedWorkspace(context.workspace)
+        : {
+            read: unavailable("read"),
+            write: unavailable("write"),
+            list: unavailable("list"),
+            readBytes: unavailable("readBytes"),
+            writeBytes: unavailable("writeBytes"),
+            stat: unavailable("stat"),
+            root: unavailable("root"),
+            copy: unavailable("copy"),
+            move: unavailable("move"),
+            mkdir: unavailable("mkdir"),
+            remove: unavailable("remove")
+          };
 
   const sleep = (ms: number): Promise<void> => {
     const capped = Math.min(ms, 5000);
@@ -2468,6 +2577,14 @@ export interface RunSandboxOptions {
    */
   onProgress?: SandboxProgressCallback;
   /**
+   * Sink for guest `console.*` calls. Each line is forwarded as it happens,
+   * with {@link MAX_CONSOLE_LOGS} as the cap and
+   * {@link MAX_CONSOLE_LOG_CHARS} as the per-line ceiling. The run's `logs`
+   * array still collects every untruncated line. Without a callback the guest
+   * console is unchanged: lines land only in `logs`.
+   */
+  onLog?: SandboxLogCallback;
+  /**
    * Sink for guest `emit(name, value)` calls. Every value reaches it, in call
    * order, and the guest's `emit` promise resolves only after it does — so an
    * `await emit(...)` blocks a producer the consumer cannot keep up with. A
@@ -2511,9 +2628,9 @@ export interface RunSandboxOptions {
   suspendAllowanceMs?: number;
   /**
    * Sandbox modules this run may import, already resolved by the catalog.
-   * Without it the guest has no module loader at all, exactly as before: an
-   * `import` resolves nothing. With it, these modules and their intra-pack
-   * siblings are the only importable ones — see {@link createGuestModuleHost}.
+   * Without it every guest `import` is denied by name. With it, these modules
+   * and their intra-pack siblings are the only importable ones — see
+   * {@link createGuestModuleHost}.
    */
   modules?: SandboxModuleResolution;
   /**
@@ -2681,6 +2798,7 @@ export async function runInSandbox(
     signal,
     limits,
     onProgress,
+    onLog,
     onEmit,
     onTakeInput,
     onStreamOpen,
@@ -2744,6 +2862,7 @@ export async function runInSandbox(
     signal,
     resolvedLimits,
     onProgress,
+    onLog,
     onEmit,
     streams,
     resolveMediaRef,

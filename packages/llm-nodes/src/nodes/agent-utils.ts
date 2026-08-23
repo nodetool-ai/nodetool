@@ -385,13 +385,21 @@ export function normalizeToolCalls(value: unknown): ToolCall[] | null {
       (item): item is Record<string, unknown> =>
         !!item && typeof item === "object"
     )
-    .map((item, index) => ({
-      id: isNonEmptyString(item.id) ? item.id : `tool_${index + 1}`,
-      name: isString(item.name) ? item.name : "",
-      args: isObjectLike(item.args)
-        ? (item.args as Record<string, unknown>)
-        : {}
-    }))
+    .map((item, index) => {
+      const call: ToolCall = {
+        id: isNonEmptyString(item.id) ? item.id : `tool_${index + 1}`,
+        name: isString(item.name) ? item.name : "",
+        args: isObjectLike(item.args)
+          ? (item.args as Record<string, unknown>)
+          : {}
+      };
+      // Gemini 3 rejects a replayed function call whose signature is gone, so
+      // it has to survive the round trip through stored history.
+      if (isNonEmptyString(item.thought_signature)) {
+        call.thought_signature = item.thought_signature;
+      }
+      return call;
+    })
     .filter((item) => item.name.length > 0);
   return toolCalls.length > 0 ? toolCalls : null;
 }

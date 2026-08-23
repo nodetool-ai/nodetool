@@ -51,12 +51,6 @@ interface PaletteNodeInstance {
  * For snippets, call `updateNodeData(node.id, afterAdd)` after `addNode(node)` —
  * dynamic IO is merged only once the node exists in the store.
  */
-/** A snippet's Code-node properties; `packages` only when it imports one. */
-type SnippetCodeProperties = {
-  code: string;
-  packages?: { specifier: string }[];
-};
-
 export function instantiatePaletteNode(
   metadata: NodeMetadata,
   position: XYPosition,
@@ -118,15 +112,7 @@ export function instantiatePaletteNode(
       .getState()
       .getMetadata(CODE_NODE_TYPE);
     if (codeMetadata) {
-      const codeProperties: SnippetCodeProperties = { code: snippet.code };
-      // A snippet that imports a library seeds the declaration with it —
-      // the loader mounts only what the node declares.
-      if (snippet.packages !== undefined) {
-        codeProperties.packages = snippet.packages.map((specifier) => ({
-          specifier
-        }));
-      }
-      const node = createNode(codeMetadata, position, codeProperties);
+      const node = createNode(codeMetadata, position, { code: snippet.code });
       node.data.title = snippet.title;
       node.data.codeNodeMode = "snippet";
 

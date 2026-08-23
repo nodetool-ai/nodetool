@@ -227,7 +227,21 @@ export default function NodeBasedAiPage() {
             >
               ComfyUI comparison
             </a>{" "}
-            is the direct answer.
+            is the direct answer. If you are comparing hosted creative canvases,
+            see the{" "}
+            <a
+              href="/alternatives/figma-weave"
+              className="text-blue-300 underline decoration-blue-500/40 underline-offset-2 transition-colors hover:text-blue-200"
+            >
+              Figma Weave alternative
+            </a>{" "}
+            or the original{" "}
+            <a
+              href="/alternatives/weavy"
+              className="text-blue-300 underline decoration-blue-500/40 underline-offset-2 transition-colors hover:text-blue-200"
+            >
+              Weavy comparison
+            </a>.
           </p>
         </section>
 

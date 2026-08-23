@@ -1,0 +1,189 @@
+{
+  "captures": {
+    "bad_input": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/node-types?limit=0"
+      },
+      "response": {
+        "body": {
+          "code": "INVALID_INPUT",
+          "message": "cursor must be >= 0 and limit 1..100",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 400
+      },
+      "via": "fastify"
+    },
+    "feature_disabled": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "1",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/node-types?limit=50"
+      },
+      "response": {
+        "body": {
+          "code": "SDK_NODE_TYPE_INVENTORY_DISABLED",
+          "message": "SDK node/type inventory v1 is disabled",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 503
+      },
+      "via": "fastify"
+    },
+    "method_not_allowed": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/node-types"
+      },
+      "response": {
+        "body": {
+          "code": "NOT_FOUND",
+          "message": "SDK endpoint not found",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 404
+      },
+      "via": "fastify"
+    },
+    "success": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/node-types?limit=50"
+      },
+      "response": {
+        "body": {
+          "cursor": 0,
+          "next_cursor": null,
+          "node_count": 2,
+          "provenance_counts": {
+            "loaded-metadata": 2
+          },
+          "python_bridge_ready": false,
+          "registry_ready": true,
+          "registry_revision": 0,
+          "type_count": 1,
+          "types": [
+            {
+              "examples": [
+                {
+                  "direction": "output",
+                  "node_type": "nodetool.input.StringInput",
+                  "pin": "output"
+                }
+              ],
+              "input_uses": 0,
+              "node_count": 1,
+              "optional": false,
+              "output_uses": 1,
+              "signature": "str",
+              "sources": {
+                "loaded-metadata": 1
+              },
+              "type": "str",
+              "type_args": [],
+              "type_name": null,
+              "values": [],
+              "values_truncated": false
+            }
+          ],
+          "unavailable_packs": [
+            {
+              "id": "atlascloud",
+              "name": "AtlasCloud",
+              "reason": "disabled by built-in pack configuration"
+            },
+            {
+              "id": "elevenlabs",
+              "name": "ElevenLabs",
+              "reason": "disabled by built-in pack configuration"
+            },
+            {
+              "id": "minimax",
+              "name": "MiniMax",
+              "reason": "disabled by built-in pack configuration"
+            },
+            {
+              "id": "reve",
+              "name": "Reve",
+              "reason": "disabled by built-in pack configuration"
+            },
+            {
+              "id": "together",
+              "name": "Together AI",
+              "reason": "disabled by built-in pack configuration"
+            },
+            {
+              "id": "topaz",
+              "name": "Topaz Labs",
+              "reason": "disabled by built-in pack configuration"
+            },
+            {
+              "id": "transformers-js",
+              "name": "Transformers.js",
+              "reason": "disabled by built-in pack configuration"
+            }
+          ],
+          "version": 1
+        },
+        "content_type": "application/json",
+        "status": 200
+      },
+      "via": "fastify"
+    }
+  },
+  "fixture_version": 1,
+  "not_captured": {
+    "auth_failure": "No in-route 401: getUserId falls back to x-user-id/'1' and server.ts enforces authentication in its onRequest hook (server.ts:897) before routing, answering 401 {\"error\":\"Unauthorized\"} outside the handlers."
+  },
+  "operation": "node_type_inventory",
+  "route": {
+    "auth": "discovery",
+    "feature_flag": "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1",
+    "method": "GET",
+    "owner": "packages/websocket/src/routes/sdk-v1.ts",
+    "path": "/api/sdk/v1/node-types"
+  }
+}

@@ -22,13 +22,10 @@ const r = await concat({ a: "hello ", b: "world" });
 return r.output;
 ```
 
-## Declaring it
+## Two imports, both required
 
-Two declarations, both required:
-
-1. The node's `packages` property must list `@nodetool-ai/sandbox-flow`.
-2. The body must import the capability module itself:
-   `import "@nodetool-ai/sandbox-nodetool/flow";`
+1. `import { … } from "@nodetool-ai/sandbox-flow/<namespace>";` — the nodes.
+2. `import "@nodetool-ai/sandbox-nodetool/flow";` — the capability module.
 
 The second one is not decoration. The host mounts a capability module by
 reading the **body's** static imports, and this pack's guest code calls into

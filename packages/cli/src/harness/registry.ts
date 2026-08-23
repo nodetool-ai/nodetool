@@ -334,6 +334,23 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "AGENTS.md § Common Pitfalls (deploy)"
   },
   {
+    id: "provider-contract",
+    title:
+      "Provider contract probes (raw response fixtures + one live request per provider)",
+    command: "npm run probe:providers [--json] [--out report.json]",
+    kind: "meta",
+    capabilities: ["json", "gated"],
+    docs: "docs/provider-contract-probes.md",
+    selfcheck: {
+      // The offline half: every manifest entry decodes its checked-in raw
+      // response, and every declared required field is removed once to prove
+      // the check can fail. No key, no network.
+      command:
+        "npm run test --workspace=packages/runtime -- provider-contract-probes",
+      cost: "cheap"
+    }
+  },
+  {
     id: "affected",
     title: "Changed-file → workspace mapping",
     command: "nodetool affected [--base main]",
@@ -377,6 +394,46 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "capability-suites",
+    title: "Agent capability suites (per-capability contract tests)",
+    // No CLI command owns a capability: the surface is the wire name a guest
+    // or a model calls. The checked-in suites are the headless surface, and
+    // `packages/cli/src/harness/capability-table.ts` says which suite covers
+    // which capability — the audit fails on one that names none.
+    command:
+      "npm run test --workspace=packages/agents -- capabilities capability " +
+      "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
+      "sandbox-package-docs sandbox-package-listing",
+    kind: "static",
+    capabilities: ["no-db", "gated"],
+    docs: "packages/agents/AGENTS.md § Capability coverage",
+    selfcheck: {
+      // `capabilities:check` re-derives the table from the live registry, so
+      // a capability added without a mapping fails here rather than in review.
+      command:
+        "npm run capabilities:check && " +
+        "npm run test --workspace=packages/agents -- capabilities capability " +
+        "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
+        "sandbox-package-docs sandbox-package-listing",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "provider-codegen",
+    title: "Generated provider metadata drift (FAL and KIE fixture mode)",
+    command:
+      "npm run generate:fal:check && npm run generate:kie:check",
+    kind: "static",
+    capabilities: ["json", "no-db", "gated"],
+    docs: "AGENTS.md § Generated provider metadata has a drift gate",
+    selfcheck: {
+      command:
+        "npm run generate:fal:check -- --strict && " +
+        "npm run generate:kie:check -- --strict",
+      cost: "cheap"
+    }
+  },
+  {
     id: "harness-audit",
     title: "Harness coverage audit (this registry)",
     command: "nodetool harness audit [--strict]",
@@ -415,8 +472,29 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/runtime/",
       "packages/node-sdk/",
       "packages/base-nodes/",
-      "reliability/"
+      "reliability/",
+      // The CLI-facing example graphs. `npm run validate:examples` scans them,
+      // so a diff that edits one runs the validate selfcheck.
+      "examples/workflows/"
     ]
+  },
+  {
+    id: "agent-capabilities",
+    title: "Agent capabilities (the wire names a guest or a model calls)",
+    harnesses: ["capability-suites", "eval"],
+    paths: [
+      "packages/agents/src/capabilities/",
+      "packages/agents/src/evals/",
+      "packages/cli/src/harness/capability-table.ts",
+      "packages/cli/src/harness/capability-coverage.ts",
+      "scripts/sync-capability-coverage.mjs"
+    ]
+  },
+  {
+    id: "provider-clients",
+    title: "LLM and media provider clients (request shaping + response decoding)",
+    harnesses: ["provider-contract", "eval"],
+    paths: ["packages/runtime/src/providers/"]
   },
   {
     id: "workflow-authoring",
@@ -590,6 +668,18 @@ export const SURFACES: SurfaceEntry[] = [
       "scripts/bundle-backend.mjs",
       "scripts/verify-backend-bundle.mjs",
       "packages/config/src/package-asset-registry.ts"
+    ]
+  },
+  {
+    id: "provider-codegen",
+    title: "Generated FAL and KIE provider metadata (node manifests, node source)",
+    harnesses: ["provider-codegen"],
+    paths: [
+      "packages/fal-codegen/",
+      "packages/kie-codegen/",
+      "packages/fal-nodes/src/fal-manifest.json",
+      "packages/kie-nodes/src/kie-manifest.json",
+      "scripts/provider-codegen-check.mjs"
     ]
   },
   {

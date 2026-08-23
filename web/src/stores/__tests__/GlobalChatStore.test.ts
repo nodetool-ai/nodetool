@@ -177,6 +177,88 @@ describe("GlobalChatStore", () => {
     expect(state.threads[id]).toBeDefined();
   });
 
+  it("ensureLocalThread seeds a given id without stealing the current thread", () => {
+    store.getState().ensureLocalThread("local-tab", { makeCurrent: false });
+    const state = store.getState();
+    expect(state.threads["local-tab"]).toBeDefined();
+    expect(state.threads["local-tab"]?.title).toBe("New conversation");
+    expect(state.currentThreadId).toBeNull();
+  });
+
+  it("ensureLocalThread does not replace an existing thread", async () => {
+    const id = await store.getState().createNewThread("Kept title");
+    store.getState().ensureLocalThread(id, { title: "Other" });
+    expect(store.getState().threads[id]?.title).toBe("Kept title");
+  });
+
+  it("sendMessage sends the thread's permission mode", async () => {
+    mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(true);
+    mockGlobalWebSocketManager.isConnected = true;
+    let sentData: unknown;
+    mockGlobalWebSocketManager.send.mockImplementation(async (data) => {
+      sentData = data;
+      return Promise.resolve();
+    });
+
+    const threadId = await store.getState().createNewThread();
+    store.getState().setPermissionMode(threadId, "auto");
+    await store.getState().sendMessage({
+      role: "user",
+      type: "message",
+      content: "hello"
+    } as Message);
+
+    expect(sentData).toEqual(
+      expect.objectContaining({
+        command: "chat_message",
+        data: expect.objectContaining({
+          thread_id: threadId,
+          permission_mode: "auto"
+        })
+      })
+    );
+  });
+
+  it("a new thread inherits the last chosen permission mode", async () => {
+    const first = await store.getState().createNewThread();
+    store.getState().setPermissionMode(first, "auto");
+    const second = await store.getState().createNewThread();
+
+    expect(store.getState().getPermissionMode(second)).toBe("auto");
+  });
+
+  it("switching to auto allows pending tool approvals for that thread", () => {
+    const threadId = "thread-auto";
+    store.setState({
+      pendingApprovals: {
+        "appr-1": {
+          thread_id: threadId,
+          tool_name: "edit_timeline",
+          category: "write",
+          message: "Editing timeline",
+          args: {}
+        },
+        "appr-other": {
+          thread_id: "other",
+          tool_name: "write_file",
+          category: "write",
+          message: "Writing",
+          args: {}
+        }
+      }
+    } as any);
+
+    store.getState().setPermissionMode(threadId, "auto");
+
+    expect(store.getState().pendingApprovals["appr-1"]).toBeUndefined();
+    expect(store.getState().pendingApprovals["appr-other"]).toBeDefined();
+    expect(mockGlobalWebSocketManager.send).toHaveBeenCalledWith({
+      type: "tool_approval_response",
+      approval_id: "appr-1",
+      decision: "allow"
+    });
+  });
+
   it("sendMessage adds message to thread and sends via socket", async () => {
     mockServer = new Server("ws://test/ws");
     mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(true);

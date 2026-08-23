@@ -79,28 +79,6 @@ export async function exportWorkflowBundle(
   triggerDownload(blob, filename);
 }
 
-/** Download several workflows together as a single `.nodetool` bundle. */
-export async function exportWorkflowsBundle(
-  workflowIds: string[],
-  fallbackName = "workflows"
-): Promise<void> {
-  const res = await restFetch("/api/workflows/export-bundle", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ workflow_ids: workflowIds })
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(detail || `Export failed (${res.status})`);
-  }
-  const blob = await res.blob();
-  const filename = filenameFromDisposition(
-    res.headers.get("content-disposition"),
-    `${sanitizeBundleName(fallbackName)}.nodetool`
-  );
-  triggerDownload(blob, filename);
-}
-
 /** Upload a `.nodetool` bundle; the server stores its assets and creates the workflows. */
 export async function importWorkflowBundle(
   file: File

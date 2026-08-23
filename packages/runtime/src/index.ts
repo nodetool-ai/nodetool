@@ -19,8 +19,28 @@ export {
   type ProcessingContextModelInterfaces,
   type InjectedTool,
   type S3Client,
-  type StorageAdapter
+  type StorageAdapter,
+  type StorageEntry,
+  type StorageListResult,
+  type StorageStat
 } from "./context.js";
+
+// The run's workspace, as an interface over any storage backend. Importing
+// `storage-workspace.js` here also installs the factory ProcessingContext uses
+// to build a workspace from a plain `workspaceDir`.
+export {
+  WorkspacePathError,
+  WorkspaceNotLocalError,
+  type Workspace,
+  type WorkspaceEntry,
+  type WorkspaceStat
+} from "./workspace.js";
+export {
+  StorageWorkspace,
+  createWorkspace,
+  createLocalWorkspace
+} from "./storage-workspace.js";
+export { PrefixedStorageAdapter } from "./prefixed-storage-adapter.js";
 export type { SandboxModuleCatalog } from "./sandbox-module-catalog.js";
 export {
   getProcessSandboxModuleCatalog,
@@ -160,6 +180,10 @@ export {
   resolvePythonNodeExecutor
 } from "./python-graph-resolver.js";
 export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
+export {
+  fetchExternalMedia,
+  privateMediaFetchAllowed
+} from "./external-media-fetch.js";
 export {
   assetRefToPromptToken,
   classifyAssetToken,

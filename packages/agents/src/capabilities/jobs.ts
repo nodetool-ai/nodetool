@@ -19,6 +19,7 @@ import {
   listJobsSpec,
   getJobSpec,
   getJobLogsSpec,
+  cancelJobSpec,
   LIST_JOBS_SCHEMA,
   GET_JOB_LOGS_SCHEMA
 } from "./jobs.specs.js";
@@ -84,11 +85,44 @@ const getJobLogs: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// cancel_job
+// ---------------------------------------------------------------------------
+
+/**
+ * Cancel one of the caller's own runs.
+ *
+ * `markCancelledIfActive` is the whole security boundary: the user id and the
+ * still-active predicate are columns in the one UPDATE, so a job that belongs
+ * to someone else and a job that already finished both come back `false`
+ * without this code ever holding the row. It cannot clobber the cost and
+ * timestamps a finishing run just wrote.
+ */
+const cancelJob: CapabilityExport = {
+  spec: cancelJobSpec,
+  impl: async (run, params) => {
+    const { Job } = await import("@nodetool-ai/models");
+    const jobId = String(params["job_id"]);
+    const cancelled = await Job.markCancelledIfActive(
+      jobId,
+      userIdOf(run.context)
+    );
+    return cancelled
+      ? { job_id: jobId, status: "cancelled" }
+      : {
+          job_id: jobId,
+          cancelled: false,
+          error: `Job ${jobId} is not running — it already finished, or it is not yours.`
+        };
+  }
+};
+
 /** Every job capability, in the order `getAllMcpTools` offered them. */
 export const JOB_CAPABILITIES: readonly CapabilityExport[] = [
   listJobs,
   getJob,
-  getJobLogs
+  getJobLogs,
+  cancelJob
 ];
 
 export const module: CapabilityModule = {
@@ -96,4 +130,4 @@ export const module: CapabilityModule = {
   exports: JOB_CAPABILITIES
 };
 
-export { listJobs, getJob, getJobLogs };
+export { listJobs, getJob, getJobLogs, cancelJob };

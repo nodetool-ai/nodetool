@@ -22,6 +22,14 @@ export interface LabelProps extends Omit<TypographyProps, 'variant'> {
   htmlFor?: string;
 }
 
+// Label is the sanctioned "label" role (13px / 500). The `small` variant
+// drops to the caption combo (11px / 400). Both stay within the 4 combos.
+const FONT_SIZES = {
+  small: "var(--fontSizeSmaller)", // 11px — caption combo
+  normal: "var(--fontSizeSmall)", // 13px — label combo
+  large: "var(--fontSizeSmall)" // 13px — label combo
+} satisfies Record<NonNullable<LabelProps["size"]>, string>;
+
 /**
  * Label - A semantic label component
  * 
@@ -53,27 +61,13 @@ export const Label = forwardRef<HTMLElement, LabelProps>(({
 }, ref) => {
   const theme = useTheme();
 
-  // Label is the sanctioned "label" role (13px / 500). The `small` variant
-  // drops to the caption combo (11px / 400). Both stay within the 4 combos.
-  const getFontSize = () => {
-    const sizeMap = {
-      small: "var(--fontSizeSmaller)", // 11px — caption combo
-      normal: "var(--fontSizeSmall)", // 13px — label combo
-      large: "var(--fontSizeSmall)" // 13px — label combo
-    };
-    return sizeMap[size];
-  };
   const fontWeight = size === "small" ? 400 : 500;
 
-  const getColor = () => {
-    if (error) {
-      return theme.vars.palette.error.main;
-    }
-    if (disabled) {
-      return theme.vars.palette.text.disabled;
-    }
-    return theme.vars.palette.text.secondary;
-  };
+  const color = error
+    ? theme.vars.palette.error.main
+    : disabled
+      ? theme.vars.palette.text.disabled
+      : theme.vars.palette.text.secondary;
 
   return (
     <Typography
@@ -81,9 +75,9 @@ export const Label = forwardRef<HTMLElement, LabelProps>(({
       component="label"
       htmlFor={htmlFor}
       sx={{
-        fontSize: getFontSize(),
+        fontSize: FONT_SIZES[size],
         fontWeight,
-        color: getColor(),
+        color,
         display: "block",
         marginBottom: theme.spacing(1),
         cursor: disabled ? "not-allowed" : "default",

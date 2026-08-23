@@ -6,7 +6,7 @@ description: Encode text into a QR matrix or SVG inside a Code node or CodeAct a
 # QR codes in the sandbox
 
 Specifier: `@nodetool-ai/sandbox-qr`. One module, the `uqr` root export.
-Declare it in the node's `packages` property and import it at the top of the body.
+Import it at the top of the body.
 
 ## encode — text to a QR matrix
 

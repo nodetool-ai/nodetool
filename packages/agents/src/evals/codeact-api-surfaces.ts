@@ -206,6 +206,7 @@ interface Shot {
   slug: string;
   action: string;
   duration_seconds: number;
+  duration_source: "audio" | "manual";
   still: string | null;
   clip: string | null;
   revision: number;
@@ -500,6 +501,7 @@ function createWorld() {
               slug: "wide-lighthouse",
               action: "Wide of the lighthouse at dusk",
               duration_seconds: 4,
+              duration_source: "manual",
               still: "asset://still_shot_1",
               clip: null,
               revision: 1
@@ -509,6 +511,7 @@ function createWorld() {
               slug: "keeper-door",
               action: "The keeper closes the door",
               duration_seconds: 3,
+              duration_source: "manual",
               still: null,
               clip: null,
               revision: 1
@@ -518,6 +521,7 @@ function createWorld() {
               slug: "beam-sweep",
               action: "The beam sweeps across the water",
               duration_seconds: 5,
+              duration_source: "manual",
               still: null,
               clip: null,
               revision: 1
@@ -879,6 +883,16 @@ function applyScriptOp(doc: ScriptDoc, op: Record<string, unknown>): void {
   }
 }
 
+/** The two sources a shot's duration may come from; anything else is an error. */
+function durationSource(
+  value: unknown,
+  fallback?: "audio" | "manual"
+): "audio" | "manual" {
+  if (value === undefined && fallback !== undefined) return fallback;
+  if (value === "audio" || value === "manual") return value;
+  throw new Error('duration_source must be "audio" or "manual"');
+}
+
 function applyStoryboardOp(
   doc: StoryboardDoc,
   op: Record<string, unknown>
@@ -894,6 +908,7 @@ function applyStoryboardOp(
         slug: slug(action).slice(0, 24),
         action,
         duration_seconds: num(op["duration_seconds"], 3),
+        duration_source: durationSource(op["duration_source"], "manual"),
         still: null,
         clip: null,
         revision: 1
@@ -910,7 +925,7 @@ function applyStoryboardOp(
       doc.shots.splice(Math.max(0, num(op["index"], 0)), 0, shot);
       return;
     }
-    case "set_shot": {
+    case "update_shot": {
       const target = str(op["target"]);
       const shot = doc.shots.find((s) => s.id === target || s.slug === target);
       if (!shot) throw new Error(`no shot matching "${target}"`);
@@ -922,11 +937,24 @@ function applyStoryboardOp(
           shot.duration_seconds
         );
       }
+      if (op["duration_source"] !== undefined) {
+        shot.duration_source = durationSource(op["duration_source"]);
+      }
+      return;
+    }
+    case "remove_shot": {
+      const target = str(op["target"]);
+      const at = doc.shots.findIndex(
+        (s) => s.id === target || s.slug === target
+      );
+      if (at < 0) throw new Error(`no shot matching "${target}"`);
+      doc.shots.splice(at, 1);
       return;
     }
     default:
       throw new Error(
-        `unknown op "${kind}" — try get_state, add_shot, reorder_shot, set_shot`
+        `unknown op "${kind}" — try get_state, add_shot, update_shot, ` +
+          "remove_shot, reorder_shot"
       );
   }
 }
@@ -1794,6 +1822,23 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         };
       }
     ),
+    tool(
+      "delete_timeline_version",
+      "Delete one snapshot. The live sequence is not changed.",
+      obj({ timeline_id: S, version: N }, ["timeline_id", "version"]),
+      (params) => {
+        const id = str(params["timeline_id"]);
+        needTimeline(world, id);
+        const version = num(params["version"], 0);
+        const list = world.versions.get(`timeline:${id}`) ?? [];
+        const idx = list.findIndex((v) => v.version === version);
+        if (idx < 0)
+          throw new Error(`no version ${version} for timeline "${id}"`);
+        list.splice(idx, 1);
+        world.versions.set(`timeline:${id}`, list);
+        return { ok: true, timeline_id: id, deleted_version: version };
+      }
+    ),
 
     // -- sketches ---------------------------------------------------------
     tool(
@@ -1807,6 +1852,39 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           layers: doc.layers.length
         }))
       })
+    ),
+    tool(
+      "create_sketch",
+      "Create a blank sketch (image document).",
+      obj({ name: S, width: N, height: N, id: S }, ["name"]),
+      (params) => {
+        const id = str(params["id"], `sketch_${world.sketches.size + 1}`);
+        if (world.sketches.has(id)) {
+          const existing = world.sketches.get(id)!;
+          return {
+            ok: true,
+            image_document_id: existing.id,
+            name: existing.name
+          };
+        }
+        const layerId = "layer_1";
+        const doc: SketchDoc = {
+          id,
+          name: str(params["name"], "Untitled"),
+          layers: [
+            {
+              id: layerId,
+              name: "Layer 1",
+              opacity: 1,
+              blendMode: "normal",
+              visible: true
+            }
+          ],
+          activeLayerId: layerId
+        };
+        world.sketches.set(id, doc);
+        return { ok: true, image_document_id: id, name: doc.name };
+      }
     ),
     tool(
       "validate_sketch",
@@ -1947,6 +2025,25 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           restored: version,
           validation: { ok: issues.length === 0, issues }
         };
+      }
+    ),
+    tool(
+      "delete_sketch_version",
+      "Delete one snapshot. The live document is not changed.",
+      obj({ image_document_id: S, version: N }, [
+        "image_document_id",
+        "version"
+      ]),
+      (params) => {
+        const id = str(params["image_document_id"]);
+        needSketch(world, id);
+        const version = num(params["version"], 0);
+        const list = world.versions.get(`sketch:${id}`) ?? [];
+        const idx = list.findIndex((v) => v.version === version);
+        if (idx < 0) throw new Error(`no version ${version} for sketch "${id}"`);
+        list.splice(idx, 1);
+        world.versions.set(`sketch:${id}`, list);
+        return { ok: true, image_document_id: id, deleted_version: version };
       }
     ),
 
@@ -2096,6 +2193,32 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       })
     ),
     tool(
+      "create_storyboard",
+      "Create a blank storyboard.",
+      obj({ name: S, brief: S, style: S, aspect_ratio: S, id: S }, ["name"]),
+      (params) => {
+        const id = str(params["id"], `sb_${world.storyboards.size + 1}`);
+        if (world.storyboards.has(id)) {
+          const existing = world.storyboards.get(id)!;
+          return {
+            ok: true,
+            storyboard_id: existing.storyboard_id,
+            name: existing.name
+          };
+        }
+        const name = str(params["name"], "Untitled");
+        const doc: StoryboardDoc = {
+          storyboard_id: id,
+          name,
+          image_model: { provider: "fal_ai", model: "fal-ai/flux/schnell" },
+          video_model: { provider: "fal_ai", model: "fal-ai/ltx" },
+          shots: []
+        };
+        world.storyboards.set(id, doc);
+        return { ok: true, storyboard_id: id, name, shots: 0 };
+      }
+    ),
+    tool(
       "get_storyboard",
       "One board: its shots, their status, and its models.",
       obj({ storyboard_id: S }, ["storyboard_id"]),
@@ -2113,6 +2236,7 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
             slug: shot.slug,
             action: shot.action,
             duration_seconds: shot.duration_seconds,
+            duration_source: shot.duration_source,
             has_still: shot.still !== null,
             has_clip: shot.clip !== null,
             revision: shot.revision
@@ -2545,6 +2669,32 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
         );
       },
       resultCheckLabel: "voiced line_2,line_3; 3 clips in tl_scr_intro"
+    }
+  },
+  {
+    id: "storyboard-direct-shots",
+    description: "Direct a board's shot list headlessly, before anything renders",
+    namespaces: ["storyboards"],
+    objective:
+      "Board sb_lighthouse needs one more beat. Add a closing shot — the " +
+      "lamp goes dark — as the last shot, 2 seconds long, timed off its " +
+      "audio rather than a fixed length, and drop the shot showing the " +
+      "keeper closing the door. Change nothing else and render nothing. " +
+      "Finish with {shots, lastAction, lastDurationSource} read back from " +
+      "the board.",
+    outputSchema: obj(
+      { shots: N, lastAction: S, lastDurationSource: S },
+      ["shots", "lastAction", "lastDurationSource"]
+    ),
+    expect: {
+      requiredTools: ["edit_storyboard", "get_storyboard"],
+      forbiddenTools: ["render_storyboard_stills", "render_storyboard_clips"],
+      maxActions: 4,
+      resultCheck: (r: unknown) =>
+        asNumber(field(r, "shots")) === 3 &&
+        /lamp/i.test(asString(field(r, "lastAction"))) &&
+        asString(field(r, "lastDurationSource")) === "audio",
+      resultCheckLabel: "3 shots, closing lamp shot timed off audio"
     }
   },
   {

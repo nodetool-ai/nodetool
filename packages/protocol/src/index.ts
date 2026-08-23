@@ -12,7 +12,10 @@ export * from "./custom-providers.js";
 export * from "./package-assets.js";
 export * from "./resource-uri.js";
 export * from "./model-selection.js";
-export { TypeMetadata } from "./type-metadata.js";
+export {
+  TypeMetadata,
+  areTypeNamesCompatible
+} from "./type-metadata.js";
 export { validateType, type ValidationResult } from "./typecheck.js";
 export {
   wrapPrimitive,
@@ -25,6 +28,7 @@ export * from "./script-link.js";
 export * from "./builtin-packs.js";
 export * from "./triggers.js";
 export * from "./cloud-profile.js";
+export * from "./trpc-policy.js";
 export * from "./sandbox-capability.js";
 export * from "./sandbox-host.js";
 export * from "./sandbox-package.js";

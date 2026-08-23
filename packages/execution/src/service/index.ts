@@ -28,6 +28,10 @@ export type {
 
 export {
   resolveWorkflowWorkspace,
+  resolveWorkflowWorkspaceDir,
+  workspaceFromRow,
+  setWorkspaceCloudStorage,
+  usesCloudWorkspaces,
   buildWorkspaceExecutionContext
 } from "./workflow-workspace.js";
 

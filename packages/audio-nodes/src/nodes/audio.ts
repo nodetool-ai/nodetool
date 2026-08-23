@@ -3,13 +3,18 @@ import type {
   InputMode,
   OutputCorrelation,
   Platform,
-  AudioRef
+  AudioRef,
+  TTSModel
 } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
-  loadNodePath
+  loadNodePath,
+  writeSavedFile,
+  VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
+  SAVE_TO_WORKSPACE_DESCRIPTION,
+  SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
@@ -416,7 +421,7 @@ export class SaveAudioFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
-  static readonly inlineFields: string[] = [];
+  static readonly inlineFields: string[] = ["save_to_workspace"];
   static readonly inputFields: string[] = ["audio"];
 
   @prop({
@@ -434,10 +439,19 @@ export class SaveAudioFileNode extends BaseNode {
   declare audio: any;
 
   @prop({
+    type: "bool",
+    default: true,
+    title: SAVE_TO_WORKSPACE_TITLE,
+    description: SAVE_TO_WORKSPACE_DESCRIPTION
+  })
+  declare save_to_workspace: any;
+
+  @prop({
     type: "str",
     default: "",
     title: "Folder",
-    description: "Folder where the file will be saved"
+    description: "Folder where the file will be saved",
+    json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
   declare folder: any;
 
@@ -464,15 +478,16 @@ export class SaveAudioFileNode extends BaseNode {
   })
   declare FORMAT_MAP: any;
 
-  async process(): Promise<SaveAudioFileNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<SaveAudioFileNodeOutputs> {
     const audio = this.audio;
-    const folder = String(this.folder || ".");
-    const fname = dateName(String(this.filename || "audio.wav"));
-    const fs = await loadNodeFsPromises();
-    const path = await loadNodePath();
-    const p = path.resolve(folder, fname);
-    await fs.mkdir(path.dirname(p), { recursive: true });
-    await fs.writeFile(p, audioBytes(audio));
+    const p = await writeSavedFile({
+      folder: this.folder,
+      filename: dateName(String(this.filename || "audio.wav")),
+      saveToWorkspace: this.save_to_workspace,
+      workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
+      bytes: audioBytes(audio)
+    });
     return { output: p };
   }
 }
@@ -1542,7 +1557,7 @@ export class TextToSpeechNode extends BaseNode {
     chunk: "chunk"
   };
   static readonly inlineFields: string[] = ["text"];
-  static readonly inputFields: string[] = ["text"];
+  static readonly inputFields: string[] = ["text", "reference_audio"];
   static readonly autoSaveAsset = true;
 
   static readonly inputMode: InputMode = "buffered";
@@ -1564,12 +1579,13 @@ export class TextToSpeechNode extends BaseNode {
       name: "TTS 1",
       path: null,
       voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
-      selected_voice: "alloy"
+      selected_voice: "alloy",
+      capabilities: ["preset_voice"]
     },
     title: "Model",
     description: "The text-to-speech model to use"
   })
-  declare model: any;
+  declare model: TTSModel;
 
   @prop({
     type: "str",
@@ -1577,7 +1593,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Text",
     description: "Text to convert to speech"
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "float",
@@ -1587,21 +1603,136 @@ export class TextToSpeechNode extends BaseNode {
     min: 0.25,
     max: 4
   })
-  declare speed: any;
+  declare speed: number;
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Reference Audio",
+    description: "A voice recording used by models that support voice cloning.",
+    json_schema_extra: {
+      visible_when: {
+        property: "model",
+        path: "capabilities",
+        includes: "voice_cloning"
+      }
+    }
+  })
+  declare reference_audio: AudioRef;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Reference Text",
+    description: "Transcript of the reference recording when required.",
+    json_schema_extra: {
+      visible_when: {
+        property: "model",
+        path: "capabilities",
+        includes: "reference_transcript"
+      }
+    }
+  })
+  declare reference_text: string;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Language",
+    description: "Optional language code or name.",
+    json_schema_extra: {
+      visible_when: {
+        property: "model",
+        path: "capabilities",
+        includes: "language_selection"
+      }
+    }
+  })
+  declare language: string;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Instructions",
+    description: "Optional voice style and delivery instructions.",
+    json_schema_extra: {
+      visible_when: {
+        property: "model",
+        path: "capabilities",
+        includes_any: ["voice_design", "instruction_control"]
+      }
+    }
+  })
+  declare instructions: string;
 
   async process(context?: ProcessingContext): Promise<TextToSpeechNodeOutputs> {
     const text = String(this.text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
-    const modelObj = (this.model ?? {}) as Record<string, unknown>;
+    const modelObj = this.model;
     const explicitVoice = isString(modelObj.selected_voice)
       ? modelObj.selected_voice
       : "";
     const voiceList = Array.isArray(modelObj.voices)
       ? (modelObj.voices as string[])
       : [];
+    const capabilities = new Set(
+      Array.isArray(modelObj.capabilities)
+        ? modelObj.capabilities.filter(isString)
+        : []
+    );
     const voice = explicitVoice || voiceList[0] || "";
     if (hasProviderSupport(context, providerId, modelId)) {
-      const params = { text, voice, speed: this.speed };
+      const params: Record<string, unknown> = {
+        text,
+        voice,
+        speed: this.speed
+      };
+      let hasReferenceAudio = false;
+      if (capabilities.has("voice_cloning")) {
+        const referenceAudio = await audioBytesAsync(
+          this.reference_audio,
+          context
+        );
+        if (referenceAudio.length > 0) {
+          params.reference_audio = referenceAudio;
+          hasReferenceAudio = true;
+        }
+      }
+      if (modelObj.requires_reference_text === true) {
+        if (!hasReferenceAudio) {
+          throw new Error(`${modelId} requires reference audio for voice cloning.`);
+        }
+        if (!isNonEmptyString(this.reference_text)) {
+          throw new Error(
+            `${modelId} requires an exact transcript of the reference audio.`
+          );
+        }
+      }
+      if (
+        capabilities.has("reference_transcript") &&
+        isNonEmptyString(this.reference_text)
+      ) {
+        params.reference_text = this.reference_text;
+      }
+      if (
+        capabilities.has("language_selection") &&
+        isNonEmptyString(this.language)
+      ) {
+        params.language = this.language;
+      }
+      if (
+        (capabilities.has("voice_design") ||
+          capabilities.has("instruction_control")) &&
+        isNonEmptyString(this.instructions)
+      ) {
+        params.instructions = this.instructions;
+      }
       // Providers that stream raw PCM (OpenAI, Together, Replicate, ElevenLabs…)
       // are wrapped into a WAV. Providers that return an encoded audio file
       // (FAL, KIE) are consumed via the encoded path below.

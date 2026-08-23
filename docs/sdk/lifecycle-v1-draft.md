@@ -32,19 +32,16 @@ schema-validating builders for:
 - explicit local, attached-worker, and live-runner execution targets without
   attaching, provisioning, or falling back to a different target.
 
-`GET /api/sdk/v1/capabilities`, `POST /api/sdk/v1/preflight`,
-`POST /api/sdk/v1/assets/temporary`, `get_capabilities`, and
-`preflight_workflow` are available by default. A deployment can disable them with
-`NODETOOL_DISABLE_SDK_LIFECYCLE_V1=1`. Their HTTP and WebSocket adapters share
-the same providers and authenticated principal. Submission, snapshot,
-subscription, and lifecycle cancellation operations remain planned.
+`GET /api/sdk/v1/capabilities`, `POST /api/sdk/v1/preflight`, and
+`POST /api/sdk/v1/assets/temporary` are available by default. A deployment can
+disable them with `NODETOOL_DISABLE_SDK_LIFECYCLE_V1=1`. They share the same
+typed service boundary and authenticated principal. They are not duplicated as
+WebSocket RPC commands.
 
-This document defines the language-neutral lifecycle profile that the server,
-C# base, VL, Unity, and future SDKs will share. The schemas are published now;
-operations marked `x-nodetool-implementation: planned` are not server
-endpoints. AsyncAPI lifecycle operations are marked `partial` while their
-capability and preflight variants are implemented and later variants remain
-planned.
+This document is the design note for possible future acknowledged submission,
+snapshot, subscription, and lifecycle-cancellation operations. Those roadmap
+items are intentionally absent from the public v1 declarations and generated
+client schemas until implemented.
 
 The capability profile `temporary_asset_upload = available` advertises the
 multipart temporary-input route. It writes directly to configured temporary
@@ -102,7 +99,7 @@ forbids a terminal result on non-terminal snapshots.
 
 ## Preflight and submission
 
-`preflight_workflow` is side-effect free. It does not create a job, reserve a
+`POST /api/sdk/v1/preflight` is side-effect free. It does not create a job, reserve a
 provider request, download a model without explicit approval, or start paid
 work. It reports:
 

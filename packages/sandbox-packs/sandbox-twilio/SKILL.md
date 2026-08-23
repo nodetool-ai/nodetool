@@ -5,8 +5,7 @@ description: Send SMS and WhatsApp messages and look up numbers from a Code node
 
 # Twilio in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-twilio`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-twilio`. Import it at the top of the body.
 
 Twilio is HTTP Basic auth over form-encoded bodies, on a URL that buries the
 account SID in the path. None of that is hard; all of it is easy to get wrong

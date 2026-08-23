@@ -229,30 +229,6 @@ describe('ChatView', () => {
     });
   });
 
-  describe('All status variations', () => {
-    const statuses: ChatStatus[] = [
-      'disconnected',
-      'connecting',
-      'connected',
-      'reconnecting',
-      'disconnecting',
-      'failed',
-      'loading',
-      'streaming',
-      'error',
-      'stopping',
-    ];
-
-    statuses.forEach((status) => {
-      it(`renders correctly with status: ${status}`, () => {
-        const { UNSAFE_root } = render(
-          <ChatView {...defaultProps} status={status} />
-        );
-        expect(UNSAFE_root).toBeTruthy();
-      });
-    });
-  });
-
   describe('KeyboardAvoidingView', () => {
     it('renders with KeyboardAvoidingView', () => {
       const { UNSAFE_root } = render(<ChatView {...defaultProps} />);

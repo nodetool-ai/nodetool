@@ -34,7 +34,6 @@ import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 
 import {
   isHuggingFaceProvider,
-  isHuggingFaceLocalProvider,
   getProviderBaseName,
   formatGenericProviderName,
   getProviderUrl
@@ -45,6 +44,10 @@ import {
 } from "../../stores/ModelMenuStore";
 import { useSecrets } from "../../hooks/useSecrets";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
+import {
+  executionLabelsByProvider,
+  type ModelSelectorModel
+} from "../../utils/modelNormalization";
 
 // Provider icons vendored from @lobehub/icons-static-svg (see src/icons/providers/README.md)
 import openaiIcon from "../../icons/providers/openai.svg";
@@ -521,6 +524,7 @@ type ProviderStoreHook = <Selected>(
 
 interface ProviderListProps {
   providers: string[];
+  models?: readonly ModelSelectorModel[];
   isLoading: boolean;
   isError: boolean;
   storeHook?: ProviderStoreHook;
@@ -535,6 +539,7 @@ interface ProviderListProps {
 // Provider selection is read from the store here, so selecting one still re-renders.
 const ProviderList: React.FC<ProviderListProps> = React.memo(({
   providers,
+  models = [],
   isLoading,
   isError,
   storeHook = useLanguageModelMenuStore,
@@ -560,6 +565,11 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
   const isHorizontal = orientation === "horizontal";
   const tooltipPlacement = isHorizontal ? "bottom" : "right";
   const itemMinWidth = isHorizontal ? 76 : undefined;
+
+  const providerExecutionLabels = React.useMemo(
+    () => executionLabelsByProvider(models),
+    [models]
+  );
 
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical).
   // The label and icon URL are resolved here as well: both are pure functions of
@@ -725,17 +735,19 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
             const isHF = isHuggingFaceProvider(p);
-            const isHFLocal = isHuggingFaceLocalProvider(p);
-            const isLocal = /ollama|local|lmstudio|llama[_-]?cpp|mlx/i.test(p);
+            const executionLabels = providerExecutionLabels.get(p);
 
             if (isHF) {
               badges.push({ label: "HF" });
             }
-            if (isHFLocal || isLocal) {
-              badges.push({ label: "Local" });
-            }
-            if (!isHF && !isLocal && !isHFLocal) {
-              badges.push({ label: "API" });
+            if (executionLabels) {
+              const actionable = ["Local", "Server", "API"].filter((label) =>
+                executionLabels.has(label as "Local" | "Server" | "API")
+              );
+              for (const label of actionable) badges.push({ label });
+              if (actionable.length === 0 && executionLabels.has("Unavailable")) {
+                badges.push({ label: "Unavailable" });
+              }
             }
 
             return (
@@ -746,7 +758,11 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
                       ? "HuggingFace: Models from the Hugging Face Hub."
                       : b.label === "Local"
                         ? "Local: Runs locally on your machine."
-                        : "API: Remote provider; runs via API without local download. Requires API key.";
+                        : b.label === "Server"
+                          ? "Server: Runs on the configured NodeTool server."
+                          : b.label === "Unavailable"
+                            ? "Unavailable: No ready execution target was reported."
+                            : "API: Input is sent to the provider. Provider billing applies.";
                   return (
                     <Tooltip
                       className="model-menu__provider-badge-tooltip"
@@ -768,7 +784,11 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
                               ? theme.vars.palette.c_provider_api
                               : b.label === "Local"
                                 ? theme.vars.palette.c_provider_local
-                                : theme.vars.palette.c_provider_hf,
+                                : b.label === "Unavailable"
+                                  ? theme.vars.palette.text.disabled
+                                  : b.label === "Server"
+                                    ? theme.vars.palette.warning.main
+                                    : theme.vars.palette.c_provider_hf,
                           letterSpacing: 0.2,
                           border: `1px solid currentColor`
                         }}

@@ -72,6 +72,25 @@ const stubRegistry = {
   validateNode: () => []
 } as unknown as NodeRegistry;
 
+/** Poll the job row until it reaches `status`, so a detached run can be read. */
+async function waitForJobStatus(
+  jobId: string,
+  status: string,
+  timeoutMs = 5000
+): Promise<Job> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const job = (await Job.find(USER, jobId)) as Job | null;
+    if (job && job.status === status) return job;
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `job ${jobId} was "${job?.status ?? "missing"}", not "${status}"`
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
 async function saveWorkflow(
   fields: Partial<{
     id: string;
@@ -800,6 +819,128 @@ describe("validate_workflow", () => {
   });
 });
 
+// The credential half. `validate_workflow` reported a graph as clean when the
+// node it names needs a key nobody has set — the same graph `nodetool validate`
+// warns about on a DB target — because nothing on this surface ever asked the
+// store.
+describe("validate_workflow missing credentials", () => {
+  const KEYED = "ns.NeedsKey";
+  const keyedRegistry = {
+    has: (type: string) => type === KEYED,
+    getMetadata: () => ({
+      properties: [],
+      outputs: [],
+      required_settings: ["FAL_API_KEY"]
+    }),
+    validateNode: () => []
+  } as unknown as NodeRegistry;
+
+  const graph = {
+    nodes: [{ id: "n1", type: KEYED, properties: {} }],
+    edges: []
+  };
+
+  /** What the host answers for the keys the graph declares. */
+  function validatorWith(
+    available: string[] | null,
+    extra: CapabilityDeps = {}
+  ): Tool {
+    const deps: CapabilityDeps = {
+      nodeRegistry: keyedRegistry,
+      modelCatalogs: RUNTIME_MODEL_CATALOGS,
+      ...extra
+    };
+    if (available !== null) {
+      deps.availableSecrets = (keys) =>
+        new Set(keys.filter((key) => available.includes(key)));
+    }
+    return capTool("validate_workflow", deps);
+  }
+
+  type Report = {
+    ok: boolean;
+    issues: Array<{ code: string; message: string; nodeId?: string }>;
+  };
+
+  it("warns, naming the key and where to set it", async () => {
+    const result = (await validatorWith([]).process(ctx, { graph })) as Report;
+    const issue = result.issues.find((i) => i.code === "missing_secret");
+    expect(issue?.nodeId).toBe("n1");
+    expect(issue?.message).toContain("FAL_API_KEY");
+    expect(issue?.message).toContain("Settings → Credentials");
+    // A warning informs; it does not refuse the graph.
+    expect(result.ok).toBe(true);
+  });
+
+  it("stays silent once the host resolves the key", async () => {
+    const result = (await validatorWith(["FAL_API_KEY"]).process(ctx, {
+      graph
+    })) as Report;
+    expect(result.issues.some((i) => i.code === "missing_secret")).toBe(false);
+  });
+
+  it("reports nothing when the run carries no resolver", async () => {
+    const result = (await validatorWith(null).process(ctx, {
+      graph
+    })) as Report;
+    expect(result.issues.some((i) => i.code === "missing_secret")).toBe(false);
+    expect(result.ok).toBe(true);
+  });
+
+  it("asks only for the names the graph declares", async () => {
+    const asked: string[][] = [];
+    const tool = capTool("validate_workflow", {
+      nodeRegistry: keyedRegistry,
+      modelCatalogs: RUNTIME_MODEL_CATALOGS,
+      availableSecrets: (keys) => {
+        asked.push([...keys]);
+        return new Set<string>();
+      }
+    });
+    await tool.process(ctx, { graph });
+    expect(asked).toEqual([["FAL_API_KEY"]]);
+  });
+
+  it("does not ask at all when the graph declares nothing", async () => {
+    const asked: string[][] = [];
+    const bareRegistry = {
+      has: () => true,
+      getMetadata: () => ({ properties: [], outputs: [] }),
+      validateNode: () => []
+    } as unknown as NodeRegistry;
+    const tool = capTool("validate_workflow", {
+      nodeRegistry: bareRegistry,
+      modelCatalogs: RUNTIME_MODEL_CATALOGS,
+      availableSecrets: (keys) => {
+        asked.push([...keys]);
+        return new Set<string>();
+      }
+    });
+    await tool.process(ctx, {
+      graph: { nodes: [{ id: "n1", type: "ns.A" }], edges: [] }
+    });
+    expect(asked).toEqual([]);
+  });
+
+  // Pointing a headless agent at `request_secret` sends it at a call that
+  // fails closed, so the mention is gated on the run being able to serve it.
+  it("names request_secret only when the run can raise the dialog", async () => {
+    const withDialog = (await validatorWith([], {
+      secretPrompt: async () => "saved"
+    }).process(ctx, { graph })) as Report;
+    expect(
+      withDialog.issues.find((i) => i.code === "missing_secret")?.message
+    ).toContain("request_secret");
+
+    const headless = (await validatorWith([]).process(ctx, {
+      graph
+    })) as Report;
+    expect(
+      headless.issues.find((i) => i.code === "missing_secret")?.message
+    ).not.toContain("request_secret");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Timeline / Sketch validation
 // ---------------------------------------------------------------------------
@@ -1193,6 +1334,54 @@ describe("start_background_job", () => {
     expect(result.job_id).toEqual(expect.any(String));
   });
 
+  // `background: true` used to be a label on a blocking call: the tool awaited
+  // the whole run. A live session started a two-minute render this way and its
+  // turn was cancelled before the call returned. With the node parked, this
+  // test hangs forever if the call ever waits again.
+  it("returns while the run is still going, and settles the job with outputs", async () => {
+    const saved = await saveWorkflow({
+      graph: { nodes: [{ id: "slow", type: "test.Slow", data: {} }], edges: [] }
+    });
+    let release!: () => void;
+    const parked = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tool = capTool("start_background_job", {
+      workflowEnvironment: async () => ({
+        registry: {
+          ...stubRegistry,
+          getClass: () => undefined
+        } as unknown as NodeRegistry,
+        resolveExecutor: () => ({
+          process: async () => {
+            await parked;
+            return { output: "done" };
+          }
+        })
+      })
+    });
+
+    const receipt = (await tool.process(ctx, {
+      workflow_id: saved.id
+    })) as Record<string, unknown>;
+    expect(receipt.status).toBe("running");
+    expect(receipt.background).toBe(true);
+    // The jobs API keys everything else on `id`; a receipt that spelled it
+    // only `job_id` sent a live session to get_job(undefined).
+    expect(receipt.id).toBe(receipt.job_id);
+    const jobId = String(receipt.job_id);
+    expect((await Job.find(USER, jobId))?.status).toBe("running");
+
+    release();
+    const settled = await waitForJobStatus(jobId, "completed");
+    expect(settled.runOutputs()).toEqual({ slow: ["done"] });
+
+    const record = (await capTool("get_job").process(ctx, {
+      job_id: jobId
+    })) as Record<string, unknown>;
+    expect(record.outputs).toEqual({ slow: ["done"] });
+  });
+
   it("userMessage includes workflow_id", () => {
     expect(
       capTool("start_background_job").userMessage({ workflow_id: "wf-123" })
@@ -1294,7 +1483,16 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("create_workflow");
     expect(names).toContain("run_workflow");
     expect(names).toContain("validate_workflow");
+    // Apps must be authorable from headless chat as well as debuggable in an
+    // open App Builder document. This catches a belt omission where
+    // `nodetool.apps.create()` existed in the prelude but its backing tool did
+    // not, so the action failed with "not in this toolbelt".
+    expect(names).toContain("list_apps");
+    expect(names).toContain("get_app");
+    expect(names).toContain("create_app");
+    expect(names).toContain("edit_app");
     expect(names).toContain("debug_app");
+    expect(names).toContain("delete_app");
     expect(names).toContain("get_example_workflow");
     expect(names).toContain("export_workflow_digraph");
     expect(names).toContain("list_jobs");
@@ -1382,4 +1580,3 @@ describe("getAllMcpTools", () => {
     }
   });
 });
-

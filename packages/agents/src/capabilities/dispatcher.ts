@@ -18,7 +18,7 @@
  *
  * Then it calls `run.invoke`, which is where the permission gate lives. The
  * dispatcher does not gate on its own — a call through the import path and the
- * same call through `tools.*` reach one implementation past one gate.
+ * same call through the belt bridge reach one implementation past one gate.
  *
  * Design: docs/tool-class-retirement-design.md § "The dispatcher change".
  */
@@ -29,9 +29,10 @@ import {
 } from "@nodetool-ai/protocol";
 
 import { extractErrorPayload, toTransferable } from "../codeact/tool-api.js";
+import { coerceCapabilityArgs } from "./args.js";
 import { listCapabilityModules, loadCapabilityModule } from "./registry.js";
 import type { CapabilityRun } from "./types.js";
-import { isRecord, isString } from "../utils/type-guards.js";
+import { isString } from "../utils/type-guards.js";
 
 /** Raised when a call breaks the capability module contract. */
 export class SandboxCapabilityError extends Error {
@@ -107,18 +108,20 @@ export function createCapabilityDispatcher(
           `${moduleKey}: ${found.spec.name} was called with a non-list argument`
         );
       }
-      const first = (args as unknown[])[0] ?? {};
-      if (!isRecord(first)) {
+      let record: Record<string, unknown>;
+      try {
+        record = coerceCapabilityArgs(found.spec, args as unknown[]);
+      } catch (error) {
         throw new SandboxCapabilityError(
-          `${moduleKey}: ${found.spec.name} takes one arguments object`
+          `${moduleKey}: ${error instanceof Error ? error.message : String(error)}`
         );
       }
-      // Plain data out, exactly as `tools.<name>()` hands it over, so the two
+      // Plain data out, exactly as the belt bridge hands it over, so the two
       // paths cannot show the guest different values for one call — including
       // an `{error}` payload, which is a failure to throw on rather than a
       // value to compute with. A gate refusal arrives that way.
       const value = toTransferable(
-        await run.invoke(found.spec.name, first as Record<string, unknown>)
+        await run.invoke(found.spec.name, record)
       );
       const failure = extractErrorPayload(value);
       if (failure !== null) {

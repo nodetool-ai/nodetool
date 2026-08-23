@@ -10,6 +10,8 @@
  * Docs: https://platform.minimax.io/docs/api-reference/api-overview
  */
 
+import { safeFetch } from "@nodetool-ai/runtime";
+
 export const MINIMAX_BASE_URL = "https://api.minimax.io";
 
 /** Resolve the MiniMax API key from injected secrets or the environment. */
@@ -65,7 +67,9 @@ export function bytesToBase64(bytes: Uint8Array): string {
  */
 export async function resolveAudioPayload(audio: string): Promise<Uint8Array> {
   if (/^https?:\/\//i.test(audio)) {
-    const dl = await fetch(audio);
+    // Provider-returned download URL: caller-influenced data, so it goes
+    // through the SSRF-screened, redirect-checking fetch.
+    const dl = await safeFetch(audio);
     if (!dl.ok) {
       throw new Error(`Failed to download MiniMax audio from ${audio}`);
     }
@@ -395,7 +399,8 @@ async function downloadFile(
       `MiniMax files/retrieve returned no download_url: ${JSON.stringify(data)}`
     );
   }
-  const dl = await fetch(downloadUrl);
+  // Provider-returned download URL — screened like every other one.
+  const dl = await safeFetch(downloadUrl);
   if (!dl.ok) {
     throw new Error(`Failed to download MiniMax file from ${downloadUrl}`);
   }

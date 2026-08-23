@@ -1,11 +1,10 @@
 /**
  * The `storyboards` capability module.
  *
- * Seven capabilities that used to be seven `Tool` subclasses in
- * `../tools/storyboard-render-tools.ts`: reading a board, rendering its stills
- * and clips straight against the provider, revising one take, assembling the
- * result into a timeline sequence, and shaping the shot list in the first
- * place.
+ * Storyboard capabilities: list and create, render stills and clips, revise
+ * one take, assemble a timeline, edit the shot list, extract a script, and
+ * delete. The render path used to be seven `Tool` subclasses in
+ * `../tools/storyboard-render-tools.ts`.
  *
  * Wire names, descriptions and schemas are unchanged. Prompt composition,
  * entity seasoning, and the shot → timeline mapping stay the editor's own
@@ -42,6 +41,7 @@ import type {
 import { stampScriptStoryboardId } from "./script-link.js";
 import {
   listStoryboardsSpec,
+  createStoryboardSpec,
   getStoryboardSpec,
   renderStoryboardStillsSpec,
   renderStoryboardClipsSpec,
@@ -53,15 +53,18 @@ import {
   MAX_CONCURRENCY,
   SHOT_TARGETS_SCHEMA,
   LIST_STORYBOARDS_SCHEMA,
+  CREATE_STORYBOARD_SCHEMA,
   GET_STORYBOARD_SCHEMA,
   RENDER_STILLS_SCHEMA,
   RENDER_CLIPS_SCHEMA,
   REVISE_CLIP_SCHEMA,
   ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
   EDIT_STORYBOARD_SCHEMA,
-  EXTRACT_SCRIPT_SCHEMA
+  EXTRACT_SCRIPT_SCHEMA,
+  deleteStoryboardSpec
 } from "./storyboards.specs.js";
 import {
+  isNonBlankString,
   isNumber,
   isObjectLike,
   isRecord,
@@ -73,6 +76,7 @@ export {
   MAX_CONCURRENCY,
   SHOT_TARGETS_SCHEMA,
   LIST_STORYBOARDS_SCHEMA,
+  CREATE_STORYBOARD_SCHEMA,
   GET_STORYBOARD_SCHEMA,
   RENDER_STILLS_SCHEMA,
   RENDER_CLIPS_SCHEMA,
@@ -477,6 +481,76 @@ const listStoryboards: CapabilityExport = {
         };
       })
     };
+  }
+};
+
+/** A blank board matching `storyboards.create` on the tRPC router. */
+function createdBoardSummary(row: Storyboard) {
+  const doc = row.toDocument();
+  return {
+    ok: true as const,
+    storyboard_id: row.id,
+    name: row.name,
+    project_id: row.project_id,
+    shots: doc.shots.length,
+    updated_at: row.updated_at
+  };
+}
+
+const createStoryboard: CapabilityExport = {
+  spec: createStoryboardSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const name = params["name"];
+    if (!isNonBlankString(name)) {
+      return { error: "name is required and must be a non-empty string." };
+    }
+    const projectId = isNonBlankString(params["project_id"])
+      ? params["project_id"].trim()
+      : "default";
+    const requestedId = isNonBlankString(params["id"])
+      ? params["id"].trim()
+      : undefined;
+
+    const { Storyboard, emptyStoryboardDocument } = await import(
+      "@nodetool-ai/models"
+    );
+    if (requestedId) {
+      const existing = await Storyboard.findById(requestedId);
+      if (existing) {
+        if (existing.user_id !== userId) {
+          return {
+            error: `A storyboard with id ${requestedId} already exists.`
+          };
+        }
+        return createdBoardSummary(existing);
+      }
+    }
+
+    const document = emptyStoryboardDocument();
+    if (isNonBlankString(params["brief"])) {
+      document.brief = params["brief"].trim();
+    }
+    if (isNonBlankString(params["style"])) {
+      document.style = params["style"].trim();
+    }
+    if (isNonBlankString(params["aspect_ratio"])) {
+      document.aspectRatio = params["aspect_ratio"].trim();
+    }
+
+    const fields: ConstructorParameters<typeof Storyboard>[0] = {
+      user_id: userId,
+      project_id: projectId,
+      name: name.trim(),
+      document: JSON.stringify(document)
+    };
+    if (requestedId) {
+      fields.id = requestedId;
+    }
+    const board = new Storyboard(fields);
+    await board.save();
+    return createdBoardSummary(board);
   }
 };
 
@@ -1101,6 +1175,13 @@ function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
     }
     next.duration_seconds = seconds;
   }
+  if (args["duration_source"] !== undefined) {
+    const source = String(args["duration_source"]);
+    if (source !== "audio" && source !== "manual") {
+      throw new Error('duration_source must be "audio" or "manual".');
+    }
+    next.duration_source = source;
+  }
   if (Array.isArray(args["entity_ids"])) {
     next.entity_ids = args["entity_ids"].map(String);
   }
@@ -1437,15 +1518,38 @@ const extractScriptFromStoryboard: CapabilityExport = {
 };
 
 /** Every storyboard capability, in the order the tool file declared them. */
+/**
+ * Delete a storyboard the caller owns.
+ *
+ * The ownership check and the version cascade are `Storyboard.deleteOwned`, the
+ * same function the tRPC route calls — a delete is not a place for two copies
+ * of one rule, and version rows outliving their document would be unreachable
+ * garbage. Missing and not-yours are one answer.
+ */
+const deleteStoryboard: CapabilityExport = {
+  spec: deleteStoryboardSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const { Storyboard } = await import("@nodetool-ai/models");
+    const id = String(params["storyboard_id"]);
+    const deleted = await Storyboard.deleteOwned(userId, id);
+    return deleted
+      ? { storyboard_id: id, deleted: true }
+      : { error: `Storyboard ${id} was not found, or it is not yours.` };
+  }
+};
 export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
   listStoryboards,
+  createStoryboard,
   getStoryboard,
   renderStoryboardStills,
   renderStoryboardClips,
   reviseStoryboardClip,
   assembleStoryboardTimeline,
   editStoryboard,
-  extractScriptFromStoryboard
+  extractScriptFromStoryboard,
+  deleteStoryboard
 ];
 
 export const module: CapabilityModule = {
@@ -1455,11 +1559,13 @@ export const module: CapabilityModule = {
 
 export {
   listStoryboards,
+  createStoryboard,
   getStoryboard,
   renderStoryboardStills,
   renderStoryboardClips,
   reviseStoryboardClip,
   assembleStoryboardTimeline,
   editStoryboard,
-  extractScriptFromStoryboard
+  extractScriptFromStoryboard,
+  deleteStoryboard
 };

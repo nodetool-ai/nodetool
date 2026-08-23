@@ -517,3 +517,60 @@ describe("extractedAudioLinkIds", () => {
     );
   });
 });
+
+/**
+ * The stored content type decides both the asset's file extension and the
+ * `Content-Type` the browser is served, so a WAV voiceover labelled
+ * `audio/mpeg` reaches the chat player as a `.mp3` it cannot decode. That is
+ * what happened to a generated voiceover: `AddClips` labelled every audio clip
+ * `audio/mpeg` regardless of the bytes.
+ */
+describe("AddClipsToTimelineNode clip content types", () => {
+  const base64 = (bytes: number[]): string =>
+    Buffer.from(bytes).toString("base64");
+
+  const wavBytes = [
+    0x52, 0x49, 0x46, 0x46, 0x24, 0x00, 0x00, 0x00, 0x57, 0x41, 0x56, 0x45
+  ];
+  const webmBytes = [0x1a, 0x45, 0xdf, 0xa3, 0x01, 0x00, 0x00, 0x00];
+  const jpegBytes = [0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46];
+
+  const contentTypesFor = async (
+    clips: Array<Record<string, unknown>>
+  ): Promise<string[]> => {
+    const context = stubContext(null);
+    const node = new AddClipsToTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: null }, clips });
+    await node.process(context as never);
+    return context.createAsset.mock.calls.map(
+      (call) => (call[0] as { contentType: string }).contentType
+    );
+  };
+
+  it("reads the container out of the bytes instead of the media kind", async () => {
+    const types = await contentTypesFor([
+      { type: "audio", data: base64(wavBytes) },
+      { type: "video", data: base64(webmBytes) },
+      { type: "image", data: base64(jpegBytes) }
+    ]);
+
+    expect(types).toEqual(["audio/wav", "video/webm", "image/jpeg"]);
+  });
+
+  it("falls back to the source URI's extension for unrecognized bytes", async () => {
+    const types = await contentTypesFor([
+      { type: "audio", data: base64([1, 2, 3, 4]), uri: "https://x.test/a.ogg" }
+    ]);
+
+    expect(types).toEqual(["audio/ogg"]);
+  });
+
+  it("falls back to the media kind when nothing else says", async () => {
+    const types = await contentTypesFor([
+      { type: "audio", data: base64([1, 2, 3, 4]) },
+      { type: "video", data: base64([1, 2, 3, 4]) }
+    ]);
+
+    expect(types).toEqual(["audio/wav", "video/mp4"]);
+  });
+});

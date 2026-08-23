@@ -12,5 +12,6 @@ export const TIMELINE_VERSION_TOOL_NAMES = [
   "list_timeline_versions",
   "get_timeline_version",
   "create_timeline_version",
-  "restore_timeline_version"
+  "restore_timeline_version",
+  "delete_timeline_version"
 ] as const;

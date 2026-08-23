@@ -7,6 +7,8 @@
 import type { Command } from "commander";
 import {
   computeAffected,
+  EXTRA_WORKSPACE_PATHS,
+  TOP_LEVEL_WORKSPACES,
   type AffectedResult,
   type PackageInfo
 } from "../affected/affected.js";
@@ -39,12 +41,36 @@ export function registerAffectedCommand(program: Command): void {
         const here = dirname(fileURLToPath(import.meta.url));
         // dist layout: packages/cli/dist/commands → repo root is four up.
         const repoRoot = resolve(here, "..", "..", "..", "..");
-        const packagesDir = join(repoRoot, "packages");
+
+        // Workspaces come from the root package.json, not from a scan of
+        // packages/ — `reliability/harness` is a workspace too, and scanning
+        // one directory reported every change under it as belonging to no
+        // workspace at all.
+        const rootPkg = JSON.parse(
+          readFileSync(join(repoRoot, "package.json"), "utf8")
+        ) as { workspaces?: string[] };
+        const topLevel = new Set<string>(TOP_LEVEL_WORKSPACES);
+        const dirs: string[] = [];
+        for (const entry of rootPkg.workspaces ?? []) {
+          const pattern = entry.replace(/\/$/, "");
+          if (!pattern.endsWith("/*")) {
+            dirs.push(pattern);
+            continue;
+          }
+          const parent = pattern.slice(0, -2);
+          if (!existsSync(join(repoRoot, parent))) continue;
+          for (const child of readdirSync(join(repoRoot, parent), {
+            withFileTypes: true
+          })) {
+            if (child.isDirectory()) dirs.push(`${parent}/${child.name}`);
+          }
+        }
 
         const packages: PackageInfo[] = [];
-        for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
-          if (!entry.isDirectory()) continue;
-          const pkgJsonPath = join(packagesDir, entry.name, "package.json");
+        for (const dir of dirs) {
+          // web/electron get their own command shape in computeAffected.
+          if (topLevel.has(dir)) continue;
+          const pkgJsonPath = join(repoRoot, dir, "package.json");
           if (!existsSync(pkgJsonPath)) continue;
           try {
             const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as {
@@ -59,10 +85,11 @@ export function registerAffectedCommand(program: Command): void {
             };
             packages.push({
               name: pkg.name,
-              dir: `packages/${entry.name}`,
+              dir,
               internalDeps: Object.keys(allDeps).filter((d) =>
                 d.startsWith("@nodetool-ai/")
-              )
+              ),
+              ownedPaths: [...(EXTRA_WORKSPACE_PATHS[pkg.name] ?? [])]
             });
           } catch {
             // A malformed package.json shouldn't abort the whole mapping.

@@ -25,6 +25,8 @@ import {
   getDisplayContent
 } from "../utils/harmonyUtils";
 import { isString } from "../../../utils/typePredicates";
+import { resolveInlineMediaSource } from "../../../utils/resolveMediaUri";
+import type { ResolvedMediaUrl } from "../../../utils/resolveMediaUri";
 
 interface MessageContentRendererProps {
   content: MessageContent;
@@ -192,10 +194,12 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       // (Python-style) and carries an ImageRef under `image`. Both the
       // user-uploaded images and images produced by the media-generation
       // pipeline arrive through this branch.
-      let imageSource: string | Uint8Array | undefined;
+      let imageSource: ResolvedMediaUrl | "" | Uint8Array | undefined;
 
       if (content.image?.data) {
-        imageSource = content.image.data as Uint8Array;
+        imageSource = resolveInlineMediaSource(
+          content.image.data as Uint8Array
+        );
       } else if (content.image?.uri || content.image?.asset_id) {
         imageSource = resolvedImageUri;
       } else {
@@ -228,6 +232,8 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
           <video
             ref={videoRef}
             controls
+            playsInline
+            preload="metadata"
             style={videoStyle}
             src={videoObjectUrl}
             aria-label="Video content"

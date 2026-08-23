@@ -1931,9 +1931,9 @@ describe("model3d nodes — full coverage", () => {
     });
     const result = await _n.process();
     const output = result.output as { uri: string };
-    expect(output.uri).toContain("out-1.glb");
+    expect(output.uri).toContain("out_1.glb");
     expect(await fs.readFile(originalPath, "utf8")).toBe("old-content");
-    expect(await fs.readFile(path.join(dir, "out-1.glb"), "utf8")).toBe(
+    expect(await fs.readFile(path.join(dir, "out_1.glb"), "utf8")).toBe(
       "new-content"
     );
   });
@@ -2249,6 +2249,7 @@ describe("model3d nodes — full coverage", () => {
     expect(new LoadModel3DFileNode().serialize()).toEqual({ path: "" });
     expect(new SaveModel3DFileNode().serialize()).toMatchObject({
       model: { type: "model_3d", uri: "" },
+      save_to_workspace: true,
       folder: "",
       filename: "",
       overwrite: false

@@ -152,12 +152,12 @@ export function useChatIntegration(params: {
     const isCode = language === "javascript" || language === "typescript";
     const sandboxDocs = isCode
       ? `\n<sandbox_api>
-The Code node runs JavaScript in a QuickJS sandbox. Only these names exist, plus the sandbox packages the node declares in its packages property — nothing else can be imported.
+The Code node runs JavaScript in a QuickJS sandbox. Only these names exist, plus the installed sandbox packages the body imports — nothing else can be imported.
 
 GLOBALS: console.log/warn/error/info, JSON, Math, Date, RegExp, Array, Object, String, Number, Boolean, Map, Set, Promise, Error, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent, btoa, atob, structuredClone, TextEncoder, TextDecoder, URL, URLSearchParams
 
 LIBRARIES ARE IMPORTS, NOT GLOBALS:
-CSV, HTML, XML, XLSX, YAML, zip, dates and diffs each live in a sandbox package — @nodetool-ai/sandbox-csv, -html, -xml, -xlsx, -yaml, -zip, -dates, -diff. Declare the package in the node's packages property and import it at the top of the body; a package the node does not declare never resolves. Every export of a host-backed package is async, so await it.
+CSV, HTML, XML, XLSX, YAML, zip, dates and diffs each live in a sandbox package — @nodetool-ai/sandbox-csv, -html, -xml, -xlsx, -yaml, -zip, -dates, -diff. Import the package at the top of the body; the host resolves it against the installed packs, and one no install carries never resolves. Every export of a host-backed package is async, so await it.
 
 FORMATTING (there is no Intl; these are host calls, default locale en-US):
 - await format.number(value, options?) — locale, style, currency, minimumFractionDigits, maximumFractionDigits, useGrouping

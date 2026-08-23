@@ -15,6 +15,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       paginate: vi.fn(),
       hasLinkedWorkflows: vi.fn(),
       unsetOtherDefaults: vi.fn(),
+      ensureDefault: vi.fn(),
       create: vi.fn()
     }
   };
@@ -40,6 +41,14 @@ vi.mock("node:fs", async (orig) => {
 
 import { Workspace } from "@nodetool-ai/models";
 import { stat, readdir, access } from "node:fs/promises";
+import {
+  mkdtemp as realMkdtemp,
+  mkdir as realMkdir,
+  rm as realRm,
+  writeFile as realWriteFile
+} from "node:fs/promises";
+import { tmpdir as realTmpdir } from "node:os";
+import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { basename } from "node:path";
 
@@ -64,6 +73,7 @@ function makeWorkspace(opts: {
   path?: string;
   is_default?: boolean;
   is_accessible?: boolean;
+  is_managed?: boolean;
   created_at?: string;
   updated_at?: string;
 }) {
@@ -76,6 +86,10 @@ function makeWorkspace(opts: {
     created_at: opts.created_at ?? "2026-01-01T00:00:00Z",
     updated_at: opts.updated_at ?? "2026-01-01T00:00:00Z",
     isAccessible: vi.fn().mockReturnValue(opts.is_accessible ?? true),
+    isManaged: vi.fn().mockReturnValue(opts.is_managed ?? false),
+    // listFiles reads through the Workspace `workspaceFromRow` builds; an
+    // absolute path means a local one.
+    isVirtual: vi.fn().mockReturnValue(!opts.path?.startsWith("/") ?? false),
     save: vi.fn().mockResolvedValue(undefined),
     delete: vi.fn().mockResolvedValue(undefined)
   };
@@ -95,12 +109,38 @@ describe("workspace router", () => {
 
   // ── production gate ─────────────────────────────────────────────
   describe("production mode", () => {
-    it("rejects with FORBIDDEN when NODETOOL_ENV=production", async () => {
+    it("rejects creating a workspace when NODETOOL_ENV=production", async () => {
       process.env.NODETOOL_ENV = "production";
       const caller = createCaller(makeCtx());
-      await expect(caller.workspace.list({ limit: 10 })).rejects.toMatchObject({
-        code: "FORBIDDEN"
-      });
+      await expect(
+        caller.workspace.create({ name: "n", path: "/tmp", is_default: false })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("lists only the managed workspace and reports can_manage false", async () => {
+      process.env.NODETOOL_ENV = "production";
+      const managed = makeWorkspace({ id: "managed", is_managed: true });
+      const local = makeWorkspace({ id: "local", is_managed: false });
+      (Workspace.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [managed, local],
+        ""
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workspace.list({ limit: 10 });
+      expect(result.workspaces.map((w) => w.id)).toEqual(["managed"]);
+      expect(result.can_manage).toBe(false);
+    });
+
+    it("refuses to list files of a workspace it does not manage", async () => {
+      process.env.NODETOOL_ENV = "production";
+      (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkspace({ id: "local", is_managed: false })
+      );
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workspace.listFiles({ id: "local", path: "." })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
 
@@ -119,6 +159,7 @@ describe("workspace router", () => {
       expect(result.workspaces[0]?.id).toBe("w1");
       expect(result.workspaces[0]?.name).toBe("Alpha");
       expect(result.workspaces[0]?.is_accessible).toBe(true);
+      expect(result.can_manage).toBe(true);
       expect(result.next).toBeNull();
     });
 
@@ -130,6 +171,16 @@ describe("workspace router", () => {
       const caller = createCaller(makeCtx());
       await caller.workspace.list({});
       expect(Workspace.paginate).toHaveBeenCalledWith("user-1", { limit: 50 });
+    });
+
+    it("creates the default workspace before listing", async () => {
+      (Workspace.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [],
+        ""
+      ]);
+      const caller = createCaller(makeCtx());
+      await caller.workspace.list({});
+      expect(Workspace.ensureDefault).toHaveBeenCalledWith("user-1");
     });
 
     it("rejects unauthenticated callers", async () => {
@@ -323,31 +374,31 @@ describe("workspace router", () => {
   });
 
   // ── listFiles ───────────────────────────────────────────────────
+  //
+  // These run against a real temp directory rather than mocked `readdir`/
+  // `stat`: the router reads through the run's `Workspace` now, so mocking
+  // `node:fs` would test nothing the router still calls.
   describe("listFiles", () => {
+    let dir: string;
+
+    beforeEach(async () => {
+      dir = await realMkdtemp(join(realTmpdir(), "trpc-ws-list-"));
+    });
+
+    afterEach(async () => {
+      await realRm(dir, { recursive: true, force: true });
+    });
+
     it("lists entries in the workspace root", async () => {
-      const ws = makeWorkspace({ id: "w1", path: "/home/user/ws" });
+      await realWriteFile(join(dir, "file.txt"), "x".repeat(123));
+      await realMkdir(join(dir, "sub"), { recursive: true });
+      await realWriteFile(join(dir, "sub", "inner.txt"), "y");
+
+      const ws = makeWorkspace({ id: "w1", path: dir });
       (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
-      (readdir as ReturnType<typeof vi.fn>).mockResolvedValue([
-        "file.txt",
-        "sub"
-      ]);
-      const mtime = new Date("2026-04-01T12:00:00Z");
-      // basename() instead of endsWith("/...") — the router joins paths with
-      // the platform separator, which is a backslash on Windows.
-      (stat as ReturnType<typeof vi.fn>).mockImplementation(
-        (p: string) =>
-          Promise.resolve({
-            isDirectory: () => basename(p) === "sub",
-            size: basename(p) === "file.txt" ? 123 : 0,
-            mtime
-          })
-      );
 
       const caller = createCaller(makeCtx());
-      const result = await caller.workspace.listFiles({
-        id: "w1",
-        path: "."
-      });
+      const result = await caller.workspace.listFiles({ id: "w1", path: "." });
       expect(result).toHaveLength(2);
       const file = result.find((f) => f.name === "file.txt");
       expect(file?.size).toBe(123);
@@ -357,13 +408,11 @@ describe("workspace router", () => {
     });
 
     it("defaults path to '.'", async () => {
-      const ws = makeWorkspace({ id: "w1", path: "/home/user/ws" });
+      const ws = makeWorkspace({ id: "w1", path: dir });
       (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
-      (readdir as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       const caller = createCaller(makeCtx());
-      const result = await caller.workspace.listFiles({ id: "w1" });
-      expect(result).toEqual([]);
+      expect(await caller.workspace.listFiles({ id: "w1" })).toEqual([]);
     });
 
     it("throws NOT_FOUND when workspace does not exist", async () => {

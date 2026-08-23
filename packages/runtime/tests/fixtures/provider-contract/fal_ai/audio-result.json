@@ -1,0 +1,8 @@
+{
+  "audio": {
+    "url": "https://fal.media/files/example/contract-probe.mp3",
+    "content_type": "audio/mpeg",
+    "file_size": 32768
+  },
+  "duration": 3.2
+}

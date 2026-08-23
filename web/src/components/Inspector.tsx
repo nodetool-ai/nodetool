@@ -43,6 +43,10 @@ import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
 import { InspectorTabs, type InspectorTab } from "./InspectorTabs";
 import { colorForType } from "../config/data_types";
 import { IconForType } from "../config/IconForType";
+import {
+  isPropertyConditionSatisfied,
+  shouldRenderProperty
+} from "../utils/propertyVisibility";
 
 const DEFAULT_TYPE_METADATA: TypeMetadata = {
   type: "any",
@@ -708,10 +712,16 @@ const Inspector: React.FC = () => {
 
   const visibleProperties = useMemo(() => {
     if (!metadata) return [];
-    return metadata.properties.filter(
-      (p) => p.json_schema_extra?.hidden_in_inspector !== true
-    );
-  }, [metadata]);
+    return metadata.properties.filter((property) => {
+      if (property.json_schema_extra?.hidden_in_inspector === true) return false;
+      const connected = connectedTargetHandles.has(property.name);
+      return shouldRenderProperty(
+        property,
+        selectedNode?.data.properties,
+        connected
+      );
+    });
+  }, [metadata, selectedNode?.data, connectedTargetHandles]);
 
   const toggleVisibilityHandlers = useMemo(() => {
     if (!selectedNode) return new Map<string, () => void>();
@@ -976,6 +986,13 @@ const Inspector: React.FC = () => {
                           showHandle={false}
                           isInspector={true}
                           isConnected={connected}
+                          conditionalUnavailable={
+                            connected &&
+                            !isPropertyConditionSatisfied(
+                              property,
+                              selectedNode.data.properties
+                            )
+                          }
                           nodeType={selectedNode.type ?? "inspector"}
                           data={selectedNode.data}
                           layout=""

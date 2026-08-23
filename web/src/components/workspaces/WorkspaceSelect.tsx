@@ -19,10 +19,14 @@ import {
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import {
+  useWorkspaces,
+  useWorkspaceCacheWriter
+} from "../../hooks/useWorkspaces";
 import { useFolderPicker } from "./useFolderPicker";
 import FolderIcon from "@mui/icons-material/Folder";
 import AddIcon from "@mui/icons-material/Add";
@@ -103,11 +107,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
-  return workspaces as WorkspaceResponse[];
-};
-
 /** Derive a workspace name from an absolute folder path. */
 function nameFromPath(path: string): string {
   const normalized = path.replace(/\\/g, "/");
@@ -132,15 +131,6 @@ interface WorkspaceSelectProps {
 
 const CREATE_NEW_VALUE = "__create_new__";
 
-const setWorkspacesData = (
-  queryClient: ReturnType<typeof useQueryClient>,
-  updater: (workspaces: WorkspaceResponse[]) => WorkspaceResponse[]
-) => {
-  queryClient.setQueryData<WorkspaceResponse[]>(["workspaces"], (prev) =>
-    updater(prev ?? [])
-  );
-};
-
 const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
   function WorkspaceSelect({
     value,
@@ -152,16 +142,14 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
   }) {
     const theme = useTheme();
     const cssStyles = useMemo(() => styles(theme), [theme]);
-    const queryClient = useQueryClient();
+    const writeWorkspaceToCache = useWorkspaceCacheWriter();
     const addNotification = useNotificationStore(
       (state) => state.addNotification
     );
     const { pickFolder, dialog: folderPickerDialog } = useFolderPicker();
 
-    const { data: workspaces, isLoading, error } = useQuery({
-      queryKey: ["workspaces"],
-      queryFn: fetchWorkspaces
-    });
+    const { workspaces, canManage, defaultWorkspace, isLoading, error } =
+      useWorkspaces();
 
     const createMutation = useMutation({
       mutationFn: async (path: string) => {
@@ -172,11 +160,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
         });
       },
       onSuccess: (created) => {
-        setWorkspacesData(queryClient, (prev) => {
-          if (prev.some((w) => w.id === created.id)) return prev;
-          return [...prev, created as WorkspaceResponse];
-        });
-        queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+        writeWorkspaceToCache(created as WorkspaceResponse);
         onChange(created.id);
         addNotification({
           type: "success",
@@ -210,7 +194,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
       [onChange, pickFolder, createMutation]
     );
 
-    const selectedWorkspace = workspaces?.find((w) => w.id === value);
+    const selectedWorkspace = workspaces.find((w) => w.id === value);
 
     if (isLoading) {
       return (
@@ -238,7 +222,15 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
 
     const renderSelectedValue = () => {
       if (!selectedWorkspace) {
-        return <span className="none-option">No workspace selected</span>;
+        // An unset workflow follows the default workspace at run time, so name
+        // it here rather than claiming the run has nowhere to write.
+        return (
+          <span className="none-option">
+            {defaultWorkspace
+              ? `Default (${compactPath(defaultWorkspace.path)})`
+              : "Default workspace"}
+          </span>
+        );
       }
       return (
         <div className="workspace-option">
@@ -356,14 +348,15 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
               >
                 Agents read and write files here during execution - saved images,
                 text, data, and other outputs. Browse the results in the Workspace
-                panel. Agents can only access files inside this folder.
+                panel. Agents can only access files inside this folder. A workflow
+                left on Default uses your default workspace.
               </Caption>
             </Box>
             <Divider sx={{ mb: 0.5 }} />
             <MenuItem value="">
-              <span className="none-option">None</span>
+              <span className="none-option">Default workspace</span>
             </MenuItem>
-            {workspaces?.map((workspace) => (
+            {workspaces.map((workspace) => (
               <MenuItem key={workspace.id} value={workspace.id}>
                 <div className="workspace-option">
                   <FolderIcon className="workspace-icon" />
@@ -376,13 +369,15 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 </div>
               </MenuItem>
             ))}
-            <Divider sx={{ my: 0.5 }} />
-            <MenuItem value={CREATE_NEW_VALUE}>
-              <span className="create-option">
-                <AddIcon fontSize="small" />
-                Create New Workspace
-              </span>
-            </MenuItem>
+            {canManage && <Divider sx={{ my: 0.5 }} />}
+            {canManage && (
+              <MenuItem value={CREATE_NEW_VALUE}>
+                <span className="create-option">
+                  <AddIcon fontSize="small" />
+                  Create New Workspace
+                </span>
+              </MenuItem>
+            )}
           </Select>
           {helperText && (
             <Caption color="secondary" sx={{ mt: 0.5, ml: 0.5 }}>

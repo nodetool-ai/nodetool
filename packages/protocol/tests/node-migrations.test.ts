@@ -141,7 +141,6 @@ describe("migrateGraphNodeTypes", () => {
 
       expect(node.type).toBe("nodetool.code.Code");
       expect(node.data.code).toContain("inputs.text.split");
-      expect(node.data.packages).toEqual([]);
       // The old node's properties become dynamic inputs — no declared props
       // survive on a node whose config the Code node reads dynamically.
       expect(node.data.text).toBeUndefined();
@@ -285,6 +284,26 @@ describe("migrateGraphNodeTypes", () => {
       });
     });
 
+    it("keeps reading the per-instance properties the removed node had", () => {
+      // `moveRemainingPropertiesToDynamic` puts these on the Code node's
+      // dynamic inputs; a body that ignores one silently changes behavior,
+      // and the graph validator reports it as an unused input.
+      const readsInputs: Record<string, string[]> = {
+        "nodetool.text.TrimWhitespace": ["trim_start", "trim_end"],
+        "nodetool.text.IndexOf": ["substring", "case_sensitive"]
+      };
+      for (const [from, inputs] of Object.entries(readsInputs)) {
+        const code = NODE_TYPE_MIGRATIONS.find((m) => m.from === from)
+          ?.setProperties?.code;
+        expect(typeof code, `missing migration for ${from}`).toBe("string");
+        for (const input of inputs) {
+          expect(String(code), `${from} drops ${input}`).toContain(
+            `inputs.${input}`
+          );
+        }
+      }
+    });
+
     it("covers every Tier 1 nodetool.text.* removal with a Code node migration", () => {
       const expectedFromTypes = [
         "nodetool.text.Split",
@@ -359,7 +378,6 @@ describe("migrateGraphNodeTypes", () => {
     expect(node.type).toBe("nodetool.code.Code");
     expect(node.data.code).toContain("inputs.strings");
     expect(node.data.code).toContain("inputs.separator");
-    expect(node.data.packages).toEqual([]);
     expect(node.dynamic_properties).toEqual({
       strings: ["a", "b"],
       separator: "-"
@@ -389,7 +407,6 @@ describe("migrateGraphNodeTypes", () => {
     const node = result.nodes[0];
 
     expect(node.type).toBe("nodetool.code.Code");
-    expect(node.data.packages).toEqual(["@nodetool-ai/sandbox-tokens"]);
     expect(node.data.code).toContain(
       'import { count } from "@nodetool-ai/sandbox-tokens"'
     );
@@ -406,7 +423,9 @@ describe("migrateGraphNodeTypes", () => {
       const m = NODE_TYPE_MIGRATIONS.find((x) => x.from === from);
       expect(m, `missing migration for ${from}`).toBeDefined();
       expect(m?.to).toBe("nodetool.code.Code");
-      expect(m?.setProperties?.packages).toEqual(["@nodetool-ai/sandbox-pdf"]);
+      expect(String(m?.setProperties?.code)).toContain(
+        '@nodetool-ai/sandbox-pdf'
+      );
     }
   });
 

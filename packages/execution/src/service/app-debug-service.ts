@@ -28,6 +28,7 @@ import {
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { JsScriptOperationRunner } from "../app-debug/script-operation.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { StorageAdapter } from "@nodetool-ai/runtime";
 import {
   applicationTarget,
   inlineDocumentTarget,
@@ -108,6 +109,8 @@ export interface AppDebugDeps {
    * such an operation reports as unexecutable instead of being skipped.
    */
   runScript?: JsScriptOperationRunner;
+  /** The store `asset://<id>` inputs in the app's workflows resolve through. */
+  assetStorage?: StorageAdapter | null;
 }
 
 /** A pinned script version the user owns, for a script operation. */
@@ -268,7 +271,8 @@ export async function runApplicationDebug(
         loadFromDb: (id: string) =>
           (deps.loadWorkflow ?? loadUserWorkflow)(userId, id),
         runOnServer: createAppServerRunner(userId, registry, {
-          jobPrefix: "app-debug-run"
+          jobPrefix: "app-debug-run",
+          assetStorage: deps.assetStorage ?? null
         }),
         loadScript: (scriptId: string, scriptVersion: number) =>
           loadUserJsScript(userId, scriptId, scriptVersion)

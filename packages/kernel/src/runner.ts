@@ -64,6 +64,16 @@ const MAX_RETAINED_MESSAGES = 10_000;
  */
 const MAX_RECORDED_LINEAGES_PER_NODE = 64;
 
+function hasDefinedOwnProperty(
+  record: Record<string, unknown>,
+  key: string
+): boolean {
+  return (
+    Object.prototype.hasOwnProperty.call(record, key) &&
+    record[key] !== undefined
+  );
+}
+
 /** A value that already carries its own control-event envelope. */
 function isControlEventValue(value: unknown): value is ControlEvent {
   return (
@@ -699,6 +709,7 @@ export class WorkflowRunner {
       // Pre-flight node validation: catch missing required fields and
       // unset model selections before spawning any actors.
       this._validateNodes();
+      this._validateRequiredInputs(request.params ?? {});
 
       // Detect multi-edge list inputs
       this._detectMultiEdgeListInputs();
@@ -1095,6 +1106,60 @@ export class WorkflowRunner {
     }
   }
 
+  /** Refuse to start when a required workflow input has no supplied value. */
+  private _validateRequiredInputs(params: Record<string, unknown>): void {
+    const nodesWithIncomingData = new Set<string>();
+    const nodesWithIncomingControl = new Set<string>();
+    for (const edge of this._graph.edges) {
+      if (isDataEdge(edge)) {
+        nodesWithIncomingData.add(edge.target);
+      } else if (isControlEdge(edge)) {
+        nodesWithIncomingControl.add(edge.target);
+      }
+    }
+
+    const missingNames: string[] = [];
+    const issues: NodeValidationIssue[] = [];
+    for (const node of this._graph.nodes) {
+      if (!node.type.startsWith("nodetool.input.")) continue;
+      if (node.is_streaming_output) continue;
+      if (
+        nodesWithIncomingData.has(node.id) ||
+        nodesWithIncomingControl.has(node.id)
+      ) {
+        continue;
+      }
+
+      const inputName = this._getExternalInputName(node);
+      const properties = isObjectValue(node.properties)
+        ? node.properties
+        : {};
+      if (
+        hasDefinedOwnProperty(params, inputName) ||
+        hasDefinedOwnProperty(properties, "value")
+      ) {
+        continue;
+      }
+
+      if (!missingNames.includes(inputName)) {
+        missingNames.push(inputName);
+      }
+      issues.push({
+        nodeId: node.id,
+        nodeType: node.type,
+        property: "value",
+        message: `Missing required workflow input "${inputName}"`
+      });
+    }
+
+    if (issues.length > 0) {
+      throw new GraphValidationError(
+        `Missing required workflow inputs: ${missingNames.join(", ")}`,
+        issues
+      );
+    }
+  }
+
   // -----------------------------------------------------------------------
   // Node initialization
   // -----------------------------------------------------------------------
@@ -1297,14 +1362,8 @@ export class WorkflowRunner {
       const properties = isObjectValue(node.properties)
         ? node.properties
         : {};
-      const hasRuntimeParam = Object.prototype.hasOwnProperty.call(
-        params,
-        inputName
-      );
-      const hasDefaultValue = Object.prototype.hasOwnProperty.call(
-        properties,
-        "value"
-      );
+      const hasRuntimeParam = hasDefinedOwnProperty(params, inputName);
+      const hasDefaultValue = hasDefinedOwnProperty(properties, "value");
 
       // Streaming output input nodes (e.g. RealtimeAudioInput) should NOT
       // push empty defaults — real data will arrive later via pushInputValue().

@@ -118,12 +118,8 @@ const Portal = React.lazy(() => import("./components/portal/Portal"));
 const CostsDashboard = React.lazy(
   () => import("./components/costs/CostsDashboard")
 );
-const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(
   () => import("./components/ChatMarkdownTest")
-);
-const CodeEditorDebug = React.lazy(
-  () => import("./components/CodeEditorDebug")
 );
 const ComponentPreview = React.lazy(
   () => import("./components/preview/ComponentPreview")
@@ -496,19 +492,10 @@ function getRoutes() {
     }
   ];
 
-  // Add the LayoutTest page only in local development
   if (isLocalhost) {
-    routes.push({
-      path: "/layouttest",
-      element: <LayoutTest />
-    });
     routes.push({
       path: "/chatmarkdowntest",
       element: <ChatMarkdownTest />
-    });
-    routes.push({
-      path: "/code-editor-debug",
-      element: <CodeEditorDebug />
     });
     // Component preview routes for isolated documentation screenshots
     routes.push({
@@ -600,7 +587,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   // Allow dev-only test pages to render without backend metadata
   const isDevTestRoute =
     isLocalhost &&
-    ["/layouttest", "/chatmarkdowntest", "/graph", "/preview"].some((p) =>
+    ["/chatmarkdowntest", "/graph", "/preview"].some((p) =>
       window.location.pathname.startsWith(p)
     );
 

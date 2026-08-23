@@ -9,13 +9,14 @@ import InlineResourcePreview, {
   isInlinePreviewUri
 } from "./InlineResourcePreview";
 import "../../../styles/markdown/nodetool-markdown.css";
-import { SPACING, getSpacingPx } from "../../ui_primitives";
+import { Caption, FlexColumn, SPACING, getSpacingPx } from "../../ui_primitives";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import { BORDER_RADIUS } from "../../ui_primitives";
 import { packageAssetHttpPath } from "@nodetool-ai/protocol";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { trpc } from "../../../trpc/client";
+import { useResolvedMedia } from "../../../hooks/useResolvedMediaUri";
 import ResourceChip from "./ResourceChip";
 import { isNumber, isString } from "../../../utils/typePredicates";
 import "../../../styles/markdown/github-markdown.css";
@@ -34,6 +35,34 @@ const hasExtension = (href: string, extensions: readonly string[]): boolean => {
 const isImageHref = (href: string): boolean => hasExtension(href, IMAGE_EXTENSIONS);
 const isVideoHref = (href: string): boolean => hasExtension(href, VIDEO_EXTENSIONS);
 const isAudioHref = (href: string): boolean => hasExtension(href, AUDIO_EXTENSIONS);
+
+type MediaKind = "video" | "audio" | "image";
+
+const mimeKind = (mime: string | undefined): MediaKind | null => {
+  if (!mime) return null;
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  if (mime.startsWith("image/")) return "image";
+  return null;
+};
+
+/** Kind from the markdown href, the resolved fetch URL, or the asset MIME. */
+const mediaKind = (
+  href: string,
+  resolvedSrc?: string,
+  mime?: string
+): MediaKind | null => {
+  if (isVideoHref(href) || (resolvedSrc && isVideoHref(resolvedSrc))) {
+    return "video";
+  }
+  if (isAudioHref(href) || (resolvedSrc && isAudioHref(resolvedSrc))) {
+    return "audio";
+  }
+  if (isImageHref(href) || (resolvedSrc && isImageHref(resolvedSrc))) {
+    return "image";
+  }
+  return mimeKind(mime);
+};
 
 interface ChatMarkdownProps {
   content: string;
@@ -87,30 +116,60 @@ const videoCss = css({
 
 const extractStorageKey = (uri: string | null | undefined): string | null => {
   if (!uri) return null;
-  if (uri.startsWith("asset://")) return uri.slice("asset://".length);
   if (uri.startsWith("/api/storage/")) return uri.slice("/api/storage/".length);
   return null;
 };
 
-const useChatAssetSrc = (src: string | undefined): string | undefined => {
-  const key = extractStorageKey(src);
-  const { data } = trpc.storage.signUrl.useQuery(
+const useChatAsset = (
+  src: string | undefined
+): {
+  resolvedSrc: string | undefined;
+  contentType: string | undefined;
+  pending: boolean;
+} => {
+  // `asset://<id>` is an id, not a storage key (`<user>/<id>.<ext>`).
+  const isAssetUri = Boolean(src?.startsWith("asset://"));
+  const fromAsset = useResolvedMedia(isAssetUri ? src : undefined);
+  const key = isAssetUri ? null : extractStorageKey(src);
+  const { data, isPending, isError } = trpc.storage.signUrl.useQuery(
     { key: key ?? "" },
     { enabled: Boolean(key), staleTime: 6 * 24 * 60 * 60 * 1000 }
   );
-  if (!src) return undefined;
+  if (!src) {
+    return { resolvedSrc: undefined, contentType: undefined, pending: false };
+  }
+  if (isAssetUri) {
+    return {
+      resolvedSrc: fromAsset.url,
+      contentType: fromAsset.contentType,
+      pending: fromAsset.pending
+    };
+  }
   if (key) {
-    // Asset storage reference — resolve through the authenticated signed-URL
-    // mechanism so owner-prefixed keys (`<user>/<id>.png`) and cloud
-    // backends (S3/Supabase presigned URLs) are handled correctly.
-    // While the query is loading, return undefined rather than the obsolete
-    // flat `/api/storage/<id>.png` fallback.
-    return data?.url;
+    // Legacy `/api/storage/<key>` markdown — resolve through the signed-URL
+    // path so owner-prefixed keys and cloud backends work.
+    return {
+      resolvedSrc: data?.url,
+      contentType: undefined,
+      pending: isPending && !isError
+    };
   }
   const pkgPath = packageAssetHttpPath(src);
-  if (pkgPath) return `${BASE_URL}${pkgPath}`;
-  if (src.startsWith("/api/")) return `${BASE_URL}${src}`;
-  return src;
+  if (pkgPath) {
+    return {
+      resolvedSrc: `${BASE_URL}${pkgPath}`,
+      contentType: undefined,
+      pending: false
+    };
+  }
+  if (src.startsWith("/api/")) {
+    return {
+      resolvedSrc: `${BASE_URL}${src}`,
+      contentType: undefined,
+      pending: false
+    };
+  }
+  return { resolvedSrc: src, contentType: undefined, pending: false };
 };
 
 /**
@@ -120,34 +179,53 @@ const useChatAssetSrc = (src: string | undefined): string | undefined => {
 interface HastNodeLike {
   type?: string;
   tagName?: string;
-  properties?: { src?: unknown };
+  properties?: { src?: unknown; href?: unknown };
   children?: HastNodeLike[];
 }
 
+/**
+ * An `asset://<id>` with no extension could be anything — its type comes from
+ * the asset row, which is fetched too late for this decision. Treated as a
+ * possible block embed so a video that resolves to one is not nested in a
+ * `<p>`.
+ */
+const isUntypedAssetSrc = (src: string): boolean =>
+  src.startsWith("asset://") && !/\.[A-Za-z0-9]{1,8}$/.test(hrefPath(src));
+
 const isBlockEmbedSrc = (src: string): boolean =>
-  isInlinePreviewUri(src) || isVideoHref(src) || isAudioHref(src);
+  isInlinePreviewUri(src) ||
+  isVideoHref(src) ||
+  isAudioHref(src) ||
+  isUntypedAssetSrc(src);
+
+/** Asset links may resolve to video/audio even without a file extension. */
+const isBlockEmbedHref = (href: string): boolean =>
+  isBlockEmbedSrc(href) ||
+  (href.startsWith("asset://") && !isImageHref(href));
 
 const containsBlockEmbed = (node: unknown): boolean => {
   const children = (node as HastNodeLike | undefined)?.children;
   return Boolean(
-    children?.some(
-      (child) =>
-        child.type === "element" &&
-        child.tagName === "img" &&
-        isString(child.properties?.src) &&
-        isBlockEmbedSrc(child.properties.src)
-    )
+    children?.some((child) => {
+      if (child.type !== "element") return false;
+      if (child.tagName === "img" && isString(child.properties?.src)) {
+        return isBlockEmbedSrc(child.properties.src);
+      }
+      if (child.tagName === "a" && isString(child.properties?.href)) {
+        return isBlockEmbedHref(child.properties.href);
+      }
+      return false;
+    })
   );
 };
 
-const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
-  src,
-  alt,
-  ...props
-}) => {
-  const href = src != null ? src : "";
-  const resolvedSrc = useChatAssetSrc(href || undefined);
-  if (href && isVideoHref(href)) {
+const ChatMarkdownMedia: React.FC<{
+  resolvedSrc: string;
+  kind: MediaKind;
+  label: string;
+  imgProps?: React.ComponentPropsWithoutRef<"img">;
+}> = ({ resolvedSrc, kind, label, imgProps }) => {
+  if (kind === "video") {
     return (
       <video
         src={resolvedSrc}
@@ -155,28 +233,76 @@ const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
         playsInline
         preload="metadata"
         css={videoCss}
-        aria-label={alt || "Video content"}
+        aria-label={label || "Video content"}
       />
     );
   }
-  if (href && isAudioHref(href)) {
+  if (kind === "audio") {
     return (
       <audio
         src={resolvedSrc}
         controls
         preload="metadata"
         css={audioCss}
-        aria-label={alt || "Audio content"}
+        aria-label={label || "Audio content"}
       />
     );
   }
   return (
     <img
-      {...props}
+      {...imgProps}
       src={resolvedSrc}
-      alt={alt ?? ""}
+      alt={label}
       css={imageCss}
       loading="lazy"
+    />
+  );
+};
+
+/**
+ * An embed whose media never resolved.
+ *
+ * Rendering nothing was the old behavior, and it is indistinguishable from the
+ * agent never having answered: a generated clip whose asset row is gone, or
+ * whose object cannot be signed, left an empty gap in the reply. Show the
+ * resource instead, so the reader knows something was there and can open it.
+ */
+const UnresolvedMedia: React.FC<{ href: string; label: string }> = ({
+  href,
+  label
+}) => (
+  <FlexColumn
+    gap={SPACING.xs}
+    align="flex-start"
+    data-testid="unresolved-media"
+  >
+    {isResourceUri(href) ? (
+      <ResourceChip uri={href} label={label || href} />
+    ) : null}
+    <Caption color="secondary">This media could not be loaded.</Caption>
+  </FlexColumn>
+);
+
+const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
+  src,
+  alt,
+  ...props
+}) => {
+  const href = src != null ? src : "";
+  const { resolvedSrc, contentType, pending } = useChatAsset(href || undefined);
+  if (!resolvedSrc) {
+    // Still resolving: render nothing rather than flashing a failure.
+    return pending || !href ? null : (
+      <UnresolvedMedia href={href} label={alt ?? ""} />
+    );
+  }
+  const kind = mediaKind(href, resolvedSrc, contentType) ?? "image";
+  return (
+    <ChatMarkdownMedia
+      resolvedSrc={resolvedSrc}
+      kind={kind}
+      label={alt ?? ""}
+      imgProps={props}
     />
   );
 };
@@ -185,12 +311,30 @@ const ChatMarkdownImageLink: React.FC<{ href: string; children: React.ReactNode 
   href,
   children
 }) => {
-  const resolvedHref = useChatAssetSrc(href);
+  const { resolvedSrc } = useChatAsset(href);
   return (
-    <a href={resolvedHref} target="_blank" rel="noopener noreferrer">
-      <img src={resolvedHref} alt={String(children ?? "")} css={imageCss} loading="lazy" />
+    <a href={resolvedSrc} target="_blank" rel="noopener noreferrer">
+      <img src={resolvedSrc} alt={String(children ?? "")} css={imageCss} loading="lazy" />
     </a>
   );
+};
+
+const ChatMarkdownAssetLink: React.FC<{ href: string; label: string }> = ({
+  href,
+  label
+}) => {
+  const { resolvedSrc, contentType } = useChatAsset(href);
+  const kind = mediaKind(href, resolvedSrc, contentType);
+  if (kind && resolvedSrc) {
+    return (
+      <ChatMarkdownMedia
+        resolvedSrc={resolvedSrc}
+        kind={kind}
+        label={label}
+      />
+    );
+  }
+  return <ResourceChip uri={href} label={label} />;
 };
 
 const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
@@ -222,6 +366,14 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
         ),
       a: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"a">) => {
         const { href, children } = props;
+        if (href?.startsWith("asset://")) {
+          return (
+            <ChatMarkdownAssetLink
+              href={href}
+              label={linkText(children) || href}
+            />
+          );
+        }
         if (href && isResourceUri(href)) {
           return <ResourceChip uri={href} label={linkText(children) || href} />;
         }

@@ -22,13 +22,6 @@ jest.mock("../../panels/FrontendToolRuntimeSync", () => ({
   default: () => null
 }));
 
-jest.mock("../AppBuilderAgentPanel", () => ({
-  __esModule: true,
-  default: ({ workflowId }: { workflowId: string }) => (
-    <div data-testid="agent-panel">{workflowId}</div>
-  )
-}));
-
 /**
  * The layout Puck emits once the author has picked a theme: the shell seeds
  * the theme id onto the root as a field, so it rides back in the root props
@@ -83,12 +76,10 @@ jest.mock("../puck/PuckAppEditor", () => ({
   default: ({
     onPublish,
     onMetaChange,
-    onToggleAgent,
     onClose
   }: {
     onPublish: (data: Data) => void;
     onMetaChange?: (meta: AppDocMeta) => void;
-    onToggleAgent?: () => void;
     onClose?: () => void;
   }) => (
     <div>
@@ -111,11 +102,6 @@ jest.mock("../puck/PuckAppEditor", () => ({
       >
         Save with theme
       </button>
-      {onToggleAgent && (
-        <button type="button" onClick={onToggleAgent}>
-          Ask Agent
-        </button>
-      )}
       {onClose && (
         <button type="button" onClick={onClose}>
           Back
@@ -160,10 +146,6 @@ const renderShell = (onSave = jest.fn()) => {
   );
   return onSave;
 };
-
-/** The toggle Puck draws in its header — hidden behind a menu on narrow screens. */
-const headerAgentToggle = () =>
-  screen.getAllByRole("button", { name: "Ask Agent" })[0];
 
 const originalMatchMedia = window.matchMedia;
 
@@ -251,40 +233,7 @@ describe("AppBuilderShell", () => {
     expect(setCurrentWorkflowId).toHaveBeenCalledWith("wf-1");
   });
 
-  it("opens the agent panel for the bound workflow", async () => {
-    const user = userEvent.setup();
-    renderShell();
-
-    await user.click(headerAgentToggle());
-
-    expect(screen.getByTestId("agent-panel")).toHaveTextContent("wf-1");
-  });
-
-  it("opens the agent from its own toggle on a narrow viewport", async () => {
-    // Puck folds its header actions into a chevron menu below 638px, so the
-    // shell renders a floating toggle that stays reachable there.
-    setNarrowViewport(true);
-    const user = userEvent.setup();
-    renderShell();
-
-    const toggles = screen.getAllByRole("button", { name: "Ask Agent" });
-    expect(toggles).toHaveLength(2);
-
-    await user.click(toggles[1]);
-
-    expect(screen.getByTestId("agent-panel")).toHaveTextContent("wf-1");
-    expect(
-      screen.getByRole("button", { name: "Close agent" })
-    ).toBeInTheDocument();
-  });
-
-  it("keeps the floating toggle off wide viewports, where Puck shows its own", () => {
-    renderShell();
-
-    expect(screen.getAllByRole("button", { name: "Ask Agent" })).toHaveLength(1);
-  });
-
-  it("offers the agent when no workflow is bound — it is what authors one", () => {
+  it("does not point graph tools at a placeholder when no workflow is bound", () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <AppBuilderShell
@@ -296,9 +245,6 @@ describe("AppBuilderShell", () => {
       </ThemeProvider>
     );
 
-    expect(
-      screen.getByRole("button", { name: "Ask Agent" })
-    ).toBeInTheDocument();
     expect(setCurrentWorkflowId).not.toHaveBeenCalled();
   });
 });

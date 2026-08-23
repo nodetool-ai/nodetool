@@ -30,6 +30,7 @@ import useResultsStore from "./ResultsStore";
 import useWorkflowRunsStore from "./WorkflowRunsStore";
 import type { WebSocketMessage } from "../lib/websocket/GlobalWebSocketManager";
 import {
+  sendPermissionMode,
   sendPlanApprovalResponse,
   sendSecretRequestResponse,
   sendToolApprovalResponse
@@ -260,10 +261,11 @@ export interface GlobalChatState {
   setSelectedModel: (model: LanguageModel) => void;
 
   // Per-thread permission mode (governs how gated tool calls are handled).
-  // Unknown/new threads default to DEFAULT_PERMISSION_MODE.
+  // A thread with no entry uses lastPermissionMode, then Default.
   permissionMode: Record<string, PermissionMode>;
+  lastPermissionMode: PermissionMode;
   getPermissionMode: (threadId: string | null) => PermissionMode;
-  setPermissionMode: (threadId: string, mode: PermissionMode) => void;
+  setPermissionMode: (threadId: string | null, mode: PermissionMode) => void;
 
   // Inline tool-approval prompts awaiting a user decision, keyed by approval_id.
   pendingApprovals: Record<string, PendingApproval>;
@@ -324,6 +326,18 @@ export interface GlobalChatState {
   // Thread actions
   fetchThreads: () => Promise<void>;
   fetchThread: (threadId: string) => Promise<Thread | null>;
+  /**
+   * Register a thread that exists only on the client. The server creates the
+   * row on the first message. No-op when `threadId` is already in `threads`.
+   */
+  ensureLocalThread: (
+    threadId: string,
+    options?: {
+      title?: string;
+      workflowId?: string | null;
+      makeCurrent?: boolean;
+    }
+  ) => void;
   createNewThread: (
     title?: string,
     workflowId?: string | null,
@@ -418,16 +432,17 @@ const captureChatRunSpend = (
 };
 
 /**
- * The slice written to localStorage. The three newest keys are optional
- * because a payload persisted before they existed does not carry them, and
- * `migrate` returns only the four it can rebuild — persist merges the rest
- * from the store's initial state.
+ * The slice written to localStorage. Newer keys are optional because a
+ * payload persisted before they existed does not carry them, and `migrate`
+ * rebuilds what it can — persist merges the rest from the store's initial
+ * state.
  */
 interface PersistedChatState {
   threads: Record<string, Thread>;
   lastUsedThreadId: string | null;
   selectedModel: LanguageModel | null;
   permissionMode: Record<string, PermissionMode>;
+  lastPermissionMode?: PermissionMode;
   memoryEnabled?: boolean;
   workflowThreadId?: Record<string, string>;
   threadWorkflowId?: Record<string, string | null>;
@@ -539,16 +554,38 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set({ selectedModel: model });
       },
 
-      // Per-thread permission mode
+      // Per-thread permission mode. lastPermissionMode is what the user last
+      // picked, so a new chat keeps Auto instead of silently falling back to
+      // Default and prompting on a low-risk action.
       permissionMode: {},
+      lastPermissionMode: DEFAULT_PERMISSION_MODE,
       getPermissionMode: (threadId: string | null) => {
-        if (!threadId) return DEFAULT_PERMISSION_MODE;
-        return get().permissionMode[threadId] ?? DEFAULT_PERMISSION_MODE;
+        if (threadId) {
+          const explicit = get().permissionMode[threadId];
+          if (explicit) return explicit;
+        }
+        return get().lastPermissionMode;
       },
-      setPermissionMode: (threadId: string, mode: PermissionMode) =>
+      setPermissionMode: (threadId: string | null, mode: PermissionMode) => {
+        const pendingIds =
+          mode === "auto" && threadId
+            ? Object.entries(get().pendingApprovals)
+                .filter(([, approval]) => approval.thread_id === threadId)
+                .map(([approvalId]) => approvalId)
+            : [];
         set((state) => ({
-          permissionMode: { ...state.permissionMode, [threadId]: mode }
-        })),
+          lastPermissionMode: mode,
+          permissionMode: threadId
+            ? { ...state.permissionMode, [threadId]: mode }
+            : state.permissionMode
+        }));
+        for (const approvalId of pendingIds) {
+          get().resolveApproval(approvalId, "allow");
+        }
+        if (threadId) {
+          void sendPermissionMode(threadId, mode);
+        }
+      },
 
       // Inline tool-approval prompts
       pendingApprovals: {},
@@ -1219,77 +1256,93 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
       },
 
-      createNewThread: async (
-        title?: string,
-        workflowId?: string | null,
-        options?: { makeCurrent?: boolean }
-      ) => {
-        const safeTitle = isString(title) ? title : undefined;
-        const makeCurrent = options?.makeCurrent !== false;
+      ensureLocalThread: (threadId, options) => {
+        if (get().threads[threadId]) {
+          return;
+        }
 
-        // Bind to the passed workflow, or the currently open one. `undefined`
-        // means "use current"; an explicit `null` forces a workflow-agnostic
-        // thread.
+        const safeTitle = isString(options?.title) ? options.title : undefined;
+        const makeCurrent = options?.makeCurrent === true;
         const boundWorkflowId =
-          workflowId !== undefined ? workflowId : (get().workflowId ?? null);
+          options?.workflowId !== undefined
+            ? options.workflowId
+            : (get().workflowId ?? null);
 
-        // Create thread locally; server will auto-create on first message
-        const id = crypto.randomUUID();
+        // Subscribe first, then atomically store the unsubscribe handle.
+        // This avoids the closure being created inside set() where a stale
+        // read of wsThreadSubscriptions could leak an old handler.
+        const existingUnsub = get().wsThreadSubscriptions[threadId];
+        if (existingUnsub) {
+          existingUnsub();
+        }
+        const newUnsub = globalWebSocketManager.subscribe(threadId, (data) => {
+          captureChatRunSpend(data, threadId, get);
+          handleChatWebSocketMessage(data, set, get, threadId);
+        });
+
         const now = new Date().toISOString();
         const localThread: Thread = {
-          id,
+          id: threadId,
           user_id: "",
           workflow_id: boundWorkflowId,
           title: safeTitle || "New conversation",
           created_at: now,
           updated_at: now
         };
-
-        // Subscribe first, then atomically store the unsubscribe handle.
-        // This avoids the closure being created inside set() where a stale
-        // read of wsThreadSubscriptions could leak an old handler.
-        const existingUnsub = get().wsThreadSubscriptions[id];
-        if (existingUnsub) {
-          existingUnsub();
-        }
-        const newUnsub = globalWebSocketManager.subscribe(id, (data) => {
-          captureChatRunSpend(data, id, get);
-          handleChatWebSocketMessage(data, set, get, id);
-        });
+        const inheritedMode = get().lastPermissionMode;
 
         set((state) => {
           const patch: Partial<GlobalChatState> = {
             threads: {
               ...state.threads,
-              [id]: localThread
+              [threadId]: localThread
+            },
+            permissionMode: {
+              ...state.permissionMode,
+              [threadId]: inheritedMode
             },
             threadWorkflowId: {
               ...state.threadWorkflowId,
-              [id]: boundWorkflowId
+              [threadId]: boundWorkflowId
             },
             messageCache: {
               ...state.messageCache,
-              [id]: []
+              [threadId]: []
             },
             wsThreadSubscriptions: {
               ...state.wsThreadSubscriptions,
-              [id]: newUnsub
+              [threadId]: newUnsub
             }
           };
           if (makeCurrent) {
-            patch.currentThreadId = id;
-            patch.lastUsedThreadId = id;
+            patch.currentThreadId = threadId;
+            patch.lastUsedThreadId = threadId;
             patch.workflowThreadId = boundWorkflowId
-              ? { ...state.workflowThreadId, [boundWorkflowId]: id }
+              ? { ...state.workflowThreadId, [boundWorkflowId]: threadId }
               : state.workflowThreadId;
             Object.assign(
               patch,
-              mirrorsForThread({ ...state, currentThreadId: id }, id)
+              mirrorsForThread(
+                { ...state, currentThreadId: threadId },
+                threadId
+              )
             );
           }
           return patch;
         });
+      },
 
+      createNewThread: async (
+        title?: string,
+        workflowId?: string | null,
+        options?: { makeCurrent?: boolean }
+      ) => {
+        const id = crypto.randomUUID();
+        get().ensureLocalThread(id, {
+          title: isString(title) ? title : undefined,
+          workflowId,
+          makeCurrent: options?.makeCurrent !== false
+        });
         return id;
       },
 
@@ -1755,12 +1808,43 @@ const useGlobalChatStore = create<GlobalChatState>()(
           lastUsedThreadId: state.lastUsedThreadId,
           selectedModel: state.selectedModel,
           permissionMode: state.permissionMode,
+          lastPermissionMode: state.lastPermissionMode,
           memoryEnabled: state.memoryEnabled,
           // Per-workflow thread binding so the editor side panel restores the
           // right conversation across reloads.
           workflowThreadId: state.workflowThreadId,
           threadWorkflowId: state.threadWorkflowId
         }),
+      // Default persist merge is shallow, so a rehydrate that finishes after
+      // createNewThread would replace `threads` and drop the new conversation.
+      merge: (persistedState, currentState) => {
+        if (!isObjectLike(persistedState) || Array.isArray(persistedState)) {
+          return currentState;
+        }
+        const persisted = persistedState as Partial<PersistedChatState>;
+        // SAFETY: overlay is a persisted subset; the four maps are rebuilt so
+        // in-memory keys win over a late rehydrate.
+        return {
+          ...currentState,
+          ...persisted,
+          threads: {
+            ...(persisted.threads ?? {}),
+            ...currentState.threads
+          },
+          permissionMode: {
+            ...(persisted.permissionMode ?? {}),
+            ...currentState.permissionMode
+          },
+          workflowThreadId: {
+            ...(persisted.workflowThreadId ?? {}),
+            ...currentState.workflowThreadId
+          },
+          threadWorkflowId: {
+            ...(persisted.threadWorkflowId ?? {}),
+            ...currentState.threadWorkflowId
+          }
+        } as GlobalChatState;
+      },
       migrate: (persistedState, _version) => {
         // Corrupt localStorage (string, null, etc.) must yield a usable
         // default rather than passing the raw value through; selectors
@@ -1770,7 +1854,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threads: {},
           lastUsedThreadId: null as string | null,
           selectedModel: null as LanguageModel | null,
-          permissionMode: {}
+          permissionMode: {},
+          lastPermissionMode: DEFAULT_PERMISSION_MODE as PermissionMode
         };
         if (!persistedState || !isObjectLike(persistedState)) {
           return fallback;
@@ -1796,7 +1881,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
             isObjectLike(state.permissionMode) &&
             !Array.isArray(state.permissionMode)
               ? (state.permissionMode as Record<string, PermissionMode>)
-              : fallback.permissionMode
+              : fallback.permissionMode,
+          lastPermissionMode:
+            state.lastPermissionMode === "plan" ||
+            state.lastPermissionMode === "auto" ||
+            state.lastPermissionMode === "default"
+              ? state.lastPermissionMode
+              : fallback.lastPermissionMode
         };
       },
       onRehydrateStorage: () => (state) => {
@@ -1837,6 +1928,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // Ensure selection defaults are present
           if (!state.permissionMode) {
             state.permissionMode = {};
+          }
+          if (
+            state.lastPermissionMode !== "plan" &&
+            state.lastPermissionMode !== "auto" &&
+            state.lastPermissionMode !== "default"
+          ) {
+            state.lastPermissionMode = DEFAULT_PERMISSION_MODE;
           }
           if (!state.pendingApprovals) {
             state.pendingApprovals = {};

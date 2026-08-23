@@ -4,7 +4,7 @@
  *
  * The provider sees exactly one tool, `execute_code`. Each call runs the
  * model's program in the QuickJS sandbox where the step's toolbelt is exposed
- * as `tools.<name>()` functions, a `state` object persists across actions,
+ * as imported capability modules, a `state` object persists across actions,
  * and `finish(result)` completes the step (host-validated against the step's
  * output schema). The program's outcome — return value, logs, error — is the
  * observation for the next turn.
@@ -43,25 +43,40 @@ import { Tool } from "../tools/base-tool.js";
 import { getMemoryTools } from "../tools/memory-tools.js";
 import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
 import type { CapabilityRun } from "../capabilities/types.js";
-import { mountCapabilityModules } from "./capability-modules.js";
+import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
+
+import { capabilityModuleOf } from "../capabilities/registry.js";
+import {
+  mountCapabilityModules,
+  SESSION_CAPABILITY_MODULE,
+  type MountCapabilityModulesOptions
+} from "./capability-modules.js";
 import { truncateToolResult } from "../constants.js";
 import {
   formatViolations,
   validateAgainstSchema
 } from "../utils/json-schema-validate.js";
 import { linkAbort } from "../utils/link-abort.js";
+import { lastProseHint } from "../utils/step-failure.js";
 import { removeThinkTags } from "../utils/think-tags.js";
 import {
   buildToolBridge,
   buildCoreProviderTools,
   splitCoreTools,
-  toolSignature,
+  toolSearchHit,
   CODEACT_PRELUDE,
   type ToolCallRecord,
   type ToolSearchHit
 } from "./tool-api.js";
+import {
+  admitCodeAction,
+  EXECUTE_CODE_INPUT_SCHEMA,
+  EXECUTE_CODE_TOOL_NAME,
+  executeCodeMessage
+} from "./execute-code-contract.js";
 import { searchTools } from "../tools/tool-search.js";
 import { buildCodeActSystemPrompt } from "./prompt.js";
+import { annotateFailure } from "./action-diagnostics.js";
 import {
   mountActionModules,
   packagePromptLines,
@@ -119,32 +134,19 @@ export const DEFAULT_CODEACT_MAX_ITERATIONS = 20;
  */
 export const DEFAULT_CODEACT_ACTION_TIMEOUT_MS = 600_000;
 
-/**
- * Input schema for the one provider tool codeact mode exposes. `title` is the
- * user-facing label the UI shows for the action card while the code runs —
- * the code itself is a detail view, so without a title the user sees only
- * "Execute Code". Required: a strict schema (additionalProperties: false)
- * must list every property under `required` for OpenAI structured outputs.
- */
-export const EXECUTE_CODE_INPUT_SCHEMA = {
-  type: "object",
-  properties: {
-    title: {
-      type: "string",
-      description:
-        "3-8 word user-facing summary of what this action does, shown in " +
-        'the UI while it runs (e.g. "Rendering product images from CSV").'
-    },
-    code: {
-      type: "string",
-      description: "The JavaScript program to run."
-    }
-  },
-  required: ["title", "code"],
-  additionalProperties: false
-} as const;
+// The `execute_code` contract lives beside the auto-mode admission that reads
+// it (execute-code-contract.ts); re-exported here so every importer keeps its
+// path.
+export {
+  EXECUTE_CODE_INPUT_SCHEMA,
+  EXECUTE_CODE_TOOL_NAME,
+  executeCodeMessage,
+  declaredActionRisk,
+  admitCodeAction,
+  ACTION_RISK_VALUES
+} from "./execute-code-contract.js";
+export type { ActionRisk, ActionAdmission } from "./execute-code-contract.js";
 
-/** The display label for a code action: its title, else a generic fallback. */
 /**
  * A string leaf that is a JSON-serialized tool envelope rather than the value
  * itself: it parses to an object carrying an envelope key (status/outputs/
@@ -209,13 +211,6 @@ export function coercionArtifactPaths(
   }
   return [];
 }
-
-export function executeCodeMessage(args: Record<string, unknown>): string {
-  const title = isString(args?.["title"]) ? args["title"].trim() : "";
-  return title || "Executing code action";
-}
-
-export const EXECUTE_CODE_TOOL_NAME = "execute_code";
 
 /**
  * Tools documented in full in the prompt regardless of toolbelt size — the
@@ -325,8 +320,42 @@ interface ActionObservation {
   stack?: string;
   logs?: string[];
   finished?: boolean;
+  /** Why `finished` is false, when the action looked like it finished. */
+  note?: string;
   toolCalls: number;
 }
+
+/**
+ * Told to the model when a schema'd action returned a value instead of
+ * finishing. `finished` was previously absent rather than false, so an
+ * observation for the losing move (`return graph`) was byte-identical to one
+ * for a step still in progress — nothing in it said the step had not ended.
+ */
+const RETURN_IS_NOT_FINISH_NOTE =
+  "This step is NOT finished: a returned value is an observation only. " +
+  "Call `await finish(<value>)` inside the action to complete the step.";
+
+const RETURN_MATCHES_SCHEMA_NOTE =
+  "This step is NOT finished: the value you returned matches the required " +
+  "output schema — call finish() on it (`await finish(<that value>)`) inside " +
+  "an execute_code action. Nothing else completes the step.";
+
+/**
+ * Sent as a user message when a schema'd step's turn ended in prose. The model
+ * that built the right value and then described it is one sentence away from a
+ * passing step, and the prose message itself proves it never saw the contract.
+ */
+export const FINISH_CONTRACT_NUDGE =
+  "You answered with prose. This step completes only when you call " +
+  "`await finish(result)` inside an `execute_code` action. If you already " +
+  "built the value, call finish() on it now.";
+
+/**
+ * Re-prompts allowed per step. Bounded because a model that ignores the
+ * contract twice is not going to honor it on the third ask, and each nudge is
+ * a paid provider round.
+ */
+export const MAX_FINISH_NUDGES = 2;
 
 export class CodeActExecutor {
   private readonly task: Task;
@@ -334,7 +363,7 @@ export class CodeActExecutor {
   private readonly context: ProcessingContext;
   private readonly provider: BaseProvider;
   private readonly model: string;
-  /** The sandbox toolbelt: everything the model reaches through `tools.*`. */
+  /** The sandbox toolbelt: everything the model can import into an action. */
   private readonly tools: Tool[];
   /**
    * The subset also offered to the provider as ordinary tools — see
@@ -356,6 +385,10 @@ export class CodeActExecutor {
   private readonly resultSchema: Record<string, unknown> | null;
   private readonly residentTools: Tool[];
   private readonly deferredTools: Tool[];
+  /** Namespace → the belt names grafted onto it for this step. */
+  private readonly sessionModuleExports: Map<string, string[]>;
+  /** Belt name → the specifier the prompt tells the model to import from. */
+  private readonly graftedSpecifiers: Map<string, string>;
   /** Guest prelude for each action: tool wrappers + the object models. */
   private readonly prelude: string;
   /** Specifiers this session's actions may import (flag-gated, may be empty). */
@@ -466,7 +499,7 @@ export class CodeActExecutor {
       for (const name of GRAPH_MODEL_TOOL_NAMES) covered.add(name);
     }
     // Same rule for the core set, one level up: it is documented as direct
-    // tools, so the catalog does not repeat it as a `tools.*` signature. The
+    // tools, so the catalog does not repeat it as a raw signature. The
     // bridge still reaches it, which is what keeps `nodetool.web`,
     // `nodetool.agents` and any hand-written fan-out composable in one action.
     for (const tool of this.coreTools) covered.add(tool.name);
@@ -509,10 +542,30 @@ export class CodeActExecutor {
     preludeParts.push(NODETOOL_API_PRELUDE_FULL);
     this.prelude = preludeParts.join("\n");
 
+    // What this step's belt makes importable, and from where.
+    //
+    // A name a capability module owns is grafted onto that namespace: with no
+    // capability run there is nothing else to serve the import, and with one
+    // the registry's own export wins, so the graft only ever adds reach. A
+    // name no module owns — a tool a step or an eval constructed at its call
+    // site — goes under `session`. Retiring the `tools` global would otherwise
+    // have taken the reach of both with it.
+    this.sessionModuleExports = new Map();
+    this.graftedSpecifiers = new Map();
+    for (const tool of this.tools) {
+      const module = capabilityModuleOf(tool.name) ?? SESSION_CAPABILITY_MODULE;
+      this.graftedSpecifiers.set(tool.name, sandboxCapabilitySpecifier(module));
+      const names = this.sessionModuleExports.get(module);
+      if (names === undefined)
+        this.sessionModuleExports.set(module, [tool.name]);
+      else names.push(tool.name);
+    }
+
     this.resultSchema = this.loadResultSchema();
     this.systemPrompt = buildCodeActSystemPrompt({
       tools: this.residentTools,
       deferredTools: this.deferredTools,
+      graftedSpecifiers: this.graftedSpecifiers,
       resultSchema: this.resultSchema,
       preamble: opts.systemPrompt,
       directToolNames: this.coreTools.map((t) => t.name),
@@ -596,6 +649,13 @@ export class CodeActExecutor {
       maxToolCallsPerAction: this.maxToolCallsPerAction
     });
 
+    // `__callTool` serves the graft as well as the belt, so gating is
+    // unchanged on either path.
+    const callBeltTool = bridge.globals["__callTool"] as (
+      name: unknown,
+      argsJson: unknown
+    ) => Promise<{ ok: true; result: unknown } | { ok: false; error: string }>;
+
     const finishBridge = async (
       resultJson: unknown
     ): Promise<{ ok: true } | { ok: false; error: string }> => {
@@ -654,26 +714,34 @@ export class CodeActExecutor {
       { ok: true; result: ToolSearchHit[] } | { ok: false; error: string }
     > => {
       try {
-        const limit =
-          isFiniteNumber(maxResults)
-            ? Math.max(1, Math.min(25, Math.floor(maxResults)))
-            : 5;
+        const limit = isFiniteNumber(maxResults)
+          ? Math.max(1, Math.min(25, Math.floor(maxResults)))
+          : 5;
         const byName = new Map(this.tools.map((t) => [t.name, t]));
         const hits = searchTools(searchCatalog, String(query ?? ""), limit).map(
-          (entry): ToolSearchHit => {
-            const tool = byName.get(entry.name) as Tool;
-            return {
-              name: entry.name,
-              signature: toolSignature(tool),
-              description: tool.description
-            };
-          }
+          (entry): ToolSearchHit =>
+            toolSearchHit(
+              byName.get(entry.name) as Tool,
+              capabilityModuleOf(entry.name) ?? SESSION_CAPABILITY_MODULE
+            )
         );
         return { ok: true, result: hits };
       } catch (e) {
         return { ok: false, error: e instanceof Error ? e.message : String(e) };
       }
     };
+
+    const sessionModules = [...this.sessionModuleExports.entries()].map(
+      ([module, exports]) => ({
+        module,
+        exports,
+        call: async (name: string, args: unknown) => {
+          const r = await callBeltTool(name, JSON.stringify(args ?? {}));
+          if (r.ok !== true) throw new Error(r.error);
+          return r.result;
+        }
+      })
+    );
 
     const executeAction = async (
       args: Record<string, unknown>
@@ -686,10 +754,22 @@ export class CodeActExecutor {
           toolCalls: 0
         } satisfies ActionObservation);
       }
+      // Auto mode's one question, asked before the program runs.
+      const admission = await admitCodeAction(this.capabilityRun?.gate, args);
+      if (!admission.allowed) {
+        return JSON.stringify({
+          ok: false,
+          error: admission.error,
+          toolCalls: 0
+        } satisfies ActionObservation);
+      }
+      const mountOptions: MountCapabilityModulesOptions = {};
+      if (this.signal !== undefined) mountOptions.signal = this.signal;
+      if (sessionModules.length > 0) mountOptions.session = sessionModules;
       const platform = await mountCapabilityModules(
         code,
         this.capabilityRun,
-        this.signal === undefined ? {} : { signal: this.signal }
+        mountOptions
       );
       if (!platform.ok) {
         return JSON.stringify({
@@ -737,8 +817,10 @@ export class CodeActExecutor {
       if (outcome.success) {
         if (outcome.result !== undefined) observation.result = outcome.result;
       } else {
-        observation.error = outcome.error;
-        if (outcome.stack) observation.stack = outcome.stack;
+        Object.assign(
+          observation,
+          annotateFailure(outcome.error, outcome.stack, this.prelude, code)
+        );
       }
       if (outcome.logs && outcome.logs.length > 0) {
         observation.logs = outcome.logs;
@@ -752,15 +834,27 @@ export class CodeActExecutor {
         uiEvents.push(this.taskUpdate(TaskUpdateEvent.StepCompleted));
         uiEvents.push(this.stepResult(finishedResult.value));
         abort.abort();
+      } else if (
+        this.resultSchema !== null &&
+        outcome.success &&
+        observation.result !== undefined &&
+        observation.result !== null
+      ) {
+        // The action produced a value and ended the turn without finishing.
+        // Say so in the observation: an absent `finished` reads as success.
+        observation.finished = false;
+        observation.note =
+          validateAgainstSchema(observation.result, this.resultSchema).length ===
+          0
+            ? RETURN_MATCHES_SCHEMA_NOTE
+            : RETURN_IS_NOT_FINISH_NOTE;
       }
 
       const text = truncateToolResult(JSON.stringify(observation));
       // Pixels a tool returned during the action ride beside the observation
       // as a provider image message; the observation itself stays light.
       const images = bridge.drainImages();
-      return images.length > 0
-        ? [{ type: "text", text }, ...images]
-        : text;
+      return images.length > 0 ? [{ type: "text", text }, ...images] : text;
     };
 
     const providerTools = [
@@ -785,62 +879,94 @@ export class CodeActExecutor {
       while (uiEvents.length > 0) yield uiEvents.shift() as ProcessingMessage;
     };
 
-    try {
-      const loopArgs: Parameters<BaseProvider["generateLoop"]>[0] = {
-        messages: history,
-        model: this.model,
-        tools: providerTools,
-        threadId: this.threadId,
-        maxIterations: this.maxIterations,
-        maxTokens: this.maxTokens,
-        sequentialTools: true,
-        workspaceDir: this.context.workspaceDir ?? undefined,
-        signal: abort.signal
-      };
-      if (this.turnBudget) loopArgs.turnBudget = this.turnBudget;
-      const stream = this.provider.generateLoop(loopArgs);
+    // Whether the last generation round used up its iteration budget, as
+    // opposed to the model ending its turn on its own. Only the first case is
+    // "exceeded N iterations"; the loop below distinguishes them.
+    let exhaustedIterations = false;
+    let nudges = 0;
 
-      for await (const item of stream) {
-        if (isToolCall(item)) {
-          const coreTool =
-            item.name === EXECUTE_CODE_TOOL_NAME
-              ? undefined
-              : toolsByName.get(item.name);
-          yield {
-            type: "tool_call_update",
-            node_id: this.step.id,
-            tool_call_id: item.id,
-            name: item.name,
-            args: item.args,
-            message: coreTool
-              ? Tool.resolveMessage(coreTool, item.args)
-              : executeCodeMessage(item.args)
-          } satisfies ToolCallUpdate;
-          yield* drainUi();
-          continue;
-        }
-        if (isChunk(item)) {
-          if (isNonEmptyString(item.content)) {
+    try {
+      for (;;) {
+        const loopArgs: Parameters<BaseProvider["generateLoop"]>[0] = {
+          messages: history,
+          model: this.model,
+          tools: providerTools,
+          threadId: this.threadId,
+          maxIterations: this.maxIterations,
+          maxTokens: this.maxTokens,
+          sequentialTools: true,
+          workspaceDir: this.context.workspaceDir ?? undefined,
+          signal: abort.signal
+        };
+        if (this.turnBudget) loopArgs.turnBudget = this.turnBudget;
+        const stream = this.provider.generateLoop(loopArgs);
+
+        // One assistant message per provider turn, so this counts the round's
+        // iterations against the budget the round was given.
+        let turnsThisRound = 0;
+
+        for await (const item of stream) {
+          if (isToolCall(item)) {
+            const coreTool =
+              item.name === EXECUTE_CODE_TOOL_NAME
+                ? undefined
+                : toolsByName.get(item.name);
             yield {
-              type: "chunk",
+              type: "tool_call_update",
               node_id: this.step.id,
-              content: item.content,
-              done: false
-            } satisfies Chunk;
+              tool_call_id: item.id,
+              name: item.name,
+              args: item.args,
+              message: coreTool
+                ? Tool.resolveMessage(coreTool, item.args)
+                : executeCodeMessage(item.args)
+            } satisfies ToolCallUpdate;
+            yield* drainUi();
+            continue;
+          }
+          if (isChunk(item)) {
+            if (isNonEmptyString(item.content)) {
+              yield {
+                type: "chunk",
+                node_id: this.step.id,
+                content: item.content,
+                done: false
+              } satisfies Chunk;
+            }
+            yield* drainUi();
+            continue;
+          }
+          if ("type" in item && item.type === "message") {
+            const m = (item as { message?: Message }).message;
+            if (m && m.role === "assistant") {
+              turnsThisRound++;
+              lastAssistant =
+                isString(m.content)
+                  ? { ...m, content: removeThinkTags(m.content) }
+                  : m;
+            }
           }
           yield* drainUi();
-          continue;
         }
-        if ("type" in item && item.type === "message") {
-          const m = (item as { message?: Message }).message;
-          if (m && m.role === "assistant") {
-            lastAssistant =
-              isString(m.content)
-                ? { ...m, content: removeThinkTags(m.content) }
-                : m;
-          }
+        exhaustedIterations = turnsThisRound >= this.maxIterations;
+
+        if (!this.shouldNudgeToFinish(lastAssistant, nudges, abort.signal)) {
+          break;
         }
-        yield* drainUi();
+        nudges++;
+        // The provider copies the message array, so this round's transcript
+        // never came back to us. Carrying the prose forward is what makes the
+        // nudge a reply to it instead of a repetition of the brief. An empty
+        // assistant turn is not carried: several provider APIs reject a
+        // content-less message outright.
+        if (lastAssistant && hasContent(lastAssistant)) {
+          history.push(lastAssistant);
+        }
+        history.push({ role: "user", content: FINISH_CONTRACT_NUDGE });
+        log.debug("CodeAct step ended in prose; re-prompting to finish", {
+          stepId: this.step.id,
+          nudge: nudges
+        });
       }
     } catch (e) {
       generationError = e instanceof Error ? e : new Error(String(e));
@@ -873,7 +999,13 @@ export class CodeActExecutor {
       this.step.endTime = Date.now();
       const message = generationError
         ? `Step failed: ${generationError.message}`
-        : `Step failed: exceeded ${this.maxIterations} iterations without completion`;
+        : exhaustedIterations
+          ? `Step failed: exceeded ${this.maxIterations} iterations without completion`
+          : this.resultSchema !== null
+            ? `Step failed: ended after ${this.actionCount} action(s) without ` +
+              `calling finish().${lastProseHint(lastAssistant)}`
+            : `Step failed: ended after ${this.actionCount} action(s) with no ` +
+              `final message to use as the result.`;
       this.step.failed = true;
       this.step.error = message;
       const errorResult = { error: message };
@@ -896,13 +1028,35 @@ export class CodeActExecutor {
     }
   }
 
+  /**
+   * Whether to re-prompt after a generation round that produced no result.
+   *
+   * The recoverable case is narrow: a schema'd step whose last assistant
+   * message carried no tool calls — the model stopped to explain instead of
+   * calling `finish()`, and the value it built may still be in `state`. A round
+   * that ended on a tool call ran out of budget instead, which another user
+   * message does not fix, and a cancelled run must not spend a turn at all.
+   */
+  private shouldNudgeToFinish(
+    lastAssistant: Message | null,
+    nudges: number,
+    signal: AbortSignal
+  ): boolean {
+    if (this.step.completed) return false;
+    if (this.resultSchema === null) return false;
+    if (nudges >= MAX_FINISH_NUDGES) return false;
+    if (signal.aborted) return false;
+    if (this.signal?.aborted === true) return false;
+    if (!lastAssistant) return false;
+    const toolCalls = lastAssistant.toolCalls;
+    return !toolCalls || toolCalls.length === 0;
+  }
+
   private loadResultSchema(): Record<string, unknown> | null {
     if (!this.step.outputSchema) return null;
     try {
       const parsed = JSON.parse(this.step.outputSchema) as unknown;
-      if (
-        isRecord(parsed)
-      ) {
+      if (isRecord(parsed)) {
         return parsed as Record<string, unknown>;
       }
       return null;
@@ -970,6 +1124,13 @@ export class CodeActExecutor {
   }
 }
 
+/** Whether a message carries anything a provider will accept as content. */
+function hasContent(message: Message): boolean {
+  const content = message.content;
+  if (isString(content)) return content.trim() !== "";
+  return Array.isArray(content) && content.length > 0;
+}
+
 function isChunk(item: ProviderStreamItem): item is Chunk {
   return (
     "type" in item &&
@@ -980,9 +1141,5 @@ function isChunk(item: ProviderStreamItem): item is Chunk {
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {
-  return (
-    "name" in item &&
-    typeof item.name === "string" &&
-    "id" in item
-  );
+  return "name" in item && typeof item.name === "string" && "id" in item;
 }

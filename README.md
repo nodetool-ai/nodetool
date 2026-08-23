@@ -1,7 +1,5 @@
 # NodeTool
 
-**The open-source, agent-first creative workspace.**
-
 *Every model. Your keys. Your canvas.*
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
@@ -9,170 +7,262 @@
 [![Latest Release](https://img.shields.io/github/v/release/nodetool-ai/nodetool?display_name=tag&sort=semver)](https://github.com/nodetool-ai/nodetool/releases/latest)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
-
-[![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://nodetool.ai)
-[![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
-[![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-NodeTool is an open-source creative AI suite that runs on your machine. A node-based canvas, a multi-track video timeline, and a layered sketch editor share one workspace, and every major AI model, cloud or local, wires into all three.
+![NodeTool node editor](marketing/public/screen_canvas.webp)
 
-It is agent-first: every action you can take in the UI is also an agent tool, so an agent can wire a graph, paint a layer, cut a clip, or place a widget on the same surfaces you use, then run the result and repair what fails.
+NodeTool is an open-source creative AI suite that runs on your machine. A
+node-based canvas, a video timeline, a sketch editor, storyboards and mini-apps
+share one workspace, and every major AI model, cloud or local, plugs straight
+in.
 
-* **The Whole App Is the Toolbelt:** Agents drive the canvas, sketch pad, storyboard, timeline, script editor, 3D scene, and app builder.
-* **Pay Provider Prices:** Bring your own API keys and pay providers at cost. No markup.
-* **Zero Lock-In:** Swap any model — cloud or local — without touching the rest of the workflow.
-* **Three Ways to Work:** Node graphs, a video timeline, and layered painting, all on one canvas.
+It is agent-first: every action you can take in the UI is also an agent tool,
+so an agent can wire a graph, paint a layer, cut a clip, or place a widget on
+the same surfaces you use, then run the result and repair what fails.
 
-![NodeTool Interface](screen_canvas.png)
+## Get NodeTool
 
-## Contents
+| Platform | Get it | Requirements |
+| :--- | :--- | :--- |
+| **macOS** | [Download Studio](https://nodetool.ai/studio) | macOS 13+, Apple Silicon or Intel, 8GB+ RAM |
+| **Windows** | [Download Studio](https://nodetool.ai/studio) | Windows 10+, 8GB+ RAM, 20GB space |
+| **Linux** | [Download Studio](https://nodetool.ai/studio) | Ubuntu 22+, 8GB+ RAM |
 
-- [Why NodeTool](#why-nodetool)
-- [What's in the box](#whats-in-the-box)
-- [Agents](#agents)
-- [Mini apps & app builder](#mini-apps--app-builder)
-- [Node editor](#node-editor)
-- [Storyboard](#storyboard)
-- [Script editor](#script-editor)
-- [Video editor](#video-editor)
-- [Sketch editor](#sketch-editor)
-- [JS scripts](#js-scripts)
-- [How NodeTool compares](#how-nodetool-compares)
-- [Get NodeTool](#get-nodetool)
-- [Documentation](#documentation)
-- [CLI & Server (npm)](#cli--server-npm)
-- [Architecture](#architecture)
-- [Development Setup](#development-setup)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [License](#license)
+**Nodetool** is a free desktop app. Workflows, keys, and files stay local; it
+runs offline against local models, or connects to cloud
+providers when you give it a key.
+
+No GPU is needed to start: with a provider key the models run on their servers.
+A GPU only matters once you want inference on your own machine.
+
+[Flatpak CI builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml)
+are available for Linux. Developers can skip the installer and
+[run from source](#development-setup).
+
+## What you can build
+
+* **[Movie trailer](https://nodetool.ai/use-cases/movie-trailer)** — one logline
+  becomes a storyboard, key art per shot, animated clips, and a cut trailer.
+* **[Product video](https://nodetool.ai/use-cases/product-video)** — a campaign
+  brief and one product photo become a 16:9 spot, directed by an agent and
+  rendered by a text-to-video model.
+* **[Poster concepts](https://nodetool.ai/use-cases/movie-poster)** — a title,
+  genre, and audience become a creative strategy and a batch of poster
+  concepts, tagline and billing block included.
+
+More in the [showcase](https://nodetool.ai/showcase) and the
+[template gallery](https://nodetool.ai/templates).
 
 ## Why NodeTool
 
 Closed platforms lock you in. NodeTool is built for independence.
 
-**Own your AI.**
+* **Independent pricing.** Your own API keys, provider prices, no markup — or
+  local models for free.
+* **Independent data.** Workflows, keys, and files stay on your machine.
+* **Independent software.** Open source, AGPL-3.0.
 
-*   **Independent Pricing:** Pay providers directly at cost with your own API keys, or run local models for free.
-*   **Independent Data:** Workflows, keys, and files stay on your machine.
-*   **Independent Software:** Open-source (AGPL-3.0).
-
-> **Infrastructure Freedom:** If a provider raises prices or deprecates a model, swap the node. The rest of the workflow doesn't change.
-
-## What's in the box
-
-| | |
-| :--- | :--- |
-| **Agents in every editor** | Anything you can click, an agent can do — canvas, sketch, storyboard, timeline, script, 3D, and apps |
-| **Agents that build** | Describe a pipeline; the agent authors the graph, picks models, and validates before it runs |
-| **Mini apps & app builder** | Drag widgets onto a screen, wire them to workflow inputs and outputs, publish — by hand or built and graded by an agent |
-| **Storyboard** | Brief → screenplay → stills you pick from → clips → an assembled cut, with spend gated at every step |
-| **Script editor** | Write a script, cast a voice per speaker, audition takes, then send the voiced lines to a timeline |
-| **JS scripts** | Named, versioned JavaScript documents with ports, tests, and a sandbox — reusable across apps, nodes, and agents |
-| **Supervised runs** | An agent on the failure path: retry, repair, skip, or stop, on a budget you set |
-| **MCP server** | Point Claude Desktop, Claude Code, Codex, or any MCP agent at the same toolbelt |
-| **Node-based canvas** | Drag-and-drop nodes with type-safe connections |
-| **Image, video, audio, text** | Unified workflows across every modality |
-| **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layers, compositing |
-| **Video editor** | Multi-track timeline — sequence, composite, and AI-generate clips, then export to MP4 |
-| **Sketch editor** | Layered paint canvas — draw, mask, and generate AI imagery onto layers, then feed the result downstream |
-| **Runs on your machine** | Ollama, MLX (Apple Silicon), and GGUF for local inference |
-| **BYOK everywhere** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace |
-| **Document search** | Built-in vector store for indexing and querying your files |
-| **Real-time previews** | Live output at every node as the workflow runs |
-| **Custom nodes** | Extend in TypeScript or Python |
-| **Deploy & scale** | Self-host with Docker; rent GPU workers (RunPod, Vast) |
-| **Cross-platform** | macOS, Windows, and Linux |
+If a provider raises prices or deprecates a model, swap the node. The rest of
+the workflow doesn't change.
 
 ## Agents
 
-Most tools bolt a chat panel onto an editor. NodeTool went the other way: the app itself is built as tools an agent can operate, so agents do the work on the same surfaces you use.
+Most tools bolt a chat panel onto an editor. NodeTool went the other way: **the
+whole app is the toolbelt.** Every editor hands an agent the same actions you
+have — add a node and wire it, paint a layer, cut a clip, revise a shot, voice a
+line, place a widget — across the canvas, sketch pad, storyboard, timeline,
+script editor, 3D scene, and app builder.
 
-*   **The whole app is the toolbelt.** Every editor hands the agent the same actions you have: add a node and wire it, paint on a layer and set its blend mode, cut and retime a clip, revise a shot, voice a script line, place a widget in an app. If you can click it, an agent can drive it — the node canvas, the layered sketch pad, the storyboard, the video timeline, the script editor, the 3D scene, and the app builder.
-*   **Agents build workflows.** Describe the pipeline and the agent authors the graph — picks the nodes, wires the edges, selects the models — and validates it before anything runs. What it leaves behind is a workflow you can inspect, edit, and rerun.
-*   **Agents build apps, and test them.** Ask for a mini app and the agent plans the workflows, places the widgets, wires them together, then replays every interaction and has a second model judge whether the result does what you asked. No passing verdict, no app.
-*   **An agent on the failure path.** Supervised runs (`--supervise`) put an agent on call: when a step fails mid-run it decides — retry, repair the output, skip the item, or stop — inside a decision and cost budget you set, with every intervention logged.
-*   **It asks instead of guessing.** When a job is missing something only you can decide — a name, a look, permission to delete — the agent stops and asks. Every plan, tool call, prompt, and dollar of model spend is on the record.
-*   **Bring your own agent.** The toolbelt is exposed over MCP. Point Claude Desktop, Claude Code, Codex, or any MCP-aware agent at NodeTool and it gets the same tools the built-in chat uses.
+* **Agents build workflows.** Describe the pipeline; the agent picks the nodes,
+  wires the edges, selects the models, and validates the graph before anything
+  runs. What it leaves behind is a workflow you can inspect, edit, and rerun.
+* **Agents build apps, and test them.** Ask for a mini app and the agent plans
+  the workflows, places the widgets, replays every interaction, and has a second
+  model judge whether the result does what you asked. No passing verdict, no app.
+* **An agent on the failure path.** Supervised runs decide what to do when a
+  step fails mid-run — retry, repair, skip, or stop — inside a decision and cost
+  budget you set, with every intervention logged.
+* **It asks instead of guessing.** When a job needs something only you can
+  decide, the agent stops and asks. Every plan, tool call, prompt, and dollar of
+  model spend is on the record.
+* **Bring your own agent.** The toolbelt is exposed over MCP, so Claude Desktop,
+  Claude Code, Codex, or any MCP-aware agent gets the same tools the built-in
+  chat uses.
 
 ```bash
 nodetool mcp install                  # wire NodeTool into Claude Code / Codex / OpenCode
 npm run build:mcpb                    # → dist/nodetool.mcpb for Claude Desktop
 ```
 
-Under the hood: a planner turns an objective into a DAG of steps, executors walk it in parallel, and every LLM call emits an OpenTelemetry span with tokens and cost. See the [agent guide](https://docs.nodetool.ai/agents/) and [docs/AGENTS.md](docs/AGENTS.md).
+Under the hood: a planner turns an objective into a DAG of steps, executors walk
+it in parallel, and every LLM call emits an OpenTelemetry span with tokens and
+cost. See the [agent guide](https://docs.nodetool.ai/agents/) and
+[docs/AGENTS.md](docs/AGENTS.md).
 
-## Mini apps & app builder
+## What's in the box
 
-A workflow is a graph; a mini app is the interface you put in front of it. The app builder is a design canvas: drag fields, buttons, and result displays onto a screen, wire each one to an input or output of the workflows the app runs, declare which operations a click starts, and publish a version that pins the workflows behind it. Results stream into the widgets as the run happens. The graph stays underneath, editable. An operation can also run a [JS script](#js-scripts) instead of a workflow, for the ten lines of glue that don't deserve a graph.
+**Create**
 
-Agents build them end to end. `nodetool app build` runs six stages — spec, plan, author, check, run, judge — and only hands back a bundle when the app's interactions actually do what the prompt asked. The judge is a second model, configured apart from the builder, because a model grading its own work is the weakest reviewer available:
+| | |
+| :--- | :--- |
+| **Node canvas** | Drag-and-drop nodes, type-safe connections, live output at every node |
+| **Video editor** | Multi-track timeline — sequence, composite, and AI-generate clips, then export MP4 |
+| **Sketch editor** | Layered paint canvas — draw, mask, and generate onto layers, feed the result downstream |
+| **Storyboard** | Brief → screenplay → stills you pick from → clips → an assembled cut |
+| **Script editor** | Write a script, cast a voice per speaker, audition takes, send them to a timeline |
+| **Mini apps** | Wire widgets to workflow inputs and outputs and publish a version |
+| **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layers, compositing |
+
+**Run and extend**
+
+| | |
+| :--- | :--- |
+| **Every modality** | Image, video, audio, and text in one workflow |
+| **BYOK everywhere** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace |
+| **Local inference** | Ollama, MLX (Apple Silicon), and GGUF |
+| **Document search** | Built-in vector store for indexing and querying your files |
+| **JS scripts** | Versioned JavaScript documents with ports, tests, and a sandbox |
+| **MCP server** | Point Claude Desktop, Claude Code, Codex, or any MCP agent at the toolbelt |
+| **Custom nodes** | Extend in TypeScript or Python |
+| **Deploy & scale** | Self-host with Docker; rent GPU workers (RunPod, Vast) |
+| **Cross-platform** | macOS, Windows, and Linux |
+
+## The editors
+
+These surfaces share one workspace, and an agent can drive every one of them.
+Full tours live at [docs.nodetool.ai](https://docs.nodetool.ai).
+
+### Node editor — build a pipeline by chaining steps
+
+![NodeTool node editor](marketing/public/screen_workflow.webp)
+
+Double-click to search and add a node, or drag a connection into empty space to
+see compatible next steps. Connector handles are color-coded and the editor
+refuses a mismatch, so an image can't land in a text field. Every node renders
+its output live as the workflow runs; tweak properties on the node, group them,
+or bypass one to test a variation. Pan, zoom, minimap, and search by name for
+large graphs.
+
+[Getting started guide →](https://docs.nodetool.ai/getting-started)
+
+### Mini apps & app builder — put an interface in front of a workflow
+
+![NodeTool app builder](marketing/public/screen_app_builder.png)
+
+A workflow is a graph; a mini app is the interface on top of it. Drag fields,
+buttons, and result displays onto a screen, wire each one to an input or output,
+declare which operations a click starts, and publish a version that pins the
+workflows behind it. Results stream into the widgets as the run happens, and the
+graph stays underneath, editable. An operation can run a
+[JS script](docs/js-script-document-design.md) instead of a workflow, for the ten lines of glue that
+don't deserve a graph.
+
+Agents build them end to end. `nodetool app build` runs six stages — spec, plan,
+author, check, run, judge — and hands back a bundle only when the app's
+interactions do what the prompt asked. The judge is a second model, configured
+apart from the builder, because a model grading its own work is the weakest
+reviewer available:
 
 ```bash
 nodetool app build "an app that drafts a note from a prompt" -p anthropic -m claude-sonnet-5
 nodetool app debug <application_id>    # headless: validate bindings, replay interactions
 ```
 
-Export an app as one `.json` bundle — the document plus the full graph of every workflow it binds — and import it anywhere.
+Export an app as one `.json` bundle — the document plus the full graph of every
+workflow it binds — and import it anywhere.
 
-See the [app builder guide](https://docs.nodetool.ai/app-builder) and the [mini apps guide](https://docs.nodetool.ai/mini-apps) for widgets, operations, and variables.
+[App builder guide →](https://docs.nodetool.ai/app-builder) ·
+[Mini apps guide →](https://docs.nodetool.ai/mini-apps)
 
-## Node editor
+### Storyboard — plan a film shot by shot before you pay for video
 
-The node canvas lets you build visual workflows by chaining steps together—like loading an image, calling a model, and applying a mask.
+![NodeTool storyboard](marketing/public/screen_storyboard.png)
 
-*   **Fast creation:** Double-click to search and add nodes, or drag a connection into empty space to see compatible next steps.
-*   **Type-safe routing:** Connector handles are color-coded. The editor prevents mistakes like wiring an image into a text field.
-*   **Live previews:** Every node renders its output (images, video, text) in real time as the workflow executes.
-*   **In-context editing:** Tweak properties directly on the node, group them to stay organized, or bypass a node to test a variation.
-*   **Easy navigation:** Pan, zoom, use the minimap, or search by name to jump straight to any node in a large graph.
+Write a brief and a visual style, pick a shot count, and press **Direct**: the
+Director node returns a typed screenplay — logline, style bible, narration,
+music direction, and one structured shot per card with action, camera, motion,
+and duration.
 
-## Storyboard
+* **Cheap stages first.** A still costs cents, a clip costs dollars. Generate
+  stills until one looks right, pick it, and only then render the clip.
+* **Revise one shot, not the reel.** "Make it darker, add rain" runs
+  video-to-video on the existing clip and swaps the result in place. Fixing shot
+  3 never re-rolls shots 1–5.
+* **Entities keep the cast steady.** Characters, locations, styles, and props
+  are named objects whose canonical descriptor is pasted verbatim into every
+  prompt that names them.
+* **Assemble the cut.** One click lays the rendered shots onto a timeline with
+  narration and music tracks. Every clip stays linked to its shot, so a later
+  revision replaces the clip in the saved cut.
 
-Plan a film shot by shot before you pay for video. Write a brief and a visual style, pick a shot count, and press **Direct**: the Director node returns a typed screenplay — logline, style bible, narration, music direction, and one structured shot per card with action, camera, motion, and duration.
+Agents drive the same board through the `ui_storyboard_*` tools, or headlessly
+with `render_storyboard_stills`, `render_storyboard_clips`, and
+`assemble_storyboard_timeline` — no browser involved.
 
-*   **Cheap stages first.** A still costs cents, a clip costs dollars. Generate stills until one looks right, click the one to use, and only then render the clip from it.
-*   **Revise one shot, not the reel.** "Make it darker, add rain" runs video-to-video on the existing clip and swaps the result in place. Fixing shot 3 never re-rolls shots 1–5.
-*   **Entities keep the cast steady.** Characters, locations, styles, and props are named objects with a canonical descriptor that gets pasted verbatim into every prompt that names them. Pin a cast to the board and each shot card shows which entities its prompt will use.
-*   **Assemble the cut.** One click lays the rendered shots onto a timeline sequence with narration and music tracks. Every clip stays linked to its shot, so a revision made afterward replaces the clip in the saved cut.
+[Creative agent guide →](https://docs.nodetool.ai/creative-agent)
 
-Agents drive the same board through the `ui_storyboard_*` tools, or headlessly with `render_storyboard_stills`, `render_storyboard_clips`, and `assemble_storyboard_timeline` — no browser involved.
+### Script editor — narration as a document, audio derived from it
 
-See the [creative agent guide](https://docs.nodetool.ai/creative-agent) for the full script-to-screen pipeline.
+![NodeTool script editor — the transcript panel beside the sequence it assembles into](.github/assets/creative-agent/assembled-timeline.png)
 
-## Script editor
+A script lives on its own, line by line and section by section, and the text is
+the source of truth.
 
-Narration written as a document, with the audio derived from it. A script lives on its own — line by line, section by section — and text is the source of truth.
+* **Cast a voice per speaker.** Each speaker carries a provider, model, and
+  voice; every line inherits it unless you override the line.
+* **Takes, not overwrites.** Voicing a line saves a take with its own word
+  timings. Audition several, keep the one you want.
+* **Staleness is visible.** Change a line's text or its voice and the line flags
+  itself against the take that no longer matches — re-voice just that line.
+* **Send it to a timeline.** The current takes assemble into a sequence end to
+  end, word timings riding along as captions.
 
-*   **Cast a voice per speaker.** Each speaker carries a provider, model, and voice; every line inherits it unless you override the line.
-*   **Takes, not overwrites.** Voicing a line saves a take with its own word timings. Audition several, keep the one you want.
-*   **Staleness is visible.** Change a line's text or its voice and the line flags itself stale against the take that no longer matches it — re-voice just that line.
-*   **Send it to a timeline.** The current takes assemble into a sequence end to end, word timings riding along as captions.
+An agent does the same without the editor open: `voice_script_lines` voices
+every draft or stale line with its cast voice, and `assemble_script_timeline`
+cuts the result into a saved sequence that `validate_timeline` then checks.
 
-An agent does the same without the editor open: `voice_script_lines` voices every draft or stale line with its cast voice, and `assemble_script_timeline` cuts the result into a saved sequence that `validate_timeline` then checks.
+### Video editor — a generation-aware multi-track timeline
 
-## Video editor
+![NodeTool video editor](screen_video_editor.png)
 
-A generation-aware, multi-track timeline lives right next to the canvas. Drop in your own footage or bind a workflow to a clip — a text-to-image, image-to-video, or text-to-speech pipeline — and generate it in place. Change a parameter and the clip regenerates; tweak the bound workflow and the clip flags itself stale. Composite a live preview across video, audio, and overlay tracks, then export the whole sequence to MP4.
+Drop in your own footage or bind a workflow to a clip — text-to-image,
+image-to-video, or text-to-speech — and generate it in place. Change a parameter
+and the clip regenerates; tweak the bound workflow and the clip flags itself
+stale. Composite a live preview across video, audio, and overlay tracks, then
+export the sequence to MP4.
 
-![NodeTool Video Editor](screen_video_editor.png)
+[Video editor guide →](https://docs.nodetool.ai/video-editor)
 
-See the [Video Editor guide](https://docs.nodetool.ai/video-editor) for the full tour.
+### Sketch editor — paint and generate on the same layers
 
-## Sketch editor
+![NodeTool sketch editor](marketing/public/screen_sketch_editor.webp)
 
-A layered paint canvas built into the node graph. Draw and paint with real brushes, build up a composition in layers with blend modes and masks, then bind a layer to a model or one of your own workflows and generate image content right where you're painting. Change a prompt or an upstream input and the layer flags itself stale; regenerate in place and keep working on top. When you're done, the node hands the rest of your workflow a flattened image, a mask, and per-layer outputs — no export/import round-trip. It pairs naturally with the editing nodes (mask, inpaint, outpaint, compositing) for sketch-then-generate pipelines.
+Draw and paint with real brushes, build a composition in layers with blend modes
+and masks, then bind a layer to a model or one of your own workflows and
+generate image content where you're painting. Change a prompt or an upstream
+input and the layer flags itself stale; regenerate in place and keep working on
+top. The node hands the rest of the workflow a flattened image, a mask, and
+per-layer outputs — no export/import round-trip. It pairs with the editing nodes
+(mask, inpaint, outpaint, compositing) for sketch-then-generate pipelines.
 
-See the [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor) for tools, layers, AI generation, and keyboard shortcuts.
+[Sketch editor guide →](https://docs.nodetool.ai/sketch-editor)
 
-## JS scripts
+### JS scripts — ten lines of JavaScript instead of a graph
 
-Some jobs are ten lines of JavaScript, not a graph: reshape an API response, merge two lists, format a date. A JS script is a named, versioned document for exactly that — a body with declared input and output ports, the secrets it may read, a timeout, and saved test cases. It opens in its own tab with a code editor and an assistant panel beside it.
+Reshape an API response, merge two lists, format a date. A JS script is a named,
+versioned document for exactly that — a body with declared input and output
+ports, the secrets it may read, a timeout, and saved test cases. It opens in its
+own tab with a code editor and an assistant panel beside it.
 
-*   **Runs in the sandbox.** A QuickJS guest that starts with nothing: `fetch` and the workspace are capabilities the host grants, under a per-run cap and an SSRF guard. Every installed sandbox pack — date-fns, papaparse, cheerio, exceljs, pdf-lib, and thirty more — resolves by import.
-*   **Reusable.** Call it from a mini app as an operation, link it as a Code node's body, invoke it from an agent, or compose it from another script.
-*   **Tested like code.** Save cases with their inputs and expected outputs; `nodetool jsscript test` grades them and exits non-zero on a failure. Version history is per script, with restore.
+* **Runs in the sandbox.** A QuickJS guest that starts with nothing: `fetch` and
+  the workspace are capabilities the host grants, under a per-run cap and an
+  SSRF guard. Every installed sandbox pack — date-fns, papaparse, cheerio,
+  exceljs, pdf-lib, and thirty more — resolves by import.
+* **Reusable.** Call it from a mini app as an operation, link it as a Code
+  node's body, invoke it from an agent, or compose it from another script.
+* **Tested like code.** Save cases with inputs and expected outputs;
+  `nodetool jsscript test` grades them and exits non-zero on a failure. Version
+  history is per script, with restore.
 
 ```bash
 nodetool jsscript validate my-script.json
@@ -180,7 +270,10 @@ nodetool jsscript run my-script.json --inputs '{"numbers":[1,2,3]}'
 nodetool jsscript test <id>
 ```
 
-Agents get the same surface through `list_js_scripts`, `save_js_script`, `run_js_script`, and `test_js_script`. See [docs/js-script-document-design.md](docs/js-script-document-design.md) and the [JavaScript sandbox](docs/javascript-sandbox.md).
+Agents get the same surface through `list_js_scripts`, `save_js_script`,
+`run_js_script`, and `test_js_script`. See
+[docs/js-script-document-design.md](docs/js-script-document-design.md) and the
+[JavaScript sandbox](docs/javascript-sandbox.md).
 
 ## How NodeTool compares
 
@@ -192,29 +285,17 @@ Agents get the same surface through `list_js_scripts`, `save_js_script`, `run_js
 | **Models** | Every major provider, BYOK | Stable Diffusion | Curated marketplace | API integrations |
 | **Source & pricing** | AGPL-3.0, provider prices | Open source, free | Closed, credits | Fair-code, subscription |
 
-**vs ComfyUI.** ComfyUI exposes every parameter for engineers who want them. NodeTool keeps the node graph, gives it an interface that doesn't fight you, and covers the rest of the stack — video, audio, text, document search.
+**vs ComfyUI.** ComfyUI exposes every parameter for engineers who want them.
+NodeTool keeps the node graph, gives it an interface that doesn't fight you, and
+covers the rest of the stack — video, audio, text, document search.
 
-**vs Weavy.** Weavy was the closed-source canvas for creative AI. After the Figma acquisition, the roadmap belongs to someone else. NodeTool is the open alternative — same node-based canvas, your keys, your files, no acquisition risk.
+**vs Weavy.** Weavy was the closed-source canvas for creative AI. After the
+Figma acquisition, the roadmap belongs to someone else. NodeTool is the open
+alternative — same node-based canvas, your keys, your files, no acquisition
+risk.
 
-**vs n8n.** n8n is for business workflows and API plumbing. NodeTool is built for creative work — models, masks, layers, video, audio, RAG.
-
-## Get NodeTool
-
-Download the desktop app, install, and start building — runs fully on your machine.
-
-| Platform | Get It | Requirements |
-| :--- | :--- | :--- |
-| **Windows** | [Download](https://nodetool.ai/studio) | Windows 10+, 8GB+ RAM, 20GB space |
-| **macOS** | [Download](https://nodetool.ai/studio) | macOS 13+, Apple Silicon or Intel, 8GB+ RAM |
-| **Linux** | [Download](https://nodetool.ai/studio) | Ubuntu 22+, 8GB+ RAM |
-
-Connect a provider with your own API key and the models run on their servers —
-no GPU involved. A GPU only matters if you later want models to run on your own
-machine.
-
-[Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) are available for Linux.
-
-______________________________________________________________________
+**vs n8n.** n8n is for business workflows and API plumbing. NodeTool is built
+for creative work — models, masks, layers, video, audio, RAG.
 
 ## Documentation
 
@@ -233,6 +314,8 @@ ______________________________________________________________________
 - **[API Reference](https://docs.nodetool.ai/api)** — Programmatic access
 
 ______________________________________________________________________
+
+# For developers
 
 ## CLI & Server (npm)
 

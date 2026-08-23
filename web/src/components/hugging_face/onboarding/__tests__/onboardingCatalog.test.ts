@@ -36,6 +36,14 @@ describe("onboardingCatalog data", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("does not recommend Chatterbox without a local execution adapter", () => {
+    expect(
+      ONBOARDING_MODELS.some(
+        (model) => model.model.id === "ResembleAI/chatterbox"
+      )
+    ).toBe(false);
+  });
+
   it("has node packs with owner/repo ids", () => {
     for (const pack of ONBOARDING_NODE_PACKS) {
       expect(pack.repoId).toMatch(/^[^/]+\/[^/]+$/);

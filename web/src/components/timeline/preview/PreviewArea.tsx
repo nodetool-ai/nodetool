@@ -4,6 +4,7 @@ import React, {
   memo,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from "react";
@@ -27,11 +28,19 @@ import {
   Text,
   Caption,
   Slider,
-  ToolbarIconButton
+  ToolbarIconButton,
+  SPACING,
+  TYPOGRAPHY
 } from "../../ui_primitives";
 
-import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelinePlaybackStore,
+  useTimelinePlaybackStoreApi
+} from "../../../stores/timeline/TimelinePlaybackStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
@@ -99,7 +108,7 @@ const containerStyles = (theme: Theme) =>
   });
 
 const viewportStyles = css({
-  flex: "1 1 auto",
+  flex: "1 1 0%",
   position: "relative",
   overflow: "hidden",
   minHeight: 0
@@ -111,11 +120,11 @@ const controlBarStyles = (theme: Theme) =>
     minHeight: 36,
     backgroundColor: theme.vars.palette.background.paper,
     borderTop: `1px solid ${theme.vars.palette.divider}`,
-    paddingLeft: theme.spacing(0.5),
-    paddingRight: theme.spacing(0.5),
+    paddingLeft: theme.spacing(SPACING.micro),
+    paddingRight: theme.spacing(SPACING.micro),
     display: "flex",
     alignItems: "center",
-    gap: theme.spacing(0.5),
+    gap: theme.spacing(SPACING.micro),
     overflow: "hidden",
     containerType: "inline-size",
     containerName: "timelinePreviewControls",
@@ -136,50 +145,44 @@ const controlBarStyles = (theme: Theme) =>
 
 const timecodeStyles = (theme: Theme) =>
   css({
-    fontFamily: "monospace",
-    fontSize: theme.fontSizeSmall,
-    color: theme.vars.palette.text.primary,
-    letterSpacing: "0.05em",
-    minWidth: 78,
-    textAlign: "center",
+    ...TYPOGRAPHY.mono.label,
+    color: theme.vars.palette.text.secondary,
+    fontVariantNumeric: "tabular-nums",
+    display: "flex",
+    alignItems: "center",
+    lineHeight: 1,
+    margin: 0,
+    flexShrink: 0,
+    paddingLeft: theme.spacing(SPACING.xs),
     userSelect: "none"
   });
 
 const fpsStyles = (theme: Theme) =>
   css({
-    fontSize: theme.fontSizeSmaller,
+    ...TYPOGRAPHY.mono.caption,
     color: theme.vars.palette.text.disabled,
-    minWidth: 36,
-    textAlign: "right",
+    flexShrink: 0,
     userSelect: "none"
   });
 
-const scrubberStyles = css({
-  flex: "1 1 auto",
-  minWidth: 56,
-  paddingLeft: 6,
-  paddingRight: 6,
-  display: "flex",
-  alignItems: "center"
-});
+const scrubberStyles = (theme: Theme) =>
+  css({
+    flex: "1 1 auto",
+    minWidth: theme.spacing(SPACING.xxxl),
+    // Compact thumb (12px) hangs 6px past the rail start.
+    paddingLeft: theme.spacing(SPACING.lg),
+    paddingRight: theme.spacing(SPACING.lg),
+    display: "flex",
+    alignItems: "center"
+  });
 
 const durationStyles = (theme: Theme) =>
   css({
-    fontFamily: "monospace",
-    fontSize: theme.fontSizeSmaller,
+    ...TYPOGRAPHY.mono.caption,
     color: theme.vars.palette.text.secondary,
-    minWidth: 82,
-    textAlign: "center",
-    userSelect: "none"
-  });
-
-const dividerStyles = (theme: Theme) =>
-  css({
-    width: 1,
-    height: 18,
-    backgroundColor: theme.vars.palette.divider,
+    fontVariantNumeric: "tabular-nums",
     flexShrink: 0,
-    margin: `0 ${theme.spacing(0.5)}`
+    userSelect: "none"
   });
 
 interface PreviewAreaProps {
@@ -189,10 +192,16 @@ interface PreviewAreaProps {
   sequenceWidth?: number;
   /** Sequence pixel height (pass-through to compositor). */
   sequenceHeight?: number;
+  /** Playhead timecode. Default on. */
+  showTimecode?: boolean;
+  /** Duration readout after the scrubber (`/HH:MM:SS:FF`). Default on. */
+  showDuration?: boolean;
+  /** Sequence fps readout. Default on. */
+  showFps?: boolean;
 }
 
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
-  ({ fps = 30 }) => {
+  ({ fps = 30, showTimecode = true, showDuration = true, showFps = true }) => {
     const theme = useTheme();
 
     const {
@@ -226,7 +235,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }))
     );
 
-    // `clips` is read imperatively via `useTimelineStore.getState()` inside
+    // `clips` is read imperatively via `timelineApi.getState()` inside
     // handlers (handlePlay, the audio top-up) rather than subscribed here —
     // it gets a new identity on every drag/trim/slider tick, which would
     // otherwise re-render this whole control bar per pointermove for a value
@@ -272,8 +281,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     );
 
     const getAsset = useAssetStore((s) => s.get);
+    const timelineApi = useTimelineStoreApi();
+    const playbackApi = useTimelinePlaybackStoreApi();
 
-    const clockRef = useRef<PlaybackClock>(new PlaybackClock());
+    const clockRef = useRef<PlaybackClock>(
+      new PlaybackClock(() => playbackApi.getState())
+    );
     const graphRef = useRef<AudioGraph>(new AudioGraph());
     /** Bumped by every play/pause/stop/seek gesture. Async continuations in
      *  handlePlay compare against their captured value and bail when a later
@@ -349,7 +362,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const graph = graphRef.current;
         const liveMs = getTimeMs();
         const windowEndMs = liveMs + AUDIO_LOOKAHEAD_MS;
-        const clipsNow = useTimelineStore.getState().clips;
+        const clipsNow = timelineApi.getState().clips;
 
         const newlyEnteredClips = clipsNow.filter(
           (c) =>
@@ -388,13 +401,13 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         // already playing from the initial window are left untouched.
         await graph.addClips(
           validClips,
-          useTimelineStore.getState().tracks,
+          timelineApi.getState().tracks,
           getTimeMs(),
           isStale,
-          useTimelinePlaybackStore.getState().rate
+          playbackApi.getState().rate
         );
       },
-      [getAsset, getTimeMs]
+      [getAsset, getTimeMs, playbackApi, timelineApi]
     );
 
     const handlePlay = useCallback(async () => {
@@ -413,7 +426,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       stopAudioSession();
 
       // Read fresh to avoid stale closure when the user scrubs before pressing play.
-      let startMs = useTimelinePlaybackStore.getState().currentTimeMs;
+      let startMs = playbackApi.getState().currentTimeMs;
       // Pressing Play while parked at the end restarts from the top. Uses the
       // live content end (contentEndMs), not the stale store `durationMs`,
       // which is only set on load and never recomputed as clips change.
@@ -427,12 +440,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // Global playback speed, read fresh so a rate set before pressing play
       // (and the live rate-change restart below) takes effect. Feeds both the
       // clock and audio scheduling so the visual clock and audio stay locked.
-      const globalRate = useTimelinePlaybackStore.getState().rate;
+      const globalRate = playbackApi.getState().rate;
 
       // Read fresh rather than closing over the reactive `clips` value so
       // this component never needs to subscribe to (and re-render on) the
       // clips array itself.
-      const clipsNow = useTimelineStore.getState().clips;
+      const clipsNow = timelineApi.getState().clips;
       const remainingAudioClips = clipsNow.filter((c) =>
         isPendingAudioClip(c, startMs)
       );
@@ -503,7 +516,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       getAsset,
       setCurrentTimeMs,
       stopAudioSession,
-      topUpAudio
+      topUpAudio,
+      playbackApi,
+      timelineApi
     ]);
 
     const handlePause = useCallback(() => {
@@ -675,14 +690,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     // to the transient playhead and write the readout straight to the DOM.
     const timecodeRef = useRef<HTMLElement>(null);
     useEffect(() => {
-      if (!isPlaying) return;
+      if (!showTimecode || !isPlaying) return;
       const node = timecodeRef.current;
       if (!node) return;
       const unsubscribe = subscribeTime((ms) => {
         node.textContent = formatTimecode(ms, fps);
       });
       return unsubscribe;
-    }, [isPlaying, subscribeTime, fps]);
+    }, [isPlaying, showTimecode, subscribeTime, fps]);
 
     const handleScrubChange = useCallback(
       (_event: Event, value: number | number[]) => {
@@ -756,10 +771,19 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     const timecode = formatTimecode(currentTimeMs, fps);
     const durationTimecode = formatTimecode(durationMs || 0, fps);
 
+    // Playback no longer re-renders the bar (see above), but a scrub still
+    // does, once per discrete `currentTimeMs` write.
+    const containerCss = useMemo(() => containerStyles(theme), [theme]);
+    const controlBarCss = useMemo(() => controlBarStyles(theme), [theme]);
+    const timecodeCss = useMemo(() => timecodeStyles(theme), [theme]);
+    const scrubberCss = useMemo(() => scrubberStyles(theme), [theme]);
+    const durationCss = useMemo(() => durationStyles(theme), [theme]);
+    const fpsCss = useMemo(() => fpsStyles(theme), [theme]);
+
     return (
       <div
         ref={containerRef}
-        css={containerStyles(theme)}
+        css={containerCss}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         aria-label="Preview area"
@@ -769,7 +793,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           <PreviewCompositor />
         </div>
 
-        <div css={controlBarStyles(theme)}>
+        <div css={controlBarCss}>
           <ToolbarIconButton
             icon={<SkipPreviousIcon />}
             tooltip="Previous clip boundary (Shift+←)"
@@ -825,11 +849,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             className="timeline-preview__secondary-control"
           />
 
-          <div css={dividerStyles(theme)} className="timeline-preview__secondary-control" />
-          <Text ref={timecodeRef} css={timecodeStyles(theme)}>
-            {timecode}
-          </Text>
-          <div css={scrubberStyles}>
+          {showTimecode && (
+            <Text ref={timecodeRef} component="span" css={timecodeCss}>
+              {timecode}
+            </Text>
+          )}
+          <div css={scrubberCss}>
             <Slider
               aria-label="Scrub timeline"
               min={0}
@@ -841,12 +866,16 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
               density="compact"
             />
           </div>
-          <Caption css={durationStyles(theme)} className="timeline-preview__duration">
-            /{durationTimecode}
-          </Caption>
-          <Caption css={fpsStyles(theme)} className="timeline-preview__fps">
-            {fps} fps
-          </Caption>
+          {showDuration && (
+            <Caption css={durationCss} className="timeline-preview__duration">
+              /{durationTimecode}
+            </Caption>
+          )}
+          {showFps && (
+            <Caption css={fpsCss} className="timeline-preview__fps">
+              {fps} fps
+            </Caption>
+          )}
 
           <ToolbarIconButton
             icon={isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}

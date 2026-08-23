@@ -1,5 +1,6 @@
 import os from "node:os";
 import { execFile } from "node:child_process";
+import { isAuthEnforced } from "@nodetool-ai/config";
 
 type GpuStatsSnapshot = {
   gpu_percent: number;
@@ -133,4 +134,31 @@ export function createSystemStatsSampler(): () => SystemStatsSnapshot {
       ...(gpu ?? {})
     };
   };
+}
+
+/**
+ * Whether this server should broadcast `system_stats` at all.
+ *
+ * A server that enforces auth is shared: its CPU and RAM belong to a container
+ * the user has no stake in, so the editor readout would describe the wrong
+ * machine and report the host's capacity to everyone connected. A local install
+ * is the machine the numbers describe, so it keeps sending them.
+ *
+ * `NODETOOL_SYSTEM_STATS=1|0` overrides both ways — `1` for a local server
+ * pointed at a hosted Supabase project, `0` to turn the broadcast off outright.
+ * `NODE_ENV` is deliberately not consulted: the desktop backend and the Docker
+ * image both set it to "production" while serving one user locally, which is
+ * how this broadcast went blank in every packaged build once before.
+ */
+export function systemStatsBroadcastEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  const override = env["NODETOOL_SYSTEM_STATS"]?.trim();
+  if (override === "1" || override === "true") {
+    return true;
+  }
+  if (override === "0" || override === "false") {
+    return false;
+  }
+  return !isAuthEnforced(env);
 }

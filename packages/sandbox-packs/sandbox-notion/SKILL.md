@@ -5,8 +5,7 @@ description: Call the Notion API from a Code node or CodeAct action, with NodeTo
 
 # Notion in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-notion`. Declare it in the node's `packages`
-property and import it at the top of the body.
+Specifier: `@nodetool-ai/sandbox-notion`. Import it at the top of the body.
 
 Notion is an ordinary HTTPS API and `fetch` reaches it. What costs a script its
 first three attempts is everything around the call — the `Notion-Version`

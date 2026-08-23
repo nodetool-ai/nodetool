@@ -86,9 +86,9 @@ Decisions baked into the shape:
   the caller's secrets; it runs with the intersection of its declared `secrets`
   and what the invoking context allows.
 
-  **Implementation note.** The `packages` field remains on the document so old
-  saves parse. A script does not use it. Every installed sandbox pack and
-  every `@nodetool-ai/sandbox-nodetool/<namespace>` module resolves by import.
+  **Implementation note.** A script declares no packages. Every installed
+  sandbox pack and every `@nodetool-ai/sandbox-nodetool/<namespace>` module
+  resolves by import; a `packages` field on an old save is dropped on parse.
 
 ## Storage and API
 
@@ -189,7 +189,7 @@ on — parameterized by the script document instead of ad-hoc arguments:
   the caller's allowance; `timeoutMs` from the document, capped by the caller.
 - Packages resolve through the process `SandboxModuleCatalog`; an undeclared
   import fails validation before it fails at run time.
-- **The Code-node toolbelt.** A script run prepends the same `tools.*` /
+- **The Code-node toolbelt.** A script run prepends the same imported /
   `nodetool.*` prelude a Code node does, wired to
   `assembleSandboxToolbelt()` (`getAgentToolbelt()` plus
   `getAllMcpTools({ registry })`). Chat `ui_*` tools stay off this belt —

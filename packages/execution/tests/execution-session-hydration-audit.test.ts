@@ -88,6 +88,59 @@ const KNOWN_UNHYDRATED: Record<string, string> = {
     "app bindings resolve outputs by the un-hydrated key"
 };
 
+/**
+ * Hosts that let an `ExecutionPreflightError` propagate instead of handling
+ * it, with where it is answered. An entry here is a decision, not an
+ * exemption: it says the refusal reaches a user through someone else's
+ * reporting, and names who.
+ */
+const PREFLIGHT_PROPAGATORS: Record<string, string> = {
+  // Called only from `nodetool run --supervise`, whose catch prints the
+  // refusal through `describeRunFailure`.
+  "packages/cli/src/run-dsl-supervised.ts":
+    "propagates to the `nodetool run` command's own reporting",
+  // A refused graph is a failed eval case; the harness records the throw as
+  // that case's error, which is exactly what a graph the runtime cannot
+  // honour should score.
+  "packages/cli/src/evals/graph-runner.ts":
+    "a refusal is the eval case's failure",
+  // Both run a planned graph inside an agent turn. The refusal is the agent
+  // loop's to report — these only detach their forwarding listener on the way
+  // out, which their own `catch` around `create()` does.
+  "packages/agents/src/execute-agent-graph.ts":
+    "propagates to the agent loop after detaching its message listener",
+  "packages/agents/src/workflow-agent.ts":
+    "propagates to the agent loop after detaching its message listener"
+};
+
+describe("ExecutionSession preflight audit", () => {
+  it("every host either handles a preflight refusal or documents who does", () => {
+    const offenders: string[] = [];
+    let hosts = 0;
+    for (const file of sourceFiles(packagesDir)) {
+      const source = readFileSync(file, "utf8");
+      if (!source.includes("ExecutionSession.create(")) continue;
+      hosts++;
+      if (source.includes("isExecutionPreflightError")) continue;
+      offenders.push(relative(repoRoot, file));
+    }
+    // The audit is only meaningful if it saw the hosts it claims to audit.
+    expect(hosts).toBeGreaterThan(5);
+    expect(offenders.filter((f) => !(f in PREFLIGHT_PROPAGATORS))).toEqual([]);
+  });
+
+  it("every propagator entry still names a real host that propagates", () => {
+    const stale = Object.keys(PREFLIGHT_PROPAGATORS).filter((rel) => {
+      const source = readFileSync(join(repoRoot, rel), "utf8");
+      return (
+        !source.includes("ExecutionSession.create(") ||
+        source.includes("isExecutionPreflightError")
+      );
+    });
+    expect(stale).toEqual([]);
+  });
+});
+
 describe("ExecutionSession hydration audit", () => {
   it("no surface passes a registry without a resolveNodeType", () => {
     const offenders: string[] = [];

@@ -31,6 +31,7 @@ import {
 } from "../../stores/storyboard/StoryboardStore";
 import { syncShotClipToTimeline } from "../../stores/storyboard/timelineSync";
 import { useResolvedMediaUris } from "../../hooks/useResolvedMediaUri";
+import { ResponsiveImage } from "../ui_primitives";
 
 interface ShotTakesGalleryProps {
   boardId: string;
@@ -90,8 +91,8 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
     () => shot.clip_versions ?? (shot.clip ? [shot.clip] : []),
     [shot.clip_versions, shot.clip]
   );
-  // A still's `uri` is an `asset://` locator, which no browser can fetch —
-  // the thumbnails need each asset's own `get_url`.
+  // Whether each still has anything to show at all; `ResponsiveImage` resolves
+  // the `asset://` locator itself.
   const stillThumbSrcs = useResolvedMediaUris(stills);
 
   const selectedStill = shot.keyframe
@@ -159,7 +160,12 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
               sx={takeThumbSx}
             >
               {stillThumbSrcs[i] ? (
-                <img src={stillThumbSrcs[i]} alt="" />
+                <ResponsiveImage
+                  locator={still}
+                  alt=""
+                  fit="cover"
+                  sx={{ width: "100%", height: "100%" }}
+                />
               ) : (
                 <span>{i + 1}</span>
               )}

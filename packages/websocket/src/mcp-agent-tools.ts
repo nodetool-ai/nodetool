@@ -43,6 +43,7 @@ import {
   toolForCapabilityName,
   UNGATED,
   createCapabilityRun,
+  contextSecretAvailability,
   type CapabilityRun,
   NODETOOL_API_NAMESPACE_TOOLS,
   MCP_GUEST_CONTRACT,
@@ -342,6 +343,7 @@ function collectBridgedTools(
       createCapabilityRun({
         context,
         gate: UNGATED,
+        availableSecrets: contextSecretAvailability(context),
         loaders: { timeline: loadTimelineForUser }
       })
     ),
@@ -351,6 +353,7 @@ function collectBridgedTools(
       createCapabilityRun({
         context,
         gate: UNGATED,
+        availableSecrets: contextSecretAvailability(context),
         loaders: { sketch: loadSketchForUser }
       })
     ),
@@ -369,7 +372,12 @@ function collectBridgedTools(
     ].map((name) => toolForCapabilityName(name)),
     ...["find_model", "list_models"].map((name) =>
       toolForCapabilityName(name, (context) =>
-        createCapabilityRun({ context, gate: UNGATED, providers })
+        createCapabilityRun({
+          context,
+          gate: UNGATED,
+          availableSecrets: contextSecretAvailability(context),
+          providers
+        })
       )
     )
   ];
@@ -643,6 +651,7 @@ export function registerAgentMcpTools(
       sessionAllow: new Set<string>(),
       requestApproval: async () => "allow"
     },
+    availableSecrets: contextSecretAvailability(context),
     nodeRegistry: options.registry,
     ...mcpToolHostDeps({
       registry: options.registry,
@@ -803,13 +812,19 @@ export function registerAgentMcpTools(
   // model skipped a field this server does not use had its whole action
   // rejected on validation. It stays in the schema — described, and the
   // contract in the description still asks for one — but is optional here.
+  //
+  // `risk` is optional here for the same reason, and one more: this session's
+  // gate runs in `auto` with an always-allow approval (there is no MCP client
+  // to prompt), so the declared risk decides nothing on this surface. A
+  // missing one still reads as `high` — it just resolves to allow.
+  const optionalOnMcp = new Set(["title", "risk"]);
   const actionSchema = session.providerTool.inputSchema;
   const actionShape = jsonSchemaToZodShape({
     ...actionSchema,
     required: (Array.isArray(actionSchema["required"])
       ? (actionSchema["required"] as string[])
       : []
-    ).filter((name) => name !== "title")
+    ).filter((name) => !optionalOnMcp.has(name))
   });
 
   server.tool(

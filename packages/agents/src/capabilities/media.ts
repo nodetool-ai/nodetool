@@ -21,10 +21,14 @@
 
 import { Buffer } from "node:buffer";
 import { randomInt } from "node:crypto";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
-import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  JsonSchema,
+  ProcessingContext,
+  Workspace
+} from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
   HostBinaryMissingError,
@@ -122,18 +126,87 @@ interface MediaModelArgs {
   model: string;
 }
 
+function readModelId(value: unknown): string | undefined {
+  return isNonEmptyString(value) ? value : undefined;
+}
+
+/**
+ * Read a provider+model from the shapes find_model actually returns: a hit
+ * (`provider` + `model_id` + `ref`), its `.ref` (`provider` + `id`), or the
+ * documented `{provider, model}` pair. Nested `model` objects win over the
+ * top-level pair so `generate_video({prompt, model: hit.ref})` works.
+ */
+function modelFromRecord(value: unknown): MediaModelArgs | null {
+  if (!isRecord(value)) return null;
+  if (isRecord(value.ref)) {
+    const fromRef = modelFromRecord(value.ref);
+    if (fromRef !== null) return fromRef;
+  }
+  const provider = readModelId(value.provider);
+  const id =
+    readModelId(value.model_id) ??
+    (isNonEmptyString(value.model) ? value.model : undefined) ??
+    readModelId(value.id);
+  if (provider !== undefined && id !== undefined) {
+    return { provider, model: id };
+  }
+  return null;
+}
+
+/**
+ * A provider rejection, with the model that was called in it.
+ *
+ * "text_to_video failed: Unprocessable Entity" told a live session nothing:
+ * the model it had picked was an image-to-video endpoint, and the message
+ * named neither the model nor the way out. `find_model` now filters by
+ * direction, and when a provider still refuses, the error says which model to
+ * re-pick.
+ */
+function predictionError(
+  capability: string,
+  m: MediaModelArgs,
+  e: unknown
+): { error: string } {
+  const detail = e instanceof Error ? e.message : String(e);
+  return {
+    error:
+      `${capability} failed for ${m.provider}:${m.model} — ${detail}. ` +
+      `If the model does not do ${capability}, pick another with ` +
+      `find_model({capability: "${capability}"}).`
+  };
+}
+
 function parseModelArgs(
   params: Record<string, unknown>
 ): MediaModelArgs | { error: string } {
-  const provider = params["provider"];
-  const model = params["model"];
-  if (!isNonEmptyString(provider)) {
+  const fromModel = modelFromRecord(params.model);
+  if (fromModel !== null) return fromModel;
+  if (isRecord(params.model) && isNonEmptyString(params.provider)) {
+    const nested = params.model;
+    const id =
+      readModelId(nested.model_id) ??
+      readModelId(nested.id) ??
+      (isNonEmptyString(nested.model) ? nested.model : undefined);
+    if (id !== undefined) {
+      return { provider: params.provider, model: id };
+    }
+  }
+  const fromParams = modelFromRecord(params);
+  if (fromParams !== null) return fromParams;
+  if (isNonEmptyString(params.model) && params.model.includes("/")) {
+    const slash = params.model.indexOf("/");
+    return {
+      provider: params.model.slice(0, slash),
+      model: params.model.slice(slash + 1)
+    };
+  }
+  if (!isNonEmptyString(params.provider)) {
     return { error: "provider must be a non-empty string (use find_model)" };
   }
-  if (!isNonEmptyString(model)) {
+  if (!isNonEmptyString(params.model)) {
     return { error: "model must be a non-empty string (use find_model)" };
   }
-  return { provider, model };
+  return { provider: params.provider, model: params.model };
 }
 
 async function readWorkspaceOrAssetFile(
@@ -142,8 +215,8 @@ async function readWorkspaceOrAssetFile(
 ): Promise<Uint8Array> {
   // asset:// URIs are the primary handle the generate_* capabilities return (an
   // asset is created with no workspace copy), and the docs advertise asset://
-  // sources. Route them through the asset resolver — workspaceStorage treats
-  // them as literal keys (asset://id.png → key "asset:/id.png") and fails.
+  // sources. Route them through the asset resolver — the workspace treats them
+  // as literal keys (asset://id.png → key "asset:/id.png") and fails.
   if (inputFile.startsWith("asset://")) {
     const { bytes } = await context.resolveAssetBytes(inputFile);
     if (!bytes) {
@@ -151,17 +224,13 @@ async function readWorkspaceOrAssetFile(
     }
     return bytes;
   }
-  // Read via the workspace storage adapter so cloud deployments work
-  // identically to local. `inputFile` is treated as a storage key.
-  if (!context.workspaceStorage) {
-    throw new Error(
-      "No workspace storage configured — cannot read input file."
-    );
+  // Read through the workspace so a cloud deployment behaves like a local one.
+  if (!context.workspace) {
+    throw new Error("No workspace configured — cannot read input file.");
   }
-  const uri = context.workspaceStorage.uriForKey(inputFile);
-  const bytes = await context.workspaceStorage.retrieve(uri);
+  const bytes = await context.workspace.read(inputFile);
   if (!bytes) {
-    throw new Error(`Input file not found in workspace storage: ${inputFile}`);
+    throw new Error(`Input file not found in workspace: ${inputFile}`);
   }
   return bytes;
 }
@@ -203,9 +272,7 @@ const generateImage: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `text_to_image failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("text_to_image", m, e);
     }
   }
 };
@@ -252,9 +319,7 @@ const editImage: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `image_to_image failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("image_to_image", m, e);
     }
   }
 };
@@ -296,9 +361,7 @@ const generateVideo: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `text_to_video failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("text_to_video", m, e);
     }
   }
 };
@@ -341,9 +404,7 @@ const animateImage: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `image_to_video failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("image_to_video", m, e);
     }
   }
 };
@@ -541,9 +602,7 @@ const generateSpeech: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return {
-        error: `text_to_speech failed: ${e instanceof Error ? e.message : String(e)}`
-      };
+      return predictionError("text_to_speech", m, e);
     }
   }
 };
@@ -1152,12 +1211,57 @@ const readMediaBytes: CapabilityExport = {
   }
 };
 
-function requireWorkspaceDir(context: ProcessingContext): string | { error: string } {
-  const dir = context.workspaceDir;
-  if (!isNonEmptyString(dir)) {
-    return { error: "workspaceDir is required to run a host media binary" };
+/**
+ * A real directory a host media binary can run in, plus the workspace it
+ * belongs to.
+ *
+ * A local workspace *is* that directory, so the binary reads and writes the
+ * user's files in place. A cloud workspace has no directory, so the run gets a
+ * scratch one: inputs named in argv are staged into it beforehand
+ * ({@link stageHostBinaryInputs}) and the output is read back out of it
+ * afterwards ({@link persistWorkspaceFile}). Either way the binary sees plain
+ * paths and needs no knowledge of where the workspace actually lives.
+ */
+async function hostBinaryRoot(
+  context: ProcessingContext
+): Promise<{ workspace: Workspace; cwd: string } | { error: string }> {
+  const workspace = context.workspace;
+  if (!workspace) {
+    return { error: "a workspace is required to run a host media binary" };
   }
-  return dir;
+  try {
+    return { workspace, cwd: await workspace.scratchDir() };
+  } catch (e) {
+    return {
+      error: `could not prepare a working directory: ${
+        e instanceof Error ? e.message : String(e)
+      }`
+    };
+  }
+}
+
+/**
+ * Copy every argv path that names an existing workspace file into the scratch
+ * directory, so the binary finds its inputs where it expects them.
+ *
+ * A no-op on a local workspace, where the scratch directory is the workspace.
+ * Only whole arguments are staged: an input reaches ffmpeg as its own argv
+ * entry (`-i clip.mp4`), and a path buried inside a filter token names an
+ * output far more often than an input.
+ */
+async function stageHostBinaryInputs(
+  workspace: Workspace,
+  argv: readonly string[]
+): Promise<void> {
+  if (workspace.localDir) return;
+  for (const arg of argv) {
+    if (!arg || arg.startsWith("-")) continue;
+    try {
+      if (await workspace.exists(arg)) await workspace.materialize(arg);
+    } catch {
+      // Not a workspace path, or not readable — the binary reports it.
+    }
+  }
 }
 
 function stringArgs(raw: unknown): string[] | { error: string } {
@@ -1174,13 +1278,23 @@ function stringArgs(raw: unknown): string[] | { error: string } {
   return args;
 }
 
+/**
+ * Take what the binary produced and put it in the workspace.
+ *
+ * The file is on disk either way — in the workspace folder on a local run, in
+ * the scratch directory on a cloud one — so it is read from there and written
+ * through `persistBinaryOutput`, which stores it in the workspace and (when
+ * asked) as an asset.
+ */
 async function persistWorkspaceFile(
   context: ProcessingContext,
+  workspace: Workspace,
   relPath: string
 ): Promise<Record<string, unknown> | undefined> {
   let abs: string;
   try {
-    abs = context.resolveWorkspacePath(relPath);
+    const root = workspace.localDir ?? (await workspace.scratchDir());
+    abs = path.join(root, workspace.key(relPath));
   } catch (e) {
     return { persist_error: e instanceof Error ? e.message : String(e) };
   }
@@ -1197,13 +1311,140 @@ async function persistWorkspaceFile(
   }
 }
 
+/**
+ * What a refused `://` in ffmpeg argv should do instead. The guard's default
+ * says "stage it first" without saying how; here there is a parameter for it.
+ */
+const FFMPEG_REMEDY =
+  'Pass the ref in `inputs` instead — {"clip.mp4": "asset://<id>.mp4"} ' +
+  "copies it into the workspace, then name `clip.mp4` in args.";
+
+/** Largest single file `ffmpeg`'s `inputs` stages into the workspace. */
+const MAX_STAGED_INPUT_BYTES = 100 * 1024 * 1024;
+/** Files one `inputs` bag may stage. */
+const MAX_STAGED_INPUTS = 8;
+/** Bytes one `inputs` bag may stage in total. */
+const MAX_STAGED_TOTAL_BYTES = 256 * 1024 * 1024;
+
+/**
+ * Copy the refs in `inputs` into the workspace under the names the caller
+ * gave them, so argv can name plain local files.
+ *
+ * ffmpeg opens local files only — a URL or an `asset://` URI in argv is
+ * refused, and rightly so. But chat code has no workspace API of its own, so
+ * before this there was no way to put an asset where ffmpeg could see it: the
+ * capability was on the belt and unusable, and the refusal told the caller to
+ * "download first" with nothing to download with. Staging is that missing
+ * half, and it changes no boundary — the bytes are resolved host-side by the
+ * same resolver `save_asset` uses, and every name still goes through
+ * {@link confineArgvToWorkspace}.
+ */
+async function stageInputs(
+  context: ProcessingContext,
+  workspace: Workspace,
+  cwd: string,
+  raw: unknown
+): Promise<{ staged: Record<string, number> } | { error: string }> {
+  if (raw === undefined || raw === null) return { staged: {} };
+  if (!isRecord(raw)) {
+    return {
+      error:
+        'inputs must be an object of {"<workspace-relative name>": "<asset:// URI, /api/storage/ key, or data: URI>"}'
+    };
+  }
+  const entries = Object.entries(raw);
+  if (entries.length > MAX_STAGED_INPUTS) {
+    return {
+      error: `inputs stages at most ${MAX_STAGED_INPUTS} files; ${entries.length} were given.`
+    };
+  }
+  const names = entries.map(([name]) => name);
+  const refusal = await confineArgvToWorkspace(names, cwd);
+  if (refusal) return refusal;
+
+  const staged: Record<string, number> = {};
+  let total = 0;
+  for (const [name, ref] of entries) {
+    if (!isNonBlankString(name)) {
+      return { error: "inputs keys must be non-empty workspace paths." };
+    }
+    if (!isNonBlankString(ref)) {
+      return {
+        error: `inputs["${name}"] must be a string ref (asset:// URI, /api/storage/ key, or data: URI).`
+      };
+    }
+    let bytes: Uint8Array | null = null;
+    let readError: string | undefined;
+    try {
+      bytes = await loadMediaRefBytes({ uri: ref.trim() }, context);
+    } catch (e) {
+      // Keep why. Naming only the accepted forms is useless to a caller who
+      // already passed one — an unreachable bucket, a revoked credential and a
+      // typo all arrive here, and only the first two are worth retrying. Told
+      // just "pass an asset:// URI", a model re-sends the ref it has and then
+      // starts guessing at URL shapes.
+      readError = e instanceof Error ? e.message : String(e);
+    }
+    // Zero bytes is a failed read wearing a buffer, the same way it is in
+    // `save_asset` — staging it would hand ffmpeg an empty file and the
+    // failure would surface as an unhelpable decode error.
+    if (!bytes || bytes.byteLength === 0) {
+      return {
+        error:
+          `inputs["${name}"]: could not read ${ref}. ` +
+          (readError
+            ? `Reading it failed: ${readError}. `
+            : "It resolved to no bytes. ") +
+          `Accepted: an asset:// URI, the /api/storage/ key a tool returned, ` +
+          `or a data: URI.`
+      };
+    }
+    if (bytes.byteLength > MAX_STAGED_INPUT_BYTES) {
+      return {
+        error: `inputs["${name}"] is ${bytes.byteLength} bytes, over the ${MAX_STAGED_INPUT_BYTES}-byte limit.`
+      };
+    }
+    total += bytes.byteLength;
+    if (total > MAX_STAGED_TOTAL_BYTES) {
+      return {
+        error: `inputs stages ${total} bytes, over the ${MAX_STAGED_TOTAL_BYTES}-byte total limit.`
+      };
+    }
+    // Through the workspace, so the staged input is durable and a cloud run
+    // stages at all; then onto disk in `cwd`, because the binary opens a real
+    // path. On a local workspace `materialize` hands back the file just
+    // written, so this is one write, not two.
+    try {
+      await workspace.write(name, bytes);
+      await workspace.materialize(name);
+    } catch (e) {
+      return {
+        error: `inputs["${name}"] could not be staged: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      };
+    }
+    staged[name] = bytes.byteLength;
+  }
+  return { staged };
+}
+
 const ffmpeg: CapabilityExport = {
   spec: ffmpegSpec,
   impl: async (run, params) => {
-    const workspace = requireWorkspaceDir(run.context);
-    if (!isString(workspace)) return workspace;
+    const root = await hostBinaryRoot(run.context);
+    if ("error" in root) return root;
+    const { workspace, cwd } = root;
     const args = stringArgs(params["args"]);
     if ("error" in args) return args;
+
+    const stagedResult = await stageInputs(
+      run.context,
+      workspace,
+      cwd,
+      params["inputs"]
+    );
+    if ("error" in stagedResult) return stagedResult;
 
     const outputFile = isNonBlankString(params["output_file"])
       ? params["output_file"].trim()
@@ -1213,7 +1454,7 @@ const ffmpeg: CapabilityExport = {
       argv.push(outputFile);
     }
 
-    const refusal = await confineArgvToWorkspace(argv, workspace);
+    const refusal = await confineArgvToWorkspace(argv, cwd, FFMPEG_REMEDY);
     if (refusal) return refusal;
     const hardened = hardenFfmpegArgv(argv);
     if ("error" in hardened) return hardened;
@@ -1224,25 +1465,30 @@ const ffmpeg: CapabilityExport = {
       "";
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 180, 600) * 1000;
-    const runOptions: RunHostBinaryOptions = { cwd: workspace, timeoutMs };
+    const runOptions: RunHostBinaryOptions = { cwd, timeoutMs };
     // Only a known output path can be watched for size; without one the
     // wall clock and the capture cap are the run's bounds.
     if (persistTarget) {
       runOptions.artifactPath = persistTarget;
     }
     try {
+      await stageHostBinaryInputs(workspace, hardened.argv);
       const result = await runHostBinary("ffmpeg", hardened.argv, runOptions);
       const persisted =
         result.exitCode === 0 && persistTarget
-          ? await persistWorkspaceFile(run.context, persistTarget)
+          ? await persistWorkspaceFile(run.context, workspace, persistTarget)
           : undefined;
-      return {
+      const report: Record<string, unknown> = {
         success: result.exitCode === 0,
         stdout: result.stdout,
         stderr: result.stderr,
         exit_code: result.exitCode,
         ...(persisted ?? {})
       };
+      if (Object.keys(stagedResult.staged).length > 0) {
+        report["staged"] = stagedResult.staged;
+      }
+      return report;
     } catch (e) {
       if (e instanceof HostBinaryMissingError) {
         return { error: e.message };
@@ -1264,14 +1510,16 @@ const ffmpeg: CapabilityExport = {
 const ffprobe: CapabilityExport = {
   spec: ffprobeSpec,
   impl: async (run, params) => {
-    const workspace = requireWorkspaceDir(run.context);
-    if (!isString(workspace)) return workspace;
+    const root = await hostBinaryRoot(run.context);
+    if ("error" in root) return root;
+    const { workspace, cwd } = root;
     const target = params["path"];
     if (!isNonBlankString(target)) {
       return { error: "path is required" };
     }
-    const refusal = await confineArgvToWorkspace([target.trim()], workspace);
+    const refusal = await confineArgvToWorkspace([target.trim()], cwd);
     if (refusal) return refusal;
+    await stageHostBinaryInputs(workspace, [target.trim()]);
 
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 30, 120) * 1000;
@@ -1287,7 +1535,7 @@ const ffprobe: CapabilityExport = {
           "-show_streams",
           target.trim()
         ],
-        { cwd: workspace, timeoutMs }
+        { cwd, timeoutMs }
       );
       if (result.exitCode !== 0) {
         return {
@@ -1320,8 +1568,9 @@ const ytDlp: CapabilityExport = {
     if (!isYtDlpEnabled()) {
       return { error: "yt_dlp is not available on this deployment" };
     }
-    const workspace = requireWorkspaceDir(run.context);
-    if (!isString(workspace)) return workspace;
+    const root = await hostBinaryRoot(run.context);
+    if ("error" in root) return root;
+    const { workspace, cwd } = root;
     const url = params["url"];
     if (!isNonBlankString(url)) {
       return { error: "url is required" };
@@ -1349,7 +1598,7 @@ const ytDlp: CapabilityExport = {
 
     // The template is the caller's, so it escapes the workspace as easily as
     // an ffmpeg path does. `format` reaches yt-dlp as a selector, never a path.
-    const refusal = await confineArgvToWorkspace([outputFile], workspace);
+    const refusal = await confineArgvToWorkspace([outputFile], cwd);
     if (refusal) return refusal;
     const flagLike =
       refuseFlagLikeValue(outputFile, "output_file") ??
@@ -1359,9 +1608,7 @@ const ytDlp: CapabilityExport = {
     const outDir = path.dirname(outputFile);
     if (outDir && outDir !== ".") {
       try {
-        await mkdir(run.context.resolveWorkspacePath(outDir), {
-          recursive: true
-        });
+        await mkdir(path.join(cwd, outDir), { recursive: true });
       } catch (e) {
         return {
           error: `could not create output directory: ${
@@ -1379,7 +1626,7 @@ const ytDlp: CapabilityExport = {
 
     try {
       const result = await runHostBinary("yt-dlp", argv, {
-        cwd: workspace,
+        cwd,
         timeoutMs
       });
       const printed = result.stdout.trim().split("\n").filter(Boolean).at(-1);
@@ -1402,14 +1649,14 @@ const ytDlp: CapabilityExport = {
       const produced =
         printed && !printed.startsWith("http")
           ? path.isAbsolute(printed)
-            ? path.relative(workspace, printed)
+            ? path.relative(cwd, printed)
             : printed
           : outputFile.includes("%(")
             ? ""
             : outputFile;
       const persisted =
         result.exitCode === 0 && produced
-          ? await persistWorkspaceFile(run.context, produced)
+          ? await persistWorkspaceFile(run.context, workspace, produced)
           : undefined;
       return {
         success: result.exitCode === 0,

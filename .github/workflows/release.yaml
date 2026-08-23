@@ -281,6 +281,18 @@ jobs:
           node scripts/build-mcpb.mjs --smoke --out "dist/nodetool-${VERSION_NO_V}.mcpb"
           ls -lh "dist/nodetool-${VERSION_NO_V}.mcpb"
 
+      # The SDK contract bundle is likewise one deterministic cross-platform
+      # artifact (docs/sdk/protocol-v1-compatibility.md), built once on Linux.
+      # The producing commit and release tag are stamped into its index.
+      - name: Build SDK contract bundle
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          npm run build:sdk-contract-bundle --workspace=packages/protocol -- \
+            --commit "${{ github.sha }}" --release "${RELEASE_TAG}"
+          ls -lh packages/protocol/dist/nodetool-sdk-v1-contract-*.tar
+
       - name: Build Electron (Windows, unpacked)
         if: matrix.os == 'windows-2022'
         shell: bash -l {0}
@@ -791,6 +803,15 @@ jobs:
           if-no-files-found: ignore
           path: dist/nodetool-*.mcpb
 
+      - name: Upload SDK contract bundle artifact
+        if: matrix.os == 'ubuntu-latest' && always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nodetool-sdk-contract
+          retention-days: 7
+          if-no-files-found: ignore
+          path: packages/protocol/dist/nodetool-sdk-v1-contract-*.tar
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v7
@@ -922,4 +943,5 @@ jobs:
             release-assets/*.blockmap
             release-assets/*.yml
             release-assets/*.mcpb
+            release-assets/nodetool-sdk-v1-contract-*.tar
           fail_on_unmatched_files: true

@@ -12,7 +12,7 @@
  */
 
 import { getSecret } from "@nodetool-ai/models";
-import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
+import { createLocalWorkspace, ProcessingContext } from "@nodetool-ai/runtime";
 import { localModelInterfaces } from "./local-model-interfaces.js";
 
 export async function createChatContext(opts: {
@@ -23,10 +23,7 @@ export async function createChatContext(opts: {
   const context = new ProcessingContext({
     jobId: crypto.randomUUID(),
     userId: opts.userId ?? "1",
-    workspaceDir,
-    workspaceStorage: workspaceDir
-      ? new FileStorageAdapter(workspaceDir)
-      : null,
+    workspace: workspaceDir ? createLocalWorkspace(workspaceDir) : null,
     secretResolver: getSecret
   });
   context.setModelInterfaces(await localModelInterfaces());

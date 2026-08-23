@@ -131,8 +131,52 @@ describe("provider-registry — extended coverage", () => {
       {
         id: "huggingface-language",
         name: "Test Model",
+        provider: "huggingface",
         secrets: {}
       }
     ]);
+  });
+
+  it("keeps a public alias while routing model discovery to the Python provider id", async () => {
+    const calls: string[] = [];
+    const bridge = {
+      getProviderModels: async (providerId: string) => {
+        calls.push(providerId);
+        return [
+          {
+            id: "Supertone/supertonic-3",
+            name: "Supertonic 3",
+            provider: "huggingface",
+            adapter: {
+              state: "installed",
+              artifact_ref: {
+                source: "huggingface",
+                repo_id: "Supertone/supertonic-3"
+              }
+            }
+          }
+        ];
+      }
+    };
+    const provider = new PythonProvider({
+      _id: "huggingface-local",
+      _bridgeProviderId: "huggingface",
+      _bridge: bridge
+    } as any);
+
+    await expect(provider.getAvailableTTSModels()).resolves.toEqual([
+      expect.objectContaining({
+        id: "Supertone/supertonic-3",
+        provider: "huggingface-local",
+        adapter: {
+          state: "installed",
+          artifactRef: {
+            source: "huggingface",
+            repoId: "Supertone/supertonic-3"
+          }
+        }
+      })
+    ]);
+    expect(calls).toEqual(["huggingface"]);
   });
 });

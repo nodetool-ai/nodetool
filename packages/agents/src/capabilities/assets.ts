@@ -32,8 +32,13 @@ import {
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import type { Asset as AssetRow } from "@nodetool-ai/models";
-import { loadMediaRefBytes, safeFetch } from "@nodetool-ai/runtime";
+import {
+  isSafePublicHttpsUrl,
+  loadMediaRefBytes,
+  safeFetch
+} from "@nodetool-ai/runtime";
 import { mimeForPath } from "../sandbox-media-ref.js";
+import { MIME_TO_EXT } from "../tools/asset-persist.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import type {
   CapabilityExport,
@@ -49,6 +54,7 @@ import {
   assetListSpec,
   listImagesSpec,
   viewImageSpec,
+  updateAssetSpec,
   DEFAULT_LIMIT,
   MAX_LIMIT,
   LIST_ASSETS_SCHEMA,
@@ -296,6 +302,9 @@ async function readSourceBytes(
       };
     }
     const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength === 0) {
+      return { error: `${source} returned an empty body — nothing to save.` };
+    }
     if (bytes.byteLength > MAX_SOURCE_BYTES) {
       return {
         error: `${source} is ${bytes.byteLength} bytes, past the ${MAX_SOURCE_BYTES}-byte limit.`
@@ -320,7 +329,31 @@ async function readSourceBytes(
         `key a tool returned, an asset:// URI, or an http(s) URL.`
     };
   }
+  // A resolver that finds the key but reads nothing back — a bucket the
+  // adapter is not configured for, an object still being written — hands back
+  // an empty buffer rather than null. Saving it produced a 0-byte asset the
+  // caller was told was fine, and a chat that answered with a video nobody
+  // could play. Zero bytes is never a successful copy.
+  if (bytes.byteLength === 0) {
+    return {
+      error:
+        `${source} resolved to 0 bytes — nothing was copied. Check that the ` +
+        `source still exists and that this server can read its storage.`
+    };
+  }
   return { bytes };
+}
+
+/**
+ * The `.<ext>` an `asset://` URI carries, from the saved name or its MIME
+ * type. Empty when neither names one — a suffix guessed wrong is worse than
+ * none, since it is what a renderer types the media by.
+ */
+function assetUriSuffix(name: string, mime: string): string {
+  const fromName = /\.([A-Za-z0-9]{1,8})$/.exec(name);
+  if (fromName) return `.${fromName[1].toLowerCase()}`;
+  const ext = MIME_TO_EXT[mime];
+  return ext ? `.${ext}` : "";
 }
 
 const saveAsset: CapabilityExport = {
@@ -382,6 +415,12 @@ const saveAsset: CapabilityExport = {
         data = hasBinary
           ? new Uint8Array(Buffer.from(contentBase64, "base64"))
           : new TextEncoder().encode(content as string);
+        if (hasBinary && data.byteLength === 0) {
+          return {
+            success: false,
+            error: "`content_base64` decoded to 0 bytes — nothing to save."
+          };
+        }
         mime =
           isString(contentTypeArg) && contentTypeArg
             ? contentTypeArg
@@ -414,11 +453,17 @@ const saveAsset: CapabilityExport = {
               // Non-fatal: the asset is still saved via createAsset.
             }
           }
+          // With the extension: a chat embed of `asset://<id>` alone has no
+          // way to tell a video from an image and renders it as one, which
+          // is how a saved mp4 came back as a broken image. `generate_*`
+          // already returns the suffixed form.
+          const savedUri = `asset://${asset.id}${assetUriSuffix(name, mime)}`;
           return {
             success: true,
             name,
             asset_id: asset.id,
-            asset_uri: `asset://${asset.id}`,
+            asset_uri: savedUri,
+            url: savedUri,
             content_type: mime,
             size: data.byteLength
           };
@@ -771,6 +816,7 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
   let sourceBytes: Uint8Array | null = null;
   let sourceMime = "image/png";
   let passthroughUri: string | undefined;
+  let resolveError: string | undefined;
 
   if (imageId.startsWith("data:")) {
     const parsed = parseDataUri(imageId);
@@ -778,6 +824,22 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
     sourceBytes = parsed.bytes;
     sourceMime = parsed.mimeType;
   } else if (/^https?:\/\//i.test(imageId)) {
+    // Screen it. This uri goes out as `image_content.uri` for the *provider* to
+    // fetch, so an unscreened one is not an SSRF against this host — the reach
+    // it buys is the provider's network, not ours. It was still the only
+    // model-supplied URL in this module that skipped the guard every other one
+    // meets: `save_asset` refuses exactly these through `safeFetch`, and a
+    // model that cannot tell which of two image tools screens its input is
+    // being taught that the boundary is arbitrary.
+    if (!isSafePublicHttpsUrl(imageId)) {
+      return {
+        error:
+          `Refused to load image from "${imageId}". ` +
+          `Only public https:// URLs are handed to the vision provider — ` +
+          `plain http, localhost, and private or link-local addresses are refused. ` +
+          `Pass an asset id, an asset:// URI, or a data: URI instead.`
+      };
+    }
     passthroughUri = imageId;
   } else {
     try {
@@ -786,14 +848,28 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
         sourceBytes = bytes;
         sourceMime = sniffImageMime(bytes);
       }
-    } catch {
-      // fall through to the not-found error below
+    } catch (e) {
+      // Keep why. A caller that passed a perfectly good asset id — one
+      // `save_asset` just minted — gets this same branch when the row exists
+      // but its bytes do not resolve (no configured storage, an unreachable
+      // bucket, a revoked credential). Told only "pass an asset id", an agent
+      // re-passes the id it already has, then guesses URL shapes; the reason
+      // is the one thing that stops that loop.
+      resolveError = e instanceof Error ? e.message : String(e);
     }
   }
 
   if (!sourceBytes && !passthroughUri) {
     return {
-      error: `Could not load image "${imageId}". Pass an asset id, asset:// URI, http(s) URL, or data: URI.`
+      error:
+        `Could not load image "${imageId}". ` +
+        (resolveError
+          ? `Resolving it failed: ${resolveError}. `
+          : "Nothing resolved for it. ") +
+        `Accepted: an asset id, an asset:// URI, a public https:// URL, or a ` +
+        `data: URI. A localhost or private-address URL is refused, so guessing ` +
+        `a local server URL will not work — if you already hold the bytes, ` +
+        `pass them as a data: URI.`
     };
   }
 
@@ -883,6 +959,49 @@ const viewImage: CapabilityExport = {
 };
 
 /** Every asset capability, in the order `getAllMcpTools` offered them. */
+/**
+ * Rename or re-file one of the caller's own assets.
+ *
+ * Deliberately narrow. `Asset.find` is user-scoped, so another user's asset
+ * reads as missing; a move goes through `Asset.validateParent`, the same rule
+ * the tRPC route applies, so a run cannot detach a subtree by moving a folder
+ * under its own descendant. Content type is not settable: the stored file name
+ * is derived from it, so changing it without re-uploading the bytes would
+ * leave the asset pointing at a file nobody wrote.
+ */
+const updateAsset: CapabilityExport = {
+  spec: updateAssetSpec,
+  impl: async (run, params) => {
+    const { Asset } = await import("@nodetool-ai/models");
+    const userId = userIdOf(run.context);
+    const assetId = String(params["asset_id"]);
+    const asset = await Asset.find(userId, assetId);
+    if (!asset) return { error: `Asset ${assetId} was not found.` };
+
+    let touched = false;
+    if (isString(params["name"]) && params["name"]) {
+      asset.name = params["name"];
+      touched = true;
+    }
+    if (isString(params["parent_id"]) && params["parent_id"]) {
+      const problem = await Asset.validateParent(
+        userId,
+        asset,
+        params["parent_id"]
+      );
+      if (problem) return { error: problem };
+      asset.parent_id = params["parent_id"];
+      touched = true;
+    }
+    if (!touched) {
+      return { error: "Nothing to update — pass name or parent_id." };
+    }
+
+    await asset.save();
+    return assetRecord(asset);
+  }
+};
+
 export const ASSET_CAPABILITIES: readonly CapabilityExport[] = [
   listAssets,
   getAsset,
@@ -891,7 +1010,8 @@ export const ASSET_CAPABILITIES: readonly CapabilityExport[] = [
   assetSearch,
   assetList,
   listImages,
-  viewImage
+  viewImage,
+  updateAsset
 ];
 
 export const module: CapabilityModule = {
@@ -907,5 +1027,6 @@ export {
   assetSearch,
   assetList,
   listImages,
-  viewImage
+  viewImage,
+  updateAsset
 };

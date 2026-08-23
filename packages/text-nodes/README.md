@@ -2,11 +2,17 @@
 
 Text-processing nodes for [NodeTool](https://nodetool.ai).
 
-A pack of text nodes for NodeTool workflows: manipulate and template strings,
-match and replace with regex, tokenize and embed, run NLP (tokenizing, stemming,
+A pack of text nodes for NodeTool workflows: concatenate and template strings,
+filter streams, embed and transcribe, run NLP (tokenizing, stemming,
 sentiment, entity extraction), and build SVG. HTML and Markdown parsing moved
 to the `@nodetool-ai/sandbox-html` and `@nodetool-ai/sandbox-markdown` sandbox
 packs, importable from a Code node.
+
+The string-manipulation, comparison, regex, parsing, and token-counting node
+classes were removed: `nodetool.code.Code` covers that ground in three lines of
+JavaScript. Saved workflows keep working — `NODE_TYPE_MIGRATIONS` in
+`packages/protocol/src/graph.ts` rewrites each removed type to a Code node with
+the equivalent body prefilled.
 
 ## Install
 
@@ -16,31 +22,17 @@ npm install @nodetool-ai/text-nodes
 
 ## Nodes
 
-### Manipulation
+### Composition
 
-- `nodetool.text.Concat`, `nodetool.text.Join`, `nodetool.text.Split`, `nodetool.text.Slice`, `nodetool.text.Replace`
-- `nodetool.text.Template`, `nodetool.text.Prompt`, `nodetool.text.PadText`, `nodetool.text.SurroundWith`, `nodetool.text.TruncateText`
-- `nodetool.text.CollapseWhitespace`, `nodetool.text.TrimWhitespace`, `nodetool.text.RemovePunctuation`, `nodetool.text.Slugify`, `nodetool.text.StripAccents`
-- Case: `nodetool.text.ToLowercase`, `nodetool.text.ToUppercase`, `nodetool.text.ToTitlecase`, `nodetool.text.CapitalizeText`, `nodetool.text.ToString`
+- `nodetool.text.Concat`, `nodetool.text.Template`, `nodetool.text.Prompt`, `nodetool.text.Collect`
 
-### Compare and predicates
+### Stream filters
 
-- `nodetool.text.Compare`, `nodetool.text.Equals`, `nodetool.text.Contains`, `nodetool.text.StartsWith`, `nodetool.text.EndsWith`
-- `nodetool.text.IsEmpty`, `nodetool.text.HasLength`, `nodetool.text.IndexOf`, `nodetool.text.Length`
+- `nodetool.text.FilterString`, `nodetool.text.FilterRegexString`
 
-### Regex
+### Embeddings and speech
 
-- `nodetool.text.RegexMatch`, `nodetool.text.RegexReplace`, `nodetool.text.RegexSplit`, `nodetool.text.RegexValidate`
-- `nodetool.text.FindAllRegex`, `nodetool.text.ExtractRegex`, `nodetool.text.FilterRegexString`, `nodetool.text.FilterString`
-
-### Extract and parse
-
-- `nodetool.text.Extract`, `nodetool.text.ExtractJSON`, `nodetool.text.ParseJSON`, `nodetool.text.Chunk`, `nodetool.text.Collect`
-
-### Tokens and embeddings
-
-- `nodetool.text.CountTokens`, `nodetool.text.Embedding`
-- `nodetool.text.AutomaticSpeechRecognition`
+- `nodetool.text.Embedding`, `nodetool.text.AutomaticSpeechRecognition`
 
 ### I/O
 

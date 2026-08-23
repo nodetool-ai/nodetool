@@ -131,6 +131,10 @@ export type { TabsProps, TabProps } from "@mui/material";
 export { ToggleButton, ToggleButtonGroup } from "@mui/material";
 export type { ToggleButtonProps, ToggleButtonGroupProps } from "@mui/material";
 
+// SvgIcon, for call sites that draw a glyph no icon set ships
+export { default as SvgIcon } from "@mui/material/SvgIcon";
+export type { SvgIconProps } from "@mui/material/SvgIcon";
+
 // Overlay / transition / chrome
 export { Modal, Fade, Toolbar, LinearProgress } from "@mui/material";
 export type {

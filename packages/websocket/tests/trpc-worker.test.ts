@@ -242,9 +242,13 @@ describe("worker router", () => {
     });
 
     it("terminate delegates to manager.terminate with the id", async () => {
-      manager.terminate.mockResolvedValue(undefined);
+      manager.terminate.mockResolvedValue(
+        makeInstance({ status: "terminated" })
+      );
       const caller = createCaller(makeCtx(manager, repoint));
-      await caller.worker.terminate({ id: "i1" });
+      await expect(
+        caller.worker.terminate({ id: "i1" })
+      ).resolves.toMatchObject({ id: "i1", status: "terminated" });
       expect(manager.terminate).toHaveBeenCalledWith("i1");
     });
 
@@ -260,7 +264,10 @@ describe("worker router", () => {
     });
 
     it("health fails INTERNAL_SERVER_ERROR when no probe is wired", async () => {
-      manager.connectionInfo.mockResolvedValue({ wsUrl: "wss://x", token: "t" });
+      manager.connectionInfo.mockResolvedValue({
+        wsUrl: "wss://x",
+        token: "t"
+      });
       const caller = createCaller(makeCtx(manager, repoint));
       await expect(caller.worker.health({ id: "i1" })).rejects.toMatchObject({
         code: "INTERNAL_SERVER_ERROR"
@@ -280,19 +287,22 @@ describe("worker router", () => {
     it.each([
       ["zero", 0],
       ["negative", -5]
-    ])("rejects a %s idle_timeout_minutes at the schema", async (_label, value) => {
-      manager.createProfile.mockResolvedValue(makeProfile());
-      const caller = createCaller(makeCtx(manager, repoint));
-      await expect(
-        caller.worker.profiles.create({
-          name: "x",
-          target: "runpod",
-          image: "img:1",
-          token_policy: "generate",
-          idle_timeout_minutes: value
-        })
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-      expect(manager.createProfile).not.toHaveBeenCalled();
-    });
+    ])(
+      "rejects a %s idle_timeout_minutes at the schema",
+      async (_label, value) => {
+        manager.createProfile.mockResolvedValue(makeProfile());
+        const caller = createCaller(makeCtx(manager, repoint));
+        await expect(
+          caller.worker.profiles.create({
+            name: "x",
+            target: "runpod",
+            image: "img:1",
+            token_policy: "generate",
+            idle_timeout_minutes: value
+          })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+        expect(manager.createProfile).not.toHaveBeenCalled();
+      }
+    );
   });
 });

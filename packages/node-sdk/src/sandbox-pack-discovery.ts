@@ -897,9 +897,8 @@ function inspectJavaScript(
     const importedCandidate = resolve(packRoot, dirname(moduleId), value);
     if (
       importedCandidate !== packRoot &&
-      !importedCandidate.startsWith(`${packRoot}${sep}`)
+      !importedCandidate.startsWith(`${packRoot}${sep}`) // key-boundary-ok: `${sep}` anchors this boundary.
     ) {
-      // key-boundary-ok: `${sep}` anchors this filesystem containment boundary.
       throw new SandboxPackDiscoveryError(
         `${packageName}/${moduleId}: import escapes the package: ${value}`
       );
@@ -1039,10 +1038,10 @@ function resolveContainedFile(packDir: string, relativeFile: string): string {
   const root = realpathOrThrow(packDir);
   const candidate = resolve(root, relativeFile);
   const resolved = realpathOrThrow(candidate);
-  if (resolved !== root && !resolved.startsWith(`${root}${sep}`))
+  if (resolved !== root && !resolved.startsWith(`${root}${sep}`)) // key-boundary-ok: `${sep}` anchors this boundary.
     throw new SandboxPackDiscoveryError(
       `${relativeFile}: file escapes the package directory`
-    ); // key-boundary-ok: `${sep}` anchors this filesystem containment boundary.
+    );
   assertNoSymlink(root, candidate);
   return resolved;
 }

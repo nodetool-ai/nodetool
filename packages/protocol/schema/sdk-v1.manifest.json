@@ -4,25 +4,51 @@
       "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
       "path": "sdk-v1.asyncapi.json",
       "profile": "discovery",
-      "sha256": "ae9450d4c080d002d5701dfd9a1fe6148708e5b1f054444d55de18053b8367ce"
+      "sha256": "395fde319c64f7e827adaf52c3807890eedea92aea2e9bc9707af04c5352cb58"
     },
     {
       "media_type": "application/vnd.oai.openapi+json;version=3.1",
       "path": "sdk-v1.openapi.json",
       "profile": "discovery",
-      "sha256": "b126b0bc030397ab12c49784563480c235a23e9a8ca93f9b8dc6ee2be132f0f2"
+      "sha256": "8ffca265fd4064f951e7d550acc9dabb2e0c6b909f141472468fc0558ed04d29"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.lifecycle.schema.json",
       "profile": "lifecycle-draft",
-      "sha256": "f1ed6231d998d85662fb9ecc7c978500428a24d2ac51b1ae1ce6eb9c37b08d0f"
+      "sha256": "a22c7eb9dfc193bcc123034f2006880e12960ef8fbe7c6e3c65578d12ae01672"
+    },
+    {
+      "media_type": "application/schema+json",
+      "path": "sdk-v1.execution.schema.json",
+      "profile": "execution",
+      "sha256": "fdbbcb892655ee62aa768f0601b850569194ed620cb7bfb5e3aba16af0feb42a"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.discovery.schema.json",
       "profile": "discovery",
-      "sha256": "a386e224e19b23a55cbb760c5877f9a5e64ba67438d525fe8d7fe58ee5ede982"
+      "sha256": "f121c65742848fc411de2b40b98b3661cee4bb7402f246038179b853d782189b"
+    },
+    {
+      "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
+      "path": "sdk-v1.asyncapi.implemented.json",
+      "profile": "discovery",
+      "sha256": "395fde319c64f7e827adaf52c3807890eedea92aea2e9bc9707af04c5352cb58",
+      "variant": "implemented"
+    },
+    {
+      "media_type": "application/vnd.oai.openapi+json;version=3.1",
+      "path": "sdk-v1.openapi.implemented.json",
+      "profile": "discovery",
+      "sha256": "8ffca265fd4064f951e7d550acc9dabb2e0c6b909f141472468fc0558ed04d29",
+      "variant": "implemented"
+    },
+    {
+      "media_type": "application/json",
+      "path": "sdk-v1.operations.json",
+      "profile": "operations",
+      "sha256": "8a8e2138c1c2476bad0050cb55777aa2aa5d08f8943bae9c4f8bfe46d9eea7ae"
     }
   ],
   "default_websocket_encoding": "messagepack",
@@ -37,6 +63,7 @@
   "protocol_version": "1",
   "public_profiles": [
     "discovery",
+    "execution",
     "model_catalog",
     "model_download"
   ],

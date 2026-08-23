@@ -131,12 +131,20 @@ export type Competitor = {
   isNew?: boolean;
   /** Footer link label override, e.g. to note a product rename. */
   footerName?: string;
+
+  /** Optional search snippet for pages with a distinct, high-volume query intent. */
+  seo?: { title: string; description: string };
 };
 
 export const competitors: Competitor[] = [
   {
     slug: "comfyui",
     name: "ComfyUI",
+    seo: {
+      title: "Easier ComfyUI Alternatives for Mac | NodeTool",
+      description:
+        "Compare easier ComfyUI alternatives for Mac and other platforms. See how NodeTool brings image, video, audio, and text workflows to one open-source canvas.",
+    },
     theme: "blue",
     category: "Node editor",
     og: {
@@ -212,6 +220,11 @@ export const competitors: Competitor[] = [
   {
     slug: "weavy",
     name: "Weavy",
+    seo: {
+      title: "Weavy Alternative — Now Figma Weave | NodeTool",
+      description:
+        "Looking for a Weavy alternative? Weavy is now Figma Weave. Compare NodeTool's open-source, self-hosted canvas, your own API keys, and workflows you own.",
+    },
     footerName: "Weavy (Figma Weave)",
     theme: "blue",
     category: "Creative canvas",
@@ -285,6 +298,11 @@ export const competitors: Competitor[] = [
   {
     slug: "figma-weave",
     name: "Figma Weave",
+    seo: {
+      title: "Figma Weave Alternative: Open-Source, Self-Hosted | NodeTool",
+      description:
+        "Compare an open-source, self-hosted Figma Weave alternative. NodeTool gives you your own API keys, local models, and workflows you can run and own.",
+    },
     theme: "violet",
     category: "Creative canvas",
     og: {
@@ -756,6 +774,11 @@ export const competitors: Competitor[] = [
   {
     slug: "lm-studio",
     name: "LM Studio",
+    seo: {
+      title: "LM Studio Alternatives for Local AI Workflows | NodeTool",
+      description:
+        "Compare local and open-source LM Studio alternatives for Windows and other platforms. See how NodeTool connects local models to agents, documents, and media workflows.",
+    },
     theme: "emerald",
     category: "Local language model runtime",
     isNew: true,

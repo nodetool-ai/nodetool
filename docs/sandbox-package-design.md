@@ -262,8 +262,8 @@ executing pack code:
   (`"internal": ["sandbox/util.js"]`): `.js` files, canonical id = the
   normalized pack-relative path, duplicates and cycles rejected at
   discovery. Internal files are mounted and importable by any public
-  entry of the same pack (sharing is allowed), never valid in a node's
-  `packages` declaration, and count toward the pack size caps and the
+  entry of the same pack (sharing is allowed), never valid as a node's own
+  import, and count toward the pack size caps and the
   graph digest.
 - WASM binaries get a section-level parse; declared `exports` are checked
   against the export section, and the memory rule below is validated
@@ -296,7 +296,7 @@ Mechanics, in the order that matters:
   resolve **only** the run's declared specifiers and their intra-pack
   siblings. Everything else — `node:*`, the wrapper's compat modules,
   absolute paths, encoded traversals, computed specifiers — fails at
-  resolve with an error naming the node's `packages` declaration. Static
+  resolve with an error naming the specifier. Static
   validation is a courtesy layer for early errors; the loader holds the
   boundary at runtime.
 - **Hardening precedes evaluation.** Timer deletion and global hardening
@@ -310,38 +310,37 @@ Mechanics, in the order that matters:
 - Guest modules evaluate under the same interrupt handler and memory limit
   as user code. No new budget knobs.
 
-### Declaring usage on the node
+### Imports are the declaration
 
-Imports are explicit per node. The Code node's `packages` property is a
-list of **declarations**, not bare strings:
+A node declares no packages. Its body's static imports name the specifiers the
+host resolves against the installed catalog, and the same rule holds for a JS
+script, an authoring `run_code` call, and the browser runner's prefetch — one
+answer to "what may this body import", read off the body.
 
-```ts
-interface SandboxModuleDeclaration {
-  specifier: string;               // "@acme/nodetool-geo" or ".../extra"
-  resolvedPackVersion?: string;    // stamped when the workflow is saved
-  contentDigest?: string;          // digest of the resolved sources, same one delivery verifies
-}
-```
+It was a `packages` property once: a list of `SandboxModuleDeclaration`
+(specifier plus a `resolvedPackVersion` and `contentDigest` stamped when the
+workflow was saved). Two lists that had to agree — the imports and the
+declaration — meant the picker and the editor could disagree, and every wrong
+answer was a run that failed on an import the body plainly made. The
+declaration type survives inside the catalog contract, where a caller builds it
+from what it read.
 
-Resolution always uses the installed version; a mismatch between
-`resolvedPackVersion` and the installed pack is a **validation warning**
-(not a lock failure, not an auto-upgrade). `contentDigest` is stamped
-from day one, and it is a **module-graph digest**, not an entry-file
-hash: a canonical, sorted list of every transitive source with its
-normalized module id, generated facade source and generator version,
-compiler options and compiler version for npm modules, and WASM bytes
-where applicable. The workflow declaration, the delivery response, the
-bundle cache, and validation all use this same graph digest; a mismatch
-warns with a distinct message. CodeAct parses each step's
-imports and mounts exactly those — but only after checking them against
-the **session package allowlist** from the trust model, never against
-the whole installed catalog.
+Resolution always uses the installed version; a pack whose version or digest
+moved since the catalog was built is a **validation warning** (not a lock
+failure, not an auto-upgrade). `contentDigest` is a **module-graph digest**, not
+an entry-file hash: a canonical, sorted list of every transitive source with its
+normalized module id, generated facade source and generator version, compiler
+options and compiler version for npm modules, and WASM bytes where applicable.
+The delivery response, the bundle cache, and validation all use this same graph
+digest. CodeAct parses each step's imports the same way, but checks them against
+the **session package allowlist** from the trust model rather than the whole
+installed catalog — an action is code a model just wrote, not a body a person
+saved.
 
-Why explicit: `nodetool validate` checks a workflow offline (typo,
-missing pack, version drift) before anything runs; the loader mounts only
-what is declared, so the guest surface stays deterministic; and a shared
-workflow names its dependencies, so importing it elsewhere says exactly
-which packs to install.
+What the explicit declaration bought is still there without it: `nodetool
+validate` reads the imports and checks them offline (typo, missing pack, version
+drift) before anything runs, the loader mounts only what resolved, and a shared
+workflow names its dependencies in the one place a reader looks — the code.
 
 ### One catalog, injected everywhere
 
@@ -906,14 +905,12 @@ reaches an agent only under the trust rule above.
   do-not-follow warning and escaped angle brackets. A trusted pack's skill also
   registers as an ordinary `AgentSkill`, but only for a session whose
   allowlist names the pack.
-- **UI.** The Code node's `packages` property renders the picker
-  (`web/src/components/properties/SandboxPackagesProperty.tsx`), which writes
-  declarations stamped with `resolvedPackVersion` and `contentDigest` and
-  states the consent sentence; Settings → Packages adds the same sentence, the
+- **UI.** A Code node names its packs by importing them, so there is no picker
+  to state the consent sentence — Settings → Packages carries it, with the
   per-module one-liners and the SKILL.md view for sandbox-only and hybrid packs
-  (`web/src/components/packages/SandboxPackDisclosure.tsx`). Both read
-  `packs.sandboxModules` and the new `packs.sandboxPackageDocs` procedure,
-  which serves a body only when asked for that pack by name.
+  (`web/src/components/packages/SandboxPackDisclosure.tsx`). It reads
+  `packs.sandboxModules` and the `packs.sandboxPackageDocs` procedure, which
+  serves a body only when asked for that pack by name.
 
 Regression suites: `packages/protocol/tests/skill-document.test.ts`;
 `packages/node-sdk/tests/sandbox-pack-skill.test.ts`;
@@ -955,8 +952,8 @@ M2 is implemented; there is no flag. What shipped:
   `SandboxModuleCatalog` that answers synchronously. The digest versions the
   cache: a file reached from one root whose digest no longer matches is a
   leftover from a previous pack version and is re-fetched.
-- **Prefetch before the run.** `runBrowserGraphJob` collects the graph's
-  `packages` declarations and fetches the closure *before* either execution path
+- **Prefetch before the run.** `runBrowserGraphJob` collects the specifiers the
+  graph's Code nodes import and fetches the closure *before* either execution path
   starts, because the catalog contract is synchronous and fetching is not. A
   module that cannot be had fails the job right there, naming the pack, instead
   of surfacing as a resolve error inside the guest. The verified records are

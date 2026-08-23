@@ -1186,9 +1186,38 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
       [imageUrl]
     );
 
+    // Drag, trim, zoom and pan each change leftPx/widthPx, re-rendering this
+    // body once per frame per clip. None of the nine styles read geometry.
+    const locked = clip.locked;
+    const mediaType = clip.mediaType;
+    const rootCss = useMemo(
+      () => clipStyles(theme, isSelected, locked, mediaType),
+      [theme, isSelected, locked, mediaType]
+    );
+    const inZoneCss = useMemo(
+      () => animationZoneStyles(theme, "in"),
+      [theme]
+    );
+    const outZoneCss = useMemo(
+      () => animationZoneStyles(theme, "out"),
+      [theme]
+    );
+    const loopIconCss = useMemo(
+      () => animationLoopIconStyles(theme),
+      [theme]
+    );
+    const dotCss = useMemo(() => clipDotStyles(accent), [accent]);
+    const nameCss = useMemo(() => clipNameStyles(theme), [theme]);
+    const durationCss = useMemo(() => clipDurationStyles(theme), [theme]);
+    const trimStartCss = useMemo(
+      () => trimHandleStyles("start", locked),
+      [locked]
+    );
+    const trimEndCss = useMemo(() => trimHandleStyles("end", locked), [locked]);
+
     return (
       <div
-        css={clipStyles(theme, isSelected, clip.locked, clip.mediaType)}
+        css={rootCss}
         style={positionStyle}
         onPointerDown={handleDragPointerDown}
         onClick={handleClick}
@@ -1226,7 +1255,7 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
         {animationMarkers.inZone && (
           <button
             type="button"
-            css={animationZoneStyles(theme, "in")}
+            css={inZoneCss}
             style={{
               left: animationMarkers.inZone.offsetPx,
               width: animationMarkers.inZone.widthPx
@@ -1240,7 +1269,7 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
         {animationMarkers.outZone && (
           <button
             type="button"
-            css={animationZoneStyles(theme, "out")}
+            css={outZoneCss}
             style={{
               right: animationMarkers.outZone.offsetPx,
               width: animationMarkers.outZone.widthPx
@@ -1254,7 +1283,7 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
         {animationMarkers.hasLoopOrEmphasis && (
           <button
             type="button"
-            css={animationLoopIconStyles(theme)}
+            css={loopIconCss}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={handleAnimationMarkerClick}
             aria-label="Open loop and emphasis animation controls"
@@ -1265,15 +1294,15 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
 
         {/* Header strip: type dot · name · duration */}
         <div css={clipHeaderRowStyles}>
-          <span css={clipDotStyles(accent)} aria-hidden />
-          <span css={clipNameStyles(theme)}>{clip.name}</span>
+          <span css={dotCss} aria-hidden />
+          <span css={nameCss}>{clip.name}</span>
           {showDuration && (
-            <span css={clipDurationStyles(theme)}>{durationLabel}</span>
+            <span css={durationCss}>{durationLabel}</span>
           )}
         </div>
 
         <div
-          css={trimHandleStyles("start", clip.locked)}
+          css={trimStartCss}
           onPointerDown={handleTrimStartPointerDown}
           onPointerMove={handleTrimStartPointerMove}
           onPointerUp={handleTrimPointerEnd}
@@ -1283,7 +1312,7 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
         />
 
         <div
-          css={trimHandleStyles("end", clip.locked)}
+          css={trimEndCss}
           onPointerDown={handleTrimEndPointerDown}
           onPointerMove={handleTrimEndPointerMove}
           onPointerUp={handleTrimPointerEnd}

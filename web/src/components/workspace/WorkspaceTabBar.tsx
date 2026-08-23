@@ -25,6 +25,7 @@ import { getActiveSketchInstance } from "../../stores/sketch/SketchInstance";
 import { renameSketchDocument } from "../../stores/sketch/SketchSessionStore";
 import { readSketchDocumentId } from "../../hooks/sketch/ensureSketchDocumentForAsset";
 import { tabCanRename } from "./tabRename";
+import { useUpdateApplication } from "../../hooks/useApplications";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
@@ -294,6 +295,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const setMode = useWorkspaceTabsStore((state) => state.setMode);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
   const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
+  const updateApplication = useUpdateApplication();
 
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
   const workflowManagerStore = useWorkflowManagerStore();
@@ -460,6 +462,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             });
             break;
           case "model3d":
+          case "text":
             await useAssetStore.getState().update({ id: tab.ref, name: trimmed });
             break;
           case "jsscript": {
@@ -479,6 +482,12 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
               .getState()
               .updateThreadTitle(tab.ref, trimmed);
             break;
+          case "application":
+            await updateApplication.mutateAsync({
+              id: tab.ref,
+              name: trimmed
+            });
+            break;
           default:
             break;
         }
@@ -486,7 +495,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         setTitle(tab.ref, tab.type, previousTitle);
       }
     },
-    [getWorkflow, updateWorkflow, saveWorkflow, setTitle]
+    [getWorkflow, updateWorkflow, saveWorkflow, setTitle, updateApplication]
   );
 
   const handleClose = useCallback(

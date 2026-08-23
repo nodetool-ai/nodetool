@@ -16,7 +16,7 @@ describe("jsScriptDocument schema", () => {
     const parsed = jsScriptDocument.parse({ schemaVersion: 1 });
     expect(parsed.timeoutSeconds).toBe(30);
     expect(parsed.inputs).toEqual([]);
-    expect(parsed.packages).toEqual([]);
+    expect(parsed.outputs).toEqual([]);
     expect(parsed.tests).toEqual([]);
   });
 

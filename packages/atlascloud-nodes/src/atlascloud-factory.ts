@@ -19,7 +19,11 @@ import {
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
-import { loadMediaRefBytes, mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
+import {
+  fetchExternalMedia,
+  loadMediaRefBytes,
+  mapPromptAssetsToInputs
+} from "@nodetool-ai/runtime";
 import type {
   AssetMediaKind,
   MediaRefValue,
@@ -440,7 +444,9 @@ export async function resolveAssetForAtlas(
   // pass-through path so a workflow can't trick the worker into proxying
   // requests to internal services / cloud metadata endpoints.
   if (r.uri && isSafeHttpUrl(r.uri)) {
-    const res = await fetch(r.uri);
+    // The predicate judged the initial URL; the protected fetch judges every
+    // redirect hop and applies the media-ref egress policy.
+    const res = await fetchExternalMedia(r.uri);
     if (res.ok) {
       const bytes = new Uint8Array(await res.arrayBuffer());
       return bytesToDataUri(bytes, guessMime(r, defaultMimeFor(fieldType)));

@@ -75,6 +75,38 @@ const csvAsset = (name: string): Asset =>
     get_url: `http://localhost/${name}`
   });
 
+const markdownAsset = (): Asset =>
+  stub<Asset>({
+    id: "md-1",
+    name: "notes.md",
+    content_type: "text/markdown",
+    get_url: "http://localhost/notes.md"
+  });
+
+describe("TextDocumentEditor — markdown edit", () => {
+  it("opens from the preview cache without getting stuck on the spinner", async () => {
+    // View mode already loaded the file. A hanging refetch must not leave the
+    // editor on the spinner — that is what "click Edit" used to do.
+    installGlobal(
+      "fetch",
+      jest.fn().mockImplementation(() => new Promise(() => {}))
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } }
+    });
+    queryClient.setQueryData(["textAsset", "md-1"], "# Hello");
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={mockTheme}>
+          <TextDocumentEditor asset={markdownAsset()} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+
+    expect(await screen.findByTestId("monaco")).toBeInTheDocument();
+  });
+});
+
 describe("TextDocumentEditor — CSV add row", () => {
   beforeEach(() => {
     jest.clearAllMocks();

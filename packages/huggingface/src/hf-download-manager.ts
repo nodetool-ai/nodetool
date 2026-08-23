@@ -393,6 +393,11 @@ export class DownloadManager {
         return;
       }
 
+      // A successful result is authoritative. Progress callbacks are best
+      // effort and may omit cached/redirected response bodies, so make the
+      // terminal frame internally consistent instead of allowing the UI to
+      // downgrade a completed download back to a stalled progress state.
+      state.downloadedBytes = state.totalBytes;
       state.status = "completed";
       emitProgress();
     } catch (err) {

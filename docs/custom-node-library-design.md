@@ -153,7 +153,7 @@ port→slot mapping (`portsToSlots` / `portsToOutputs`) and property copying
 move into a shared helper both call sites use, so drop and link cannot
 drift:
 
-- `properties`: `code`, `packages`, `secrets`, `timeout` from the document,
+- `properties`: `code`, `secrets`, `timeout` from the document,
   and `script: { id, version }` pinning the version that was dropped.
 - `data.title`: the script's name. `data.codeNodeMode = "custom"` — a third
   mode beside `"snippet"`, so `codeNodeUi.ts` renders the custom title and

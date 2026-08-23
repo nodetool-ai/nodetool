@@ -68,6 +68,22 @@ describe("PlaybackClock", () => {
     expect(global.requestAnimationFrame).toHaveBeenCalledTimes(1);
   });
 
+  it("reads playback state from an injected getter", () => {
+    const setTimeMs = jest.fn();
+    const injected = new PlaybackClock(() => ({
+      isPlaying: true,
+      setTimeMs,
+      setCurrentTimeMs: jest.fn(),
+      pause: jest.fn()
+    }));
+    injected.start(0, 1);
+    nowSpy.mockReturnValue(250);
+    flushRAF();
+    expect(setTimeMs).toHaveBeenCalledWith(expect.closeTo(250, 5));
+    expect(mockSetTimeMs).not.toHaveBeenCalled();
+    injected.stop();
+  });
+
   it("pushes the live time via the transient channel on each tick", () => {
     clock.start(0, 1);
     nowSpy.mockReturnValue(1000); // advance wall clock by 1s

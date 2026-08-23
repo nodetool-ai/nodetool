@@ -25,6 +25,11 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import { IconButton } from "@mui/material";
 import { MOTION } from "./tokens";
+import {
+  useResolvedMediaUri,
+  type MediaLocator
+} from "../../hooks/useResolvedMediaUri";
+import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2] as const;
 const CONTROLS_HIDE_DELAY_MS = 1800;
@@ -141,10 +146,19 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
   });
 
 export interface VideoPlayerProps {
-  /** Video source URL */
-  src: string;
-  /** Optional poster image */
-  poster?: string;
+  /**
+   * A resolved video URL. Only media resolution mints this type — an
+   * `asset://` locator is not one, so pass `locator` instead.
+   */
+  src?: ResolvedMediaUrl | "";
+  /**
+   * A stored media locator (`asset://<id>`, a `VideoRef`, or any other
+   * scheme). The player resolves it before setting `src`, so a caller never
+   * has to. Mutually exclusive with `src`.
+   */
+  locator?: MediaLocator;
+  /** Optional poster image, already resolved. */
+  poster?: ResolvedMediaUrl | "";
   /** Autoplay (typically requires muted=true to satisfy browser policies) */
   autoplay?: boolean;
   /** Loop playback */
@@ -153,16 +167,19 @@ export interface VideoPlayerProps {
   muted?: boolean;
   /** Called on every timeupdate with currentTime in seconds */
   onTimeUpdate?: (time: number) => void;
+  /** Accessible name for the player. */
+  label?: string;
   className?: string;
 }
 
-const VideoPlayerInner: React.FC<VideoPlayerProps> = ({
+const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   src,
   poster,
   autoplay = false,
   loop = false,
   muted = false,
   onTimeUpdate,
+  label = "Video player",
   className
 }) => {
   const theme = useTheme();
@@ -253,13 +270,14 @@ const VideoPlayerInner: React.FC<VideoPlayerProps> = ({
     >
       <video
         ref={videoRef}
-        src={src}
-        poster={poster}
+        src={src || undefined}
+        poster={poster || undefined}
         autoPlay={autoplay}
         loop={loop}
         muted={muted}
         playsInline
-        aria-label="Video player"
+        preload="metadata"
+        aria-label={label}
         onPlay={handlePlay}
         onPause={handlePause}
         onLoadedMetadata={handleLoadedMetadata}
@@ -304,6 +322,28 @@ const VideoPlayerInner: React.FC<VideoPlayerProps> = ({
     </div>
   );
 };
+
+/**
+ * The locator branch. Split into its own component so plain-URL callers never
+ * mount the asset query — the hook needs a `QueryClientProvider`, and a
+ * `src`-only caller has nothing to look up.
+ */
+const LocatorVideoPlayer: React.FC<
+  Omit<VideoPlayerProps, "src"> & { locator: MediaLocator }
+> = ({ locator, ...rest }) => (
+  <ResolvedVideoPlayer {...rest} src={useResolvedMediaUri(locator) ?? ""} />
+);
+
+/**
+ * Media resolution is the rendering boundary: pass `locator` and the player
+ * resolves it, pass `src` and it must already be a `ResolvedMediaUrl`.
+ */
+const VideoPlayerInner: React.FC<VideoPlayerProps> = ({ locator, ...rest }) =>
+  locator === undefined ? (
+    <ResolvedVideoPlayer {...rest} />
+  ) : (
+    <LocatorVideoPlayer {...rest} locator={locator} />
+  );
 
 export const VideoPlayer = memo(VideoPlayerInner);
 VideoPlayer.displayName = "VideoPlayer";

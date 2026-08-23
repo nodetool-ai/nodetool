@@ -34,12 +34,17 @@ import {
   FlexRow,
   FlexColumn,
   ShimmerText,
-  Collapse
+  Collapse,
+  ToolbarIconButton
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import { useAssetStore } from "../../../stores/AssetStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { getToolVisual } from "./toolCallIcon";
 
 import AgentExecutionView from "./AgentExecutionView";
@@ -52,6 +57,12 @@ import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStor
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
+import {
+  groupConsecutiveToolCalls,
+  toolCallGroupHeadline,
+  toolCallGroupPreview,
+  type ToolCallRun
+} from "./groupToolCalls";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -333,11 +344,159 @@ type ToolResultLookup = Record<
   { name?: string | null; content: unknown; createdAt?: string | null }
 >;
 
+type CallTiming = {
+  toolResult?: { name?: string | null; content: unknown; createdAt?: string | null };
+  durationMs: number | null;
+};
+
 /**
- * ToolCallGroup - Renders a message's tool calls as a "tool execution chain":
- * a tiny uppercase section label with a hairline rule, one bordered card per
- * call, and a completion summary bar. The section header collapses the chain
- * for dense threads. A lone tool call renders as a single card with no chrome.
+ * Collapsed run of consecutive same-tool calls. Expands to the individual
+ * cards. Closed by default — the point is to hide a stack of identical rows.
+ */
+const ToolCallRunCard: React.FC<{
+  name: string;
+  calls: ToolCall[];
+  durationFor: (tc: ToolCall) => CallTiming;
+  messageCreatedAt?: string | null;
+}> = React.memo(({ name, calls, durationFor, messageCreatedAt }) => {
+  const [open, setOpen] = useState(false);
+  const runningToolCallId = useGlobalChatStore(
+    (s) => s.currentRunningToolCallId
+  );
+  const isRunning = calls.some(
+    (tc) => tc.id && runningToolCallId === tc.id
+  );
+  const { Icon: ToolIcon, accent } = getToolVisual(name);
+  const headline = toolCallGroupHeadline(name, calls);
+  const preview = toolCallGroupPreview(name, calls);
+
+  const handleToggleOpen = useCallback(() => {
+    setOpen((v) => !v);
+  }, []);
+  const handleHeaderKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen((v) => !v);
+    }
+  }, []);
+
+  const { completedCount, durationMs } = useMemo(() => {
+    let completed = 0;
+    const ends: number[] = [];
+    for (const tc of calls) {
+      const { toolResult } = durationFor(tc);
+      if (toolResult !== undefined) {
+        completed += 1;
+      }
+      if (toolResult?.createdAt) {
+        const t = new Date(toolResult.createdAt).getTime();
+        if (Number.isFinite(t)) {
+          ends.push(t);
+        }
+      }
+    }
+    const start = messageCreatedAt
+      ? new Date(messageCreatedAt).getTime()
+      : NaN;
+    const duration =
+      ends.length > 0 && Number.isFinite(start)
+        ? Math.max(...ends) - start
+        : null;
+    return { completedCount: completed, durationMs: duration };
+  }, [calls, durationFor, messageCreatedAt]);
+
+  const durationLabel =
+    !isRunning && durationMs != null ? formatDuration(durationMs) : null;
+  const progressLabel =
+    isRunning || completedCount < calls.length
+      ? `${completedCount}/${calls.length}`
+      : null;
+
+  return (
+    <div
+      className={`tool-call-card tool-call-run${isRunning ? " running" : ""}`}
+    >
+      <FlexRow
+        className="tool-call-header expandable"
+        align="center"
+        fullWidth
+        gap={1}
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        aria-label={`${headline}, ${calls.length} ${name}`}
+        onClick={handleToggleOpen}
+        onKeyDown={handleHeaderKeyDown}
+      >
+        <span className={`tool-icon-tile accent-${accent}`} aria-hidden>
+          <ToolIcon />
+        </span>
+        <FlexColumn sx={{ minWidth: 0, flex: 1 }} gap={0}>
+          <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
+            <Text
+              component="span"
+              size="small"
+              weight={500}
+              className="tool-call-name"
+              truncate
+            >
+              {isRunning ? <ShimmerText>{headline}</ShimmerText> : headline}
+            </Text>
+            <span className="tool-call-id">
+              {name} ×{calls.length}
+            </span>
+          </FlexRow>
+          {preview && !open && (
+            <Text
+              component="span"
+              size="smaller"
+              color="secondary"
+              className="tool-call-run-preview"
+              truncate
+            >
+              {preview}
+            </Text>
+          )}
+        </FlexColumn>
+        <FlexRow align="center" gap={1} sx={{ flexShrink: 0 }}>
+          {progressLabel && (
+            <span className="tool-call-run-progress">{progressLabel}</span>
+          )}
+          {durationLabel && (
+            <span className="tool-call-duration">{durationLabel}</span>
+          )}
+          <ExpandMoreIcon
+            className={`expand-icon${open ? " expanded" : ""}`}
+            aria-hidden
+          />
+        </FlexRow>
+      </FlexRow>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <FlexColumn className="tool-call-run-items" gap={0}>
+          {calls.map((tc, i) => {
+            const { toolResult, durationMs: callDuration } = durationFor(tc);
+            return (
+              <ToolCallCard
+                key={tc.id || i}
+                tc={tc}
+                result={toolResult}
+                durationMs={callDuration}
+              />
+            );
+          })}
+        </FlexColumn>
+      </Collapse>
+    </div>
+  );
+});
+ToolCallRunCard.displayName = "ToolCallRunCard";
+
+
+/**
+ * ToolCallGroup - Renders a message's tool calls as a chain. Consecutive
+ * calls of the same groupable tool collapse into one run card. Mixed tools
+ * keep the section label, hairline rule, and summary bar. A single visual
+ * item (one card or one run) has no chain chrome.
  */
 const ToolCallGroup: React.FC<{
   toolCalls: ToolCall[];
@@ -372,19 +531,35 @@ const ToolCallGroup: React.FC<{
     [toolResultsByCallId, messageCreatedAt]
   );
 
-  const renderCard = useCallback(
-    (tc: ToolCall, i: number) => {
-      const { toolResult, durationMs } = durationFor(tc);
+  const runs = useMemo(
+    () => groupConsecutiveToolCalls(toolCalls),
+    [toolCalls]
+  );
+
+  const renderRun = useCallback(
+    (run: ToolCallRun, i: number) => {
+      if (run.kind === "single") {
+        const { toolResult, durationMs } = durationFor(run.call);
+        return (
+          <ToolCallCard
+            key={run.call.id || i}
+            tc={run.call}
+            result={toolResult}
+            durationMs={durationMs}
+          />
+        );
+      }
       return (
-        <ToolCallCard
-          key={tc.id || i}
-          tc={tc}
-          result={toolResult}
-          durationMs={durationMs}
+        <ToolCallRunCard
+          key={run.calls[0]?.id || `run-${run.name}-${i}`}
+          name={run.name}
+          calls={run.calls}
+          durationFor={durationFor}
+          messageCreatedAt={messageCreatedAt}
         />
       );
     },
-    [durationFor]
+    [durationFor, messageCreatedAt]
   );
 
   const isRunning = toolCalls.some(
@@ -406,9 +581,9 @@ const ToolCallGroup: React.FC<{
     return { completedCount: completed, totalDurationMs: maxMs };
   }, [toolCalls, durationFor]);
 
-  // A single tool call keeps the original inline card — no group wrapper.
-  if (toolCalls.length <= 1) {
-    return <>{toolCalls.map(renderCard)}</>;
+  // One visual item (a single card or one collapsed run) needs no chain chrome.
+  if (runs.length <= 1) {
+    return <>{runs.map(renderRun)}</>;
   }
 
   const totalDurationLabel =
@@ -445,7 +620,7 @@ const ToolCallGroup: React.FC<{
       </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
         <FlexColumn className="tool-call-chain" gap={1}>
-          {toolCalls.map(renderCard)}
+          {runs.map(renderRun)}
           <FlexRow className="tool-call-summary" align="center" gap={1.5}>
             <span className="tool-call-summary-count">
               {completedCount}/{toolCalls.length} completed
@@ -467,6 +642,19 @@ const ToolCallGroup: React.FC<{
   );
 });
 ToolCallGroup.displayName = "ToolCallGroup";
+
+function markdownAssetFilename(text: string): string {
+  const firstLine = text
+    .split("\n")
+    .map((line) => line.replace(/^#+\s*/, "").trim())
+    .find((line) => line.length > 0);
+  const base = (firstLine ?? "message")
+    .replace(/[<>:"/\\|?*]/g, "")
+    .replace(/\s+/g, " ")
+    .slice(0, 48)
+    .trim();
+  return `${base || "message"}.md`;
+}
 
 interface MessageViewProps {
   message: Message;
@@ -499,6 +687,10 @@ export const MessageView: React.FC<
     showMeta = false
   }) => {
     const insertIntoEditor = useEditorInsertion();
+    const createAsset = useAssetStore((state) => state.createAsset);
+    const openTab = useWorkspaceTabsStore((state) => state.openTab);
+    const [savingMarkdown, setSavingMarkdown] = useState(false);
+    const savingMarkdownRef = useRef(false);
 
     const copyText = useMemo(() => {
       if (isString(message.content)) {
@@ -515,6 +707,42 @@ export const MessageView: React.FC<
       }
       return "";
     }, [message.content]);
+
+    const handleSaveMarkdownAsset = useCallback(async () => {
+      const body = copyText.trim();
+      if (!body || savingMarkdownRef.current) {
+        return;
+      }
+      const filename = markdownAssetFilename(body);
+      savingMarkdownRef.current = true;
+      setSavingMarkdown(true);
+      try {
+        const asset = await createAsset(
+          new File([body], filename, { type: "text/markdown" })
+        );
+        openTab({
+          type: "text",
+          ref: asset.id,
+          mode: "edit",
+          title: asset.name || filename
+        });
+        useNotificationStore.getState().addNotification({
+          type: "success",
+          content: `Saved ${asset.name || filename} as a markdown asset.`
+        });
+      } catch (error) {
+        useNotificationStore.getState().addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to save markdown asset: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+      } finally {
+        savingMarkdownRef.current = false;
+        setSavingMarkdown(false);
+      }
+    }, [copyText, createAsset, openTab]);
 
     const toggleCallbackRef = useRef(onToggleThought);
     toggleCallbackRef.current = onToggleThought;
@@ -755,6 +983,17 @@ export const MessageView: React.FC<
                 buttonSize="small"
                 tooltip="Copy to clipboard"
               />
+              {copyText.trim() ? (
+                <ToolbarIconButton
+                  icon={<ArticleOutlinedIcon fontSize="small" />}
+                  tooltip="Save as markdown asset"
+                  size="small"
+                  disabled={savingMarkdown}
+                  onClick={() => {
+                    void handleSaveMarkdownAsset();
+                  }}
+                />
+              ) : null}
             </div>
           )}
         </div>

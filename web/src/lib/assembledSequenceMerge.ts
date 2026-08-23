@@ -66,8 +66,12 @@ export function mergeIntoSequence(
   const foreignTracks = existing.tracks.filter(
     (track) => foreignTrackIds.has(track.id) || !ownedTrackIds.has(track.id)
   );
-  return {
-    tracks: [...built.tracks, ...foreignTracks],
-    clips: [...built.clips, ...foreignClips]
-  };
+  // A track's `index` is its position in `tracks`, and `sceneModel` reads it as
+  // the composite z-order. Concatenating two documents' tracks breaks that: a
+  // kept track can claim the index a fresh one already took, stacking two
+  // visual layers at the same `trackZ`. Renumber by position.
+  const tracks = [...built.tracks, ...foreignTracks].map((track, index) =>
+    track.index === index ? track : { ...track, index }
+  );
+  return { tracks, clips: [...built.clips, ...foreignClips] };
 }

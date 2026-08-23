@@ -259,8 +259,14 @@ describe("code AST helpers", () => {
 // Sandbox package declarations
 // ---------------------------------------------------------------------------
 
-/** A catalog that resolves one specifier and reports drift for another. */
-function fakeCatalog(): SandboxModuleCatalog {
+/**
+ * A catalog that serves `@acme/geo` and knows no other specifier. With
+ * `versionMoved` it serves it with a drift warning, the way an install whose
+ * pack changed under a saved workflow does.
+ */
+function fakeCatalog(
+  options: { versionMoved?: boolean } = {}
+): SandboxModuleCatalog {
   return {
     summaries: () => [],
     diagnostics: () => [],
@@ -279,7 +285,7 @@ function fakeCatalog(): SandboxModuleCatalog {
           });
           continue;
         }
-        if (declaration.resolvedPackVersion !== undefined) {
+        if (options.versionMoved === true) {
           statuses.push({
             packName: "@acme/nodetool-geo",
             specifier: declaration.specifier,
@@ -294,37 +300,31 @@ function fakeCatalog(): SandboxModuleCatalog {
   };
 }
 
-const withPackages = (
+const importing = (
   code: string,
-  specifiers: string[],
   extra: Partial<Parameters<typeof validateCodeNodeBody>[0]> = {}
 ) => ({
   ...body(code, [], ["out"]),
-  declaredPackages: specifiers.map((specifier) => ({ specifier })),
   ...extra
 });
 
 describe("validateCodeNodeBody — sandbox packages", () => {
-  it("accepts an import of a declared specifier and binds its names", () => {
+  it("accepts an import and binds its names", () => {
     expect(
       validateCodeNodeBody(
-        withPackages(
-          'import { haversine } from "@acme/geo";\nreturn { out: haversine(1, 2) };',
-          ["@acme/geo"]
+        importing(
+          'import { haversine } from "@acme/geo";\nreturn { out: haversine(1, 2) };'
         )
       )
     ).toEqual([]);
   });
 
   it("rejects a direct import of the private WASM bridge module", () => {
-    // The bridge is reachable only from a generated facade. It cannot be
-    // declared either — a `packages` specifier may not contain a colon — so
-    // the static analyzer refuses it the same way it refuses any undeclared
-    // import, and the runtime loader refuses it again by name.
+    // The bridge is reachable only from a generated facade, and the runtime
+    // loader refuses it again by name.
     const issues = validateCodeNodeBody(
-      withPackages(
-        'import { __call } from "nodetool:wasm-bridge";\nreturn { out: __call };',
-        ["@acme/geo"]
+      importing(
+        'import { __call } from "nodetool:wasm-bridge";\nreturn { out: __call };'
       )
     );
     const issue = issues.find((i) => i.code === "code_module");
@@ -332,29 +332,30 @@ describe("validateCodeNodeBody — sandbox packages", () => {
     expect(issue?.message).toContain("nodetool:wasm-bridge");
   });
 
-  it("rejects an import the node does not declare", () => {
+  it("does not send a private bridge specifier to the catalog", () => {
     const issues = validateCodeNodeBody(
-      withPackages('import { x } from "@other/pack";\nreturn { out: x };', [
-        "@acme/geo"
-      ])
+      importing(
+        'import { __call } from "nodetool:host-bridge";\nreturn { out: __call };',
+        { sandboxModuleCatalog: fakeCatalog() }
+      )
     );
-    const issue = issues.find((i) => i.code === "code_module");
-    expect(issue?.severity).toBe("error");
-    expect(issue?.message).toContain('"@other/pack"');
-    expect(issue?.message).toContain("`packages`");
+    expect(issues.map((i) => i.code)).toEqual(["code_module"]);
   });
 
-  it("rejects an import when the node declares nothing at all", () => {
-    expect(
-      codes(body('import fs from "fs";\nreturn { out: 1 };', [], ["out"]))
-    ).toContain("code_module");
+  it("reports an import no installed pack serves", () => {
+    const issues = validateCodeNodeBody(
+      importing('import { x } from "@other/pack";\nreturn { out: x };', {
+        sandboxModuleCatalog: fakeCatalog()
+      })
+    );
+    const issue = issues.find((i) => i.code === "code_package_unavailable");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain("@other/pack");
   });
 
   it("rejects require() and does not also call it an invented name", () => {
     const issues = validateCodeNodeBody(
-      withPackages('const geo = require("@acme/geo");\nreturn { out: geo };', [
-        "@acme/geo"
-      ])
+      importing('const geo = require("@acme/geo");\nreturn { out: geo };')
     );
     const issue = issues.find((i) => i.code === "code_module");
     expect(issue?.message).toContain("require()");
@@ -363,23 +364,11 @@ describe("validateCodeNodeBody — sandbox packages", () => {
 
   it("rejects a dynamic import()", () => {
     const issues = validateCodeNodeBody(
-      withPackages(
-        'const geo = await import("@acme/geo");\nreturn { out: geo };',
-        ["@acme/geo"]
-      )
+      importing('const geo = await import("@acme/geo");\nreturn { out: geo };')
     );
     const issue = issues.find((i) => i.code === "code_module");
     expect(issue?.severity).toBe("error");
     expect(issue?.message).toContain("import()");
-  });
-
-  it("warns about a declaration the code never imports", () => {
-    const issues = validateCodeNodeBody(
-      withPackages("return { out: 1 };", ["@acme/geo"])
-    );
-    expect(issues.map((i) => i.code)).toEqual(["code_unused_package"]);
-    expect(issues[0].severity).toBe("warning");
-    expect(issues[0].message).toContain('"@acme/geo"');
   });
 
   it("still rejects a top-level export", () => {
@@ -394,9 +383,9 @@ describe("validateCodeNodeBody — sandbox packages", () => {
 
   it("reports a specifier the catalog cannot resolve", () => {
     const issues = validateCodeNodeBody(
-      withPackages('import { x } from "@nope/pack";\nreturn { out: x };', [
-        "@nope/pack"
-      ], { sandboxModuleCatalog: fakeCatalog() })
+      importing('import { x } from "@nope/pack";\nreturn { out: x };', {
+        sandboxModuleCatalog: fakeCatalog()
+      })
     );
     const issue = issues.find((i) => i.code === "code_package_unavailable");
     expect(issue?.severity).toBe("error");
@@ -406,9 +395,8 @@ describe("validateCodeNodeBody — sandbox packages", () => {
 
   it("names the package to install when the missing specifier is one NodeTool ships", () => {
     const issues = validateCodeNodeBody(
-      withPackages(
+      importing(
         'import yaml from "@nodetool-ai/sandbox-yaml";\nreturn { out: yaml.load("a: 1") };',
-        ["@nodetool-ai/sandbox-yaml"],
         { sandboxModuleCatalog: fakeCatalog() }
       )
     );
@@ -419,28 +407,26 @@ describe("validateCodeNodeBody — sandbox packages", () => {
 
   it("guesses no package name for a specifier NodeTool does not ship", () => {
     const issues = validateCodeNodeBody(
-      withPackages('import { x } from "@nope/pack";\nreturn { out: x };', [
-        "@nope/pack"
-      ], { sandboxModuleCatalog: fakeCatalog() })
+      importing('import { x } from "@nope/pack";\nreturn { out: x };', {
+        sandboxModuleCatalog: fakeCatalog()
+      })
     );
     const issue = issues.find((i) => i.code === "code_package_unavailable");
     expect(issue?.message).not.toContain("Install");
   });
 
   it("warns when the installed pack version moved", () => {
-    const issues = validateCodeNodeBody({
-      ...body('import { h } from "@acme/geo";\nreturn { out: h };', [], ["out"]),
-      declaredPackages: [
-        { specifier: "@acme/geo", resolvedPackVersion: "1.0.0" }
-      ],
-      sandboxModuleCatalog: fakeCatalog()
-    });
+    const issues = validateCodeNodeBody(
+      importing('import { h } from "@acme/geo";\nreturn { out: h };', {
+        sandboxModuleCatalog: fakeCatalog({ versionMoved: true })
+      })
+    );
     const issue = issues.find((i) => i.code === "code_package_mismatch");
     expect(issue?.severity).toBe("warning");
     expect(issue?.message).toContain("@acme/nodetool-geo");
   });
 
-  it("says nothing about packages when none are declared", () => {
+  it("says nothing about packages when the body imports none", () => {
     expect(
       validateCodeNodeBody(body("return { out: 1 };", [], ["out"]))
     ).toEqual([]);
@@ -455,7 +441,6 @@ describe("validateCodeNodeBody — sandbox packages", () => {
         [],
         ["out"]
       ),
-      allowInstalledPackages: true,
       sandboxModuleCatalog: {
         ...fakeCatalog(),
         summaries: () => [
@@ -502,18 +487,9 @@ describe("validateCodeNodeBody — sandbox packages", () => {
     expect(issues).toEqual([]);
   });
 
-  it("still rejects an undeclared pack import from a Code node", () => {
-    const issues = validateCodeNodeBody(
-      body('import { x } from "@acme/geo";\nreturn { out: x };', [], ["out"])
-    );
-    const issue = issues.find((i) => i.code === "code_module");
-    expect(issue?.message).toContain("@acme/geo");
-  });
-
   it("still names a pack a JS script imports that is not installed", () => {
     const issues = validateCodeNodeBody({
       ...body('import { x } from "@nope/pack";\nreturn { out: x };', [], ["out"]),
-      allowInstalledPackages: true,
       sandboxModuleCatalog: fakeCatalog()
     });
     const issue = issues.find((i) => i.code === "code_package_unavailable");
@@ -524,9 +500,7 @@ describe("validateCodeNodeBody — sandbox packages", () => {
   it("checks nothing against a catalog when none is given", () => {
     expect(
       validateCodeNodeBody(
-        withPackages('import { x } from "@nope/pack";\nreturn { out: x };', [
-          "@nope/pack"
-        ])
+        importing('import { x } from "@nope/pack";\nreturn { out: x };')
       )
     ).toEqual([]);
   });

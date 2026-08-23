@@ -52,6 +52,7 @@ import {
   isObjectLike,
   isString
 } from "../../../utils/typePredicates";
+import { collapseToolCallOnlyMessages } from "../message/groupToolCalls";
 
 interface ChatThreadViewProps {
   /** Conversation rendered by this ChatView instance. */
@@ -78,6 +79,8 @@ interface ChatThreadViewProps {
   onInsertCode?: (text: string, language?: string) => void;
   /** Render per-message avatar + header meta (full-page chat only). */
   showMessageMeta?: boolean;
+  /** Render task updates inline. Full chat surfaces move them to a right rail. */
+  showTaskUpdate?: boolean;
 }
 
 const SCROLL_THRESHOLD = 50;
@@ -332,7 +335,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   currentTaskUpdate,
   currentLogUpdate,
   onInsertCode,
-  showMessageMeta = false
+  showMessageMeta = false,
+  showTaskUpdate = true
 }) => {
   const theme = useTheme();
 
@@ -523,11 +527,16 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       filtered.push(m);
     }
 
+    const collapsed = collapseToolCallOnlyMessages(filtered);
+
     let lastUserIdx = -1;
-    for (let i = 0; i < filtered.length; i++) {
-      if (filtered[i].role === "user") lastUserIdx = i;
+    for (let i = 0; i < collapsed.length; i++) {
+      if (collapsed[i].role === "user") lastUserIdx = i;
     }
-    return { filteredMessages: filtered, lastUserMessageIndex: lastUserIdx };
+    return {
+      filteredMessages: collapsed,
+      lastUserMessageIndex: lastUserIdx
+    };
   }, [messages, executionMessagesById]);
 
   const virtualizer = useVirtualizer({
@@ -934,11 +943,13 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
                     style={{
+                      // `top`, not `transform: translateY()`. WebGPU canvases
+                      // in inline timeline previews stay black under a
+                      // transform ancestor.
                       position: "absolute",
-                      top: 0,
+                      top: virtualRow.start,
                       left: 0,
-                      width: "100%",
-                      transform: `translateY(${virtualRow.start}px)`
+                      width: "100%"
                     }}
                   >
                     <MessageView
@@ -1030,7 +1041,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
               progressMessage={progressMessage}
               runningToolCallId={runningToolCallId}
               currentPlanningUpdate={currentPlanningUpdate}
-              currentTaskUpdate={currentTaskUpdate}
+              currentTaskUpdate={showTaskUpdate ? currentTaskUpdate : null}
               currentLogUpdate={currentLogUpdate}
               hasAgentExecutionMessages={hasAgentExecutionMessages}
               pendingMediaMessage={pendingMediaMessage}

@@ -571,6 +571,10 @@ delta to mean something), then every 5s — whether or not a workflow is running
 Clients that record a run's frame stream should drop it as connection control,
 alongside `ping`/`pong` and `resource_change`.
 
+A server that enforces auth (`SUPABASE_URL` + `SUPABASE_KEY` — a shared
+deployment) sends this message never: its CPU and RAM belong to a container the
+user does not own. Clients must render the readout only once a frame arrives.
+
 ```json
 {
   "type": "system_stats",

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { useQuery } from "@tanstack/react-query";
 import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";

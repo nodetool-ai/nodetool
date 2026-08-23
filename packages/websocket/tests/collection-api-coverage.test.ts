@@ -270,7 +270,7 @@ describe("error handling", () => {
 
 describe("ownership", () => {
   // The index endpoint writes into a collection, so it enforces the same
-  // ownership rule as the tRPC router. See lib/collection-access.ts.
+  // ownership rule as the tRPC router. See @nodetool-ai/vectorstore collection-access.ts.
   function requestAs(userId: string, urlPath: string) {
     const form = new FormData();
     form.set("file", new File(["hello world"], "note.txt"));

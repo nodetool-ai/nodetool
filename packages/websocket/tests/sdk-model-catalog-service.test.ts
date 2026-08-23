@@ -13,21 +13,36 @@ const fixtures: UnifiedModel[] = [
     name: "GPT Test",
     type: "language_model",
     provider: "openai",
-    supported_tasks: ["text_generation"]
+    supported_tasks: ["text_generation"],
+    execution: {
+      kind: "api",
+      state: "ready",
+      label: "API"
+    }
   },
   {
     id: "image-test",
     name: "Image Test",
     type: "image_model",
     provider: "replicate",
-    path: "owner/image-test"
+    path: "owner/image-test",
+    execution: {
+      kind: "api",
+      state: "ready",
+      label: "API"
+    }
   },
   {
     id: "qwen/test.gguf",
     repo_id: "qwen/test.gguf",
     name: "Qwen GGUF",
     type: "llama_model",
-    downloaded: true
+    downloaded: true,
+    execution: {
+      kind: "local",
+      state: "ready",
+      label: "Local"
+    }
   },
   {
     id: "black-forest/flux:schnell.safetensors",
@@ -35,14 +50,24 @@ const fixtures: UnifiedModel[] = [
     path: "schnell.safetensors",
     name: "Flux Schnell",
     type: "hf.text_to_image",
-    downloaded: false
+    downloaded: false,
+    execution: {
+      kind: "local",
+      state: "download_required",
+      label: "Local"
+    }
   },
   {
     id: "Xenova/tiny-model",
     repo_id: "Xenova/tiny-model",
     name: "Tiny Transformers.js Model",
     type: "tjs.text_generation",
-    downloaded: true
+    downloaded: true,
+    execution: {
+      kind: "local",
+      state: "ready",
+      label: "Local"
+    }
   },
   {
     id: "org/unclassified",
@@ -56,7 +81,6 @@ const fixtures: UnifiedModel[] = [
 describe("SDK model catalog projection", () => {
   it("captures representative wire values without changing their model family", () => {
     const catalog = projectSdkModelCatalog(fixtures, query, {
-      configuredProviderIds: new Set(["openai"]),
       recommendedModels: [fixtures[3]]
     });
 
@@ -116,14 +140,14 @@ describe("SDK model catalog projection", () => {
     });
     expect(
       catalog.entries.find((entry) => entry.compatibility === "unknown")
-    ).toMatchObject({ availability: "ready_local" });
+    ).toMatchObject({ availability: "unavailable" });
   });
 
   it("filters and paginates by stable entry keys", () => {
     const first = projectSdkModelCatalog(
       fixtures,
       { ...query, compatibility: "language_model", limit: 1 },
-      { configuredProviderIds: new Set(["openai"]) }
+      {}
     );
     expect(first.entries).toHaveLength(1);
     expect(first.next_cursor).toBeNull();
@@ -131,7 +155,7 @@ describe("SDK model catalog projection", () => {
     const ready = projectSdkModelCatalog(
       fixtures,
       { ...query, availability: "ready_local", limit: 1 },
-      { configuredProviderIds: new Set(["openai"]) }
+      {}
     );
     expect(ready.entries).toHaveLength(1);
     expect(ready.next_cursor).not.toBeNull();
@@ -144,7 +168,7 @@ describe("SDK model catalog projection", () => {
         cursor: ready.next_cursor!,
         limit: 1
       },
-      { configuredProviderIds: new Set(["openai"]) }
+      {}
     );
     expect(next.entries).toHaveLength(1);
     expect(next.entries[0]?.key).not.toBe(ready.entries[0]?.key);
@@ -155,10 +179,7 @@ describe("SDK model catalog projection", () => {
     const catalog = projectSdkModelCatalog(
       [fixtures[3], { ...fixtures[4], downloaded: true }],
       { scope: "worker", limit: 200 },
-      {
-        configuredProviderIds: new Set(),
-        recommendedModels: [fixtures[3]]
-      }
+      { recommendedModels: [fixtures[3]] }
     );
 
     expect(catalog.scope).toBe("worker");

@@ -1,8 +1,9 @@
 /**
  * Tests for the Workspace model.
  *
- * Covers: defaults, beforeSave (updated_at), isAccessible,
- * find, paginate, getDefault, hasLinkedWorkflows, unsetOtherDefaults.
+ * Covers: defaults, beforeSave (updated_at), isAccessible, isManaged,
+ * find, paginate, getDefault, ensureDefault, hasLinkedWorkflows,
+ * unsetOtherDefaults.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -11,6 +12,9 @@ import { initTestDb } from "../src/db.js";
 import { Workspace } from "../src/workspace.js";
 import { Workflow } from "../src/workflow.js";
 import * as os from "node:os";
+import { existsSync, rmSync, mkdtempSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { getManagedWorkspacesDir } from "@nodetool-ai/config";
 
 const { forceAccessSyncThrow } = vi.hoisted(() => {
   return { forceAccessSyncThrow: { value: false } };
@@ -32,6 +36,11 @@ vi.mock("node:fs", async (importOriginal) => {
 // ── Setup ────────────────────────────────────────────────────────────
 
 function setup() {
+  // Keep managed workspaces out of the developer's real data dir: ensureDefault
+  // creates the folder for real.
+  process.env["NODETOOL_WORKSPACES_DIR"] = mkdtempSync(
+    join(os.tmpdir(), "nodetool-ws-test-")
+  );
   initTestDb();
 }
 
@@ -258,5 +267,64 @@ describe("Workspace model", () => {
 
     // Should not throw
     await expect(Workspace.unsetOtherDefaults("u1")).resolves.toBeUndefined();
+  });
+
+  it("ensureDefault creates a managed workspace when the user has none", async () => {
+    const ws = await Workspace.ensureDefault("u-new");
+    expect(ws.is_default).toBe(true);
+    expect(ws.isManaged()).toBe(true);
+    expect(existsSync(ws.path)).toBe(true);
+
+    // Idempotent: a second call answers with the same row, not a new folder.
+    const again = await Workspace.ensureDefault("u-new");
+    expect(again.id).toBe(ws.id);
+  });
+
+  it("ensureDefault promotes an existing workspace instead of creating one", async () => {
+    const existing = await createWorkspace("u-promote", "Mine", "/tmp/mine");
+    const ws = await Workspace.ensureDefault("u-promote");
+    expect(ws.id).toBe(existing.id);
+    expect(ws.is_default).toBe(true);
+    expect(ws.isManaged()).toBe(false);
+  });
+
+  it("ensureDefault recreates a managed folder that went missing", async () => {
+    const ws = await Workspace.ensureDefault("u-wiped");
+    rmSync(ws.path, { recursive: true, force: true });
+    expect(existsSync(ws.path)).toBe(false);
+
+    await Workspace.ensureDefault("u-wiped");
+    expect(existsSync(ws.path)).toBe(true);
+  });
+
+  it("keeps a user id with path separators inside the workspaces root", async () => {
+    const ws = await Workspace.ensureDefault("../../etc/evil");
+    // The id is one path segment under the root — the separators and the
+    // leading dots that would climb out of it are gone.
+    expect(dirname(resolve(ws.path))).toBe(resolve(getManagedWorkspacesDir()));
+  });
+
+  it("creates a virtual workspace when the deployment keeps them in storage", async () => {
+    process.env["NODETOOL_WORKSPACE_STORAGE"] = "cloud";
+    try {
+      const ws = await Workspace.ensureDefault("u-cloud");
+      // A key prefix, not a path: nothing is created on disk, and the row
+      // survives the machine being replaced.
+      expect(ws.path).toBe("workspaces/u-cloud");
+      expect(ws.isVirtual()).toBe(true);
+      expect(ws.isManaged()).toBe(true);
+      expect(existsSync(ws.path)).toBe(false);
+      // Storage answers for itself, so a virtual workspace is never reported
+      // inaccessible — that verdict would send every cloud run down the
+      // "no workspace" path.
+      expect(ws.isAccessible()).toBe(true);
+    } finally {
+      delete process.env["NODETOOL_WORKSPACE_STORAGE"];
+    }
+  });
+
+  it("treats an absolute path as a local workspace", async () => {
+    const local = await createWorkspace("u-local", "Mine", "/tmp/mine");
+    expect(local.isVirtual()).toBe(false);
   });
 });

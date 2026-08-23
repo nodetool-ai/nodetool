@@ -30,6 +30,39 @@ export const LIST_STORYBOARDS_SCHEMA: JsonSchema = {
   }
 };
 
+export const CREATE_STORYBOARD_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    name: {
+      type: "string",
+      description: "Name of the new storyboard."
+    },
+    brief: {
+      type: "string",
+      description: "Board brief. Defaults to empty."
+    },
+    style: {
+      type: "string",
+      description: "Style text appended to every shot prompt. Defaults to empty."
+    },
+    aspect_ratio: {
+      type: "string",
+      description: "Shot aspect ratio, e.g. '16:9' (default '16:9')."
+    },
+    project_id: {
+      type: "string",
+      description: "Project to create the storyboard in (default 'default')."
+    },
+    id: {
+      type: "string",
+      description:
+        "Optional id. If a storyboard with this id already exists and you " +
+        "own it, that row is returned instead of creating a duplicate."
+    }
+  },
+  required: ["name"]
+};
+
 export const GET_STORYBOARD_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -133,7 +166,8 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
       description:
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
         "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
-        "duration_seconds?, entity_ids?, location_id?, notes?, index?}, " +
+        "duration_seconds?, duration_source?, entity_ids?, location_id?, "+
+        "notes?, index?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
         "reorder_shot {target, index}, set_board {brief?, style?, " +
         "aspect_ratio?, entity_ids?}. `target` is a shot id, its 0-based " +
@@ -173,6 +207,24 @@ export const listStoryboardsSpec: CapabilitySpec = {
   inputSchema: LIST_STORYBOARDS_SCHEMA,
   category: "read",
   userMessage: () => "Listing storyboards"
+};
+
+export const createStoryboardSpec: CapabilitySpec = {
+  name: "create_storyboard",
+  description:
+    "Create a blank storyboard and return its id. This is the first step of " +
+    "directing one headlessly: create it, then add and rewrite shots with " +
+    "edit_storyboard. An open editor picks the new board up once you open it. " +
+    "Stills and clips stay empty — render them with render_storyboard_stills " +
+    "and render_storyboard_clips.",
+  inputSchema: CREATE_STORYBOARD_SCHEMA,
+  category: "write",
+  userMessage: (params) => {
+    const name = params["name"];
+    return typeof name === "string" && name.trim()
+      ? `Creating storyboard ${name}`
+      : "Creating storyboard";
+  }
 };
 
 export const getStoryboardSpec: CapabilitySpec = {
@@ -288,14 +340,36 @@ export const extractScriptFromStoryboardSpec: CapabilitySpec = {
     `Extracting a script from storyboard ${String(params["storyboard_id"])}`
 };
 
+export const deleteStoryboardSpec: CapabilitySpec = {
+  name: "delete_storyboard",
+  description:
+    "Delete a storyboard you own, together with its saved version history. " +
+    "This cannot be undone. A storyboard belonging to another user is reported " +
+    "as missing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      storyboard_id: {
+        type: "string",
+        description: "The storyboard to delete. You must own it."
+      }
+    },
+    required: ["storyboard_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Deleting storyboard ${params["storyboard_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const storyboardsSpecs: readonly CapabilitySpec[] = [
   listStoryboardsSpec,
+  createStoryboardSpec,
   getStoryboardSpec,
   renderStoryboardStillsSpec,
   renderStoryboardClipsSpec,
   reviseStoryboardClipSpec,
   assembleStoryboardTimelineSpec,
   editStoryboardSpec,
-  extractScriptFromStoryboardSpec
+  extractScriptFromStoryboardSpec,
+  deleteStoryboardSpec
 ];

@@ -40,6 +40,7 @@ Talk to the user in ASD-STE100 Simplified Technical English.
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Mobile](mobile/AGENTS.md)** — React Native / Expo app
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
+- **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
 
 ---
@@ -55,7 +56,7 @@ packages/           # 56 npm workspace packages (TypeScript backend)
   storage/          # File storage (local, S3)
   models/           # SQLite data models (Drizzle ORM)
   node-sdk/         # BaseNode class, NodeRegistry, type system
-  runtime/          # ProcessingContext, LLM providers, message queue
+  runtime/          # ProcessingContext, LLM providers, message queue, Workspace
   kernel/           # Workflow graph, Actor runtime, WorkflowRunner
   agents/           # Planning agent system (TaskPlanner → TaskExecutor → CodeActExecutor)
   chat/             # Chat message processing, token counting
@@ -97,9 +98,11 @@ protocol → config → security → auth → storage
 
 - **State management**: Zustand stores (web/src/stores/), React Context wraps Zustand, TanStack Query for server state
 - **UI Primitives (MANDATORY)**: All frontend UI must use primitives from `web/src/components/ui_primitives/`. **Never import raw MUI components** (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) outside of `ui_primitives/` or `editor_ui/`. See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the decision tree, migration rules, and full catalog of 90+ primitives. When touching any file, migrate raw MUI usage to primitives.
+- **Media rendering (MANDATORY)**: `asset://<id>` is a stored identifier, not a URL — the bytes live under `<user_id>/<asset_id>.<ext>` and, on the cloud backends, behind a signed URL only the server can mint. Never set `src`/`poster` from a locator. Render stored media through `ResponsiveImage`, `VideoPlayer`, or `AudioPlayback` with a `locator` prop; those primitives resolve it. Their `src` prop takes a `ResolvedMediaUrl`, minted only by `utils/resolveMediaUri.ts` and `hooks/useResolvedMediaUri.ts`, so a raw string does not typecheck. The lint rule `design-tokens/no-unresolved-media-src` rejects a locator literal in a JSX url attribute; the rendering surfaces are inventoried in `web/src/__tests__/mediaResolutionBoundary.test.ts`.
 - **Design tokens (MANDATORY)**: See **[docs/DESIGN.md](docs/DESIGN.md)** for the token systems — `SPACING` (4px grid), `TYPOGRAPHY` (4-size scale), `BORDER_RADIUS`, `MOTION`, `Z_INDEX`. **Never** hardcode border radii (`4`, `10`, `18px`), transition strings (`"all 200ms ease"`), font sizes (`"14px"`, `"0.85rem"`), or off-grid spacing (`5px`, `10px`, `13px`). Use the named constants from `ui_primitives`. When touching any UI file, fix violations in the same PR.
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
 - **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
+- **Workspace access goes through an interface, never a path**: a run's files live behind `context.workspace` (`Workspace` in `@nodetool-ai/runtime`) — `read`/`write`/`list`/`stat`/`copy`/`move`/`delete` over workspace-relative paths. A local install backs it with a folder, a cloud deployment with a key prefix in the asset bucket (`NODETOOL_WORKSPACE_STORAGE`), and no caller branches on which. `workspace.localDir` is null on a virtual workspace and is only for code that genuinely needs a real directory: a host binary stages through `materialize`/`absorb` + `scratchDir`, and the two nodes that hold a live file (`lib.sqlite`, the tmux Claude-Code node) say they need a local workspace instead of silently losing writes. `context.workspaceDir` survives as the derived local path and is deprecated.
 - **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
 - **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), TaskExecutor/ParallelTaskExecutor (walk the DAG), CodeActExecutor (sandboxed-JavaScript action loop for one step)
 - **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors
@@ -228,6 +231,7 @@ npm run lint             # Lint packages/*/src, web/src, electron, mobile/src
 npm run lint:fix         # Auto-fix linting issues
 npm run lint:anti-slop   # anti-slop backlog rules — report-only, not part of `lint`
 npm run test             # Run web, electron, and mobile tests
+npm run test:affected    # Only the suites that depend on changed code
 npm run check            # Workspace/lockfile/boundary checks, build:packages,
                          # typecheck, lint, test:packages, test
 ```
@@ -236,15 +240,15 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 16,760 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,975 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-59 trees is 531 pairs, and 247 of them are already at zero — so a rule still
+59 trees is 531 pairs, and 253 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
-fifty-five packages, and those fifty-five are ratcheted today rather than after
+fifty-six packages, and those fifty-six are ratcheted today rather than after
 the last one lands. Seven rules are at zero everywhere and sit in the enforced
 config's top-level `rules`; the rest are enforced per-path, one override block
 per rule listing the trees at zero for it.
@@ -280,7 +284,7 @@ inside a function returning `v is T` is the rule's sanctioned form, so working
 the backlog means consolidating repeated inline checks into named predicates
 (each tree has a predicate module: `packages/protocol/src/predicates.ts`,
 `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
-deleting guards. It is enforced for the twenty-one trees at zero on it (read the
+deleting guards. It is enforced for the twenty-two trees at zero on it (read the
 list off the enforced config), with the decoder `packages/protocol/src/typecheck.ts`
 exempt: in the package that owns the schemas, an inline `typeof` means someone
 bypassed the parse. One tradeoff: predicates take `value: unknown`, so
@@ -300,27 +304,27 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7039 | 11 / 59 |
-| `no-unsafe-dictionary-type` | 4315 | 11 / 59 |
-| `no-unknown-parameters` | 1948 | 14 / 59 |
-| `no-module-mocking` | 1460 | 56 / 59 |
-| `no-known-value-widening` | 722 | 17 / 59 |
-| `no-runtime-typeof` | 534 | 21 / 59 |
-| `no-implicit-return-type` | 449 | 30 / 59 |
-| `no-unknown-returns` | 243 | 41 / 59 |
-| `no-chained-type-assertions` | 50 | 46 / 59 |
+| `require-safety-comment-for-type-assertion` | 7100 | 12 / 59 |
+| `no-unsafe-dictionary-type` | 4357 | 12 / 59 |
+| `no-unknown-parameters` | 1954 | 15 / 59 |
+| `no-module-mocking` | 1488 | 56 / 59 |
+| `no-known-value-widening` | 766 | 18 / 59 |
+| `no-runtime-typeof` | 553 | 22 / 59 |
+| `no-implicit-return-type` | 450 | 31 / 59 |
+| `no-unknown-returns` | 251 | 41 / 59 |
+| `no-chained-type-assertions` | 56 | 46 / 59 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,460 findings but zero in 56 of 59 trees: it is
+`no-module-mocking` is 1,488 findings but zero in 56 of 59 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Eleven trees are at zero on all nine rules:
+a boundary get named. Twelve trees are at zero on all nine rules:
 `packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/config`,
-`packages/document-nodes`, `packages/model-pricing`, `packages/nodes-utils`,
-`packages/reve-nodes`, `packages/sdk`, `packages/security`,
-`packages/workflow-runner`.
+`packages/document-nodes`, `packages/kie-codegen`, `packages/model-pricing`,
+`packages/nodes-utils`, `packages/reve-nodes`, `packages/sdk`,
+`packages/security`, `packages/workflow-runner`.
 
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps
@@ -468,23 +472,49 @@ npm run electron:dev        # Electron against Vite server (requires conda env)
 
 ### Mandatory Post-Change Verification
 
-After **any** code change, run:
+After **any** code change, run these three — and only these three:
 
 ```bash
+npm run test:affected # Only the suites that depend on what changed
 npm run typecheck     # Type check web, electron, and mobile
 npm run lint          # Lint packages/*/src, web/src, electron, mobile/src
-npm run test          # Run web, electron, and mobile tests
-npm run test:packages # Run the backend package suites
 ```
 
-`npm run test` covers only web, electron, and mobile — backend packages are a
-separate run. All four must pass before the task is complete.
+All three must pass before the task is complete. Do not reach for the full
+`npm run test` + `npm run test:packages` pass instead: it is minutes of wall
+clock on a two-file change, and CI runs it on the PR anyway.
 
-Running suites per package instead is fine when the full run is too slow — but
-run every package `nodetool affected` names, not the ones you remember touching.
+`npm run test:affected` maps the diff — committed since the merge-base with
+`origin/main`, plus the working tree — onto workspaces with the same
+`computeAffected` behind `nodetool affected`, then runs:
+
+- the affected backend packages through `turbo run test`, so their dependencies
+  still build (`test` dependsOn `^build`);
+- `jest --findRelatedTests` in web/electron/mobile when only that app's own
+  files changed — the tests that actually import them;
+- an app's whole suite when a package it depends on changed. Jest's dependency
+  graph stops at the workspace root, so a change inside
+  `node_modules/@nodetool-ai/*` is invisible to `--findRelatedTests`;
+- everything, when a changed file belongs to no workspace and is not
+  documentation (root configs, `scripts/`, the lockfile).
+
+```bash
+npm run test:affected                              # the current diff
+npm run test:affected -- --dry-run                 # print the plan, run nothing
+npm run test:affected -- --base <ref>              # diff against another ref
+npm run test:affected -- packages/kernel/src/x.ts  # ask what a given file selects
+npm run test:affected -- --all                     # the full pass, when you want it
+```
+
+The selection rules are `buildPlan` in `scripts/test-affected.mjs`, pinned by
+`scripts/__tests__/test-affected.test.mjs` (run by `npm run test:packages`) —
+a mis-selection is silent, so changing a rule means changing that test.
+
 `lint` passing is not `test` passing: a change to `packages/websocket` that was
 linted and never tested broke two route suites, and CI found it rather than the
-author.
+author. And selection is only as good as the declared dependency graph — when a
+change crosses a seam the graph does not record (a fixture read from another
+package, a generated file), run the suites you know it reaches by hand.
 
 ### Claims, Checks, and Measurements
 
@@ -545,6 +575,7 @@ Before submitting a PR, review for:
 - **Packaged Electron backend flattens file paths**. esbuild bundles the backend into one `server.mjs`, so anything resolved relative to `import.meta.url` (provider `*-manifest.json`, examples, `package://` assets) lives elsewhere in the packaged app than in dev. Data files a package loads at runtime must be declared in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and loaded via `loadPackageAssetJson` from `@nodetool-ai/config` — the registry drives staging (`scripts/bundle-backend.mjs`) and artifact verification (`scripts/verify-backend-bundle.mjs`), and unregistered loads throw in dev. See [electron/src/AGENTS.md § Packaged file layout](electron/src/AGENTS.md).
 - **The packaged backend only resolves what `bundle-backend.mjs` stages, in a flat `_modules/`**. One version per package name wins, so a dependency npm hoisted for an older major can take the slot a newer one needs — invisible in dev, fatal in the artifact. `npm run backend:smoke` stages the bundle and boots `server.mjs` against `/health`; run it after touching `scripts/bundle-backend.mjs`, a native dependency, or anything the backend loads lazily. CI runs it as the Quality Gate `bundle` leg and again per-OS in `release.yaml`.
 - **Price catalogs are generated — never hand-edit them.** FAL/kie come from `packages/fal-codegen`; `packages/model-pricing/src/generated/genspend-pricing.json` covers every other provider and comes from the GenSpend catalog, refreshed by the nightly `GenSpend Pricing Sync` workflow (`npm run sync:genspend` locally after `build:packages`, `npm run sync:genspend:check` to see whether it is stale). The sync matches GenSpend models against the models each provider enumerates in NodeTool, so it never emits an id NodeTool doesn't ship; unmatched models are reported, and `scripts/genspend/aliases.json` is where a maintainer pins or blocks one. The job opens a PR when a price moved — a number that gates a run's budget gets reviewed, not auto-merged. See [packages/model-pricing/README.md](packages/model-pricing/README.md).
+- **Generated provider metadata has a drift gate.** The FAL and KIE generators normally read live schemas and live pricing, so their output is not reproducible. `npm run generate:fal:check` / `generate:kie:check` run the same generators in fixture mode — only the schema fixtures checked in under `packages/{fal,kie}-codegen/fixtures/`, no network, no pricing, no timestamps — into a temporary directory, and diff the outputs the generator manifest declares against `fixtures/expected/`. Any difference exits non-zero, as does a check that compared nothing. Refresh an intended change with `node scripts/provider-codegen-check.mjs --provider <fal|kie> --write`. `.github/workflows/provider-codegen.yml` runs both on every diff touching a codegen package. Live refresh stays `npm run generate:fal` / `generate:kie`.
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`. The one shared package mobile compiles from **source** (no build) is `@nodetool-ai/app-runtime`, wired in `mobile/metro.config.js`, `tsconfig.json` and `jest.config.js` — all three must agree.
@@ -572,12 +603,15 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 |---|---|---|---|
 | Static pre-flight (unknown nodes, missing props, bad edges) — **run this first** | `nodetool validate <id\|file.json\|file.ts>` | `validate_workflow` (inline `graph` or `workflow_id`) | < 1 s, no DB for file targets |
 | Run a workflow end-to-end and read every message/log/output/error | `nodetool debug <id\|file>` (server surface, default) | `debug_workflow` (status + outputs + errors + job logs + graph in one call) | seconds |
-| Build a mini app from a prompt and verify it end to end | `nodetool app build "<prompt>" -p <provider> -m <model>` | — (an agent builds an app with the `ui_app_*` tools and grades it with `debug_app`) | minutes |
+| Build a mini app from a prompt and verify it end to end | `nodetool app build "<prompt>" -p <provider> -m <model>` | `create_app` + `edit_app` (the `ui_app_*` steps), graded with `debug_app` | minutes |
 | Real-browser surface (Playwright + Chromium canvas), trace, per-stage shots | `nodetool debug <id> --browser --trace --stages` | — | tens of seconds (opt-in) |
 | Tight edit→verify loop on a file target | `nodetool debug file.ts --watch` (prints a verdict **diff** per save) | — | per-save |
 | Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
 | Run a workflow (id, JSON, or DSL `.ts`) | `nodetool run <file>` / `nodetool workflows run <id> [--params …]` | `run_workflow`, `start_background_job` | varies |
 | Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
+| Run only the suites that depend on changed code (the pre-commit test pass) | `npm run test:affected [-- --dry-run]` | — | seconds–minutes |
+| Check that every agent capability names a check | `nodetool harness capabilities`; `npm run capabilities:check` | — | seconds |
+| Check a provider's live response against the decoder that reads it | `npm run probe:providers` (nightly; offline half runs on every provider diff) | — | seconds |
 | Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |
 | Check a script↔storyboard link (extract, scaffold, joint assemble) | no command of its own — the pure-function suites the `script-storyboard-link` harness entry names, run by `harness gate` on diffs touching either surface | `get_storyboard`, `get_script` (link state, drift, orphans), `validate_timeline` on the assembled output | seconds |
 | Jobs & assets | `nodetool jobs …` / `nodetool assets …` | `list_jobs`, `get_job`, `get_job_logs`, `list_assets`, `get_asset` | — |
@@ -636,14 +670,16 @@ npm run dev:chat -- --url ws://localhost:7777/ws
 Chat flags:
 ```
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
-                         moonshot, minimax, cerebras, alibaba, together, openrouter,
-                         huggingface, replicate, kie, aki, ollama, lmstudio,
-                         claude_agent_sdk, codex, gmi, mlx, node_llama_cpp
+                         moonshot, minimax, cerebras, meta, alibaba, together,
+                         openrouter, huggingface, replicate, kie, aki, ollama,
+                         lmstudio, claude_agent_sdk, codex, gmi, mlx, node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
 -m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
 --tools <list>           Comma-separated tool names
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
+--no-read-only-search    Disable the read-only run_search fan-out primitive
+                         (on by default)
 -a, --agent [mode]       [deprecated] No-op
 --no-agent               [deprecated] No-op
 ```
@@ -674,7 +710,10 @@ startup instructions, retries in the background, and hot-attaches (with
 `list_changed` notifications) when the server appears — including after a
 mid-session app restart. User config in the bundle: server URL (default
 `http://127.0.0.1:7777/mcp`) and an optional bearer token. For CLI agents
-(Claude Code, Codex) use `nodetool mcp install` instead.
+(Claude Code, Codex) use `nodetool mcp install` instead. To reach a *deployed*
+server rather than a local one, the client points at `/mcp` with a token minted
+in **Settings → MCP → Connect an agent remotely** — see
+[docs/mcp-production.md](docs/mcp-production.md).
 
 Every release builds and attaches `nodetool-<version>.mcpb` to the GitHub
 Release (`release.yaml`, built once on Linux since the bundle is
@@ -998,6 +1037,14 @@ does — declare the operations, place the widgets, and grade every change with
 cannot see into. The route stays for the CLI, the eval suite, and a caller that
 wants the batch build.
 
+Off the browser that path runs through **`create_app`** and **`edit_app`**.
+`edit_app` takes `[{tool, input}, …]` naming the same `ui_app_*` tools the Puck
+editor exposes, replays them against the saved document through
+`app-build/bridge.ts` — the headless twin the Author stage and the `app-tools`
+eval already drive — and saves once, CAS on `updated_at`. Call it with no steps
+to get the tool catalog and the app's current state. The tools themselves stay
+in one implementation, so the browser and the headless path cannot drift.
+
 A build runs for minutes, so `poll: true` returns a session id immediately and
 the caller reads `GET /api/debug/sessions/:id` until it settles, or cancels with
 `POST /api/debug/sessions/:id/cancel` — the same session machinery an
@@ -1015,9 +1062,11 @@ node types, missing required properties, unselected models, model properties
 naming an unregistered provider or a model id that provider does not offer,
 dangling and mis-typed edges, dynamic slots typed with a
 JSON-Schema/TypeScript name instead of NodeTool's (`integer` → `int`), and Code
-node bodies. Returns in well under a second, so it's the cheap pre-flight
-before an expensive `debug` run. Accepts a workflow id, JSON file, or DSL `.ts`
-file. File/DSL targets need no database.
+node bodies. On a DB-id target, where the store is reachable, it also warns
+about declared credentials (`required_settings`, a Code node's `secrets`) this
+install cannot resolve. Returns in well under a second, so it's the cheap
+pre-flight before an expensive `debug` run. Accepts a workflow id, JSON file,
+or DSL `.ts` file. File/DSL targets need no database.
 
 Model references are found wherever they sit — a top-level property, an entry
 in a `list[…_model]`, one nested in a settings object, or a dynamic slot value.
@@ -1029,12 +1078,14 @@ authoring agent's belt, `create_workflow` refuses to save a graph whose
 provider or model the model hallucinated — and
 `POST /api/workflows/:id/run|debug` refuses the run with a
 400 before the job row exists, instead of failing on the model node after the
-upstream half of the graph has been paid for.
+upstream half of the graph has been paid for. The same refusal covers
+credentials: a run whose selected providers have no resolvable key (secret
+store, then env) is refused with 400 naming each missing secret.
 
 A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
-not valid JavaScript, uses `export` at the top level, imports a specifier the
-node's `packages` property does not declare (the guest loader resolves only
-declared sandbox packages),
+not valid JavaScript, uses `export` at the top level, imports a specifier no
+installed pack serves (a node declares no packages — its imports are the
+declaration, resolved against the catalog),
 reads a bare name that is not a sandbox API — including one of the node's own
 inputs, which arrive on the `inputs` object, so a bare read is a ReferenceError
 too — never returns, or leaves a declared output unset on some return path is
@@ -1056,6 +1107,18 @@ The same check is exposed to agents through the **`validate_workflow`** tool:
 pass an inline `graph` ({nodes, edges}) to check a graph being built, or a
 `workflow_id` to fetch and validate a saved one. The validator core is
 `validateGraph` in `@nodetool-ai/node-sdk`.
+
+The credential warning reaches that tool too, on a graph as well as a saved
+workflow. The run answers which of the declared names this install holds
+(`CapabilityRun.availableSecrets`, built from the context by
+`contextSecretAvailability`), and the issue tells the agent where a person sets
+one — plus `request_secret` where the run can raise that dialog, and never on a
+headless run, where the call fails closed. A run with no reachable store
+carries no callback and the check is skipped: nothing could answer, and
+reporting every declared key as absent would warn on every graph. The hosts
+that inject are audited by
+`packages/agents/tests/capability-run-secrets-audit.test.ts`, which records the
+runs that deliberately omit it and how many calls each is allowed.
 
 ### nodetool timeline validate / debug (Timeline Harness)
 
@@ -1123,9 +1186,9 @@ non-zero and prints the issues.
 Agents get the same history headlessly: **`list_timelines`**,
 **`list_timeline_versions`**, **`get_timeline_version`** (read one snapshot's
 document without restoring), **`create_timeline_version`** (manual snapshot),
-and **`restore_timeline_version`**, which snapshots the pre-restore state first
-and returns the post-restore validation. None of them needs an open editor or a
-running server.
+**`delete_timeline_version`**, and **`restore_timeline_version`**, which
+snapshots the pre-restore state first and returns the post-restore validation.
+None of them needs an open editor or a running server.
 
 ### nodetool sketch validate / debug (Sketch Harness)
 
@@ -1160,10 +1223,11 @@ The same static check is exposed to agents through the **`validate_sketch`**
 tool: pass an inline `document` to check a sketch being built, or an
 `image_document_id` to validate a saved one (scoped to the requesting user).
 Agents also get the version history headlessly: **`list_sketches`**,
+**`create_sketch`** (a blank canvas, then `edit_sketch`),
 **`list_sketch_versions`**, **`get_sketch_version`** (read one snapshot's
-document without restoring), **`create_sketch_version`** (manual snapshot), and
-**`restore_sketch_version`**, which snapshots the pre-restore state first and
-returns the post-restore validation.
+document without restoring), **`create_sketch_version`** (manual snapshot),
+**`delete_sketch_version`**, and **`restore_sketch_version`**, which snapshots
+the pre-restore state first and returns the post-restore validation.
 
 The bundle (`nodetool-debug/sketch-<id>-<ts>/`) holds `report.json`,
 `report.md`, and `sketch.json` (the input document). Exit code 0 only when the
@@ -1199,7 +1263,7 @@ bitmaps stay opaque to that check.
 ### nodetool jsscript (JS Script Harness)
 
 A JS script is a named, versioned script document — a body plus declared ports,
-sandbox packages, secrets, a timeout, and saved test cases
+secrets, a timeout, and saved test cases
 ([docs/js-script-document-design.md](docs/js-script-document-design.md)). The
 target of every command is a script JSON file (a bare `JsScriptDocument` or
 anything carrying one under `document`) or a `js_scripts` row id. A path that
@@ -1247,7 +1311,7 @@ Agents reach the same surface through the `js-scripts` capability module —
 runs inside its own envelope: every installed sandbox pack and every
 `@nodetool-ai/sandbox-nodetool/<namespace>` module by import, its declared
 secrets intersected with whatever allowance the invoking context carries, its
-own timeout, and the same `tools.*` / `nodetool.*` belt a Code node has.
+own timeout, and the same imported / `nodetool.*` belt a Code node has.
 Composition is bounded like sub-agents: depth cap 4
 and a script id chain, so a cycle fails the call naming it. Validation and
 report rules live in `@nodetool-ai/execution/js-script-debug`; the CLI keeps
@@ -1276,7 +1340,8 @@ remain the path when the script is open in a browser.
 ### Storyboard render tools (no workflow, no browser)
 
 An agent takes a storyboard from directed to delivered without authoring a
-workflow: **`render_storyboard_stills`** calls the image model per shot and
+workflow: **`create_storyboard`** makes a blank board (then `edit_storyboard`
+adds shots), **`render_storyboard_stills`** calls the image model per shot and
 saves each still as the shot's keyframe, **`render_storyboard_clips`** animates
 those keyframes into clips, **`revise_storyboard_clip`** revises one take, and
 **`assemble_storyboard_timeline`** lays the rendered clips into a saved timeline
@@ -1298,7 +1363,7 @@ watch it fill in.
 
 An agent writes, checks, and debugs a `nodetool.code.Code` body without
 authoring a workflow: **`validate_code`** runs the same static check the
-workflow validator runs (syntax, imports against declared sandbox packages,
+workflow validator runs (syntax, imports against the installed catalog,
 undefined names, undeclared `inputs.*` reads, outputs unset on a return path),
 **`run_code`** executes a body in the QuickJS sandbox with given inputs and
 returns outputs, logs, and error (`yield` bodies return the collected
@@ -1564,7 +1629,6 @@ the control flow in plain JavaScript. `await` is the edge, a variable is the
 wire, `Promise.all` is the fan-out — no graph, no edges, no runner.
 
 ```js
-// Code node `packages` property: ["@nodetool-ai/sandbox-flow"]
 import "@nodetool-ai/sandbox-nodetool/flow";   // mounts the bridge (body-side, required)
 import { concat } from "@nodetool-ai/sandbox-flow/nodetool.text";
 
@@ -1586,7 +1650,7 @@ run's `ProcessingContext`, and is bounded by a recursion depth cap of 4 and
 16 concurrently open streams per run. v1 limits: streaming *inputs* accept
 arrays only (no live guest-produced streams), and the body must import the
 capability module itself for the facade to mount — the pack's `SKILL.md`
-states the exact declarations.
+states both imports.
 
 The host backend is `packages/dsl/src/flow/` (internal; `@nodetool-ai/dsl/flow`
 exists for the hidden import, not as a public surface — programs that must
@@ -1694,12 +1758,48 @@ rebuild/test: the owning package plus its downstream dependents, and a
 `build:packages` only when a decorator package (loads from `dist/`) is affected.
 Avoids reflexively running the full 1–2 min build.
 
+Workspaces come from the root `package.json`, not from a scan of `packages/` —
+`reliability/harness` is a workspace too, and a scan of one directory reported
+every change under it as belonging to nothing. `reliability/journeys/` maps to
+the harness that runs it (`EXTRA_WORKSPACE_PATHS` in
+`packages/cli/src/affected/affected.ts`).
+
 ```bash
 npm run dev:nodetool -- affected                       # uses git working-tree changes
 npm run dev:nodetool -- affected --base main           # diff against a ref
 npm run dev:nodetool -- affected packages/cli/src/x.ts # explicit files
 npm run dev:nodetool -- affected --json
 ```
+
+### npm run probe:providers (Provider Contract Probes)
+
+Asks OpenAI, Gemini, fal, and KIE for one real response each and decodes it with
+the same production decoder a run uses. A cassette proves NodeTool still handles
+a response a provider gave us *once*; it cannot notice that the provider changed
+the response today.
+
+```bash
+npm run probe:providers                      # one request per provider, keys from env
+npm run probe:providers -- --json --out report.json
+npm run probe:providers -- --only openai.chat-completion
+npm run probe:providers -- --strict-network  # also fail on an unreachable provider
+```
+
+The offline half needs no key and runs on every diff touching
+`packages/runtime/src/providers/`: each manifest entry decodes a checked-in raw
+HTTP response fixture, and every declared required field is deleted once to
+prove the check can fail
+(`npm run test --workspace=packages/runtime -- provider-contract-probes`).
+
+**Network failures are reported apart from schema failures.** No body reaching
+the decoder (DNS, timeout, 5xx, an HTML gateway page) is a network failure and
+does not fail the nightly job; a response that no longer decodes is a schema
+failure and does. Budget: one request and USD 0.05 per provider per run,
+enforced by the runner. Retained artifacts hold response *shapes* and redacted
+messages, never a body — no credential, prompt, request id, or signed URL
+survives. Manifest:
+`packages/runtime/src/providers/contract/probe-manifest.ts`. Details:
+[docs/provider-contract-probes.md](docs/provider-contract-probes.md).
 
 ### nodetool harness (Registry, Coverage Audit, and the Gate)
 
@@ -1725,6 +1825,65 @@ npm run dev:nodetool -- harness audit --strict   # exit 1 while any gap remains
 npm run dev:nodetool -- harness gate --base main # run the selfchecks this diff demands
 npm run dev:nodetool -- harness gate --dry-run   # plan only
 npm run dev:nodetool -- harness gate --all       # every selfcheck (--expensive to widen)
+npm run dev:nodetool -- harness capabilities     # capability coverage + documented gaps
+```
+
+`capabilities` is the same invariant one rung down, over
+`packages/cli/src/harness/capability-table.ts`: every exported agent capability
+names the suites a selfcheck runs over it, the eval cases that drive a model
+through it, or a written gap note. The table is derived —
+`npm run capabilities:sync` rewrites it from the live registry, the agent
+suites and the eval case files, and `npm run capabilities:check` fails when it
+is stale or when a new capability arrives with no check and no gap note. It
+also carries a fingerprint of what each capability *declares*, so
+`harness gate --base <ref>` can refuse a contract change that left its coverage
+mapping untouched while saying nothing about an ordinary refactor. See
+[packages/agents/AGENTS.md § Capability coverage](packages/agents/AGENTS.md).
+
+### nodetool reliability (Cross-Surface Journey Diffs)
+
+Runs a journey from `reliability/journeys/` on every execution surface it
+declares and diffs each non-oracle surface against the kernel oracle. A journey
+is a small workflow plus the invariants its run must hold — lifecycle pairing,
+terminal uniqueness, cleanup leaks — and what it proves is that the kernel
+runner and the ws-server produce the *same* stream for it. Reach for it after a
+change to execution: `harness gate` already runs the Ring 0 journeys on such a
+diff, and this is how you run one by hand.
+
+Run it from `dist`, not from source: the journey fixtures use decorators, which
+the `dev:nodetool` transform rejects (`Decorators are not valid here`). Build
+the packages first.
+
+```bash
+npm run nodetool -- reliability list                    # journeys + their surfaces
+npm run nodetool -- reliability run linear-text-pipeline
+npm run nodetool -- reliability run <journey> --surface kernel   # repeatable
+npm run nodetool -- reliability run <journey> --faults provider-429 --diff
+npm run nodetool -- reliability update-goldens <journey>
+```
+
+`--faults` replaces the journey's own matrix for that run. The provider-seam
+faults are implemented (`provider-429`, `provider-500`, `provider-timeout`,
+`truncated-stream`, `malformed-sse`, `slow-drip`, `cost-omission`); the
+`ws`/`bridge`/`host`/`client` names are recognized but report as unimplemented.
+`update-goldens` rewrites `expected/` from a fresh unfaulted kernel run — it
+cannot tell a fixed bug from a new one, so read the diff before committing it.
+Architecture: [docs/RELIABILITY_ARCHITECTURE.md](docs/RELIABILITY_ARCHITECTURE.md).
+
+### nodetool package (Node-Pack Authoring)
+
+Manages TypeScript **node** packages — the packs contributing node types to the
+registry — not the sandbox packs `nodetool packs` handles. `init` scaffolds a
+package (prompting for name, description, author), `list` reports what this
+install has, and `docs` / `node-docs` / `workflow-docs` generate a pack's
+Markdown.
+
+```bash
+npm run dev:nodetool -- package list [--available] [--json]
+npm run dev:nodetool -- package init
+npm run dev:nodetool -- package docs [-o docs] [--compact]
+npm run dev:nodetool -- package node-docs [-o docs/nodes] [-p <namespace>]
+npm run dev:nodetool -- package workflow-docs [-o docs/workflows] [-e <dir>]
 ```
 
 ### nodetool workflows
@@ -1884,6 +2043,44 @@ npm run dev:nodetool -- secrets store MY_KEY --description "..."
 npm run dev:nodetool -- secrets get OPENAI_API_KEY              # Print value
 ```
 
+### nodetool worker (Rented GPU Workers)
+
+Provisions a RunPod/Vast worker a NodeTool instance attaches to for Python
+nodes, and manages the HuggingFace cache on it over the WebSocket bridge — no
+server needed for `worker models`. A worker bills by the minute, so
+`--idle-timeout` and `stop` are part of the flow.
+
+```bash
+npm run dev:nodetool -- worker profile add hf-a40 --target runpod \
+  --image ghcr.io/nodetool-ai/nodetool-worker:latest --gpu "NVIDIA A40" --idle-timeout 15
+npm run dev:nodetool -- worker create --profile hf-a40 --attach
+npm run dev:nodetool -- worker models list                      # attached worker
+npm run dev:nodetool -- worker models download --repo-id stabilityai/sdxl-turbo
+npm run dev:nodetool -- worker list
+npm run dev:nodetool -- worker stop --all
+```
+
+Full reference: [docs/cli.md § nodetool worker](docs/cli.md#nodetool-worker),
+walkthrough: [docs/worker-deployment.md](docs/worker-deployment.md).
+
+### nodetool telegram (Telegram Bridge)
+
+Turns Telegram private-chat messages into turns on a running server's agent
+loop. The bridge holds no credentials and no conversation state — threads,
+tools, permissions, and cost tracking stay on the server, which needs
+`NODETOOL_INTEGRATION_TOKEN` set or the linking routes do not exist. Long
+polling only; `TELEGRAM_WEBHOOK_URL` makes `serve` refuse to start.
+
+```bash
+npm run dev:nodetool -- telegram register-commands              # setMyCommands (deploy step)
+npm run dev:nodetool -- telegram serve --config ./telegram-bot.json
+```
+
+Env: `TELEGRAM_BOT_TOKEN`, `NODETOOL_INTEGRATION_TOKEN`, `NODETOOL_API_URL`.
+File (optional): `allowUsers`, `editThrottleMs`, `maxQueuedTurns`. Full
+reference: [docs/cli.md § nodetool telegram](docs/cli.md#nodetool-telegram),
+design: [docs/telegram-bot-design.md](docs/telegram-bot-design.md).
+
 ### nodetool settings & info
 
 ```bash
@@ -2040,6 +2237,7 @@ See [packages/agents/AGENTS.md](packages/agents/AGENTS.md) for agent architectur
 - Use theme values for spacing, colors, and typography — never hardcode hex colors or pixel values.
 - Prefer composition over deep prop drilling.
 - If no primitive exists for your use case, **create a new primitive** in `ui_primitives/` rather than using raw MUI.
+- Render stored media (`asset://`, a `*Ref`) with `ResponsiveImage` / `VideoPlayer` / `AudioPlayback` and a `locator` prop — never a raw `<img>`/`<video>`/`<audio>` whose `src` is a locator. See [STRATEGY.md § Media](web/src/components/ui_primitives/STRATEGY.md).
 
 ### Design Token Rules (see [docs/DESIGN.md](docs/DESIGN.md) for full reference)
 
@@ -2143,6 +2341,14 @@ See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific t
 - Validate all IPC inputs with Zod before acting on them.
 - No `eval`, `new Function`, or `setTimeout` with string arguments.
 - Secrets never appear in code, logs, or error messages.
+- Any outbound fetch of a URL somebody else chose — a media ref, a provider's
+  result body, a model's answer — goes through `safeFetch` (or
+  `fetchExternalMedia` for media refs) from `@nodetool-ai/runtime`, never a bare
+  `fetch`. A predicate can refuse the first URL; only the protected fetch
+  re-checks each redirect hop. Every such surface is inventoried in
+  [docs/url-egress-inventory.md](docs/url-egress-inventory.md) and audited by
+  `packages/runtime/tests/url-egress-audit.test.ts`, which fails on a new
+  unclassified `fetch(url)` anywhere under `packages/*/src`.
 - `npm audit` must pass — high/critical advisories block merge unless waived with rationale.
 
 ## Accessibility, Performance, Observability

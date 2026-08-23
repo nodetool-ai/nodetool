@@ -1,27 +1,20 @@
 export const isHuggingFaceProvider = (provider?: string): boolean => {
-  if (!provider) {return false;}
+  if (!provider) {
+    return false;
+  }
   return (
     /^huggingface(\/|_|-|\s|$)/i.test(provider) ||
     /^HuggingFace[A-Z]/.test(provider)
   );
 };
 
-/**
- * Checks if a HuggingFace provider is local (runs models locally).
- * The provider "huggingface" (without sub-org) is the local provider.
- */
-export const isHuggingFaceLocalProvider = (provider?: string): boolean => {
-  if (!provider) {return false;}
-  const normalized = provider.toLowerCase().trim();
-  // "huggingface" without any sub-org suffix is local
-  return normalized === "huggingface";
-};
-
 export const isLocalProvider = (provider?: string): boolean => {
-  if (!provider) {return false;}
+  if (!provider) {
+    return false;
+  }
   const providerLower = provider.toLowerCase().trim();
   return (
-    providerLower === "huggingface" ||
+    providerLower === "huggingface-local" ||
     providerLower.includes("ollama") ||
     providerLower.includes("llama_cpp") ||
     providerLower.includes("llama-cpp") ||
@@ -31,15 +24,11 @@ export const isLocalProvider = (provider?: string): boolean => {
 };
 
 export const isCloudProvider = (provider?: string): boolean => {
-  if (!provider) {return false;}
+  if (!provider) {
+    return false;
+  }
   // If it's not local, we assume it's an API/Cloud provider
   return !isLocalProvider(provider);
-};
-
-export const isHuggingFaceInferenceProvider = (provider?: string): boolean => {
-  if (!provider) {return false;}
-  const providerLower = provider.toLowerCase().trim();
-  return providerLower.includes("hf_inference") || providerLower.includes("huggingface_inference");
 };
 
 const insertSpacesBeforeCapitals = (value: string): string => {
@@ -56,7 +45,9 @@ export const toTitleCase = (value: string): string => {
 
 // Returns a clean, human-friendly provider name without any leading "huggingface" prefix
 export const getProviderBaseName = (provider?: string): string => {
-  if (!provider) {return "";}
+  if (!provider) {
+    return "";
+  }
   let remainder = provider;
 
   // Remove leading variants like "huggingface/", "huggingface_", "huggingface-", "huggingface "
@@ -90,7 +81,7 @@ const PROVIDER_ALIAS_NAMES: Record<string, string> = {
   "hunyuan3d-v2": "Hunyuan3D V2",
   "hunyuan3d-3.0": "Hunyuan3D 3.0",
   "hunyuan3d-30": "Hunyuan3D 3.0",
-  "hunyuan3d_3_0": "Hunyuan3D 3.0",
+  hunyuan3d_3_0: "Hunyuan3D 3.0",
   trellis: "Trellis",
   "trellis-2": "Trellis 2",
   trellis_2: "Trellis 2",
@@ -111,29 +102,84 @@ const PROVIDER_ALIAS_NAMES: Record<string, string> = {
 
 // Fallback formatter for arbitrary provider strings
 export const formatGenericProviderName = (provider?: string): string => {
-  if (!provider) {return "";}
+  if (!provider) {
+    return "";
+  }
   // Normalize common aliases for display
   const providerLower = provider.toLowerCase();
 
   if (PROVIDER_ALIAS_NAMES[providerLower]) {
     return PROVIDER_ALIAS_NAMES[providerLower];
   }
-  if (providerLower === "node_llama_cpp" || providerLower === "node-llama-cpp")
-    {return "Llama.cpp (local)";}
-  if (providerLower === "llama_cpp" || providerLower === "llama-cpp" || providerLower === "llamacpp")
-    {return "Llama.cpp";}
-  if (providerLower === "google") {return "Gemini";}
-  if (providerLower === "fal_ai" || providerLower === "fal-ai" || providerLower === "falai") {return "FAL AI";}
-  if (providerLower === "elevenlabs" || providerLower === "eleven_labs" || providerLower === "eleven-labs") {return "ElevenLabs";}
-  if (providerLower === "zai-org" || providerLower === "zai_org" || providerLower === "zai") {return "Z.AI";}
-  if (providerLower === "moonshot" || providerLower === "kimi") {return "Moonshot AI";}
-  if (providerLower === "minimax") {return "MiniMax";}
-  if (providerLower === "gmi") {return "GMI Cloud";}
-  if (providerLower === "meta") {return "Meta AI";}
-  if (providerLower === "alibaba") {return "Alibaba Cloud";}
-  if (providerLower === "cohere") {return "Cohere";}
-  if (providerLower === "voyage" || providerLower === "voyage-ai" || providerLower === "voyageai") {return "Voyage AI";}
-  if (providerLower === "jina" || providerLower === "jina-ai" || providerLower === "jinaai") {return "Jina AI";}
+  if (
+    providerLower === "node_llama_cpp" ||
+    providerLower === "node-llama-cpp"
+  ) {
+    return "Llama.cpp (local)";
+  }
+  if (
+    providerLower === "llama_cpp" ||
+    providerLower === "llama-cpp" ||
+    providerLower === "llamacpp"
+  ) {
+    return "Llama.cpp";
+  }
+  if (providerLower === "google") {
+    return "Gemini";
+  }
+  if (
+    providerLower === "fal_ai" ||
+    providerLower === "fal-ai" ||
+    providerLower === "falai"
+  ) {
+    return "FAL AI";
+  }
+  if (
+    providerLower === "elevenlabs" ||
+    providerLower === "eleven_labs" ||
+    providerLower === "eleven-labs"
+  ) {
+    return "ElevenLabs";
+  }
+  if (
+    providerLower === "zai-org" ||
+    providerLower === "zai_org" ||
+    providerLower === "zai"
+  ) {
+    return "Z.AI";
+  }
+  if (providerLower === "moonshot" || providerLower === "kimi") {
+    return "Moonshot AI";
+  }
+  if (providerLower === "minimax") {
+    return "MiniMax";
+  }
+  if (providerLower === "gmi") {
+    return "GMI Cloud";
+  }
+  if (providerLower === "meta") {
+    return "Meta AI";
+  }
+  if (providerLower === "alibaba") {
+    return "Alibaba Cloud";
+  }
+  if (providerLower === "cohere") {
+    return "Cohere";
+  }
+  if (
+    providerLower === "voyage" ||
+    providerLower === "voyage-ai" ||
+    providerLower === "voyageai"
+  ) {
+    return "Voyage AI";
+  }
+  if (
+    providerLower === "jina" ||
+    providerLower === "jina-ai" ||
+    providerLower === "jinaai"
+  ) {
+    return "Jina AI";
+  }
   const withSpaces = insertSpacesBeforeCapitals(
     provider.replace(/_/g, " ").replace(/-/g, " ")
   );
@@ -151,7 +197,9 @@ const HF_ORG_ALIAS: Record<string, string> = {
 //      "huggingface_cerebras" -> "cerebras"
 //      "HuggingFaceBlackForestLabs" -> "blackforestlabs" (best effort)
 const getHuggingFaceSlug = (provider?: string): string | null => {
-  if (!provider) {return null;}
+  if (!provider) {
+    return null;
+  }
   let remainder = provider;
   remainder = remainder.replace(/^huggingface[\s/_-]?/i, "");
   remainder = remainder.replace(/^HuggingFace/, "");
@@ -160,10 +208,14 @@ const getHuggingFaceSlug = (provider?: string): string | null => {
     remainder = parts[parts.length - 1] ?? remainder;
   }
   remainder = remainder.trim();
-  if (!remainder) {return null;}
+  if (!remainder) {
+    return null;
+  }
   // Normalize to URL-friendly slug
   let slug = remainder.replace(/\s+/g, "-").replace(/_/g, "-").toLowerCase();
-  if (HF_ORG_ALIAS[slug]) {slug = HF_ORG_ALIAS[slug];}
+  if (HF_ORG_ALIAS[slug]) {
+    slug = HF_ORG_ALIAS[slug];
+  }
   return slug || null;
 };
 
@@ -188,12 +240,14 @@ const PROVIDER_URLS: Record<string, string> = {
   "hunyuan3d-v2": "https://github.com/Tencent/Hunyuan3D",
   "hunyuan3d-3.0": "https://github.com/Tencent/Hunyuan3D",
   "hunyuan3d-30": "https://github.com/Tencent/Hunyuan3D",
-  "hunyuan3d_3_0": "https://github.com/Tencent/Hunyuan3D"
+  hunyuan3d_3_0: "https://github.com/Tencent/Hunyuan3D"
 };
 
 /** Returns an external URL for a given provider name when known; otherwise null. */
 export const getProviderUrl = (provider?: string): string | null => {
-  if (!provider) {return null;}
+  if (!provider) {
+    return null;
+  }
   const providerLower = provider.toLowerCase();
 
   if (PROVIDER_URLS[providerLower]) {
@@ -207,32 +261,73 @@ export const getProviderUrl = (provider?: string): string | null => {
     providerLower.includes("llama_cpp") ||
     providerLower.includes("llama-cpp") ||
     providerLower.includes("llamacpp")
-  )
-    {return "https://github.com/ggerganov/llama.cpp";}
-  if (providerLower.includes("ollama")) {return "https://ollama.com";}
-  if (providerLower.includes("lmstudio")) {return "https://lmstudio.ai";}
-  if (providerLower.includes("openai")) {return "https://platform.openai.com";}
-  if (providerLower.includes("anthropic")) {return "https://console.anthropic.com";}
-  if (providerLower.includes("gemini") || providerLower.includes("google"))
-    {return "https://ai.google.dev";}
-  if (providerLower.includes("elevenlabs")) {return "https://elevenlabs.io";}
-  if (providerLower.includes("fal")) {return "https://fal.ai";}
-  if (providerLower.includes("replicate")) {return "https://replicate.com";}
-  if (providerLower.includes("moonshot") || providerLower.includes("kimi"))
-    {return "https://platform.moonshot.ai";}
-  if (providerLower.includes("minimax"))
-    {return "https://platform.minimax.io";}
-  if (providerLower === "gmi") {return "https://www.gmicloud.ai";}
-  if (providerLower === "meta") {return "https://dev.meta.ai";}
-  if (providerLower === "alibaba")
-    {return "https://modelstudio.console.alibabacloud.com/";}
-  if (providerLower === "cohere") {return "https://cohere.com";}
-  if (providerLower === "voyage" || providerLower === "voyage-ai" || providerLower === "voyageai")
-    {return "https://www.voyageai.com";}
-  if (providerLower === "jina" || providerLower === "jina-ai" || providerLower === "jinaai")
-    {return "https://jina.ai";}
-  if (providerLower === "zai" || providerLower === "zai-org" || providerLower === "zai_org" || providerLower === "z.ai")
-    {return "https://z.ai";}
+  ) {
+    return "https://github.com/ggerganov/llama.cpp";
+  }
+  if (providerLower.includes("ollama")) {
+    return "https://ollama.com";
+  }
+  if (providerLower.includes("lmstudio")) {
+    return "https://lmstudio.ai";
+  }
+  if (providerLower.includes("openai")) {
+    return "https://platform.openai.com";
+  }
+  if (providerLower.includes("anthropic")) {
+    return "https://console.anthropic.com";
+  }
+  if (providerLower.includes("gemini") || providerLower.includes("google")) {
+    return "https://ai.google.dev";
+  }
+  if (providerLower.includes("elevenlabs")) {
+    return "https://elevenlabs.io";
+  }
+  if (providerLower.includes("fal")) {
+    return "https://fal.ai";
+  }
+  if (providerLower.includes("replicate")) {
+    return "https://replicate.com";
+  }
+  if (providerLower.includes("moonshot") || providerLower.includes("kimi")) {
+    return "https://platform.moonshot.ai";
+  }
+  if (providerLower.includes("minimax")) {
+    return "https://platform.minimax.io";
+  }
+  if (providerLower === "gmi") {
+    return "https://www.gmicloud.ai";
+  }
+  if (providerLower === "meta") {
+    return "https://dev.meta.ai";
+  }
+  if (providerLower === "alibaba") {
+    return "https://modelstudio.console.alibabacloud.com/";
+  }
+  if (providerLower === "cohere") {
+    return "https://cohere.com";
+  }
+  if (
+    providerLower === "voyage" ||
+    providerLower === "voyage-ai" ||
+    providerLower === "voyageai"
+  ) {
+    return "https://www.voyageai.com";
+  }
+  if (
+    providerLower === "jina" ||
+    providerLower === "jina-ai" ||
+    providerLower === "jinaai"
+  ) {
+    return "https://jina.ai";
+  }
+  if (
+    providerLower === "zai" ||
+    providerLower === "zai-org" ||
+    providerLower === "zai_org" ||
+    providerLower === "z.ai"
+  ) {
+    return "https://z.ai";
+  }
   // Unknown
   return null;
 };
@@ -242,7 +337,9 @@ export const getModelUrl = (
   modelId?: string,
   modelType?: string
 ): string | null => {
-  if (!modelId) {return null;}
+  if (!modelId) {
+    return null;
+  }
   let p = (provider || "").toLowerCase();
 
   // Use modelType to help infer provider if needed
@@ -261,7 +358,7 @@ export const getModelUrl = (
     }
   }
 
-  if (p === "huggingface" || p.includes("hf_") || p.includes("huggingface_")) {
+  if (isHuggingFaceProvider(p) || p.includes("hf_")) {
     return `https://huggingface.co/${modelId}`;
   }
 

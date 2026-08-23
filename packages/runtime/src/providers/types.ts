@@ -47,11 +47,44 @@ export interface VideoModel {
   aspectRatios?: string[];
 }
 
+export interface ModelArtifactRef {
+  source: "huggingface";
+  repoId: string;
+  revision?: string;
+  path?: string;
+}
+
+export interface ModelAdapterInfo {
+  state: "installed" | "missing_dependency" | "unknown";
+  reasonCode?: string;
+  reason?: string;
+  artifactRef?: ModelArtifactRef;
+}
+
 export interface TTSModel {
   id: string;
   name: string;
   provider: ProviderId;
   voices?: string[];
+  capabilities?: string[];
+  languages?: string[];
+  sampleRate?: number;
+  requiresReferenceText?: boolean;
+  /** Execution adapter facts reported by the local worker without loading weights. */
+  adapter?: ModelAdapterInfo;
+}
+
+export interface TextToSpeechParams {
+  text: string;
+  model: string;
+  voice?: string;
+  speed?: number;
+  referenceAudio?: Uint8Array;
+  referenceText?: string;
+  language?: string;
+  instructions?: string;
+  /** Requested output container; raw-PCM providers may ignore this hint. */
+  audioFormat?: string;
 }
 
 export interface MusicModel {

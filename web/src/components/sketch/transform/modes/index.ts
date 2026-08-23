@@ -5,11 +5,7 @@
  * @module transform/modes
  */
 
-export type {
-  ModeDragInput,
-  TransformModifiers,
-  TransformModeHandler
-} from "./types";
+export type { ModeDragInput, TransformModeHandler } from "./types";
 export {
   TRANSFORM_MODES,
   getTransformMode,

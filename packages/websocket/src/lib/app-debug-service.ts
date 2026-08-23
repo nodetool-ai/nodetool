@@ -19,6 +19,7 @@ import type {
 } from "@nodetool-ai/execution/service";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { ApiErrorCode } from "../error-codes.js";
+import { getAssetAdapter } from "./storage.js";
 import { throwApiError } from "../trpc/error-formatter.js";
 import type { HttpApiOptions } from "../http-api.js";
 
@@ -54,6 +55,8 @@ export async function runApplicationDebug(
       // A script operation runs the QuickJS sandbox, which lives above the
       // execution package — the server is where both are in reach.
       runScript: createJsScriptAppRunner(userId, { secretResolver: getSecret }),
+      // Same store the workflow run path reads `asset://<id>` inputs through.
+      assetStorage: getAssetAdapter(),
       ...deps
     });
   } catch (error) {

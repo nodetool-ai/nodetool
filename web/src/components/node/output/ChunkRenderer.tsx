@@ -10,6 +10,7 @@ import StreamPcm16Player from "./StreamPcm16Player";
 import { ToolCallRenderer } from "./ToolCallRenderer";
 import { AgentStatusRenderer } from "./AgentStatusRenderer";
 import { isString } from "../../../utils/typePredicates";
+import { resolveInlineMediaSource } from "../../../utils/resolveMediaUri";
 
 type Props = {
   chunk: Chunk;
@@ -39,7 +40,9 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
     case "image":
       return (
         <ImageView
-          source={isString(chunk.content) ? chunk.content : undefined}
+          source={resolveInlineMediaSource(
+            isString(chunk.content) ? chunk.content : undefined
+          )}
         />
       );
     case "audio": {
@@ -58,6 +61,8 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
         <video
           src={chunk.content as string}
           controls
+          playsInline
+          preload="metadata"
           // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
           // the native controls (scrub, volume) get the mouse events.
           className="nodrag nopan"

@@ -101,10 +101,19 @@ describe("areTypesCompatible", () => {
     expect(areTypesCompatible(listStr, listStr2)).toBe(true);
   });
 
-  it("list types are compatible regardless of element types (same base type)", () => {
+  it("list types with mismatched element types are not compatible", () => {
     const listStr = makeType("list", { type_args: [makeType("str")] });
     const listInt = makeType("list", { type_args: [makeType("int")] });
-    expect(areTypesCompatible(listStr, listInt)).toBe(true);
+    expect(areTypesCompatible(listStr, listInt)).toBe(false);
+  });
+
+  it("str is compatible with an enum target", () => {
+    expect(areTypesCompatible(makeType("str"), makeType("enum"))).toBe(true);
+  });
+
+  it("T is compatible with a list[T] collect target", () => {
+    const listStr = makeType("list", { type_args: [makeType("str")] });
+    expect(areTypesCompatible(makeType("str"), listStr)).toBe(true);
   });
 
   it("bare list is compatible with typed list (same base type)", () => {

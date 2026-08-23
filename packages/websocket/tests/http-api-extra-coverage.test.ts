@@ -23,6 +23,9 @@ import {
   toJobResponse,
   type HttpApiOptions
 } from "../src/http-api.js";
+import sdkV1Routes from "../src/routes/sdk-v1.js";
+import { createSdkV1ImplementationBoundary } from "../src/sdk/sdk-v1-handler-map.js";
+import { createSdkV1Service } from "../src/sdk/sdk-v1-service.js";
 
 // ── Test helpers ────────────────────────────────────────────────────────
 
@@ -56,6 +59,12 @@ async function makeWorkflow(
  */
 async function makeApp(options: HttpApiOptions = {}): Promise<FastifyInstance> {
   const app = Fastify();
+  const effectiveOptions = {
+    ...options,
+    sdkV1Boundary:
+      options.sdkV1Boundary ??
+      createSdkV1ImplementationBoundary(createSdkV1Service())
+  };
   // Replace fastify's built-in JSON/text parsers with a single catch-all that
   // hands us the raw bytes — handleApiRequest does its own body parsing, and
   // the built-in JSON parser rejects empty bodies with a 400 before our route.
@@ -63,6 +72,11 @@ async function makeApp(options: HttpApiOptions = {}): Promise<FastifyInstance> {
   app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
     done(null, body);
   });
+  app.addHook("onRequest", async (request) => {
+    const userId = request.headers["x-user-id"];
+    request.userId = typeof userId === "string" ? userId : null;
+  });
+  await app.register(sdkV1Routes, { apiOptions: effectiveOptions });
   app.all("/*", async (request, reply) => {
     const headers = new Headers();
     for (const [k, v] of Object.entries(request.headers)) {
@@ -80,7 +94,7 @@ async function makeApp(options: HttpApiOptions = {}): Promise<FastifyInstance> {
           ? new Uint8Array(bodyBuf)
           : undefined
     });
-    const res = await handleApiRequest(webReq, options);
+    const res = await handleApiRequest(webReq, effectiveOptions);
     reply.status(res.status);
     res.headers.forEach((val, key) => {
       if (key.toLowerCase() === "content-length") return;
@@ -247,8 +261,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(response.json()).toEqual({
       code: "SDK_WORKFLOW_INTERFACE_DISABLED",
       message: "SDK workflow interface v1 is disabled",
-      retryable: false,
-      detail: "SDK workflow interface v1 is disabled"
+      retryable: false
     });
   });
 
@@ -312,8 +325,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(response.json()).toEqual({
       code: "INTERNAL_ERROR",
       message: "Internal server error",
-      retryable: true,
-      detail: "Internal server error"
+      retryable: true
     });
     expect(response.body).not.toContain("secret database");
   });
@@ -384,12 +396,11 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(disabled.json()).toEqual({
       code: "SDK_NODE_TYPE_INVENTORY_DISABLED",
       message: "SDK node/type inventory v1 is disabled",
-      retryable: false,
-      detail: "SDK node/type inventory v1 is disabled"
+      retryable: false
     });
   });
 
-  it("GET /api/workflows/:id/interface returns the compact v1 contract", async () => {
+  it("GET /api/sdk/v1/workflows/:id/interface returns the compact v1 contract", async () => {
     vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
     const nodeType = "nodetool.input.StringInput";
     const metadata: NodeMetadata = {
@@ -438,7 +449,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
 
     const response = await app.inject({
       method: "GET",
-      url: `/api/workflows/${workflow.id}/interface?version=1`,
+      url: `/api/sdk/v1/workflows/${workflow.id}/interface?version=1`,
       headers: { "x-user-id": "user-1" }
     });
 
@@ -505,8 +516,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(response.json()).toEqual({
       code: "INVALID_INPUT",
       message: "Expected 1 to 100 unique workflow ids",
-      retryable: false,
-      detail: "Expected 1 to 100 unique workflow ids"
+      retryable: false
     });
   });
 

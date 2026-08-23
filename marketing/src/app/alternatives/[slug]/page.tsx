@@ -30,14 +30,16 @@ export async function generateMetadata({
   const { slug } = await params;
   const c = getCompetitor(slug);
   if (!c) return {};
-  const title = `${c.name} alternatives (${yearToken()}) — why teams choose NodeTool`;
-  const description = `${c.limitation} Compare NodeTool with other ${c.category.toLowerCase()} alternatives: open source, run with your own keys, one canvas for image, video, audio, and text.`;
+  const title = c.seo?.title ?? `${c.name} alternatives (${yearToken()}) — why teams choose NodeTool`;
+  const description =
+    c.seo?.description ??
+    `${c.limitation} Compare NodeTool with other ${c.category.toLowerCase()} alternatives: open source, run with your own keys, one canvas for image, video, audio, and text.`;
   return {
     title,
     description,
     alternates: { canonical: `/alternatives/${c.slug}` },
     openGraph: {
-      title: `${c.name} alternatives — why teams choose NodeTool`,
+      title,
       description,
       url: `https://nodetool.ai/alternatives/${c.slug}`,
       type: "website",

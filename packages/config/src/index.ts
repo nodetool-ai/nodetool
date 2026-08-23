@@ -17,6 +17,8 @@ export {
 
 export { getByteLimitEnv } from "./byte-limits.js";
 
+export { isAuthEnforced } from "./deployment.js";
+
 export { isGoogleWorkspaceEnabled } from "./google-workspace.js";
 
 export {
@@ -75,7 +77,11 @@ export {
   getDefaultAssetsPath,
   getDefaultTransformersJsCacheDir,
   getAssetFilePath,
-  buildAssetUrl
+  buildAssetUrl,
+  getManagedWorkspacesDir,
+  getManagedWorkspaceDir,
+  managedWorkspaceKey,
+  workspaceStorageKind
 } from "./paths.js";
 
 export {

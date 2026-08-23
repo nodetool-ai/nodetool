@@ -1,0 +1,121 @@
+{
+  "captures": {
+    "bad_input": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/models?limit=501"
+      },
+      "response": {
+        "body": {
+          "code": "INVALID_INPUT",
+          "message": "Invalid model catalog query",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 400
+      },
+      "via": "fastify"
+    },
+    "success": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": null,
+        "headers": {
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "GET",
+        "multipart": null,
+        "path": "/api/sdk/v1/models?compatibility=language_model&limit=25"
+      },
+      "response": {
+        "body": {
+          "catalog_revision": "sdk-golden-catalog",
+          "entries": [
+            {
+              "availability": "ready_remote",
+              "compatibility": "language_model",
+              "display_name": "SDK Golden Model",
+              "id": "sdk-golden-model",
+              "key": "sdk-golden-provider/sdk-golden-model",
+              "path": null,
+              "provider": "sdk-golden-provider",
+              "recommended": true,
+              "repo_id": null,
+              "scope": "local",
+              "size_on_disk": null,
+              "supported_tasks": [
+                "chat"
+              ],
+              "wire_value": {
+                "id": "sdk-golden-model",
+                "provider": "sdk-golden-provider",
+                "type": "language_model"
+              }
+            }
+          ],
+          "next_cursor": null,
+          "scope": "local",
+          "version": "1"
+        },
+        "content_type": "application/json",
+        "status": 200
+      },
+      "via": "fastify"
+    },
+    "wrong_method_unrouted": {
+      "env": {
+        "NODETOOL_DISABLE_SDK_LIFECYCLE_V1": "0",
+        "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1": "0",
+        "NODETOOL_REQUIRE_SDK_AUTH_V1": "0"
+      },
+      "request": {
+        "body": {},
+        "headers": {
+          "content-type": "application/json",
+          "x-user-id": "sdk-golden-user"
+        },
+        "method": "POST",
+        "multipart": null,
+        "path": "/api/sdk/v1/models"
+      },
+      "response": {
+        "body": {
+          "code": "NOT_FOUND",
+          "message": "SDK endpoint not found",
+          "retryable": false
+        },
+        "content_type": "application/json",
+        "status": 404
+      },
+      "via": "fastify"
+    }
+  },
+  "fixture_version": 1,
+  "not_captured": {
+    "auth_failure": "No in-route 401: getUserId falls back to x-user-id/'1' and server.ts enforces authentication in its onRequest hook (server.ts:897) before routing, answering 401 {\"error\":\"Unauthorized\"} outside the handlers.",
+    "feature_disabled": "No feature flag applies: the handler checks neither NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1 nor NODETOOL_DISABLE_SDK_LIFECYCLE_V1.",
+    "method_not_allowed": "Wrong methods use the SDK plugin's normalized 404 response (see wrong_method_unrouted)."
+  },
+  "operation": "model_catalog",
+  "route": {
+    "auth": "discovery",
+    "feature_flag": null,
+    "method": "GET",
+    "owner": "packages/websocket/src/routes/sdk-v1.ts",
+    "path": "/api/sdk/v1/models"
+  }
+}

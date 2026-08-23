@@ -6,7 +6,7 @@
  * tools that exist here only as schemas, and every call must go through the
  * chat runner's own router (permission gate, client round-trips over the
  * ToolBridge, asset materialization). So instead of `buildToolBridge`, this
- * session bridges `tools.<name>()` to a caller-supplied `executeTool` and
+ * session routes every imported belt name to a caller-supplied `executeTool` and
  * leaves the routing where it is. Everything else matches the step executor:
  * one `execute_code` provider tool, a `state` object that persists across the
  * turn's actions (including after a throw), `nodetool.searchTools()` for the
@@ -30,7 +30,14 @@ import {
 import { resolveRefBytes } from "../sandbox-media-ref.js";
 import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
 import type { CapabilityRun } from "../capabilities/types.js";
-import { mountCapabilityModules } from "./capability-modules.js";
+import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
+
+import { capabilityModuleOf } from "../capabilities/registry.js";
+import {
+  mountCapabilityModules,
+  SESSION_CAPABILITY_MODULE,
+  type MountCapabilityModulesOptions
+} from "./capability-modules.js";
 import { stripImagePayload } from "../tools/image-injection.js";
 import type { Tool } from "../tools/base-tool.js";
 import { searchTools } from "../tools/tool-search.js";
@@ -59,23 +66,27 @@ import {
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
   extractErrorPayload,
   toTransferable,
-  toolSignature,
+  toolSearchHit,
   type ToolSearchHit,
   type ToolSignatureSource
 } from "./tool-api.js";
 import {
   CODEACT_DEFER_THRESHOLD,
   CODEACT_RESIDENT_TOOL_NAMES,
-  DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
+  DEFAULT_CODEACT_ACTION_TIMEOUT_MS
+} from "./codeact-executor.js";
+import {
+  admitCodeAction,
   EXECUTE_CODE_INPUT_SCHEMA,
   EXECUTE_CODE_TOOL_NAME
-} from "./codeact-executor.js";
+} from "./execute-code-contract.js";
 import {
   GRAPH_MODEL_PRELUDE,
   GRAPH_MODEL_PROMPT_SECTION,
   GRAPH_MODEL_TOOL_NAMES,
   hasGraphModelTools
 } from "./graph-model.js";
+import { annotateFailure } from "./action-diagnostics.js";
 import {
   NODETOOL_API_PRELUDE_FULL,
   buildNodetoolApiPromptSection,
@@ -120,7 +131,7 @@ export interface ChatCodeActSessionOptions {
   /**
    * Tools the caller also offers as ordinary provider tools. They stay on the
    * belt — code composes them — but the prompt documents them as direct calls
-   * instead of repeating their `tools.*` signature.
+   * instead of repeating their catalog signature.
    */
   directToolNames?: Iterable<string>;
   /**
@@ -145,10 +156,19 @@ export interface ChatCodeActSessionOptions {
   /**
    * The session's capability run. With one, an action may import NodeTool's
    * own modules (`@nodetool-ai/sandbox-nodetool/<namespace>`), which land on
-   * `run.invoke` — the same gate, lookup and implementation `tools.*` reaches.
+   * `run.invoke` — the same gate, lookup and implementation the belt reaches.
    * Without one nothing is mounted and such an import is refused by name.
    */
   capabilityRun?: CapabilityRun;
+  /**
+   * The `state` object actions read and write. A host that passes the same
+   * object on the next turn carries the turn's work forward: a chat session is
+   * one session per turn, so without this a model that stored a generated
+   * video in `state` found it `undefined` in the next turn and paid to
+   * generate it again. Mutations land in this object, so the host needs no
+   * write-back of its own. Defaults to a fresh object.
+   */
+  state?: Record<string, unknown>;
   /** Observability hook — fires before each bridged tool executes. */
   onToolCall?: (record: {
     name: string;
@@ -202,8 +222,7 @@ function normalizeToolResult(raw: unknown): unknown {
     raw.length > 0 &&
     raw.every(
       (block) =>
-        isObjectLike(block) &&
-        isString((block as { type?: unknown }).type)
+        isObjectLike(block) && isString((block as { type?: unknown }).type)
     )
   ) {
     const texts = raw
@@ -273,13 +292,48 @@ export function createChatCodeActSession(
 
   const toolNames = belt.map((t) => t.name);
   const byName = new Map(belt.map((t) => [t.name, t]));
+  // What this session's belt makes importable, and from where.
+  //
+  // A belt name a capability module owns is grafted onto that namespace: with
+  // no capability run there is nothing else to serve the import, and with one
+  // the registry's own export wins, so the graft only ever adds reach. A
+  // client `ui_*` tool is a JSON schema routed back to the browser and owned
+  // by no module, so it goes under `ui`; anything else a session added goes
+  // under `session`. Every belt name is importable — the retired `tools`
+  // global is not replaced by a second way of reaching some of them.
+  const graftedSpecifiers = new Map<string, string>();
+  /** Belt name → namespace, for the guest's retired-`tools` thrower. */
+  const graftedModules: Record<string, string> = {};
+  const graftExports = new Map<string, string[]>();
+  for (const tool of belt) {
+    const module =
+      capabilityModuleOf(tool.name) ??
+      (tool.name.startsWith("ui_") ? "ui" : SESSION_CAPABILITY_MODULE);
+    graftedSpecifiers.set(tool.name, sandboxCapabilitySpecifier(module));
+    graftedModules[tool.name] = module;
+    const names = graftExports.get(module);
+    if (names === undefined) graftExports.set(module, [tool.name]);
+    else names.push(tool.name);
+  }
+  const sessionModules = [...graftExports.entries()].map(
+    ([module, exports]) => ({
+      module,
+      exports,
+      call: async (name: string, args: unknown) => {
+        const r = await callTool(name, JSON.stringify(args ?? {}));
+        if (r.ok !== true) throw new Error(r.error);
+        return r.result;
+      }
+    })
+  );
   const maxCallsPerAction =
     options.maxToolCallsPerAction ?? DEFAULT_MAX_TOOL_CALLS_PER_ACTION;
   const withGraphModel = hasGraphModelTools(toolNames);
   const toolCallIdPrefix = globalThis.crypto.randomUUID();
 
-  // Persists across the turn's actions (CaveAgent-style runtime state).
-  const state: Record<string, unknown> = {};
+  // Persists across the turn's actions (CaveAgent-style runtime state), and
+  // across turns when the host supplies the object (see `state` above).
+  const state: Record<string, unknown> = options.state ?? {};
   let totalCalls = 0;
   let actionCalls = 0;
 
@@ -309,9 +363,7 @@ export function createChatCodeActSession(
       if (isNonEmptyString(argsJson)) {
         try {
           const parsed = JSON.parse(argsJson) as unknown;
-          if (
-            isRecord(parsed)
-          ) {
+          if (isRecord(parsed)) {
             args = parsed as Record<string, unknown>;
           } else if (parsed !== null) {
             return {
@@ -373,19 +425,16 @@ export function createChatCodeActSession(
     { ok: true; result: ToolSearchHit[] } | { ok: false; error: string }
   > => {
     try {
-      const limit =
-        isFiniteNumber(maxResults)
-          ? Math.max(1, Math.min(25, Math.floor(maxResults)))
-          : 5;
+      const limit = isFiniteNumber(maxResults)
+        ? Math.max(1, Math.min(25, Math.floor(maxResults)))
+        : 5;
       const hits = searchTools(searchCatalog, String(query ?? ""), limit).map(
-        (entry): ToolSearchHit => {
-          const tool = byName.get(entry.name) as ToolSignatureSource;
-          return {
-            name: entry.name,
-            signature: toolSignature(tool),
-            description: tool.description ?? ""
-          };
-        }
+        (entry): ToolSearchHit =>
+          toolSearchHit(
+            byName.get(entry.name) as ToolSignatureSource,
+            capabilityModuleOf(entry.name) ??
+              (entry.name.startsWith("ui_") ? "ui" : SESSION_CAPABILITY_MODULE)
+          )
       );
       return { ok: true, result: hits };
     } catch (e) {
@@ -438,6 +487,7 @@ export function createChatCodeActSession(
   const systemPromptSection = buildCodeActSystemPrompt({
     tools: resident,
     deferredTools: deferred,
+    graftedSpecifiers,
     variant: "chat",
     directToolNames: options.directToolNames
       ? [...options.directToolNames]
@@ -467,10 +517,22 @@ export function createChatCodeActSession(
         toolCalls: 0
       } satisfies ActionObservation);
     }
+    // Auto mode's one question, asked before the program runs.
+    const admission = await admitCodeAction(options.capabilityRun?.gate, args);
+    if (!admission.allowed) {
+      return JSON.stringify({
+        ok: false,
+        error: admission.error,
+        toolCalls: 0
+      } satisfies ActionObservation);
+    }
+    const mountOptions: MountCapabilityModulesOptions = {};
+    if (options.signal !== undefined) mountOptions.signal = options.signal;
+    if (sessionModules.length > 0) mountOptions.session = sessionModules;
     const platform = await mountCapabilityModules(
       code,
       options.capabilityRun,
-      options.signal === undefined ? {} : { signal: options.signal }
+      mountOptions
     );
     if (!platform.ok) {
       return JSON.stringify({
@@ -517,12 +579,11 @@ export function createChatCodeActSession(
                 : type === "audio"
                   ? "audio/wav"
                   : "video/mp4";
-          const filename =
-            isString(opts?.filename)
-              ? opts.filename
-              : isString(opts?.name)
-                ? opts.name
-                : undefined;
+          const filename = isString(opts?.filename)
+            ? opts.filename
+            : isString(opts?.name)
+              ? opts.name
+              : undefined;
           const persistOptions: Parameters<typeof persistOutput>[2] = {
             namePrefix: type,
             mime
@@ -551,6 +612,7 @@ export function createChatCodeActSession(
       globals: {
         __callTool: callTool,
         __toolNames: toolNames,
+        __toolModules: graftedModules,
         __finish: finishBridge,
         __searchTools: searchToolsBridge,
         state
@@ -570,8 +632,10 @@ export function createChatCodeActSession(
     if (outcome.success) {
       if (outcome.result !== undefined) observation.result = outcome.result;
     } else {
-      observation.error = outcome.error;
-      if (outcome.stack) observation.stack = outcome.stack;
+      Object.assign(
+        observation,
+        annotateFailure(outcome.error, outcome.stack, prelude, code)
+      );
     }
     if (outcome.logs && outcome.logs.length > 0) {
       observation.logs = outcome.logs;

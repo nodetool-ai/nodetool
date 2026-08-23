@@ -12,6 +12,10 @@ import { findOutputHandle } from "../../utils/handleUtils";
 import { normalizeDynamicSlot } from "../../utils/dynamicSlots";
 import { inferredCodeInputNamesFromData } from "../../utils/codeNodeHandles";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
+import {
+  isPropertyConditionSatisfied,
+  shouldRenderProperty
+} from "../../utils/propertyVisibility";
 
 const rootCss = css({
   marginTop: "1em",
@@ -109,6 +113,10 @@ const NodeInput: React.FC<NodeInputProps> = memo(
         isDynamicProperty={isDynamicProperty}
         data={data}
         isConnected={isConnected}
+        conditionalUnavailable={
+          isConnected &&
+          !isPropertyConditionSatisfied(property, data?.properties)
+        }
       />
     );
   },
@@ -194,7 +202,23 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
     return map;
   }, [tabableProperties]);
 
-  const allInputs = useMemo(() => properties.map((property, index) => {
+  // A property can switch another one off via `visible_when` — the folder
+  // picker on a save node writing to the workspace, or a cloning input a model
+  // does not support. Rendering it would offer a control that changes
+  // nothing. A connected input always renders.
+  const shownProperties = useMemo(
+    () =>
+      properties.filter((property) =>
+        shouldRenderProperty(
+          property,
+          data?.properties,
+          connectedHandleSet.has(property.name)
+        )
+      ),
+    [properties, data, connectedHandleSet]
+  );
+
+  const allInputs = useMemo(() => shownProperties.map((property, index) => {
     const finalTabIndex = tabIndexMap.get(property.name) ?? -1;
 
     return (
@@ -212,7 +236,7 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
         isConnected={connectedHandleSet.has(property.name)}
       />
     );
-  }), [properties, tabIndexMap, connectedHandleSet, id, nodeType, layout, data, showFields, showHandle]);
+  }), [shownProperties, tabIndexMap, connectedHandleSet, id, nodeType, layout, data, showFields, showHandle]);
 
   const dynamicInputs = useMemo(
     () => data?.dynamic_inputs || {},

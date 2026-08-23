@@ -20,11 +20,6 @@ export interface FrontendToolDefinition<
   name: `ui_${string}`;
   description: string;
   parameters: Schema;
-  /**
-   * Excludes the tool from the LLM-facing manifest (token savings) while still
-   * allowing direct calls by name for backwards compatibility.
-   */
-  hidden?: boolean;
   requireUserConsent?: boolean;
   execute: (
     args: InferToolArgs<Schema>,
@@ -93,15 +88,15 @@ export const FrontendToolRegistry = {
     return () => registry.delete(tool.name);
   },
   getManifest(): FrontendToolManifestEntry[] {
-    return Array.from(registry.values())
-      .filter((tool) => !tool.hidden)
-      .map(({ name, description, parameters }) => ({
+    return Array.from(registry.values()).map(
+      ({ name, description, parameters }) => ({
         name,
         description,
         parameters: isZodSchema(parameters)
           ? zodToJsonSchema(parameters)
           : parameters
-      }));
+      })
+    );
   },
   has(name: string): boolean {
     return registry.has(name);

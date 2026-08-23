@@ -38,6 +38,12 @@ import {
   FFMPEG_MAX_BUFFER
 } from "./ffmpeg-helpers.js";
 import { isObjectLike, isString } from "../type-predicates.js";
+import {
+  writeSavedFile,
+  VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
+  SAVE_TO_WORKSPACE_DESCRIPTION,
+  SAVE_TO_WORKSPACE_TITLE
+} from "@nodetool-ai/nodes-utils";
 
 type VideoRefLike = { uri?: string; data?: Uint8Array | string };
 type ImageRefLike = { uri?: string; data?: Uint8Array | string };
@@ -660,10 +666,17 @@ export class LoadVideoFileNode extends BaseNode {
 /**
  * Resolve the destination folder for a save node. An explicit folder wins;
  * otherwise fall back to the run's workspace directory rather than the server
- * process cwd (`.`), which is rarely where a user wants their output.
+ * process cwd (`.`), which is rarely where a user wants their output. A
+ * workspace with no directory (cloud storage) leaves only the cwd — the nodes
+ * that can write through the workspace do so via `writeSavedFile` instead.
  */
 function saveFolder(rawFolder: unknown, context?: ProcessingContext): string {
-  return folderPath(rawFolder) || context?.workspaceDir || ".";
+  return (
+    folderPath(rawFolder) ||
+    context?.workspace?.localDir ||
+    context?.workspaceDir ||
+    "."
+  );
 }
 
 /** Output handles SaveVideoFileVideoNode.process() emits. */
@@ -679,7 +692,7 @@ export class SaveVideoFileVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly inlineFields: string[] = [];
+  static readonly inlineFields: string[] = ["save_to_workspace"];
   static readonly inputFields: string[] = ["video"];
 
   @prop({
@@ -691,10 +704,19 @@ export class SaveVideoFileVideoNode extends BaseNode {
   declare video: VideoRef;
 
   @prop({
+    type: "bool",
+    default: true,
+    title: SAVE_TO_WORKSPACE_TITLE,
+    description: SAVE_TO_WORKSPACE_DESCRIPTION
+  })
+  declare save_to_workspace: boolean;
+
+  @prop({
     type: "str",
     default: "",
     title: "Folder",
-    description: "Folder where the file will be saved"
+    description: "Folder where the file will be saved",
+    json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
   declare folder: string;
 
@@ -708,14 +730,17 @@ export class SaveVideoFileVideoNode extends BaseNode {
   declare filename: string;
 
   async process(context?: ProcessingContext): Promise<SaveVideoFileVideoNodeOutputs> {
-    const folder = saveFolder(this.folder, context);
-    const fname = dateName(String(this.filename || "video.mp4"));
-    await fs.mkdir(path.resolve(folder), { recursive: true });
     // dateName resolves to second granularity, so two saves in the same second
-    // collide — de-duplicate with a -1/-2/… suffix rather than overwrite.
-    const p = await uniqueTargetPath(path.resolve(folder, fname));
+    // collide — resolveSaveTarget numbers them rather than overwriting.
     const bytes = await videoBytesAsync(this.video, context);
-    await fs.writeFile(p, bytes);
+    const p = await writeSavedFile({
+      folder: this.folder,
+      filename: dateName(String(this.filename || "video.mp4")),
+      saveToWorkspace: this.save_to_workspace,
+      workspace: context?.workspace,
+      workspaceDir: context?.workspaceDir,
+      bytes
+    });
     return { output: videoRef(bytes, { uri: `file://${p}` }) };
   }
 }

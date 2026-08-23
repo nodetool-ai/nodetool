@@ -162,6 +162,16 @@ interface WorldWorkflow {
   graph: WorldGraph;
 }
 
+interface WorldVersion {
+  version: number;
+  name: string | null;
+  save_type: string;
+  graph: WorldGraph;
+}
+
+const cloneGraph = (graph: WorldGraph): WorldGraph =>
+  JSON.parse(JSON.stringify(graph)) as WorldGraph;
+
 interface WorldAsset {
   id: string;
   name: string;
@@ -290,6 +300,7 @@ const stringInputGraph = (
 
 class CoreWorld {
   readonly workflows = new Map<string, WorldWorkflow>();
+  readonly versions = new Map<string, WorldVersion[]>();
   readonly assets = new Map<string, WorldAsset>();
   readonly jobs = new Map<string, WorldJob>();
   readonly sessions = new Map<string, WorldSession>();
@@ -651,6 +662,124 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         };
         world.workflows.set(id, workflow);
         return summarize(workflow);
+      }
+    ),
+    tool(
+      "list_workflow_versions",
+      "List a workflow's snapshots, newest first.",
+      { workflow_id: s, limit: { type: "number" } },
+      (params) => {
+        const workflow = world.workflow(params["workflow_id"]);
+        const versions = [...(world.versions.get(workflow.id) ?? [])].reverse();
+        const limit = Number(params["limit"]) || versions.length;
+        return {
+          workflow_id: workflow.id,
+          versions: versions.slice(0, limit).map((v) => ({
+            version: v.version,
+            name: v.name,
+            save_type: v.save_type
+          }))
+        };
+      }
+    ),
+    tool(
+      "get_workflow_version",
+      "Read one snapshot without restoring it.",
+      { workflow_id: s, version: { type: "number" } },
+      (params) => {
+        const workflow = world.workflow(params["workflow_id"]);
+        const version = Number(params["version"]);
+        const found = (world.versions.get(workflow.id) ?? []).find(
+          (v) => v.version === version
+        );
+        if (!found) {
+          throw new Error(
+            `Workflow ${workflow.id} has no version ${version}.`
+          );
+        }
+        return {
+          workflow_id: workflow.id,
+          version: found.version,
+          name: found.name,
+          save_type: found.save_type,
+          graph: cloneGraph(found.graph)
+        };
+      }
+    ),
+    tool(
+      "create_workflow_version",
+      "Snapshot a workflow's current graph.",
+      { workflow_id: s, name: s, description: s },
+      (params) => {
+        const workflow = world.workflow(params["workflow_id"]);
+        const list = world.versions.get(workflow.id) ?? [];
+        const entry: WorldVersion = {
+          version: list.length + 1,
+          name: str(params["name"]) || null,
+          save_type: "manual",
+          graph: cloneGraph(workflow.graph)
+        };
+        list.push(entry);
+        world.versions.set(workflow.id, list);
+        return {
+          ok: true,
+          workflow_id: workflow.id,
+          version: entry.version,
+          name: entry.name,
+          save_type: entry.save_type
+        };
+      }
+    ),
+    tool(
+      "restore_workflow_version",
+      "Restore a snapshot, snapshotting the current graph first.",
+      { workflow_id: s, version: { type: "number" } },
+      (params) => {
+        const workflow = world.workflow(params["workflow_id"]);
+        const version = Number(params["version"]);
+        const found = (world.versions.get(workflow.id) ?? []).find(
+          (v) => v.version === version
+        );
+        if (!found) {
+          throw new Error(
+            `Workflow ${workflow.id} has no version ${version}.`
+          );
+        }
+        const list = world.versions.get(workflow.id) ?? [];
+        const undo: WorldVersion = {
+          version: list.length + 1,
+          name: `Before restore to v${version}`,
+          save_type: "restore",
+          graph: cloneGraph(workflow.graph)
+        };
+        list.push(undo);
+        world.versions.set(workflow.id, list);
+        workflow.graph = cloneGraph(found.graph);
+        return {
+          ok: true,
+          workflow_id: workflow.id,
+          restored_version: version,
+          undo_version: undo.version
+        };
+      }
+    ),
+    tool(
+      "delete_workflow_version",
+      "Delete one snapshot. The live graph is not changed.",
+      { workflow_id: s, version: { type: "number" } },
+      (params) => {
+        const workflow = world.workflow(params["workflow_id"]);
+        const version = Number(params["version"]);
+        const list = world.versions.get(workflow.id) ?? [];
+        const idx = list.findIndex((v) => v.version === version);
+        if (idx < 0) {
+          throw new Error(
+            `Workflow ${workflow.id} has no version ${version}.`
+          );
+        }
+        list.splice(idx, 1);
+        world.versions.set(workflow.id, list);
+        return { ok: true, workflow_id: workflow.id, deleted_version: version };
       }
     ),
     tool(
@@ -1241,12 +1370,15 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         if (!job) throw new Error(`No job "${str(params["job_id"])}"`);
         job.polls += 1;
         const done = job.polls > 1;
+        // Same shape `jobRecord` reports: outputs on the settled job, null
+        // while it runs. The fake carried them under `result` and the real
+        // tool carried them nowhere, so an agent taught here found neither.
         return {
           id: job.id,
           workflow_id: job.workflow_id,
           status: done ? "completed" : "running",
           polls: job.polls,
-          result: done ? { outputs: job.outputs } : undefined
+          outputs: done ? job.outputs : null
         };
       }
     ),

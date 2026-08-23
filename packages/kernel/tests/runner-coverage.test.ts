@@ -532,6 +532,95 @@ describe("WorkflowRunner – repeated runs on the same instance", () => {
 });
 
 describe("WorkflowRunner – external workflow inputs", () => {
+  it("fails before execution when required inputs have no values", async () => {
+    const nodes: NodeDescriptor[] = [
+      {
+        id: "product",
+        type: "nodetool.input.StringInput",
+        properties: { name: "product" }
+      },
+      {
+        id: "audience",
+        type: "nodetool.input.StringInput",
+        properties: { name: "audience" }
+      },
+      { id: "join", type: "test.Join", sync_mode: "zip_all" }
+    ];
+    const edges: Edge[] = [
+      {
+        source: "product",
+        sourceHandle: "output",
+        target: "join",
+        targetHandle: "product"
+      },
+      {
+        source: "audience",
+        sourceHandle: "output",
+        target: "join",
+        targetHandle: "audience"
+      }
+    ];
+    const runner = new WorkflowRunner("test-missing-required-inputs", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs)
+    });
+
+    const safetyTimeout = setTimeout(() => runner.cancel(), 50);
+    const result = await runner
+      .run(
+        {
+          job_id: "j-missing-required-inputs",
+          params: { product: undefined }
+        },
+        { nodes, edges }
+      )
+      .finally(() => clearTimeout(safetyTimeout));
+
+    expect(result.status).toBe("failed");
+    expect(result.error).toBe(
+      "Missing required workflow inputs: product, audience"
+    );
+  });
+
+  it("keeps production streaming inputs open for live values", async () => {
+    const nodes: NodeDescriptor[] = [
+      {
+        id: "audio",
+        type: "nodetool.input.RealtimeAudioInput",
+        properties: { name: "audio" },
+        is_streaming_output: true
+      },
+      { id: "out", type: "test.Output", name: "result" }
+    ];
+    const edges: Edge[] = [
+      {
+        source: "audio",
+        sourceHandle: "output",
+        target: "out",
+        targetHandle: "value"
+      }
+    ];
+    const runner = new WorkflowRunner("test-streaming-external-input", {
+      resolveExecutor: (node) =>
+        simpleExecutor((inputs) =>
+          node.id === "audio"
+            ? { output: inputs.value }
+            : { value: inputs.value }
+        )
+    });
+
+    const runPromise = runner.run(
+      { job_id: "j-streaming-external-input", params: {} },
+      { nodes, edges }
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await runner.pushInputValue("audio", "chunk");
+    runner.finishInputStream("audio");
+    const result = await runPromise;
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.result).toContain("chunk");
+  });
+
   it("uses the input node property name to resolve runtime params", async () => {
     const nodes: NodeDescriptor[] = [
       {
@@ -652,7 +741,7 @@ describe("WorkflowRunner – external workflow inputs", () => {
     });
 
     const result = await runner.run(
-      { job_id: "j-ext-defaults", params: {} },
+      { job_id: "j-ext-defaults", params: { a: undefined } },
       { nodes, edges }
     );
 

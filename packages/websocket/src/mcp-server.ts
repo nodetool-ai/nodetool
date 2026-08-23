@@ -26,9 +26,9 @@ export interface McpServerOptions {
    * User scope for the session. Required: every capability runs against one
    * user's secrets and assets, so a session that cannot name a user has no
    * surface at all. `source` documents why the binding is safe: "stdio-local"
-   * (single-user `nodetool mcp serve`) or "local-dev-http" (the non-production
-   * /mcp mount). An authenticated multi-user mount must pass the session's real
-   * userId here.
+   * (single-user `nodetool mcp serve`), "local-dev-http" (the non-production
+   * /mcp mount), or "http-session" (the production mount behind
+   * NODETOOL_ENABLE_MCP, which passes the user the auth hook resolved).
    */
   agentToolsScope?: {
     userId: string;
@@ -85,6 +85,39 @@ const sessionTransports = new Map<
   WebStandardStreamableHTTPServerTransport
 >();
 
+// The user each HTTP session was initialized for. A multi-user mount hands out
+// session ids over an authenticated channel, but the id alone must not be a
+// bearer credential: every later request is checked against the owner recorded
+// here.
+const sessionOwners = new Map<string, string>();
+
+function forgetSession(sessionId: string): void {
+  sessionTransports.delete(sessionId);
+  sessionOwners.delete(sessionId);
+}
+
+/**
+ * True when the session exists and belongs to somebody other than the caller.
+ * A session with no recorded owner (stdio, or a mount that predates the
+ * binding) is left alone — the transport map is the authority there.
+ */
+function isForeignSession(
+  sessionId: string,
+  options?: McpServerOptions
+): boolean {
+  const owner = sessionOwners.get(sessionId);
+  if (owner === undefined) return false;
+  return owner !== options?.agentToolsScope?.userId;
+}
+
+/**
+ * Answer as if the session did not exist. A 403 would confirm the id is real to
+ * a caller who guessed it; a 404 tells them nothing.
+ */
+function sessionNotFound(): Response {
+  return new Response("Session not found", { status: 404 });
+}
+
 export function getLocalMcpServerUrl(): string {
   const port = Number(process.env["PORT"] ?? 7777);
   const tlsEnabled = Boolean(process.env["TLS_CERT"] && process.env["TLS_KEY"]);
@@ -121,6 +154,7 @@ export async function handleMcpHttpRequest(
     // Check for existing session
     const sessionId = request.headers.get("mcp-session-id");
     if (sessionId && sessionTransports.has(sessionId)) {
+      if (isForeignSession(sessionId, options)) return sessionNotFound();
       const transport = sessionTransports.get(sessionId)!;
       return transport.handleRequest(request);
     }
@@ -129,7 +163,7 @@ export async function handleMcpHttpRequest(
     // request (leaking both). Reject it — only an initialize request without a
     // session id creates a new session.
     if (sessionId) {
-      return new Response("Session not found", { status: 404 });
+      return sessionNotFound();
     }
 
     // A session this mount cannot bind to a user is refused here, at
@@ -140,18 +174,20 @@ export async function handleMcpHttpRequest(
     }
 
     // New session — create transport and server
+    const ownerUserId = options.agentToolsScope.userId;
     const transport = new WebStandardStreamableHTTPServerTransport({
       enableJsonResponse: true,
       sessionIdGenerator: () => crypto.randomUUID(),
       onsessioninitialized: (id) => {
         sessionTransports.set(id, transport);
+        sessionOwners.set(id, ownerUserId);
       }
     });
     // Evict the session when the transport closes (client disconnect without an
     // explicit DELETE) so sessionTransports — and the McpServer each entry keeps
     // alive — does not grow unbounded over the process lifetime.
     transport.onclose = () => {
-      if (transport.sessionId) sessionTransports.delete(transport.sessionId);
+      if (transport.sessionId) forgetSession(transport.sessionId);
     };
 
     const server = createMcpServer(options);
@@ -161,22 +197,30 @@ export async function handleMcpHttpRequest(
 
   if (method === "GET") {
     const sessionId = request.headers.get("mcp-session-id");
-    if (sessionId && sessionTransports.has(sessionId)) {
+    if (
+      sessionId &&
+      sessionTransports.has(sessionId) &&
+      !isForeignSession(sessionId, options)
+    ) {
       const transport = sessionTransports.get(sessionId)!;
       return transport.handleRequest(request);
     }
-    return new Response("Session not found", { status: 404 });
+    return sessionNotFound();
   }
 
   if (method === "DELETE") {
     const sessionId = request.headers.get("mcp-session-id");
-    if (sessionId && sessionTransports.has(sessionId)) {
+    if (
+      sessionId &&
+      sessionTransports.has(sessionId) &&
+      !isForeignSession(sessionId, options)
+    ) {
       const transport = sessionTransports.get(sessionId)!;
       const response = await transport.handleRequest(request);
-      sessionTransports.delete(sessionId);
+      forgetSession(sessionId);
       return response;
     }
-    return new Response("Session not found", { status: 404 });
+    return sessionNotFound();
   }
 
   return new Response("Method not allowed", { status: 405 });

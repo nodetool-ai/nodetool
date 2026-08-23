@@ -85,7 +85,7 @@ You can skip planning entirely by passing a pre-built `task` object to the Agent
 
 1. Build messages — the CodeAct contract, the tool catalog, the step instructions
 2. Stream the LLM response
-3. Run the action's JavaScript in the QuickJS sandbox, where the toolbelt is `tools.<name>()`
+3. Run the action's JavaScript in the QuickJS sandbox, where the toolbelt is imported from `@nodetool-ai/sandbox-nodetool/<namespace>`
 4. Feed the observation (return value, logs, error) back as the tool result
 5. Repeat until the program calls `finish(result)` or max iterations are reached
 6. Validate the result against the step's output schema — host-side, in `finish`
@@ -176,7 +176,7 @@ lazy implementation table disagree.
 
 | Module | Capabilities |
 |---|---|
-| `workflows` | `list_workflows`, `get_workflow`, `create_workflow`, `run_workflow`, `debug_workflow`, `resolve_workflow_escalation`, `validate_workflow`, `start_background_job`, `get_example_workflow`, `export_workflow_digraph` |
+| `workflows` | `list_workflows`, `get_workflow`, `create_workflow`, `list_workflow_versions`, `get_workflow_version`, `create_workflow_version`, `restore_workflow_version`, `delete_workflow_version`, `run_workflow`, `debug_workflow`, `resolve_workflow_escalation`, `validate_workflow`, `start_background_job`, `get_example_workflow`, `export_workflow_digraph` |
 | `nodes` | `list_nodes`, `search_nodes`, `get_node_info` |
 | `models` | `find_model`, `list_models`, `list_provider_models` |
 | `files` | `read_file`, `write_file`, `list_directory`, `edit_file`, `glob`, `grep`, `todo_write` |
@@ -187,13 +187,13 @@ lazy implementation table disagree.
 | `email` | `search_email`, `archive_email`, `add_label_to_email` |
 | `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image` |
 | `jobs` | `list_jobs`, `get_job`, `get_job_logs` |
-| `apps` | `debug_app` |
+| `apps` | `list_apps`, `get_app`, `create_app`, `edit_app`, `debug_app`, `delete_app` |
 | `code` | `validate_code`, `run_code`, `test_code` |
 | `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
 | `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video` |
-| `timelines` | `list_timelines`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `edit_timeline`, `validate_timeline` |
-| `sketches` | `list_sketches`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `edit_sketch`, `validate_sketch` |
-| `storyboards` | `list_storyboards`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard` |
+| `timelines` | `list_timelines`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `delete_timeline_version`, `edit_timeline`, `validate_timeline` |
+| `sketches` | `list_sketches`, `create_sketch`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `delete_sketch_version`, `edit_sketch`, `validate_sketch` |
+| `storyboards` | `list_storyboards`, `create_storyboard`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard` |
 | `scripts` | `list_scripts`, `get_script`, `voice_script_lines`, `assemble_script_timeline`, `edit_script` |
 | `memory` | `thread_memory_save`, `thread_memory_list`, `thread_memory_update`, `thread_memory_delete` |
 | `shared` | `list_shared`, `read_shared`, `share_result` |
@@ -224,7 +224,7 @@ observation envelope, and the direct set: `DIRECT_TOOL_NAMES` minus every key of
 table describes and its own `read_file` must not sit beside NodeTool's. What
 survives is discovery, the server-side reach behind NodeTool's SSRF guard and
 secrets, and `run_subtask`. Everything else on that belt is
-reachable inside an action as `tools.<name>()`, through the `nodetool.*` object
+reachable inside an action by import, through the `nodetool.*` object
 model, or found with `await nodetool.searchTools("query")`. MCP has no system
 prompt, so the guest contract leads the `execute_code` description and is also
 the server `instructions` string. The machine-readable form is
@@ -263,11 +263,21 @@ from inside an agent:
   logs, and a graph overview in one call.
 - **`debug_app`** — validate a mini app's bindings, simulate it, and return each
   widget's final state with a verdict. `run: false` is the free, instant wiring
-  check an agent runs after every edit. There is no `build_app` tool: an app is
-  built with the `ui_app_*` editor tools and graded with this one. The batch
-  harness lives on at `POST /api/applications/build` and `nodetool app build`.
-- **`run_workflow`** / **`start_background_job`** — execute synchronously or as a
-  background job (poll with `get_job` / `get_job_logs`).
+  check an agent runs after every edit.
+- **`create_app`** / **`edit_app`** — author the app itself. `create_app` makes
+  the row; `edit_app` takes a list of `{tool, input}` steps naming the same
+  `ui_app_*` tools the browser editor exposes, applies them to the saved
+  document through the headless bridge (`app-build/bridge.ts`, which the
+  `app-tools` eval and the build harness's Author stage already drive), and
+  writes the result back once. `edit_app` with no steps returns every tool and
+  its schema. Without these two the `ui_app_*` tools only existed inside a live
+  Puck editor, so a chat agent could debug an app but never build one. There is
+  still no `build_app` tool: the batch harness lives on at
+  `POST /api/applications/build` and `nodetool app build`.
+- **`run_workflow`** / **`start_background_job`** — execute synchronously, or
+  start a detached run and get its job id back at once. Poll `get_job` until it
+  settles: the settled job carries the run's `outputs`, and `get_job_logs`
+  carries its log tail and any node error.
 - **`create_workflow`**, **`search_nodes`**, **`list_nodes`**, **`get_node_info`**,
   **`get_example_workflow`**, **`export_workflow_digraph`** — build and inspect
   graphs against the live node registry.

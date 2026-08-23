@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 let tempDir: string;
@@ -19,7 +19,7 @@ afterEach(() => {
 
 function makeMockContext(): ProcessingContext {
   return {
-    workspaceStorage: new FileStorageAdapter(tempDir),
+    workspace: createLocalWorkspace(tempDir),
     resolveWorkspacePath: (p: string) => join(tempDir, p)
   } as unknown as ProcessingContext;
 }

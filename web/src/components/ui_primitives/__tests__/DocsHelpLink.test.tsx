@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { DocsHelpLink } from "../DocsHelpLink";
 import { DOCS_BASE_URL, DOCS_PATHS } from "../../../config/docsLinks";
@@ -29,5 +30,32 @@ describe("DocsHelpLink", () => {
     expect(
       screen.getByRole("link", { name: "Assets documentation" })
     ).toBeInTheDocument();
+  });
+
+  it("can render an explicit external-link action", () => {
+    renderWithTheme(
+      <DocsHelpLink
+        topic="workflows"
+        label="Workflows"
+        variant="label"
+      />
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: "Workflows documentation"
+      })
+    ).toHaveTextContent("OPEN DOCUMENTATION");
+  });
+
+  it("keeps the documentation link in the keyboard tab order", async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<DocsHelpLink topic="assets" label="Assets" />);
+
+    await user.tab();
+
+    expect(
+      screen.getByRole("link", { name: "Assets documentation" })
+    ).toHaveFocus();
   });
 });

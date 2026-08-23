@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const mockAll = jest.fn();
@@ -27,9 +27,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false } }
   });
-  return (
-    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
-  );
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 };
 
 beforeEach(() => {
@@ -45,8 +43,10 @@ beforeEach(() => {
   ]);
   useHfCacheStatusStore.setState({ statuses: {} });
   useModelManagerStore.setState({
+    source: "installed",
     modelSearchTerm: "",
     selectedModelType: "All",
+    selectedAvailability: "all",
     maxModelSizeGB: undefined
   });
 });
@@ -67,5 +67,63 @@ describe("useModels scope", () => {
       expect(result.current.allModels?.[0]?.repo_id).toBe("org/m")
     );
     expect(mockAll).not.toHaveBeenCalled();
+  });
+
+  it("counts and filters installed models by execution availability", async () => {
+    mockAll.mockResolvedValue([
+      {
+        id: "org/ready",
+        name: "Ready",
+        type: "hf.text_to_speech",
+        execution: {
+          kind: "local",
+          state: "ready",
+          label: "Local",
+          reason: "Runs on this device."
+        }
+      },
+      {
+        id: "org/unavailable",
+        name: "Unavailable",
+        type: "hf.text_to_speech",
+        execution: {
+          kind: "local",
+          state: "unavailable",
+          label: "Unavailable",
+          reason: "No compatible adapter is installed."
+        }
+      }
+    ]);
+
+    const { result } = renderHook(() => useModels(), { wrapper });
+    await waitFor(() => expect(result.current.allModels).toHaveLength(2));
+    expect(result.current.availabilityCounts).toEqual({
+      all: 2,
+      ready: 1,
+      download_required: 0,
+      unavailable: 1
+    });
+
+    act(() => useModelManagerStore.setState({ modelSearchTerm: "Ready" }));
+    await waitFor(() =>
+      expect(result.current.availabilityCounts).toEqual({
+        all: 1,
+        ready: 1,
+        download_required: 0,
+        unavailable: 0
+      })
+    );
+
+    act(() =>
+      useModelManagerStore.setState({
+        modelSearchTerm: "",
+        selectedAvailability: "unavailable"
+      })
+    );
+    await waitFor(() =>
+      expect(result.current.filteredModels.map((model) => model.id)).toEqual([
+        "org/unavailable"
+      ])
+    );
   });
 });

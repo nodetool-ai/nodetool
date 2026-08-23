@@ -60,7 +60,14 @@ describe("apps capability module", () => {
   });
 
   it("carries the wire names the tools carried", () => {
-    expect(APP_CAPABILITIES.map((e) => e.spec.name)).toEqual(["debug_app"]);
+    expect(APP_CAPABILITIES.map((e) => e.spec.name)).toEqual([
+      "debug_app",
+      "list_apps",
+      "get_app",
+      "create_app",
+      "edit_app",
+      "delete_app"
+    ]);
   });
 
   it("classifies every capability the way the gate does today", () => {
@@ -84,6 +91,100 @@ describe("apps capability module", () => {
     expect(
       byName("debug_app").userMessage?.({ application_id: "app-1", run: false })
     ).toBe("Checking app app-1 wiring");
+  });
+});
+
+describe("create_app and edit_app", () => {
+  /** The whole authoring loop a headless agent has: create, edit, read back. */
+  it("creates an app and edits it through the App Builder tools", async () => {
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Note drafter",
+      description: "Drafts a note"
+    })) as Record<string, unknown>;
+    expect(created.ok).toBe(true);
+    expect(created.id).toBe(created.application_id);
+    const id = String(created.application_id);
+
+    const edited = (await asTool("edit_app").process(ctx, {
+      application_id: id,
+      steps: [
+        {
+          tool: "add_operation",
+          input: { id: "draft", name: "Draft", target_workflow_id: "wf-1" }
+        },
+        { tool: "ui_app_add_component", input: { type: "Heading" } }
+      ]
+    })) as Record<string, unknown>;
+    expect(edited.ok).toBe(true);
+    expect(edited.saved).toBe(true);
+    expect(
+      (edited.operations as { id: string }[]).map((o) => o.id)
+    ).toEqual(["draft"]);
+    expect((edited.components as { type: string }[])[0]?.type).toBe("Heading");
+
+    // The edit is in the row, not just in the answer.
+    const read = (await asTool("get_app").process(ctx, {
+      application_id: id
+    })) as Record<string, unknown>;
+    const document = read.document as {
+      operations: { id: string }[];
+      ui: { content: { type: string }[] };
+    };
+    expect(document.operations.map((o) => o.id)).toEqual(["draft"]);
+    expect(document.ui.content.map((c) => c.type)).toEqual(["Heading"]);
+  });
+
+  it("reports a step that names no tool, and saves the rest", async () => {
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Partial"
+    })) as Record<string, unknown>;
+    const result = (await asTool("edit_app").process(ctx, {
+      application_id: String(created.application_id),
+      steps: [
+        { tool: "add_component", input: { type: "Heading" } },
+        { tool: "no_such_tool", input: {} }
+      ]
+    })) as Record<string, unknown>;
+    expect(result.ok).toBe(false);
+    expect(result.saved).toBe(true);
+    const steps = result.steps as Record<string, unknown>[];
+    expect(steps[0]?.ok).toBe(true);
+    expect(String(steps[1]?.error)).toContain("No such App Builder tool");
+  });
+
+  it("answers with the tool catalog when given no steps", async () => {
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Catalog"
+    })) as Record<string, unknown>;
+    const result = (await asTool("edit_app").process(ctx, {
+      application_id: String(created.application_id)
+    })) as Record<string, unknown>;
+    const tools = result.tools as { name: string }[];
+    expect(tools.map((tool) => tool.name)).toContain("ui_app_add_component");
+  });
+
+  it("refuses an edit written against a stale read", async () => {
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Stale"
+    })) as Record<string, unknown>;
+    const result = (await asTool("edit_app").process(ctx, {
+      application_id: String(created.application_id),
+      base_updated_at: "1999-01-01T00:00:00.000Z",
+      steps: [{ tool: "add_component", input: { type: "Heading" } }]
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("concurrency conflict");
+  });
+
+  it("reports another user's app as missing", async () => {
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Not yours"
+    })) as Record<string, unknown>;
+    const other = { userId: "user-other" } as unknown as ProcessingContext;
+    const result = (await asTool("edit_app").process(other, {
+      application_id: String(created.application_id),
+      steps: []
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("not yours");
   });
 });
 

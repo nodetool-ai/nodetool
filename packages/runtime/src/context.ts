@@ -39,6 +39,7 @@ import {
   inlineTextAssetRefs
 } from "./prompt-asset-refs.js";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
+import type { Workspace } from "./workspace.js";
 
 // `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
 // lazily so this module loads in browser / Edge runtimes. The
@@ -673,7 +674,7 @@ async function coerceEntityList(
   return out.length > 0 ? out : undefined;
 }
 
-function normalizeStorageKey(key: string): string {
+export function normalizeStorageKey(key: string): string {
   const segments: string[] = [];
   for (const segment of key.replaceAll("\\", "/").split("/")) {
     if (!segment || segment === ".") continue;
@@ -1216,6 +1217,37 @@ export function resolveWorkspacePath(
 // ProcessingContext
 // ---------------------------------------------------------------------------
 
+/**
+ * Build the run's workspace from whatever the host supplied.
+ *
+ * Hosts are migrating from `workspaceDir` (a real folder) and `workspaceStorage`
+ * (a bare adapter) to `workspace`. Accepting all three keeps the call sites
+ * working while they move, and means a consumer only ever reads
+ * `context.workspace`. Constructed lazily through a setter the storage module
+ * installs, so `context.ts` does not import the implementation and stays
+ * loadable off Node.
+ */
+type WorkspaceFactory = (opts: {
+  workspace?: Workspace | null;
+  workspaceDir?: string | null;
+  workspaceStorage?: StorageAdapter | null;
+}) => Workspace | null;
+
+let workspaceFactory: WorkspaceFactory = (opts) => opts.workspace ?? null;
+
+/** Installed once by `storage-workspace.ts`; see {@link ProcessingContext.workspace}. */
+export function setWorkspaceFactory(factory: WorkspaceFactory): void {
+  workspaceFactory = factory;
+}
+
+function resolveWorkspaceOption(opts: {
+  workspace?: Workspace | null;
+  workspaceDir?: string | null;
+  workspaceStorage?: StorageAdapter | null;
+}): Workspace | null {
+  return workspaceFactory(opts);
+}
+
 export class ProcessingContext {
   readonly jobId: string;
   readonly workflowId: string | null;
@@ -1301,7 +1333,22 @@ export class ProcessingContext {
    * If null, file-tool operations should return a clear error rather than
    * fall back to direct FS access — there is no implicit workspace.
    */
+  /**
+   * @deprecated Use {@link workspace}, which works on a cloud deployment too.
+   * Only set when a host passed a bare adapter; a host that passes a
+   * `workspace` leaves this null.
+   */
   readonly workspaceStorage: StorageAdapter | null;
+  /**
+   * The run's workspace as an interface — the way to read and write run files.
+   *
+   * Null when the host wired none, in which case a file operation must report
+   * that plainly rather than reaching for the process working directory.
+   * Prefer this over {@link workspaceDir}, which is only non-null when the
+   * workspace happens to be a real folder: a cloud run's workspace lives in
+   * object storage and has no path.
+   */
+  readonly workspace: Workspace | null;
   /**
    * Unified, structured agent memory. The single source of truth for results
    * shared between agents, tasks, steps and tools. Keys use the namespaces
@@ -1391,6 +1438,13 @@ export class ProcessingContext {
     storage?: StorageAdapter | null;
     assetStorage?: StorageAdapter | null;
     workspaceStorage?: StorageAdapter | null;
+    /**
+     * The run's workspace. Preferred over `workspaceDir`/`workspaceStorage`,
+     * which are kept for hosts that still hand over a directory or a bare
+     * adapter — either one is wrapped into a Workspace here so every consumer
+     * sees the same interface whatever the host passed.
+     */
+    workspace?: Workspace | null;
     onMessage?: (msg: ProcessingMessage) => void;
     variables?: Record<string, unknown>;
     environment?: Record<string, string>;
@@ -1428,7 +1482,8 @@ export class ProcessingContext {
     this.workflowId = opts.workflowId ?? null;
     this.threadId = opts.threadId ?? null;
     this.userId = opts.userId ?? "default";
-    this.workspaceDir = opts.workspaceDir ?? null;
+    this.workspace = resolveWorkspaceOption(opts);
+    this.workspaceDir = this.workspace?.localDir ?? opts.workspaceDir ?? null;
     this.assetOutputMode = opts.assetOutputMode ?? "native";
     this.persistOutputAssets = opts.persistOutputAssets ?? true;
     this.cache = opts.cache ?? new MemoryCache();
@@ -1744,6 +1799,20 @@ export class ProcessingContext {
     throw new Error(
       `Temp URL resolver returned an unsafe URL for '${uri}': '${resolvedUri}'`
     );
+  }
+
+  /**
+   * Whether this run can reach a secret store at all.
+   *
+   * {@link getSecret} answers `null` both for "no store is wired" and for "the
+   * store does not hold this key", which a caller asking *which* of a list of
+   * credentials exists cannot tell apart — and reporting every declared
+   * credential as missing because no store was reachable is exactly the
+   * false alarm the graph validator's `missing_secret` check refuses to raise.
+   * A host installs the availability callback only when this is true.
+   */
+  get hasSecretResolver(): boolean {
+    return this._secretResolver !== null;
   }
 
   async getSecret(key: string): Promise<string | null> {
@@ -2662,11 +2731,19 @@ export class ProcessingContext {
       // with the id, since the URN extension may differ from the one on disk
       // (e.g. jpeg vs jpg). Only reached when the exact-key lookups all miss.
       //
-      // Try a narrow prefix first (S3 treats `list(bareId)` as a raw-string
-      // prefix match — bounded to a handful of entries) before falling back to
-      // a root listing for adapters that treat the prefix as a folder path
-      // (memory/supabase). Avoids `list("")` becoming a multi-thousand-object
-      // scan on production S3 backends.
+      // Try a narrow prefix first (S3 treats `list(<owner>/<bareId>)` as a
+      // raw-string prefix match — bounded to a handful of entries) before
+      // widening. `list("")` is the last resort: it is a multi-thousand-object
+      // scan on production S3 backends, and on Supabase it lists only the
+      // bucket's immediate children — which under the owner-prefixed layout
+      // are folders, so it never sees an asset at all.
+      //
+      // The owner prefix is what makes this work for uploads. They are stored
+      // at `<userId>/<id>.<ext>`, and a ref that carries no extension
+      // (`asset://<id>`, or a bare `asset_id`) misses every exact-key lookup
+      // above. Listing the owner's own folder finds it on every adapter:
+      // hierarchical ones (file/supabase/memory) list its children, and
+      // prefix-matching ones (S3) stay scoped to that one user.
       const bareId = idCandidates[idCandidates.length - 1];
       if (bareId) {
         const tryListing = async (
@@ -2702,7 +2779,12 @@ export class ProcessingContext {
           }
           return null;
         };
-        for (const prefix of [bareId, ""]) {
+        const owner = this.userId;
+        const prefixes =
+          owner && !bareId.startsWith(`${owner}/`)
+            ? [`${owner}/${bareId}`, bareId, owner, ""]
+            : [bareId, ""];
+        for (const prefix of prefixes) {
           const bytes = await tryListing(prefix);
           if (bytes) {
             return { bytes, attempts };
@@ -3314,6 +3396,10 @@ export class ProcessingContext {
         model: req.model,
         voice: params.voice as string | undefined,
         speed: params.speed as number | undefined,
+        referenceAudio: params.reference_audio as Uint8Array | undefined,
+        referenceText: params.reference_text as string | undefined,
+        language: params.language as string | undefined,
+        instructions: params.instructions as string | undefined,
         audioFormat: params.audioFormat as string | undefined
       });
       this.emitPrediction("completed", req, id, null, undefined, startedAt);
@@ -3392,7 +3478,11 @@ export class ProcessingContext {
           text: String(params.text ?? ""),
           model: req.model,
           voice: params.voice as string | undefined,
-          speed: params.speed as number | undefined
+          speed: params.speed as number | undefined,
+          referenceAudio: params.reference_audio as Uint8Array | undefined,
+          referenceText: params.reference_text as string | undefined,
+          language: params.language as string | undefined,
+          instructions: params.instructions as string | undefined
         })) {
           yield item;
         }

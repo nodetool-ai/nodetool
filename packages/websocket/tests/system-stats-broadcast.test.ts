@@ -6,11 +6,14 @@
  * sat behind `NODE_ENV !== "production"` — the desktop backend
  * (`electron/src/server.ts`) and the Docker image both set that variable.
  *
- * These tests pin the production case specifically, so the gate cannot come
- * back as an optimization.
+ * These tests pin the production case specifically, so that gate cannot come
+ * back as an optimization. The one gate that does apply is the auth mode: a
+ * server enforcing auth broadcasts nothing, because the CPU and RAM it would
+ * report belong to a shared container rather than to the person reading them.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { unpack } from "msgpackr";
+import { systemStatsBroadcastEnabled } from "../src/system-stats.js";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
@@ -51,12 +54,13 @@ const SAMPLE = {
 };
 
 /** Runner plus a call counter for the sampler, which is what a stray timer keeps alive. */
-function makeRunner(): {
+function makeRunner(options: { systemStatsEnabled?: boolean } = {}): {
   runner: UnifiedWebSocketRunner;
   samples: () => number;
 } {
   let sampled = 0;
   const runner = new UnifiedWebSocketRunner({
+    ...options,
     getSystemStats: () => {
       sampled += 1;
       return { ...SAMPLE };
@@ -66,15 +70,41 @@ function makeRunner(): {
 }
 
 let previousNodeEnv: string | undefined;
+const previousSupabase = {
+  url: process.env.SUPABASE_URL,
+  key: process.env.SUPABASE_KEY
+};
+
+const setSupabaseEnv = (value: string | undefined): void => {
+  for (const key of ["SUPABASE_URL", "SUPABASE_KEY"] as const) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+};
 
 beforeEach(() => {
   vi.useFakeTimers();
   previousNodeEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = "production";
+  // A local install: no remote identity provider configured.
+  setSupabaseEnv(undefined);
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  for (const [key, value] of [
+    ["SUPABASE_URL", previousSupabase.url],
+    ["SUPABASE_KEY", previousSupabase.key]
+  ] as const) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
   if (previousNodeEnv === undefined) {
     delete process.env.NODE_ENV;
   } else {
@@ -121,5 +151,51 @@ describe("system stats broadcast", () => {
 
     expect(samples()).toBe(0);
     expect(statsFrames(ws)).toHaveLength(0);
+  });
+
+  // A shared deployment reports the CPU and RAM of a container the user does
+  // not own — wrong for them, and someone else's host capacity. The gate is on
+  // the auth mode, not NODE_ENV, which the desktop app and the Docker image
+  // both set to "production" while serving one user locally.
+  it("sends nothing when the server enforces auth", async () => {
+    setSupabaseEnv("configured");
+    const { runner, samples } = makeRunner();
+    const ws = new MockWS();
+    await runner.connect(ws);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(samples()).toBe(0);
+    expect(statsFrames(ws)).toHaveLength(0);
+    await runner.disconnect();
+  });
+
+  it("honors an explicit systemStatsEnabled over the auth mode", async () => {
+    setSupabaseEnv("configured");
+    const { runner } = makeRunner({ systemStatsEnabled: true });
+    const ws = new MockWS();
+    await runner.connect(ws);
+
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(statsFrames(ws)).toEqual([{ type: "system_stats", stats: SAMPLE }]);
+    await runner.disconnect();
+  });
+
+  it("honors NODETOOL_SYSTEM_STATS over the auth mode, both ways", async () => {
+    expect(
+      systemStatsBroadcastEnabled({
+        SUPABASE_URL: "u",
+        SUPABASE_KEY: "k",
+        NODETOOL_SYSTEM_STATS: "1"
+      })
+    ).toBe(true);
+    expect(systemStatsBroadcastEnabled({ NODETOOL_SYSTEM_STATS: "0" })).toBe(
+      false
+    );
+    expect(systemStatsBroadcastEnabled({})).toBe(true);
+    expect(
+      systemStatsBroadcastEnabled({ SUPABASE_URL: "u", SUPABASE_KEY: "k" })
+    ).toBe(false);
   });
 });

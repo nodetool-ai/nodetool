@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { readdir, rm, access } from "node:fs/promises";
+import { readdir, rm, access, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,6 +14,25 @@ const repoRoot = resolve(scriptDir, "..");
 // rootDir: "src" / outDir: "dist" layout from tsconfig.base.json, so a
 // dist file's source can be located by mirroring its relative path.
 const DIST_OUTPUT_SUFFIXES = [".d.ts.map", ".d.ts", ".js.map", ".js"];
+
+// Marker written into dist/ after every successful build. `tsc --build` is
+// content-based: a source file whose mtime moved (a checkout, a stash pop, a
+// no-op save) is re-checked but not re-emitted, so its output stays older than
+// its input forever. Any mtime check against the outputs therefore reports a
+// freshly built package as stale. Callers compare against this stamp instead,
+// which a build always advances. `pruneOrphanedDistOutputs` leaves it alone —
+// it only removes files ending in DIST_OUTPUT_SUFFIXES.
+export const BUILD_STAMP_FILENAME = ".nodetool-build-stamp";
+
+export function buildStampPath(workspaceDir) {
+  return resolve(workspaceDir, "dist", BUILD_STAMP_FILENAME);
+}
+
+export async function writeBuildStamp(workspaceDir) {
+  const stampPath = buildStampPath(workspaceDir);
+  await mkdir(dirname(stampPath), { recursive: true });
+  await writeFile(stampPath, `${new Date().toISOString()}\n`);
+}
 
 async function pathExists(path) {
   try {
@@ -96,13 +115,16 @@ export async function prepareTypeScriptWorkspaceBuild(workspaceDir, execute = ru
   // prune those after the build instead of wiping dist/ up front, so already
   // up-to-date outputs stay available throughout and only genuinely orphaned
   // files disappear.
-  const { command, args } = getTypeScriptBuildCommand(repoRoot);
+  const { command, args } = getTypeScriptBuildCommand(repoRoot, {
+    force: process.env.NODETOOL_FORCE_TSC_BUILD === "1",
+  });
   await execute(command, args, {
     cwd: workspaceDir,
     env: typeScriptBuildEnv(),
   });
 
   await pruneOrphanedDistOutputs(workspaceDir);
+  await writeBuildStamp(workspaceDir);
 }
 
 /** Default V8 heap (MiB) for `tsc --build` child processes. Override with NODETOOL_TSC_HEAP_MB. */
@@ -123,10 +145,17 @@ export function typeScriptBuildEnv(baseEnv = process.env) {
   };
 }
 
-export function getTypeScriptBuildCommand(rootDir = repoRoot) {
+export function getTypeScriptBuildCommand(
+  rootDir = repoRoot,
+  { force = false } = {}
+) {
   return {
     command: process.execPath,
-    args: [resolve(rootDir, "node_modules", "typescript", "bin", "tsc"), "--build"]
+    args: [
+      resolve(rootDir, "node_modules", "typescript", "bin", "tsc"),
+      "--build",
+      ...(force ? ["--force"] : []),
+    ]
   };
 }
 

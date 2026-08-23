@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
-import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
+import {
+  getRegisteredProvider,
+  listRegisteredProviderIds,
+  RECOMMENDED_MODELS
+} from "@nodetool-ai/runtime";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 import {
   sdkV1ModelCatalog,
@@ -14,17 +18,12 @@ import {
   getAvailableProviderIds
 } from "../trpc/routers/models.js";
 import { getExistingDownloadManager } from "@nodetool-ai/huggingface";
-
-const LOCAL_PROVIDER_IDS = new Set([
-  "huggingface",
-  "llama_cpp",
-  "node_llama_cpp",
-  "ollama",
-  "transformers_js"
-]);
+import {
+  resolveModelExecutionAvailability,
+  type ProviderExecutionInfo
+} from "../model-execution-availability.js";
 
 type CatalogProjectionOptions = {
-  configuredProviderIds: ReadonlySet<string>;
   downloadingRepoIds?: ReadonlySet<string>;
   recommendedModels?: readonly UnifiedModel[];
 };
@@ -91,15 +90,10 @@ function availabilityFor(
 ): SdkV1ModelAvailability {
   const repoId = sourceId(model);
   if (options.downloadingRepoIds?.has(repoId)) return "downloading";
-  if (model.downloaded === true || Boolean(model.cache_path)) {
-    return "ready_local";
-  }
-  if (
-    model.provider &&
-    options.configuredProviderIds.has(model.provider) &&
-    !LOCAL_PROVIDER_IDS.has(model.provider)
-  ) {
-    return "ready_remote";
+  if (model.execution) {
+    if (model.execution.state === "download_required") return "downloadable";
+    if (model.execution.state === "unavailable") return "unavailable";
+    return model.execution.kind === "api" ? "ready_remote" : "ready_local";
   }
   if (recommended && isRepositoryModel(model.type || "unknown")) {
     return "downloadable";
@@ -209,6 +203,22 @@ function dedupeCatalogModels(models: readonly UnifiedModel[]): UnifiedModel[] {
   return [...byKey.values()];
 }
 
+function providerExecutionMap(
+  configuredProviderIds: readonly string[]
+): Map<string, ProviderExecutionInfo> {
+  const configured = new Set(configuredProviderIds);
+  const providers = new Map<string, ProviderExecutionInfo>();
+  for (const providerId of listRegisteredProviderIds()) {
+    const metadata = getRegisteredProvider(providerId)?.metadata;
+    if (!metadata) continue;
+    providers.set(providerId, {
+      ...metadata,
+      configured: configured.has(providerId)
+    });
+  }
+  return providers;
+}
+
 export async function getSdkV1ModelCatalog(args: {
   userId: string;
   query: SdkV1ModelCatalogQuery;
@@ -220,7 +230,6 @@ export async function getSdkV1ModelCatalog(args: {
 }): Promise<SdkV1ModelCatalog> {
   let availableModels: readonly UnifiedModel[];
   let providerCatalogModels: readonly UnifiedModel[];
-  let providerIds: readonly string[];
   if (args.query.scope === "worker") {
     if (!args.getWorkerModels) {
       throw new SdkModelCatalogServiceError(
@@ -229,15 +238,20 @@ export async function getSdkV1ModelCatalog(args: {
     }
     availableModels = await args.getWorkerModels();
     providerCatalogModels = [];
-    providerIds = [];
   } else {
-    [availableModels, providerCatalogModels, providerIds] = await Promise.all([
-      getAllModels(args.userId),
-      (args.getProviderCatalogModels ?? getCachedProviderCatalogModels)(
-        args.userId
-      ),
-      getAvailableProviderIds(args.userId)
-    ]);
+    const [localModels, catalogModels, configuredProviderIds] =
+      await Promise.all([
+        getAllModels(args.userId),
+        (args.getProviderCatalogModels ?? getCachedProviderCatalogModels)(
+          args.userId
+        ),
+        getAvailableProviderIds(args.userId)
+      ]);
+    availableModels = localModels;
+    providerCatalogModels = resolveModelExecutionAvailability(
+      catalogModels,
+      providerExecutionMap(configuredProviderIds)
+    );
   }
   const recommendedModels = [
     ...RECOMMENDED_MODELS,
@@ -269,7 +283,6 @@ export async function getSdkV1ModelCatalog(args: {
   }
 
   return projectSdkModelCatalog(models, args.query, {
-    configuredProviderIds: new Set(providerIds),
     downloadingRepoIds,
     recommendedModels
   });

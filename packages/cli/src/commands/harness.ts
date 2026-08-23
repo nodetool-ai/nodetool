@@ -18,6 +18,16 @@ import {
   planGate,
   type GatePlan
 } from "../harness/registry.js";
+import {
+  auditCapabilityCoverage,
+  planCapabilityMappingGate
+} from "../harness/capability-coverage.js";
+import { CAPABILITY_COVERAGE } from "../harness/capability-table.js";
+import { declaredCapabilities } from "../harness/declared-capabilities.js";
+
+/** Where the coverage table lives, as git sees it. */
+const CAPABILITY_TABLE_PATH =
+  "packages/cli/src/harness/capability-table.ts";
 
 export function registerHarnessCommands(program: Command): void {
   const harness = program
@@ -101,6 +111,65 @@ export function registerHarnessCommands(program: Command): void {
     });
 
   harness
+    .command("capabilities")
+    .description(
+      "Audit capability coverage: every capability needs a suite, an eval case, or a gap note"
+    )
+    .option("--json", "Print the audit result as JSON")
+    .option("--strict", "Exit non-zero while any capability gap remains")
+    .action((opts: { json?: boolean; strict?: boolean }) => {
+      const result = auditCapabilityCoverage(
+        declaredCapabilities(),
+        CAPABILITY_COVERAGE,
+        HARNESSES
+      );
+
+      if (opts.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(
+          `\nCapability coverage: ${result.coveredCount}/${result.rows.length} covered, ${result.gapCount} gap(s)\n`
+        );
+        for (const row of result.rows) {
+          if (!row.covered) {
+            console.log(`  GAP  ${row.name.padEnd(32)} ${row.module}`);
+          }
+        }
+        const gaps = result.rows.filter((r) => !r.covered);
+        if (gaps.length > 0) {
+          console.log("\nDocumented gaps:");
+          for (const row of gaps) console.log(`\n  ${row.name}: ${row.gap}`);
+        }
+        for (const [label, list] of [
+          ["Capabilities with no entry", result.unmapped],
+          ["Entries naming no capability", result.stale],
+          ["Entries with no coverage and no gap note", result.undocumentedGaps],
+          ["Entries naming an unknown selfcheck", result.unknownSelfchecks],
+          ["Entries claiming a selfcheck with no suite", result.selfchecksWithoutSuites],
+          ["Contract drift", result.contractDrift],
+          ["Module mismatches", result.moduleMismatches],
+          ["Duplicate entries", result.duplicates]
+        ] as const) {
+          if (list.length > 0) console.log(`\n${label}: ${list.join(", ")}`);
+        }
+        console.log("");
+      }
+
+      const broken =
+        result.unmapped.length > 0 ||
+        result.stale.length > 0 ||
+        result.undocumentedGaps.length > 0 ||
+        result.unknownSelfchecks.length > 0 ||
+        result.selfchecksWithoutSuites.length > 0 ||
+        result.contractDrift.length > 0 ||
+        result.moduleMismatches.length > 0 ||
+        result.duplicates.length > 0;
+      if (broken || (opts.strict && result.gapCount > 0)) {
+        process.exit(1);
+      }
+    });
+
+  harness
     .command("gate [files...]")
     .description(
       "Map a diff to touched surfaces and run their harnesses' selfchecks"
@@ -151,6 +220,16 @@ export function registerHarnessCommands(program: Command): void {
                 .filter(Boolean);
         }
 
+        const mappingViolations = opts.all
+          ? []
+          : await capabilityMappingViolations(repoRoot, opts.base ?? "HEAD");
+        if (!opts.json && mappingViolations.length > 0) {
+          console.log(
+            "\nCapability mapping violations (harness capabilities):"
+          );
+          for (const v of mappingViolations) console.log(`  ${v}`);
+        }
+
         const plan: GatePlan = opts.all
           ? {
               changedFiles: [],
@@ -179,8 +258,15 @@ export function registerHarnessCommands(program: Command): void {
         }
 
         if (opts.dryRun) {
-          if (opts.json) console.log(JSON.stringify({ plan }, null, 2));
-          if (opts.strict && plan.uncoveredSurfaces.length > 0) process.exit(1);
+          if (opts.json) {
+            console.log(JSON.stringify({ plan, mappingViolations }, null, 2));
+          }
+          if (
+            mappingViolations.length > 0 ||
+            (opts.strict && plan.uncoveredSurfaces.length > 0)
+          ) {
+            process.exit(1);
+          }
           return;
         }
 
@@ -224,7 +310,9 @@ export function registerHarnessCommands(program: Command): void {
 
         const failed = results.filter((r) => !r.ok);
         if (opts.json) {
-          console.log(JSON.stringify({ plan, results }, null, 2));
+          console.log(
+            JSON.stringify({ plan, results, mappingViolations }, null, 2)
+          );
         } else if (toRun.length > 0) {
           console.log(
             `\nGate: ${results.length - failed.length}/${results.length} selfchecks passed`
@@ -237,6 +325,7 @@ export function registerHarnessCommands(program: Command): void {
 
         if (
           failed.length > 0 ||
+          mappingViolations.length > 0 ||
           (opts.strict && plan.uncoveredSurfaces.length > 0)
         ) {
           process.exit(1);
@@ -287,5 +376,44 @@ function printGatePlan(
   }
   console.log(
     `\n${runCount} selfcheck(s) to run${skippedExpensive > 0 ? ` (${skippedExpensive} expensive skipped — pass --expensive)` : ""}`
+  );
+}
+
+/**
+ * A capability whose declared contract moved without its coverage mapping
+ * moving with it. Adding a capability, or changing what one promises, means
+ * saying which eval case or suite covers the new contract — a refactor that
+ * leaves the contract alone says nothing and runs the mapped checks as usual.
+ */
+async function capabilityMappingViolations(
+  repoRoot: string,
+  baseRef: string
+): Promise<string[]> {
+  const { execSync } = await import("node:child_process");
+  const { readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+
+  const atRef = (ref: string): string | null => {
+    try {
+      return execSync(`git show ${ref}:${CAPABILITY_TABLE_PATH}`, {
+        cwd: repoRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"]
+      });
+    } catch {
+      // The table does not exist at that ref — every entry is new.
+      return null;
+    }
+  };
+
+  let working: string;
+  try {
+    working = readFileSync(join(repoRoot, CAPABILITY_TABLE_PATH), "utf8");
+  } catch {
+    // Running from a package without the source tree; nothing to compare.
+    return [];
+  }
+  return planCapabilityMappingGate(atRef(baseRef), working).violations.map(
+    (v) => v.detail
   );
 }

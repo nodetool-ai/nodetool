@@ -14,7 +14,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 
 import {
-  FileStorageAdapter,
+  createLocalWorkspace,
   ProcessingContext,
   type BaseProvider
 } from "@nodetool-ai/runtime";
@@ -26,6 +26,7 @@ import {
 } from "@nodetool-ai/agents";
 import { initDb, getSecret } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
+import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 import { createProvider, buildConfiguredProviders } from "../providers.js";
 import { buildFullRegistry } from "../node-registry.js";
 import { mcpToolHostDeps } from "@nodetool-ai/websocket";
@@ -279,8 +280,7 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
   const ctx = new ProcessingContext({
     jobId: `agent-${Date.now()}`,
     userId: "1",
-    workspaceDir,
-    workspaceStorage: new FileStorageAdapter(workspaceDir),
+    workspace: createLocalWorkspace(workspaceDir),
     secretResolver: getSecret
   });
   for (const [id, p] of Object.entries(configuredProviders)) {
@@ -401,7 +401,13 @@ async function fetchJob(
     const client = createTRPCClient<Router>({
       // methodOverride POST keeps batched input in the body, not the URL, so
       // large batches stay under reverse-proxy URL-length limits. See #3979.
-      links: [httpBatchLink({ url: `${apiUrl}/trpc`, methodOverride: "POST" })]
+      links: [
+        httpBatchLink({
+          url: `${apiUrl}/trpc`,
+          maxItems: TRPC_MAX_BATCH_SIZE,
+          methodOverride: "POST"
+        })
+      ]
     });
     const data = await client.jobs.get.query({ id: jobId });
     return {

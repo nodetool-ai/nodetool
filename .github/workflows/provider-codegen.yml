@@ -1,0 +1,84 @@
+name: Provider Codegen
+
+# Detects drift in generated provider metadata.
+#
+# The FAL and KIE generators normally read live schemas and live pricing, so
+# their output is not reproducible and nothing catches a generator change that
+# silently moves a node's type, default, or enum. Fixture mode fixes that: it
+# reads only the schema fixtures checked in under
+# `packages/{fal,kie}-codegen/fixtures/`, writes the outputs the generator
+# manifest declares into a temporary directory, and diffs them against the
+# expected files next to the fixtures. No network, no pricing, no timestamps.
+#
+# Live refresh stays where it was — `npm run generate:fal` / `generate:kie`.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/fal-codegen/**"
+      - "packages/kie-codegen/**"
+      - "packages/node-sdk/**"
+      - "scripts/provider-codegen-check.mjs"
+      - ".github/workflows/provider-codegen.yml"
+  pull_request:
+    paths:
+      - "packages/fal-codegen/**"
+      - "packages/kie-codegen/**"
+      - "packages/node-sdk/**"
+      - "scripts/provider-codegen-check.mjs"
+      - ".github/workflows/provider-codegen.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-codegen-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Fixture-mode generation matches the checked-in output
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build backend packages
+        # Both generators import `@nodetool-ai/node-sdk` from `dist/`.
+        run: npm run build:packages
+
+      - name: Check FAL generated metadata
+        run: npm run generate:fal:check -- --strict --report fal-codegen-report.json
+
+      - name: Check KIE generated metadata
+        run: npm run generate:kie:check -- --strict --report kie-codegen-report.json
+
+      - name: Assert each check compared at least one file
+        # A gate that compares nothing reports green. Read the count back from
+        # each report rather than trusting the exit code alone.
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            let failed = false;
+            for (const provider of ["fal", "kie"]) {
+              const report = JSON.parse(
+                readFileSync(`${provider}-codegen-report.json`, "utf8")
+              );
+              console.log(
+                `${provider}: compared ${report.compared} file(s), ok=${report.ok}`
+              );
+              if (!report.ok || report.compared < 1) failed = true;
+            }
+            if (failed) process.exit(1);
+          '

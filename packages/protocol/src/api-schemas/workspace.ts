@@ -8,6 +8,8 @@ export const workspaceResponse = z.object({
   name: z.string(),
   path: z.string(),
   is_default: z.boolean(),
+  /** True when NodeTool owns this folder (the default one it creates itself). */
+  is_managed: z.boolean(),
   is_accessible: z.boolean(),
   created_at: z.string(),
   updated_at: z.string()
@@ -22,6 +24,11 @@ export type ListInput = z.infer<typeof listInput>;
 
 export const listOutput = z.object({
   workspaces: z.array(workspaceResponse),
+  /**
+   * Whether this deployment lets the user point a workspace at a host folder.
+   * False in the cloud, where the managed workspace is the only one.
+   */
+  can_manage: z.boolean(),
   next: z.string().nullable()
 });
 export type ListOutput = z.infer<typeof listOutput>;

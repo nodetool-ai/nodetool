@@ -24,6 +24,8 @@ import { lastRunByWorkflow } from "./runStatus";
 import RecentWorkflowCard from "./RecentWorkflowCard";
 import WorkflowListView from "../workflows/WorkflowListView";
 import WorkflowDeleteDialog from "../workflows/WorkflowDeleteDialog";
+import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
+import ContextMenus from "../context_menus/ContextMenus";
 import {
   useSectionWrap,
   SectionHeader,
@@ -336,20 +338,25 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
             onAction={onCreateNew}
           />
         ) : (
-          <div className="rec-list">
-            <WorkflowListView
-              workflows={filtered}
-              onOpenWorkflow={handleOpen}
-              onDuplicateWorkflow={handleDuplicate}
-              onDelete={handleDelete}
-              onEdit={noop}
-              onRename={handleRename}
-              onSelect={noop}
-              selectedWorkflows={[]}
-              workflowCategory="user"
-              showCheckboxes={false}
-            />
-          </div>
+          // WorkflowListItem opens the workflow context menu on right-click,
+          // and the dashboard sits outside the editor panels that provide it.
+          <ContextMenuProvider>
+            <ContextMenus />
+            <div className="rec-list">
+              <WorkflowListView
+                workflows={filtered}
+                onOpenWorkflow={handleOpen}
+                onDuplicateWorkflow={handleDuplicate}
+                onDelete={handleDelete}
+                onEdit={noop}
+                onRename={handleRename}
+                onSelect={noop}
+                selectedWorkflows={[]}
+                workflowCategory="user"
+                showCheckboxes={false}
+              />
+            </div>
+          </ContextMenuProvider>
         )}
       </div>
     </section>

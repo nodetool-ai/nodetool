@@ -19,6 +19,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { JsonSchema } from "@nodetool-ai/runtime";
 import type { ZodType } from "zod";
 import { Tool } from "../tools/base-tool.js";
+import { withSnakeCaseAliases } from "./args.js";
 import { capabilitySpec, loadCapabilityImpl } from "./registry.js";
 import { ungatedCapabilityRun } from "./invoke.js";
 import type { CapabilityRunSource } from "./adapters.js";
@@ -67,7 +68,7 @@ class LazyCapabilityTool extends Tool {
       isFunction(this.runSource)
         ? this.runSource(context)
         : this.runSource;
-    return impl(run, params);
+    return impl(run, withSnakeCaseAliases(params));
   }
 }
 

@@ -280,10 +280,14 @@ const ParamRow: React.FC<ParamRowProps> = memo(
       };
     }, []);
 
+    // Dragging the slider re-renders this row once per animation frame.
+    const labelCss = useMemo(() => paramLabelStyles(theme), [theme]);
+    const valueCss = useMemo(() => paramValueStyles(theme), [theme]);
+
     const display = format ? format(value) : value.toFixed(step < 1 ? 2 : 0);
     return (
       <FlexRow css={paramRowStyles}>
-        <span css={paramLabelStyles(theme)}>{label}</span>
+        <span css={labelCss}>{label}</span>
         <NodeSlider
           value={value}
           min={min}
@@ -294,7 +298,7 @@ const ParamRow: React.FC<ParamRowProps> = memo(
           onChangeCommitted={handleChangeCommitted}
           sx={{ flex: 1 }}
         />
-        <span css={paramValueStyles(theme)}>
+        <span css={valueCss}>
           {display}
           {unit ? ` ${unit}` : ""}
         </span>
@@ -708,10 +712,12 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
     { band: "high", freq: effect.highFreq, gainDb: effect.highGainDb }
   ];
 
+  const svgCss = useMemo(() => eqCurveStyles(theme), [theme]);
+
   return (
     <svg
       ref={svgRef}
-      css={eqCurveStyles(theme)}
+      css={svgCss}
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
       onPointerMove={handlePointerMove}
@@ -846,40 +852,55 @@ const Eq3Editor: React.FC<EffectEditorProps<TrackEq3Effect>> = ({
   disabled
 }) => {
   const theme = useTheme();
+  // Dragging a band re-renders this per frame; the row style alone was
+  // serialized seven times each render.
+  const rowCss = useMemo(() => readoutRowStyles(theme), [theme]);
+  const lowCss = useMemo(
+    () => bandReadoutStyles(theme, BAND_COLORS.low),
+    [theme]
+  );
+  const midCss = useMemo(
+    () => bandReadoutStyles(theme, BAND_COLORS.mid),
+    [theme]
+  );
+  const highCss = useMemo(
+    () => bandReadoutStyles(theme, BAND_COLORS.high),
+    [theme]
+  );
   return (
     <FlexColumn gap={1}>
       <Eq3Curve effect={effect} onPatch={onPatch} disabled={disabled} />
       <FlexRow gap={0.5}>
-        <div css={bandReadoutStyles(theme, BAND_COLORS.low)}>
-          <div css={readoutRowStyles(theme)}>
+        <div css={lowCss}>
+          <div css={rowCss}>
             <span>Low shelf</span>
             <b>{effect.lowGainDb >= 0 ? "+" : ""}{effect.lowGainDb.toFixed(1)} dB</b>
           </div>
-          <div css={readoutRowStyles(theme)}>
+          <div css={rowCss}>
             <span>Freq</span>
             <b>{formatHz(effect.lowFreq)}</b>
           </div>
         </div>
-        <div css={bandReadoutStyles(theme, BAND_COLORS.mid)}>
-          <div css={readoutRowStyles(theme)}>
+        <div css={midCss}>
+          <div css={rowCss}>
             <span>Mid peak</span>
             <b>{effect.midGainDb >= 0 ? "+" : ""}{effect.midGainDb.toFixed(1)} dB</b>
           </div>
-          <div css={readoutRowStyles(theme)}>
+          <div css={rowCss}>
             <span>Freq</span>
             <b>{formatHz(effect.midFreq)}</b>
           </div>
-          <div css={readoutRowStyles(theme)}>
+          <div css={rowCss}>
             <span>Q</span>
             <b>{effect.midQ.toFixed(2)}</b>
           </div>
         </div>
-        <div css={bandReadoutStyles(theme, BAND_COLORS.high)}>
-          <div css={readoutRowStyles(theme)}>
+        <div css={highCss}>
+          <div css={rowCss}>
             <span>High shelf</span>
             <b>{effect.highGainDb >= 0 ? "+" : ""}{effect.highGainDb.toFixed(1)} dB</b>
           </div>
-          <div css={readoutRowStyles(theme)}>
+          <div css={rowCss}>
             <span>Freq</span>
             <b>{formatHz(effect.highFreq)}</b>
           </div>
@@ -1253,10 +1274,12 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
   const gridColor = theme.vars.palette.divider;
   const labelColor = theme.vars.palette.text.disabled;
 
+  const svgCss = useMemo(() => compGraphStyles(theme), [theme]);
+
   return (
     <svg
       ref={svgRef}
-      css={compGraphStyles(theme)}
+      css={svgCss}
       viewBox={`0 0 ${size} ${size}`}
       preserveAspectRatio="none"
       onPointerMove={onMove}
@@ -1417,6 +1440,20 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
   disabled
 }) => {
   const theme = useTheme();
+  // Dragging the transfer curve re-renders this per frame; the four tiles cost
+  // thirteen serializations each time.
+  const gridCss = useMemo(() => compReadoutGridStyles(theme), [theme]);
+  const threshTileCss = useMemo(
+    () => compTileStyles(theme, COMP_THRESH_COLOR),
+    [theme]
+  );
+  const accentTileCss = useMemo(
+    () => compTileStyles(theme, COMP_ACCENT),
+    [theme]
+  );
+  const plainTileCss = useMemo(() => compTileStyles(theme), [theme]);
+  const tileLabelCss = useMemo(() => compTileLabelStyles(theme), [theme]);
+  const tileValueCss = useMemo(() => compTileValueStyles(theme), [theme]);
   return (
     <FlexColumn gap={1}>
       <FlexRow gap={1} align="stretch">
@@ -1425,28 +1462,28 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
           onPatch={onPatch}
           disabled={disabled}
         />
-        <div css={compReadoutGridStyles(theme)}>
-          <div css={compTileStyles(theme, COMP_THRESH_COLOR)}>
-            <span css={compTileLabelStyles(theme)}>Threshold</span>
-            <span css={compTileValueStyles(theme)}>
+        <div css={gridCss}>
+          <div css={threshTileCss}>
+            <span css={tileLabelCss}>Threshold</span>
+            <span css={tileValueCss}>
               {effect.thresholdDb.toFixed(1)} dB
             </span>
           </div>
-          <div css={compTileStyles(theme, COMP_ACCENT)}>
-            <span css={compTileLabelStyles(theme)}>Ratio</span>
-            <span css={compTileValueStyles(theme)}>
+          <div css={accentTileCss}>
+            <span css={tileLabelCss}>Ratio</span>
+            <span css={tileValueCss}>
               {effect.ratio.toFixed(1)}:1
             </span>
           </div>
-          <div css={compTileStyles(theme)}>
-            <span css={compTileLabelStyles(theme)}>Knee</span>
-            <span css={compTileValueStyles(theme)}>
+          <div css={plainTileCss}>
+            <span css={tileLabelCss}>Knee</span>
+            <span css={tileValueCss}>
               {effect.kneeDb.toFixed(1)} dB
             </span>
           </div>
-          <div css={compTileStyles(theme)}>
-            <span css={compTileLabelStyles(theme)}>Attack</span>
-            <span css={compTileValueStyles(theme)}>
+          <div css={plainTileCss}>
+            <span css={tileLabelCss}>Attack</span>
+            <span css={tileValueCss}>
               {formatMs(effect.attackMs)}
             </span>
           </div>
@@ -1880,14 +1917,20 @@ const EffectCard: React.FC<EffectCardProps> = memo(
 
     const disabled = !effect.enabled;
 
+    // `effect` is a new object every knob frame, so the card re-renders; none
+    // of these three styles read a parameter value.
+    const effectType = effect.type;
+    const cardCss = useMemo(
+      () =>
+        effectCardStyles(theme, DEVICE_WIDTHS[effectType], dragOver, dragging),
+      [theme, effectType, dragOver, dragging]
+    );
+    const gripCss = useMemo(() => dragHandleStyles(theme), [theme]);
+    const removeButtonCss = useMemo(() => iconButtonStyles(theme), [theme]);
+
     return (
       <div
-        css={effectCardStyles(
-          theme,
-          DEVICE_WIDTHS[effect.type],
-          dragOver,
-          dragging
-        )}
+        css={cardCss}
         data-testid={`effect-${effect.id}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -1897,7 +1940,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
           <FlexRow gap={0.5} align="center">
             <Tooltip title="Drag to reorder">
               <div
-                css={dragHandleStyles(theme)}
+                css={gripCss}
                 draggable
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
@@ -1919,7 +1962,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
             <Tooltip title="Remove effect">
               <button
                 type="button"
-                css={iconButtonStyles(theme)}
+                css={removeButtonCss}
                 onClick={handleRemove}
                 aria-label="Remove effect"
               >

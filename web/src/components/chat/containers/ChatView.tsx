@@ -30,6 +30,7 @@ import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
 import { ThreadMemorySidebar } from "../sidebar/ThreadMemorySidebar";
+import { TaskUpdateSidebar } from "../sidebar/TaskUpdateSidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useThreadMemoryPanelStore } from "../../../stores/ThreadMemoryPanelStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -283,15 +284,25 @@ const ChatView = ({
   const effectiveThreadId = useGlobalChatStore(
     (state) => threadId ?? state.currentThreadId
   );
-  // The two rails are 280px and 300px of fixed width. Below `md` they leave
-  // the conversation itself almost no room, so they drop out entirely on
-  // phones and narrow panels.
+  // Right rails use fixed widths. Below `md` they leave the conversation
+  // almost no room, so they drop out entirely on phones and narrow panels.
   const railsFit = useMediaQuery(theme.breakpoints.up("md"));
-  const showTodoSidebar = railsFit && todos.length > 0;
+  const hasAgentExecutionMessages = useMemo(
+    () => messages.some((message) => message.role === "agent_execution"),
+    [messages]
+  );
+  const isBusy = status === "loading" || status === "streaming";
+  const showTaskSidebar =
+    railsFit &&
+    isBusy &&
+    Boolean(currentTaskUpdate) &&
+    !hasAgentExecutionMessages;
+  const showTodoSidebar = railsFit && !showTaskSidebar && todos.length > 0;
   const memoryPanelOpen = useThreadMemoryPanelStore((state) => state.isOpen);
   const toggleMemoryPanel = useThreadMemoryPanelStore((state) => state.toggle);
   const closeMemoryPanel = useThreadMemoryPanelStore((state) => state.setOpen);
-  const canShowMemorySidebar = railsFit && Boolean(effectiveThreadId);
+  const canShowMemorySidebar =
+    railsFit && !showTaskSidebar && Boolean(effectiveThreadId);
 
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
@@ -359,6 +370,7 @@ const ChatView = ({
               currentTaskUpdate={currentTaskUpdate}
               currentLogUpdate={currentLogUpdate}
               onInsertCode={onInsertCode}
+              showTaskUpdate={false}
             />
           ) : (
             noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
@@ -385,6 +397,9 @@ const ChatView = ({
           threadId={effectiveThreadId}
         />
       </div>
+      {showTaskSidebar && currentTaskUpdate && (
+        <TaskUpdateSidebar taskUpdate={currentTaskUpdate} />
+      )}
       {showTodoSidebar && <TodoSidebar todos={todos} />}
       {canShowMemorySidebar && memoryPanelOpen && effectiveThreadId && (
         <ThreadMemorySidebar

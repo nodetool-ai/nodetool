@@ -20,6 +20,8 @@ import { createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workerInstances } from "./schema/workers.js";
 
+export type WorkerTarget = "runpod" | "vast";
+
 /**
  * Salt for worker-token encryption. Worker tokens are not user-scoped (the
  * registry is a desktop-wide singleton), so a fixed namespace stands in for the
@@ -53,12 +55,13 @@ export type WorkerStatus =
   | "attached"
   | "stopping"
   | "stopped"
+  | "terminated"
   | "error";
 
 export interface WorkerInstance {
   id: string;
   profile_name: string;
-  target: string;
+  target: WorkerTarget;
   provider_ref: string;
   ws_url: string;
   /**
@@ -67,7 +70,7 @@ export interface WorkerInstance {
    * `listWorkerInstances` return `null` so credentials never leak in batch.
    */
   token: string | null;
-  status: string;
+  status: WorkerStatus;
   attached_to: string | null;
   created_at: string;
   last_activity_at: string;
@@ -76,7 +79,7 @@ export interface WorkerInstance {
 
 export interface CreateWorkerInstanceInput {
   profile_name: string;
-  target: string;
+  target: WorkerTarget;
   provider_ref: string;
   ws_url: string;
   token?: string | null;
@@ -193,9 +196,7 @@ export async function updateWorkerInstance(
 }
 
 /** Update only `last_activity_at` to now. Throws when missing. */
-export async function touchWorkerInstance(
-  id: string
-): Promise<WorkerInstance> {
+export async function touchWorkerInstance(id: string): Promise<WorkerInstance> {
   const existing = await getWorkerInstance(id);
   if (!existing) {
     throw new Error(`Worker instance not found: ${id}`);
@@ -222,17 +223,15 @@ export async function deleteWorkerInstance(id: string): Promise<void> {
  * is encrypted at rest; only `getWorkerInstance` decrypts it on demand, so bulk
  * paths like `listWorkerInstances` never expose bearer credentials.
  */
-function toInstance(
-  row: typeof workerInstances.$inferSelect
-): WorkerInstance {
+function toInstance(row: typeof workerInstances.$inferSelect): WorkerInstance {
   return {
     id: row.id,
     profile_name: row.profile_name,
-    target: row.target,
+    target: row.target as WorkerTarget,
     provider_ref: row.provider_ref,
     ws_url: row.ws_url,
     token: null,
-    status: row.status,
+    status: row.status as WorkerStatus,
     attached_to: row.attached_to,
     created_at: row.created_at,
     last_activity_at: row.last_activity_at,

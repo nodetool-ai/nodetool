@@ -21,6 +21,7 @@ import type {
   ProviderToolResult,
   EncodedAudioResult,
   TextToMusicParams,
+  TextToSpeechParams,
   RelightImageParams,
   RemoveBackgroundParams,
   StreamingAudioChunk,
@@ -1337,17 +1338,9 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support vectorizeImage`);
   }
 
-  async *textToSpeech(_args: {
-    text: string;
-    model: string;
-    voice?: string;
-    speed?: number;
-    /**
-     * Requested output container. Providers that stream raw PCM may ignore
-     * this hint; the caller is responsible for wrapping/encoding the result.
-     */
-    audioFormat?: string;
-  }): AsyncGenerator<StreamingAudioChunk> {
+  async *textToSpeech(
+    _args: TextToSpeechParams
+  ): AsyncGenerator<StreamingAudioChunk> {
     yield* [];
     throw new Error(`${this.provider} does not support textToSpeech`);
   }
@@ -1361,13 +1354,9 @@ export abstract class BaseProvider {
    * when possible and fall back to their default when the format is not
    * supported. The returned `mimeType` reflects the actual bytes produced.
    */
-  async textToSpeechEncoded(_args: {
-    text: string;
-    model: string;
-    voice?: string;
-    speed?: number;
-    audioFormat?: string;
-  }): Promise<EncodedAudioResult | null> {
+  async textToSpeechEncoded(
+    _args: TextToSpeechParams
+  ): Promise<EncodedAudioResult | null> {
     return null;
   }
 

@@ -19,6 +19,14 @@ const styles = (theme: Theme) =>
       "&:hover": {
         transform: "rotate(20deg)"
       }
+    },
+    ".MuiSwitch-thumb": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    ".MuiSwitch-switchBase .MuiSvgIcon-root": {
+      fontSize: "var(--fontSizeSmall)"
     }
   });
 

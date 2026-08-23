@@ -35,7 +35,10 @@ import {
   SPACING,
   SPACING_PX,
   TYPOGRAPHY,
-  reducedMotion
+  reducedMotion,
+  AudioPlayback,
+  ResponsiveImage,
+  VideoPlayer
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
@@ -149,49 +152,37 @@ const ImageItem: React.FC<{ src: string; fit?: string; height: number }> = ({
   src,
   fit,
   height
-}) => {
-  const resolved = useResolvedMediaUri(src);
-  return (
-    <Box
-      component="img"
-      src={resolved}
-      alt=""
-      sx={{
-        width: "100%",
-        height,
-        objectFit: fit === "cover" ? "cover" : "contain",
-        borderRadius: BORDER_RADIUS.md
-      }}
-    />
-  );
-};
+}) => (
+  <ResponsiveImage
+    locator={src}
+    alt=""
+    fit={fit === "cover" ? "cover" : "contain"}
+    borderRadius={BORDER_RADIUS.md}
+    sx={{ height }}
+  />
+);
 
-const AudioItem: React.FC<{ src: string }> = ({ src }) => {
-  const resolved = useResolvedMediaUri(src);
-  return (
-    <Box component="audio" controls src={resolved} sx={{ width: "100%" }} />
-  );
-};
+const AudioItem: React.FC<{ src: string }> = ({ src }) => (
+  <AudioPlayback locator={src} />
+);
 
 const VideoItem: React.FC<{ src: string; height: number }> = ({
   src,
   height
-}) => {
-  const resolved = useResolvedMediaUri(src);
-  return (
-    <Box
-      component="video"
-      controls
-      src={resolved}
-      sx={{
-        width: "100%",
-        maxHeight: height,
-        borderRadius: BORDER_RADIUS.md,
-        backgroundColor: "common.black"
-      }}
-    />
-  );
-};
+}) => (
+  // `VideoPlayer` fills its container, so the widget's height cap becomes the
+  // container's height rather than a max on the element.
+  <Box
+    sx={{
+      width: "100%",
+      height,
+      borderRadius: BORDER_RADIUS.md,
+      overflow: "hidden"
+    }}
+  >
+    <VideoPlayer locator={src} />
+  </Box>
+);
 
 export const MarkdownBlock: React.FC<{ text: string }> = React.memo(
   ({ text }) => (

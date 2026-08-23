@@ -10,6 +10,7 @@ import {
   loadEnvironment
 } from "@nodetool-ai/config";
 import { createHTTPHandler } from "@trpc/server/adapters/standalone";
+import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -1356,6 +1357,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     // flag the handler rejects POST-to-query, leaving the chat/threads panels
     // empty behind a "threads.list" error.
     allowMethodOverride: true,
+    maxBatchSize: TRPC_MAX_BATCH_SIZE,
     createContext: ({ req }) => {
       // SAFETY: the test-UI server has no auth plugin, so it attaches the
       // single-user id the context reads directly onto the request.

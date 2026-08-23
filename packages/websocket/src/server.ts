@@ -58,19 +58,23 @@ import {
   type WorkerConnection
 } from "@nodetool-ai/compute";
 import {
+  AccessToken,
   getWorkerProfile,
   initDb,
   initPostgresDb,
+  isAccessToken,
   migrateSqliteDb,
   runSeeds,
   touchWorkerInstance
 } from "@nodetool-ai/models";
+import { isMcpHttpEnabled, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
 import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
 import { syncCustomProviderRegistry } from "./custom-providers.js";
 
 /** User id the auth middleware assigns in local (no-account) mode. */
 const LOCAL_USER_ID = "1";
-import type { HttpApiOptions } from "./http-api.js";
+import type { SdkV1RouteApiOptions } from "./routes/sdk-v1.js";
+import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 import { handleMcpHttpRequest } from "./mcp-server.js";
 
 import Fastify, { type FastifyInstance } from "fastify";
@@ -108,6 +112,7 @@ import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute, { describeMissingAnonKey } from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
+import sdkV1Routes from "./routes/sdk-v1.js";
 import workflowsRoutes from "./routes/workflows.js";
 import nodesRoutes from "./routes/nodes.js";
 import storageRoutes from "./routes/storage.js";
@@ -128,8 +133,13 @@ import { unifiedModel } from "@nodetool-ai/protocol/api-schemas/models.js";
 import { createNodeToolSdkV1PreflightService } from "./sdk/sdk-preflight-service.js";
 import { createSdkV1ExecutionTargetReadiness } from "./sdk/sdk-execution-target-readiness.js";
 import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
+import { createSdkV1Service } from "./sdk/sdk-v1-service.js";
+import { createSdkV1ImplementationBoundary } from "./sdk/sdk-v1-handler-map.js";
+import { createSdkV1TemporaryAssetService } from "./sdk/sdk-temporary-asset-service.js";
+import { getTempAdapter } from "./lib/storage.js";
 import { FrontendRendererRegistry } from "./frontend-renderer-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
+import { initWorkspaceStorage } from "./lib/workflow-workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import applicationsRoutes from "./routes/applications.js";
@@ -142,11 +152,8 @@ import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
 import kieWebhookRoute from "./routes/kie-webhook.js";
 import { createIntegrationRoutes } from "./routes/integrations.js";
-import {
-  isNonEmptyString,
-  isObjectLike,
-  isString
-} from "./lib/wire-values.js";
+import { isNonEmptyString, isString } from "./lib/wire-values.js";
+import { logTrpcRequestError } from "./trpc/error-logging.js";
 
 /** The Node `process` as Electron extends it. `type` is absent elsewhere. */
 type ElectronProcess = typeof process & { readonly type?: string };
@@ -396,9 +403,7 @@ print(json.dumps(sorted(roots)))
     try {
       const roots = JSON.parse(proc.stdout.trim()) as string[];
       if (Array.isArray(roots)) {
-        return roots.filter(
-          (p) => isNonEmptyString(p) && existsSync(p)
-        );
+        return roots.filter((p) => isNonEmptyString(p) && existsSync(p));
       }
     } catch {
       // try next python executable
@@ -585,10 +590,7 @@ async function probeWorkerHealth(
 }
 
 function logPythonBridgeDiagnostics(context: string): void {
-  const loadErrors =
-    (
-      localBridge
-    ).getLoadErrors?.() ?? [];
+  const loadErrors = localBridge.getLoadErrors?.() ?? [];
   if (loadErrors.length === 0) return;
   log.warn(`Python bridge ${context} with ${loadErrors.length} load error(s)`);
   for (const entry of loadErrors.slice(0, 10)) {
@@ -680,6 +682,12 @@ const port = Number(process.env["PORT"] ?? 7777);
 const isProduction = process.env["NODETOOL_ENV"] === "production";
 // In production, bind to all interfaces unless HOST is explicitly set
 const host = process.env["HOST"] ?? (isProduction ? "0.0.0.0" : "127.0.0.1");
+
+// The `/mcp` streamable-HTTP mount. Off in production by default: it carries
+// the full agent toolbelt for whichever user it binds, so a deployment opts in
+// with NODETOOL_ENABLE_MCP=1 and authenticates the agent like any other client.
+// The gate is shared with the settings UI, which reports it (see lib/mcp-mount).
+const mcpHttpEnabled = isMcpHttpEnabled();
 
 // Reverse proxies whose X-Forwarded-For header may be trusted to determine the
 // real client IP. Comma-separated IPs/CIDRs (e.g. "127.0.0.1,10.0.0.0/8").
@@ -871,7 +879,10 @@ if (integrationServiceToken && !integrationsEnabled) {
 // server that never mints one never reads the key.
 let cachedDelegatedKey: Buffer | null = null;
 const delegatedSigningKey = (): Buffer =>
-  (cachedDelegatedKey ??= deriveKey(getMasterKey(), "nodetool-delegated-token"));
+  (cachedDelegatedKey ??= deriveKey(
+    getMasterKey(),
+    "nodetool-delegated-token"
+  ));
 
 const delegatedProvider = integrationsEnabled
   ? new DelegatedTokenProvider(delegatedSigningKey)
@@ -900,13 +911,16 @@ app.addHook("onRequest", async (req, reply) => {
   }
 
   // Static frontend assets don't require auth (served by fastifyStatic)
+  // `GET /mcp` is the MCP SSE stream, not a static asset — it must go through
+  // auth so the mount can bind the session's user.
   if (
     hasStaticApp &&
     req.method === "GET" &&
     !pathname.startsWith("/api") &&
     !pathname.startsWith("/ws") &&
     !pathname.startsWith("/v1") &&
-    !pathname.startsWith("/trpc")
+    !pathname.startsWith("/trpc") &&
+    !pathname.startsWith("/mcp")
   ) {
     return;
   }
@@ -941,10 +955,29 @@ app.addHook("onRequest", async (req, reply) => {
       )
     : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
 
+  // Access tokens (`ntk_`) are the credential a person mints in the app and
+  // pastes into an MCP client's config. They authenticate in every auth mode,
+  // including local: a self-hoster exposing /mcp beyond loopback should be
+  // able to hand out a revocable per-agent token rather than widen
+  // NODETOOL_TRUST_LOCAL_NETWORKS. A token that fails here falls through, so
+  // an expired or revoked one is refused by the mode's own rules.
+  if (token && isAccessToken(token)) {
+    const accessToken = await AccessToken.verify(token);
+    if (accessToken) {
+      req.userId = accessToken.user_id;
+      req.authToken = token;
+      void accessToken.touch().catch(() => {
+        // last_used_at is a convenience for the revoke UI; a failed write
+        // must not fail the request it was recording.
+      });
+      return;
+    }
+  }
+
   // Delegated tokens (a messaging bridge acting as the linked user) are
-  // checked first, and only when they announce themselves by prefix. Anything
-  // else — including a delegated token that is expired or tampered with —
-  // falls through to the configured provider, which rejects it.
+  // checked only when they announce themselves by prefix. Anything else —
+  // including a delegated token that is expired or tampered with — falls
+  // through to the configured provider, which rejects it.
   if (delegatedProvider && token && isDelegatedToken(token)) {
     const delegated = await delegatedProvider.verifyToken(token);
     if (delegated.ok) {
@@ -1055,9 +1088,7 @@ function listRegistryRecommendedModels(): UnifiedModel[] {
         models.push({
           ...parsed.data,
           provider:
-            parsed.data.provider == null
-              ? undefined
-              : parsed.data.provider
+            parsed.data.provider == null ? undefined : parsed.data.provider
         });
       }
     }
@@ -1088,93 +1119,102 @@ const sdkModelDownloadService = createSdkV1ModelDownloadService({
     pythonBridge.cancelModelDownload(operationId)
 });
 
-const apiOptions: HttpApiOptions = {
+const apiOptions: SdkV1RouteApiOptions = {
   metadataRoots,
   registry,
   getPythonBridgeReady,
-  getSdkCapabilities: createNodeToolSdkV1CapabilitiesProvider({
-    nodetoolVersion: getVersion(),
-    registry,
-    pythonBridge: () => (getPythonBridgeReady() ? "ready" : "starting"),
-    profiles: {
-      discovery: "available",
-      execution: "available",
-      preflight: "available",
-      model_catalog: "available",
-      model_download: "available",
-      temporary_asset_upload: "available"
-    },
-    authModes: enforceAuth ? ["bearer"] : ["trusted_local"],
-    assetUriSchemes: ["asset"],
-    limits: {
-      maxRpcBatch: 100,
-      // The initial SDK profile deliberately prefers asset references for
-      // media instead of promising an inline payload size.
-      maxInlineBytes: 0,
-      maxQueuedJobs: 0,
-      maxJobEventReplay: 0,
-      requestTimeoutSeconds: 30
-    }
-  }),
-  sdkPreflightService: createNodeToolSdkV1PreflightService({
-    registry,
-    getPythonBridgeReady,
-    getExecutionTargetReadiness: ({ request, principal }) => {
-      const target = request.execution_target;
-      if (target?.kind === "runner") {
-        const ready = sdkLiveRunnerRegistry.has(
-          target.runner_id,
-          principal.userId
-        );
-        return {
-          id: target.runner_id,
-          name: "Live runner",
-          ready,
-          message: ready ? null : "Selected live runner is not available."
-        };
-      }
-      return resolveExecutionTarget(target);
-    },
-    getExecutionCapacitySnapshot: ({ request, principal }) => {
-      const target = request.execution_target;
-      if (target?.kind !== "runner") {
-        throw new Error("Execution capacity requires a selected live runner.");
-      }
-      return sdkLiveRunnerRegistry.getCapacity({
-        runnerId: target.runner_id,
-        userId: principal.userId,
-        workflowId: request.workflow_id,
-        concurrent: target.concurrent
-      });
-    }
-  }),
-  sdkModelCatalogService: {
-    list: (args) =>
-      getSdkV1ModelCatalog({
-        ...args,
-        recommendedModels: listRegistryRecommendedModels(),
-        getWorkerModels: async () => {
-          const activeWorker = await workerManager?.getActiveWorker();
-          if (!activeWorker) {
-            throw new SdkModelCatalogServiceError(
-              "No worker is attached to this server."
-            );
-          }
-          if (!pythonBridge.supportsModelManagement()) {
-            throw new SdkModelCatalogServiceError(
-              "The attached worker does not support model management."
-            );
-          }
-          const models: UnifiedModel[] = [];
-          for (const candidate of await pythonBridge.listCachedModels()) {
-            const parsed = unifiedModel.safeParse(candidate);
-            if (parsed.success) models.push(parsed.data as UnifiedModel);
-          }
-          return models;
+  sdkV1Boundary: createSdkV1ImplementationBoundary(
+    createSdkV1Service({
+      getCapabilities: createNodeToolSdkV1CapabilitiesProvider({
+        nodetoolVersion: getVersion(),
+        registry,
+        pythonBridge: () => (getPythonBridgeReady() ? "ready" : "starting"),
+        profiles: {
+          discovery: "available",
+          execution: "available",
+          preflight: "available",
+          model_catalog: "available",
+          model_download: "available",
+          temporary_asset_upload: "available"
+        },
+        authModes: enforceAuth ? ["bearer"] : ["trusted_local"],
+        assetUriSchemes: ["asset"],
+        limits: {
+          maxRpcBatch: 100,
+          // The initial SDK profile deliberately prefers asset references for
+          // media instead of promising an inline payload size.
+          maxInlineBytes: 0,
+          maxQueuedJobs: 0,
+          maxJobEventReplay: 0,
+          requestTimeoutSeconds: 30
         }
+      }),
+      preflightService: createNodeToolSdkV1PreflightService({
+        registry,
+        getPythonBridgeReady,
+        getExecutionTargetReadiness: ({ request, principal }) => {
+          const target = request.execution_target;
+          if (target?.kind === "runner") {
+            const ready = sdkLiveRunnerRegistry.has(
+              target.runner_id,
+              principal.userId
+            );
+            return {
+              id: target.runner_id,
+              name: "Live runner",
+              ready,
+              message: ready ? null : "Selected live runner is not available."
+            };
+          }
+          return resolveExecutionTarget(target);
+        },
+        getExecutionCapacitySnapshot: ({ request, principal }) => {
+          const target = request.execution_target;
+          if (target?.kind !== "runner") {
+            throw new Error(
+              "Execution capacity requires a selected live runner."
+            );
+          }
+          return sdkLiveRunnerRegistry.getCapacity({
+            runnerId: target.runner_id,
+            userId: principal.userId,
+            workflowId: request.workflow_id,
+            concurrent: target.concurrent
+          });
+        }
+      }),
+      modelCatalogService: {
+        list: (args) =>
+          getSdkV1ModelCatalog({
+            ...args,
+            recommendedModels: listRegistryRecommendedModels(),
+            getWorkerModels: async () => {
+              const activeWorker = await workerManager?.getActiveWorker();
+              if (!activeWorker) {
+                throw new SdkModelCatalogServiceError(
+                  "No worker is attached to this server."
+                );
+              }
+              if (!pythonBridge.supportsModelManagement()) {
+                throw new SdkModelCatalogServiceError(
+                  "The attached worker does not support model management."
+                );
+              }
+              const models: UnifiedModel[] = [];
+              for (const candidate of await pythonBridge.listCachedModels()) {
+                const parsed = unifiedModel.safeParse(candidate);
+                if (parsed.success) models.push(parsed.data as UnifiedModel);
+              }
+              return models;
+            }
+          })
+      },
+      modelDownloadService: sdkModelDownloadService,
+      temporaryAssetService: createSdkV1TemporaryAssetService({
+        getStorage: getTempAdapter
       })
-  },
-  sdkModelDownloadService
+    })
+  )
 };
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
@@ -1239,20 +1279,13 @@ await app.register(fastifyTRPCPlugin, {
     // large (see web/src/trpc/client.ts and issues #3979/#3981). Without this
     // flag the server rejects POST-to-query with 405, leaving panels empty.
     allowMethodOverride: true,
-    onError({ path, error }) {
-      log.error(
-        `tRPC error on ${path}`,
-        error instanceof Error ? error : new Error(String(error))
-      );
-      // Surface inner ZodError details (output validation failures) so callers
-      // can diagnose the offending fields instead of seeing only "Output
-      // validation failed".
-      const cause = error.cause;
-      if (isObjectLike(cause) && "issues" in cause) {
-        log.error(
-          `tRPC error cause on ${path}: ${JSON.stringify(cause.issues)}`
-        );
-      }
+    maxBatchSize: TRPC_MAX_BATCH_SIZE,
+    onError({ path, error, req }) {
+      logTrpcRequestError(log, {
+        path,
+        error,
+        requestId: req.id
+      });
     }
   } satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"]
 });
@@ -1291,9 +1324,7 @@ await app.register(websocketPlugin, {
     log.info(
       `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
     );
-    (
-      pythonBridge
-    )
+    pythonBridge
       .getWorkerStatus?.()
       ?.then((status) => {
         log.info(`Python bridge status [${startupMs()}]`, {
@@ -1333,6 +1364,7 @@ await app.register(configRoute);
 // All HTTP API routes receive apiOptions
 const routeOpts = { apiOptions };
 
+await app.register(sdkV1Routes, routeOpts);
 await app.register(assetsRoutes, routeOpts);
 await app.register(workflowsRoutes, routeOpts);
 await app.register(nodesRoutes, routeOpts);
@@ -1340,6 +1372,10 @@ await app.register(storageRoutes, routeOpts);
 await app.register(openaiRoutes, routeOpts);
 await app.register(oauthRoutes, routeOpts);
 await app.register(workspaceRoutes, routeOpts);
+
+// A cloud deployment keeps workspaces in the asset bucket rather than on the
+// machine's disk, which it would lose on every replacement. No-op locally.
+initWorkspaceStorage();
 await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(applicationsRoutes, routeOpts);
@@ -1363,10 +1399,11 @@ await app.register(
 if (triggersEnabled()) {
   await app.register(createTriggerWebhookRoute());
 }
-// MCP endpoints are only available in local/dev mode — not in production.
-// The configuration endpoints moved to the tRPC `mcpConfig` router; the
-// `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.
-if (!isProduction) {
+// The `/mcp` mount is a bare MCP over-HTTP transport (the configuration
+// endpoints moved to the tRPC `mcpConfig` router, which stays local-only). In
+// production it registers only with NODETOOL_ENABLE_MCP=1, and it binds the
+// user the auth hook resolved rather than the local single user.
+if (mcpHttpEnabled) {
   app.all("/mcp", async (req, reply) => {
     const protocol = httpsOptions ? "https" : "http";
     const url = `${protocol}://${req.headers.host ?? `127.0.0.1:${port}`}${req.url}`;
@@ -1400,18 +1437,23 @@ if (!isProduction) {
         : requestBody,
       // `duplex` is required by Node's fetch when streaming bodies but is
       // missing from some `@types/node`/`undici-types` versions of RequestInit.
-      ...({ duplex: "half" })
+      ...{ duplex: "half" }
     } as RequestInit);
 
-    // This mount is non-production only (see the isProduction guard above)
-    // and serves the local single user. An authenticated multi-user mount
-    // must derive agentToolsScope from the session instead.
+    // The scope is the user the auth hook resolved for this request. With no
+    // user, no scope is passed and mcp-server.ts answers 401 at initialize
+    // instead of handing out an anonymous full-access session.
     const response = await handleMcpHttpRequest(request, {
       metadataRoots,
       registry,
       examplesDir: apiOptions.examplesDir,
       frontendRendererRegistry,
-      agentToolsScope: { userId: "1", source: "local-dev-http" }
+      agentToolsScope: req.userId
+        ? {
+            userId: req.userId,
+            source: isProduction ? "http-session" : "local-dev-http"
+          }
+        : undefined
     });
     if (!response) {
       reply.status(404).send({ error: "Not found" });
@@ -1425,6 +1467,10 @@ if (!isProduction) {
     const payload = Buffer.from(await response.arrayBuffer());
     reply.send(payload);
   });
+} else {
+  log.info(
+    `MCP over HTTP (/mcp) disabled in production; set ${MCP_ENABLE_FLAG}=1 to enable`
+  );
 }
 
 log.info(`Routes registered [${startupMs()}]`);
@@ -1478,6 +1524,7 @@ app.setNotFoundHandler((req, reply) => {
     !pathname.startsWith("/v1") &&
     !pathname.startsWith("/oauth") &&
     !pathname.startsWith("/trpc") &&
+    !pathname.startsWith("/mcp") &&
     !pathname.includes(".")
   ) {
     return reply.sendFile("index.html");
@@ -1622,9 +1669,7 @@ if (pythonBridge.isAvailable()) {
       log.info(
         `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
       );
-      (
-        pythonBridge
-      )
+      pythonBridge
         .getWorkerStatus?.()
         ?.then((status) => {
           log.info(`Python bridge status [${startupMs()}]`, {
@@ -1658,9 +1703,11 @@ if (pythonBridge.isAvailable()) {
       );
     });
 } else {
+  const pythonAllowedInProduction =
+    process.env["NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION"] === "1";
   log.info(
-    isProduction
-      ? "Python bridge disabled in production — Python nodes will not be available"
+    isProduction && !pythonAllowedInProduction
+      ? "Python bridge disabled in production — Python nodes will not be available; set NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1 to enable (the image ships no Python worker: install nodetool-core and point NODETOOL_PYTHON at that interpreter)"
       : "Python not found — Python nodes will not be available"
   );
 }

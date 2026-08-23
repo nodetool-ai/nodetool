@@ -8,15 +8,14 @@ import type {
   SketchTool,
   Point,
   Selection,
-  LayerTransform,
-  LayerContentBounds
+  LayerTransform
 } from "../types";
 import type { ActiveStrokeInfo } from "../rendering";
-import type { ToolContext, StrokeEndOptions, ToolRuntime } from "./types";
+import type { ToolContext, SketchToolCallbacks, ToolRuntime } from "./types";
 import type { GizmoDrawCallback } from "../sketchCanvasHooks/useOverlayRenderer";
 
 /** All dependencies needed to build a ToolContext. */
-export interface BuildToolContextParams {
+export interface BuildToolContextParams extends SketchToolCallbacks {
   // ── Document / tool state ──
   doc: SketchDocument;
   interactionTool: SketchTool;
@@ -61,33 +60,6 @@ export interface BuildToolContextParams {
   drawCursor: (clientX: number, clientY: number) => void;
   clearGizmo: () => void;
   drawGizmo: (callback: GizmoDrawCallback) => void;
-
-  // ── Editor callbacks ──
-  onZoomChange: (zoom: number) => void;
-  onPanChange: (pan: Point) => void;
-  onStrokeStart: () => void;
-  onStrokeEnd: (
-    layerId: string,
-    data: string | null,
-    committedBounds?: LayerContentBounds,
-    options?: StrokeEndOptions
-  ) => void;
-  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
-  onLayerContentBoundsChange?: (
-    layerId: string,
-    contentBounds: LayerContentBounds
-  ) => void;
-  onBrushSizeChange?: (size: number) => void;
-  onContextMenu?: (x: number, y: number) => void;
-  onCropComplete?: (
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ) => void;
-  onEyedropperPick?: (color: string) => void;
-  onSelectionChange?: (sel: Selection | null) => void;
-  onAutoPickLayer?: (layerId: string) => void;
 
   // ── Coordinate helpers ──
   screenToCanvas: (clientX: number, clientY: number) => Point;

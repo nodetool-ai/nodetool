@@ -87,7 +87,7 @@ interface GeminiFile {
 }
 
 /** A Gemini content part. */
-interface GeminiPart {
+export interface GeminiPart {
   text?: string;
   thought?: boolean;
   inlineData?: { mimeType: string; data: string };
@@ -470,6 +470,32 @@ function appendGeminiContent(
   }
 }
 
+/**
+ * Sentinel Gemini accepts in place of a real thought signature. Gemini 3
+ * rejects a request whose history replays a function call with no signature —
+ * which is every turn recorded before signatures were persisted, and every
+ * call a caller injected by hand. The documented escape hatch is this literal:
+ * https://ai.google.dev/gemini-api/docs/generate-content/thought-signatures
+ * Reasoning continuity is lost for that call, so it is only ever a fallback
+ * for a signature we do not have.
+ */
+const GEMINI_UNSIGNED_CALL_SENTINEL = "skip_thought_signature_validator";
+
+/**
+ * Gemini validates that the *first* functionCall part of each model turn
+ * carries a signature. Stamp the sentinel on any that reaches us without one
+ * so an unsigned history fails soft (degraded reasoning) instead of 400.
+ */
+function signUnsignedFunctionCalls(contents: GeminiContent[]): void {
+  for (const content of contents) {
+    if (content.role !== "model") continue;
+    const first = content.parts.find((p) => p.functionCall !== undefined);
+    if (first && !first.thoughtSignature) {
+      first.thoughtSignature = GEMINI_UNSIGNED_CALL_SENTINEL;
+    }
+  }
+}
+
 function geminiResponseError(data: GeminiResponse): Error | null {
   if (data.error?.message)
     return new Error(`Gemini API error: ${data.error.message}`);
@@ -504,6 +530,54 @@ function parseGeminiResponse(value: unknown): GeminiResponse {
     }
   }
   return response;
+}
+
+/** What a decoded `generateContent` body carries for the caller to shape. */
+export interface DecodedGeminiGeneration {
+  parts: GeminiPart[];
+  finishReason: string | null;
+  usage: GeminiResponse["usageMetadata"];
+}
+
+/**
+ * Decode a `:generateContent` body: validate the envelope, raise the API's own
+ * error or block reason, and return the first candidate's parts.
+ *
+ * The live contract probe and the checked-in raw-response fixtures
+ * (`packages/runtime/tests/fixtures/provider-contract/`) run this same
+ * function, so a wire change surfaces here rather than only on a real call.
+ */
+export function decodeGeminiGenerateContent(
+  value: unknown
+): DecodedGeminiGeneration {
+  const data = parseGeminiResponse(value);
+  const dataError = geminiResponseError(data);
+  if (dataError) throw dataError;
+  const candidate = data.candidates?.[0];
+  if (!candidate?.content?.parts) {
+    throw new Error("Gemini returned no candidates");
+  }
+  return {
+    parts: candidate.content.parts,
+    finishReason: candidate.finishReason ?? null,
+    usage: data.usageMetadata
+  };
+}
+
+/**
+ * Decode one page of `GET /models`. Throws when the page carries no `models`
+ * array; {@link GeminiProvider.getAvailableLanguageModels} treats that the same
+ * way it treats an unreachable listing.
+ */
+export function decodeGeminiModelsPage(value: unknown): GeminiModelsPage {
+  if (!isPlainObject(value)) {
+    throw new Error("Gemini model page is not an object");
+  }
+  const page = value as GeminiModelsPage;
+  if (!Array.isArray(page.models)) {
+    throw new Error("Gemini model page has no `models` array");
+  }
+  return page;
 }
 
 function normalizeEmbedding(values: number[]): number[] {
@@ -625,9 +699,8 @@ export class GeminiProvider extends BaseProvider {
           `${GEMINI_API_BASE}/models?${query}`
         );
         if (!response.ok) return [];
-        const payload = (await response.json()) as GeminiModelsPage;
-        if (!Array.isArray(payload.models)) return [];
-        items.push(...payload.models);
+        const payload = decodeGeminiModelsPage(await response.json());
+        items.push(...(payload.models ?? []));
         pageToken = payload.nextPageToken;
       } while (pageToken);
     } catch {
@@ -1003,9 +1076,13 @@ export class GeminiProvider extends BaseProvider {
       if (msg.role === "assistant") {
         // If we have raw Gemini parts (with thought content), replay them exactly
         if (msg._rawGeminiParts && Array.isArray(msg._rawGeminiParts)) {
+          // Copy: the contents we build get merged and stamped below, and the
+          // message's own parts must survive that untouched for the next turn.
           appendGeminiContent(contents, {
             role: "model",
-            parts: msg._rawGeminiParts as GeminiPart[]
+            parts: (msg._rawGeminiParts as GeminiPart[]).map((part) => ({
+              ...part
+            }))
           });
           continue;
         }
@@ -1054,6 +1131,8 @@ export class GeminiProvider extends BaseProvider {
         appendGeminiContent(contents, { role: "user", parts });
       }
     }
+
+    signUnsignedFunctionCalls(contents);
 
     return { contents, systemInstruction };
   }
@@ -1242,19 +1321,11 @@ export class GeminiProvider extends BaseProvider {
       throw new Error(`Gemini API error ${response.status}: ${text}`);
     }
 
-    const data = parseGeminiResponse(await response.json());
+    const decoded = decodeGeminiGenerateContent(await response.json());
 
-    const dataError = geminiResponseError(data);
-    if (dataError) throw dataError;
+    this.trackGeminiUsage(model, decoded.usage);
 
-    this.trackGeminiUsage(model, data.usageMetadata);
-
-    const candidate = data.candidates?.[0];
-    if (!candidate?.content?.parts) {
-      throw new Error("Gemini returned no candidates");
-    }
-
-    return this.extractMessage(candidate.content.parts, reverseMap);
+    return this.extractMessage(decoded.parts, reverseMap);
   }
 
   /** Record token usage from a Gemini usageMetadata block (if present). */

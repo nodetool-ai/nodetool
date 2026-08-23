@@ -65,7 +65,8 @@ const SOLUTIONS: Record<string, string[]> = {
      });`
   ],
   "sandbox-pack-docs": [
-    `const docs = await tools.${SANDBOX_PACK_DOCS_TOOL}({
+    `import { ${SANDBOX_PACK_DOCS_TOOL} } from "@nodetool-ai/sandbox-nodetool/packs";
+     const docs = await ${SANDBOX_PACK_DOCS_TOOL}({
        specifier: "@nodetool-ai/sandbox-xml"
      });
      await finish({ prefix: "@_" });`

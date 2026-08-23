@@ -175,4 +175,59 @@ describe("ModelDownloadStore", () => {
     const download = useModelDownloadStore.getState().downloads["llama"];
     expect(download).toBeDefined();
   });
+
+  test("completed downloads invalidate execution-aware model queries", async () => {
+    const originalWebSocket = global.WebSocket;
+    class FakeWebSocket {
+      static OPEN = 1;
+      static instance: FakeWebSocket | null = null;
+      readyState = 0;
+      onopen: ((event: Event) => void) | null = null;
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onclose: ((event: CloseEvent) => void) | null = null;
+      onerror: ((event: Event) => void) | null = null;
+      close = jest.fn();
+
+      constructor() {
+        FakeWebSocket.instance = this;
+      }
+    }
+    global.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+    const invalidateQueries = jest.fn();
+
+    try {
+      useModelDownloadStore.getState().setQueryClient({
+        invalidateQueries
+      } as never);
+      useModelDownloadStore.getState().addDownload("org/model");
+      const connecting = useModelDownloadStore.getState().connectWebSocket();
+      const socket = FakeWebSocket.instance;
+      if (!socket) {
+        throw new Error("Expected the download store to create a WebSocket");
+      }
+      socket.readyState = FakeWebSocket.OPEN;
+      socket.onopen?.(new Event("open"));
+      await connecting;
+
+      socket.onmessage?.({
+        data: JSON.stringify({
+          repo_id: "org/model",
+          status: "completed",
+          downloaded_bytes: 100,
+          total_bytes: 100,
+          downloaded_files: 1,
+          total_files: 1
+        })
+      } as MessageEvent);
+
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["allModels"]
+      });
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["tts-models"]
+      });
+    } finally {
+      global.WebSocket = originalWebSocket;
+    }
+  });
 });

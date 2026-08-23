@@ -39,6 +39,7 @@ import {
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
+import SaveDestinationHint from "./SaveDestinationHint";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import { edgesTargeting, isHandleConnected } from "../../hooks/nodes/edgeIndex";
@@ -69,8 +70,9 @@ import {
   CODE_NODE_TYPE,
   isCodeNode,
   isCodeNodeTitleEditable,
-  resolveCodeNodeTitle
+  resolveNodeHeaderTitle
 } from "./codeNodeUi";
+import { isString } from "../../utils/typePredicates";
 import { isContentCardNode } from "../node_types/contentCardRegistry";
 import {
   CONSTANT_IMAGE_NODE_TYPE,
@@ -488,10 +490,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     });
   }, [nodeType.isOutputNode, type, metadata.outputs]);
 
-  const displayTitle = useMemo(
-    () => resolveCodeNodeTitle(type, data.title, metadata.title),
-    [data.title, metadata.title, type]
-  );
+  const displayTitle = useMemo(() => {
+    const propertyName = isString(data.properties?.name)
+      ? data.properties.name
+      : undefined;
+    return resolveNodeHeaderTitle(
+      type,
+      data.title,
+      metadata.title,
+      propertyName
+    );
+  }, [data.properties?.name, data.title, metadata.title, type]);
   const showCodeBadge = isCodeNode(type);
   const isCodeTitleEditable = isCodeNodeTitleEditable(type, data);
 
@@ -801,6 +810,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         nodeType={type}
         name={data.properties?.name as string | undefined}
       />
+      <SaveDestinationHint data={data} />
       <div
         className="node-content-container"
         style={nodeContentContainerStyle}

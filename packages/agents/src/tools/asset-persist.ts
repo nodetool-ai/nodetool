@@ -8,7 +8,6 @@
  * tests), it falls back to writing the bytes to a workspace file.
  */
 
-import { formatResourceUri } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { isString } from "../utils/type-guards.js";
 
@@ -76,7 +75,7 @@ export function inferImageMime(bytes: Uint8Array): string {
 export interface SavedOutput {
   asset_id?: string;
   asset_uri?: string;
-  /** `asset://<id>` — ready-made link for the agent's prose. */
+  /** `asset://<id>.<ext>` — ready-made link for the agent's prose. */
   url?: string;
   path?: string;
   bytes: number;
@@ -108,21 +107,23 @@ export async function persistOutput(
       if (asset && isString(asset.id)) {
         result.asset_id = asset.id;
         result.asset_uri = `asset://${asset.id}.${ext}`;
-        result.url = formatResourceUri({ kind: "asset", id: asset.id });
+        // The same URI, extension and all: a renderer types the media by the
+        // suffix, and the bare `asset://<id>` this used to hand the model's
+        // prose embedded a video as an image.
+        result.url = result.asset_uri;
       }
     } catch {
       // Fall through to filesystem fallback.
     }
   }
 
-  // Persist a workspace copy via the storage adapter so downstream tools can
-  // read the bytes back by `output_file` key. Routed through
-  // context.workspaceStorage instead of `node:fs` so cloud deployments work
-  // identically.
-  if ((opts.outputFile || !result.asset_id) && context.workspaceStorage) {
+  // Persist a workspace copy so downstream tools can read the bytes back by
+  // `output_file`. Routed through the workspace rather than `node:fs`, so a
+  // cloud deployment behaves identically.
+  if ((opts.outputFile || !result.asset_id) && context.workspace) {
     const fileName = opts.outputFile ?? timestampedName(opts.namePrefix, ext);
     try {
-      await context.workspaceStorage.store(fileName, bytes, opts.mime);
+      await context.workspace.write(fileName, bytes, opts.mime);
       result.path = fileName;
     } catch {
       // Non-fatal — asset_id (if set) is still a valid handle.

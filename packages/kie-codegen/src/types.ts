@@ -2,6 +2,39 @@
  * Configuration types for Kie.ai code generation.
  */
 
+/**
+ * A value decoded from a Kie docs page's OpenAPI YAML block — the generator's
+ * only external input. Every read below that decode goes through one of the
+ * predicates here, so no field of the payload reaches a config unnarrowed.
+ */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | JsonRecord;
+
+/** A decoded JSON object. A key the payload omits reads as `undefined`. */
+export type JsonRecord = { [key: string]: JsonValue | undefined };
+
+export function isJsonRecord(
+  value: JsonValue | undefined
+): value is JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function isJsonString(value: JsonValue | undefined): value is string {
+  return typeof value === "string";
+}
+
+export function isJsonNumber(value: JsonValue | undefined): value is number {
+  return typeof value === "number";
+}
+
+/** The three node modules Kie configs are emitted into. */
+export type KieModuleName = "image" | "audio" | "video";
+
 export interface FieldDef {
   name: string;
   type:
@@ -17,7 +50,7 @@ export interface FieldDef {
     | "list[image]"
     | "list[video]"
     | "list[audio]";
-  default?: unknown;
+  default?: JsonValue;
   title?: string;
   description?: string;
   values?: string[];
@@ -33,7 +66,7 @@ export interface NodeConfig {
   description: string;
   outputType: "image" | "audio" | "video" | "text";
   /** Override module for manifest routing (e.g. Omni text nodes in video module). */
-  moduleName?: ModuleConfig["moduleName"];
+  moduleName?: KieModuleName;
   /** Polling interval in ms. Default: 2000 (image), 4000 (suno), 8000 (video). */
   pollInterval?: number;
   /** Max poll attempts. Default: 200 (image), 120 (suno), 450 (video). */
@@ -80,13 +113,13 @@ export interface NodeConfig {
   conditionalFields?: Array<{
     field: string;
     condition: "gte_zero" | "truthy" | "not_default";
-    defaultValue?: unknown;
+    defaultValue?: JsonValue;
   }>;
 }
 
 export interface ModuleConfig {
   /** Module name used in nodeType: "kie.{module}.{Class}". */
-  moduleName: string;
+  moduleName: KieModuleName;
   /** Default polling config for this module. */
   defaultPollInterval?: number;
   defaultMaxAttempts?: number;

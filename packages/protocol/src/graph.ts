@@ -302,7 +302,7 @@ export interface NodeTypeMigration {
   /**
    * Static properties merged onto the migrated node's `data`/`properties`
    * unconditionally, applied after `moveRemainingPropertiesToDynamic` — e.g.
-   * the Code node's `code` and `packages`.
+   * the Code node's `code`.
    */
   setProperties?: Record<string, unknown>;
   /**
@@ -343,7 +343,7 @@ function textToCodeMigration(
     to: CODE_NODE_TYPE,
     renameProperties,
     moveRemainingPropertiesToDynamic: true,
-    setProperties: { code, packages: [] }
+    setProperties: { code }
   };
 }
 
@@ -363,8 +363,7 @@ function pdfToCodeMigration(from: string, code: string): NodeTypeMigration {
     setProperties: {
       code: `import { extractPages } from "${PDF_PACK}";
 const pages = await extractPages(await media.bytes(inputs.pdf));
-${code}`,
-      packages: [PDF_PACK]
+${code}`
     }
   };
 }
@@ -607,7 +606,14 @@ return { output: needles.some(needle => haystack.includes(needle)) };`
   ),
   textToCodeMigration(
     "nodetool.text.TrimWhitespace",
-    "return { output: inputs.text.trim() };"
+    // trim_start/trim_end were real per-instance properties (both default
+    // true) — read them from the dynamic inputs instead of always trimming
+    // both ends.
+    `const text = String(inputs.text ?? "");
+const trimStart = inputs.trim_start === undefined ? true : Boolean(inputs.trim_start);
+const trimEnd = inputs.trim_end === undefined ? true : Boolean(inputs.trim_end);
+const started = trimStart ? text.trimStart() : text;
+return { output: trimEnd ? started.trimEnd() : started };`
   ),
   textToCodeMigration(
     "nodetool.text.CollapseWhitespace",
@@ -714,7 +720,16 @@ return { output };`
   ),
   textToCodeMigration(
     "nodetool.text.IndexOf",
-    "return { output: inputs.text.indexOf(inputs.substring) };"
+    // case_sensitive was a real per-instance property (default true) — honor
+    // it instead of always matching case-sensitively.
+    `const text = String(inputs.text ?? "");
+const substring = String(inputs.substring ?? "");
+const caseSensitive = inputs.case_sensitive === undefined ? true : Boolean(inputs.case_sensitive);
+return {
+  output: caseSensitive
+    ? text.indexOf(substring)
+    : text.toLowerCase().indexOf(substring.toLowerCase())
+};`
   ),
   textToCodeMigration(
     "nodetool.text.SurroundWith",
@@ -772,8 +787,7 @@ return { output: list.map(v => String(v ?? "")).join(String(inputs.separator ?? 
     moveRemainingPropertiesToDynamic: true,
     setProperties: {
       code: `import { count } from "${TOKENS_PACK}";
-return { output: await count(String(inputs.text ?? ""), inputs.encoding ?? "cl100k_base") };`,
-      packages: [TOKENS_PACK]
+return { output: await count(String(inputs.text ?? ""), inputs.encoding ?? "cl100k_base") };`
     }
   },
 
