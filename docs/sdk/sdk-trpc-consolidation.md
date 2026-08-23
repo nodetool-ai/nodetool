@@ -748,23 +748,23 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 
 #### Phase 8B `[nodetool]` - Keep tRPC focused and enforce its contract
 
-- [ ] Keep tRPC for the web, mobile, Electron, and other TypeScript product
+- [x] Keep tRPC for the web, mobile, Electron, and other TypeScript product
       callers. Do not expose it as the C# SDK wire protocol.
-- [ ] Set the server `maxBatchSize` to the same value as the clients'
+- [x] Set the server `maxBatchSize` to the same value as the clients'
       `httpBatchLink.maxItems` limit. Keep POST method override for batched
       queries and add a test that rejects an oversized batch.
 - [ ] Add Zod output schemas to the remaining 33 of 218 tRPC procedures found by
       the 2026-08-23 AST inventory: 3 in `jobs`, 14 in `models`, 2 in
       `triggers`, and 14 in `worker`. Add an inventory test that prevents new
       unvalidated procedures.
-- [ ] Put the web React and vanilla clients behind one shared link factory so
+- [x] Put the web React and vanilla clients behind one shared link factory so
       authentication, `maxItems`, POST override, logging, and base URL handling
       cannot drift. Keep mobile and Electron limits in the same tested policy.
-- [ ] Keep plain JSON serialization. Add a transformer only if a product route
+- [x] Keep plain JSON serialization. Add a transformer only if a product route
       has a measured need for `Date`, `Map`, `Set`, or another non-JSON value.
-- [ ] Keep execution streaming on the existing MessagePack WebSocket. Do not
+- [x] Keep execution streaming on the existing MessagePack WebSocket. Do not
       add a second tRPC subscription socket or SSE path for the SDK.
-- [ ] Use `createCallerFactory` only at a transport boundary or in integration
+- [x] Use `createCallerFactory` only at a transport boundary or in integration
       tests. Shared server behavior belongs in domain services, not calls from
       one tRPC procedure to another.
 - [ ] Log expected client/authentication errors at an appropriate level and
@@ -804,7 +804,7 @@ sequential: NodeTool defines the contract, then the SDK pins and consumes it.
 
 #### Phase 8D `[both]` - Replace and freeze the baseline
 
-- [ ] Commit the protocol reset separately from mechanical generated-file
+- [x] Commit the protocol reset separately from mechanical generated-file
       changes. Include the semantic operation diff and the old/new fixture
       inventory in the commit or review notes.
 - [x] Replace Phase 0 HTTP and MessagePack goldens once. Delete obsolete

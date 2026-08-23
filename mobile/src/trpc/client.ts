@@ -15,6 +15,7 @@ import { createTRPCClient, httpBatchLink, type TRPCClient, type TRPCLink } from 
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@nodetool-ai/websocket/trpc';
+import { TRPC_MAX_BATCH_SIZE } from '@nodetool-ai/protocol';
 
 import { getApiHost } from '../services/apiHost';
 import { useAuthStore } from '../stores/AuthStore';
@@ -67,7 +68,7 @@ export function createTrpcLinks(): TRPCLink<AppRouter>[] {
       // segment, and Fastify's router rejects a segment over `maxParamLength`
       // with a 404. A model-picker mount batched 116 procedures into a ~2900
       // char path and got nothing back.
-      maxItems: 20,
+      maxItems: TRPC_MAX_BATCH_SIZE,
       // POST keeps the batched input in the request body instead of the URL,
       // so large batches stay under reverse-proxy URL-length limits. See #3979.
       methodOverride: 'POST',

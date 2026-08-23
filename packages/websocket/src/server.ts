@@ -74,6 +74,7 @@ import { syncCustomProviderRegistry } from "./custom-providers.js";
 /** User id the auth middleware assigns in local (no-account) mode. */
 const LOCAL_USER_ID = "1";
 import type { SdkV1RouteApiOptions } from "./routes/sdk-v1.js";
+import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 import { handleMcpHttpRequest } from "./mcp-server.js";
 
 import Fastify, { type FastifyInstance } from "fastify";
@@ -1285,6 +1286,7 @@ await app.register(fastifyTRPCPlugin, {
     // large (see web/src/trpc/client.ts and issues #3979/#3981). Without this
     // flag the server rejects POST-to-query with 405, leaving panels empty.
     allowMethodOverride: true,
+    maxBatchSize: TRPC_MAX_BATCH_SIZE,
     onError({ path, error }) {
       log.error(
         `tRPC error on ${path}`,

@@ -13,6 +13,7 @@ import {
   type TRPCClient
 } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
+import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 
 // ============================================================================
 // Response types (kept for backward compatibility with existing deploy code)
@@ -71,6 +72,7 @@ export class APIUserManager {
       links: [
         httpBatchLink({
           url: `${this.serverUrl}/trpc`,
+          maxItems: TRPC_MAX_BATCH_SIZE,
           // POST keeps the batched input in the request body instead of the URL,
           // so large batches stay under reverse-proxy URL-length limits. See #3979.
           methodOverride: "POST",

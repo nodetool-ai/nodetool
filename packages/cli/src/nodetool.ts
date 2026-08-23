@@ -21,7 +21,10 @@ import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
-import type { Intervention } from "@nodetool-ai/protocol";
+import {
+  TRPC_MAX_BATCH_SIZE,
+  type Intervention
+} from "@nodetool-ai/protocol";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   initDb,
@@ -153,6 +156,7 @@ function createApiClient(apiUrl: string) {
     links: [
       httpBatchLink({
         url: `${apiUrl}/trpc`,
+        maxItems: TRPC_MAX_BATCH_SIZE,
         // POST keeps the batched input in the request body instead of the URL,
         // so large batches stay under reverse-proxy URL-length limits. See #3979.
         methodOverride: "POST"
