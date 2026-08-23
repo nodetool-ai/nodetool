@@ -141,10 +141,14 @@ function createSdkV1RouteHandlers(
   return {
     getNodeTypeInventory: async (request, reply) => {
       const raw = queryRecord(request);
-      const parsed = sdkNodeTypeInventoryInput.safeParse({
-        ...(raw.cursor === undefined ? {} : { cursor: Number(raw.cursor) }),
-        ...(raw.limit === undefined ? {} : { limit: Number(raw.limit) })
-      });
+      const input: { cursor?: number; limit?: number } = {};
+      if (raw.cursor !== undefined) {
+        input.cursor = Number(raw.cursor);
+      }
+      if (raw.limit !== undefined) {
+        input.limit = Number(raw.limit);
+      }
+      const parsed = sdkNodeTypeInventoryInput.safeParse(input);
       if (!parsed.success) {
         sendError(
           request,
@@ -318,10 +322,14 @@ function createSdkV1RouteHandlers(
 
     listWorkflowSummaries: async (request, reply) => {
       const raw = queryRecord(request);
-      const parsed = sdkWorkflowSummariesInput.safeParse({
-        ...(raw.limit === undefined ? {} : { limit: Number(raw.limit) }),
-        ...(typeof raw.cursor === "string" ? { cursor: raw.cursor } : {})
-      });
+      const input: { limit?: number; cursor?: string } = {};
+      if (raw.limit !== undefined) {
+        input.limit = Number(raw.limit);
+      }
+      if (typeof raw.cursor === "string") {
+        input.cursor = raw.cursor;
+      }
+      const parsed = sdkWorkflowSummariesInput.safeParse(input);
       if (!parsed.success) {
         sendError(request, reply, 400, "INVALID_INPUT", "Invalid workflow summary query");
         return;

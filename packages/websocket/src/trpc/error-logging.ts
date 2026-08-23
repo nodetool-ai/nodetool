@@ -27,12 +27,16 @@ export function logTrpcRequestError(
   const validationIssues =
     isObjectLike(cause) && "issues" in cause ? cause.issues : undefined;
 
-  logger[trpcErrorLogLevel(error)]("tRPC request failed", {
+  const context: Record<string, unknown> = {
     requestId,
     path: path ?? null,
     code: error.code,
     httpStatus,
-    error,
-    ...(validationIssues === undefined ? {} : { validationIssues })
-  });
+    error
+  };
+  if (validationIssues !== undefined) {
+    context.validationIssues = validationIssues;
+  }
+
+  logger[trpcErrorLogLevel(error)]("tRPC request failed", context);
 }

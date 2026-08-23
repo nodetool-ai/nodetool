@@ -208,6 +208,25 @@ describe("worker profile add", () => {
     expect(createProfile).not.toHaveBeenCalled();
   });
 
+  it("rejects an unsupported --token-policy", async () => {
+    await expect(
+      run([
+        "worker",
+        "profile",
+        "add",
+        "bad-policy",
+        "--target",
+        "runpod",
+        "--image",
+        "x",
+        "--token-policy",
+        "unknown"
+      ])
+    ).rejects.toThrow("__exit_1");
+    expect(createProfile).not.toHaveBeenCalled();
+    expect(captured().err).toContain("Invalid --token-policy 'unknown'");
+  });
+
   it.each([
     ["non-numeric", "foo"],
     ["zero", "0"],
