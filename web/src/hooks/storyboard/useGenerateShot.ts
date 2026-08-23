@@ -33,6 +33,7 @@ import {
   type ShotJobKind
 } from "../../stores/storyboard/StoryboardGenerationStore";
 import { fetchShotDurationSeconds } from "./useShotDuration";
+import { getErrorMessage } from "../../utils/errorHandling";
 
 const GEN_NODE_ID = "gen";
 const OUT_NODE_ID = "out";
@@ -176,6 +177,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
   const registerJob = useStoryboardGenerationStore(
     (state) => state.registerJob
   );
+  const recordStartFailure = useStoryboardGenerationStore(
+    (state) => state.recordStartFailure
+  );
   // Library entities; a board's `entityIds` picks which ones season prompts.
   const { data: allEntities } = useEntities();
   // Model catalog, for checking whether the still model can take entity
@@ -234,11 +238,22 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           },
           false
         );
+      } catch (error) {
+        // A start that throws has no job and therefore no message stream to
+        // report on: record the reason on the shot so the card and a toast
+        // can show it, then rethrow for callers that await (the agent tools).
+        recordStartFailure(
+          shot.id,
+          boardId,
+          kind,
+          getErrorMessage(error, "Could not start the render.")
+        );
+        throw error;
       } finally {
         startingShots.delete(shot.id);
       }
     },
-    [registerJob]
+    [registerJob, recordStartFailure]
   );
 
   const generateKeyframe = useCallback(

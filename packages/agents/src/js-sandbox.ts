@@ -113,6 +113,11 @@ import {
 } from "./wasm-sandbox/host.js";
 import { runInWorker } from "./js-sandbox-worker/host.js";
 import { assertFetchUrlAllowed } from "./network-guard.js";
+import {
+  GUEST_GLOBALS_JSON_BINDING,
+  GUEST_GLOBALS_SIDECAR_BINDING,
+  GUEST_MARSHAL_GLOBAL
+} from "./sandbox-json-transport.js";
 import type { RunInWorkerOptions } from "./js-sandbox-worker/host.js";
 import { MAX_RANDOM_BYTES } from "./sandbox-constants.js";
 import {
@@ -2753,7 +2758,10 @@ export const RESERVED_SANDBOX_NAMES: ReadonlySet<string> = new Set<string>([
   SANDBOX_CAPABILITY_BRIDGE_BINDING,
   SANDBOX_CAPABILITY_DISPATCH_GLOBAL,
   SANDBOX_INPUT_TAKE_BINDING,
-  SANDBOX_STREAM_OPEN_BINDING
+  SANDBOX_STREAM_OPEN_BINDING,
+  GUEST_MARSHAL_GLOBAL,
+  GUEST_GLOBALS_JSON_BINDING,
+  GUEST_GLOBALS_SIDECAR_BINDING
 ]);
 
 /**

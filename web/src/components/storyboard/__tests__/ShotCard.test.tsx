@@ -7,7 +7,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 
 // Keep the card's generation hook and image ladder out of the render — this test
 // only asserts the card's presentation and button gating, not generation.
-const generateRevisedClipMock = jest.fn();
+const generateRevisedClipMock = jest.fn(async () => undefined);
 // Media sources resolve through TanStack Query; these suites render no
 // QueryClientProvider, so use the manual mock (resolution itself is covered
 // by hooks/__tests__/useResolvedMediaUri.test.tsx).
@@ -15,8 +15,8 @@ jest.mock("../../../hooks/useResolvedMediaUri");
 
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
-    generateKeyframe: jest.fn(),
-    generateClip: jest.fn(),
+    generateKeyframe: jest.fn(async () => undefined),
+    generateClip: jest.fn(async () => undefined),
     generateRevisedClip: generateRevisedClipMock
   })
 }));
@@ -113,6 +113,7 @@ jest.mock("../../../serverState/useEntities", () => ({
 }));
 
 import ShotCard from "../ShotCard";
+import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
 
 const makeShot = (overrides: Partial<Shot> = {}): Shot => ({
   type: "shot",
@@ -138,6 +139,36 @@ describe("ShotCard", () => {
     updateShotMock.mockClear();
     linkedScriptId = null;
     lineIsVoiced = true;
+  });
+
+  it("shows why the last render failed", () => {
+    // Seed the job state directly: this suite mocks the storyboard store, so
+    // the action that would write it has nothing to write to.
+    useStoryboardGenerationStore.setState({
+      shotJobs: {
+        "shot-1": {
+          shotId: "shot-1",
+          boardId: "board-1",
+          jobId: "job-1",
+          workflowId: "wf",
+          kind: "keyframe",
+          status: "failed",
+          errorMessage: "Out of credits"
+        }
+      }
+    });
+    renderCard(makeShot({ status: "failed" }));
+    expect(screen.getByTestId("shot-render-error")).toHaveTextContent(
+      "Out of credits"
+    );
+    useStoryboardGenerationStore.setState({ shotJobs: {} });
+  });
+
+  it("falls back to a generic reason when the job state is gone", () => {
+    renderCard(makeShot({ status: "failed" }));
+    expect(screen.getByTestId("shot-render-error")).toHaveTextContent(
+      "The render failed. Try again."
+    );
   });
 
   it("renders the shot action and status label", () => {

@@ -13,7 +13,9 @@ both. For the surrounding deployment, see
 
 The published image, `fly.toml`, and `docker-compose.yml` all set
 `NODETOOL_ENV=production`, and `/mcp` is off in that mode. The endpoint carries
-the full toolbelt for whichever user it binds, so a deployment opts in:
+the full toolbelt for whichever user it binds, so a deployment opts in. The
+NodeTool production deploy does it in `fly.toml`'s `[env]`; a compose file does
+it the same way:
 
 ```yaml
 environment:
@@ -34,9 +36,42 @@ id in the `mcp-session-id` header belongs to its owner: a second user
 presenting the same id gets `404 Session not found`, the same answer as an id
 that never existed.
 
-## 2. Give the agent a credential
+## 2. Connect a client
 
-### The short path: mint a token in the app
+### The browser path: OAuth
+
+With `NODETOOL_PUBLIC_URL` set, `/mcp` answers a spec-conforming MCP client's
+discovery flow instead of a bare 401. Every spec-conforming client — Claude
+Desktop, Claude Code, VS Code, ChatGPT connectors — already speaks it: point
+the client at `https://your-server/mcp`, it discovers the authorization
+server, opens a browser, and you approve. No token to copy.
+
+```
+1. Client: POST /mcp (no token)
+2. Server: 401, WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource/mcp"
+3. Client discovers the AS metadata, opens a browser to /oauth/authorize
+4. You sign in (if not already) and approve the client in the consent page
+5. Server redirects back to the client with an authorization code
+6. Client exchanges the code for an access token and connects
+```
+
+What gets minted is an `nta_…` access token, scoped to `/mcp` only — it does
+not authenticate `/api`, `/trpc`, or anything else, unlike a pasted `ntk_`
+token (below). It expires in an hour and refreshes itself; revoking the grant
+in **Settings → MCP → Connected clients** kills both the access and refresh
+token immediately.
+
+`NODETOOL_PUBLIC_URL` is required because the server has to name its own
+`/mcp` resource and authorization endpoints in the discovery documents it
+serves — without it, the flow cannot start and clients fall back to token
+paste. The URL must be HTTPS, or loopback (`http://127.0.0.1`,
+`http://localhost`) for local development; with a plain-HTTP public URL the
+flow stays off and `/mcp` answers the plain 401. `NODETOOL_DISABLE_MCP_OAUTH=1` turns the whole discovery + AS surface
+off (no challenge header, the OAuth routes 404) for an operator who wants
+token-paste as the only path. See
+[MCP OAuth design](mcp-oauth-design.md) for the full protocol.
+
+### The fallback path: paste a token
 
 Open **Settings → MCP → Connect an agent remotely**. Name a token, pick a
 lifetime, and the app hands back a `claude mcp add …` command and a JSON block
@@ -76,10 +111,10 @@ What that token is:
   shows each token's last use, so a forgotten one is visible before you revoke
   it.
 
-Tokens work in every auth mode, including local. A self-hoster exposing `/mcp`
-beyond loopback should hand out one token per agent rather than widen
-`NODETOOL_TRUST_LOCAL_NETWORKS` — a token names its holder and can be taken
-back one at a time.
+Tokens work in every auth mode, including local, and reach every route — not
+only `/mcp`. A self-hoster exposing `/mcp` beyond loopback should still prefer
+the OAuth path above when the client supports it: the token it mints is
+scoped to `/mcp` alone, so a leaked one cannot reach the rest of the API.
 
 ### The other paths
 
@@ -110,13 +145,14 @@ curl -i -X POST https://your-server/mcp \
         "clientInfo":{"name":"probe","version":"1"}}}'
 ```
 
-A working setup answers `200` with an `mcp-session-id` header. What the other
+A working setup answers `200` with an `mcp-session-id` header. An `nta_` token
+from the OAuth flow works the same way in place of `ntk_…`. What the other
 answers mean:
 
 | Answer | Cause |
 |---|---|
 | `404` | The mount is off. Set `NODETOOL_ENABLE_MCP=1` and restart. |
-| `401` | No token, or one that is wrong, revoked, or expired. |
+| `401` | No token, or one that is wrong, revoked, or expired. `WWW-Authenticate` with `error="invalid_token"` means an `nta_` token failed; without an `error` param, either no token was sent or a non-OAuth token (`ntk_`, Supabase) was refused. No header at all means the OAuth flow is not configured on this server. |
 | `404` on a request that carries a session id | That session belongs to another user. Initialize a new one. |
 
 ## What stays local
@@ -124,7 +160,7 @@ answers mean:
 The **Install on this machine** buttons in the same settings panel write MCP
 config files into `~/.claude.json` and friends. They are disabled in production
 (`mcpConfig` answers 503) because on a shared host those files belong to
-nobody. The remote section above is the surface that works there.
+nobody. The remote paths above are what works there.
 
 ## Python nodes
 

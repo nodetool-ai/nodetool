@@ -69,6 +69,33 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Revoking another agent's credential is denial of service against " +
       "the user's own tooling."
   },
+  "agentAccess.getOauthRequest": {
+    withheld:
+      "Reads a pending OAuth consent request. The consent flow exists to put " +
+      "a human between an MCP client and a credential; a run has no business " +
+      "seeing what is waiting for that human."
+  },
+  "agentAccess.approveOauthRequest": {
+    withheld:
+      "Approving an OAuth consent mints an authorization code — a credential " +
+      "grant. A run that could approve one connects an arbitrary client to " +
+      "the user's account with no human in the loop."
+  },
+  "agentAccess.denyOauthRequest": {
+    withheld:
+      "The deny half of the same human-only consent decision. Letting a run " +
+      "answer either way makes it the consent screen."
+  },
+  "agentAccess.listOauthGrants": {
+    withheld:
+      "Enumerates which MCP clients hold live grants — credential " +
+      "reconnaissance, same rule as listTokens."
+  },
+  "agentAccess.revokeOauthGrant": {
+    withheld:
+      "Revoking a connected client's grant is denial of service against the " +
+      "user's own tooling, same rule as revokeToken."
+  },
   "applications.beginInvocation": {
     withheld:
       "Spend governance. A run that could raise its own ceiling is " +

@@ -154,6 +154,9 @@ import { openSettingsTab } from "./components/workspace/openPageTab";
 const LegacyAppRedirect = React.lazy(
   () => import("./components/applications/LegacyAppRedirect")
 );
+const OAuthConsentPage = React.lazy(
+  () => import("./components/oauth/OAuthConsentPage")
+);
 
 // Defer frontend tool registrations until after initial render.
 const registerFrontendTools = () => {
@@ -299,6 +302,18 @@ function getRoutes() {
     {
       path: "/editor",
       element: <NavigateToStart />
+    },
+    {
+      // Lands here from the AS's `GET /oauth/authorize` redirect — the SPA
+      // half of the consent step in docs/mcp-oauth-design.md.
+      path: "/oauth/consent",
+      element: (
+        <ProtectedRoute>
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <OAuthConsentPage />
+          </React.Suspense>
+        </ProtectedRoute>
+      )
     },
     {
       path: "assets",

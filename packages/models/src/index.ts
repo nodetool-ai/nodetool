@@ -262,6 +262,20 @@ export { AccessToken, isAccessToken, parseAccessToken, ACCESS_TOKEN_PREFIX } fro
 export type { MintedAccessToken, CreateAccessTokenParams } from "./access-token.js";
 export { ExternalIdentity } from "./external-identity.js";
 export type { LinkExternalIdentityParams } from "./external-identity.js";
+export {
+  McpOauthClient,
+  McpOauthGrant,
+  McpOauthToken,
+  MCP_OAUTH_ACCESS_TTL_MS,
+  MCP_OAUTH_REFRESH_TTL_MS,
+  MCP_OAUTH_CLIENT_ID_PREFIX,
+  MCP_OAUTH_ACCESS_TOKEN_PREFIX,
+  MCP_OAUTH_REFRESH_TOKEN_PREFIX
+} from "./mcp-oauth.js";
+export type {
+  McpOauthClientRow,
+  McpOauthGrantRow
+} from "./mcp-oauth.js";
 
 // ── Seeds ────────────────────────────────────────────────────────────
 export { runSeeds, seedCostData, COST_SEED_USER_ID } from "./seeds/index.js";

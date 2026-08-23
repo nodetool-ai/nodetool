@@ -58,6 +58,36 @@ export function isPublicOAuthRequest(pathname: string): boolean {
 }
 
 /**
+ * The MCP OAuth 2.1 authorization-server + resource-metadata surface
+ * (`docs/mcp-oauth-design.md`, `routes/oauth-as.ts`). Every one of these
+ * paths authenticates on its own terms — well-known documents carry no
+ * per-caller state, and `/oauth/authorize|token|register|revoke` validate a
+ * client, a PKCE verifier, or a bearer token, never a session. The two
+ * well-known prefixes are matched with `startsWith` so the path-aware form
+ * (`…/oauth-protected-resource/mcp`) and the root form
+ * (`…/oauth-protected-resource`) both clear under one entry, same as the
+ * file's other prefix rules.
+ *
+ * `/oauth/consent` is deliberately absent: it is an SPA page, not an API
+ * route, and its data comes from an authenticated tRPC call
+ * (`agentAccess.getOauthRequest`) that goes through the normal auth hook.
+ * Exempting it here would serve the page's HTML shell to a caller with no
+ * session, which is fine, but the shell carries no data — the tRPC calls it
+ * makes still require login, so there is nothing to gain and a naming
+ * collision with the four API paths to avoid.
+ */
+export function isPublicMcpOauthAsRequest(pathname: string): boolean {
+  return (
+    pathname.startsWith("/.well-known/oauth-protected-resource") ||
+    pathname.startsWith("/.well-known/oauth-authorization-server") ||
+    pathname === "/oauth/authorize" ||
+    pathname === "/oauth/token" ||
+    pathname === "/oauth/register" ||
+    pathname === "/oauth/revoke"
+  );
+}
+
+/**
  * Paths that skip session auth in the server's `onRequest` hook. Every entry
  * must carry no per-caller private state, or authenticate on its own (webhook
  * secret, OAuth PKCE state, KIE webhook signature). All of these are still
@@ -84,6 +114,7 @@ export function isPublicAuthExemptRoute(
     // no per-caller session. Without that env var they are not registered at
     // all, so the exemption reaches a 404.
     pathname.startsWith("/api/integrations/") ||
-    isPublicWorkflowMetadataRequest(pathname, method)
+    isPublicWorkflowMetadataRequest(pathname, method) ||
+    isPublicMcpOauthAsRequest(pathname)
   );
 }

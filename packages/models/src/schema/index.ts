@@ -35,3 +35,8 @@ export { triggerRegistrations } from "./trigger-registrations.js";
 export { creditLedger, userSubscriptions } from "./credits.js";
 export { accessTokens } from "./access-tokens.js";
 export { externalIdentities } from "./external-identities.js";
+export {
+  mcpOauthClients,
+  mcpOauthGrants,
+  mcpOauthTokens
+} from "./mcp-oauth.js";

@@ -20,6 +20,13 @@ import {
 // The loading/denial contract lives as data, so the browser suite
 // (packages/workflow-runner/e2e) runs the same cases in a real Chromium.
 import {
+  BOOTSTRAP_DROPPED_GLOBALS,
+  BOOTSTRAP_MODULE_SOURCES
+} from "../src/sandbox-bootstrap-modules.js";
+import { loadQuickJs } from "@sebastianwessel/quickjs";
+import * as quickJsVariant from "@jitl/quickjs-ng-wasmfile-release-sync";
+import { createGuestModuleHost } from "../src/js-sandbox-worker/interpreter.js";
+import {
   fixtureResolution,
   GEO_MODULE,
   SANDBOX_MODULE_FIXTURES
@@ -166,5 +173,116 @@ describe("guest module kinds", () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain("truncated WASM binary");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The wrapper's Node-compat bootstrap
+// ---------------------------------------------------------------------------
+
+describe("the compat bootstrap loads our stubs", () => {
+  // The wrapper compiles ~12KB of Node polyfills into every fresh runtime
+  // before our code runs, and the prelude then deletes most of what they
+  // installed. `BOOTSTRAP_MODULE_SOURCES` serves it something cheaper. These
+  // cases drive the real engine, so a wrapper release that renames those
+  // modules fails here rather than quietly costing 2.7ms a run.
+
+  it("leaves the globals it no longer installs undefined", async () => {
+    // Probed against the engine directly, with our module host but without our
+    // init prelude: the prelude deletes these globals too, so asserting through
+    // `runInSandbox` would pass whether or not a stub was ever served.
+    const { runSandboxed } = await loadQuickJs(
+      (quickJsVariant as { default: unknown }).default as never
+    );
+    const host = createGuestModuleHost(undefined);
+    // Every id we stub must be one the bootstrap actually asks for. Without
+    // this, a renamed module falls through to the real polyfill and the only
+    // symptom is 2.7ms a run — invisible to any assertion about globals.
+    const requested: string[] = [];
+    const options = {
+      ...host.options,
+      getModuleLoader: (fs: never, runtimeOptions: never) => {
+        const loader = host.options.getModuleLoader!(fs, runtimeOptions);
+        return (name: string, context: never) => {
+          requested.push(name);
+          return loader(name, context);
+        };
+      }
+    };
+    const seen = await runSandboxed<string>(
+      async ({ evalCode }) => {
+        const probe = await evalCode(
+          `export default ${JSON.stringify([...BOOTSTRAP_DROPPED_GLOBALS])}
+            .map((name) => name + ":" + typeof globalThis[name]).join(" ");`,
+          "probe"
+        );
+        if (!probe.ok) throw new Error("probe failed");
+        return probe.data as string;
+      },
+      { env: {}, ...(options as typeof host.options) }
+    );
+    expect(seen).toBe(
+      BOOTSTRAP_DROPPED_GLOBALS.map((name) => `${name}:undefined`).join(" ")
+    );
+    expect(requested).toEqual(
+      expect.arrayContaining([...BOOTSTRAP_MODULE_SOURCES.keys()])
+    );
+  });
+
+  it("keeps TextEncoder and TextDecoder, bytes unchanged", async () => {
+    const result = await runInSandbox({
+      code: `const bytes = new TextEncoder().encode("héllo 日本 😀");
+             return {
+               bytes: Array.from(bytes),
+               roundTrip: new TextDecoder().decode(bytes),
+               ascii: Array.from(new TextEncoder().encode("ab"))
+             };`
+    });
+    expect(result.success).toBe(true);
+    const value = result.result as {
+      bytes: number[];
+      roundTrip: string;
+      ascii: number[];
+    };
+    // The same UTF-8 the wrapper's own polyfill produced: 2 bytes for é,
+    // 3 each for 日本, 4 for the emoji.
+    expect(value.bytes.length).toBe(18);
+    expect(value.roundTrip).toBe("héllo 日本 😀");
+    expect(value.ascii).toEqual([97, 98]);
+    expect(
+      new TextDecoder().decode(new Uint8Array(value.bytes))
+    ).toBe("héllo 日本 😀");
+  });
+
+  it("rejects an encoding TextDecoder never supported", async () => {
+    const result = await runInSandbox({
+      code: `new TextDecoder("utf-16"); return 1;`
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("utf-8");
+  });
+
+  it("keeps URL and URLSearchParams, which it still loads from the wrapper", async () => {
+    const result = await runInSandbox({
+      code: `const u = new URL("https://x.test/a/b?q=1&q=2#f");
+             return [u.protocol, u.hostname, u.pathname, u.search, u.hash,
+                     u.searchParams.get("q"), typeof URLSearchParams].join("|");`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("https:|x.test|/a/b|?q=1&q=2|#f|1|function");
+  });
+
+  it("serves a stub only in the bootstrap phase", () => {
+    const host = createGuestModuleHost(undefined);
+    const loader = host.options.getModuleLoader!(
+      undefined as never,
+      undefined as never
+    );
+    const id = [...BOOTSTRAP_MODULE_SOURCES.keys()][0];
+    expect((loader(id, undefined as never) as { value: string }).value).toBe(
+      BOOTSTRAP_MODULE_SOURCES.get(id)
+    );
+    host.enterGuestPhase();
+    expect(loader(id, undefined as never)).toHaveProperty("error");
   });
 });

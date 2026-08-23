@@ -68,3 +68,61 @@ export const mcpConnectionOutput = z.object({
   enable_flag: z.string().nullable()
 });
 export type McpConnectionOutput = z.infer<typeof mcpConnectionOutput>;
+
+// ── OAuth consent + connected clients ────────────────────────────
+
+/** A pending `/oauth/authorize` request, and every other OAuth procedure
+ * that acts on one — all keyed by the same `request_id` the SPA carries in
+ * its `/oauth/consent` query string. */
+export const oauthRequestIdInput = z.object({
+  request_id: z.string().min(1)
+});
+export type OauthRequestIdInput = z.infer<typeof oauthRequestIdInput>;
+
+/** What the consent page shows: who is asking, where they redirect to, and
+ * for what. `loopback_only` drives the impersonation warning — CIMD cannot
+ * vouch for a client whose every registered redirect URI is localhost. */
+export const oauthRequestSummary = z.object({
+  client_name: z.string(),
+  redirect_host: z.string(),
+  scope: z.string(),
+  loopback_only: z.boolean()
+});
+export type OauthRequestSummary = z.infer<typeof oauthRequestSummary>;
+
+/** Null when the request_id is unknown or its 10-minute TTL has elapsed —
+ * the consent page renders an "expired" state rather than an error. */
+export const getOauthRequestOutput = oauthRequestSummary.nullable();
+export type GetOauthRequestOutput = z.infer<typeof getOauthRequestOutput>;
+
+/** Approve/deny both resolve to a redirect the SPA navigates the browser
+ * to — the authorization code (or `error=access_denied`), the echoed
+ * `state`, and `iss` are all encoded in this one URL. */
+export const oauthRedirectOutput = z.object({
+  redirect_url: z.string()
+});
+export type OauthRedirectOutput = z.infer<typeof oauthRedirectOutput>;
+
+/** A grant as it is safe to list: everything a person needs to recognize
+ * and revoke a connected client, no secret material. */
+export const oauthGrantSummary = z.object({
+  id: z.string(),
+  client_name: z.string(),
+  client_id: z.string(),
+  created_at: z.string(),
+  scope: z.string()
+});
+export type OauthGrantSummary = z.infer<typeof oauthGrantSummary>;
+
+export const listOauthGrantsOutput = z.object({
+  grants: z.array(oauthGrantSummary)
+});
+export type ListOauthGrantsOutput = z.infer<typeof listOauthGrantsOutput>;
+
+export const revokeOauthGrantInput = z.object({
+  grant_id: z.string().min(1)
+});
+export type RevokeOauthGrantInput = z.infer<typeof revokeOauthGrantInput>;
+
+export const revokeOauthGrantOutput = z.object({ ok: z.boolean() });
+export type RevokeOauthGrantOutput = z.infer<typeof revokeOauthGrantOutput>;

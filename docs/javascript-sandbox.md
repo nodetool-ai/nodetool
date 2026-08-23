@@ -43,14 +43,25 @@ process and shared. Each invocation gets a fresh runtime and context.
    the body of a top-level-awaited async IIFE, so `return value` becomes the
    module's default export. Code acorn cannot parse falls through to `wrapCode`
    unchanged, so a syntax error reaches the user as they wrote it.
-4. **Install the module loader** — only when the run declares modules. Without
-   `modules`, no loader exists and every `import` resolves nothing.
+4. **Install the module loader** — always, because it is also what the wrapper's
+   own Node-compat preamble resolves through. That preamble compiles ~12KB of
+   polyfills into every fresh runtime, and the prelude below deletes most of what
+   they install, so `BOOTSTRAP_MODULE_SOURCES` (`sandbox-bootstrap-modules.ts`)
+   serves four of them as empty modules and `node:util` as the two classes the
+   guest keeps. `node:url` still comes from the wrapper: `URL` and
+   `URLSearchParams` are guest capabilities. Measured: 5.96ms → 3.28ms of setup
+   per run. Guest specifiers resolve only what the run declares; without
+   `modules`, every guest `import` resolves nothing.
 5. **Init prelude.** `eval`, `Function` and the wrapper's unconditional stubs
    (`Buffer`, `process`, `env`, `Headers`, `Request`, `Response`, `performance`)
-   are deleted. The entry module additionally deletes the timer globals, which
+   are deleted. Four of those no longer exist to delete — the bootstrap above
+   never installs them — and the deletions stay as the guard for a wrapper
+   release that puts them back some other way. The entry module additionally deletes the timer globals, which
    the wrapper library re-installs on every evaluation.
 6. **Run**, under an interrupt handler on a CPU deadline and a wall-clock race.
-7. **Serialize.** `serializeResult` walks the returned value (cycle-safe,
+7. **Serialize.** The guest encodes its result with the JSON transport (see
+   [Marshaling rules](#marshaling-rules)) and the host decodes it, then
+   `serializeResult` walks the returned value (cycle-safe,
    depth-capped at 32) converting typed arrays at any depth, then truncates to
    `maxOutputSize`. Object-typed globals are deep-replaced on the host, which is
    how the Code node's `state` survives between invocations.
@@ -260,6 +271,19 @@ symptom is silent data corruption, not an error.
   map.
 - **Object globals sync back.** After the guest runs, object-typed globals are
   deep-replaced on the host. Primitives pass by value and do not sync.
+- **Structured data crosses as JSON, not as handles.** The wrapper marshals an
+  object node by node — four `evalCode` compilations plus a property-by-property
+  descriptor copy each — so a run handed 5 000 rows spent ~2 s reading them and
+  ~0.8 s handing them back. `sandbox-json-transport.ts` moves one string
+  instead: the guest builds its result with `JSON.stringify` and the host parses
+  it, the host encodes injected globals for the prelude to parse, and `emit` /
+  `output` arguments take the same path. Typed arrays and strings over 8 KB ride
+  a sidecar the marshaler moves whole; dates, non-finite numbers and `undefined`
+  properties carry markers, because JSON alone would flatten or drop them. A
+  value the encoder cannot represent — a function, a bigint, a `Map`, a class
+  instance — falls back to the wrapper's own marshaling. A **cycle** is refused
+  outright: the wrapper follows it until the runtime aborts, so a cyclic global
+  fails the run by name and a cyclic result comes back as `String(value)`.
 
 ## Security model
 

@@ -206,3 +206,38 @@ describe("clip length on a script-linked board", () => {
     expect(scriptQuery).not.toHaveBeenCalled();
   });
 });
+
+describe("a start that fails", () => {
+  it("records the reason on the shot and rethrows", async () => {
+    run.mockRejectedValue(new Error("No image model configured"));
+    const { result } = renderHook(() => useGenerateShot());
+
+    await act(async () => {
+      await expect(result.current.generateKeyframe(BOARD, shot)).rejects.toThrow(
+        "No image model configured"
+      );
+    });
+
+    const job = useStoryboardGenerationStore.getState().shotJobs[shot.id];
+    expect(job?.status).toBe("failed");
+    expect(job?.errorMessage).toBe("No image model configured");
+    expect(
+      useStoryboardStore.getState().getBoard(BOARD)?.shots[0].status
+    ).toBe("failed");
+  });
+
+  it("records a reason when the runner returns no job id", async () => {
+    run.mockResolvedValue(undefined);
+    const { result } = renderHook(() => useGenerateShot());
+
+    await act(async () => {
+      await expect(
+        result.current.generateKeyframe(BOARD, shot)
+      ).rejects.toThrow("Workflow runner did not return a job id");
+    });
+
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs[shot.id]?.errorMessage
+    ).toBe("Workflow runner did not return a job id");
+  });
+});

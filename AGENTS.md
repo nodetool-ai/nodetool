@@ -2395,6 +2395,14 @@ See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific t
   `packages/runtime/tests/url-egress-audit.test.ts`, which fails on a new
   unclassified `fetch(url)` anywhere under `packages/*/src`.
 - `npm audit` must pass — high/critical advisories block merge unless waived with rationale.
+- Code scanning runs GitHub's **default setup**, configured in repo settings. A
+  `.github/codeql/*.yml` config file is inert: only advanced setup reads one,
+  and that needs a workflow passing `config-file:` to
+  `github/codeql-action/init`, which this repo does not have. So there is no
+  per-query or per-path exclusion to reach for — suppress a false positive by
+  dismissing it in the Security UI, and pin the premise that makes it false in a
+  test (as `packages/models/tests/access-token.test.ts` does) so it fails when
+  it stops holding.
 
 ## Accessibility, Performance, Observability
 

@@ -40,6 +40,7 @@ import ShotScriptPanel from "./ShotScriptPanel";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
+import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useShotDuration } from "../../hooks/storyboard/useShotDuration";
 import { useEntities } from "../../serverState/useEntities";
 import { ENTITY_KIND_COLOR } from "../entities/entityKind";
@@ -140,6 +141,13 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const meta = STATUS_META[shot.status];
+  // Why the last still or clip failed. Kept on the shot's job state until the
+  // next attempt registers, so the card can say more than "Failed".
+  const renderError = useStoryboardGenerationStore((state) => {
+    const job = state.shotJobs[shot.id];
+    return job?.status === "failed" ? job.errorMessage : undefined;
+  });
+  const failed = shot.status === "failed";
   const isGenerating =
     shot.status === "keyframe_generating" || shot.status === "clip_generating";
   const camera = cameraLine(shot);
@@ -148,18 +156,23 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const clipUri = useResolvedMediaUri(shot.clip);
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
 
+  // A start that throws records its reason on the shot's job state (and
+  // toasts it), which is what `renderError` above shows — so the rejection is
+  // already reported and only needs to not go unhandled.
   const handleGenerateStill = useCallback(() => {
-    void generateKeyframe(boardId, shot);
+    void generateKeyframe(boardId, shot).catch(() => undefined);
   }, [generateKeyframe, boardId, shot]);
 
   const handleGenerateClip = useCallback(() => {
-    void generateClip(boardId, shot);
+    void generateClip(boardId, shot).catch(() => undefined);
   }, [generateClip, boardId, shot]);
 
   const handleReviseConfirm = useCallback(() => {
     const instruction = reviseText.trim();
     if (instruction.length > 0) {
-      void generateRevisedClip(boardId, shot, instruction);
+      void generateRevisedClip(boardId, shot, instruction).catch(
+        () => undefined
+      );
     }
     setReviseOpen(false);
     setReviseText("");
@@ -219,6 +232,22 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
               </Caption>
             }
           />
+        )}
+        {failed && !isGenerating && !shot.keyframe && !shot.clip && (
+          <FlexColumn
+            align="center"
+            justify="center"
+            sx={{
+              position: "absolute",
+              inset: 0,
+              bgcolor: "c_scrim_soft",
+              p: SPACING.sm
+            }}
+          >
+            <Caption sx={{ color: "error.main", textAlign: "center" }}>
+              Render failed
+            </Caption>
+          </FlexColumn>
         )}
         {isGenerating && (
           <FlexColumn
@@ -307,6 +336,16 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             )}
           </FlexRow>
         </FlexRow>
+
+        {failed && (
+          <Caption
+            role="alert"
+            data-testid="shot-render-error"
+            sx={{ color: "error.main" }}
+          >
+            {renderError ?? "The render failed. Try again."}
+          </Caption>
+        )}
 
         <Text lineClamp={3}>{shot.action}</Text>
 
