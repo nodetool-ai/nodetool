@@ -53,10 +53,12 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   };
 
   const deleteOllamaModel = async (modelName: string) => {
-    // Ollama DELETE is not implemented in tRPC (no streaming needed for delete);
-    // for now this is a no-op that resolves immediately.
-    // TODO: add models.ollamaDelete tRPC procedure when Ollama delete is ported.
-    console.warn("Ollama model delete not yet available via tRPC", modelName);
+    const deleted = await trpc.models.ollamaDelete.mutate({ model: modelName });
+    if (!deleted) {
+      throw new Error(
+        `Ollama did not delete ${modelName} — the server may be unreachable or the model already gone.`
+      );
+    }
     return modelName;
   };
 

@@ -44,6 +44,39 @@ describe("OllamaProvider", () => {
     });
   });
 
+  it("deletes a model via DELETE /api/delete", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse({}));
+    const provider = new OllamaProvider(
+      { OLLAMA_API_URL: "http://localhost:11434" },
+      { fetchFn: fetchFn as unknown as typeof fetch }
+    );
+
+    await expect(provider.deleteModel("llama3.1:8b")).resolves.toBe(true);
+    expect(fetchFn).toHaveBeenCalledWith("http://localhost:11434/api/delete", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model: "llama3.1:8b" })
+    });
+  });
+
+  it("reports a missing model as not deleted and throws on other errors", async () => {
+    const notFound = vi.fn().mockResolvedValue(jsonResponse({}, false, 404));
+    const providerA = new OllamaProvider(
+      { OLLAMA_API_URL: "http://localhost:11434" },
+      { fetchFn: notFound as unknown as typeof fetch }
+    );
+    await expect(providerA.deleteModel("gone:latest")).resolves.toBe(false);
+
+    const serverError = vi.fn().mockResolvedValue(jsonResponse({}, false, 500));
+    const providerB = new OllamaProvider(
+      { OLLAMA_API_URL: "http://localhost:11434" },
+      { fetchFn: serverError as unknown as typeof fetch }
+    );
+    await expect(providerB.deleteModel("x:latest")).rejects.toThrow(
+      "Ollama delete failed (500)"
+    );
+  });
+
   it("fetches available models from /api/tags", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       jsonResponse({

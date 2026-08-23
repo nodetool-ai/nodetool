@@ -402,6 +402,28 @@ export class OllamaProvider extends BaseProvider {
       }));
   }
 
+  /**
+   * Delete a model from the Ollama server's local store. Ollama answers
+   * `DELETE /api/delete` with 200 on success and 404 when the model is not
+   * installed; a 404 is reported as `false` rather than thrown, so a
+   * double-delete is not an error.
+   */
+  async deleteModel(model: string): Promise<boolean> {
+    const response = await this._fetch(`${this.apiUrl}/api/delete`, {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model })
+    });
+    if (response.status === 404) {
+      return false;
+    }
+    if (!response.ok) {
+      throw new Error(`Ollama delete failed (${response.status})`);
+    }
+    this._modelInfoCache.delete(model);
+    return true;
+  }
+
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
     const models = await this.getAvailableLanguageModels();
     return models.map((m) => ({
