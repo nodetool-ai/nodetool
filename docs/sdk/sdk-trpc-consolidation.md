@@ -865,6 +865,12 @@ claiming compatibility with an unreleased baseline.
 - [ ] Publish a one-row compatibility matrix for the first release. Add older
       rows only after a second supported release exists.
 
+Preparation note (2026-08-23): the locally packed `Nodetool.SDK 0.1.6` was
+restored into a clean temporary .NET 8 project. The project compiled and ran
+using only the package API, confirmed that raw transport types are not
+exported, and confirmed that creating session-owned HTTP services does not
+open a WebSocket. Published-artifact and live-server checks remain open.
+
 Exit criteria:
 
 - The published SDK pins the published NodeTool contract digest.
