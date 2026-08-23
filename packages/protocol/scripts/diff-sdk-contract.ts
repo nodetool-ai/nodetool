@@ -19,7 +19,6 @@ export type SdkContractChangeKind =
   | "error-changed"
   | "feature-changed"
   | "operation-unimplemented"
-  | "request-content-type-changed"
   | "response-content-type-changed"
   | "response-schema-changed"
   | "response-status-changed"
@@ -30,6 +29,8 @@ export type SdkContractChangeKind =
   | "http-identity-changed"
   | "implemented-route-removed"
   | "operation-removed"
+  | "request-contract-changed"
+  | "request-content-type-changed"
   | "request-schema-added"
   | "request-schema-changed"
   | "request-schema-removed"
@@ -53,7 +54,8 @@ export const CHANGE_CATEGORY: Readonly<
   "operation-removed": "breaking",
   "operation-unimplemented": "risky",
   "planned-operation-added": "additive",
-  "request-content-type-changed": "risky",
+  "request-contract-changed": "breaking",
+  "request-content-type-changed": "breaking",
   "request-schema-added": "breaking",
   "request-schema-changed": "breaking",
   "request-schema-removed": "breaking",
@@ -76,7 +78,11 @@ export type SdkContractChange = {
   readonly subject: string;
 };
 
-function change(kind: SdkContractChangeKind, subject: string, detail: string): SdkContractChange {
+function change(
+  kind: SdkContractChangeKind,
+  subject: string,
+  detail: string
+): SdkContractChange {
   return { category: CHANGE_CATEGORY[kind], detail, kind, subject };
 }
 
@@ -114,8 +120,26 @@ const operationEntry = z.object({
         .object({
           binary: z.boolean().optional(),
           content_type: z.string().optional(),
+          description: z.string().optional(),
+          field: z.string().optional(),
+          kind: z.enum(["json", "binary-multipart"]).optional(),
+          required: z.boolean().optional(),
           schema: z.string().optional()
         })
+        .optional(),
+      parameters: z
+        .array(
+          z.object({
+            description: z.string().optional(),
+            in: z.enum(["path", "query"]),
+            name: z.string(),
+            required: z.boolean(),
+            schema: z.union([
+              z.object({ kind: z.literal("query-property") }),
+              z.object({ kind: z.literal("inline"), json_schema: z.unknown() })
+            ])
+          })
+        )
         .optional(),
       query: z.string().optional()
     })
@@ -156,7 +180,9 @@ function stableStringify(value: unknown): string {
   if (value !== null && typeof value === "object") {
     const entries = Object.entries(value)
       .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-      .map(([key, child]) => `${JSON.stringify(key)}:${stableStringify(child)}`);
+      .map(
+        ([key, child]) => `${JSON.stringify(key)}:${stableStringify(child)}`
+      );
     return `{${entries.join(",")}}`;
   }
   return JSON.stringify(value) ?? "undefined";
@@ -187,12 +213,40 @@ function requestSchemaRefs(operation: SdkContractOperation): string[] {
   return refs;
 }
 
-function responseSchemaRef(operation: SdkContractOperation): string | undefined {
+function responseSchemaRef(
+  operation: SdkContractOperation
+): string | undefined {
   return (
     operation.response?.schema ??
     operation.message?.response?.payload ??
     operation.message?.event?.payload
   );
+}
+
+function requestContractMetadata(operation: SdkContractOperation): unknown {
+  const body = operation.request?.body;
+  return {
+    ...(body === undefined
+      ? {}
+      : {
+          body: {
+            ...(body.binary === undefined ? {} : { binary: body.binary }),
+            ...(body.description === undefined
+              ? {}
+              : { description: body.description }),
+            ...(body.field === undefined ? {} : { field: body.field }),
+            ...(body.kind === undefined ? {} : { kind: body.kind }),
+            ...(body.required === undefined ? {} : { required: body.required })
+          }
+        }),
+    ...(operation.request?.parameters === undefined
+      ? {}
+      : { parameters: operation.request.parameters })
+  };
+}
+
+function displayOptional(value: string | undefined): string {
+  return value === undefined ? "<absent>" : value;
 }
 
 function diffErrors(
@@ -351,61 +405,56 @@ function diffOperationPair(
 
   const oldBodyContentType = oldOperation.request?.body?.content_type;
   const newBodyContentType = newOperation.request?.body?.content_type;
-  if (
-    oldBodyContentType !== undefined &&
-    newBodyContentType !== undefined &&
-    oldBodyContentType !== newBodyContentType
-  ) {
+  if (oldBodyContentType !== newBodyContentType) {
     changes.push(
       change(
         "request-content-type-changed",
         id,
-        `request content type changed from ${oldBodyContentType} to ${newBodyContentType}`
+        `request content type changed from ${displayOptional(oldBodyContentType)} to ${displayOptional(newBodyContentType)}`
+      )
+    );
+  }
+  const oldRequestMetadata = requestContractMetadata(oldOperation);
+  const newRequestMetadata = requestContractMetadata(newOperation);
+  if (!deepEqual(oldRequestMetadata, newRequestMetadata)) {
+    changes.push(
+      change(
+        "request-contract-changed",
+        id,
+        "request parameters or body requirements changed"
       )
     );
   }
   const oldResponseContentType = oldOperation.response?.content_type;
   const newResponseContentType = newOperation.response?.content_type;
-  if (
-    oldResponseContentType !== undefined &&
-    newResponseContentType !== undefined &&
-    oldResponseContentType !== newResponseContentType
-  ) {
+  if (oldResponseContentType !== newResponseContentType) {
     changes.push(
       change(
         "response-content-type-changed",
         id,
-        `response content type changed from ${oldResponseContentType} to ${newResponseContentType}`
+        `response content type changed from ${displayOptional(oldResponseContentType)} to ${displayOptional(newResponseContentType)}`
       )
     );
   }
   const oldResponseStatus = oldOperation.response?.status;
   const newResponseStatus = newOperation.response?.status;
-  if (
-    oldResponseStatus !== undefined &&
-    newResponseStatus !== undefined &&
-    oldResponseStatus !== newResponseStatus
-  ) {
+  if (oldResponseStatus !== newResponseStatus) {
     changes.push(
       change(
         "response-status-changed",
         id,
-        `success status changed from ${oldResponseStatus} to ${newResponseStatus}`
+        `success status changed from ${displayOptional(oldResponseStatus)} to ${displayOptional(newResponseStatus)}`
       )
     );
   }
   const oldResponseRef = responseSchemaRef(oldOperation);
   const newResponseRef = responseSchemaRef(newOperation);
-  if (
-    oldResponseRef !== undefined &&
-    newResponseRef !== undefined &&
-    oldResponseRef !== newResponseRef
-  ) {
+  if (oldResponseRef !== newResponseRef) {
     changes.push(
       change(
         "response-schema-changed",
         id,
-        `response schema changed from ${oldResponseRef} to ${newResponseRef}`
+        `response schema changed from ${displayOptional(oldResponseRef)} to ${displayOptional(newResponseRef)}`
       )
     );
   }
@@ -466,8 +515,9 @@ function propertyNames(definition: SchemaObject): readonly string[] {
 }
 
 /**
- * Coarse `$defs` diff of one JSON-schema file. Response definitions (named in
- * `responseDefNames`) additionally get top-level required/property checks:
+ * Coarse `$defs` diff of one JSON-schema file. Request definitions are always
+ * breaking when changed. Response definitions (named in `responseDefNames`)
+ * additionally get top-level required/property checks:
  * a required response property that disappears is breaking, a new property is
  * additive; any other change to a definition stays risky.
  */
@@ -475,7 +525,8 @@ export function diffSchemaDefs(
   fileName: string,
   oldDefs: Readonly<Record<string, unknown>>,
   newDefs: Readonly<Record<string, unknown>>,
-  responseDefNames: ReadonlySet<string>
+  responseDefNames: ReadonlySet<string>,
+  requestDefNames: ReadonlySet<string> = new Set()
 ): SdkContractChange[] {
   const changes: SdkContractChange[] = [];
   for (const [name, oldDefinition] of Object.entries(oldDefs)) {
@@ -483,7 +534,17 @@ export function diffSchemaDefs(
     const newDefinition = newDefs[name];
     if (!Object.hasOwn(newDefs, name)) {
       changes.push(
-        change("schema-def-removed", subject, "schema definition was removed")
+        requestDefNames.has(name)
+          ? change(
+              "request-schema-removed",
+              subject,
+              "request schema definition was removed"
+            )
+          : change(
+              "schema-def-removed",
+              subject,
+              "schema definition was removed"
+            )
       );
       continue;
     }
@@ -493,7 +554,18 @@ export function diffSchemaDefs(
     const oldObject = asSchemaObject(oldDefinition);
     const newObject = asSchemaObject(newDefinition);
     let classified = false;
+    if (requestDefNames.has(name)) {
+      changes.push(
+        change(
+          "request-schema-changed",
+          subject,
+          "request schema definition changed"
+        )
+      );
+      classified = true;
+    }
     if (
+      !classified &&
       responseDefNames.has(name) &&
       oldObject !== undefined &&
       newObject !== undefined
@@ -550,7 +622,9 @@ export function diffImplementedOpenApiPaths(
   oldDocument: z.infer<typeof openApiDocumentSchema>,
   newDocument: z.infer<typeof openApiDocumentSchema>
 ): SdkContractChange[] {
-  const routes = (document: z.infer<typeof openApiDocumentSchema>): Set<string> =>
+  const routes = (
+    document: z.infer<typeof openApiDocumentSchema>
+  ): Set<string> =>
     new Set(
       Object.entries(document.paths).flatMap(([path, methods]) =>
         Object.keys(methods).map((method) => `${method.toUpperCase()} ${path}`)
@@ -604,8 +678,14 @@ function readJson(path: string): unknown {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-function resolveInDirectory(directory: string, name: string): string | undefined {
-  for (const candidate of [join(directory, "schema", name), join(directory, name)]) {
+function resolveInDirectory(
+  directory: string,
+  name: string
+): string | undefined {
+  for (const candidate of [
+    join(directory, "schema", name),
+    join(directory, name)
+  ]) {
     if (existsSync(candidate)) {
       return candidate;
     }
@@ -635,10 +715,16 @@ function loadTarget(argument: string): ContractTarget {
   for (const name of SCHEMA_FILE_NAMES) {
     const schemaPath = resolveInDirectory(path, name);
     if (schemaPath !== undefined) {
-      schemaFiles.set(name, jsonSchemaFileSchema.parse(readJson(schemaPath)).$defs);
+      schemaFiles.set(
+        name,
+        jsonSchemaFileSchema.parse(readJson(schemaPath)).$defs
+      );
     }
   }
-  const openApiPath = resolveInDirectory(path, "sdk-v1.openapi.implemented.json");
+  const openApiPath = resolveInDirectory(
+    path,
+    "sdk-v1.openapi.implemented.json"
+  );
   return {
     ...(openApiPath === undefined
       ? {}
@@ -672,6 +758,25 @@ function responseDefNamesByFile(
   return byFile;
 }
 
+/** Request `$defs` names per schema file, read from the old manifest. */
+function requestDefNamesByFile(
+  manifest: SdkContractOperationsManifest
+): Map<string, Set<string>> {
+  const byFile = new Map<string, Set<string>>();
+  for (const operation of manifest.operations) {
+    for (const taggedRef of requestSchemaRefs(operation)) {
+      const ref = taggedRef.slice(taggedRef.indexOf("=") + 1);
+      const [file, pointer] = ref.split("#");
+      const name = pointer?.split("/").at(-1);
+      if (file === undefined || name === undefined) continue;
+      const names = byFile.get(file) ?? new Set<string>();
+      names.add(name);
+      byFile.set(file, names);
+    }
+  }
+  return byFile;
+}
+
 export function diffContractTargets(
   oldTarget: ContractTarget,
   newTarget: ContractTarget
@@ -681,6 +786,7 @@ export function diffContractTargets(
     newTarget.operations
   );
   const responseDefs = responseDefNamesByFile(oldTarget.operations);
+  const requestDefs = requestDefNamesByFile(oldTarget.operations);
   for (const [name, oldDefs] of oldTarget.schemaFiles) {
     const newDefs = newTarget.schemaFiles.get(name);
     if (newDefs !== undefined) {
@@ -689,7 +795,8 @@ export function diffContractTargets(
           name,
           oldDefs,
           newDefs,
-          responseDefs.get(name) ?? new Set()
+          responseDefs.get(name) ?? new Set(),
+          requestDefs.get(name) ?? new Set()
         )
       );
     }

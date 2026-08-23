@@ -178,7 +178,7 @@ describe("diffOperationManifests", () => {
     expect(exitCodeFor(changes)).toBe(2);
   });
 
-  it("classifies a changed request content type as risky", () => {
+  it("classifies a changed request content type as breaking", () => {
     const changes = diffOperationManifests(
       manifest([
         httpOperation({
@@ -202,7 +202,73 @@ describe("diffOperationManifests", () => {
       ])
     );
     expect(only(changes).kind).toBe("request-content-type-changed");
-    expect(exitCodeFor(changes)).toBe(2);
+    expect(exitCodeFor(changes)).toBe(3);
+  });
+
+  it("detects removed request and response metadata", () => {
+    const oldOperation = httpOperation({
+      request: {
+        body: {
+          content_type: "application/json",
+          schema: "sdk-v1.discovery.schema.json#/$defs/ThingsQuery"
+        }
+      }
+    });
+    const newOperation = httpOperation({
+      request: {
+        body: { schema: "sdk-v1.discovery.schema.json#/$defs/ThingsQuery" }
+      },
+      response: {}
+    });
+
+    const changes = diffOperationManifests(
+      manifest([oldOperation]),
+      manifest([newOperation])
+    );
+
+    expect(changes.map((change) => change.kind)).toEqual([
+      "request-content-type-changed",
+      "response-content-type-changed",
+      "response-status-changed",
+      "response-schema-changed"
+    ]);
+    expect(exitCodeFor(changes)).toBe(3);
+  });
+
+  it("classifies parameter requirement changes as breaking", () => {
+    const changes = diffOperationManifests(
+      manifest([
+        httpOperation({
+          request: {
+            parameters: [
+              {
+                in: "query",
+                name: "limit",
+                required: false,
+                schema: { kind: "query-property" }
+              }
+            ]
+          }
+        })
+      ]),
+      manifest([
+        httpOperation({
+          request: {
+            parameters: [
+              {
+                in: "query",
+                name: "limit",
+                required: true,
+                schema: { kind: "query-property" }
+              }
+            ]
+          }
+        })
+      ])
+    );
+
+    expect(only(changes).kind).toBe("request-contract-changed");
+    expect(exitCodeFor(changes)).toBe(3);
   });
 
   it("classifies a changed response content type as risky", () => {
@@ -302,9 +368,9 @@ describe("diffOperationManifests", () => {
       manifest([httpOperation({ id: "shared" })]),
       manifest([webSocketOperation({ id: "shared" })])
     );
-    expect(
-      changes.some((change) => change.kind === "transport-changed")
-    ).toBe(true);
+    expect(changes.some((change) => change.kind === "transport-changed")).toBe(
+      true
+    );
     expect(exitCodeFor(changes)).toBe(3);
   });
 
@@ -324,7 +390,9 @@ describe("diffOperationManifests", () => {
       manifest([httpOperation()]),
       manifest([
         httpOperation({
-          request: { query: "sdk-v1.discovery.schema.json#/$defs/ThingsQueryV2" }
+          request: {
+            query: "sdk-v1.discovery.schema.json#/$defs/ThingsQueryV2"
+          }
         })
       ])
     );
@@ -372,10 +440,7 @@ describe("diffOperationManifests", () => {
   it("maps mixed severities to the strongest exit code", () => {
     const additiveAndRisky = diffOperationManifests(
       manifest([httpOperation()]),
-      manifest([
-        httpOperation({ auth: "authenticated" }),
-        webSocketOperation()
-      ])
+      manifest([httpOperation({ auth: "authenticated" }), webSocketOperation()])
     );
     expect(exitCodeFor(additiveAndRisky)).toBe(2);
 
@@ -389,6 +454,7 @@ describe("diffOperationManifests", () => {
 
 describe("diffSchemaDefs", () => {
   const responseNames = new Set(["ThingsOutput"]);
+  const requestNames = new Set(["ThingsQuery"]);
   const objectDef = {
     properties: { id: { type: "string" }, name: { type: "string" } },
     required: ["id", "name"],
@@ -425,6 +491,21 @@ describe("diffSchemaDefs", () => {
       responseNames
     );
     expect(only(changes).kind).toBe("schema-def-changed");
+  });
+
+  it("classifies a changed request definition as breaking", () => {
+    const changes = diffSchemaDefs(
+      "sdk-v1.discovery.schema.json",
+      { ThingsQuery: objectDef },
+      { ThingsQuery: { ...objectDef, required: ["id"] } },
+      responseNames,
+      requestNames
+    );
+
+    const change = only(changes);
+    expect(change.kind).toBe("request-schema-changed");
+    expect(change.category).toBe("breaking");
+    expect(exitCodeFor(changes)).toBe(3);
   });
 
   it("classifies a removed required response property as breaking", () => {

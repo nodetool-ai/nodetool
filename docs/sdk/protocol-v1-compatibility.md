@@ -77,14 +77,14 @@ classifies every change:
   implemented, added error declaration, new schema definition, new response
   property.
 - **risky** — changed auth or feature policy, changed error description,
-  implemented → planned, changed request/response content type, changed
-  success status, changed response schema reference, removed or changed
-  schema definition.
+  implemented → planned, changed response content type or success status,
+  changed response schema reference, removed or changed non-request schema
+  definition.
 - **breaking** — removed operation, changed method/path or
   channel/command/direction, changed transport, removed declared error
-  status/code, request schema added/changed/removed on an existing operation,
-  removed required response property, route removed from the implemented
-  OpenAPI profile.
+  status/code, changed request content type, parameters, body requirements, or
+  request schema on an existing operation, removed required response property,
+  route removed from the implemented OpenAPI profile.
 
 Exit codes: `0` for no or additive-only changes, `2` when the diff contains a
 risky change and no breaking one, `3` when it contains a breaking change.

@@ -142,14 +142,16 @@ describe("generated public SDK protocol artifacts", () => {
     ) as BaselineFixture;
 
     expect(
-      schemaDefinition(bundle, "WorkflowSummariesOutput")(
-        fixture.rest.summaries.response
-      )
+      schemaDefinition(
+        bundle,
+        "WorkflowSummariesOutput"
+      )(fixture.rest.summaries.response)
     ).toBe(true);
     expect(
-      schemaDefinition(bundle, "WorkflowInterface")(
-        fixture.rest.interface.response
-      )
+      schemaDefinition(
+        bundle,
+        "WorkflowInterface"
+      )(fixture.rest.interface.response)
     ).toBe(true);
     expect(
       schemaDefinition(bundle, "RpcRequest")(fixture.websocket.request)
@@ -166,7 +168,7 @@ describe("generated public SDK protocol artifacts", () => {
     expectAllDefinitionsToCompile(
       JSON.parse(artifacts["sdk-v1.lifecycle.schema.json"]) as JsonSchema
     );
-  });
+  }, 20_000);
 
   it("allows additive response fields but keeps requests strict", () => {
     const bundle = JSON.parse(

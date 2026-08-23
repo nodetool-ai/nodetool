@@ -13,7 +13,22 @@
       "id": "cancelJob",
       "method": "POST",
       "path": "/api/sdk/v1/jobs/{job_id}/cancel",
-      "request": {},
+      "request": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "json_schema": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "kind": "inline"
+            }
+          }
+        ]
+      },
       "response": {
         "content_type": "application/json",
         "schema": "sdk-v1.lifecycle.schema.json#/$defs/CancelJobResponse",
@@ -41,6 +56,8 @@
       "request": {
         "body": {
           "content_type": "application/json",
+          "kind": "json",
+          "required": true,
           "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadCancelRequest"
         }
       },
@@ -85,7 +102,22 @@
       "id": "getJobSnapshot",
       "method": "GET",
       "path": "/api/sdk/v1/jobs/{job_id}",
-      "request": {},
+      "request": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "json_schema": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "kind": "inline"
+            }
+          }
+        ]
+      },
       "response": {
         "content_type": "application/json",
         "schema": "sdk-v1.lifecycle.schema.json#/$defs/JobSnapshot",
@@ -111,6 +143,24 @@
       "method": "GET",
       "path": "/api/sdk/v1/node-types",
       "request": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          }
+        ],
         "query": "sdk-v1.discovery.schema.json#/$defs/NodeTypeInventoryInput"
       },
       "response": {
@@ -145,7 +195,34 @@
       "id": "getWorkflowInterface",
       "method": "GET",
       "path": "/api/workflows/{id}/interface",
-      "request": {},
+      "request": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "json_schema": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "kind": "inline"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "json_schema": {
+                "const": 1,
+                "type": "integer"
+              },
+              "kind": "inline"
+            }
+          }
+        ]
+      },
       "response": {
         "content_type": "application/json",
         "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterface",
@@ -173,6 +250,8 @@
       "request": {
         "body": {
           "content_type": "application/json",
+          "kind": "json",
+          "required": true,
           "schema": "sdk-v1.discovery.schema.json#/$defs/WorkflowInterfacesInput"
         }
       },
@@ -373,6 +452,24 @@
       "method": "GET",
       "path": "/api/sdk/v1/model-downloads",
       "request": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operation_id",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          }
+        ],
         "query": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadQuery"
       },
       "response": {
@@ -404,6 +501,56 @@
       "method": "GET",
       "path": "/api/sdk/v1/models",
       "request": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "compatibility",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "availability",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          }
+        ],
         "query": "sdk-v1.discovery.schema.json#/$defs/ModelCatalogQuery"
       },
       "response": {
@@ -431,6 +578,24 @@
       "method": "GET",
       "path": "/api/sdk/v1/workflows",
       "request": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "kind": "query-property"
+            }
+          }
+        ],
         "query": "sdk-v1.discovery.schema.json#/$defs/WorkflowSummariesInput"
       },
       "response": {
@@ -464,6 +629,8 @@
       "request": {
         "body": {
           "content_type": "application/json",
+          "kind": "json",
+          "required": true,
           "schema": "sdk-v1.lifecycle.schema.json#/$defs/PreflightRequest"
         }
       },
@@ -634,6 +801,8 @@
       "request": {
         "body": {
           "content_type": "application/json",
+          "kind": "json",
+          "required": true,
           "schema": "sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadStartRequest"
         }
       },
@@ -676,6 +845,8 @@
       "request": {
         "body": {
           "content_type": "application/json",
+          "kind": "json",
+          "required": true,
           "schema": "sdk-v1.lifecycle.schema.json#/$defs/SubmitJobRequest"
         }
       },
@@ -710,7 +881,10 @@
       "request": {
         "body": {
           "binary": true,
-          "content_type": "multipart/form-data"
+          "content_type": "multipart/form-data",
+          "field": "file",
+          "kind": "binary-multipart",
+          "required": true
         }
       },
       "response": {

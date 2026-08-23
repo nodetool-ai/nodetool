@@ -159,9 +159,9 @@ describe("SDK v1 operation registry", () => {
 
   it("looks up operations by id across both transports", () => {
     expect(getSdkV1Operation("preflightWorkflow")?.transport).toBe("http");
-    expect(getSdkV1Operation("lifecycleRpc.preflight_workflow")?.transport).toBe(
-      "websocket"
-    );
+    expect(
+      getSdkV1Operation("lifecycleRpc.preflight_workflow")?.transport
+    ).toBe("websocket");
     expect(getSdkV1Operation("nonexistentOperation")).toBeUndefined();
   });
 });
@@ -186,7 +186,10 @@ describe("matchSdkV1HttpOperation", () => {
     expect(interfaceMatch?.operation.id).toBe("getWorkflowInterface");
     expect(interfaceMatch?.params).toEqual({ id: "wf-123" });
 
-    const snapshotMatch = matchSdkV1HttpOperation("GET", "/api/sdk/v1/jobs/job-9");
+    const snapshotMatch = matchSdkV1HttpOperation(
+      "GET",
+      "/api/sdk/v1/jobs/job-9"
+    );
     expect(snapshotMatch?.operation.id).toBe("getJobSnapshot");
     expect(snapshotMatch?.params).toEqual({ job_id: "job-9" });
 
@@ -205,8 +208,12 @@ describe("matchSdkV1HttpOperation", () => {
   });
 
   it("returns undefined for unknown paths and mismatched methods", () => {
-    expect(matchSdkV1HttpOperation("GET", "/api/sdk/v1/unknown")).toBeUndefined();
-    expect(matchSdkV1HttpOperation("POST", "/api/sdk/v1/models")).toBeUndefined();
+    expect(
+      matchSdkV1HttpOperation("GET", "/api/sdk/v1/unknown")
+    ).toBeUndefined();
+    expect(
+      matchSdkV1HttpOperation("POST", "/api/sdk/v1/models")
+    ).toBeUndefined();
     expect(
       matchSdkV1HttpOperation("GET", "/api/workflows//interface")
     ).toBeUndefined();
@@ -214,7 +221,13 @@ describe("matchSdkV1HttpOperation", () => {
 });
 
 interface OpenApiDocument {
-  paths: Record<string, Record<string, { operationId: string }>>;
+  paths: Record<
+    string,
+    Record<
+      string,
+      { operationId: string; security: Array<Record<string, unknown[]>> }
+    >
+  >;
 }
 
 interface AsyncApiDocument {
@@ -235,6 +248,11 @@ interface OperationsManifest {
     command?: string;
     direction?: string;
     errors: Array<Record<string, string>>;
+    request?: {
+      body?: Record<string, unknown>;
+      parameters?: Array<Record<string, unknown>>;
+      query?: string;
+    };
   }>;
   protocol_version: string;
 }
@@ -277,6 +295,23 @@ describe("generated operation profiles", () => {
     expect(Object.keys(document.paths)).not.toContain("/api/sdk/v1/jobs");
   });
 
+  it("emits declaration-driven OpenAPI authentication requirements", () => {
+    const document = JSON.parse(
+      artifacts["sdk-v1.openapi.json"]
+    ) as OpenApiDocument;
+
+    for (const declaration of sdkV1HttpOperations) {
+      const operation =
+        document.paths[declaration.path]?.[declaration.method.toLowerCase()];
+      expect(operation, declaration.id).toBeDefined();
+      expect(operation?.security, declaration.id).toEqual(
+        declaration.auth === "authenticated"
+          ? [{ bearerAuth: [] }]
+          : [{ bearerAuth: [] }, {}]
+      );
+    }
+  });
+
   it("limits the implemented AsyncAPI profile to implemented envelopes", () => {
     const raw = artifacts["sdk-v1.asyncapi.implemented.json"];
     const document = JSON.parse(raw) as AsyncApiDocument;
@@ -296,7 +331,9 @@ describe("generated operation profiles", () => {
     // Lifecycle envelopes still mix implemented and planned commands.
     expect(raw).toContain('"x-nodetool-implementation": "partial"');
 
-    const full = JSON.parse(artifacts["sdk-v1.asyncapi.json"]) as AsyncApiDocument;
+    const full = JSON.parse(
+      artifacts["sdk-v1.asyncapi.json"]
+    ) as AsyncApiDocument;
     expect(Object.keys(full.channels.sdkRpc.messages)).toContain("jobEvent");
     expect(Object.keys(full.operations)).toContain("receiveJobEvent");
   });
@@ -335,6 +372,44 @@ describe("generated operation profiles", () => {
         }))
       );
     }
+
+    const nodeTypes = manifest.operations.find(
+      (operation) => operation.id === "getNodeTypeInventory"
+    );
+    expect(nodeTypes?.request?.parameters).toEqual([
+      {
+        in: "query",
+        name: "cursor",
+        required: false,
+        schema: { kind: "query-property" }
+      },
+      {
+        in: "query",
+        name: "limit",
+        required: false,
+        schema: { kind: "query-property" }
+      }
+    ]);
+
+    const submitJob = manifest.operations.find(
+      (operation) => operation.id === "submitJob"
+    );
+    expect(submitJob?.request?.body).toMatchObject({
+      content_type: "application/json",
+      kind: "json",
+      required: true
+    });
+
+    const upload = manifest.operations.find(
+      (operation) => operation.id === "uploadTemporaryAsset"
+    );
+    expect(upload?.request?.body).toMatchObject({
+      binary: true,
+      content_type: "multipart/form-data",
+      field: "file",
+      kind: "binary-multipart",
+      required: true
+    });
 
     for (const declaration of sdkV1WebSocketOperations) {
       const entry = manifest.operations.find(

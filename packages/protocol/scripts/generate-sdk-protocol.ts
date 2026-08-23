@@ -422,6 +422,10 @@ function httpOperationJson(
 
   return {
     operationId: operation.id,
+    security:
+      operation.auth === "authenticated"
+        ? [{ bearerAuth: [] }]
+        : [{ bearerAuth: [] }, {}],
     ...(parameters && parameters.length > 0 ? { parameters } : {}),
     ...(operation.request.body
       ? { requestBody: requestBodyJson(operation.request.body) }
@@ -478,7 +482,6 @@ function openApiDocument(
     },
     openapi: "3.1.0",
     paths: buildOpenApiPaths(operations),
-    security: [{ bearerAuth: [] }, {}],
     servers: [
       {
         description: "Local NodeTool server",
@@ -622,9 +625,42 @@ function httpOperationManifest(
               body.kind === "json"
                 ? {
                     content_type: "application/json",
+                    ...(body.description === undefined
+                      ? {}
+                      : { description: body.description }),
+                    kind: body.kind,
+                    required: body.required,
                     schema: refPointer(body.schema)
                   }
-                : { binary: true, content_type: "multipart/form-data" }
+                : {
+                    binary: true,
+                    content_type: "multipart/form-data",
+                    ...(body.description === undefined
+                      ? {}
+                      : { description: body.description }),
+                    field: body.field,
+                    kind: body.kind,
+                    required: body.required
+                  }
+          }
+        : {}),
+      ...(operation.request.parameters
+        ? {
+            parameters: operation.request.parameters.map((parameter) => ({
+              ...(parameter.description === undefined
+                ? {}
+                : { description: parameter.description }),
+              in: parameter.in,
+              name: parameter.name,
+              required: parameter.required,
+              schema:
+                parameter.schema.kind === "query-property"
+                  ? { kind: parameter.schema.kind }
+                  : {
+                      json_schema: parameter.schema.jsonSchema,
+                      kind: parameter.schema.kind
+                    }
+            }))
           }
         : {})
     },

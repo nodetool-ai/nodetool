@@ -82,6 +82,11 @@
             "description": "SDK lifecycle is unavailable"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Upload one transient workflow input without asset autosave"
       }
     },
@@ -110,6 +115,12 @@
             "description": "Capabilities are unavailable"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
         "summary": "Get public SDK capabilities"
       }
     },
@@ -166,6 +177,11 @@
             "description": "Requested execution scope is not available"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "List model downloads"
       },
       "post": {
@@ -212,6 +228,11 @@
             "description": "Requested model download is not available"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Start or retry a model download"
       }
     },
@@ -260,6 +281,11 @@
             "description": "Download operation was not found"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Cancel a model download"
       }
     },
@@ -358,6 +384,12 @@
             "description": "Model catalog is unavailable"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
         "summary": "List execution-compatible models"
       }
     },
@@ -414,6 +446,12 @@
             "description": "SDK discovery is disabled"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
         "summary": "List node types used by the loaded registry"
       }
     },
@@ -472,6 +510,11 @@
             "description": "Requested preflight level is unavailable"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Preflight a workflow without starting paid work"
       }
     },
@@ -520,6 +563,12 @@
             "description": "SDK discovery is disabled"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
         "summary": "Get up to 100 workflow interfaces"
       }
     },
@@ -576,6 +625,12 @@
             "description": "SDK discovery is disabled"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
         "summary": "List compact workflow summaries"
       }
     },
@@ -654,16 +709,16 @@
             "description": "SDK discovery is disabled"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
         "summary": "Get one graph-derived workflow interface"
       }
     }
   },
-  "security": [
-    {
-      "bearerAuth": []
-    },
-    {}
-  ],
   "servers": [
     {
       "description": "Local NodeTool server",
