@@ -21,6 +21,7 @@ import {
   type StoryboardJobContext
 } from "../StoryboardGenerationStore";
 import { useStoryboardStore } from "../StoryboardStore";
+import { useNotificationStore } from "../../NotificationStore";
 
 const BOARD = "board-t";
 const context = (shotId: string, kind: "keyframe" | "clip"): StoryboardJobContext => ({
@@ -180,5 +181,74 @@ describe("updateJobStatus", () => {
     const job = useStoryboardGenerationStore.getState().shotJobs["s-plain"];
     expect(job?.status).toBe("completed");
     expect(job?.errorMessage).toBeUndefined();
+  });
+});
+
+describe("failure reporting", () => {
+  beforeEach(() => {
+    useNotificationStore.getState().clearNotifications();
+  });
+
+  it("keeps the job error and notifies when a job fails", () => {
+    seedShot("s-fail");
+    const gen = useStoryboardGenerationStore.getState();
+    gen.registerJob("s-fail", BOARD, "job-fail", "wf", "keyframe");
+
+    __handleShotJobMessageForTests("job-fail", context("s-fail", "keyframe"), {
+      type: "job_update",
+      status: "failed",
+      error: "Provider rejected the prompt"
+    } as never);
+
+    const job = useStoryboardGenerationStore.getState().shotJobs["s-fail"];
+    expect(job?.status).toBe("failed");
+    expect(job?.errorMessage).toBe("Provider rejected the prompt");
+
+    const notification =
+      useNotificationStore.getState().notifications.at(-1);
+    expect(notification?.type).toBe("error");
+    expect(notification?.content).toContain("Provider rejected the prompt");
+  });
+
+  it("reports a completed job that produced no output", () => {
+    seedShot("s-empty");
+    const gen = useStoryboardGenerationStore.getState();
+    gen.registerJob("s-empty", BOARD, "job-empty", "wf", "keyframe");
+
+    __handleShotJobMessageForTests("job-empty", context("s-empty", "keyframe"), {
+      type: "job_update",
+      status: "completed"
+    } as never);
+
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs["s-empty"]?.errorMessage
+    ).toBe("Workflow finished without producing an output.");
+    expect(
+      useNotificationStore.getState().notifications.at(-1)?.content
+    ).toContain("Workflow finished without producing an output.");
+  });
+
+  it("records a failure that happened before any job existed", () => {
+    seedShot("s-unstarted");
+    useStoryboardGenerationStore
+      .getState()
+      .recordStartFailure("s-unstarted", BOARD, "keyframe", "No model chosen");
+
+    const job =
+      useStoryboardGenerationStore.getState().shotJobs["s-unstarted"];
+    expect(job?.status).toBe("failed");
+    expect(job?.errorMessage).toBe("No model chosen");
+    expect(
+      useStoryboardGenerationStore.getState().failedShotIds
+    ).toContain("s-unstarted");
+    expect(
+      useStoryboardStore
+        .getState()
+        .getBoard(BOARD)
+        ?.shots.find((s) => s.id === "s-unstarted")?.status
+    ).toBe("failed");
+    expect(
+      useNotificationStore.getState().notifications.at(-1)?.content
+    ).toContain("No model chosen");
   });
 });

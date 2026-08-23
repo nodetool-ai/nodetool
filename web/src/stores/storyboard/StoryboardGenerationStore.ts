@@ -21,6 +21,7 @@ import {
   type WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
 import { normalizeOutputUpdateValue, isOutputUpdate } from "../outputUpdateValue";
+import { useNotificationStore } from "../NotificationStore";
 import { useStoryboardStore } from "./StoryboardStore";
 import { syncShotClipToTimeline } from "./timelineSync";
 import { isNumber, isString } from "../../utils/typePredicates";
@@ -86,6 +87,17 @@ interface StoryboardGenerationStoreState {
     extra?: { assetId?: string; errorMessage?: string }
   ) => void;
   updateJobProgress: (jobId: string, progress: number) => void;
+  /**
+   * Record a failure that happened before the job existed — the run request
+   * itself threw, so there is no job id and no WebSocket stream to report it.
+   * Without this the shot silently stays "planned" and the user sees nothing.
+   */
+  recordStartFailure: (
+    shotId: string,
+    boardId: string,
+    kind: ShotJobKind,
+    errorMessage: string
+  ) => void;
   clear: (shotId: string) => void;
   getShotJobState: (shotId: string) => ShotJobState | undefined;
 }
@@ -134,6 +146,44 @@ const deriveMembership = (
       ? prev.failedShotIds
       : nextFailed
   };
+};
+
+// ── Failure reporting ────────────────────────────────────────────────────────
+
+const KIND_LABEL: Record<ShotJobKind, string> = {
+  keyframe: "Still",
+  clip: "Clip"
+};
+
+/** "3. Wide of the pier" — the name the card shows, for the failure toast. */
+const shotLabel = (boardId: string, shotId: string): string => {
+  const shot = useStoryboardStore
+    .getState()
+    .getBoard(boardId)
+    ?.shots.find((s) => s.id === shotId);
+  if (!shot) {
+    return "shot";
+  }
+  return `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
+};
+
+/**
+ * Toast a failed render. The card carries the same message, but a board can be
+ * long and a still can fail while the user is looking elsewhere — one job, one
+ * notification (dedupeKey), replacing the previous one for that job.
+ */
+const notifyShotFailure = (job: ShotJobState): void => {
+  const reason = job.errorMessage?.trim();
+  useNotificationStore.getState().addNotification({
+    type: "error",
+    alert: true,
+    content: `${KIND_LABEL[job.kind]} failed for ${shotLabel(
+      job.boardId,
+      job.shotId
+    )}${reason ? `: ${reason}` : "."}`,
+    dedupeKey: `storyboard-shot-failed:${job.shotId}`,
+    replaceExisting: true
+  });
 };
 
 // ── Store ────────────────────────────────────────────────────────────────────
@@ -211,6 +261,7 @@ export const useStoryboardGenerationStore =
         useStoryboardStore
           .getState()
           .setShotStatus(existing.boardId, shotId, "failed");
+        notifyShotFailure(updated);
       }
     },
 
@@ -231,6 +282,36 @@ export const useStoryboardGenerationStore =
           [shotId]: { ...existing, progress: safeProgress }
         }
       }));
+    },
+
+    recordStartFailure: (shotId, boardId, kind, errorMessage) => {
+      const jobState: ShotJobState = {
+        shotId,
+        boardId,
+        // No job was created, so there is nothing to subscribe to or cancel.
+        // The id only keys the reverse lookup, which nothing will hit.
+        jobId: `unstarted:${shotId}`,
+        workflowId: "",
+        kind,
+        status: "failed",
+        errorMessage
+      };
+      set((state) => {
+        const nextShotJobs = { ...state.shotJobs, [shotId]: jobState };
+        const nextJobToShot = { ...state.jobToShot };
+        const previous = state.shotJobs[shotId];
+        if (previous) {
+          delete nextJobToShot[previous.jobId];
+        }
+        nextJobToShot[jobState.jobId] = shotId;
+        return {
+          shotJobs: nextShotJobs,
+          jobToShot: nextJobToShot,
+          ...deriveMembership(nextShotJobs, state)
+        };
+      });
+      useStoryboardStore.getState().setShotStatus(boardId, shotId, "failed");
+      notifyShotFailure(jobState);
     },
 
     clear: (shotId) => {
