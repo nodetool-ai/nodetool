@@ -36,6 +36,7 @@ import type {
 } from "./types.js";
 import {
   listTimelinesSpec,
+  createTimelineSpec,
   getTimelineSpec,
   listTimelineVersionsSpec,
   getTimelineVersionSpec,
@@ -48,6 +49,7 @@ import {
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
   LIST_TIMELINES_SCHEMA,
+  CREATE_TIMELINE_SCHEMA,
   GET_TIMELINE_SCHEMA,
   LIST_TIMELINE_VERSIONS_SCHEMA,
   GET_TIMELINE_VERSION_SCHEMA,
@@ -65,6 +67,7 @@ export {
   MAX_VERSION_LIMIT,
   SAVE_TYPE_PROPERTY,
   LIST_TIMELINES_SCHEMA,
+  CREATE_TIMELINE_SCHEMA,
   GET_TIMELINE_SCHEMA,
   LIST_TIMELINE_VERSIONS_SCHEMA,
   GET_TIMELINE_VERSION_SCHEMA,
@@ -184,6 +187,75 @@ const listTimelines: CapabilityExport = {
         duration_ms: row.duration_ms,
         updated_at: row.updated_at
       }))
+    };
+  }
+};
+
+/** A positive integer setting, or the default when the caller gave none. */
+function sequenceSetting(
+  value: unknown,
+  fallback: number,
+  field: string
+): number | ToolError {
+  if (value === undefined || value === null) return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) {
+    return { error: `${field} must be a positive number.` };
+  }
+  return Math.round(n);
+}
+
+/**
+ * A new, empty sequence.
+ *
+ * Every other document surface could make one — sketches, scripts,
+ * storyboards — and timelines could not, which left "cut these clips
+ * together" with two ways in, both wrong: edit the sequence the user happens
+ * to have open, or assemble from a storyboard, which builds a timeline only
+ * out of media the board itself rendered. A live session did the first, wiped
+ * six clips of somebody's work, and had to restore from a snapshot.
+ */
+const createTimeline: CapabilityExport = {
+  spec: createTimelineSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const name = params["name"];
+    if (!isString(name) || name.trim() === "") {
+      return { error: "name is required and must be a non-empty string." };
+    }
+    const fps = sequenceSetting(params["fps"], 30, "fps");
+    if (isError(fps)) return fps;
+    const width = sequenceSetting(params["width"], 1920, "width");
+    if (isError(width)) return width;
+    const height = sequenceSetting(params["height"], 1080, "height");
+    if (isError(height)) return height;
+    const projectId = isString(params["project_id"])
+      && params["project_id"].trim() !== ""
+      ? params["project_id"].trim()
+      : "default";
+
+    const { TimelineSequence } = await import("@nodetool-ai/models");
+    const sequence = new TimelineSequence({
+      user_id: userId,
+      project_id: projectId,
+      name: name.trim(),
+      fps,
+      width,
+      height,
+      duration_ms: 0,
+      document: JSON.stringify({ tracks: [], clips: [], markers: [] })
+    });
+    await sequence.save();
+    return {
+      ok: true,
+      timeline_id: sequence.id,
+      name: sequence.name,
+      fps: sequence.fps,
+      width: sequence.width,
+      height: sequence.height,
+      project_id: sequence.project_id,
+      updated_at: sequence.updated_at
     };
   }
 };
@@ -725,6 +797,7 @@ const deleteTimeline: CapabilityExport = {
 };
 export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   listTimelines,
+  createTimeline,
   getTimeline,
   listTimelineVersions,
   getTimelineVersion,
@@ -743,6 +816,7 @@ export const module: CapabilityModule = {
 
 export {
   listTimelines,
+  createTimeline,
   getTimeline,
   listTimelineVersions,
   getTimelineVersion,

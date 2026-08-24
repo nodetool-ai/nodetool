@@ -10,6 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { isString } from "../utils/type-guards.js";
 
 export const DEFAULT_VERSION_LIMIT = 20;
 
@@ -178,6 +179,43 @@ export const listTimelinesSpec: CapabilitySpec = {
   userMessage: () => "Listing timelines"
 };
 
+export const CREATE_TIMELINE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    name: {
+      type: "string",
+      description: "Name for the new sequence."
+    },
+    fps: { type: "number", description: "Frame rate. Default 30." },
+    width: { type: "number", description: "Render width. Default 1920." },
+    height: { type: "number", description: "Render height. Default 1080." },
+    project_id: {
+      type: "string",
+      description: "Project to file it under. Default 'default'."
+    }
+  },
+  required: ["name"]
+};
+
+export const createTimelineSpec: CapabilitySpec = {
+  name: "create_timeline",
+  description:
+    "Create an empty timeline sequence and return its id. This is the first " +
+    "step of cutting one headlessly: create it, then add tracks and clips " +
+    "with edit_timeline. Reach for it rather than editing a sequence the " +
+    "user already has open — and rather than a storyboard or script " +
+    "assemble, which build a timeline only out of media they rendered " +
+    "themselves. Vertical is width 1080, height 1920.",
+  inputSchema: CREATE_TIMELINE_SCHEMA,
+  category: "write",
+  userMessage: (params) => {
+    const name = params["name"];
+    return isString(name) && name.trim()
+      ? `Creating timeline ${name}`
+      : "Creating timeline";
+  }
+};
+
 export const getTimelineSpec: CapabilitySpec = {
   name: "get_timeline",
   description:
@@ -330,6 +368,7 @@ export const deleteTimelineSpec: CapabilitySpec = {
 /** Every spec this module declares, in declaration order. */
 export const timelinesSpecs: readonly CapabilitySpec[] = [
   listTimelinesSpec,
+  createTimelineSpec,
   getTimelineSpec,
   listTimelineVersionsSpec,
   getTimelineVersionSpec,

@@ -1293,6 +1293,26 @@ describe("runInSandbox binary helpers", () => {
     });
   });
 
+  it("names an un-awaited Promise instead of encoding it to nothing", async () => {
+    // `toBase64(canvas.toBytes())` encoded a Promise to "" and handed the
+    // empty string to save_asset, which answered "content_base64 is
+    // required" — a live session read that as the save call being wrong and
+    // went hunting through its argument shapes.
+    const result = await runInSandbox({
+      code: `
+        try {
+          toBase64(Promise.resolve(new Uint8Array([1, 2, 3])));
+          return "no throw";
+        } catch (e) {
+          return e.message;
+        }
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(String(result.result)).toContain("toBase64");
+    expect(String(result.result)).toContain("await it first");
+  });
+
   it("base64-encodes every byte value correctly", async () => {
     const result = await runInSandbox({
       code: `

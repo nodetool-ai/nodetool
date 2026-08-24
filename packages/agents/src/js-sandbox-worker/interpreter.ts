@@ -1007,8 +1007,22 @@ export async function runInterpreter(
         `const __marker = "${SANDBOX_ERROR_MARKER}";
 const __bytesMarker = "${SANDBOX_BYTES_MARKER}";
 const __b64chars = "${BASE64_ALPHABET}";
+const __asBytes = (input, where) => {
+  if (typeof input === "string") return new TextEncoder().encode(input);
+  // Anything without a byte length silently encoded to "" here, and the empty
+  // string travelled on to whatever was going to save it. The call that
+  // produces this most often is an un-awaited async one — every media op and
+  // canvas.toBytes() is async — so say that rather than "invalid input".
+  if (!input || typeof input.length !== "number") {
+    const kind = input && typeof input.then === "function"
+      ? "a Promise — await it first"
+      : "a " + (input === null ? "null" : typeof input);
+    throw new TypeError(where + ": expected a Uint8Array or string, got " + kind);
+  }
+  return input;
+};
 globalThis.toBase64 = (input) => {
-  const b = typeof input === "string" ? new TextEncoder().encode(input) : input;
+  const b = __asBytes(input, "toBase64");
   let out = "";
   for (let i = 0; i < b.length; i += 3) {
     const c = (b[i] << 16) | ((b[i + 1] || 0) << 8) | (b[i + 2] || 0);
@@ -1029,7 +1043,8 @@ globalThis.fromBase64 = (s) => {
   }
   return out;
 };
-globalThis.toHex = (b) => {
+globalThis.toHex = (input) => {
+  const b = __asBytes(input, "toHex");
   let s = "";
   for (let i = 0; i < b.length; i++) s += (b[i] < 16 ? "0" : "") + b[i].toString(16);
   return s;

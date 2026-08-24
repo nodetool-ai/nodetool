@@ -284,6 +284,39 @@ describe("storyboards capability behaviour", () => {
     expect(refused.ops[0].error).toContain('"audio" or "manual"');
   });
 
+  it("refuses a shot field it does not set, instead of dropping it", async () => {
+    // `{op: "update_shot", target, clip: "asset://…"}` came back applied: 1
+    // and changed nothing. The session read that as the board rejecting its
+    // asset rather than as the op ignoring a field it never had, and went
+    // looking for a different way to attach media that does not exist.
+    const context = ctx();
+    const created = (await run(context).invoke("create_storyboard", {
+      name: "The Last Drop"
+    })) as { storyboard_id: string };
+    await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [{ op: "add_shot", action: "Desert push-in" }]
+    });
+    const read = (await run(context).invoke("get_storyboard", {
+      storyboard_id: created.storyboard_id
+    })) as { shots: Array<{ id: string }> };
+
+    const refused = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [
+        {
+          op: "update_shot",
+          target: read.shots[0].id,
+          clip: "asset://abc.mp4"
+        }
+      ]
+    })) as { applied: number; failed: number; ops: Array<{ error?: string }> };
+    expect(refused.applied).toBe(0);
+    expect(refused.failed).toBe(1);
+    expect(refused.ops[0].error).toContain("`clip`");
+    expect(refused.ops[0].error).toContain("render_storyboard_clips");
+  });
+
   it("creates a blank board the caller can then edit", async () => {
     const context = ctx();
     const created = (await run(context).invoke("create_storyboard", {

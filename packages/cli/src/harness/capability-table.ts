@@ -343,6 +343,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "generate_music",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "b5e4b823fb81",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
     name: "transcribe_audio",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
@@ -428,16 +438,18 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-media-ffprobe.test.ts",
     ],
   },
   {
     name: "ffprobe",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "315826b37d61",
+    contract: "4ac5df4ed873",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-media-ffprobe.test.ts",
     ],
   },
   {
@@ -1144,10 +1156,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "download_file",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "665f1f2946ad",
+    contract: "29547bbe8c33",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
+      "packages/agents/tests/capabilities-web-download.test.ts",
     ],
   },
   {
@@ -1517,6 +1530,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
     contract: "60d09f71d39c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "create_timeline",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "280ed2d9ce0b",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
