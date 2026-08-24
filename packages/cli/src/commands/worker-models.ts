@@ -14,6 +14,9 @@ import {
   WebsocketPythonBridge,
   type ModelDownloadUpdate
 } from "@nodetool-ai/runtime";
+import { resolveWorkerHfToken } from "@nodetool-ai/huggingface";
+import { getSecret } from "@nodetool-ai/models";
+
 import { printTable, asJson } from "./output.js";
 
 // ---------------------------------------------------------------------------
@@ -31,6 +34,9 @@ function formatBytes(n: number | null | undefined): string {
   }
   return `${value.toFixed(1)} ${units[i]}`;
 }
+
+/** Local single-user id used across the TS stack for secret-store reads. */
+const LOCAL_USER_ID = "1";
 
 function collectOption(value: string, previous: string[] | undefined): string[] {
   return previous ? [...previous, value] : [value];
@@ -205,12 +211,19 @@ function registerDownload(
             }
           };
 
+          // The worker holds no HuggingFace credential, so a gated repo
+          // (FLUX.1-dev, RMBG-2.0, ...) 401s unless this host supplies one.
+          const token = await resolveWorkerHfToken((key) =>
+            getSecret(key, LOCAL_USER_ID)
+          );
+
           await bridge.downloadModel(
             {
               repo_id: opts.repoId,
               path: opts.filePath ?? null,
               allow_patterns: opts.allowPatterns ?? null,
-              ignore_patterns: opts.ignorePatterns ?? null
+              ignore_patterns: opts.ignorePatterns ?? null,
+              token
             },
             render
           );

@@ -59,6 +59,7 @@ interface CreateSdkV1ModelDownloadServiceOptions {
     onProgress: (update: DownloadUpdate) => void
   ) => Promise<void>;
   startWorkerDownload?: (
+    userId: string,
     request: SdkV1ModelDownloadStartRequest,
     operationId: string,
     onProgress: (update: DownloadUpdate) => void
@@ -252,7 +253,7 @@ export function createSdkV1ModelDownloadService(
       const execute = async (): Promise<void> => {
         try {
           if (request.scope === "worker") {
-            await startWorkerDownload!(request, id, update);
+            await startWorkerDownload!(userId, request, id, update);
           } else if (request.model_type.startsWith("tjs.")) {
             await startTransformersJsDownload(
               request,

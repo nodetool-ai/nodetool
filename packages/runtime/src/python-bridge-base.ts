@@ -1068,9 +1068,18 @@ export abstract class PythonBridgeBase
     onProgress: (update: ModelDownloadUpdate) => void,
     requestId: string = randomUUID()
   ): Promise<void> {
+    // A blank token is not a credential: `Authorization: Bearer ` fails
+    // differently than sending no header at all, and worse for a public repo.
+    // Drop it here so every caller gets the rule, matching the worker's own
+    // handling (nodetool-core#1008).
+    const { token, ...rest } = req;
+    const payload: Record<string, unknown> =
+      typeof token === "string" && token.trim()
+        ? { ...rest, token: token.trim() }
+        : rest;
     return this._streamingDownload(
       "models.download",
-      { ...req },
+      payload,
       // SAFETY: the worker's `models.download` progress frame carries exactly
       // these fields; unlike the comfy update shapes, `ModelDownloadUpdate`
       // declares no index signature, so the frame record does not overlap it.

@@ -144,6 +144,17 @@ export interface ModelDownloadRequest {
   ignore_patterns?: string[] | null;
   path?: string | null;
   model_type?: string | null;
+  /**
+   * HuggingFace credential for this download only.
+   *
+   * A rented worker is a bare container: no per-user secret store, no
+   * `HF_TOKEN` in its environment, so every gated repo answers 401. The host
+   * therefore passes the token with the request and the worker holds it for
+   * the life of the call (nodetool-core#1008). Omitted or blank, the worker
+   * falls back to its own resolution — `downloadModel` drops a blank value
+   * rather than sending an empty credential.
+   */
+  token?: string | null;
 }
 
 /**

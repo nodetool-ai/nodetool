@@ -6,7 +6,9 @@
  * The download relay pipes the bridge's progress frames onto the existing
  * /ws/download socket sink.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Keep the local-scope routes hermetic: on a developer machine the real
 // readCachedHfModels scans a (potentially huge) HF cache and blows the test
@@ -19,6 +21,9 @@ vi.mock("@nodetool-ai/huggingface", async (orig) => {
     deleteCachedHfModel: vi.fn().mockResolvedValue(true)
   };
 });
+
+import { clearHfTokenCache } from "@nodetool-ai/huggingface";
+import { clearAllSecretCache } from "@nodetool-ai/models";
 
 import {
   handleModelsApiRequest,
@@ -411,5 +416,89 @@ describe("relayWorkerDownload cancel correlation", () => {
     const errorFrames = sent.filter((s) => s.status === "error");
     expect(errorFrames).toHaveLength(1);
     expect(errorFrames[0].error).toBe("disk full");
+  });
+});
+
+// ── HuggingFace token forwarding ─────────────────────────────────────────────
+//
+// The worker holds no HuggingFace credential, so a gated repo answers
+// `401 ... Token present: False` unless this server sends one with the request
+// (nodetool-ai/nodetool#5184, worker half nodetool-core#1008).
+
+describe("relayWorkerDownload HF token", () => {
+  const ENV_KEYS = ["HF_TOKEN", "HF_API_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HF_HOME"];
+  let savedEnv: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    savedEnv = {};
+    for (const key of ENV_KEYS) {
+      savedEnv[key] = process.env[key];
+      delete process.env[key];
+    }
+    // A directory with no token file, so this machine's own saved HF token
+    // cannot decide the outcome.
+    process.env["HF_HOME"] = join(tmpdir(), "models-api-worker-no-token");
+    // Both layers memoize what they resolved: the secret helper caches an
+    // env-sourced value per user, and getHfToken caches the env/token-file
+    // read. Without clearing them a later test reads an earlier test's token.
+    clearHfTokenCache();
+    clearAllSecretCache();
+  });
+
+  afterEach(() => {
+    for (const key of ENV_KEYS) {
+      if (savedEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = savedEnv[key];
+      }
+    }
+    clearHfTokenCache();
+    clearAllSecretCache();
+  });
+
+  /** Run one relay and return the request payload the bridge was handed. */
+  async function relayAndCapture(): Promise<Record<string, unknown>> {
+    const downloadModel = vi.fn().mockResolvedValue(undefined);
+    await relayWorkerDownload(
+      { send: () => {} },
+      fakeBridge({ downloadModel }),
+      fakeWorkerManager(ATTACHED),
+      { command: "start_download", repo_id: "org/gated" }
+    );
+    expect(downloadModel).toHaveBeenCalledTimes(1);
+    return downloadModel.mock.calls[0]![0] as Record<string, unknown>;
+  }
+
+  it("forwards the token this server can resolve", async () => {
+    process.env["HF_TOKEN"] = "hf_server_token";
+    expect((await relayAndCapture())["token"]).toBe("hf_server_token");
+  });
+
+  it("sends no token when this server has none", async () => {
+    expect((await relayAndCapture())["token"]).toBeUndefined();
+  });
+
+  it("treats an empty HF_TOKEN as absent", async () => {
+    process.env["HF_TOKEN"] = "";
+    expect((await relayAndCapture())["token"]).toBeUndefined();
+  });
+
+  it("never takes the token from the client's own message", async () => {
+    // `msg` is JSON off the /ws/download socket. A caller-supplied credential
+    // must not be relayed onward as if the server had resolved it.
+    const downloadModel = vi.fn().mockResolvedValue(undefined);
+    await relayWorkerDownload(
+      { send: () => {} },
+      fakeBridge({ downloadModel }),
+      fakeWorkerManager(ATTACHED),
+      {
+        command: "start_download",
+        repo_id: "org/gated",
+        token: "hf_from_client"
+      } as Parameters<typeof relayWorkerDownload>[3]
+    );
+    const req = downloadModel.mock.calls[0]![0] as Record<string, unknown>;
+    expect(req["token"]).toBeUndefined();
   });
 });

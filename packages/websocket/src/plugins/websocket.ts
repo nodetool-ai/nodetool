@@ -305,7 +305,8 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                       pythonBridge,
                       workerManager,
                       msg,
-                      downloadId
+                      downloadId,
+                      req.userId ?? "1"
                     );
                   } finally {
                     workerDownloads.delete(downloadId);
