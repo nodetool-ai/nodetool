@@ -55,6 +55,7 @@ import {
 } from "../../stores/SettingsPageStore";
 import { isFunction } from "../../utils/typePredicates";
 import { NumberSetting } from "./NumberSetting";
+import StorageHistorySettings from "../settings/StorageHistorySettings";
 
 // Tab indices. Models, Collections, Workspaces, and the Package Manager now
 // live as standalone full-screen pages reachable from the logo menu.
@@ -112,13 +113,6 @@ const AUTOSAVE_INTERVAL_OPTIONS = [
   { value: 15, label: "15 minutes" },
   { value: 30, label: "30 minutes" },
   { value: 60, label: "60 minutes" }
-] as const;
-
-const MAX_VERSIONS_OPTIONS = [
-  { value: 10, label: "10 versions" },
-  { value: 25, label: "25 versions" },
-  { value: 50, label: "50 versions" },
-  { value: 100, label: "100 versions" }
 ] as const;
 
 const TIME_FORMAT_OPTIONS = [
@@ -1018,24 +1012,9 @@ function SettingsPage() {
                         />
                       </SearchItem>
 
-                      <SearchItem
-                        search={generalSearch}
-                        keywords="autosave version history max versions per workflow"
-                      >
-                        <SelectField
-                          label="Max Versions per Workflow"
-                          value={
-                            settings.autosave?.maxVersionsPerWorkflow ?? 50
-                          }
-                          onChange={(v) =>
-                            updateAutosaveSettings({
-                              maxVersionsPerWorkflow: Number(v)
-                            })
-                          }
-                          options={MAX_VERSIONS_OPTIONS}
-                          description="Maximum number of versions to keep per workflow."
-                        />
-                      </SearchItem>
+                      {generalMatches(
+                        "autosave version history storage database cleanup limits runs compact"
+                      ) && <StorageHistorySettings />}
                     </div>
 
                     <div className="settings-section">
