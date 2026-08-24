@@ -9,11 +9,10 @@
  * one-line claim sit in a corner so the clip still says what it is when it is
  * lifted into a social post.
  *
- * Two of the plan's five surfaces have no loop yet. The 3D editor has no cast
- * recorded. The sketch editor has one, but `SketchRenderer` composites its
- * layers asynchronously with no `delayRender` handle, so a rendered frame
- * catches an empty canvas — the shipped `DocTutorial-sketch-assistant` has the
- * same hole, which is where to fix it.
+ * The sketch loop needs `SketchRenderer` pinned to Canvas2D
+ * (`preferCanvas2d`): a WebGPU canvas reads back empty when Remotion
+ * screenshots it outside the frame it was drawn in, which is why this surface
+ * used to render a blank canvas.
  */
 import React from "react";
 import {
@@ -76,6 +75,15 @@ export const SURFACE_LOOPS: SurfaceLoopEntry[] = [
     toMs: 18000,
   },
   {
+    slug: "sketch",
+    label: "Sketch",
+    claim: "Pro image editing meets diffusion",
+    kind: "doc",
+    castId: "sketch-assistant",
+    fromMs: 500,
+    toMs: 14800,
+  },
+  {
     slug: "timeline",
     label: "Timeline",
     claim: "Generate at the playhead",
@@ -86,7 +94,7 @@ export const SURFACE_LOOPS: SurfaceLoopEntry[] = [
 ];
 
 /** Corner label: surface name over a one-line claim. */
-const SurfaceLabel: React.FC<{ label: string; claim: string }> = ({
+export const SurfaceLabel: React.FC<{ label: string; claim: string }> = ({
   label,
   claim,
 }) => {
@@ -138,6 +146,30 @@ const SurfaceLabel: React.FC<{ label: string; claim: string }> = ({
   );
 };
 
+/**
+ * The black that opens and closes every loop. Returns null when clear, so a
+ * surface that paints to a GPU canvas is not covered by a transparent layer.
+ */
+export const LoopFade: React.FC<{ extraFrames?: number }> = ({
+  extraFrames = 0,
+}) => {
+  const frame = useCurrentFrame();
+  const opacity = Math.max(
+    interpolate(frame, [0, FADE + extraFrames], [1, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    }),
+    interpolate(
+      frame,
+      [SURFACE_LOOP_FRAMES - FADE, SURFACE_LOOP_FRAMES],
+      [0, 1],
+      { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+    )
+  );
+  if (opacity <= 0) return null;
+  return <AbsoluteFill style={{ background: "#000", opacity }} />;
+};
+
 export const SurfaceLoop: React.FC<SurfaceLoopEntry> = ({
   label,
   claim,
@@ -154,19 +186,6 @@ export const SurfaceLoop: React.FC<SurfaceLoopEntry> = ({
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const fade = Math.max(
-    interpolate(frame, [0, FADE], [1, 0], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-    }),
-    interpolate(
-      frame,
-      [SURFACE_LOOP_FRAMES - FADE, SURFACE_LOOP_FRAMES],
-      [0, 1],
-      { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-    )
-  );
-
   return (
     <AbsoluteFill style={{ background: PROMO_BG }}>
       {kind === "timeline" ? (
@@ -181,9 +200,7 @@ export const SurfaceLoop: React.FC<SurfaceLoopEntry> = ({
         <DocDemoPlayer cast={getDocCast(castId as string)} timeMs={castMs} />
       )}
       <SurfaceLabel label={label} claim={claim} />
-      {fade > 0 ? (
-        <AbsoluteFill style={{ background: "#000", opacity: fade }} />
-      ) : null}
+      <LoopFade />
     </AbsoluteFill>
   );
 };

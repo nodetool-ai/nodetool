@@ -186,6 +186,48 @@ const isOrbitControlsLike = (obj: unknown): obj is OrbitControlsLike =>
   "target" in obj &&
   typeof (obj as OrbitControlsLike).update === "function";
 
+/**
+ * An externally driven camera pose, in orbit terms around a target point.
+ * Set by a host that renders the editor as a picture rather than as an
+ * editor — the demo harness drives one value per video frame.
+ */
+export interface Model3DCameraPose {
+  /** Horizontal angle in degrees, 0 looking down −Z. */
+  azimuthDeg: number;
+  /** Vertical angle in degrees above the horizon. */
+  elevationDeg: number;
+  /** Distance from the target. */
+  distance: number;
+  /** Point the camera looks at. Defaults to the origin. */
+  target?: [number, number, number];
+}
+
+/**
+ * Places the camera from a {@link Model3DCameraPose} on every render. Mounted
+ * only when a pose is supplied, and then in place of `OrbitControls` — the two
+ * would fight over the same camera.
+ */
+const PosedCamera = ({ pose }: { pose: Model3DCameraPose }) => {
+  const { camera, invalidate } = useThree();
+
+  useEffect(() => {
+    const target = new THREE.Vector3(...(pose.target ?? [0, 0, 0]));
+    const azimuth = THREE.MathUtils.degToRad(pose.azimuthDeg);
+    const elevation = THREE.MathUtils.degToRad(pose.elevationDeg);
+    const horizontal = Math.cos(elevation) * pose.distance;
+    camera.position.set(
+      target.x + Math.sin(azimuth) * horizontal,
+      target.y + Math.sin(elevation) * pose.distance,
+      target.z + Math.cos(azimuth) * horizontal
+    );
+    camera.lookAt(target);
+    camera.updateProjectionMatrix();
+    invalidate();
+  });
+
+  return null;
+};
+
 /** Frames the camera to the editor root's bounding box on demand. */
 const FitCamera = ({ root, trigger }: FitCameraProps) => {
   const { camera, controls } = useThree();
@@ -315,9 +357,27 @@ interface Model3DEditorProps {
   name?: string;
   onSave: (blob: Blob) => Promise<void> | void;
   onClose: () => void;
+  /**
+   * Drive the camera from outside instead of from the user's mouse. Replaces
+   * `OrbitControls` while set; leave it undefined for an interactive editor.
+   */
+  cameraPose?: Model3DCameraPose;
+  /**
+   * Skip the drei `Environment` preset and light the scene with lamps only.
+   * The preset is an HDR fetched from a CDN: with no network it never
+   * resolves, the Canvas stays suspended, and the frame comes out blank.
+   */
+  offlineLighting?: boolean;
 }
 
-const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
+const Model3DEditor = ({
+  url,
+  name,
+  onSave,
+  onClose,
+  cameraPose,
+  offlineLighting = false
+}: Model3DEditorProps) => {
   const theme = useTheme();
 
   // Persistent group that owns all editable content and is exported on save.
@@ -795,9 +855,13 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
             onPointerMissed={() => setSelectedUuid(null)}
             style={{ background: theme.vars.palette.grey[900] }}
           >
-            <ambientLight intensity={0.4} />
-            <directionalLight position={[5, 8, 5]} intensity={1} />
-            <Environment preset="studio" />
+            <ambientLight intensity={offlineLighting ? 1.6 : 0.4} />
+            <directionalLight position={[5, 8, 5]} intensity={offlineLighting ? 2.4 : 1} />
+            {offlineLighting ? (
+              <directionalLight position={[-6, 3, -4]} intensity={1.1} />
+            ) : (
+              <Environment preset="studio" />
+            )}
             {showGrid && (
               <Grid
                 position={[0, -0.001, 0]}
@@ -820,7 +884,11 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
                 onObjectChange={bump}
               />
             )}
-            <OrbitControls makeDefault enableDamping={false} />
+            {cameraPose ? (
+              <PosedCamera pose={cameraPose} />
+            ) : (
+              <OrbitControls makeDefault enableDamping={false} />
+            )}
             <FitCamera root={root} trigger={fitTrigger} />
             <CaptureBridge targetRef={captureRef} />
           </Canvas>

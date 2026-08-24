@@ -156,6 +156,10 @@ export function SketchEditorSurface({
               document={doc.document}
               showDimensions
               ariaLabel={ariaLabel}
+              // A WebGPU canvas reads back empty when Remotion screenshots it
+              // outside the frame it was drawn in, so a replay stays on
+              // Canvas2D. Nothing here paints, so the upgrade buys nothing.
+              preferCanvas2d
             />
           </div>
           <ConnectedLayersPanel {...NOOP_PANEL_ACTIONS} />

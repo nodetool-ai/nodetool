@@ -24,6 +24,7 @@ import {
   TAB_CHAOS_FRAMES,
   TabChaos,
 } from "./hero/TabChaos";
+import { Model3DLoop } from "./hero/Model3DLoop";
 import {
   SURFACE_LOOPS,
   SURFACE_LOOP_FPS,
@@ -183,6 +184,15 @@ export const Root: React.FC = () => {
           durationInFrames={SURFACE_LOOP_FRAMES}
         />
       ))}
+
+      <Composition
+        id="Surface-3d"
+        component={Model3DLoop}
+        fps={SURFACE_LOOP_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={SURFACE_LOOP_FRAMES}
+      />
 
       {/* The pain-grid animation: five tool windows collapse into the real
           canvas (marketing/POSITIONING_PLAN.md Part 5). */}

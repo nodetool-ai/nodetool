@@ -318,13 +318,16 @@ Nothing on the site references these yet — wiring is W2.
 - [x] Hero 3-stage pipeline video — `hero-pipeline.{mp4,webm}` (16:9) and
       `hero-pipeline-vertical.{mp4,webm}` (9:16), 15 s silent loop, ~2.5 MB
       each, WebP posters alongside
-- [ ] Five surface micro-loops — three shipped (`surface-storyboard`,
-      `surface-script`, `surface-timeline`, 6 s each). **3D** has no cast
-      recorded. **Sketch** has one, but `SketchRenderer` composites
-      asynchronously with no `delayRender` handle, so a rendered frame catches
-      an empty canvas — `DocTutorial-sketch-assistant` renders the same hole
-      today, and that is where to fix it.
-- [x] Five-tab chaos animation — `tab-chaos.{mp4,webm}`, 5 s, the windows
+- [x] Five surface micro-loops — `surface-storyboard`, `surface-script`,
+      `surface-timeline`, `surface-sketch`, `surface-3d`, 6 s each. Sketch
+      needed a renderer fix: its WebGPU display canvas reads back empty when
+      screenshotted outside the frame it was drawn in, so the demo surface
+      asks for the Canvas2D path (`preferCanvas2d`). 3D has no cast — a scene
+      sits still and what moves is the camera, so the loop drives the editor's
+      `cameraPose` over a scene `scripts/build-3d-cast-scene.ts` builds with
+      the product's own `edit_model3d` operations. It renders with
+      `--gl=angle`.
+- [x] Five-tab chaos animation — `tab-chaos.{mp4,webm}`, 8.5 s, the windows
       collapse into the real canvas
 - [x] MCP architecture schematic — `public/diagrams/mcp-architecture.svg`
 - [x] GitHub banner — `public/github-banner.png` (1280×640)

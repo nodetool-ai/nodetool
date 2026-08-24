@@ -7,6 +7,10 @@
  * replayed from the promo cast: the resolution is product footage, only the
  * problem is drawn.
  *
+ * Eight and a half seconds, not the five the plan asked for. Five windows and
+ * a headline is more than a reader takes in at a glance, and the loop has to
+ * survive being watched twice.
+ *
  * The windows carry roles, not competitor names. The landing-page copy names
  * the tools in prose; a chip with someone's brand on it is a different claim
  * and a different legal question.
@@ -32,11 +36,11 @@ import {
 } from "../promo/theme";
 
 export const TAB_CHAOS_FPS = 30;
-export const TAB_CHAOS_FRAMES = 150;
+export const TAB_CHAOS_FRAMES = 255;
 
-const COLLAPSE_FROM = 62;
-const CANVAS_FROM = 92;
-const FADE = 10;
+const COLLAPSE_FROM = 130;
+const CANVAS_FROM = 168;
+const FADE = 12;
 
 const resolvePromoAsset = (file: string): string =>
   staticFile(`casts/promo/${file}`);
@@ -66,15 +70,15 @@ const ToolWindow: React.FC<{
   const h = 150 * scale;
 
   // Each window arrives on its own beat, drifts, then falls into the middle.
-  const arrive = interpolate(frame, [index * 5, index * 5 + 14], [0, 1], {
+  const arrive = interpolate(frame, [index * 10, index * 10 + 22], [0, 1], {
     easing: Easing.out(Easing.cubic),
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const drift = Math.sin((frame + index * 21) / 26) * 7 * scale;
+  const drift = Math.sin((frame + index * 21) / 40) * 8 * scale;
   const collapse = interpolate(
     frame,
-    [COLLAPSE_FROM + index * 3, COLLAPSE_FROM + 26 + index * 3],
+    [COLLAPSE_FROM + index * 4, COLLAPSE_FROM + 36 + index * 4],
     [0, 1],
     {
       easing: Easing.in(Easing.cubic),
@@ -156,17 +160,17 @@ export const TabChaos: React.FC = () => {
 
   const problemOpacity = interpolate(
     frame,
-    [14, 24, COLLAPSE_FROM, COLLAPSE_FROM + 14],
+    [20, 38, COLLAPSE_FROM + 6, COLLAPSE_FROM + 26],
     [0, 1, 1, 0],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
-  const canvasOpacity = interpolate(frame, [CANVAS_FROM, CANVAS_FROM + 16], [0, 1], {
+  const canvasOpacity = interpolate(frame, [CANVAS_FROM, CANVAS_FROM + 24], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
   const answerOpacity = interpolate(
     frame,
-    [CANVAS_FROM + 14, CANVAS_FROM + 28],
+    [CANVAS_FROM + 24, CANVAS_FROM + 46],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -209,7 +213,7 @@ export const TabChaos: React.FC = () => {
         </AbsoluteFill>
       ) : null}
 
-      {frame < CANVAS_FROM + 10 ? (
+      {frame < CANVAS_FROM + 18 ? (
         <AbsoluteFill>
           {WINDOWS.map((w, i) => (
             <ToolWindow key={w.role} index={i} {...w} />

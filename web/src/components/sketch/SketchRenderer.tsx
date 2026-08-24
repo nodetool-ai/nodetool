@@ -67,6 +67,13 @@ export interface SketchRendererProps {
   ariaLabel?: string;
   isolatedLayerId?: string | null;
   showDimensions?: boolean;
+  /**
+   * Pin compositing to Canvas2D instead of upgrading to WebGPU. A WebGPU
+   * canvas does not survive an out-of-frame screenshot, so the demo harness —
+   * which renders one document state per video frame and captures it — reads
+   * back empty without this. Interactive editors leave it off.
+   */
+  preferCanvas2d?: boolean;
 }
 
 const getViewportScale = (
@@ -86,7 +93,8 @@ const SketchRenderer: React.FC<SketchRendererProps> = ({
   className,
   ariaLabel = "Sketch preview",
   isolatedLayerId = null,
-  showDimensions = false
+  showDimensions = false,
+  preferCanvas2d = false
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => rendererStyles(theme), [theme]);
@@ -122,7 +130,8 @@ const SketchRenderer: React.FC<SketchRendererProps> = ({
     zoom: viewportScale,
     isolatedLayerId,
     activeStrokeRef,
-    transformPreviewByLayerIdRef
+    transformPreviewByLayerIdRef,
+    preferCanvas2d
   });
 
   useEffect(() => {
