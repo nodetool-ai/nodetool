@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,7 +9,8 @@ import {
   getRawDb,
   initDb,
   initTestDb,
-  migrateSqliteDb
+  migrateSqliteDb,
+  pingDb
 } from "../src/db.js";
 
 describe("db", () => {
@@ -20,6 +21,7 @@ describe("db", () => {
   });
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     await closeDb();
     if (tempDir) {
       rmSync(tempDir, { recursive: true, force: true });
@@ -40,6 +42,18 @@ describe("db", () => {
     expect(db).toBe(getDb());
     expect(getRawDb().pragma("journal_mode", { simple: true })).toBe("wal");
     expect(initDb(dbPath)).toBe(db);
+  });
+
+  it("pings SQLite with a constant-time query instead of an integrity scan", async () => {
+    initTestDb();
+    const sqlite = getRawDb();
+    const prepare = vi.spyOn(sqlite, "prepare");
+    const pragma = vi.spyOn(sqlite, "pragma");
+
+    await expect(pingDb()).resolves.toBeUndefined();
+
+    expect(prepare).toHaveBeenCalledWith("select 1");
+    expect(pragma).not.toHaveBeenCalled();
   });
 
   it("adds missing columns to existing tables during initDb", () => {

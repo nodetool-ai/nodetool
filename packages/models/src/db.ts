@@ -203,9 +203,12 @@ export function getRawDb(): Database.Database {
 
 /**
  * Verify the database connection is alive with a lightweight query.
- * Dialect-aware: runs `select 1` over the PostgreSQL client, or a
- * `quick_check` pragma against the SQLite connection. Throws if the
- * database is not initialized or the check fails.
+ * Dialect-aware: runs `select 1` over the active client. Throws if the
+ * database is not initialized or the query fails.
+ *
+ * This is called by the process watchdog every 30 seconds. Do not use an
+ * SQLite integrity pragma here: `quick_check` scans the database and can hold
+ * the synchronous connection for several seconds on a large local database.
  */
 export async function pingDb(): Promise<void> {
   if (!_db)
@@ -218,8 +221,7 @@ export async function pingDb(): Promise<void> {
     return;
   }
   if (!_sqlite) throw new Error("SQLite database not initialized.");
-  // Fast integrity check — just verifies the connection is alive.
-  _sqlite.pragma("quick_check(1)");
+  _sqlite.prepare("select 1").get();
 }
 
 /**
