@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { registryModules } from "../../src/data/registry";
+import { recipeEntries } from "../../src/data/recipes";
 
 // Coverage is derived from the page-data registry: every indexable route is
 // smoke-tested, except that engines flagged with `sample` (hundreds of pages)
@@ -109,4 +110,23 @@ test.describe("marketing smoke", () => {
       page.getByRole("link", { name: "visual node-based AI guide" }),
     ).toHaveAttribute("href", "/node-based-ai");
   });
+
+  // A recipe page renders fine with a dead bundle link, so fetch the file
+  // itself: a bundle missing from public/recipes/ is otherwise a silent 404 on
+  // the one CTA the page exists for.
+  for (const recipe of recipeEntries) {
+    test(`${recipe.route} serves its .nodetool bundle`, async ({ page, request }) => {
+      await page.goto(recipe.route);
+      const link = page.getByRole("link", {
+        name: new RegExp(`download all ${recipe.workflowCount} workflows`, "i"),
+      });
+      await expect(link).toHaveAttribute("href", recipe.bundle);
+
+      const res = await request.get(recipe.bundle);
+      expect(res.status()).toBe(200);
+      // A zip, not an HTML 404 page dressed as a 200.
+      const body = await res.body();
+      expect(body.subarray(0, 2).toString("latin1")).toBe("PK");
+    });
+  }
 });

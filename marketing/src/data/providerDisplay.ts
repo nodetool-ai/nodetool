@@ -10,6 +10,26 @@ interface ProviderDisplay {
 }
 
 export const PROVIDER_DISPLAY: Record<string, ProviderDisplay> = {
+  openai: {
+    name: "OpenAI",
+    byokEnv: "OPENAI_API_KEY",
+    url: "https://platform.openai.com/api-keys",
+  },
+  anthropic: {
+    name: "Anthropic",
+    byokEnv: "ANTHROPIC_API_KEY",
+    url: "https://console.anthropic.com/settings/keys",
+  },
+  gemini: {
+    name: "Google Gemini",
+    byokEnv: "GEMINI_API_KEY",
+    url: "https://aistudio.google.com/app/apikey",
+  },
+  elevenlabs: {
+    name: "ElevenLabs",
+    byokEnv: "ELEVENLABS_API_KEY",
+    url: "https://elevenlabs.io/app/settings/api-keys",
+  },
   fal_ai: { name: "fal.ai", byokEnv: "FAL_API_KEY", url: "https://fal.ai" },
   replicate: {
     name: "Replicate",

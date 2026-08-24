@@ -376,10 +376,57 @@ repo changes the artwork in the same diff.
 
 **W3 — Template gallery**
 
-- [ ] Recipe 1: viral video ad engine (workflow bundle + sample ad + tutorial)
-- [ ] Recipe 2: multilingual video dubber
-- [ ] Recipe 3: e-commerce SKU visual factory
-- [ ] Recipe 4: storyboard-to-trailer
+Recipes live at `/recipes` and `/recipes/<slug>`. A recipe is a named outcome
+plus the ordered shipped example workflows that reach it, downloadable as one
+`.nodetool` bundle — where a template page answers "what does this graph do", a
+recipe answers "what do I run, in what order, and what does it cost me".
+
+The four are built out of shipped examples rather than newly authored graphs.
+That was the deciding call: a recipe assembled from workflows the product
+already ships is one a reader can open today, and every step already has a
+template page, card art, and a tested graph behind it.
+
+Only the prose is hand-written (`scripts/recipes.mjs`). Models, API keys, node
+counts, and card art are read out of the graphs by
+`scripts/generate-recipes.mjs`, so a page cannot name a model the workflow does
+not call. Regenerate with `npm run gen:recipes`; `-- --check` fails on a stale
+module, a missing bundle, or a bundle whose contents no longer match the recipe
+(all four arms were proven to fail before being relied on).
+
+- [x] Recipe 1: viral video ad engine — Ad Copy in Three Registers → Hook &
+      Thumbnail Factory → Ad Loop from a Product Photo → Cut a Landscape Clip
+      for Vertical. Ordered cheapest first, so register and hook are settled
+      before a video model is billed.
+- [x] Recipe 2: multilingual video dubber — Transcribe a Clip → Localise a
+      Script and Revoice It → One Tagline, Six Markets → AI Spokesperson →
+      Subtitle Text from a Recording. The back-translation is the review gate
+      for a language nobody in the room reads; the last two steps are a fork
+      (voice-over cut vs on-camera cut), which the page says outright.
+- [x] Recipe 3: e-commerce SKU visual factory — cutout → studio backdrop →
+      seasonal relight → turntable clip → print-resolution master → listing
+      copy. Every step after the first starts from the cutout, so the product
+      itself is never regenerated.
+- [x] Recipe 4: storyboard-to-trailer — Trailer Beats from a Premise → Shot
+      List from a Synopsis → Movie Trailer Generator → Score a Silent Clip.
+
+**Not done: a sample output per recipe.** The plan asked for "workflow bundle +
+sample ad + tutorial" and this ships two of the three. Producing a real sample
+means running the chains against paid video models, so the pages use each
+step's shipped card art instead — and that art is illustration, not a render.
+The alt text says so rather than implying otherwise, and the full-bleed hero
+image was dropped for the same reason: at that size it read as a claim about
+output. Rendering four real samples is its own budgeted task.
+
+Cross-links: the `/templates` hub carries a recipes band, a template page shows
+which recipes it is a step of and its position in each, `/recipes` is in the
+footer and the sitemap, each recipe has an OG card, and the four appear in
+`llms.txt`. The bundle download fires a `Download Recipe` Plausible event
+(part of W5's conversion tracking, landed here because the CTA is here).
+
+The e2e smoke suite covers the new routes from the registry with no edit. One
+test was added by hand: a recipe page renders fine with a dead download link,
+so the suite fetches each `.nodetool` and asserts the zip magic bytes. Removing
+a bundle was shown to fail it.
 
 **W4 — Developer hub**
 

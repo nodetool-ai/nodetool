@@ -4,7 +4,7 @@
  *
  * The preamble prose (what NodeTool is, license/pricing) is hand-written and
  * kept here as a constant. Everything below "## Key pages" — key pages,
- * comparisons, use cases, FAQ, ideas — is derived from the data modules, so a
+ * comparisons, use cases, FAQ, ideas, recipes — is derived from the data modules, so a
  * new page in the registry shows up here on the next run.
  *
  * Run with tsx (it imports the TypeScript data modules directly):
@@ -19,6 +19,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { staticEntries } from "../src/data/staticEntries.ts";
 import { faqByCategory, faqEntries } from "../src/data/faqEntries.ts";
 import { ideaCategories } from "../src/data/ideasEntries.ts";
+import { recipeEntries } from "../src/data/recipes.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_FILE = resolve(__dirname, "..", "public/llms.txt");
@@ -212,6 +213,20 @@ function ideasSection() {
   return `## Ideas\n\n${lines.join("\n")}`;
 }
 
+function recipesSection() {
+  const lines = [
+    link(
+      "Recipes hub",
+      "/recipes",
+      "multi-step jobs: the workflows to run, in order, as one downloadable bundle."
+    ),
+  ];
+  for (const recipe of recipeEntries) {
+    lines.push(link(recipe.name, recipe.route, recipe.outcome));
+  }
+  return `## Recipes\n\n${lines.join("\n")}`;
+}
+
 function render() {
   return (
     [
@@ -221,6 +236,7 @@ function render() {
       useCasesSection(),
       faqSection(),
       ideasSection(),
+      recipesSection(),
     ].join("\n\n") + "\n"
   );
 }

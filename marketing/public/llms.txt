@@ -71,3 +71,11 @@
 - [Agents & Research ideas](https://nodetool.ai/ideas/agents-and-research): Planning agents that search, gather, and synthesize — news, papers, and web research on the canvas.
 - [Marketing & Content ideas](https://nodetool.ai/ideas/marketing-and-content): Campaign assets and content at scale — ad creative, social calendars, SEO copy, and outreach.
 - [Learning & Data ideas](https://nodetool.ai/ideas/learning-and-data): Study aids and data workflows — flashcards, learning paths, summaries, and structured generation.
+
+## Recipes
+
+- [Recipes hub](https://nodetool.ai/recipes): multi-step jobs: the workflows to run, in order, as one downloadable bundle.
+- [Viral Video Ad Engine](https://nodetool.ai/recipes/viral-video-ad-engine): A vertical product ad, plus the hook lines and thumbnails to test it against.
+- [Multilingual Video Dubber](https://nodetool.ai/recipes/multilingual-video-dubber): One presenter clip, spoken in a second language, with a lip-synced cut, subtitles, and a back-translation to check it.
+- [E-commerce SKU Visual Factory](https://nodetool.ai/recipes/ecommerce-sku-visual-factory): One packshot per SKU becomes the whole channel set: cutout, studio scene, seasonal relight, turntable clip, print master, and the listing copy.
+- [Storyboard to Trailer](https://nodetool.ai/recipes/storyboard-to-trailer): A logline becomes a beat sheet, a numbered shot list, a cut teaser, and a score under it.
