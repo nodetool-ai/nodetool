@@ -75,6 +75,21 @@ function makeLongerSine(
   return makeAudioRef(samples, sr);
 }
 
+/**
+ * 0.6 s at 8 kHz: a near-silent first half well under the noise gate's default
+ * -50 dB threshold, then a loud second half well over it.
+ */
+function makeQuietThenLoudSine(): { uri: string; data: string } {
+  const sr = 8000;
+  const half = Math.floor(sr * 0.3);
+  const samples = new Float32Array(half * 2);
+  for (let i = 0; i < samples.length; i++) {
+    const amp = i < half ? 0.0005 : 0.5;
+    samples[i] = amp * Math.sin((2 * Math.PI * 440 * i) / sr);
+  }
+  return makeAudioRef(samples, sr);
+}
+
 /** 0.2 s at 8 kHz: a loud first half and a quiet second half, 20 dB apart. */
 function makeTwoLevelSine(): { uri: string; data: string } {
   const sr = 8000;
@@ -100,12 +115,33 @@ function decodeOutput(res: Record<string, unknown>): WavData {
   return decode(res.output as { data?: Uint8Array | string });
 }
 
-function peak(samples: Float32Array): number {
+function peak(samples: Float32Array, from = 0, to = samples.length): number {
   let max = 0;
-  for (const s of samples) {
-    max = Math.max(max, Math.abs(s));
+  for (let i = from; i < to; i++) {
+    max = Math.max(max, Math.abs(samples[i]));
   }
   return max;
+}
+
+/**
+ * Amplitude of `freq` in `samples[from, to)`, by Goertzel. The window must span
+ * a whole number of cycles at `freq` or neighbouring content leaks into it.
+ */
+function amplitudeAt(
+  samples: Float32Array,
+  freq: number,
+  sampleRate: number,
+  from: number,
+  to: number
+): number {
+  const w = (2 * Math.PI * freq) / sampleRate;
+  let re = 0;
+  let im = 0;
+  for (let i = from; i < to; i++) {
+    re += samples[i] * Math.cos(w * i);
+    im += samples[i] * Math.sin(w * i);
+  }
+  return (2 * Math.hypot(re, im)) / (to - from);
 }
 
 function rms(samples: Float32Array, from: number, to: number): number {
@@ -291,16 +327,24 @@ describe("PitchShiftNode", () => {
     await expect(__n314.process()).rejects.toThrow("No audio connected");
   });
 
-  it("shifts pitch by semitones", async () => {
-    const audio = makeShortSine(8000, 0.1);
+  it("moves the tone up an octave and keeps the duration", async () => {
+    const audio = makeLongerSine();
+    const inputFrames = decode(audio).samples.length;
     const __n315 = new PitchShiftNode();
     __n315.assign({
       audio,
-      semitones: 3
+      semitones: 12
     });
-    const res = await __n315.process();
-    const out = res.output as { data: string };
-    expect(out.data).toBeTruthy();
+    const out = decodeOutput(await __n315.process()).samples;
+
+    // Measured past the shifter's warm-up, over a whole number of cycles of
+    // both 440 Hz and 880 Hz.
+    const from = Math.floor(out.length / 2);
+    expect(amplitudeAt(out, 880, 8000, from, out.length)).toBeGreaterThan(0.1);
+    expect(amplitudeAt(out, 440, 8000, from, out.length)).toBeLessThan(0.05);
+    // Pitch, not speed: the output runs as long as the input.
+    expect(out.length / inputFrames).toBeGreaterThan(0.95);
+    expect(out.length / inputFrames).toBeLessThan(1.05);
   });
 });
 
@@ -322,36 +366,52 @@ describe("TimeStretchNode", () => {
     await expect(__n317.process()).rejects.toThrow("No audio connected");
   });
 
-  it("stretches audio at different rate", async () => {
-    const audio = makeShortSine(8000, 0.1);
-    const __n318 = new TimeStretchNode();
-    __n318.assign({
-      audio,
-      rate: 1.5
-    });
-    const res = await __n318.process();
-    const out = res.output as { data: string };
-    expect(out.data).toBeTruthy();
+  it("scales the duration by the rate", async () => {
+    const audio = makeLongerSine();
+    const inputFrames = decode(audio).samples.length;
+    for (const rate of [1.5, 0.5]) {
+      const __n318 = new TimeStretchNode();
+      __n318.assign({ audio, rate });
+      const out = decodeOutput(await __n318.process()).samples;
+      expect(out.length / (inputFrames / rate)).toBeCloseTo(1, 1);
+    }
   });
 });
 
 describe("NoiseGateNode", () => {
-  it("applies noise gate to audio", async () => {
+  it("silences below the threshold and passes above it", async () => {
+    const audio = makeQuietThenLoudSine();
+    const quietFrames = decode(audio).samples.length / 2;
     const __n319 = new NoiseGateNode();
-    __n319.assign({ audio: makeShortSine() });
-    const res = await __n319.process();
-    const out = res.output as { data: string };
-    expect(out.data).toBeTruthy();
+    __n319.assign({ audio });
+    const out = decodeOutput(await __n319.process()).samples;
+
+    expect(peak(out, 0, quietFrames)).toBeLessThan(0.00005);
+    // Measured past the 1 ms attack, so the gate is fully open.
+    expect(peak(out, quietFrames + 100, out.length)).toBeCloseTo(0.5, 2);
   });
 });
 
 describe("PhaserNode", () => {
-  it("applies phaser effect to audio", async () => {
-    const __n320 = new PhaserNode();
-    __n320.assign({ audio: makeShortSine() });
-    const res = await __n320.process();
-    const out = res.output as { data: string };
-    expect(out.data).toBeTruthy();
+  it("alters the waveform in proportion to the mix", async () => {
+    const audio = makeLongerSine();
+    const dry = decode(audio).samples;
+
+    const maxDelta = async (mix: number) => {
+      const node = new PhaserNode();
+      node.assign({ audio, mix });
+      const out = decodeOutput(await node.process()).samples;
+      expect(out.length).toBe(dry.length);
+      let max = 0;
+      for (let i = 0; i < dry.length; i++) {
+        max = Math.max(max, Math.abs(out[i] - dry[i]));
+      }
+      return max;
+    };
+
+    // mix=0 is the dry signal, off by 16-bit quantization at most.
+    expect(await maxDelta(0)).toBeLessThan(0.01);
+    expect(await maxDelta(1)).toBeGreaterThan(0.1);
   });
 });
 
