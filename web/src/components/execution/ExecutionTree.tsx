@@ -470,12 +470,15 @@ StatusBadge.displayName = "StatusBadge";
 
 // Split out so the args serialization survives a re-render: the inspector
 // rebuilds on every execution event, and a step's args can be large.
-const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = ({ call }) => {
+const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = memo(({ call }) => {
   const args = call.args;
-  const codeArg =
-    call.name === "execute_code" && isString(args?.["code"])
-      ? formatJavaScriptForDisplay(args["code"])
-      : null;
+  const codeArg = useMemo(
+    () =>
+      call.name === "execute_code" && isString(args?.["code"])
+        ? formatJavaScriptForDisplay(args["code"])
+        : null,
+    [call.name, args]
+  );
   const argsText = useMemo(
     () =>
       codeArg === null && Object.keys(args ?? {}).length > 0
@@ -499,7 +502,9 @@ const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = ({ call }) => {
       ) : null}
     </div>
   );
-};
+});
+
+StepToolCallRow.displayName = "StepToolCallRow";
 
 const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
   const resultText = useMemo(() => stringifyResult(step.rawResult), [step.rawResult]);

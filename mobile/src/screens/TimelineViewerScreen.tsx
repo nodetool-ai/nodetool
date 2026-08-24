@@ -270,6 +270,19 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         (a, b) => a.index - b.index
       );
       const currentClips = current?.clips ?? [];
+      // The agent snapshots after every tool call, and a full sequence is
+      // hundreds of clips over dozens of tracks — so index both lists once
+      // instead of scanning one per element of the other.
+      const clipCountByTrack = new Map<string, number>();
+      for (const clip of currentClips) {
+        clipCountByTrack.set(
+          clip.trackId,
+          (clipCountByTrack.get(clip.trackId) ?? 0) + 1
+        );
+      }
+      const trackNameById = new Map(
+        currentTracks.map((track) => [track.id, track.name])
+      );
       return {
         sequenceId: id,
         title: state.name || name || 'Timeline',
@@ -280,16 +293,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         selectedClipIds: selectedIds(),
         dirty: state.dirty,
         tracks: currentTracks.map((track) =>
-          trackToNode(
-            track,
-            currentClips.filter((clip) => clip.trackId === track.id).length
-          )
+          trackToNode(track, clipCountByTrack.get(track.id) ?? 0)
         ),
         clips: currentClips.map((clip) =>
-          clipToNode(
-            clip,
-            currentTracks.find((track) => track.id === clip.trackId)?.name ?? null
-          )
+          clipToNode(clip, trackNameById.get(clip.trackId) ?? null)
         ),
         markers: (current?.markers ?? []).map((marker) => ({
           id: marker.id,
