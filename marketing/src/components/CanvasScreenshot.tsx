@@ -19,8 +19,7 @@ export default function CanvasScreenshot({ alt }: { alt: string }) {
       height={792}
       decoding="async"
       className="block h-auto w-full rounded-xl"
-      // React 18 doesn't know the camelCase prop yet; pass the raw attribute.
-      {...{ fetchpriority: "high" }}
+      fetchPriority="high"
     />
   );
 }

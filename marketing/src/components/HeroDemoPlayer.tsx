@@ -79,7 +79,7 @@ export default function HeroDemoPlayer({ alt }: HeroDemoPlayerProps) {
         height={1080}
         decoding="async"
         className="block h-auto w-full rounded-xl"
-        {...{ fetchpriority: "high" }}
+        fetchPriority="high"
       />
 
       {mountVideo && (
