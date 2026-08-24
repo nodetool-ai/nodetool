@@ -19,6 +19,12 @@ import {
   HERO_FPS,
   HeroPipeline,
 } from "./hero/HeroPipeline";
+import {
+  SURFACE_LOOPS,
+  SURFACE_LOOP_FPS,
+  SURFACE_LOOP_FRAMES,
+  SurfaceLoop,
+} from "./hero/SurfaceLoop";
 import type { DemoCast } from "@web-demo";
 
 const WIDTH = 1920;
@@ -158,6 +164,21 @@ export const Root: React.FC = () => {
         height={1920}
         durationInFrames={HERO_DURATION_FRAMES}
       />
+      {/* One silent 6s loop per creative surface, for the landing page's
+          surface tabs (marketing/POSITIONING_PLAN.md Part 5). */}
+      {SURFACE_LOOPS.map((loop) => (
+        <Composition
+          key={loop.slug}
+          id={`Surface-${loop.slug}`}
+          component={SurfaceLoop}
+          defaultProps={loop}
+          fps={SURFACE_LOOP_FPS}
+          width={WIDTH}
+          height={HEIGHT}
+          durationInFrames={SURFACE_LOOP_FRAMES}
+        />
+      ))}
+
       <Composition
         id="Promo-Landing"
         component={Promo}
