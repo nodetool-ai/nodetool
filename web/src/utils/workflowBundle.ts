@@ -5,6 +5,7 @@
  *   POST /api/workflows/import-bundle        → import a bundle into the library
  */
 import { restFetch } from "../lib/rest-fetch";
+import { saveResponseAsFile } from "./downloadResponse";
 import { isObjectLike } from "./typePredicates";
 
 interface ImportedBundleWorkflow {
@@ -28,32 +29,6 @@ function isImportBundleResponse(data: unknown): data is ImportBundleResponse {
   );
 }
 
-function filenameFromDisposition(
-  header: string | null,
-  fallback: string
-): string {
-  if (header) {
-    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header);
-    if (match?.[1]) {
-      return decodeURIComponent(match[1]);
-    }
-  }
-  return fallback;
-}
-
-function triggerDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  // Defer the revoke: releasing the blob synchronously cancels the download in
-  // Firefox and for large files (bundle ZIPs can be large).
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 function sanitizeBundleName(name: string): string {
   return name.replace(/[^A-Za-z0-9._-]+/g, "_") || "workflow";
 }
@@ -71,12 +46,7 @@ export async function exportWorkflowBundle(
     const detail = await res.text().catch(() => "");
     throw new Error(detail || `Export failed (${res.status})`);
   }
-  const blob = await res.blob();
-  const filename = filenameFromDisposition(
-    res.headers.get("content-disposition"),
-    `${sanitizeBundleName(fallbackName)}.nodetool`
-  );
-  triggerDownload(blob, filename);
+  await saveResponseAsFile(res, `${sanitizeBundleName(fallbackName)}.nodetool`);
 }
 
 /** Upload a `.nodetool` bundle; the server stores its assets and creates the workflows. */

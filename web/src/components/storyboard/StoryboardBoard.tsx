@@ -48,6 +48,8 @@ import LanguageModelSelect from "../properties/LanguageModelSelect";
 import { useInStudio } from "../../studio/StudioContext";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { exportStoryboardZip } from "../../utils/storyboardZip";
 import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
@@ -157,6 +159,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const [confirmRedirect, setConfirmRedirect] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const togglePreview = useCallback(() => setPreviewOpen((open) => !open), []);
+  const [downloading, setDownloading] = useState(false);
 
   const hasShots = shots.length > 0;
 
@@ -234,6 +237,25 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       void generateClip(boardId, shot).catch(() => undefined);
     }
   }, [pendingClips, generateClip, boardId]);
+
+  // The archive is packed server-side from the saved board, so a download
+  // shows what the server holds — the local edits an in-flight save has not
+  // reached it with yet are not in the zip.
+  const handleDownloadZip = useCallback(() => {
+    setDownloading(true);
+    exportStoryboardZip(boardId, title || "storyboard")
+      .catch((error: unknown) => {
+        useNotificationStore.getState().addNotification({
+          type: "error",
+          alert: true,
+          dismissable: true,
+          content: `Storyboard download failed. ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+      })
+      .finally(() => setDownloading(false));
+  }, [boardId, title]);
 
   return (
     <ScrollArea fullHeight thin className="storyboard-board">
@@ -380,6 +402,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   disabled={!hasPlayableShot}
                 >
                   {previewOpen ? "Hide preview" : "Preview"}
+                </EditorButton>
+                <EditorButton
+                  variant="outlined"
+                  onClick={handleDownloadZip}
+                  disabled={!hasShots || downloading}
+                >
+                  {downloading ? "Preparing…" : "Download ZIP"}
                 </EditorButton>
                 <EditorButton
                   variant="outlined"
