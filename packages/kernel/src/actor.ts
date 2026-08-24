@@ -34,6 +34,7 @@ import type {
 import {
   createInvocationAccount,
   inInvocationAccount,
+  isContentFilterRefusal,
   isRecoverableNodeError,
   providerFailureDetail
 } from "@nodetool-ai/runtime";
@@ -1184,7 +1185,11 @@ export class NodeActor {
         return await inInvocationAccount(account, invoke);
       } catch (err) {
         if (err instanceof WorkflowSuspendedError) throw err;
-        if (!this._supervisor) throw err;
+        if (!this._supervisor) {
+          if (!this._degradeOnContentFilter(err, false)) throw err;
+          await this._skipInvocation();
+          return SKIPPED;
+        }
 
         const verdict = await this._escalate(err, inputs, attempt, account, {
           streamingOutput: false,
@@ -1382,6 +1387,46 @@ export class NodeActor {
     );
   }
 
+  /**
+   * Whether to drop this item instead of the run, after the provider's own
+   * bounded retries failed to get past its content filter. The built-in policy
+   * for an unsupervised run — a supervised one escalates instead, because
+   * putting an agent on the failure path is what `--supervise` is for.
+   *
+   * Veo filtered one shot of a five-shot trailer on an ordinary cinematic
+   * prompt. Failing the node there fails the run and discards the four shots
+   * already generated and paid for, which is worse than delivering a four-shot
+   * cut and saying which shot was refused.
+   *
+   * Only for an invocation that is one item of a fan-out: a non-empty
+   * correlation lineage says an upstream item keyed this invocation, so the
+   * siblings are real work a failure would throw away. A single-shot node has
+   * no siblings to protect and still fails loudly. An invocation that already
+   * emitted is out too — its partial output is downstream, so retiring the
+   * lineage now would tell joins nothing arrived.
+   */
+  private _degradeOnContentFilter(err: unknown, emitted: boolean): boolean {
+    if (emitted || !isContentFilterRefusal(err)) return false;
+    const lineage = this._currentInvocationLineage;
+    if (!lineage || Object.keys(lineage).length === 0) return false;
+
+    const detail = err instanceof Error ? err.message : String(err);
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+    log.warn("Dropping content-filtered item", {
+      nodeId: this.node.id,
+      type: this.node.type,
+      detail
+    });
+    this._emitMessage({
+      type: "log_update",
+      node_id: this.node.id,
+      node_name: this.node.name ?? this.node.type,
+      severity: "warning",
+      content: `Dropped one item: the provider's content filter refused it and retrying did not clear it. The rest of the run continues. ${detail}`
+    });
+    return true;
+  }
+
   private async _executeWithInputs(
     inputs: Record<string, unknown>
   ): Promise<void> {
@@ -1459,7 +1504,11 @@ export class NodeActor {
       } catch (err) {
         if (err instanceof WorkflowSuspendedError) throw err;
         if (err instanceof RoutingError) throw err.cause;
-        if (!this._supervisor) throw err;
+        if (!this._supervisor) {
+          if (!this._degradeOnContentFilter(err, emitted)) throw err;
+          await this._skipInvocation();
+          return;
+        }
         const verdict = await this._escalate(err, inputs, attempt, account, {
           streamingOutput: true,
           streamingInput: false,

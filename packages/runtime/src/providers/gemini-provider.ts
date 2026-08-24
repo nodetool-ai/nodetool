@@ -5,6 +5,10 @@ import { sniffAudioMime } from "./audio-mime.js";
 import { sniffVideoMime } from "./video-mime.js";
 import { safeFetch } from "./safe-url.js";
 import {
+  ContentFilterRefusal,
+  isContentFilterRefusal
+} from "./content-filter.js";
+import {
   isBoolean,
   isFiniteNumber,
   isNonEmptyString,
@@ -160,12 +164,23 @@ interface GeminiModelsPage {
   nextPageToken?: string;
 }
 
+/**
+ * Veo reports a content-filtered take by counting it out of the response
+ * rather than by failing the operation: `raiMediaFilteredCount` rises, the
+ * reasons list carries the support codes, and `generatedSamples` comes back
+ * short — or empty, when every take was filtered.
+ */
+interface GeminiRaiFilterFields {
+  raiMediaFilteredCount?: number;
+  raiMediaFilteredReasons?: string[];
+}
+
 interface GeminiVideoOperation {
   name?: string;
   done?: boolean;
   error?: { message?: string; code?: number; status?: string };
-  response?: {
-    generateVideoResponse?: {
+  response?: GeminiRaiFilterFields & {
+    generateVideoResponse?: GeminiRaiFilterFields & {
       generatedSamples?: Array<{ video?: { uri?: string } }>;
     };
     generatedVideos?: Array<{ video?: { uri?: string } }>;
@@ -2104,6 +2119,30 @@ export class GeminiProvider extends BaseProvider {
     );
   }
 
+  /**
+   * The refusal to raise when an operation came back with no video, or null
+   * when nothing says the filter is why. A filtered take leaves the operation
+   * successful and the samples empty, so without this the caller sees only
+   * "No video URI in response" — indistinguishable from a broken response, and
+   * fatal to a run that has already paid for its other shots.
+   */
+  private videoContentFilterRefusal(
+    operation: GeminiVideoOperation,
+    modelId: string
+  ): ContentFilterRefusal | null {
+    const rai = operation.response?.generateVideoResponse ?? operation.response;
+    const reasons = rai?.raiMediaFilteredReasons ?? [];
+    const filtered = rai?.raiMediaFilteredCount ?? 0;
+    if (filtered <= 0 && reasons.length === 0) return null;
+    const detail = reasons.length
+      ? reasons.join("; ")
+      : "no reason given by the provider";
+    return new ContentFilterRefusal(
+      `Veo filtered every generated video for this prompt: ${detail}`,
+      { provider: "gemini", model: modelId, reasons }
+    );
+  }
+
   private async waitForVideoOperation(
     operation: GeminiVideoOperation,
     timeoutSeconds?: number | null,
@@ -2147,6 +2186,14 @@ export class GeminiProvider extends BaseProvider {
       throw new Error("Video generation timed out");
     }
     if (current.error?.message) {
+      // Vertex answers a filtered prompt through the operation's error slot
+      // ("videos were filtered out because they violated ... usage
+      // guidelines"), so the refusal has to be recognized here too.
+      if (isContentFilterRefusal(current.error.message)) {
+        throw new ContentFilterRefusal(current.error.message, {
+          provider: "gemini"
+        });
+      }
       throw new Error(
         `Gemini video generation failed: ${current.error.message}`
       );
@@ -2230,6 +2277,8 @@ export class GeminiProvider extends BaseProvider {
     );
     const videoUri = this.getVideoUri(operation);
     if (!videoUri) {
+      const refusal = this.videoContentFilterRefusal(operation, modelId);
+      if (refusal) throw refusal;
       throw new Error("No video URI in response");
     }
     return this.downloadGeminiVideo(videoUri, signal);
@@ -2303,6 +2352,8 @@ export class GeminiProvider extends BaseProvider {
     );
     const videoUri = this.getVideoUri(operation);
     if (!videoUri) {
+      const refusal = this.videoContentFilterRefusal(operation, modelId);
+      if (refusal) throw refusal;
       throw new Error("No video URI in response");
     }
     return this.downloadGeminiVideo(videoUri, signal);
