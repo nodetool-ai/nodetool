@@ -25,7 +25,8 @@ export type TrackEvent =
   | "Try Cloud"
   | "Open Docs"
   | "Join Discord"
-  | "Contact";
+  | "Contact"
+  | "Calculator Interaction";
 
 export function track(event: TrackEvent, props?: PlausibleProps): void {
   if (typeof window === "undefined") return;
