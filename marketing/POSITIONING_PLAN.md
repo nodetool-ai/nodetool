@@ -439,6 +439,10 @@ Three substitutions were not clean swaps and are worth knowing:
   (`RangeError: Invalid string length`). The hook-factory run bypassed that node.
 - `nodetool costs` records LLM calls only, so it reported nothing for a session
   whose spend was almost entirely image and video generation.
+- Kie's `generate-music` ignores the requested duration and returns a full song,
+  so `AddAudio` stretched a 25-second trailer to four minutes. The sample is
+  trimmed back with ffmpeg. The node warns about a bed shorter than the clip and
+  has no guard for the opposite case.
 
 Cross-links: the `/templates` hub carries a recipes band, a template page shows
 which recipes it is a step of and its position in each, `/recipes` is in the

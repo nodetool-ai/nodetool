@@ -412,7 +412,20 @@ export const recipeEntries: RecipeEntry[] = [
     ]
   },
   {
-    "sample": null,
+    "sample": {
+      "image": "/recipes/samples/storyboard-to-trailer.jpg",
+      "video": "/recipes/samples/storyboard-to-trailer.mp4",
+      "webm": "/recipes/samples/storyboard-to-trailer.webm",
+      "poster": "/recipes/samples/storyboard-to-trailer-poster.webp",
+      "hasAudio": true,
+      "caption": "One logline — a lighthouse keeper finds a message in a bottle dated forty years from now — through steps three and four: five shots directed, rendered, animated, cut, and scored. The first two steps produce documents, so they are not in the picture; the style bible holding these five together is written in step three.",
+      "producedBy": [
+        "openrouter:openai/gpt-5.4-mini",
+        "kie:gpt-image-2-text-to-image",
+        "kie:kling-2.6/image-to-video",
+        "kie:generate-music"
+      ]
+    },
     "route": "/recipes/storyboard-to-trailer",
     "title": "Storyboard to Trailer — NodeTool Recipe",
     "description": "A logline becomes a beat sheet, a numbered shot list, a cut teaser, and a score under it.",

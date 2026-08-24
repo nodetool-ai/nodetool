@@ -270,6 +270,20 @@ export const recipes = [
           "In: the cut and a mood. Out: a bed written to the clip's own length, mixed under the original audio. One audio generation per run.",
       },
     ],
+    sample: {
+      image: "storyboard-to-trailer.jpg",
+      video: "storyboard-to-trailer.mp4",
+      poster: "storyboard-to-trailer-poster.webp",
+      hasAudio: true,
+      caption:
+        "One logline — a lighthouse keeper finds a message in a bottle dated forty years from now — through steps three and four: five shots directed, rendered, animated, cut, and scored. The first two steps produce documents, so they are not in the picture; the style bible holding these five together is written in step three.",
+      producedBy: [
+        "openrouter:openai/gpt-5.4-mini",
+        "kie:gpt-image-2-text-to-image",
+        "kie:kling-2.6/image-to-video",
+        "kie:generate-music",
+      ],
+    },
     caveats: [
       "Steps three and four both hold their own storyboard. Rewriting the beat sheet does not reach back into a teaser you already rendered — re-run the chain.",
       "Continuity across shots comes from a shared style bible, not from a persistent character model. Faces drift over a long cut.",
