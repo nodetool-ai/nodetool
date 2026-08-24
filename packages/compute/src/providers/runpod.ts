@@ -71,6 +71,7 @@ export class RunpodPodProvider implements WorkerProvider {
       // stop/resume; merge over any caller env (caller wins on conflict? no —
       // we own HF_HOME, so it goes last).
       env: { ...spec.env, HF_HOME: WORKER_HF_HOME },
+      sshPublicKey: spec.sshPublicKey,
       containerDiskInGb: DEFAULT_CONTAINER_DISK_GB,
       volumeInGb: spec.disk ?? DEFAULT_VOLUME_GB,
       volumeMountPath: WORKER_VOLUME_MOUNT,

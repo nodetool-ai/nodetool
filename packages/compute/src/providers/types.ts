@@ -62,6 +62,12 @@ export interface WorkerSpec {
   env?: Record<string, string>;
   /** Bearer token the worker authenticates with, when generated/fixed. */
   token?: string;
+  /**
+   * OpenSSH public key. When set, the provider exposes 22/tcp and passes the
+   * key as PUBLIC_KEY so the worker entrypoint starts sshd. Without it a
+   * rented worker can only be reached through the node-execution bridge.
+   */
+  sshPublicKey?: string;
 }
 
 /** Result of a successful `provision` — the attach handoff for an instance. */
