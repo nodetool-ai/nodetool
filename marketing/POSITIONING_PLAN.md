@@ -313,7 +313,7 @@ Rendered by the demo harness from real product casts, not mocked up.
 `demo/src/hero/` holds the compositions; the outputs live in
 `marketing/public/`. Re-render with `npm run render:hero`,
 `render:hero:vertical`, `render:surfaces`, `render:tab-chaos` in `demo/`.
-Nothing on the site references these yet — wiring is W2.
+The homepage's `SurfaceShowcase` plays the five loops (W2).
 
 - [x] Hero 3-stage pipeline video — `hero-pipeline.{mp4,webm}` (16:9) and
       `hero-pipeline-vertical.{mp4,webm}` (9:16), 15 s silent loop, ~2.5 MB
@@ -347,12 +347,32 @@ repo changes the artwork in the same diff.
 
 **W2 — Frontend & web engineering**
 
-- [ ] Hero overhaul: announcement bar, dual CTA, interactive demo player
-- [ ] BYOK ROI calculator (client-side, with model-breakdown tooltip)
-- [ ] Graph-to-app split widget
-- [ ] Five-surface tab showcase (deep-linkable anchors: `#storyboard` …)
-- [ ] Comparison pages: `/compare/vs-comfyui`, `/compare/vs-runway`,
-      `/compare/vs-n8n`, `/compare/vs-figma-weave`
+- [x] Hero overhaul — a dismissible announcement bar above the header
+      (`--announce-h` offsets the fixed nav and pads the body, so every page's
+      own clearance keeps working), a dual CTA of Download / Try the Cloud
+      alpha, and the W1 hero reel in place of the static screenshot. The
+      poster stays a plain `<img>` with a srcSet and high fetch priority — a
+      `<video poster>` carries neither — and the reel mounts only when the
+      hero scrolls into view.
+- [x] BYOK ROI calculator — `ByokCalculator`, client-side, per-line model
+      breakdown. Unit prices come from `calculatorPricing.generated.ts`, which
+      `scripts/generate-calculator-pricing.mjs` reads out of the GenSpend
+      catalog NodeTool bills a run against, so the page cannot quote a price
+      the product does not charge. The resale comparison is a multiplier the
+      reader sets, not a claim about a named competitor.
+- [x] Graph-to-app widget — `GraphToAppSplit`, the same shipped example seen
+      twice: the generated template graph, then the mini app that binds that
+      workflow. Stacked rather than a drag-to-reveal split, because the two
+      assets share no aspect ratio (a wide graph against a tall app page) and
+      one frame either crops the app mid-sentence or shrinks it to a column.
+- [x] Five-surface tab showcase — `SurfaceShowcase`, one tab per editor over
+      its W1 loop, deep-linkable as `#surface-<id>`. The long-form sections
+      keep their own `#storyboard`-style anchors; these are separate ids.
+- [x] Comparison pages — all four exist, on `/alternatives/<slug>`, and
+      `/compare/vs-<slug>` redirects there. A third prefix over the same copy
+      is what the `/vs` → `/alternatives` consolidation already measured
+      against (`docs/SEO_STRATEGY.md` § 0.10: 4,817 impressions to 1,117).
+      ComfyUI, n8n, and Figma Weave were already written; Runway is new.
 
 **W3 — Template gallery**
 

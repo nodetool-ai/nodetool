@@ -13,6 +13,9 @@ import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import ModelManagerSection from "../components/ModelManagerSection";
 import CostDashboardSection from "../components/CostDashboardSection";
+import SurfaceShowcase from "../components/SurfaceShowcase";
+import GraphToAppSplit from "../components/GraphToAppSplit";
+import ByokCalculator from "../components/ByokCalculator";
 import StoryboardSection from "../components/StoryboardSection";
 import ScriptEditorSection from "../components/ScriptEditorSection";
 import TimelineEditorSection from "../components/TimelineEditorSection";
@@ -313,6 +316,9 @@ export default function Home() {
         {/* Concrete proof right after the mental model: a complete, runnable workflow */}
         <UseCasesShowcase />
 
+        {/* The five editors, each over a loop of the real thing (#surface-<id>) */}
+        <SurfaceShowcase />
+
         {/* Route by intent once the core story has landed */}
         <WaysInSection />
 
@@ -325,6 +331,9 @@ export default function Home() {
 
         {/* Cost transparency — the payoff of your own keys: real per-run cost */}
         <CostDashboardSection />
+
+        {/* Put a number on it: a month of work at provider list prices */}
+        <ByokCalculator />
 
         {/* --- Secondary: what's inside, once the narrative has landed --- */}
 
@@ -340,6 +349,9 @@ export default function Home() {
 
         {/* Paint and generate on one canvas — built-in sketch editor (sibling to the timeline editor) */}
         <SketchEditorSection />
+
+        {/* One workflow, two views: the graph and the app it becomes */}
+        <GraphToAppSplit />
 
         {/* Wrap a finished workflow in a screen someone else can run */}
         <AppBuilderSection />
