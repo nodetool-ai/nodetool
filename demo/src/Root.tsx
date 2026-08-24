@@ -20,6 +20,11 @@ import {
   HeroPipeline,
 } from "./hero/HeroPipeline";
 import {
+  TAB_CHAOS_FPS,
+  TAB_CHAOS_FRAMES,
+  TabChaos,
+} from "./hero/TabChaos";
+import {
   SURFACE_LOOPS,
   SURFACE_LOOP_FPS,
   SURFACE_LOOP_FRAMES,
@@ -178,6 +183,17 @@ export const Root: React.FC = () => {
           durationInFrames={SURFACE_LOOP_FRAMES}
         />
       ))}
+
+      {/* The pain-grid animation: five tool windows collapse into the real
+          canvas (marketing/POSITIONING_PLAN.md Part 5). */}
+      <Composition
+        id="Tab-Chaos"
+        component={TabChaos}
+        fps={TAB_CHAOS_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={TAB_CHAOS_FRAMES}
+      />
 
       <Composition
         id="Promo-Landing"
