@@ -381,10 +381,84 @@ repo changes the artwork in the same diff.
 
 **W3 — Template gallery**
 
-- [ ] Recipe 1: viral video ad engine (workflow bundle + sample ad + tutorial)
-- [ ] Recipe 2: multilingual video dubber
-- [ ] Recipe 3: e-commerce SKU visual factory
-- [ ] Recipe 4: storyboard-to-trailer
+Recipes live at `/recipes` and `/recipes/<slug>`. A recipe is a named outcome
+plus the ordered shipped example workflows that reach it, downloadable as one
+`.nodetool` bundle — where a template page answers "what does this graph do", a
+recipe answers "what do I run, in what order, and what does it cost me".
+
+The four are built out of shipped examples rather than newly authored graphs.
+That was the deciding call: a recipe assembled from workflows the product
+already ships is one a reader can open today, and every step already has a
+template page, card art, and a tested graph behind it.
+
+Only the prose is hand-written (`scripts/recipes.mjs`). Models, API keys, node
+counts, and card art are read out of the graphs by
+`scripts/generate-recipes.mjs`, so a page cannot name a model the workflow does
+not call. Regenerate with `npm run gen:recipes`; `-- --check` fails on a stale
+module, a missing bundle, or a bundle whose contents no longer match the recipe
+(all four arms were proven to fail before being relied on).
+
+- [x] Recipe 1: viral video ad engine — Ad Copy in Three Registers → Hook &
+      Thumbnail Factory → Ad Loop from a Product Photo → Cut a Landscape Clip
+      for Vertical. Ordered cheapest first, so register and hook are settled
+      before a video model is billed.
+- [x] Recipe 2: multilingual video dubber — Transcribe a Clip → Localise a
+      Script and Revoice It → One Tagline, Six Markets → AI Spokesperson →
+      Subtitle Text from a Recording. The back-translation is the review gate
+      for a language nobody in the room reads; the last two steps are a fork
+      (voice-over cut vs on-camera cut), which the page says outright.
+- [x] Recipe 3: e-commerce SKU visual factory — cutout → studio backdrop →
+      seasonal relight → turntable clip → print-resolution master → listing
+      copy. Every step after the first starts from the cutout, so the product
+      itself is never regenerated.
+- [x] Recipe 4: storyboard-to-trailer — Trailer Beats from a Premise → Shot
+      List from a Synopsis → Movie Trailer Generator → Score a Silent Clip.
+
+**Sample outputs: rendered against live models.** Each recipe carries a `sample`
+block — a contact sheet of the run, a clip where the recipe ends in one, and the
+`provider:model` list that actually produced it. These are real runs of the
+shipped graphs, not mockups, and the generator fails the build when a sample
+names a file that is not on disk (proven by removing one).
+
+Two things about how they were produced are stated on the page rather than
+hidden. First, three provider accounts on the render machine were unusable —
+fal returned 403 on every model, Gemini 429 with credits depleted, Anthropic 401
+— and there was no OpenAI key at all. The chains were therefore run with
+equivalents on the providers that did work: Kie for image and video, Replicate
+for background removal, relight, upscale, TTS and lip-sync, OpenRouter for text.
+Where the substitute is the *same* model on another route (Bria background
+removal, Clarity/Recraft upscale, ElevenLabs voices) the sample is faithful;
+where it is a different model (Kling for LTX or Veo, nano-banana for FLUX) it is
+not, and the `producedBy` list says which ran.
+
+Second, two inputs were generated rather than supplied: the SKU packshot and the
+dubber's presenter clip. Both recipes assume you bring your own, and the dubber
+caption says the presenter is synthetic.
+
+Three substitutions were not clean swaps and are worth knowing:
+
+- Kling rejects an empty prompt where Veo 3.1 accepts one, so the trailer graph
+  needed the shot prompt wired into the animate node as well as the keyframe.
+- `lib.image.color.BrightnessContrast` returns a raw RGBA pixel array, and the
+  CLI's `--json` stringify of three 1024x1024 images overflows a JS string
+  (`RangeError: Invalid string length`). The hook-factory run bypassed that node.
+- `nodetool costs` records LLM calls only, so it reported nothing for a session
+  whose spend was almost entirely image and video generation.
+- Kie's `generate-music` ignores the requested duration and returns a full song,
+  so `AddAudio` stretched a 25-second trailer to four minutes. The sample is
+  trimmed back with ffmpeg. The node warns about a bed shorter than the clip and
+  has no guard for the opposite case.
+
+Cross-links: the `/templates` hub carries a recipes band, a template page shows
+which recipes it is a step of and its position in each, `/recipes` is in the
+footer and the sitemap, each recipe has an OG card, and the four appear in
+`llms.txt`. The bundle download fires a `Download Recipe` Plausible event
+(part of W5's conversion tracking, landed here because the CTA is here).
+
+The e2e smoke suite covers the new routes from the registry with no edit. One
+test was added by hand: a recipe page renders fine with a dead download link,
+so the suite fetches each `.nodetool` and asserts the zip magic bytes. Removing
+a bundle was shown to fail it.
 
 **W4 — Developer hub**
 

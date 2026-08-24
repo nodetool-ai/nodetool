@@ -14,6 +14,7 @@ import {
   type TemplateEntry,
 } from "@/data/templates";
 import { miniAppEntries } from "@/data/miniApps";
+import { recipeEntries, recipesUsingTemplate } from "@/data/recipes";
 
 const BASE_URL = "https://nodetool.ai";
 const GITHUB_URL = "https://github.com/nodetool-ai/nodetool";
@@ -97,6 +98,8 @@ export default async function TemplatePage({
   const miniApp = miniAppEntries.find((a) =>
     a.workflows.some((w) => w.slug === entry.slug),
   );
+  // The larger jobs this workflow is one step of.
+  const recipes = recipesUsingTemplate(entry.slug, recipeEntries);
   const summary =
     entry.summary ||
     `${entry.name} is a ready-to-run NodeTool workflow. Open it in Studio, connect your keys, and run it — then edit any node to make it yours.`;
@@ -286,6 +289,44 @@ export default async function TemplatePage({
             </ol>
           </div>
         </section>
+
+        {/* Recipes this workflow belongs to */}
+        {recipes.length > 0 && (
+          <section className="relative py-12">
+            <div className="mx-auto max-w-6xl px-6 lg:px-8">
+              <h2 className="mb-3 text-2xl font-bold tracking-tight md:text-3xl">
+                Part of a bigger job
+              </h2>
+              <p className="mb-6 max-w-2xl text-sm leading-relaxed text-slate-400">
+                A recipe chains this workflow with the ones around it and ships
+                the whole set as a single file.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {recipes.map((recipe) => {
+                  const position =
+                    recipe.steps.findIndex((s) => s.template === entry.slug) + 1;
+                  return (
+                    <a
+                      key={recipe.slug}
+                      href={recipe.route}
+                      className="group rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 transition-colors hover:border-amber-500/45"
+                    >
+                      <div className="text-xs font-semibold uppercase tracking-wide text-amber-400/80">
+                        Step {position} of {recipe.workflowCount}
+                      </div>
+                      <div className="mt-2 text-lg font-semibold text-white group-hover:text-amber-300">
+                        {recipe.name}
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                        {recipe.outcome}
+                      </p>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Related */}
         {related.length > 0 && (

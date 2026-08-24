@@ -7,6 +7,7 @@ import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import { templateEntries, type TemplateEntry } from "@/data/templates";
+import { recipeEntries } from "@/data/recipes";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -112,6 +113,34 @@ export default function TemplatesHub() {
                 icon={<Download className="h-5 w-5" />}
                 classNameOverride="inline-flex items-center justify-center gap-2 rounded-full bg-sky-500 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgba(56,189,248,0.6)] transition-all hover:bg-sky-400"
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Recipes band — the multi-step jobs these templates chain into. */}
+        <section className="relative py-6">
+          <div className="mx-auto max-w-6xl px-6 lg:px-8">
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 sm:p-8">
+              <h2 className="text-xl font-bold tracking-tight md:text-2xl">
+                Looking for the whole job?
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400">
+                A recipe chains several of these templates in order and ships
+                them as one downloadable bundle, with the keys each step needs
+                and where the money goes.
+              </p>
+              <ul className="mt-5 flex flex-wrap gap-2">
+                {recipeEntries.map((recipe) => (
+                  <li key={recipe.slug}>
+                    <a
+                      href={recipe.route}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-[#0a0a14]/60 px-4 py-2 text-sm font-medium text-amber-200 transition-colors hover:border-amber-500/50 hover:text-amber-100"
+                    >
+                      {recipe.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>

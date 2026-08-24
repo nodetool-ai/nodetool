@@ -26,7 +26,8 @@ export type TrackEvent =
   | "Open Docs"
   | "Join Discord"
   | "Contact"
-  | "Calculator Interaction";
+  | "Calculator Interaction"
+  | "Download Recipe";
 
 export function track(event: TrackEvent, props?: PlausibleProps): void {
   if (typeof window === "undefined") return;
