@@ -208,6 +208,10 @@ export {
 } from "./provider-error.js";
 export type { ProviderFailureDetail } from "./provider-error.js";
 export {
+  ContentFilterRefusal,
+  isContentFilterRefusal
+} from "./content-filter.js";
+export {
   checkCredential,
   isCredentialVerifiable,
   verifiableCredentialKeys

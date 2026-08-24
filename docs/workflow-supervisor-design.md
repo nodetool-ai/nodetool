@@ -205,6 +205,28 @@ No `substitute` in either state — the PRD's rule ("Repair never" for streams) 
 
 Excluded verdicts are removed from the agent's schema **and** from the kernel's allowed set (§5.1) — the schema is UX, the allowed set is the guarantee.
 
+### 5.4a Content-filter refusals in an unsupervised run
+
+One failure class degrades without a supervisor: a provider content filter
+refusing to generate. Veo 3.1 filtered one shot of a five-shot trailer on an
+ordinary cinematic shot description, the same prompt passed on retry, and the
+blocked take was not charged — so the refusal is non-deterministic and
+provider-side, not a defect in the request.
+
+It is answered at two levels. `ProcessingContext.runProviderPrediction` retries
+a refusal `CONTENT_FILTER_MAX_RETRIES` times with backoff, so most never reach
+the node. One that survives reaches the actor as a `ContentFilterRefusal`
+(`@nodetool-ai/runtime`), and the actor takes the `skip` path — retiring that
+invocation's lineage, exactly as the verdict does — when the invocation is one
+item of a fan-out and nothing has been emitted yet. Everything else still
+fails: a single-shot invocation has no siblings whose spend a failure would
+discard, and an emitted stream has partial output downstream that a retired
+lineage would contradict.
+
+A **supervised** run is unchanged. The refusal escalates like any other
+failure, because putting an agent on the failure path is what `--supervise` is
+for; `skip` is already in its allowed set (§5.4).
+
 ### 5.5 Cancellation and timeouts
 
 Each `decide()` call gets its own `AbortSignal`, derived from the run's signal plus a decision timeout (default 60s). The signal is not decoration around the `await`: it threads through `StepExecutor` into `provider.generateLoop({signal})`, so abort actually terminates the in-flight LLM request rather than orphaning it to keep consuming tokens after `cancel()`. Abort or timeout → `fail`. This is what keeps `cancel()` instant *and* free (PRD scenario 8): a pending decision is killed, not merely un-awaited.

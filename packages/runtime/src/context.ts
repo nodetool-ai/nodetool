@@ -158,6 +158,11 @@ import type {
   MessageContent,
   ProviderStreamItem
 } from "./providers/types.js";
+import {
+  CONTENT_FILTER_MAX_RETRIES,
+  contentFilterRetryDelayMs,
+  isContentFilterRefusal
+} from "./providers/content-filter.js";
 import type { NodeExecutor } from "./node-executor.js";
 import {
   getProcessSandboxModuleCatalog,
@@ -3386,13 +3391,53 @@ export class ProcessingContext {
     this.emitPrediction("running", req, id, null, undefined, startedAt);
     try {
       const provider = await this.getProvider(req.provider);
-      const output = await this.dispatchCapability(provider, req);
+      const output = await this.retryContentFilterRefusal(req, () =>
+        this.dispatchCapability(provider, req)
+      );
       this.emitPrediction("completed", req, id, output, undefined, startedAt);
       return output;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.emitPrediction("failed", req, id, null, message, startedAt);
       throw error;
+    }
+  }
+
+  /**
+   * Run a prediction, retrying a content-filter refusal a bounded number of
+   * times. The filter is non-deterministic — Veo refused one shot of a
+   * five-shot trailer on an ordinary cinematic prompt and passed the same
+   * prompt on retry — and a refused take is not charged, so the cheap answer to
+   * a refusal is to ask again before failing the node that asked.
+   *
+   * A refusal that survives the retries is rethrown as-is, so the kernel can
+   * still drop the item rather than the run.
+   */
+  private async retryContentFilterRefusal<T>(
+    req: ProviderPredictionRequest,
+    attemptFn: () => Promise<T>
+  ): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await attemptFn();
+      } catch (error) {
+        if (
+          !isContentFilterRefusal(error) ||
+          attempt > CONTENT_FILTER_MAX_RETRIES
+        ) {
+          throw error;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        this.emit({
+          type: "log_update",
+          node_id: req.nodeId ?? "",
+          node_name: req.nodeId ?? "",
+          workflow_id: req.workflowId ?? this.workflowId ?? null,
+          severity: "warning",
+          content: `${req.provider}/${req.model} content-filtered this request (attempt ${attempt} of ${CONTENT_FILTER_MAX_RETRIES + 1}); retrying. ${message}`
+        });
+        await waitForRetry(contentFilterRetryDelayMs(attempt), this.signal);
+      }
     }
   }
 
