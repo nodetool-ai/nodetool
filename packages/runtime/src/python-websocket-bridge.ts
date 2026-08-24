@@ -18,7 +18,10 @@
  * "reconnected". An explicit {@link close} disables reconnect.
  */
 
-import { pack, unpack } from "msgpackr";
+import {
+  packBridgeMessage,
+  unpackBridgeMessage
+} from "./python-bridge-codec.js";
 
 import WebSocket from "ws";
 
@@ -445,7 +448,7 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     this._messageListener = (data: WebSocket.RawData) => {
       try {
         const buf = this._toUint8Array(data);
-        const msg = unpack(buf) as Record<string, unknown>;
+        const msg = unpackBridgeMessage(buf);
         this._handleMessage(msg);
       } catch (err) {
         log.error(`Failed to decode WebSocket frame: ${err}`);
@@ -486,7 +489,7 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     if (!this._ws || !this._connected) {
       throw new Error("Not connected to Python worker");
     }
-    const payload = pack(msg);
+    const payload = packBridgeMessage(msg);
     if (payload.length > MAX_BRIDGE_FRAME_SIZE) {
       throw new Error(
         `Outgoing Python bridge frame exceeds max size (${payload.length} > ${MAX_BRIDGE_FRAME_SIZE})`
