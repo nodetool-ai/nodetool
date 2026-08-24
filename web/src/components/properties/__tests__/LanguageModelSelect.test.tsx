@@ -1,8 +1,10 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import type { LanguageModel } from "../../../stores/ApiTypes";
+import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import LanguageModelSelect from "../LanguageModelSelect";
 
 const dialogProps: Record<string, unknown>[] = [];
@@ -61,5 +63,35 @@ describe("LanguageModelSelect", () => {
     renderSelect();
 
     expect(dialogProps.at(-1)?.requireToolSupport).toBeUndefined();
+  });
+
+  it("emits the picked model, records it as recent, and closes the menu", async () => {
+    const user = userEvent.setup();
+    const onChange = jest.fn();
+    renderSelect({ onChange });
+
+    await user.click(screen.getByRole("button"));
+    const pick = dialogProps.at(-1)?.onModelChange as (m: LanguageModel) => void;
+    act(() => {
+      pick({
+        type: "language_model",
+        id: "gpt-5.4-mini",
+        name: "GPT-5.4 mini",
+        provider: "openai"
+      });
+    });
+
+    expect(onChange).toHaveBeenCalledWith({
+      type: "language_model",
+      id: "gpt-5.4-mini",
+      provider: "openai",
+      name: "GPT-5.4 mini"
+    });
+    expect(useModelPreferencesStore.getState().getRecent()[0]).toMatchObject({
+      provider: "openai",
+      id: "gpt-5.4-mini",
+      name: "GPT-5.4 mini"
+    });
+    expect(dialogProps.at(-1)).toMatchObject({ open: false });
   });
 });
