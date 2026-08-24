@@ -5,7 +5,11 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { AnthropicProvider } from "../../src/providers/anthropic-provider.js";
-import type { Message, ProviderTool } from "../../src/providers/types.js";
+import type {
+  Message,
+  ProviderCacheControl,
+  ProviderTool
+} from "../../src/providers/types.js";
 
 function makeAsyncIterable(items: unknown[]) {
   return {
@@ -1186,6 +1190,243 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
     expect(toolCall?._anthropicContentBlocks).toHaveLength(3);
     expect(toolCall?._anthropicContentBlocks[2]).toMatchObject({
       type: "web_search_tool_result"
+    });
+  });
+});
+
+/**
+ * The thinking / sampling / max_tokens / tool_choice matrix `buildRequest`
+ * decides, read off the body handed to `messages.create`. Model ids are picked
+ * for the policy `thinkingPolicy()` gives them: "claude-sonnet" → manual,
+ * "claude-opus-4-7" → adaptive_optional, "claude-sonnet-5" → adaptive_default.
+ */
+describe("AnthropicProvider – buildRequest", () => {
+  function providerWithSpy(cacheControl?: ProviderCacheControl) {
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "ok" }]
+    });
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any, cacheControl }
+    );
+    return { provider, create };
+  }
+
+  async function requestFor(
+    args: Record<string, unknown>,
+    cacheControl?: ProviderCacheControl
+  ): Promise<Record<string, any>> {
+    const { provider, create } = providerWithSpy(cacheControl);
+    await provider.generateMessage({
+      messages: [{ role: "user", content: "hi" }],
+      ...args
+    } as any);
+    return create.mock.calls[0][0] as Record<string, any>;
+  }
+
+  describe("sampling", () => {
+    it("passes temperature through on a manual model with thinking off", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        temperature: 0.3
+      });
+      expect(request.temperature).toBe(0.3);
+      expect(request.top_p).toBeUndefined();
+    });
+
+    it("passes top_p through when no temperature was given", async () => {
+      const request = await requestFor({ model: "claude-sonnet", topP: 0.7 });
+      expect(request.temperature).toBeUndefined();
+      expect(request.top_p).toBe(0.7);
+    });
+
+    it("prefers temperature over top_p when both are given", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        temperature: 0.3,
+        topP: 0.7
+      });
+      expect(request.temperature).toBe(0.3);
+      expect(request.top_p).toBeUndefined();
+    });
+
+    it("keeps a top_p of 0.95 or above alongside a manual thinking budget", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        thinking: { type: "manual", budgetTokens: 2048 },
+        topP: 0.96
+      });
+      expect(request.top_p).toBe(0.96);
+      expect(request.temperature).toBeUndefined();
+    });
+
+    it("drops a top_p below 0.95 when thinking is on", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        thinking: { type: "manual", budgetTokens: 2048 },
+        topP: 0.9
+      });
+      expect(request.top_p).toBeUndefined();
+    });
+
+    it("drops temperature when thinking is on", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        thinking: { type: "manual", budgetTokens: 2048 },
+        temperature: 0.3
+      });
+      expect(request.temperature).toBeUndefined();
+      expect(request.top_p).toBeUndefined();
+    });
+
+    it("drops both on a model that takes no custom sampling", async () => {
+      const request = await requestFor({
+        model: "claude-opus-4-7",
+        temperature: 0.3,
+        topP: 0.99
+      });
+      expect(request.temperature).toBeUndefined();
+      expect(request.top_p).toBeUndefined();
+    });
+  });
+
+  describe("max_tokens", () => {
+    it("defaults to 8192", async () => {
+      const request = await requestFor({ model: "claude-sonnet" });
+      expect(request.max_tokens).toBe(8192);
+    });
+
+    it("honours an explicit maxTokens when thinking is off", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        maxTokens: 500
+      });
+      expect(request.max_tokens).toBe(500);
+    });
+
+    it("raises max_tokens above a manual budget that would not fit", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        thinking: { type: "manual", budgetTokens: 10000 },
+        maxTokens: 2000
+      });
+      expect(request.max_tokens).toBe(10001);
+    });
+
+    it("leaves max_tokens alone when the manual budget already fits", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        thinking: { type: "manual", budgetTokens: 5000 },
+        maxTokens: 20000
+      });
+      expect(request.max_tokens).toBe(20000);
+    });
+
+    it("does not raise max_tokens for adaptive thinking", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet-5",
+        thinking: { type: "adaptive" },
+        maxTokens: 1000
+      });
+      expect(request.max_tokens).toBe(1000);
+    });
+  });
+
+  describe("thinking config", () => {
+    it("maps a manual budget to Anthropic's enabled form and carries display", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        thinking: { type: "manual", budgetTokens: 2048, display: "omitted" }
+      });
+      expect(request.thinking).toEqual({
+        type: "enabled",
+        budget_tokens: 2048,
+        display: "omitted"
+      });
+    });
+
+    it("omits display when the caller set none", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet-5",
+        thinking: { type: "adaptive" }
+      });
+      expect(request.thinking).toEqual({ type: "adaptive" });
+      expect("display" in request.thinking).toBe(false);
+    });
+
+    it("sends an explicit disable on a model that allows it", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet-5",
+        thinking: { type: "disabled" }
+      });
+      expect(request.thinking).toEqual({ type: "disabled" });
+    });
+
+    it("sends no thinking at all on a manual model that asked for none", async () => {
+      const request = await requestFor({ model: "claude-sonnet" });
+      expect(request.thinking).toBeUndefined();
+    });
+
+    it("degrades a legacy thinkingBudget to adaptive on an adaptive-only model", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet-5",
+        thinkingBudget: 5000
+      });
+      expect(request.thinking).toEqual({ type: "adaptive" });
+      expect(request.max_tokens).toBe(8192);
+    });
+
+    it("lets an explicit thinking config win over a legacy thinkingBudget", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        thinking: { type: "disabled" },
+        thinkingBudget: 4096
+      });
+      expect(request.thinking).toEqual({ type: "disabled" });
+      expect(request.max_tokens).toBe(8192);
+    });
+
+    it("rejects a manual budget below 1024 tokens", async () => {
+      const { provider } = providerWithSpy();
+      await expect(
+        provider.generateMessage({
+          model: "claude-sonnet",
+          messages: [{ role: "user", content: "hi" }],
+          thinking: { type: "manual", budgetTokens: 512 }
+        })
+      ).rejects.toThrow("at least 1024 tokens");
+    });
+  });
+
+  describe("tool choice and passthrough fields", () => {
+    it("names a specific tool", async () => {
+      const request = await requestFor({
+        model: "claude-sonnet",
+        tools: [{ name: "lookup" }],
+        toolChoice: "lookup"
+      });
+      expect(request.tool_choice).toEqual({ type: "tool", name: "lookup" });
+      expect(request.tools).toHaveLength(1);
+    });
+
+    it("omits tools and tool_choice for an empty tool list", async () => {
+      const request = await requestFor({ model: "claude-sonnet", tools: [] });
+      expect(request.tools).toBeUndefined();
+      expect(request.tool_choice).toBeUndefined();
+    });
+
+    it("carries effort and cache_control when configured", async () => {
+      const request = await requestFor(
+        { model: "claude-sonnet", effort: "high" },
+        { type: "ephemeral", ttl: "1h" }
+      );
+      expect(request.output_config).toEqual({ effort: "high" });
+      expect(request.cache_control).toEqual({ type: "ephemeral", ttl: "1h" });
+    });
+
+    it("omits cache_control when none is configured", async () => {
+      const request = await requestFor({ model: "claude-sonnet" });
+      expect(request.cache_control).toBeUndefined();
     });
   });
 });
