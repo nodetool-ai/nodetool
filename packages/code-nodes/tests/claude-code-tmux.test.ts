@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   ClaudeCodeAgentNode,
   CLAUDE_CODE_NODES,
@@ -59,7 +60,7 @@ describe("combinePrompt (agent chaining)", () => {
 describe("terminalPipeFile", () => {
   it("derives a per-session pipe file in the OS temp dir", () => {
     expect(terminalPipeFile("nt-claude-abc")).toBe(
-      `${tmpdir()}/nodetool-tmux-nt-claude-abc.out`
+      join(tmpdir(), "nodetool-tmux-nt-claude-abc.out")
     );
   });
 });

@@ -78,6 +78,10 @@ npm run test --workspace=packages/kernel
 npm run test:watch --workspace=packages/kernel
 ```
 
+Windows test portability: build expected OS-local filesystem paths with
+`node:path` (`join`/`resolve`). Do not append a hard-coded `/` to `tmpdir()` or
+another native path; Windows returns `\` separators.
+
 The in-browser workflow harness exercises the full backend end-to-end via `packages/websocket/src/e2e-server.ts` (real runner, in-memory DB, scripted-provider fallback). Run it from `web` with `npm run test:e2e-runner`. See **[web/src/e2e_runner/README.md](../web/src/e2e_runner/README.md)**.
 
 ## Package Dependency Order
