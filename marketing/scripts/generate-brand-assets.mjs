@@ -1,6 +1,6 @@
 // Brand and developer assets from the positioning plan's Part 5 checklist:
-// the MCP architecture diagram, the GitHub README banner, and the headless
-// flow SDK code card.
+// the MCP architecture diagram, the GitHub README banner, the headless flow
+// SDK code card, and the five Product Hunt gallery slides.
 //
 // They are authored as SVG here, not drawn in a design tool, for one reason:
 // every claim on them is a fact about this repo (the transport the MCP mount
@@ -24,6 +24,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MARKETING_ROOT = path.resolve(__dirname, "..");
 const PUBLIC_DIR = path.join(MARKETING_ROOT, "public");
 const DIAGRAM_DIR = path.join(PUBLIC_DIR, "diagrams");
+const PH_DIR = path.join(PUBLIC_DIR, "product-hunt");
 
 /** The landing page's palette (src/app/page.tsx) and the promo theme. */
 const BG = "#050810";
@@ -104,7 +105,7 @@ function mcpArchitecture() {
   const H = 900;
   const clients = [
     ["Claude Desktop", "installs nodetool.mcpb"],
-    ["Claude Code · Codex", "nodetool mcp install"],
+    ["Codex · any CLI agent", "nodetool mcp install"],
     ["Cursor · any MCP client", "points at /mcp"],
   ];
   const clientY = [214, 350, 486];
@@ -314,6 +315,107 @@ function flowCodeCard() {
   return { name: "code-card-flow-sdk", width: W, height: H, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${defs}\n  ${body}\n</svg>` };
 }
 
+// ── Product Hunt gallery slides ─────────────────────────────────────────────
+// Five 16:9 slides, one claim each, every claim carrying a real screenshot.
+// Product Hunt renders the gallery small, so the headline is set at 62px and
+// no slide carries more than one supporting line.
+const PH_W = 1270;
+const PH_H = 760;
+
+/** Downscale a `public/` screenshot and inline it, so the SVG stays small. */
+async function shot(file, width) {
+  const buf = await sharp(path.join(PUBLIC_DIR, file))
+    .resize({ width, withoutEnlargement: true })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+  return `data:image/png;base64,${buf.toString("base64")}`;
+}
+
+/** One slide: headline, one support line, a chip row, and a framed shot. */
+function phSlide({ name, title, support, chips, image, fit = "xMidYMin slice" }) {
+  const frameX = 96;
+  const frameY = 300;
+  const frameW = PH_W - frameX * 2;
+  const frameH = PH_H - frameY - 64;
+  const clip = `phclip-${name}`;
+  let chipX = 96;
+  const chipRow = chips.map((label) => {
+    const w = 22 + label.length * 10.2;
+    const part = `${rect(chipX, 214, w, 40, { r: 20, fill: "rgba(148,163,184,0.10)", stroke: BORDER_BRIGHT })}
+  ${text(chipX + w / 2, 240, label, { size: 16, fill: DIM, anchor: "middle" })}`;
+    chipX += w + 12;
+    return part;
+  });
+
+  const body = [
+    `<rect width="${PH_W}" height="${PH_H}" fill="${BG}" />`,
+    `<ellipse cx="${PH_W * 0.18}" cy="0" rx="620" ry="360" fill="url(#glowA)" />`,
+    `<ellipse cx="${PH_W * 0.9}" cy="${PH_H}" rx="560" ry="320" fill="url(#glowB)" />`,
+    `<rect x="96" y="82" width="150" height="6" rx="3" fill="url(#brand)" />`,
+    text(96, 158, title, { size: 62, weight: 600 }),
+    text(96, 196, support, { size: 22, fill: DIM }),
+    ...chipRow,
+    `<clipPath id="${clip}"><rect x="${frameX}" y="${frameY}" width="${frameW}" height="${frameH}" rx="18" /></clipPath>`,
+    `<image href="${image}" x="${frameX}" y="${frameY}" width="${frameW}" height="${frameH}" preserveAspectRatio="${fit}" clip-path="url(#${clip})" />`,
+    `<rect x="${frameX}" y="${frameY}" width="${frameW}" height="${frameH}" rx="18" fill="none" stroke="${BORDER_BRIGHT}" stroke-width="1.5" />`,
+  ].join("\n  ");
+
+  return {
+    name,
+    width: PH_W,
+    height: PH_H,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${PH_W}" height="${PH_H}" viewBox="0 0 ${PH_W} ${PH_H}">${defs}\n  ${body}\n</svg>`,
+  };
+}
+
+async function productHuntSlides() {
+  const frameWidth = PH_W - 192;
+  const specs = [
+    {
+      name: "ph-1-canvas",
+      title: "From prompt to final cut on one canvas",
+      support: "Open source, local-first, and driven by your own API keys.",
+      chips: ["AGPL-3.0", "Local-first", "BYOK", "MCP-ready"],
+      file: "screen_canvas.png",
+    },
+    {
+      name: "ph-2-surfaces",
+      title: "Seven editors, one workspace",
+      support: "Graph · Timeline · Sketch · Storyboard · Script & voice · 3D · Mini apps",
+      chips: ["Multi-track timeline", "Layered sketching", "glTF scenes"],
+      file: "screen_storyboard.png",
+    },
+    {
+      name: "ph-3-agents",
+      title: "Agents drive the real editors",
+      support: "Not a chat box beside the work — the same tools a person clicks.",
+      chips: ["Plans a DAG", "Writes sandboxed JS", "You take the wheel"],
+      file: "screen_chat.png",
+    },
+    {
+      name: "ph-4-mcp",
+      title: "Bring your own agent",
+      support: "Claude Desktop, Codex, Cursor, or any MCP client, over one mount.",
+      chips: ["Streamable HTTP", "One-file .mcpb", "Remote tokens"],
+      file: "diagrams/mcp-architecture.png",
+      // The diagram is a whole picture; cropping it cuts a card in half.
+      fit: "xMidYMid meet",
+    },
+    {
+      name: "ph-5-byok",
+      title: "Your keys, direct pricing",
+      support: "Every provider billed at its own rate. No markup, no seat tax.",
+      chips: ["FAL", "Replicate", "OpenAI", "Anthropic", "Ollama", "MLX"],
+      file: "screen_model_manager.png",
+    },
+  ];
+  return Promise.all(
+    specs.map(async ({ file, ...rest }) =>
+      phSlide({ ...rest, image: await shot(file, frameWidth) })
+    )
+  );
+}
+
 const markDataUri = `data:image/png;base64,${(
   await readFile(path.join(PUBLIC_DIR, "logo.png"))
 ).toString("base64")}`;
@@ -331,8 +433,10 @@ async function main() {
   const only = onlyIndex === -1 ? null : process.argv[onlyIndex + 1];
 
   await mkdir(DIAGRAM_DIR, { recursive: true });
-  for (const asset of ASSETS) {
-    if (only && asset.name !== only) continue;
+  await mkdir(PH_DIR, { recursive: true });
+
+  const write = async (asset) => {
+    if (only && asset.name !== only) return;
     if (asset.svgToDisk !== false) {
       const svgPath = path.join(asset.dir, `${asset.name}.svg`);
       await writeFile(svgPath, `${asset.svg}\n`, "utf8");
@@ -346,6 +450,15 @@ async function main() {
         .toFile(pngPath);
       console.log(`wrote ${path.relative(MARKETING_ROOT, pngPath)}`);
     }
+  };
+
+  for (const asset of ASSETS) await write(asset);
+
+  // After the diagrams, never alongside them: slide 4 inlines the MCP diagram
+  // PNG, so it has to read the copy this run just wrote.
+  // PNG only — a slide's SVG carries a screenshot inline and weighs megabytes.
+  for (const slide of await productHuntSlides()) {
+    await write({ ...slide, dir: PH_DIR, png: true, svgToDisk: false });
   }
 }
 

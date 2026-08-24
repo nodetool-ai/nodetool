@@ -24,7 +24,7 @@
   <text x="90" y="258" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="21" font-weight="600" fill="#f8fafc" text-anchor="start">Claude Desktop</text>
   <text x="90" y="292" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="start">installs nodetool.mcpb</text>
   <rect x="64" y="350" width="340" height="100" rx="14" fill="#0f172a" stroke="#334155" stroke-width="1" />
-  <text x="90" y="394" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="21" font-weight="600" fill="#f8fafc" text-anchor="start">Claude Code · Codex</text>
+  <text x="90" y="394" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="21" font-weight="600" fill="#f8fafc" text-anchor="start">Codex · any CLI agent</text>
   <text x="90" y="428" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="start">nodetool mcp install</text>
   <rect x="64" y="486" width="340" height="100" rx="14" fill="#0f172a" stroke="#334155" stroke-width="1" />
   <text x="90" y="530" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="21" font-weight="600" fill="#f8fafc" text-anchor="start">Cursor · any MCP client</text>
