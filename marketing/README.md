@@ -1,5 +1,16 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+## Strategy docs
+
+Copy and positioning decisions live next to the site code:
+
+- [NARRATIVE.md](NARRATIVE.md) — what the site says, in what order, and why; holds the current hero line
+- [PRODUCT.md](PRODUCT.md) — brand, users, and design principles
+- [POSITIONING_PLAN.md](POSITIONING_PLAN.md) — competitive positioning, landing-page blueprint, asset checklist, and launch plan
+- [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md) — the product video script
+
+When homepage copy and these docs disagree, fix both in the same change.
+
 ## Getting Started
 
 First, run the development server:

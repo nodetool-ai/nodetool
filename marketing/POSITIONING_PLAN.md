@@ -194,7 +194,11 @@ Comparison-page punchlines:
 ### Hero section
 
 - **Badge:** `Open Source (AGPL-3.0) · Local-First · BYOK Direct Pricing`
-- **Headline:** **From Prompt to Final Cut on One Canvas.**
+- **Headline candidate:** **From Prompt to Final Cut on One Canvas.**
+  [NARRATIVE.md](NARRATIVE.md) currently pins the hero line as *"Describe the
+  piece. Keep the workflow."* — the two have not been reconciled. Pick one
+  before build (see Open items); whichever wins, NARRATIVE.md and this plan
+  change in the same PR.
 - **Subhead:** *Stop juggling Midjourney, Runway, ElevenLabs, and Premiere.
   NodeTool combines visual AI models, a multi-track timeline, layered
   sketching, and scripts into one open-source workspace you drive manually or
@@ -204,9 +208,11 @@ Comparison-page punchlines:
   builds storyboard, casts voices, places clips on the timeline → finished
   video playback with captions.
 
-Rationale for the change: the current headline ("The agent-first creative
-workspace") is abstract for first-time visitors; lead with the outcome and
-let "agent-first" be shown, not asserted.
+Rationale for proposing a new headline: "The agent-first creative workspace"
+is abstract for first-time visitors — lead with the outcome and let
+"agent-first" be shown, not asserted. NARRATIVE.md already agrees it is a
+category descriptor, not an H1, and keeps it for `<title>`, meta descriptions,
+and schema; that part stands regardless of which hero line wins.
 
 ### The five surfaces (tab copy, condensed)
 
@@ -371,6 +377,9 @@ bundle, and a tutorial card:
 
 ## Open items
 
+- Decide the hero line: NARRATIVE.md's *"Describe the piece. Keep the
+  workflow."* vs. this plan's *"From Prompt to Final Cut on One Canvas."*
+  Update the losing doc in the same change.
 - Verify every price figure (SaaS plans, wholesale API costs, per-recipe
   estimates) against current list prices; date the sources on the page.
 - Confirm the MCP tool count (the copy says "120+") against the live registry

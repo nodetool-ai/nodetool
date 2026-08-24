@@ -1,8 +1,11 @@
 # Narrative
 
 What the site says, in what order, and why. `PRODUCT.md` covers brand, users, and
-design principles; this file covers the message. When homepage copy and this file
-disagree, one of them is wrong — fix both in the same change.
+design principles; this file covers the message; `POSITIONING_PLAN.md` covers
+the competitive positioning, landing-page blueprint, and launch plan (it
+proposes an alternative hero line — see its Open items; this file holds the
+current one). When homepage copy and this file disagree, one of them is wrong —
+fix both in the same change.
 
 ## Positioning line
 
