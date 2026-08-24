@@ -8,6 +8,20 @@ import type { RecipeEntry } from "./recipes";
 
 export const recipeEntries: RecipeEntry[] = [
   {
+    "sample": {
+      "image": "/recipes/samples/viral-video-ad-engine.jpg",
+      "video": "/recipes/samples/viral-video-ad-engine.mp4",
+      "webm": "/recipes/samples/viral-video-ad-engine.webm",
+      "poster": "/recipes/samples/viral-video-ad-engine-poster.webp",
+      "hasAudio": false,
+      "caption": "One product photo and one line of copy, run through the whole chain: four hook lines with a thumbnail each, then the hero loop cut to 1080x1920. The fourth thumbnail went off-brief and is shown as it came back.",
+      "producedBy": [
+        "openrouter:openai/gpt-5.4-mini",
+        "kie:google/nano-banana",
+        "kie:kling-2.6/image-to-video",
+        "ffmpeg (local)"
+      ]
+    },
     "route": "/recipes/viral-video-ad-engine",
     "title": "Viral Video Ad Engine — NodeTool Recipe",
     "description": "A vertical product ad, plus the hook lines and thumbnails to test it against.",
@@ -107,6 +121,21 @@ export const recipeEntries: RecipeEntry[] = [
     ]
   },
   {
+    "sample": {
+      "image": "/recipes/samples/multilingual-video-dubber.jpg",
+      "video": "/recipes/samples/multilingual-video-dubber.mp4",
+      "webm": "/recipes/samples/multilingual-video-dubber.webm",
+      "poster": "/recipes/samples/multilingual-video-dubber-poster.webp",
+      "hasAudio": true,
+      "caption": "The same take, before and after the lip-sync step, with the Spanish the translator produced. The presenter is generated too — the recipe assumes you bring your own footage, and this render had none to bring.",
+      "producedBy": [
+        "kie:nano-banana-pro",
+        "kie:kling-2.6/image-to-video",
+        "openrouter:openai/gpt-5.4-mini",
+        "replicate:inworld/realtime-tts-1.5-max",
+        "replicate:sync/lipsync-2"
+      ]
+    },
     "route": "/recipes/multilingual-video-dubber",
     "title": "Multilingual Video Dubber — NodeTool Recipe",
     "description": "One presenter clip, spoken in a second language, with a lip-synced cut, subtitles, and a back-translation to check it.",
@@ -235,6 +264,23 @@ export const recipeEntries: RecipeEntry[] = [
     ]
   },
   {
+    "sample": {
+      "image": "/recipes/samples/ecommerce-sku-visual-factory.jpg",
+      "video": "/recipes/samples/ecommerce-sku-visual-factory.mp4",
+      "webm": "/recipes/samples/ecommerce-sku-visual-factory.webm",
+      "poster": "/recipes/samples/ecommerce-sku-visual-factory-poster.webp",
+      "hasAudio": false,
+      "caption": "One generated packshot carried through the whole chain: cutout on a real alpha channel, placed on a concrete plinth, relit for winter sun, spun into a turntable clip, and mastered at 4096px. The product is the same object in all six.",
+      "producedBy": [
+        "kie:nano-banana-pro",
+        "replicate:bria/remove-background",
+        "kie:google/nano-banana-edit",
+        "replicate:qwen-edit-apps/qwen-image-edit-plus-lora-relight",
+        "kie:kling-2.6/image-to-video",
+        "replicate:recraft-ai/recraft-crisp-upscale",
+        "openrouter:openai/gpt-5.4-mini"
+      ]
+    },
     "route": "/recipes/ecommerce-sku-visual-factory",
     "title": "E-commerce SKU Visual Factory — NodeTool Recipe",
     "description": "One packshot per SKU becomes the whole channel set: cutout, studio scene, seasonal relight, turntable clip, print master, and the listing copy.",
@@ -366,6 +412,7 @@ export const recipeEntries: RecipeEntry[] = [
     ]
   },
   {
+    "sample": null,
     "route": "/recipes/storyboard-to-trailer",
     "title": "Storyboard to Trailer — NodeTool Recipe",
     "description": "A logline becomes a beat sheet, a numbered shot list, a cut teaser, and a score under it.",

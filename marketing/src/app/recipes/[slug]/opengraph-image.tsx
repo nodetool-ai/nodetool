@@ -19,10 +19,10 @@ export default async function Image({
   const { slug } = await params;
   const entry = recipeEntries.find((r) => r.slug === slug);
   const name = entry?.name ?? "AI Workflow Recipe";
-  // The hero art lives at public/templates/<step>.jpg; og reads from public/.
-  const image = entry?.heroThumbnail
-    ? entry.heroThumbnail.replace(/^\//, "")
-    : "screen_canvas.png";
+  // Prefer the recipe's own run over the step's template illustration; og
+  // reads from public/, so strip the leading slash.
+  const art = entry?.sample?.image ?? entry?.heroThumbnail;
+  const image = art ? art.replace(/^\//, "") : "screen_canvas.png";
   return ogImage(
     name,
     entry ? `${entry.workflowCount} workflows, in order` : "NodeTool recipe",

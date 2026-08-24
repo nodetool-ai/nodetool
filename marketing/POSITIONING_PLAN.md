@@ -409,13 +409,36 @@ module, a missing bundle, or a bundle whose contents no longer match the recipe
 - [x] Recipe 4: storyboard-to-trailer — Trailer Beats from a Premise → Shot
       List from a Synopsis → Movie Trailer Generator → Score a Silent Clip.
 
-**Not done: a sample output per recipe.** The plan asked for "workflow bundle +
-sample ad + tutorial" and this ships two of the three. Producing a real sample
-means running the chains against paid video models, so the pages use each
-step's shipped card art instead — and that art is illustration, not a render.
-The alt text says so rather than implying otherwise, and the full-bleed hero
-image was dropped for the same reason: at that size it read as a claim about
-output. Rendering four real samples is its own budgeted task.
+**Sample outputs: rendered against live models.** Each recipe carries a `sample`
+block — a contact sheet of the run, a clip where the recipe ends in one, and the
+`provider:model` list that actually produced it. These are real runs of the
+shipped graphs, not mockups, and the generator fails the build when a sample
+names a file that is not on disk (proven by removing one).
+
+Two things about how they were produced are stated on the page rather than
+hidden. First, three provider accounts on the render machine were unusable —
+fal returned 403 on every model, Gemini 429 with credits depleted, Anthropic 401
+— and there was no OpenAI key at all. The chains were therefore run with
+equivalents on the providers that did work: Kie for image and video, Replicate
+for background removal, relight, upscale, TTS and lip-sync, OpenRouter for text.
+Where the substitute is the *same* model on another route (Bria background
+removal, Clarity/Recraft upscale, ElevenLabs voices) the sample is faithful;
+where it is a different model (Kling for LTX or Veo, nano-banana for FLUX) it is
+not, and the `producedBy` list says which ran.
+
+Second, two inputs were generated rather than supplied: the SKU packshot and the
+dubber's presenter clip. Both recipes assume you bring your own, and the dubber
+caption says the presenter is synthetic.
+
+Three substitutions were not clean swaps and are worth knowing:
+
+- Kling rejects an empty prompt where Veo 3.1 accepts one, so the trailer graph
+  needed the shot prompt wired into the animate node as well as the keyframe.
+- `lib.image.color.BrightnessContrast` returns a raw RGBA pixel array, and the
+  CLI's `--json` stringify of three 1024x1024 images overflows a JS string
+  (`RangeError: Invalid string length`). The hook-factory run bypassed that node.
+- `nodetool costs` records LLM calls only, so it reported nothing for a session
+  whose spend was almost entirely image and video generation.
 
 Cross-links: the `/templates` hub carries a recipes band, a template page shows
 which recipes it is a step of and its position in each, `/recipes` is in the

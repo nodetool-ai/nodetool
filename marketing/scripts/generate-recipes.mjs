@@ -39,6 +39,7 @@ const TEMPLATE_ENTRIES = path.join(
   "src/data/templateEntries.generated.ts",
 );
 const BUNDLE_DIR = path.join(MARKETING, "public/recipes");
+const SAMPLE_DIR = path.join(MARKETING, "public/recipes/samples");
 const OUT_FILE = path.join(MARKETING, "src/data/recipeEntries.generated.ts");
 
 const CHECK = process.argv.includes("--check");
@@ -112,6 +113,39 @@ function modelRefs(graph) {
   return [...seen.values()];
 }
 
+/**
+ * Resolve a recipe's sample block, failing when a file it names is absent.
+ *
+ * A sample is the recipe actually run against live models, so the page must
+ * not claim one that is not on disk: an <img> with a dead src still renders a
+ * page, which is exactly the failure this catches at build time.
+ */
+function buildSample(spec) {
+  if (!spec.sample) return null;
+  const files = [spec.sample.image, spec.sample.poster].filter(Boolean);
+  if (spec.sample.video) {
+    files.push(spec.sample.video, spec.sample.video.replace(/\.mp4$/, ".webm"));
+  }
+  for (const file of files) {
+    if (!fs.existsSync(path.join(SAMPLE_DIR, file))) {
+      fail(
+        `recipe "${spec.slug}" names sample file ${file}, which is not in ` +
+          `public/recipes/samples/`,
+      );
+    }
+  }
+  const at = (file) => (file ? `/recipes/samples/${file}` : null);
+  return {
+    image: at(spec.sample.image),
+    video: at(spec.sample.video),
+    webm: spec.sample.video ? at(spec.sample.video.replace(/\.mp4$/, ".webm")) : null,
+    poster: at(spec.sample.poster),
+    hasAudio: spec.sample.hasAudio === true,
+    caption: spec.sample.caption,
+    producedBy: spec.sample.producedBy,
+  };
+}
+
 /** Resolve one recipe spec into the record the page renders. */
 function buildRecipe(spec, byTemplateSlug) {
   const steps = spec.steps.map((step) => {
@@ -164,6 +198,7 @@ function buildRecipe(spec, byTemplateSlug) {
   return {
     files: steps.map((s) => s.file),
     record: {
+      sample: buildSample(spec),
       route: `/recipes/${spec.slug}`,
       title: `${spec.name} — NodeTool Recipe`,
       description: spec.outcome,

@@ -44,7 +44,26 @@ export interface RecipeKey {
   env: string;
 }
 
+/**
+ * A real run of the recipe: the chain executed against live models, with the
+ * models that actually produced it. Null when a recipe has no sample yet.
+ */
+export interface RecipeSample {
+  /** Contact sheet of the run, `/recipes/samples/<slug>.jpg`. */
+  image: string;
+  /** Clip from the run, or null when the sample is stills only. */
+  video: string | null;
+  webm: string | null;
+  poster: string | null;
+  /** The clip carries sound, so it gets controls rather than a muted loop. */
+  hasAudio: boolean;
+  caption: string;
+  /** `provider:model` in the order the chain ran them. */
+  producedBy: string[];
+}
+
 export interface RecipeEntry extends PageEntry {
+  sample: RecipeSample | null;
   slug: string;
   name: string;
   /** One sentence: what you end up holding. */

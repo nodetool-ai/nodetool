@@ -7,6 +7,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import RecipeDownloadButton from "@/components/RecipeDownloadButton";
+import RecipeSampleFigure from "@/components/RecipeSampleFigure";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import { recipeEntries, type RecipeEntry } from "@/data/recipes";
 import { providerDisplay } from "@/data/providerDisplay";
@@ -115,6 +116,24 @@ export default async function RecipePage({
             </div>
           </div>
         </section>
+
+        {/* What it actually produced */}
+        {entry.sample && (
+          <section className="relative py-10">
+            <div className="mx-auto max-w-6xl px-6 lg:px-8">
+              <h2 className="mb-2 text-2xl font-bold tracking-tight md:text-3xl">
+                What it produced
+              </h2>
+              <p className="mb-6 max-w-3xl text-sm leading-relaxed text-slate-500">
+                Not a mockup. The chain below was run end to end and this came
+                back. Where the shipped graph names a model this render had no
+                key for, an equivalent on another provider stood in — the list
+                under the caption is what actually ran.
+              </p>
+              <RecipeSampleFigure sample={entry.sample} name={entry.name} />
+            </div>
+          </section>
+        )}
 
         {/* Why this order */}
         <section className="relative py-12">
@@ -314,13 +333,13 @@ export default async function RecipePage({
                     href={r.route}
                     className="group overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-amber-500/40"
                   >
-                    {r.heroThumbnail && (
+                    {(r.sample?.image ?? r.heroThumbnail) && (
                       <Image
-                        src={r.heroThumbnail}
+                        src={r.sample?.image ?? r.heroThumbnail!}
                         alt=""
                         width={640}
                         height={360}
-                        className="aspect-video w-full object-cover"
+                        className="aspect-video w-full bg-slate-950 object-contain"
                       />
                     )}
                     <div className="p-4">

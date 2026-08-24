@@ -111,6 +111,29 @@ test.describe("marketing smoke", () => {
     ).toHaveAttribute("href", "/node-based-ai");
   });
 
+  // Same reason as the bundle: a missing sample renders as a broken <img>, not
+  // as a failure. Fetch every file the sample names and check it is the media
+  // it claims to be, not an HTML error page served with a 200.
+  for (const recipe of recipeEntries.filter((r) => r.sample)) {
+    test(`${recipe.route} serves its sample media`, async ({ request }) => {
+      const sample = recipe.sample!;
+      const magic: Record<string, string> = {
+        jpg: "\xff\xd8\xff",
+        webp: "RIFF",
+        mp4: "ftyp",
+        webm: "\x1a\x45\xdf\xa3",
+      };
+      const files = [sample.image, sample.video, sample.webm, sample.poster];
+      for (const file of files.filter(Boolean) as string[]) {
+        const res = await request.get(file);
+        expect(res.status(), `${file} status`).toBe(200);
+        const head = (await res.body()).subarray(0, 12).toString("latin1");
+        const ext = file.split(".").pop()!;
+        expect(head, `${file} magic bytes`).toContain(magic[ext]);
+      }
+    });
+  }
+
   // A recipe page renders fine with a dead bundle link, so fetch the file
   // itself: a bundle missing from public/recipes/ is otherwise a silent 404 on
   // the one CTA the page exists for.

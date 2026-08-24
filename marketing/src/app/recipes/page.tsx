@@ -62,13 +62,15 @@ export default function RecipesHub() {
                   href={recipe.route}
                   className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-amber-500/40"
                 >
-                  {recipe.heroThumbnail && (
+                  {(recipe.sample?.image ?? recipe.heroThumbnail) && (
                     <Image
-                      src={recipe.heroThumbnail}
+                      src={recipe.sample?.image ?? recipe.heroThumbnail!}
                       alt=""
                       width={1280}
                       height={720}
-                      className="aspect-video w-full object-cover"
+                      // A sample sheet is not 16:9; contain it rather than
+                      // cropping a row of the run off the card.
+                      className="aspect-video w-full bg-slate-950 object-contain"
                     />
                   )}
                   <div className="flex flex-1 flex-col p-6">

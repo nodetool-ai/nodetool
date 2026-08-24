@@ -18,6 +18,17 @@
  */
 
 /**
+ * @typedef {object} RecipeSample
+ * @property {string} image      Contact sheet in public/recipes/samples/.
+ * @property {string} [video]    Optional clip (mp4 + webm siblings assumed).
+ * @property {string} [poster]   Poster for the clip.
+ * @property {boolean} [hasAudio] The clip carries sound, so it needs controls.
+ * @property {string} caption    What the reader is looking at.
+ * @property {string[]} producedBy  provider:model, in the order the chain ran.
+ * @property {string} [substitutions] Why the run differs from the shipped graph.
+ */
+
+/**
  * @typedef {object} RecipeSpec
  * @property {string} slug
  * @property {string} name
@@ -26,6 +37,7 @@
  * @property {string[]} summary  Intro paragraphs for the page.
  * @property {string} heroStep   Template slug whose card art heads the page.
  * @property {RecipeStepSpec[]} steps
+ * @property {RecipeSample} [sample]  Real output, produced by running the chain.
  * @property {string[]} caveats  What this does not do, stated plainly.
  */
 
@@ -68,6 +80,19 @@ export const recipes = [
           "In: the 16:9 loop. Out: a 1080×1920 file. Runs through ffmpeg on your own machine — no key, no per-run charge.",
       },
     ],
+    sample: {
+      image: "viral-video-ad-engine.jpg",
+      video: "viral-video-ad-engine.mp4",
+      poster: "viral-video-ad-engine-poster.webp",
+      caption:
+        "One product photo and one line of copy, run through the whole chain: four hook lines with a thumbnail each, then the hero loop cut to 1080x1920. The fourth thumbnail went off-brief and is shown as it came back.",
+      producedBy: [
+        "openrouter:openai/gpt-5.4-mini",
+        "kie:google/nano-banana",
+        "kie:kling-2.6/image-to-video",
+        "ffmpeg (local)",
+      ],
+    },
     caveats: [
       "The vertical step rescales rather than crops, so frame the loop with room to lose or add a crop node ahead of it.",
       "Nothing here measures performance. The recipe produces variants to test; the testing happens in your ad platform.",
@@ -116,6 +141,21 @@ export const recipes = [
           "In: the localised audio. Out: transcript broken into subtitle-length lines. The line-length rule is what separates a subtitle file from a wall of text.",
       },
     ],
+    sample: {
+      image: "multilingual-video-dubber.jpg",
+      video: "multilingual-video-dubber.mp4",
+      poster: "multilingual-video-dubber-poster.webp",
+      hasAudio: true,
+      caption:
+        "The same take, before and after the lip-sync step, with the Spanish the translator produced. The presenter is generated too — the recipe assumes you bring your own footage, and this render had none to bring.",
+      producedBy: [
+        "kie:nano-banana-pro",
+        "kie:kling-2.6/image-to-video",
+        "openrouter:openai/gpt-5.4-mini",
+        "replicate:inworld/realtime-tts-1.5-max",
+        "replicate:sync/lipsync-2",
+      ],
+    },
     caveats: [
       "Lip-sync redrives the mouth. It does not change gesture, gaze, or anything a presenter does with their hands, so a take with heavy pointing at on-screen text will still read as dubbed.",
       "Timing is not stretched to match the original. A language that runs longer than the source will run longer in the cut.",
@@ -171,6 +211,22 @@ export const recipes = [
           "In: the image itself, not a description of it. Out: marketplace copy that catches finish, proportion, and what the thing sits next to — details a spec sheet leaves out.",
       },
     ],
+    sample: {
+      image: "ecommerce-sku-visual-factory.jpg",
+      video: "ecommerce-sku-visual-factory.mp4",
+      poster: "ecommerce-sku-visual-factory-poster.webp",
+      caption:
+        "One generated packshot carried through the whole chain: cutout on a real alpha channel, placed on a concrete plinth, relit for winter sun, spun into a turntable clip, and mastered at 4096px. The product is the same object in all six.",
+      producedBy: [
+        "kie:nano-banana-pro",
+        "replicate:bria/remove-background",
+        "kie:google/nano-banana-edit",
+        "replicate:qwen-edit-apps/qwen-image-edit-plus-lora-relight",
+        "kie:kling-2.6/image-to-video",
+        "replicate:recraft-ai/recraft-crisp-upscale",
+        "openrouter:openai/gpt-5.4-mini",
+      ],
+    },
     caveats: [
       "Background removal is a model, not a matte artist. Hair, mesh, glassware, and anything transparent need a look before they go live.",
       "Relighting changes light, not colour management. A brand colour that has to match a printed swatch still needs a proofing step.",
