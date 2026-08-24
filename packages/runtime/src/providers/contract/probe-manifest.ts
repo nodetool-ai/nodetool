@@ -38,9 +38,15 @@ import {
   decodeKieTaskSubmission,
   kieEnvelopeError
 } from "../kie-provider.js";
+import { decodeReplicateOutput } from "../replicate-provider.js";
 
 /** Providers the first manifest covers. */
-export type ProbeProvider = "openai" | "gemini" | "fal_ai" | "kie";
+export type ProbeProvider =
+  | "openai"
+  | "gemini"
+  | "fal_ai"
+  | "kie"
+  | "replicate";
 
 /** The one live HTTP request an entry may make per run. */
 export interface LiveProbeSpec {
@@ -408,6 +414,31 @@ export const PROBE_MANIFEST: ProbeManifestEntry[] = [
     requiredFields: ["data.state", "data.resultJson"],
     live: null,
     liveGap: "A finished record requires a paid job."
+  },
+  {
+    id: "replicate.prediction-output",
+    provider: "replicate",
+    target: "GET https://api.replicate.com/v1/predictions/:id (flux-schnell)",
+    decoder: "decodeReplicateOutput",
+    fixture: "replicate/prediction-flux-schnell.json",
+    check: (raw) => {
+      const prediction = raw as Record<string, unknown>;
+      expect(
+        prediction.status === "succeeded",
+        `prediction fixture has status "${String(prediction.status)}"`
+      );
+      const target = decodeReplicateOutput(prediction.output);
+      expect(target !== null, "prediction output decoded to no file");
+      expect(
+        target?.kind === "url" && target.url.startsWith("https://"),
+        "prediction output did not decode to an https locator"
+      );
+    },
+    requiredFields: ["status", "output", "output.0"],
+    live: null,
+    liveGap:
+      "Replicate has no free endpoint that answers a finished prediction — " +
+      "obtaining one means paying for a generation."
   }
 ];
 

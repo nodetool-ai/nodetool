@@ -3,8 +3,8 @@
 A cassette proves NodeTool still handles a response a provider gave us once. It
 cannot notice that the provider changed the response today — replay never
 reaches the network, so a renamed field or a dropped usage block is invisible
-until a user hits it. The contract probes close that gap for the four providers
-whose wire shapes a run depends on most: OpenAI, Gemini, fal, and KIE.
+until a user hits it. The contract probes close that gap for the providers whose
+wire shapes a run depends on most: OpenAI, Gemini, fal, KIE, and Replicate.
 
 A probe has two halves, and both run the **same production decoder**:
 
@@ -39,6 +39,7 @@ and — where a live call is cheap enough — the single request that fetches it
 | `kie.error-envelope` | `kieEnvelopeError` | 1 request, free |
 | `kie.create-task` | `decodeKieTaskSubmission` | fixture only |
 | `kie.record-info` | `decodeKieRecordInfo` + `decodeKieResultUrls` | fixture only |
+| `replicate.prediction-output` | `decodeReplicateOutput` | fixture only |
 
 The budget is **one request and USD 0.05 per provider per run**, enforced by
 `runProbes` and asserted by the manifest test. A fixture-only entry must say in

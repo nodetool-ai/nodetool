@@ -64,12 +64,13 @@ function withoutPath(value: unknown, path: string): unknown {
 }
 
 describe("provider contract probe manifest", () => {
-  it("covers the four providers the roadmap names", () => {
+  it("covers the providers the roadmap names", () => {
     expect(probeProviders().sort()).toEqual([
       "fal_ai",
       "gemini",
       "kie",
-      "openai"
+      "openai",
+      "replicate"
     ]);
     expect(PROBE_MANIFEST.length).toBeGreaterThanOrEqual(4);
   });

@@ -1,0 +1,35 @@
+{
+  "id": "0000000000000000000000000000",
+  "model": "black-forest-labs/flux-schnell",
+  "version": "c846a69991daf4c0e5d016514849d14ee5b2e6846ce6b9d6f21369e564cfe51e",
+  "input": {
+    "prompt": "a red fox in snow",
+    "go_fast": true,
+    "megapixels": "1",
+    "num_outputs": 1,
+    "aspect_ratio": "1:1",
+    "output_format": "webp",
+    "output_quality": 80,
+    "num_inference_steps": 4
+  },
+  "output": [
+    "https://replicate.delivery/example/out-0.webp"
+  ],
+  "logs": "Using seed: 0\n",
+  "error": null,
+  "status": "succeeded",
+  "data_removed": false,
+  "created_at": "2026-08-24T00:00:00.000Z",
+  "started_at": "2026-08-24T00:00:01.000Z",
+  "completed_at": "2026-08-24T00:00:03.000Z",
+  "urls": {
+    "cancel": "https://api.replicate.com/v1/predictions/0000000000000000000000000000/cancel",
+    "get": "https://api.replicate.com/v1/predictions/0000000000000000000000000000",
+    "stream": "https://stream.replicate.com/v1/files/example"
+  },
+  "metrics": {
+    "image_count": 1,
+    "predict_time": 1.85,
+    "total_time": 3.0
+  }
+}
