@@ -82,16 +82,16 @@ export const DOC_TUTORIALS: DocTutorialEntry[] = [
     castId: "storyboard-assistant",
     title: "Board a shot list",
     subtitle: "Storyboard · direction, then stills",
-    replayWindowMs: 20000,
+    replayWindowMs: 24000,
     steps: [
       { atMs: 500, label: "Ask for a teaser" },
       { atMs: 4600, label: "The shot list" },
-      { atMs: 9000, label: "Stills, shot by shot" },
+      { atMs: 8600, label: "Stills, shot by shot" },
     ],
     captions: [
       { fromMs: 600, toMs: 4400, text: "Describe the piece — the assistant writes the shots, camera and all." },
-      { fromMs: 4800, toMs: 8800, text: "The board fills with planned shots before a single frame is spent." },
-      { fromMs: 9200, toMs: 19600, text: "Then each still renders in turn, and the cards flip to ready." },
+      { fromMs: 4800, toMs: 8400, text: "The board fills with planned shots before a single frame is spent." },
+      { fromMs: 8800, toMs: 23600, text: "Then each still renders in turn, and the cards flip to ready." },
     ],
     outroTitle: "Direct, then render",
     outroPoints: [

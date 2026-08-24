@@ -161,15 +161,15 @@ describe("document casts — the surfaces get their data", () => {
 
     seeded(storyboardAssistantCast, 5000);
     const planned = useStoryboardStore.getState().boards[id];
-    expect(planned.shots).toHaveLength(3);
+    expect(planned.shots).toHaveLength(6);
     expect(planned.shots.every((s) => s.status === "planned")).toBe(true);
-    expect(planned.screenplay?.title).toBe("The Keeper");
+    expect(planned.screenplay?.title).toBe("SCRAPHEART");
 
-    seeded(storyboardAssistantCast, 12500);
+    seeded(storyboardAssistantCast, 13500);
     const half = useStoryboardStore.getState().boards[id];
-    expect(half.shots.filter((s) => s.keyframe).length).toBe(2);
+    expect(half.shots.filter((s) => s.keyframe).length).toBe(3);
 
-    seeded(storyboardAssistantCast, 16000);
+    seeded(storyboardAssistantCast, 20000);
     const done = useStoryboardStore.getState().boards[id];
     expect(done.shots.every((s) => s.status === "keyframe_ready")).toBe(true);
     expect(done.shots.every((s) => s.keyframe?.uri)).toBe(true);
@@ -221,7 +221,7 @@ describe("document casts — the surfaces get their data", () => {
 
   it("disposeDocState drops the rows the replay wrote", () => {
     seeded(scriptAssistantCast, 15000);
-    seeded(storyboardAssistantCast, 16000);
+    seeded(storyboardAssistantCast, 20000);
     seeded(jsScriptAssistantCast, 15000);
 
     for (const cast of docCasts) disposeDocState(cast);

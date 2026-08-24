@@ -103,6 +103,8 @@
     "typecheck:smoke": "tsc --noEmit -p tsconfig.smoke.json",
     "typecheck": "tsc --noEmit",
     "upload-stock-images": "node scripts/upload-stock-images.js",
+    "chat-shots": "node scripts/build-chat-cast-assets.mjs && node scripts/screenshot-chat-casts.mjs",
+    "storyboard-stills": "node scripts/build-storyboard-cast-stills.mjs",
     "screenshots": "playwright test tests/benchmarks/screenshots.spec.ts --project=chromium",
     "screenshots:force": "FORCE_SCREENSHOTS=true playwright test tests/benchmarks/screenshots.spec.ts --project=chromium",
     "lint:spacing-css": "node scripts/lint-spacing-css.mjs",

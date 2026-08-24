@@ -53,6 +53,14 @@ export type SurfaceLoopEntry = {
   /** Slice of the cast to cover, in cast milliseconds. */
   fromMs: number;
   toMs: number;
+  /**
+   * Pixels of surface below the frame, panned into view over the loop (`doc`
+   * only). The storyboard board is a list: six cards are taller than 1080, and
+   * the last still to render is the last card. Rather than hide it, the loop
+   * renders a taller surface and scrolls it, which is what a person watching
+   * the board fill does anyway.
+   */
+  panPx?: number;
 };
 
 export const SURFACE_LOOPS: SurfaceLoopEntry[] = [
@@ -63,7 +71,8 @@ export const SURFACE_LOOPS: SurfaceLoopEntry[] = [
     kind: "doc",
     castId: "storyboard-assistant",
     fromMs: 700,
-    toMs: 19500,
+    toMs: 23000,
+    panPx: 250,
   },
   {
     slug: "script",
@@ -177,6 +186,7 @@ export const SurfaceLoop: React.FC<SurfaceLoopEntry> = ({
   castId,
   fromMs,
   toMs,
+  panPx = 0,
 }) => {
   useInterFont();
   const frame = useCurrentFrame();
@@ -186,6 +196,14 @@ export const SurfaceLoop: React.FC<SurfaceLoopEntry> = ({
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+  // The pan trails the fill: it starts once the first stills have landed and
+  // arrives as the last one does, leaving the last second on a full board.
+  const panY = interpolate(
+    frame,
+    [SURFACE_LOOP_FRAMES * 0.45, SURFACE_LOOP_FRAMES * 0.85],
+    [0, -panPx],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
   return (
     <AbsoluteFill style={{ background: PROMO_BG }}>
       {kind === "timeline" ? (
@@ -197,7 +215,16 @@ export const SurfaceLoop: React.FC<SurfaceLoopEntry> = ({
           chrome={false}
         />
       ) : (
-        <DocDemoPlayer cast={getDocCast(castId as string)} timeMs={castMs} />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            height: height + panPx,
+            transform: `translateY(${panY}px)`,
+          }}
+        >
+          <DocDemoPlayer cast={getDocCast(castId as string)} timeMs={castMs} />
+        </div>
       )}
       <SurfaceLabel label={label} claim={claim} />
       <LoopFade />
