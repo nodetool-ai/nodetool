@@ -4,7 +4,7 @@
  */
 
 import Replicate from "replicate";
-import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import { fetchExternalMedia, withReplicateRetry } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
 // Client cache — one Replicate client instance per API key
@@ -216,7 +216,9 @@ export interface ReplicateResult {
  * Run a Replicate model and return the output.
  *
  * Uses `replicate.run()` which handles prediction creation, polling,
- * and waiting for completion internally.
+ * and waiting for completion internally. The low-credit throttle (429) is
+ * waited out instead of thrown — failing the node discards every generation
+ * upstream in the run, which was already paid for.
  */
 export async function replicateSubmit(
   apiKey: string,
@@ -224,7 +226,9 @@ export async function replicateSubmit(
   input: Record<string, unknown>
 ): Promise<ReplicateResult> {
   const client = getClient(apiKey);
-  const output = await client.run(modelId as `${string}/${string}`, { input });
+  const output = await withReplicateRetry(modelId, () =>
+    client.run(modelId as `${string}/${string}`, { input })
+  );
   return { output };
 }
 
