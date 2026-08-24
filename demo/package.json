@@ -46,6 +46,10 @@
     "still:tutorial:app": "remotion still src/index.ts DocTutorial-app-assistant ../web/public/tutorials/app-assistant.jpg --frame=420",
     "render:promo": "remotion render src/index.ts Promo-Master out/promo-master.mp4",
     "render:promo:landing": "remotion render src/index.ts Promo-Landing out/promo-landing.mp4",
+    "render:hero": "remotion render src/index.ts Hero-Pipeline out/hero-pipeline.mp4",
+    "render:hero:vertical": "remotion render src/index.ts Hero-Pipeline-Vertical out/hero-pipeline-vertical.mp4",
+    "render:surfaces": "remotion render src/index.ts Surface-storyboard out/surface-storyboard.mp4 && remotion render src/index.ts Surface-script out/surface-script.mp4 && remotion render src/index.ts Surface-timeline out/surface-timeline.mp4",
+    "render:tab-chaos": "remotion render src/index.ts Tab-Chaos out/tab-chaos.mp4",
     "still:promo": "remotion still src/index.ts Promo-Master out/promo-frame.jpg --frame=300",
     "pin-assets": "tsx scripts/pin-cast-assets.ts",
     "typecheck": "tsc --noEmit"
