@@ -2,9 +2,10 @@
  * useAssembleTimeline
  *
  * The storyboard → timeline handoff: creates a persisted timeline sequence,
- * writes rendered shots as asset-backed clips (plus draft narration/music
- * clips), links the board to the sequence, and opens the timeline tab. When the
- * board links a script, the script's takes are cut in with the shots — shot
+ * writes rendered shots as asset-backed clips — each with the audio twin that
+ * carries the shot's own sound — plus draft narration/music clips, links the
+ * board to the sequence, and opens the timeline tab. When the board links a
+ * script, the script's takes are cut in with the shots — shot
  * lengths follow the words and every voiced line gets its own voiceover clip.
  * When the board is already linked to a sequence (re-assemble after a re-render
  * or a re-voice), that sequence is rewritten in place instead of a second one
@@ -57,8 +58,10 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
       // way an unlinked one does — a deleted script must not break assemble.
       const script = scriptId ? await loadLinkedScript(scriptId) : null;
       const doc = buildTimelineDocument(board, script);
+      // The video clips only: a shot also contributes its audio twin, and a
+      // jointly assembled cut stamps the shot keys onto voiceover clips too.
       const shotClips = doc.clips.filter(
-        (clip) => clip.storyboardShotId && !clip.scriptLineId
+        (clip) => clip.storyboardShotId && clip.mediaType === "video"
       );
       if (shotClips.length === 0) {
         const message =

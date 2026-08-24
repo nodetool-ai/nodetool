@@ -241,8 +241,9 @@ describe("createCreativePipelineBridge", () => {
 
     const state = bridge.finalState();
     expect(state.assembledLinked).toBe(true);
-    // Two shot clips plus one voiceover clip per voiced line.
-    expect(state.timeline.clips).toHaveLength(4);
+    // Two shot clips, their audio twins, and one voiceover clip per voiced
+    // line.
+    expect(state.timeline.clips).toHaveLength(6);
     const voice = state.timeline.documentClips.filter((c) => c.scriptLineId);
     expect(voice).toHaveLength(2);
     for (const clip of voice) {

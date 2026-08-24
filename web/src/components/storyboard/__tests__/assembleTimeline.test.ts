@@ -67,11 +67,12 @@ describe("buildTimelineDocument", () => {
       })
     );
 
-    expect(doc.tracks).toHaveLength(1);
+    expect(doc.tracks.map((t) => t.name)).toEqual(["Shots", "Shot Audio"]);
     expect(doc.tracks[0].type).toBe("video");
-    expect(doc.clips).toHaveLength(2);
+    const picture = doc.clips.filter((c) => c.mediaType === "video");
+    expect(picture).toHaveLength(2);
 
-    const [first, second] = doc.clips;
+    const [first, second] = picture;
     expect(first.name).toBe("Opening");
     expect(first.startMs).toBe(0);
     expect(first.durationMs).toBe(5000);
@@ -95,7 +96,7 @@ describe("buildTimelineDocument", () => {
         ]
       })
     );
-    expect(doc.clips.filter((c) => c.storyboardShotId)).toHaveLength(1);
+    expect(doc.clips.filter((c) => c.mediaType === "video")).toHaveLength(1);
     expect(doc.skippedShotIds).toEqual(["pending"]);
   });
 
@@ -115,9 +116,13 @@ describe("buildTimelineDocument", () => {
     );
 
     const audioTracks = doc.tracks.filter((t) => t.type === "audio");
-    expect(audioTracks.map((t) => t.name)).toEqual(["Narration", "Music"]);
+    expect(audioTracks.map((t) => t.name)).toEqual([
+      "Shot Audio",
+      "Narration",
+      "Music"
+    ]);
 
-    const audioClips = doc.clips.filter((c) => c.mediaType === "audio");
+    const audioClips = doc.clips.filter((c) => c.bindingKind === "text-to-audio");
     expect(audioClips).toHaveLength(2);
     for (const clip of audioClips) {
       expect(clip.bindingKind).toBe("text-to-audio");
@@ -212,6 +217,7 @@ describe("buildTimelineDocument, linked to a script", () => {
     // The script says the words now — no whole-cut narration draft clip.
     expect(doc.tracks.map((t) => t.name)).toEqual([
       "Shots",
+      "Shot Audio",
       "Voiceover",
       "Music"
     ]);
@@ -225,6 +231,7 @@ describe("buildTimelineDocument, linked to a script", () => {
     expect(doc.skippedLineIds).toEqual([]);
     expect(doc.tracks.map((t) => t.name)).toEqual([
       "Shots",
+      "Shot Audio",
       "Narration",
       "Music"
     ]);

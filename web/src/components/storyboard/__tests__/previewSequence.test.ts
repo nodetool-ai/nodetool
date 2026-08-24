@@ -92,8 +92,9 @@ describe("buildPreviewSequence", () => {
     expect(preview).not.toBeNull();
     const { sequence, stillShotIds, skippedShotIds } = preview!;
 
-    expect(sequence.clips).toHaveLength(2);
-    const [first, second] = sequence.clips;
+    // The played clip, its audio twin, and the held still.
+    expect(sequence.clips).toHaveLength(3);
+    const [first, , second] = sequence.clips;
     expect(first.name).toBe("Opening");
     expect(first.mediaType).toBe("video");
     expect(first.currentAssetId).toBe("clip-a");
@@ -106,7 +107,7 @@ describe("buildPreviewSequence", () => {
     expect(second.durationMs).toBe(3000);
 
     expect(sequence.durationMs).toBe(8000);
-    expect(sequence.tracks).toHaveLength(1);
+    expect(sequence.tracks.map((t) => t.name)).toEqual(["Shots", "Shot Audio"]);
     expect(stillShotIds).toEqual(["b"]);
     expect(skippedShotIds).toEqual(["empty"]);
   });

@@ -84,9 +84,13 @@ Agents drive the same surface through thirteen `ui_storyboard_*` tools:
 
 **Assemble timeline** turns the rendered shots into a persisted timeline
 sequence and opens the editor: shot clips laid end to end on a video track,
-the screenplay's narration and music as draft text-to-audio clips on their
-own tracks, the script panel carrying the screenplay text. From here it's a
-normal edit — trim, transitions, audio mix, captions — and export.
+each clip's own sound on a linked **Shot Audio** track next to it, the
+screenplay's narration and music as draft text-to-audio clips on their own
+tracks, the script panel carrying the screenplay text. Timeline playback and
+export mix audio clips, never a video element's track, so the shot-audio
+clips are how a video model's dialogue and room tone reach the cut — mute one
+when a shot should play silent under narration. From here it's a normal edit
+— trim, transitions, audio mix, captions — and export.
 
 Every assembled clip stays linked to its shot. Revise a shot on the
 storyboard afterward and the new render replaces the clip in the persisted

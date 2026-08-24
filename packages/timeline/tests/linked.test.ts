@@ -78,9 +78,11 @@ function renderedShot(
   };
 }
 
-/** Clip ids and track ids are minted per call; compare everything else. */
+/** Clip, track and link ids are minted per call; compare everything else. */
 const withoutIds = (clips: TimelineClip[]) =>
-  clips.map(({ id: _id, trackId: _trackId, ...rest }) => rest);
+  clips.map(
+    ({ id: _id, trackId: _trackId, linkId: _linkId, ...rest }) => rest
+  );
 const trackShape = (tracks: TimelineTrack[]) =>
   tracks.map(({ id: _id, ...rest }) => rest);
 
@@ -147,12 +149,38 @@ describe("buildLinkedTimeline", () => {
       }
     });
 
-    const audio = result.clips.find((c) => c.mediaType === "audio");
+    const audio = result.clips.find((c) => c.scriptLineId);
     expect(audio).toBeDefined();
     expect(audio?.scriptId).toBe("script-9");
     expect(audio?.scriptLineId).toBe("a");
     expect(audio?.storyboardBoardId).toBe("board-9");
     expect(audio?.storyboardShotId).toBe("s1");
+  });
+
+  it("keeps each shot's own sound next to the voiceover", () => {
+    const result = buildLinkedTimeline({
+      boardId: "board-1",
+      shots: [renderedShot("s1", 0, { script_line_ids: ["a"] })],
+      script: {
+        scriptId: "script-1",
+        cast,
+        sections: [section([voicedLine("a", 1000)])]
+      }
+    });
+
+    const video = result.clips.find((c) => c.mediaType === "video");
+    const shotAudioTrack = result.tracks.find((t) => t.name === "Shot Audio");
+    const shotAudio = result.clips.find(
+      (c) => c.trackId === shotAudioTrack?.id
+    );
+    expect(shotAudio?.currentAssetId).toBe("clip-s1");
+    expect(shotAudio?.startMs).toBe(0);
+    expect(shotAudio?.durationMs).toBe(1000);
+    expect(shotAudio?.linkId).toBe(video?.linkId);
+    expect(shotAudio?.scriptLineId).toBeUndefined();
+    // The words still come from the script's take, on their own track.
+    const voiceover = result.clips.find((c) => c.scriptLineId === "a");
+    expect(voiceover?.currentAssetId).toBe("asset-a");
   });
 
   it("carries the same clip payload buildScriptTimeline writes", () => {
@@ -200,6 +228,7 @@ describe("buildLinkedTimeline", () => {
 
     expect(result.tracks.map((t) => t.name)).toEqual([
       "Shots",
+      "Shot Audio",
       "Voiceover",
       "Music"
     ]);
@@ -359,13 +388,20 @@ describe("unlinked assembly is unchanged", () => {
     expect(trackShape(result.tracks)).toEqual([
       { name: "Shots", type: "video", index: 0, visible: true, locked: false },
       {
-        name: "Narration",
+        name: "Shot Audio",
         type: "audio",
         index: 1,
         visible: true,
         locked: false
       },
-      { name: "Music", type: "audio", index: 2, visible: true, locked: false }
+      {
+        name: "Narration",
+        type: "audio",
+        index: 2,
+        visible: true,
+        locked: false
+      },
+      { name: "Music", type: "audio", index: 3, visible: true, locked: false }
     ]);
     expect(withoutIds(result.clips)).toEqual([
       {
@@ -382,10 +418,36 @@ describe("unlinked assembly is unchanged", () => {
         versions: []
       },
       {
+        name: "Lighthouse (audio)",
+        startMs: 0,
+        durationMs: 2000,
+        mediaType: "audio",
+        sourceType: "imported",
+        status: "generated",
+        currentAssetId: "clip-s1",
+        storyboardBoardId: "board-1",
+        storyboardShotId: "s1",
+        locked: false,
+        versions: []
+      },
+      {
         name: "Shot 2",
         startMs: 2000,
         durationMs: DEFAULT_SHOT_MS,
         mediaType: "video",
+        sourceType: "imported",
+        status: "generated",
+        currentAssetId: "clip-s2",
+        storyboardBoardId: "board-1",
+        storyboardShotId: "s2",
+        locked: false,
+        versions: []
+      },
+      {
+        name: "Shot 2 (audio)",
+        startMs: 2000,
+        durationMs: DEFAULT_SHOT_MS,
+        mediaType: "audio",
         sourceType: "imported",
         status: "generated",
         currentAssetId: "clip-s2",

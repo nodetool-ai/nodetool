@@ -177,6 +177,7 @@ describe("useAssembleTimeline", () => {
     const doc = updateMutate.mock.calls[0][0].document;
     expect(doc.tracks.map((t: { name: string }) => t.name)).toEqual([
       "Shots",
+      "Shot Audio",
       "Voiceover"
     ]);
     const voice = doc.clips.filter((c: TimelineClip) => c.scriptLineId);
@@ -208,6 +209,7 @@ describe("useAssembleTimeline", () => {
     const doc = updateMutate.mock.calls[0][0].document;
     expect(doc.tracks.map((t: { name: string }) => t.name)).toEqual([
       "Shots",
+      "Shot Audio",
       "Narration"
     ]);
     expect(doc.clips.some((c: TimelineClip) => c.scriptLineId)).toBe(false);
@@ -249,6 +251,7 @@ describe("useAssembleTimeline", () => {
     const doc = updateMutate.mock.calls[0][0].document;
     expect(doc.tracks.map((t: { name: string }) => t.name)).toEqual([
       "Shots",
+      "Shot Audio",
       "Score"
     ]);
     expect(

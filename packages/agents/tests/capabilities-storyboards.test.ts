@@ -586,7 +586,8 @@ describe("storyboards capability behaviour", () => {
     )) as { ok: boolean; clip_count: number; width: number; height: number };
     expect(assembled).toMatchObject({
       ok: true,
-      clip_count: 1,
+      // The shot's clip and the audio twin that carries its sound.
+      clip_count: 2,
       width: 1920,
       height: 1080
     });
@@ -619,8 +620,12 @@ describe("storyboards capability behaviour", () => {
     expect(assembled.duration_ms).toBe(2000);
 
     const document = (await sequenceOf(assembled.timeline_id)).toDocument();
-    expect(document.tracks.map((t) => t.name)).toEqual(["Shots", "Voiceover"]);
-    const voiceover = document.clips.filter((c) => c.mediaType === "audio");
+    expect(document.tracks.map((t) => t.name)).toEqual([
+      "Shots",
+      "Shot Audio",
+      "Voiceover"
+    ]);
+    const voiceover = document.clips.filter((c) => c.scriptLineId);
     expect(voiceover.map((c) => [c.scriptLineId, c.storyboardShotId])).toEqual([
       ["l1", "s1"],
       ["l2", "s2"]
@@ -641,7 +646,11 @@ describe("storyboards capability behaviour", () => {
     expect(assembled.script_id).toBeNull();
 
     const document = (await sequenceOf(assembled.timeline_id)).toDocument();
-    expect(document.tracks.map((t) => t.name)).toEqual(["Shots", "Narration"]);
+    expect(document.tracks.map((t) => t.name)).toEqual([
+      "Shots",
+      "Shot Audio",
+      "Narration"
+    ]);
     expect(
       document.clips.some((c) => c.prompt === "A quiet town at dusk.")
     ).toBe(true);
@@ -665,7 +674,7 @@ describe("storyboards capability behaviour", () => {
     expect(assembled.warnings?.[0]).toContain("sc-deleted");
 
     const document = (await sequenceOf(assembled.timeline_id)).toDocument();
-    expect(document.tracks.map((t) => t.name)).toEqual(["Shots"]);
+    expect(document.tracks.map((t) => t.name)).toEqual(["Shots", "Shot Audio"]);
   });
 
   it("keeps tracks the board does not own when re-assembling", async () => {
@@ -716,13 +725,14 @@ describe("storyboards capability behaviour", () => {
     const document = (await sequenceOf(first.timeline_id)).toDocument();
     expect(document.tracks.map((t) => t.name)).toContain("Sound design");
     expect(document.clips.filter((c) => c.name === "Wind")).toHaveLength(1);
-    // The board's own clips were rewritten, not doubled: one shot clip and
-    // one voiceover clip for the single linked line.
+    // The board's own clips were rewritten, not doubled: one shot clip, its
+    // audio twin, and one voiceover clip for the single linked line.
     expect(
       document.clips.filter((c) => c.storyboardShotId === "s1").length
-    ).toBe(2);
+    ).toBe(3);
     expect(document.tracks.map((t) => t.name)).toEqual([
       "Shots",
+      "Shot Audio",
       "Voiceover",
       "Sound design"
     ]);

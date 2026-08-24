@@ -322,8 +322,8 @@ describe("storyboard render tools", () => {
     };
 
     expect(result.duration_ms).toBe(5000);
-    // Two shot clips plus the narration clip.
-    expect(result.clip_count).toBe(3);
+    // Two shot clips, their audio twins, plus the narration clip.
+    expect(result.clip_count).toBe(5);
     expect(result.skipped_shot_ids).toEqual(["s2"]);
     expect(result).toMatchObject({ width: 1080, height: 1920 });
 

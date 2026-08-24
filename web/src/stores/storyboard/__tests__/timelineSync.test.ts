@@ -243,7 +243,7 @@ const newTake: ScriptTake = {
 describe("back-sync into a jointly assembled sequence", () => {
   it("stamps both linkage families onto every voiceover clip", () => {
     const sequence = jointSequence();
-    const voice = sequence.clips.filter((c) => c.mediaType === "audio");
+    const voice = sequence.clips.filter((c) => c.scriptLineId);
     expect(voice).toHaveLength(2);
     for (const clip of voice) {
       expect(clip.scriptId).toBe("script-1");
@@ -316,10 +316,28 @@ describe("back-sync into a jointly assembled sequence", () => {
 
     await syncShotClipToTimeline("board-1", "shot-1", "clip-1-b");
 
-    const before = sequence.clips.filter((c) => c.mediaType === "audio");
+    const before = sequence.clips.filter((c) => c.scriptLineId);
     const after = (
       updateMutate.mock.calls[0][0].document.clips as TimelineClip[]
-    ).filter((c) => c.mediaType === "audio");
+    ).filter((c) => c.scriptLineId);
     expect(after).toEqual(before);
+  });
+
+  it("revising a shot hands the new take to its audio twin too", async () => {
+    seedJoint();
+    getQuery.mockResolvedValue(jointSequence());
+    updateMutate.mockResolvedValue({});
+
+    await syncShotClipToTimeline("board-1", "shot-1", "clip-1-b");
+
+    const clips = updateMutate.mock.calls[0][0].document.clips as TimelineClip[];
+    const twin = clips.find(
+      (c) =>
+        c.mediaType === "audio" &&
+        c.storyboardShotId === "shot-1" &&
+        !c.scriptLineId
+    );
+    expect(twin?.currentAssetId).toBe("clip-1-b");
+    expect(twin?.status).toBe("generated");
   });
 });
