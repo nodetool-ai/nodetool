@@ -41,7 +41,7 @@ export default function NodeToolHero() {
             >
               visual pipeline
             </a>{" "}
-            that stays yours to edit.
+            that stays yours.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
