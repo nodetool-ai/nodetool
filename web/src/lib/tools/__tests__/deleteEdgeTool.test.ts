@@ -54,8 +54,8 @@ describe("ui_delete_edge tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
-    expect((result as { edge_id: string }).edge_id).toBe("edge-1");
+    expect(result.ok).toBe(true);
+    expect(result.edge_id).toBe("edge-1");
     expect(store.deletedIds).toContain("edge-1");
   });
 

@@ -92,10 +92,14 @@ const screenplayParam = z
  * Flush the board's pending save and report what persisted. A write that cannot
  * reach the server is a failed tool call, not a success with a warning.
  */
+export type StoryboardPersistence =
+  | { saved: true; updatedAt: string }
+  | { saved: null };
+
 async function persistBoard(
   storyboardId: string,
   what: string
-): Promise<{ saved: true; updatedAt: string } | { saved: null }> {
+): Promise<StoryboardPersistence> {
   const result = await flushStoryboardSave(storyboardId);
   if (!result.ok) {
     throw new Error(

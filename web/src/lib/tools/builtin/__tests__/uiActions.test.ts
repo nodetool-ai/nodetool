@@ -1,6 +1,6 @@
 import { FrontendToolRegistry } from "../../frontendTools";
 import type { FrontendToolState } from "../../frontendTools";
-import type { Workflow, WorkflowList } from "../../../../stores/ApiTypes";
+import type { Workflow } from "../../../../stores/ApiTypes";
 
 // Mock protocol param exports — they are plain z.object shape records;
 // the real ones are resolved via moduleNameMapper but we still need
@@ -38,42 +38,18 @@ jest.mock("../../../../stores/WorkflowRunner", () => ({
 
 // Side-effect import: registers the 5 tools with FrontendToolRegistry
 import "../uiActions";
-
-function makeMockState(
-  overrides?: Partial<FrontendToolState>
-): FrontendToolState {
-  return {
-    nodeMetadata: {},
-    currentWorkflowId: null,
-    getWorkflow: jest.fn(() => undefined),
-    addWorkflow: jest.fn(),
-    removeWorkflow: jest.fn(),
-    getNodeStore: jest.fn(() => undefined),
-    updateWorkflow: jest.fn(),
-    saveWorkflow: jest.fn(async () => {}),
-    getCurrentWorkflow: jest.fn(() => undefined),
-    setCurrentWorkflowId: jest.fn(),
-    fetchWorkflow: jest.fn(async () => {}),
-    newWorkflow: jest.fn(() => ({}) as Workflow),
-    createNew: jest.fn(async () => ({}) as Workflow),
-    searchTemplates: jest.fn(
-      async () => ({ workflows: [], next: null }) as WorkflowList
-    ),
-    copy: jest.fn(async () => ({}) as Workflow),
-    ...overrides
-  };
-}
-
-function makeCtx(state: FrontendToolState) {
-  return { getState: () => state };
-}
+import {
+  frontendToolContext,
+  frontendToolState
+} from "../../../../test-utils/frontendToolDoubles";
+import { stub } from "../../../../test-utils/doubles";
 
 describe("uiActions", () => {
   describe("ui_open_workflow", () => {
     it("calls openWorkflow when available", async () => {
       const openWorkflow = jest.fn(async () => {});
-      const state = makeMockState({ openWorkflow });
-      const ctx = makeCtx(state);
+      const state = frontendToolState({ openWorkflow });
+      const ctx = frontendToolContext(state);
 
       const result = await FrontendToolRegistry.call(
         "ui_open_workflow",
@@ -88,14 +64,14 @@ describe("uiActions", () => {
 
     it("falls back to fetchWorkflow + setCurrentWorkflowId", async () => {
       const fetchWorkflow = jest.fn(async () => {});
-      const getWorkflow = jest.fn(() => ({ id: "wf-2" }) as Workflow);
+      const getWorkflow = jest.fn(() => stub<Workflow>({ id: "wf-2" }));
       const setCurrentWorkflowId = jest.fn();
-      const state = makeMockState({
+      const state = frontendToolState({
         fetchWorkflow,
         getWorkflow,
         setCurrentWorkflowId
       });
-      const ctx = makeCtx(state);
+      const ctx = frontendToolContext(state);
 
       const result = await FrontendToolRegistry.call(
         "ui_open_workflow",
@@ -111,11 +87,11 @@ describe("uiActions", () => {
     });
 
     it("throws when workflow not found on fallback path", async () => {
-      const state = makeMockState({
+      const state = frontendToolState({
         fetchWorkflow: jest.fn(async () => {}),
         getWorkflow: jest.fn(() => undefined)
       });
-      const ctx = makeCtx(state);
+      const ctx = frontendToolContext(state);
 
       await expect(
         FrontendToolRegistry.call(
@@ -131,8 +107,8 @@ describe("uiActions", () => {
   describe("ui_switch_tab", () => {
     it("calls switchTab when available", async () => {
       const switchTab = jest.fn(async () => "wf-tab-1");
-      const state = makeMockState({ switchTab });
-      const ctx = makeCtx(state);
+      const state = frontendToolState({ switchTab });
+      const ctx = frontendToolContext(state);
 
       const result = await FrontendToolRegistry.call(
         "ui_switch_tab",
@@ -151,11 +127,11 @@ describe("uiActions", () => {
 
     it("falls back to getOpenWorkflowIds + setCurrentWorkflowId", async () => {
       const setCurrentWorkflowId = jest.fn();
-      const state = makeMockState({
+      const state = frontendToolState({
         getOpenWorkflowIds: () => ["wf-a", "wf-b", "wf-c"],
         setCurrentWorkflowId
       });
-      const ctx = makeCtx(state);
+      const ctx = frontendToolContext(state);
 
       const result = await FrontendToolRegistry.call(
         "ui_switch_tab",
@@ -173,10 +149,10 @@ describe("uiActions", () => {
     });
 
     it("throws on out-of-range tab index", async () => {
-      const state = makeMockState({
+      const state = frontendToolState({
         getOpenWorkflowIds: () => ["wf-only"]
       });
-      const ctx = makeCtx(state);
+      const ctx = frontendToolContext(state);
 
       await expect(
         FrontendToolRegistry.call(
@@ -192,8 +168,8 @@ describe("uiActions", () => {
   describe("ui_copy", () => {
     it("copies text using copyToClipboard callback", async () => {
       const copyToClipboard = jest.fn(async () => {});
-      const state = makeMockState({ copyToClipboard });
-      const ctx = makeCtx(state);
+      const state = frontendToolState({ copyToClipboard });
+      const ctx = frontendToolContext(state);
 
       const result = await FrontendToolRegistry.call(
         "ui_copy",
@@ -210,8 +186,8 @@ describe("uiActions", () => {
   describe("ui_paste", () => {
     it("pastes text using pasteFromClipboard callback", async () => {
       const pasteFromClipboard = jest.fn(async () => "pasted content");
-      const state = makeMockState({ pasteFromClipboard });
-      const ctx = makeCtx(state);
+      const state = frontendToolState({ pasteFromClipboard });
+      const ctx = frontendToolContext(state);
 
       const result = await FrontendToolRegistry.call(
         "ui_paste",

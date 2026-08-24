@@ -44,10 +44,11 @@ jest.mock("../../../trpc/client", () => ({
 
 import "../builtin/entities";
 import { FrontendToolRegistry } from "../frontendTools";
+import { frontendToolState } from "../../../test-utils/frontendToolDoubles";
 
 const noopCtx = {
   abortSignal: new AbortController().signal,
-  getState: () => ({}) as never
+  getState: () => frontendToolState()
 };
 
 describe("injectEntities", () => {
@@ -88,12 +89,12 @@ describe("injectEntities", () => {
 
 describe("ui_entity_apply tool", () => {
   it("injects the entity descriptor for the selected entity id", async () => {
-    const result = (await FrontendToolRegistry.call(
+    const result = await FrontendToolRegistry.call(
       "ui_entity_apply",
       { text: "Mara walks", entityIds: ["asset-1"] },
       "call_1",
       noopCtx
-    )) as { prompt: string; referenceAssetIds: string[] };
+    );
     expect(result.prompt).toContain("a tall woman with red hair");
     expect(result.referenceAssetIds).toContain("asset-1");
   });

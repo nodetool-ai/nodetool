@@ -124,6 +124,18 @@ const resourceLink = (
 ): { url?: string } =>
   type === "jsscript" ? {} : { url: docUrl(type, id) };
 
+/**
+ * The tab `ui_open_document` left open. `already_open` says whether the tool
+ * had to open it, so the agent can tell "I opened this" from "it was there".
+ */
+export interface OpenDocumentResult {
+  ok: boolean;
+  type: OpenableType;
+  id: string;
+  already_open: boolean;
+  url?: string;
+}
+
 const ready = (
   type: OpenableType,
   id: string,

@@ -35,20 +35,31 @@ import {
   findOutputHandle,
   findInputHandle,
   getAllInputHandles,
+  type InputHandle,
+  type OutputHandle
 } from "../../../utils/handleUtils";
 import { isConnectable } from "../../../utils/TypeHandler";
 import { wouldCreateCycle } from "../../../utils/graphCycle";
 
 import "../builtin/connectNodes";
+import { stub } from "../../../test-utils/doubles";
 
-const mockedFindOutputHandle = findOutputHandle as jest.Mock;
-const mockedFindInputHandle = findInputHandle as jest.Mock;
-const mockedIsConnectable = isConnectable as jest.Mock;
-const mockedWouldCreateCycle = wouldCreateCycle as jest.Mock;
+const mockedFindOutputHandle = jest.mocked(findOutputHandle);
+const mockedFindInputHandle = jest.mocked(findInputHandle);
+const mockedIsConnectable = jest.mocked(isConnectable);
+const mockedWouldCreateCycle = jest.mocked(wouldCreateCycle);
+
+interface MockEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+}
 
 function createMockNodeStore(
   nodes: Array<{ id: string; type?: string }>,
-  edges: Array<{ id: string; source: string; target: string; sourceHandle?: string; targetHandle?: string }> = []
+  edges: MockEdge[] = []
 ) {
   let edgeCounter = edges.length;
   const storeState = {
@@ -56,7 +67,7 @@ function createMockNodeStore(
     edges,
     findNode: (id: string) => nodes.find((n) => n.id === id),
     generateEdgeId: jest.fn(() => `edge-${++edgeCounter}`),
-    addEdge: jest.fn((edge: unknown) => edges.push(edge as never)),
+    addEdge: jest.fn((edge: MockEdge) => edges.push(edge)),
   };
   return {
     getState: () => storeState,
@@ -88,8 +99,12 @@ function createMockState(
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockedFindOutputHandle.mockReturnValue({ name: "output", type: { type: "str" } });
-  mockedFindInputHandle.mockReturnValue({ name: "input", type: { type: "str" } });
+  mockedFindOutputHandle.mockReturnValue(
+    stub<OutputHandle>({ name: "output", type: { type: "str" } })
+  );
+  mockedFindInputHandle.mockReturnValue(
+    stub<InputHandle>({ name: "input", type: { type: "str" } })
+  );
   mockedIsConnectable.mockReturnValue(true);
   mockedWouldCreateCycle.mockReturnValue(false);
   mockGetMetadata.mockReturnValue({
@@ -121,9 +136,8 @@ describe("ui_connect_nodes tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean; edge_id: string };
-    expect(typed.ok).toBe(true);
-    expect(typed.edge_id).toBeDefined();
+    expect(result.ok).toBe(true);
+    expect(result.edge_id).toBeDefined();
     expect(store.getState().addEdge).toHaveBeenCalled();
   });
 
@@ -152,10 +166,9 @@ describe("ui_connect_nodes tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean; edge_id: string; note: string };
-    expect(typed.ok).toBe(true);
-    expect(typed.edge_id).toBe("e-existing");
-    expect(typed.note).toContain("already exists");
+    expect(result.ok).toBe(true);
+    expect(result.edge_id).toBe("e-existing");
+    expect(result.note).toContain("already exists");
     expect(store.getState().addEdge).not.toHaveBeenCalled();
   });
 
@@ -258,7 +271,7 @@ describe("ui_connect_nodes tool", () => {
   });
 
   it("throws when source handle is not found", async () => {
-    mockedFindOutputHandle.mockReturnValue(null);
+    mockedFindOutputHandle.mockReturnValue(undefined);
 
     const nodes = [
       { id: "n1", type: "test.Source" },
@@ -285,7 +298,7 @@ describe("ui_connect_nodes tool", () => {
   });
 
   it("throws when target handle is not found", async () => {
-    mockedFindInputHandle.mockReturnValue(null);
+    mockedFindInputHandle.mockReturnValue(undefined);
 
     const nodes = [
       { id: "n1", type: "test.Source" },
@@ -312,11 +325,11 @@ describe("ui_connect_nodes tool", () => {
   });
 
   it("separates ports from properties and teaches the Code-node remedy", async () => {
-    mockedFindInputHandle.mockReturnValue(null);
-    (getAllInputHandles as jest.Mock).mockReturnValue([
-      { name: "audience", isDynamic: true },
-      { name: "code", isDynamic: false },
-      { name: "timeout", isDynamic: false },
+    mockedFindInputHandle.mockReturnValue(undefined);
+    jest.mocked(getAllInputHandles).mockReturnValue([
+      stub<InputHandle>({ name: "audience", isDynamic: true }),
+      stub<InputHandle>({ name: "code", isDynamic: false }),
+      stub<InputHandle>({ name: "timeout", isDynamic: false }),
     ]);
 
     const nodes = [

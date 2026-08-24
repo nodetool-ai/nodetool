@@ -36,9 +36,8 @@ FrontendToolRegistry.register({
     // typed-model field. Everything else falls through to the store, which
     // tolerates loose shapes.
     const metadata = state.nodeMetadata[node.type ?? ""];
-    const incomingProperties = (data as { properties?: Record<string, unknown> })
-      ?.properties;
-    if (metadata && incomingProperties && isObjectLike(incomingProperties)) {
+    const incomingProperties = data.properties;
+    if (metadata && isObjectLike(incomingProperties)) {
       for (const property of metadata.properties) {
         const fieldType = property.type?.type;
         if (!fieldType || !TYPED_MODEL_FIELDS.has(fieldType)) continue;
@@ -56,10 +55,7 @@ FrontendToolRegistry.register({
     // Split `properties` from the rest so we can merge property updates
     // instead of replacing the whole dict (the bare `updateNodeData` shallow-
     // merges into `data`, which would wipe untouched properties).
-    const { properties: propsUpdate, ...restData } = data as {
-      properties?: Record<string, unknown>;
-      [key: string]: unknown;
-    };
+    const { properties: propsUpdate, ...restData } = data;
     if (Object.keys(restData).length > 0) {
       nodeStore.updateNodeData(node_id, restData);
     }

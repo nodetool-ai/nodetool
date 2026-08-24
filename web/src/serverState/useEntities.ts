@@ -17,7 +17,6 @@ import {
   type UseQueryResult
 } from "@tanstack/react-query";
 import type { Entity, EntityKind } from "@nodetool-ai/protocol";
-import type { Asset } from "../stores/ApiTypes";
 import { mediaRefFromAsset } from "../utils/mediaRef";
 import { trpcClient } from "../trpc/client";
 import { isObjectLike, isString } from "../utils/typePredicates";
@@ -71,8 +70,20 @@ export function readEntityMarker(
   };
 }
 
+/**
+ * What an {@link Entity} is read off an asset row: the marker in its metadata,
+ * its id (which doubles as the reference image), and when it was created. The
+ * assets table is described twice — by the generated `Asset` and by the tRPC
+ * router's own output — and naming the three fields lets either one in.
+ */
+export interface MarkedAsset {
+  id: string;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string;
+}
+
 /** Map a marked asset to an {@link Entity}, using the asset itself as the ref image. */
-export function assetToEntity(asset: Asset): Entity | null {
+export function assetToEntity(asset: MarkedAsset): Entity | null {
   const marker = readEntityMarker(asset.metadata);
   if (!marker) {
     return null;
@@ -104,7 +115,7 @@ export function useEntities(): UseQueryResult<Entity[], Error> {
       });
       const entities: Entity[] = [];
       for (const asset of result.assets) {
-        const entity = assetToEntity(asset as Asset);
+        const entity = assetToEntity(asset);
         if (entity) {
           entities.push(entity);
         }
@@ -155,7 +166,7 @@ export function useSaveEntity(): UseMutationResult<
           [ENTITY_METADATA_KEY]: marker
         }
       });
-      return assetToEntity(updated as Asset);
+      return assetToEntity(updated);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ENTITIES_QUERY_KEY });

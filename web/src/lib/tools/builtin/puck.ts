@@ -261,12 +261,8 @@ function parseInputMappings(
   const out: Record<string, InputMapping> = {};
   for (const [nodeId, value] of Object.entries(raw)) {
     const where = `inputs["${nodeId}"]`;
-    const mapping = value as {
-      from?: unknown;
-      variableId?: unknown;
-      resourceBindingId?: unknown;
-    };
-    const from = mapping?.from;
+    const mapping = isObjectLike(value) ? value : {};
+    const from = mapping.from;
     if (from === "widget") {
       out[nodeId] = { from: "widget" };
     } else if (from === "variable") {
@@ -279,7 +275,7 @@ function parseInputMappings(
     } else if (from === "constant") {
       out[nodeId] = {
         from: "constant",
-        value: (mapping as { value?: unknown }).value
+        value: mapping.value
       };
     } else if (from === "resource") {
       if (!isString(mapping.resourceBindingId)) {
@@ -311,10 +307,10 @@ function parseOutputMappings(
   const out: Record<string, OutputMapping> = {};
   for (const [nodeId, value] of Object.entries(raw)) {
     const where = `outputs["${nodeId}"]`;
-    const mapping = value as { to?: unknown; variableId?: unknown };
-    if (mapping?.to === "display") {
+    const mapping = isObjectLike(value) ? value : {};
+    if (mapping.to === "display") {
       out[nodeId] = { to: "display" };
-    } else if (mapping?.to === "variable") {
+    } else if (mapping.to === "variable") {
       if (!isString(mapping.variableId)) {
         throw new Error(
           `${where}: {"to":"variable"} needs "variableId" (an id from ui_app_list_variables).`
@@ -833,7 +829,7 @@ function checkInteractions(
 ): InteractionStepInput[] {
   steps.forEach((step, index) => {
     const stepNumber = index + 1;
-    const record = step as Record<string, unknown>;
+    const record: Record<string, unknown> = step;
     if (isString(record.click)) {
       assertWidgetRef(record.click, stepNumber, handler);
       return;
@@ -845,18 +841,11 @@ function checkInteractions(
     if (isString(record.run) || isString(record.cancel)) {
       return;
     }
-    const set = record.set as { key?: unknown } | undefined;
-    if (set !== undefined && isString(set?.key)) {
+    if (isObjectLike(record.set) && isString(record.set.key)) {
       return;
     }
-    const seed = record.seedResource as
-      | { id?: unknown; items?: unknown }
-      | undefined;
-    if (
-      seed !== undefined &&
-      isString(seed?.id) &&
-      Array.isArray(seed.items)
-    ) {
+    const seed = record.seedResource;
+    if (isObjectLike(seed) && isString(seed.id) && Array.isArray(seed.items)) {
       return;
     }
     throw new Error(
@@ -936,7 +925,8 @@ FrontendToolRegistry.register({
           : `App debug failed (${response.status})`;
       return { ok: false, error: detail };
     }
-    return { ok: true, application_id, ...(report as object | null) };
+    const summary = isObjectLike(report) ? report : {};
+    return { ok: true, application_id, ...summary };
   }
 });
 

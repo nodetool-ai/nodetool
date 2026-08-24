@@ -54,8 +54,8 @@ describe("ui_delete_node tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
-    expect((result as { node_id: string }).node_id).toBe("node-1");
+    expect(result.ok).toBe(true);
+    expect(result.node_id).toBe("node-1");
     expect(store.deletedIds).toContain("node-1");
   });
 

@@ -9,10 +9,11 @@ import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import { fetchWorkflowById } from "../../../serverState/useWorkflow";
 import "../builtin/getGraph";
+import { nodeMetadataMap } from "../../../test-utils/frontendToolDoubles";
+import { stub } from "../../../test-utils/doubles";
+import type { Workflow } from "../../../stores/ApiTypes";
 
-const fetchWorkflowByIdMock = fetchWorkflowById as jest.MockedFunction<
-  typeof fetchWorkflowById
->;
+const fetchWorkflowByIdMock = jest.mocked(fetchWorkflowById);
 
 afterEach(() => {
   fetchWorkflowByIdMock.mockReset();
@@ -76,11 +77,10 @@ describe("ui_get_graph tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean; workflow_id: string; nodes: unknown[]; edges: unknown[]; validation: unknown };
-    expect(typed.ok).toBe(true);
-    expect(typed.workflow_id).toBe("wf-1");
-    expect(typed.nodes).toHaveLength(2);
-    expect(typed.edges).toHaveLength(1);
+    expect(result.ok).toBe(true);
+    expect(result.workflow_id).toBe("wf-1");
+    expect(result.nodes).toHaveLength(2);
+    expect(result.edges).toHaveLength(1);
   });
 
   it("returns empty graph for workflow with no nodes", async () => {
@@ -96,14 +96,13 @@ describe("ui_get_graph tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean; nodes: unknown[]; edges: unknown[] };
-    expect(typed.ok).toBe(true);
-    expect(typed.nodes).toHaveLength(0);
-    expect(typed.edges).toHaveLength(0);
+    expect(result.ok).toBe(true);
+    expect(result.nodes).toHaveLength(0);
+    expect(result.edges).toHaveLength(0);
   });
 
   it("reads the workflow from the server when no editor is open", async () => {
-    fetchWorkflowByIdMock.mockResolvedValue({
+    fetchWorkflowByIdMock.mockResolvedValue(stub<Workflow>({
       id: "wf-1",
       name: "Created over the API",
       graph: {
@@ -119,23 +118,18 @@ describe("ui_get_graph tool", () => {
           { id: "e1", source: "n0", target: "n1", targetHandle: "code" },
         ],
       },
-    } as never);
+    }));
 
     const state = createMockState({
       getNodeStore: jest.fn().mockReturnValue(undefined),
     });
 
-    const result = (await FrontendToolRegistry.call(
+    const result = await FrontendToolRegistry.call(
       "ui_get_graph",
       { workflow_id: "wf-1" },
       "tc-3",
       { getState: () => state }
-    )) as {
-      ok: boolean;
-      source: string;
-      nodes: Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>;
-      edges: unknown[];
-    };
+    );
 
     expect(fetchWorkflowByIdMock).toHaveBeenCalledWith("wf-1");
     expect(result.ok).toBe(true);
@@ -158,12 +152,12 @@ describe("ui_get_graph tool", () => {
       }),
     });
 
-    const result = (await FrontendToolRegistry.call(
+    const result = await FrontendToolRegistry.call(
       "ui_get_graph",
       {},
       "tc-3b",
       { getState: () => state }
-    )) as { ok: boolean; source: string };
+    );
 
     expect(fetchWorkflowByIdMock).not.toHaveBeenCalled();
     expect(result.source).toBe("server");
@@ -187,12 +181,12 @@ describe("ui_get_graph tool", () => {
       getNodeStore: jest.fn().mockReturnValue(createMockNodeStore([], [])),
     });
 
-    const result = (await FrontendToolRegistry.call(
+    const result = await FrontendToolRegistry.call(
       "ui_get_graph",
       {},
       "tc-3d",
       { getState: () => state }
-    )) as { source: string };
+    );
 
     expect(result.source).toBe("editor");
   });
@@ -215,13 +209,13 @@ describe("ui_get_graph tool", () => {
     ];
     const store = createMockNodeStore(nodes, []);
     const state = createMockState({
-      nodeMetadata: {
+      nodeMetadata: nodeMetadataMap({
         "test.NodeType": {
           properties: [
             { name: "prompt", required: true, type: { type: "str", optional: false } },
           ],
-        } as never,
-      },
+        },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -232,10 +226,9 @@ describe("ui_get_graph tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { validation: { errors: string[]; warnings: string[]; suggestions: string[] } };
-    expect(typed.validation.errors.length).toBeGreaterThan(0);
-    expect(typed.validation.errors[0]).toContain("prompt");
-    expect(typed.validation.errors[0]).toContain("not connected");
+    expect(result.validation.errors.length).toBeGreaterThan(0);
+    expect(result.validation.errors[0]).toContain("prompt");
+    expect(result.validation.errors[0]).toContain("not connected");
   });
 
   it("does not flag required properties that are connected", async () => {
@@ -248,13 +241,13 @@ describe("ui_get_graph tool", () => {
     ];
     const store = createMockNodeStore(nodes, edges);
     const state = createMockState({
-      nodeMetadata: {
+      nodeMetadata: nodeMetadataMap({
         "test.NodeType": {
           properties: [
             { name: "prompt", required: true, type: { type: "str", optional: false } },
           ],
-        } as never,
-      },
+        },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -265,8 +258,7 @@ describe("ui_get_graph tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { validation: { errors: string[] } };
-    expect(typed.validation.errors).toHaveLength(0);
+    expect(result.validation.errors).toHaveLength(0);
   });
 
   it("suggests removing orphaned non-structural nodes", async () => {
@@ -275,9 +267,9 @@ describe("ui_get_graph tool", () => {
     ];
     const store = createMockNodeStore(nodes, []);
     const state = createMockState({
-      nodeMetadata: {
-        "test.Processor": { properties: [] } as never,
-      },
+      nodeMetadata: nodeMetadataMap({
+        "test.Processor": { properties: [] },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -288,9 +280,8 @@ describe("ui_get_graph tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { validation: { suggestions: string[] } };
-    expect(typed.validation.suggestions.length).toBeGreaterThan(0);
-    expect(typed.validation.suggestions[0]).toContain("no connections");
+    expect(result.validation.suggestions.length).toBeGreaterThan(0);
+    expect(result.validation.suggestions[0]).toContain("no connections");
   });
 
   it("does not flag input/structural nodes as orphaned", async () => {
@@ -301,11 +292,11 @@ describe("ui_get_graph tool", () => {
     ];
     const store = createMockNodeStore(nodes, []);
     const state = createMockState({
-      nodeMetadata: {
-        "nodetool.input.TextInput": { properties: [] } as never,
-        "nodetool.constant.Integer": { properties: [] } as never,
-        "nodetool.workflows.base_node.Comment": { properties: [] } as never,
-      },
+      nodeMetadata: nodeMetadataMap({
+        "nodetool.input.TextInput": { properties: [] },
+        "nodetool.constant.Integer": { properties: [] },
+        "nodetool.workflows.base_node.Comment": { properties: [] },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -316,8 +307,7 @@ describe("ui_get_graph tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { validation: { suggestions: string[] } };
-    expect(typed.validation.suggestions).toHaveLength(0);
+    expect(result.validation.suggestions).toHaveLength(0);
   });
 
   it("does not flag output nodes as orphaned", async () => {
@@ -326,9 +316,9 @@ describe("ui_get_graph tool", () => {
     ];
     const store = createMockNodeStore(nodes, []);
     const state = createMockState({
-      nodeMetadata: {
-        "nodetool.output.TextOutput": { properties: [] } as never,
-      },
+      nodeMetadata: nodeMetadataMap({
+        "nodetool.output.TextOutput": { properties: [] },
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -339,8 +329,7 @@ describe("ui_get_graph tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { validation: { suggestions: string[] } };
-    expect(typed.validation.suggestions).toHaveLength(0);
+    expect(result.validation.suggestions).toHaveLength(0);
   });
 
   describe("Code nodes", () => {
@@ -354,7 +343,7 @@ describe("ui_get_graph tool", () => {
         ...extraNodes,
       ];
       const state = createMockState({
-        nodeMetadata: { "nodetool.code.Code": { properties: [] } as never },
+        nodeMetadata: nodeMetadataMap({ "nodetool.code.Code": { properties: [] } }),
         getNodeStore: jest.fn().mockReturnValue(createMockNodeStore(nodes, edges)),
       });
       const result = await FrontendToolRegistry.call(
@@ -363,7 +352,7 @@ describe("ui_get_graph tool", () => {
         "tc-code",
         { getState: () => state }
       );
-      return (result as { validation: { errors: string[] } }).validation.errors;
+      return result.validation.errors;
     };
 
     it("reports a body that does not parse", async () => {

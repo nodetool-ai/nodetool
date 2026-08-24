@@ -47,6 +47,19 @@ interface NodeSearchResult {
   output_handles?: NodeHandleSummary[];
 }
 
+/**
+ * What `ui_search_nodes` answers: the matches it is returning, and
+ * `total_matches` so the agent can tell a truncated list from an exhaustive
+ * one.
+ */
+export interface SearchNodesResult {
+  ok: boolean;
+  query: string;
+  count: number;
+  total_matches: number;
+  results: NodeSearchResult[];
+}
+
 type SearchNodesArgs = {
   query: string;
   input_type?: string;
@@ -139,7 +152,7 @@ FrontendToolRegistry.register({
       return base;
     });
 
-    const searchResult = {
+    const searchResult: SearchNodesResult = {
       ok: true,
       query,
       count: results.length,

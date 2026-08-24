@@ -1,12 +1,20 @@
 import { z } from "zod";
 import { uiGetGraphParams } from "@nodetool-ai/protocol";
-import type { Node as GraphNode, Edge as GraphEdge } from "../../../stores/ApiTypes";
+import type {
+  Node as GraphNode,
+  Edge as GraphEdge,
+  NodeMetadata
+} from "../../../stores/ApiTypes";
 import { fetchWorkflowById } from "../../../serverState/useWorkflow";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { COMMENT_NODE_TYPE, GROUP_NODE_TYPE } from "../../../constants/nodeTypes";
 import { parsesAsCodeBody } from "../../../utils/codeOutputInference";
-import { isObjectLike, isString } from "../../../utils/typePredicates";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 /**
  * Node types that are not expected to have incoming edges.
@@ -46,9 +54,12 @@ interface ValidationResult {
 const CODE_NODE_TYPE = "nodetool.code.Code";
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return isObjectLike(value) && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  return isObjectLike(value) && !Array.isArray(value) ? value : {};
+}
+
+/** A `{x, y}` pair as a stored node's `ui_properties` carries it. */
+function isPosition(value: unknown): value is { x: number; y: number } {
+  return isObjectLike(value) && isNumber(value.x) && isNumber(value.y);
 }
 
 /**
@@ -85,7 +96,7 @@ function validateGraph(
     sourceHandle: string | null | undefined;
     targetHandle: string | null | undefined;
   }>,
-  nodeMetadata: Record<string, unknown>
+  nodeMetadata: Record<string, NodeMetadata>
 ): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -113,7 +124,7 @@ function validateGraph(
       validateCodeNode(node, nodeLabel, connectedInputs, errors);
     }
 
-    const meta = (nodeMetadata as Record<string, { properties?: Array<{ name: string; required: boolean; type: { type: string; optional: boolean }; default?: unknown }> }>)[nodeType];
+    const meta = nodeMetadata[nodeType];
     if (!meta || !meta.properties) {continue;}
 
     for (const prop of meta.properties) {
@@ -150,11 +161,25 @@ function validateGraph(
   return { errors, warnings, suggestions };
 }
 
+/**
+ * A node's data as this tool reports it. Both sources land here: the editor's
+ * `NodeData` carries editor-only fields on top, and a stored node is mapped
+ * onto the same names. Written as an alias rather than an interface so it
+ * still reads as the loose bag `validateGraph` indexes by property name.
+ */
+type ReadNodeData = {
+  properties: Record<string, unknown>;
+  dynamic_properties?: Record<string, unknown>;
+  dynamic_inputs?: Record<string, unknown>;
+  dynamic_outputs?: Record<string, unknown>;
+  title?: string;
+};
+
 interface ReadNode {
   id: string;
   type: string | undefined;
   position: { x: number; y: number };
-  data: Record<string, unknown>;
+  data: ReadNodeData;
 }
 
 interface ReadEdge {
@@ -163,6 +188,16 @@ interface ReadEdge {
   target: string;
   sourceHandle: string | null | undefined;
   targetHandle: string | null | undefined;
+}
+
+/** The graph `ui_get_graph` read, and which surface answered. */
+export interface GetGraphResult {
+  ok: boolean;
+  workflow_id: string;
+  source: "editor" | "server";
+  nodes: ReadNode[];
+  edges: ReadEdge[];
+  validation: ValidationResult;
 }
 
 /**
@@ -174,14 +209,8 @@ interface ReadEdge {
  * collapsed state) are left out: this is a read of the graph, not a render.
  */
 function storedNodeToReadNode(node: GraphNode): ReadNode {
-  const ui =
-    isObjectLike(node.ui_properties)
-      ? (node.ui_properties as Record<string, unknown>)
-      : {};
-  const position =
-    isObjectLike(ui.position)
-      ? (ui.position as { x: number; y: number })
-      : { x: 0, y: 0 };
+  const ui = asRecord(node.ui_properties);
+  const position = isPosition(ui.position) ? ui.position : { x: 0, y: 0 };
   return {
     id: node.id,
     type: node.type,
@@ -229,7 +258,7 @@ FrontendToolRegistry.register({
         id: node.id,
         type: node.type,
         position: node.position,
-        data: node.data as Record<string, unknown>
+        data: node.data
       }));
       edges = nodeStore.edges.map((edge) => ({
         id: edge.id,

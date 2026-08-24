@@ -97,15 +97,17 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
   ...over
 });
 
-const restFetchMock = restFetch as jest.MockedFunction<typeof restFetch>;
+const restFetchMock = jest.mocked(restFetch);
 
 const jsonResponse = (body: unknown): Response =>
   stub<Response>({ ok: true, status: 200, json: async () => body });
 
 const ctx = { getState: () => stub<FrontendToolState>({}) };
 
-const call = (name: string, args: Record<string, unknown>) =>
-  FrontendToolRegistry.call(name, args, `call-${name}`, ctx);
+const call = <Name extends string>(
+  name: Name,
+  args: Record<string, unknown>
+) => FrontendToolRegistry.call(name, args, `call-${name}`, ctx);
 
 /** The tool's JSON schema as flat text, with JSON's own quote escaping undone
  * so an example written into a description reads the way an agent sees it. */
@@ -137,17 +139,11 @@ describe("ui_app_add_component identifies what it created", () => {
       })
     );
 
-    const result = (await call("ui_app_add_component", {
+    const result = await call("ui_app_add_component", {
       application_id: APP_ID,
       type: "Heading",
       props: { text: "Hi" }
-    })) as {
-      ok: boolean;
-      id: string;
-      type: string;
-      parent_id: string | null;
-      slot: string | null;
-    };
+    });
 
     expect(result.ok).toBe(true);
     expect(result.id).toBe("Heading-7");
@@ -160,6 +156,9 @@ describe("ui_app_add_component identifies what it created", () => {
     setPuckAgentHandler(
       APP_ID,
       stubHandler({
+        // SAFETY: the editor reporting no widget is exactly what this test
+        // proves the tool refuses; `addComponent` cannot express it in its
+        // own return type, so the double has to.
         addComponent: () => null as never
       })
     );

@@ -3,6 +3,11 @@ import { uiSearchModelsParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { trpc } from "../../trpc";
 
+/**
+ * The fields this tool reads off a model row. Every one is optional because
+ * the tool normalizes a partial row rather than trusting it — see the
+ * fallbacks below and the cases they answer in `searchModelsTool.test.ts`.
+ */
 type RawModel = {
   id?: string;
   name?: string;
@@ -14,6 +19,24 @@ type RawModel = {
   path?: string | null;
 };
 
+/** One ready-to-paste `model` property value, plus how to use it. */
+export interface SearchModelsResult {
+  ok: boolean;
+  kind: string;
+  count: number;
+  models: Array<{
+    type: string | null;
+    provider: string | null;
+    id: string;
+    name: string;
+    repo_id: string | null;
+    path: string | null;
+    downloaded: boolean | null;
+    description: string | null;
+  }>;
+  usage: string;
+}
+
 FrontendToolRegistry.register({
   name: "ui_search_models",
   description:
@@ -21,9 +44,9 @@ FrontendToolRegistry.register({
   parameters: z.object(uiSearchModelsParams),
   async execute({ kind, limit }) {
     const max = Math.max(1, Math.min(50, limit ?? 20));
-    const raw = (await trpc.models.availableForKind.query({
+    const raw: RawModel[] = await trpc.models.availableForKind.query({
       kind
-    })) as RawModel[];
+    });
     const models = (raw ?? []).slice(0, max).map((m) => ({
       type: m.type ?? null,
       provider: m.provider ?? null,

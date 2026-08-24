@@ -13,6 +13,16 @@ import {
 
 const addNodeParametersSchema = z.object(uiAddNodeParams);
 
+/**
+ * `ui_add_node` reports the node as added; `warnings` names any required
+ * property it left unset, which the agent has to fill in with
+ * `ui_update_node_data` before the graph will run.
+ */
+export interface AddNodeResult {
+  ok: boolean;
+  warnings?: string[];
+}
+
 FrontendToolRegistry.register({
   name: "ui_add_node",
   description:
@@ -41,8 +51,7 @@ FrontendToolRegistry.register({
 
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
           try {
-            const parsed = JSON.parse(trimmed) as unknown;
-            return normalizePosition(parsed, fallbackIndex);
+            return normalizePosition(JSON.parse(trimmed), fallbackIndex);
           } catch {
             // fall through
           }

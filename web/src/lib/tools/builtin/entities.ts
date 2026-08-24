@@ -3,7 +3,6 @@ import { injectEntities, type Entity } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { trpcClient } from "../../../trpc/client";
 import { assetToEntity } from "../../../serverState/useEntities";
-import type { Asset } from "../../../stores/ApiTypes";
 
 /**
  * Agent tools for the reusable-entity ("ingredients") library. Entities are
@@ -12,6 +11,27 @@ import type { Asset } from "../../../stores/ApiTypes";
  * cross-shot consistency.
  */
 
+/** One library entity as `ui_entity_list` reports it. */
+export interface EntitySummary {
+  id: Entity["id"];
+  asset_id: Entity["id"];
+  name: Entity["name"];
+  kind: Entity["kind"];
+  descriptor: Entity["descriptor"];
+}
+
+export interface EntityListResult {
+  ok: boolean;
+  entities: EntitySummary[];
+}
+
+/** The seasoned prompt, plus the reference images to pass to an image model. */
+export interface EntityApplyResult {
+  ok: boolean;
+  prompt: string;
+  referenceAssetIds: string[];
+}
+
 async function fetchEntities(): Promise<Entity[]> {
   const result = await trpcClient.assets.search.query({
     query: "",
@@ -19,7 +39,7 @@ async function fetchEntities(): Promise<Entity[]> {
   });
   const entities: Entity[] = [];
   for (const asset of result.assets) {
-    const entity = assetToEntity(asset as Asset);
+    const entity = assetToEntity(asset);
     if (entity) {
       entities.push(entity);
     }

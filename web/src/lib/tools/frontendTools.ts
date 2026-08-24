@@ -8,23 +8,28 @@ import {
 } from "@nodetool-ai/runtime/zod-schema";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { NodeStore } from "../../stores/NodeStore";
+import type { FrontendToolResults } from "./frontendToolResults";
 
 /** A tool's parsed args, or `unknown` when it declares a raw JSON schema. */
 type InferToolArgs<Schema extends ZodOrJsonSchema> =
   Schema extends ZodType ? ZodOutput<Schema> : unknown;
 
+/** What `ui_<name>` resolves to, read off {@link FrontendToolResults}. */
+export type FrontendToolResult<Name extends string> =
+  Name extends keyof FrontendToolResults ? FrontendToolResults[Name] : unknown;
+
 export interface FrontendToolDefinition<
   Schema extends ZodOrJsonSchema = ZodOrJsonSchema,
-  Result = unknown
+  Name extends `ui_${string}` = `ui_${string}`
 > {
-  name: `ui_${string}`;
+  name: Name;
   description: string;
   parameters: Schema;
   requireUserConsent?: boolean;
   execute: (
     args: InferToolArgs<Schema>,
     ctx: FrontendToolContext
-  ) => Promise<Result>;
+  ) => Promise<FrontendToolResult<Name>>;
 }
 
 export interface FrontendToolState {
@@ -81,8 +86,8 @@ const registry = new Map<string, RegisteredTool>();
 const active = new Map<string, ActiveCall>();
 
 export const FrontendToolRegistry = {
-  register<Schema extends ZodOrJsonSchema, Result>(
-    tool: FrontendToolDefinition<Schema, Result>
+  register<Schema extends ZodOrJsonSchema, Name extends `ui_${string}`>(
+    tool: FrontendToolDefinition<Schema, Name>
   ): () => boolean {
     registry.set(tool.name, tool);
     return () => registry.delete(tool.name);
@@ -104,12 +109,12 @@ export const FrontendToolRegistry = {
   get(name: string): RegisteredTool | undefined {
     return registry.get(name);
   },
-  async call(
-    name: string,
+  async call<Name extends string>(
+    name: Name,
     args: unknown,
     toolCallId: string,
     ctx: Omit<FrontendToolContext, "abortSignal">
-  ): Promise<unknown> {
+  ): Promise<FrontendToolResult<Name>> {
     const tool = registry.get(name);
     if (!tool) {throw new Error(`Unknown tool: ${name}`);}
     const controller = new AbortController();
@@ -119,12 +124,20 @@ export const FrontendToolRegistry = {
         ? parseWithTypeCoercion(tool.parameters, args)
         : args;
 
+      // SAFETY: `RegisteredTool` declares `args: never` so that every tool,
+      // whatever its own schema, is assignable to one stored signature. The
+      // args were just validated against this tool's own `parameters`, which
+      // is the only thing that knows their real type.
       const result = await tool.execute(validatedArgs as never, {
         abortSignal: controller.signal,
         getState: ctx.getState
       });
 
-      return result;
+      // SAFETY: the registry erases each tool's result to `unknown` because it
+      // is keyed by a name only known at runtime. `register` checked this
+      // tool's `execute` against `FrontendToolResults[name]`, so re-attaching
+      // that entry here restores exactly the type the table already enforced.
+      return result as FrontendToolResult<Name>;
     } finally {
       active.delete(toolCallId);
     }

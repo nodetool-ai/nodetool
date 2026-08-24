@@ -58,10 +58,9 @@ describe("ui_set_node_title tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean; node_id: string; title: string };
-    expect(typed.ok).toBe(true);
-    expect(typed.node_id).toBe("node-1");
-    expect(typed.title).toBe("My Custom Title");
+    expect(result.ok).toBe(true);
+    expect(result.node_id).toBe("node-1");
+    expect(result.title).toBe("My Custom Title");
     expect(store.dataUpdates[0]).toEqual({
       id: "node-1",
       data: { title: "My Custom Title" },
@@ -81,7 +80,7 @@ describe("ui_set_node_title tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
+    expect(result.ok).toBe(true);
     expect(store.dataUpdates[0].data).toEqual({ title: "" });
   });
 

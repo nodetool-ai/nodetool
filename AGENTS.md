@@ -242,7 +242,7 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 16,975 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,960 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
@@ -307,18 +307,18 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7126 | 13 / 60 |
-| `no-unsafe-dictionary-type` | 4377 | 13 / 60 |
-| `no-unknown-parameters` | 1967 | 16 / 60 |
-| `no-module-mocking` | 1492 | 57 / 60 |
-| `no-known-value-widening` | 774 | 19 / 60 |
-| `no-runtime-typeof` | 582 | 23 / 60 |
-| `no-implicit-return-type` | 449 | 32 / 60 |
-| `no-unknown-returns` | 253 | 42 / 60 |
+| `require-safety-comment-for-type-assertion` | 6946 | 13 / 60 |
+| `no-unsafe-dictionary-type` | 4391 | 13 / 60 |
+| `no-unknown-parameters` | 1978 | 16 / 60 |
+| `no-module-mocking` | 1495 | 57 / 60 |
+| `no-known-value-widening` | 789 | 19 / 60 |
+| `no-runtime-typeof` | 596 | 23 / 60 |
+| `no-implicit-return-type` | 451 | 32 / 60 |
+| `no-unknown-returns` | 258 | 42 / 60 |
 | `no-chained-type-assertions` | 56 | 47 / 60 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,492 findings but zero in 57 of 60 trees: it is
+`no-module-mocking` is 1,495 findings but zero in 57 of 60 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
