@@ -190,6 +190,7 @@ describe("Prediction model", () => {
     expect(overall.total_output_tokens).toBe(25);
     expect(overall.total_tokens).toBe(50);
     expect(overall.call_count).toBe(2);
+    expect(overall.unpriced_count).toBe(0);
 
     const filtered = await Prediction.aggregateByUser("u1", {
       provider: "openai",
@@ -217,6 +218,9 @@ describe("Prediction model", () => {
     expect(byUser.total_input_tokens).toBe(0);
     expect(byUser.total_output_tokens).toBe(0);
     expect(byUser.total_tokens).toBe(0);
+    // A null cost sums as zero but counts as unpriced, so a report can say the
+    // total is a lower bound instead of implying the call was free.
+    expect(byUser.unpriced_count).toBe(1);
 
     const [byProvider] = await Prediction.aggregateByProvider("u1");
     expect(byProvider).toMatchObject({
@@ -225,7 +229,8 @@ describe("Prediction model", () => {
       total_input_tokens: 0,
       total_output_tokens: 0,
       total_tokens: 0,
-      call_count: 1
+      call_count: 1,
+      unpriced_count: 1
     });
 
     const [byModel] = await Prediction.aggregateByModel("u1");
@@ -236,7 +241,8 @@ describe("Prediction model", () => {
       total_input_tokens: 0,
       total_output_tokens: 0,
       total_tokens: 0,
-      call_count: 1
+      call_count: 1,
+      unpriced_count: 1
     });
   });
 

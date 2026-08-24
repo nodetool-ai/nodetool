@@ -213,6 +213,13 @@ export interface ExecutionSessionOptions {
    * for the cap that catches a consumer falling behind.
    */
   captureMessages?: boolean;
+  /**
+   * Record what this run spends on provider calls into the `predictions`
+   * ledger `nodetool costs` reads (default `true`). The write is best-effort —
+   * a host with no database is not failed for it — so turning this off is only
+   * for a caller that persists the same spend itself and would double-count.
+   */
+  recordCosts?: boolean;
 }
 
 export type {

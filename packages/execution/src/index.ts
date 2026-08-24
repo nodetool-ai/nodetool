@@ -24,6 +24,22 @@ export type {
 } from "./preflight.js";
 export { DEFAULT_MESSAGE_BUFFER_LIMIT } from "./message-stream.js";
 export {
+  attachRunCostLedger,
+  isUnitBilledCapability,
+  nodeTypeLookup,
+  priceGeneration,
+  recordFromMessage,
+  recordGenerationSpend,
+  recordNodeProviderCost
+} from "./cost-ledger.js";
+export type {
+  CostLedgerSource,
+  GenerationSpend,
+  NodeCostSpend,
+  PricedGeneration,
+  RunCostLedgerOptions
+} from "./cost-ledger.js";
+export {
   INTERVENTION_MARK,
   formatInterventionLine,
   formatSupervisedSummary,

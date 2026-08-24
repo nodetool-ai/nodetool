@@ -49,6 +49,7 @@ import {
   type NodeValidator
 } from "@nodetool-ai/kernel";
 import {
+  attachRunCostLedger,
   ExecutionSession,
   isExecutionPreflightError,
   toRawGraphInput
@@ -114,7 +115,6 @@ import {
   DIRECT_TOOL_NAMES,
   encodeRawRgbaToPng,
   fetchExternalMedia,
-  getCostReconciler,
   getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
   isProviderMessageEvent,
@@ -4245,7 +4245,7 @@ export class UnifiedWebSocketRunner {
             outputUpdateSeen = true;
           }
 
-          await this._handleNodeProviderCost(active, outbound, nodeType);
+          this._handleNodeProviderCost(active, outbound);
 
           const isNodeError =
             outbound.type === "node_update" && outbound.status === "error";
@@ -5824,6 +5824,14 @@ export class UnifiedWebSocketRunner {
       (msg) => this.sendDetached(msg),
       { threadId: threadId || null, workflowId }
     );
+    // A chat turn that generates an image or a video spends real money without
+    // ever constructing an ExecutionSession, so the ledger is attached here
+    // too — otherwise the turn is invisible to `nodetool costs`.
+    const detachCostLedger = attachRunCostLedger(ctx, {
+      userId,
+      workflowId: workflowId ?? null,
+      resolveSecret: (key) => ctx.getSecret(key)
+    });
     // Any agent planning inside this turn (e.g. via run_node spawning an
     // Agent node in plan mode) pauses for user plan approval.
     this.attachPlanApproval(ctx, threadId || null, codeactClock);
@@ -6478,6 +6486,7 @@ export class UnifiedWebSocketRunner {
       await this.sendMessage(errorMsgData);
     } finally {
       detachPredictions();
+      detachCostLedger();
       // Whatever is still outstanding never got a result row. Leaving the gap
       // makes the thread malformed — Anthropic rejects a `tool_use` with no
       // `tool_result` — and leaves the model unaware the call was abandoned,
@@ -6504,12 +6513,19 @@ export class UnifiedWebSocketRunner {
     }
   }
 
-  /** Persist and accumulate provider cost from a completed node_update. */
-  private async _handleNodeProviderCost(
+  /**
+   * Accumulate provider cost from a completed node_update into the job total.
+   *
+   * The ledger row is *not* written here. `ExecutionSession` attaches
+   * `attachRunCostLedger` to the same context, so every surface — this server,
+   * the CLI, the debug harness — records the charge once, from one
+   * implementation. Writing it again here would double-count every FAL and kie
+   * generation.
+   */
+  private _handleNodeProviderCost(
     active: ActiveJob,
-    outbound: Record<string, unknown>,
-    nodeType: string
-  ): Promise<void> {
+    outbound: Record<string, unknown>
+  ): void {
     if (
       outbound.type !== "node_update" ||
       outbound.status !== "completed" ||
@@ -6518,117 +6534,16 @@ export class UnifiedWebSocketRunner {
       return;
     }
     const providerCost = outbound.provider_cost as ProviderCost;
-    await this._persistNodeProviderCost(
-      providerCost,
-      String(outbound.node_id ?? ""),
-      nodeType,
-      active.workflowId
-    );
     const amount = (providerCost as { amount?: unknown }).amount;
     if (isFiniteNumber(amount)) {
       active.providerCostTotal = (active.providerCostTotal ?? 0) + amount;
     } else {
       // A non-finite amount (NaN/Infinity from a buggy provider call) can't
-      // be persisted or accumulated above, and JSON can't even represent it
-      // faithfully (`JSON.stringify(NaN)` silently becomes `null`). Rather
-      // than ship a `provider_cost` the wire contract calls a real number,
-      // drop it — the rest of the `node_update` still reports normally.
+      // be accumulated above, and JSON can't even represent it faithfully
+      // (`JSON.stringify(NaN)` silently becomes `null`). Rather than ship a
+      // `provider_cost` the wire contract calls a real number, drop it — the
+      // rest of the `node_update` still reports normally.
       delete outbound.provider_cost;
-    }
-  }
-
-  /**
-   * Persist a node-reported provider cost into the prediction ledger.
-   * Covers generative nodes (FAL, Kie, …) that call
-   * `context.setProviderCost()`. Best-effort: never throws.
-   */
-  private async _persistNodeProviderCost(
-    cost: ProviderCost,
-    nodeId: string,
-    nodeType: string,
-    workflowId: string | null
-  ): Promise<void> {
-    if (!isFiniteNumber(cost.amount)) {
-      return;
-    }
-    try {
-      const prediction = await Prediction.create<Prediction>({
-        user_id: this.userId ?? "1",
-        provider: cost.provider,
-        model: cost.model ?? nodeType,
-        node_type: nodeType,
-        cost: cost.amount,
-        currency: cost.currency ?? cost.unit ?? null,
-        billing_unit: cost.billing_unit ?? null,
-        quantity: cost.quantity ?? null,
-        unit_price: cost.unit_price ?? null,
-        provider_request_id: cost.provider_request_id ?? null,
-        workflow_id: workflowId,
-        node_id: nodeId,
-        status: "completed"
-      });
-      log.debug("Persisted node provider cost", {
-        provider: cost.provider,
-        model: cost.model ?? nodeType,
-        cost: cost.amount
-      });
-      // The amount above is an estimate for providers that bill out-of-band.
-      // If the provider exposes a request-keyed billing API, refine it to the
-      // actual charge in the background (best-effort, never blocks the run).
-      if (cost.provider_request_id) {
-        void this._reconcileProviderCost(
-          prediction,
-          cost.provider,
-          cost.provider_request_id,
-          cost.model ?? null
-        );
-      }
-    } catch (err) {
-      log.warn("Failed to persist node provider cost", {
-        error: err instanceof Error ? err.message : String(err)
-      });
-    }
-  }
-
-  /**
-   * Replace an estimated provider cost with the provider's actual billed
-   * amount, looked up by request id. Runs detached; swallows all errors and
-   * leaves the estimate in place when no actual is available.
-   */
-  private async _reconcileProviderCost(
-    prediction: Prediction,
-    provider: string,
-    requestId: string,
-    endpointId: string | null
-  ): Promise<void> {
-    const reconciler = getCostReconciler(provider);
-    if (!reconciler) return;
-    try {
-      const apiKey = await getSecret(
-        `${provider.toUpperCase()}_API_KEY`,
-        this.userId ?? undefined
-      );
-      const actual = await reconciler({
-        requestId,
-        endpointId,
-        secrets: apiKey ? { [`${provider.toUpperCase()}_API_KEY`]: apiKey } : {}
-      });
-      if (!actual) return;
-      await prediction.update({
-        cost: actual.cost,
-        currency: actual.currency ?? prediction.currency,
-        quantity: actual.quantity ?? prediction.quantity,
-        unit_price: actual.unit_price ?? prediction.unit_price
-      });
-      log.debug("Reconciled provider cost to actual", {
-        provider,
-        requestId,
-        cost: actual.cost
-      });
-    } catch (err) {
-      log.warn("Failed to reconcile provider cost", {
-        error: err instanceof Error ? err.message : String(err)
-      });
     }
   }
 
@@ -7832,7 +7747,7 @@ export class UnifiedWebSocketRunner {
             const nodeId = String(outbound.node_id ?? "");
             const nodeType = nodeTypes.get(nodeId) ?? "";
 
-            await this._handleNodeProviderCost(active, outbound, nodeType);
+            this._handleNodeProviderCost(active, outbound);
 
             // Capture output_update values for the response message
             if (outbound.type === "output_update") {

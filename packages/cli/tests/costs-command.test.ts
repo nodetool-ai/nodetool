@@ -76,7 +76,8 @@ describe("costs summary", () => {
         total_input_tokens: 200,
         total_output_tokens: 100,
         total_tokens: 300,
-        call_count: 2
+        call_count: 2,
+        unpriced_count: 0
       },
       {
         provider: "anthropic",
@@ -84,7 +85,8 @@ describe("costs summary", () => {
         total_input_tokens: 50,
         total_output_tokens: 25,
         total_tokens: 75,
-        call_count: 1
+        call_count: 1,
+        unpriced_count: 0
       }
     ]);
     aggregateByModel.mockResolvedValueOnce([]);
@@ -96,9 +98,31 @@ describe("costs summary", () => {
     // 1.5 + 0.5 summed from the two provider rows.
     expect(parsed.overall.total_cost).toBe(2);
     expect(parsed.overall.call_count).toBe(3);
+    expect(parsed.overall.unpriced_count).toBe(0);
     expect(parsed.by_provider[0].provider).toBe("openai");
     expect(parsed).toHaveProperty("by_model");
     expect(aggregateByUser).not.toHaveBeenCalled();
+  });
+
+  it("says the total is a lower bound when calls went unpriced", async () => {
+    aggregateByProvider.mockResolvedValueOnce([
+      {
+        provider: "replicate",
+        total_cost: 0,
+        total_input_tokens: 0,
+        total_output_tokens: 0,
+        total_tokens: 0,
+        call_count: 3,
+        unpriced_count: 3
+      }
+    ]);
+    aggregateByModel.mockResolvedValueOnce([]);
+    const program = await buildProgram();
+    const { stdout } = await captureOutput(() =>
+      program.parseAsync(["node", "cli", "costs", "summary"])
+    );
+    expect(stdout).toContain("3 call(s) ran on a model no price catalog covers");
+    expect(stdout).toContain("lower bound");
   });
 });
 
@@ -125,6 +149,43 @@ describe("costs list", () => {
       provider: "anthropic",
       model: "claude-sonnet-4-6"
     });
+  });
+
+  it("prints the billed units and marks an unpriced call as such", async () => {
+    paginate.mockResolvedValueOnce([
+      [
+        {
+          created_at: "2026-08-24T00:00:00.000Z",
+          provider: "replicate",
+          model: "bytedance/seedance-1-pro",
+          cost: 1.025,
+          input_tokens: null,
+          output_tokens: null,
+          quantity: 5,
+          billing_unit: "seconds",
+          unit_price: 0.205
+        },
+        {
+          created_at: "2026-08-24T00:00:01.000Z",
+          provider: "replicate",
+          model: "someone/brand-new-model",
+          cost: null,
+          input_tokens: null,
+          output_tokens: null,
+          quantity: 1,
+          billing_unit: null,
+          unit_price: null
+        }
+      ],
+      ""
+    ]);
+    const program = await buildProgram();
+    const { stdout } = await captureOutput(() =>
+      program.parseAsync(["node", "cli", "costs", "list"])
+    );
+    expect(stdout).toContain("5 × seconds @ $0.2050");
+    // A price nobody knows must not read as free.
+    expect(stdout).toContain("unpriced");
   });
 
   it("exits(1) on a non-numeric --limit before touching the DB", async () => {

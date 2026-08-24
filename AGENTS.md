@@ -2031,8 +2031,11 @@ npm run dev:nodetool -- collections delete my_docs --yes        # Delete (skip c
 
 ### nodetool costs
 
-Aggregates the per-call cost/token records NodeTool tracks for every LLM call,
-read straight from the local DB — no server needed.
+Aggregates the per-call cost records NodeTool tracks for every provider call,
+read straight from the local DB — no server needed. LLM calls carry token
+counts; image, video and audio generation carries the billing unit, the
+quantity and the unit price behind the charge (`costs list` prints them in a
+`units` column, e.g. `5 × seconds @ $0.2050`).
 
 ```bash
 npm run dev:nodetool -- costs summary                           # Overall + per-provider/model
@@ -2041,6 +2044,21 @@ npm run dev:nodetool -- costs list --provider anthropic         # Filter by prov
 npm run dev:nodetool -- costs by-provider                       # Grouped by provider
 npm run dev:nodetool -- costs by-model --provider openai        # Grouped by model
 ```
+
+Generation spend reaches the ledger through `attachRunCostLedger`
+(`@nodetool-ai/execution`), which `ExecutionSession` attaches to every run — so
+a CLI run, a debug run, an app run and the websocket server all record the same
+way, once. A node that knows its own charge (FAL, kie) reports it with
+`context.setProviderCost()` and that number wins, reconciled to the provider's
+actual billed amount afterwards where a billing API exists. Everything else is
+priced off `@nodetool-ai/model-pricing` from the `prediction` message the
+capability call emits. A `nodetool generate` run records its own row: it calls
+the provider directly and no runner would see it.
+
+**A model in no price catalog still gets a row, with a null cost.** It shows in
+`list` as `unpriced` and is counted as `unpriced` in every aggregate, so the
+totals read as a lower bound rather than as free — an empty report is worse
+than no report.
 
 ### nodetool storage
 

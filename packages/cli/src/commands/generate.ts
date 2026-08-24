@@ -285,6 +285,7 @@ async function run(
     );
   }
 
+  const startedAt = Date.now();
   let images: Uint8Array[];
   if (opts.image && opts.image.length > 0) {
     const { readFile } = await import("node:fs/promises");
@@ -307,6 +308,22 @@ async function run(
   }
 
   const paths = await writeImages(images, model, opts.output);
+
+  // This bypasses the workflow runner, so nothing else would record the
+  // charge — a generation here has to reach the ledger `nodetool costs` reads
+  // on its own.
+  const { recordGenerationSpend } = await import("@nodetool-ai/execution");
+  const { LOCAL_USER_ID } = await import("./local-db.js");
+  await recordGenerationSpend({
+    userId: LOCAL_USER_ID,
+    provider: providerId,
+    model: model.id,
+    capability: opts.image?.length ? "image_to_image" : "text_to_image",
+    quantity: images.length,
+    params: { width: params.width, height: params.height },
+    nodeType: "nodetool.cli.Generate",
+    durationMs: Date.now() - startedAt
+  });
 
   if (opts.json) {
     console.log(

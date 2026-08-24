@@ -29,6 +29,7 @@ import { normalizeGraph } from "./normalize-graph.js";
 import { assertPreflight } from "./preflight.js";
 import { rewriteOutputNames } from "./output-names.js";
 import { MessageStream } from "./message-stream.js";
+import { attachRunCostLedger, nodeTypeLookup } from "./cost-ledger.js";
 import type { ExecutionSessionOptions } from "./types.js";
 
 const log = createLogger("nodetool.execution.session");
@@ -63,6 +64,7 @@ export class ExecutionSession {
     runTimeoutMs: number | undefined;
     captureMessages: boolean;
     messageBufferLimit: number | undefined;
+    recordCosts: boolean;
   }) {
     this.jobId = init.jobId;
     this.workflowId = init.workflowId;
@@ -72,6 +74,19 @@ export class ExecutionSession {
     this.bridge = init.bridge;
     this.stream = init.captureMessages
       ? new MessageStream(init.context, init.messageBufferLimit)
+      : null;
+
+    // Every generation this run pays for lands in the ledger `nodetool costs`
+    // reads. Attached here, at the one seam all surfaces share, so image and
+    // video spend is recorded whether the run came from the CLI, the debug
+    // harness, an app, or the websocket server.
+    const detachLedger = init.recordCosts
+      ? attachRunCostLedger(init.context, {
+          userId: init.userId,
+          workflowId: init.workflowId,
+          nodeType: nodeTypeLookup(init.graph.nodes),
+          resolveSecret: (key) => init.context.getSecret(key)
+        })
       : null;
 
     if (init.runTimeoutMs && init.runTimeoutMs > 0) {
@@ -133,7 +148,9 @@ export class ExecutionSession {
         init.closeBridge();
         // The terminal message was emitted synchronously before run()
         // resolved (ProcessingContext.emit() calls listeners inline), so the
-        // stream can close now without dropping it.
+        // stream can close now without dropping it. The same holds for the
+        // ledger: every prediction/node_update it prices was already delivered.
+        detachLedger?.();
         this.stream?.close();
       });
 
@@ -303,7 +320,8 @@ export class ExecutionSession {
       closeBridge,
       runTimeoutMs: options.limits?.runTimeoutMs,
       captureMessages: options.captureMessages === true,
-      messageBufferLimit: options.limits?.messageBufferLimit
+      messageBufferLimit: options.limits?.messageBufferLimit,
+      recordCosts: options.recordCosts !== false
     });
   }
 
