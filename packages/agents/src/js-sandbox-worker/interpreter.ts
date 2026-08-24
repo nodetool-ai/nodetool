@@ -756,6 +756,18 @@ export interface InterpreterParams {
   isAborted?: () => boolean;
   /** Milliseconds the run has spent suspended. Absent means none. */
   suspendedMs?: () => number;
+  /** Internal slow-run diagnostics; never crosses the public sandbox API. */
+  onTiming?: (timing: InterpreterTiming) => void;
+}
+
+export interface InterpreterTiming {
+  readonly wrapperSetupMs: number;
+  readonly initMs: number;
+  readonly userCodeMs: number;
+  readonly syncMs: number;
+  readonly callbackRemainderMs: number;
+  readonly wrapperCleanupMs: number;
+  readonly totalMs: number;
 }
 
 /**
@@ -799,8 +811,16 @@ export async function runInterpreter(
     suspendAllowanceMs,
     hasClock,
     isAborted,
-    suspendedMs
+    suspendedMs,
+    onTiming
   } = params;
+
+  const interpreterStartedAt = performance.now();
+  let callbackEnteredAt = interpreterStartedAt;
+  let callbackFinishedAt = interpreterStartedAt;
+  let initMs = 0;
+  let userCodeMs = 0;
+  let syncMs = 0;
 
   // Built for every run, including one that resolved nothing. An empty host
   // serves no specifier and denies each by name; skipping it would leave the
@@ -808,8 +828,9 @@ export async function runInterpreter(
   // from guest code, which is the one thing the normalizer exists to stop.
   const moduleHost = createGuestModuleHost(modules, capabilityFacades);
 
-  return runSandboxed<InterpreterOutcome>(
+  const outcome = await runSandboxed<InterpreterOutcome>(
     async ({ ctx, evalCode }) => {
+      callbackEnteredAt = performance.now();
       // Past this point the wrapper's own Node-compat bootstrap has run, so
       // nothing else may resolve outside the run's declared modules.
       moduleHost.enterGuestPhase();
@@ -981,6 +1002,7 @@ export async function runInterpreter(
       // by overwriting `globalThis.eval` (QuickJS still resolves the builtin),
       // but a plain `delete` removes the binding entirely so any reference
       // throws ReferenceError — same for `Function`.
+      const initStartedAt = performance.now();
       await evalCode(
         `const __marker = "${SANDBOX_ERROR_MARKER}";
 const __bytesMarker = "${SANDBOX_BYTES_MARKER}";
@@ -1317,6 +1339,7 @@ delete globalThis.${SANDBOX_CAPABILITY_BRIDGE_BINDING};`
 export default true;`,
         "sandbox-init"
       );
+      initMs = performance.now() - initStartedAt;
 
       // `evalCode` compiles and links the module — resolving its whole static
       // import graph — before its first await, so a resolution that arrives
@@ -1325,6 +1348,7 @@ export default true;`,
       // to capture it while the entry's static graph links. This deletion is
       // the entry module's first statement, so it runs after every imported
       // module has evaluated and before the user IIFE starts.
+      const userCodeStartedAt = performance.now();
       const pendingUserResult = evalCode(
         buildEntryModule(
           code,
@@ -1347,6 +1371,7 @@ export default true;`,
       );
       moduleHost.lockStaticGraph();
       const userResult = await pendingUserResult;
+      userCodeMs = performance.now() - userCodeStartedAt;
 
       // Read mutable globals back out. node:vm shared the host heap, so
       // `state.counter++` in user code mutated the caller's object directly.
@@ -1357,6 +1382,7 @@ export default true;`,
       // across invocations.
       let syncedGlobals: Record<string, unknown> | undefined;
       if (syncTargetNames.length > 0) {
+        const syncStartedAt = performance.now();
         const extractor = `export default globalThis.${GUEST_MARSHAL_GLOBAL}({${syncTargetNames
           .map(
             (n) =>
@@ -1370,15 +1396,18 @@ export default true;`,
             syncedGlobals = decoded;
           }
         }
+        syncMs = performance.now() - syncStartedAt;
       }
 
-      return userResult.ok
+      const result: InterpreterOutcome = userResult.ok
         ? {
             ok: true,
             data: decodeGuestPayload(userResult.data),
             syncedGlobals
           }
         : { ok: false, error: userResult.error, syncedGlobals };
+      callbackFinishedAt = performance.now();
+      return result;
     },
     {
       // The engine's own abort is a plain `setTimeout` armed when evaluation
@@ -1401,4 +1430,22 @@ export default true;`,
       ...moduleHost.options
     }
   );
+  const interpreterFinishedAt = performance.now();
+  const callbackMs = callbackFinishedAt - callbackEnteredAt;
+  onTiming?.({
+    wrapperSetupMs: callbackEnteredAt - interpreterStartedAt,
+    initMs,
+    userCodeMs,
+    syncMs,
+    callbackRemainderMs: Math.max(
+      0,
+      callbackMs - initMs - userCodeMs - syncMs
+    ),
+    wrapperCleanupMs: Math.max(
+      0,
+      interpreterFinishedAt - callbackFinishedAt
+    ),
+    totalMs: interpreterFinishedAt - interpreterStartedAt
+  });
+  return outcome;
 }

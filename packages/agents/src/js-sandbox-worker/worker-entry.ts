@@ -18,7 +18,7 @@
  */
 
 import { loadQuickJs } from "@sebastianwessel/quickjs";
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
 
 import { toGuestBytes } from "../sandbox-bytes.js";
 import { MAX_RANDOM_BYTES } from "../sandbox-constants.js";
@@ -26,6 +26,8 @@ import {
   registerTypedArraySerializers,
   runInterpreter,
   SANDBOX_STREAM_OPEN_BINDING,
+  type InterpreterOutcome,
+  type InterpreterTiming,
   type SandboxDispatchCall
 } from "./interpreter.js";
 import {
@@ -52,6 +54,9 @@ const quickJsVariant = (
     default: Parameters<typeof loadQuickJs>[0];
   }
 ).default;
+
+const log = createLogger("nodetool.agents.sandbox-worker");
+const SLOW_SANDBOX_RUN_MS = 250;
 
 // ---------------------------------------------------------------------------
 // Engine
@@ -288,31 +293,56 @@ async function executeRun(
   run: RunMessage,
   session: RunSession
 ): Promise<void> {
+  const startedAt = performance.now();
+  const engineStartedAt = performance.now();
   const { runSandboxed } = await getEngine();
+  const engineMs = performance.now() - engineStartedAt;
   const shape = run.bridgeShape;
+  let interpreterTiming: InterpreterTiming | undefined;
 
-  const outcome = await runInterpreter({
-    runSandboxed,
-    code: run.code,
-    sandbox: buildSandboxRecord(shape, session),
-    globals: buildGlobalsRecord(shape, session),
-    syncTargetNames: syncTargetNames(shape),
-    ...spreadIfSet("wasmCall", dispatcherCall(shape, session, "wasm")),
-    ...spreadIfSet("hostCall", dispatcherCall(shape, session, "host")),
-    ...spreadIfSet(
-      "capabilityCall",
-      dispatcherCall(shape, session, "capability")
-    ),
-    ...spreadIfSet("modules", run.modules),
-    ...spreadIfSet("capabilityFacades", run.capabilityFacades),
-    timeoutMs: run.timeoutMs,
-    limits: run.limits,
-    suspendAllowanceMs: run.suspendAllowanceMs,
-    hasClock: run.hasClock,
-    // No isAborted: cancellation from the host is `worker.terminate()`, so the
-    // interrupt handler in here enforces only the deadline.
-    suspendedMs: session.suspendedMs
-  });
+  let outcome: InterpreterOutcome;
+  let failed = false;
+  try {
+    outcome = await runInterpreter({
+      runSandboxed,
+      code: run.code,
+      sandbox: buildSandboxRecord(shape, session),
+      globals: buildGlobalsRecord(shape, session),
+      syncTargetNames: syncTargetNames(shape),
+      ...spreadIfSet("wasmCall", dispatcherCall(shape, session, "wasm")),
+      ...spreadIfSet("hostCall", dispatcherCall(shape, session, "host")),
+      ...spreadIfSet(
+        "capabilityCall",
+        dispatcherCall(shape, session, "capability")
+      ),
+      ...spreadIfSet("modules", run.modules),
+      ...spreadIfSet("capabilityFacades", run.capabilityFacades),
+      timeoutMs: run.timeoutMs,
+      limits: run.limits,
+      suspendAllowanceMs: run.suspendAllowanceMs,
+      hasClock: run.hasClock,
+      // No isAborted: cancellation from the host is `worker.terminate()`, so the
+      // interrupt handler in here enforces only the deadline.
+      suspendedMs: session.suspendedMs,
+      onTiming: (timing) => {
+        interpreterTiming = timing;
+      }
+    });
+  } catch (error) {
+    failed = true;
+    throw error;
+  } finally {
+    const totalMs = performance.now() - startedAt;
+    if (totalMs >= SLOW_SANDBOX_RUN_MS) {
+      log.warn("Slow sandbox worker run", {
+        runId: run.runId,
+        engineMs,
+        interpreter: interpreterTiming,
+        failed,
+        totalMs
+      });
+    }
+  }
 
   port.postMessage(interpreterResultMessage(run.runId, outcome));
 }

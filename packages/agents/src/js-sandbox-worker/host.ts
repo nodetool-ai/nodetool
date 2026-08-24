@@ -14,7 +14,7 @@
  * nothing and the caller falls back in-process.
  */
 
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
 
 import {
   isWorkerToHostMessage,
@@ -31,6 +31,10 @@ export const MAX_SANDBOX_WORKERS = 4;
 
 /** Slack on top of the run's own budget before the backstop fires. */
 export const DEADLINE_MARGIN_MS = 5_000;
+
+const log = createLogger("nodetool.agents.sandbox-host");
+const SLOW_WORKER_ACQUIRE_MS = 250;
+const SLOW_WORKER_ROUND_TRIP_MS = 250;
 
 // ---------------------------------------------------------------------------
 // Entry resolution
@@ -443,8 +447,17 @@ async function dispatchRpc(
 export async function runInWorker(
   options: RunInWorkerOptions
 ): Promise<ResultMessage | null> {
+  const runStartedAt = performance.now();
   const pool = options.pool ?? defaultSandboxWorkerPool();
+  const acquireStartedAt = performance.now();
   const lease = await pool.acquire();
+  const acquireMs = performance.now() - acquireStartedAt;
+  if (acquireMs >= SLOW_WORKER_ACQUIRE_MS) {
+    log.warn("Slow sandbox worker acquisition", {
+      runId: options.run.runId,
+      acquireMs
+    });
+  }
   if (lease === null) return null;
 
   const { handle } = lease;
@@ -459,7 +472,7 @@ export async function runInWorker(
   let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
   let abortListener: (() => void) | undefined;
 
-  return await new Promise<ResultMessage>((resolve) => {
+  const result = await new Promise<ResultMessage>((resolve) => {
     const settle = (result: ResultMessage, dropWorker: boolean): void => {
       if (settled) return;
       settled = true;
@@ -583,6 +596,16 @@ export async function runInWorker(
       settle(failure(runId, error), false);
     }
   });
+  const totalMs = performance.now() - runStartedAt;
+  if (totalMs >= SLOW_WORKER_ROUND_TRIP_MS) {
+    log.warn("Slow sandbox worker round trip", {
+      runId,
+      acquireMs,
+      workerRoundTripMs: Math.max(0, totalMs - acquireMs),
+      totalMs
+    });
+  }
+  return result;
 }
 
 /** Guest binding names for the dispatchers, re-exported for the caller. */
