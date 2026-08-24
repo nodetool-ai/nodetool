@@ -37,7 +37,7 @@
 
 - [Product Video](https://nodetool.ai/use-cases/product-video): Make product videos with AI workflows.
 - [Movie Poster](https://nodetool.ai/use-cases/movie-poster): Generate movie posters with AI workflows.
-- [Movie Trailer](https://nodetool.ai/use-cases/movie-trailer): Cut movie trailers with AI workflows.
+- [Movie Trailer](https://nodetool.ai/use-cases/movie-trailer): Storyboard a trailer, then cut it on the timeline.
 
 ## FAQ
 

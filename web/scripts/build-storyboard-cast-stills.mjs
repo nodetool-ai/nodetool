@@ -19,12 +19,12 @@ const OUT = path.join(WEB, "src/demo/assets/storyboardStills.ts");
 
 /** One per `trailer-shot-<n>.png`, in cut order. */
 const STILLS = [
-  { name: "DEAD_ENGINE", shot: "the engine block blows out over the salt" },
-  { name: "THE_CHAIN", shot: "a rider swings a chain at the chase truck" },
-  { name: "THE_ROLLOVER", shot: "a wheel churns rock as the truck goes over" },
-  { name: "THE_BIKE", shot: "the bike cuts through the ruins" },
-  { name: "THE_CUT", shot: "an angle grinder throws sparks across the wreck" },
-  { name: "THE_GETAWAY", shot: "the car breaks away across open flats" },
+  { name: "THE_BLOWER", shot: "the supercharger spits fire down the straight" },
+  { name: "THE_CHAIN", shot: "a raider hauls the buggy in on a chain" },
+  { name: "THE_ROCK_BED", shot: "a rear wheel churns loose rock at the lens" },
+  { name: "THE_CHOPPER", shot: "the chopper runs flat out through the ruins" },
+  { name: "THE_CUT", shot: "a grinder throws sparks off a frame rail" },
+  { name: "THE_GETAWAY", shot: "the car breaks loose across the dry lake" },
 ];
 
 const uris = [];

@@ -12,9 +12,9 @@ import {
   Film,
   Clapperboard,
   RefreshCw,
-  SlidersHorizontal,
+  Users,
   Wand2,
-  Repeat,
+  Scissors,
   Check,
 } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
@@ -22,16 +22,54 @@ import SiteFooter from "../../../components/SiteFooter";
 import FaqSection from "../../../components/FaqSection";
 import { movieTrailerUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
-import MovieTrailerGraph from "../../../components/MovieTrailerGraph";
 
+/**
+ * The six frames from one run, each with the prompt that rendered it. The
+ * prompts describe these exact frames — a card whose prompt does not match its
+ * still teaches the reader the wrong thing about what to write.
+ */
 const shots = [
-  { src: "/trailer-shot-1.png", caption: "Blown supercharger spits fire down the straight" },
-  { src: "/trailer-shot-2.png", caption: "A raider hauls the war-rig in by the chain" },
-  { src: "/trailer-shot-3.png", caption: "Tires tear through the canyon floor" },
-  { src: "/trailer-shot-4.png", caption: "A lone rider guns it through the ruins" },
-  { src: "/trailer-shot-5.png", caption: "Last repairs before the run" },
-  { src: "/trailer-shot-6.png", caption: "The getaway car breaks loose across the flats" },
+  {
+    src: "/trailer-shot-1.png",
+    title: "The blower",
+    prompt:
+      "Low tracking shot, tight on the exposed blown V8 of a black wasteland muscle car at speed — chrome supercharger, flame off the side pipe, dust plume behind it, the chase car small in the haze.",
+  },
+  {
+    src: "/trailer-shot-2.png",
+    title: "The chain",
+    prompt:
+      "A masked raider in rags and goggles hauls a chain taut, dragging a caged buggy in from the right, its driver behind the grille, sparks off the tire, ruined refinery towers in the haze.",
+  },
+  {
+    src: "/trailer-shot-3.png",
+    title: "The rock bed",
+    prompt:
+      "Ground-level close-up of a rear wheel churning through loose rock, stones thrown at the lens, sparks under the chassis, canyon wall to the left.",
+  },
+  {
+    src: "/trailer-shot-4.png",
+    title: "The chopper",
+    prompt:
+      "Wide tracking shot of a long-fork chopper flat out through a ruined city, rider in black leather and goggles, dust rolling off the rear tire, collapsed scaffolding behind.",
+  },
+  {
+    src: "/trailer-shot-5.png",
+    title: "The cut",
+    prompt:
+      "Close-up of a grease-covered mechanic leaning into an angle grinder on a frame rail, sparks spraying toward the lens, stacked wrecks behind him.",
+  },
+  {
+    src: "/trailer-shot-6.png",
+    title: "The getaway",
+    prompt:
+      "Wide, low three-quarter front: a rusted muscle car with an exposed blower breaking loose across a cracked dry lake bed, dirt off the rear tire, mountains on the horizon.",
+  },
 ];
+
+/** One line, under every prompt above — the whole look of the film. */
+const STYLE_BIBLE =
+  "Blown-out sun, dust in every frame, 35mm, heavy grain · 16:9 · no on-screen text";
 
 /** Step text is shared with the page's HowTo schema — see data/useCaseEntries. */
 const stepIcons = [FileText, Clapperboard, ImageIcon, Film];
@@ -44,39 +82,39 @@ const tweaks = [
   {
     icon: RefreshCw,
     title: "Swap the video model",
-    body: "Veo, Seedance, Kling, Runway. Change one node and the storyboard, shots, and key art stay exactly the same.",
-  },
-  {
-    icon: SlidersHorizontal,
-    title: "Redirect the storyboard",
-    body: "Raise the shot count, change the aspect ratio, or point the Director at a different model. The rest of the graph is untouched.",
+    body: "Veo, Seedance, Kling, Runway — pick a different one and render that shot again. The board, the stills, and every clip you already approved stay exactly as they are.",
   },
   {
     icon: Wand2,
-    title: "Restyle every shot",
-    body: "The visual-style input becomes the screenplay's style bible, and the style bible lands in every shot prompt. Change one line and the whole trailer shifts mood.",
+    title: "Restyle the whole film",
+    body: "The visual style you typed becomes the style bible behind every card. Change one line from gritty daylight to neon night and the next pass boards it that way.",
   },
   {
-    icon: Repeat,
-    title: "Re-run any story",
-    body: "Drop in a new logline and run it again. The workflow is the reusable part, not this trailer.",
+    icon: Scissors,
+    title: "Fix one shot, not the reel",
+    body: '"Darker, add rain" revises that one clip and swaps it back into the card. Shot 3 changes, shots 1, 2, and 4–6 never re-roll.',
+  },
+  {
+    icon: Users,
+    title: "Keep the cast consistent",
+    body: "Characters, locations, props, and looks are saved as named entities. Name one in a shot and its description rides into that shot's prompt, so the same driver and the same car show up all the way through.",
   },
 ];
 
 const models = [
   {
     name: "Gemini 3.1 Pro Preview",
-    role: "Directs the storyboard",
+    role: "Directs the board — the shot list, action, and camera notes",
     provider: "Gemini",
   },
   {
     name: "GPT Image-2",
-    role: "Renders each shot's key art",
+    role: "Renders each card's still",
     provider: "kie",
   },
   {
     name: "Veo 3.1 Preview",
-    role: "Animates the frames into video",
+    role: "Animates approved stills into clips",
     provider: "Gemini",
   },
 ];
@@ -136,10 +174,10 @@ export default function MovieTrailerUseCase() {
                 Movie Trailer Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
-                Type one logline and the canvas builds the teaser: a Director
-                node storyboards it into shots, key art is rendered for every
-                beat, then animated and cut into a finished trailer. No editor,
-                no studio, one canvas you can re-run for any story.
+                Write one line about your film. It comes back as a storyboard
+                you can read: a card per shot, a still on every card. Approve
+                the ones you like, animate those, and the clips land on a
+                timeline you cut and export. It works the way a shoot does.
               </p>
             </motion.div>
 
@@ -196,12 +234,12 @@ export default function MovieTrailerUseCase() {
                 How it works
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                A handful of nodes do the work. One line becomes a storyboard, the
-                storyboard becomes shots, the shots become a trailer.
+                Four steps, all of them visible: a brief, a board, stills you
+                approve, and a cut on the timeline.
               </p>
             </div>
 
-            {/* Live graph — the real workflow, rendered from the node UI components */}
+            {/* The storyboard surface, running */}
             <motion.div
               initial={false}
               whileInView={{ opacity: 1, y: 0 }}
@@ -214,13 +252,19 @@ export default function MovieTrailerUseCase() {
                   <div className="h-3 w-3 rounded-full bg-amber-500/40" />
                   <div className="h-3 w-3 rounded-full bg-emerald-500/40" />
                   <span className="ml-3 text-xs font-medium text-slate-400">
-                    Workflow Editor
+                    Storyboard
                   </span>
                   <span className="ml-auto hidden text-xs font-medium text-slate-500 sm:block">
-                    Movie Trailer Generator
+                    Brief · shot cards · stills
                   </span>
                 </div>
-                <MovieTrailerGraph />
+                <Image
+                  src="/trailer-storyboard.webp"
+                  alt="NodeTool's storyboard: six shot cards down the board — The blower, The chain, The rock bed, The chopper, The cut, The getaway — each with its still, its action line, its camera notes, and a Still ready status, next to the assistant that directed them"
+                  width={3200}
+                  height={2460}
+                  className="h-auto w-full"
+                />
               </div>
             </motion.div>
 
@@ -256,16 +300,21 @@ export default function MovieTrailerUseCase() {
           </div>
         </section>
 
-        {/* Six shots, one trailer */}
+        {/* The board */}
         <section className="relative py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Six shots, one trailer
+                Six cards on the board
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                Every beat is rendered as its own cinematic frame, then animated
-                and cut together. Here is a single run, straight off the canvas.
+                This is a single run of the board, straight out of NodeTool. Each
+                card holds one beat, the prompt behind it, and the still that
+                prompt rendered. Re-roll a card you don&apos;t like — stills cost
+                cents, and the rest of the board doesn&apos;t move.
+              </p>
+              <p className="mt-4 font-mono text-xs leading-relaxed text-slate-500">
+                Style bible · {STYLE_BIBLE}
               </p>
             </div>
 
@@ -279,28 +328,77 @@ export default function MovieTrailerUseCase() {
                   transition={{ duration: 0.5, delay: (i % 3) * 0.05 }}
                   className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50"
                 >
+                  <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5">
+                    <span className="font-mono text-xs text-amber-400">
+                      Shot {String(i + 1).padStart(2, "0")}
+                      <span className="ml-2 font-sans text-sm font-semibold text-white">
+                        {shot.title}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
+                      <Check className="h-3 w-3" />
+                      Clip rendered
+                    </span>
+                  </div>
                   <Image
                     src={shot.src}
-                    alt={shot.caption}
+                    alt={shot.prompt}
                     width={1672}
                     height={941}
                     className="aspect-video w-full object-cover"
                   />
-                  <div className="flex items-center gap-2 border-t border-white/5 px-4 py-3 text-sm leading-relaxed text-slate-400">
-                    <span className="font-mono text-xs text-amber-400">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    {shot.caption}
+                  <div className="border-t border-white/5 px-4 py-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Prompt
+                    </div>
+                    <p className="mt-1.5 font-mono text-xs leading-relaxed text-slate-400">
+                      {shot.prompt}
+                    </p>
                   </div>
                 </motion.div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* The timeline */}
+        <section className="relative py-20">
+          <div className="mx-auto max-w-6xl px-6 lg:px-8">
+            <div className="mb-12 max-w-2xl">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+                Send the board to the timeline
+              </h2>
+              <p className="mt-4 text-lg text-slate-400 leading-relaxed">
+                One click and the approved clips land on a track in shot order.
+                From there it&apos;s a normal edit: trim, reorder, lay music and
+                voice under it, and export the cut.
+              </p>
+            </div>
+
+            <motion.figure
+              initial={false}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.6 }}
+              className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50"
+            >
+              <Image
+                src="/trailer-timeline.webp"
+                alt="The same trailer on NodeTool's timeline: the clips sit on the video track in shot order — Opening drift, Grinder sparks, Wheel churn, Rider in the ruins — with the score's waveform on the audio track under them, the cut playing in the preview above, and Save, Save as Asset, and Export in the bar"
+                width={3200}
+                height={2000}
+                className="h-auto w-full"
+              />
+              <figcaption className="border-t border-white/5 px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+                The timeline editor · clips in shot order, score underneath
+              </figcaption>
+            </motion.figure>
 
             {/* The assembled output */}
             <div className="mt-10 flex items-center gap-3 text-sm font-medium uppercase tracking-wide text-slate-400">
               <span className="h-px flex-1 bg-white/10" />
               <ArrowRight className="h-4 w-4 rotate-90 text-amber-400" />
-              Cut into the trailer
+              Exported
               <span className="h-px flex-1 bg-white/10" />
             </div>
 
@@ -322,7 +420,7 @@ export default function MovieTrailerUseCase() {
                 controls
               />
               <div className="border-t border-white/5 px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-                Output · the assembled teaser
+                Output · the finished teaser
               </div>
             </motion.div>
           </div>
@@ -336,8 +434,8 @@ export default function MovieTrailerUseCase() {
                 Make it yours
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                Nothing here is locked. Swap models, change the tone, or point it
-                at a different story.
+                Nothing here is locked. Change the look, change the model,
+                change one shot — the rest of the board stays where you left it.
               </p>
             </div>
 
@@ -373,12 +471,12 @@ export default function MovieTrailerUseCase() {
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                    Models in this workflow
+                    Models behind this trailer
                   </h2>
                   <p className="mt-4 text-slate-400 leading-relaxed">
                     Called with your own keys. The bill comes from the provider,
-                    not from us, and you can switch any of them for a better model
-                    the day it ships.
+                    not from us, and you can switch any of them for a better
+                    model the day it ships.
                   </p>
                   <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300">
                     <Check className="h-4 w-4" />
@@ -423,8 +521,8 @@ export default function MovieTrailerUseCase() {
               Cut your first trailer
             </h2>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-              Free, open source, and yours to run. Download Studio, open this
-              workflow, and build a teaser from one line today.
+              Free, open source, and yours to run. Download Studio, open the
+              storyboard, and board a teaser from one line today.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

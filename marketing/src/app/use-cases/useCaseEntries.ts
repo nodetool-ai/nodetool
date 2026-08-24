@@ -24,8 +24,8 @@ export const useCaseEntries: UseCaseEntry[] = [
     title: "Movie Trailer Generator",
     category: "Film",
     teaser:
-      "Type one logline and the canvas builds a cinematic teaser. A Director node storyboards it into shots, each shot is rendered as key art, animated, and cut into a finished trailer.",
-    pipeline: ["Logline", "Storyboard", "Shots", "Key art", "Trailer"],
+      "Type one logline and get a storyboard back: a card per shot, a still on every card. Approve the ones you like, animate those, and cut the trailer on the timeline.",
+    pipeline: ["Logline", "Storyboard", "Stills", "Clips", "Timeline"],
     video: "/movie_trailer_example.mp4",
     poster: "/trailer-shot-1-800.webp",
     accent: "amber",

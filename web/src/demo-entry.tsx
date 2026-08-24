@@ -8,6 +8,7 @@
  *   ?doc=<castId>        a built-in document cast (sketch, script, storyboard,
  *                        jsscript, app) rendered with its assistant dock
  *   ?chat=<castId>       a built-in chat cast rendered in the real chat panel
+ *   ?timeline=<castId>   a built-in timeline cast rendered in the real editor
  *   (none)               the built-in sample cast
  *
  * Pinned assets resolve to `${assetsBase}/${file}` where assetsBase comes from
@@ -32,6 +33,9 @@ import type { DocDemoCast } from "./demo/doc/docCastTypes";
 import { ChatDemoPlayer } from "./demo/chat/ChatDemoPlayer";
 import { chatCasts } from "./demo/chat/casts";
 import type { ChatDemoCast } from "./demo/chat/chatCastTypes";
+import { TimelineDemoPlayer } from "./demo/timeline/TimelineDemoPlayer";
+import { timelineCasts } from "./demo/timeline/casts";
+import type { TimelineDemoCast } from "./demo/timeline/timelineCastTypes";
 
 interface NodetoolDemoApi {
   ready: boolean;
@@ -71,7 +75,8 @@ async function loadCast(): Promise<DemoCast> {
 type PreviewCast =
   | { kind: "graph"; cast: DemoCast }
   | { kind: "doc"; cast: DocDemoCast }
-  | { kind: "chat"; cast: ChatDemoCast };
+  | { kind: "chat"; cast: ChatDemoCast }
+  | { kind: "timeline"; cast: TimelineDemoCast };
 
 async function loadPreview(): Promise<PreviewCast> {
   const chatId = new URLSearchParams(window.location.search).get("chat");
@@ -85,6 +90,18 @@ async function loadPreview(): Promise<PreviewCast> {
       );
     }
     return { kind: "chat", cast: found };
+  }
+  const timelineId = new URLSearchParams(window.location.search).get("timeline");
+  if (timelineId) {
+    const found = timelineCasts.find((c) => c.id === timelineId);
+    if (!found) {
+      throw new Error(
+        `Unknown timeline cast "${timelineId}". Known: ${timelineCasts
+          .map((c) => c.id)
+          .join(", ")}`
+      );
+    }
+    return { kind: "timeline", cast: found };
   }
   const docId = new URLSearchParams(window.location.search).get("doc");
   if (docId) {
@@ -187,6 +204,12 @@ function App(): React.JSX.Element {
           <ChatDemoPlayer cast={preview.cast} timeMs={timeMs} />
         ) : preview.kind === "doc" ? (
           <DocDemoPlayer cast={preview.cast} timeMs={timeMs} />
+        ) : preview.kind === "timeline" ? (
+          <TimelineDemoPlayer
+            cast={preview.cast}
+            timeMs={timeMs}
+            resolveAssetUrl={resolveAssetUrl}
+          />
         ) : (
           <DemoPlayer
             cast={preview.cast}

@@ -87,7 +87,7 @@ export const movieTrailerUseCase: UseCaseEntry = {
   route: "/use-cases/movie-trailer",
   howToName: "How to generate a movie trailer with AI in NodeTool",
   howToDescription:
-    "Turn one logline into a storyboard, key art for every beat, and an animated, cut-together trailer on one canvas.",
+    "Turn one logline into a storyboard, a still on every card, animated clips, and a finished cut on the timeline.",
   tools: [
     "NodeTool",
     "Gemini 3.1 Pro Preview",
@@ -96,47 +96,47 @@ export const movieTrailerUseCase: UseCaseEntry = {
   ],
   steps: [
     {
-      title: "Start with one line",
-      body: "Type the logline. Two more inputs set the visual style and the shot count, that's the entire brief.",
+      title: "Write the logline",
+      body: "One line about the film, the look you want, and how many shots. That is the whole brief.",
       detail:
         "A getaway driver outruns a collapsing bridge · gritty daylight · 6 shots",
     },
     {
       title: "Direct the storyboard",
-      body: "One Director node writes the screenplay: a shot for every beat, each with its own camera direction, under one style bible.",
-      detail: "6 shots · framing, lens, angle, movement · one style bible",
+      body: "Press Direct and the board fills with cards — one beat per card, with its action, camera, and motion, all under the look you asked for.",
+      detail: "6 cards · framing, lens, angle, movement · one style bible",
     },
     {
-      title: "Render the key art",
-      body: "Screenplay Shots turns each shot into an image prompt — action, camera, style — and a text-to-image model renders it as a cinematic 16:9 frame.",
-      detail: "2K · anamorphic framing · film grain · no on-screen text",
+      title: "Approve the stills",
+      body: "Every card renders a still first. Stills cost cents, so re-roll a card until it looks right — the rest of the board stays put.",
+      detail: "Cinematic 16:9 key art · re-roll one card at a time",
     },
     {
       title: "Animate and cut",
-      body: "An image-to-video model animates every frame, then a Concat node stitches them into one finished trailer.",
-      detail: "Image-to-Video · 720p · auto-concatenated",
+      body: "Animate only the cards you approved, then send the board to the timeline: the clips arrive in shot order, ready to trim, score, and export.",
+      detail: "Image-to-video · clips in shot order · export an MP4",
     },
   ],
   faq: [
     {
       question: "How do you make a movie trailer with AI?",
       answer:
-        "Type a logline, a visual style, and a shot count. A Director node writes a screenplay with a camera direction per shot, an image model renders key art for every beat, a video model animates each frame, and a Concat node cuts them into one trailer.",
+        "Write a logline, a visual style, and a shot count. NodeTool's storyboard turns that into a card per shot with action and camera notes, renders a still on each card, animates the ones you approve into clips, and sends the board to the timeline where you trim, score, and export the cut.",
     },
     {
-      question: "Which models does this workflow use?",
+      question: "Which models does this use?",
       answer:
-        "Gemini 3.1 Pro Preview directs the storyboard, GPT Image-2 renders each shot's key art, and Veo 3.1 Preview animates the frames into video. All three run on your own provider keys.",
+        "Gemini 3.1 Pro Preview directs the board, GPT Image-2 renders each card's still, and Veo 3.1 Preview animates the approved stills into clips. All three run on your own provider keys.",
     },
     {
       question: "Can I use a different video model?",
       answer:
-        "Yes. Veo, Seedance, Kling, and Runway are one node apart. Change the video model and the storyboard, shots, and key art stay exactly as they were.",
+        "Yes. Veo, Seedance, Kling, and Runway are a dropdown apart, and you can change it for a single shot. Your board, your stills, and the clips you already approved stay as they are.",
     },
     {
       question: "Do I need a video editor to cut the trailer?",
       answer:
-        "No. The Concat node stitches the animated shots into a finished clip inside the workflow, and NodeTool's timeline editor is there when you want to re-cut it by hand.",
+        "No. The timeline is built in. The approved clips land on a track in shot order, and you trim, reorder, lay music and voice underneath, and export a finished video without leaving NodeTool.",
     },
   ],
 };
