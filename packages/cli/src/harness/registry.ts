@@ -588,7 +588,14 @@ export const SURFACES: SurfaceEntry[] = [
     id: "storyboard",
     title:
       "Storyboards (shots, keyframes, clips, ui_storyboard_* tools, script link)",
-    harnesses: ["script-storyboard-link", "timeline-validate", "eval"],
+    // `validate` covers the shipped example boards: its selfcheck,
+    // `npm run validate:examples`, checks each one's shot text and media.
+    harnesses: [
+      "script-storyboard-link",
+      "timeline-validate",
+      "validate",
+      "eval"
+    ],
     paths: [
       "packages/protocol/src/script-link.ts",
       "packages/protocol/src/api-schemas/storyboards.ts",
@@ -602,6 +609,12 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/agents/src/evals/surfaces/creative-pipeline.ts",
       "packages/models/src/schema/storyboards.ts",
       "packages/websocket/src/trpc/routers/storyboards.ts",
+      "packages/websocket/src/lib/example-storyboards.ts",
+      // The shipped boards and the generator behind them. `validate:examples`
+      // checks each one's shot text and that its stills and clips are on disk.
+      "packages/base-nodes/nodetool/examples/storyboards/",
+      "scripts/build-example-storyboards.mjs",
+      "scripts/example-storyboards/",
       "web/src/components/storyboard/",
       "web/src/lib/tools/builtin/storyboard.ts",
       "web/src/studio/"

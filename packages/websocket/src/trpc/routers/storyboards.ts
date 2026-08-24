@@ -7,16 +7,24 @@
  *   create  (mutation) — StoryboardResponse
  *   update  (mutation) — StoryboardResponse (CAS via baseUpdatedAt)
  *   delete  (mutation) — { ok: true }
+ *   examples       (query)    — ExampleStoryboardSummary[] (shipped boards)
+ *   installExample (mutation) — StoryboardResponse
  */
 
 import { z } from "zod";
 import { Storyboard, emptyStoryboardDocument } from "@nodetool-ai/models";
 import {
   createStoryboardInput,
+  exampleStoryboardSummary,
+  installExampleStoryboardInput,
   patchStoryboardInput,
   storyboardListItem,
   storyboardResponse
 } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+import {
+  installExampleStoryboard,
+  listExampleStoryboards
+} from "../../lib/example-storyboards.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -147,5 +155,25 @@ export const storyboardsRouter = router({
       await loadOwned(ctx.userId, input.id);
       await Storyboard.deleteOwned(ctx.userId, input.id);
       return { ok: true as const };
+    }),
+
+  // ── shipped examples ──────────────────────────────────────────────────────
+  // Files on disk, not rows: the listing reads them without a user, and an
+  // install writes one board carrying the bundle's document verbatim.
+
+  examples: protectedProcedure
+    .output(z.array(exampleStoryboardSummary))
+    .query(({ ctx }) => listExampleStoryboards(ctx.apiOptions)),
+
+  installExample: protectedProcedure
+    .input(installExampleStoryboardInput)
+    .output(storyboardResponse)
+    .mutation(async ({ ctx, input }) => {
+      const board = await installExampleStoryboard(
+        ctx.userId,
+        ctx.apiOptions,
+        input
+      );
+      return storyboardResponse.parse(board);
     })
 });

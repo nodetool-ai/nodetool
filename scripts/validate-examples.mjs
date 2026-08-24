@@ -179,6 +179,59 @@ function expandBundle(file) {
   };
 }
 
+/**
+ * Check one shipped storyboard: it parses, every shot carries the text a
+ * director writes, and every `package://` still and clip it names is a file
+ * that exists. Returns a problem description, or null when the board is sound.
+ */
+function checkStoryboard(file) {
+  let bundle;
+  try {
+    bundle = JSON.parse(readFileSync(file, "utf8"));
+  } catch (err) {
+    return `not parsable JSON: ${err.message}`;
+  }
+  const shots = bundle?.document?.shots;
+  if (!Array.isArray(shots) || shots.length === 0) {
+    return "bundle declares no shots";
+  }
+  const problems = [];
+  for (const [index, shot] of shots.entries()) {
+    const where = shot?.slug ? `shot "${shot.slug}"` : `shot ${index}`;
+    if (typeof shot?.action !== "string" || shot.action.trim() === "") {
+      problems.push(`${where} has no action text`);
+    }
+    for (const [what, ref] of [
+      ["still", shot?.keyframe],
+      ["clip", shot?.clip]
+    ]) {
+      const match = /^package:\/\/([^/]+)\/(.+)$/.exec(ref?.uri ?? "");
+      if (!match) {
+        problems.push(`${where} has no package:// ${what}`);
+        continue;
+      }
+      const onDisk = join(
+        repoRoot,
+        "packages/base-nodes/nodetool/assets",
+        match[1],
+        ...match[2].split("/")
+      );
+      if (!statSafe(onDisk)) {
+        problems.push(`${where} ${what} is missing: ${ref.uri}`);
+      }
+    }
+  }
+  return problems.length > 0 ? problems.join("\n") : null;
+}
+
+function statSafe(file) {
+  try {
+    return statSync(file);
+  } catch {
+    return null;
+  }
+}
+
 function indent(text) {
   return text
     .split("\n")
@@ -240,7 +293,10 @@ async function main() {
 
   const examples = [...packageExamples, ...rootExamples];
   const bundles = examples.filter((f) => f.endsWith(".app.json"));
-  const workflowExamples = examples.filter((f) => !f.endsWith(".app.json"));
+  const storyboards = examples.filter((f) => f.endsWith(".storyboard.json"));
+  const workflowExamples = examples.filter(
+    (f) => !f.endsWith(".app.json") && !f.endsWith(".storyboard.json")
+  );
 
   if (packageExamples.length === 0) {
     console.error(
@@ -256,9 +312,17 @@ async function main() {
     process.exit(1);
   }
 
+  if (storyboards.length === 0) {
+    console.error(
+      "No *.storyboard.json bundles found under packages/**/examples/ — check the search path."
+    );
+    process.exit(1);
+  }
+
   console.log(
-    `Validating ${workflowExamples.length} example workflow(s) and ` +
-      `${bundles.length} app bundle(s)...\n`
+    `Validating ${workflowExamples.length} example workflow(s), ` +
+      `${bundles.length} app bundle(s), and ` +
+      `${storyboards.length} storyboard(s)...\n`
   );
 
   // Each job is one graph to validate; `failure` short-circuits a job the
@@ -308,6 +372,14 @@ async function main() {
       );
       jobs.push({ label, path: scratchFile, scrub: scratchFile });
     }
+  }
+
+  // A storyboard bundle carries no graph, so the node registry has nothing to
+  // say about it. What rots instead is its media: a still or clip renamed in
+  // the asset directory leaves the shipped board pointing at a 404. Check the
+  // text and the files here, where the rest of the shipped examples are checked.
+  for (const file of storyboards) {
+    jobs.push({ label: file.slice(repoRoot.length + 1), failure: checkStoryboard(file) });
   }
 
   const pending = jobs.filter((job) => job.path !== undefined);

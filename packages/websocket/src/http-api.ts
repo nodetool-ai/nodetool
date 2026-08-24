@@ -164,6 +164,13 @@ export interface HttpApiOptions {
    */
   exampleAppsDir?: string;
   /**
+   * Path to the directory of shipped example storyboard bundles (e.g.
+   * `packages/base-nodes/nodetool/examples/storyboards`). Defaults to the
+   * `storyboards` sibling of {@link examplesDir}, the same layout
+   * {@link exampleAppsDir} follows.
+   */
+  exampleStoryboardsDir?: string;
+  /**
    * Root directories that hold per-package constant assets, laid out as
    * `<root>/<package-name>/<file>`. Served (read-only, public) at
    * `/api/assets/packages/<package-name>/<file>` and referenced from workflows

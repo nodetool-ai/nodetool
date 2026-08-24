@@ -172,6 +172,53 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
     summary.push(`${exampleApps.length} example app bundle(s) staged`);
   }
 
+  // Every shot of a shipped storyboard points at a `package://` still and
+  // clip. Those live under assets/nodetool-base/storyboards/<slug>/, one
+  // directory deeper than anything else staged here — so check the files the
+  // bundles actually name rather than that the directory exists.
+  const storyboardDir = path.join(bundleDir, "examples", "storyboards");
+  const storyboards = (listFiles(storyboardDir) ?? []).filter((f) =>
+    f.toLowerCase().endsWith(".storyboard.json")
+  );
+  if (storyboards.length === 0) {
+    errors.push(
+      "examples/storyboards/ is missing or has no storyboard bundles — the " +
+        "packaged app would offer no example storyboards to install."
+    );
+  } else {
+    const missingMedia = [];
+    for (const file of storyboards) {
+      let bundle;
+      try {
+        bundle = JSON.parse(readFileSync(path.join(storyboardDir, file), "utf8"));
+      } catch (err) {
+        errors.push(`examples/storyboards/${file} is not readable: ${err.message}`);
+        continue;
+      }
+      for (const shot of bundle?.document?.shots ?? []) {
+        for (const uri of [shot?.keyframe?.uri, shot?.clip?.uri]) {
+          const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
+          if (!match) {
+            missingMedia.push(`${file}: shot ${shot?.id} has no package:// media`);
+            continue;
+          }
+          const staged = path.join(bundleDir, "assets", match[1], ...match[2].split("/"));
+          if (!existsSync(staged)) {
+            missingMedia.push(`${file}: ${uri}`);
+          }
+        }
+      }
+    }
+    if (missingMedia.length > 0) {
+      errors.push(
+        "example storyboard media not staged — the boards would install with " +
+          `broken stills and clips:\n  ${missingMedia.join("\n  ")}`
+      );
+    } else {
+      summary.push(`${storyboards.length} example storyboard(s) staged with their media`);
+    }
+  }
+
   const assets = listFiles(path.join(bundleDir, "assets", "nodetool-base"));
   if (!assets || assets.length === 0) {
     errors.push(

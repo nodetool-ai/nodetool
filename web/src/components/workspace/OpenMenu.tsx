@@ -24,7 +24,11 @@ import {
 import { trpcClient } from "../../trpc/client";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
-import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
+import {
+  useCreateStoryboard,
+  useExampleStoryboards,
+  useInstallExampleStoryboard
+} from "../../hooks/storyboard/useStoryboards";
 import { useCreateApplication } from "../../hooks/useApplications";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useCreateJsScript } from "../../hooks/jsScript/useJsScripts";
@@ -91,7 +95,13 @@ interface OpenMenuProps {
   onClose: () => void;
 }
 
-type MenuView = "root" | "texts" | "workflows" | "assets" | "chats";
+type MenuView =
+  | "root"
+  | "texts"
+  | "storyboards"
+  | "workflows"
+  | "assets"
+  | "chats";
 
 interface TextFileTemplate {
   label: string;
@@ -162,6 +172,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const createAsset = useAssetStore((state) => state.createAsset);
   const createTimeline = useCreateTimeline();
   const createStoryboard = useCreateStoryboard();
+  const installExampleStoryboard = useInstallExampleStoryboard();
   const createApplication = useCreateApplication();
   const createScript = useCreateScript();
   const createJsScript = useCreateJsScript();
@@ -281,6 +292,23 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     [runCreate, createStoryboard, openTab]
   );
 
+  const handleStoryboardExample = useCallback(
+    (slug: string, name: string) =>
+      runCreate(name, async () => {
+        const created = await installExampleStoryboard.mutateAsync({
+          slug,
+          projectId: "default"
+        });
+        openTab({
+          type: "storyboard",
+          ref: created.id,
+          mode: "edit",
+          title: created.name
+        });
+      }),
+    [runCreate, installExampleStoryboard, openTab]
+  );
+
   const handleNewApp = useCallback(
     () =>
       runCreate("app", async () => {
@@ -360,6 +388,10 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       }),
     [runCreate, createAsset, openTab]
   );
+
+  const { data: exampleData, isLoading: examplesLoading } =
+    useExampleStoryboards(open && view === "storyboards");
+  const exampleStoryboards = useMemo(() => exampleData ?? [], [exampleData]);
 
   const { data: workflowList, isLoading: workflowsLoading } =
     useQuery<WorkflowList>({
@@ -494,9 +526,10 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               disabled={creating !== null}
             />
             <MenuItemPrimitive
-              label="New storyboard"
+              label="New storyboard…"
               icon={<DashboardOutlinedIcon fontSize="small" />}
-              onClick={() => void handleNewStoryboard()}
+              hasSubmenu
+              onClick={() => setView("storyboards")}
               disabled={creating !== null}
             />
             <MenuItemPrimitive
@@ -555,6 +588,47 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 key={template.filename}
                 label={template.label}
                 onClick={() => void handleNewText(template)}
+                disabled={creating !== null}
+              />
+            ))}
+          </>
+        )}
+
+        {view === "storyboards" && (
+          <>
+            <MenuItemPrimitive
+              label="Back"
+              icon={<ArrowBackRoundedIcon fontSize="small" />}
+              onClick={() => setView("root")}
+              dividerAfter
+            />
+            <MenuItemPrimitive
+              label="Blank storyboard"
+              icon={<AddRoundedIcon fontSize="small" />}
+              onClick={() => void handleNewStoryboard()}
+              disabled={creating !== null}
+              dividerAfter
+            />
+            {examplesLoading && (
+              <FlexRow justify="center" sx={{ py: 2 }}>
+                <LoadingSpinner />
+              </FlexRow>
+            )}
+            {!examplesLoading && exampleStoryboards.length === 0 && (
+              <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
+                No example storyboards are installed.
+              </Caption>
+            )}
+            {exampleStoryboards.map((example) => (
+              <MenuItemPrimitive
+                key={example.slug}
+                label={example.name}
+                secondary={`${example.shotCount} shot${
+                  example.shotCount === 1 ? "" : "s"
+                }, already rendered`}
+                onClick={() =>
+                  void handleStoryboardExample(example.slug, example.name)
+                }
                 disabled={creating !== null}
               />
             ))}

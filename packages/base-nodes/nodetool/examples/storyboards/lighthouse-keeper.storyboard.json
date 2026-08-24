@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 1,
+  "name": "Lighthouse Keeper — Opening",
+  "description": "A four-shot opening for a short film about the last keeper of a coastal light. Every shot arrives with its still and clip already rendered.",
+  "tags": [
+    "film",
+    "narrative",
+    "atmosphere"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "lighthouse-keeper-screenplay",
+      "title": "Lighthouse Keeper — Opening",
+      "brief": "Open a short film about the last keeper of a coastal light. Twenty seconds, no dialogue, the sea doing the talking.",
+      "style_bible": "Dusk coastal palette — deep blues into a single band of amber. Long lenses, heavy air, silhouettes over detail, 35mm grain.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "lighthouse-keeper-shot-1",
+          "index": 0,
+          "slug": "headland at dusk",
+          "action": "Wide on the headland: the tower standing over black cliffs, the last band of amber lying flat on the horizon, the sea already dark.",
+          "camera": {
+            "framing": "extreme wide",
+            "lens": "50mm",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 5,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.mp4",
+            "asset_id": null,
+            "duration": 5
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.mp4",
+              "asset_id": null,
+              "duration": 5
+            }
+          ],
+          "status": "rendered"
+        },
+        {
+          "type": "shot",
+          "id": "lighthouse-keeper-shot-2",
+          "index": 1,
+          "slug": "the lamp turns",
+          "action": "Close on the lamp housing as the optic turns, the glass throwing one hard edge of light straight past camera into the fog.",
+          "camera": {
+            "framing": "close-up",
+            "lens": "85mm",
+            "movement": "locked off"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.mp4",
+            "asset_id": null,
+            "duration": 4
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.mp4",
+              "asset_id": null,
+              "duration": 4
+            }
+          ],
+          "status": "rendered"
+        },
+        {
+          "type": "shot",
+          "id": "lighthouse-keeper-shot-3",
+          "index": 2,
+          "slug": "the stair",
+          "action": "The keeper climbs the spiral stair with a lantern held low, shoulder against the curved wall, the treads falling away below.",
+          "camera": {
+            "framing": "medium",
+            "lens": "35mm",
+            "movement": "tilt up the stairwell"
+          },
+          "motion": "tilt-up",
+          "duration_seconds": 5,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.mp4",
+            "asset_id": null,
+            "duration": 5
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.mp4",
+              "asset_id": null,
+              "duration": 5
+            }
+          ],
+          "status": "rendered"
+        },
+        {
+          "type": "shot",
+          "id": "lighthouse-keeper-shot-4",
+          "index": 3,
+          "slug": "beam over water",
+          "action": "From the water, looking back: the beam sweeps across black swell, the tower reduced to a mark on the cliff line.",
+          "camera": {
+            "framing": "wide",
+            "lens": "135mm",
+            "movement": "slow pull back"
+          },
+          "motion": "pull-back",
+          "duration_seconds": 6,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.mp4",
+            "asset_id": null,
+            "duration": 6
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.mp4",
+              "asset_id": null,
+              "duration": 6
+            }
+          ],
+          "status": "rendered"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "lighthouse-keeper-shot-1",
+        "index": 0,
+        "slug": "headland at dusk",
+        "action": "Wide on the headland: the tower standing over black cliffs, the last band of amber lying flat on the horizon, the sea already dark.",
+        "camera": {
+          "framing": "extreme wide",
+          "lens": "50mm",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 5,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.mp4",
+          "asset_id": null,
+          "duration": 5
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.mp4",
+            "asset_id": null,
+            "duration": 5
+          }
+        ],
+        "status": "rendered"
+      },
+      {
+        "type": "shot",
+        "id": "lighthouse-keeper-shot-2",
+        "index": 1,
+        "slug": "the lamp turns",
+        "action": "Close on the lamp housing as the optic turns, the glass throwing one hard edge of light straight past camera into the fog.",
+        "camera": {
+          "framing": "close-up",
+          "lens": "85mm",
+          "movement": "locked off"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.mp4",
+          "asset_id": null,
+          "duration": 4
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.mp4",
+            "asset_id": null,
+            "duration": 4
+          }
+        ],
+        "status": "rendered"
+      },
+      {
+        "type": "shot",
+        "id": "lighthouse-keeper-shot-3",
+        "index": 2,
+        "slug": "the stair",
+        "action": "The keeper climbs the spiral stair with a lantern held low, shoulder against the curved wall, the treads falling away below.",
+        "camera": {
+          "framing": "medium",
+          "lens": "35mm",
+          "movement": "tilt up the stairwell"
+        },
+        "motion": "tilt-up",
+        "duration_seconds": 5,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.mp4",
+          "asset_id": null,
+          "duration": 5
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.mp4",
+            "asset_id": null,
+            "duration": 5
+          }
+        ],
+        "status": "rendered"
+      },
+      {
+        "type": "shot",
+        "id": "lighthouse-keeper-shot-4",
+        "index": 3,
+        "slug": "beam over water",
+        "action": "From the water, looking back: the beam sweeps across black swell, the tower reduced to a mark on the cliff line.",
+        "camera": {
+          "framing": "wide",
+          "lens": "135mm",
+          "movement": "slow pull back"
+        },
+        "motion": "pull-back",
+        "duration_seconds": 6,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.mp4",
+          "asset_id": null,
+          "duration": 6
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.mp4",
+            "asset_id": null,
+            "duration": 6
+          }
+        ],
+        "status": "rendered"
+      }
+    ],
+    "brief": "Open a short film about the last keeper of a coastal light. Twenty seconds, no dialogue, the sea doing the talking.",
+    "style": "Dusk coastal palette — deep blues into a single band of amber. Long lenses, heavy air, silhouettes over detail, 35mm grain.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}
