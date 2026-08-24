@@ -75,6 +75,7 @@ import {
 } from "./oauth/gate.js";
 import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
 import { syncCustomProviderRegistry } from "./custom-providers.js";
+import { runAutomaticStorageCleanup } from "./storage-retention.js";
 
 /** User id the auth middleware assigns in local (no-account) mode. */
 const LOCAL_USER_ID = "1";
@@ -312,6 +313,27 @@ try {
   // userId)` closure when invoking provider APIs — there is no shared
   // global resolver.
   await initMasterKey();
+
+  const runHistoryCleanup = (): void => {
+    void runAutomaticStorageCleanup(LOCAL_USER_ID)
+      .then((result) => {
+        if (result && result.total > 0) {
+          log.info("Cleaned retained workflow and run history", result);
+        }
+      })
+      .catch((error) => {
+        log.warn(
+          "Automatic history cleanup failed",
+          error instanceof Error ? error : new Error(String(error))
+        );
+      });
+  };
+  runHistoryCleanup();
+  const historyCleanupTimer = setInterval(
+    runHistoryCleanup,
+    6 * 60 * 60 * 1000
+  );
+  historyCleanupTimer.unref?.();
 } catch (err) {
   log.error(
     "Database setup failed",
@@ -987,7 +1009,12 @@ app.addHook("onRequest", async (req, reply) => {
       req.authToken = token;
       return;
     }
-    denyUnauthorized(req, reply, { error: "invalid_token" }, decision.challenge);
+    denyUnauthorized(
+      req,
+      reply,
+      { error: "invalid_token" },
+      decision.challenge
+    );
     return;
   }
 

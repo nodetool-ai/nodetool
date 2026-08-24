@@ -625,6 +625,26 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "scripts.list": { capability: "list_scripts" },
   "scripts.update": { capability: "edit_script" },
   "settings.list": { capability: "list_settings" },
+  "settings.history.get": {
+    withheld:
+      "Database size, retention policy, and cleanup status are host " +
+      "administration details. A workflow run does not need them."
+  },
+  "settings.history.update": {
+    withheld:
+      "Changing retention can erase history after the run ends. Host data " +
+      "lifecycle policy stays under direct user control."
+  },
+  "settings.history.cleanup": {
+    withheld:
+      "Cleanup irreversibly deletes workflow and run history. A sandboxed " +
+      "run must not remove the record of prior execution."
+  },
+  "settings.history.compact": {
+    withheld:
+      "SQLite compaction takes a host-wide write lock and rewrites the " +
+      "database file. It is an explicit host maintenance operation."
+  },
   "settings.secrets.delete": {
     withheld:
       "There is deliberately no way for sandboxed code to read or " +

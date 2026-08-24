@@ -79,16 +79,31 @@ export class WorkflowVersion extends DBModel {
     return versions[0].version + 1;
   }
 
-  /** Delete oldest versions beyond max_versions for a workflow. */
-  static async pruneOldVersions(
+  /**
+   * Delete the oldest autosaves beyond the per-workflow limit.
+   *
+   * Manual versions and checkpoints are deliberate history. They must not be
+   * displaced by frequent autosaves, so they are outside this count.
+   */
+  static async pruneOldAutosaves(
     workflowId: string,
-    maxVersions: number
+    maxAutosaves: number
   ): Promise<void> {
-    const versions = await WorkflowVersion.listForWorkflow(workflowId, {
-      limit: 1000
-    });
-    if (versions.length <= maxVersions) return;
-    const toDelete = versions.slice(maxVersions);
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(workflowVersions)
+      .where(
+        and(
+          eq(workflowVersions.workflow_id, workflowId),
+          eq(workflowVersions.save_type, "autosave")
+        )
+      )
+      .orderBy(desc(workflowVersions.version));
+    if (rows.length <= maxAutosaves) return;
+    const toDelete = rows
+      .slice(Math.max(0, maxAutosaves))
+      .map((row: Record<string, unknown>) => new WorkflowVersion(row));
     for (const v of toDelete) {
       await v.delete();
     }

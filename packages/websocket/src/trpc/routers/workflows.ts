@@ -84,7 +84,8 @@ import {
   type WorkflowResponse,
   type VersionResponse
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import { isNumber, isString } from "../../lib/wire-values.js";
+import { isString } from "../../lib/wire-values.js";
+import { getStorageRetentionSettings } from "../../storage-retention.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 
@@ -665,9 +666,10 @@ export const workflowsRouter = router({
       );
 
       const force = input.force === true;
-      const maxVersions = isNumber(input.max_versions)
-        ? input.max_versions
-        : 10;
+      const { policy: retentionPolicy } = await getStorageRetentionSettings(
+        ctx.userId
+      );
+      const maxVersions = retentionPolicy.maxAutosavesPerWorkflow;
 
       // Rate-limit
       if (!force) {
@@ -735,7 +737,7 @@ export const workflowsRouter = router({
           save_type: wv.save_type ?? "autosave",
           created_at: (wv.created_at as string | undefined) ?? null
         };
-        await WorkflowVersion.pruneOldVersions(input.id, maxVersions);
+        await WorkflowVersion.pruneOldAutosaves(input.id, maxVersions);
       } catch {
         // non-fatal — version table may not exist
       }

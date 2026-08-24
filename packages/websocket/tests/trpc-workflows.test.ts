@@ -37,7 +37,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       nextVersion: vi.fn(),
       listForWorkflow: vi.fn(),
       findByVersion: vi.fn(),
-      pruneOldVersions: vi.fn()
+      pruneOldAutosaves: vi.fn()
     },
     WorkflowCollaborator: {
       ...actual.WorkflowCollaborator,
@@ -59,6 +59,19 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     }
   };
 });
+
+vi.mock("../src/storage-retention.js", () => ({
+  getStorageRetentionSettings: vi.fn(async () => ({
+    policy: {
+      maxAutosavesPerWorkflow: 10,
+      autosaveRetentionDays: 7,
+      manualVersionRetentionDays: 90,
+      terminalJobRetentionDays: 30,
+      automaticCleanup: false
+    },
+    lastCleanupAt: null
+  }))
+}));
 
 import {
   Workflow,
@@ -561,7 +574,7 @@ describe("workflows router", () => {
         ver
       );
       (
-        WorkflowVersion.pruneOldVersions as ReturnType<typeof vi.fn>
+        WorkflowVersion.pruneOldAutosaves as ReturnType<typeof vi.fn>
       ).mockResolvedValue(undefined);
 
       const caller = createCaller(makeCtx());
@@ -591,7 +604,7 @@ describe("workflows router", () => {
         makeVersion({ id: "ver-1" })
       );
       (
-        WorkflowVersion.pruneOldVersions as ReturnType<typeof vi.fn>
+        WorkflowVersion.pruneOldAutosaves as ReturnType<typeof vi.fn>
       ).mockResolvedValue(undefined);
 
       const caller = createCaller(makeCtx());

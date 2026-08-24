@@ -9,7 +9,14 @@
  */
 
 import { z } from "zod";
-import { Secret, Setting, clearSecretCache } from "@nodetool-ai/models";
+import {
+  Secret,
+  Setting,
+  cleanupStorage,
+  compactStorage,
+  getStorageStatus,
+  clearSecretCache
+} from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
 import {
   clearProviderCache,
@@ -36,8 +43,17 @@ import {
   secretDeleteOutput,
   secretValidateInput,
   secretValidateOutput,
+  storageHistoryOutput,
+  updateStorageHistoryInput,
+  cleanupStorageHistoryOutput,
+  compactStorageHistoryOutput,
   type SecretResponse
 } from "@nodetool-ai/protocol/api-schemas/settings.js";
+import {
+  getStorageRetentionSettings,
+  recordStorageCleanup,
+  saveStorageRetentionPolicy
+} from "../../storage-retention.js";
 
 // ── Secret response helpers ────────────────────────────────────────
 
@@ -197,6 +213,52 @@ const secretsRouter = router({
     })
 });
 
+const historyRouter = router({
+  get: protectedProcedure
+    .output(storageHistoryOutput)
+    .query(async ({ ctx }) => {
+      const settings = await getStorageRetentionSettings(ctx.userId);
+      return {
+        policy: settings.policy,
+        status: await getStorageStatus(ctx.userId, settings.policy),
+        lastCleanupAt: settings.lastCleanupAt
+      };
+    }),
+
+  update: protectedProcedure
+    .input(updateStorageHistoryInput)
+    .output(storageHistoryOutput)
+    .mutation(async ({ ctx, input }) => {
+      await saveStorageRetentionPolicy(ctx.userId, input);
+      const settings = await getStorageRetentionSettings(ctx.userId);
+      return {
+        policy: settings.policy,
+        status: await getStorageStatus(ctx.userId, settings.policy),
+        lastCleanupAt: settings.lastCleanupAt
+      };
+    }),
+
+  cleanup: protectedProcedure
+    .output(cleanupStorageHistoryOutput)
+    .mutation(async ({ ctx }) => {
+      const { policy } = await getStorageRetentionSettings(ctx.userId);
+      const deleted = await cleanupStorage(ctx.userId, policy);
+      await recordStorageCleanup(ctx.userId, deleted.completedAt);
+      return {
+        deleted,
+        status: await getStorageStatus(ctx.userId, policy)
+      };
+    }),
+
+  compact: protectedProcedure
+    .output(compactStorageHistoryOutput)
+    .mutation(async ({ ctx }) => {
+      const { policy } = await getStorageRetentionSettings(ctx.userId);
+      await compactStorage();
+      return { status: await getStorageStatus(ctx.userId, policy) };
+    })
+});
+
 // ── Root settings router ───────────────────────────────────────────
 
 export const settingsRouter = router({
@@ -283,5 +345,6 @@ export const settingsRouter = router({
       return { message: "Settings updated successfully" };
     }),
 
-  secrets: secretsRouter
+  secrets: secretsRouter,
+  history: historyRouter
 });

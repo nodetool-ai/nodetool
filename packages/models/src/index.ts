@@ -69,6 +69,19 @@ export type { ModelObserverCallback, DrizzleTable } from "./base-model.js";
 export { Job } from "./job.js";
 export type { JobStatus } from "./job.js";
 
+export {
+  DEFAULT_STORAGE_RETENTION_POLICY,
+  getStorageStatus,
+  cleanupStorage,
+  compactStorage
+} from "./storage-maintenance.js";
+export type {
+  StorageRetentionPolicy,
+  StorageCleanupPreview,
+  StorageStatus,
+  StorageCleanupResult
+} from "./storage-maintenance.js";
+
 export { Workflow } from "./workflow.js";
 export type {
   AccessLevel,

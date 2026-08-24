@@ -122,6 +122,7 @@ import {
   normalizeAssetContentType
 } from "./lib/asset-paths.js";
 import { assetObjectKey } from "@nodetool-ai/storage";
+import { getStorageRetentionSettings } from "./storage-retention.js";
 export { getAssetFileName, getAssetStoragePath };
 
 type JsonObject = Record<string, unknown>;
@@ -174,7 +175,6 @@ export interface HttpApiOptions {
    */
   packageAssetsRoots?: string[];
 }
-
 
 // Lazily created storage handler — recreated if options change
 let _storageHandler: ((request: Request) => Promise<Response>) | null = null;
@@ -862,7 +862,8 @@ export async function handleWorkflowAutosave(
   }
   const graph = body.graph;
   const force = body.force === true;
-  const maxVersions = body.max_versions ?? 10;
+  const { policy: retentionPolicy } = await getStorageRetentionSettings(userId);
+  const maxVersions = retentionPolicy.maxAutosavesPerWorkflow;
 
   // Rate-limit: skip if last autosave < 30s ago and force is false
   if (!force) {
@@ -905,7 +906,7 @@ export async function handleWorkflowAutosave(
       save_type: wv.save_type,
       created_at: wv.created_at
     } as JsonObject;
-    await WorkflowVersion.pruneOldVersions(workflowId, maxVersions);
+    await WorkflowVersion.pruneOldAutosaves(workflowId, maxVersions);
   } catch {
     // non-fatal — version table may not exist
   }

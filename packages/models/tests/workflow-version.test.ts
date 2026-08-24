@@ -2,7 +2,7 @@
  * Tests for the WorkflowVersion model.
  *
  * Covers: defaults, listForWorkflow, findByVersion,
- * nextVersion, pruneOldVersions, and delete behaviour.
+ * nextVersion, autosave pruning, and delete behaviour.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -146,24 +146,24 @@ describe("WorkflowVersion model", () => {
     expect(next).toBe(6);
   });
 
-  it("pruneOldVersions does nothing when within limit", async () => {
-    await createVersion("wf1", "u1", 1);
-    await createVersion("wf1", "u1", 2);
+  it("pruneOldAutosaves does nothing when within limit", async () => {
+    await createVersion("wf1", "u1", 1, "autosave");
+    await createVersion("wf1", "u1", 2, "autosave");
 
-    await WorkflowVersion.pruneOldVersions("wf1", 5);
+    await WorkflowVersion.pruneOldAutosaves("wf1", 5);
 
     const versions = await WorkflowVersion.listForWorkflow("wf1");
     expect(versions).toHaveLength(2);
   });
 
-  it("pruneOldVersions deletes oldest versions beyond maxVersions", async () => {
-    await createVersion("wf1", "u1", 1);
-    await createVersion("wf1", "u1", 2);
-    await createVersion("wf1", "u1", 3);
-    await createVersion("wf1", "u1", 4);
-    await createVersion("wf1", "u1", 5);
+  it("pruneOldAutosaves deletes oldest autosaves beyond the limit", async () => {
+    await createVersion("wf1", "u1", 1, "autosave");
+    await createVersion("wf1", "u1", 2, "autosave");
+    await createVersion("wf1", "u1", 3, "autosave");
+    await createVersion("wf1", "u1", 4, "autosave");
+    await createVersion("wf1", "u1", 5, "autosave");
 
-    await WorkflowVersion.pruneOldVersions("wf1", 3);
+    await WorkflowVersion.pruneOldAutosaves("wf1", 3);
 
     const remaining = await WorkflowVersion.listForWorkflow("wf1");
     expect(remaining).toHaveLength(3);
@@ -174,14 +174,26 @@ describe("WorkflowVersion model", () => {
     expect(versionNumbers).toEqual([5, 4, 3]);
   });
 
-  it("pruneOldVersions with maxVersions=0 deletes all", async () => {
-    await createVersion("wf1", "u1", 1);
-    await createVersion("wf1", "u1", 2);
+  it("pruneOldAutosaves with maxAutosaves=0 deletes all autosaves", async () => {
+    await createVersion("wf1", "u1", 1, "autosave");
+    await createVersion("wf1", "u1", 2, "autosave");
 
-    await WorkflowVersion.pruneOldVersions("wf1", 0);
+    await WorkflowVersion.pruneOldAutosaves("wf1", 0);
 
     const remaining = await WorkflowVersion.listForWorkflow("wf1");
     expect(remaining).toHaveLength(0);
+  });
+
+  it("pruneOldAutosaves never removes manual versions or checkpoints", async () => {
+    await createVersion("wf1", "u1", 1, "manual");
+    await createVersion("wf1", "u1", 2, "autosave");
+    await createVersion("wf1", "u1", 3, "checkpoint");
+    await createVersion("wf1", "u1", 4, "autosave");
+
+    await WorkflowVersion.pruneOldAutosaves("wf1", 1);
+
+    const remaining = await WorkflowVersion.listForWorkflow("wf1");
+    expect(remaining.map((version) => version.version)).toEqual([4, 3, 1]);
   });
 
   it("delete removes a version", async () => {

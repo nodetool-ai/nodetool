@@ -102,3 +102,50 @@ export const secretValidateOutput = z.object({
   message: z.string()
 });
 export type SecretValidateOutput = z.infer<typeof secretValidateOutput>;
+
+// ── Local history retention and database maintenance ────────────────
+
+export const storageRetentionPolicy = z.object({
+  maxAutosavesPerWorkflow: z.number().int().min(1).max(500),
+  autosaveRetentionDays: z.number().int().min(1).max(3650),
+  manualVersionRetentionDays: z.number().int().min(1).max(3650),
+  terminalJobRetentionDays: z.number().int().min(1).max(3650),
+  automaticCleanup: z.boolean()
+});
+export type StorageRetentionPolicy = z.infer<typeof storageRetentionPolicy>;
+
+export const storageCleanupPreview = z.object({
+  autosaves: z.number().int().nonnegative(),
+  manualVersions: z.number().int().nonnegative(),
+  terminalJobs: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative()
+});
+
+export const storageStatus = z.object({
+  dialect: z.enum(["sqlite", "postgres"]),
+  databaseBytes: z.number().int().nonnegative().nullable(),
+  unusedBytes: z.number().int().nonnegative().nullable(),
+  workflowVersions: z.number().int().nonnegative(),
+  autosaves: z.number().int().nonnegative(),
+  manualVersions: z.number().int().nonnegative(),
+  jobs: z.number().int().nonnegative(),
+  terminalJobs: z.number().int().nonnegative(),
+  cleanup: storageCleanupPreview
+});
+
+export const storageHistoryOutput = z.object({
+  policy: storageRetentionPolicy,
+  status: storageStatus,
+  lastCleanupAt: z.string().nullable()
+});
+
+export const updateStorageHistoryInput = storageRetentionPolicy;
+
+export const cleanupStorageHistoryOutput = z.object({
+  deleted: storageCleanupPreview.extend({ completedAt: z.string() }),
+  status: storageStatus
+});
+
+export const compactStorageHistoryOutput = z.object({
+  status: storageStatus
+});
