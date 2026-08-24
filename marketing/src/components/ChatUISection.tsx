@@ -33,9 +33,9 @@ export default function ChatUISection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            The agent doesn&apos;t just answer. <br />
+            A standard chatbot gives you text. <br />
             <span className="text-white">
-              It leaves the work behind.
+              This agent builds your actual project.
             </span>
           </motion.h2>
 
@@ -46,11 +46,10 @@ export default function ChatUISection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            A chatbot leaves you a transcript. This agent has the whole studio
-            as its toolbelt — it builds the actual workflow on your canvas,
-            runs it in front of you, and every decision becomes part of the
-            canvas. Inspect it, change it, rerun it, or reuse it for the next
-            job.
+            NodeTool&apos;s AI assistant doesn&apos;t just chat. It operates
+            the studio tools for you: it sets up the steps directly on your
+            canvas, generates the assets, and keeps every part visible so you
+            can tweak, rerun, or reuse it.
           </motion.p>
 
           <motion.a

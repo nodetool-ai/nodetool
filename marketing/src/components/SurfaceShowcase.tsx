@@ -35,8 +35,8 @@ const SURFACES: Surface[] = [
     id: "storyboard",
     label: "Storyboard",
     icon: Clapperboard,
-    headline: "Direct the shots before you pay for them",
-    body: "Stills cost cents and clips cost dollars, so the board settles the framing first. Revise one shot and the other five stay as they were.",
+    headline: "Visual storyboards",
+    body: "Plan out scenes card by card. Generate low-cost draft images first to lock in the look before spending time and compute on full animation.",
     asset: "surface-storyboard",
     deepLink: "#storyboard",
   },
@@ -44,8 +44,8 @@ const SURFACES: Surface[] = [
     id: "script",
     label: "Script & voice",
     icon: FileText,
-    headline: "A script that knows who says each line",
-    body: "Lines carry a cast voice. Change the words and the take goes stale, so you can see what still needs voicing before you spend on it.",
+    headline: "Script & voice studio",
+    body: "Write your script, assign unique AI voices to each character, and generate natural-sounding dialogue takes. Change the words and the take goes stale, so you see what still needs voicing.",
     asset: "surface-script",
     deepLink: "#script-editor",
   },
@@ -53,8 +53,8 @@ const SURFACES: Surface[] = [
     id: "timeline",
     label: "Timeline",
     icon: Film,
-    headline: "A real multi-track cut, not a render queue",
-    body: "Clips, audio, captions, and transitions on one timeline — the same document an agent edits when you ask it to tighten the opening.",
+    headline: "Timeline video editor",
+    body: "Arrange, trim, and layer AI-generated video and audio clips across multiple tracks to render a finished video. An agent edits the same document when you ask it to tighten the opening.",
     asset: "surface-timeline",
     deepLink: "#timeline-editor",
   },
@@ -62,8 +62,8 @@ const SURFACES: Surface[] = [
     id: "sketch",
     label: "Sketch",
     icon: Brush,
-    headline: "Layers you paint and layers a model fills",
-    body: "Paint a mask, bind a layer to a prompt or a workflow, and regenerate that layer alone. The rest of the canvas holds still.",
+    headline: "Layered drawing canvas",
+    body: "Sketch, paint with brushes, and blend hand-drawn elements with AI-generated layers. Bind a layer to a prompt and regenerate that layer alone.",
     asset: "surface-sketch",
     deepLink: "#sketch-editor",
   },
@@ -141,12 +141,13 @@ export default function SurfaceShowcase() {
             id="surfaces-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Five editors, one document
+            Professional editing tools built right next to the AI
           </h2>
           <p className="text-lg text-slate-300">
-            Not five tabs across five products. A storyboard becomes a script,
-            the script becomes takes, the takes land on a timeline — and an
-            agent works every one of them through the tools you click.
+            Edit and refine your work directly on the canvas without switching
+            software. A storyboard becomes a script, the script becomes takes,
+            the takes land on a timeline — and an agent works every one of them
+            through the tools you click.
           </p>
         </div>
 

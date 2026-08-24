@@ -10,20 +10,20 @@ import { ArrowRight } from "lucide-react";
 
 const frictions = [
   {
-    where: "Five tabs",
-    what: "Midjourney for the still, Runway for the motion, ElevenLabs for the voice, Premiere to put it together.",
+    where: "Juggling five browser tabs",
+    what: "One app for images, another for animation, a third for voiceovers, and a separate video editor to stitch them together.",
   },
   {
     where: "Export, import, repeat",
-    what: "Every handoff costs you the thread — the prompt, the seed, the reason you made that choice.",
+    what: "Moving files between apps loses your settings, prompts, and original ideas along the way.",
   },
   {
-    where: "Credits you bought in advance",
-    what: "Paid at a markup, spent on a list of models somebody else picked for you.",
+    where: "Paying marked-up credit packs",
+    what: "Buying expensive proprietary credits locked to whatever tools that platform chooses for you.",
   },
   {
-    where: "The tool you rely on gets acquired",
-    what: "Prices move, models disappear, and your work sits inside somebody else's roadmap.",
+    where: "Losing access when tools change",
+    what: "Subscriptions jump in price, features disappear, and your projects are trapped in someone else's system.",
   },
 ];
 
@@ -45,13 +45,13 @@ export default function StatusQuoSection() {
                 id="status-quo-title"
                 className="text-2xl font-bold tracking-tight text-white md:text-3xl"
               >
-                Making one piece
+                Creating one project
                 <br />
-                shouldn&apos;t take five subscriptions.
+                shouldn&apos;t require five separate apps.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Stop exporting. Start finishing. One canvas, your keys, and a
-                workflow file that is yours to keep when the piece is done.
+                Work on a single visual board. Use your own AI accounts. Keep
+                the complete project file when you&apos;re done.
               </p>
               <a
                 href="#differences"

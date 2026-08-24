@@ -82,8 +82,9 @@ export default function SiteFooter() {
               </span>
             </a>
             <p className="mt-3 max-w-xs text-sm text-slate-300">
-              The open, agent-first creative workspace. Describe the work. The
-              agent builds the process. You keep the workflow.
+              Free, open-source software built alongside working artists,
+              designers, and video editors. Describe what you want to create,
+              watch the agent build it, keep the whole project.
             </p>
           </div>
 
