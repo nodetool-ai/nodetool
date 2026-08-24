@@ -63,7 +63,12 @@ function sleep(ms) {
 }
 
 /**
- * Run the CLI, letting its stdout land in a file (a pipe truncates base64).
+ * Run the CLI with its stdout landing in a file (a pipe truncates base64).
+ *
+ * No shell: the arguments are prompts and absolute paths, and the redirect is
+ * an open file descriptor handed to the child rather than a `>` in a command
+ * string. Quoting a prompt into `sh -c` is a losing game — a backslash escapes
+ * out of any quoting scheme applied one character at a time.
  *
  * Retries on failure with a widening backoff. The reason is Replicate: an
  * account under $5 of credit is throttled to 6 predictions a minute with a
@@ -72,22 +77,23 @@ function sleep(ms) {
  * already paid for upstream.
  */
 function cli(args, stdoutFile) {
-  const quoted = args.map((a) => `"${a.replace(/"/g, '\\"')}"`).join(" ");
-  const command = `npm run --silent dev:nodetool -- ${quoted} > ${stdoutFile}`;
   const backoff = [0, 20_000, 45_000, 90_000];
   for (let attempt = 0; attempt < backoff.length; attempt += 1) {
     if (backoff[attempt] > 0) {
       log(`    retry ${attempt} after ${backoff[attempt] / 1000}s`);
       sleep(backoff[attempt]);
     }
+    const stdout = fs.openSync(stdoutFile, "w");
     try {
-      execFileSync("sh", ["-c", command], {
+      execFileSync("npm", ["run", "--silent", "dev:nodetool", "--", ...args], {
         cwd: CLI_ROOT,
-        stdio: ["ignore", "inherit", "inherit"],
+        stdio: ["ignore", stdout, "inherit"],
       });
       return;
     } catch (error) {
       if (attempt === backoff.length - 1) throw error;
+    } finally {
+      fs.closeSync(stdout);
     }
   }
 }
