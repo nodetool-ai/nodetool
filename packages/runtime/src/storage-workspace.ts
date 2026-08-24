@@ -142,6 +142,17 @@ async function realPathWithinRoot(
     try {
       return within(await fs.realpath(parent));
     } catch {
+      // realpath failed — either this ancestor is genuinely absent, or it is
+      // itself a dangling symlink. lstat, not the loop's next iteration,
+      // tells them apart: a dangling symlink exists at this exact path and
+      // must never be walked past, or a symlink one level up pointing
+      // straight at the root would resolve "within" by accident.
+      try {
+        await fs.lstat(parent);
+        return false;
+      } catch {
+        // Genuinely absent: keep climbing.
+      }
       const next = path.dirname(parent);
       if (next === parent) return false;
       parent = next;
