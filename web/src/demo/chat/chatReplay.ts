@@ -69,6 +69,7 @@ export function computeChatStateAt(
               role: "assistant",
               content: "",
               tool_calls: payload.toolCalls ?? null,
+              created_at: payload.createdAt ?? null,
             },
           ],
         };

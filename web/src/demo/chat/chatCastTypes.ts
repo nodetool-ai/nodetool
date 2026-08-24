@@ -30,8 +30,17 @@ export type ChatCastEventPayload =
   | { kind: "status"; status: ChatViewStatus }
   /** Append a fully-formed message (user turn, or a message that arrives whole). */
   | { kind: "message"; message: Message }
-  /** Start a new assistant message with empty content, to be filled by `chunk`s. */
-  | { kind: "assistantStart"; id: string; toolCalls?: Message["tool_calls"] }
+  /**
+   * Start a new assistant message with empty content, to be filled by
+   * `chunk`s. `createdAt` is the anchor the tool-call cards measure their
+   * durations from — a tool result's `created_at` minus this.
+   */
+  | {
+      kind: "assistantStart";
+      id: string;
+      toolCalls?: Message["tool_calls"];
+      createdAt?: string;
+    }
   /** Append `text` to the assistant message with the given id. */
   | { kind: "chunk"; id: string; text: string }
   /** Mark a tool call on the given message id as actively running (or clear it). */

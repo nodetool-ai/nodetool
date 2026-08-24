@@ -10,6 +10,8 @@ import React, { useLayoutEffect, useMemo } from "react";
 import { ThemeRoot } from "../../components/ui_primitives";
 import { MemoryRouter } from "react-router-dom";
 import { TRPCProvider } from "../../trpc/Provider";
+import { WorkflowManagerProvider } from "../../contexts/WorkflowManagerContext";
+import { queryClient } from "../../queryClient";
 
 import "../../styles/vars.css";
 import "../../styles/base.css";
@@ -51,6 +53,8 @@ export function ChatDemoPlayer({
     <MemoryRouter>
       <TRPCProvider>
         <ThemeRoot theme={ThemeNodetool}>
+          {/* The composer's WorkspaceChip reads the workflow manager. */}
+          <WorkflowManagerProvider queryClient={queryClient}>
           <div
             data-demo-player
             style={{ width: "100%", height: "100%", ...style }}
@@ -68,6 +72,7 @@ export function ChatDemoPlayer({
               showNewChatButton={false}
             />
           </div>
+          </WorkflowManagerProvider>
         </ThemeRoot>
       </TRPCProvider>
     </MemoryRouter>

@@ -1,9 +1,8 @@
 "use client";
 import React from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
-import Tilt3D from "./Tilt3D";
-import { MessageSquare, Bot } from "lucide-react";
+import ChatShowcase from "./ChatShowcase";
+import { MessageSquare } from "lucide-react";
 
 export default function ChatUISection() {
   return (
@@ -71,33 +70,9 @@ export default function ChatUISection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="scroll-fade relative mx-auto max-w-5xl"
+          className="scroll-fade"
         >
-          <Tilt3D>
-            <div className="relative rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 to-teal-500/5 pointer-events-none" />
-              
-              {/* Browser/Window Chrome */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-slate-900/80">
-                <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-                <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-                <div className="ml-4 text-xs text-slate-400 font-medium flex items-center gap-2">
-                  <Bot className="w-3 h-3" />
-                  Chat Assistant
-                </div>
-              </div>
-
-              <Image
-                src="/screen_chat.webp"
-                alt="Chat UI with tools, agents and workflow integrations"
-                width={2504}
-                height={1726}
-                className="w-full h-auto opacity-95 transition-opacity group-hover:opacity-100"
-                loading="lazy"
-              />
-            </div>
-          </Tilt3D>
+          <ChatShowcase />
         </motion.div>
       </div>
     </section>

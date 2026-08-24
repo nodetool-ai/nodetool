@@ -7,10 +7,14 @@
  *   ?castData=<base64>   inline base64-encoded cast JSON
  *   ?doc=<castId>        a built-in document cast (sketch, script, storyboard,
  *                        jsscript, app) rendered with its assistant dock
+ *   ?chat=<castId>       a built-in chat cast rendered in the real chat panel
  *   (none)               the built-in sample cast
  *
  * Pinned assets resolve to `${assetsBase}/${file}` where assetsBase comes from
  * ?assets=<base> (default `/demo-assets/<castId>`).
+ *
+ * `?t=<ms>` opens at a fixed time and `?bare=1` hides the scrubber — together
+ * they make the page a still-frame renderer for marketing screenshots.
  *
  * A `window.nodetoolDemo` API (seek/play/pause/duration/ready) lets a headless
  * driver scrub frames. The Remotion harness does NOT use this page — it embeds
@@ -25,6 +29,9 @@ import { isDemoCast, type DemoCast } from "./demo/castTypes";
 import { DocDemoPlayer } from "./demo/doc/DocDemoPlayer";
 import { docCasts } from "./demo/doc/casts";
 import type { DocDemoCast } from "./demo/doc/docCastTypes";
+import { ChatDemoPlayer } from "./demo/chat/ChatDemoPlayer";
+import { chatCasts } from "./demo/chat/casts";
+import type { ChatDemoCast } from "./demo/chat/chatCastTypes";
 
 interface NodetoolDemoApi {
   ready: boolean;
@@ -63,9 +70,22 @@ async function loadCast(): Promise<DemoCast> {
 /** Which player the page mounts: the graph canvas, or a document surface. */
 type PreviewCast =
   | { kind: "graph"; cast: DemoCast }
-  | { kind: "doc"; cast: DocDemoCast };
+  | { kind: "doc"; cast: DocDemoCast }
+  | { kind: "chat"; cast: ChatDemoCast };
 
 async function loadPreview(): Promise<PreviewCast> {
+  const chatId = new URLSearchParams(window.location.search).get("chat");
+  if (chatId) {
+    const found = chatCasts.find((c) => c.id === chatId);
+    if (!found) {
+      throw new Error(
+        `Unknown chat cast "${chatId}". Known: ${chatCasts
+          .map((c) => c.id)
+          .join(", ")}`
+      );
+    }
+    return { kind: "chat", cast: found };
+  }
   const docId = new URLSearchParams(window.location.search).get("doc");
   if (docId) {
     const found = docCasts.find((c) => c.id === docId);
@@ -86,10 +106,14 @@ function assetsBaseFor(castId: string): string {
   return params.get("assets") ?? `/demo-assets/${castId}`;
 }
 
+const params = new URLSearchParams(window.location.search);
+const START_MS = Number(params.get("t") ?? 0) || 0;
+const BARE = params.get("bare") === "1";
+
 function App(): React.JSX.Element {
   const [preview, setPreview] = useState<PreviewCast | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [timeMs, setTimeMs] = useState(0);
+  const [timeMs, setTimeMs] = useState(START_MS);
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
@@ -159,7 +183,9 @@ function App(): React.JSX.Element {
   return (
     <div style={styles.root} data-ready="true">
       <div style={styles.stage}>
-        {preview.kind === "doc" ? (
+        {preview.kind === "chat" ? (
+          <ChatDemoPlayer cast={preview.cast} timeMs={timeMs} />
+        ) : preview.kind === "doc" ? (
           <DocDemoPlayer cast={preview.cast} timeMs={timeMs} />
         ) : (
           <DemoPlayer
@@ -169,6 +195,7 @@ function App(): React.JSX.Element {
           />
         )}
       </div>
+      {BARE ? null : (
       <div style={styles.controls}>
         <button
           type="button"
@@ -194,6 +221,7 @@ function App(): React.JSX.Element {
           {(preview.cast.durationMs / 1000).toFixed(2)}s
         </span>
       </div>
+      )}
     </div>
   );
 }

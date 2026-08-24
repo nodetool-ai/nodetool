@@ -2,7 +2,7 @@
  * Builders for authoring synthetic chat demo casts — cuts the per-cast
  * boilerplate down to the parts that differ, mirroring `../castHelpers.ts`.
  */
-import type { ToolCall } from "../../stores/ApiTypes";
+import type { Message, ToolCall } from "../../stores/ApiTypes";
 import type { ChatCastEvent, ChatViewStatus } from "./chatCastTypes";
 
 export const userMessage = (t: number, text: string): ChatCastEvent => ({
@@ -16,10 +16,37 @@ export const userMessage = (t: number, text: string): ChatCastEvent => ({
 export const assistantStart = (
   t: number,
   id: string,
-  toolCalls?: ToolCall[]
+  toolCalls?: ToolCall[],
+  createdAt?: string
 ): ChatCastEvent => ({
   t,
-  payload: { kind: "assistantStart", id, toolCalls },
+  payload: { kind: "assistantStart", id, toolCalls, createdAt },
+});
+
+/**
+ * A tool-result message. The chat thread reads these to pair a result with
+ * its call and to compute the duration shown on the card — `createdAt` minus
+ * the calling assistant message's own `createdAt`.
+ */
+export const toolMessage = (
+  t: number,
+  toolCallId: string,
+  name: string,
+  content: Message["content"],
+  createdAt: string
+): ChatCastEvent => ({
+  t,
+  payload: {
+    kind: "message",
+    message: {
+      type: "message",
+      role: "tool",
+      name,
+      tool_call_id: toolCallId,
+      content,
+      created_at: createdAt,
+    },
+  },
 });
 
 export const status = (t: number, status: ChatViewStatus): ChatCastEvent => ({
