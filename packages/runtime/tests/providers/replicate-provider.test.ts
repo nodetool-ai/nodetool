@@ -367,6 +367,40 @@ describe("ReplicateProvider", () => {
     vi.unstubAllGlobals();
   });
 
+  it("textToImage waits out the low-credit 429 instead of failing", async () => {
+    const throttled = Object.assign(
+      new Error(
+        'Request to https://api.replicate.com/v1/predictions failed with status 429 Too Many Requests: {"status":429,"retry_after":5}.'
+      ),
+      { response: { status: 429, headers: new Headers() } }
+    );
+    const fakeReadableStream = {
+      getReader: () => ({
+        read: () => Promise.resolve({ done: true, value: undefined })
+      })
+    };
+    const runMock = vi
+      .fn()
+      .mockRejectedValueOnce(throttled)
+      .mockResolvedValue([fakeReadableStream]);
+    const provider = createProvider({ run: runMock });
+
+    vi.useFakeTimers();
+    const result = provider.textToImage({
+      model: {
+        id: "black-forest-labs/flux-schnell",
+        name: "FLUX Schnell",
+        provider: "replicate"
+      },
+      prompt: "a cat"
+    });
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(await result).toBeInstanceOf(Uint8Array);
+    expect(runMock).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
   it("textToImage throws on empty prompt", async () => {
     await expect(
       createProvider().textToImage({

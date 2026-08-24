@@ -120,6 +120,7 @@ export {
 export { HuggingFaceProvider };
 export { PythonProvider };
 export { ReplicateProvider };
+export { withReplicateRetry } from "./replicate-retry.js";
 export { FalProvider };
 export { NodetoolProvider };
 export { KieProvider };

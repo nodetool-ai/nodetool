@@ -3,6 +3,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { isCallable, isObjectLike, isString } from "../type-predicates.js";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
+import { withReplicateRetry } from "./replicate-retry.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import type {
   ASRModel,
@@ -201,6 +202,16 @@ export class ReplicateProvider extends BaseProvider {
     return false;
   }
 
+  /** Create a prediction, waiting out the low-credit throttle. */
+  private runModel(
+    modelId: string,
+    input: Record<string, unknown>
+  ): Promise<unknown> {
+    return withReplicateRetry(modelId, () =>
+      this._client.run(modelId as `${string}/${string}`, { input })
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Chat completions via Replicate SDK
   // ---------------------------------------------------------------------------
@@ -257,9 +268,7 @@ export class ReplicateProvider extends BaseProvider {
     if (args.topP != null) input.top_p = args.topP;
 
     log.debug("generateMessage", { model: args.model });
-    const output = await this._client.run(args.model as `${string}/${string}`, {
-      input
-    });
+    const output = await this.runModel(args.model, input);
 
     // Replicate LLMs return output as a string, array of token strings,
     // or a ReadableStream/FileOutput.
@@ -897,10 +906,7 @@ export class ReplicateProvider extends BaseProvider {
     if (params.scheduler) input.scheduler = params.scheduler;
 
     log.debug("textToImage", { model: params.model.id });
-    const output = await this._client.run(
-      params.model.id as `${string}/${string}`,
-      { input }
-    );
+    const output = await this.runModel(params.model.id, input);
     return this._fetchOutputBytes(output);
   }
 
@@ -922,10 +928,7 @@ export class ReplicateProvider extends BaseProvider {
     if (params.seed != null) input.seed = params.seed;
 
     log.debug("imageToImage", { model: params.model.id });
-    const output = await this._client.run(
-      params.model.id as `${string}/${string}`,
-      { input }
-    );
+    const output = await this.runModel(params.model.id, input);
     return this._fetchOutputBytes(output);
   }
 
@@ -960,10 +963,7 @@ export class ReplicateProvider extends BaseProvider {
     }
 
     log.debug("inpaint", { model: params.model.id });
-    const output = await this._client.run(
-      params.model.id as `${string}/${string}`,
-      { input }
-    );
+    const output = await this.runModel(params.model.id, input);
     return this._fetchOutputBytes(output);
   }
 
@@ -979,10 +979,7 @@ export class ReplicateProvider extends BaseProvider {
     if (params.seed != null) input.seed = params.seed;
 
     log.debug("textToVideo", { model: params.model.id });
-    const output = await this._client.run(
-      params.model.id as `${string}/${string}`,
-      { input }
-    );
+    const output = await this.runModel(params.model.id, input);
     return this._fetchOutputBytes(output);
   }
 
@@ -1003,10 +1000,7 @@ export class ReplicateProvider extends BaseProvider {
     if (params.seed != null) input.seed = params.seed;
 
     log.debug("imageToVideo", { model: params.model.id });
-    const output = await this._client.run(
-      params.model.id as `${string}/${string}`,
-      { input }
-    );
+    const output = await this.runModel(params.model.id, input);
     return this._fetchOutputBytes(output);
   }
 
@@ -1051,10 +1045,7 @@ export class ReplicateProvider extends BaseProvider {
     modelId: string,
     input: Record<string, unknown>
   ): Promise<Uint8Array> {
-    const output = await this._client.run(modelId as `${string}/${string}`, {
-      input
-    });
-    return this._fetchOutputBytes(output);
+    return this._fetchOutputBytes(await this.runModel(modelId, input));
   }
 
   override async upscaleImage(
@@ -1190,9 +1181,7 @@ export class ReplicateProvider extends BaseProvider {
     if (args.speed != null) input.speed = args.speed;
 
     log.debug("textToSpeechEncoded", { model: args.model });
-    const output = await this._client.run(args.model as `${string}/${string}`, {
-      input
-    });
+    const output = await this.runModel(args.model, input);
     const bytes = await this._fetchOutputBytes(output);
     return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
@@ -1215,10 +1204,7 @@ export class ReplicateProvider extends BaseProvider {
     if (params.seed != null) input.seed = params.seed;
 
     log.debug("textToMusic", { model: params.model.id });
-    const output = await this._client.run(
-      params.model.id as `${string}/${string}`,
-      { input }
-    );
+    const output = await this.runModel(params.model.id, input);
     const bytes = await this._fetchOutputBytes(output);
     return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
