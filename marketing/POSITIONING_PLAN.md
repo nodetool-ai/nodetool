@@ -376,8 +376,16 @@ bundle, and a tutorial card:
 
 - Verify every price figure (SaaS plans, wholesale API costs, per-recipe
   estimates) against current list prices; date the sources on the page.
-- Confirm the MCP tool count (the copy says "120+") against the live registry
-  before it goes on the site.
+- Fix the MCP tool count. The copy says "120+" (and "around 120" on
+  `/agents`, `/developers`, and in `siteSchema.ts`); neither number matches
+  the registry. `packages/cli/src/harness/capability-table.ts` — generated
+  from the live registry by `npm run capabilities:sync` — lists **217**
+  agent capabilities. The MCP mount itself registers far fewer *direct*
+  tools: `registerAgentMcpTools` promotes a small set and publishes the rest
+  through the sandbox catalog at `nodetool://capabilities`
+  (`packages/websocket/src/mcp-agent-tools.ts`). So "120+ MCP tools"
+  undercounts the capability surface and overcounts the tool list a client
+  sees. Pick one claim and name what it counts.
 - Decide cloud CTA wording ("Instant Cloud Alpha" vs. current naming).
 - Community numbers ("5,000+ creators on Discord") must match reality or be
   dropped.
