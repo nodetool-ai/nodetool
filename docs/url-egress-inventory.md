@@ -84,7 +84,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | Model3DRef / ImageRef → bytes | `packages/video-nodes/src/nodes/model3d/utils.ts` | workflow |
 | `nodetool.model3d.RenderToImage` | `packages/video-nodes/src/nodes/model3d/render.ts` | workflow |
 | chat source images + output auto-save | `packages/websocket/src/unified-websocket-runner.ts` | chat client |
-| asset import by reference | `packages/websocket/src/http-api.ts` | chat client |
+| asset ref → bytes on export | `packages/websocket/src/lib/asset-export.ts` | chat client |
 | `save_asset` / `view_image` | `packages/agents/src/capabilities/assets.ts` | model |
 | `yt_dlp` download | `packages/agents/src/capabilities/media.ts` | model |
 | Apify run artifacts → assets | `packages/agents/src/apify/assets.ts` | provider response |

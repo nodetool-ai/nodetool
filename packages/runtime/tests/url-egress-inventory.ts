@@ -361,10 +361,10 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Key-value store and dataset file URLs out of an actor run."
   ),
   guardedSafeFetch(
-    "packages/websocket/src/http-api.ts",
-    "asset import by reference",
+    "packages/websocket/src/lib/asset-export.ts",
+    "asset ref → bytes on export",
     "chat-client",
-    "An http(s) ref posted to the asset routes."
+    "An http(s) ref stored on a graph or storyboard, read when packing an export."
   ),
   {
     file: "packages/agents/src/capabilities/media.ts",

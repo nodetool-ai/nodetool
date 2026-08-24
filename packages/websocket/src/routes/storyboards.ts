@@ -11,11 +11,8 @@ import type { FastifyPluginAsync } from "fastify";
 import { Storyboard } from "@nodetool-ai/models";
 import type { Shot } from "@nodetool-ai/protocol";
 import { bridge } from "../lib/bridge.js";
-import {
-  getUserId,
-  resolveAssetBytesForExport,
-  type HttpApiOptions
-} from "../http-api.js";
+import { getUserId, type HttpApiOptions } from "../http-api.js";
+import { resolveAssetBytesForExport } from "../lib/asset-export.js";
 import {
   packStoryboardZip,
   type StoryboardExportInput
