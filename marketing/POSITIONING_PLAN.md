@@ -358,8 +358,11 @@ repo changes the artwork in the same diff.
 - [x] Five-surface tab showcase — `SurfaceShowcase`, one tab per editor over
       its W1 loop, deep-linkable as `#surface-<id>`. The long-form sections
       keep their own `#storyboard`-style anchors; these are separate ids.
-- [ ] Comparison pages: `/compare/vs-comfyui`, `/compare/vs-runway`,
-      `/compare/vs-n8n`, `/compare/vs-figma-weave`
+- [x] Comparison pages — all four exist, on `/alternatives/<slug>`, and
+      `/compare/vs-<slug>` redirects there. A third prefix over the same copy
+      is what the `/vs` → `/alternatives` consolidation already measured
+      against (`docs/SEO_STRATEGY.md` § 0.10: 4,817 impressions to 1,117).
+      ComfyUI, n8n, and Figma Weave were already written; Runway is new.
 
 **W3 — Template gallery**
 

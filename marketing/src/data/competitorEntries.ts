@@ -370,6 +370,82 @@ export const competitors: Competitor[] = [
     isNew: true,
   },
   {
+    slug: "runway",
+    name: "Runway",
+    theme: "violet",
+    category: "Video studio",
+    isNew: true,
+    og: {
+      image: "screen_workflow.png",
+      accent: "violet",
+      subtitle:
+        "An open workspace for the whole edit — every video model on your own keys, on a timeline you own.",
+    },
+    heroParagraph:
+      "Runway made prompt-to-video feel like a craft tool rather than a demo, and its own models are genuinely good. The catch is structural: the models are the ones Runway ships, the work lives on Runway's servers, and the meter runs in credits. A finished piece is rarely one clip — it is a board, a script, a voice, twenty takes, and a cut. NodeTool is the open-source, bring-your-own-key workspace for that whole pass: every video model from every provider at list price, a multi-track timeline in the same app, and an agent that can run the pipeline for you.",
+    competitorTagline: "Hosted video studio",
+    competitorBullets: [
+      "Strong first-party video models",
+      "Polished hosted editor, nothing to install",
+      "Closed source, subscription + credits",
+      "The model list is Runway's own",
+    ],
+    competitorBulletTone: "negative",
+    nodetoolTagline: "Open source · your keys",
+    nodetoolBullets: [
+      "Every video model from every provider, swapped in one node",
+      "Storyboard, script, voice, and a multi-track timeline in one app",
+      "Agent-first: describe the pipeline and an agent builds and runs it",
+      "Your own keys at provider prices — no credits, no markup",
+      "Self-hostable, and local models cost nothing per call",
+    ],
+    rows: [
+      { label: "Video models", competitor: "First-party", nodetool: "Every major provider" },
+      { label: "Swap models mid-project", competitor: "Within the list", nodetool: "One node change" },
+      { label: "Multi-track timeline", competitor: "Built-in", nodetool: "Built-in" },
+      { label: "Storyboard + script + voice", competitor: "Partial", nodetool: "One document each, linked" },
+      { label: "Automate a repeat job", competitor: "Manual per piece", nodetool: "A workflow you rerun" },
+      { label: "Pricing model", competitor: "Subscription + credits", nodetool: "Your keys, provider prices" },
+      { label: "Source", competitor: "Closed", nodetool: "AGPL-3.0" },
+      { label: "Self-host + local models", competitor: false, nodetool: true },
+    ],
+    explainerHeading: "One studio's models, or every studio's",
+    explainerParagraph:
+      "Runway is a good answer to \"generate this shot\". It is a worse answer to \"generate this shot with whichever model is best this month, then do it again next week for forty SKUs\". NodeTool treats the model as a swappable part: the same graph calls Veo, Kling, Sora, Hailuo, Wan, or Seedance depending on which node you pick, billed to your own key at the provider's list price. Around that sit the parts a finished piece needs anyway — a storyboard that settles framing before you pay for clips, a script that knows which voice speaks each line, and a multi-track timeline to cut on. All of it is open source under AGPL-3.0, so the workflow is a file you own and can rerun anywhere.",
+    ctaHeading: "Keep the edit, swap the model.",
+    ctaParagraph:
+      "Download Studio and build the whole video pipeline on your own keys.",
+    faq: [
+      {
+        question: "What is the difference between NodeTool and Runway?",
+        answer:
+          "Runway is a closed, hosted video studio built around its own models and billed in credits. NodeTool is an open-source (AGPL-3.0) workspace that calls every major video provider with your own keys at list price, and puts a storyboard, script, voice, and multi-track timeline around the generation step. You can self-host it or run it as a desktop app.",
+      },
+      {
+        question: "Can NodeTool use the same video models as Runway?",
+        answer:
+          "NodeTool calls whichever models the providers it supports serve — Veo, Kling, Sora, Hailuo, Wan, Seedance and others through fal, Replicate, Kie, and the model APIs directly. Runway's own first-party models are exclusive to Runway.",
+      },
+      {
+        question: "Does NodeTool have a video editor?",
+        answer:
+          "Yes. Clips, audio, captions, and transitions sit on a multi-track timeline in the same app that generated them, and an agent can edit that timeline through the same tools you click.",
+      },
+      {
+        question: "Is NodeTool cheaper than Runway?",
+        answer:
+          "NodeTool adds nothing per generation — you pay each provider its list price with your own key, and Studio is free and open source. Whether the total is lower depends on your workload and which models you pick; there is simply no platform margin on top.",
+      },
+    ],
+    limitation:
+      "Runway is a closed, credit-billed studio built on its own model list — no self-hosting, no bringing your own keys, and no swapping in a model it does not ship.",
+    seo: {
+      title: "Runway alternative — open source, your own keys | NodeTool",
+      description:
+        "An open-source alternative to Runway: every video model from every provider on your own keys, with a storyboard, script, voice, and multi-track timeline in the same workspace.",
+    },
+  },
+  {
     slug: "langflow",
     name: "Langflow",
     theme: "blue",
