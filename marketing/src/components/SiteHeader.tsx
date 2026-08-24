@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { track } from "../lib/analytics";
 import { useGithubStars, formatStars } from "../lib/useGithubStars";
+import AnnouncementBar from "./AnnouncementBar";
 
 /**
  * Single shared site header used by every route (P3). Replaces the per-page
@@ -70,8 +71,9 @@ export default function SiteHeader() {
 
   return (
     <header>
+      <AnnouncementBar />
       <nav
-        className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-glass supports-[backdrop-filter]:bg-glass shadow-[0_1px_0_0_rgba(59,130,246,0.08)]"
+        className="fixed top-[var(--announce-h)] left-0 right-0 z-50 border-b border-slate-800/60 bg-glass supports-[backdrop-filter]:bg-glass shadow-[0_1px_0_0_rgba(59,130,246,0.08)]"
         aria-label="Primary"
       >
         <div className="mx-auto max-w-7xl px-6 lg:px-8 py-2 sm:py-3">

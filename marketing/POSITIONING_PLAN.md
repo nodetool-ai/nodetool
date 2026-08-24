@@ -347,14 +347,24 @@ repo changes the artwork in the same diff.
 
 **W2 — Frontend & web engineering**
 
-- [ ] Hero overhaul: announcement bar, dual CTA, interactive demo player
+- [x] Hero overhaul — a dismissible announcement bar above the header
+      (`--announce-h` offsets the fixed nav and pads the body, so every page's
+      own clearance keeps working), a dual CTA of Download / Try the Cloud
+      alpha, and the W1 hero reel in place of the static screenshot. The
+      poster stays a plain `<img>` with a srcSet and high fetch priority — a
+      `<video poster>` carries neither — and the reel mounts only when the
+      hero scrolls into view.
 - [x] BYOK ROI calculator — `ByokCalculator`, client-side, per-line model
       breakdown. Unit prices come from `calculatorPricing.generated.ts`, which
       `scripts/generate-calculator-pricing.mjs` reads out of the GenSpend
       catalog NodeTool bills a run against, so the page cannot quote a price
       the product does not charge. The resale comparison is a multiplier the
       reader sets, not a claim about a named competitor.
-- [ ] Graph-to-app split widget
+- [x] Graph-to-app widget — `GraphToAppSplit`, the same shipped example seen
+      twice: the generated template graph, then the mini app that binds that
+      workflow. Stacked rather than a drag-to-reveal split, because the two
+      assets share no aspect ratio (a wide graph against a tall app page) and
+      one frame either crops the app mid-sentence or shrinks it to a column.
 - [x] Five-surface tab showcase — `SurfaceShowcase`, one tab per editor over
       its W1 loop, deep-linkable as `#surface-<id>`. The long-form sections
       keep their own `#storyboard`-style anchors; these are separate ids.
