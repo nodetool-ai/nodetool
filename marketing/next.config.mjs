@@ -124,6 +124,12 @@ const nextConfig = {
       // every competitor slug resolves under both prefixes, and an unknown slug
       // 404s at the destination exactly as it did at the source.
       { source: "/vs/:slug", destination: "/alternatives/:slug", permanent: true },
+      // The positioning plan asks for /compare/vs-<competitor>. That would be a
+      // third prefix over the same copy, and the /vs consolidation above is the
+      // measurement saying not to: one page per competitor, on the prefix that
+      // won. Both spellings of the plan's URL land there.
+      { source: "/compare/vs-:slug", destination: "/alternatives/:slug", permanent: true },
+      { source: "/compare/:slug", destination: "/alternatives/:slug", permanent: true },
       ...Object.entries(merges).map(([from, to]) => ({
         source: `/templates/${from}`,
         destination: `/templates/${to}`,
