@@ -54,7 +54,7 @@ const MEDIA_TYPE_ALIASES: Record<string, string> = {
   model_3d: "model_3d"
 };
 
-/** File extensions by ref type. */
+/** Fallback extension when the ref names no format. */
 const EXTENSION_MAP: Record<string, string> = {
   image: ".png",
   audio: ".wav",
@@ -62,13 +62,80 @@ const EXTENSION_MAP: Record<string, string> = {
   model_3d: ".glb"
 };
 
-/** MIME types by ref type. */
+/** Fallback MIME type when the ref names no format. */
 const MIME_MAP: Record<string, string> = {
   image: "image/png",
   audio: "audio/wav",
   video: "video/mp4",
   model_3d: "model/gltf-binary"
 };
+
+/**
+ * MIME type per declared ref format. A ref that says `format: "jpeg"` must not
+ * be stored as `.png` with `image/png`: the extension decides how a browser
+ * and every downstream reader treat the bytes.
+ *
+ * A format absent from this table still shapes the extension — the entry only
+ * decides the content type, which falls back to the media kind's default.
+ */
+const FORMAT_MIME_MAP: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  bmp: "image/bmp",
+  tiff: "image/tiff",
+  wav: "audio/wav",
+  mp3: "audio/mpeg",
+  flac: "audio/flac",
+  ogg: "audio/ogg",
+  opus: "audio/opus",
+  m4a: "audio/mp4",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+  mkv: "video/x-matroska",
+  avi: "video/x-msvideo",
+  glb: "model/gltf-binary",
+  gltf: "model/gltf+json",
+  obj: "model/obj",
+  stl: "model/stl",
+  ply: "model/mesh",
+  fbx: "application/octet-stream"
+};
+
+/**
+ * The format a ref declares, as a storage-key-safe token, or null.
+ *
+ * The value is node-controlled and lands in a storage key, so anything but a
+ * short alphanumeric token is refused rather than sanitized — a format of
+ * `../../etc` has no legitimate reading.
+ */
+function refFormat(ref: Record<string, unknown> | null): string | null {
+  const raw = ref?.["format"];
+  if (!isString(raw)) return null;
+  const format = raw.trim().toLowerCase();
+  return /^[a-z0-9]{1,8}$/.test(format) ? format : null;
+}
+
+/** True when a ref's `data` holds raw bytes rather than an inline payload. */
+function isBinaryPayload(value: unknown): boolean {
+  if (value instanceof Uint8Array || value instanceof ArrayBuffer) return true;
+  return (
+    Array.isArray(value) &&
+    value.some(
+      (item) => item instanceof Uint8Array || item instanceof ArrayBuffer
+    )
+  );
+}
+
+/** The ref the worker sent for this output slot, if it sent one. */
+function carriedRef(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
 
 function normalizeMediaOutputType(outputType: string | undefined): string | null {
   if (!outputType) {
@@ -249,21 +316,41 @@ export class PythonNodeExecutor {
       const mediaType = Object.hasOwn(this.outputTypes, name)
         ? normalizeMediaOutputType(this.outputTypes[name])
         : null;
+      // The ref the worker sent for this slot, when it sent one. Rebuilding a
+      // bare {uri, type} from the media kind drops everything else it carried —
+      // a VideoRef's duration and format, a Model3DRef's material_file and
+      // texture_files, which are what make the asset renderable.
+      // Guarded with Object.hasOwn for the same reason the outputTypes lookup
+      // is: a blob named "__proto__" would otherwise read Object.prototype and
+      // spread its members into the output.
+      const ref = Object.hasOwn(result.outputs, name)
+        ? carriedRef(result.outputs[name])
+        : null;
+
       if (mediaType && context?.storage) {
-        const ext = EXTENSION_MAP[mediaType] ?? "";
-        const contentType = MIME_MAP[mediaType];
+        const format = refFormat(ref);
+        const ext = format ? `.${format}` : (EXTENSION_MAP[mediaType] ?? "");
+        const contentType =
+          (format ? FORMAT_MIME_MAP[format] : undefined) ?? MIME_MAP[mediaType];
         const storageKey = `python-bridge/${randomUUID()}${ext}`;
         const uri = await context.storage.store(
           storageKey,
           blobData,
           contentType
         );
-        outputs[name] = { uri, type: mediaType };
+        outputs[name] = { ...ref, uri, type: mediaType };
+        // The payload is the blob, now at `uri`. A ref that also carries bytes
+        // would duplicate a megabyte-scale payload downstream, so drop them —
+        // tested by value, since an inline non-binary payload (a dataframe's
+        // rows) is content and must survive.
+        if (ref && isBinaryPayload(ref["data"])) {
+          delete (outputs[name] as Record<string, unknown>)["data"];
+        }
       } else if (mediaType) {
         // No storage adapter available: keep the bytes inline but preserve the
         // media kind so downstream nodes receive a typed ref (e.g. ImageRef),
         // not a bare Uint8Array.
-        outputs[name] = { type: mediaType, data: blobData };
+        outputs[name] = { ...ref, type: mediaType, data: blobData };
       } else {
         outputs[name] = blobData;
       }
