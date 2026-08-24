@@ -14,7 +14,7 @@ export default function NodeToolHero() {
         <div className="absolute top-1/2 -right-20 h-[20rem] w-[20rem] rounded-full bg-amber-500/10 blur-[120px]" />
       </div>
 
-      <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
+      <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
         {/* Left: copy */}
         <div className="hero-rise lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
@@ -24,7 +24,7 @@ export default function NodeToolHero() {
 
           <h1
             id="hero-title"
-            className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
+            className="mt-5 text-4xl font-bold leading-[1.05] tracking-tight text-white sm:text-5xl md:text-[3.25rem]"
           >
             Describe what you want to make.
             <br />
@@ -35,26 +35,20 @@ export default function NodeToolHero() {
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
-            NodeTool is an open-source creative studio for making images,
-            video, audio, and text in one place.
-          </p>
-
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-400">
-            Design your project using built-in editors for sketching, scripts,
-            storyboards, and video timelines. Do it by hand, or tell an AI
-            agent what you need — it builds the{" "}
+          <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-300 md:text-lg">
+            An open-source creative studio for images, video, audio, and text.
+            Sketch, script, storyboard, and cut in built-in editors — or tell an
+            agent what you need and it builds the{" "}
             <a
               href="/node-based-ai"
               className="text-slate-200 underline decoration-slate-500/50 underline-offset-2 transition-colors hover:text-white hover:decoration-slate-300"
             >
               visual pipeline
             </a>
-            , runs it, and leaves you with an editable project you can change
-            or reuse anytime.
+            , runs it, and hands back an editable project.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
             <SmartDownloadButton
               icon={<Download className="h-5 w-5" />}
               classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60"
@@ -69,7 +63,7 @@ export default function NodeToolHero() {
             </a>
           </div>
 
-          <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
+          <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
             <li className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
               Built-in editors for every step
