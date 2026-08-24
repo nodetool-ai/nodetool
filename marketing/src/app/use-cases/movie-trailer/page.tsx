@@ -12,9 +12,9 @@ import {
   Film,
   Clapperboard,
   RefreshCw,
-  SlidersHorizontal,
+  Users,
   Wand2,
-  Repeat,
+  Scissors,
   Check,
 } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
@@ -22,7 +22,6 @@ import SiteFooter from "../../../components/SiteFooter";
 import FaqSection from "../../../components/FaqSection";
 import { movieTrailerUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
-import MovieTrailerGraph from "../../../components/MovieTrailerGraph";
 
 const shots = [
   { src: "/trailer-shot-1.png", caption: "Blown supercharger spits fire down the straight" },
@@ -44,39 +43,39 @@ const tweaks = [
   {
     icon: RefreshCw,
     title: "Swap the video model",
-    body: "Veo, Seedance, Kling, Runway. Change one node and the storyboard, shots, and key art stay exactly the same.",
-  },
-  {
-    icon: SlidersHorizontal,
-    title: "Redirect the storyboard",
-    body: "Raise the shot count, change the aspect ratio, or point the Director at a different model. The rest of the graph is untouched.",
+    body: "Veo, Seedance, Kling, Runway — pick a different one and render that shot again. The board, the stills, and every clip you already approved stay exactly as they are.",
   },
   {
     icon: Wand2,
-    title: "Restyle every shot",
-    body: "The visual-style input becomes the screenplay's style bible, and the style bible lands in every shot prompt. Change one line and the whole trailer shifts mood.",
+    title: "Restyle the whole film",
+    body: "The visual style you typed becomes the style bible behind every card. Change one line from gritty daylight to neon night and the next pass boards it that way.",
   },
   {
-    icon: Repeat,
-    title: "Re-run any story",
-    body: "Drop in a new logline and run it again. The workflow is the reusable part, not this trailer.",
+    icon: Scissors,
+    title: "Fix one shot, not the reel",
+    body: '"Darker, add rain" revises that one clip and swaps it back into the card. Shot 3 changes, shots 1, 2, and 4–6 never re-roll.',
+  },
+  {
+    icon: Users,
+    title: "Keep the cast consistent",
+    body: "Characters, locations, props, and looks are saved as named entities. Name one in a shot and its description rides into that shot's prompt, so the same driver and the same car show up all the way through.",
   },
 ];
 
 const models = [
   {
     name: "Gemini 3.1 Pro Preview",
-    role: "Directs the storyboard",
+    role: "Directs the board — the shot list, action, and camera notes",
     provider: "Gemini",
   },
   {
     name: "GPT Image-2",
-    role: "Renders each shot's key art",
+    role: "Renders each card's still",
     provider: "kie",
   },
   {
     name: "Veo 3.1 Preview",
-    role: "Animates the frames into video",
+    role: "Animates approved stills into clips",
     provider: "Gemini",
   },
 ];
@@ -136,10 +135,10 @@ export default function MovieTrailerUseCase() {
                 Movie Trailer Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
-                Type one logline and the canvas builds the teaser: a Director
-                node storyboards it into shots, key art is rendered for every
-                beat, then animated and cut into a finished trailer. No editor,
-                no studio, one canvas you can re-run for any story.
+                Write one line about your film. It comes back as a storyboard
+                you can read: a card per shot, a still on every card. Approve
+                the ones you like, animate those, and the clips land on a
+                timeline you cut and export. It works the way a shoot does.
               </p>
             </motion.div>
 
@@ -196,12 +195,12 @@ export default function MovieTrailerUseCase() {
                 How it works
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                A handful of nodes do the work. One line becomes a storyboard, the
-                storyboard becomes shots, the shots become a trailer.
+                Four steps, all of them visible: a brief, a board, stills you
+                approve, and a cut on the timeline.
               </p>
             </div>
 
-            {/* Live graph — the real workflow, rendered from the node UI components */}
+            {/* The storyboard surface, running */}
             <motion.div
               initial={false}
               whileInView={{ opacity: 1, y: 0 }}
@@ -214,13 +213,24 @@ export default function MovieTrailerUseCase() {
                   <div className="h-3 w-3 rounded-full bg-amber-500/40" />
                   <div className="h-3 w-3 rounded-full bg-emerald-500/40" />
                   <span className="ml-3 text-xs font-medium text-slate-400">
-                    Workflow Editor
+                    Storyboard
                   </span>
                   <span className="ml-auto hidden text-xs font-medium text-slate-500 sm:block">
-                    Movie Trailer Generator
+                    Brief · shot cards · stills
                   </span>
                 </div>
-                <MovieTrailerGraph />
+                <video
+                  poster="/surface-storyboard-poster.webp"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  aria-label="The storyboard filling in: a brief and a visual style at the top, then shot cards, each with its still, action line, and camera notes"
+                  className="block h-auto w-full"
+                >
+                  <source src="/surface-storyboard.webm" type="video/webm" />
+                  <source src="/surface-storyboard.mp4" type="video/mp4" />
+                </video>
               </div>
             </motion.div>
 
@@ -256,16 +266,18 @@ export default function MovieTrailerUseCase() {
           </div>
         </section>
 
-        {/* Six shots, one trailer */}
+        {/* The board */}
         <section className="relative py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Six shots, one trailer
+                Six cards on the board
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                Every beat is rendered as its own cinematic frame, then animated
-                and cut together. Here is a single run, straight off the canvas.
+                This is a single run of the board, straight out of NodeTool. Each
+                card holds one beat and its still. Re-roll a card you don&apos;t
+                like — stills cost cents, and the rest of the board doesn&apos;t
+                move.
               </p>
             </div>
 
@@ -279,6 +291,15 @@ export default function MovieTrailerUseCase() {
                   transition={{ duration: 0.5, delay: (i % 3) * 0.05 }}
                   className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50"
                 >
+                  <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5">
+                    <span className="font-mono text-xs text-amber-400">
+                      Shot {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
+                      <Check className="h-3 w-3" />
+                      Clip rendered
+                    </span>
+                  </div>
                   <Image
                     src={shot.src}
                     alt={shot.caption}
@@ -286,21 +307,96 @@ export default function MovieTrailerUseCase() {
                     height={941}
                     className="aspect-video w-full object-cover"
                   />
-                  <div className="flex items-center gap-2 border-t border-white/5 px-4 py-3 text-sm leading-relaxed text-slate-400">
-                    <span className="font-mono text-xs text-amber-400">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
+                  <p className="border-t border-white/5 px-4 py-3 text-sm leading-relaxed text-slate-400">
                     {shot.caption}
-                  </div>
+                  </p>
                 </motion.div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* The timeline */}
+        <section className="relative py-20">
+          <div className="mx-auto max-w-6xl px-6 lg:px-8">
+            <div className="mb-12 max-w-2xl">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+                Send the board to the timeline
+              </h2>
+              <p className="mt-4 text-lg text-slate-400 leading-relaxed">
+                One click and the approved clips land on a track in shot order.
+                From there it&apos;s a normal edit: trim, reorder, lay music and
+                voice under it, and export the cut.
+              </p>
+            </div>
+
+            {/* Clips in shot order */}
+            <motion.div
+              initial={false}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.6 }}
+              className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 backdrop-blur-sm"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-8 shrink-0 font-mono text-xs text-slate-500">
+                  V1
+                </span>
+                <div className="flex flex-1 gap-1.5 overflow-hidden">
+                  {shots.map((shot, i) => (
+                    <div
+                      key={shot.src}
+                      className="relative flex-1 overflow-hidden rounded-md border border-white/10"
+                    >
+                      <Image
+                        src={shot.src}
+                        alt=""
+                        width={1672}
+                        height={941}
+                        className="h-12 w-full object-cover sm:h-16"
+                      />
+                      <span className="absolute left-1 top-1 rounded bg-black/60 px-1 font-mono text-[10px] text-amber-300">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="w-8 shrink-0 font-mono text-xs text-slate-500">
+                  A1
+                </span>
+                <div className="h-6 flex-1 rounded-md border border-sky-500/25 bg-sky-500/10" />
+              </div>
+              <p className="mt-3 pl-11 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Six clips on the video track, score underneath
+              </p>
+            </motion.div>
+
+            <motion.figure
+              initial={false}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.6 }}
+              className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50"
+            >
+              <Image
+                src="/creatives_timeline.webp"
+                alt="NodeTool's timeline editor: a video preview with a clip inspector on the right, generated clips on a video track with an audio waveform below, a prompt bar to generate a clip at the playhead, and an Export button"
+                width={2000}
+                height={1304}
+                className="h-auto w-full"
+              />
+              <figcaption className="border-t border-white/5 px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+                The timeline editor · trim, reorder, score, export
+              </figcaption>
+            </motion.figure>
 
             {/* The assembled output */}
             <div className="mt-10 flex items-center gap-3 text-sm font-medium uppercase tracking-wide text-slate-400">
               <span className="h-px flex-1 bg-white/10" />
               <ArrowRight className="h-4 w-4 rotate-90 text-amber-400" />
-              Cut into the trailer
+              Exported
               <span className="h-px flex-1 bg-white/10" />
             </div>
 
@@ -322,7 +418,7 @@ export default function MovieTrailerUseCase() {
                 controls
               />
               <div className="border-t border-white/5 px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-                Output · the assembled teaser
+                Output · the finished teaser
               </div>
             </motion.div>
           </div>
@@ -336,8 +432,8 @@ export default function MovieTrailerUseCase() {
                 Make it yours
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                Nothing here is locked. Swap models, change the tone, or point it
-                at a different story.
+                Nothing here is locked. Change the look, change the model,
+                change one shot — the rest of the board stays where you left it.
               </p>
             </div>
 
@@ -373,12 +469,12 @@ export default function MovieTrailerUseCase() {
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                    Models in this workflow
+                    Models behind this trailer
                   </h2>
                   <p className="mt-4 text-slate-400 leading-relaxed">
                     Called with your own keys. The bill comes from the provider,
-                    not from us, and you can switch any of them for a better model
-                    the day it ships.
+                    not from us, and you can switch any of them for a better
+                    model the day it ships.
                   </p>
                   <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300">
                     <Check className="h-4 w-4" />
@@ -423,8 +519,8 @@ export default function MovieTrailerUseCase() {
               Cut your first trailer
             </h2>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-              Free, open source, and yours to run. Download Studio, open this
-              workflow, and build a teaser from one line today.
+              Free, open source, and yours to run. Download Studio, open the
+              storyboard, and board a teaser from one line today.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

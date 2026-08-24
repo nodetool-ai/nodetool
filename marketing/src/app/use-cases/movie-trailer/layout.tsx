@@ -5,7 +5,7 @@ import type { Metadata, Viewport } from "next";
 
 const TITLE = "AI Movie Trailer Generator | NodeTool use case";
 const DESCRIPTION =
-  "Type one logline and the canvas builds a cinematic teaser. A Director node storyboards it into shots, a text-to-image model renders the key art, and a video model animates and cuts it into a finished trailer, all on one open canvas with your own keys.";
+  "Write one logline and get a storyboard back: a card per shot with a still on it. Approve the stills you like, animate those into clips, and cut the trailer on the built-in timeline — all in NodeTool, on your own provider keys.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -20,8 +20,8 @@ export const metadata: Metadata = {
     "text to video workflow",
     "image to video",
     "AI film teaser",
-    "storyboard automation",
-    "AI video pipeline",
+    "AI storyboard",
+    "AI video editing timeline",
     "NodeTool use case",
   ],
   openGraph: {
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "AI Movie Trailer Generator",
     description:
-      "From one logline to a cinematic teaser: a storyboard, key art, and a cut trailer, on one open canvas.",
+      "From one logline to a cinematic teaser: a storyboard, a still per shot, and a cut trailer on the timeline.",
   },
 };
 

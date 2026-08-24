@@ -32,7 +32,7 @@ export const staticEntries: PageEntry[] = [
   { route: "/apps", title: "AI Mini Apps", description: "Ready-to-use AI mini apps built with NodeTool's App Builder.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/use-cases/product-video", title: "Product Video", description: "Make product videos with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/use-cases/movie-poster", title: "Movie Poster", description: "Generate movie posters with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
-  { route: "/use-cases/movie-trailer", title: "Movie Trailer", description: "Cut movie trailers with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
+  { route: "/use-cases/movie-trailer", title: "Movie Trailer", description: "Storyboard a trailer, then cut it on the timeline.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/imprint", title: "Imprint", description: "Legal imprint.", priority: 0.3, changeFrequency: "yearly", indexable: true },
   { route: "/privacy", title: "Privacy Policy", description: "Privacy policy.", priority: 0.3, changeFrequency: "yearly", indexable: true },
   { route: "/terms", title: "Terms of Service", description: "Terms of service.", priority: 0.3, changeFrequency: "yearly", indexable: true },
