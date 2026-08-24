@@ -13,7 +13,8 @@ import {
 } from "@nodetool-ai/node-sdk";
 import {
   listRegisteredProviderIds,
-  listOfflineModelIds
+  listOfflineModelIds,
+  listOfflineRequiredTextInputs
 } from "@nodetool-ai/runtime";
 import { resolveTarget } from "../debug/target.js";
 import type { DebugGraph, DebugTargetInfo } from "../debug/types.js";
@@ -68,7 +69,12 @@ export async function runValidate(
       // everything else returns undefined and goes unchecked rather than
       // guessed at. ASR and language catalogs are not in any manifest.
       listModelIds: (provider: string, modelType: string) =>
-        listOfflineModelIds(provider, modelType)
+        listOfflineModelIds(provider, modelType),
+      listRequiredTextInputs: (
+        provider: string,
+        modelType: string,
+        modelId: string
+      ) => listOfflineRequiredTextInputs(provider, modelType, modelId)
     };
   }
   // Declared credentials are collected first so the host resolves exactly

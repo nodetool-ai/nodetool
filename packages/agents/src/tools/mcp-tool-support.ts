@@ -16,6 +16,7 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   listOfflineModelIds,
+  listOfflineRequiredTextInputs,
   listRegisteredProviderIds
 } from "@nodetool-ai/runtime";
 import type { GraphValidationIssue, NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -347,12 +348,20 @@ export interface ModelCatalogs {
     provider: string,
     modelType: string
   ) => readonly string[] | undefined;
+  /** Optional: a catalog that cannot answer omits it and the check is skipped. */
+  listRequiredTextInputs?: (
+    provider: string,
+    modelType: string,
+    modelId: string
+  ) => readonly string[] | undefined;
 }
 
 export const RUNTIME_MODEL_CATALOGS: ModelCatalogs = {
   listProviderIds: () => listRegisteredProviderIds(),
   listModelIds: (provider, modelType) =>
-    listOfflineModelIds(provider, modelType)
+    listOfflineModelIds(provider, modelType),
+  listRequiredTextInputs: (provider, modelType, modelId) =>
+    listOfflineRequiredTextInputs(provider, modelType, modelId)
 };
 
 /**

@@ -517,7 +517,8 @@ export class ImageToVideoNode extends BaseNode {
     type: "str",
     default: "",
     title: "Prompt",
-    description: "Optional text prompt to guide the video animation"
+    description:
+      "Text prompt to guide the video animation. Veo animates an image without one; Kling refuses an empty one. Leaving it blank ties the graph to the models that treat it as optional."
   })
   declare prompt: string;
 

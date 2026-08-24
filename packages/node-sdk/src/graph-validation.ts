@@ -117,6 +117,12 @@ export interface GraphValidationIssue {
    * - "missing_provider" (error): a model reference carries an id but no
    *   provider, so nothing can route it. See
    *   {@link collectModelSelectionIssues} for this and its two siblings.
+   * - "missing_required_model_input" (info): a node leaves a property blank
+   *   that the model it selects declares required, so swapping the model
+   *   breaks the graph. Only reported where the provider enumerates its
+   *   requirements offline. `info` because the graph is not broken, it is
+   *   model-specific — and because the manifests are generated, so a wrong
+   *   `required` must not fail a build.
    * - "missing_secret" (warning): a node declares a credential
    *   ({@link collectSecretRequirementSites}) that `options.availableSecrets`
    *   cannot resolve. Only reported when a set was supplied; warning because
@@ -172,6 +178,17 @@ export interface GraphValidationRegistry {
   listModelIds?(
     provider: string,
     modelType: string
+  ): readonly string[] | undefined;
+  /**
+   * Text inputs `modelId` declares it will not run without, named the way the
+   * node's own properties are, or undefined when that cannot be established
+   * without a network call. Optional and silent-by-default like its two
+   * siblings above.
+   */
+  listRequiredTextInputs?(
+    provider: string,
+    modelType: string,
+    modelId: string
   ): readonly string[] | undefined;
 }
 
@@ -763,6 +780,83 @@ export function collectModelSelectionIssues(
   return issues;
 }
 
+/** A property value that reaches a provider as "the caller set nothing". */
+function isBlankPropertyValue(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (isString(value)) return value.trim().length === 0;
+  if (Array.isArray(value)) return value.length === 0;
+  return false;
+}
+
+/**
+ * Properties a node leaves blank that the model it selects declares it will not
+ * run without.
+ *
+ * A generic media node takes one shape and routes it to whichever provider the
+ * `model` property names, and those providers disagree about what is optional:
+ * Veo 3.1 animates an image with no prompt, Kling refuses the same call with
+ * `500 This field is required` — no field named, no node named, after the
+ * upstream half of the graph has been paid for. The requirement is already
+ * written down in the generated provider manifests; this is the check that
+ * reads it while the graph is still being authored.
+ *
+ * Reported at `info`, which is the honest severity: the graph is not wrong, it
+ * is *model-specific*. Pinned to Veo it runs; the finding is that swapping the
+ * model breaks it. `info` also keeps it below the `--warnings-as-errors`
+ * ratchet the shipped-examples gate runs at, so a generated manifest that marks
+ * something required by mistake cannot fail a build over a graph that works.
+ *
+ * Only where every part of the answer is known: the provider must enumerate its
+ * requirements offline, the node must declare a property of that name, nothing
+ * may feed it, and the model reference must be the node's own top-level
+ * property. Anything less is silence.
+ */
+function collectRequiredModelInputIssues(
+  nodeId: string,
+  nodeType: string,
+  node: GraphValidationNode,
+  declaredProperties: ReadonlySet<string>,
+  connectedHandles: ReadonlySet<string>,
+  registry: Pick<GraphValidationRegistry, "listRequiredTextInputs">
+): GraphValidationIssue[] {
+  if (!registry.listRequiredTextInputs) return [];
+  const properties = readProperties(node);
+  const issues: GraphValidationIssue[] = [];
+  const reported = new Set<string>();
+  for (const { path, propertyName, ref } of collectNodeModelRefs(node)) {
+    // A model nested in a settings object or a list configures something other
+    // than this node's own inputs, so its requirements say nothing about them.
+    if (path !== propertyName) continue;
+    const provider = modelProviderOf(ref);
+    const modelId = modelIdOf(ref);
+    if (provider === undefined || modelId === undefined) continue;
+    const required = registry.listRequiredTextInputs(
+      provider,
+      modelKindOf(ref),
+      modelId
+    );
+    if (!required) continue;
+    for (const name of required) {
+      if (reported.has(name)) continue;
+      if (!declaredProperties.has(name)) continue;
+      if (connectedHandles.has(name)) continue;
+      if (!isBlankPropertyValue(properties[name])) continue;
+      reported.add(name);
+      issues.push({
+        severity: "info",
+        code: "missing_required_model_input",
+        nodeId,
+        nodeType,
+        message:
+          `Node "${nodeId}" leaves "${name}" empty, and model "${modelId}" ` +
+          `(${provider}) declares it required. Set "${name}" or wire it — ` +
+          "until then, swapping this node's model breaks the graph."
+      });
+    }
+  }
+  return issues;
+}
+
 export interface SecretRequirementSite {
   nodeId: string;
   nodeType: string;
@@ -1039,13 +1133,30 @@ export function validateGraph(
       });
     }
 
+    const meta = registry.getMetadata(type);
+
+    // ── Properties blank that the selected model declares required. The
+    // registry's own check above knows which properties this node requires; it
+    // cannot know which ones the model behind `model` requires.
+    if (meta) {
+      issues.push(
+        ...collectRequiredModelInputIssues(
+          id,
+          type,
+          node,
+          new Set(meta.properties.map((prop) => prop.name)),
+          connectedByNode.get(id) ?? new Set<string>(),
+          registry
+        )
+      );
+    }
+
     // ── Properties the node does not have. A misspelled name is dead data:
     // the value sits in the graph, the real property keeps its default, and
     // nothing reports it. A required property left unset is already an error
     // above, so what reaches here is an optional one silently ignored — a
     // warning, not a refusal. Nodes taking dynamic properties are exempt:
     // an undeclared name is the feature there.
-    const meta = registry.getMetadata(type);
     if (meta && meta.supports_dynamic_inputs !== true) {
       const declaredNames = new Set(meta.properties.map((prop) => prop.name));
       const dynamic = readDynamicProperties(node);
