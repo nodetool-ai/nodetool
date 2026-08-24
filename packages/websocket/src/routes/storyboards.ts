@@ -25,6 +25,33 @@ interface RouteOptions {
   apiOptions: HttpApiOptions;
 }
 
+/**
+ * Bytes for one shot's media ref.
+ *
+ * `resolveAssetBytesForExport` covers the stored forms (`asset://`,
+ * `/api/storage/`, and a remote URL through `safeFetch`). A shot generated in
+ * the browser can also carry its still inline as a `data:` URI, which needs no
+ * fetch at all — decode it here rather than teaching the shared resolver about
+ * a form only this surface sees.
+ */
+async function resolveShotMediaBytes(ref: string): Promise<Uint8Array | null> {
+  if (ref.startsWith("data:")) {
+    const comma = ref.indexOf(",");
+    if (comma < 0) return null;
+    const meta = ref.slice(0, comma);
+    const payload = ref.slice(comma + 1);
+    try {
+      return meta.endsWith(";base64")
+        ? new Uint8Array(Buffer.from(payload, "base64"))
+        : new Uint8Array(Buffer.from(decodeURIComponent(payload), "utf8"));
+    } catch {
+      // A malformed data URI is unresolvable media, reported as missing.
+      return null;
+    }
+  }
+  return resolveAssetBytesForExport(ref);
+}
+
 function zipResponse(bytes: Uint8Array, name: string): Response {
   const safe = name.replace(/[^A-Za-z0-9._-]+/g, "_") || "storyboard";
   return new Response(new Uint8Array(bytes), {
@@ -59,9 +86,14 @@ const storyboardsRoutes: FastifyPluginAsync<RouteOptions> = async (
       }
       const doc = board.toDocument();
       const screenplay = doc.screenplay;
+      // The store keeps the shots in both places; a board written by an older
+      // path can carry them only on the screenplay.
+      const shots = (
+        doc.shots.length > 0 ? doc.shots : (screenplay?.shots ?? [])
+      ) as Shot[];
       const input: StoryboardExportInput = {
         name: board.name,
-        shots: doc.shots as Shot[],
+        shots,
         title: screenplay?.title || board.name,
         brief: doc.brief,
         style: doc.style,
@@ -73,7 +105,7 @@ const storyboardsRoutes: FastifyPluginAsync<RouteOptions> = async (
 
       const { bytes } = await packStoryboardZip({
         board: input,
-        fetchAssetBytes: resolveAssetBytesForExport
+        fetchAssetBytes: resolveShotMediaBytes
       });
       return zipResponse(bytes, board.name || screenplay?.title || "storyboard");
     });
