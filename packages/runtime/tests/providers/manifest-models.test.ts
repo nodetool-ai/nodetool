@@ -255,15 +255,70 @@ describe("manifest-models music discovery", () => {
     expect(music.some((m) => tts.has(m.id))).toBe(false);
   });
 
-  it("pure buildMusicModels: matches by module/task/keyword; excludes TTS", () => {
+  it("keeps speech, sound effects and audio transforms out of the FAL music catalog", () => {
+    const ids = new Set(music.map((m) => m.id));
+    // Every one of these was in the music catalog when `moduleName:
+    // "text_to_audio"` counted as music evidence: FAL files speech, music and
+    // sound effects alike under it. A session asking for a music model was
+    // handed ElevenLabs' dialogue model, whose id a `music_model` property
+    // then refused.
+    expect(ids.has("fal-ai/elevenlabs/text-to-dialogue/eleven-v3")).toBe(false);
+    expect(ids.has("fal-ai/kokoro")).toBe(false);
+    expect(ids.has("fal-ai/kokoro/american-english")).toBe(false);
+    expect(ids.has("fal-ai/zonos")).toBe(false);
+    expect(ids.has("beatoven/sound-effect-generation")).toBe(false);
+    expect(ids.has("cassetteai/sound-effects-generator")).toBe(false);
+    expect(ids.has("fal-ai/ace-step/audio-inpaint")).toBe(false);
+    // …and the real music endpoints are still there.
+    expect(ids.has("beatoven/music-generation")).toBe(true);
+    expect(ids.has("cassetteai/music-generator")).toBe(true);
+    expect(ids.has("fal-ai/elevenlabs/music")).toBe(true);
+    expect(ids.has("fal-ai/ace-step")).toBe(true);
+  });
+
+  it("lists the speech models the music catalog used to hold under TTS", () => {
+    const tts = new Set(
+      loadTTSModels(FAL_PKG, FAL_MANIFEST, "fal_ai").map((m) => m.id)
+    );
+    expect(tts.has("fal-ai/kokoro")).toBe(true);
+    expect(tts.has("fal-ai/kokoro/american-english")).toBe(true);
+    expect(tts.has("fal-ai/elevenlabs/text-to-dialogue/eleven-v3")).toBe(true);
+    // A voice-clone TTS endpoint names itself in its id, which outranks the
+    // reference-audio input that would otherwise read as a transform.
+    expect(tts.has("fal-ai/dia-tts/voice-clone")).toBe(true);
+  });
+
+  it("pure buildMusicModels: needs music evidence, not just a text→audio module", () => {
     const models = buildMusicModels(
       [
-        // FAL-style: tagged by the text_to_audio module
+        // FAL-style: the text_to_audio module is every text→audio endpoint,
+        // so on its own it says nothing about music.
         {
           endpointId: "vendor/compose",
           className: "Compose",
           outputType: "audio",
           moduleName: "text_to_audio"
+        },
+        // Same module, but the tags name the task.
+        {
+          endpointId: "vendor/tagged",
+          className: "Tagged",
+          outputType: "audio",
+          moduleName: "text_to_audio",
+          tags: ["audio", "music", "generation"]
+        },
+        // Sound effects are neither music nor speech.
+        {
+          endpointId: "vendor/music-sound-effects",
+          outputType: "audio",
+          moduleName: "text_to_audio",
+          tags: ["sfx"]
+        },
+        // A transform of existing audio has nothing to generate from.
+        {
+          endpointId: "vendor/musicgen/audio-to-audio",
+          outputType: "audio",
+          tags: ["audio-to-audio"]
         },
         // Identified by id keyword
         {
@@ -294,8 +349,8 @@ describe("manifest-models music discovery", () => {
     );
     expect(models.map((m) => m.id).sort()).toEqual([
       "meta/musicgen",
-      "vendor/compose",
-      "vendor/song"
+      "vendor/song",
+      "vendor/tagged"
     ]);
     expect(
       models.every((m) => m.supportedTasks?.includes("text_to_music"))

@@ -64,6 +64,8 @@ interface ManifestNode {
   outputType?: string;
   /** FAL groups nodes by source module, e.g. "text_to_speech". */
   moduleName?: string;
+  /** Free-form capability tags, e.g. ["audio", "music", "text-to-audio"]. */
+  tags?: string[];
   /** Explicit task set declared by manifests that know model capabilities. */
   supportedTasks?: string[];
   /** FAL ships per-endpoint input schemas; used to derive option constraints. */
@@ -787,15 +789,17 @@ export function buildImageModels(
 }
 
 /**
- * Is this manifest entry a text-to-speech model? FAL tags TTS endpoints with
- * `moduleName: "text_to_speech"`; KIE has no module grouping, so we fall back to
- * an explicit task or a "text-to-speech"/"tts" hint in the id/name. The
- * `outputType === "audio"` guard keeps music / sound-effect audio nodes out.
+ * Everything an audio entry says about itself: id, name, and the capability
+ * tags. FAL files every text→audio endpoint — speech, music, and sound
+ * effects alike — under `moduleName: "text_to_audio"`, so the module name
+ * cannot tell the three apart; the tags can.
  */
-export function isTTSNode(n: ManifestNode): boolean {
-  if (n.outputType !== "audio") return false;
-  if (n.moduleName === "text_to_speech") return true;
-  if (explicitTasks(n)?.includes("text_to_speech")) return true;
+function audioHaystack(n: ManifestNode): string {
+  return `${nodeId(n)} ${nodeName(n)} ${(n.tags ?? []).join(" ")}`.toLowerCase();
+}
+
+/** Speech that self-declares in its id or name, rather than in a tag. */
+function saysTextToSpeech(n: ManifestNode): boolean {
   const hay = `${nodeId(n)} ${nodeName(n)}`.toLowerCase();
   return matchesAny(
     hay,
@@ -804,6 +808,80 @@ export function isTTSNode(n: ManifestNode): boolean {
     "texttospeech",
     "tts"
   );
+}
+
+// Endpoints that take existing audio and hand back more of it. They are not
+// generators: offered as a text_to_music or text_to_speech model they fail at
+// call time with nothing to work on.
+const AUDIO_TRANSFORM_KEYWORDS = [
+  "audio-to-audio",
+  "audio_to_audio",
+  "speech-to-speech",
+  "video-to-audio",
+  "inpaint",
+  "outpaint",
+  "isolation",
+  "voice-changer",
+  "extend-audio",
+  "audio-extend",
+  "super-resolution",
+  "loudnorm",
+  "compressor",
+  "impulse-response"
+];
+
+// Sound-effect generators. They emit audio from a prompt like a music model
+// does, and are neither music nor speech.
+const SOUND_EFFECT_KEYWORDS = [
+  "sound-effect",
+  "sound_effect",
+  "sound effects",
+  "soundeffect",
+  "sfx",
+  "foley"
+];
+
+// Speech engines whose names carry no "tts"/"speech" substring. Without them
+// FAL's Kokoro language variants — tagged only `[audio, generation,
+// text-to-audio, sound]` — are in no list at all.
+const TTS_KEYWORDS = [
+  "speech",
+  "voiceover",
+  "narration",
+  "dialogue",
+  "kokoro",
+  "zonos",
+  "chatterbox"
+];
+
+/** Takes existing audio rather than generating it from a prompt. */
+export function isAudioTransformNode(n: ManifestNode): boolean {
+  return matchesAny(audioHaystack(n), ...AUDIO_TRANSFORM_KEYWORDS);
+}
+
+/** Generates sound effects — neither music nor speech. */
+export function isSoundEffectNode(n: ManifestNode): boolean {
+  return matchesAny(audioHaystack(n), ...SOUND_EFFECT_KEYWORDS);
+}
+
+/**
+ * Is this manifest entry a text-to-speech model? An explicit task or FAL's
+ * `moduleName: "text_to_speech"` settles it, as does a "text-to-speech"/"tts"
+ * hint in the id or name — those are the endpoint naming itself, and outrank
+ * the exclusions below, so a voice-clone TTS endpoint that also takes
+ * reference audio stays a TTS model. Everything else is decided on the tags:
+ * a music model, an audio transform and a sound-effect generator are none of
+ * them speech, and what is left qualifies on a speech keyword.
+ */
+export function isTTSNode(n: ManifestNode): boolean {
+  if (n.outputType !== "audio") return false;
+  if (explicitTasks(n)?.includes("text_to_speech")) return true;
+  if (n.moduleName === "text_to_speech") return true;
+  if (saysTextToSpeech(n)) return true;
+  if (isMusicNode(n) || isAudioTransformNode(n) || isSoundEffectNode(n)) {
+    return false;
+  }
+  return matchesAny(audioHaystack(n), ...TTS_KEYWORDS);
 }
 
 export function loadTTSModels(
@@ -868,7 +946,8 @@ const MUSIC_KEYWORDS = [
   "cassette",
   "beatoven",
   "jukebox",
-  "flux-music"
+  "flux-music",
+  "yue"
 ];
 
 // Kie Suno ships many audio endpoints, but only a few generate music from a
@@ -899,24 +978,26 @@ export function isKieMusicNode(n: ManifestNode): boolean {
 
 /**
  * Is this manifest entry a music-generation model? Music endpoints emit audio
- * but are neither speech (TTS) nor speech-to-text. Kie-style entries (those that
- * carry a `fields` schema or route through Suno) are judged structurally by
- * `isKieMusicNode` — keyword matching over-tags Suno's utility endpoints. FAL
- * groups its music under `moduleName: "text_to_audio"`; other manifests have no
- * grouping, so fall back to an explicit `text_to_music` task or a music keyword
- * in the id/name. The `outputType === "audio"` and `!isTTSNode` guards keep
- * speech models out.
+ * from a prompt but are neither speech nor sound effects. Kie-style entries
+ * (those that carry a `fields` schema or route through Suno) are judged
+ * structurally by `isKieMusicNode` — keyword matching over-tags Suno's utility
+ * endpoints. Everything else needs positive music evidence: an explicit
+ * `text_to_music` task, or a music keyword in the id, name or tags.
+ *
+ * FAL's `moduleName: "text_to_audio"` used to be taken as that evidence, and
+ * it is not one: FAL files every text→audio endpoint under it, so the music
+ * catalog carried the Kokoro voices, `elevenlabs/text-to-dialogue` and every
+ * sound-effect generator — and a session asking for a music model was handed a
+ * dialogue model that a `music_model` property then refused.
  */
 export function isMusicNode(n: ManifestNode): boolean {
   if (n.outputType !== "audio") return false;
-  if (isTTSNode(n)) return false;
   if (Array.isArray(n.fields) || n.useSuno === true) {
     return isKieMusicNode(n);
   }
-  if (n.moduleName === "text_to_audio") return true;
   if (explicitTasks(n)?.includes("text_to_music")) return true;
-  const hay = `${nodeId(n)} ${nodeName(n)}`.toLowerCase();
-  return matchesAny(hay, ...MUSIC_KEYWORDS);
+  if (isAudioTransformNode(n) || isSoundEffectNode(n)) return false;
+  return matchesAny(audioHaystack(n), ...MUSIC_KEYWORDS);
 }
 
 export function loadMusicModels(
