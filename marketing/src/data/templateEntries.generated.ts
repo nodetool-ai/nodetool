@@ -15231,13 +15231,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/put-a-product-on-a-studio-backdrop",
     "title": "Put a Product on a Studio Backdrop — NodeTool AI Workflow Template",
-    "description": "Cut the product out, then place it in a described setting. Two steps rather than one prompt, because generating around an existing product is what keeps the product itself unchanged — the thing a customer is actually buying.",
+    "description": "Cut the product out, then place it in a described setting. The placement step is an instruction-following edit model rather than strength-based image-to-image: a strength value cannot say \"keep this object, change everything else\", and any setting high enough to build the backdrop also redraws the product — the thing a customer is actually buying.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "put-a-product-on-a-studio-backdrop",
     "name": "Put a Product on a Studio Backdrop",
-    "summary": "Cut the product out, then place it in a described setting. Two steps rather than one prompt, because generating around an existing product is what keeps the product itself unchanged — the thing a customer is actually buying.",
+    "summary": "Cut the product out, then place it in a described setting. The placement step is an instruction-following edit model rather than strength-based image-to-image: a strength value cannot say \"keep this object, change everything else\", and any setting high enough to build the backdrop also redraws the product — the thing a customer is actually buying.",
     "tags": [
       "image",
       "example"
@@ -15293,7 +15293,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 660,
           "y": 120,
           "width": 300,
-          "subtitle": "product centred on a warm concrete plinth, soft studio light, shallow depth of field"
+          "subtitle": "Keep the product as it is. Change only what is around it: warm concrete plinth, soft studio key from upper left, blurred background."
         },
         {
           "id": "out",

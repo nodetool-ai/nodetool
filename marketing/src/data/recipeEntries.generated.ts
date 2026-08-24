@@ -403,7 +403,7 @@ export const recipeEntries: RecipeEntry[] = [
         "name": "Put a Product on a Studio Backdrop",
         "route": "/templates/put-a-product-on-a-studio-backdrop",
         "role": "Place it in a described setting",
-        "handoff": "In: the cutout and a scene description. Out: the product in that scene. Generating around an existing product, rather than prompting for the whole frame, is what keeps the product unchanged.",
+        "handoff": "In: the cutout and a scene description. Out: the product in that scene. An edit model told to change only the surroundings, rather than a strength setting on image-to-image, is what keeps the product unchanged.",
         "thumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
         "nodeCount": 4,
         "models": [
@@ -413,7 +413,7 @@ export const recipeEntries: RecipeEntry[] = [
           },
           {
             "provider": "fal_ai",
-            "model": "fal-ai/flux/dev"
+            "model": "fal-ai/nano-banana/edit"
           }
         ]
       },
