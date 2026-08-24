@@ -24,7 +24,6 @@
  * @property {string} [poster]   Poster for the clip.
  * @property {boolean} [hasAudio] The clip carries sound, so it needs controls.
  * @property {string} caption    What the reader is looking at.
- * @property {string[]} producedBy  provider:model, in the order the chain ran.
  * @property {string} [substitutions] Why the run differs from the shipped graph.
  */
 
@@ -86,12 +85,6 @@ export const recipes = [
       poster: "viral-video-ad-engine-poster.webp",
       caption:
         "One product photo and one line of copy, run through the whole chain: four hook lines with a thumbnail each, then the hero loop cut to 1080x1920. The fourth thumbnail went off-brief and is shown as it came back.",
-      producedBy: [
-        "openrouter:openai/gpt-5.4-mini",
-        "kie:google/nano-banana",
-        "kie:kling-2.6/image-to-video",
-        "ffmpeg (local)",
-      ],
     },
     caveats: [
       "The vertical step rescales rather than crops, so frame the loop with room to lose or add a crop node ahead of it.",
@@ -148,13 +141,6 @@ export const recipes = [
       hasAudio: true,
       caption:
         "The same take, before and after the lip-sync step, with the Spanish the translator produced. The presenter is generated too — the recipe assumes you bring your own footage, and this render had none to bring.",
-      producedBy: [
-        "kie:nano-banana-pro",
-        "kie:kling-2.6/image-to-video",
-        "openrouter:openai/gpt-5.4-mini",
-        "replicate:inworld/realtime-tts-1.5-max",
-        "replicate:sync/lipsync-2",
-      ],
     },
     caveats: [
       "Lip-sync redrives the mouth. It does not change gesture, gaze, or anything a presenter does with their hands, so a take with heavy pointing at on-screen text will still read as dubbed.",
@@ -217,15 +203,6 @@ export const recipes = [
       poster: "ecommerce-sku-visual-factory-poster.webp",
       caption:
         "One generated packshot carried through the whole chain: cutout on a real alpha channel, placed on a concrete plinth, relit for winter sun, spun into a turntable clip, and mastered at 4096px. The product is the same object in all six.",
-      producedBy: [
-        "kie:nano-banana-pro",
-        "replicate:bria/remove-background",
-        "kie:google/nano-banana-edit",
-        "replicate:qwen-edit-apps/qwen-image-edit-plus-lora-relight",
-        "kie:kling-2.6/image-to-video",
-        "replicate:recraft-ai/recraft-crisp-upscale",
-        "openrouter:openai/gpt-5.4-mini",
-      ],
     },
     caveats: [
       "Background removal is a model, not a matte artist. Hair, mesh, glassware, and anything transparent need a look before they go live.",
@@ -277,12 +254,6 @@ export const recipes = [
       hasAudio: true,
       caption:
         "One logline — a lighthouse keeper finds a message in a bottle dated forty years from now — through steps three and four: five shots directed, rendered, animated, cut, and scored. The first two steps produce documents, so they are not in the picture; the style bible holding these five together is written in step three.",
-      producedBy: [
-        "openrouter:openai/gpt-5.4-mini",
-        "kie:gpt-image-2-text-to-image",
-        "kie:kling-2.6/image-to-video",
-        "kie:generate-music",
-      ],
     },
     caveats: [
       "Steps three and four both hold their own storyboard. Rewriting the beat sheet does not reach back into a teaser you already rendered — re-run the chain.",

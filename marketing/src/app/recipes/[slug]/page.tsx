@@ -126,9 +126,11 @@ export default async function RecipePage({
               </h2>
               <p className="mb-6 max-w-3xl text-sm leading-relaxed text-slate-500">
                 Not a mockup. The chain below was run end to end and this came
-                back. Where the shipped graph names a model this render had no
-                key for, an equivalent on another provider stood in — the list
-                under the caption is what actually ran.
+                back. The list under the caption is every model that ran: green
+                where it is the model the workflow names, reached through
+                whichever provider this render held a key for, blue where a
+                better one was chosen deliberately, and amber where a different
+                model had to stand in — each with the reason.
               </p>
               <RecipeSampleFigure sample={entry.sample} name={entry.name} />
             </div>

@@ -58,8 +58,23 @@ export interface RecipeSample {
   /** The clip carries sound, so it gets controls rather than a muted loop. */
   hasAudio: boolean;
   caption: string;
-  /** `provider:model` in the order the chain ran them. */
-  producedBy: string[];
+  producedBy: RecipeSampleModel[];
+}
+
+/** One model in a sample's chain, as the renderer recorded it. */
+export interface RecipeSampleModel {
+  /** `provider:model` as the shipped workflow names it. */
+  shipped: string;
+  /** `provider:model` this render actually called. */
+  ran: string;
+  /**
+   * "exact" — the same model, reached another way, so the sample is the
+   * shipped run. "upgrade" — a deliberately better model; the chain is
+   * unchanged but the picture is not the shipped one. "substitute" — a
+   * different model, and `why` says what forced it.
+   */
+  grade: "exact" | "upgrade" | "substitute";
+  why: string;
 }
 
 export interface RecipeEntry extends PageEntry {

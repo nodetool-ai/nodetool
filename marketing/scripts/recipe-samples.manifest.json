@@ -1,0 +1,147 @@
+{
+  "ecommerce-sku-visual-factory": {
+    "artifacts": {
+      "packshot": "packshot.jpg",
+      "cutout": "cutout.png",
+      "backdrop": "backdrop.png",
+      "relight": "relight.webp",
+      "turntable": "turntable.mp4",
+      "print": "print.webp"
+    },
+    "producedBy": [
+      {
+        "shipped": "fal_ai:fal-ai/bria/background/remove",
+        "ran": "replicate:bria/remove-background",
+        "grade": "exact",
+        "why": "Bria's own background remover, hosted on Replicate"
+      },
+      {
+        "shipped": "fal_ai:fal-ai/flux/dev",
+        "ran": "atlascloud:google/nano-banana-pro/edit",
+        "grade": "upgrade",
+        "why": "the best image editor reachable from this render. The exact model was tried first and redrew the product: FLUX.1 Dev at the strength 0.45 the workflow sets, against a prompt describing only the scene, returned a different bottle — the one thing this step must not do"
+      },
+      {
+        "shipped": "fal_ai:fal-ai/image-apps-v2/relighting",
+        "ran": "replicate:qwen-edit-apps/qwen-image-edit-plus-lora-relight",
+        "grade": "substitute",
+        "why": "fal's relighting app has no equivalent on the providers this render could reach"
+      },
+      {
+        "shipped": "fal_ai:fal-ai/ltx-2.3/image-to-video/fast",
+        "ran": "kie:kling-2.6/image-to-video",
+        "grade": "substitute",
+        "why": "no provider reachable from this render serves LTX-2.3"
+      },
+      {
+        "shipped": "fal_ai:fal-ai/clarity-upscaler",
+        "ran": "replicate:recraft-ai/recraft-crisp-upscale",
+        "grade": "substitute",
+        "why": "Clarity Upscaler on Replicate is a community model that needs a pinned version hash and 404s without one"
+      },
+      {
+        "shipped": "openai:gpt-5-mini",
+        "ran": "openrouter:openai/gpt-5-mini",
+        "grade": "exact",
+        "why": "the same OpenAI model, billed through OpenRouter"
+      }
+    ]
+  },
+  "viral-video-ad-engine": {
+    "artifacts": {
+      "loop": "loop.mp4",
+      "vertical": "vertical.mp4"
+    },
+    "producedBy": [
+      {
+        "shipped": "openai:gpt-5-mini",
+        "ran": "openrouter:openai/gpt-5-mini",
+        "grade": "exact",
+        "why": "the same OpenAI model, billed through OpenRouter"
+      },
+      {
+        "shipped": "fal_ai:fal-ai/flux/schnell",
+        "ran": "atlascloud:google/nano-banana-pro/text-to-image",
+        "grade": "upgrade",
+        "why": "the best text-to-image model reachable from this render. The workflow names FLUX.1 Schnell for speed and cost, which is the right default for a fan-out of throwaway thumbnails and not the right choice for one picture that has to stand on a page"
+      },
+      {
+        "shipped": "kie:kling-2.6/image-to-video",
+        "ran": "kie:kling-2.6/image-to-video",
+        "grade": "exact",
+        "why": "run as the workflow ships it"
+      }
+    ]
+  },
+  "multilingual-video-dubber": {
+    "artifacts": {
+      "presenter-still": "presenter-still.jpg",
+      "presenter-clip": "presenter-clip.mp4",
+      "dubbed": "dubbed.mp4"
+    },
+    "producedBy": [
+      {
+        "shipped": "fal_ai:fal-ai/ltx-2.3/image-to-video/fast",
+        "ran": "kie:kling-2.6/image-to-video",
+        "grade": "substitute",
+        "why": "no provider reachable from this render serves LTX-2.3"
+      },
+      {
+        "shipped": "openai:gpt-5-mini",
+        "ran": "openrouter:openai/gpt-5-mini",
+        "grade": "exact",
+        "why": "the same OpenAI model, billed through OpenRouter"
+      },
+      {
+        "shipped": "openai:tts-1",
+        "ran": "replicate:inworld/realtime-tts-1.5-max",
+        "grade": "substitute",
+        "why": "no OpenAI key on this machine, and neither OpenRouter nor AtlasCloud serves TTS"
+      },
+      {
+        "shipped": "replicate:inworld/realtime-tts-1.5-max",
+        "ran": "replicate:inworld/realtime-tts-1.5-max",
+        "grade": "exact",
+        "why": "run as the workflow ships it"
+      },
+      {
+        "shipped": "fal_ai:fal-ai/sync-lipsync/v2/pro",
+        "ran": "replicate:sync/lipsync-2",
+        "grade": "exact",
+        "why": "Sync's own lipsync-2, hosted on Replicate"
+      }
+    ]
+  },
+  "storyboard-to-trailer": {
+    "artifacts": {
+      "trailer": "trailer.mp4",
+      "scored": "scored.mp4"
+    },
+    "producedBy": [
+      {
+        "shipped": "gemini:gemini-3.1-pro-preview",
+        "ran": "openrouter:google/gemini-3.1-pro-preview",
+        "grade": "exact",
+        "why": "the same Google model, billed through OpenRouter"
+      },
+      {
+        "shipped": "kie:gpt-image-2-text-to-image",
+        "ran": "atlascloud:google/nano-banana-pro/text-to-image",
+        "grade": "upgrade",
+        "why": "the best text-to-image model reachable from this render, used for the keyframes every shot is animated from"
+      },
+      {
+        "shipped": "gemini:veo-3.1-generate-preview",
+        "ran": "atlascloud:google/veo3.1/image-to-video",
+        "grade": "exact",
+        "why": "the same Veo 3.1, served by AtlasCloud"
+      },
+      {
+        "shipped": "fal_ai:fal-ai/stable-audio-25/text-to-audio",
+        "ran": "kie:generate-music",
+        "grade": "substitute",
+        "why": "Stable Audio 2.5 is fal-only here, and MusicGen — tried next because it honours a requested duration — is a versioned community model on Replicate that 404s without a pinned hash. Kie's generator ignores the duration and returns a full song, so the bed is trimmed to the cut"
+      }
+    ]
+  }
+}

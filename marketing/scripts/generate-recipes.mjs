@@ -40,6 +40,7 @@ const TEMPLATE_ENTRIES = path.join(
 );
 const BUNDLE_DIR = path.join(MARKETING, "public/recipes");
 const SAMPLE_DIR = path.join(MARKETING, "public/recipes/samples");
+const RENDER_MANIFEST = path.join(__dirname, "recipe-samples.manifest.json");
 const OUT_FILE = path.join(MARKETING, "src/data/recipeEntries.generated.ts");
 
 const CHECK = process.argv.includes("--check");
@@ -134,15 +135,29 @@ function buildSample(spec) {
       );
     }
   }
+  // The model list is the render manifest's, never the spec's: it is written
+  // by the renderer from the graphs it actually ran, so a page cannot credit a
+  // model that did not produce the picture above it.
+  const manifest = fs.existsSync(RENDER_MANIFEST)
+    ? JSON.parse(fs.readFileSync(RENDER_MANIFEST, "utf8"))
+    : {};
+  const rendered = manifest[spec.slug];
+  if (!rendered?.producedBy?.length) {
+    fail(
+      `recipe "${spec.slug}" has a sample but no entry in ` +
+        `scripts/recipe-samples.manifest.json — run ` +
+        `\`node scripts/render-recipe-samples.mjs --only ${spec.slug}\``,
+    );
+  }
   const at = (file) => (file ? `/recipes/samples/${file}` : null);
   return {
+    producedBy: rendered.producedBy,
     image: at(spec.sample.image),
     video: at(spec.sample.video),
     webm: spec.sample.video ? at(spec.sample.video.replace(/\.mp4$/, ".webm")) : null,
     poster: at(spec.sample.poster),
     hasAudio: spec.sample.hasAudio === true,
     caption: spec.sample.caption,
-    producedBy: spec.sample.producedBy,
   };
 }
 
