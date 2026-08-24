@@ -87,6 +87,17 @@
         "edge_type": "data"
       },
       {
+        "id": "e-shots-animate",
+        "source": "shots",
+        "sourceHandle": "shot_prompt",
+        "target": "animate",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
         "id": "e-animate-collect",
         "source": "animate",
         "sourceHandle": "output",

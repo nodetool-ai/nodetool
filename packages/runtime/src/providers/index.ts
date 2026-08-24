@@ -224,6 +224,7 @@ export type {
 } from "./credential-check.js";
 export {
   listOfflineModelIds,
+  listOfflineRequiredTextInputs,
   offlineModelIndexProviders
 } from "./offline-model-index.js";
 // OpenAI OAuth subsystem is intentionally NOT re-exported here. Its callback

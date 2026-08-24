@@ -19,6 +19,7 @@
  * node runs, after the rest of the graph has already been paid for.
  */
 import {
+  getRequiredTextInputNames,
   loadImageModels,
   loadVideoModels,
   loadTTSModels,
@@ -100,6 +101,29 @@ export function listOfflineModelIds(
 
   cache.set(key, result);
   return result;
+}
+
+/**
+ * Text inputs `modelId` declares it will not run without, or `undefined` when
+ * that cannot be established offline.
+ *
+ * Same silence rules as {@link listOfflineModelIds}: an unknown provider, an
+ * unclassified model type, an unreadable manifest, or a model the manifest does
+ * not carry all answer `undefined`. An entry that declares no required text
+ * input answers `[]` — that one is knowledge, not a gap.
+ */
+export function listOfflineRequiredTextInputs(
+  provider: string,
+  modelType: string,
+  modelId: string
+): readonly string[] | undefined {
+  const source = MANIFEST_SOURCES[provider];
+  if (!source || !LOADER_BY_MODEL_TYPE[modelType]) return undefined;
+  try {
+    return getRequiredTextInputNames(source.pkg, source.path, modelId);
+  } catch {
+    return undefined;
+  }
 }
 
 /** Providers whose ids {@link listOfflineModelIds} can check. */

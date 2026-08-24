@@ -4,6 +4,7 @@ import {
   buildTTSModels,
   getManifestNodeMeta,
   getModelInputFields,
+  getRequiredTextInputNames,
   isKieMusicNode,
   loadImageModels,
   loadMusicModels,
@@ -419,6 +420,49 @@ describe("getModelInputFields", () => {
 
   it("returns [] for an unknown model id", () => {
     expect(getModelInputFields(KIE_PKG, KIE_MANIFEST, "nope/nope")).toEqual([]);
+  });
+});
+
+// The requirement that broke the trailer graph. Read off the real shipped
+// manifests, because the check is worth exactly as much as the data behind it:
+// a `required` flag the generator stopped emitting would leave the validator
+// silently reporting nothing.
+describe("getRequiredTextInputNames", () => {
+  it("reads Kie's required `prompt` for a Kling image-to-video model", () => {
+    expect(
+      getRequiredTextInputNames(KIE_PKG, KIE_MANIFEST, "kling-2.6/image-to-video")
+    ).toContain("prompt");
+  });
+
+  it("reads FAL's required `prompt` for a Kling image-to-video endpoint", () => {
+    expect(
+      getRequiredTextInputNames(
+        FAL_PKG,
+        FAL_MANIFEST,
+        "fal-ai/kling-video/v2.5-turbo/pro/image-to-video"
+      )
+    ).toContain("prompt");
+  });
+
+  // A required media field arrives under its upload descriptor's API name
+  // (`images` is sent as `image_urls`), so reporting it would make a caller
+  // look for a property that is already correctly wired.
+  it("reports no media or enum field, however required", () => {
+    const names = getRequiredTextInputNames(
+      KIE_PKG,
+      KIE_MANIFEST,
+      "kling-2.6/image-to-video"
+    );
+    expect(names).not.toContain("images");
+    expect(names).not.toContain("duration");
+    expect(names).not.toContain("sound");
+  });
+
+  // "Cannot tell" and "requires nothing" must not be the same answer.
+  it("returns undefined for a model the manifest does not carry", () => {
+    expect(
+      getRequiredTextInputNames(KIE_PKG, KIE_MANIFEST, "nope/nope")
+    ).toBeUndefined();
   });
 });
 

@@ -679,7 +679,12 @@ const validateWorkflow: CapabilityExport = {
       ) => registry.validateNode(descriptor, connectedHandles),
       listProviderIds: () => catalogs.listProviderIds(),
       listModelIds: (provider: string, modelType: string) =>
-        catalogs.listModelIds(provider, modelType)
+        catalogs.listModelIds(provider, modelType),
+      listRequiredTextInputs: (
+        provider: string,
+        modelType: string,
+        modelId: string
+      ) => catalogs.listRequiredTextInputs?.(provider, modelType, modelId)
     };
     const checked = {
       nodes: declared.nodes as never[],

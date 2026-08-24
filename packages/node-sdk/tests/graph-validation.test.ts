@@ -747,6 +747,161 @@ describe("unknown_model", () => {
   });
 });
 
+// A generic media node routes one shape to whichever provider its `model`
+// names, and they disagree about what is optional. Veo 3.1 animates an image
+// with no prompt; Kling answers the same call with `500 This field is
+// required`, naming neither the field nor the node. The manifests already say
+// which — this is the check that reads them at author time.
+describe("missing_required_model_input", () => {
+  const REQUIRED_BY_MODEL: Record<string, readonly string[]> = {
+    "kling-2.6/image-to-video": ["prompt"],
+    "veo-3.1-generate-preview": []
+  };
+  const registry = {
+    has: () => true,
+    getMetadata: () =>
+      ({
+        properties: [{ name: "prompt" }, { name: "image" }, { name: "model" }],
+        outputs: []
+      }) as never,
+    validateNode: () => [],
+    listProviderIds: () => ["kie", "gemini"],
+    listModelIds: () => undefined,
+    listRequiredTextInputs: (
+      _provider: string,
+      _modelType: string,
+      modelId: string
+    ) => REQUIRED_BY_MODEL[modelId]
+  };
+  const graphWith = (
+    modelId: string,
+    properties: Record<string, unknown> = {},
+    edges: unknown[] = []
+  ) => ({
+    nodes: [
+      {
+        id: "animate",
+        type: "nodetool.video.ImageToVideo",
+        data: {
+          model: { type: "video_model", provider: "kie", id: modelId },
+          ...properties
+        }
+      }
+    ],
+    edges: edges as never[]
+  });
+  const findIssue = (report: { issues: { code: string }[] }) =>
+    report.issues.find((i) => i.code === "missing_required_model_input");
+
+  it("reports a required text input left blank", () => {
+    const report = validateGraph(graphWith("kling-2.6/image-to-video"), registry);
+    const issue = findIssue(report) as { message?: string } | undefined;
+    expect(issue?.message).toContain("prompt");
+    expect(issue?.message).toContain("kling-2.6/image-to-video");
+  });
+
+  // `info`, so it stays below the `--warnings-as-errors` ratchet the shipped-
+  // examples gate runs at. The graph is model-specific, not broken, and the
+  // manifests behind the finding are generated — a wrong `required` must not
+  // fail a build. Asserting the counts, not just `ok`, is the point.
+  it("neither fails the report nor counts as a warning", () => {
+    const report = validateGraph(graphWith("kling-2.6/image-to-video"), registry);
+    expect(report.ok).toBe(true);
+    expect(report.counts.warnings).toBe(0);
+    expect(report.counts.info).toBeGreaterThan(0);
+  });
+
+  it("treats whitespace as blank", () => {
+    const report = validateGraph(
+      graphWith("kling-2.6/image-to-video", { prompt: "   " }),
+      registry
+    );
+    expect(findIssue(report)).toBeDefined();
+  });
+
+  it("accepts a prompt that is set", () => {
+    const report = validateGraph(
+      graphWith("kling-2.6/image-to-video", { prompt: "a fox in snow" }),
+      registry
+    );
+    expect(findIssue(report)).toBeUndefined();
+  });
+
+  // The fix the issue asks the shipped trailer graph to make: the per-shot
+  // prompt arrives over an edge, so the property is blank and correct.
+  it("accepts a prompt fed by an edge", () => {
+    const report = validateGraph(
+      graphWith("kling-2.6/image-to-video", {}, [
+        {
+          id: "e",
+          source: "shots",
+          sourceHandle: "shot_prompt",
+          target: "animate",
+          targetHandle: "prompt"
+        }
+      ]),
+      registry
+    );
+    expect(findIssue(report)).toBeUndefined();
+  });
+
+  it("says nothing about a model that declares no requirement", () => {
+    const report = validateGraph(graphWith("veo-3.1-generate-preview"), registry);
+    expect(findIssue(report)).toBeUndefined();
+  });
+
+  // Fails toward silence like every other catalog check here.
+  it("skips a model the catalog cannot answer for", () => {
+    const report = validateGraph(graphWith("some/unlisted-model"), registry);
+    expect(findIssue(report)).toBeUndefined();
+  });
+
+  it("skips the check when the caller supplies no lister", () => {
+    const { listRequiredTextInputs: _omit, ...noLister } = registry;
+    const report = validateGraph(graphWith("kling-2.6/image-to-video"), noLister);
+    expect(findIssue(report)).toBeUndefined();
+  });
+
+  // A requirement names an input of the node that selects it. A property the
+  // node does not declare cannot be the thing the model is asking for.
+  it("ignores a required name the node has no property for", () => {
+    const narrow = {
+      ...registry,
+      getMetadata: () =>
+        ({ properties: [{ name: "image" }, { name: "model" }], outputs: [] }) as never
+    };
+    const report = validateGraph(graphWith("kling-2.6/image-to-video"), narrow);
+    expect(findIssue(report)).toBeUndefined();
+  });
+
+  // A model nested in a settings object or a list configures something other
+  // than this node's own inputs.
+  it("ignores a model that is not the node's own top-level property", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "animate",
+            type: "nodetool.video.ImageToVideo",
+            properties: {
+              config: {
+                model: {
+                  type: "video_model",
+                  provider: "kie",
+                  id: "kling-2.6/image-to-video"
+                }
+              }
+            }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(findIssue(report)).toBeUndefined();
+  });
+});
+
 describe("model selections in nested properties", () => {
   const registry = {
     has: () => true,

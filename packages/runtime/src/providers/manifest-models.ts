@@ -42,6 +42,17 @@ interface ManifestField {
   max?: number;
 }
 
+/**
+ * Kie-style validation rule. `not_empty` is the endpoint saying, in the
+ * manifest, that it refuses a blank value for that field — the kie node factory
+ * checks these before spending an API call.
+ */
+interface ManifestValidation {
+  field: string;
+  rule: string;
+  message?: string;
+}
+
 /** Kie-style asset upload descriptor (carries the real API param name). */
 interface ManifestUpload {
   field: string;
@@ -74,6 +85,8 @@ interface ManifestNode {
   fields?: ManifestField[];
   /** Kie ships asset upload descriptors (field → API param mapping). */
   uploads?: ManifestUpload[];
+  /** Kie ships per-endpoint validation rules the node factory enforces. */
+  validation?: ManifestValidation[];
   /** Kie: routes the model through the Suno music API. */
   useSuno?: boolean;
   /** Kie: Suno API endpoint path for this model. */
@@ -638,6 +651,60 @@ export function getModelInputFields(
     }
     return field;
   });
+}
+
+function requiredTextInputsOf(entry: ManifestNode): string[] {
+  const names = new Set<string>();
+  const textFields = new Set<string>();
+  // Kie: `fields`, where `name` is the API param.
+  for (const field of entry.fields ?? []) {
+    if (field.type.toLowerCase() !== "str") continue;
+    textFields.add(field.name);
+    if (field.required === true) names.add(field.name);
+  }
+  // Kie also states it a second way, as the rules the node factory enforces
+  // before spending a call. Most entries say both; some say only this one.
+  for (const rule of entry.validation ?? []) {
+    if (rule.rule === "not_empty" && textFields.has(rule.field)) {
+      names.add(rule.field);
+    }
+  }
+  // FAL / Replicate: `inputFields`. The declared `name` is the property name;
+  // `apiParamName` is the wire name, which is not what a node property is called.
+  for (const field of entry.inputFields ?? []) {
+    if (field.required === true && field.propType.toLowerCase() === "str") {
+      names.add(field.name);
+    }
+  }
+  return [...names];
+}
+
+/**
+ * Text fields `modelId` refuses to run without, by the name the manifest gives
+ * them — which is also the name the generic media nodes give the matching
+ * property, so a caller can match one against the other.
+ *
+ * Restricted to text on purpose. A required *media* field is fed through the
+ * node's own image/video wiring under a different API name (kie's `images`
+ * arrives as `image_urls`), and a required number or enum carries a default the
+ * provider fills in. What is left is the case that actually fails: a text field
+ * the endpoint rejects when blank. `kling-2.6/image-to-video` declares `prompt`
+ * required in both conventions and answers an empty one with
+ * `500 This field is required`, naming neither the field nor the model.
+ *
+ * Undefined means the model is not in this manifest — "cannot tell", never
+ * "requires nothing". An entry that declares none returns an empty list.
+ */
+export function getRequiredTextInputNames(
+  packageName: string,
+  exportPath: string,
+  modelId: string
+): string[] | undefined {
+  const entry = loadManifest(packageName, exportPath).find(
+    (n) => nodeId(n) === modelId
+  );
+  if (!entry) return undefined;
+  return requiredTextInputsOf(entry);
 }
 
 /** Kie execution metadata carried on a manifest entry. */

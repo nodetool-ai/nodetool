@@ -184,6 +184,46 @@ describe("KieProvider — imageToVideo", () => {
 
     expect(createdInputs[0].duration).toBe("5");
   });
+
+  // The failure the trailer graph hit. `nodetool.video.ImageToVideo` treats
+  // `prompt` as optional because Veo 3.1 does, so the same node pointed at
+  // Kling sent a blank one and Kie answered `500 This field is required` —
+  // naming neither the field nor the node. Refuse it here instead, before the
+  // generation task is created.
+  it("refuses a blank prompt a model declares required, naming both", async () => {
+    mockKieFlow(["https://kie.cdn/frame.png"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+
+    const call = provider.imageToVideo([new Uint8Array([9])], {
+      model: {
+        id: "kling-2.6/image-to-video",
+        name: "Kling 2.6",
+        provider: "kie"
+      },
+      prompt: ""
+    });
+
+    await expect(call).rejects.toThrow("prompt");
+    await expect(call).rejects.toThrow("kling-2.6/image-to-video");
+  });
+
+  it("lets the same model through once the prompt is set", async () => {
+    const { createdInputs } = mockKieFlow(["https://kie.cdn/frame.png"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+
+    await provider.imageToVideo([new Uint8Array([9])], {
+      model: {
+        id: "kling-2.6/image-to-video",
+        name: "Kling 2.6",
+        provider: "kie"
+      },
+      prompt: "the bridge buckles as the car clears the gap"
+    });
+
+    expect(createdInputs[0].prompt).toBe(
+      "the bridge buckles as the car clears the gap"
+    );
+  });
 });
 
 describe("KieProvider — TTS", () => {

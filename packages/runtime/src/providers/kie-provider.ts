@@ -1221,6 +1221,39 @@ export class KieProvider extends BaseProvider {
     }
   }
 
+  /**
+   * Refuse a call whose required text field is blank, naming the field and the
+   * model.
+   *
+   * Kie answers one with `500 {"msg":"This field is required"}` — no field, no
+   * model, and by then the rest of the graph has been paid for. Reaching it is
+   * easy from a generic node: `nodetool.video.ImageToVideo` treats `prompt` as
+   * optional because Veo 3.1 does, so pointing the same node at
+   * `kling-2.6/image-to-video` sends a blank one. `applyRequiredDefaults` does
+   * not save it — the manifest's declared default for such a field is `""`,
+   * which is the value the endpoint rejects.
+   *
+   * Text only. A required media field arrives under its upload descriptor's API
+   * name (`images` is sent as `image_urls`), so reading it off the input bag
+   * under the manifest's name would refuse a call that is correctly formed.
+   */
+  private assertRequiredTextFields(
+    input: Record<string, unknown>,
+    fields: ModelInputField[],
+    modelId: string
+  ): void {
+    for (const field of fields) {
+      if (!field.required || field.type !== "str") continue;
+      const value = input[field.name];
+      if (isString(value) && value.trim().length > 0) continue;
+      throw new Error(
+        `Kie model "${modelId}" requires "${field.name}", which is empty. ` +
+          `Set the node's "${field.name}" property (or wire it), or choose a ` +
+          "model that does not require it."
+      );
+    }
+  }
+
   private applyVideoDuration(
     input: Record<string, unknown>,
     fields: ModelInputField[],
@@ -1432,6 +1465,7 @@ export class KieProvider extends BaseProvider {
     this.applyVideoDuration(input, fields, params);
     this.applyRequiredDefaults(input, fields);
     this.clampToDeclaredMax(input, fields);
+    this.assertRequiredTextFields(input, fields, modelId);
 
     log.debug("Kie imageToVideo", { model: modelId, images: imageUrls.length });
 

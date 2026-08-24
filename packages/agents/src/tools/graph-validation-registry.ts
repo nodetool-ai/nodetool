@@ -9,6 +9,7 @@
 
 import {
   listOfflineModelIds,
+  listOfflineRequiredTextInputs,
   listRegisteredProviderIds
 } from "@nodetool-ai/runtime";
 import {
@@ -53,7 +54,11 @@ export function metadataAwareRegistry(
     listModelIds: (provider, modelType) =>
       registry.listModelIds
         ? registry.listModelIds(provider, modelType)
-        : listOfflineModelIds(provider, modelType)
+        : listOfflineModelIds(provider, modelType),
+    listRequiredTextInputs: (provider, modelType, modelId) =>
+      registry.listRequiredTextInputs
+        ? registry.listRequiredTextInputs(provider, modelType, modelId)
+        : listOfflineRequiredTextInputs(provider, modelType, modelId)
   };
 }
 
