@@ -22,6 +22,8 @@ import type { WebpackOverrideFn } from "@remotion/bundler";
 // Remotion always runs with cwd at this directory (see package.json scripts).
 const DEMO_ROOT = process.cwd();
 const STUBS = path.resolve(DEMO_ROOT, "../web/vite-node-stubs");
+/** Demo-only stubs, for builtins the shared vite stubs do not cover. */
+const DEMO_STUBS = path.resolve(DEMO_ROOT, "webpack-stubs");
 const PKGS = path.resolve(DEMO_ROOT, "../packages");
 /** Runtime target for the `@web-demo` facade (typed via tsconfig paths). */
 const WEB_DEMO_ENTRY = path.resolve(DEMO_ROOT, "../web/src/demo/index.ts");
@@ -49,17 +51,21 @@ const STUBBED: Record<string, string> = {
   child_process: "child-process-stub.js",
 };
 
+/** Built-in → demo-local stub file (named exports webpack must resolve). */
+const DEMO_STUBBED: Record<string, string> = {
+  net: "net-stub.js",
+  http: "http-stub.js",
+  https: "http-stub.js",
+};
+
 /** Built-ins with no API surface the browser path needs → empty module. */
 const EMPTIED = [
   "worker_threads",
   "cluster",
   "dgram",
   "dns",
-  "net",
   "tls",
   "zlib",
-  "http",
-  "https",
   "http2",
   "perf_hooks",
   "vm",
@@ -70,11 +76,24 @@ const EMPTIED = [
   "assert",
   "process",
   "module",
+  // Pulled in transitively by xml2js (via a host sandbox module); the browser
+  // render never runs its Node code paths.
+  "timers",
+  "string_decoder",
+  "querystring",
+  "constants",
+  "tty",
+  "readline",
 ];
 
 /** Server-only specifiers to resolve to an empty module if they appear. */
 const IGNORE = [
   "@nodetool-ai/runtime/tracing",
+  // The Claude Agent SDK spawns a native binary and pulls a Node HTTP/XML
+  // stack in with it. The provider that uses it is never exercised by a
+  // render, but its static import reaches the bundle through the runtime
+  // provider index.
+  "@anthropic-ai/claude-agent-sdk",
 ];
 
 function buildAlias(): Record<string, string> {
@@ -87,6 +106,11 @@ function buildAlias(): Record<string, string> {
   for (const [name, file] of Object.entries(STUBBED)) {
     const target = path.join(STUBS, file);
     // Match both the `node:` protocol and bare specifier, exactly.
+    alias[`node:${name}$`] = target;
+    alias[`${name}$`] = target;
+  }
+  for (const [name, file] of Object.entries(DEMO_STUBBED)) {
+    const target = path.join(DEMO_STUBS, file);
     alias[`node:${name}$`] = target;
     alias[`${name}$`] = target;
   }

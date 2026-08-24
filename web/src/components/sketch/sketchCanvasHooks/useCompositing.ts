@@ -64,6 +64,8 @@ export interface UseCompositingParams {
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   transformPreviewByLayerIdRef?: React.MutableRefObject<Record<string, LayerTransform>>;
   coordinatorRef?: React.MutableRefObject<DisplayFrameCoordinator | null>;
+  /** Pin the runtime to Canvas2D — see `useRuntimeBootstrap`. */
+  preferCanvas2d?: boolean;
 }
 
 export interface UseCompositingResult {
@@ -103,7 +105,8 @@ export function useCompositing({
   isolatedLayerId,
   activeStrokeRef,
   transformPreviewByLayerIdRef,
-  coordinatorRef: externalCoordinatorRef
+  coordinatorRef: externalCoordinatorRef,
+  preferCanvas2d = false
 }: UseCompositingParams): UseCompositingResult {
   // ─── Shared refs ───────────────────────────────────────────────────
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -131,7 +134,8 @@ export function useCompositing({
     useRuntimeBootstrap({
       layerCanvasesRef,
       requestRedrawRef,
-      externalZoom
+      externalZoom,
+      preferCanvas2d
     });
 
   // Sync coordinator with runtime/backend state.

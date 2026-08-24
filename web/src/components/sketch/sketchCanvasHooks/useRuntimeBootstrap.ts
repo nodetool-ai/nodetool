@@ -18,6 +18,12 @@ export interface UseRuntimeBootstrapParams {
   /** Stable ref whose `.current` is called after init / recovery to trigger a composite. */
   requestRedrawRef: React.MutableRefObject<() => void>;
   externalZoom: number;
+  /**
+   * Pin the runtime to Canvas2D and never attempt the WebGPU upgrade. For a
+   * surface that renders a document once and never paints on it — the demo
+   * harness replaying a cast — the upgrade buys nothing and costs a swap.
+   */
+  preferCanvas2d?: boolean;
 }
 
 export interface UseRuntimeBootstrapResult {
@@ -30,15 +36,17 @@ export interface UseRuntimeBootstrapResult {
 export function useRuntimeBootstrap({
   layerCanvasesRef,
   requestRedrawRef,
-  externalZoom
+  externalZoom,
+  preferCanvas2d = false
 }: UseRuntimeBootstrapParams): UseRuntimeBootstrapResult {
   const runtimeRef = useRef<SketchRuntime | null>(null);
   const [backend, setBackend] = useState<"webgpu" | "canvas2d">("canvas2d");
 
   const [webgpuBootstrapPending, setWebgpuBootstrapPending] = useState(
-    () => isWebGPUAvailable()
+    () => !preferCanvas2d && isWebGPUAvailable()
   );
-  const bootstrapPhaseActive = webgpuBootstrapPending && isWebGPUAvailable();
+  const bootstrapPhaseActive =
+    !preferCanvas2d && webgpuBootstrapPending && isWebGPUAvailable();
 
   if (!runtimeRef.current) {
     runtimeRef.current = new Canvas2DRuntime(layerCanvasesRef.current);
@@ -55,6 +63,16 @@ export function useRuntimeBootstrap({
   // Try to upgrade to WebGPU on mount
   useEffect(() => {
     let cancelled = false;
+
+    // Pinned to Canvas2D: no upgrade, no device-loss handler to install. One
+    // composite still has to be asked for, because the caller's redraw effects
+    // run before this one and there is no runtime swap to trigger a second.
+    if (preferCanvas2d) {
+      requestRedrawRef.current();
+      return () => {
+        cancelled = true;
+      };
+    }
 
     /**
      * Attempt to re-initialize WebGPU after device loss. On success, swap the

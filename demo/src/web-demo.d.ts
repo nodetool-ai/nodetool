@@ -170,4 +170,25 @@ declare module "@web-demo" {
   export const DocDemoPlayer: React.FC<DocDemoPlayerProps>;
   /** One document cast per document type (sketch, script, storyboard, JS script, app). */
   export const docCasts: DocDemoCast[];
+
+  /** Where the camera sits, in orbit terms around a target point. */
+  export interface Model3DCameraPose {
+    azimuthDeg: number;
+    elevationDeg: number;
+    distance: number;
+    target?: [number, number, number];
+  }
+
+  export interface Model3DDemoSurfaceProps {
+    /** URL of the `.gltf`/`.glb` the editor loads. */
+    url: string;
+    name?: string;
+    cameraPose: Model3DCameraPose;
+  }
+
+  /**
+   * The 3D editor mounted read-only on a scene file, with the camera driven
+   * from outside. No cast: a scene has no timeline, the camera does.
+   */
+  export const Model3DDemoSurface: React.FC<Model3DDemoSurfaceProps>;
 }

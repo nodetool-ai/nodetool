@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fb7185" />
+      <stop offset="50%" stop-color="#e879f9" />
+      <stop offset="100%" stop-color="#fcd34d" />
+    </linearGradient>
+    <radialGradient id="glowA" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e879f9" stop-opacity="0.20" />
+      <stop offset="100%" stop-color="#e879f9" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowB" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="#050810" />
+  <ellipse cx="820" cy="330" rx="620" ry="380" fill="url(#glowA)" />
+  <ellipse cx="300" cy="700" rx="480" ry="320" fill="url(#glowB)" />
+  <text x="64" y="88" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="44" font-weight="600" fill="#f8fafc" text-anchor="start">Drive NodeTool from your agent</text>
+  <text x="64" y="128" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#94a3b8" text-anchor="start">One MCP server. Every studio surface, and the engine under it.</text>
+  <text x="64" y="186" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#64748b" text-anchor="start" letter-spacing="2.4">MCP CLIENT</text>
+  <rect x="64" y="214" width="340" height="100" rx="14" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="90" y="258" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="21" font-weight="600" fill="#f8fafc" text-anchor="start">Claude Desktop</text>
+  <text x="90" y="292" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="start">installs nodetool.mcpb</text>
+  <rect x="64" y="350" width="340" height="100" rx="14" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="90" y="394" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="21" font-weight="600" fill="#f8fafc" text-anchor="start">Codex · any CLI agent</text>
+  <text x="90" y="428" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="start">nodetool mcp install</text>
+  <rect x="64" y="486" width="340" height="100" rx="14" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="90" y="530" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="21" font-weight="600" fill="#f8fafc" text-anchor="start">Cursor · any MCP client</text>
+  <text x="90" y="564" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="start">points at /mcp</text>
+  <path d="M 420 400 L 458 400" stroke="#334155" stroke-width="2" fill="none" />
+  <path d="M 456 394 L 470 400 L 456 406 Z" fill="#334155" />
+  <text x="470" y="186" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#64748b" text-anchor="start" letter-spacing="2.4">TRANSPORT</text>
+  <rect x="470" y="214" width="300" height="372" rx="14" fill="#0f172a" stroke="#e879f9" stroke-width="1" />
+  <text x="496" y="258" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="24" font-weight="600" fill="#f8fafc" text-anchor="start">NodeTool MCP server</text>
+  <text x="496" y="292" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">streamable HTTP</text>
+  <text x="496" y="319" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">http://127.0.0.1:7777/mcp</text>
+  <text x="496" y="346" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start"></text>
+  <text x="496" y="373" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">stdio ⇄ HTTP bridge</text>
+  <text x="496" y="400" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">one .mcpb, every OS</text>
+  <text x="496" y="427" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start"></text>
+  <text x="496" y="454" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">bearer token for a</text>
+  <text x="496" y="481" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">deployed server</text>
+  <text x="496" y="508" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start"></text>
+  <text x="496" y="535" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">offline: retries, then</text>
+  <text x="496" y="562" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">hot-attaches</text>
+  <path d="M 786 400 L 824 400" stroke="#334155" stroke-width="2" fill="none" />
+  <path d="M 822 394 L 836 400 L 822 406 Z" fill="#334155" />
+  <rect x="64" y="620" width="340" height="182" rx="14" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="90" y="664" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="21" font-weight="600" fill="#f8fafc" text-anchor="start">Same belt in-product</text>
+  <text x="90" y="698" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="start">The chat agent inside NodeTool</text>
+  <text x="90" y="725" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="start">calls these tools too — an MCP</text>
+  <text x="90" y="752" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="start">client is a second front door,</text>
+  <text x="90" y="779" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="start">not a second implementation.</text>
+  <text x="836" y="186" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#64748b" text-anchor="start" letter-spacing="2.4">WHAT IT REACHES</text>
+  <rect x="836" y="132" width="700" height="226" rx="14" fill="#0f172a" stroke="#e879f9" stroke-width="1" />
+  <text x="862" y="176" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="24" font-weight="600" fill="#f8fafc" text-anchor="start">Every editor, as tools</text>
+  <text x="862" y="210" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">Graph canvas · Timeline · Sketch</text>
+  <text x="862" y="237" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">Storyboard · Script &amp; voice · 3D scene</text>
+  <text x="862" y="264" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">App builder</text>
+  <text x="862" y="291" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start"></text>
+  <text x="862" y="318" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">The agent works the real editor. A person takes the wheel mid-edit.</text>
+  <rect x="836" y="392" width="700" height="196" rx="14" fill="#0f172a" stroke="#38bdf8" stroke-width="1" />
+  <text x="862" y="436" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="24" font-weight="600" fill="#f8fafc" text-anchor="start">Execution</text>
+  <text x="862" y="470" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">WorkflowRunner (actor kernel)</text>
+  <text x="862" y="497" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">QuickJS sandbox + 38 library packs</text>
+  <text x="862" y="524" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">FAL · Replicate · KIE · OpenAI · Anthropic · …</text>
+  <rect x="836" y="620" width="700" height="158" rx="14" fill="#0f172a" stroke="#fcd34d" stroke-width="1" />
+  <text x="862" y="664" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="24" font-weight="600" fill="#f8fafc" text-anchor="start">Library</text>
+  <text x="862" y="698" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">Workflows · mini-apps · assets</text>
+  <text x="862" y="725" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#94a3b8" text-anchor="start">Collections for RAG · cost ledger</text>
+  <text x="64" y="848" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#64748b" text-anchor="start">The mount lists a small direct tool set; the rest is reachable in the sandbox.</text>
+  <text x="64" y="874" font-family="'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace" font-size="16" font-weight="400" fill="#64748b" text-anchor="start">Catalog: nodetool://capabilities · Guest surface: nodetool://sandbox</text>
+</svg>

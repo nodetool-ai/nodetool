@@ -46,6 +46,8 @@ export { agentChatCast } from "./chat/agentChatCast";
 export * from "./doc";
 export { AssistantDock, ASSISTANT_DOCK_WIDTH_PX } from "./assistant/AssistantDock";
 export type { AssistantDockProps } from "./assistant/AssistantDock";
+export { Model3DDemoSurface } from "./model3d/Model3DDemoSurface";
+export type { Model3DDemoSurfaceProps } from "./model3d/Model3DDemoSurface";
 export * from "./timeline/timelineCastTypes";
 export { TimelineDemoPlayer } from "./timeline/TimelineDemoPlayer";
 export type { TimelineDemoPlayerProps } from "./timeline/TimelineDemoPlayer";

@@ -95,7 +95,15 @@ const finish = (builder: Builder): Geometry => ({
   indices: new Uint32Array(builder.indices)
 });
 
-/** A quad grid over one face, given a point/normal function of (u, v). */
+/**
+ * A quad grid over one face, given a point/normal function of (u, v).
+ *
+ * Triangles come out counter-clockwise seen from the outside — the winding
+ * glTF and three.js treat as front-facing — **provided the surface's frame is
+ * right-handed**: ∂position/∂u × ∂position/∂v must point along `normal`. A
+ * caller whose parametrization runs the other way renders inside-out, with
+ * its near faces culled and its far ones lit from behind.
+ */
 function grid(
   builder: Builder,
   uSegments: number,
@@ -117,7 +125,7 @@ function grid(
       const b = a + 1;
       const c = a + stride;
       const d = c + 1;
-      builder.indices.push(a, c, b, b, c, d);
+      builder.indices.push(a, b, d, a, d, c);
     }
   }
 }
@@ -152,7 +160,9 @@ function sphere(radius = 0.5, widthSegments = 32, heightSegments = 16): Geometry
   const builder = emptyBuilder();
   grid(builder, widthSegments, heightSegments, (u, v) => {
     const theta = v * Math.PI;
-    const phi = u * Math.PI * 2;
+    // Sweeping u the negative way around keeps (∂u, ∂v, normal) right-handed,
+    // which is what `grid` winds for. The surface itself is unchanged.
+    const phi = -u * Math.PI * 2;
     const normal: Vec3 = [
       -Math.sin(theta) * Math.cos(phi),
       Math.cos(theta),
@@ -227,7 +237,8 @@ function torus(
 ): Geometry {
   const builder = emptyBuilder();
   grid(builder, tubularSegments, radialSegments, (u, v) => {
-    const phi = u * Math.PI * 2;
+    // Negative sweep, for the same handedness reason as the sphere.
+    const phi = -u * Math.PI * 2;
     const theta = v * Math.PI * 2;
     const normal: Vec3 = [
       Math.cos(theta) * Math.cos(phi),

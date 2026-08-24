@@ -14,6 +14,23 @@ import { TIMELINE_TUTORIALS, timelineTutorialFrames } from "./timelineTutorials"
 import { DocTutorial } from "./DocTutorial";
 import { DOC_TUTORIALS, docTutorialFrames } from "./docTutorials";
 import { PROMO_DURATION_FRAMES, PROMO_FPS, Promo } from "./promo/Promo";
+import {
+  HERO_DURATION_FRAMES,
+  HERO_FPS,
+  HeroPipeline,
+} from "./hero/HeroPipeline";
+import {
+  TAB_CHAOS_FPS,
+  TAB_CHAOS_FRAMES,
+  TabChaos,
+} from "./hero/TabChaos";
+import { Model3DLoop } from "./hero/Model3DLoop";
+import {
+  SURFACE_LOOPS,
+  SURFACE_LOOP_FPS,
+  SURFACE_LOOP_FRAMES,
+  SurfaceLoop,
+} from "./hero/SurfaceLoop";
 import type { DemoCast } from "@web-demo";
 
 const WIDTH = 1920;
@@ -135,6 +152,59 @@ export const Root: React.FC = () => {
         height={HEIGHT}
         durationInFrames={PROMO_DURATION_FRAMES}
       />
+      {/* The landing-page hero reel (marketing/POSITIONING_PLAN.md Part 5):
+          a silent ~15s loop, cut for 16:9 and for the 9:16 social slot. */}
+      <Composition
+        id="Hero-Pipeline"
+        component={HeroPipeline}
+        fps={HERO_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={HERO_DURATION_FRAMES}
+      />
+      <Composition
+        id="Hero-Pipeline-Vertical"
+        component={HeroPipeline}
+        fps={HERO_FPS}
+        width={1080}
+        height={1920}
+        durationInFrames={HERO_DURATION_FRAMES}
+      />
+      {/* One silent 6s loop per creative surface, for the landing page's
+          surface tabs (marketing/POSITIONING_PLAN.md Part 5). */}
+      {SURFACE_LOOPS.map((loop) => (
+        <Composition
+          key={loop.slug}
+          id={`Surface-${loop.slug}`}
+          component={SurfaceLoop}
+          defaultProps={loop}
+          fps={SURFACE_LOOP_FPS}
+          width={WIDTH}
+          height={HEIGHT}
+          durationInFrames={SURFACE_LOOP_FRAMES}
+        />
+      ))}
+
+      <Composition
+        id="Surface-3d"
+        component={Model3DLoop}
+        fps={SURFACE_LOOP_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={SURFACE_LOOP_FRAMES}
+      />
+
+      {/* The pain-grid animation: five tool windows collapse into the real
+          canvas (marketing/POSITIONING_PLAN.md Part 5). */}
+      <Composition
+        id="Tab-Chaos"
+        component={TabChaos}
+        fps={TAB_CHAOS_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={TAB_CHAOS_FRAMES}
+      />
+
       <Composition
         id="Promo-Landing"
         component={Promo}

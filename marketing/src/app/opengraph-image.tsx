@@ -6,8 +6,8 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return ogImage(
-    "The open creative AI workspace",
-    "Every model. Your keys. Your canvas.",
+    "From prompt to final cut on one canvas",
+    "Every model. Your keys. One workspace.",
     { image: "screen_canvas.png", accent: "blue" }
   );
 }
