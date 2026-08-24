@@ -9,6 +9,13 @@ export {
 } from "./cost-calculator.js";
 export type { PricingTier, UsageInfo } from "./cost-calculator.js";
 export { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
+export {
+  IMAGE_MIME_TO_EXT,
+  sniffImageMime,
+  detectImageMime,
+  bytesToImageDataUri,
+  extForImageMime
+} from "./image-mime.js";
 import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";

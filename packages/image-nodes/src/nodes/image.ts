@@ -156,6 +156,10 @@ function imageRef(data: Uint8Array, extras: Partial<ImageRef> = {}): ImageRef {
 // them from this module.
 export { decodeRgba, rawRgbaImageRef };
 
+// Kept in sync by hand with `sniffImageMime` in @nodetool-ai/runtime: this
+// module bundles for the browser, so it may not import the runtime barrel.
+// "unknown" stays a state of its own — `guessAssetMime` reads it as undeclared
+// and re-sniffs at the storage boundary.
 function inferImageMime(uri: string | undefined, bytes: Uint8Array): string {
   const lower = (uri ?? "").toLowerCase();
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";

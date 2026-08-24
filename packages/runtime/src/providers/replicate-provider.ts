@@ -4,6 +4,7 @@ import { isObjectLike, isString } from "../type-predicates.js";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { sniffAudioMime } from "./audio-mime.js";
+import { detectImageMime } from "./image-mime.js";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -856,7 +857,7 @@ export class ReplicateProvider extends BaseProvider {
     if (params.seed != null) input.seed = params.seed;
 
     if (params.mask && params.mask.length > 0) {
-      const maskUri = this.dataUri(params.mask, "image/png");
+      const maskUri = this.imageDataUri(params.mask);
       const maskField = selectMaskImageInput(
         getModelImageInputs(
           "@nodetool-ai/replicate-nodes",
@@ -923,6 +924,12 @@ export class ReplicateProvider extends BaseProvider {
     return `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
   }
 
+  // Replicate models decode by the declared type, so feeding back a WebP this
+  // provider itself produced as `image/png` fails inside the model.
+  private imageDataUri(bytes: Uint8Array): string {
+    return this.dataUri(bytes, detectImageMime(bytes));
+  }
+
   /**
    * Build the image portion of a Replicate prediction input from one or more
    * source images, using the model's declared schema (replicate-manifest) to
@@ -936,7 +943,7 @@ export class ReplicateProvider extends BaseProvider {
   ) {
     const dataUris = images
       .filter((b) => b && b.length > 0)
-      .map((b) => this.dataUri(b, "image/png"));
+      .map((b) => this.imageDataUri(b));
     if (dataUris.length === 0) return {};
 
     const field = selectPrimaryImageInput(
@@ -971,7 +978,7 @@ export class ReplicateProvider extends BaseProvider {
     params: UpscaleImageParams
   ): Promise<Uint8Array> {
     const input: Record<string, unknown> = {
-      image: this.dataUri(image, "image/png")
+      image: this.imageDataUri(image)
     };
     if (params.scale != null) input.scale = params.scale;
     if (params.prompt) input.prompt = params.prompt;
@@ -987,7 +994,7 @@ export class ReplicateProvider extends BaseProvider {
   ): Promise<Uint8Array> {
     log.debug("removeBackground", { model: params.model.id });
     return this.runWithInput(params.model.id, {
-      image: this.dataUri(image, "image/png")
+      image: this.imageDataUri(image)
     });
   }
 
@@ -996,7 +1003,7 @@ export class ReplicateProvider extends BaseProvider {
     params: RelightImageParams
   ): Promise<Uint8Array> {
     const input: Record<string, unknown> = {
-      image: this.dataUri(image, "image/png")
+      image: this.imageDataUri(image)
     };
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
@@ -1011,7 +1018,7 @@ export class ReplicateProvider extends BaseProvider {
   ): Promise<Uint8Array> {
     log.debug("vectorizeImage", { model: params.model.id });
     return this.runWithInput(params.model.id, {
-      image: this.dataUri(image, "image/png")
+      image: this.imageDataUri(image)
     });
   }
 

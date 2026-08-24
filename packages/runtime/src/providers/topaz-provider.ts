@@ -18,6 +18,7 @@
 
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
+import { sniffImageMime } from "./image-mime.js";
 import { createLogger } from "@nodetool-ai/config";
 import { loadImageModels, loadManifest } from "./manifest-models.js";
 import type {
@@ -120,20 +121,10 @@ function buildVariantMap(): Map<string, VariantInfo> {
   return map;
 }
 
+// Multipart part type. Topaz reads the bytes either way, so claiming nothing
+// beats claiming PNG wrongly.
 function detectImageMime(image: Uint8Array): string {
-  if (
-    image.length >= 4 &&
-    image[0] === 0x89 &&
-    image[1] === 0x50 &&
-    image[2] === 0x4e &&
-    image[3] === 0x47
-  ) {
-    return "image/png";
-  }
-  if (image.length >= 3 && image[0] === 0xff && image[1] === 0xd8) {
-    return "image/jpeg";
-  }
-  return "application/octet-stream";
+  return sniffImageMime(image) ?? "application/octet-stream";
 }
 
 export class TopazProvider extends BaseProvider {
