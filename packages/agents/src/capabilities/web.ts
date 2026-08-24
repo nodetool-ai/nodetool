@@ -21,10 +21,12 @@
 
 import {
   WEB_SEARCH_TOOL_NAME,
+  loadMediaRefBytes,
   safeFetch,
   type JsonSchema,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
+import { mimeForPath } from "../sandbox-media-ref.js";
 import type {
   SerpProvider,
   SerpProviderType
@@ -769,6 +771,69 @@ const takeScreenshot: CapabilityExport = {
 // download_file
 // ---------------------------------------------------------------------------
 
+/**
+ * A ref NodeTool resolves itself, rather than a URL to fetch. `asset://` is a
+ * stored identifier — on the cloud backends the bytes sit behind a signed URL
+ * only the server can mint — so `safeFetch` can only ever refuse it, and did:
+ * a session holding three generated clips was told they were "unsafe URLs" and
+ * had no way to put them in the workspace at all.
+ */
+function isStoredRef(url: string): boolean {
+  const value = url.trim();
+  return (
+    value.startsWith("asset://") ||
+    value.startsWith("package://") ||
+    value.startsWith("data:") ||
+    value.startsWith("/api/storage/")
+  );
+}
+
+/** Resolve a stored ref host-side and write the bytes into the workspace. */
+async function copyStoredRef(
+  context: ProcessingContext,
+  url: string,
+  outputFile: string
+): Promise<Record<string, unknown>> {
+  const ref = url.trim();
+  let bytes: Uint8Array | null = null;
+  try {
+    bytes = await loadMediaRefBytes({ uri: ref }, context);
+  } catch (e) {
+    return {
+      url: ref,
+      output_file: outputFile,
+      success: false,
+      error: `Could not read ${ref}: ${e instanceof Error ? e.message : String(e)}`
+    };
+  }
+  // Zero bytes is a failed read wearing a buffer — writing it would leave a
+  // file that fails later, somewhere with less context than here.
+  if (!bytes || bytes.byteLength === 0) {
+    return {
+      url: ref,
+      output_file: outputFile,
+      success: false,
+      error: `${ref} resolved to no bytes.`
+    };
+  }
+  const declared = /^data:([^;,]+)[;,]/.exec(ref)?.[1];
+  const contentType =
+    declared ?? mimeForPath(ref) ?? mimeForPath(outputFile) ?? "application/octet-stream";
+  const { persistBinaryOutput } = await import("../tools/binary-output.js");
+  const persisted = await persistBinaryOutput(context, bytes, {
+    outputFile,
+    contentType,
+    uiPrefix: "downloads"
+  });
+  return {
+    url: ref,
+    success: true,
+    content_type: contentType,
+    file_size_bytes: bytes.byteLength,
+    ...persisted
+  };
+}
+
 const downloadFile: CapabilityExport = {
   spec: downloadFileSpec,
   impl: async (run, params) => {
@@ -782,6 +847,10 @@ const downloadFile: CapabilityExport = {
       }
       if (!isString(outputFile) || !outputFile) {
         return { error: "Output file is required" };
+      }
+
+      if (isStoredRef(url)) {
+        return await copyStoredRef(context, url, outputFile);
       }
 
       const customHeaders =

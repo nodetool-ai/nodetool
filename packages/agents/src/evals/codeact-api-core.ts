@@ -1179,6 +1179,23 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
+      "generate_music",
+      "Generate music from a prompt and save it as an asset.",
+      { provider: s, model: s, prompt: s, duration_seconds: { type: "number" } },
+      (params) => {
+        world.model(params["provider"], params["model"], "text_to_music");
+        const asset = world.saveAsset(
+          `music-${str(world.assets.size + 1)}`,
+          str(params["prompt"]),
+          "audio/mpeg"
+        );
+        return {
+          asset_uri: asset.uri,
+          duration_seconds: Number(params["duration_seconds"]) || 30
+        };
+      }
+    ),
+    tool(
       "transcribe_audio",
       "Transcribe an audio asset.",
       { provider: s, model: s, input_file: s },

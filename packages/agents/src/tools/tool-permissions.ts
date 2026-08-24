@@ -114,6 +114,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_sketch_versions: "read",
   get_sketch_version: "read",
   list_timelines: "read",
+  create_timeline: "write",
   get_timeline: "read",
   list_timeline_versions: "read",
   get_timeline_version: "read",
@@ -205,6 +206,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   generate_video: "write",
   animate_image: "write",
   generate_speech: "write",
+  generate_music: "write",
   // Voicing calls a TTS model per line and writes takes onto a local script;
   // assembly writes a timeline row.
   voice_script_lines: "write",
