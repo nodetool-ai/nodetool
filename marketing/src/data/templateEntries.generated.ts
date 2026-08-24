@@ -6115,6 +6115,13 @@ export const templateEntries: TemplateEntry[] = [
           "color": "image"
         },
         {
+          "source": "shots",
+          "sourceHandle": "shot_prompt",
+          "target": "animate",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
           "source": "animate",
           "sourceHandle": "output",
           "target": "clips_collect",
@@ -11669,6 +11676,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "animate",
           "targetHandle": "image",
           "color": "image"
+        },
+        {
+          "source": "shots",
+          "sourceHandle": "shot_prompt",
+          "target": "animate",
+          "targetHandle": "prompt",
+          "color": "string"
         },
         {
           "source": "animate",
