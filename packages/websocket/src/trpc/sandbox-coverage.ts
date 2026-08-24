@@ -723,7 +723,19 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "storyboards.create": { capability: "create_storyboard" },
   "storyboards.delete": { capability: "delete_storyboard" },
+  "storyboards.examples": {
+    gap:
+      "The shipped example boards, listed from disk. Workflow examples have " +
+      "get_example_workflow; storyboards have no equivalent yet, so a run " +
+      "that wants a directed board builds one with create_storyboard."
+  },
   "storyboards.get": { capability: "get_storyboard" },
+  "storyboards.installExample": {
+    gap:
+      "Installs a shipped board into the caller's own library — the same " +
+      "row create_storyboard writes, from a file instead of an argument. " +
+      "Worth a capability once something headless wants to start from one."
+  },
   "storyboards.list": { capability: "list_storyboards" },
   "storyboards.update": { capability: "edit_storyboard" },
   "threadMemories.delete": { capability: "thread_memory_delete" },
