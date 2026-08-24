@@ -19,6 +19,8 @@ export interface AggregateResult {
   total_output_tokens: number;
   total_tokens: number;
   call_count: number;
+  /** Calls recorded with no price — the totals above are a lower bound. */
+  unpriced_count: number;
 }
 
 export interface ProviderAggregateResult {
@@ -28,6 +30,7 @@ export interface ProviderAggregateResult {
   total_output_tokens: number;
   total_tokens: number;
   call_count: number;
+  unpriced_count: number;
 }
 
 export interface ModelAggregateResult {
@@ -38,6 +41,7 @@ export interface ModelAggregateResult {
   total_output_tokens: number;
   total_tokens: number;
   call_count: number;
+  unpriced_count: number;
 }
 
 interface DashboardProviderResult {
@@ -234,12 +238,14 @@ export class Prediction extends DBModel {
     let total_input_tokens = 0;
     let total_output_tokens = 0;
     let total_tokens = 0;
+    let unpriced_count = 0;
 
     for (const p of rows) {
       total_cost += (p.cost as number) ?? 0;
       total_input_tokens += (p.input_tokens as number) ?? 0;
       total_output_tokens += (p.output_tokens as number) ?? 0;
       total_tokens += (p.total_tokens as number) ?? 0;
+      if (p.cost == null) unpriced_count += 1;
     }
 
     return {
@@ -250,7 +256,8 @@ export class Prediction extends DBModel {
       total_input_tokens,
       total_output_tokens,
       total_tokens,
-      call_count: rows.length
+      call_count: rows.length,
+      unpriced_count
     };
   }
 
@@ -275,7 +282,8 @@ export class Prediction extends DBModel {
           total_input_tokens: 0,
           total_output_tokens: 0,
           total_tokens: 0,
-          call_count: 0
+          call_count: 0,
+          unpriced_count: 0
         };
         groups.set(prov, entry);
       }
@@ -284,6 +292,7 @@ export class Prediction extends DBModel {
       entry.total_output_tokens += (p.output_tokens as number) ?? 0;
       entry.total_tokens += (p.total_tokens as number) ?? 0;
       entry.call_count += 1;
+      if (p.cost == null) entry.unpriced_count += 1;
     }
 
     return [...groups.values()];
@@ -318,7 +327,8 @@ export class Prediction extends DBModel {
           total_input_tokens: 0,
           total_output_tokens: 0,
           total_tokens: 0,
-          call_count: 0
+          call_count: 0,
+          unpriced_count: 0
         };
         groups.set(key, entry);
       }
@@ -327,6 +337,7 @@ export class Prediction extends DBModel {
       entry.total_output_tokens += (p.output_tokens as number) ?? 0;
       entry.total_tokens += (p.total_tokens as number) ?? 0;
       entry.call_count += 1;
+      if (p.cost == null) entry.unpriced_count += 1;
     }
 
     return [...groups.values()];

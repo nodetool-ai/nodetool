@@ -65,7 +65,13 @@ export const aggregateByUserOutput = z.object({
   total_input_tokens: z.number(),
   total_output_tokens: z.number(),
   total_tokens: z.number(),
-  call_count: z.number()
+  call_count: z.number(),
+  /**
+   * Calls recorded with no price — a generation on a model no catalog covers.
+   * `total_cost` is then a lower bound. Defaulted so a server predating the
+   * field still parses.
+   */
+  unpriced_count: z.number().default(0)
 });
 
 /**
@@ -78,7 +84,8 @@ export const providerAggregate = z.object({
   total_input_tokens: z.number(),
   total_output_tokens: z.number(),
   total_tokens: z.number(),
-  call_count: z.number()
+  call_count: z.number(),
+  unpriced_count: z.number().default(0)
 });
 
 export const aggregateByProviderOutput = z.array(providerAggregate);
@@ -94,7 +101,8 @@ export const modelAggregate = z.object({
   total_input_tokens: z.number(),
   total_output_tokens: z.number(),
   total_tokens: z.number(),
-  call_count: z.number()
+  call_count: z.number(),
+  unpriced_count: z.number().default(0)
 });
 
 export const aggregateByModelOutput = z.array(modelAggregate);

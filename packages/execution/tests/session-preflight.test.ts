@@ -40,6 +40,7 @@ vi.mock("@nodetool-ai/models", () => ({
     ensureDefault: vi.fn(async () => ({ isAccessible: () => false }))
   },
   Job: { create: vi.fn() },
+  Prediction: { create: vi.fn() },
   getSecret: vi.fn(async (key: string) => store.secrets[key] ?? null)
 }));
 

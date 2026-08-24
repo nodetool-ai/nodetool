@@ -210,9 +210,24 @@ describe("providerAggregate", () => {
       total_input_tokens: 1000,
       total_output_tokens: 500,
       total_tokens: 1500,
+      call_count: 10,
+      unpriced_count: 2
+    });
+    expect(result.success).toBe(true);
+    expect(result.data?.unpriced_count).toBe(2);
+  });
+
+  it("defaults unpriced_count for a server that predates the field", () => {
+    const result = providerAggregate.safeParse({
+      provider: "openai",
+      total_cost: 1.5,
+      total_input_tokens: 1000,
+      total_output_tokens: 500,
+      total_tokens: 1500,
       call_count: 10
     });
     expect(result.success).toBe(true);
+    expect(result.data?.unpriced_count).toBe(0);
   });
 
   it("rejects missing provider", () => {

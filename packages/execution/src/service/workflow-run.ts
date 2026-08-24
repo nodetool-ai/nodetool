@@ -25,6 +25,7 @@ import type {
   StorageAdapter,
   Workspace
 } from "@nodetool-ai/runtime";
+import { attachRunCostLedger, nodeTypeLookup } from "../cost-ledger.js";
 import { normalizeGraph } from "../normalize-graph.js";
 import {
   collectPreflightIssues,
@@ -517,6 +518,15 @@ export async function runWorkflow(
         // The host attaches its model interfaces (asset persistence, …) —
         // without them an Output node that stores an image fails the run.
         environment.configureContext?.(executionContext);
+        // This path builds its own runner instead of going through
+        // `ExecutionSession`, so it has to attach the spend ledger itself.
+        // No detach: the listener lives on this context and dies with it.
+        attachRunCostLedger(executionContext, {
+          userId,
+          workflowId,
+          nodeType: nodeTypeLookup(runnableGraph.nodes),
+          resolveSecret: (key) => executionContext.getSecret(key)
+        });
         return executionContext;
       })()
     };

@@ -69,6 +69,7 @@ vi.mock("@nodetool-ai/models", () => ({
   },
   Workspace: { find: vi.fn(async () => null) },
   Job: { create: jobCreate },
+  Prediction: { create: vi.fn() },
   getSecret: vi.fn(async (key: string) => state.secrets[key] ?? null)
 }));
 
