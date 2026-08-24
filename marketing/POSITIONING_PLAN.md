@@ -361,8 +361,10 @@ repo changes the artwork in the same diff.
       the product does not charge. The credit side is Figma Weave's own
       published plans and per-model generation counts (`weavePricing.ts`, with
       the URL and the date they were read), and the workload is priced through
-      them — allowance, then top-ups at the plan's rate. It is arithmetic on
-      both sides, so it can come out either way.
+      them — allowance, then top-ups at the plan's rate. Both columns price
+      the *same model*: the picker holds only the ten models Weave sells that
+      Kie or AtlasCloud also serves. It is arithmetic on both sides, so it can
+      come out either way, and on Veo 3.1 it does.
 - [x] Graph-to-app widget — `GraphToAppSplit`, the same shipped example seen
       twice: the generated template graph, then the mini app that binds that
       workflow. Stacked rather than a drag-to-reveal split, because the two
