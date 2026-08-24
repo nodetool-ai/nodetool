@@ -26,10 +26,10 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
           >
-            The agent-first
+            From prompt to final cut
             <br />
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              creative workspace.
+              on one canvas.
             </span>
           </h1>
 
@@ -41,11 +41,11 @@ export default function NodeToolHero() {
             >
               node-based
             </a>{" "}
-            canvas for image, video, audio, and text, where every editor is a
-            tool an agent can drive. Describe what you want to make; the agent
-            builds the workflow and runs it with the right models and tools —
-            and the whole process stays open for you to inspect, edit, and
-            reuse. Every major model, your own keys, provider prices.
+            canvas that combines generative AI models with a multi-track
+            timeline, layered sketching, storyboards, and scripts — driven by
+            you, or by an agent that builds the workflow and runs it, leaving
+            the whole process open for you to inspect, edit, and reuse. Every
+            major model, your own keys, provider prices.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

@@ -422,13 +422,13 @@ export default function Home() {
               id="closing-cta-title"
               className="text-3xl md:text-4xl font-bold tracking-tight text-white"
             >
-              Describe the next piece. Keep the process.
+              Stop stitching tools together. Own your creative pipeline.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
               Tell the agent what you want, watch the workflow run, and keep a
               process you can edit and reuse. Free, open source, and yours to
-              run: download Studio, or try Cloud in the browser with nothing
-              to install.
+              run: download Studio, or try Cloud (alpha) in the browser with
+              nothing to install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
