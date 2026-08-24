@@ -45,7 +45,6 @@ import {
   PythonNodeExecutor,
   createPythonBridge,
   logPythonWorkerStderr,
-  safeFetch,
   type NodeExecutor,
   type ProcessingContext,
   type PythonBridge,
@@ -121,6 +120,7 @@ import {
   retrieveAssetBytes,
   normalizeAssetContentType
 } from "./lib/asset-paths.js";
+import { resolveAssetBytesForExport } from "./lib/asset-export.js";
 import { assetObjectKey } from "@nodetool-ai/storage";
 import { getStorageRetentionSettings } from "./storage-retention.js";
 export { getAssetFileName, getAssetStoragePath };
@@ -1342,47 +1342,7 @@ export async function handleWorkflowDslExport(
 
 // ── Workflow bundle export/import (.nodetool) ──────────────────────────
 
-/** Resolve asset bytes for a ref during export, via the asset storage adapter. */
-export async function resolveAssetBytesForExport(
-  ref: string
-): Promise<Uint8Array | null> {
-  try {
-    if (ref.startsWith("asset://")) {
-      const rest = ref.slice("asset://".length).split("?")[0].split("#")[0];
-      const adapter = getAssetAdapter();
-      if (!nodePath.extname(rest)) {
-        const asset = (await Asset.get(rest)) as Asset | null;
-        if (!asset) return null;
-        return await retrieveAssetBytes(
-          adapter,
-          asset.user_id,
-          asset.id,
-          asset.content_type
-        );
-      }
-      // Already a key — owner-prefixed for anything written since the
-      // per-owner layout, flat for older `asset://` refs stored in graphs.
-      return await adapter.retrieve(adapter.uriForKey(rest));
-    }
-    if (ref.includes("/api/storage/")) {
-      const key = decodeURIComponent(
-        ref
-          .slice(ref.indexOf("/api/storage/") + "/api/storage/".length)
-          .split("?")[0]
-      );
-      const adapter = getAssetAdapter();
-      return await adapter.retrieve(adapter.uriForKey(key));
-    }
-    if (/^https?:\/\//.test(ref)) {
-      const res = await safeFetch(ref);
-      if (!res.ok) return null;
-      return new Uint8Array(await res.arrayBuffer());
-    }
-  } catch {
-    // Unresolved — the ref is left as-is in the bundle.
-  }
-  return null;
-}
+export { resolveAssetBytesForExport };
 
 async function loadBundledWorkflow(
   workflowId: string,
