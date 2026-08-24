@@ -30,10 +30,12 @@ export interface StoryboardExportInput {
   shots: Shot[];
 }
 
-/** Media files chosen for one shot, keyed by the shot's position. */
+/** What the archive holds for one shot: a packed path, or why it holds none. */
 interface ShotMedia {
   still?: string;
   clip?: string;
+  /** Refs the shot named that the export could not turn into bytes. */
+  unresolved?: Array<{ kind: "still" | "clip"; source: string }>;
 }
 
 interface MediaRefLike {
@@ -42,13 +44,33 @@ interface MediaRefLike {
   asset_id?: unknown;
 }
 
-/** The uri to resolve bytes from, or null when the ref carries no locator. */
+/** A locator the server can resolve on its own, without the browser's help. */
+function isResolvableSource(uri: string): boolean {
+  return (
+    uri.startsWith("asset://") ||
+    uri.includes("/api/storage/") ||
+    /^https?:\/\//.test(uri) ||
+    uri.startsWith("data:")
+  );
+}
+
+/**
+ * The locator to resolve bytes from, or null when the ref carries none.
+ *
+ * A stored `asset_id` beats the ref's own `uri` when that uri is not something
+ * the server can fetch — a `blob:` or `file://` source is the browser's
+ * handle on the bytes, not the server's, and the asset id names the same
+ * media in terms the storage adapter understands.
+ */
 export function mediaRefSource(ref: unknown): string | null {
   if (!ref || typeof ref !== "object") return null;
   const { uri, asset_id: assetId } = ref as MediaRefLike;
-  if (isString(uri) && uri !== "") return uri;
-  if (isString(assetId) && assetId !== "") return `asset://${assetId}`;
-  return null;
+  const id = isString(assetId) && assetId !== "" ? `asset://${assetId}` : null;
+  if (isString(uri) && uri !== "") {
+    if (isResolvableSource(uri)) return uri;
+    return id ?? uri;
+  }
+  return id;
 }
 
 function shotNumber(shot: Shot, index: number): string {
@@ -128,7 +150,11 @@ export function renderStoryboardMarkdown(
         : null,
       field("Status", shot.status),
       field("Notes", shot.notes),
-      files?.clip ? `- **Clip:** [${files.clip}](${files.clip})` : null
+      files?.clip ? `- **Clip:** [${files.clip}](${files.clip})` : null,
+      ...(files?.unresolved ?? []).map(
+        ({ kind, source }) =>
+          `- **Missing ${kind}:** \`${source}\` could not be read, so it is not in this archive.`
+      )
     ].filter((line): line is string => line !== null);
     if (details.length > 0) {
       lines.push("", ...details);
@@ -166,13 +192,15 @@ export async function packStoryboardZip(
     index: number,
     ref: unknown,
     dir: "stills" | "clips",
-    refType: "image" | "video"
+    refType: "image" | "video",
+    unresolved: NonNullable<ShotMedia["unresolved"]>
   ): Promise<string | undefined> => {
     const source = mediaRefSource(ref);
     if (!source) return undefined;
     const bytes = await fetchAssetBytes(source).catch(() => null);
-    if (!bytes) {
+    if (!bytes || bytes.byteLength === 0) {
       missing.push(source);
+      unresolved.push({ kind: dir === "stills" ? "still" : "clip", source });
       return undefined;
     }
     const name = `${shotNumber(shot, index)}${slugPart(shot)}${mediaExtension(source, refType)}`;
@@ -183,12 +211,28 @@ export async function packStoryboardZip(
 
   let index = 0;
   for (const shot of board.shots) {
-    const still = await addMedia(shot, index, shot.keyframe, "stills", "image");
-    const clip = await addMedia(shot, index, shot.clip, "clips", "video");
-    if (still || clip) {
+    const unresolved: NonNullable<ShotMedia["unresolved"]> = [];
+    const still = await addMedia(
+      shot,
+      index,
+      shot.keyframe,
+      "stills",
+      "image",
+      unresolved
+    );
+    const clip = await addMedia(
+      shot,
+      index,
+      shot.clip,
+      "clips",
+      "video",
+      unresolved
+    );
+    if (still || clip || unresolved.length > 0) {
       const entry: ShotMedia = {};
       if (still) entry.still = still;
       if (clip) entry.clip = clip;
+      if (unresolved.length > 0) entry.unresolved = unresolved;
       media.set(shot.id, entry);
     }
     index += 1;
