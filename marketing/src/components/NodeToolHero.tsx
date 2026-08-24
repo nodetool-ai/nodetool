@@ -26,10 +26,10 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-5 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
           >
-            Describe it. An agent builds it.
+            Describe it.
             <br />
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              Images, video, audio, text.
+              An agent builds it.
             </span>
           </h1>
 
