@@ -3,8 +3,9 @@
  * timeline.
  *
  * When a board has been assembled (board.timelineId set) and a shot's clip is
- * re-rendered, the linked timeline clip (matched by `storyboardShotId`) gets
- * the new asset. Uses a get→CAS-update cycle against the persisted document;
+ * re-rendered, the timeline clips that shot owns (matched by
+ * `storyboardShotId`) get the new asset — the video clip and the audio twin
+ * that carries the shot's own sound. Uses a get→CAS-update cycle against the persisted document;
  * an editor that has the sequence open picks the change up on next load.
  * Failures are logged, never thrown — a sync miss must not fail the shot.
  */
@@ -32,9 +33,9 @@ export async function syncShotClipToTimeline(
         return clip;
       }
       // A jointly assembled cut stamps the shot keys onto the voiceover clips
-      // too, so the shot's own clip is the video one. Without this, re-rendering
-      // a shot would hand its video asset to the line's audio clip.
-      if (clip.mediaType !== "video") {
+      // too, and those play the script's takes. The shot's own clips — the
+      // video one and its audio twin — carry no line.
+      if (clip.scriptLineId) {
         return clip;
       }
       if (clip.currentAssetId === assetId) {

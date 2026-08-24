@@ -9,6 +9,7 @@ import {
   buildStoryboardPreviewTimeline,
   buildStoryboardTimeline
 } from "../src/storyboard.js";
+import type { TimelineClip } from "../src/types.js";
 
 function makeShot(overrides: Partial<Shot> & Pick<Shot, "id" | "index">): Shot {
   return {
@@ -23,6 +24,10 @@ const clipRef = (assetId: string) =>
   ({ type: "video", asset_id: assetId }) as const;
 const keyframeRef = (assetId: string) =>
   ({ type: "image", asset_id: assetId }) as const;
+
+/** The picture clips — every shot also contributes its audio twin. */
+const pictureClips = (clips: TimelineClip[]) =>
+  clips.filter((c) => c.mediaType !== "audio");
 
 // ── buildStoryboardTimeline ───────────────────────────────────────────
 
@@ -47,8 +52,8 @@ describe("buildStoryboardTimeline", () => {
       ]
     });
 
-    expect(result.clips).toHaveLength(1);
-    expect(result.clips[0].currentAssetId).toBe("asset-a");
+    expect(pictureClips(result.clips)).toHaveLength(1);
+    expect(pictureClips(result.clips)[0].currentAssetId).toBe("asset-a");
     expect(result.skippedShotIds).toEqual(["b", "c"]);
     expect(result.durationMs).toBe(DEFAULT_SHOT_MS);
   });
@@ -68,13 +73,61 @@ describe("buildStoryboardTimeline", () => {
       ]
     });
 
-    const narration = result.clips.find((c) => c.mediaType === "audio");
+    const narration = result.clips.find((c) => c.name === "Narration");
     expect(narration).toBeDefined();
     expect(narration?.prompt).toBe("the light turns");
     expect(narration?.status).toBe("draft");
     expect(narration?.startMs).toBe(0);
     expect(narration?.durationMs).toBe(2500);
-    expect(result.tracks.map((t) => t.name)).toEqual(["Shots", "Narration"]);
+    expect(result.tracks.map((t) => t.name)).toEqual([
+      "Shots",
+      "Shot Audio",
+      "Narration"
+    ]);
+  });
+
+  it("gives every shot clip an audio twin that shares its asset and place", () => {
+    const result = buildStoryboardTimeline({
+      boardId: "board-1",
+      shots: [
+        makeShot({
+          id: "a",
+          index: 0,
+          slug: "Lighthouse",
+          status: "rendered",
+          duration_seconds: 2,
+          clip: clipRef("asset-a")
+        })
+      ]
+    });
+
+    const video = result.clips.find((c) => c.mediaType === "video");
+    const audio = result.clips.find((c) => c.mediaType === "audio");
+    expect(audio?.name).toBe("Lighthouse (audio)");
+    expect(audio?.currentAssetId).toBe("asset-a");
+    expect(audio?.startMs).toBe(video?.startMs);
+    expect(audio?.durationMs).toBe(video?.durationMs);
+    expect(audio?.status).toBe("generated");
+    expect(audio?.sourceType).toBe("imported");
+    expect(audio?.storyboardShotId).toBe("a");
+    expect(audio?.storyboardBoardId).toBe("board-1");
+    const audioTrack = result.tracks.find((t) => t.name === "Shot Audio");
+    expect(audio?.trackId).toBe(audioTrack?.id);
+    expect(audioTrack?.type).toBe("audio");
+    // Linked so a trim or a move on the picture takes the sound with it.
+    expect(audio?.linkId).toBeTruthy();
+    expect(audio?.linkId).toBe(video?.linkId);
+  });
+
+  it("leaves out the shot-audio track when no shot is assemblable", () => {
+    const result = buildStoryboardTimeline({
+      boardId: "board-1",
+      narration: "the light turns",
+      shots: [makeShot({ id: "a", index: 0, status: "planned" })]
+    });
+
+    expect(result.clips).toEqual([]);
+    expect(result.tracks.map((t) => t.name)).toEqual(["Shots"]);
   });
 });
 
@@ -96,7 +149,7 @@ describe("buildStoryboardPreviewTimeline", () => {
       ]
     });
 
-    expect(result.clips).toHaveLength(1);
+    expect(pictureClips(result.clips)).toHaveLength(1);
     const clip = result.clips[0];
     expect(clip.mediaType).toBe("video");
     expect(clip.sourceType).toBe("imported");
@@ -127,6 +180,31 @@ describe("buildStoryboardPreviewTimeline", () => {
     expect(result.clips[0].status).toBe("generated");
     expect(result.clips[0].currentAssetId).toBe("still-a");
     expect(result.stillShotIds).toEqual(["a"]);
+    // A still has no rendered clip, so there is no sound to twin.
+    expect(result.clips).toHaveLength(1);
+    expect(result.tracks.map((t) => t.name)).toEqual(["Shots"]);
+  });
+
+  it("twins the audio of every played clip, stills excluded", () => {
+    const result = buildStoryboardPreviewTimeline({
+      boardId: "board-1",
+      shots: [
+        makeShot({
+          id: "a",
+          index: 0,
+          duration_seconds: 2,
+          clip: clipRef("asset-a")
+        }),
+        makeShot({ id: "b", index: 1, keyframe: keyframeRef("still-b") })
+      ]
+    });
+
+    const audio = result.clips.filter((c) => c.mediaType === "audio");
+    expect(audio).toHaveLength(1);
+    expect(audio[0].currentAssetId).toBe("asset-a");
+    expect(audio[0].startMs).toBe(0);
+    expect(audio[0].durationMs).toBe(2000);
+    expect(result.tracks.map((t) => t.name)).toEqual(["Shots", "Shot Audio"]);
   });
 
   it("plays a selected take whose shot is not yet marked rendered", () => {
@@ -143,7 +221,7 @@ describe("buildStoryboardPreviewTimeline", () => {
       ]
     });
 
-    expect(result.clips).toHaveLength(1);
+    expect(pictureClips(result.clips)).toHaveLength(1);
     expect(result.clips[0].mediaType).toBe("video");
     expect(result.clips[0].currentAssetId).toBe("asset-a");
     expect(result.stillShotIds).toEqual([]);
@@ -192,13 +270,10 @@ describe("buildStoryboardPreviewTimeline", () => {
       ]
     });
 
-    expect(result.clips.map((c) => c.storyboardShotId)).toEqual([
-      "a",
-      "b",
-      "c"
-    ]);
-    expect(result.clips.map((c) => c.startMs)).toEqual([0, 2000, 6000]);
-    expect(result.clips.map((c) => c.durationMs)).toEqual([
+    const picture = pictureClips(result.clips);
+    expect(picture.map((c) => c.storyboardShotId)).toEqual(["a", "b", "c"]);
+    expect(picture.map((c) => c.startMs)).toEqual([0, 2000, 6000]);
+    expect(picture.map((c) => c.durationMs)).toEqual([
       2000,
       DEFAULT_SHOT_MS,
       1000
@@ -221,7 +296,7 @@ describe("buildStoryboardPreviewTimeline", () => {
       ]
     });
 
-    expect(result.clips.map((c) => c.durationMs)).toEqual([
+    expect(pictureClips(result.clips).map((c) => c.durationMs)).toEqual([
       DEFAULT_SHOT_MS,
       DEFAULT_SHOT_MS
     ]);
@@ -237,15 +312,15 @@ describe("buildStoryboardPreviewTimeline", () => {
       ]
     });
 
-    expect(result.tracks).toHaveLength(1);
+    expect(result.tracks.map((t) => t.name)).toEqual(["Shots", "Shot Audio"]);
     expect(result.tracks[0].type).toBe("video");
-    expect(result.tracks[0].name).toBe("Shots");
-    for (const clip of result.clips) {
+    const picture = pictureClips(result.clips);
+    for (const clip of picture) {
       expect(clip.storyboardBoardId).toBe("board-42");
       expect(clip.trackId).toBe(result.tracks[0].id);
       expect(clip.versions).toEqual([]);
     }
-    expect(result.clips.map((c) => c.storyboardShotId)).toEqual(["a", "b"]);
-    expect(result.clips.map((c) => c.name)).toEqual(["Shot 1", "Shot 2"]);
+    expect(picture.map((c) => c.storyboardShotId)).toEqual(["a", "b"]);
+    expect(picture.map((c) => c.name)).toEqual(["Shot 1", "Shot 2"]);
   });
 });

@@ -78,7 +78,8 @@ describe("buildLinkedTimeline → validateTimelineSequence", () => {
       }
     });
 
-    expect(assembled.clips).toHaveLength(6);
+    // Two shots, their audio twins, three voiceover lines, one music bed.
+    expect(assembled.clips).toHaveLength(8);
 
     const result = validateTimelineSequence({
       tracks: assembled.tracks,

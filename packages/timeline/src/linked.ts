@@ -5,9 +5,11 @@
  * owns the words — and this is where they meet. Shots lay out end to end as in
  * `buildStoryboardTimeline`, but each one is as long as the takes it covers
  * (`linkedShotDurationMs`), and every voiced line gets its own clip on the
- * voiceover track, parked where its words fall inside the shot. The whole-cut
- * narration draft clip is gone: the script says the words now, so a prompt
- * spanning the cut would be a second, competing answer.
+ * voiceover track, parked where its words fall inside the shot. Each shot also
+ * keeps the sound of its own rendered clip, on the shot-audio track
+ * `buildStoryboardTimeline` uses. The whole-cut narration draft clip is gone:
+ * the script says the words now, so a prompt spanning the cut would be a
+ * second, competing answer.
  *
  * Each voiceover clip carries both linkage families —
  * `scriptId`/`scriptLineId` and `storyboardBoardId`/`storyboardShotId` — so the
@@ -20,7 +22,7 @@
  */
 
 import type { Shot } from "@nodetool-ai/protocol";
-import { makeClip, makeTrack } from "./defaults.js";
+import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
 import {
   currentTake,
   effectiveVoice,
@@ -33,7 +35,9 @@ import {
   scriptLinesById
 } from "./script-link.js";
 import {
+  SHOT_AUDIO_TRACK_NAME,
   isAssemblableShot,
+  shotAudioClip,
   shotDurationMs,
   type AssembledTimeline
 } from "./storyboard.js";
@@ -61,8 +65,13 @@ export function buildLinkedTimeline(
   const linesById = scriptLinesById(input.script.sections);
 
   const shotTrack = makeTrack({ type: "video", name: "Shots", index: 0 });
-  const voiceTrack = makeTrack({ type: "audio", name: "Voiceover", index: 1 });
-  const tracks: TimelineTrack[] = [shotTrack, voiceTrack];
+  const shotAudioTrack = makeTrack({
+    type: "audio",
+    name: SHOT_AUDIO_TRACK_NAME,
+    index: 1
+  });
+  const voiceTrack = makeTrack({ type: "audio", name: "Voiceover", index: 2 });
+  const tracks: TimelineTrack[] = [shotTrack, shotAudioTrack, voiceTrack];
   const clips: TimelineClip[] = [];
   const skippedShotIds: string[] = [];
   const skippedLineIds: string[] = [];
@@ -84,21 +93,21 @@ export function buildLinkedTimeline(
     const shotStartMs = cursorMs;
     const durationMs =
       linkedShotDurationMs(shot, linesById) ?? shotDurationMs(shot);
-    clips.push(
-      makeClip({
-        trackId: shotTrack.id,
-        name: shot.slug ?? `Shot ${shot.index + 1}`,
-        startMs: shotStartMs,
-        durationMs,
-        mediaType: "video",
-        sourceType: "imported",
-        status: "generated",
-        currentAssetId: shot.clip?.asset_id ?? undefined,
-        storyboardBoardId: input.boardId,
-        storyboardShotId: shot.id,
-        versions: []
-      })
-    );
+    const videoClip = makeClip({
+      trackId: shotTrack.id,
+      name: shot.slug ?? `Shot ${shot.index + 1}`,
+      startMs: shotStartMs,
+      durationMs,
+      mediaType: "video",
+      sourceType: "imported",
+      status: "generated",
+      currentAssetId: shot.clip?.asset_id ?? undefined,
+      linkId: createTimeOrderedUuid(),
+      storyboardBoardId: input.boardId,
+      storyboardShotId: shot.id,
+      versions: []
+    });
+    clips.push(videoClip, shotAudioClip(videoClip, shotAudioTrack.id));
     cursorMs += durationMs;
 
     let offsetMs = 0;
