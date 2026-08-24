@@ -154,3 +154,47 @@ export async function resolveHfToken(
   if (disableImplicit) return null;
   return cached;
 }
+
+// ---------------------------------------------------------------------------
+// Token for a remote worker
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads one credential out of NodeTool's secret store. Injected rather than
+ * imported so this package keeps no dependency on `@nodetool-ai/models`.
+ */
+export type SecretReader = (
+  key: string
+) => Promise<string | null | undefined> | string | null | undefined;
+
+/**
+ * Resolve the HuggingFace token a host should forward to a remote worker.
+ *
+ * A rented worker has neither a secret store nor `HF_TOKEN` in its
+ * environment, so it can only download public repos. The host resolves the
+ * credential instead and sends it with the `models.download` request
+ * (nodetool-ai/nodetool#5184).
+ *
+ * Order: the user's stored `HF_TOKEN` first, then this process's own
+ * environment and HF token file via {@link getHfToken} — the same token the
+ * local download path already uses. A blank value at either step is not a
+ * credential and yields `undefined`, so the worker takes its own fallback
+ * rather than receiving an empty Bearer header. A secret store that throws
+ * (locked, absent) falls through to the environment instead of failing the
+ * download.
+ */
+export async function resolveWorkerHfToken(
+  readSecret?: SecretReader
+): Promise<string | undefined> {
+  if (readSecret) {
+    try {
+      const stored = await readSecret("HF_TOKEN");
+      if (typeof stored === "string" && stored.trim()) return stored.trim();
+    } catch {
+      // A locked or missing secret store is not an error here — fall through
+      // to the environment. Never log: the failure can carry the key material.
+    }
+  }
+  const local = await getHfToken();
+  return local && local.trim() ? local.trim() : undefined;
+}

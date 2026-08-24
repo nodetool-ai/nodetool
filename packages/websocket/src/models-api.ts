@@ -30,6 +30,7 @@ import {
   getModelsByHfType,
   deleteCachedHfModel,
   getHuggingfaceFileInfos,
+  resolveWorkerHfToken,
   type HFFileRequest
 } from "@nodetool-ai/huggingface";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
@@ -1362,7 +1363,8 @@ export async function relayWorkerDownload(
   msg: StartDownloadCommand,
   requestId: string = msg.path
     ? `${msg.repo_id ?? ""}/${msg.path}`
-    : (msg.repo_id ?? "")
+    : (msg.repo_id ?? ""),
+  userId: string = "1"
 ): Promise<void> {
   const repoId = msg.repo_id ?? "";
   // The worker already emits a terminal `error`-status progress frame on
@@ -1404,6 +1406,13 @@ export async function relayWorkerDownload(
     return;
   }
 
+  // The worker has no HuggingFace credential of its own, so a gated repo 401s
+  // unless this server supplies one. Resolved here, never taken from `msg` —
+  // that JSON comes from the client.
+  const token = await resolveWorkerHfToken((key) =>
+    getStoredSecret(key, userId)
+  );
+
   try {
     await bridge.downloadModel(
       {
@@ -1411,7 +1420,8 @@ export async function relayWorkerDownload(
         path: msg.path ?? null,
         allow_patterns: msg.allow_patterns ?? null,
         ignore_patterns: msg.ignore_patterns ?? null,
-        model_type: msg.model_type ?? null
+        model_type: msg.model_type ?? null,
+        token
       },
       (update) => {
         if (update.status === "error") {

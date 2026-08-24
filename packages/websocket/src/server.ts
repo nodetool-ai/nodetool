@@ -1164,7 +1164,7 @@ function listRegistryRecommendedModels(): UnifiedModel[] {
 }
 
 const sdkModelDownloadService = createSdkV1ModelDownloadService({
-  startWorkerDownload: (request, operationId, onProgress) =>
+  startWorkerDownload: (userId, request, operationId, onProgress) =>
     relayWorkerDownload(
       {
         send: (data) => onProgress(JSON.parse(data) as ModelDownloadUpdate)
@@ -1180,7 +1180,8 @@ const sdkModelDownloadService = createSdkV1ModelDownloadService({
         model_type: request.model_type,
         scope: "worker"
       },
-      operationId
+      operationId,
+      userId
     ),
   cancelWorkerDownload: (operationId) =>
     pythonBridge.cancelModelDownload(operationId)

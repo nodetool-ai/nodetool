@@ -185,6 +185,7 @@ describe("SDK model download service", () => {
   it("relays worker progress and cancellation through configured bridge adapters", () => {
     const startWorker = vi.fn(
       async (
+        _userId: string,
         _request: SdkV1ModelDownloadStartRequest,
         _operationId: string,
         onProgress: (update: DownloadUpdate) => void
@@ -214,5 +215,8 @@ describe("SDK model download service", () => {
       downloaded_bytes: 60
     });
     expect(cancelWorker).toHaveBeenCalledExactlyOnceWith(started.operation_id);
+    // The worker download needs the user, so the relay can resolve that user's
+    // HuggingFace token for a gated repo.
+    expect(startWorker.mock.calls[0]![0]).toBe("alice");
   });
 });

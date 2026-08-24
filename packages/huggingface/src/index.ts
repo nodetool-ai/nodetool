@@ -1,7 +1,13 @@
 // @nodetool-ai/huggingface — HuggingFace integration package
 // Cache scanning, model discovery, artifact inspection, and downloads
 
-export { getHfToken, resolveHfToken, clearHfTokenCache } from "./hf-auth.js";
+export {
+  getHfToken,
+  resolveHfToken,
+  clearHfTokenCache,
+  resolveWorkerHfToken
+} from "./hf-auth.js";
+export type { SecretReader } from "./hf-auth.js";
 
 export { HfFastCache, getDefaultHfCacheDir } from "./hf-cache.js";
 
