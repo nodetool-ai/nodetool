@@ -808,6 +808,81 @@ describe("output normalization", () => {
     expect(await storage.exists(normalized.image.uri)).toBe(true);
   });
 
+  // Regression: the WebP a provider returns used to be stored as `.png` with
+  // `image/png` on the object, because guessAssetMime read `mime_type` — a
+  // field nothing sets — and then assumed PNG for anything typed image. The
+  // node's own sniff was discarded here, and strict consumers rejected the
+  // file on the declared-vs-actual mismatch.
+  describe("image mime at the storage boundary", () => {
+    const WEBP = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0x24, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50
+    ]);
+    const webpRef = (extra: Record<string, unknown> = {}) => ({
+      type: "image",
+      data: Buffer.from(WEBP).toString("base64"),
+      ...extra
+    });
+
+    it("honors the mimeType an ImageRef declares", async () => {
+      const storage = new InMemoryStorageAdapter();
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        assetOutputMode: "storage_url",
+        storage
+      });
+      const normalized = (await ctx.normalizeOutputValue({
+        image: webpRef({ mimeType: "image/webp" })
+      })) as { image: { uri: string } };
+
+      expect(normalized.image.uri.endsWith(".webp")).toBe(true);
+    });
+
+    it("sniffs the bytes when nothing is declared", async () => {
+      const storage = new InMemoryStorageAdapter();
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        assetOutputMode: "storage_url",
+        storage
+      });
+      const normalized = (await ctx.normalizeOutputValue({
+        image: webpRef()
+      })) as { image: { uri: string } };
+
+      expect(normalized.image.uri.endsWith(".webp")).toBe(true);
+    });
+
+    it("treats image/unknown as undeclared and re-sniffs", async () => {
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        assetOutputMode: "data_uri"
+      });
+      const normalized = (await ctx.normalizeOutputValue({
+        image: webpRef({ mimeType: "image/unknown" })
+      })) as { image: { uri: string } };
+
+      expect(normalized.image.uri.startsWith("data:image/webp;base64,")).toBe(
+        true
+      );
+    });
+
+    it("still labels unrecognizable image bytes PNG", async () => {
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        assetOutputMode: "data_uri"
+      });
+      const normalized = (await ctx.normalizeOutputValue({
+        image: {
+          type: "image",
+          data: Buffer.from(new Uint8Array([0, 1, 2, 3])).toString("base64")
+        }
+      })) as { image: { uri: string } };
+
+      expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(
+        true
+      );
+    });
+  });
+
   const rawImage = (w: number, h: number) => ({
     type: "image",
     mimeType: RAW_RGBA_MIME,

@@ -1,19 +1,24 @@
 /**
- * Sniff an image container type from its magic bytes so image inputs keep the
- * correct MIME in the `data:` URIs providers embed them in. Hardcoding a single
- * type (e.g. `image/jpeg`) mislabels PNG/WebP/GIF inputs, which strict decoders
- * reject on a declared-vs-actual mismatch.
+ * Magic-byte identification for image containers, mirroring `audio-mime.ts`.
+ *
+ * Providers hand back encoded bytes with no reliable declared type — Replicate
+ * returns WebP, FAL and KIE return whatever the endpoint produced — so
+ * anything that assumes PNG mislabels them, and a strict consumer rejects the
+ * file on the mismatch (Kie answers `500 File type not supported`, naming
+ * nothing).
  */
-export function detectImageMime(bytes: Uint8Array): string {
-  // JPEG: FF D8 FF
-  if (
-    bytes.length >= 3 &&
-    bytes[0] === 0xff &&
-    bytes[1] === 0xd8 &&
-    bytes[2] === 0xff
-  ) {
-    return "image/jpeg";
-  }
+
+export const IMAGE_MIME_TO_EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/bmp": "bmp"
+};
+
+/** Identify a container from its leading bytes; `null` when nothing matches. */
+export function sniffImageMime(bytes: Uint8Array): string | null {
   // PNG: 89 50 4E 47
   if (
     bytes.length >= 4 &&
@@ -24,7 +29,16 @@ export function detectImageMime(bytes: Uint8Array): string {
   ) {
     return "image/png";
   }
-  // WebP: "RIFF"…"WEBP"
+  // JPEG: FF D8 FF
+  if (
+    bytes.length >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  ) {
+    return "image/jpeg";
+  }
+  // WebP: "RIFF" + size + "WEBP"
   if (
     bytes.length >= 12 &&
     bytes[0] === 0x52 &&
@@ -48,12 +62,29 @@ export function detectImageMime(bytes: Uint8Array): string {
   ) {
     return "image/gif";
   }
-  // Unknown — default to PNG, the most widely accepted lossless container.
-  return "image/png";
+  // BMP: "BM"
+  if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) {
+    return "image/bmp";
+  }
+  return null;
+}
+
+/**
+ * PNG-fallback variant, for the callers that must produce a string (a `data:`
+ * URI). Where the label gets stored or forwarded, prefer `sniffImageMime` and
+ * keep "unknown" as its own state.
+ */
+export function detectImageMime(bytes: Uint8Array): string {
+  return sniffImageMime(bytes) ?? "image/png";
 }
 
 /** Encode image bytes as a base64 `data:` URI with a sniffed MIME type. */
 export function bytesToImageDataUri(bytes: Uint8Array): string {
   const base64 = Buffer.from(bytes).toString("base64");
   return `data:${detectImageMime(bytes)};base64,${base64}`;
+}
+
+/** File extension for an image MIME type, or `null` when it is not an image. */
+export function extForImageMime(mime: string): string | null {
+  return IMAGE_MIME_TO_EXT[mime.toLowerCase()] ?? null;
 }

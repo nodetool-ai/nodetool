@@ -27,6 +27,7 @@
  */
 
 import { OpenAICompatProvider } from "./openai-compat-provider.js";
+import { bytesToImageDataUri } from "./image-mime.js";
 import type { OpenAICompatProviderOptions } from "./openai-compat-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import { isBoolean, isNumber, isString } from "../type-predicates.js";
@@ -309,43 +310,6 @@ function pickOutputUrl(result: AtlasPollResult): string {
   if (isString(result.output)) return result.output;
   if (isString(result.url)) return result.url;
   throw new Error("No output URL in AtlasCloud result");
-}
-
-// ---------------------------------------------------------------------------
-// Image mime detection (for data: URIs)
-// ---------------------------------------------------------------------------
-
-function detectImageMime(bytes: Uint8Array): string {
-  if (
-    bytes.length >= 4 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47
-  ) {
-    return "image/png";
-  }
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8) {
-    return "image/jpeg";
-  }
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return "image/webp";
-  }
-  return "image/png";
-}
-
-function imageDataUri(bytes: Uint8Array): string {
-  return `data:${detectImageMime(bytes)};base64,${Buffer.from(bytes).toString("base64")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -752,7 +716,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     // (Grok Imagine uses `image_urls`). Seedance never goes through this method
     // (it's video-only). Other image-to-image endpoints that use `image`
     // (singular) get that mapping too.
-    const dataUris = sources.map((b) => imageDataUri(b));
+    const dataUris = sources.map((b) => bytesToImageDataUri(b));
     if (info.fields.has("images")) {
       input.images = dataUris;
     } else if (info.fields.has("image_urls")) {
@@ -799,7 +763,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     // Seedance image-to-video uses `image` (singular); Grok Imagine Video uses
     // `image_url`. Reference-to-video has `reference_images` (list) instead —
     // generic imageToVideo can't target it.
-    const dataUri = imageDataUri(image);
+    const dataUri = bytesToImageDataUri(image);
     if (info.fields.has("image")) {
       input.image = dataUri;
     } else if (info.fields.has("image_url")) {

@@ -2,6 +2,7 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
+import { bytesToImageDataUri as bytesToDataUri } from "./image-mime.js";
 import type {
   ImageModel,
   ImageToImageParams,
@@ -14,47 +15,10 @@ import type {
 
 const XAI_BASE_URL = "https://api.x.ai/v1";
 
-/** Sniff the container type so image inputs keep the right MIME in their data URI. */
-function detectImageMime(bytes: Uint8Array): string {
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return "image/jpeg";
-  }
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return "image/webp";
-  }
-  if (
-    bytes.length >= 4 &&
-    bytes[0] === 0x47 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x38
-  ) {
-    return "image/gif";
-  }
-  // PNG and everything else default to PNG — xAI accepts both jpeg and png.
-  return "image/png";
-}
-
-/**
- * Resolve an image input (raw bytes) into the base64 data URI xAI's JSON image
- * and video endpoints expect. Asset references are already resolved to bytes
- * upstream (ProcessingContext); xAI's `application/json` API cannot take the
- * multipart file uploads the OpenAI SDK sends, so we inline them here.
- */
-function bytesToDataUri(bytes: Uint8Array): string {
-  const base64 = Buffer.from(bytes).toString("base64");
-  return `data:${detectImageMime(bytes)};base64,${base64}`;
-}
+// Image inputs go inline as base64 `data:` URIs: asset references are already
+// resolved to bytes upstream (ProcessingContext), and xAI's
+// `application/json` API cannot take the multipart uploads the OpenAI SDK
+// sends.
 
 /** Raw row from xAI's `/v1/models` listing. */
 interface XAIModelRow {

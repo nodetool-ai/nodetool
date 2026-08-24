@@ -42,6 +42,7 @@ import {
   type ModelImageInput
 } from "./manifest-models.js";
 import { sniffAudioMime } from "./audio-mime.js";
+import { detectImageMime } from "./image-mime.js";
 import { safeFetch } from "./safe-url.js";
 import {
   isNonEmptyString,
@@ -1060,7 +1061,7 @@ export class FalProvider extends BaseProvider {
   /** Upload every non-empty image to FAL storage, returning the hosted URLs. */
   private async uploadImages(images: Uint8Array[]): Promise<string[]> {
     const valid = images.filter((b) => b && b.length > 0);
-    return Promise.all(valid.map((b) => this.upload(b, "image/png")));
+    return Promise.all(valid.map((b) => this.upload(b, detectImageMime(b))));
   }
 
   /** Run an endpoint that takes a single uploaded image and returns an image. */
@@ -1100,7 +1101,7 @@ export class FalProvider extends BaseProvider {
     params: UpscaleImageParams
   ): Promise<Uint8Array> {
     const { endpointId, variant } = splitTopazVariant(params.model.id);
-    const url = await this.upload(image, "image/png");
+    const url = await this.upload(image, detectImageMime(image));
     const b = new FalArgsBuilder(endpointId);
     b.attachAsset("image", url)
       .set("model", variant)
@@ -1118,7 +1119,7 @@ export class FalProvider extends BaseProvider {
     params: RemoveBackgroundParams
   ): Promise<Uint8Array> {
     const modelId = params.model.id;
-    const url = await this.upload(image, "image/png");
+    const url = await this.upload(image, detectImageMime(image));
     const b = new FalArgsBuilder(modelId);
     b.attachAsset("image", url).set("output_format", "png");
     log.debug("FAL removeBackground", { model: modelId });
@@ -1130,7 +1131,7 @@ export class FalProvider extends BaseProvider {
     params: RelightImageParams
   ): Promise<Uint8Array> {
     const modelId = params.model.id;
-    const url = await this.upload(image, "image/png");
+    const url = await this.upload(image, detectImageMime(image));
     const b = new FalArgsBuilder(modelId);
     b.attachAsset("image", url)
       .force("prompt", params.prompt)
@@ -1146,7 +1147,7 @@ export class FalProvider extends BaseProvider {
     params: VectorizeImageParams
   ): Promise<Uint8Array> {
     const modelId = params.model.id;
-    const url = await this.upload(image, "image/png");
+    const url = await this.upload(image, detectImageMime(image));
     const b = new FalArgsBuilder(modelId);
     b.attachAsset("image", url);
     log.debug("FAL vectorizeImage", { model: modelId });

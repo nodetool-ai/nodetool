@@ -417,7 +417,7 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     mockAtlasFetch({ capture });
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     await p.imageToVideo(
-      [Uint8Array.from([0xff, 0xd8, 0x01])], // JPEG magic
+      [Uint8Array.from([0xff, 0xd8, 0xff])], // JPEG magic
       {
         model: videoModel("bytedance/seedance-2.0/image-to-video"),
         prompt: "drift forward"

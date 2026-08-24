@@ -27,6 +27,7 @@ import {
 import { VariableChannel } from "./variable-channel.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 import { encodeRawImageRef } from "./image-codec.js";
+import { extForImageMime, sniffImageMime } from "./providers/image-mime.js";
 import {
   isCallable,
   isNonEmptyString,
@@ -3655,12 +3656,26 @@ export class ProcessingContext {
     return "type" in v && ("uri" in v || "data" in v || "asset_id" in v);
   }
 
-  private static guessAssetMime(asset: Record<string, unknown>): string {
-    const explicit = asset.mime_type ?? asset.content_type;
-    if (isNonEmptyString(explicit)) return explicit;
+  /**
+   * `mimeType` comes first because it is the field `ImageRef` declares — this
+   * used to read only `mime_type`, which nothing sets, so a node's sniffed
+   * `image/webp` was discarded and every provider's WebP stored as PNG.
+   * `image/unknown` is `image-nodes` reporting its own sniff found nothing, so
+   * it counts as undeclared here rather than as a type to forward.
+   */
+  private static guessAssetMime(
+    asset: Record<string, unknown>,
+    bytes?: Uint8Array
+  ): string {
+    const declared = asset.mimeType ?? asset.mime_type ?? asset.content_type;
+    if (isNonEmptyString(declared) && declared !== "image/unknown") {
+      return declared;
+    }
 
     const type = String(asset.type ?? "").toLowerCase();
-    if (type.includes("image")) return "image/png";
+    if (type.includes("image")) {
+      return (bytes && sniffImageMime(bytes)) ?? "image/png";
+    }
     if (type.includes("audio")) return "audio/wav";
     if (type.includes("video")) return "video/mp4";
     if (type.includes("text")) return "text/plain";
@@ -3669,10 +3684,9 @@ export class ProcessingContext {
   }
 
   private static extForMime(mime: string): string {
+    const imageExt = extForImageMime(mime);
+    if (imageExt) return imageExt;
     const map: Record<string, string> = {
-      "image/png": "png",
-      "image/jpeg": "jpg",
-      "image/webp": "webp",
       "audio/wav": "wav",
       "audio/mpeg": "mp3",
       "video/mp4": "mp4",
@@ -3786,7 +3800,7 @@ export class ProcessingContext {
     const bytes = await this.getAssetBytes(asset);
     if (!bytes) return asset;
 
-    const mime = ProcessingContext.guessAssetMime(asset);
+    const mime = ProcessingContext.guessAssetMime(asset, bytes);
 
     if (mode === "data_uri") {
       const base64 = Buffer.from(bytes).toString("base64");

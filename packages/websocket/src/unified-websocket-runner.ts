@@ -112,6 +112,8 @@ import {
   ProcessingContext as RuntimeProcessingContext,
   ACTIVE_MODEL_CONTEXT_KEY,
   DIRECT_TOOL_NAMES,
+  detectImageMime,
+  IMAGE_MIME_TO_EXT,
   encodeRawRgbaToPng,
   fetchExternalMedia,
   getCostReconciler,
@@ -569,15 +571,6 @@ function decodeAssetBytes(data: unknown): Uint8Array | null {
   }
   return null;
 }
-
-const IMAGE_MIME_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/jpg": "jpg",
-  "image/png": "png",
-  "image/gif": "gif",
-  "image/webp": "webp",
-  "image/bmp": "bmp"
-};
 
 /** Parse a `data:` URI into its mime type and decoded bytes. */
 function parseImageDataUri(
@@ -6938,10 +6931,15 @@ export class UnifiedWebSocketRunner {
         for (const bytes of imageBytesList) {
           // Per-variation: a cancel partway through must not keep persisting.
           if (cancelled()) return;
-          const assetId = await storeMediaAsset(bytes, "image/png", "png");
+          const mimeType = detectImageMime(bytes);
+          const assetId = await storeMediaAsset(
+            bytes,
+            mimeType,
+            IMAGE_MIME_TO_EXT[mimeType] ?? "png"
+          );
           imageContents.push({
             type: "image_url",
-            image: { type: "image", asset_id: assetId, mimeType: "image/png" }
+            image: { type: "image", asset_id: assetId, mimeType }
           });
         }
 
@@ -7330,13 +7328,18 @@ export class UnifiedWebSocketRunner {
           for (const bytes of imageBytesList) {
             // Per-variation: a cancel partway through must not keep persisting.
             if (cancelled()) return;
-            const assetId = await storeMediaAsset(bytes, "image/png", "png");
+            const mimeType = detectImageMime(bytes);
+            const assetId = await storeMediaAsset(
+              bytes,
+              mimeType,
+              IMAGE_MIME_TO_EXT[mimeType] ?? "png"
+            );
             imageContents.push({
               type: "image_url",
               image: {
                 type: "image",
                 asset_id: assetId,
-                mimeType: "image/png"
+                mimeType
               }
             });
           }
@@ -8421,7 +8424,10 @@ export class UnifiedWebSocketRunner {
 
     const assetIds: string[] = [];
     for (const bytes of images) {
-      assetIds.push(await storeAsset(bytes, "image/png", "png"));
+      const mimeType = detectImageMime(bytes);
+      assetIds.push(
+        await storeAsset(bytes, mimeType, IMAGE_MIME_TO_EXT[mimeType] ?? "png")
+      );
     }
     return { asset_ids: assetIds };
   }
