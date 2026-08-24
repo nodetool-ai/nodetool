@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Put a Product on a Studio Backdrop",
   "tool_name": null,
-  "description": "Cut the product out, then place it in a described setting. Two steps rather than one prompt, because generating around an existing product is what keeps the product itself unchanged \u2014 the thing a customer is actually buying.",
+  "description": "Cut the product out, then place it in a described setting. The placement step is an instruction-following edit model rather than strength-based image-to-image: a strength value cannot say \"keep this object, change everything else\", and any setting high enough to build the backdrop also redraws the product \u2014 the thing a customer is actually buying.",
   "tags": [
     "image",
     "example"
@@ -68,16 +68,15 @@
           "model": {
             "type": "image_model",
             "provider": "fal_ai",
-            "id": "fal-ai/flux/dev",
-            "name": "FLUX.1 Dev",
+            "id": "fal-ai/nano-banana/edit",
+            "name": "Nano Banana Edit",
             "path": null,
             "supported_tasks": []
           },
           "image": [],
-          "prompt": "product centred on a warm concrete plinth, soft studio light, shallow depth of field",
+          "prompt": "Keep the product as it is. Change only what is around it: warm concrete plinth, soft studio key from upper left, blurred background.",
           "negative_prompt": "",
           "entities": [],
-          "strength": 0.45,
           "aspect_ratio": "1:1",
           "resolution": "1K"
         },

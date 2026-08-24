@@ -170,7 +170,7 @@ export const recipes = [
         template: "put-a-product-on-a-studio-backdrop",
         role: "Place it in a described setting",
         handoff:
-          "In: the cutout and a scene description. Out: the product in that scene. Generating around an existing product, rather than prompting for the whole frame, is what keeps the product unchanged.",
+          "In: the cutout and a scene description. Out: the product in that scene. An edit model told to change only the surroundings, rather than a strength setting on image-to-image, is what keeps the product unchanged.",
       },
       {
         template: "relight-a-product-for-a-seasonal-campaign",

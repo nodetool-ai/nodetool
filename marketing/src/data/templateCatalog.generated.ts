@@ -355,7 +355,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "put-a-product-on-a-studio-backdrop",
         "name": "Put a Product on a Studio Backdrop",
-        "description": "Cut the product out, then place it in a described setting. Two steps rather than one prompt, because generating around an existing product is what keeps the product itself unchanged — the thing a customer is actually buying.",
+        "description": "Cut the product out, then place it in a described setting. The placement step is an instruction-following edit model rather than strength-based image-to-image: a strength value cannot say \"keep this object, change everything else\", and any setting high enough to build the backdrop also redraws the product — the thing a customer is actually buying.",
         "tags": [
           "image"
         ]

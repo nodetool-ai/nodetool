@@ -45,12 +45,12 @@ export const ROUTES = {
     grade: "upgrade",
     why: "the best text-to-image model reachable from this render. The workflow names FLUX.1 Schnell for speed and cost, which is the right default for a fan-out of throwaway thumbnails and not the right choice for one picture that has to stand on a page",
   },
-  "fal_ai:fal-ai/flux/dev": {
+  "fal_ai:fal-ai/nano-banana/edit": {
     provider: "atlascloud",
     id: "google/nano-banana-pro/edit",
     name: "Nano Banana Pro Edit",
     grade: "upgrade",
-    why: "the best image editor reachable from this render. The exact model was tried first and redrew the product: FLUX.1 Dev at the strength 0.45 the workflow sets, against a prompt describing only the scene, returned a different bottle — the one thing this step must not do",
+    why: "the same instruction-following editor one generation up, reached through the one provider with a live key on this machine — fal's is dead (403)",
   },
   "kie:gpt-image-2-text-to-image": {
     provider: "atlascloud",
