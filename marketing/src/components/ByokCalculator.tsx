@@ -1,13 +1,15 @@
 "use client";
 /**
  * The BYOK calculator: what a month of generation costs when you pay the
- * provider directly, and what the same month costs on a platform that resells
- * the call to you.
+ * provider directly, and what the same month costs on a platform that sells
+ * the calls back to you in credits.
  *
- * Every unit price is read from `calculatorPricing.generated.ts`, which comes
- * from the GenSpend catalog NodeTool bills a run against. The resale side is
- * an assumption the reader sets, not a claim about a named competitor — the
- * multiplier is a control, and it says so.
+ * NodeTool's side reads `calculatorPricing.generated.ts`, which comes from the
+ * GenSpend catalog NodeTool bills a run against. The credit side reads
+ * `weavePricing.ts` — Figma Weave's own published plans and per-model
+ * generation counts, transcribed with the URL and the date they were read.
+ * Neither side is a rate this page invented, and the comparison is arithmetic
+ * on both, so it can come out either way.
  */
 import React, { useCallback, useMemo, useState } from "react";
 import { Info } from "lucide-react";
@@ -20,17 +22,23 @@ import {
   type CalculatorModality,
   type CalculatorModel,
 } from "../data/calculatorPricing.generated";
+import {
+  WEAVE_DEFAULT_CLIP_SECONDS,
+  WEAVE_MODELS,
+  WEAVE_PLANS,
+  WEAVE_SOURCE,
+  creditsPerGeneration,
+  weaveMonthlyCost,
+} from "../data/weavePricing";
 import { PROVIDER_DISPLAY } from "../data/providerDisplay";
 import { track } from "../lib/analytics";
 
 interface Row {
   modality: CalculatorModality;
   label: string;
-  /** What one unit of `volume` is, in the reader's terms. */
   unitLabel: string;
-  /** Volume → billable units, since speech is priced per million characters. */
-  toBillable: (volume: number) => number;
-  /** How the unit price reads on its own line. */
+  /** Volume → billable units. Video bills per second, speech per 1M chars. */
+  toBillable: (volume: number, clipSeconds: number) => number;
   priceLabel: (price: number) => string;
   max: number;
   step: number;
@@ -43,13 +51,16 @@ interface Row {
 /** 950 characters is about a minute of narration at a normal reading pace. */
 const CHARS_PER_MINUTE = 950;
 
+const trim = (n: number, places: number) =>
+  n.toFixed(places).replace(/0+$/, "").replace(/\.$/, "");
+
 const ROWS: Row[] = [
   {
     modality: "image",
     label: "Images",
     unitLabel: "images / month",
     toBillable: (v) => v,
-    priceLabel: (p) => `$${p.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")} / image`,
+    priceLabel: (p) => `$${trim(p, 4)} / image`,
     max: 5000,
     step: 25,
     initialVolume: 750,
@@ -59,14 +70,14 @@ const ROWS: Row[] = [
   {
     modality: "video",
     label: "Video",
-    unitLabel: "seconds / month",
-    toBillable: (v) => v,
-    priceLabel: (p) => `$${p.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} / second`,
-    max: 1800,
-    step: 5,
-    initialVolume: 180,
+    unitLabel: "clips / month",
+    toBillable: (v, clipSeconds) => v * clipSeconds,
+    priceLabel: (p) => `$${trim(p, 3)} / second`,
+    max: 200,
+    step: 1,
+    initialVolume: 24,
     initialModel: 5,
-    hint: "Rendered clip seconds — 180 is about thirty six-second shots.",
+    hint: "Rendered clips. Credit plans bill a clip, providers bill a second.",
   },
   {
     modality: "speech",
@@ -82,6 +93,9 @@ const ROWS: Row[] = [
   },
 ];
 
+const WEAVE_IMAGE_MODELS = WEAVE_MODELS.filter((m) => m.kind === "image");
+const WEAVE_VIDEO_MODELS = WEAVE_MODELS.filter((m) => m.kind === "video");
+
 const usd = (n: number) =>
   n >= 100
     ? `$${Math.round(n).toLocaleString("en-US")}`
@@ -91,9 +105,6 @@ const usd = (n: number) =>
 
 const providerName = (id: string) => PROVIDER_DISPLAY[id]?.name ?? id;
 
-/** Resale rates a reader can compare against. 1× is "you pay the provider". */
-const MULTIPLIERS = [1.5, 2, 3];
-
 export default function ByokCalculator() {
   const [volumes, setVolumes] = useState<number[]>(() =>
     ROWS.map((r) => r.initialVolume)
@@ -101,11 +112,14 @@ export default function ByokCalculator() {
   const [models, setModels] = useState<string[]>(() =>
     ROWS.map((r) => CALCULATOR_MODELS[r.modality][r.initialModel].id)
   );
-  const [multiplier, setMultiplier] = useState(2);
+  const [clipSeconds, setClipSeconds] = useState(WEAVE_DEFAULT_CLIP_SECONDS);
+  const [planId, setPlanId] = useState("professional");
+  const [weaveImage, setWeaveImage] = useState("Seedream V5");
+  const [weaveVideo, setWeaveVideo] = useState("Seedance 1.5");
   const [tracked, setTracked] = useState(false);
 
-  // One event per visitor who touches it — a slider drag would otherwise
-  // emit dozens.
+  // One event per visitor who touches it — a slider drag would otherwise emit
+  // dozens.
   const noteInteraction = useCallback(() => {
     if (tracked) return;
     setTracked(true);
@@ -118,14 +132,39 @@ export default function ByokCalculator() {
         const options = CALCULATOR_MODELS[row.modality];
         const model =
           options.find((m) => m.id === models[i]) ?? options[row.initialModel];
-        const billable = row.toBillable(volumes[i]);
+        const billable = row.toBillable(volumes[i], clipSeconds);
         return { row, model, volume: volumes[i], cost: billable * model.unitPrice };
       }),
-    [models, volumes]
+    [clipSeconds, models, volumes]
   );
 
   const direct = lines.reduce((sum, l) => sum + l.cost, 0);
-  const resale = direct * multiplier;
+  const voiceCost = lines[2].cost;
+
+  const weave = useMemo(() => {
+    const plan = WEAVE_PLANS.find((p) => p.id === planId) ?? WEAVE_PLANS[2];
+    const imageModel =
+      WEAVE_IMAGE_MODELS.find((m) => m.name === weaveImage) ?? WEAVE_IMAGE_MODELS[0];
+    const videoModel =
+      WEAVE_VIDEO_MODELS.find((m) => m.name === weaveVideo) ?? WEAVE_VIDEO_MODELS[0];
+    return {
+      plan,
+      imageModel,
+      videoModel,
+      cost: weaveMonthlyCost({
+        plan,
+        imageModel,
+        images: volumes[0],
+        videoModel,
+        clips: volumes[1],
+      }),
+      perImage: creditsPerGeneration(imageModel, plan),
+      perClip: creditsPerGeneration(videoModel, plan),
+    };
+  }, [planId, volumes, weaveImage, weaveVideo]);
+
+  /** The comparable half: Weave ships no voice model, so voice is excluded. */
+  const directComparable = direct - voiceCost;
 
   const setVolume = (i: number, value: number) => {
     noteInteraction();
@@ -136,11 +175,14 @@ export default function ByokCalculator() {
     setModels((prev) => prev.map((v, j) => (j === i ? id : v)));
   };
 
+  const selectClass =
+    "min-w-0 flex-1 rounded-lg bg-slate-950/70 border border-slate-700 px-3 py-2 text-sm text-slate-200 focus-ring";
+
   return (
     <section
       id="byok-calculator"
       aria-labelledby="byok-calculator-title"
-      className="relative py-24 overflow-clip-safe"
+      className="relative py-24 scroll-mt-24 overflow-clip-safe"
     >
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-emerald-900/20 blur-[120px] rounded-full pointer-events-none" />
 
@@ -154,7 +196,8 @@ export default function ByokCalculator() {
           </h2>
           <p className="text-lg text-slate-300">
             NodeTool bills you nothing per generation. You hold the keys and pay
-            each provider its list price. Set a workload and see the bill.
+            each provider its list price. Set a workload and see the bill — then
+            price the same work in credits.
           </p>
         </div>
 
@@ -195,7 +238,7 @@ export default function ByokCalculator() {
                       aria-label={`${row.label} model`}
                       value={model.id}
                       onChange={(e) => setModel(i, e.target.value)}
-                      className="min-w-0 flex-1 rounded-lg bg-slate-950/70 border border-slate-700 px-3 py-2 text-sm text-slate-200 focus-ring"
+                      className={selectClass}
                     >
                       {CALCULATOR_MODELS[row.modality].map((m: CalculatorModel) => (
                         <option key={m.id} value={m.id}>
@@ -209,6 +252,28 @@ export default function ByokCalculator() {
                   </div>
 
                   <p className="mt-2 text-sm text-slate-500">{row.hint}</p>
+
+                  {row.modality === "video" && (
+                    <label className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-400">
+                      <span>Clip length</span>
+                      <input
+                        type="range"
+                        min={2}
+                        max={20}
+                        step={1}
+                        value={clipSeconds}
+                        onChange={(e) => {
+                          noteInteraction();
+                          setClipSeconds(Number(e.target.value));
+                        }}
+                        aria-label="Seconds per clip"
+                        className="w-40 accent-emerald-400"
+                      />
+                      <span className="tabular-nums text-slate-200">
+                        {clipSeconds}s
+                      </span>
+                    </label>
+                  )}
                 </li>
               ))}
             </ul>
@@ -247,43 +312,107 @@ export default function ByokCalculator() {
               </li>
             </ul>
 
+            {/* The same images and clips, bought as credits. */}
             <div className="mt-8 border-t border-slate-800 pt-6">
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-sm text-slate-400">
-                  On a platform that resells the same call at
-                </span>
-                <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden">
-                  {MULTIPLIERS.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => {
-                        noteInteraction();
-                        setMultiplier(m);
-                      }}
-                      aria-pressed={multiplier === m}
-                      className={`px-3 py-1.5 text-sm tabular-nums ${
-                        multiplier === m
-                          ? "bg-slate-100 text-slate-900"
-                          : "text-slate-300 hover:bg-slate-800"
-                      }`}
-                    >
-                      {m}×
-                    </button>
+              <p className="text-sm uppercase tracking-widest text-slate-400">
+                The same work on {WEAVE_SOURCE.name}
+              </p>
+
+              <div className="mt-3 space-y-2">
+                <select
+                  aria-label={`${WEAVE_SOURCE.name} plan`}
+                  value={planId}
+                  onChange={(e) => {
+                    noteInteraction();
+                    setPlanId(e.target.value);
+                  }}
+                  className={`${selectClass} w-full`}
+                >
+                  {WEAVE_PLANS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — ${p.monthlyUsd}
+                      {p.perUser ? " / user" : ""} / month,{" "}
+                      {p.creditsPerMonth.toLocaleString("en-US")} credits
+                    </option>
                   ))}
-                </div>
+                </select>
+                <select
+                  aria-label={`${WEAVE_SOURCE.name} image model`}
+                  value={weaveImage}
+                  onChange={(e) => {
+                    noteInteraction();
+                    setWeaveImage(e.target.value);
+                  }}
+                  className={`${selectClass} w-full`}
+                >
+                  {WEAVE_IMAGE_MODELS.map((m) => (
+                    <option key={m.name} value={m.name}>
+                      Images: {m.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  aria-label={`${WEAVE_SOURCE.name} video model`}
+                  value={weaveVideo}
+                  onChange={(e) => {
+                    noteInteraction();
+                    setWeaveVideo(e.target.value);
+                  }}
+                  className={`${selectClass} w-full`}
+                >
+                  {WEAVE_VIDEO_MODELS.map((m) => (
+                    <option key={m.name} value={m.name}>
+                      Video: {m.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <p className="text-3xl font-semibold text-slate-300 tabular-nums">
-                {usd(resale)}
+
+              <p className="mt-2 text-xs text-slate-500">
+                Each list is that platform&apos;s own, and they do not line up
+                one to one — pick the closest pair before reading the two
+                numbers against each other.
+              </p>
+
+              <p className="mt-4 text-3xl font-semibold text-slate-300 tabular-nums">
+                {usd(weave.cost.totalUsd)}
                 <span className="ml-2 text-base font-normal text-slate-500">
                   / month
                 </span>
               </p>
+
               <p className="mt-2 text-sm text-slate-400">
-                {usd(resale - direct)} more a month, {usd((resale - direct) * 12)} a
-                year. The multiplier is yours to set — credit plans publish rates,
-                not margins.
+                {weave.cost.unavailable ? (
+                  <>
+                    {weave.plan.name} does not offer one of those models, or
+                    cannot top up past its allowance — that workload does not fit
+                    on this plan.
+                  </>
+                ) : (
+                  <>
+                    {Math.round(weave.cost.creditsNeeded).toLocaleString("en-US")}{" "}
+                    of {weave.cost.creditsIncluded.toLocaleString("en-US")} credits
+                    {weave.cost.topupUsd > 0 && (
+                      <>
+                        , so {usd(weave.cost.topupUsd)} of top-ups on top of the{" "}
+                        {usd(weave.cost.planUsd)} plan
+                      </>
+                    )}
+                    . Against {usd(directComparable)} for the same images and
+                    clips on your own keys — voice is left out of this line
+                    because {WEAVE_SOURCE.name} ships no voice model.
+                  </>
+                )}
               </p>
+
+              {weave.perImage !== null && weave.perClip !== null && (
+                <p className="mt-2 text-xs text-slate-500 tabular-nums">
+                  {trim(weave.perImage, 2)} credits an image,{" "}
+                  {trim(weave.perClip, 2)} a clip — derived from{" "}
+                  {WEAVE_SOURCE.name}&apos;s own table. It prices a clip, not a
+                  second, and does not publish clip length.
+                </p>
+              )}
             </div>
 
             <p className="mt-8 flex items-start gap-2 text-xs text-slate-500">
@@ -291,8 +420,16 @@ export default function ByokCalculator() {
               <span>
                 {PRICED_MODEL_COUNT} priced models in the catalog NodeTool bills
                 against. {PRICING_ATTRIBUTION}, updated{" "}
-                {new Date(PRICING_UPDATED_AT).toISOString().slice(0, 10)}. Local
-                models through Ollama, MLX, and llama.cpp cost nothing per call.
+                {new Date(PRICING_UPDATED_AT).toISOString().slice(0, 10)}.{" "}
+                <a
+                  href={WEAVE_SOURCE.url}
+                  rel="nofollow noopener"
+                  className="underline hover:text-slate-300"
+                >
+                  {WEAVE_SOURCE.name} plans
+                </a>{" "}
+                read {WEAVE_SOURCE.readOn}. Local models through Ollama, MLX, and
+                llama.cpp cost nothing per call.
               </span>
             </p>
           </div>
