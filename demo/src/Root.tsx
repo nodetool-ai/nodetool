@@ -14,6 +14,11 @@ import { TIMELINE_TUTORIALS, timelineTutorialFrames } from "./timelineTutorials"
 import { DocTutorial } from "./DocTutorial";
 import { DOC_TUTORIALS, docTutorialFrames } from "./docTutorials";
 import { PROMO_DURATION_FRAMES, PROMO_FPS, Promo } from "./promo/Promo";
+import {
+  HERO_DURATION_FRAMES,
+  HERO_FPS,
+  HeroPipeline,
+} from "./hero/HeroPipeline";
 import type { DemoCast } from "@web-demo";
 
 const WIDTH = 1920;
@@ -134,6 +139,24 @@ export const Root: React.FC = () => {
         width={WIDTH}
         height={HEIGHT}
         durationInFrames={PROMO_DURATION_FRAMES}
+      />
+      {/* The landing-page hero reel (marketing/POSITIONING_PLAN.md Part 5):
+          a silent ~15s loop, cut for 16:9 and for the 9:16 social slot. */}
+      <Composition
+        id="Hero-Pipeline"
+        component={HeroPipeline}
+        fps={HERO_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={HERO_DURATION_FRAMES}
+      />
+      <Composition
+        id="Hero-Pipeline-Vertical"
+        component={HeroPipeline}
+        fps={HERO_FPS}
+        width={1080}
+        height={1920}
+        durationInFrames={HERO_DURATION_FRAMES}
       />
       <Composition
         id="Promo-Landing"
