@@ -2,7 +2,7 @@
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
 import { KieSchemaFetcher } from "./schema-fetcher.js";
-import { KieSchemaParser } from "./schema-parser.js";
+import { parseKieSchema } from "./schema-parser.js";
 import { writeKieConfigs } from "./config-writer.js";
 import type { NodeConfig } from "./types.js";
 
@@ -16,7 +16,6 @@ export async function generateKieConfigs(
 ): Promise<NodeConfig[]> {
   const useCache = options.useCache ?? true;
   const fetcher = new KieSchemaFetcher();
-  const parser = new KieSchemaParser();
 
   const llms = await fetcher.fetchLlms(useCache);
   const entries = fetcher.parseLlmsEntries(llms);
@@ -32,7 +31,7 @@ export async function generateKieConfigs(
     try {
       console.log(`Fetching ${entry.title}...`);
       const markdown = await fetcher.fetchDocsPage(entry.url, useCache);
-      const node = parser.parse(markdown, entry);
+      const node = parseKieSchema(markdown, entry);
       if (!node) {
         continue;
       }

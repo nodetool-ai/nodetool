@@ -17,7 +17,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { KieSchemaFetcher } from "./schema-fetcher.js";
-import { KieSchemaParser } from "./schema-parser.js";
+import { parseKieSchema } from "./schema-parser.js";
 import { generateModule } from "./node-generator.js";
 import {
   MODULE_NAMES,
@@ -73,7 +73,6 @@ export async function generateKieFixtureOutputs(
 ): Promise<Map<string, string>> {
   const manifest = await readKieGeneratorManifest(fixturesDir);
   const fetcher = new KieSchemaFetcher();
-  const parser = new KieSchemaParser();
 
   const llms = await readFile(join(fixturesDir, manifest.llms), "utf8");
   const entries = new Map(
@@ -95,7 +94,7 @@ export async function generateKieFixtureOutputs(
     } catch {
       throw new Error(`Missing docs fixture for ${fixture.url}: ${docPath}`);
     }
-    const node = parser.parse(markdown, entry);
+    const node = parseKieSchema(markdown, entry);
     if (!node) {
       throw new Error(
         `Docs fixture for ${fixture.url} produced no node config`

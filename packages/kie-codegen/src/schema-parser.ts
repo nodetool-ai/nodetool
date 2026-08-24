@@ -554,137 +554,138 @@ function modelIdFromSchema(schema: JsonRecord): string | null {
   return isJsonString(fallback) ? fallback : null;
 }
 
-export class KieSchemaParser {
-  parse(markdown: string, entry: KieDocsEntry): NodeConfig | null {
-    const omniDoc = isGeminiOmniDoc(entry);
-    let moduleName = moduleFromCategory(entry.category);
-    if (!moduleName && omniDoc) {
-      moduleName = GEMINI_OMNI_MODULE;
-    }
-    if (!moduleName) {
-      return null;
-    }
-    const openApi = extractOpenApi(markdown);
-    if (!openApi) {
-      return null;
-    }
-    const post = firstPostOperation(openApi, entry);
-    if (!post) {
-      return null;
-    }
-    const schema = requestSchema(post.operation);
-    if (!schema) {
-      return null;
-    }
-    const isCreateTask = post.path === "/api/v1/jobs/createTask";
-    const useOmniDirect = isOmniDirectPath(post.path);
-    if (!isCreateTask && moduleName !== "audio" && !useOmniDirect) {
-      return null;
-    }
-    const input = isCreateTask ? inputSchema(schema) : schema;
-    const modelId =
-      (isCreateTask
-        ? modelIdFromSchema(schema)
-        : omniModelIdFromPath(post.path)) ??
-      String(post.operation.operationId ?? post.path.replace(/^\//, ""));
-    if (!input) {
-      return null;
-    }
-    if (!modelId) {
-      return null;
-    }
-
-    const { properties: inputProperties, required: requiredFields } =
-      flattenProperties(input);
-    const fields: FieldDef[] = [];
-    const uploads: NonNullable<NodeConfig["uploads"]> = [];
-    const paramNames: Record<string, string> = {};
-
-    for (const [rawName, rawSchema] of Object.entries(inputProperties)) {
-      if (
-        ["callBackUrl", "callback_url", "callbackUrl"].includes(rawName.trim())
-      ) {
-        continue;
-      }
-      const propertySchema = asRecord(rawSchema);
-      if (!propertySchema) {
-        continue;
-      }
-      const mapped = mapField(
-        rawName,
-        propertySchema,
-        requiredFields.has(rawName.trim())
-      );
-      if (!mapped) {
-        continue;
-      }
-      fields.push(mapped.field);
-      if (mapped.upload) {
-        uploads.push(mapped.upload);
-      }
-      if (mapped.paramName && mapped.paramName !== mapped.field.name) {
-        paramNames[mapped.field.name] = mapped.paramName;
-      }
-    }
-
-    const outputType = outputTypeForModelId(modelId, moduleName);
-    const className = classNameForModelId(
-      modelId,
-      String(post.operation.operationId ?? entry.title)
-    );
-    const description = `${entry.title} via Kie.ai.\n\n    kie, ${moduleName}, ai\n\n    ${entry.summary || cleanDescription(post.operation.summary)}`;
-    const validation = fields
-      .filter(
-        (field) =>
-          field.required && (field.type === "str" || field.type === "enum")
-      )
-      .map((field) => ({
-        field: field.name,
-        rule: "not_empty" as const,
-        message: `${field.title ?? field.name} is required`
-      }));
-
-    const omniModule = modelId.startsWith("gemini-omni-")
-      ? GEMINI_OMNI_MODULE
-      : undefined;
-
-    // Built in two halves so the emitted config keeps the key order the
-    // checked-in `configs/*.ts` files were generated with.
-    const execution: Partial<NodeConfig> = {};
-    if (omniModule) {
-      execution.moduleName = omniModule;
-    }
-    if (moduleName === "audio" && !isCreateTask && !useOmniDirect) {
-      execution.useSuno = true;
-      execution.sunoEndpoint = post.path;
-    }
-    if (useOmniDirect) {
-      execution.useOmniDirect = true;
-      execution.submitEndpoint = post.path;
-      execution.responseIdKey =
-        post.path === "/api/v1/omni/audio/create" ? "audioId" : "characterId";
-    }
-
-    const extras: Partial<NodeConfig> = {};
-    if (uploads.length) {
-      extras.uploads = uploads;
-    }
-    if (Object.keys(paramNames).length) {
-      extras.paramNames = paramNames;
-    }
-    if (validation.length) {
-      extras.validation = validation;
-    }
-
-    return {
-      className,
-      modelId,
-      title: entry.title,
-      description,
-      outputType,
-      ...execution,
-      fields,
-      ...extras
-    };
+export function parseKieSchema(
+  markdown: string,
+  entry: KieDocsEntry
+): NodeConfig | null {
+  const omniDoc = isGeminiOmniDoc(entry);
+  let moduleName = moduleFromCategory(entry.category);
+  if (!moduleName && omniDoc) {
+    moduleName = GEMINI_OMNI_MODULE;
   }
+  if (!moduleName) {
+    return null;
+  }
+  const openApi = extractOpenApi(markdown);
+  if (!openApi) {
+    return null;
+  }
+  const post = firstPostOperation(openApi, entry);
+  if (!post) {
+    return null;
+  }
+  const schema = requestSchema(post.operation);
+  if (!schema) {
+    return null;
+  }
+  const isCreateTask = post.path === "/api/v1/jobs/createTask";
+  const useOmniDirect = isOmniDirectPath(post.path);
+  if (!isCreateTask && moduleName !== "audio" && !useOmniDirect) {
+    return null;
+  }
+  const input = isCreateTask ? inputSchema(schema) : schema;
+  const modelId =
+    (isCreateTask
+      ? modelIdFromSchema(schema)
+      : omniModelIdFromPath(post.path)) ??
+    String(post.operation.operationId ?? post.path.replace(/^\//, ""));
+  if (!input) {
+    return null;
+  }
+  if (!modelId) {
+    return null;
+  }
+
+  const { properties: inputProperties, required: requiredFields } =
+    flattenProperties(input);
+  const fields: FieldDef[] = [];
+  const uploads: NonNullable<NodeConfig["uploads"]> = [];
+  const paramNames: Record<string, string> = {};
+
+  for (const [rawName, rawSchema] of Object.entries(inputProperties)) {
+    if (
+      ["callBackUrl", "callback_url", "callbackUrl"].includes(rawName.trim())
+    ) {
+      continue;
+    }
+    const propertySchema = asRecord(rawSchema);
+    if (!propertySchema) {
+      continue;
+    }
+    const mapped = mapField(
+      rawName,
+      propertySchema,
+      requiredFields.has(rawName.trim())
+    );
+    if (!mapped) {
+      continue;
+    }
+    fields.push(mapped.field);
+    if (mapped.upload) {
+      uploads.push(mapped.upload);
+    }
+    if (mapped.paramName && mapped.paramName !== mapped.field.name) {
+      paramNames[mapped.field.name] = mapped.paramName;
+    }
+  }
+
+  const outputType = outputTypeForModelId(modelId, moduleName);
+  const className = classNameForModelId(
+    modelId,
+    String(post.operation.operationId ?? entry.title)
+  );
+  const description = `${entry.title} via Kie.ai.\n\n    kie, ${moduleName}, ai\n\n    ${entry.summary || cleanDescription(post.operation.summary)}`;
+  const validation = fields
+    .filter(
+      (field) =>
+        field.required && (field.type === "str" || field.type === "enum")
+    )
+    .map((field) => ({
+      field: field.name,
+      rule: "not_empty" as const,
+      message: `${field.title ?? field.name} is required`
+    }));
+
+  const omniModule = modelId.startsWith("gemini-omni-")
+    ? GEMINI_OMNI_MODULE
+    : undefined;
+
+  // Built in two halves so the emitted config keeps the key order the
+  // checked-in `configs/*.ts` files were generated with.
+  const execution: Partial<NodeConfig> = {};
+  if (omniModule) {
+    execution.moduleName = omniModule;
+  }
+  if (moduleName === "audio" && !isCreateTask && !useOmniDirect) {
+    execution.useSuno = true;
+    execution.sunoEndpoint = post.path;
+  }
+  if (useOmniDirect) {
+    execution.useOmniDirect = true;
+    execution.submitEndpoint = post.path;
+    execution.responseIdKey =
+      post.path === "/api/v1/omni/audio/create" ? "audioId" : "characterId";
+  }
+
+  const extras: Partial<NodeConfig> = {};
+  if (uploads.length) {
+    extras.uploads = uploads;
+  }
+  if (Object.keys(paramNames).length) {
+    extras.paramNames = paramNames;
+  }
+  if (validation.length) {
+    extras.validation = validation;
+  }
+
+  return {
+    className,
+    modelId,
+    title: entry.title,
+    description,
+    outputType,
+    ...execution,
+    fields,
+    ...extras
+  };
 }
