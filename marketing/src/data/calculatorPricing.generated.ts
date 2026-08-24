@@ -464,3 +464,120 @@ export const CALCULATOR_MODELS: Record<CalculatorModality, CalculatorModel[]> = 
     }
   ]
 };
+
+/**
+ * A model Figma Weave sells for credits that Kie or AtlasCloud also serves,
+ * so the same model can be priced both ways. The comparison uses only these.
+ */
+export interface CalculatorPair {
+  /** Exactly as Weave's pricing page spells it. */
+  weaveName: string;
+  modality: "image" | "video";
+  /** Runtime provider id — `kie` or `atlascloud`. */
+  provider: string;
+  /** The GenSpend price key this came from. */
+  providerModelKey: string;
+  /** USD per image or per video second, on your own key. */
+  unitPrice: number;
+  sourceUrl: string | null;
+}
+
+export const CALCULATOR_PAIRS: CalculatorPair[] = [
+  {
+    "weaveName": "Flux 2 Pro",
+    "modality": "image",
+    "provider": "kie",
+    "providerModelKey": "kie:flux-2/pro-text-to-image",
+    "unitPrice": 0.025,
+    "sourceUrl": "https://kie.ai/flux-2"
+  },
+  {
+    "weaveName": "Nano Banana 2",
+    "modality": "image",
+    "provider": "kie",
+    "providerModelKey": "kie:nano-banana-2",
+    "unitPrice": 0.04,
+    "sourceUrl": "https://kie.ai/nano-banana-2"
+  },
+  {
+    "weaveName": "Nano Banana Pro",
+    "modality": "image",
+    "provider": "kie",
+    "providerModelKey": "kie:nano-banana-pro",
+    "unitPrice": 0.09,
+    "sourceUrl": "https://kie.ai/nano-banana-pro"
+  },
+  {
+    "weaveName": "GPT Image 1.5",
+    "modality": "image",
+    "provider": "atlascloud",
+    "providerModelKey": "atlascloud:openai/gpt-image-1.5/text-to-image",
+    "unitPrice": 0.008,
+    "sourceUrl": "https://www.atlascloud.ai/models/openai/gpt-image-1.5/text-to-image"
+  },
+  {
+    "weaveName": "Seedream V5",
+    "modality": "image",
+    "provider": "kie",
+    "providerModelKey": "kie:seedream/5-pro-text-to-image",
+    "unitPrice": 0.035,
+    "sourceUrl": "https://kie.ai/seedream-5-0-pro"
+  },
+  {
+    "weaveName": "Kling 3",
+    "modality": "video",
+    "provider": "kie",
+    "providerModelKey": "kie:kling-3.0/video",
+    "unitPrice": 0.07,
+    "sourceUrl": "https://kie.ai/kling-3-0"
+  },
+  {
+    "weaveName": "Kling Motion Control",
+    "modality": "video",
+    "provider": "kie",
+    "providerModelKey": "kie:kling-3.0/motion-control",
+    "unitPrice": 0.1,
+    "sourceUrl": "https://kie.ai/kling-3-motion-control"
+  },
+  {
+    "weaveName": "Veo 3.1",
+    "modality": "video",
+    "provider": "atlascloud",
+    "providerModelKey": "atlascloud:google/veo3.1/text-to-video",
+    "unitPrice": 0.2,
+    "sourceUrl": "https://www.atlascloud.ai/models/google/veo3.1/text-to-video"
+  },
+  {
+    "weaveName": "Seedance 1.5",
+    "modality": "video",
+    "provider": "kie",
+    "providerModelKey": "kie:bytedance/seedance-1.5-pro",
+    "unitPrice": 0.0175,
+    "sourceUrl": "https://kie.ai/seedance-1-5-pro"
+  },
+  {
+    "weaveName": "Grok Imagine",
+    "modality": "video",
+    "provider": "kie",
+    "providerModelKey": "kie:grok-imagine-video-1-5-preview",
+    "unitPrice": 0.0225,
+    "sourceUrl": "https://kie.ai/grok-imagine-video-1.5"
+  }
+];
+
+/** Weave models with no Kie or AtlasCloud equivalent, and why. */
+export const UNPAIRED_WEAVE_MODELS: Record<string, string> = {
+  "Flux Fast": "no Flux Fast tier on either provider",
+  "Recraft V4": "neither provider serves Recraft",
+  "Mystic": "neither provider serves Freepik Mystic",
+  "Qwen Multiangle": "both serve Qwen image models, none is the Multiangle variant",
+  "Topaz Upscale": "neither provider serves Topaz",
+  "Kling O1": "neither provider serves the O1 tier",
+  "Runway Gen-4.5": "neither provider serves Runway models",
+  "Wan 2.5": "both serve Wan 2.7, which is a different model",
+  "Wan Animate": "neither provider serves Wan Animate",
+  "Luma Ray 2": "neither provider serves Luma",
+  "LTX 2": "neither provider serves LTX",
+  "Hunyuan 3D V3": "3D, which the calculator does not cost",
+  "Rodin V2": "3D, which the calculator does not cost"
+};
