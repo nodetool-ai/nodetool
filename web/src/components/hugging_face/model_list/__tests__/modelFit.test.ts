@@ -91,7 +91,24 @@ describe("goalsForModel", () => {
     ).toEqual(new Set(["vision"]));
   });
 
-  it("splits llama_model into chat vs embedding by name", () => {
+  it("maps checkpoint families to the goal their pipeline serves", () => {
+    for (const type of [
+      "hf.stable_diffusion",
+      "hf.stable_diffusion_xl",
+      "hf.flux",
+      "hf.flux_kontext",
+      "hf.qwen_image",
+      "hf.qwen_image_edit",
+      "hf.real_esrgan"
+    ]) {
+      expect(goalsForModel(model({ type }))).toEqual(new Set(["image-gen"]));
+    }
+    for (const type of ["hf.qwen2_5_vl", "hf.qwen3_vl"]) {
+      expect(goalsForModel(model({ type }))).toEqual(new Set(["vision"]));
+    }
+  });
+
+  it("splits GGUF models into chat vs embedding by name", () => {
     expect(
       goalsForModel(model({ type: "llama_model", name: "qwen3.5:9b" }))
     ).toEqual(new Set(["chat"]));
@@ -101,6 +118,9 @@ describe("goalsForModel", () => {
     expect(
       goalsForModel(model({ type: "llama_model", name: "bge-m3" }))
     ).toEqual(new Set(["embedding"]));
+    expect(
+      goalsForModel(model({ type: "llama_cpp_model", name: "qwen3.5-9b.gguf" }))
+    ).toEqual(new Set(["chat"]));
   });
 
   it("returns no goals for a type nothing covers", () => {
