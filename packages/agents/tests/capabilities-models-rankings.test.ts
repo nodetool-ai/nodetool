@@ -386,6 +386,7 @@ describe("the shipped artifact", () => {
     };
     expect(Object.keys(result.results[0]).sort()).toEqual([
       "downloaded",
+      "id",
       "model_id",
       "name",
       "provider",
