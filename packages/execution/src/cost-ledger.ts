@@ -94,6 +94,15 @@ export interface PricedGeneration {
   assumptions?: string[];
 }
 
+/** What a ledger row records about how its cost was arrived at. */
+interface GenerationMetadata {
+  capability: string | null;
+  price_source?: "model-catalog";
+  price_breakdown?: string;
+  price_assumptions?: string[];
+  unpriced_reason?: string;
+}
+
 /**
  * Price a generation against the model catalogs. Returns `null` when no catalog
  * carries the model, or when the catalog declines to extrapolate — a refusal is
@@ -133,7 +142,7 @@ export async function recordGenerationSpend(
   spend: GenerationSpend
 ): Promise<Prediction | null> {
   const priced = priceGeneration(spend);
-  const metadata: Record<string, unknown> = {
+  const metadata: GenerationMetadata = {
     capability: spend.capability ?? null
   };
   if (priced) {
