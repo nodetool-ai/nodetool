@@ -5,7 +5,7 @@
  * Long-press to copy message text.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -79,19 +79,21 @@ function getContentItems(content: Message['content']): MessageContent[] {
   return [];
 }
 
-/**
- * Check if content contains media (non-text) items
- */
-function hasMediaContent(content: Message['content']): boolean {
-  const items = getContentItems(content);
-  return items.some(item => item.type !== 'text');
-}
-
 export const MessageView: React.FC<MessageViewProps> = React.memo(({ message }) => {
   const isUser = message.role === 'user';
   const { colors } = useTheme();
 
-  const textContent = getTextContent(message.content);
+  // The streaming message re-renders once per token, so walk its content once
+  // per render instead of three times.
+  const textContent = useMemo(
+    () => getTextContent(message.content),
+    [message.content]
+  );
+  const contentItems = useMemo(
+    () => getContentItems(message.content),
+    [message.content]
+  );
+  const hasMedia = contentItems.some(item => item.type !== 'text');
 
   const handleCopyMessage = useCallback(async () => {
     if (textContent) {
@@ -112,9 +114,6 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(({ message }) 
   if (message.role === 'system' || message.role === 'tool') {
     return null;
   }
-
-  const contentItems = getContentItems(message.content);
-  const hasMedia = hasMediaContent(message.content);
 
   const renderSimpleMessage = () => {
     if (isUser) {

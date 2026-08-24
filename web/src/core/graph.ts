@@ -221,13 +221,31 @@ export const autoLayout = async (
 
   // Group non-comment nodes by parentId
   const nodeGroups: Record<string, Node<NodeData>[]> = {};
+  const groupIdByNodeId = new Map<string, string>();
   nonCommentNodes.forEach((node) => {
     const groupId = node.parentId || "root";
     if (!nodeGroups[groupId]) {
       nodeGroups[groupId] = [];
     }
     nodeGroups[groupId].push(node);
+    groupIdByNodeId.set(node.id, groupId);
   });
+
+  // A node belongs to exactly one group, so an edge is internal to a group iff
+  // both endpoints map to it — which buckets every edge in one pass rather
+  // than a scan of all edges per group.
+  const edgesByGroup = new Map<string, Edge[]>();
+  for (const edge of edges) {
+    const sourceGroup = groupIdByNodeId.get(edge.source);
+    if (sourceGroup === undefined) continue;
+    if (sourceGroup !== groupIdByNodeId.get(edge.target)) continue;
+    let bucket = edgesByGroup.get(sourceGroup);
+    if (!bucket) {
+      bucket = [];
+      edgesByGroup.set(sourceGroup, bucket);
+    }
+    bucket.push(edge);
+  }
 
   // Title panels (EditableTitle) render absolutely-positioned below the node
   // (top: 100% + 12px) so they don't contribute to node.measured.height.
@@ -415,13 +433,15 @@ export const autoLayout = async (
     };
   };
 
+  const nodesById = new Map(nodes.map((n) => [n.id, n]));
+
   // Helper function to update node positions
   const updateNodePositions = (
     layoutNode: ElkNode,
     parentX = 0,
     parentY = 0
   ): Node<NodeData> => {
-    const originalNode = nodes.find((n) => n.id === layoutNode.id)!;
+    const originalNode = nodesById.get(layoutNode.id)!;
     return {
       ...originalNode,
       position: {
@@ -441,12 +461,7 @@ export const autoLayout = async (
   // root group is processed last to ensure all group nodes are processed
   for (const groupId of groupOrder) {
     const groupNodes = nodeGroups[groupId] || [];
-    const groupNodeIds = new Set(groupNodes.map((n) => n.id));
-    const groupEdges = edges.filter(
-      (edge) =>
-        groupNodeIds.has(edge.source) &&
-        groupNodeIds.has(edge.target)
-    );
+    const groupEdges = edgesByGroup.get(groupId) ?? [];
 
     const graph = createElkGraph(groupNodes, groupEdges, groupId === "root");
 
@@ -458,7 +473,7 @@ export const autoLayout = async (
 
       // Update group node dimensions based on children
       if (groupId !== "root") {
-        const parentNode = nodes.find((n) => n.id === groupId);
+        const parentNode = nodesById.get(groupId);
         if (parentNode) {
           const xExtent = Math.max(
             ...groupUpdatedNodes.map(
