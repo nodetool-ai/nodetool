@@ -33,8 +33,8 @@ export const MAX_SANDBOX_WORKERS = 4;
 export const DEADLINE_MARGIN_MS = 5_000;
 
 const log = createLogger("nodetool.agents.sandbox-host");
-const SLOW_WORKER_ACQUIRE_MS = 250;
-const SLOW_WORKER_ROUND_TRIP_MS = 250;
+const SLOW_WORKER_ACQUIRE_MS = 1_000;
+const SLOW_WORKER_ROUND_TRIP_MS = 1_000;
 
 // ---------------------------------------------------------------------------
 // Entry resolution

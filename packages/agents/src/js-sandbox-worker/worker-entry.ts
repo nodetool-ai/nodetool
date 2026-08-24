@@ -56,7 +56,7 @@ const quickJsVariant = (
 ).default;
 
 const log = createLogger("nodetool.agents.sandbox-worker");
-const SLOW_SANDBOX_RUN_MS = 250;
+const SLOW_SANDBOX_RUN_MS = 1_000;
 
 // ---------------------------------------------------------------------------
 // Engine
