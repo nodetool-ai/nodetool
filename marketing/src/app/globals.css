@@ -317,6 +317,19 @@
     left: 0;
   }
 
+  /* Announcement strip above the fixed header. The header sits at this
+     offset and the body is padded by it, so every page's own clearance for
+     the nav keeps working; dismissing the bar zeroes it. */
+  :root {
+    --announce-h: 2.25rem;
+  }
+  html.announcement-dismissed {
+    --announce-h: 0px;
+  }
+  body {
+    padding-top: var(--announce-h);
+  }
+
   /* Vertical rhythm helpers */
   .rhythm-section {
     padding-top: 4.5rem;

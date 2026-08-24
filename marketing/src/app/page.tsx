@@ -14,6 +14,7 @@ import ModelSupportSection from "../components/ModelSupportSection";
 import ModelManagerSection from "../components/ModelManagerSection";
 import CostDashboardSection from "../components/CostDashboardSection";
 import SurfaceShowcase from "../components/SurfaceShowcase";
+import GraphToAppSplit from "../components/GraphToAppSplit";
 import ByokCalculator from "../components/ByokCalculator";
 import StoryboardSection from "../components/StoryboardSection";
 import ScriptEditorSection from "../components/ScriptEditorSection";
@@ -348,6 +349,9 @@ export default function Home() {
 
         {/* Paint and generate on one canvas — built-in sketch editor (sibling to the timeline editor) */}
         <SketchEditorSection />
+
+        {/* One workflow, two views: the graph and the app it becomes */}
+        <GraphToAppSplit />
 
         {/* Wrap a finished workflow in a screen someone else can run */}
         <AppBuilderSection />

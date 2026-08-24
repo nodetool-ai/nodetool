@@ -1,6 +1,6 @@
 import React from "react";
-import { Download, Play, Code2, KeyRound, Layers } from "lucide-react";
-import CanvasScreenshot from "./CanvasScreenshot";
+import { Download, Cloud, Code2, KeyRound, Layers } from "lucide-react";
+import HeroDemoPlayer from "./HeroDemoPlayer";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
 
@@ -54,12 +54,12 @@ export default function NodeToolHero() {
               classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60"
             />
             <a
-              href="#demo-video"
-              onClick={() => track("View Demo")}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
+              href="/cloud"
+              onClick={() => track("Try Cloud", { placement: "hero" })}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
             >
-              <Play className="h-4 w-4" />
-              See it in action
+              <Cloud className="h-4 w-4" />
+              Try the Cloud alpha
             </a>
           </div>
 
@@ -68,12 +68,10 @@ export default function NodeToolHero() {
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
               Agents drive every editor
             </li>
-            <li className="text-slate-700">•</li>
             <li className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-emerald-400" />
               Pay providers directly
             </li>
-            <li className="text-slate-700">•</li>
             <li className="flex items-center gap-1.5">
               <Code2 className="h-3.5 w-3.5 text-blue-400" />
               Open source, runs anywhere
@@ -92,7 +90,7 @@ export default function NodeToolHero() {
             }}
           />
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-            <CanvasScreenshot alt="NodeTool canvas: nodes for image, video, and text models wired together" />
+            <HeroDemoPlayer alt="NodeTool: a prompt becomes shots on the canvas, a cut on the timeline, and a finished film" />
           </div>
         </div>
       </div>
