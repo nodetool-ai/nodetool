@@ -1005,23 +1005,27 @@ export class AnthropicProvider extends BaseProvider {
         ? this.formatTools(args.tools)
         : undefined;
     const policy = thinkingPolicy(args.model);
+    // `thinkingBudget` predates the structured config. A model that only takes
+    // adaptive thinking has no use for the number, so it degrades to a bare
+    // request for thinking.
     const legacyThinking: ProviderThinkingConfig | undefined =
       args.thinkingBudget === undefined
         ? undefined
-        : policy !== "manual"
-          ? { type: "adaptive" }
-          : {
-              type: "manual",
-              budgetTokens: args.thinkingBudget
-            };
+        : policy === "manual"
+          ? { type: "manual", budgetTokens: args.thinkingBudget }
+          : { type: "adaptive" };
     const thinking = args.thinking ?? legacyThinking;
-    if (thinking?.type === "manual" && policy !== "manual") {
-      throw new Error(
-        `${args.model} requires adaptive thinking; manual budgets are unsupported`
-      );
-    }
-    if (thinking?.type === "manual" && thinking.budgetTokens < 1024) {
-      throw new Error("Anthropic thinking budget must be at least 1024 tokens");
+    if (thinking?.type === "manual") {
+      if (policy !== "manual") {
+        throw new Error(
+          `${args.model} requires adaptive thinking; manual budgets are unsupported`
+        );
+      }
+      if (thinking.budgetTokens < 1024) {
+        throw new Error(
+          "Anthropic thinking budget must be at least 1024 tokens"
+        );
+      }
     }
     if (thinking?.type === "disabled" && policy === "adaptive_required") {
       throw new Error(`${args.model} does not allow thinking to be disabled`);
@@ -1035,15 +1039,17 @@ export class AnthropicProvider extends BaseProvider {
     const implicitThinking =
       !thinking &&
       (policy === "adaptive_default" || policy === "adaptive_required");
-    if (args.toolChoice && explicitThinking) {
-      throw new Error(
-        "Anthropic does not allow a forced tool choice while thinking is active"
-      );
-    }
-    if (args.toolChoice && implicitThinking && policy === "adaptive_required") {
-      throw new Error(
-        `${args.model} does not allow thinking to be disabled, so a forced tool choice is unsupported`
-      );
+    if (args.toolChoice) {
+      if (explicitThinking) {
+        throw new Error(
+          "Anthropic does not allow a forced tool choice while thinking is active"
+        );
+      }
+      if (implicitThinking && policy === "adaptive_required") {
+        throw new Error(
+          `${args.model} does not allow thinking to be disabled, so a forced tool choice is unsupported`
+        );
+      }
     }
     const thinkingSuppressedByToolChoice = Boolean(
       args.toolChoice && implicitThinking
@@ -1055,37 +1061,48 @@ export class AnthropicProvider extends BaseProvider {
         ? { type: "any" }
         : { type: "tool", name: args.toolChoice }
       : undefined;
-    const maxTokens = thinkingEnabled
-      ? thinking?.type !== "manual"
-        ? (args.maxTokens ?? 8192)
-        : Math.max(args.maxTokens ?? 8192, thinking.budgetTokens + 1)
-      : (args.maxTokens ?? 8192);
-    const sampling = rejectsCustomSampling(args.model)
-      ? {}
-      : !thinkingEnabled
-        ? args.temperature != null
-          ? { temperature: args.temperature }
-          : args.topP != null
-            ? { top_p: args.topP }
-            : {}
-        : thinking?.type === "manual" && args.topP != null && args.topP >= 0.95
-          ? { top_p: args.topP }
-          : {};
+    // A manual budget has to fit inside max_tokens, with at least one token
+    // left over for the answer.
+    const requestedMaxTokens = args.maxTokens ?? 8192;
+    const maxTokens =
+      thinking?.type === "manual"
+        ? Math.max(requestedMaxTokens, thinking.budgetTokens + 1)
+        : requestedMaxTokens;
 
+    // Models on an adaptive thinking policy reject temperature and top_p
+    // outright, and once thinking is on the only value Anthropic still accepts
+    // is a top_p of 0.95 or above under a manual budget.
+    const sampling: { temperature?: number; top_p?: number } = {};
+    if (!rejectsCustomSampling(args.model)) {
+      if (!thinkingEnabled) {
+        if (args.temperature != null) {
+          sampling.temperature = args.temperature;
+        } else if (args.topP != null) {
+          sampling.top_p = args.topP;
+        }
+      } else if (
+        thinking?.type === "manual" &&
+        args.topP != null &&
+        args.topP >= 0.95
+      ) {
+        sampling.top_p = args.topP;
+      }
+    }
+
+    // The disabled variant carries no `display` field, hence the narrowing.
+    const display =
+      thinking && thinking.type !== "disabled" && thinking.display
+        ? { display: thinking.display }
+        : {};
     let anthropicThinking: AnthropicThinkingParam | undefined;
     if (thinking?.type === "adaptive") {
-      anthropicThinking = { type: "adaptive" };
-      if (thinking.display) {
-        anthropicThinking.display = thinking.display;
-      }
+      anthropicThinking = { type: "adaptive", ...display };
     } else if (thinking?.type === "manual") {
       anthropicThinking = {
         type: "enabled",
-        budget_tokens: thinking.budgetTokens
+        budget_tokens: thinking.budgetTokens,
+        ...display
       };
-      if (thinking.display) {
-        anthropicThinking.display = thinking.display;
-      }
     } else if (
       thinking?.type === "disabled" ||
       thinkingSuppressedByToolChoice

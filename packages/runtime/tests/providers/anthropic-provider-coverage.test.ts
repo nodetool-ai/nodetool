@@ -1212,16 +1212,18 @@ describe("AnthropicProvider – buildRequest", () => {
     return { provider, create };
   }
 
+  type GenerateArgs = Parameters<AnthropicProvider["generateMessage"]>[0];
+
   async function requestFor(
-    args: Record<string, unknown>,
+    args: Omit<GenerateArgs, "messages">,
     cacheControl?: ProviderCacheControl
-  ): Promise<Record<string, any>> {
+  ): Promise<Record<string, unknown>> {
     const { provider, create } = providerWithSpy(cacheControl);
     await provider.generateMessage({
       messages: [{ role: "user", content: "hi" }],
       ...args
-    } as any);
-    return create.mock.calls[0][0] as Record<string, any>;
+    });
+    return create.mock.calls[0][0] as Record<string, unknown>;
   }
 
   describe("sampling", () => {
@@ -1350,8 +1352,8 @@ describe("AnthropicProvider – buildRequest", () => {
         model: "claude-sonnet-5",
         thinking: { type: "adaptive" }
       });
+      expect(Object.keys(request.thinking as object)).toEqual(["type"]);
       expect(request.thinking).toEqual({ type: "adaptive" });
-      expect("display" in request.thinking).toBe(false);
     });
 
     it("sends an explicit disable on a model that allows it", async () => {
