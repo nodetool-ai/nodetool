@@ -47,7 +47,7 @@ export default function StatusQuoSection() {
               >
                 Making one piece
                 <br />
-                shouldn&apos;t take five tools.
+                shouldn&apos;t take five subscriptions.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
                 Stop exporting. Start finishing. One canvas, your keys, and a
