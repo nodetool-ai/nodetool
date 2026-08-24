@@ -219,18 +219,13 @@ export default function MovieTrailerUseCase() {
                     Brief · shot cards · stills
                   </span>
                 </div>
-                <video
-                  poster="/surface-storyboard-poster.webp"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  aria-label="The storyboard filling in: a brief and a visual style at the top, then shot cards, each with its still, action line, and camera notes"
-                  className="block h-auto w-full"
-                >
-                  <source src="/surface-storyboard.webm" type="video/webm" />
-                  <source src="/surface-storyboard.mp4" type="video/mp4" />
-                </video>
+                <Image
+                  src="/trailer-storyboard.webp"
+                  alt="NodeTool's storyboard: six shot cards down the board — Dead engine, The chain, The rollover, The bike, The cut, The getaway — each with its still, its action line, its camera notes, and a Still ready status, next to the assistant that directed them"
+                  width={3200}
+                  height={3120}
+                  className="h-auto w-full"
+                />
               </div>
             </motion.div>
 
@@ -330,65 +325,22 @@ export default function MovieTrailerUseCase() {
               </p>
             </div>
 
-            {/* Clips in shot order */}
-            <motion.div
-              initial={false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.6 }}
-              className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 backdrop-blur-sm"
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-8 shrink-0 font-mono text-xs text-slate-500">
-                  V1
-                </span>
-                <div className="flex flex-1 gap-1.5 overflow-hidden">
-                  {shots.map((shot, i) => (
-                    <div
-                      key={shot.src}
-                      className="relative flex-1 overflow-hidden rounded-md border border-white/10"
-                    >
-                      <Image
-                        src={shot.src}
-                        alt=""
-                        width={1672}
-                        height={941}
-                        className="h-12 w-full object-cover sm:h-16"
-                      />
-                      <span className="absolute left-1 top-1 rounded bg-black/60 px-1 font-mono text-[10px] text-amber-300">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="mt-2 flex items-center gap-3">
-                <span className="w-8 shrink-0 font-mono text-xs text-slate-500">
-                  A1
-                </span>
-                <div className="h-6 flex-1 rounded-md border border-sky-500/25 bg-sky-500/10" />
-              </div>
-              <p className="mt-3 pl-11 text-xs font-medium uppercase tracking-wide text-slate-500">
-                Six clips on the video track, score underneath
-              </p>
-            </motion.div>
-
             <motion.figure
               initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.6 }}
-              className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50"
+              className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50"
             >
               <Image
-                src="/creatives_timeline.webp"
-                alt="NodeTool's timeline editor: a video preview with a clip inspector on the right, generated clips on a video track with an audio waveform below, a prompt bar to generate a clip at the playhead, and an Export button"
-                width={2000}
-                height={1304}
+                src="/trailer-timeline.webp"
+                alt="The same trailer on NodeTool's timeline: the clips sit on the video track in shot order — Opening drift, Grinder sparks, Wheel churn, Rider in the ruins — with the score's waveform on the audio track under them, the cut playing in the preview above, and Save, Save as Asset, and Export in the bar"
+                width={3200}
+                height={2000}
                 className="h-auto w-full"
               />
               <figcaption className="border-t border-white/5 px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-                The timeline editor · trim, reorder, score, export
+                The timeline editor · clips in shot order, score underneath
               </figcaption>
             </motion.figure>
 
