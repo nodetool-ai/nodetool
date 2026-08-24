@@ -377,6 +377,7 @@ export type AddAudioInputs = {
   audio?: Connectable<AudioRef>;
   volume?: Connectable<number>;
   mix?: Connectable<boolean>;
+  output_length?: Connectable<"video" | "longest">;
 };
 
 export interface AddAudioOutputs {

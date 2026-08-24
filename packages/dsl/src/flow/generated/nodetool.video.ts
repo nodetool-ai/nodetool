@@ -391,6 +391,7 @@ export type AddAudioInputs = {
   audio?: AudioRef;
   volume?: number;
   mix?: boolean;
+  output_length?: "video" | "longest";
 };
 
 export interface AddAudioOutputs {

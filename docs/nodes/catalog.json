@@ -15257,6 +15257,13 @@
           "description": "If True, mix new audio with existing. If False, replace existing audio.",
           "required": false,
           "default": false
+        },
+        {
+          "name": "output_length",
+          "type": "enum",
+          "description": "How long the output is. 'video' matches the picture: a longer audio track is trimmed, a shorter one padded with silence. 'longest' keeps both streams whole, so a track that outruns the picture leaves the output playing over nothing.",
+          "required": false,
+          "default": "video"
         }
       ],
       "outputs": [
