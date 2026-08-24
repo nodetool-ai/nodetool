@@ -9,7 +9,7 @@
  * parse flags, and render the manager's results.
  *
  * Verbs:
- *   worker profile add <name> --target <t> --image <img> [--gpu <g>] [...]
+ *   worker profile add <name> --target <t> --image <img> [--gpu <g>] [--disk <gb>] [...]
  *   worker profile list [--json]
  *   worker profile rm <name>
  *   worker create --profile <name> [--attach]
@@ -150,20 +150,44 @@ function parsePositiveMinutes(
   return n;
 }
 
+/**
+ * Parse a positive-integer flag, rejecting anything else.
+ *
+ * A silently-dropped size is worse than a rejected one: the caller believes
+ * they asked for 200 GB and gets the 100 GB default, which only shows up as a
+ * download failing partway through on a rented GPU.
+ */
+function parsePositiveInt(
+  value: string | undefined,
+  flag: string
+): number | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  const n = Number.parseInt(value, 10);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(`Invalid ${flag} '${value}': expected a positive integer.`);
+  }
+  return n;
+}
+
 /** Build a profile `spec` JSON blob from the inline provisioning flags. */
 function specFromFlags(opts: {
   gpu?: string;
   vcpu?: string;
+  disk?: string;
 }) {
   const spec: Record<string, unknown> = {};
   if (opts.gpu) {
     spec.gpu = opts.gpu;
   }
-  if (opts.vcpu) {
-    const n = Number.parseInt(opts.vcpu, 10);
-    if (Number.isFinite(n)) {
-      spec.vcpu = n;
-    }
+  const vcpu = parsePositiveInt(opts.vcpu, "--vcpu");
+  if (vcpu != null) {
+    spec.vcpu = vcpu;
+  }
+  const disk = parsePositiveInt(opts.disk, "--disk");
+  if (disk != null) {
+    spec.disk = disk;
   }
   return spec;
 }
@@ -203,6 +227,10 @@ function registerProfile(worker: Command): void {
     .option("--gpu <gpu>", "GPU type (provider-specific)")
     .option("--vcpu <n>", "vCPU count")
     .option(
+      "--disk <gb>",
+      "Persistent volume size in GB (holds the model cache; default 100)"
+    )
+    .option(
       "--token-policy <policy>",
       "Token policy (generate | fixed)",
       "generate"
@@ -218,6 +246,7 @@ function registerProfile(worker: Command): void {
             image: string;
             gpu?: string;
             vcpu?: string;
+            disk?: string;
             tokenPolicy: string;
             idleTimeout?: string;
             maxLifetime?: string;
@@ -296,6 +325,10 @@ function registerCreate(worker: Command): void {
     .option("--gpu <gpu>", "Inline: GPU type")
     .option("--vcpu <n>", "Inline: vCPU count")
     .option(
+      "--disk <gb>",
+      "Inline: persistent volume size in GB (default 100)"
+    )
+    .option(
       "--token-policy <policy>",
       "Inline: token policy (generate | fixed)",
       "generate"
@@ -311,6 +344,7 @@ function registerCreate(worker: Command): void {
           image?: string;
           gpu?: string;
           vcpu?: string;
+          disk?: string;
           tokenPolicy: string;
           idleTimeout?: string;
           maxLifetime?: string;
