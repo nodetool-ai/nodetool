@@ -119,6 +119,13 @@ interface AnyModel {
 interface FindModelResult extends CandidateRankingFields {
   provider: string;
   model_id: string;
+  /**
+   * The same id as `model_id`. Both are here because the ref nested in every
+   * result calls it `id`, and a caller reading the rows next to the refs
+   * reaches for `id` — a live session printed a whole catalog as
+   * `fal_ai/undefined` twice and concluded the install had no models.
+   */
+  id: string;
   name: string;
   downloaded: boolean;
   recommended: boolean;
@@ -147,7 +154,11 @@ const CAPABILITY_REF_TYPE = {
   text_to_video: "video_model",
   image_to_video: "video_model",
   text_to_speech: "tts_model",
-  text_to_music: "tts_model",
+  // A music-typed node property takes a `music_model`, never a `tts_model`.
+  // Handing back the wrong tag made every music ref unassignable: the property
+  // refused it, and the graph validator then checked the id against the TTS
+  // catalog and reported a real music model as one the provider does not offer.
+  text_to_music: "music_model",
   automatic_speech_recognition: "asr_model",
   generate_embedding: "embedding_model"
 } satisfies Record<SupportedCapability, string>;
@@ -252,8 +263,14 @@ async function fetchModelsForCapability(
  * the generation call that followed failed with a 422 from the provider. The
  * same holds for image models (`text_to_image` vs `image_to_image`).
  *
- * Capabilities whose model list is already single-purpose (tts, asr,
- * embeddings, language) map to `null` and filter nothing.
+ * It is also the task the leaderboard is read for when the caller names none.
+ * Without that, `pickTaskRank` was free to score a candidate on its *best*
+ * task: a `text_to_music` search ranked ElevenLabs' dialogue model first on
+ * its `text_to_speech` standing, in a leaderboard that has no music task at
+ * all.
+ *
+ * Capabilities whose ranking is meaningless either way (asr, embeddings,
+ * language — none of them ranked) map to `null` and filter nothing.
  */
 function capabilityTask(capability: SupportedCapability): string | null {
   switch (capability) {
@@ -261,6 +278,8 @@ function capabilityTask(capability: SupportedCapability): string | null {
     case "image_to_image":
     case "text_to_video":
     case "image_to_video":
+    case "text_to_speech":
+    case "text_to_music":
       return capability;
     default:
       return null;
@@ -636,12 +655,15 @@ const findModel: CapabilityExport = {
       for (const t of model.supportedTasks ?? []) declaredTasks.add(t);
     }
     let pool: typeof capabilityCandidates;
-    // The task the rank term reads. A `task` no model declares was a name
-    // search all along, so it must not be looked up as a leaderboard either.
-    let rankTask = task;
+    // The task the rank term reads: the caller's, else the one the capability
+    // itself asks for. A `task` no model declares was a name search all along,
+    // so it falls back to the capability's task rather than to no task — which
+    // would let the leaderboard score a candidate on an unrelated task.
+    const defaultRankTask = capabilityTask(capability) ?? undefined;
+    let rankTask = task ?? defaultRankTask;
     if (task && !declaredTasks.has(task)) {
       pool = capabilityCandidates;
-      rankTask = undefined;
+      rankTask = defaultRankTask;
       words = [...words, ...queryWords(task)];
       notes.push(
         `No model declares task '${task}'; searched model names for it instead. Use \`query\` to search by name.`
@@ -679,6 +701,7 @@ const findModel: CapabilityExport = {
       return {
         provider: providerId,
         model_id: model.id,
+        id: model.id,
         name: model.name,
         downloaded,
         recommended,
@@ -730,6 +753,8 @@ function bestRoutePerModel(results: FindModelResult[]): FindModelResult[] {
 interface RankedModel extends CandidateRankingFields {
   provider: string;
   model_id: string;
+  /** Alias of `model_id` — see {@link FindModelResult.id}. */
+  id: string;
   name: string;
   downloaded: boolean;
   recommended: boolean;
@@ -790,6 +815,8 @@ interface ListedModelSource {
 interface ListedModel {
   provider: string;
   model_id: string;
+  /** Alias of `model_id` — see {@link FindModelResult.id}. */
+  id: string;
   name: string;
   type: ModelType;
   downloaded: boolean;
@@ -916,6 +943,7 @@ const listModels: CapabilityExport = {
           collected.push({
             provider: providerId,
             model_id: model.id,
+            id: model.id,
             name: model.name ?? model.id,
             type,
             downloaded

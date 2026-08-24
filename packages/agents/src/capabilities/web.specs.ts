@@ -155,6 +155,9 @@ export const downloadFileSpec: CapabilitySpec = {
   name: "download_file",
   description:
     "Download a text or binary file from a URL and save it to the workspace. " +
+    "Also takes a stored ref in place of a URL — an `asset://` URI, a " +
+    "`/api/storage/` key, or a `data:` URI — which is how an asset a tool " +
+    "just produced reaches the workspace. " +
     "For images / audio / video / pdf, the result includes a `display_markdown` " +
     "field with a ready-to-paste markdown snippet that embeds the asset via a " +
     "UI-fetchable URL (`asset_url`). When narrating the result to the user, " +
@@ -165,7 +168,9 @@ export const downloadFileSpec: CapabilitySpec = {
     properties: {
       url: {
         type: "string",
-        description: "URL of the file to download"
+        description:
+          "http(s) URL of the file to download, or a stored ref to copy in: " +
+          "an asset:// URI, a /api/storage/ key, or a data: URI"
       },
       output_file: {
         type: "string",

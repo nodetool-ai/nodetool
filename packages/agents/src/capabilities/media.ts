@@ -60,6 +60,7 @@ import { persistBinaryOutput } from "../tools/binary-output.js";
 import { extractJSON } from "../utils/json-parser.js";
 import { isYtDlpEnabled } from "../yt-dlp-gate.js";
 import {
+  isFunction,
   isNonBlankString,
   isNonEmptyString,
   isObjectLike,
@@ -73,6 +74,7 @@ import {
   generateVideoSpec,
   animateImageSpec,
   generateSpeechSpec,
+  generateMusicSpec,
   transcribeAudioSpec,
   embedTextSpec,
   readMediaBytesSpec,
@@ -92,6 +94,7 @@ import {
   GENERATE_VIDEO_SCHEMA,
   ANIMATE_IMAGE_SCHEMA,
   GENERATE_SPEECH_SCHEMA,
+  GENERATE_MUSIC_SCHEMA,
   TRANSCRIBE_AUDIO_SCHEMA,
   EMBED_TEXT_SCHEMA,
   READ_MEDIA_BYTES_SCHEMA,
@@ -108,6 +111,7 @@ export {
   GENERATE_VIDEO_SCHEMA,
   ANIMATE_IMAGE_SCHEMA,
   GENERATE_SPEECH_SCHEMA,
+  GENERATE_MUSIC_SCHEMA,
   TRANSCRIBE_AUDIO_SCHEMA,
   EMBED_TEXT_SCHEMA,
   READ_MEDIA_BYTES_SCHEMA,
@@ -495,6 +499,56 @@ function concatUint8(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
+/** What a provider needs to produce one encoded take. */
+interface EncodedSpeechParams {
+  text: string;
+  voice: unknown;
+  speed: unknown;
+  audioFormat: string;
+}
+
+/**
+ * Ask for fully-encoded speech through whichever seam this context has.
+ *
+ * `context.textToSpeechEncoded` is the one `nodetool.audio.TextToSpeech` uses,
+ * and the one that emits the prediction events a run is billed and traced by,
+ * so it is tried first. Reaching past it to `getProvider` was the only path
+ * before, and it cost every FAL and KIE voice on a context that carries the
+ * prediction seams but not `getProvider`: the TypeError landed in the caller's
+ * catch, and the streaming fallback then reported "fal_ai does not support
+ * textToSpeech" — of a provider whose entire TTS catalog is encoded.
+ */
+async function encodedSpeech(
+  context: ProcessingContext,
+  m: MediaModelArgs,
+  params: EncodedSpeechParams
+): Promise<{ data?: Uint8Array; mimeType?: string } | null> {
+  if (isFunction(context.textToSpeechEncoded)) {
+    return await context.textToSpeechEncoded({
+      provider: m.provider,
+      capability: "text_to_speech",
+      model: m.model,
+      params: {
+        text: params.text,
+        voice: params.voice,
+        speed: params.speed,
+        audioFormat: params.audioFormat
+      }
+    });
+  }
+  if (isFunction(context.getProvider)) {
+    const provider = await context.getProvider(m.provider);
+    return await provider.textToSpeechEncoded({
+      text: params.text,
+      model: m.model,
+      voice: params.voice as string | undefined,
+      speed: params.speed as number | undefined,
+      audioFormat: params.audioFormat
+    });
+  }
+  throw new Error("this runtime's context has no encoded text_to_speech path");
+}
+
 const generateSpeech: CapabilityExport = {
   spec: generateSpeechSpec,
   impl: async (run, params) => {
@@ -516,22 +570,27 @@ const generateSpeech: CapabilityExport = {
       let audio: Uint8Array | null = null;
       let mimeType: string | undefined;
       let outputFileFinal = outputFile;
+      // Why the encoded path gave up, kept for the failure message. A provider
+      // that only does encoded TTS (FAL, KIE) leaves the streaming method as
+      // the base class's, which throws "<provider> does not support
+      // textToSpeech" — so discarding this error reported the one thing that
+      // was not wrong, and a session spent three rounds hunting for a TTS
+      // model when the real answer was in the sentence thrown here.
+      let encodedError: string | undefined;
 
       try {
-        const provider = await context.getProvider(m.provider);
-        const encoded = await provider.textToSpeechEncoded({
+        const encoded = await encodedSpeech(context, m, {
           text,
-          model: m.model,
-          voice: params["voice"] as string | undefined,
-          speed: params["speed"] as number | undefined,
+          voice: params["voice"],
+          speed: params["speed"],
           audioFormat: desiredFormat
         });
         if (encoded && encoded.data) {
           audio = encoded.data;
           mimeType = encoded.mimeType;
         }
-      } catch {
-        // Fall through to streaming path.
+      } catch (e) {
+        encodedError = e instanceof Error ? e.message : String(e);
       }
 
       if (!audio) {
@@ -544,32 +603,52 @@ const generateSpeech: CapabilityExport = {
         // PCM (MiniMax 32000, Together varies). Hardcoding 24000 in the WAV
         // header makes those play back at the wrong speed/pitch.
         let pcmSampleRate: number | undefined;
-        for await (const item of context.streamProviderPrediction({
-          provider: m.provider,
-          capability: "text_to_speech",
-          model: m.model,
-          params: {
-            text,
-            voice: params["voice"],
-            speed: params["speed"]
+        try {
+          for await (const item of context.streamProviderPrediction({
+            provider: m.provider,
+            capability: "text_to_speech",
+            model: m.model,
+            params: {
+              text,
+              voice: params["voice"],
+              speed: params["speed"]
+            }
+          })) {
+            const chunk = item as TTSChunkLike;
+            if (chunk.data instanceof Uint8Array) {
+              parts.push(chunk.data);
+              if (chunk.mimeType) mimeType = chunk.mimeType;
+              pcmOnly = false;
+            } else if (isString(chunk.data)) {
+              parts.push(Buffer.from(chunk.data, "base64"));
+              if (chunk.mimeType) mimeType = chunk.mimeType;
+              pcmOnly = false;
+            } else if (chunk.samples) {
+              pcmSampleRate ??= chunk.sampleRate;
+              parts.push(int16ToUint8(chunk.samples));
+            }
           }
-        })) {
-          const chunk = item as TTSChunkLike;
-          if (chunk.data instanceof Uint8Array) {
-            parts.push(chunk.data);
-            if (chunk.mimeType) mimeType = chunk.mimeType;
-            pcmOnly = false;
-          } else if (isString(chunk.data)) {
-            parts.push(Buffer.from(chunk.data, "base64"));
-            if (chunk.mimeType) mimeType = chunk.mimeType;
-            pcmOnly = false;
-          } else if (chunk.samples) {
-            pcmSampleRate ??= chunk.sampleRate;
-            parts.push(int16ToUint8(chunk.samples));
+        } catch (e) {
+          // Both paths failed. Report the encoded one first: on a provider
+          // that only does encoded TTS the streaming error is the base class's
+          // "does not support textToSpeech", which is true of the method and
+          // false of the provider.
+          if (encodedError) {
+            throw new Error(
+              `${encodedError} (the streaming fallback then failed too: ${
+                e instanceof Error ? e.message : String(e)
+              })`
+            );
           }
+          throw e;
         }
-        if (parts.length === 0)
-          return { error: "Provider returned no audio data" };
+        if (parts.length === 0) {
+          return {
+            error: encodedError
+              ? `Provider returned no audio data: ${encodedError}`
+              : "Provider returned no audio data"
+          };
+        }
         const merged = concatUint8(parts);
         if (pcmOnly && !mimeType) {
           // Wrap raw PCM in WAV so the bytes are playable. Rename .mp3 →
@@ -603,6 +682,67 @@ const generateSpeech: CapabilityExport = {
       };
     } catch (e) {
       return predictionError("text_to_speech", m, e);
+    }
+  }
+};
+
+/**
+ * Music from a prompt — the counterpart to {@link generateSpeech}, and the
+ * hole every other generation capability made conspicuous.
+ *
+ * Without it, scoring a cut meant running `nodetool.audio.TextToMusic` through
+ * `run_node`: a one-node graph, and therefore the graph validator, a typed
+ * `music_model` property and a model ref to satisfy before a single second of
+ * audio existed. A live session spent five rounds there and shipped silent.
+ */
+const generateMusic: CapabilityExport = {
+  spec: generateMusicSpec,
+  impl: async (run, params) => {
+    const context = run.context;
+    const m = parseModelArgs(params);
+    if ("error" in m) return m;
+    const prompt = params["prompt"];
+    if (!isNonEmptyString(prompt)) return { error: "prompt is required" };
+
+    if (!isFunction(context.textToMusic)) {
+      return {
+        error: "this runtime's context has no text_to_music path"
+      };
+    }
+
+    const outputFile = isString(params["output_file"])
+      ? params["output_file"]
+      : undefined;
+    const desiredFormat = audioFormatFromOutputFile(outputFile) ?? "mp3";
+
+    try {
+      const encoded = await context.textToMusic({
+        provider: m.provider,
+        capability: "text_to_music",
+        model: m.model,
+        params: {
+          prompt,
+          lyrics: params["lyrics"],
+          duration_seconds: params["duration_seconds"],
+          audioFormat: desiredFormat
+        }
+      });
+      if (!encoded?.data || encoded.data.length === 0) {
+        return { error: "Provider returned no audio data" };
+      }
+      const persisted = await persistOutput(context, encoded.data, {
+        namePrefix: "generated-music",
+        mime: encoded.mimeType ?? "audio/mpeg",
+        outputFile
+      });
+      return {
+        type: "audio",
+        provider: m.provider,
+        model: m.model,
+        ...persisted
+      };
+    } catch (e) {
+      return predictionError("text_to_music", m, e);
     }
   }
 };
@@ -1501,11 +1641,51 @@ const ffmpeg: CapabilityExport = {
 };
 
 /**
+ * What ffprobe reports as numbers, as numbers.
+ *
+ * ffprobe's JSON is all strings — `"duration": "8.000000"` — so arithmetic on
+ * it silently produces `"8.000000".toFixed is not a function`, or worse, a
+ * concatenation. The raw payload stays exactly as ffprobe wrote it; this is a
+ * second, typed view of the four fields a caller actually plans a cut with.
+ */
+export function ffprobeSummary(parsed: Record<string, unknown>): Record<
+  string,
+  unknown
+> {
+  const format = isObjectLike(parsed["format"]) ? parsed["format"] : {};
+  const streams = Array.isArray(parsed["streams"]) ? parsed["streams"] : [];
+  const numeric = (value: unknown): number | null => {
+    const n = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
+  const ofKind = (kind: string): Record<string, unknown> | undefined =>
+    streams.find(
+      (s): s is Record<string, unknown> =>
+        isObjectLike(s) && s["codec_type"] === kind
+    );
+  const video = ofKind("video");
+  const audio = ofKind("audio");
+  const summary: Record<string, unknown> = {
+    duration_seconds: numeric(format["duration"]) ?? numeric(video?.["duration"]),
+    has_video: video !== undefined,
+    has_audio: audio !== undefined
+  };
+  if (video) {
+    summary["width"] = numeric(video["width"]);
+    summary["height"] = numeric(video["height"]);
+  }
+  return summary;
+}
+
+/**
  * ffprobe with an argv NodeTool writes, not the caller.
  *
  * Everything a caller can say is one workspace path, so the whole boundary is
  * the confinement check — there is no flag surface to guard, and no way to ask
- * ffprobe to open a socket.
+ * ffprobe to open a socket. `inputs` stages assets under workspace names the
+ * same way `ffmpeg`'s does: without it the two halves of one loop disagreed,
+ * and a caller who had just staged a clip for ffmpeg could not ask ffprobe how
+ * long it was without staging it a second time through a no-op ffmpeg copy.
  */
 const ffprobe: CapabilityExport = {
   spec: ffprobeSpec,
@@ -1517,6 +1697,13 @@ const ffprobe: CapabilityExport = {
     if (!isNonBlankString(target)) {
       return { error: "path is required" };
     }
+    const stagedResult = await stageInputs(
+      run.context,
+      workspace,
+      cwd,
+      params["inputs"]
+    );
+    if ("error" in stagedResult) return stagedResult;
     const refusal = await confineArgvToWorkspace([target.trim()], cwd);
     if (refusal) return refusal;
     await stageHostBinaryInputs(workspace, [target.trim()]);
@@ -1546,7 +1733,15 @@ const ffprobe: CapabilityExport = {
       if (!isObjectLike(parsed)) {
         return { error: "ffprobe returned no readable JSON" };
       }
-      return { path: target.trim(), ...parsed };
+      const report: Record<string, unknown> = {
+        path: target.trim(),
+        ...parsed,
+        summary: ffprobeSummary(parsed)
+      };
+      if (Object.keys(stagedResult.staged).length > 0) {
+        report["staged"] = stagedResult.staged;
+      }
+      return report;
     } catch (e) {
       if (e instanceof HostBinaryMissingError) {
         return { error: e.message };
@@ -1685,6 +1880,7 @@ export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   generateVideo,
   animateImage,
   generateSpeech,
+  generateMusic,
   transcribeAudio,
   embedText,
   readMediaBytes,
@@ -1708,6 +1904,7 @@ export {
   generateVideo,
   animateImage,
   generateSpeech,
+  generateMusic,
   transcribeAudio,
   embedText,
   readMediaBytes,
@@ -1716,5 +1913,6 @@ export {
   scoreImageAdherence,
   understandVideo,
   ffmpeg,
+  ffprobe,
   ytDlp
 };

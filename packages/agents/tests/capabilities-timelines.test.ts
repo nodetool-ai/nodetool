@@ -78,6 +78,7 @@ async function makeTimeline(
 /** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
   ["list_timelines", () => toolForCapabilityName("list_timelines")],
+  ["create_timeline", () => toolForCapabilityName("create_timeline")],
   ["get_timeline", () => toolForCapabilityName("get_timeline")],
   [
     "list_timeline_versions",
@@ -105,6 +106,7 @@ describe("timelines capability module", () => {
     expect(capabilityModuleIssues("timelines", timelines)).toEqual([]);
     expect(timelines.exports.map((e) => e.spec.name)).toEqual([
       "list_timelines",
+      "create_timeline",
       "get_timeline",
       "list_timeline_versions",
       "get_timeline_version",
@@ -173,6 +175,43 @@ describe("timelines capability behaviour", () => {
       timelines: unknown[];
     };
     expect(other.timelines).toEqual([]);
+  });
+
+  it("creates an empty sequence the caller can then edit", async () => {
+    // Every other document surface could make one and timelines could not, so
+    // "cut these clips together" meant editing whatever sequence the user had
+    // open. A live session did that and wiped six clips of somebody's work.
+    const created = (await run().invoke("create_timeline", {
+      name: "The Last Drop",
+      width: 1080,
+      height: 1920
+    })) as { ok: boolean; timeline_id: string; width: number; height: number };
+    expect(created.ok).toBe(true);
+    expect(created).toMatchObject({ width: 1080, height: 1920 });
+
+    const read = (await run().invoke("get_timeline", {
+      timeline_id: created.timeline_id
+    })) as { timeline: { name: string; fps: number; clips: unknown[] } };
+    expect(read.timeline).toMatchObject({ name: "The Last Drop", fps: 30 });
+    expect(read.timeline.clips).toEqual([]);
+
+    // It belongs to the caller, not to everyone.
+    const other = (await run("other").invoke("get_timeline", {
+      timeline_id: created.timeline_id
+    })) as { error: string };
+    expect(other.error).toContain("was not found");
+  });
+
+  it("refuses a nameless sequence and a non-positive size", async () => {
+    const unnamed = (await run().invoke("create_timeline", { name: "  " })) as {
+      error: string;
+    };
+    expect(unnamed.error).toContain("name is required");
+    const bad = (await run().invoke("create_timeline", {
+      name: "Cut",
+      fps: 0
+    })) as { error: string };
+    expect(bad.error).toContain("fps must be a positive number");
   });
 
   it("reads a stored sequence, and hides another user's", async () => {

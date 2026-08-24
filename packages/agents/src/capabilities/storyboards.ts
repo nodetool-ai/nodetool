@@ -1121,6 +1121,59 @@ function renumberShots(shots: Shot[]): Shot[] {
 const optionalString = (value: unknown): string | undefined =>
   isString(value) ? value : undefined;
 
+/** The shot fields an edit may set, plus the two op-level keys. */
+const SHOT_EDIT_FIELDS = new Set([
+  "target",
+  "index",
+  "action",
+  "slug",
+  "camera",
+  "motion",
+  "dialogue",
+  "narration",
+  "notes",
+  "duration_seconds",
+  "duration_source",
+  "entity_ids",
+  "location_id"
+]);
+
+/** Fields a caller reaches for to attach media, which an edit cannot set. */
+const SHOT_MEDIA_FIELDS = new Set([
+  "clip",
+  "clip_uri",
+  "clip_asset",
+  "video",
+  "keyframe",
+  "keyframe_uri",
+  "still",
+  "image",
+  "status"
+]);
+
+/**
+ * Refuse a field an edit does not set, instead of dropping it.
+ *
+ * `{op: "update_shot", target, clip: "asset://…"}` came back `applied: 1` and
+ * changed nothing: the write reported success, `has_clip` stayed false, and
+ * the session read that as the board rejecting its asset rather than as the
+ * op ignoring a field it never had. An op that silently drops half its
+ * arguments is indistinguishable from one that worked.
+ */
+function assertKnownShotFields(op: string, args: Record<string, unknown>): void {
+  const unknown = Object.keys(args).filter((key) => !SHOT_EDIT_FIELDS.has(key));
+  if (unknown.length === 0) return;
+  const media = unknown.filter((key) => SHOT_MEDIA_FIELDS.has(key));
+  throw new Error(
+    `${op} does not take ${unknown.map((k) => `\`${k}\``).join(", ")}. ` +
+      (media.length > 0
+        ? "A shot's still and clip are written by render_storyboard_stills / " +
+          "render_storyboard_clips, not by an edit. "
+        : "") +
+      `Accepted: ${[...SHOT_EDIT_FIELDS].join(", ")}.`
+  );
+}
+
 /** The shot fields an edit may set. Media and status stay the render tools'. */
 function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
   const next: Shot = { ...shot };
@@ -1170,6 +1223,7 @@ function applyBoardOp(
 ) {
   switch (op) {
     case "add_shot": {
+      assertKnownShotFields("add_shot", args);
       if (!isString(args["action"]) || args["action"].trim() === "") {
         throw new Error(
           "add_shot needs a non-empty `action` describing the shot."
@@ -1196,6 +1250,7 @@ function applyBoardOp(
     }
 
     case "update_shot": {
+      assertKnownShotFields("update_shot", args);
       const target = String(args["target"] ?? "");
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);

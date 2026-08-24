@@ -31,6 +31,7 @@ import {
   editImage,
   embedText,
   generateImage,
+  generateMusic,
   generateSpeech,
   generateVideo,
   scoreImageAdherence,
@@ -88,6 +89,7 @@ describe("media and style capability modules", () => {
       "generate_video",
       "animate_image",
       "generate_speech",
+      "generate_music",
       "transcribe_audio",
       "embed_text",
       "read_media_bytes",
@@ -560,5 +562,90 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/outside the workspace/);
+  });
+});
+
+describe("generate_speech when both TTS paths fail", () => {
+  it("reports why the encoded path gave up, not the streaming stub's message", async () => {
+    // FAL and KIE only do encoded TTS, so they leave the streaming method as
+    // the base class's — which throws "<provider> does not support
+    // textToSpeech". Discarding the encoded error reported the one thing that
+    // was not wrong, and a live session went hunting for another TTS model
+    // with the real reason sitting in the error it never saw.
+    const context = {
+      userId: "user-1",
+      textToSpeechEncoded: async () => {
+        throw new Error("model fal-ai/gemini-3.1-flash-tts is not enabled");
+      },
+      streamProviderPrediction: async function* () {
+        throw new Error("fal_ai does not support textToSpeech");
+      }
+    } as unknown as ProcessingContext;
+
+    const result = (await asTool(generateSpeech).process(context, {
+      provider: "fal_ai",
+      model: "fal-ai/gemini-3.1-flash-tts",
+      text: "hello"
+    })) as Record<string, unknown>;
+
+    expect(String(result["error"])).toContain("is not enabled");
+    expect(String(result["error"])).toContain("streaming fallback then failed");
+  });
+});
+
+describe("generate_music through the adapter", () => {
+  it("dispatches text_to_music and saves the result", async () => {
+    // Before this capability existed, scoring a cut meant running
+    // `nodetool.audio.TextToMusic` through run_node: a one-node graph, the
+    // graph validator, and a typed `music_model` ref to satisfy before a
+    // second of audio existed. A live session spent five rounds there and
+    // shipped silent.
+    const textToMusic = vi.fn(async () => ({
+      data: new Uint8Array([1, 2, 3]),
+      mimeType: "audio/mpeg"
+    }));
+    const context = {
+      userId: "user-1",
+      textToMusic,
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async () => null,
+        key: (p: string) => p
+      }
+    } as unknown as ProcessingContext;
+
+    const result = (await asTool(generateMusic).process(context, {
+      provider: "fal_ai",
+      model: "beatoven/music-generation",
+      prompt: "hopeful cinematic ambient",
+      duration_seconds: 30
+    })) as Record<string, unknown>;
+
+    expect(result["type"]).toBe("audio");
+    const call = textToMusic.mock.calls[0][0] as Record<string, unknown>;
+    expect(call["capability"]).toBe("text_to_music");
+    expect(call["model"]).toBe("beatoven/music-generation");
+    expect((call["params"] as Record<string, unknown>)["duration_seconds"]).toBe(
+      30
+    );
+  });
+
+  it("names the model when the provider refuses", async () => {
+    const context = {
+      userId: "user-1",
+      textToMusic: async () => {
+        throw new Error("model is not enabled for this key");
+      }
+    } as unknown as ProcessingContext;
+
+    const result = (await asTool(generateMusic).process(context, {
+      provider: "fal_ai",
+      model: "beatoven/music-generation",
+      prompt: "hopeful cinematic ambient"
+    })) as Record<string, unknown>;
+
+    expect(String(result["error"])).toContain("beatoven/music-generation");
+    expect(String(result["error"])).toContain("text_to_music");
   });
 });

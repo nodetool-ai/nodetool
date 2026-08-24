@@ -9,8 +9,10 @@ import { BaseProvider } from "@nodetool-ai/runtime";
 import type {
   ImageModel,
   LanguageModel,
+  MusicModel,
   ProcessingContext,
   ProviderId,
+  TTSModel,
   VideoModel
 } from "@nodetool-ai/runtime";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
@@ -64,6 +66,30 @@ class FakeLanguageProvider extends BaseProvider {
     super(id);
   }
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    return this.models;
+  }
+}
+
+class FakeMusicProvider extends BaseProvider {
+  constructor(
+    id: ProviderId,
+    private readonly models: MusicModel[]
+  ) {
+    super(id);
+  }
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return this.models;
+  }
+}
+
+class FakeTTSProvider extends BaseProvider {
+  constructor(
+    id: ProviderId,
+    private readonly models: TTSModel[]
+  ) {
+    super(id);
+  }
+  override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return this.models;
   }
 }
@@ -262,6 +288,92 @@ describe("find_model through the adapter", () => {
     expect(result.total).toBe(1);
   });
 
+  it("reports each row's id under both names", async () => {
+    // The ref nested in every result calls it `id`, so a caller reading the
+    // rows next to the refs reaches for `id`. A live session printed a whole
+    // catalog as `fal_ai/undefined` twice and concluded the install had none.
+    const tool = asTool(findModel, {
+      openai: new FakeImageProvider("openai" as ProviderId, [
+        { id: "gpt-image-2", name: "GPT Image 2", provider: "openai" } as ImageModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image"
+    })) as { results: { id: string; model_id: string }[] };
+    expect(result.results[0].id).toBe("gpt-image-2");
+    expect(result.results[0].model_id).toBe("gpt-image-2");
+  });
+
+  it("hands back a music_model ref for text_to_music", async () => {
+    // A `music_model` property refuses a `tts_model` ref, and the graph
+    // validator then checks the id against the TTS catalog and reports a real
+    // music model as one the provider does not offer. A live session lost
+    // three rounds to that, retrying the same model under three ids.
+    const tool = asTool(findModel, {
+      fal_ai: new FakeMusicProvider("fal_ai" as ProviderId, [
+        {
+          id: "beatoven/music-generation",
+          name: "Beatoven Music Generation",
+          provider: "fal_ai"
+        } as MusicModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_music"
+    })) as { results: { ref: { type: string; id: string } }[] };
+    expect(result.results[0].ref.type).toBe("music_model");
+    expect(result.results[0].ref.id).toBe("beatoven/music-generation");
+  });
+
+  it("does not score a music search on a speech leaderboard", async () => {
+    // The rankings artifact has no text_to_music task at all, so a candidate
+    // ranked for text_to_speech used to take the whole rank bonus in a music
+    // search: ElevenLabs' dialogue model (rank 13 of 100 for speech) came
+    // back as the best music model this install had.
+    const tool = asTool(findModel, {
+      fal_ai: new FakeMusicProvider("fal_ai" as ProviderId, [
+        {
+          id: "fal-ai/elevenlabs/text-to-dialogue/eleven-v3",
+          name: "Eleven Labs Text To Dialogue V3",
+          provider: "fal_ai"
+        } as MusicModel,
+        {
+          id: "beatoven/music-generation",
+          name: "Beatoven Music Generation",
+          provider: "fal_ai"
+        } as MusicModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_music"
+    })) as { results: { model_id: string; ranked_task?: string }[] };
+    expect(result.results.some((r) => r.ranked_task === "text_to_speech")).toBe(
+      false
+    );
+    expect(result.results[0].model_id).not.toBe(
+      "fal-ai/elevenlabs/text-to-dialogue/eleven-v3"
+    );
+  });
+
+  it("reads the speech leaderboard for a speech search", async () => {
+    // The other half of the same rule: with no task from the caller, the
+    // capability's own task is the one the leaderboard is read for.
+    const tool = asTool(findModel, {
+      fal_ai: new FakeTTSProvider("fal_ai" as ProviderId, [
+        {
+          id: "fal-ai/gemini-3.1-flash-tts",
+          name: "Gemini 3.1 Flash TTS",
+          provider: "fal_ai"
+        } as TTSModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_speech"
+    })) as { results: { ranked_task?: string; ref: { type: string } }[] };
+    expect(result.results[0].ranked_task).toBe("text_to_speech");
+    expect(result.results[0].ref.type).toBe("tts_model");
+  });
+
   it("reports a missed search instead of ranking an unrelated model first", async () => {
     const tool = asTool(findModel, {
       openai: new FakeImageProvider("openai" as ProviderId, [
@@ -379,10 +491,12 @@ describe("list_models through the adapter", () => {
     });
     const result = (await tool.process(ctx, { model_type: "language" })) as {
       total: number;
-      results: { provider: string; downloaded: boolean }[];
+      results: { provider: string; id: string; downloaded: boolean }[];
     };
     expect(result.total).toBe(2);
     expect(result.results.map((r) => r.provider)).toEqual(["ollama", "openai"]);
+    // Rows carry the id under both names — see find_model's `id` alias.
+    expect(result.results.map((r) => r.id)).toEqual(["qwen3", "gpt-5"]);
     // ollama runs locally, so its models report as downloaded.
     expect(result.results[0].downloaded).toBe(true);
   });

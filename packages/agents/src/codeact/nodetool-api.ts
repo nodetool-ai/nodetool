@@ -52,6 +52,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "generate_video",
     "animate_image",
     "generate_speech",
+    "generate_music",
     "transcribe_audio",
     "embed_text",
     "critique_image",
@@ -113,6 +114,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   apps: ["list_apps", "get_app", "create_app", "edit_app", "debug_app"],
   timelines: [
     "list_timelines",
+    "create_timeline",
     "get_timeline",
     "list_timeline_versions",
     "get_timeline_version",
@@ -760,6 +762,11 @@ const nodetool = (() => {
         __need("generate_speech")(
           __merge(opts, __merge(__model(model), { text: text }))
         ),
+      /** Music from a prompt — the counterpart of speak(). */
+      generateMusic: (prompt, model, opts) =>
+        __need("generate_music")(
+          __merge(opts, __merge(__model(model), { prompt: prompt }))
+        ),
       transcribe: (inputFile, model, opts) =>
         __need("transcribe_audio")(
           __merge(opts, __merge(__model(model), { input_file: inputFile }))
@@ -1033,6 +1040,8 @@ const nodetool = (() => {
 
     timelines: {
       list: (opts) => __need("list_timelines")(__merge(opts)),
+      create: (name, opts) =>
+        __need("create_timeline")(__merge(opts, { name: name })),
       get: (id) => __need("get_timeline")({ timeline_id: id }),
       versions: (id, opts) =>
         __need("list_timeline_versions")(__merge(opts, { timeline_id: id })),
@@ -1247,6 +1256,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`generateImage(prompt, model, {width, height, output_file})\`,
   \`editImage(inputFile, prompt, model)\`, \`generateVideo(prompt, model)\`,
   \`animateImage(inputFile, model)\`, \`speak(text, model, {voice})\`,
+  \`generateMusic(prompt, model, {lyrics, duration_seconds})\`,
   \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
   assets (\`asset://\` URI); pass \`output_file\` for a workspace copy too.
   Assign each result to \`state\` before the next call
@@ -1387,7 +1397,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "timelines",
-    doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`), \`validate(idOrDocument)\`, \`versions(id)\`,
+    doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`),
+  \`create(name, {fps, width, height})\` (→ \`{timeline_id}\`; make your own
+  rather than editing one the user has open — vertical is 1080×1920),
+  \`validate(idOrDocument)\`, \`versions(id)\`,
   \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`,
   \`deleteVersion(id, n)\`, and
   \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:

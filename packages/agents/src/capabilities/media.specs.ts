@@ -147,6 +147,34 @@ export const GENERATE_SPEECH_SCHEMA: JsonSchema = {
   required: ["provider", "model", "text"]
 };
 
+export const GENERATE_MUSIC_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    provider: { type: "string" as const },
+    model: { type: "string" as const },
+    prompt: {
+      type: "string" as const,
+      description: "What the music should sound like — style, mood, instruments."
+    },
+    lyrics: {
+      type: "string" as const,
+      description:
+        "Optional lyrics, for models that sing. Omit for an instrumental."
+    },
+    duration_seconds: {
+      type: "number" as const,
+      description:
+        "Requested length. Models honour this loosely and some ignore it — probe the result with ffprobe before cutting to it."
+    },
+    output_file: {
+      type: "string" as const,
+      description:
+        "Optional workspace-relative path to also write the audio file."
+    }
+  },
+  required: ["provider", "model", "prompt"]
+};
+
 export const TRANSCRIBE_AUDIO_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
@@ -370,6 +398,20 @@ export const generateSpeechSpec: CapabilitySpec = {
     `Synthesizing speech with ${String(params["provider"])}:${String(params["model"])}`
 };
 
+export const generateMusicSpec: CapabilitySpec = {
+  name: "generate_music",
+  description:
+    "Generate music from a text prompt using a provider+model selected via " +
+    "find_model (capability=text_to_music). Result is saved as an asset " +
+    "(asset:// URI returned). This is the music counterpart of " +
+    "generate_speech — reach for it instead of running an audio node, which " +
+    "makes you build and validate a graph to make one piece of music.",
+  inputSchema: GENERATE_MUSIC_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Generating music with ${String(params["provider"])}:${String(params["model"])}`
+};
+
 export const transcribeAudioSpec: CapabilitySpec = {
   name: "transcribe_audio",
   description:
@@ -520,7 +562,19 @@ export const FFPROBE_SCHEMA: JsonSchema = {
     path: {
       type: "string" as const,
       description:
-        "Workspace-relative media file to inspect. Cannot escape the workspace."
+        "Workspace-relative media file to inspect. Cannot escape the " +
+        "workspace. To inspect an asset, name it in `inputs` under this path."
+    },
+    inputs: {
+      type: "object" as const,
+      description:
+        "Files to copy into the workspace before the run, as " +
+        "{\"<workspace-relative name>\": \"<asset:// URI, /api/storage/ key, " +
+        "or data: URI>\"} — the same staging `ffmpeg` takes. This is how an " +
+        "asset reaches ffprobe: stage it, then name it in `path`. At most 8 " +
+        "files, 100 MB each. " +
+        "Example: {\"clip.mp4\": \"asset://<id>.mp4\"} with path \"clip.mp4\".",
+      additionalProperties: { type: "string" as const }
     },
     timeout_seconds: {
       type: "number" as const,
@@ -535,7 +589,10 @@ export const ffprobeSpec: CapabilitySpec = {
   description:
     "Read a media file's format and streams with ffprobe: duration, size, " +
     "bit rate, and per-stream codec/resolution/frame rate/channels. Takes a " +
-    "workspace path, not argv. Use it before ffmpeg to decide what to do.",
+    "workspace path, not argv; put asset:// URIs in `inputs` to stage them " +
+    "first. ffprobe reports every number as a string, so the answer also " +
+    "carries a `summary` with duration_seconds/width/height/has_audio as " +
+    "real numbers and booleans. Use it before ffmpeg to decide what to do.",
   inputSchema: FFPROBE_SCHEMA,
   category: "execute",
   userMessage: (params) => {
@@ -593,6 +650,7 @@ export const mediaSpecs: readonly CapabilitySpec[] = [
   generateVideoSpec,
   animateImageSpec,
   generateSpeechSpec,
+  generateMusicSpec,
   transcribeAudioSpec,
   embedTextSpec,
   readMediaBytesSpec,
