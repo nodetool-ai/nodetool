@@ -1364,6 +1364,33 @@ matches one done in the UI. Code:
 tools remain the path when the board is open in a browser and the user should
 watch it fill in.
 
+### Shipped example storyboards
+
+Boards ship the way workflows and apps do — a file on disk, read without a
+user, installed into a library with one insert. The bundles are
+`packages/base-nodes/nodetool/examples/storyboards/<slug>.storyboard.json`
+(the `storyboards` sibling of the example workflows, which is where
+`exampleStoryboardsDir` looks by default in the monorepo, the packaged
+backend, and the server image). `storyboards.examples` lists them and
+`storyboards.installExample` installs one; the web offers both under
+**New → New storyboard…**.
+
+What makes them worth shipping is that the shots arrive finished: action text,
+a still, and a clip on every one. The media are `package://` assets under
+`assets/nodetool-base/storyboards/<slug>/`, so one copy on disk serves every
+user and an install writes no bytes.
+
+`node scripts/build-example-storyboards.mjs` builds them from
+`scripts/example-storyboards/boards.mjs`: it draws each shot's frame (layers
+declared in the spec → SVG → sharp) and animates it into a clip with ffmpeg,
+so the build needs no API key and produces the same frames every time. Add
+`--check` for the CI shape (bundles unchanged, every named media file
+present), `--board <slug>` for one, `--skip-media` for the JSON alone.
+`npm run validate:examples` checks each shipped board's shot text and that
+every still and clip it names is on disk, and
+`scripts/verify-backend-bundle.mjs` checks the same files were staged into the
+packaged bundle.
+
 ### 3D scene tools (no editor, no browser)
 
 An agent builds and fixes a 3D model without an editor open:

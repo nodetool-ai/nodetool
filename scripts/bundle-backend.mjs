@@ -1175,6 +1175,31 @@ async function main() {
     );
   }
 
+  // The example storyboards sit next to them, same rule: the server resolves
+  // `exampleStoryboardsDir` as the `storyboards` sibling of the examples dir.
+  // Their stills and clips are `package://` assets and ride along in
+  // assets/nodetool-base/storyboards/ below.
+  const exampleStoryboardsSrc = path.join(
+    BASE_NODES_NODETOOL_DIR,
+    "examples",
+    "storyboards"
+  );
+  const exampleStoryboardsDest = path.join(BUNDLE_DIR, "examples", "storyboards");
+  if (fs.existsSync(exampleStoryboardsSrc)) {
+    await fsp.mkdir(path.dirname(exampleStoryboardsDest), { recursive: true });
+    await copyDir(exampleStoryboardsSrc, exampleStoryboardsDest);
+    const boardCount = (await fsp.readdir(exampleStoryboardsDest)).filter((f) =>
+      f.toLowerCase().endsWith(".storyboard.json")
+    ).length;
+    console.log(
+      `  Copied ${boardCount} example storyboard(s) to examples/storyboards/`
+    );
+  } else {
+    console.warn(
+      `  Warning: example storyboards directory not found, skipping: ${exampleStoryboardsSrc}`
+    );
+  }
+
   if (fs.existsSync(assetsSrc)) {
     await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
     await copyDir(assetsSrc, assetsDest);

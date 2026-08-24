@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  STORYBOARD_BUNDLE_SCHEMA_VERSION,
   normalizeStoryboardScreenplay,
   normalizeStoryboardShot,
+  parseStoryboardBundle,
   storyboardScreenplay
 } from "../src/api-schemas/storyboards.js";
 
@@ -185,5 +187,45 @@ describe("normalizeStoryboardShot", () => {
       status: "planned",
       duration_seconds: 3
     });
+  });
+});
+
+describe("parseStoryboardBundle", () => {
+  const document = {
+    screenplay: null,
+    shots: [],
+    brief: "A keeper's last night",
+    style: "noir",
+    entityIds: [],
+    aspectRatio: "16:9",
+    directorModel: null,
+    imageModel: null,
+    videoModel: null
+  };
+
+  it("fills in what a shipped file may leave out", () => {
+    const bundle = parseStoryboardBundle({ name: "Lighthouse", document });
+    expect(bundle).toMatchObject({
+      schemaVersion: STORYBOARD_BUNDLE_SCHEMA_VERSION,
+      name: "Lighthouse",
+      description: "",
+      tags: []
+    });
+  });
+
+  it("refuses a file that carries no board", () => {
+    expect(parseStoryboardBundle({ name: "Lighthouse" })).toBeNull();
+    expect(parseStoryboardBundle({ document })).toBeNull();
+    expect(parseStoryboardBundle("not an object")).toBeNull();
+  });
+
+  it("refuses a bundle written against a newer schema", () => {
+    expect(
+      parseStoryboardBundle({
+        schemaVersion: STORYBOARD_BUNDLE_SCHEMA_VERSION + 1,
+        name: "From the future",
+        document
+      })
+    ).toBeNull();
   });
 });

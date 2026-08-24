@@ -153,6 +153,8 @@
     "codegen:dsl": "npm run codegen --workspace=packages/dsl",
     "codegen:dsl:check": "npm run codegen:check --workspace=packages/dsl",
     "gen:example-thumbnails": "node scripts/generate-example-thumbnails.mjs",
+    "build:example-storyboards": "node scripts/build-example-storyboards.mjs",
+    "build:example-storyboards:check": "node scripts/build-example-storyboards.mjs --check",
     "examples:smoke": "node scripts/smoke-examples.mjs",
     "backend:smoke": "npm run prepare-backend --workspace=electron && node scripts/smoke-backend-bundle.mjs",
     "probe:providers": "node scripts/provider-contract-probe.mjs",

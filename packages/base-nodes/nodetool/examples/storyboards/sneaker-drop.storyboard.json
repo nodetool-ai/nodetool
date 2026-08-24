@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "name": "Sneaker Drop — 15s Spot",
+  "description": "A three-shot product spot: studio reveal, sole macro, street run-out. Stills and clips are prefilled, so the board is a working example the moment it installs.",
+  "tags": [
+    "advertising",
+    "product",
+    "short-form"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "sneaker-drop-screenplay",
+      "title": "Sneaker Drop — 15s Spot",
+      "brief": "Fifteen seconds for a running-shoe launch. Studio reveal, one texture beat, then out into the street at first light.",
+      "style_bible": "High-key studio graduating to cold street blue. Single hard key light, long shadows, saturated accent on the shoe only.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "sneaker-drop-shot-1",
+          "index": 0,
+          "slug": "plinth reveal",
+          "action": "The shoe alone on a low plinth against a swept studio wall, one hard key raking in from the left and a long shadow off to the right.",
+          "camera": {
+            "framing": "medium",
+            "lens": "85mm",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 5,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.mp4",
+            "asset_id": null,
+            "duration": 5
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.mp4",
+              "asset_id": null,
+              "duration": 5
+            }
+          ],
+          "status": "rendered"
+        },
+        {
+          "type": "shot",
+          "id": "sneaker-drop-shot-2",
+          "index": 1,
+          "slug": "sole macro",
+          "action": "Hard macro across the sole: tread blocks running out of focus at both edges, the accent orange picked out in the channels.",
+          "camera": {
+            "framing": "extreme close-up",
+            "lens": "100mm macro",
+            "movement": "pan left across the tread"
+          },
+          "motion": "pan-left",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.mp4",
+            "asset_id": null,
+            "duration": 4
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.mp4",
+              "asset_id": null,
+              "duration": 4
+            }
+          ],
+          "status": "rendered"
+        },
+        {
+          "type": "shot",
+          "id": "sneaker-drop-shot-3",
+          "index": 2,
+          "slug": "street run out",
+          "action": "Out of the studio: a runner cuts across an empty street at first light, skyline flat behind, the shoe the only warm thing in frame.",
+          "camera": {
+            "framing": "wide",
+            "lens": "35mm",
+            "movement": "whip pan right with the runner"
+          },
+          "motion": "pan-right",
+          "duration_seconds": 6,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.mp4",
+            "asset_id": null,
+            "duration": 6
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.mp4",
+              "asset_id": null,
+              "duration": 6
+            }
+          ],
+          "status": "rendered"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "sneaker-drop-shot-1",
+        "index": 0,
+        "slug": "plinth reveal",
+        "action": "The shoe alone on a low plinth against a swept studio wall, one hard key raking in from the left and a long shadow off to the right.",
+        "camera": {
+          "framing": "medium",
+          "lens": "85mm",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 5,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.mp4",
+          "asset_id": null,
+          "duration": 5
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.mp4",
+            "asset_id": null,
+            "duration": 5
+          }
+        ],
+        "status": "rendered"
+      },
+      {
+        "type": "shot",
+        "id": "sneaker-drop-shot-2",
+        "index": 1,
+        "slug": "sole macro",
+        "action": "Hard macro across the sole: tread blocks running out of focus at both edges, the accent orange picked out in the channels.",
+        "camera": {
+          "framing": "extreme close-up",
+          "lens": "100mm macro",
+          "movement": "pan left across the tread"
+        },
+        "motion": "pan-left",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.mp4",
+          "asset_id": null,
+          "duration": 4
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.mp4",
+            "asset_id": null,
+            "duration": 4
+          }
+        ],
+        "status": "rendered"
+      },
+      {
+        "type": "shot",
+        "id": "sneaker-drop-shot-3",
+        "index": 2,
+        "slug": "street run out",
+        "action": "Out of the studio: a runner cuts across an empty street at first light, skyline flat behind, the shoe the only warm thing in frame.",
+        "camera": {
+          "framing": "wide",
+          "lens": "35mm",
+          "movement": "whip pan right with the runner"
+        },
+        "motion": "pan-right",
+        "duration_seconds": 6,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.mp4",
+          "asset_id": null,
+          "duration": 6
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.mp4",
+            "asset_id": null,
+            "duration": 6
+          }
+        ],
+        "status": "rendered"
+      }
+    ],
+    "brief": "Fifteen seconds for a running-shoe launch. Studio reveal, one texture beat, then out into the street at first light.",
+    "style": "High-key studio graduating to cold street blue. Single hard key light, long shadows, saturated accent on the shoe only.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

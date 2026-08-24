@@ -29,6 +29,22 @@ function writeValidBundle(dir: string): void {
   fs.writeFileSync(path.join(dir, "examples", "nodetool-base", "hello.json"), "{}");
   fs.mkdirSync(path.join(dir, "examples", "apps"), { recursive: true });
   fs.writeFileSync(path.join(dir, "examples", "apps", "hello.app.json"), "{}");
+  fs.mkdirSync(path.join(dir, "examples", "storyboards"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "examples", "storyboards", "hello.storyboard.json"),
+    JSON.stringify(STORYBOARD_BUNDLE)
+  );
+  fs.mkdirSync(path.join(dir, "assets", "nodetool-base", "storyboards", "hello"), {
+    recursive: true,
+  });
+  fs.writeFileSync(
+    path.join(dir, "assets", "nodetool-base", "storyboards", "hello", "shot.jpg"),
+    "x"
+  );
+  fs.writeFileSync(
+    path.join(dir, "assets", "nodetool-base", "storyboards", "hello", "shot.mp4"),
+    "x"
+  );
   fs.mkdirSync(path.join(dir, "assets", "nodetool-base"), { recursive: true });
   fs.writeFileSync(path.join(dir, "assets", "nodetool-base", "hello.jpg"), "x");
   fs.mkdirSync(path.join(dir, "_modules", "webgpu", "dist"), { recursive: true });
@@ -57,6 +73,20 @@ function writeValidBundle(dir: string): void {
     "export {};"
   );
 }
+
+/** One shipped board, naming the two media files staged alongside it. */
+const STORYBOARD_BUNDLE = {
+  name: "Hello",
+  document: {
+    shots: [
+      {
+        id: "shot-1",
+        keyframe: { uri: "package://nodetool-base/storyboards/hello/shot.jpg" },
+        clip: { uri: "package://nodetool-base/storyboards/hello/shot.mp4" },
+      },
+    ],
+  },
+};
 
 const SANDBOX_PACKS_DIR = path.join(
   __dirname,
@@ -164,6 +194,26 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(output).toContain("3 referenced manifest(s) staged");
     expect(status).toBe(0);
+  });
+
+  it("fails when a shipped storyboard's media were not staged", () => {
+    fs.rmSync(
+      path.join(tempDir, "assets", "nodetool-base", "storyboards", "hello", "shot.mp4")
+    );
+    const { status, output } = runVerify(tempDir);
+    expect(output).toContain("example storyboard media not staged");
+    expect(output).toContain("storyboards/hello/shot.mp4");
+    expect(status).toBe(1);
+  });
+
+  it("fails when no example storyboard is staged at all", () => {
+    fs.rmSync(path.join(tempDir, "examples", "storyboards"), {
+      recursive: true,
+      force: true,
+    });
+    const { status, output } = runVerify(tempDir);
+    expect(output).toContain("examples/storyboards/ is missing");
+    expect(status).toBe(1);
   });
 
   it("fails and names the manifest when a referenced one is not staged", () => {

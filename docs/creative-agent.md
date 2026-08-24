@@ -39,9 +39,18 @@ the still you like before paying for the clip. Nothing renders twice unless
 you ask for it, and a revision made after assembly lands in the persisted cut
 automatically.
 
+## Start from a shipped board
+
+**New → New storyboard…** opens on a blank board and the example boards that
+ship with the install. An example arrives finished: every shot already carries
+its action text, its still, and its clip, so the surface shows a directed
+sequence before you spend anything. The media are constant package assets, so
+installing one writes a single row and copies no bytes — regenerate any shot
+and the new render replaces the shipped one on that card alone.
+
 ## Direct: brief in, screenplay out
 
-Open a storyboard (**New → New storyboard**), write a brief and a visual
+Open a storyboard (**New → New storyboard… → Blank storyboard**), write a brief and a visual
 style, pick a shot count, and press **Direct**. The
 `nodetool.creative.Director` node returns a typed screenplay — title,
 logline, style bible, narration, music direction, and one structured shot per

@@ -268,3 +268,58 @@ export const patchStoryboardInput = z
     message: "At least one field must be provided"
   });
 export type PatchStoryboardInput = z.infer<typeof patchStoryboardInput>;
+
+// ── Shipped example boards ──────────────────────────────────────────────────
+// An example storyboard ships as a file, the way an example workflow does: a
+// name, a description, and one complete document whose shots already carry
+// their text, still, and clip. The media are `package://` assets, so the file
+// is the whole board — installing it writes one row and copies no bytes.
+
+export const STORYBOARD_BUNDLE_SCHEMA_VERSION = 1;
+
+export const storyboardBundle = z.object({
+  schemaVersion: z.number().default(STORYBOARD_BUNDLE_SCHEMA_VERSION),
+  name: z.string().min(1),
+  description: z.string().default(""),
+  tags: z.array(z.string()).default([]),
+  document: storyboardDocument
+});
+export type StoryboardBundle = z.infer<typeof storyboardBundle>;
+
+/**
+ * Parse a shipped bundle file. Returns null for anything that is not one — a
+ * malformed file is skipped rather than taking the whole listing down — and
+ * for a file written against a newer schema than this build understands.
+ */
+export function parseStoryboardBundle(value: unknown): StoryboardBundle | null {
+  const parsed = storyboardBundle.safeParse(value);
+  if (!parsed.success) return null;
+  if (parsed.data.schemaVersion > STORYBOARD_BUNDLE_SCHEMA_VERSION) return null;
+  return parsed.data;
+}
+
+/** What the list endpoint returns per example — no document, no shots. */
+export const exampleStoryboardSummary = z.object({
+  /** The bundle's file name without its suffix; installs address it. */
+  slug: z.string(),
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  shotCount: z.number(),
+  /** How many of those shots already have a rendered clip. */
+  clipCount: z.number(),
+  aspectRatio: z.string(),
+  /** First shot's still, as a URL this server serves. Null when it has none. */
+  thumbnailUrl: z.string().nullable()
+});
+export type ExampleStoryboardSummary = z.infer<typeof exampleStoryboardSummary>;
+
+export const installExampleStoryboardInput = z.object({
+  slug: z.string().min(1),
+  projectId: z.string().default("default"),
+  /** Overrides the bundle's own name for the installed board. */
+  name: z.string().min(1).optional()
+});
+export type InstallExampleStoryboardInput = z.infer<
+  typeof installExampleStoryboardInput
+>;

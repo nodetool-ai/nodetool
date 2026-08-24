@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "name": "First Light — Travel Teaser",
+  "description": "A three-shot travel teaser cut from dune to canyon to camp. Prefilled text, stills, and clips — open it to see a finished board before rendering anything of your own.",
+  "tags": [
+    "travel",
+    "teaser",
+    "landscape"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "first-light-screenplay",
+      "title": "First Light — Travel Teaser",
+      "brief": "A ten-second teaser for a desert trip: dunes before sunrise, a switchback in the canyon, and a camp under the stars.",
+      "style_bible": "Wide, quiet, no people in the first two frames. Sand pinks into cold blue, high horizon lines, one warm source per shot.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "first-light-shot-1",
+          "index": 0,
+          "slug": "dunes before sunrise",
+          "action": "Dune ridges stacked back to the horizon in flat pre-dawn light, the near crest cutting a clean diagonal across the frame.",
+          "camera": {
+            "framing": "extreme wide",
+            "lens": "70mm",
+            "movement": "slow pan right along the ridge"
+          },
+          "motion": "pan-right",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.mp4",
+            "asset_id": null,
+            "duration": 4
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.mp4",
+              "asset_id": null,
+              "duration": 4
+            }
+          ],
+          "status": "rendered"
+        },
+        {
+          "type": "shot",
+          "id": "first-light-shot-2",
+          "index": 1,
+          "slug": "canyon switchback",
+          "action": "Looking down a canyon switchback: the road folding back on itself between two walls, first sun catching only the upper rim.",
+          "camera": {
+            "framing": "wide",
+            "lens": "24mm",
+            "movement": "tilt up the canyon wall"
+          },
+          "motion": "tilt-up",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.mp4",
+            "asset_id": null,
+            "duration": 3
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.mp4",
+              "asset_id": null,
+              "duration": 3
+            }
+          ],
+          "status": "rendered"
+        },
+        {
+          "type": "shot",
+          "id": "first-light-shot-3",
+          "index": 2,
+          "slug": "camp under stars",
+          "action": "Night: a single lit tent on the flat, the sky opening above it, one cold ridge line holding the bottom of frame.",
+          "camera": {
+            "framing": "wide",
+            "lens": "35mm",
+            "movement": "very slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.mp4",
+            "asset_id": null,
+            "duration": 3
+          },
+          "clip_versions": [
+            {
+              "type": "video",
+              "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.mp4",
+              "asset_id": null,
+              "duration": 3
+            }
+          ],
+          "status": "rendered"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "first-light-shot-1",
+        "index": 0,
+        "slug": "dunes before sunrise",
+        "action": "Dune ridges stacked back to the horizon in flat pre-dawn light, the near crest cutting a clean diagonal across the frame.",
+        "camera": {
+          "framing": "extreme wide",
+          "lens": "70mm",
+          "movement": "slow pan right along the ridge"
+        },
+        "motion": "pan-right",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.mp4",
+          "asset_id": null,
+          "duration": 4
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.mp4",
+            "asset_id": null,
+            "duration": 4
+          }
+        ],
+        "status": "rendered"
+      },
+      {
+        "type": "shot",
+        "id": "first-light-shot-2",
+        "index": 1,
+        "slug": "canyon switchback",
+        "action": "Looking down a canyon switchback: the road folding back on itself between two walls, first sun catching only the upper rim.",
+        "camera": {
+          "framing": "wide",
+          "lens": "24mm",
+          "movement": "tilt up the canyon wall"
+        },
+        "motion": "tilt-up",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.mp4",
+          "asset_id": null,
+          "duration": 3
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.mp4",
+            "asset_id": null,
+            "duration": 3
+          }
+        ],
+        "status": "rendered"
+      },
+      {
+        "type": "shot",
+        "id": "first-light-shot-3",
+        "index": 2,
+        "slug": "camp under stars",
+        "action": "Night: a single lit tent on the flat, the sky opening above it, one cold ridge line holding the bottom of frame.",
+        "camera": {
+          "framing": "wide",
+          "lens": "35mm",
+          "movement": "very slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": {
+          "type": "video",
+          "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.mp4",
+          "asset_id": null,
+          "duration": 3
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.mp4",
+            "asset_id": null,
+            "duration": 3
+          }
+        ],
+        "status": "rendered"
+      }
+    ],
+    "brief": "A ten-second teaser for a desert trip: dunes before sunrise, a switchback in the canyon, and a camp under the stars.",
+    "style": "Wide, quiet, no people in the first two frames. Sand pinks into cold blue, high horizon lines, one warm source per shot.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

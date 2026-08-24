@@ -1,6 +1,11 @@
 # Test artifacts
 *.png
 *.mp4
+
+# …except the shipped example storyboards' media. Their stills and clips are
+# curated assets built by scripts/build-example-storyboards.mjs and served as
+# `package://` URIs; the blanket *.mp4 above swallowed every one of them.
+!nodetool/assets/nodetool-base/storyboards/**
 %Y-%m-%d-%H-%M-%S.txt
 \[object\ Object\]/
 
