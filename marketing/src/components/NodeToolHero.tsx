@@ -26,23 +26,22 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-5 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
           >
-            Describe what you want to make.
+            Describe it. An agent builds it.
             <br />
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              An agent builds it. You keep it.
+              You keep every step.
             </span>
           </h1>
 
-          <p className="mt-5 max-w-md text-base leading-relaxed text-slate-300 md:text-lg">
-            Open-source creative studio for images, video, audio, and text —
-            built on a{" "}
+          <p className="mt-5 max-w-md text-lg leading-relaxed text-slate-300">
+            An open-source{" "}
             <a
               href="/node-based-ai"
               className="text-slate-200 underline decoration-slate-500/50 underline-offset-2 transition-colors hover:text-white hover:decoration-slate-300"
             >
               visual pipeline
             </a>{" "}
-            you can edit and rerun anytime.
+            for image, video, audio, and text.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
