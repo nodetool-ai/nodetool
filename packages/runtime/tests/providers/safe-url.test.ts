@@ -99,6 +99,21 @@ describe("isSafePublicHttpsUrl", () => {
     expect(isSafePublicHttpsUrl("https://[64:ff9b::192.168.1.1]/x")).toBe(false);
   });
 
+  it("rejects the metadata address through every IPv4-embedding prefix", () => {
+    // The URL parser hex-serialises the trailing 32 bits, so these are the
+    // forms the table actually sees.
+    for (const url of [
+      "https://[::ffff:169.254.169.254]/latest/meta-data/",
+      "https://[::169.254.169.254]/latest/meta-data/",
+      "https://[::ffff:0:169.254.169.254]/latest/meta-data/",
+      "https://[64:ff9b::169.254.169.254]/latest/meta-data/",
+      "https://[64:ff9b:1::169.254.169.254]/latest/meta-data/",
+      "https://[2002:a9fe:a9fe::1]/latest/meta-data/"
+    ]) {
+      expect([url, isSafePublicHttpsUrl(url)]).toEqual([url, false]);
+    }
+  });
+
   it("still accepts 6to4 / NAT64 wrapping public IPv4", () => {
     // 8.8.8.8 -> 0808:0808
     expect(isSafePublicHttpsUrl("https://[2002:808:808::]/x")).toBe(true);
@@ -166,6 +181,44 @@ describe("isBlockedIpLiteral", () => {
     ]) {
       expect([host, isBlockedIpLiteral(host)]).toEqual([host, false]);
     }
+  });
+
+  // An IPv6 literal's trailing 32 bits may be written dotted (`::ffff:127.0.0.1`)
+  // or hex (`::ffff:7f00:1`). Both name one address, and the WHATWG URL parser
+  // emits the hex form, so a table that answers them differently protects only
+  // the spelling nobody sends.
+  it("answers both spellings of one address the same way", () => {
+    for (const [dotted, hexSerialized, blocked] of [
+      // IPv4-mapped ::ffff:0:0/96
+      ["::ffff:127.0.0.1", "::ffff:7f00:1", true],
+      ["::ffff:8.8.8.8", "::ffff:808:808", false],
+      // IPv4-compatible ::/96 (deprecated)
+      ["::127.0.0.1", "::7f00:1", true],
+      // IPv4-translated ::ffff:0:0:0/96
+      ["::ffff:0:169.254.169.254", "::ffff:0:a9fe:a9fe", true],
+      ["::ffff:0:8.8.8.8", "::ffff:0:808:808", false],
+      // NAT64 64:ff9b::/96 and its local-use sibling 64:ff9b:1::/48
+      ["64:ff9b::169.254.169.254", "64:ff9b::a9fe:a9fe", true],
+      ["64:ff9b:1::169.254.169.254", "64:ff9b:1::a9fe:a9fe", true],
+      ["64:ff9b:1::8.8.8.8", "64:ff9b:1::808:808", false]
+    ] as const) {
+      expect([dotted, isBlockedIpLiteral(dotted)]).toEqual([dotted, blocked]);
+      expect([hexSerialized, isBlockedIpLiteral(hexSerialized)]).toEqual([
+        hexSerialized,
+        blocked
+      ]);
+    }
+  });
+
+  // 6to4 puts the routable IPv4 in the second and third hextets; the low 32
+  // bits are an interface identifier the host picks and routing ignores.
+  it("judges a 6to4 literal by its prefix, not its interface identifier", () => {
+    // 2002:7f00:0203:: is 127.0.2.3 — internal whatever the tail says.
+    expect(isBlockedIpLiteral("2002:7f00:203::102:304")).toBe(true);
+    expect(isBlockedIpLiteral("2002:7f00:203::1.2.3.4")).toBe(true);
+    // 2002:0808:0808:: is 8.8.8.8 — public whatever the tail says.
+    expect(isBlockedIpLiteral("2002:808:808::7f00:304")).toBe(false);
+    expect(isBlockedIpLiteral("2002:808:808::127.0.3.4")).toBe(false);
   });
 });
 

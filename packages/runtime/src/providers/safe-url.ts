@@ -99,9 +99,43 @@ function isPrivateIpv4(a: number, b: number): boolean {
 }
 
 /**
+ * The IPv4 address an IPv6 literal routes to, or `null` when it embeds none.
+ *
+ * Decided from the expanded hextets rather than from how the literal was
+ * written: `::ffff:127.0.0.1` and `::ffff:7f00:1` are one address, and the
+ * WHATWG URL parser hands us the second form.
+ */
+function embeddedIpv4(hextets: number[]): number | null {
+  const isZero = (from: number, to: number): boolean =>
+    hextets.slice(from, to).every((n) => n === 0);
+  // 6to4 (2002:WWXX:YYZZ::/16) puts the IPv4 in the second and third hextets;
+  // its low 32 bits are an interface identifier routing ignores. Reading them
+  // instead calls 2002:7f00:203::1.2.3.4 public and 2002:808:808::127.0.3.4
+  // internal, both backwards.
+  if (hextets[0] === 0x2002) return hextets[1];
+  // Every other transition form embeds the IPv4 in the low 32 bits, so only
+  // the prefix differs.
+  // IPv4-mapped ::ffff:0:0/96
+  if (isZero(0, 5) && hextets[5] === 0xffff) return hextets[6];
+  // IPv4-translated ::ffff:0:0:0/96
+  if (isZero(0, 4) && hextets[4] === 0xffff && hextets[5] === 0) {
+    return hextets[6];
+  }
+  // IPv4-compatible ::/96 (deprecated)
+  if (isZero(0, 6)) return hextets[6];
+  // NAT64 64:ff9b::/96 and its local-use sibling 64:ff9b:1::/48 (RFC 8215)
+  if (hextets[0] === 0x64 && hextets[1] === 0xff9b) {
+    if (isZero(2, 6)) return hextets[6];
+    if (hextets[2] === 1 && isZero(3, 6)) return hextets[6];
+  }
+  return null;
+}
+
+/**
  * True when `host` is a literal IPv4/IPv6 address in a loopback, link-local,
  * private, CGNAT or benchmarking range — including the IPv6 spellings that
- * carry an IPv4 inside them (IPv4-mapped, IPv4-compatible, 6to4, NAT64).
+ * carry an IPv4 inside them (IPv4-mapped, IPv4-translated, IPv4-compatible,
+ * 6to4, NAT64).
  *
  * This is the address table, not a policy: it says nothing about schemes,
  * hostnames or redirects, and a caller that allows private networks on purpose
@@ -117,10 +151,11 @@ export function isBlockedIpLiteral(host: string): boolean {
     .replace(/^\[|\]$/g, "")
     .split("%")[0]
     .toLowerCase();
-  // IPv4 in dotted form, standalone or as an IPv6 tail (`::ffff:127.0.0.1`).
-  const dotted = h.match(/(?:^|:)((?:\d{1,3}\.){3}\d{1,3})$/);
-  if (dotted) {
-    const [a, b] = dotted[1].split(".").map((n) => parseInt(n, 10));
+  // A standalone IPv4 literal only. An IPv6 literal ending in a dotted quad
+  // falls through to `expandIpv6`, which folds the quad into hextets so the
+  // prefix decides which 32 bits carry the address.
+  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(h)) {
+    const [a, b] = h.split(".").map((n) => parseInt(n, 10));
     return isPrivateIpv4(a, b);
   }
   if (!h.includes(":")) return false;
@@ -129,25 +164,9 @@ export function isBlockedIpLiteral(host: string): boolean {
   // link-local fe80::/10 — the first hextet spans fe80–febf, so the first three
   // hex digits are fe8/fe9/fea/feb; "fe80" alone is too narrow.
   if (/^fe[89ab]/.test(h)) return true;
-  // IPv4 embedded in a hex-serialized IPv6 literal. The WHATWG parser rewrites
-  // `::ffff:127.0.0.1` to `::ffff:7f00:1`, which the dotted regex above no
-  // longer matches, and the transition prefixes hide an IPv4 in the same way:
-  // IPv4-mapped/-compatible and NAT64 (64:ff9b::/96) in the low 32 bits, 6to4
-  // (2002:WWXX:YYZZ::/16) in the second and third hextets.
   const hextets = expandIpv6(h);
   if (!hextets) return false;
-  const isZero = (from: number, to: number): boolean =>
-    hextets.slice(from, to).every((n) => n === 0);
-  let embedded: number | null = null;
-  if (hextets[0] === 0x2002) {
-    embedded = hextets[1];
-  } else if (isZero(0, 5) && hextets[5] === 0xffff) {
-    embedded = hextets[6]; // ::ffff:a.b.c.d
-  } else if (isZero(0, 6)) {
-    embedded = hextets[6]; // ::a.b.c.d (IPv4-compatible, deprecated)
-  } else if (hextets[0] === 0x64 && hextets[1] === 0xff9b && isZero(2, 6)) {
-    embedded = hextets[6]; // 64:ff9b::/96
-  }
+  const embedded = embeddedIpv4(hextets);
   if (embedded === null) return false;
   return isPrivateIpv4((embedded >> 8) & 0xff, embedded & 0xff);
 }
