@@ -54,6 +54,7 @@ import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 import { serverModelInterfaces } from "./unified-websocket-runner.js";
 import {
   WorkerManager,
+  attachWorkerActivityHeartbeat,
   startReaper,
   type WorkerConnection
 } from "@nodetool-ai/compute";
@@ -65,8 +66,7 @@ import {
   isAccessToken,
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   migrateSqliteDb,
-  runSeeds,
-  touchWorkerInstance
+  runSeeds
 } from "@nodetool-ai/models";
 import { isMcpHttpEnabled, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
 import {
@@ -651,23 +651,12 @@ pythonBridge.on("exit", (code: number) => {
 
 // Keep the attached worker's `last_activity_at` fresh so the cost guard's
 // reaper measures idle time from real bridge traffic, not from creation. The
-// remote WebSocket bridge emits "activity" on every outbound frame; we touch
-// the active worker instance, throttled so high-frequency traffic doesn't turn
-// into a DB write per frame (the reaper runs every 60s; second-level freshness
-// is ample). A local stdio bridge never emits "activity", so this is inert
-// there. Failures are swallowed — a touch must never break execution.
-const WORKER_TOUCH_THROTTLE_MS = 10_000;
-let lastWorkerTouchAt = 0;
-pythonBridge.on("activity", () => {
-  const nowMs = Date.now();
-  if (nowMs - lastWorkerTouchAt < WORKER_TOUCH_THROTTLE_MS) return;
-  lastWorkerTouchAt = nowMs;
-  void workerManager
-    .getActiveWorker()
-    .then((active) => (active ? touchWorkerInstance(active.id) : undefined))
-    .catch(() => {
-      // best-effort: keeping the idle clock fresh must not crash the runner
-    });
+// throttling and the best-effort write live in @nodetool-ai/compute so the CLI
+// gets the same behaviour; a local stdio bridge emits no "activity", so this is
+// inert there.
+attachWorkerActivityHeartbeat(pythonBridge, {
+  resolveInstanceId: async () =>
+    (await workerManager.getActiveWorker())?.id ?? null
 });
 
 // ---------------------------------------------------------------------------

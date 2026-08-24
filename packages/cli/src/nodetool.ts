@@ -63,7 +63,8 @@ import {
   ProcessingContext,
   FileStorageAdapter,
   createLocalWorkspace,
-  initTelemetry
+  initTelemetry,
+  onPythonBridgeCreated
 } from "@nodetool-ai/runtime";
 import type { AssetOutputMode } from "@nodetool-ai/runtime";
 import { mkdirSync } from "node:fs";
@@ -81,6 +82,8 @@ import { registerPackCommands } from "./commands/packs.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
 import { registerWorkerCommands } from "./commands/worker.js";
+import { installWorkerActivityHeartbeat } from "@nodetool-ai/compute";
+
 import { registerRecommendedCommand } from "./commands/models-recommended.js";
 import { registerAgentCommands } from "./commands/agent.js";
 import { registerDbCommands } from "./commands/db.js";
@@ -2412,6 +2415,10 @@ mcp
 registerPackageCommands(program);
 registerPackCommands(program);
 registerWorkerCommands(program);
+
+// Any command that opens a remote Python bridge keeps the attached worker's
+// idle clock fresh, so the reaper doesn't pause a GPU that is mid-job.
+installWorkerActivityHeartbeat(onPythonBridgeCreated);
 
 // ---------------------------------------------------------------------------
 // deploy — registered from commands/deploy.ts

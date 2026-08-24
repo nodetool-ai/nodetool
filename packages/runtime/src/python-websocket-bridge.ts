@@ -449,6 +449,11 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
       try {
         const buf = this._toUint8Array(data);
         const msg = unpackBridgeMessage(buf);
+        // A decoded inbound frame is activity too. Requests are sent once and
+        // then answered over minutes — a model download streams progress with
+        // no outbound frame at all — so an outbound-only clock freezes while
+        // the worker is at its busiest.
+        this.emit("activity");
         this._handleMessage(msg);
       } catch (err) {
         log.error(`Failed to decode WebSocket frame: ${err}`);
@@ -499,9 +504,11 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     this._ws.send(payload, { binary: true });
     // Every outbound frame to the remote worker is fresh activity. The cost
     // guard's reaper measures idle time from `last_activity_at`, and this bridge
-    // is its designated heartbeat source: the server listens for "activity" and
-    // touches the attached worker instance so an actively-executing worker is
-    // never reaped as idle (see WorkerManager.getActiveWorker / touchWorkerInstance).
+    // is its designated heartbeat source: any host with database access listens
+    // for "activity" and touches the worker instance, so an actively-executing
+    // worker is never reaped as idle. The listener is
+    // `attachWorkerActivityHeartbeat` in @nodetool-ai/compute, wired by the
+    // server and by the CLI through `onPythonBridgeCreated`.
     this.emit("activity");
   }
 
