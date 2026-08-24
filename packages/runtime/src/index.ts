@@ -145,7 +145,11 @@ export {
   WebsocketPythonBridge,
   type WebsocketPythonBridgeOptions
 } from "./python-websocket-bridge.js";
-export { createPythonBridge } from "./python-bridge-factory.js";
+export {
+  createPythonBridge,
+  onPythonBridgeCreated
+} from "./python-bridge-factory.js";
+export type { PythonBridgeObserver } from "./python-bridge-factory.js";
 export {
   encodeFrame,
   FrameDecoder,

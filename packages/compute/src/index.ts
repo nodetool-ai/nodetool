@@ -7,6 +7,15 @@ export type {
   WorkerOrphan,
 } from "./manager.js";
 export { runReaperOnce, startReaper } from "./reaper.js";
+export {
+  attachWorkerActivityHeartbeat,
+  installWorkerActivityHeartbeat,
+} from "./worker-heartbeat.js";
+export type {
+  BridgeCreationRegistrar,
+  WorkerActivityHeartbeatOptions,
+  WorkerActivitySource,
+} from "./worker-heartbeat.js";
 export type { ReaperDeps, ReaperHandle, ReaperManager } from "./reaper.js";
 export { RunpodPodProvider } from "./providers/runpod.js";
 export { VastProvider } from "./providers/vast.js";

@@ -9,7 +9,10 @@
  */
 
 import type { Command } from "commander";
-import { WorkerManager } from "@nodetool-ai/compute";
+import {
+  WorkerManager,
+  attachWorkerActivityHeartbeat
+} from "@nodetool-ai/compute";
 import {
   WebsocketPythonBridge,
   type ModelDownloadUpdate
@@ -52,9 +55,11 @@ async function openBridge(
   workerId?: string
 ): Promise<WebsocketPythonBridge> {
   let conn: { wsUrl: string; token: string | null };
+  let instanceId: string;
 
   if (workerId) {
     conn = await manager.connectionInfo(workerId);
+    instanceId = workerId;
   } else {
     const active = await manager.getActiveWorker();
     if (!active) {
@@ -63,12 +68,20 @@ async function openBridge(
       );
     }
     conn = { wsUrl: active.ws_url, token: active.token };
+    instanceId = active.id;
   }
 
   const bridge = new WebsocketPythonBridge({
     wsUrl: conn.wsUrl,
     workerToken: conn.token ?? undefined,
     autoRestart: false
+  });
+
+  // A model download runs for tens of minutes and sends nothing outbound after
+  // the request — the reaper would otherwise pause the pod mid-download. This
+  // touches the worker the command names, not the attached one.
+  attachWorkerActivityHeartbeat(bridge, {
+    resolveInstanceId: async () => instanceId
   });
 
   await bridge.connect();
