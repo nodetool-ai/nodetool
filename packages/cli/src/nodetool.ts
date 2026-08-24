@@ -417,21 +417,18 @@ addSupervisorOptions(
         results = await runDslFile(absolutePath);
       }
 
+      const { printRunJson, previewJson } = await import("./run-json.js");
       if (opts.json) {
         // A supervised run reports what the supervisor did alongside the
         // outputs; an unsupervised one keeps the bare results shape.
-        console.log(
-          JSON.stringify(
-            supervisorConfig ? { results, interventions } : results,
-            null,
-            2
-          )
+        await printRunJson(
+          supervisorConfig ? { results, interventions } : results
         );
       } else {
         for (const [workflowName, outputs] of Object.entries(results)) {
           console.log(`\n${workflowName}:`);
           for (const [key, value] of Object.entries(outputs)) {
-            console.log(`  ${key}: ${JSON.stringify(value)}`);
+            console.log(`  ${key}: ${previewJson(value)}`);
           }
         }
       }
@@ -887,8 +884,11 @@ addSupervisorOptions(
         });
       }
 
+      const { printRunJson, previewJson } = await import("./run-json.js");
       if (opts.json) {
-        console.log(JSON.stringify(result, null, 2));
+        await printRunJson(result, {
+          outputDir: resolve(process.cwd(), "nodetool-output", jobId)
+        });
       } else {
         console.log(`Status: ${result.status}`);
         if (result.error) console.error(`Error: ${result.error}`);
@@ -896,7 +896,7 @@ addSupervisorOptions(
           if (Array.isArray(outputs) && outputs.length > 0) {
             console.log(`\nNode ${nodeId}:`);
             for (const out of outputs) {
-              console.log(`  ${JSON.stringify(out).slice(0, 200)}`);
+              console.log(`  ${previewJson(out, 200)}`);
             }
           }
         }

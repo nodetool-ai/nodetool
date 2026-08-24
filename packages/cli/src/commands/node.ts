@@ -68,8 +68,9 @@ export function registerNodeCommands(program: Command): void {
         }
         const result = await runSingleNode(nodeType, runOptions);
 
+        const { printRunJson, previewJson } = await import("../run-json.js");
         if (opts.json) {
-          console.log(JSON.stringify(result, null, 2));
+          await printRunJson(result);
         } else {
           const mark = result.ok ? "✅" : "❌";
           console.log(
@@ -79,7 +80,7 @@ export function registerNodeCommands(program: Command): void {
           if (result.chunks.length > 0) {
             console.log(`\nEmitted ${result.chunks.length} record(s):`);
             for (const chunk of result.chunks) {
-              console.log(`  ${JSON.stringify(chunk).slice(0, 500)}`);
+              console.log(`  ${previewJson(chunk, 500)}`);
             }
           } else if (result.ok) {
             console.log("\n(no output emitted)");
