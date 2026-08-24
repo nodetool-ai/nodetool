@@ -75,6 +75,14 @@ jest.mock("../ShotCard", () => stub("shot-card"));
 jest.mock("../StoryboardPreview", () => stub("storyboard-preview"));
 jest.mock("../StoryboardEntitiesField", () => stub("entities"));
 
+const mockExportStoryboardZip = jest.fn(
+  async (_boardId: string, _name: string) => undefined
+);
+jest.mock("../../../utils/storyboardZip", () => ({
+  exportStoryboardZip: (boardId: string, name: string) =>
+    mockExportStoryboardZip(boardId, name)
+}));
+
 import StoryboardBoard from "../StoryboardBoard";
 import { StudioProvider } from "../../../studio/StudioContext";
 
@@ -180,5 +188,25 @@ describe("StoryboardBoard model fields", () => {
     renderBoard(jest.fn());
 
     expect(screen.getByTestId("lang-model")).toBeInTheDocument();
+  });
+});
+
+describe("StoryboardBoard download", () => {
+  it("stays disabled with no shots to pack", () => {
+    mockShots = [];
+    renderBoard(jest.fn());
+
+    expect(screen.getByRole("button", { name: "Download ZIP" })).toBeDisabled();
+  });
+
+  it("downloads the board archive by id", async () => {
+    mockShots = [makeShot("s1")];
+    mockExportStoryboardZip.mockClear();
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    await user.click(screen.getByRole("button", { name: "Download ZIP" }));
+
+    expect(mockExportStoryboardZip).toHaveBeenCalledWith("board-1", "My film");
   });
 });

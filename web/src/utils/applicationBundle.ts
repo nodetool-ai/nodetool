@@ -7,6 +7,7 @@
  * is plain JSON rather than a zip, because it carries graphs, not asset bytes.
  */
 import { restFetch } from "../lib/rest-fetch";
+import { saveResponseAsFile } from "./downloadResponse";
 import { isObjectLike } from "./typePredicates";
 
 interface ImportedApplication {
@@ -21,32 +22,6 @@ function isImportedApplication(data: unknown): data is ImportedApplication {
     "id" in data &&
     typeof data.id === "string"
   );
-}
-
-function filenameFromDisposition(
-  header: string | null,
-  fallback: string
-): string {
-  if (header) {
-    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header);
-    if (match?.[1]) {
-      return decodeURIComponent(match[1]);
-    }
-  }
-  return fallback;
-}
-
-function triggerDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  // Defer the revoke: releasing the blob synchronously cancels the download in
-  // Firefox.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function sanitizeBundleName(name: string): string {
@@ -68,12 +43,7 @@ export async function exportApplicationBundle(
     const detail = await res.text().catch(() => "");
     throw new Error(detail || `Export failed (${res.status})`);
   }
-  const blob = await res.blob();
-  const filename = filenameFromDisposition(
-    res.headers.get("content-disposition"),
-    `${sanitizeBundleName(fallbackName)}.app.json`
-  );
-  triggerDownload(blob, filename);
+  await saveResponseAsFile(res, `${sanitizeBundleName(fallbackName)}.app.json`);
 }
 
 /** Upload a bundle file; the server creates the workflows, then the app. */

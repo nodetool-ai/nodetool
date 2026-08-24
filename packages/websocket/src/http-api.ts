@@ -1336,7 +1336,7 @@ export async function handleWorkflowDslExport(
 // ── Workflow bundle export/import (.nodetool) ──────────────────────────
 
 /** Resolve asset bytes for a ref during export, via the asset storage adapter. */
-async function resolveAssetBytesForExport(
+export async function resolveAssetBytesForExport(
   ref: string
 ): Promise<Uint8Array | null> {
   try {
