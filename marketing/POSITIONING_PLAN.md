@@ -466,44 +466,44 @@ Two inputs were generated rather than supplied: the SKU packshot and the
 dubber's presenter clip. Both recipes assume you bring your own, and the dubber
 caption says the presenter is synthetic.
 
-Nine things the runs turned up, each worth its own fix:
+Nine things the runs turned up, each filed:
 
-- `nodetool.image.ImageToImage` at the strength `Put a Product on a Studio
+- [#5192](https://github.com/nodetool-ai/nodetool/issues/5192) — `nodetool.image.ImageToImage` at the strength `Put a Product on a Studio
   Backdrop` sets — 0.45, against a prompt describing only the scene — redraws
   the product. Running the step on the model it names returned a pump
   dispenser where the packshot had an insulated bottle, which is the one thing
   the workflow's own description promises it will not do. The step wants an
   instruction-following edit model, not strength-based image-to-image.
-- Replicate returns image bytes as WebP, and `ImageRef` carries no mime type,
+- [#5193](https://github.com/nodetool-ai/nodetool/issues/5193) — Replicate returns image bytes as WebP, and `ImageRef` carries no mime type,
   so anything that trusts the declared type or the file extension mislabels
   them. Handing one to Kie as `image/png` gets a flat
   `500 File type not supported`. The renderer sniffs magic bytes instead.
-- `black-forest-labs/flux-schnell` on Replicate fails with "Replicate
+- [#5194](https://github.com/nodetool-ai/nodetool/issues/5194) — `black-forest-labs/flux-schnell` on Replicate fails with "Replicate
   prediction returned no usable output" while `flux-dev` on the same account
   runs, so the decoder does not read what schnell returns.
-- Veo 3.1 content-filtered one shot of the trailer ("videos were filtered out
+- [#5195](https://github.com/nodetool-ai/nodetool/issues/5195) — Veo 3.1 content-filtered one shot of the trailer ("videos were filtered out
   because they violated Vertex AI's usage guidelines") and passed it on the
   retry, with no charge for the blocked take. A per-shot generator needs a
   retry on that class of failure or one filtered shot loses the whole cut.
-- Replicate throttles an account under $5 of credit to six predictions a minute
+- [#5196](https://github.com/nodetool-ai/nodetool/issues/5196) — Replicate throttles an account under $5 of credit to six predictions a minute
   with a burst of one, which a chain that feeds each step into the next hits
   immediately. The renderer's backoff absorbs it; without one, a rate limit
   throws away the generations already paid for upstream.
 
-- `nodetool.video.ImageToVideo` carries a Veo-shaped assumption. The trailer
+- [#5197](https://github.com/nodetool-ai/nodetool/issues/5197) — `nodetool.video.ImageToVideo` carries a Veo-shaped assumption. The trailer
   graph wires no prompt into `animate`; Veo 3.1 accepts an image alone and
   Kling returns a 500 on an empty prompt, so swapping the video model breaks
   the graph. Routing to AtlasCloud's Veo 3.1 avoids it; a different model still
   hits it.
-- `lib.image.color.BrightnessContrast` returns a raw RGBA pixel array, and the
+- [#5198](https://github.com/nodetool-ai/nodetool/issues/5198) — `lib.image.color.BrightnessContrast` returns a raw RGBA pixel array, and the
   CLI's `--json` stringify of several 1024x1024 images overflows a JS string
   (`RangeError: Invalid string length`). The hook-factory run bypasses it.
-- `nodetool.video.AddAudio` has no guard for a bed longer than the clip. Kie's
+- [#5199](https://github.com/nodetool-ai/nodetool/issues/5199) — `nodetool.video.AddAudio` has no guard for a bed longer than the clip. Kie's
   `generate-music` ignores the requested duration and returns a full song,
-  which stretched a 25-second trailer to four minutes; the render uses MusicGen
-  instead, which honours it. The shipped comment warns about the opposite case
-  only.
-- `nodetool costs` records LLM calls only, so it reported nothing for a session
+  which stretched a 25-second trailer to four minutes; the render trims the bed
+  back to the cut afterwards. The shipped comment warns about the opposite
+  case only.
+- [#5200](https://github.com/nodetool-ai/nodetool/issues/5200) — `nodetool costs` records LLM calls only, so it reported nothing for a session
   whose spend was almost entirely image and video generation.
 
 Cross-links: the `/templates` hub carries a recipes band, a template page shows
