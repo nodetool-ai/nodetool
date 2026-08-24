@@ -17,37 +17,37 @@ import {
 
 const entries = [
   {
-    intent: "Run it on your machine",
+    intent: "Desktop app",
     name: "Studio",
     href: "/studio",
-    body: "The desktop app: your files, your local models, your GPU. The most control, fully offline if you want.",
+    body: "Runs directly on your computer. Keeps your files and settings private on your hard drive, with optional offline support.",
     icon: Monitor,
     accent: "text-amber-300",
     chip: "border-amber-500/30 bg-amber-500/10",
   },
   {
-    intent: "Try it in the browser",
+    intent: "In your browser",
     name: "Cloud",
     href: "/cloud",
-    body: "Nothing to install. Sign in and start building — currently in alpha, and the fastest way to see what NodeTool is.",
+    body: "Runs in your web browser with zero installation needed. The fastest way to jump in and start creating. Currently in alpha.",
     icon: Cloud,
     accent: "text-blue-300",
     chip: "border-blue-500/30 bg-blue-500/10",
   },
   {
-    intent: "Make visual work",
+    intent: "For creators",
     name: "Creatives",
     href: "/creatives",
-    body: "Start from the piece you want — images, video, music — and let the agent handle the models and the plumbing.",
+    body: "Focus on the creative vision — images, video, voice — and let the software handle the technical plumbing.",
     icon: Sparkles,
     accent: "text-rose-300",
     chip: "border-rose-500/30 bg-rose-500/10",
   },
   {
-    intent: "Build and integrate",
+    intent: "For developers",
     name: "Developers",
     href: "/developers",
-    body: "SDK, CLI, custom nodes, and an MCP server: one execution layer under the canvas, the agent, and your code.",
+    body: "Connect custom scripts, automate tasks, and integrate your own code into the visual canvas, through the SDK, the CLI, or an MCP server.",
     icon: Code2,
     accent: "text-violet-300",
     chip: "border-violet-500/30 bg-violet-500/10",
@@ -80,13 +80,12 @@ export default function WaysInSection() {
             id="ways-in-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Pick the way in that fits you.
+            Choose the setup that fits your workflow.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
-            Studio, Cloud, and the pages for creatives, developers, and
-            marketers are not five products. They are five ways to use the
-            same open-source workspace: the same agent, the same workflows,
-            the same models.
+            Whether you use the desktop app or the browser version, you get
+            the exact same features, tools, and capabilities: the same agent,
+            the same workflows, the same models.
           </p>
         </header>
 

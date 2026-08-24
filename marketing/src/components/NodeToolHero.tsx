@@ -1,5 +1,5 @@
 import React from "react";
-import { Download, Cloud, Code2, KeyRound, Layers } from "lucide-react";
+import { Download, PlayCircle, Code2, KeyRound, Layers } from "lucide-react";
 import HeroDemoPlayer from "./HeroDemoPlayer";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
@@ -26,26 +26,32 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
           >
-            From prompt to final cut
+            Describe what you want to make.
+            <br />
+            An AI agent builds the steps.
             <br />
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              on one canvas.
+              You keep the entire process.
             </span>
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
-            NodeTool is the open-source, agent-first creative workspace: one{" "}
+            NodeTool is an open-source creative studio for making images,
+            video, audio, and text in one place.
+          </p>
+
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-400">
+            Design your project using built-in editors for sketching, scripts,
+            storyboards, and video timelines. Do it by hand, or tell an AI
+            agent what you need — it builds the{" "}
             <a
               href="/node-based-ai"
-              className="text-slate-100 underline decoration-slate-500/50 underline-offset-2 transition-colors hover:text-white hover:decoration-slate-300"
+              className="text-slate-200 underline decoration-slate-500/50 underline-offset-2 transition-colors hover:text-white hover:decoration-slate-300"
             >
-              node-based
-            </a>{" "}
-            canvas that combines generative AI models with a multi-track
-            timeline, layered sketching, storyboards, and scripts — driven by
-            you, or by an agent that builds the workflow and runs it, leaving
-            the whole process open for you to inspect, edit, and reuse. Every
-            major model, your own keys, provider prices.
+              visual pipeline
+            </a>
+            , runs it, and leaves you with an editable project you can change
+            or reuse anytime.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -54,27 +60,27 @@ export default function NodeToolHero() {
               classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60"
             />
             <a
-              href="/cloud"
-              onClick={() => track("Try Cloud", { placement: "hero" })}
+              href="#demo-video"
+              onClick={() => track("View Demo", { placement: "hero" })}
               className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
             >
-              <Cloud className="h-4 w-4" />
-              Try the Cloud alpha
+              <PlayCircle className="h-4 w-4" />
+              See it in action
             </a>
           </div>
 
           <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
             <li className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
-              Agents drive every editor
+              Built-in editors for every step
             </li>
             <li className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-emerald-400" />
-              Pay providers directly
+              Your own provider accounts
             </li>
             <li className="flex items-center gap-1.5">
               <Code2 className="h-3.5 w-3.5 text-blue-400" />
-              Open source, runs anywhere
+              Open source, yours to keep
             </li>
           </ul>
         </div>

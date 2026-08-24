@@ -434,13 +434,14 @@ export default function Home() {
               id="closing-cta-title"
               className="text-3xl md:text-4xl font-bold tracking-tight text-white"
             >
-              Stop stitching tools together. Own your creative pipeline.
+              Built out in the open.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Tell the agent what you want, watch the workflow run, and keep a
-              process you can edit and reuse. Free, open source, and yours to
-              run: download Studio, or try Cloud (alpha) in the browser with
-              nothing to install.
+              Describe what you want to create. Watch the agent build it. Keep
+              the whole project. NodeTool is free, open-source software built
+              alongside working artists, designers, and video editors —
+              download the desktop app, or try it in your browser with nothing
+              to install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
@@ -454,7 +455,7 @@ export default function Home() {
                 onClick={() => track("Try Cloud")}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-6 py-3.5 text-sm font-semibold text-blue-200 transition-all hover:border-blue-400 hover:bg-blue-500/20 focus-ring"
               >
-                Try NodeTool Cloud
+                Try NodeTool in your browser
               </a>
               <a
                 href="https://github.com/nodetool-ai/nodetool"

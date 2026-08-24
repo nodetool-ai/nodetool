@@ -71,7 +71,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Where NodeTool fits among your tools
+            Bring all your creative tools under one roof.
           </motion.h2>
           <motion.p
             initial={false}
@@ -81,26 +81,26 @@ export default function ComparisonSection({
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
             You&apos;re probably using two or three of these already. Here&apos;s
-            what changes when they live on one canvas.
+            what changes when they all live on one canvas.
           </motion.p>
         </header>
 
         <div className="scroll-fade grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
-            competitor="ComfyUI"
-            sentence="ComfyUI is an editor for image models. NodeTool is the studio around it: image, video, music, and words on one canvas, with every major model a click away."
+            competitor="Image-only node tools (like ComfyUI)"
+            sentence="Specialized node tools only create pictures. NodeTool provides a complete studio that connects images, video, audio, text, and editing on one canvas."
             reducedMotion={reducedMotion}
             delay={0}
           />
           <ComparisonCard
-            competitor="Figma Weave / closed canvases"
-            sentence="Closed tools tie you to a credit system and a hand-picked list of models. NodeTool is open source: every provider, your own keys, and the prices those providers publish."
+            competitor="Closed platforms"
+            sentence="Other platforms force you into monthly credit bundles and restricted feature lists. NodeTool is open source: you use your direct provider accounts and pay raw rates with no middleman markup."
             reducedMotion={reducedMotion}
             delay={0.05}
           />
           <ComparisonCard
-            competitor="A dozen browser tabs"
-            sentence="Midjourney, Runway, Photoshop, ElevenLabs, and Suno each sit in their own tab, and none of them talk to each other. NodeTool brings them onto one canvas you can run, share, and run again."
+            competitor="A dozen separate web apps"
+            sentence="Instead of copying files between disconnected websites, NodeTool connects your favorite AI tools into a single, repeatable workflow."
             reducedMotion={reducedMotion}
             delay={0.1}
           />

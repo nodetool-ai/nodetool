@@ -6,23 +6,23 @@ import { Shield, Cpu, Globe, Lock } from "lucide-react";
 
 const features = [
   {
-    title: "Your keys, every provider",
-    body: "Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more. Keys stay on your disk in Studio, encrypted in Cloud. We never mark up model calls.",
+    title: "Use your own provider keys",
+    body: "Connect directly to OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and specialized video generators. Your account keys stay on your disk in Studio, encrypted in Cloud.",
     icon: Lock,
   },
   {
-    title: "Provider prices, no credits",
-    body: "No in-house credits and no minimum top-up. You pay providers exactly what they charge: a Seedance run that costs $0.18 on KIE costs $0.18 in NodeTool.",
+    title: "Pay official rates directly",
+    body: "Skip artificial credit systems. If an image costs $0.03 to generate through a provider, you pay exactly $0.03 to that provider. NodeTool takes no cut.",
     icon: Shield,
   },
   {
-    title: "Open source, always",
-    body: "Studio on the desktop and Cloud in the browser are built from the same AGPL-3.0 source. Nothing is held back for a paid tier, and you can host it yourself at any time.",
+    title: "100% open source",
+    body: "Free to use and inspect. Studio and Cloud are built from the same AGPL-3.0 source, with no artificial paywalls or locked features, and you can host it yourself at any time.",
     icon: Globe,
   },
   {
-    title: "Run models on your own machine",
-    body: "MLX, Ollama, llama.cpp, vLLM, and LM Studio are supported by default. Once a model is downloaded, it keeps running with no internet connection.",
+    title: "Run private models on your computer",
+    body: "Download and run free, open-weight models locally on your own hardware — MLX, Ollama, llama.cpp, vLLM, and LM Studio — with no internet connection.",
     icon: Cpu,
   },
 ];
@@ -47,8 +47,8 @@ export default function OwnershipSection({
             transition={{ duration: 0.25 }}
             className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Your keys. Your files. <br />
-            <span className="text-slate-300">Your roadmap.</span>
+            Access top AI tools directly. <br />
+            <span className="text-slate-300">No middlemen, no markups.</span>
           </motion.h2>
           <motion.p
             initial={false}
@@ -57,10 +57,10 @@ export default function OwnershipSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Every closed AI tool ends the same way: a price rise, fewer models,
-            or an acquisition that quietly rewrites the roadmap. NodeTool runs
-            whichever models you choose, charges you what the providers charge,
-            and is released under a license that outlives whoever built it.
+            Pick the best AI service for the job — OpenAI, Google, Anthropic,
+            or a specialized image and video engine — and switch between them
+            with one click. NodeTool charges you what the providers charge, and
+            is released under a license that outlives whoever built it.
           </motion.p>
         </div>
 

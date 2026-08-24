@@ -45,30 +45,30 @@ export default function BuildRunDeploy() {
       <div className="scroll-fade grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card
           step="01"
-          title="Describe the outcome"
+          title="Start with an idea"
           icon={<Workflow className="h-6 w-6" />}
           accent="blue"
-          description="Tell the agent what you want to make — a campaign, a trailer, a set of product shots. That's the whole first step. (Prefer to wire it yourself? It's the same canvas.)"
+          description="Describe your goal — a product video, a movie trailer, a social campaign. That's all it takes to begin. Prefer to wire it yourself? It's the same canvas."
         >
           <BuildVisual />
         </Card>
 
         <Card
           step="02"
-          title="Watch it build and run"
+          title="Watch it build in real time"
           icon={<PlayCircle className="h-6 w-6" />}
           accent="fuchsia"
-          description="The agent chooses the models, tools, and steps, builds the workflow on your canvas, and runs it in front of you — generation, editing, and assembly chained into a finished piece, on your own keys at provider prices."
+          description="The agent selects the right tools, connects the steps on your board, and runs them from start to finish — generation, editing, and assembly chained into a finished piece, on your own accounts at provider prices."
         >
           <RunVisual />
         </Card>
 
         <Card
           step="03"
-          title="Take control"
+          title="Take full control"
           icon={<Wand2 className="h-6 w-6" />}
           accent="amber"
-          description="Inspect any step, swap a model, change an input, and run again from there. Refine the result in the built-in editors, then save the workflow and reuse it for the next job."
+          description="Click into any step to swap a tool, change an image, or adjust a prompt. Everything remains editable, and the workflow is yours to save and reuse."
         >
           <EditVisual />
         </Card>

@@ -55,8 +55,8 @@ export default function AppBuilderSection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Turn a workflow into{" "}
-            <span className="text-white">an app anyone can use</span>
+            Turn workflows into{" "}
+            <span className="text-white">simple apps you can share</span>
           </motion.h2>
 
           <motion.p
@@ -66,9 +66,10 @@ export default function AppBuilderSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-300 leading-relaxed"
           >
-            The app builder puts a screen in front of a graph: a few fields, a
-            Run button, and the results. Hand someone that instead of a canvas —
-            and keep the workflow underneath, still yours to open and change.
+            Once you build a workflow, turn it into a clean interface with a
+            few input boxes and a Generate button. Hand that screen to a
+            teammate or client so they get results without navigating the
+            canvas underneath — which stays yours to open and change.
           </motion.p>
         </div>
 
