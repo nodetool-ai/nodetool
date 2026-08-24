@@ -358,8 +358,11 @@ repo changes the artwork in the same diff.
       breakdown. Unit prices come from `calculatorPricing.generated.ts`, which
       `scripts/generate-calculator-pricing.mjs` reads out of the GenSpend
       catalog NodeTool bills a run against, so the page cannot quote a price
-      the product does not charge. The resale comparison is a multiplier the
-      reader sets, not a claim about a named competitor.
+      the product does not charge. The credit side is Figma Weave's own
+      published plans and per-model generation counts (`weavePricing.ts`, with
+      the URL and the date they were read), and the workload is priced through
+      them — allowance, then top-ups at the plan's rate. It is arithmetic on
+      both sides, so it can come out either way.
 - [x] Graph-to-app widget — `GraphToAppSplit`, the same shipped example seen
       twice: the generated template graph, then the mini app that binds that
       workflow. Stacked rather than a drag-to-reveal split, because the two
