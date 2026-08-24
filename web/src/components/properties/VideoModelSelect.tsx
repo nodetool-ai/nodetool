@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import isEqual from "../../utils/isEqual";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
-import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type {
   ModelPack,
   UnifiedModel,
@@ -12,6 +11,7 @@ import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import type { VideoModelTask } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import useModelSelectMenu from "./shared/useModelSelectMenu";
 import CuratedModelSelect from "./curated/CuratedModelSelect";
 import { useInStudio } from "../../studio/StudioContext";
 import { forTasks, STUDIO_CLIP_MODELS } from "../../studio/curatedModels";
@@ -31,9 +31,8 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   recommendedModels,
   modelPacks
 }) => {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const { anchorEl, buttonRef, handleClick, handleClose, handleSelect } =
+    useModelSelectMenu("video_model", onChange);
   const inStudio = useInStudio();
 
   const { data: models } = useQuery({
@@ -47,33 +46,6 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
     }
     return models.find((m) => m.id === value);
   }, [models, value]);
-
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setAnchorEl(null);
-  }, []);
-
-  const handleDialogModelSelect = useCallback(
-    (model: VideoModel) => {
-      const modelToPass = {
-        type: "video_model" as const,
-        id: model.id,
-        provider: model.provider,
-        name: model.name || ""
-      };
-      onChange(modelToPass);
-      addRecent({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
-      setAnchorEl(null);
-    },
-    [onChange, addRecent]
-  );
 
   if (inStudio) {
     return (
@@ -99,7 +71,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
         open={!!anchorEl}
         anchorEl={anchorEl}
         onClose={handleClose}
-        onModelChange={handleDialogModelSelect}
+        onModelChange={handleSelect}
         task={task}
         recommendedModels={recommendedModels}
         modelPacks={modelPacks}

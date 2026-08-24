@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import isEqual from "../../utils/isEqual";
 import MusicModelMenuDialog from "../model_menu/MusicModelMenuDialog";
-import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type {
   MusicModel,
   MusicModelValue,
@@ -11,6 +10,7 @@ import type {
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import useModelSelectMenu from "./shared/useModelSelectMenu";
 import { isString } from "../../utils/typePredicates";
 
 interface MusicModelSelectProps {
@@ -26,9 +26,8 @@ const MusicModelSelect: React.FC<MusicModelSelectProps> = ({
   recommendedModels,
   modelPacks
 }) => {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const { anchorEl, buttonRef, handleClick, handleClose, handleSelect } =
+    useModelSelectMenu("music_model", onChange);
   const { data: models } = useQuery({
     queryKey: ["music-models"],
     queryFn: () => trpc.models.music.query() as Promise<MusicModel[]>
@@ -56,32 +55,6 @@ const MusicModelSelect: React.FC<MusicModelSelectProps> = ({
     return exact ?? models.find((m) => m.id === modelId) ?? null;
   }, [models, modelId, modelProvider]);
 
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setAnchorEl(null);
-  }, []);
-
-  const handleDialogModelSelect = useCallback(
-    (model: MusicModel) => {
-      onChange({
-        type: "music_model" as const,
-        id: model.id,
-        provider: model.provider,
-        name: model.name || ""
-      });
-      addRecent({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
-      setAnchorEl(null);
-    },
-    [onChange, addRecent]
-  );
-
   return (
     <>
       <ModelSelectButton
@@ -97,7 +70,7 @@ const MusicModelSelect: React.FC<MusicModelSelectProps> = ({
         open={!!anchorEl}
         anchorEl={anchorEl}
         onClose={handleClose}
-        onModelChange={handleDialogModelSelect}
+        onModelChange={handleSelect}
         recommendedModels={recommendedModels}
         modelPacks={modelPacks}
       />

@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import isEqual from "../../utils/isEqual";
 import ASRModelMenuDialog from "../model_menu/ASRModelMenuDialog";
-import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ASRModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import useModelSelectMenu from "./shared/useModelSelectMenu";
 interface ASRModelSelection {
   type: "asr_model";
   id: string;
@@ -26,9 +26,8 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
   recommendedModels,
   modelPacks
 }) => {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const { anchorEl, buttonRef, handleClick, handleClose, handleSelect } =
+    useModelSelectMenu("asr_model", onChange);
   const { data: models } = useQuery({
     queryKey: ["asr-models"],
     queryFn: () => trpc.models.asr.query() as Promise<ASRModel[]>
@@ -40,33 +39,6 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
     }
     return models.find((m) => m.id === value);
   }, [models, value]);
-
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setAnchorEl(null);
-  }, []);
-
-  const handleDialogModelSelect = useCallback(
-    (model: ASRModel) => {
-      const modelToPass = {
-        type: "asr_model" as const,
-        id: model.id,
-        provider: model.provider,
-        name: model.name || ""
-      };
-      onChange(modelToPass);
-      addRecent({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
-      setAnchorEl(null);
-    },
-    [onChange, addRecent]
-  );
 
   return (
     <>
@@ -81,7 +53,7 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
         open={!!anchorEl}
         anchorEl={anchorEl}
         onClose={handleClose}
-        onModelChange={handleDialogModelSelect}
+        onModelChange={handleSelect}
         recommendedModels={recommendedModels}
         modelPacks={modelPacks}
       />

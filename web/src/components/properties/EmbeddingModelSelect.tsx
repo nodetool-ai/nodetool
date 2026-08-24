@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useRef } from "react";
+import React from "react";
 import isEqual from "../../utils/isEqual";
 import EmbeddingModelMenuDialog from "../model_menu/EmbeddingModelMenuDialog";
-import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { EmbeddingModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
+import type { ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import useModelSelectMenu from "./shared/useModelSelectMenu";
 
 interface EmbeddingModelSelection {
   type: "embedding_model";
@@ -28,9 +28,8 @@ const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
   recommendedModels,
   modelPacks
 }) => {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const { anchorEl, buttonRef, handleClick, handleClose, handleSelect } =
+    useModelSelectMenu("embedding_model", onChange);
 
   const { models: fetchedModels } = useEmbeddingModelsByProvider({
     allowedProviders
@@ -40,32 +39,6 @@ const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
     if (!fetchedModels || !value) { return null; }
     return fetchedModels.find((m) => m.id === value);
   }, [fetchedModels, value]);
-
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setAnchorEl(null);
-  }, []);
-
-  const handleDialogModelSelect = useCallback(
-    (model: EmbeddingModel) => {
-      onChange({
-        type: "embedding_model",
-        id: model.id,
-        name: model.name,
-        provider: model.provider
-      });
-      addRecent({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
-      setAnchorEl(null);
-    },
-    [onChange, addRecent]
-  );
 
   return (
     <>
@@ -81,7 +54,7 @@ const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
         open={!!anchorEl}
         anchorEl={anchorEl}
         onClose={handleClose}
-        onModelChange={handleDialogModelSelect}
+        onModelChange={handleSelect}
         allowedProviders={allowedProviders}
         recommendedModels={recommendedModels}
         modelPacks={modelPacks}

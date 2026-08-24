@@ -1,15 +1,14 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import isEqual from "../../utils/isEqual";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
-import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type {
-  LanguageModel,
   LanguageModelValue,
   ModelPack,
   UnifiedModel
 } from "../../stores/ApiTypes";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import useModelSelectMenu from "./shared/useModelSelectMenu";
 
 interface LanguageModelSelectProps {
   onChange: (value: LanguageModelValue) => void;
@@ -35,9 +34,8 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   recommendedModels,
   modelPacks
 }) => {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const { anchorEl, buttonRef, handleClick, handleClose, handleSelect } =
+    useModelSelectMenu("language_model", onChange);
 
   const { models: fetchedModels } = useLanguageModelsByProvider({
     allowedProviders
@@ -47,33 +45,6 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     if (!fetchedModels || !value) { return null; }
     return fetchedModels.find((m) => m.id === value);
   }, [fetchedModels, value]);
-
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setAnchorEl(null);
-  }, []);
-
-  const handleDialogModelSelect = useCallback(
-    (model: LanguageModel) => {
-      const modelToPass = {
-        type: "language_model" as const,
-        id: model.id,
-        provider: model.provider,
-        name: model.name || ""
-      };
-      onChange(modelToPass);
-      addRecent({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
-      setAnchorEl(null);
-    },
-    [onChange, addRecent]
-  );
 
   return (
     <>
@@ -89,7 +60,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         open={!!anchorEl}
         anchorEl={anchorEl}
         onClose={handleClose}
-        onModelChange={handleDialogModelSelect}
+        onModelChange={handleSelect}
         allowedProviders={allowedProviders}
         requireToolSupport={requireToolSupport}
         recommendedModels={recommendedModels}
