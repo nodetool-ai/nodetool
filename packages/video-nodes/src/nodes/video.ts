@@ -2504,6 +2504,16 @@ export class AddAudioVideoNode extends VideoTransformNode {
   })
   declare mix: boolean;
 
+  @prop({
+    type: "enum",
+    default: "video",
+    title: "Output Length",
+    description:
+      "How long the output is. 'video' matches the picture: a longer audio track is trimmed, a shorter one padded with silence. 'longest' keeps both streams whole, so a track that outruns the picture leaves the output playing over nothing.",
+    values: ["video", "longest"]
+  })
+  declare output_length: string;
+
   async process(context?: ProcessingContext): Promise<AddAudioVideoNodeOutputs> {
     const v = await videoBytesAsync(this.video, context);
     const a = await audioBytesAsync(this.audio, context);
@@ -2519,6 +2529,13 @@ export class AddAudioVideoNode extends VideoTransformNode {
     try {
       const volume = Math.max(0, Number(this.volume ?? 1));
       const mix = Boolean(this.mix);
+      // Left to the muxer the file is as long as the *longer* stream, so a
+      // music model that ignores the requested duration turns a 25-second clip
+      // into a four-minute one. `apad` makes the audio endless and `-shortest`
+      // then ends the file with the picture, which also stops a short audio
+      // track from cutting the picture off.
+      const trimToVideo = String(this.output_length ?? "video") !== "longest";
+      const pad = trimToVideo ? ",apad" : "";
 
       const buildArgs = (useMix: boolean): string[] => {
         const args: string[] = [
@@ -2529,14 +2546,14 @@ export class AddAudioVideoNode extends VideoTransformNode {
         if (useMix) {
           args.push(
             "-filter_complex",
-            `[1:a]volume=${volume}[newaud];[0:a][newaud]amix=inputs=2:duration=first[aout]`,
+            `[1:a]volume=${volume}[newaud];[0:a][newaud]amix=inputs=2:duration=longest${pad}[aout]`,
             "-map", "0:v:0",
             "-map", "[aout]",
             "-c:v", "copy"
           );
-        } else if (volume !== 1) {
+        } else if (volume !== 1 || trimToVideo) {
           args.push(
-            "-filter_complex", `[1:a]volume=${volume}[aout]`,
+            "-filter_complex", `[1:a]volume=${volume}${pad}[aout]`,
             "-map", "0:v:0",
             "-map", "[aout]",
             "-c:v", "copy",
@@ -2550,6 +2567,7 @@ export class AddAudioVideoNode extends VideoTransformNode {
             "-c:a", "aac"
           );
         }
+        if (trimToVideo) args.push("-shortest");
         args.push(outputPath);
         return args;
       };

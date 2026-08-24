@@ -41,6 +41,20 @@ default across props.
   as an asset/`file://`/`http` URI yielded empty bytes and the node silently
   returned the video with no audio.
 
+## Muxing audio against picture
+
+- **A node that muxes an audio stream onto a video must decide the output
+  length itself.** Left to the muxer, the file is as long as the *longer*
+  stream: a music model that ignores the requested duration returns a whole
+  song, and a 25-second clip came out four minutes long, with three and a half
+  minutes of nothing after the picture ended. `AddAudio` pads the audio with
+  `apad` and ends the file with `-shortest`, which bounds a long track to the
+  picture and stops a short one from cutting the picture off; its
+  `output_length` property opts back into the unbounded behavior. The other
+  mux sites are already bounded — `Overlay` mixes with `amix=duration=first`
+  over the main video's own audio, `Transition` uses `xfade`/`acrossfade`, and
+  both `normalizeConcatSegment` and `mixAudioInto` pass `-shortest`.
+
 ## ffmpeg numbered sequences
 
 - **Number frame files with a contiguous counter incremented only on a successful

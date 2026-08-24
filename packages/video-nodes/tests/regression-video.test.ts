@@ -734,6 +734,77 @@ describe("AddAudioVideoNode — uses volume and mix inputs", () => {
   });
 });
 
+// ─── 10b. AddAudio length policy ───────────────────────────────────────────────
+
+describe("AddAudioVideoNode — bounds the output to the picture", () => {
+  it("trims an audio track to the picture by default", async () => {
+    const node = new AddAudioVideoNode();
+    node.assign({
+      video: videoRef([1, 2, 3, 4]),
+      audio: audioRef([10, 20, 30, 40]),
+      volume: 1.0,
+      mix: false
+    });
+    await node.process().catch(() => undefined);
+
+    const args = ffmpegArgString();
+    expect(args).toContain("apad");
+    expect(args).toContain("-shortest");
+  });
+
+  it("trims when mixing too, and mixes the whole bed before trimming", async () => {
+    const node = new AddAudioVideoNode();
+    node.assign({
+      video: videoRef([1, 2, 3, 4]),
+      audio: audioRef([10, 20, 30, 40]),
+      volume: 0.7,
+      mix: true
+    });
+    await node.process().catch(() => undefined);
+
+    const args = ffmpegArgString();
+    expect(args).toContain("amix=inputs=2:duration=longest,apad");
+    expect(args).toContain("-shortest");
+  });
+
+  it("keeps the replace fallback bounded when mixing fails", async () => {
+    const node = new AddAudioVideoNode();
+    node.assign({
+      video: videoRef([1, 2, 3, 4]),
+      audio: audioRef([10, 20, 30, 40]),
+      volume: 1.0,
+      mix: true
+    });
+    await node.process().catch(() => undefined);
+
+    // The mocked ffmpeg always fails, so the mix attempt falls back to plain
+    // replacement. That second command must carry the guard as well.
+    const calls = ffmpegCalls();
+    expect(calls.length).toBe(2);
+    const fallback = calls[1].join(" ");
+    expect(fallback).not.toContain("amix");
+    expect(fallback).toContain("apad");
+    expect(fallback).toContain("-shortest");
+  });
+
+  it("output_length=longest keeps both streams whole", async () => {
+    const node = new AddAudioVideoNode();
+    node.assign({
+      video: videoRef([1, 2, 3, 4]),
+      audio: audioRef([10, 20, 30, 40]),
+      volume: 1.0,
+      mix: false,
+      output_length: "longest"
+    });
+    await node.process().catch(() => undefined);
+
+    const args = ffmpegArgString();
+    expect(args).not.toContain("apad");
+    expect(args).not.toContain("-shortest");
+    expect(args).toContain("1:a:0");
+  });
+});
+
 // ─── 11. ChromaKey ───────────────────────────────────────────────────────────
 
 describe("ChromaKeyVideoNode — uses the color ref value, not [object Object]", () => {
