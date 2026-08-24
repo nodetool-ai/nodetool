@@ -1,6 +1,6 @@
 import Replicate from "replicate";
 import { createLogger } from "@nodetool-ai/config";
-import { isObjectLike, isString } from "../type-predicates.js";
+import { isCallable, isObjectLike, isString } from "../type-predicates.js";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { sniffAudioMime } from "./audio-mime.js";
@@ -46,6 +46,114 @@ interface ReplicateProviderOptions {
   /** Inject a pre-built Replicate client (mainly for testing). */
   client?: Replicate;
   fetchFn?: typeof fetch;
+}
+
+/** Where a prediction's file output lives, resolved before any I/O runs. */
+export type ReplicateOutputTarget =
+  | { kind: "url"; url: string }
+  | { kind: "stream"; stream: ReadableStream<Uint8Array> };
+
+/** A nested string counts as a locator only when it looks like one. */
+const URL_LIKE = /^(https?:|data:)/;
+
+/** The walk is over a provider's JSON, so bound how deep it goes. */
+const MAX_OUTPUT_DEPTH = 6;
+
+/**
+ * Resolve a `replicate.run()` result to the one file it carries.
+ *
+ * The SDK walks the prediction's output and swaps every `https:`/`data:`
+ * string for a `FileOutput`, objects and nested arrays included, so a model
+ * answering `{"image": <FileOutput>}` is as ordinary as one answering
+ * `["https://…"]`. Reading only `output[0]` drops the first and reports "no
+ * usable output" for a prediction that succeeded.
+ */
+export function decodeReplicateOutput(
+  output: unknown
+): ReplicateOutputTarget | null {
+  // A bare string output is itself the locator (the model's contract),
+  // whether or not it parses as a URL.
+  if (isString(output)) {
+    return output ? { kind: "url", url: output } : null;
+  }
+  return decodeOutputValue(output, 0);
+}
+
+function decodeOutputValue(
+  value: unknown,
+  depth: number
+): ReplicateOutputTarget | null {
+  if (depth > MAX_OUTPUT_DEPTH || !isObjectLike(value)) return null;
+
+  // FileOutput extends ReadableStream, so `getReader` is on its prototype.
+  // Prefer it over `url()`: those bytes are already in flight.
+  if ("getReader" in value) {
+    return { kind: "stream", stream: value as ReadableStream<Uint8Array> };
+  }
+
+  // FileOutput also exposes `url()`, and some models answer a plain `{url}`.
+  if ("url" in value) {
+    const raw = (value as { url: unknown }).url;
+    const url = isCallable(raw) ? raw.call(value) : raw;
+    if (url) return { kind: "url", url: String(url) };
+  }
+
+  const items: unknown[] = Array.isArray(value)
+    ? value
+    : Object.values(value as Record<string, unknown>);
+  for (const item of items) {
+    const found = isString(item)
+      ? decodeOutputLeaf(item)
+      : decodeOutputValue(item, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function decodeOutputLeaf(item: string): ReplicateOutputTarget | null {
+  return URL_LIKE.test(item) ? { kind: "url", url: item } : null;
+}
+
+async function drainStream(
+  stream: ReadableStream<Uint8Array>
+): Promise<Uint8Array> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    total += value.length;
+  }
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return result;
+}
+
+/** `safeFetch` speaks https only, so an inline output is decoded here. */
+function decodeDataUri(uri: string): Uint8Array {
+  const comma = uri.indexOf(",");
+  if (comma < 0) throw new Error("Malformed data URI in Replicate output");
+  const body = uri.slice(comma + 1);
+  if (uri.slice(0, comma).endsWith(";base64")) {
+    return new Uint8Array(Buffer.from(body, "base64"));
+  }
+  return new TextEncoder().encode(decodeURIComponent(body));
+}
+
+/** A short, credential-free description of an output the decoder rejected. */
+function describeOutputShape(output: unknown): string {
+  if (output == null) return String(output);
+  if (Array.isArray(output)) return `an array of ${output.length}`;
+  if (isObjectLike(output)) {
+    return `an object with keys [${Object.keys(output).slice(0, 8).join(", ")}]`;
+  }
+  return `a ${typeof output}`;
 }
 
 /**
@@ -755,40 +863,23 @@ export class ReplicateProvider extends BaseProvider {
   // ---------------------------------------------------------------------------
 
   private async _fetchOutputBytes(output: unknown): Promise<Uint8Array> {
-    // replicate.run() returns FileOutput (ReadableStream) for file models,
-    // or a string URL, or an array of URLs/FileOutputs.
-    let target: unknown = output;
-    if (Array.isArray(output)) {
-      target = output[0];
+    const target = decodeReplicateOutput(output);
+    if (!target) {
+      throw new Error(
+        "Replicate prediction returned no usable output " +
+          `(output was ${describeOutputShape(output)})`
+      );
     }
+    return target.kind === "stream"
+      ? drainStream(target.stream)
+      : this._fetchUrlBytes(target.url);
+  }
 
-    // FileOutput is a ReadableStream — read it to bytes
-    if (isObjectLike(target) && "getReader" in target) {
-      const reader = (target as ReadableStream<Uint8Array>).getReader();
-      const chunks: Uint8Array[] = [];
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-      }
-      const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-      const result = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const chunk of chunks) {
-        result.set(chunk, offset);
-        offset += chunk.length;
-      }
-      return result;
-    }
-
-    // String URL — fetch the bytes
-    if (isString(target)) {
-      const res = await safeFetch(target);
-      if (!res.ok) throw new Error(`Failed to fetch output: ${res.status}`);
-      return new Uint8Array(await res.arrayBuffer());
-    }
-
-    throw new Error("Replicate prediction returned no usable output");
+  private async _fetchUrlBytes(url: string): Promise<Uint8Array> {
+    if (url.startsWith("data:")) return decodeDataUri(url);
+    const res = await safeFetch(url);
+    if (!res.ok) throw new Error(`Failed to fetch output: ${res.status}`);
+    return new Uint8Array(await res.arrayBuffer());
   }
 
   async textToImage(params: TextToImageParams): Promise<Uint8Array> {
