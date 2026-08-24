@@ -42,9 +42,9 @@ const SHOTS = [
     id: "storyboard",
     url: `${BASE}/demo.html?doc=storyboard-assistant&t=24000&bare=1`,
     file: "trailer-storyboard.webp",
-    // Tall enough for all six cards; the board is a vertical list.
+    // Tall enough for all six cards, with no dead space under them.
     width: 1600,
-    height: 1560,
+    height: 1230,
   },
   {
     id: "timeline",

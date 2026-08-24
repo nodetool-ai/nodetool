@@ -45,43 +45,55 @@ const SHOTS: Shot[] = [
   shot(
     "shot-1",
     0,
-    "Dead engine",
-    "The engine block blows out; the wreck coasts to a stop on the salt.",
+    "The blower",
+    "The supercharger spits fire down the straight, the chase car closing behind.",
     {
-      camera: { framing: "wide", movement: "slow push in" },
+      camera: { framing: "close-up", movement: "tracking" },
       duration_seconds: 4
     }
   ),
-  shot("shot-2", 1, "The chain", "A rider swings a chain at the chase truck.", {
-    camera: { framing: "medium", movement: "tracking" },
-    duration_seconds: 4
-  }),
+  shot(
+    "shot-2",
+    1,
+    "The chain",
+    "A masked raider hauls the buggy in on a chain, sparks off the tire.",
+    {
+      camera: { framing: "medium", movement: "tracking" },
+      duration_seconds: 4
+    }
+  ),
   shot(
     "shot-3",
     2,
-    "The rollover",
-    "A wheel churns rock as the truck goes over.",
+    "The rock bed",
+    "A rear wheel churns loose rock, stones thrown at the lens.",
     {
       camera: { framing: "close-up", movement: "handheld" },
       duration_seconds: 3
     }
   ),
-  shot("shot-4", 3, "The bike", "The bike cuts through the ruins, flat out.", {
-    camera: { framing: "wide", movement: "tracking" },
-    duration_seconds: 4
-  }),
+  shot(
+    "shot-4",
+    3,
+    "The chopper",
+    "The rider guns the chopper flat out through the ruins.",
+    {
+      camera: { framing: "wide", movement: "tracking" },
+      duration_seconds: 4
+    }
+  ),
   shot(
     "shot-5",
     4,
     "The cut",
-    "An angle grinder throws sparks across the wreck.",
+    "A grinder throws sparks off a frame rail in the wreck yard.",
     { camera: { framing: "close-up", movement: "static" }, duration_seconds: 4 }
   ),
   shot(
     "shot-6",
     5,
     "The getaway",
-    "The car breaks away across open flats and is gone.",
+    "The car breaks loose across the dry lake and is gone.",
     {
       camera: { framing: "wide", movement: "slow pull out" },
       duration_seconds: 5
@@ -116,7 +128,7 @@ const BOARD: StoryboardCastDoc = {
   screenplay: null,
   shots: [],
   title: "SCRAPHEART — Desert Chase (Teaser)",
-  brief: "A 24-second chase teaser: a dead engine, a stolen car, one way out.",
+  brief: "A 24-second chase teaser: a blown blower, a stolen car, one way out.",
   style: "",
   entityIds: [],
   aspectRatio: "16:9",
@@ -129,8 +141,8 @@ const BOARD: StoryboardCastDoc = {
 
 const ANSWER = [
   "Six shots, twenty-four seconds: ",
-  "the blowout, the chain, the rollover, ",
-  "the bike, the cut, the getaway. ",
+  "the blower, the chain, the rock bed, ",
+  "the chopper, the cut, the getaway. ",
   "Stills are in — ",
   "say go and I'll render the clips."
 ];
@@ -186,7 +198,7 @@ export const storyboardAssistantCast: StoryboardDocCast = {
     status(0, "connected"),
     userMessage(
       400,
-      "Board a 24-second chase teaser: a dead engine, a stolen car, one way out. Then render the stills."
+      "Board a 24-second chase teaser: a blown blower, a stolen car, one way out. Then render the stills."
     ),
     status(900, "streaming"),
 

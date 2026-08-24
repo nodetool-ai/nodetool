@@ -23,14 +23,53 @@ import FaqSection from "../../../components/FaqSection";
 import { movieTrailerUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 
+/**
+ * The six frames from one run, each with the prompt that rendered it. The
+ * prompts describe these exact frames — a card whose prompt does not match its
+ * still teaches the reader the wrong thing about what to write.
+ */
 const shots = [
-  { src: "/trailer-shot-1.png", caption: "Blown supercharger spits fire down the straight" },
-  { src: "/trailer-shot-2.png", caption: "A raider hauls the war-rig in by the chain" },
-  { src: "/trailer-shot-3.png", caption: "Tires tear through the canyon floor" },
-  { src: "/trailer-shot-4.png", caption: "A lone rider guns it through the ruins" },
-  { src: "/trailer-shot-5.png", caption: "Last repairs before the run" },
-  { src: "/trailer-shot-6.png", caption: "The getaway car breaks loose across the flats" },
+  {
+    src: "/trailer-shot-1.png",
+    title: "The blower",
+    prompt:
+      "Low tracking shot, tight on the exposed blown V8 of a black wasteland muscle car at speed — chrome supercharger, flame off the side pipe, dust plume behind it, the chase car small in the haze.",
+  },
+  {
+    src: "/trailer-shot-2.png",
+    title: "The chain",
+    prompt:
+      "A masked raider in rags and goggles hauls a chain taut, dragging a caged buggy in from the right, its driver behind the grille, sparks off the tire, ruined refinery towers in the haze.",
+  },
+  {
+    src: "/trailer-shot-3.png",
+    title: "The rock bed",
+    prompt:
+      "Ground-level close-up of a rear wheel churning through loose rock, stones thrown at the lens, sparks under the chassis, canyon wall to the left.",
+  },
+  {
+    src: "/trailer-shot-4.png",
+    title: "The chopper",
+    prompt:
+      "Wide tracking shot of a long-fork chopper flat out through a ruined city, rider in black leather and goggles, dust rolling off the rear tire, collapsed scaffolding behind.",
+  },
+  {
+    src: "/trailer-shot-5.png",
+    title: "The cut",
+    prompt:
+      "Close-up of a grease-covered mechanic leaning into an angle grinder on a frame rail, sparks spraying toward the lens, stacked wrecks behind him.",
+  },
+  {
+    src: "/trailer-shot-6.png",
+    title: "The getaway",
+    prompt:
+      "Wide, low three-quarter front: a rusted muscle car with an exposed blower breaking loose across a cracked dry lake bed, dirt off the rear tire, mountains on the horizon.",
+  },
 ];
+
+/** One line, under every prompt above — the whole look of the film. */
+const STYLE_BIBLE =
+  "Blown-out sun, dust in every frame, 35mm, heavy grain · 16:9 · no on-screen text";
 
 /** Step text is shared with the page's HowTo schema — see data/useCaseEntries. */
 const stepIcons = [FileText, Clapperboard, ImageIcon, Film];
@@ -221,9 +260,9 @@ export default function MovieTrailerUseCase() {
                 </div>
                 <Image
                   src="/trailer-storyboard.webp"
-                  alt="NodeTool's storyboard: six shot cards down the board — Dead engine, The chain, The rollover, The bike, The cut, The getaway — each with its still, its action line, its camera notes, and a Still ready status, next to the assistant that directed them"
+                  alt="NodeTool's storyboard: six shot cards down the board — The blower, The chain, The rock bed, The chopper, The cut, The getaway — each with its still, its action line, its camera notes, and a Still ready status, next to the assistant that directed them"
                   width={3200}
-                  height={3120}
+                  height={2460}
                   className="h-auto w-full"
                 />
               </div>
@@ -270,9 +309,12 @@ export default function MovieTrailerUseCase() {
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
                 This is a single run of the board, straight out of NodeTool. Each
-                card holds one beat and its still. Re-roll a card you don&apos;t
-                like — stills cost cents, and the rest of the board doesn&apos;t
-                move.
+                card holds one beat, the prompt behind it, and the still that
+                prompt rendered. Re-roll a card you don&apos;t like — stills cost
+                cents, and the rest of the board doesn&apos;t move.
+              </p>
+              <p className="mt-4 font-mono text-xs leading-relaxed text-slate-500">
+                Style bible · {STYLE_BIBLE}
               </p>
             </div>
 
@@ -289,6 +331,9 @@ export default function MovieTrailerUseCase() {
                   <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5">
                     <span className="font-mono text-xs text-amber-400">
                       Shot {String(i + 1).padStart(2, "0")}
+                      <span className="ml-2 font-sans text-sm font-semibold text-white">
+                        {shot.title}
+                      </span>
                     </span>
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
                       <Check className="h-3 w-3" />
@@ -297,14 +342,19 @@ export default function MovieTrailerUseCase() {
                   </div>
                   <Image
                     src={shot.src}
-                    alt={shot.caption}
+                    alt={shot.prompt}
                     width={1672}
                     height={941}
                     className="aspect-video w-full object-cover"
                   />
-                  <p className="border-t border-white/5 px-4 py-3 text-sm leading-relaxed text-slate-400">
-                    {shot.caption}
-                  </p>
+                  <div className="border-t border-white/5 px-4 py-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Prompt
+                    </div>
+                    <p className="mt-1.5 font-mono text-xs leading-relaxed text-slate-400">
+                      {shot.prompt}
+                    </p>
+                  </div>
                 </motion.div>
               ))}
             </div>
