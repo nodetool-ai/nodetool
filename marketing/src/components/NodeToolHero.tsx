@@ -29,7 +29,7 @@ export default function NodeToolHero() {
             Describe it. An agent builds it.
             <br />
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              You keep every step.
+              Images, video, audio, text.
             </span>
           </h1>
 
@@ -41,7 +41,7 @@ export default function NodeToolHero() {
             >
               visual pipeline
             </a>{" "}
-            for image, video, audio, and text.
+            that stays yours to edit.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
