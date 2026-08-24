@@ -115,6 +115,14 @@ nodetool workflows run workflow_abc123 --params '{"input": "hello"}'
 nodetool workflows run ./my_workflow.json --json
 ```
 
+`--json` never expands a large binary output into the JSON text. An image,
+audio, or video payload over 64 KiB is written to
+`nodetool-output/<job_id>/payload-N.<ext>` and appears as
+`{"$file": "…", "bytes": N, "mimeType": "…"}` in its place; the path is
+reported on stderr. Image nodes emit raw RGBA as their in-flight format, so a
+raw ref is PNG-encoded on the way out. `nodetool run` and `nodetool node run`
+do the same, spilling into `nodetool-output/`.
+
 ### `nodetool workflows export-dsl <workflow_id_or_file>`
 
 Exports a workflow as a TypeScript DSL file.
