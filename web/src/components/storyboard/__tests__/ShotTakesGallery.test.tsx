@@ -18,6 +18,15 @@ jest.mock("../../node/OutputRenderer", () => ({
   )
 }));
 
+// The fullscreen viewer is the asset explorer's, which pulls in routing and
+// server state; stub it and assert what the gallery hands it.
+jest.mock("../../assets/AssetViewer", () => ({
+  __esModule: true,
+  default: ({ url, contentType }: { url: string; contentType: string }) => (
+    <div data-testid="asset-viewer">{`${contentType}:${url}`}</div>
+  )
+}));
+
 const syncShotClipToTimelineMock = jest.fn();
 jest.mock("../../../stores/storyboard/timelineSync", () => ({
   syncShotClipToTimeline: (...args: unknown[]) =>
@@ -137,6 +146,44 @@ describe("ShotTakesGallery", () => {
       BOARD,
       shot.id,
       "vid-1"
+    );
+  });
+
+  it("opens a still take fullscreen without changing the selection", async () => {
+    const shot = makeShot({
+      keyframe: image(2),
+      keyframe_versions: [image(1), image(2)]
+    });
+    seedShot(shot);
+    renderGallery(shot);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "View still 1 fullscreen" })
+    );
+
+    expect(screen.getByTestId("asset-viewer")).toHaveTextContent(
+      "image/*:https://assets.test/img-1"
+    );
+    const updated = useStoryboardStore
+      .getState()
+      .boards[BOARD]?.shots.find((s) => s.id === shot.id);
+    expect(updated?.keyframe).toEqual(image(2));
+  });
+
+  it("opens a clip take fullscreen, read-only included", async () => {
+    const shot = makeShot({
+      clip: video(2),
+      clip_versions: [video(1), video(2)]
+    });
+    seedShot(shot);
+    renderGallery(shot, true);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "View clip take 1 fullscreen" })
+    );
+
+    expect(screen.getByTestId("asset-viewer")).toHaveTextContent(
+      "video/*:https://assets.test/vid-1"
     );
   });
 

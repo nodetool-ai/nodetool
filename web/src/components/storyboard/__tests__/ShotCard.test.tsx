@@ -13,6 +13,15 @@ const generateRevisedClipMock = jest.fn(async () => undefined);
 // by hooks/__tests__/useResolvedMediaUri.test.tsx).
 jest.mock("../../../hooks/useResolvedMediaUri");
 
+// The fullscreen viewer is the asset explorer's, which pulls in routing and
+// server state; stub it and assert what the card hands it.
+jest.mock("../../assets/AssetViewer", () => ({
+  __esModule: true,
+  default: ({ url, contentType }: { url: string; contentType: string }) => (
+    <div data-testid="asset-viewer">{`${contentType}:${url}`}</div>
+  )
+}));
+
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: jest.fn(async () => undefined),
@@ -271,6 +280,48 @@ describe("ShotCard", () => {
     const dialog = await screen.findByRole("dialog");
     await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
     expect(removeShotMock).toHaveBeenCalledWith("board-1", "shot-1");
+  });
+
+  it("opens the still fullscreen from the preview", async () => {
+    renderCard(
+      makeShot({
+        status: "keyframe_ready",
+        keyframe: { type: "image", uri: "asset://img-9", asset_id: "img-9" }
+      })
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "View still fullscreen" })
+    );
+
+    expect(screen.getByTestId("asset-viewer")).toHaveTextContent(
+      "image/*:https://assets.test/img-9"
+    );
+  });
+
+  it("opens the clip fullscreen once the shot is rendered", async () => {
+    renderCard(
+      makeShot({
+        status: "rendered",
+        keyframe: { type: "image", uri: "asset://img-9", asset_id: "img-9" },
+        clip: { type: "video", uri: "asset://vid-9", asset_id: "vid-9" }
+      })
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "View clip fullscreen" })
+    );
+
+    expect(screen.getByTestId("asset-viewer")).toHaveTextContent(
+      "video/*:https://assets.test/vid-9"
+    );
+  });
+
+  it("offers no fullscreen viewer for a shot with no media", () => {
+    renderCard(makeShot());
+    expect(
+      screen.queryByRole("button", { name: /fullscreen/i })
+    ).not.toBeInTheDocument();
   });
 
   it("hides the management controls in read-only mode", () => {

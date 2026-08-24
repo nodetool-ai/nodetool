@@ -10,10 +10,11 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import type { Shot, ShotStatus } from "@nodetool-ai/protocol";
+import type { ImageRef, Shot, ShotStatus, VideoRef } from "@nodetool-ai/protocol";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
 
 import {
   Box,
@@ -35,6 +36,7 @@ import {
   type StatusType
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
+import ShotMediaViewer from "./ShotMediaViewer";
 import ShotTakesGallery from "./ShotTakesGallery";
 import ShotScriptPanel from "./ShotScriptPanel";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
@@ -139,6 +141,10 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const [reviseOpen, setReviseOpen] = useState(false);
   const [reviseText, setReviseText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // The still or clip the fullscreen viewer shows; null when it is closed.
+  const [viewerMedia, setViewerMedia] = useState<ImageRef | VideoRef | null>(
+    null
+  );
 
   const meta = STATUS_META[shot.status];
   // Why the last still or clip failed. Kept on the shot's job state until the
@@ -155,6 +161,17 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   // `asset://` locator, but the card renders the keyframe when it cannot.
   const clipUri = useResolvedMediaUri(shot.clip);
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
+  // What the preview shows is what fullscreen opens: the clip once there is
+  // one, the selected still before that.
+  const previewMedia: ImageRef | VideoRef | null = clipUri
+    ? (shot.clip as VideoRef)
+    : (shot.keyframe ?? null);
+  const handleOpenViewer = useCallback(() => {
+    if (previewMedia) {
+      setViewerMedia(previewMedia);
+    }
+  }, [previewMedia]);
+  const handleCloseViewer = useCallback(() => setViewerMedia(null), []);
 
   // A start that throws records its reason on the shot's job state (and
   // toasts it), which is what `renderError` above shows — so the rejection is
@@ -217,7 +234,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           : undefined)
       }}
     >
-      <Box sx={previewSx}>
+      <Box sx={previewSx} onDoubleClick={previewMedia ? handleOpenViewer : undefined}>
         {clipUri ? (
           <VideoPlayer locator={shot.clip} />
         ) : (
@@ -231,6 +248,27 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                 No still yet
               </Caption>
             }
+          />
+        )}
+        {previewMedia && !isGenerating && (
+          <ToolbarIconButton
+            icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
+            tooltip="View fullscreen (double-click)"
+            ariaLabel={
+              clipUri ? "View clip fullscreen" : "View still fullscreen"
+            }
+            onClick={handleOpenViewer}
+            sx={{
+              position: "absolute",
+              top: SPACING.xs,
+              right: SPACING.xs,
+              bgcolor: "c_scrim_soft",
+              opacity: 0,
+              ".shot-card:hover &": { opacity: 1 },
+              "&:focus-visible": { opacity: 1 },
+              // Touch devices cannot hover; keep the affordance reachable.
+              "@media (pointer: coarse)": { opacity: 1 }
+            }}
           />
         )}
         {failed && !isGenerating && !shot.keyframe && !shot.clip && (
@@ -458,6 +496,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           {`Remove “${shotName}” from the board. Generated stills and clips stay in your asset library.`}
         </Text>
       </Dialog>
+      <ShotMediaViewer media={viewerMedia} onClose={handleCloseViewer} />
     </Card>
   );
 };

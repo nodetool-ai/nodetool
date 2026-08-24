@@ -12,6 +12,7 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
 
 import {
   Box,
@@ -20,11 +21,13 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  ToolbarIconButton,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
 import OutputRenderer from "../node/OutputRenderer";
+import ShotMediaViewer from "./ShotMediaViewer";
 import {
   sameMediaRef,
   useStoryboardStore
@@ -67,6 +70,23 @@ const takeThumbSx = {
   }
 } as const;
 
+const takeWrapSx = {
+  position: "relative",
+  display: "inline-flex"
+} as const;
+
+const viewButtonSx = {
+  position: "absolute",
+  top: SPACING.micro,
+  right: SPACING.micro,
+  bgcolor: "c_scrim_soft",
+  opacity: 0,
+  ".takes:hover &": { opacity: 1 },
+  "&:focus-visible": { opacity: 1 },
+  // Touch devices cannot hover; keep the affordance reachable.
+  "@media (pointer: coarse)": { opacity: 1 }
+} as const;
+
 const versionKey = (ref: ImageRef | VideoRef, index: number): string =>
   ref.asset_id ?? ref.uri ?? String(index);
 
@@ -76,6 +96,10 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
   readOnly
 }) => {
   const [expanded, setExpanded] = useState(false);
+  // The take the fullscreen viewer shows; null when it is closed.
+  const [viewerMedia, setViewerMedia] = useState<ImageRef | VideoRef | null>(
+    null
+  );
   const selectKeyframeVersion = useStoryboardStore(
     (state) => state.selectKeyframeVersion
   );
@@ -121,6 +145,8 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
     [selectClipVersion, boardId, shot.id, clips]
   );
 
+  const handleCloseViewer = useCallback(() => setViewerMedia(null), []);
+
   const handleToggle = useCallback(() => {
     setExpanded((prev) => !prev);
   }, []);
@@ -149,26 +175,35 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
       {stills.length > 1 && (
         <FlexRow gap={SPACING.micro} align="center" wrap className="still-thumbs">
           {stills.map((still, i) => (
-            <Box
-              key={versionKey(still, i)}
-              component="button"
-              type="button"
-              aria-label={`Use still ${i + 1}`}
-              aria-pressed={i === selectedStill}
-              disabled={readOnly}
-              onClick={() => handleSelectStill(i)}
-              sx={takeThumbSx}
-            >
-              {stillThumbSrcs[i] ? (
-                <ResponsiveImage
-                  locator={still}
-                  alt=""
-                  fit="cover"
-                  sx={{ width: "100%", height: "100%" }}
-                />
-              ) : (
-                <span>{i + 1}</span>
-              )}
+            <Box key={versionKey(still, i)} sx={takeWrapSx}>
+              <Box
+                component="button"
+                type="button"
+                aria-label={`Use still ${i + 1}`}
+                aria-pressed={i === selectedStill}
+                disabled={readOnly}
+                onClick={() => handleSelectStill(i)}
+                onDoubleClick={() => setViewerMedia(still)}
+                sx={takeThumbSx}
+              >
+                {stillThumbSrcs[i] ? (
+                  <ResponsiveImage
+                    locator={still}
+                    alt=""
+                    fit="cover"
+                    sx={{ width: "100%", height: "100%" }}
+                  />
+                ) : (
+                  <span>{i + 1}</span>
+                )}
+              </Box>
+              <ToolbarIconButton
+                icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
+                tooltip="View fullscreen"
+                ariaLabel={`View still ${i + 1} fullscreen`}
+                onClick={() => setViewerMedia(still)}
+                sx={viewButtonSx}
+              />
             </Box>
           ))}
         </FlexRow>
@@ -178,14 +213,21 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
         <FlexRow gap={SPACING.micro} align="center" wrap className="clip-chips">
           <Caption color="secondary">Clips</Caption>
           {clips.map((clip, i) => (
-            <Chip
-              key={versionKey(clip, i)}
-              compact
-              clickable={!readOnly}
-              color={i === selectedClip ? "primary" : "default"}
-              label={`Take ${i + 1}`}
-              onClick={readOnly ? undefined : () => handleSelectClip(i)}
-            />
+            <FlexRow key={versionKey(clip, i)} align="center" gap={0}>
+              <Chip
+                compact
+                clickable={!readOnly}
+                color={i === selectedClip ? "primary" : "default"}
+                label={`Take ${i + 1}`}
+                onClick={readOnly ? undefined : () => handleSelectClip(i)}
+              />
+              <ToolbarIconButton
+                icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
+                tooltip="View fullscreen"
+                ariaLabel={`View clip take ${i + 1} fullscreen`}
+                onClick={() => setViewerMedia(clip)}
+              />
+            </FlexRow>
           ))}
         </FlexRow>
       )}
@@ -209,6 +251,8 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
           )}
         </FlexColumn>
       )}
+
+      <ShotMediaViewer media={viewerMedia} onClose={handleCloseViewer} />
     </FlexColumn>
   );
 };
