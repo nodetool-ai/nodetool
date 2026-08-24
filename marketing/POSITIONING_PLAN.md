@@ -415,39 +415,96 @@ module, a missing bundle, or a bundle whose contents no longer match the recipe
       List from a Synopsis → Movie Trailer Generator → Score a Silent Clip.
 
 **Sample outputs: rendered against live models.** Each recipe carries a `sample`
-block — a contact sheet of the run, a clip where the recipe ends in one, and the
-`provider:model` list that actually produced it. These are real runs of the
-shipped graphs, not mockups, and the generator fails the build when a sample
-names a file that is not on disk (proven by removing one).
+block — a contact sheet of the run, a clip where the recipe ends in one, and
+every model that ran. These are real runs of the shipped graphs, not mockups.
+The generator fails the build when a sample names a file that is not on disk,
+or when a sample has no entry in the render manifest (both proven by removing
+one), and the e2e suite fetches each file and checks its magic bytes.
 
-Two things about how they were produced are stated on the page rather than
-hidden. First, three provider accounts on the render machine were unusable —
-fal returned 403 on every model, Gemini 429 with credits depleted, Anthropic 401
-— and there was no OpenAI key at all. The chains were therefore run with
-equivalents on the providers that did work: Kie for image and video, Replicate
-for background removal, relight, upscale, TTS and lip-sync, OpenRouter for text.
-Where the substitute is the *same* model on another route (Bria background
-removal, Clarity/Recraft upscale, ElevenLabs voices) the sample is faithful;
-where it is a different model (Kling for LTX or Veo, nano-banana for FLUX) it is
-not, and the `producedBy` list says which ran.
+Three scripts, in order:
 
-Second, two inputs were generated rather than supplied: the SKU packshot and the
+- `scripts/recipe-samples.mjs` — the routing table and the render plan. Every
+  route is graded `exact` (the model the workflow names, reached through
+  another provider), `upgrade` (a deliberately better model — the chain is
+  unchanged but the picture is not the shipped one), or `substitute` (a
+  different model, with what forced it). An ungraded route fails the render
+  rather than shipping an unlabelled claim.
+- `scripts/render-recipe-samples.mjs` — runs the plan: seeds each workflow from
+  the step before, routes every model reference, executes on the kernel, and
+  writes `recipe-samples.manifest.json`. It caches artifacts, so a re-run after
+  a rate limit does not re-spend on what already succeeded.
+- `scripts/compose-recipe-samples.mjs` — builds the contact sheets and web
+  encodes. Free and separate on purpose: a cropping mistake costs a re-run of
+  this, not another round of model calls.
+
+The `producedBy` list on each page comes from the manifest, written by the
+renderer from the graphs it ran — never hand-typed — so a page cannot credit a
+model that did not produce the picture above it.
+
+Of the eighteen model references, nine ran on the exact model the workflow
+names — GPT-5 mini and Gemini 3.1 Pro through OpenRouter, Bria background
+removal and Sync lipsync-2 through Replicate, **Veo 3.1 through AtlasCloud**,
+Kling and Inworld as shipped. Three are upgrades: every image step runs on
+Nano Banana Pro rather than the FLUX or GPT Image the graphs name, because
+these are the pictures the page is judged on and those defaults were chosen for
+throughput. Six are substitutes, marked amber with the reason: no reachable
+provider serves LTX-2.3, Stable Audio 2.5, or fal's relighting app; Clarity
+Upscaler and MusicGen on Replicate are versioned community models that 404
+without a pinned hash; and no provider here does TTS except Replicate.
+
+The upgrade tier uses Nano Banana Pro's standard resolution, not
+`text-to-image-ultra`. Ultra returns 4096x4096 at 14.5 MB, which is a ~19 MB
+base64 payload into every downstream video call, and it would undercut the SKU
+recipe's own sixth step — the one that exists to take a web asset *to* print
+resolution. It is a resolution tier, not a better model.
+
+Routing at all exists because of this machine, not the product: it has no
+OpenAI key, and its fal (403), Gemini (429, credits depleted) and Anthropic
+(401) accounts are dead.
+
+Two inputs were generated rather than supplied: the SKU packshot and the
 dubber's presenter clip. Both recipes assume you bring your own, and the dubber
 caption says the presenter is synthetic.
 
-Three substitutions were not clean swaps and are worth knowing:
+Nine things the runs turned up, each worth its own fix:
 
-- Kling rejects an empty prompt where Veo 3.1 accepts one, so the trailer graph
-  needed the shot prompt wired into the animate node as well as the keyframe.
+- `nodetool.image.ImageToImage` at the strength `Put a Product on a Studio
+  Backdrop` sets — 0.45, against a prompt describing only the scene — redraws
+  the product. Running the step on the model it names returned a pump
+  dispenser where the packshot had an insulated bottle, which is the one thing
+  the workflow's own description promises it will not do. The step wants an
+  instruction-following edit model, not strength-based image-to-image.
+- Replicate returns image bytes as WebP, and `ImageRef` carries no mime type,
+  so anything that trusts the declared type or the file extension mislabels
+  them. Handing one to Kie as `image/png` gets a flat
+  `500 File type not supported`. The renderer sniffs magic bytes instead.
+- `black-forest-labs/flux-schnell` on Replicate fails with "Replicate
+  prediction returned no usable output" while `flux-dev` on the same account
+  runs, so the decoder does not read what schnell returns.
+- Veo 3.1 content-filtered one shot of the trailer ("videos were filtered out
+  because they violated Vertex AI's usage guidelines") and passed it on the
+  retry, with no charge for the blocked take. A per-shot generator needs a
+  retry on that class of failure or one filtered shot loses the whole cut.
+- Replicate throttles an account under $5 of credit to six predictions a minute
+  with a burst of one, which a chain that feeds each step into the next hits
+  immediately. The renderer's backoff absorbs it; without one, a rate limit
+  throws away the generations already paid for upstream.
+
+- `nodetool.video.ImageToVideo` carries a Veo-shaped assumption. The trailer
+  graph wires no prompt into `animate`; Veo 3.1 accepts an image alone and
+  Kling returns a 500 on an empty prompt, so swapping the video model breaks
+  the graph. Routing to AtlasCloud's Veo 3.1 avoids it; a different model still
+  hits it.
 - `lib.image.color.BrightnessContrast` returns a raw RGBA pixel array, and the
-  CLI's `--json` stringify of three 1024x1024 images overflows a JS string
-  (`RangeError: Invalid string length`). The hook-factory run bypassed that node.
+  CLI's `--json` stringify of several 1024x1024 images overflows a JS string
+  (`RangeError: Invalid string length`). The hook-factory run bypasses it.
+- `nodetool.video.AddAudio` has no guard for a bed longer than the clip. Kie's
+  `generate-music` ignores the requested duration and returns a full song,
+  which stretched a 25-second trailer to four minutes; the render uses MusicGen
+  instead, which honours it. The shipped comment warns about the opposite case
+  only.
 - `nodetool costs` records LLM calls only, so it reported nothing for a session
   whose spend was almost entirely image and video generation.
-- Kie's `generate-music` ignores the requested duration and returns a full song,
-  so `AddAudio` stretched a 25-second trailer to four minutes. The sample is
-  trimmed back with ffmpeg. The node warns about a bed shorter than the clip and
-  has no guard for the opposite case.
 
 Cross-links: the `/templates` hub carries a recipes band, a template page shows
 which recipes it is a step of and its position in each, `/recipes` is in the

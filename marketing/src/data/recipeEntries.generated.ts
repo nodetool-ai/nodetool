@@ -9,18 +9,32 @@ import type { RecipeEntry } from "./recipes";
 export const recipeEntries: RecipeEntry[] = [
   {
     "sample": {
+      "producedBy": [
+        {
+          "shipped": "openai:gpt-5-mini",
+          "ran": "openrouter:openai/gpt-5-mini",
+          "grade": "exact",
+          "why": "the same OpenAI model, billed through OpenRouter"
+        },
+        {
+          "shipped": "fal_ai:fal-ai/flux/schnell",
+          "ran": "atlascloud:google/nano-banana-pro/text-to-image",
+          "grade": "upgrade",
+          "why": "the best text-to-image model reachable from this render. The workflow names FLUX.1 Schnell for speed and cost, which is the right default for a fan-out of throwaway thumbnails and not the right choice for one picture that has to stand on a page"
+        },
+        {
+          "shipped": "kie:kling-2.6/image-to-video",
+          "ran": "kie:kling-2.6/image-to-video",
+          "grade": "exact",
+          "why": "run as the workflow ships it"
+        }
+      ],
       "image": "/recipes/samples/viral-video-ad-engine.jpg",
       "video": "/recipes/samples/viral-video-ad-engine.mp4",
       "webm": "/recipes/samples/viral-video-ad-engine.webm",
       "poster": "/recipes/samples/viral-video-ad-engine-poster.webp",
       "hasAudio": false,
-      "caption": "One product photo and one line of copy, run through the whole chain: four hook lines with a thumbnail each, then the hero loop cut to 1080x1920. The fourth thumbnail went off-brief and is shown as it came back.",
-      "producedBy": [
-        "openrouter:openai/gpt-5.4-mini",
-        "kie:google/nano-banana",
-        "kie:kling-2.6/image-to-video",
-        "ffmpeg (local)"
-      ]
+      "caption": "One product photo and one line of copy, run through the whole chain: four hook lines with a thumbnail each, then the hero loop cut to 1080x1920. The fourth thumbnail went off-brief and is shown as it came back."
     },
     "route": "/recipes/viral-video-ad-engine",
     "title": "Viral Video Ad Engine — NodeTool Recipe",
@@ -122,19 +136,44 @@ export const recipeEntries: RecipeEntry[] = [
   },
   {
     "sample": {
+      "producedBy": [
+        {
+          "shipped": "fal_ai:fal-ai/ltx-2.3/image-to-video/fast",
+          "ran": "kie:kling-2.6/image-to-video",
+          "grade": "substitute",
+          "why": "no provider reachable from this render serves LTX-2.3"
+        },
+        {
+          "shipped": "openai:gpt-5-mini",
+          "ran": "openrouter:openai/gpt-5-mini",
+          "grade": "exact",
+          "why": "the same OpenAI model, billed through OpenRouter"
+        },
+        {
+          "shipped": "openai:tts-1",
+          "ran": "replicate:inworld/realtime-tts-1.5-max",
+          "grade": "substitute",
+          "why": "no OpenAI key on this machine, and neither OpenRouter nor AtlasCloud serves TTS"
+        },
+        {
+          "shipped": "replicate:inworld/realtime-tts-1.5-max",
+          "ran": "replicate:inworld/realtime-tts-1.5-max",
+          "grade": "exact",
+          "why": "run as the workflow ships it"
+        },
+        {
+          "shipped": "fal_ai:fal-ai/sync-lipsync/v2/pro",
+          "ran": "replicate:sync/lipsync-2",
+          "grade": "exact",
+          "why": "Sync's own lipsync-2, hosted on Replicate"
+        }
+      ],
       "image": "/recipes/samples/multilingual-video-dubber.jpg",
       "video": "/recipes/samples/multilingual-video-dubber.mp4",
       "webm": "/recipes/samples/multilingual-video-dubber.webm",
       "poster": "/recipes/samples/multilingual-video-dubber-poster.webp",
       "hasAudio": true,
-      "caption": "The same take, before and after the lip-sync step, with the Spanish the translator produced. The presenter is generated too — the recipe assumes you bring your own footage, and this render had none to bring.",
-      "producedBy": [
-        "kie:nano-banana-pro",
-        "kie:kling-2.6/image-to-video",
-        "openrouter:openai/gpt-5.4-mini",
-        "replicate:inworld/realtime-tts-1.5-max",
-        "replicate:sync/lipsync-2"
-      ]
+      "caption": "The same take, before and after the lip-sync step, with the Spanish the translator produced. The presenter is generated too — the recipe assumes you bring your own footage, and this render had none to bring."
     },
     "route": "/recipes/multilingual-video-dubber",
     "title": "Multilingual Video Dubber — NodeTool Recipe",
@@ -265,21 +304,50 @@ export const recipeEntries: RecipeEntry[] = [
   },
   {
     "sample": {
+      "producedBy": [
+        {
+          "shipped": "fal_ai:fal-ai/bria/background/remove",
+          "ran": "replicate:bria/remove-background",
+          "grade": "exact",
+          "why": "Bria's own background remover, hosted on Replicate"
+        },
+        {
+          "shipped": "fal_ai:fal-ai/flux/dev",
+          "ran": "atlascloud:google/nano-banana-pro/edit",
+          "grade": "upgrade",
+          "why": "the best image editor reachable from this render. The exact model was tried first and redrew the product: FLUX.1 Dev at the strength 0.45 the workflow sets, against a prompt describing only the scene, returned a different bottle — the one thing this step must not do"
+        },
+        {
+          "shipped": "fal_ai:fal-ai/image-apps-v2/relighting",
+          "ran": "replicate:qwen-edit-apps/qwen-image-edit-plus-lora-relight",
+          "grade": "substitute",
+          "why": "fal's relighting app has no equivalent on the providers this render could reach"
+        },
+        {
+          "shipped": "fal_ai:fal-ai/ltx-2.3/image-to-video/fast",
+          "ran": "kie:kling-2.6/image-to-video",
+          "grade": "substitute",
+          "why": "no provider reachable from this render serves LTX-2.3"
+        },
+        {
+          "shipped": "fal_ai:fal-ai/clarity-upscaler",
+          "ran": "replicate:recraft-ai/recraft-crisp-upscale",
+          "grade": "substitute",
+          "why": "Clarity Upscaler on Replicate is a community model that needs a pinned version hash and 404s without one"
+        },
+        {
+          "shipped": "openai:gpt-5-mini",
+          "ran": "openrouter:openai/gpt-5-mini",
+          "grade": "exact",
+          "why": "the same OpenAI model, billed through OpenRouter"
+        }
+      ],
       "image": "/recipes/samples/ecommerce-sku-visual-factory.jpg",
       "video": "/recipes/samples/ecommerce-sku-visual-factory.mp4",
       "webm": "/recipes/samples/ecommerce-sku-visual-factory.webm",
       "poster": "/recipes/samples/ecommerce-sku-visual-factory-poster.webp",
       "hasAudio": false,
-      "caption": "One generated packshot carried through the whole chain: cutout on a real alpha channel, placed on a concrete plinth, relit for winter sun, spun into a turntable clip, and mastered at 4096px. The product is the same object in all six.",
-      "producedBy": [
-        "kie:nano-banana-pro",
-        "replicate:bria/remove-background",
-        "kie:google/nano-banana-edit",
-        "replicate:qwen-edit-apps/qwen-image-edit-plus-lora-relight",
-        "kie:kling-2.6/image-to-video",
-        "replicate:recraft-ai/recraft-crisp-upscale",
-        "openrouter:openai/gpt-5.4-mini"
-      ]
+      "caption": "One generated packshot carried through the whole chain: cutout on a real alpha channel, placed on a concrete plinth, relit for winter sun, spun into a turntable clip, and mastered at 4096px. The product is the same object in all six."
     },
     "route": "/recipes/ecommerce-sku-visual-factory",
     "title": "E-commerce SKU Visual Factory — NodeTool Recipe",
@@ -413,18 +481,38 @@ export const recipeEntries: RecipeEntry[] = [
   },
   {
     "sample": {
+      "producedBy": [
+        {
+          "shipped": "gemini:gemini-3.1-pro-preview",
+          "ran": "openrouter:google/gemini-3.1-pro-preview",
+          "grade": "exact",
+          "why": "the same Google model, billed through OpenRouter"
+        },
+        {
+          "shipped": "kie:gpt-image-2-text-to-image",
+          "ran": "atlascloud:google/nano-banana-pro/text-to-image",
+          "grade": "upgrade",
+          "why": "the best text-to-image model reachable from this render, used for the keyframes every shot is animated from"
+        },
+        {
+          "shipped": "gemini:veo-3.1-generate-preview",
+          "ran": "atlascloud:google/veo3.1/image-to-video",
+          "grade": "exact",
+          "why": "the same Veo 3.1, served by AtlasCloud"
+        },
+        {
+          "shipped": "fal_ai:fal-ai/stable-audio-25/text-to-audio",
+          "ran": "kie:generate-music",
+          "grade": "substitute",
+          "why": "Stable Audio 2.5 is fal-only here, and MusicGen — tried next because it honours a requested duration — is a versioned community model on Replicate that 404s without a pinned hash. Kie's generator ignores the duration and returns a full song, so the bed is trimmed to the cut"
+        }
+      ],
       "image": "/recipes/samples/storyboard-to-trailer.jpg",
       "video": "/recipes/samples/storyboard-to-trailer.mp4",
       "webm": "/recipes/samples/storyboard-to-trailer.webm",
       "poster": "/recipes/samples/storyboard-to-trailer-poster.webp",
       "hasAudio": true,
-      "caption": "One logline — a lighthouse keeper finds a message in a bottle dated forty years from now — through steps three and four: five shots directed, rendered, animated, cut, and scored. The first two steps produce documents, so they are not in the picture; the style bible holding these five together is written in step three.",
-      "producedBy": [
-        "openrouter:openai/gpt-5.4-mini",
-        "kie:gpt-image-2-text-to-image",
-        "kie:kling-2.6/image-to-video",
-        "kie:generate-music"
-      ]
+      "caption": "One logline — a lighthouse keeper finds a message in a bottle dated forty years from now — through steps three and four: five shots directed, rendered, animated, cut, and scored. The first two steps produce documents, so they are not in the picture; the style bible holding these five together is written in step three."
     },
     "route": "/recipes/storyboard-to-trailer",
     "title": "Storyboard to Trailer — NodeTool Recipe",

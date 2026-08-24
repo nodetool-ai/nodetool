@@ -53,18 +53,52 @@ export default function RecipeSampleFigure({
       <figcaption className="mt-5 max-w-3xl text-sm leading-relaxed text-slate-400">
         {sample.caption}
       </figcaption>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mt-5">
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Produced by
         </span>
-        {sample.producedBy.map((model) => (
-          <span
-            key={model}
-            className="rounded-md border border-white/10 bg-slate-950/60 px-2 py-1 font-mono text-xs text-slate-400"
-          >
-            {model}
-          </span>
-        ))}
+        <ul className="mt-3 space-y-2">
+          {sample.producedBy.map((model) => (
+            <li
+              key={model.shipped}
+              className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs"
+            >
+              <span className="rounded-md border border-white/10 bg-slate-950/60 px-2 py-1 font-mono text-slate-300">
+                {model.ran}
+              </span>
+              {model.grade === "exact" && model.shipped === model.ran && (
+                <span className="text-slate-500">as the workflow ships it</span>
+              )}
+              {model.grade === "exact" && model.shipped !== model.ran && (
+                <span className="text-emerald-400/80">
+                  the model{" "}
+                  <span className="font-mono text-slate-500">
+                    {model.shipped}
+                  </span>{" "}
+                  names, {model.why.replace(/^the same [^,]+, /, "")}
+                </span>
+              )}
+              {model.grade === "upgrade" && (
+                <span className="text-sky-400/80">
+                  chosen over{" "}
+                  <span className="font-mono text-slate-500">
+                    {model.shipped}
+                  </span>{" "}
+                  — {model.why}
+                </span>
+              )}
+              {model.grade === "substitute" && (
+                <span className="text-amber-400/80">
+                  stands in for{" "}
+                  <span className="font-mono text-slate-500">
+                    {model.shipped}
+                  </span>{" "}
+                  — {model.why}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
     </figure>
   );
