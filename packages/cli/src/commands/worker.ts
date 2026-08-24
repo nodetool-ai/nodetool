@@ -19,6 +19,9 @@
  *   worker stop <id> | --all
  */
 
+import { readFileSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
+
 import { Command } from "commander";
 
 import { WorkerManager } from "@nodetool-ai/compute";
@@ -171,11 +174,34 @@ function parsePositiveInt(
   return n;
 }
 
+/**
+ * Read an OpenSSH public key from disk.
+ *
+ * A rented worker exposes only the node-execution bridge, so diagnosing one
+ * means inferring its state from whether whole model loads pass or fail. The
+ * key travels as PUBLIC_KEY and the worker entrypoint installs it before
+ * starting sshd.
+ */
+function readSshPublicKey(path: string): string {
+  const key = readFileSync(resolvePath(path), "utf8").trim();
+  if (!key.startsWith("ssh-") && !key.startsWith("ecdsa-")) {
+    throw new Error(
+      `--ssh-key ${path} is not an OpenSSH public key. ` +
+        "Point it at a .pub file, not a private key."
+    );
+  }
+  if (key.includes("PRIVATE KEY")) {
+    throw new Error(`--ssh-key ${path} is a private key. Use the .pub file.`);
+  }
+  return key;
+}
+
 /** Build a profile `spec` JSON blob from the inline provisioning flags. */
 function specFromFlags(opts: {
   gpu?: string;
   vcpu?: string;
   disk?: string;
+  sshKey?: string;
 }) {
   const spec: Record<string, unknown> = {};
   if (opts.gpu) {
@@ -188,6 +214,9 @@ function specFromFlags(opts: {
   const disk = parsePositiveInt(opts.disk, "--disk");
   if (disk != null) {
     spec.disk = disk;
+  }
+  if (opts.sshKey) {
+    spec.sshPublicKey = readSshPublicKey(opts.sshKey);
   }
   return spec;
 }
@@ -225,6 +254,10 @@ function registerProfile(worker: Command): void {
     .requiredOption("--target <target>", "Provider target (runpod | vast)")
     .requiredOption("--image <image>", "Worker container image")
     .option("--gpu <gpu>", "GPU type (provider-specific)")
+    .option(
+      "--ssh-key <path>",
+      "OpenSSH public key file; exposes 22/tcp so the worker can be debugged"
+    )
     .option("--vcpu <n>", "vCPU count")
     .option(
       "--disk <gb>",
@@ -247,6 +280,7 @@ function registerProfile(worker: Command): void {
             gpu?: string;
             vcpu?: string;
             disk?: string;
+            sshKey?: string;
             tokenPolicy: string;
             idleTimeout?: string;
             maxLifetime?: string;
@@ -323,6 +357,10 @@ function registerCreate(worker: Command): void {
     .option("--target <target>", "Inline: provider target (runpod | vast)")
     .option("--image <image>", "Inline: worker container image")
     .option("--gpu <gpu>", "Inline: GPU type")
+    .option(
+      "--ssh-key <path>",
+      "Inline: OpenSSH public key file; exposes 22/tcp for debugging"
+    )
     .option("--vcpu <n>", "Inline: vCPU count")
     .option(
       "--disk <gb>",
@@ -345,6 +383,7 @@ function registerCreate(worker: Command): void {
           gpu?: string;
           vcpu?: string;
           disk?: string;
+          sshKey?: string;
           tokenPolicy: string;
           idleTimeout?: string;
           maxLifetime?: string;

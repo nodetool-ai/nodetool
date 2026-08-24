@@ -222,6 +222,15 @@ export interface DeployWorkerPodOptions {
   volumeMountPath?: string;
   /** Extra env merged into the container. */
   env?: Record<string, string>;
+  /**
+   * OpenSSH public key. When set, 22/tcp is exposed and the key is passed as
+   * PUBLIC_KEY, which the worker entrypoint installs before starting sshd.
+   *
+   * A rented worker is otherwise reachable only through the node-execution
+   * bridge, so diagnosing one means inferring its state from pass/fail of whole
+   * model loads. A shell turns that into reading the state directly.
+   */
+  sshPublicKey?: string;
   /** Poll budget for the Pod to reach RUNNING + expose its endpoint. */
   timeoutMs?: number;
 }
@@ -249,6 +258,8 @@ export async function deployWorkerPod(
   const exposure = opts.exposure ?? "http";
   const env: Record<string, string> = { ...(opts.env ?? {}) };
   if (opts.workerToken) env.NODETOOL_WORKER_TOKEN = opts.workerToken;
+  const sshKey = opts.sshPublicKey?.trim();
+  if (sshKey) env.PUBLIC_KEY = sshKey;
 
   const isGpu = opts.computeType === "GPU";
   const spec: RunpodPodSpec = {
@@ -260,7 +271,9 @@ export async function deployWorkerPod(
       opts.vcpuCount ??
       (isGpu ? DEFAULT_GPU_VCPU_COUNT : DEFAULT_CPU_VCPU_COUNT),
     gpuTypeIds: opts.gpuTypeIds,
-    ports: [`${internalPort}/${exposure}`],
+    ports: sshKey
+      ? [`${internalPort}/${exposure}`, "22/tcp"]
+      : [`${internalPort}/${exposure}`],
     env,
     containerDiskInGb: opts.containerDiskInGb ?? 20
   };

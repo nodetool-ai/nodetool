@@ -100,3 +100,41 @@ describe("deployWorkerPod GPU spec", () => {
     expect(body.vcpuCount).toBe(DEFAULT_CPU_VCPU_COUNT);
   });
 });
+
+describe("deployWorkerPod SSH access", () => {
+  it("opens no extra port and sets no key by default", async () => {
+    mockCreateThenRunning();
+
+    await deployWorkerPod(API_KEY, { name: "w", image: "img" });
+
+    const body = createBody();
+    expect(body.ports).toEqual(["7777/http"]);
+    expect((body.env as Record<string, string>).PUBLIC_KEY).toBeUndefined();
+  });
+
+  it("exposes 22/tcp and passes the key when one is supplied", async () => {
+    mockCreateThenRunning();
+
+    await deployWorkerPod(API_KEY, {
+      name: "w",
+      image: "img",
+      sshPublicKey: "ssh-ed25519 AAAAC3Nza key@host",
+    });
+
+    const body = createBody();
+    expect(body.ports).toEqual(["7777/http", "22/tcp"]);
+    expect((body.env as Record<string, string>).PUBLIC_KEY).toBe(
+      "ssh-ed25519 AAAAC3Nza key@host"
+    );
+  });
+
+  it("treats a blank key as no key", async () => {
+    mockCreateThenRunning();
+
+    await deployWorkerPod(API_KEY, { name: "w", image: "img", sshPublicKey: "  " });
+
+    const body = createBody();
+    expect(body.ports).toEqual(["7777/http"]);
+    expect((body.env as Record<string, string>).PUBLIC_KEY).toBeUndefined();
+  });
+});

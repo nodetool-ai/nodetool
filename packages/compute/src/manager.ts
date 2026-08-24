@@ -552,6 +552,8 @@ function specFromProfile(
     vcpu: typeof spec.vcpu === "number" ? spec.vcpu : undefined,
     disk: typeof spec.disk === "number" ? spec.disk : undefined,
     env: isStringRecord(spec.env) ? spec.env : undefined,
+    sshPublicKey:
+      typeof spec.sshPublicKey === "string" ? spec.sshPublicKey : undefined,
     token,
   };
 }
