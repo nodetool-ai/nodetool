@@ -2,19 +2,21 @@
 
 What the site says, in what order, and why. `PRODUCT.md` covers brand, users, and
 design principles; this file covers the message; `POSITIONING_PLAN.md` covers
-the competitive positioning, landing-page blueprint, and launch plan (it
-proposes an alternative hero line — see its Open items; this file holds the
-current one). When homepage copy and this file disagree, one of them is wrong —
-fix both in the same change.
+the competitive positioning, landing-page blueprint, and launch plan. When
+homepage copy and this file disagree, one of them is wrong — fix both in the
+same change.
 
 ## Positioning line
 
-**Describe the piece. Keep the workflow.**
+**From prompt to final cut on one canvas.**
 
 The hero claim is not the feature list and not the category label. It is the
-trade every competitor loses: a closed tool generates behind glass and hands you
-a file; NodeTool's agent generates *and* hands you the graph that made it —
-a normal, inspectable file you can open, rewire, and run again.
+outcome: one workspace carries the piece from the first prompt to the finished
+cut, with no export hops between tools. The previous line — *"Describe the
+piece. Keep the workflow."* — survives as claim 1 below: a closed tool
+generates behind glass and hands you a file; NodeTool's agent generates *and*
+hands you the graph that made it — a normal, inspectable file you can open,
+rewire, and run again.
 
 "The agent-first creative workspace" stays as the category descriptor in
 `<title>`, meta descriptions, and schema. It is accurate and it is what people

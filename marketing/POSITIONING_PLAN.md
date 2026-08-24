@@ -45,7 +45,7 @@ production combined with programmable, deterministic workflow automation**.
   teams, developers, and marketers orchestrate generative AI models,
   deterministic media editors (timelines, sketches, scripts, 3D), and web
   automations into reproducible workflows and standalone mini-apps.
-- **Headline (outcome-first):** *"From Prompt to Final Cut on One Canvas."*
+- **Headline (outcome-first):** *"From prompt to final cut on one canvas."*
 
 Audience-specific taglines:
 
@@ -178,7 +178,7 @@ Comparison-page punchlines:
 
 ### Page architecture
 
-1. **Hero** — "From Prompt to Final Cut on One Canvas" + interactive 3-step
+1. **Hero** — "From prompt to final cut on one canvas" + interactive 3-step
    pipeline demo + dual CTA.
 2. **The pain grid** — "The five-tab tax": fragmented stack vs. one canvas.
 3. **The five creative surfaces** — interactive tabs: Storyboard, Script &
@@ -194,11 +194,9 @@ Comparison-page punchlines:
 ### Hero section
 
 - **Badge:** `Open Source (AGPL-3.0) · Local-First · BYOK Direct Pricing`
-- **Headline candidate:** **From Prompt to Final Cut on One Canvas.**
-  [NARRATIVE.md](NARRATIVE.md) currently pins the hero line as *"Describe the
-  piece. Keep the workflow."* — the two have not been reconciled. Pick one
-  before build (see Open items); whichever wins, NARRATIVE.md and this plan
-  change in the same PR.
+- **Headline:** **From prompt to final cut on one canvas.**
+  (Adopted; [NARRATIVE.md](NARRATIVE.md) pins the same line, and the homepage
+  H1 carries it.)
 - **Subhead:** *Stop juggling Midjourney, Runway, ElevenLabs, and Premiere.
   NodeTool combines visual AI models, a multi-track timeline, layered
   sketching, and scripts into one open-source workspace you drive manually or
@@ -208,11 +206,10 @@ Comparison-page punchlines:
   builds storyboard, casts voices, places clips on the timeline → finished
   video playback with captions.
 
-Rationale for proposing a new headline: "The agent-first creative workspace"
-is abstract for first-time visitors — lead with the outcome and let
-"agent-first" be shown, not asserted. NARRATIVE.md already agrees it is a
-category descriptor, not an H1, and keeps it for `<title>`, meta descriptions,
-and schema; that part stands regardless of which hero line wins.
+Rationale: "The agent-first creative workspace" is abstract for first-time
+visitors — lead with the outcome and let "agent-first" be shown, not asserted.
+It stays as the category descriptor in `<title>`, meta descriptions, schema,
+and body copy, per NARRATIVE.md.
 
 ### The five surfaces (tab copy, condensed)
 
@@ -377,9 +374,6 @@ bundle, and a tutorial card:
 
 ## Open items
 
-- Decide the hero line: NARRATIVE.md's *"Describe the piece. Keep the
-  workflow."* vs. this plan's *"From Prompt to Final Cut on One Canvas."*
-  Update the losing doc in the same change.
 - Verify every price figure (SaaS plans, wholesale API costs, per-recipe
   estimates) against current list prices; date the sources on the page.
 - Confirm the MCP tool count (the copy says "120+") against the live registry

@@ -26,10 +26,10 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
           >
-            The agent-first
+            From prompt to final cut
             <br />
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              creative workspace.
+              on one canvas.
             </span>
           </h1>
 
