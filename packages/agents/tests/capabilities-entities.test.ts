@@ -365,6 +365,60 @@ describe("create_entity and update_entity", () => {
     ).toMatchObject({ error: expect.stringMatching(/was not found/) });
   });
 
+  it("moves an entity to a new image asset when asset_id is passed", async () => {
+    const mara = await makeEntity("Mara", "character", "red hair", {
+      voice_id: "v1"
+    });
+    const target = (await Asset.create({
+      user_id: USER,
+      name: "mara2.png",
+      content_type: "image/png"
+    })) as Asset;
+
+    const moved = (await run().invoke("update_entity", {
+      entity_id: mara.id,
+      asset_id: target.id,
+      descriptor: "a tall woman with cropped red hair"
+    })) as {
+      entity: { id: string; descriptor: string; voice_id: string | null };
+      moved_from: string;
+      moved_to: string;
+    };
+    expect(moved.entity.id).toBe(target.id);
+    expect(moved.entity.descriptor).toBe("a tall woman with cropped red hair");
+    expect(moved.moved_from).toBe(mara.id);
+    expect(moved.moved_to).toBe(target.id);
+
+    // Source no longer lists, target does; source asset keeps bytes.
+    const listed = (await run().invoke("list_entities", {})) as {
+      entities: Array<{ id: string }>;
+    };
+    expect(listed.entities.map((e) => e.id)).not.toContain(mara.id);
+    expect(listed.entities.map((e) => e.id)).toContain(target.id);
+    const sourceStill = await Asset.find(USER, mara.id);
+    expect(sourceStill?.metadata?.["nodetool_entity"]).toBeUndefined();
+
+    // Refuses a target that is already an entity or not an image.
+    const other = await makeEntity("Rex", "character", "a dog");
+    expect(
+      await run().invoke("update_entity", {
+        entity_id: target.id,
+        asset_id: other.id
+      })
+    ).toMatchObject({ error: expect.stringMatching(/already an entity/) });
+    const doc = (await Asset.create({
+      user_id: USER,
+      name: "notes.pdf",
+      content_type: "application/pdf"
+    })) as Asset;
+    expect(
+      await run().invoke("update_entity", {
+        entity_id: target.id,
+        asset_id: doc.id
+      })
+    ).toMatchObject({ error: expect.stringMatching(/entities are image assets/) });
+  });
+
   it("removes the marker but keeps the asset, and reports missing ids", async () => {
     const mara = await makeEntity("Mara", "character", "red hair");
     const plain = (await Asset.create({

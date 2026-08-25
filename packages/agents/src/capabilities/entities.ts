@@ -387,6 +387,101 @@ const updateEntity: CapabilityExport = {
       return { error: "entity_id is required (use list_entities to find one)." };
     }
 
+    const rawAssetId = params["asset_id"];
+    const wantsRetarget =
+      rawAssetId !== undefined &&
+      isString(rawAssetId) &&
+      rawAssetId.trim() !== "" &&
+      rawAssetId.trim() !== entityId.trim();
+    if (rawAssetId !== undefined && !wantsRetarget) {
+      if (!isString(rawAssetId)) {
+        return { error: "asset_id must be a string." };
+      }
+      const trimmed = rawAssetId.trim();
+      if (trimmed !== "" && trimmed === entityId.trim()) {
+        // Same-asset — treat as no move; fall through to normal field update.
+      } else if (trimmed === "") {
+        return { error: "asset_id must be a non-empty string." };
+      } else {
+        return { error: "asset_id must be a string." };
+      }
+    }
+
+    if (wantsRetarget) {
+      const targetId = (rawAssetId as string).trim();
+      const userId = userIdOf(run.context);
+      if (!userId) return { error: "No user is bound to this session." };
+      const { Asset } = await import("@nodetool-ai/models");
+      const sourceAsset = await Asset.find(userId, entityId.trim());
+      const sourceEntity = sourceAsset ? entityFromAsset(sourceAsset) : null;
+      if (!sourceEntity || !sourceAsset) {
+        return { error: `Asset ${entityId} is not an entity — use create_entity to tag it.` };
+      }
+      const targetAsset = await Asset.find(userId, targetId);
+      if (!targetAsset) {
+        return { error: `Asset ${targetId} was not found.` };
+      }
+      if (!targetAsset.content_type.startsWith("image/")) {
+        return {
+          error: `${targetAsset.name || targetAsset.id} is a ${targetAsset.content_type} asset; entities are image assets. Generate or upload an image first.`
+        };
+      }
+      const targetExisting = entityFromAsset(targetAsset);
+      if (targetExisting) {
+        return {
+          error: "That asset is already an entity — pick another photo or update that entity instead."
+        };
+      }
+      const rawMarker = sourceAsset.metadata?.[ENTITY_METADATA_KEY];
+      const marker: Record<string, unknown> = isRecord(rawMarker)
+        ? { ...rawMarker }
+        : {};
+      const touched = { value: 1 }; // the move itself counts
+      let problem: string | null = null;
+
+      const kind = params["kind"];
+      if (kind !== undefined) {
+        if (!isString(kind) || !ENTITY_KINDS.has(kind)) {
+          problem = `kind must be one of: ${[...ENTITY_KINDS].join(", ")}.`;
+        } else {
+          marker["kind"] = kind;
+          touched.value += 1;
+        }
+      }
+      for (const field of ["name", "descriptor", "description"] as const) {
+        const value = params[field];
+        if (value === undefined) continue;
+        if (
+          !isString(value) ||
+          (field !== "description" && value.trim() === "")
+        ) {
+          problem =
+            problem ??
+            `${field} must be${field === "description" ? " a string" : " a non-empty string"}.`;
+          break;
+        }
+        marker[field] = value;
+        touched.value += 1;
+      }
+      if (problem) return { error: problem };
+      problem = applyOptionalMarkerFields(marker, params, touched);
+      if (problem) return { error: problem };
+
+      targetAsset.metadata = {
+        ...(targetAsset.metadata ?? {}),
+        [ENTITY_METADATA_KEY]: marker
+      };
+      await targetAsset.save();
+      const nextSourceMeta = { ...(sourceAsset.metadata ?? {}) } as Record<string, unknown>;
+      delete nextSourceMeta[ENTITY_METADATA_KEY];
+      sourceAsset.metadata = nextSourceMeta;
+      await sourceAsset.save();
+      const entity = entityFromAsset(targetAsset);
+      return entity
+        ? { entity, moved_from: entityId.trim(), moved_to: targetId }
+        : { error: "The entity marker was not readable after saving." };
+    }
+
     return saveEntityAsset(run, entityId, (marker, existing) => {
       // The same read rule get_entity applies: an asset whose marker does
       // not parse is not in the library at all.
@@ -426,7 +521,7 @@ const updateEntity: CapabilityExport = {
       if (touched.value === 0) {
         return (
           "Nothing to update — pass at least one field to change (kind, name, " +
-          "descriptor, description, voice_id, tags, lora, palette)."
+          "descriptor, description, voice_id, tags, lora, palette, asset_id)."
         );
       }
       return null;

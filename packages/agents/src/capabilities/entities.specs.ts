@@ -177,6 +177,12 @@ export const UPDATE_ENTITY_SCHEMA: JsonSchema = {
       type: "string",
       description: "The entity's id (its asset id), from list_entities."
     },
+    asset_id: {
+      type: "string",
+      description:
+        "Move the entity to a different image asset (retarget in one call). " +
+        "The new asset must be yours and must be an image. Omit to keep the current photo."
+    },
     kind: {
       ...KIND_PROPERTY,
       description: "New kind. Only the kinds change; pass to reclassify."
@@ -211,10 +217,9 @@ export const updateEntitySpec: CapabilitySpec = {
   name: "update_entity",
   description:
     "Change an existing entity's fields — kind, name, descriptor, notes, " +
-    "voice, tags, LoRA, or palette. Only the fields you pass change; the " +
-    "reference image stays whatever asset carries the entity. To swap the " +
-    "photo, delete_entity and create_entity on the new asset — the id is the " +
-    "asset, so moves are delete+create.",
+    "voice, tags, LoRA, palette, or its reference photo via asset_id. Only the " +
+    "fields you pass change; pass asset_id to retarget the entity to a " +
+    "different image asset in one call (otherwise use delete_entity + create_entity).",
   inputSchema: UPDATE_ENTITY_SCHEMA,
   category: "write",
   userMessage: (params) => `Updating entity ${String(params["entity_id"])}`

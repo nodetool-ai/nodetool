@@ -7,6 +7,9 @@ import {
   FlexColumn,
   FlexRow,
   Text,
+  Caption,
+  Chip,
+  SelectField,
   TextInput,
   EditorButton,
   ToolbarIconButton,
@@ -25,6 +28,8 @@ import {
   type ScriptSpeaker,
   type VoiceBinding
 } from "../../stores/script/ScriptStore";
+import { useEntities } from "../../serverState/useEntities";
+import ImageRefPreview from "../node/ImageRefPreview";
 
 interface ScriptCastPanelProps {
   scriptId: string;
@@ -61,8 +66,10 @@ const SpeakerRow = ({
   speaker: ScriptSpeaker;
   readOnly: boolean;
 }) => {
+  const theme = useTheme();
   const updateSpeaker = useScriptStore((s) => s.updateSpeaker);
   const removeSpeaker = useScriptStore((s) => s.removeSpeaker);
+  const { data: entities } = useEntities();
 
   const onVoiceChange = useCallback(
     (value: TTSModelValue) =>
@@ -71,6 +78,27 @@ const SpeakerRow = ({
       }),
     [updateSpeaker, scriptId, speaker.id]
   );
+
+  const onEntityChange = useCallback(
+    (value: string) =>
+      updateSpeaker(scriptId, speaker.id, {
+        entityId: value ? value : null
+      }),
+    [updateSpeaker, scriptId, speaker.id]
+  );
+
+  const linkedEntity = speaker.entityId
+    ? entities?.find((e) => e.id === speaker.entityId) ?? null
+    : null;
+  const isDangling =
+    !!speaker.entityId && !!entities && !linkedEntity;
+  const entityOptions = [
+    { value: "", label: "No entity" },
+    ...(entities ?? []).map((e) => ({
+      value: e.id,
+      label: `${e.name} · ${e.kind}`
+    }))
+  ];
 
   return (
     <FlexColumn gap={SPACING.xs} fullWidth>
@@ -115,6 +143,68 @@ const SpeakerRow = ({
           {speaker.voice.model} · {speaker.voice.voice}
         </Text>
       )}
+      {!readOnly ? (
+        <FlexColumn gap={SPACING.xs} fullWidth>
+          <SelectField
+            label="Linked entity"
+            value={speaker.entityId ?? ""}
+            onChange={onEntityChange}
+            options={entityOptions}
+            size="small"
+            hideLabel
+          />
+          {linkedEntity && (
+            <FlexRow align="center" gap={SPACING.xs}>
+              <div
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: BORDER_RADIUS.xs,
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  background: theme.vars.palette.background.default
+                }}
+              >
+                <ImageRefPreview
+                  value={linkedEntity.reference_images?.[0]}
+                />
+              </div>
+              <Chip
+                label={`${linkedEntity.name} · ${linkedEntity.kind}`}
+                size="small"
+                compact
+              />
+            </FlexRow>
+          )}
+          {isDangling && (
+            <Caption color="warning">
+              Linked entity not found — it was removed. Pick another or clear it.
+            </Caption>
+          )}
+        </FlexColumn>
+      ) : linkedEntity ? (
+        <FlexRow align="center" gap={SPACING.xs}>
+          <div
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: BORDER_RADIUS.xs,
+              overflow: "hidden",
+              flexShrink: 0,
+              background: theme.vars.palette.background.default
+            }}
+          >
+            <ImageRefPreview value={linkedEntity.reference_images?.[0]} />
+          </div>
+          <Chip
+            label={`${linkedEntity.name} · ${linkedEntity.kind}`}
+            size="small"
+            compact
+          />
+        </FlexRow>
+      ) : speaker.entityId ? (
+        <Caption color="warning">Linked entity missing</Caption>
+      ) : null}
     </FlexColumn>
   );
 };
