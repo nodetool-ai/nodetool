@@ -142,6 +142,7 @@ describe("ChatThreadView", () => {
           tool_name: "write_file",
           category: "write",
           message: "Approval for A",
+          description: "",
           args: {}
         },
         "approval-b": {
@@ -149,6 +150,7 @@ describe("ChatThreadView", () => {
           tool_name: "run_command",
           category: "execute",
           message: "Approval for B",
+          description: "",
           args: {}
         }
       }

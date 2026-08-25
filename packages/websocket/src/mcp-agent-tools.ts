@@ -821,7 +821,10 @@ export function registerAgentMcpTools(
   // gate runs in `auto` with an always-allow approval (there is no MCP client
   // to prompt), so the declared risk decides nothing on this surface. A
   // missing one still reads as `high` — it just resolves to allow.
-  const optionalOnMcp = new Set(["title", "risk"]);
+  //
+  // `description` follows `risk`: it is the text an approval dialog asks the
+  // user about, and this surface never opens one.
+  const optionalOnMcp = new Set(["title", "risk", "description"]);
   const actionSchema = session.providerTool.inputSchema;
   const actionShape = jsonSchemaToZodShape({
     ...actionSchema,

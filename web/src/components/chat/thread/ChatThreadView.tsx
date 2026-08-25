@@ -984,6 +984,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                       toolName={approval.tool_name}
                       category={approval.category}
                       message={approval.message}
+                      description={approval.description}
                       args={approval.args}
                       onResolve={resolveApproval}
                     />

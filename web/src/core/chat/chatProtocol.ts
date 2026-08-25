@@ -94,6 +94,12 @@ interface ToolApprovalRequestMessage {
   tool_name: string;
   category: "write" | "execute" | "external";
   message: string;
+  /**
+   * What the call will do, in plain sentences — what the card asks about. A
+   * high-risk code action carries one; most calls leave it empty and the card
+   * asks about `message` instead.
+   */
+  description?: string;
   args: Record<string, unknown>;
 }
 

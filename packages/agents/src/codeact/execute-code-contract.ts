@@ -19,6 +19,11 @@
  *
  * It fails closed. A call with no `risk`, or one carrying a value that is not
  * in the enum, is read as `high`.
+ *
+ * The call also carries a `description`: what the program will do, in plain
+ * sentences. That is what the approval dialog asks about. The code stays
+ * available behind a fold, but a user answering "do you want to do this?"
+ * should not have to read JavaScript to know what they are agreeing to.
  */
 
 import type { CapabilityGate } from "../capabilities/types.js";
@@ -36,6 +41,9 @@ export const ACTION_RISK_VALUES = ["low", "high"] as const;
  * user-facing label the UI shows for the action card while the code runs —
  * the code itself is a detail view, so without a title the user sees only
  * "Execute Code". `risk` is what auto mode reads (see the module comment).
+ * `description` is what the approval box reads: a high-risk action asks the
+ * user, and a wall of unfolded JavaScript is not a question anyone can answer,
+ * so the model states in plain sentences what the program will do.
  * Required: a strict schema (additionalProperties: false) must list every
  * property under `required` for OpenAI structured outputs.
  */
@@ -58,12 +66,22 @@ export const EXECUTE_CODE_INPUT_SCHEMA = {
         "spends real money. In auto mode a low-risk action runs unattended " +
         "and a high-risk one asks the user once. Say high when unsure."
     },
+    description: {
+      type: "string",
+      description:
+        "Plain-language account of what this action will do, shown in the " +
+        "approval dialog when it asks the user. One to three sentences, no " +
+        "code: name what it changes, deletes, sends, or spends, and on what " +
+        '(e.g. "Deletes the 3 archived workflows listed above. They cannot ' +
+        'be restored."). Required when risk is "high" — that is the only ' +
+        'text the user decides on. Write "" for a low-risk action.'
+    },
     code: {
       type: "string",
       description: "The JavaScript program to run."
     }
   },
-  required: ["title", "risk", "code"],
+  required: ["title", "risk", "description", "code"],
   additionalProperties: false
 } as const;
 
@@ -71,6 +89,17 @@ export const EXECUTE_CODE_INPUT_SCHEMA = {
 export function executeCodeMessage(args: Record<string, unknown>): string {
   const title = isString(args?.["title"]) ? args["title"].trim() : "";
   return title || "Executing code action";
+}
+
+/**
+ * The plain-language account of a code action, for the approval dialog. Empty
+ * when the model wrote none — the dialog then falls back to the title.
+ */
+export function executeCodeDescription(
+  args: Record<string, unknown> | null | undefined
+): string {
+  const raw = args?.["description"];
+  return isString(raw) ? raw.trim() : "";
 }
 
 /** The risk a call declared, reading anything unrecognized as `high`. */
@@ -112,7 +141,8 @@ export async function admitCodeAction(
       risk: declaredActionRisk(args),
       code: isString(args["code"]) ? args["code"] : ""
     },
-    message: executeCodeMessage(args)
+    message: executeCodeMessage(args),
+    description: executeCodeDescription(args)
   });
 
   if (answer === "deny") {
