@@ -22,23 +22,33 @@ export default function NodeToolHero() {
             Free &amp; Open Source
           </span>
 
+          {/*
+           * background-clip: text paints the gradient only inside the span's
+           * box, so anything outside it renders transparent rather than
+           * overflowing visibly. That made two things disappear: with
+           * whitespace-nowrap the headline is wider than the 5/12 column at
+           * every lg width, so the tail of the line vanished, and at
+           * leading-[1.05] the descender of "agent" was cut. Hence: no nowrap,
+           * looser leading, and bottom padding on the gradient line.
+           */}
           <h1
             id="hero-title"
-            className="mt-5 text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.05] tracking-tight text-white lg:text-[clamp(2.25rem,4.1vw,3.5rem)]"
+            className="mt-5 text-balance text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2.25rem,3.6vw,3.25rem)]"
           >
-            <span className="block whitespace-nowrap">Describe it.</span>
-            <span className="block whitespace-nowrap bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              An agent builds it.
+            <span className="block">Describe it.</span>
+            <span className="block bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text pb-[0.12em] text-transparent">
+              An agent makes the film.
             </span>
           </h1>
 
-          <p className="mt-5 max-w-md text-lg leading-relaxed text-slate-300">
-            An open-source{" "}
+          <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-300">
+            It writes the script, boards the shots, generates the footage, and
+            cuts the timeline — on an open{" "}
             <a
               href="/node-based-ai"
               className="text-slate-200 underline decoration-slate-500/50 underline-offset-2 transition-colors hover:text-white hover:decoration-slate-300"
             >
-              visual pipeline
+              node-based canvas
             </a>{" "}
             that stays yours.
           </p>
@@ -54,18 +64,18 @@ export default function NodeToolHero() {
               className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
             >
               <PlayCircle className="h-4 w-4" />
-              See it in action
+              Watch the agent work
             </a>
           </div>
 
           <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
             <li className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
-              Built-in editors for every step
+              Script, storyboard, sketch, timeline, 3D
             </li>
             <li className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-emerald-400" />
-              Your own provider accounts
+              Your own provider accounts, no credits
             </li>
             <li className="flex items-center gap-1.5">
               <Code2 className="h-3.5 w-3.5 text-blue-400" />
