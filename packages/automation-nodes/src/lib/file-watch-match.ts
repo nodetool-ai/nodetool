@@ -92,11 +92,13 @@ export class FileWatchDebouncer {
     private readonly now: () => number = Date.now
   ) {}
 
-  /** Returns true when the event for `filePath` should be suppressed. */
+  /** Returns true when the event for `filePath` should be suppressed. A path
+   * that has never fired is never suppressed — `now` is injectable, so 0 is a
+   * time a clock can genuinely read, not a stand-in for "no entry". */
   shouldSuppress(filePath: string): boolean {
     const now = this.now();
-    const last = this.lastFiredAt.get(filePath) ?? 0;
-    if (now - last < this.debounceMs) return true;
+    const last = this.lastFiredAt.get(filePath);
+    if (last !== undefined && now - last < this.debounceMs) return true;
     this.lastFiredAt.set(filePath, now);
     return false;
   }
