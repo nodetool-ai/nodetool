@@ -264,6 +264,57 @@ describe("RUNNER-015: Output node (sink) captures result in outputs map", () => 
 // RUNNER-016: Multiple output nodes
 // ---------------------------------------------------------------------------
 
+describe("RUNNER-015b: DSL Output nodes are keyed by their name property", () => {
+  // The guest DSL writes the public name into the Output node's `name`
+  // *property*; without promotion a run's outputs were keyed by the
+  // auto-generated node ids (`output`, `output_2`, …) and every named output
+  // read as missing.
+  it("promotes properties.name on nodetool.output.* sinks over the node id", async () => {
+    const registry = makeRegistry();
+    const runner = makeRunner(registry);
+
+    const nodes: NodeDescriptor[] = [
+      inp("src", "val"),
+      nd("output", "nodetool.output.Output", {}, { name: "hook" }),
+      nd("output_2", "nodetool.output.Output", {}, { name: "thread" })
+    ];
+    const edges: Edge[] = [
+      de("src", "value", "output", "value"),
+      de("src", "value", "output_2", "value")
+    ];
+
+    const result = await runner.run(
+      { job_id: "runner-015b", params: { val: 42 } },
+      { nodes, edges }
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs["hook"]).toContain(42);
+    expect(result.outputs["thread"]).toContain(42);
+    expect(result.outputs["output"]).toBeUndefined();
+    expect(result.outputs["output_2"]).toBeUndefined();
+  });
+
+  it("leaves other terminal sinks keyed by node id", async () => {
+    const registry = makeRegistry();
+    const runner = makeRunner(registry);
+
+    const nodes: NodeDescriptor[] = [
+      inp("src", "val"),
+      nd("sink", Passthrough.nodeType, {}, { name: "result" })
+    ];
+    const edges: Edge[] = [de("src", "value", "sink", "value")];
+
+    const result = await runner.run(
+      { job_id: "runner-015b-id", params: { val: 42 } },
+      { nodes, edges }
+    );
+
+    expect(result.outputs["sink"]).toContain(42);
+    expect(result.outputs["result"]).toBeUndefined();
+  });
+});
+
 describe("RUNNER-016: Multiple output nodes all capture their results", () => {
   it("two sinks both appear in result.outputs", async () => {
     const registry = makeRegistry();

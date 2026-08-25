@@ -453,22 +453,17 @@ describe("running an authored graph on the kernel", () => {
     };
     expect(run.error).toBeNull();
     expect(run.status).toBe("completed");
-    // The value is what the program computes. The key is not the name the
-    // program gave it — see the defect pinned below.
     expect(Object.values(run.outputs)).toEqual([["HELLO!"]]);
   }, 60_000);
 
   /**
-   * OPEN DEFECT. The kernel keys a workflow output by the output node's
-   * descriptor `name` (`node.name ?? node.id`), which shipped example graphs
-   * carry beside `type`. The DSL pack's `workflow()` emits `name` only inside
-   * `properties`, so an authored graph's outputs come back under the
-   * auto-generated node id. An agent that writes `output({name: "loud"})` and
-   * then reads `run.outputs.loud` finds nothing. Flip this to `loud` when
-   * `workflow()` lifts the property onto the descriptor (or the runner reads
-   * `properties.name`).
+   * The kernel keys a workflow output by the output node's descriptor `name`
+   * (`node.name ?? node.id`), which shipped example graphs carry beside
+   * `type`. The DSL pack's `workflow()` emits `name` only inside
+   * `properties`, so the runner promotes the property for `nodetool.output.*`
+   * sinks and an authored graph's outputs come back under the declared name.
    */
-  it("returns the output under the node id, not the declared name", async () => {
+  it("returns the output under the declared name, not the node id", async () => {
     const outcome = await action(
       `import { create_workflow, run_workflow } from "${WORKFLOWS}";
        ${SHOUT_PROGRAM.replace("return workflow(out);", "const graph = workflow(out);")}
@@ -478,7 +473,7 @@ describe("running an authored graph on the kernel", () => {
     );
     expect(outcome.error).toBeUndefined();
     expect((outcome.result as { outputs: unknown }).outputs).toEqual({
-      output: ["HELLO!"]
+      loud: ["HELLO!"]
     });
   }, 60_000);
 
