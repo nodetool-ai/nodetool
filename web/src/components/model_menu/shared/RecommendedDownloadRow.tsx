@@ -21,6 +21,8 @@ interface RecommendedDownloadRowProps {
   checking: boolean;
   onSelect: () => void;
   onDownload: () => void;
+  /** Human-readable download destination, shown on the Download button. */
+  targetLabel?: string;
   style?: React.CSSProperties;
 }
 
@@ -36,6 +38,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
   checking,
   onSelect,
   onDownload,
+  targetLabel,
   style
 }) => {
   const theme = useTheme();
@@ -164,14 +167,22 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
             </EditorButton>
           </Tooltip>
         ) : (
-          <EditorButton
-            variant="outlined"
-            onClick={handleDownloadClick}
-            startIcon={<DownloadIcon sx={{ fontSize: "1.1em" }} />}
-            sx={{ flexShrink: 0 }}
+          <Tooltip
+            title={
+              model.size_on_disk
+                ? `Download ${formatBytes(model.size_on_disk)} to ${targetLabel ?? "this computer"}`
+                : `Downloads to ${targetLabel ?? "this computer"}`
+            }
           >
-            Download
-          </EditorButton>
+            <EditorButton
+              variant="outlined"
+              onClick={handleDownloadClick}
+              startIcon={<DownloadIcon sx={{ fontSize: "1.1em" }} />}
+              sx={{ flexShrink: 0 }}
+            >
+              Download
+            </EditorButton>
+          </Tooltip>
         )}
       </FlexRow>
     </div>

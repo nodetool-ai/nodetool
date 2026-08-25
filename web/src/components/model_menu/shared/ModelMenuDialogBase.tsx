@@ -34,6 +34,8 @@ import type { DownloadableModel } from "../ModelList";
 import ModelPackCard from "../../hugging_face/ModelPackCard";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import { useWorkerCachedModelIds } from "../../../hooks/useWorkerCachedModels";
+import { useModelDownloadTarget } from "../../../hooks/useModelDownloadTarget";
 import {
   buildHfCacheRequest,
   canCheckHfCache,
@@ -195,6 +197,12 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const cachePending = useHfCacheStatusStore((s) => s.pending);
   const cacheVersion = useHfCacheStatusStore((s) => s.version);
   const ensureStatuses = useHfCacheStatusStore((s) => s.ensureStatuses);
+  // Downloads land where execution happens: on the attached worker when one
+  // is connected, otherwise this machine. The worker's cache is also the
+  // authoritative "already downloaded" source while it is attached.
+  const { scope: downloadScope, label: downloadTargetLabel } =
+    useModelDownloadTarget();
+  const workerCachedIds = useWorkerCachedModelIds();
 
   // A fresh `[]` fallback would re-key every memo in useModelMenuData.
   const {
@@ -269,10 +277,11 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         model.type ?? "",
         model.path ?? undefined,
         model.path ? undefined : (model.allow_patterns ?? undefined),
-        model.path ? undefined : (model.ignore_patterns ?? undefined)
+        model.path ? undefined : (model.ignore_patterns ?? undefined),
+        downloadScope
       );
     },
-    [startDownload]
+    [startDownload, downloadScope]
   );
 
   // Recommended models that can be downloaded, folded into the main list under
@@ -316,16 +325,22 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const downloadModels = useMemo<DownloadableModel[]>(() => {
     return downloadCandidates.map((m) => {
       const key = getHfCacheKey(m);
+      // With a worker attached, its cache is where the model is needed; a
+      // repo cached there counts as downloaded even when this machine's
+      // local cache check says otherwise.
+      const inWorkerCache = workerCachedIds.has(key);
       const downloaded =
         m.downloaded === true ||
         m.type === "llama_model" ||
-        !!cacheStatuses[key];
+        !!cacheStatuses[key] ||
+        inWorkerCache;
       const checking =
+        !inWorkerCache &&
         canCheckHfCache(m) &&
         (cachePending[key] || cacheStatuses[key] === undefined);
       return { ...m, downloaded, checking };
     });
-  }, [downloadCandidates, cacheStatuses, cachePending]);
+  }, [downloadCandidates, cacheStatuses, cachePending, workerCachedIds]);
 
   const handleDownloadAllFromPack = useCallback(
     (packModels: UnifiedModel[]) => {
@@ -558,6 +573,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           onDownloadSelect={handleSelectRecommended}
           onDownloadStart={handleStartDownload}
           modelType={modelType}
+          downloadTargetLabel={downloadTargetLabel}
         />
       </Box>
     </FlexColumn>

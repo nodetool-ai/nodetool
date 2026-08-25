@@ -112,7 +112,19 @@ interface ModelDownloadStore {
     ignorePatterns?: string[] | null,
     scope?: ModelScope
   ) => void;
-  cancelDownload: (id: string) => void;
+  /**
+   * Ask the server to cancel a download. Resolves `true` when the cancel
+   * reached the server (or aborted a local controller), `false` when only a
+   * local "cancelled" mark was possible.
+   */
+  cancelDownload: (id: string) => Promise<boolean>;
+  /**
+   * Cancel and, when the cancel reached the server, drop the row entirely —
+   * the inline dialog row returns to its pre-download state instead of
+   * lingering as a cancelled entry. Keeps the entry on failure so the user
+   * can see the download is still out of reach.
+   */
+  cancelAndRemoveDownload: (id: string) => Promise<boolean>;
   isDialogOpen: boolean;
   openDialog: () => void;
   closeDialog: () => void;
@@ -296,6 +308,12 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             for (const key of MODEL_CACHE_KEYS) {
               queryClient?.invalidateQueries({ queryKey: [key] });
             }
+            // A worker-scoped download lands on the worker's volume; refresh
+            // the worker cache list (prefix key matches every worker id) so
+            // rows flip from "Download" to selectable immediately.
+            queryClient?.invalidateQueries({
+              queryKey: ["worker-cached-models"]
+            });
             useHfCacheStatusStore.getState().invalidate([id]);
           }
         } else if (data?.status === "error") {
@@ -508,13 +526,14 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     if (download?.abortController) {
       download.abortController.abort();
       get().updateDownload(id, { status: "cancelled" });
-      return;
+      return true;
     }
 
     try {
       const ws = await get().connectWebSocket();
       ws.send(JSON.stringify({ command: "cancel_download", id: id }));
       get().updateDownload(id, { status: "cancelled" });
+      return true;
     } catch (error) {
       console.error(
         "[ModelDownloadStore] Failed to connect for cancel:",
@@ -527,7 +546,19 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         status: "cancelled",
         message: "Could not reach server to cancel; download may still be running on server."
       });
+      return false;
     }
+  },
+
+  cancelAndRemoveDownload: async (id) => {
+    const reachedServer = await get().cancelDownload(id);
+    if (reachedServer) {
+      // Remove only after cancelDownload settled: its updateDownload would
+      // otherwise re-create the entry (updateDownload bootstraps missing
+      // rows), and the next progress frame would resurrect the row.
+      get().removeDownload(id);
+    }
+    return reachedServer;
   },
 
   isDialogOpen: false,

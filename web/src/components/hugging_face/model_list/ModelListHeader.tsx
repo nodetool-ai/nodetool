@@ -21,6 +21,8 @@ import { useShallow } from "zustand/react/shallow";
 import { ScopeToggle } from "./ScopeToggle";
 import { SourceToggle } from "./SourceToggle";
 import { HUB_RESULT_LIMIT } from "./useModels";
+import { useModelDownloadTarget } from "../../../hooks/useModelDownloadTarget";
+import { Caption, Tooltip } from "../../ui_primitives";
 
 interface ModelListHeaderProps {
   totalCount: number;
@@ -84,6 +86,11 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   );
   const theme = useTheme();
   const isOnboarding = source === "onboarding";
+  // The Local/Worker toggle changes what you browse; downloads always land on
+  // the attached worker while one is connected. State that explicitly so the
+  // view toggle never reads as a download destination.
+  const { scope: downloadScope, label: downloadTargetLabel } =
+    useModelDownloadTarget();
 
   const handleSliderChange = (_: Event, value: number | number[]) => {
     const v = Array.isArray(value) ? value[0] : value;
@@ -136,6 +143,20 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
         )}
 
         <SourceToggle source={source} onChange={onSourceChange} />
+
+        {downloadScope === "worker" && !isOnboarding && (
+          <Tooltip title={`Every model you download lands on ${downloadTargetLabel} while this worker is attached.`}>
+            <Caption
+              sx={{
+                whiteSpace: "nowrap",
+                color: "text.secondary",
+                flexShrink: 0
+              }}
+            >
+              Downloads → {downloadTargetLabel}
+            </Caption>
+          </Tooltip>
+        )}
 
         {!isOnboarding && (
           <ScopeToggle
