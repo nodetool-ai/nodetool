@@ -60,11 +60,13 @@ describe("ComposeGenerator", () => {
       expect(parsed["version"]).toBe("3.8");
     });
 
-    it("should create a service with the sanitized container name", () => {
+    it("creates exactly one service, keyed by the sanitized container name", () => {
       const gen = new ComposeGenerator(makeDeployment());
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
       const services = parsed["services"] as Record<string, unknown>;
-      expect(services["worker-1"]).toBeDefined();
+      // One container in, one service out — a stray extra service would
+      // otherwise be deployed alongside the intended one.
+      expect(Object.keys(services)).toEqual(["worker-1"]);
     });
 
     it("should set container_name with nodetool- prefix", () => {
