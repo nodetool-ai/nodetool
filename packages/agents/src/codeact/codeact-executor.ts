@@ -4,10 +4,10 @@
  *
  * The provider sees exactly one tool, `execute_code`. Each call runs the
  * model's program in the QuickJS sandbox where the step's toolbelt is exposed
- * as imported capability modules, a `state` object persists across actions,
- * and `finish(result)` completes the step (host-validated against the step's
- * output schema). The program's outcome — return value, logs, error — is the
- * observation for the next turn.
+ * as imported capability modules, and `finish(result)` completes the step
+ * (host-validated against the step's output schema). The program's outcome —
+ * return value, logs, error — is the observation for the next turn. Results a
+ * later action or turn needs go through thread memory (`nodetool.memory.*`).
  *
  * The message contract (`task_update`, `step_result`, `tool_call_update`,
  * `chunk`), memory writes, and failure semantics are byte-compatible with
@@ -399,8 +399,12 @@ export class CodeActExecutor {
   private readonly withFabric: boolean;
   /** The run whose capability modules an action may import, when a host has one. */
   private readonly capabilityRun?: CapabilityRun;
-  /** Persists across actions within the step (CaveAgent-style runtime state). */
-  private readonly state: Record<string, unknown> = {};
+  /**
+   * Uncommitted graph-model op queues, carried across actions of the step.
+   * Internal plumbing for `openWorkflow()` — not a guest-facing contract;
+   * durable results belong in thread memory (`nodetool.memory.*`).
+   */
+  private readonly graphQueues: Record<string, unknown> = {};
   private result: unknown = null;
   private actionCount = 0;
 
@@ -806,7 +810,7 @@ export class CodeActExecutor {
           ...bridge.globals,
           __finish: finishBridge,
           __searchTools: searchToolsBridge,
-          state: this.state
+          __graphQueues: this.graphQueues
         }
       });
 
@@ -1033,8 +1037,8 @@ export class CodeActExecutor {
    *
    * The recoverable case is narrow: a schema'd step whose last assistant
    * message carried no tool calls — the model stopped to explain instead of
-   * calling `finish()`, and the value it built may still be in `state`. A round
-   * that ended on a tool call ran out of budget instead, which another user
+   * calling `finish()`, and the work it did is recoverable in the next round.
+   * A round that ended on a tool call ran out of budget instead, which another user
    * message does not fix, and a cancelled run must not spend a turn at all.
    */
   private shouldNudgeToFinish(

@@ -90,10 +90,11 @@ You can skip planning entirely by passing a pre-built `task` object to the Agent
 5. Repeat until the program calls `finish(result)` or max iterations are reached
 6. Validate the result against the step's output schema — host-side, in `finish`
 
-See [codeact-design.md](codeact-design.md) for the action protocol, the
-sandbox limits that apply per action, and the `state` object that persists
-across a step's actions, and [javascript-sandbox.md](javascript-sandbox.md)
+See [codeact-design.md](codeact-design.md) for the action protocol and
+the sandbox limits that apply per action, and [javascript-sandbox.md](javascript-sandbox.md)
 for the engine itself — capabilities, limits, imports, security model.
+Results a later action or turn needs go through thread memory
+(`nodetool.memory.*`); there is no cross-action variable bag.
 
 ### Fan-Out Execution
 

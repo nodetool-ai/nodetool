@@ -63,7 +63,8 @@ import { textToImage, removeBackground } from "${FLOW_PACKAGE}/nodetool.image";
 
 const model = await nodetool.models.pick("text_to_image");
 const shot = await textToImage({ prompt: "a red fox in snow", model: model.ref });
-state.cutout = (await removeBackground({ image: shot.output })).output;
+const cutout = (await removeBackground({ image: shot.output })).output;
+await nodetool.media.toImage(cutout);
 return { generated: true };
 \`\`\`
 
@@ -78,7 +79,10 @@ return { generated: true };
   so the node runs on a model this install has.
 - Outputs come back keyed by slot — \`r.output\` is the default one. Feed one
   node's output straight into the next call. A media output is a ref that can
-  carry inline bytes: keep it in \`state\`, never return it as the observation.
+  carry inline bytes: save finished handles with
+  \`nodetool.media.toImage/toAudio/toVideo\` before the action ends, and record
+  the \`asset://\` uri with \`nodetool.memory.save\` when a later turn needs it.
+  Never return inline bytes as the observation.
 - A streaming-output node also carries \`.stream(inputs)\`, an async iterable
   of partial outputs; early \`break\` closes the stream and runs node cleanup.
 - Errors reject the call — \`try\`/\`catch\` is the supervisor. Stream-typed

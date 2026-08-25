@@ -61,9 +61,9 @@ async function openWorkflow(workflowId) {
 
   const snap = await __callBeltTool("ui_get_graph")(__wfArgs());
   const queueRoot =
-    state.__nodetoolGraphQueues && typeof state.__nodetoolGraphQueues === "object"
-      ? state.__nodetoolGraphQueues
-      : (state.__nodetoolGraphQueues = {});
+    typeof __graphQueues === "object" && __graphQueues !== null
+      ? __graphQueues
+      : {};
   const queueKey = String((snap && snap.workflow_id) || workflowId || "__focused__");
 
   // A ui_get_graph served from the saved row ("source": "server") is a

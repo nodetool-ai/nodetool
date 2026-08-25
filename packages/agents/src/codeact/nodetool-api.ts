@@ -483,7 +483,7 @@ const nodetool = (() => {
      * Bounded-concurrency map. Returns one settled entry per item:
      * { ok, index, item, value | error }. Never throws; failures are entries.
      * Respect the per-action tool-call budget: chunk large item lists across
-     * actions and carry progress in \`state\`.
+     * actions, persisting partial progress with \`nodetool.memory.save\`.
      */
     async batch(items, fn, opts) {
       const list = Array.from(items);
@@ -1315,16 +1315,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`generateMusic(prompt, model, {lyrics, duration_seconds})\`,
   \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
   assets (\`asset://\` URI); pass \`output_file\` for a workspace copy too.
-  Assign each result to \`state\` before the next call
-  (\`state.clip = state.clip ?? await nodetool.media.generateVideo(prompt, model)\`)
-  so a later failure does not re-run generation. Feed generation results
-  straight into \`image.*\`, \`audio.*\`, or \`video.*\`. These namespaces take a
+  Hold each result in a local variable and feed it straight into the next call;
+  record the uris a later action or turn will need with
+  \`nodetool.memory.save\` — never re-run generation for something already saved.
+  Feed results into \`image.*\`, \`audio.*\`, or \`video.*\` by uri. These namespaces take a
   result, its \`asset_uri\`, or an asset id and return run-local handles. They
   can combine media too: for example, \`video.addAudio(videoHandle, audioHandle)\`.
   Save finished handles with \`nodetool.media.toImage/toAudio/toVideo\` before
-  the action ends; keep the returned \`asset://\` ref in \`state\`. Do not pull
-  bytes into the guest, and do not keep a handle in \`state\` because it is
-  dead in the next action.
+  the action ends; keep the returned \`asset://\` ref (in thread memory if a
+  later turn needs it). Do not pull bytes into the guest, and do not use a
+  handle in a later action — it is dead there.
   Judging lives here too, so generate → critique → regenerate is one namespace:
   \`critique(image, brief, visionModel, {taste_profile})\`,
   \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),
@@ -1506,27 +1506,31 @@ const rows = JSON.parse(await workspace.read("products.json"));
 const runs = await nodetool.batch(rows, (row) =>
   nodetool.workflows.run(wfId, { image_url: row.image_url, title: row.title }),
   { concurrency: 3 });
-state.failed = runs.filter((r) => !r.ok);
-return { ok: runs.filter((r) => r.ok).length, failed: state.failed.length };
+const failed = runs.filter((r) => !r.ok);
+if (failed.length) {
+  await nodetool.memory.save("failed rows: " + failed.map((r) => r.index).join(","), { title: "Batch failures" });
+}
+return { ok: runs.filter((r) => r.ok).length, failed: failed.length };
 \`\`\`
 
 \`nodetool.batch(items, fn, {concurrency, stopOnError})\` never throws — each
 entry settles as \`{ok, index, item, value | error}\`. A handful of items is one
 \`batch\` call in one action; only lists big enough to threaten the sandbox
-limits get chunked across actions with progress in \`state\`.`;
+limits get chunked across actions, persisting partial progress with
+\`nodetool.memory.save\`.`;
 
-const MEDIA_EXAMPLE = `Pick a model once, stash results in \`state\`, then generate —
-batching included. Skip work \`state\` already holds:
+const MEDIA_EXAMPLE = `Pick a model, then generate — batching included. Every result
+is already a saved asset; return the uris and record the ones you will need
+after this action:
 
 \`\`\`js
-const model = state.model ?? (state.model = await nodetool.models.pick("text_to_image"));
-if (!state.images) {
-  const shots = ["a red fox in snow", "a fox by a river"];
-  const images = await nodetool.batch(shots, (prompt) =>
-    nodetool.media.generateImage(prompt, model), { concurrency: 2 });
-  state.images = images.map((r) => (r.ok ? r.value : null));
-}
-return state.images.map((img) => (img ? img.asset_uri : "failed"));
+const model = await nodetool.models.pick("text_to_image");
+const shots = ["a red fox in snow", "a fox by a river"];
+const images = await nodetool.batch(shots, (prompt) =>
+  nodetool.media.generateImage(prompt, model), { concurrency: 2 });
+const uris = images.map((r) => (r.ok ? r.value.asset_uri : null)).filter(Boolean);
+await nodetool.memory.save(uris.join("\\n"), { title: "Fox stills" });
+return uris;
 \`\`\``;
 
 /**

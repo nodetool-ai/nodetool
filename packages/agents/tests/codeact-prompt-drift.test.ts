@@ -72,18 +72,18 @@ describe("CodeAct prompt / sandbox drift", () => {
     expect(undocumented(bogus)).toContain("lodash");
   });
 
-  it("tells both variants to stash generation results in state and reuse them", () => {
-    // A chat turn generated the same LTX clip three times: pick returned a
-    // model, the next action read state.model (never written), then each
-    // later throw re-ran generateVideo instead of reusing the asset.
+  it("tells both variants to persist reusable results via thread memory", () => {
+    // A chat turn generated the same LTX clip three times because nothing
+    // carried the first result forward. The sandbox has no cross-action
+    // variable bag any more; thread memory and saved assets are the carry.
     for (const variant of VARIANTS) {
       const prompt = buildCodeActSystemPrompt({ tools: [], variant });
-      expect(prompt).toContain("return` is the observation only");
-      expect(prompt).toContain("never re-run generate, speak, or fetch");
+      expect(prompt).toContain("`return` is the observation only");
       expect(prompt).toContain(
-        "state.video = state.video ?? await nodetool.media.generateVideo"
+        "Never re-run generate, speak, or fetch"
       );
-      expect(prompt).toContain("so a later throw does not discard it");
+      expect(prompt).toContain("into thread memory:");
+      expect(prompt).not.toContain("`state`");
     }
   });
 

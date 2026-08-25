@@ -306,13 +306,13 @@ export const CODEACT_INJECTED_GLOBALS = [
   // Host bridges (`runInSandbox` globals) plus the prelude's wrappers.
   "tools",
   "finish",
-  "state",
   "__callTool",
   "__finish",
   "__toolNames",
   "__toolModules",
   "__callBeltTool",
   "__searchTools",
+  "__graphQueues",
   ...GRAPH_MODEL_GLOBALS,
   ...NODETOOL_API_GLOBALS
 ] as const;

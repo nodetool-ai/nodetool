@@ -987,11 +987,12 @@ every task failed throws instead of compiling a deliverable out of nothing.
 
 The action space of the step loop, and the only one. Each step acts by writing
 JavaScript that runs in the QuickJS sandbox with the toolbelt exposed as
-imports from `@nodetool-ai/sandbox-nodetool/<namespace>`, a `state` object
-that persists across actions
-(including after a throw), and `finish(result)` for host-validated completion.
-The prompt tells the model to assign each generate/speak result to `state`
-immediately and reuse it — `return` is the observation only. Design and the
+imports from `@nodetool-ai/sandbox-nodetool/<namespace>`, `finish(result)` for
+host-validated completion, and thread memory (`nodetool.memory.*`) for results
+a later action or turn needs — there is no cross-action variable bag. The
+prompt tells the model to record each generate/speak result (an `asset://` uri)
+with `nodetool.memory.save` and reuse it; local variables die with the action,
+and `return` is the observation only. Design and the
 research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
 
 - `CodeActExecutor` keeps the message contract, memory writes, and failure
@@ -1137,8 +1138,8 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   tools (`calculate`, `geometry`, `trigonometry`, `statistics`,
   `unit_conversion`) were deleted outright, MCP included, and so were the code
   tools `run_code` and `js` — `execute_code` is the code surface, and a second
-  one only invited the model to run code without the sandbox's `nodetool.*` API
-  and `state`. The nine provider-specific duplicates went next. The media four
+  one only invited the model to run code without the sandbox's `nodetool.*`
+  API. The nine provider-specific duplicates went next. The media four
   — `image_generation`, `openai_image_generation`, `google_image_generation`,
   `openai_text_to_speech` — were deleted, because `nodetool.media` covers them
   through the provider-agnostic `generate_image` / `generate_speech`. The

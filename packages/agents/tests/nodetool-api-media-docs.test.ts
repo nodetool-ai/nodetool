@@ -401,16 +401,19 @@ describe("nodetool.documents", () => {
     );
   });
 
-  it("tells the action to stash generation results in state", () => {
+  it("tells the action to record generation results via thread memory", () => {
     const section = buildNodetoolApiPromptSection([
       "find_model",
       "generate_image"
     ]);
+    expect(section).toContain("Hold each result in a local variable");
     expect(section).toContain(
-      "state.clip = state.clip ?? await nodetool.media.generateVideo"
+      "never re-run generation for something already saved"
     );
-    expect(section).toContain("so a later failure does not re-run generation");
-    expect(section).toContain("state.model ?? (state.model = await nodetool.models.pick");
-    expect(section).toContain("if (!state.images)");
+    expect(section).toContain(
+      "record the uris a later action or turn will need"
+    );
+    expect(section).toContain("await nodetool.memory.save(uris.join(");
+    expect(section).not.toContain("`state`");
   });
 });

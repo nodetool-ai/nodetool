@@ -24,9 +24,11 @@ The research this follows:
   that paper's.
 - **CaveAgent** (arXiv:2601.01569) — a *persistent* runtime across turns
   (stateful objects survive between actions) adds +5–13.5% success and ~28%
-  fewer tokens on data-heavy tasks. Our `state` object is this: it lives on the
-  host and syncs back after every action, so turn N+1 can read what turn N
-  computed without re-serializing it through the transcript.
+  fewer tokens on data-heavy tasks. An in-sandbox `state` object played this
+  role at launch; it is gone now — process-local, LRU-capped per thread on the
+  chat runner, and silently lossy across restarts. Durable carry is thread
+  memory (`nodetool.memory.*`) plus the `asset://` refs generation calls
+  already return.
 - **MCP design-choice study** (arXiv:2602.15945) and Anthropic's
   *Code execution with MCP* (Nov 2025) — decoupling tool *results* from model
   *context* is where the token savings come from (their headline example:
@@ -78,11 +80,13 @@ Inside the sandbox, on top of the standard surface (`console`, `fetch`,
   returns an `{error}` payload throws in the guest, so `try/catch` is the
   error-handling idiom. Per-action tool-call cap (`maxToolCallsPerAction`,
   default 50) so a runaway loop can't drain budgets silently.
-- **`state`** — a plain object that persists across actions within the step
-  (host-side, synced back after every run via the sandbox's global sync-back,
-  including after a throw). Fetch or generate once, reuse every turn; never
-  re-fetch or re-generate to re-look at something. `return` is the
-  observation only — it does not persist.
+- **Thread memory** — the durable carry between actions and turns. There is no
+  cross-action variable bag: local variables die with the action, `return` is
+  the observation only. Generation calls save their result as an asset and
+  return its `asset://` uri; an action records what later actions or turns
+  need with `nodetool.memory.save` (shown back to the model at turn start).
+  Fetch or generate once, reuse every turn; never re-fetch or re-generate to
+  re-look at something.
 - **`finish(result)`** — completes the step. For schema'd steps the host
   validates against the declared schema; an invalid result throws in the guest
   with the violation list, so the same action can repair and retry, or the
@@ -122,8 +126,8 @@ provider transcript only carries `execute_code`.
 
 `buildCodeActSystemPrompt` renders:
 
-1. The action contract (write code, observe, repair; `state` discipline; keep
-   observations small — return summaries, stash payloads in `state` or
+1. The action contract (write code, observe, repair; thread-memory carry;
+   keep observations small — return summaries, save payloads as assets or in
    memory).
 2. The tool catalog as **typed signatures**, generated from each tool's JSON
    schema (`await browse({url: string, timeout?: number})` + first
@@ -189,9 +193,9 @@ chat toolbelt mixes server tools with client (`ui_*`) tools that exist
 server-side only as schemas, so instead of `buildToolBridge` the session
 routes every imported belt name to the chat runner's own `executeTool` router —
 permission gating, client round-trips over the ToolBridge, and asset
-materialization all stay where they are. `state` persists across the turn's
-actions; there is no `finish()` — a plain assistant message ends the turn, and
-the prompt says so (`variant: "chat"` of `buildCodeActSystemPrompt`).
+materialization all stay where they are. There is no `finish()` — a plain
+assistant message ends the turn, and the prompt says so (`variant: "chat"` of
+`buildCodeActSystemPrompt`).
 
 A gated tool call parks the running program on the user's answer, so the turn
 carries a **sandbox clock** (`createSandboxClock`): the runner suspends it for
@@ -296,7 +300,7 @@ Two shrinks keep the belt to capabilities a model cannot write itself:
   `statistics`, `unit_conversion`) are gone everywhere, MCP included. Anything
   a model can do by writing code is not a tool. The code tools `run_code` and
   `js` went with them: `execute_code` is the code path, and a second one only
-  offered the model a sandbox without the `nodetool.*` API or `state`.
+  offered the model a sandbox without the `nodetool.*` API.
 - The provider-specific media duplicates — `image_generation`,
   `openai_image_generation`, `google_image_generation`,
   `openai_text_to_speech` — are deleted, because `nodetool.media` already
@@ -318,8 +322,8 @@ npm run dev:nodetool -- eval codeact -p anthropic -m claude-sonnet-5
 ```
 
 Harness tests (`tests/codeact-executor.test.ts`) drive the executor with a
-`ScriptedProvider` — tool chaining in one action, `state` persistence across
-actions, schema repair after an invalid `finish`, error observations, prose
+`ScriptedProvider` — tool chaining in one action, the absence of a `state`
+global, schema repair after an invalid `finish`, error observations, prose
 finalization — no network, no model.
 
 ## Non-goals (now)

@@ -8,9 +8,9 @@
  * ToolBridge, asset materialization). So instead of `buildToolBridge`, this
  * session routes every imported belt name to a caller-supplied `executeTool` and
  * leaves the routing where it is. Everything else matches the step executor:
- * one `execute_code` provider tool, a `state` object that persists across the
- * turn's actions (including after a throw), `nodetool.searchTools()` for the
- * deferred long tail, and an observation envelope as the tool result.
+ * one `execute_code` provider tool, `nodetool.searchTools()` for the deferred
+ * long tail, and an observation envelope as the tool result. Results a later
+ * turn needs go through thread memory (`nodetool.memory.*`).
  *
  * When the belt carries the `ui_*` workflow document tools, actions also get
  * the graph object model (`openWorkflow()` — see graph-model.ts), so graph and
@@ -160,15 +160,6 @@ export interface ChatCodeActSessionOptions {
    * Without one nothing is mounted and such an import is refused by name.
    */
   capabilityRun?: CapabilityRun;
-  /**
-   * The `state` object actions read and write. A host that passes the same
-   * object on the next turn carries the turn's work forward: a chat session is
-   * one session per turn, so without this a model that stored a generated
-   * video in `state` found it `undefined` in the next turn and paid to
-   * generate it again. Mutations land in this object, so the host needs no
-   * write-back of its own. Defaults to a fresh object.
-   */
-  state?: Record<string, unknown>;
   /** Observability hook — fires before each bridged tool executes. */
   onToolCall?: (record: {
     name: string;
@@ -331,9 +322,10 @@ export function createChatCodeActSession(
   const withGraphModel = hasGraphModelTools(toolNames);
   const toolCallIdPrefix = globalThis.crypto.randomUUID();
 
-  // Persists across the turn's actions (CaveAgent-style runtime state), and
-  // across turns when the host supplies the object (see `state` above).
-  const state: Record<string, unknown> = options.state ?? {};
+  // Uncommitted graph-model op queues, carried across the turn's actions.
+  // Internal plumbing for `openWorkflow()` — durable results belong in
+  // thread memory (`nodetool.memory.*`).
+  const graphQueues: Record<string, unknown> = {};
   let totalCalls = 0;
   let actionCalls = 0;
 
@@ -615,7 +607,7 @@ export function createChatCodeActSession(
         __toolModules: graftedModules,
         __finish: finishBridge,
         __searchTools: searchToolsBridge,
-        state
+        __graphQueues: graphQueues
       }
     };
     if (resolveMediaRef !== undefined) {

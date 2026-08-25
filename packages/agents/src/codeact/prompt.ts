@@ -67,12 +67,11 @@ Rules:
   unattended.
 - Chain the WHOLE pipeline into one action: call several tools, loop over
   items, branch on intermediate results, retry inside try/catch, and
-  post-process in the same program. Assign each expensive intermediate to
-  \`state\` as you go, so a later throw does not discard it. An action that
-  makes one tool call and returns to look at it is JSON tool-calling with
-  extra steps — reach for a new action only when you genuinely cannot
-  decide the next call without seeing an observation first (and then
-  finish the rest in that next action).
+  post-process in the same program. Hold intermediates in local variables.
+  An action that makes one tool call and returns to look at it is JSON
+  tool-calling with extra steps — reach for a new action only when you
+  genuinely cannot decide the next call without seeing an observation first
+  (and then finish the rest in that next action).
 - Multi-round protocols (poll a job, answer run escalations, retry a flaky
   call) are ONE action: write the loop, not one action per round.
 - Independent work runs CONCURRENTLY, and a sequential \`for\` loop over
@@ -82,21 +81,22 @@ Rules:
   ten independent lookups take one round trip, not ten. ${boundedFanout}
   \`Promise.allSettled\` when some are allowed to fail. Sequence only what
   genuinely depends on a previous result.
-- \`state\` is a plain object that persists across your actions in this step,
-  including after an action throws. \`return\` is the observation only — it
-  does not persist. Assign each expensive result to \`state\` immediately
-  (\`state.video = state.video ?? await nodetool.media.generateVideo(prompt, model)\`),
-  then continue. The next action must reuse what \`state\` already holds —
-  never re-run generate, speak, or fetch. A chat turn keeps its thread's
-  \`state\`, so an earlier turn's results may still be there; read it
-  defensively (\`state.video?.asset_uri\`) instead of assuming a key exists,
-  and re-derive what is missing rather than throwing on \`undefined\`.
-  Write a large literal into \`state\` in the action that builds it. If that action fails, patch the copy in
-  \`state\` (\`state.doc.type = "screenplay"\`) and retry — do not emit the
-  literal a second time.
+- Nothing carries over between actions except what a tool saved. Generation
+  calls already store their result as an asset and return its \`asset://\` uri.
+  Put any result a later action or turn needs into thread memory:
+  \`await nodetool.memory.save("clip: <asset_uri>", {title: "The clip"})\` — it
+  is shown back to you at the start of later turns.
+  Never re-run generate, speak, or fetch for
+  something an earlier action already produced; check thread memory, reuse the
+  recorded uri, and re-derive only what is genuinely missing instead of
+  throwing on it. Write a large literal into thread memory or a workspace file
+  in the action that builds it; if that action fails, update the saved copy
+  and retry — do not emit the literal a second time.
+  Local variables die with the action and \`return\` is the observation only;
+  saved results do not persist that way.
 - Keep observations small. \`return\` a compact summary (counts, ids, the few
-  fields you need); large payloads belong in \`state\` or agent memory — not in
-  the transcript.
+  fields you need); large payloads belong in saved assets or thread memory —
+  not in the transcript.
 - Extract fields you have verified exist. Coercing an unread object to a
   string yields "[object Object]", and a plausible-looking wrong field passes
   schema validation. Return shapes are NOT documented in the catalog, so the
@@ -239,8 +239,8 @@ function renderSandboxSummary(
   }
   const besides =
     variant === "chat"
-      ? "imported capabilities, `state`"
-      : "imported capabilities, `state`, `finish`";
+      ? "imported capabilities"
+      : "imported capabilities, `finish`";
   const notes = relevantNotes(
     manifest,
     variant === "chat" ? unavailableInChat : new Set<string>()
@@ -252,7 +252,7 @@ function renderSandboxSummary(
     lines.join("\n"),
     `Built-ins: ${manifest.nativeGlobals.join(", ")}.`,
     `Not available: ${manifest.blockedGlobals.join(", ")}.`,
-    `Each action runs under the sandbox limits (execution timeout, memory, fetch count/size). Only work that would actually exceed them gets split across actions (carry progress in \`state\`); everything else belongs in one action.`
+    `Each action runs under the sandbox limits (execution timeout, memory, fetch count/size). Only work that would actually exceed them gets split across actions (persist progress with \`nodetool.memory.save\` or a workspace file); everything else belongs in one action.`
   ].join("\n\n");
 }
 

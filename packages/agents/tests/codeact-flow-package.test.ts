@@ -155,6 +155,6 @@ describe("what the flow section teaches", () => {
   });
 
   it("keeps media refs out of the observation", () => {
-    expect(section).toContain("never return it as the observation");
+    expect(section).toContain("Never return inline bytes as the observation");
   });
 });

@@ -42,7 +42,6 @@ if (check.issues && check.issues.length) return { failed: "validate", check };
 
 const wf = await nodetool.workflows.create("scenario-1", graph);
 const result = await nodetool.workflows.run(wf.id, { name: "CodeAct" });
-state.wfId = wf.id;
 
 const jobs = await nodetool.jobs.list({ workflow_id: wf.id, limit: 3 });
 const job = jobs.jobs && jobs.jobs[0] ? await nodetool.jobs.get(jobs.jobs[0].id) : null;

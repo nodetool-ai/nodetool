@@ -160,15 +160,13 @@ describe("CodeActExecutor", () => {
     ]);
   });
 
-  it("persists state across actions", async () => {
+  it("injects no state global — cross-action carry is thread memory", async () => {
     const { step, task } = makeStep(ANSWER_SCHEMA);
     const context = createMockContext();
     const provider = createLoopProvider([
-      { toolCalls: [codeAction("tc_1", `state.x = 41; return "stored";`)] },
+      { toolCalls: [codeAction("tc_1", `return state.x;`)] },
       {
-        toolCalls: [
-          codeAction("tc_2", `await finish({answer: state.x + 1});`)
-        ]
+        toolCalls: [codeAction("tc_2", `await finish({answer: 41});`)]
       }
     ]);
 
@@ -183,7 +181,7 @@ describe("CodeActExecutor", () => {
     for await (const msg of executor.execute()) void msg;
 
     expect(step.completed).toBe(true);
-    expect(executor.getResult()).toEqual({ answer: 42 });
+    expect(executor.getResult()).toEqual({ answer: 41 });
   });
 
   it("rejects a schema-invalid finish and accepts the repaired one", async () => {
@@ -412,8 +410,7 @@ describe("CodeAct progressive tool disclosure", () => {
           codeAction(
             "tc_1",
             `const hits = await nodetool.searchTools("+lookup customer");
-             state.found = hits[0];
-             return hits[0];`
+             return { importLine: hits[0] && hits[0].import };`
           )
         ]
       },
@@ -427,8 +424,6 @@ describe("CodeAct progressive tool disclosure", () => {
              const r = await lookup_customer({value: "c42"});
              await finish({
                answer:
-                 state.found.import ===
-                   'import { lookup_customer } from "@nodetool-ai/sandbox-nodetool/session";' &&
                  r.echoed === "c42" &&
                  r.via === "lookup_customer"
                    ? 1

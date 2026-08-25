@@ -98,9 +98,9 @@ Core JavaScript — `JSON`, `Math`, `Date`, `Map`, `Set`, `RegExp`, `URL`,
 host-bridged version.
 
 Callers add their own globals through `RunSandboxOptions.globals`:
-`inputs` and `state` for the Code node, `tools`/`state`/`finish` for CodeAct,
-`node`/`graph` for the graph DSL. Names in `RESERVED_SANDBOX_NAMES` cannot be
-overwritten this way.
+`inputs` and `state` for the Code node, `tools`/`finish`/`__graphQueues` for
+CodeAct, `node`/`graph` for the graph DSL. Names in `RESERVED_SANDBOX_NAMES`
+cannot be overwritten this way.
 
 #### `media.*` — media inputs and outputs
 
@@ -544,10 +544,12 @@ What an action gets on top of the standard surface:
   that replaces it — read off the `__toolModules` map the host installs — so a
   body written against the old global says `import { web_search } from
   "@nodetool-ai/sandbox-nodetool/web";` rather than `ReferenceError`.
-- **`state`** — persists across the actions of a step, host-side, synced back
-  after every run, including a run that throws. Assign generation results
-  (`asset://` refs) to `state` immediately so a later failure does not re-run
-  them. Handles from `image.*` / `audio.*` / `video.*` die between actions;
+- **`state` is gone from CodeAct.** It used to persist across the actions of a
+  step (and, on the chat runner, across a thread via an LRU), which made
+  cross-turn carry process-local and silently lossy. Durable carry is thread
+  memory now: generation results are already assets (`asset://` refs), and an
+  action records what later actions or turns need with `nodetool.memory.save`.
+  Handles from `image.*` / `audio.*` / `video.*` die between actions;
   convert with `nodetool.media.toImage` / `toAudio` / `toVideo` first.
 - **`finish(result)`** — completes the step. For schema'd steps the host
   validates, and an invalid result throws in the guest with the violation list,

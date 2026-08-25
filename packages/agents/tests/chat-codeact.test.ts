@@ -279,64 +279,13 @@ return { secret: secret === undefined ? null : secret, fetchError, workspaceErro
     expect(obs.result).toContain("always fails");
   });
 
-  it("persists state across actions within the session", async () => {
+  it("injects no state global — cross-action carry is thread memory", async () => {
     const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
     const session = makeSession(GENERIC_TOOLS, executeTool);
-    const first = await runAction(session, `state.count = 41;\nreturn "set";`);
-    expect(first.ok).toBe(true);
-    const second = await runAction(session, `return state.count + 1;`);
-    expect(second.ok).toBe(true);
-    expect(second.result).toBe(42);
-  });
-
-  it("keeps state written before an action throws", async () => {
-    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
-    const session = makeSession(GENERIC_TOOLS, executeTool);
-    const first = await runAction(
-      session,
-      `state.video = "asset://abc";\nthrow new Error("combine failed");`
-    );
-    expect(first.ok).toBe(false);
-    const second = await runAction(session, `return state.video;`);
-    expect(second.ok).toBe(true);
-    expect(second.result).toBe("asset://abc");
-  });
-
-  it("carries a host-supplied state object into the next session", async () => {
-    // A chat session is built per turn. Without the host holding the object,
-    // a video parked in `state` was `undefined` on the follow-up turn and the
-    // model paid to generate it again — twice, in the session this fixes.
-    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
-    const state: Record<string, unknown> = {};
-    const turnOne = createChatCodeActSession({
-      tools: GENERIC_TOOLS,
-      executeTool,
-      context: createMockContext() as unknown as ProcessingContext,
-      state
-    });
-    const first = await runAction(
-      turnOne,
-      `state.video = { asset_uri: "asset://abc.mp4" };\nreturn "set";`
-    );
-    expect(first.ok).toBe(true);
-    expect(state.video).toEqual({ asset_uri: "asset://abc.mp4" });
-
-    const turnTwo = createChatCodeActSession({
-      tools: GENERIC_TOOLS,
-      executeTool,
-      context: createMockContext() as unknown as ProcessingContext,
-      state
-    });
-    const second = await runAction(turnTwo, `return state.video.asset_uri;`);
-    expect(second.ok).toBe(true);
-    expect(second.result).toBe("asset://abc.mp4");
-  });
-
-  it("starts empty when the host supplies no state", async () => {
-    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
-    const session = makeSession(GENERIC_TOOLS, executeTool);
-    const obs = await runAction(session, `return Object.keys(state).length;`);
-    expect(obs.result).toBe(0);
+    const obs = await runAction(session, `return state.count;`);
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain("'state' is not defined");
+    expect(session.systemPromptSection).not.toContain("`state`");
   });
 
   it("rejects finish() with chat guidance", async () => {

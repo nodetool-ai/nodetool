@@ -56,7 +56,6 @@ const result = await nodetool.workflows.run(wf.id, {
   name: "Ada",
   city: "London"
 });
-state.wfId = wf.id;
 return {
   searchHits: hits.results ? hits.results.length : hits.length,
   infoOk: !!(info && (info.properties || info.title || info.node_type)),
@@ -66,7 +65,9 @@ return {
 };`
   },
   {
-    // 2. Rows → batch: one saved workflow, run once per row.
+    // 2. Rows → batch: one saved workflow, run once per row. The workflow id
+    // comes from the discover-build-run case via `__WF_ID__` below — there is
+    // no cross-action variable bag, so the harness passes it explicitly.
     name: "rows-batch",
     code: `
 const rows = [
@@ -74,8 +75,8 @@ const rows = [
   { product: "Chair", price: "129" },
   { product: "Desk", price: "349" }
 ];
-const wfId = state.wfId;
-if (!wfId) throw new Error("run discover-build-run first (state.wfId)");
+const wfId = "__WF_ID__";
+if (!wfId) throw new Error("run discover-build-run first");
 const runs = await nodetool.batch(rows, (row) =>
   nodetool.workflows.run(wfId, { name: row.product, city: "stock: " + row.price }),
   { concurrency: 2 });
@@ -209,12 +210,25 @@ async function main(): Promise<void> {
   });
 
   let failures = 0;
+  let createdWfId = "";
   for (const useCase of cases) {
     console.log(`\n=== ${useCase.name} ===`);
     const started = Date.now();
-    const observation = JSON.parse(await session.executeAction({ code: useCase.code }));
+    const code =
+      useCase.name === "rows-batch"
+        ? useCase.code.replace("__WF_ID__", createdWfId)
+        : useCase.code;
+    const observation = JSON.parse(
+      await session.executeAction({ code })
+    );
     const elapsed = Date.now() - started;
     if (observation.ok) {
+      if (
+        typeof observation.result?.workflowId === "string" &&
+        !createdWfId
+      ) {
+        createdWfId = observation.result.workflowId;
+      }
       console.log(`ok in ${elapsed}ms, ${observation.toolCalls} tool calls`);
       console.log(JSON.stringify(observation.result, null, 2));
     } else {
