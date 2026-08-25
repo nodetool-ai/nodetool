@@ -77,6 +77,20 @@ export function isConnectableCached(
   return isConnectable(sourceType, targetType, true);
 }
 
+// `priorityOf` walks every property (or output) of a node, so ranking up front
+// costs one scan per node instead of two per comparison.
+const sortByPriorityThenTitle = (
+  nodes: NodeMetadata[],
+  priorityOf: (node: NodeMetadata) => number
+): NodeMetadata[] =>
+  nodes
+    .map((node) => ({ node, priority: priorityOf(node) }))
+    .sort(
+      (a, b) =>
+        a.priority - b.priority || a.node.title.localeCompare(b.node.title)
+    )
+    .map(({ node }) => node);
+
 /**
  * Calculate match priority for a node based on how well its properties match the input type.
  * Lower numbers = higher priority (better match).
@@ -142,16 +156,9 @@ export const filterTypesByInputType = (
     );
   });
 
-  // Sort by match priority (lower = better match)
-  return filtered.sort((a, b) => {
-    const priorityA = getInputMatchPriority(inputType, a);
-    const priorityB = getInputMatchPriority(inputType, b);
-    if (priorityA !== priorityB) {
-      return priorityA - priorityB;
-    }
-    // Secondary sort: alphabetically by title
-    return a.title.localeCompare(b.title);
-  });
+  return sortByPriorityThenTitle(filtered, (node) =>
+    getInputMatchPriority(inputType, node)
+  );
 };
 
 /**
@@ -216,16 +223,9 @@ export const filterTypesByOutputType = (
     );
   });
 
-  // Sort by match priority (lower = better match)
-  return filtered.sort((a, b) => {
-    const priorityA = getOutputMatchPriority(outputType, a);
-    const priorityB = getOutputMatchPriority(outputType, b);
-    if (priorityA !== priorityB) {
-      return priorityA - priorityB;
-    }
-    // Secondary sort: alphabetically by title
-    return a.title.localeCompare(b.title);
-  });
+  return sortByPriorityThenTitle(filtered, (node) =>
+    getOutputMatchPriority(outputType, node)
+  );
 };
 
 /**
