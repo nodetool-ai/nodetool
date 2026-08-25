@@ -36,6 +36,7 @@ import {
   outcomeResult,
   resolveRunEnvironment,
   summarizeWorkflowGraph,
+  unsetModelSelectionError,
   userIdOf,
   workflowRecord
 } from "../tools/mcp-tool-support.js";
@@ -183,6 +184,10 @@ const createWorkflow: CapabilityExport = {
       run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
     );
     if (badModels) return badModels;
+    if (run.nodeRegistry) {
+      const unselected = unsetModelSelectionError(graph, run.nodeRegistry);
+      if (unselected) return unselected;
+    }
 
     const created = (await Workflow.create({
       user_id: userIdOf(run.context),
@@ -242,6 +247,10 @@ const updateWorkflow: CapabilityExport = {
         run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
       );
       if (badModels) return badModels;
+      if (run.nodeRegistry) {
+        const unselected = unsetModelSelectionError(graph, run.nodeRegistry);
+        if (unselected) return unselected;
+      }
       fields.graph = graph;
     }
     if (isString(params["name"])) fields.name = params["name"];

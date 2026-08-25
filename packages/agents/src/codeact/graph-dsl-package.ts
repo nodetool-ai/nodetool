@@ -107,4 +107,6 @@ capability modules. Both forms reach one implementation past one gate.
   gets them from \`nodetool.workflows.run(saved.id, params)\`; a workflow id on
   its own answers a question they did not ask.
 - \`nodetool.workflows.debug(id, params)\` reports per-node status when a run
-  fails and the graph looks right.`;
+  fails and the graph looks right. It answers \`{workflow_id, run, job,
+  workflow}\`: read \`run.status\`, \`run.outputs\` (keyed by output name; each
+  name holds an array of emitted values) and \`run.verdict.issues\`.`;

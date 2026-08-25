@@ -608,10 +608,26 @@ const nodetool = (() => {
         __need("debug_workflow")(
           __merge(opts, { workflow_id: id, params: params || {} })
         ),
-      validate: (target) =>
-        typeof target === "string"
+      async validate(target) {
+        const report = await (typeof target === "string"
           ? __need("validate_workflow")({ workflow_id: target })
-          : __need("validate_workflow")({ graph: __graphJson(target) }),
+          : __need("validate_workflow")({ graph: __graphJson(target) }));
+        // A report with errors is a refusal, not data: throw so a caller
+        // that forgets to check report.ok cannot carry a broken graph into a
+        // paid run.
+        if (report && report.ok === false && Array.isArray(report.issues)) {
+          const messages = report.issues
+            .map(function (i) {
+              return i && i.message;
+            })
+            .filter(Boolean);
+          throw new Error(
+            "Graph validation failed:\\n- " +
+              messages.slice(0, 8).join("\\n- ")
+          );
+        }
+        return report;
+      },
       /**
        * Answer an escalation from an interactive run/debug. Action is one of
        * the escalation's allowedActions; pass {outputs} with "substitute",
@@ -1182,7 +1198,12 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`create(name, graph, {description, tags})\`, \`versions(id)\`, \`getVersion(id, n)\`,
   \`snapshot(id, {name})\`, \`restore(id, n)\`, \`deleteVersion(id, n)\`,
   \`open(id?)\` (the editable object
-  model — see the graph-editing section). An interactive run returns an
+  model — see the graph-editing section). \`validate\` answers
+  \`{ok, issues}\` and throws when the graph has errors. \`debug\` runs the
+  workflow and answers one report: \`{workflow_id, run, job, workflow}\` where
+  \`run\` carries \`{status, outputs, error, verdict}\`, \`job\` carries status,
+  cost and logs, and \`outputs\` is keyed by output name with an array of
+  emitted values per name (\`outputs.hook[0]\`). An interactive run returns an
   escalation: answer it with \`resolve(sessionId, escalationId, action,
   {outputs, reason, apply_to})\` — retry/substitute/skip/end_stream/fail — and
   get the next escalation or the final report. Write the whole

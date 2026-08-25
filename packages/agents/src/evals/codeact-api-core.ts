@@ -395,10 +395,11 @@ class CoreWorld {
   }
 }
 
+/** Same shape the real `validate_workflow` answers: {ok, counts, issues}. */
 interface ValidationReport {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
+  ok: boolean;
+  counts: { errors: number; warnings: number; info: number };
+  issues: Array<{ severity: string; message: string }>;
 }
 
 function validateGraph(graph: WorldGraph): ValidationReport {
@@ -450,7 +451,15 @@ function validateGraph(graph: WorldGraph): ValidationReport {
   if (!graph.nodes.some((n) => n.type === "nodetool.output.Output")) {
     warnings.push("Graph has no output node, so a run reports nothing.");
   }
-  return { valid: errors.length === 0, errors, warnings };
+  const issues = [
+    ...errors.map((message) => ({ severity: "error", message })),
+    ...warnings.map((message) => ({ severity: "warning", message }))
+  ];
+  return {
+    ok: errors.length === 0,
+    counts: { errors: errors.length, warnings: warnings.length, info: 0 },
+    issues
+  };
 }
 
 /** Evaluate the graph. `skipNodeId` yields "" for that node (escalation skip). */
@@ -645,9 +654,11 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       (params) => {
         const graph = toGraph(params["graph"]);
         const check = validateGraph(graph);
-        if (!check.valid) {
+        if (!check.ok) {
           throw new Error(
-            `Refusing to save an invalid graph: ${check.errors.join("; ")}`
+            `Refusing to save an invalid graph: ${check.issues
+              .map((i) => i.message)
+              .join("; ")}`
           );
         }
         const id = world.id("wf");

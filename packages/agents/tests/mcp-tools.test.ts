@@ -267,6 +267,69 @@ describe("create_workflow", () => {
     });
   });
 
+  // A graph whose model properties are left at the default saves fine and
+  // then every Agent node dies on "Select a model" at run time — after the
+  // upstream half of the graph executed. Nothing stamps models in later.
+  describe("unset model preflight", () => {
+    const modelRegistry = {
+      has: (type: string) => type === "nodetool.agents.Agent",
+      getMetadata: () => undefined,
+      resolveMetadata: () => undefined,
+      validateNode: (
+        _descriptor: unknown,
+        connectedHandles: ReadonlySet<string>
+      ) =>
+        connectedHandles.has("model")
+          ? []
+          : [
+              {
+                code: "unset_model",
+                property: "model",
+                message:
+                  'Property "model" requires a language_model to be selected'
+              }
+            ]
+    } as unknown as NodeRegistry;
+    const checked = capTool("create_workflow", { nodeRegistry: modelRegistry });
+    const graphWithAgent = (edges: unknown[] = []) => ({
+      nodes: [
+        { id: "a1", type: "nodetool.agents.Agent", properties: {} },
+        { id: "src", type: "nodetool.input.StringInput", properties: {} }
+      ],
+      edges
+    });
+
+    it("refuses a workflow whose agent node has no model selected", async () => {
+      const result = (await checked.process(ctx, {
+        name: "WF",
+        graph: graphWithAgent()
+      })) as { error: string; issues: Array<{ code: string; node_id: string }> };
+
+      expect(result.error).toContain("unselected");
+      expect(result.issues[0]?.code).toBe("unset_model");
+      expect(result.issues[0]?.node_id).toBe("a1");
+      const [saved] = await Workflow.paginate(USER, {});
+      expect(saved).toHaveLength(0);
+    });
+
+    it("allows a model property fed by an edge", async () => {
+      const result = (await checked.process(ctx, {
+        name: "WF",
+        graph: graphWithAgent([
+          {
+            id: "e1",
+            source: "src",
+            sourceHandle: "output",
+            target: "a1",
+            targetHandle: "model"
+          }
+        ])
+      })) as Record<string, unknown>;
+      expect(result.id).toEqual(expect.any(String));
+      expect(await Workflow.find(USER, String(result.id))).not.toBeNull();
+    });
+  });
+
   it("persists the workflow under the calling user", async () => {
     const result = (await tool.process(ctx, {
       name: "Test WF",

@@ -45,8 +45,14 @@ import { validate_workflow, create_workflow, run_workflow, debug_workflow }
 const graph = workflow(output({ name: "image", value: smaller.output() }));
 
 const check = await validate_workflow({ graph });
-if (!check.valid) throw new Error(JSON.stringify(check.errors));
+if (!check.ok) throw new Error(check.issues.map((i) => i.message).join("; "));
+```
 
+`validate_workflow` answers `{ok, counts, issues}` — `ok` is false only when
+the graph has errors, and each issue carries `{severity, code, message}`.
+Warnings do not set `ok` false; read them off `issues`.
+
+```js
 const saved = await create_workflow({ name: "Thumbnailer", graph });
 const run = await run_workflow({
   workflow_id: saved.id,
@@ -55,9 +61,16 @@ const run = await run_workflow({
 ```
 
 `run_workflow` answers `{status, outputs}`. When a run fails and the graph looks
-right, `debug_workflow({workflow_id, params})` runs it again and reports a
-per-node status, the logs, and the outputs each node produced — which node
-failed, not just that one did.
+right, `debug_workflow({workflow_id, params})` runs it again and answers one
+report: `{workflow_id, run, job, workflow}`. `run` carries
+`{status, outputs, error, verdict}` — `outputs` is keyed by output name and
+each name holds an array of emitted values (`run.outputs.image[0]`). `job`
+carries status, cost and logs; `verdict.headline` and `verdict.issues` say
+which node failed and why.
+
+Every model property must be selected before you save: assign a `find_model`
+result's `ref` to the node's `model`. A graph saved with unselected models is
+refused by `create_workflow`, because nothing stamps models in at run time.
 
 Where the session mounts no capability modules, the same three verbs are
 `nodetool.workflows.validate/create/run/debug`. Both forms reach one
