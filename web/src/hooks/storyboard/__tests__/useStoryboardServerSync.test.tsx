@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
+import type { DocumentLoadState } from "../../../stores/documentSync";
 import { act } from "react";
 import { trpc, trpcClient } from "../../../trpc/client";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
@@ -71,7 +72,7 @@ beforeEach(() => {
 
 /** Mount the hook and wait for the initial load to record a server revision. */
 const mountLoaded = async (): Promise<
-  ReturnType<typeof renderHook<void, unknown>>
+  ReturnType<typeof renderHook<DocumentLoadState, unknown>>
 > => {
   const rendered = renderHook(() => useStoryboardServerSync("board-1"));
   await waitFor(() =>

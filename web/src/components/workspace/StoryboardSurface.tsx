@@ -19,6 +19,7 @@ import StoryboardBoard from "../storyboard/StoryboardBoard";
 import StoryboardQueueOverlay from "../storyboard/StoryboardQueueOverlay";
 import StoryboardAgentPanel from "../storyboard/StoryboardAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
+import DocumentLoadStatus from "./DocumentLoadStatus";
 
 interface StoryboardSurfaceProps {
   refId: string;
@@ -67,7 +68,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     ensureBoard(refId);
   }, [ensureBoard, refId]);
 
-  useStoryboardServerSync(refId);
+  const loadState = useStoryboardServerSync(refId);
 
   useDocumentUndoShortcuts({
     active,
@@ -121,6 +122,12 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
       assembleError
     ]
   );
+
+  // The store seeds an empty board on mount, so rendering before the server
+  // copy lands looks like a board with no shots.
+  if (loadState !== "ready") {
+    return <DocumentLoadStatus state={loadState} label="storyboard" />;
+  }
 
   if (isMobile && mode !== "view") {
     return (

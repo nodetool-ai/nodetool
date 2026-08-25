@@ -34,6 +34,7 @@ import JsScriptAgentPanel from "../jsScript/JsScriptAgentPanel";
 import JsScriptRunConsole from "../jsScript/JsScriptRunConsole";
 import type { JsScriptRunRequest } from "../jsScript/JsScriptRunDialog";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
+import DocumentLoadStatus from "./DocumentLoadStatus";
 
 interface JsScriptSurfaceProps {
   refId: string;
@@ -97,7 +98,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
     ensureScript(refId);
   }, [ensureScript, refId]);
 
-  useJsScriptServerSync(refId);
+  const loadState = useJsScriptServerSync(refId);
   useJsScriptAgentBridge(refId);
 
   useDocumentUndoShortcuts({
@@ -146,6 +147,12 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
     ],
     []
   );
+
+  // The store seeds an empty script on mount, so rendering before the server
+  // copy lands looks like a script with an empty body.
+  if (loadState !== "ready") {
+    return <DocumentLoadStatus state={loadState} label="JS script" />;
+  }
 
   const editor = <JsScriptEditorPane scriptId={refId} readOnly={readOnly} />;
   const runConsole = (

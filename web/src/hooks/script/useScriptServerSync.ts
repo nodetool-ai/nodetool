@@ -10,7 +10,7 @@
  * Copied from useStoryboardServerSync — same machinery, script payload.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trpc, trpcClient } from "../../trpc/client";
 import {
   useScriptStore,
@@ -18,7 +18,10 @@ import {
   type ScriptSaveStatus
 } from "../../stores/script/ScriptStore";
 import { getErrorMessage } from "../../utils/errorHandling";
-import { registerDocumentSync } from "../../stores/documentSync";
+import {
+  registerDocumentSync,
+  type DocumentLoadState
+} from "../../stores/documentSync";
 import {
   isPermanentSaveError,
   MAX_TRANSIENT_SAVE_RETRIES
@@ -52,8 +55,11 @@ const responseToScript = (
 const isNotFound = (error: unknown): boolean =>
   /not found/i.test(getErrorMessage(error));
 
-export const useScriptServerSync = (scriptId: string): void => {
+export const useScriptServerSync = (
+  scriptId: string
+): DocumentLoadState => {
   const utils = trpc.useUtils();
+  const [loadState, setLoadState] = useState<DocumentLoadState>("loading");
   const syncedRef = useRef<ScriptDraft | null>(null);
   const inFlightRef = useRef(false);
   const flushAfterSaveRef = useRef(false);
@@ -67,6 +73,7 @@ export const useScriptServerSync = (scriptId: string): void => {
   useEffect(() => {
     let disposed = false;
     const store = useScriptStore;
+    setLoadState("loading");
 
     // `statusAfter` is applied only once the server copy has actually replaced
     // the local one, so the indicator never claims a state before it's true.
@@ -233,7 +240,16 @@ export const useScriptServerSync = (scriptId: string): void => {
       }
     });
 
-    void load();
+    // The initial load gates rendering: a script with no server revision once
+    // it has settled is one that failed to load. Later reloads (CAS conflict,
+    // resource_change) leave the state alone — the surface already has a
+    // document to show.
+    void load().finally(() => {
+      if (disposed) return;
+      setLoadState(
+        store.getState().serverRevisions[scriptId] ? "ready" : "error"
+      );
+    });
 
     return () => {
       disposed = true;
@@ -244,6 +260,8 @@ export const useScriptServerSync = (scriptId: string): void => {
       else void save(true);
     };
   }, [scriptId]);
+
+  return loadState;
 };
 
 export default useScriptServerSync;

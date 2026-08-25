@@ -16,7 +16,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 jest.mock("@mui/material/useMediaQuery", () => () => true);
 
 jest.mock("../../../hooks/jsScript/useJsScriptServerSync", () => ({
-  useJsScriptServerSync: jest.fn()
+  useJsScriptServerSync: jest.fn(() => "ready")
 }));
 jest.mock("../../../hooks/jsScript/useJsScriptAgentBridge", () => ({
   useJsScriptAgentBridge: jest.fn()

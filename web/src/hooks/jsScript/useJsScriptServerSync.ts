@@ -13,7 +13,7 @@
  * caller that wrote into the store can learn whether the write persisted.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { jsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import { trpc, trpcClient } from "../../trpc/client";
 import {
@@ -22,7 +22,10 @@ import {
   type JsScriptSaveStatus
 } from "../../stores/jsScript/JsScriptStore";
 import { getErrorMessage } from "../../utils/errorHandling";
-import { registerDocumentSync } from "../../stores/documentSync";
+import {
+  registerDocumentSync,
+  type DocumentLoadState
+} from "../../stores/documentSync";
 import {
   isPermanentSaveError,
   MAX_TRANSIENT_SAVE_RETRIES
@@ -56,8 +59,11 @@ const responseToEntry = (
 const isNotFound = (error: unknown): boolean =>
   /not found/i.test(getErrorMessage(error));
 
-export const useJsScriptServerSync = (scriptId: string): void => {
+export const useJsScriptServerSync = (
+  scriptId: string
+): DocumentLoadState => {
   const utils = trpc.useUtils();
+  const [loadState, setLoadState] = useState<DocumentLoadState>("loading");
   const syncedRef = useRef<JsScriptEntry | null>(null);
   const inFlightRef = useRef(false);
   // The save currently in flight, so a flush can await it instead of starting
@@ -75,6 +81,7 @@ export const useJsScriptServerSync = (scriptId: string): void => {
   useEffect(() => {
     let disposed = false;
     const store = useJsScriptStore;
+    setLoadState("loading");
 
     const applyResponse = (
       res: JsScriptResponse,
@@ -279,7 +286,16 @@ export const useJsScriptServerSync = (scriptId: string): void => {
 
     registerJsScriptSaver(scriptId, flushNow);
 
-    loadPromiseRef.current = load();
+    // The initial load gates rendering: a script with no server revision once
+    // it has settled is one that failed to load. Later reloads (CAS conflict,
+    // resource_change) leave the state alone — the surface already has a
+    // document to show.
+    loadPromiseRef.current = load().finally(() => {
+      if (disposed) return;
+      setLoadState(
+        store.getState().serverRevisions[scriptId] ? "ready" : "error"
+      );
+    });
     void loadPromiseRef.current;
 
     return () => {
@@ -292,6 +308,8 @@ export const useJsScriptServerSync = (scriptId: string): void => {
       else void save(true);
     };
   }, [scriptId]);
+
+  return loadState;
 };
 
 export default useJsScriptServerSync;

@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
+import type { DocumentLoadState } from "../../../stores/documentSync";
 import { act } from "react";
 import { trpc, trpcClient } from "../../../trpc/client";
 import {
@@ -59,7 +60,7 @@ const loaded = async (): Promise<void> => {
 
 /** Mount the hook and wait for the initial load to record a server revision. */
 const mountLoaded = async (): Promise<
-  ReturnType<typeof renderHook<void, unknown>>
+  ReturnType<typeof renderHook<DocumentLoadState, unknown>>
 > => {
   const rendered = renderHook(() => useJsScriptServerSync("js-1"));
   await loaded();
