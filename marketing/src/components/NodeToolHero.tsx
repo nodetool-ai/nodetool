@@ -24,11 +24,10 @@ export default function NodeToolHero() {
 
           <h1
             id="hero-title"
-            className="mt-5 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
+            className="mt-5 text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.05] tracking-tight text-white lg:text-[clamp(2.25rem,4.1vw,3.5rem)]"
           >
-            Describe it.
-            <br />
-            <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
+            <span className="block whitespace-nowrap">Describe it.</span>
+            <span className="block whitespace-nowrap bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
               An agent builds it.
             </span>
           </h1>
