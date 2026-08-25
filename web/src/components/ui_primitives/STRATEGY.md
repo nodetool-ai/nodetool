@@ -62,7 +62,7 @@ These primitives exist but are barely adopted:
 `Text` | `Label` | `Caption` | `TruncatedText` | `TextLink` | `ExternalLink`
 
 ### Inputs (replace raw TextField/Select/Switch)
-`NodeTextField` | `TextInput` | `NodeNumberInput` | `NodeSelect` | `SelectField` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
+`NodeTextField` | `TextInput` | `NodeSelect` | `SelectField` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
 
 ### Buttons (replace raw Button/IconButton)
 `EditorButton` | `ToolbarIconButton` | `StateIconButton` | `CircularActionButton` | `NavButton` | `CreateFab` | `PlaybackButton` | `RunWorkflowButton` | `ExpandCollapseButton` | `RefreshButton` | `ViewModeToggle` | `LabeledToggle` | `ConfirmButton`
@@ -142,7 +142,7 @@ Need a button?
 
 Need an input?
 ├── Text → NodeTextField (in nodes) / TextInput (elsewhere)
-├── Number → NodeNumberInput
+├── Number → NumberInput (components/inputs/NumberInput.tsx — not a primitive yet)
 ├── Boolean → NodeSwitch / LabeledSwitch / Checkbox
 ├── Select from options → NodeSelect / SelectField
 ├── Slider → NodeSlider

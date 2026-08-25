@@ -33,15 +33,14 @@ Or inside the NodeTool monorepo, all workspace packages are available after `npm
 Import namespaces directly:
 
 ```ts
-import { math, constant, text, image } from "@nodetool-ai/dsl";
+import { constant, text, image } from "@nodetool-ai/dsl";
 import { workflow } from "@nodetool-ai/dsl";
 ```
 
-Or import from a specific namespace for tree-shaking:
-
-```ts
-import { add, multiply } from "@nodetool-ai/dsl/generated/nodetool.math";
-```
+The package root is the only entry point — `package.json` exports `.` and
+`./flow`, so a subpath import of a generated namespace file does not resolve.
+Run `npm run codegen --workspace=packages/dsl` and read
+`packages/dsl/src/generated/index.ts` for the namespace names this build ships.
 
 ---
 
@@ -61,8 +60,10 @@ a.output()  // → OutputHandle<number> — reference, not the value itself
 Every input field accepts either a **literal value** or an **OutputHandle**:
 
 ```ts
-const sum = math.add({ a: 1, b: 2 });           // literal values
-const sum2 = math.add({ a: a.output(), b: 2 });  // connection + literal
+const greeting = constant.string({ value: "hi" });
+
+const joined = text.collect({ input_item: "hi", separator: ", " });                // literal values
+const joined2 = text.collect({ input_item: greeting.output(), separator: ", " });  // connection + literal
 ```
 
 ### DslNode
@@ -84,21 +85,21 @@ node.output()  // OutputHandle for the node's default output slot
 A workflow follows three steps: create nodes, connect them, build the graph.
 
 ```ts
-import { constant, math } from "@nodetool-ai/dsl";
+import { constant, text } from "@nodetool-ai/dsl";
 import { workflow } from "@nodetool-ai/dsl";
 
 // 1. Create nodes
-const x = constant.float({ value: 3.14 });
-const y = constant.float({ value: 2.0 });
+const x = constant.string({ value: "Hello" });
+const y = constant.string({ value: ", " });
 
 // 2. Connect nodes by passing output handles
-const sum = math.add({ a: x.output(), b: y.output() });
+const joined = text.collect({ input_item: x.output(), separator: y.output() });
 
 // 3. Build the workflow graph
-const wf = workflow(sum);
+const wf = workflow(joined);
 
 console.log(wf.nodes);  // 3 nodes
-console.log(wf.edges);  // 2 edges (x→sum, y→sum)
+console.log(wf.edges);  // 2 edges (x→joined, y→joined)
 ```
 
 The `workflow()` function traces all connections from the terminal nodes back to their sources, producing a serializable `Workflow` object with `nodes` and `edges`.
@@ -110,9 +111,9 @@ The `workflow()` function traces all connections from the terminal nodes back to
 ### Linear Chain
 
 ```ts
-const a = constant.integer({ value: 5 });
-const b = math.add({ a: a.output(), b: 1 });
-const c = math.multiply({ a: b.output(), b: 2 });
+const a = constant.string({ value: "five" });
+const b = text.collect({ input_item: a.output(), separator: "," });
+const c = text.collect({ input_item: b.output(), separator: " " });
 
 const wf = workflow(c);
 // 3 nodes, 2 edges: a→b→c
@@ -123,10 +124,10 @@ const wf = workflow(c);
 A node's output can be connected to multiple downstream nodes. The graph builder deduplicates automatically.
 
 ```ts
-const shared = constant.float({ value: 10 });
-const left = math.add({ a: shared.output(), b: 1 });
-const right = math.multiply({ a: shared.output(), b: 2 });
-const final = math.add({ a: left.output(), b: right.output() });
+const shared = constant.string({ value: "ten" });
+const left = text.collect({ input_item: shared.output(), separator: "," });
+const right = text.collect({ input_item: shared.output(), separator: " " });
+const final = text.collect({ input_item: left.output(), separator: right.output() });
 
 const wf = workflow(final);
 // 4 nodes, 4 edges — `shared` appears only once
@@ -137,8 +138,8 @@ const wf = workflow(final);
 Pass multiple nodes to `workflow()` to trace all branches:
 
 ```ts
-const branch1 = math.add({ a: x.output(), b: 1 });
-const branch2 = math.multiply({ a: x.output(), b: 2 });
+const branch1 = text.collect({ input_item: x.output(), separator: "," });
+const branch2 = text.collect({ input_item: x.output(), separator: " " });
 
 const wf = workflow(branch1, branch2);
 ```
@@ -170,7 +171,7 @@ Each output slot is individually typed, so TypeScript catches type mismatches at
 ### `workflow()`
 
 ```ts
-function workflow(...terminals: DslNode<any>[]): Workflow;
+function workflow(...terminals: DslNode<never>[]): Workflow;
 ```
 
 Traces from terminal nodes via BFS, discovers all connected nodes and edges, performs topological sort, and returns a frozen `Workflow` object.
@@ -188,7 +189,7 @@ This JSON is compatible with the NodeTool workflow format used by the visual edi
 
 ```ts
 async function run(wf: Workflow, opts?: RunOptions): Promise<WorkflowResult>;
-async function runGraph(...terminals: DslNode<any>[]): Promise<WorkflowResult>;
+async function runGraph(...terminals: DslNode<never>[]): Promise<WorkflowResult>;
 ```
 
 `run()` executes the graph locally via `WorkflowRunner`. By default it resolves executors from `NodeRegistry.global`, or you can pass an explicit registry via `RunOptions.registry`.
@@ -197,22 +198,19 @@ async function runGraph(...terminals: DslNode<any>[]): Promise<WorkflowResult>;
 
 ## Namespaces
 
-All 800+ nodes are organized by namespace. Import the namespace object and call factory functions:
+All 441 nodes are organized into 69 namespaces. Import the namespace object and call factory functions:
 
 | Import | Description | Example |
 |--------|-------------|---------|
 | `constant` | Fixed-value nodes | `constant.integer({ value: 5 })` |
-| `math` | Math operations | `math.add({ a: 1, b: 2 })` |
-| `text` | Text processing | `text.concat({ a: "hi", b: " there" })` |
+| `text` | Text processing | `text.template({ string: "Hello, {{ name }}" })` |
 | `image` | Image I/O | `image.loadImageFile({ path: "..." })` |
-| `audio` | Audio processing | `audio.sliceAudio({ ... })` |
-| `video` | Video processing | `video.trimVideo({ ... })` |
+| `audio` | Audio processing | `audio.sliceAudio({ start: 0, end: 5 })` |
+| `video` | Video processing | `video.trim({ ... })` |
 | `control` | Flow control | `control.if_({ condition: true, value: x })` |
 | `agents` | AI agents | `agents.agent({ prompt: "..." })` |
-| `kieImage` | KIE image services | `kieImage.removeBackground({ ... })` |
-| `geminiText` | Google Gemini | `geminiText.gemini({ ... })` |
-| `openaiText` | OpenAI text | `openaiText.chatGPT({ ... })` |
-| `skills*` | Skill agents | `skillsBrowser.browserAgent({ ... })` |
+| `geminiText` | Google Gemini | `geminiText.groundedSearch({ ... })` |
+| `openaiText` | OpenAI text | `openaiText.webSearch({ ... })` |
 
 See the full list in `packages/dsl/src/generated/index.ts`.
 
@@ -249,7 +247,7 @@ Generated files are committed to git. The codegen script is at `packages/dsl/scr
 
 ## Best Practices
 
-1. **Use namespace imports** — `import { math } from "@nodetool-ai/dsl"` gives you autocompletion for all math nodes.
+1. **Use namespace imports** — `import { text } from "@nodetool-ai/dsl"` gives you autocompletion for all text nodes.
 
 2. **Let TypeScript catch errors** — the DSL is fully typed. If you pass a `string` where a `number` is expected, the compiler tells you.
 

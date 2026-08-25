@@ -43,9 +43,6 @@ property and reads as Arrange/Act/Assert):
   length boundary.
 - **Startup error branches** (`startup-checks-error-paths.test.ts`): the master
   key check's throw path and empty-key path, driven by mocking `initMasterKey`.
-- **AWS client configuration** (`master-key-aws-config.test.ts`): the region
-  default vs `AWS_REGION` override and the exact `SecretId` requested — silent
-  misconfigurations in production.
 - **Keychain failure contracts** (`master-key-keychain-errors.test.ts`,
   `master-key-keytar-failure.test.ts`): `KeychainAccessError` type/name and the
   full operator-facing message (operation + remediation hint).
