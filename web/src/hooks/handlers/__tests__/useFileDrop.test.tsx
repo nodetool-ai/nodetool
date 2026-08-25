@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useFileDrop } from "../useFileDrop";
 
 const mockAddNotification = jest.fn();
@@ -261,5 +261,181 @@ describe("useFileDrop", () => {
         content: expect.stringContaining("image")
       })
     );
+  });
+
+  it("accepts document assets with text content type", () => {
+    const onChangeAsset = jest.fn();
+
+    mockDeserialize.mockReturnValue({
+      type: "asset",
+      payload: {
+        id: "doc2",
+        name: "notes.txt",
+        content_type: "text/plain",
+        get_url: "http://example.com/notes.txt"
+      } as any
+    });
+
+    const { result } = renderHook(() =>
+      useFileDrop({ type: "document", onChangeAsset })
+    );
+
+    act(() => {
+      result.current.onDrop(createMockDragEvent());
+    });
+
+    expect(onChangeAsset).toHaveBeenCalled();
+  });
+
+  it("passes dropped string items to onChange", () => {
+    const onChange = jest.fn();
+    mockDeserialize.mockReturnValue(null);
+
+    const { result } = renderHook(() => useFileDrop({ type: "all", onChange }));
+
+    act(() => {
+      result.current.onDrop(
+        createMockDragEvent({
+          dataTransfer: {
+            items: [
+              {
+                kind: "string",
+                getAsString: (cb: (s: string) => void) => cb("dropped text")
+              },
+              { kind: "file", getAsString: jest.fn() }
+            ],
+            files: { length: 0 },
+            getData: jest.fn(() => "")
+          }
+        })
+      );
+    });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith("dropped text");
+    expect(mockHasExternalFiles).not.toHaveBeenCalled();
+  });
+
+  it("reads the file as a data URL when uploadAsset is off", async () => {
+    const onChange = jest.fn();
+    mockDeserialize.mockReturnValue(null);
+    mockHasExternalFiles.mockReturnValue(true);
+    const mockFile = new File(["content"], "test.png", { type: "image/png" });
+    mockExtractFiles.mockReturnValue([mockFile]);
+
+    const { result } = renderHook(() =>
+      useFileDrop({ type: "image", onChange })
+    );
+
+    act(() => {
+      result.current.onDrop(
+        createMockDragEvent({
+          dataTransfer: {
+            items: [],
+            files: { length: 1 },
+            getData: jest.fn(() => "")
+          }
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith(
+        expect.stringMatching(/^data:image\/png/)
+      );
+    });
+    expect(mockUploadAsset).not.toHaveBeenCalled();
+    expect(result.current.filename).toBe("test.png");
+  });
+
+  it("accepts a pdf dropped onto a document dropzone", () => {
+    mockDeserialize.mockReturnValue(null);
+    mockHasExternalFiles.mockReturnValue(true);
+    const mockFile = new File(["content"], "doc.pdf", {
+      type: "application/pdf"
+    });
+    mockExtractFiles.mockReturnValue([mockFile]);
+
+    const { result } = renderHook(() =>
+      useFileDrop({ type: "document", uploadAsset: true })
+    );
+
+    act(() => {
+      result.current.onDrop(
+        createMockDragEvent({
+          dataTransfer: {
+            items: [],
+            files: { length: 1 },
+            getData: jest.fn(() => "")
+          }
+        })
+      );
+    });
+
+    expect(mockUploadAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ file: mockFile, source: "file" })
+    );
+    expect(mockAddNotification).not.toHaveBeenCalled();
+  });
+
+  it("forwards the uploaded asset and upload failures", () => {
+    const onChangeAsset = jest.fn();
+    mockDeserialize.mockReturnValue(null);
+    mockHasExternalFiles.mockReturnValue(true);
+    const mockFile = new File(["content"], "test.png", { type: "image/png" });
+    mockExtractFiles.mockReturnValue([mockFile]);
+
+    const { result } = renderHook(() =>
+      useFileDrop({ type: "image", uploadAsset: true, onChangeAsset })
+    );
+
+    act(() => {
+      result.current.onDrop(
+        createMockDragEvent({
+          dataTransfer: {
+            items: [],
+            files: { length: 1 },
+            getData: jest.fn(() => "")
+          }
+        })
+      );
+    });
+
+    const call = mockUploadAsset.mock.calls[0][0];
+    call.onCompleted({ id: "uploaded" });
+    expect(onChangeAsset).toHaveBeenCalledWith({ id: "uploaded" });
+
+    call.onFailed("upload exploded");
+    expect(mockAddNotification).toHaveBeenCalledWith({
+      type: "error",
+      alert: true,
+      content: "upload exploded"
+    });
+  });
+
+  it("does nothing when the drop carries no extractable file", () => {
+    mockDeserialize.mockReturnValue(null);
+    mockHasExternalFiles.mockReturnValue(true);
+    mockExtractFiles.mockReturnValue([]);
+
+    const { result } = renderHook(() =>
+      useFileDrop({ type: "image", uploadAsset: true })
+    );
+
+    act(() => {
+      result.current.onDrop(
+        createMockDragEvent({
+          dataTransfer: {
+            items: [],
+            files: { length: 1 },
+            getData: jest.fn(() => "")
+          }
+        })
+      );
+    });
+
+    expect(mockUploadAsset).not.toHaveBeenCalled();
+    expect(mockAddNotification).not.toHaveBeenCalled();
+    expect(result.current.filename).toBe("");
   });
 });

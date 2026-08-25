@@ -31,6 +31,40 @@ type FileDropResult = {
   uploading: boolean;
 };
 
+type AcceptedType = FileDropProps["type"];
+
+const DOCUMENT_FILE_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+]);
+
+/**
+ * Matched on the top-level part of the content type, so a document dropzone
+ * takes any `application/*` or `text/*` asset — deliberately looser than
+ * {@link acceptsFile}, which admits three MIME types.
+ */
+const acceptsAsset = (contentType: string, accept: AcceptedType): boolean => {
+  if (accept === "all") return true;
+  const category = contentType.split("/")[0];
+  if (category === accept) return true;
+  return (
+    accept === "document" && (category === "application" || category === "text")
+  );
+};
+
+const acceptsFile = (file: File, accept: AcceptedType): boolean => {
+  if (accept === "all") return true;
+  if (file.type.startsWith(`${accept}/`)) return true;
+  return accept === "document" && DOCUMENT_FILE_TYPES.has(file.type);
+};
+
+const invalidTypeNotification = (accept: AcceptedType) => ({
+  type: "error" as const,
+  alert: true,
+  content: `Invalid file type. Please drop a ${accept} file.`
+});
+
 export function useFileDrop(props: FileDropProps): FileDropResult {
   const [filename, setFilename] = useState("");
   const addNotification = useNotificationStore((state) => state.addNotification);
@@ -48,103 +82,60 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
 
       if (dragData?.type === "asset") {
         const asset = dragData.payload;
-        const assetType = asset.content_type.split("/")[0];
-        if (
-          props.type === "all" ||
-          assetType === props.type ||
-          (props.type === "document" &&
-            (assetType === "application" || assetType === "text"))
-        ) {
-          props.onChangeAsset?.(asset);
-          props.onChange?.(asset.get_url as string);
-        } else {
-          addNotification({
-            type: "error",
-            alert: true,
-            content: `Invalid file type. Please drop a ${props.type} file.`
-          });
+        if (!acceptsAsset(asset.content_type, props.type)) {
+          addNotification(invalidTypeNotification(props.type));
+          return;
         }
+        props.onChangeAsset?.(asset);
+        props.onChange?.(asset.get_url as string);
         return;
       }
 
       // Handle text data transfer
-      if (event.dataTransfer.items && !event.dataTransfer.files.length) {
-        const items = event.dataTransfer.items;
-        if (items && items.length > 0) {
-          Array.from(items).forEach((item) => {
-            if (item.kind === "string") {
-              item.getAsString((s) => {
-                props.onChange?.(s);
-              });
-            }
-          });
+      const { items, files } = event.dataTransfer;
+      if (items && files.length === 0) {
+        for (const item of Array.from(items)) {
+          if (item.kind === "string") {
+            item.getAsString((s) => props.onChange?.(s));
+          }
         }
         return;
       }
 
       // Handle external file drops
-      if (hasExternalFiles(event.dataTransfer)) {
-        const files = extractFiles(event.dataTransfer);
-        const file = files[0];
-        if (file) {
-          const isDocument =
-            file.type === "application/pdf" ||
-            file.type === "application/msword" ||
-            file.type ===
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      if (!hasExternalFiles(event.dataTransfer)) return;
+      const file = extractFiles(event.dataTransfer)[0];
+      if (!file) return;
 
-          const fileTypeMatchesType = file?.type.startsWith(`${props.type}/`);
-          const documentTypeMatchesType = isDocument && props.type === "document";
-
-          if (
-            props.type === "all" ||
-            fileTypeMatchesType ||
-            documentTypeMatchesType
-          ) {
-            setFilename(file.name);
-            const reader = new FileReader();
-
-            if (props.uploadAsset) {
-              uploadAsset({
-                file,
-                source:
-                  file.type.startsWith("image/") || props.type === "image"
-                    ? "drop"
-                    : "file",
-                onCompleted: (asset) => {
-                  if (props.onChangeAsset) {
-                    props.onChangeAsset(asset);
-                  }
-                },
-                onFailed: (error) => {
-                  addNotification({
-                    type: "error",
-                    alert: true,
-                    content: error
-                  });
-                }
-              });
-            } else {
-              reader.onload = function (event) {
-                if (
-                  event.target?.result &&
-                  isString(event.target.result) &&
-                  props.onChange
-                ) {
-                  props.onChange(event.target.result);
-                }
-              };
-              reader.readAsDataURL(file);
-            }
-          } else {
-            addNotification({
-              type: "error",
-              alert: true,
-              content: `Invalid file type. Please drop a ${props.type} file.`
-            });
-          }
-        }
+      if (!acceptsFile(file, props.type)) {
+        addNotification(invalidTypeNotification(props.type));
+        return;
       }
+
+      setFilename(file.name);
+
+      if (props.uploadAsset) {
+        uploadAsset({
+          file,
+          source:
+            file.type.startsWith("image/") || props.type === "image"
+              ? "drop"
+              : "file",
+          onCompleted: (asset) => props.onChangeAsset?.(asset),
+          onFailed: (error) =>
+            addNotification({ type: "error", alert: true, content: error })
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (read) => {
+        const result = read.target?.result;
+        if (isString(result) && result.length > 0) {
+          props.onChange?.(result);
+        }
+      };
+      reader.readAsDataURL(file);
     },
     [props, uploadAsset, addNotification]
   );
