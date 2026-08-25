@@ -25,7 +25,9 @@ import {
   presignUrl,
   sha256Hex,
   signRequest,
-  type SigV4Credentials
+  type SigV4Credentials,
+  type SigV4HeaderMap,
+  type SigV4QueryMap
 } from "./signer.js";
 import { xmlBlocks, xmlText } from "./xml.js";
 
@@ -259,8 +261,8 @@ function rawPathRequest(input: {
         const body = Buffer.concat(chunks);
         const headers = new Headers();
         for (const [name, value] of Object.entries(res.headers)) {
-          if (typeof value === "string") headers.set(name, value);
-          else if (Array.isArray(value)) headers.set(name, value.join(", "));
+          if (value === undefined) continue;
+          headers.set(name, Array.isArray(value) ? value.join(", ") : value);
         }
         const bodyAllowed =
           input.method !== "HEAD" && status !== 204 && status !== 304;
@@ -385,8 +387,8 @@ export class S3Client implements S3Api {
     method: string;
     bucket: string | null;
     key?: string;
-    query?: Record<string, string>;
-    headers?: Record<string, string>;
+    query?: SigV4QueryMap;
+    headers?: SigV4HeaderMap;
     body?: Uint8Array;
     /** Retry transient failures. Only safe/idempotent operations set this. */
     retryable?: boolean;
@@ -573,7 +575,7 @@ export class S3Client implements S3Api {
   async listObjectsV2(
     input: S3ListObjectsV2Input
   ): Promise<S3ListObjectsV2Result> {
-    const query: Record<string, string> = { "list-type": "2" };
+    const query: SigV4QueryMap = { "list-type": "2" };
     if (input.prefix) query.prefix = input.prefix;
     if (input.delimiter) query.delimiter = input.delimiter;
     if (input.maxKeys !== undefined) query["max-keys"] = String(input.maxKeys);

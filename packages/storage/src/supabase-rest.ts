@@ -17,13 +17,23 @@ interface SupabaseDownloadData {
   arrayBuffer(): Promise<ArrayBuffer>;
 }
 
+/** Object metadata the Storage `list` endpoint reports for a stored object. */
+export interface SupabaseObjectMetadata {
+  size?: number;
+  mimetype?: string;
+  cacheControl?: string;
+  lastModified?: string;
+  eTag?: string;
+}
+
 /** One entry from the Storage `list` endpoint. */
 export interface SupabaseObjectEntry {
   name: string;
   /** `null`/absent for pseudo-directory entries. */
   id?: string | null;
   updated_at?: string | null;
-  metadata?: Record<string, unknown> | null;
+  /** `null`/absent for pseudo-directory entries. */
+  metadata?: SupabaseObjectMetadata | null;
 }
 
 interface SupabaseListOptions {
@@ -83,9 +93,37 @@ export interface SupabaseStorageApi {
   };
 }
 
+/** Body of `POST /object/sign/…`: the signed path, relative to `/storage/v1`. */
+interface SignResponseBody {
+  signedURL?: string;
+}
+
+/** Body of `POST /object/upload/sign/…`: the token URL, also relative. */
+interface UploadSignResponseBody {
+  url?: string;
+}
+
+/** HTTP request headers for one Storage call: header name → value. */
+interface RequestHeaders {
+  [name: string]: string;
+}
+
 /** Encode an object key path segment-by-segment (slashes stay literal). */
 function encodeKey(key: string): string {
   return key.split("/").map(encodeURIComponent).join("/");
+}
+
+/**
+ * Error body the Storage API returns. Both fields are off the wire, so neither
+ * is trusted to be a string until `nonEmptyString` says so.
+ */
+interface SupabaseErrorBody {
+  message?: unknown;
+  error?: unknown;
+}
+
+function nonEmptyString(value: SupabaseErrorBody["message"]): value is string {
+  return typeof value === "string" && value.length > 0;
 }
 
 /**
@@ -95,10 +133,10 @@ function encodeKey(key: string): string {
 async function readError(response: Response): Promise<SupabaseError> {
   let message = "";
   try {
-    const body = (await response.json()) as Record<string, unknown>;
-    if (typeof body.message === "string" && body.message) {
+    const body: SupabaseErrorBody = await response.json();
+    if (nonEmptyString(body.message)) {
       message = body.message;
-    } else if (typeof body.error === "string" && body.error) {
+    } else if (nonEmptyString(body.error)) {
       message = body.error;
     }
   } catch {
@@ -123,7 +161,7 @@ export function createSupabaseStorageClient(
   const authHeaders = {
     apikey: supabaseKey,
     Authorization: `Bearer ${supabaseKey}`
-  } satisfies Record<string, string>;
+  } satisfies RequestHeaders;
 
   return {
     storage: {
@@ -133,7 +171,7 @@ export function createSupabaseStorageClient(
 
         return {
           async upload(key, data, options = {}) {
-            const headers: Record<string, string> = { ...authHeaders };
+            const headers: RequestHeaders = { ...authHeaders };
             if (options.contentType) {
               headers["Content-Type"] = options.contentType;
             }
@@ -212,7 +250,7 @@ export function createSupabaseStorageClient(
             if (!response.ok) {
               return { data: null, error: await readError(response) };
             }
-            const data = (await response.json()) as SupabaseObjectEntry[];
+            const data: SupabaseObjectEntry[] = await response.json();
             return { data, error: null };
           },
 
@@ -228,7 +266,7 @@ export function createSupabaseStorageClient(
             if (!response.ok) {
               return { data: null, error: await readError(response) };
             }
-            const body = (await response.json()) as { signedURL?: string };
+            const body: SignResponseBody = await response.json();
             if (!body.signedURL) {
               return {
                 data: null,
@@ -249,7 +287,7 @@ export function createSupabaseStorageClient(
             if (!response.ok) {
               return { data: null, error: await readError(response) };
             }
-            const body = (await response.json()) as { url?: string };
+            const body: UploadSignResponseBody = await response.json();
             if (!body.url) {
               return {
                 data: null,

@@ -24,6 +24,16 @@ function isPlotType(plot: string): plot is keyof typeof PLOT_TYPE_CHARTS {
   return Object.hasOwn(PLOT_TYPE_CHARTS, plot);
 }
 
+/** @napi-rs/canvas declares its own `CanvasRenderingContext2D`, not `lib.dom`'s. */
+function asChartContext(
+  ctx: import("@napi-rs/canvas").SKRSContext2D | CanvasRenderingContext2D
+): CanvasRenderingContext2D {
+  // SAFETY: Chart.js only calls 2D drawing methods, which both contexts
+  // declare; the browser-only members it never touches (`canvas`,
+  // `getContextAttributes`) are what keep the two types apart.
+  return ctx as CanvasRenderingContext2D;
+}
+
 export class ChartRendererLibNode extends BaseNode {
   static readonly nodeType = "lib.charts.ChartRenderer";
   static readonly retrySafe = true;
@@ -255,11 +265,7 @@ export class ChartRendererLibNode extends BaseNode {
 
     let buffer: Buffer;
     try {
-      // Chart.js accepts any canvas-like context
-      // SAFETY: Chart.js only draws through the 2D context methods a skia
-      // canvas implements; the DOM `CanvasRenderingContext2D` it names carries
-      // browser-only members (`canvas: HTMLCanvasElement`) skia cannot have.
-      const chart = new Chart(ctx as unknown as CanvasRenderingContext2D, {
+      const chart = new Chart(asChartContext(ctx), {
         ...chartConfig,
         options: {
           ...chartConfig.options,

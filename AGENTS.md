@@ -385,13 +385,13 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 16,975 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 17,226 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-60 trees is 540 pairs, and 262 of them are already at zero — so a rule still
+60 trees is 540 pairs, and 269 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
 fifty-seven packages, and those fifty-seven are ratcheted today rather than
 after the last one lands. Seven rules are at zero everywhere and sit in the
@@ -450,15 +450,15 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7126 | 13 / 60 |
-| `no-unsafe-dictionary-type` | 4377 | 13 / 60 |
-| `no-unknown-parameters` | 1967 | 16 / 60 |
-| `no-module-mocking` | 1492 | 57 / 60 |
-| `no-known-value-widening` | 774 | 19 / 60 |
-| `no-runtime-typeof` | 582 | 23 / 60 |
-| `no-implicit-return-type` | 449 | 32 / 60 |
-| `no-unknown-returns` | 253 | 42 / 60 |
-| `no-chained-type-assertions` | 56 | 47 / 60 |
+| `require-safety-comment-for-type-assertion` | 7141 | 14 / 60 |
+| `no-unsafe-dictionary-type` | 4419 | 14 / 60 |
+| `no-unknown-parameters` | 2003 | 17 / 60 |
+| `no-module-mocking` | 1512 | 57 / 60 |
+| `no-known-value-widening` | 785 | 20 / 60 |
+| `no-runtime-typeof` | 599 | 24 / 60 |
+| `no-implicit-return-type` | 451 | 33 / 60 |
+| `no-unknown-returns` | 261 | 42 / 60 |
+| `no-chained-type-assertions` | 55 | 48 / 60 |
 
 The two columns rank differently, and that is the scheduling signal.
 `no-module-mocking` is 1,492 findings but zero in 57 of 60 trees: it is
@@ -466,11 +466,12 @@ concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Twelve trees are at zero on all nine rules:
+a boundary get named. Fourteen trees are at zero on all nine rules:
 `packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/config`,
-`packages/document-nodes`, `packages/kie-codegen`, `packages/model-pricing`,
-`packages/nodes-utils`, `packages/reve-nodes`, `packages/sdk`,
-`packages/security`, `packages/workflow-runner`.
+`packages/data-nodes`, `packages/document-nodes`, `packages/kie-codegen`,
+`packages/model-pricing`, `packages/nodes-utils`, `packages/reve-nodes`,
+`packages/sdk`, `packages/security`, `packages/storage`,
+`packages/workflow-runner`.
 
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps

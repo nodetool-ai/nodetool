@@ -6,7 +6,8 @@
 import type { AbstractStorage } from "./abstract-storage.js";
 import {
   createSupabaseStorageClient,
-  type SupabaseStorageApi
+  type SupabaseStorageApi,
+  type SupabaseUploadOptions
 } from "./supabase-rest.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 
@@ -40,7 +41,7 @@ export class SupabaseStorage implements AbstractStorage {
   ): Promise<void> {
     assertUploadWithinLimit(key, data.byteLength);
     const b = await this.bucket();
-    const options: { contentType?: string } = {};
+    const options: SupabaseUploadOptions = {};
     if (contentType) {
       options.contentType = contentType;
     }

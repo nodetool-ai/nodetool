@@ -46,7 +46,7 @@ export class FileStorage implements AbstractStorage {
       return await r.readBytes(rel);
     } catch (err) {
       if (
-        (err as { code?: string } | null)?.code === "ENOENT" ||
+        (err instanceof Error && "code" in err && err.code === "ENOENT") ||
         (err instanceof FsSafeError && err.code === "not-found")
       ) {
         throw new Error(`Key not found: ${key}`, { cause: err });

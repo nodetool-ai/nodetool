@@ -1,4 +1,4 @@
-import { FsSafeError, root, type Root } from "@openclaw/fs-safe";
+import { root, type Root } from "@openclaw/fs-safe";
 import { mkdirSync, realpathSync } from "node:fs";
 import {
   lstat,
@@ -138,9 +138,8 @@ export class FileStorageAdapter implements StorageAdapter {
     }
     try {
       return await r.readBytes(rel);
-    } catch (err) {
-      if (err instanceof FsSafeError) return null;
-      if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return null;
+    } catch {
+      // Missing, unreadable, or refused by fs-safe: all read as absent.
       return null;
     }
   }
@@ -296,9 +295,8 @@ export class FileStorageAdapter implements StorageAdapter {
     try {
       await unlink(abs);
       return true;
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return false;
-      if (err instanceof FsSafeError) return false;
+    } catch {
+      // Nothing was deleted, whatever the reason (missing file, EPERM, …).
       return false;
     }
   }

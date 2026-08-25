@@ -15,6 +15,24 @@ export interface SigV4Credentials {
   sessionToken?: string;
 }
 
+/** Header name → value. Names are canonicalized to lower case when signing. */
+export interface SigV4HeaderMap {
+  [name: string]: string;
+}
+
+/** Query parameter name → raw (unencoded) value. */
+export interface SigV4QueryMap {
+  [name: string]: string;
+}
+
+/** The two ISO8601 basic timestamps every SigV4 signature is scoped to. */
+export interface AmzTimestamps {
+  /** `20130524T000000Z` */
+  amzDate: string;
+  /** `20130524` */
+  dateStamp: string;
+}
+
 export const UNSIGNED_PAYLOAD = "UNSIGNED-PAYLOAD";
 
 /** SHA-256 of the empty payload — the hash for bodyless requests. */
@@ -50,7 +68,7 @@ export function encodeS3Path(path: string): string {
 }
 
 /** ISO8601 basic timestamps: `20130524T000000Z` and its date part. */
-export function toAmzDate(date: Date) {
+export function toAmzDate(date: Date): AmzTimestamps {
   const iso = date.toISOString(); // 2013-05-24T00:00:00.000Z
   const amzDate = `${iso.slice(0, 4)}${iso.slice(5, 7)}${iso.slice(8, 10)}T${iso.slice(11, 13)}${iso.slice(14, 16)}${iso.slice(17, 19)}Z`;
   return { amzDate, dateStamp: amzDate.slice(0, 8) };
@@ -58,7 +76,7 @@ export function toAmzDate(date: Date) {
 
 /** Sorted, strictly-encoded canonical query string. */
 export function canonicalQueryString(
-  query: Record<string, string> | Array<[string, string]>
+  query: SigV4QueryMap | Array<[string, string]>
 ): string {
   const pairs = Array.isArray(query) ? query : Object.entries(query);
   return pairs
@@ -91,10 +109,10 @@ export interface SignRequestInput {
   method: string;
   /** Canonical (already percent-encoded) path starting with `/`. */
   path: string;
-  query?: Record<string, string>;
+  query?: SigV4QueryMap;
   host: string;
   /** Extra headers to sign (e.g. content-type, x-amz-copy-source). */
-  headers?: Record<string, string>;
+  headers?: SigV4HeaderMap;
   /** Hex SHA-256 of the payload, or UNSIGNED-PAYLOAD. */
   payloadHash: string;
   region: string;
@@ -106,7 +124,7 @@ export interface SignRequestInput {
 
 export interface SignedRequest {
   /** All headers to send, including host, x-amz-* and Authorization. */
-  headers: Record<string, string>;
+  headers: SigV4HeaderMap;
   canonicalRequest: string;
   stringToSign: string;
   signature: string;
@@ -118,7 +136,7 @@ export function signRequest(input: SignRequestInput): SignedRequest {
   const { amzDate, dateStamp } = toAmzDate(input.date ?? new Date());
   const scope = `${dateStamp}/${input.region}/${service}/aws4_request`;
 
-  const headers: Record<string, string> = {
+  const headers: SigV4HeaderMap = {
     ...(input.headers ?? {}),
     host: input.host,
     "x-amz-content-sha256": input.payloadHash,
@@ -173,7 +191,7 @@ export interface PresignUrlInput {
   host: string;
   /** Canonical (already percent-encoded) path starting with `/`. */
   path: string;
-  query?: Record<string, string>;
+  query?: SigV4QueryMap;
   region: string;
   service?: string;
   credentials: SigV4Credentials;
@@ -190,7 +208,7 @@ export function presignUrl(input: PresignUrlInput): string {
   const { amzDate, dateStamp } = toAmzDate(input.date ?? new Date());
   const scope = `${dateStamp}/${input.region}/${service}/aws4_request`;
 
-  const query: Record<string, string> = {
+  const query: SigV4QueryMap = {
     ...(input.query ?? {}),
     "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
     "X-Amz-Credential": `${input.credentials.accessKeyId}/${scope}`,

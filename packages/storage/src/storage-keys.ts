@@ -55,13 +55,19 @@ export function joinStorageKey(
  */
 export const RESERVED_KEY_PREFIXES = ["temp", "assets"] as const;
 
+function isReservedKeyPrefix(
+  value: string
+): value is (typeof RESERVED_KEY_PREFIXES)[number] {
+  return RESERVED_KEY_PREFIXES.some((prefix) => prefix === value);
+}
+
 /** Owner-prefixed key for an asset object. */
 export function assetObjectKey(userId: string, fileName: string): string {
   if (!userId) throw new Error("userId is required for an asset storage key");
   if (userId.includes("/") || userId.includes("\\")) {
     throw new Error(`Invalid userId for a storage key: ${userId}`);
   }
-  if ((RESERVED_KEY_PREFIXES as readonly string[]).includes(userId)) {
+  if (isReservedKeyPrefix(userId)) {
     throw new Error(
       `Invalid userId for a storage key: "${userId}" is a reserved prefix`
     );

@@ -50,14 +50,17 @@ function fromEnv(
   return credentials;
 }
 
+/** Profile name → its lower-cased keys, as read from an AWS INI file. */
+export interface IniProfiles {
+  [profile: string]: Record<string, string>;
+}
+
 /**
  * Minimal INI parser for the AWS shared credentials file: `[section]`
  * headers, `key = value` lines, `#`/`;` comments.
  */
-export function parseIniProfiles(
-  text: string
-) {
-  const profiles: Record<string, Record<string, string>> = {};
+export function parseIniProfiles(text: string): IniProfiles {
+  const profiles: IniProfiles = {};
   let current: Record<string, string> | null = null;
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -146,17 +149,15 @@ export function cacheCredentials(
     ) {
       return cached;
     }
-    pending ??= provider().then(
-      (creds) => {
+    pending ??= provider()
+      .then((creds) => {
         cached = creds;
-        pending = null;
         return creds;
-      },
-      (err: unknown) => {
+      })
+      // Clear the in-flight slot on both paths, so a failure is retried.
+      .finally(() => {
         pending = null;
-        throw err;
-      }
-    );
+      });
     return pending;
   };
 }
