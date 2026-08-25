@@ -179,7 +179,7 @@ workflow it binds — and import it anywhere.
 
 ### Storyboard — plan a film shot by shot before you pay for video
 
-![NodeTool storyboard](marketing/public/screen_storyboard.png)
+![NodeTool storyboard](marketing/public/surface-storyboard-poster.webp)
 
 Write a brief and a visual style, pick a shot count, and press **Direct**: the
 Director node returns a typed screenplay — logline, style bible, narration,
@@ -206,7 +206,7 @@ with `render_storyboard_stills`, `render_storyboard_clips`, and
 
 ### Script editor — narration as a document, audio derived from it
 
-![NodeTool script editor — the transcript panel beside the sequence it assembles into](.github/assets/creative-agent/assembled-timeline.png)
+![NodeTool script editor — the transcript panel beside the sequence it assembles into](marketing/public/surface-script-poster.webp)
 
 A script lives on its own, line by line and section by section, and the text is
 the source of truth.
