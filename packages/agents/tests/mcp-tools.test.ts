@@ -1277,6 +1277,25 @@ describe("get_job", () => {
     expect(result.status).toBe("completed");
   });
 
+  // A failed job's own failure message is payload, not a tool failure: a bare
+  // `error` string at the root made the CodeAct bridge throw and discard the
+  // rest of the record.
+  it("carries a failed job's message under job_error, not error", async () => {
+    const job = (await Job.create({
+      workflow_id: "wf-1",
+      user_id: USER,
+      status: "failed",
+      error: "Node \"x\" failed: boom"
+    })) as Job;
+    const result = (await tool.process(ctx, { job_id: job.id })) as Record<
+      string,
+      unknown
+    >;
+    expect(result["status"]).toBe("failed");
+    expect(result["job_error"]).toBe('Node "x" failed: boom');
+    expect(Object.prototype.hasOwnProperty.call(result, "error")).toBe(false);
+  });
+
   it("reports a job that is not the caller's", async () => {
     const result = (await tool.process(ctx, {
       job_id: "job-123"
@@ -1307,6 +1326,26 @@ describe("get_job_logs", () => {
         logs: [{ message: "two" }, { message: "three" }]
       }
     );
+  });
+
+  // The call succeeded even though the job did not — a root-level `error`
+  // string made every failed job's logs unreadable through the sandbox bridge.
+  it("answers a failed job's logs with the failure under job_error", async () => {
+    const job = (await Job.create({
+      workflow_id: "wf-1",
+      user_id: USER,
+      status: "failed",
+      error: "AtlasCloud job failed: request body field <image> is required",
+      logs: [{ message: "submitting" }]
+    })) as Job;
+    const result = (await tool.process(ctx, { job_id: job.id })) as Record<
+      string,
+      unknown
+    >;
+    expect(result["status"]).toBe("failed");
+    expect(result["job_error"]).toContain("AtlasCloud");
+    expect(result["logs"]).toEqual([{ message: "submitting" }]);
+    expect(Object.prototype.hasOwnProperty.call(result, "error")).toBe(false);
   });
 
   it("userMessage includes job_id", () => {
