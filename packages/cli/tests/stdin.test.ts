@@ -101,6 +101,9 @@ vi.mock("@nodetool-ai/agents", () => ({
   // The delegation tools reach the belt as capabilities now; the CLI names
   // them, so the mock answers by name.
   UNGATED: { mode: "auto", sessionAllow: new Set<string>() },
+  // stdin.ts constructs one registry per turn and hands it to the runtime;
+  // nothing in these tests reads it.
+  BackgroundSubtaskRegistry: class {},
   // A representative belt: one core tool (goes top level beside
   // `execute_code`), one sandbox-only tool, and `view_image` — the one channel
   // that puts pixels in front of the model, which the turn appends only when
