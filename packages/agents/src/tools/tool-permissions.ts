@@ -100,10 +100,13 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_model3ds: "read",
   get_model3d: "read",
   // The ingredients library: reading entities and seasoning a prompt with
-  // their descriptors touches nothing.
+  // their descriptors touches nothing. Tagging or retagging one writes the
+  // entity marker onto a local asset, so those are `write`.
   list_entities: "read",
   get_entity: "read",
   apply_entities: "read",
+  create_entity: "write",
+  update_entity: "write",
   validate_js_script: "read",
   list_js_scripts: "read",
   get_js_script: "read",
