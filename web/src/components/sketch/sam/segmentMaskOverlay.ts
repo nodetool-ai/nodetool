@@ -30,13 +30,11 @@ const MASK_OUTLINE_COLORS = [
   "rgba(255, 80, 180, 0.8)"
 ];
 
-/** Get overlay color for a given mask index. */
-export function getMaskOverlayColor(maskIndex: number): string {
+function getMaskOverlayColor(maskIndex: number): string {
   return MASK_OVERLAY_COLORS[maskIndex % MASK_OVERLAY_COLORS.length];
 }
 
-/** Get outline color for a given mask index. */
-export function getMaskOutlineColor(maskIndex: number): string {
+function getMaskOutlineColor(maskIndex: number): string {
   return MASK_OUTLINE_COLORS[maskIndex % MASK_OUTLINE_COLORS.length];
 }
 

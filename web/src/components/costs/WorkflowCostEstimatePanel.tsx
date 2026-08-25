@@ -53,7 +53,7 @@ const plural = (unit: string, count: number): string =>
  * resolution rung it was priced at — "2 × 5 s @ 720p", "4 images". Falls back
  * to the bare count when the item carries nothing else.
  */
-export function formatUnits(item: NodeCostEstimate): string {
+function formatUnits(item: NodeCostEstimate): string {
   const quantity = item.quantity;
   const seconds = secondsFromBreakdown(item.breakdown);
   const resolution = resolutionFromBreakdown(item.breakdown);

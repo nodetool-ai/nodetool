@@ -38,7 +38,7 @@ function cloneHistoryValue<T>(value: T): T {
  * backward through delta entries to find the most recent snapshot.
  * Returns `null` if no snapshot is found (new/empty layer).
  */
-export function resolveLayerData(
+function resolveLayerData(
   history: HistoryEntry[],
   upToIndex: number,
   layerId: string

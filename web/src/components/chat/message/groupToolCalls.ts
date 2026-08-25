@@ -11,7 +11,7 @@ import { formatToolName } from "../../../utils/formatUtils";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 /** Tools that never collapse — each call is a distinct unit of work. */
-export const UNGROUPABLE_TOOL_NAMES = new Set([
+const UNGROUPABLE_TOOL_NAMES = new Set([
   "execute_code",
   "run_subtask",
   "run_search",
@@ -20,7 +20,7 @@ export const UNGROUPABLE_TOOL_NAMES = new Set([
 ]);
 
 /** Minimum consecutive same-name calls before a run becomes a group. */
-export const TOOL_CALL_GROUP_THRESHOLD = 2;
+const TOOL_CALL_GROUP_THRESHOLD = 2;
 
 const DISTINCTIVE_ARG_KEYS = [
   "query",
@@ -39,7 +39,7 @@ export type ToolCallRun =
   | { kind: "single"; call: ToolCall }
   | { kind: "group"; name: string; calls: ToolCall[] };
 
-export function isGroupableToolName(name: string | null | undefined): boolean {
+function isGroupableToolName(name: string | null | undefined): boolean {
   if (!name) {
     return false;
   }

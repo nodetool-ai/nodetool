@@ -23,7 +23,7 @@ import { assetTabType } from "../components/workspace/assetTabType";
 import type { WorkspaceTabType } from "../stores/WorkspaceTabsStore";
 
 /** How many assets the dashboard reads from the user's home folder. */
-export const DASHBOARD_ASSET_PAGE_SIZE = 200;
+const DASHBOARD_ASSET_PAGE_SIZE = 200;
 
 const STALE_TIME = 30_000;
 

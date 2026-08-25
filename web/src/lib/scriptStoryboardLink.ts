@@ -35,7 +35,7 @@ import type { ScriptDraft } from "../stores/script/ScriptStore";
  * store mutates `shots` and leaves `screenplay.shots` as the Director wrote it,
  * so every link read must go through here.
  */
-export const liveScreenplay = (board: StoryboardBoard): Screenplay | null =>
+const liveScreenplay = (board: StoryboardBoard): Screenplay | null =>
   board.screenplay ? { ...board.screenplay, shots: board.shots } : null;
 
 /** The script this board's words come from, or null when it is unlinked. */

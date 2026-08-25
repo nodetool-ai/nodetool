@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { StorageRetentionPolicy } from "@nodetool-ai/protocol/api-schemas/settings.js";
 import { trpcClient } from "../trpc/client";
 
-export const storageHistoryQueryKey = ["settings", "storage-history"] as const;
+const storageHistoryQueryKey = ["settings", "storage-history"] as const;
 
 export function useStorageHistory() {
   const queryClient = useQueryClient();

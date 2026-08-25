@@ -2,7 +2,7 @@
  * Media provider calls that ChatUI should surface while they run.
  * Judge / embed / ASR / chat-model predictions stay silent.
  */
-export const MEDIA_PREDICTION_CAPABILITIES = new Set<string>([
+const MEDIA_PREDICTION_CAPABILITIES = new Set<string>([
   "text_to_image",
   "image_to_image",
   "text_to_video",

@@ -38,7 +38,7 @@ const PROVIDER_LABEL = "Telegram";
 /** How often the pending state re-reads the link list while it waits. */
 const PENDING_POLL_MS = 3000;
 
-export const CONNECTED_ACCOUNTS_QUERY_KEY = ["integrations", "list"] as const;
+const CONNECTED_ACCOUNTS_QUERY_KEY = ["integrations", "list"] as const;
 
 interface PendingCode {
   code: string;

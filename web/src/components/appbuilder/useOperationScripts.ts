@@ -14,7 +14,7 @@ import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scri
 
 import { trpcClient } from "../../trpc/client";
 
-export const operationScriptIds = (
+const operationScriptIds = (
   operations: ReadonlyArray<OperationBinding>
 ): string[] => {
   const ids = new Set<string>();
