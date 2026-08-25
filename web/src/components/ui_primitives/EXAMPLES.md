@@ -482,12 +482,11 @@ export const SimpleProperty: React.FC<SimplePropertyProps> = ({
 
 ### Example 2: Number Range Property
 
-A numeric property with a slider using NodeNumberInput and NodeSlider:
+A numeric property using NodeSlider:
 
 ```tsx
 import React from "react";
 import { 
-  NodeNumberInput, 
   NodeSlider, 
   EditorUiProvider 
 } from "../ui_primitives";
@@ -517,17 +516,6 @@ export const RangeProperty: React.FC<RangePropertyProps> = ({
       <div className="range-property">
         <PropertyLabel name={name} id={`range-${name}`} />
         
-        {/* Number input for precise control */}
-        <NodeNumberInput
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          min={min}
-          max={max}
-          step={1}
-          changed={hasChanged}
-        />
-        
-        {/* Slider for visual feedback */}
         <NodeSlider
           value={value}
           onChange={(_, val) => onChange(val as number)}
@@ -543,12 +531,12 @@ export const RangeProperty: React.FC<RangePropertyProps> = ({
 
 ### Example 3: Select with Options
 
-A select dropdown using NodeSelectPrimitive and NodeMenuItem:
+A select dropdown using NodeSelect and NodeMenuItem:
 
 ```tsx
 import React from "react";
 import { 
-  NodeSelectPrimitive, 
+  NodeSelect, 
   NodeMenuItem, 
   EditorUiProvider 
 } from "../ui_primitives";
@@ -580,7 +568,7 @@ export const SelectProperty: React.FC<SelectPropertyProps> = ({
     <EditorUiProvider scope="node">
       <div className="select-property">
         <PropertyLabel name={name} id={`select-${name}`} />
-        <NodeSelectPrimitive
+        <NodeSelect
           value={value}
           onChange={(e) => onChange(e.target.value as string)}
           changed={hasChanged}
@@ -590,7 +578,7 @@ export const SelectProperty: React.FC<SelectPropertyProps> = ({
               {option.label}
             </NodeMenuItem>
           ))}
-        </NodeSelectPrimitive>
+        </NodeSelect>
       </div>
     </EditorUiProvider>
   );
@@ -605,9 +593,8 @@ A form combining multiple primitives with consistent styling:
 import React, { useState } from "react";
 import { 
   NodeTextField, 
-  NodeNumberInput,
   NodeSwitch,
-  NodeSelectPrimitive,
+  NodeSelect,
   NodeMenuItem,
   EditorButton,
   EditorUiProvider 
@@ -615,7 +602,6 @@ import {
 
 interface FormData {
   name: string;
-  age: number;
   enabled: boolean;
   role: string;
 }
@@ -623,14 +609,12 @@ interface FormData {
 export const MultiFieldForm: React.FC = () => {
   const [data, setData] = useState<FormData>({
     name: "",
-    age: 0,
     enabled: true,
     role: "user"
   });
 
   const [defaults] = useState<FormData>({
     name: "",
-    age: 0,
     enabled: false,
     role: "user"
   });
@@ -653,18 +637,6 @@ export const MultiFieldForm: React.FC = () => {
           />
         </div>
 
-        {/* Number input */}
-        <div className="form-field">
-          <label>Age</label>
-          <NodeNumberInput
-            value={data.age}
-            onChange={(e) => setData({ ...data, age: Number(e.target.value) })}
-            min={0}
-            max={120}
-            changed={data.age !== defaults.age}
-          />
-        </div>
-
         {/* Switch */}
         <div className="form-field">
           <label>Enabled</label>
@@ -678,7 +650,7 @@ export const MultiFieldForm: React.FC = () => {
         {/* Select */}
         <div className="form-field">
           <label>Role</label>
-          <NodeSelectPrimitive
+          <NodeSelect
             value={data.role}
             onChange={(e) => setData({ ...data, role: e.target.value as string })}
             changed={data.role !== defaults.role}
@@ -686,7 +658,7 @@ export const MultiFieldForm: React.FC = () => {
             <NodeMenuItem value="user">User</NodeMenuItem>
             <NodeMenuItem value="admin">Admin</NodeMenuItem>
             <NodeMenuItem value="guest">Guest</NodeMenuItem>
-          </NodeSelectPrimitive>
+          </NodeSelect>
         </div>
 
         {/* Submit button */}
@@ -1017,7 +989,7 @@ When migrating existing components to use primitives:
 1. **Replace raw MUI components**
    - `TextField` → `NodeTextField`
    - `Switch` → `NodeSwitch`
-   - `Select` → `NodeSelectPrimitive`
+   - `Select` → `NodeSelect`
    - `MenuItem` → `NodeMenuItem`
    - `Slider` → `NodeSlider`
 

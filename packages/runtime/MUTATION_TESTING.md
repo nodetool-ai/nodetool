@@ -14,8 +14,7 @@ the run if test quality regresses.
 ## Running it
 
 ```bash
-npm run test:mutation --workspace=packages/runtime
-# or, from packages/runtime:
+# from packages/runtime:
 npx stryker run
 ```
 
@@ -40,9 +39,7 @@ npx stryker run -m "src/providers/base-provider.ts"
 
 ### Next modules to harden (highest blast radius first)
 
-1. **`providers/provider-registry.ts`** — credential resolution order
-   (secret → env → default) and the configured-check predicate.
-2. **`providers/base-provider.ts`** — the terminal `{ done: true }` chunk emitted
+1. **`providers/base-provider.ts`** — the terminal `{ done: true }` chunk emitted
    for *every* stream-termination reason, and usage-token accounting.
 
 ## Current status
@@ -64,6 +61,26 @@ Modules at **100%** (in the gated `mutate` set):
 - `providers/manifest-models.ts`
 - `agent-memory.ts`
 - `trace-exporters.ts`
+- `python-worker-stderr.ts`
+- `python-bridge-factory.ts`
+- `providers/alibaba-provider.ts`
+- `providers/cerebras-provider.ts`
+- `providers/gmi-provider.ts`
+- `providers/groq-provider.ts`
+- `providers/xai-provider.ts`
+- `providers/deepseek-provider.ts`
+- `providers/moonshot-provider.ts`
+- `providers/mistral-provider.ts`
+- `providers/lmstudio-provider.ts`
+- `providers/vllm-provider.ts`
+- `providers/openrouter-provider.ts`
+- `providers/aki-provider.ts`
+- `providers/cohere-provider.ts`
+- `providers/jina-provider.ts`
+- `providers/voyage-provider.ts`
+- `providers/reve-provider.ts`
+- `providers/meshy-provider.ts`
+- `providers/rodin-provider.ts`
 
 The config gate (`stryker.config.json`) **breaks below 100%** on this set.
 

@@ -34,9 +34,8 @@ The UI primitives provide:
 ### Input Controls
 
 - **NodeTextField** - Text input field with semantic props
-- **NodeNumberInput** - Number input field with min/max/step support
 - **NodeSwitch** - Boolean toggle switch
-- **NodeSelect** / **NodeSelectPrimitive** - Dropdown select with options
+- **NodeSelect** - Dropdown select with options
 - **NodeMenuItem** - Menu item for use with NodeSelect
 - **NodeSlider** - Range slider with visual feedback
 
@@ -187,9 +186,8 @@ import { Text, Label, Caption } from "../ui_primitives";
 ```tsx
 import {
   NodeTextField,
-  NodeNumberInput,
   NodeSwitch,
-  NodeSelectPrimitive,
+  NodeSelect,
   NodeMenuItem,
   NodeSlider,
   EditorButton
@@ -204,16 +202,6 @@ import {
   multiline
 />
 
-// Number input with bounds
-<NodeNumberInput
-  value={count}
-  onChange={(e) => onChange(Number(e.target.value))}
-  min={0}
-  max={100}
-  step={1}
-  changed={hasChanged}
-/>
-
 // Boolean switch
 <NodeSwitch
   checked={isEnabled}
@@ -222,14 +210,14 @@ import {
 />
 
 // Select dropdown
-<NodeSelectPrimitive
+<NodeSelect
   value={selected}
   onChange={(e) => onChange(e.target.value)}
   changed={hasChanged}
 >
   <NodeMenuItem value="opt1">Option 1</NodeMenuItem>
   <NodeMenuItem value="opt2">Option 2</NodeMenuItem>
-</NodeSelectPrimitive>
+</NodeSelect>
 
 // Slider
 <NodeSlider
@@ -369,7 +357,6 @@ Each primitive is self-contained and can be used interchangeably:
 ```tsx
 // Can swap implementations without changing parent
 <NodeTextField {...commonProps} />
-<NodeNumberInput {...commonProps} />
 <NodeSelect {...commonProps} />
 ```
 
@@ -404,16 +391,24 @@ const fontSize = scope === "inspector"
 
 ## File Structure
 
+One file per primitive, plus the shared token and utility modules. An excerpt:
+
 ```
 ui_primitives/
-├── index.ts                    # Re-exports all primitives and utilities
-├── NodeTextField.tsx           # (via editor_ui) Text input primitive
-├── NodeNumberInput.tsx         # Number input primitive
-├── NodeSwitch.tsx              # (via editor_ui) Switch primitive
-├── NodeSelectPrimitive.tsx     # Select and MenuItem primitives
+├── index.ts                    # Re-exports every primitive and utility
 ├── NodeSlider.tsx              # Slider primitive
-├── EditorButton.tsx            # (via editor_ui) Button primitive
+├── TextInput.tsx               # Standalone text input
+├── SelectField.tsx             # Standalone select
+├── tokens.ts                   # TYPOGRAPHY, MOTION, Z_INDEX, BORDER_RADIUS
+├── spacing.ts                  # SPACING, GAP, PADDING, MARGIN
+├── …                           # one file per remaining primitive
 └── README.md                   # This file
+
+editor_ui/                      # Re-exported through ui_primitives/index.ts
+├── NodeTextField.tsx           # Text input primitive
+├── NodeSwitch.tsx              # Switch primitive
+├── NodeSelect.tsx              # NodeSelect and NodeMenuItem
+└── EditorButton.tsx            # Button primitive
 ```
 
 ## Migration Guide
