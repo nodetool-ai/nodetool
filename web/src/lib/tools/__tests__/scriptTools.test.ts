@@ -177,11 +177,15 @@ describe("ui_script_* tools", () => {
       ctx
     )) as { ok: boolean; speaker: ScriptSpeakerNode };
 
-    expect(handler.addSpeaker).toHaveBeenCalledWith("Host", {
-      provider: "elevenlabs",
-      model: "eleven_v3",
-      voice: "rachel"
-    });
+    expect(handler.addSpeaker).toHaveBeenCalledWith(
+      "Host",
+      {
+        provider: "elevenlabs",
+        model: "eleven_v3",
+        voice: "rachel"
+      },
+      null
+    );
     expect(result.speaker.name).toBe("Host");
   });
 
