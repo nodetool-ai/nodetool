@@ -35,6 +35,7 @@ beforeEach(() => {
       removeDownload: originalDownloadState.removeDownload,
       startDownload: originalDownloadState.startDownload,
       cancelDownload: originalDownloadState.cancelDownload,
+      cancelAndRemoveDownload: originalDownloadState.cancelAndRemoveDownload,
       openDialog: originalDownloadState.openDialog,
       closeDialog: originalDownloadState.closeDialog
     },
@@ -226,8 +227,94 @@ describe("ModelDownloadStore", () => {
       expect(invalidateQueries).toHaveBeenCalledWith({
         queryKey: ["tts-models"]
       });
+      // A worker-scoped download lands on the worker volume; the worker
+      // cache list (prefix key, any worker id) must refresh too.
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["worker-cached-models"]
+      });
     } finally {
       global.WebSocket = originalWebSocket;
     }
+  });
+
+  describe("cancelDownload", () => {
+    test("returns true and marks cancelled when the server is reachable", async () => {
+      const sendMock = jest.fn();
+      const mockWs = stub<WebSocket>({
+        send: sendMock,
+        readyState: WebSocket.OPEN
+      });
+      useModelDownloadStore.setState(
+        { connectWebSocket: jest.fn().mockResolvedValue(mockWs) },
+        false
+      );
+      useModelDownloadStore.getState().addDownload("org/m");
+
+      await expect(
+        useModelDownloadStore.getState().cancelDownload("org/m")
+      ).resolves.toBe(true);
+
+      expect(sendMock).toHaveBeenCalledWith(
+        JSON.stringify({ command: "cancel_download", id: "org/m" })
+      );
+      expect(
+        useModelDownloadStore.getState().downloads["org/m"]?.status
+      ).toBe("cancelled");
+    });
+
+    test("returns false and keeps the row when the server is unreachable", async () => {
+      useModelDownloadStore.setState(
+        { connectWebSocket: jest.fn().mockRejectedValue(new Error("down")) },
+        false
+      );
+      useModelDownloadStore.getState().addDownload("org/m");
+
+      await expect(
+        useModelDownloadStore.getState().cancelDownload("org/m")
+      ).resolves.toBe(false);
+
+      const download = useModelDownloadStore.getState().downloads["org/m"];
+      expect(download?.status).toBe("cancelled");
+      expect(download?.message).toMatch(/Could not reach server/);
+    });
+  });
+
+  describe("cancelAndRemoveDownload", () => {
+    test("removes the entry after a successful cancel", async () => {
+      const mockWs = stub<WebSocket>({
+        send: jest.fn(),
+        readyState: WebSocket.OPEN
+      });
+      useModelDownloadStore.setState(
+        { connectWebSocket: jest.fn().mockResolvedValue(mockWs) },
+        false
+      );
+      useModelDownloadStore.getState().addDownload("org/m");
+
+      await expect(
+        useModelDownloadStore.getState().cancelAndRemoveDownload("org/m")
+      ).resolves.toBe(true);
+
+      expect(
+        useModelDownloadStore.getState().downloads["org/m"]
+      ).toBeUndefined();
+    });
+
+    test("keeps the cancelled entry when cancel fails", async () => {
+      useModelDownloadStore.setState(
+        { connectWebSocket: jest.fn().mockRejectedValue(new Error("down")) },
+        false
+      );
+      useModelDownloadStore.getState().addDownload("org/m");
+
+      await expect(
+        useModelDownloadStore.getState().cancelAndRemoveDownload("org/m")
+      ).resolves.toBe(false);
+
+      // The download is still out there; dropping the row would hide it.
+      expect(
+        useModelDownloadStore.getState().downloads["org/m"]?.status
+      ).toBe("cancelled");
+    });
   });
 });

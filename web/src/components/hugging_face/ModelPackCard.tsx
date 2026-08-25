@@ -31,6 +31,8 @@ import {
   canCheckHfCache,
   getHfCacheKey
 } from "../../utils/hfCache";
+import { Tooltip } from "../ui_primitives";
+import { useModelDownloadTarget } from "../../hooks/useModelDownloadTarget";
 
 interface ModelPackCardProps {
   pack: ModelPack;
@@ -71,6 +73,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
       ensureStatuses: state.ensureStatuses
     }))
   );
+  const downloadTarget = useModelDownloadTarget();
 
   const activeDownloads = useMemo(
     () => pack.models.filter((model) => activeDownloadSet.has(model.id)),
@@ -224,23 +227,31 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
       </Box>
 
       <FlexRow align="center" justify="space-between" sx={{ px: 2, pb: 2, pt: 0 }}>
-        <EditorButton
-          variant={allDownloaded ? "outlined" : "contained"}
-          size="small"
-          startIcon={allDownloaded ? <CheckCircleIcon /> : <DownloadIcon />}
-          onClick={handleDownloadAll}
-          disabled={allDownloaded || isDownloading}
-          sx={{
-            textTransform: "none",
-            fontWeight: 600
-          }}
+        <Tooltip
+          title={
+            pack.total_size
+              ? `Download ${formatBytes(pack.total_size)} to ${downloadTarget.label}`
+              : `Downloads to ${downloadTarget.label}`
+          }
         >
-          {allDownloaded
-            ? "All Downloaded"
-            : someDownloaded
-              ? `Download ${pack.models.length - downloadedModels.size} Remaining`
-              : "Download All"}
-        </EditorButton>
+          <EditorButton
+            variant={allDownloaded ? "outlined" : "contained"}
+            size="small"
+            startIcon={allDownloaded ? <CheckCircleIcon /> : <DownloadIcon />}
+            onClick={handleDownloadAll}
+            disabled={allDownloaded || isDownloading}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600
+            }}
+          >
+            {allDownloaded
+              ? "All Downloaded"
+              : someDownloaded
+                ? `Download ${pack.models.length - downloadedModels.size} Remaining`
+                : "Download All"}
+          </EditorButton>
+        </Tooltip>
 
         <ToolbarIconButton
           icon={<ExpandMoreIcon />}

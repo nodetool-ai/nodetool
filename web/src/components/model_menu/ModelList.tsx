@@ -10,6 +10,7 @@ import {
   EmptyState,
   Box,
   Text,
+  Caption,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
@@ -163,6 +164,11 @@ interface ModelListProps<TModel extends ModelSelectorModel> {
    * star. Omitted for pickers with no per-modality default (e.g. raw HF).
    */
   modelType?: string;
+  /**
+   * Human-readable download destination (worker name or "this computer"),
+   * shown on the download section header and each download button.
+   */
+  downloadTargetLabel?: string;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
@@ -174,7 +180,8 @@ function ModelList<TModel extends ModelSelectorModel>({
   downloadModels = [],
   onDownloadSelect,
   onDownloadStart,
-  modelType
+  modelType,
+  downloadTargetLabel
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const getAvailability = useModelAvailability();
@@ -403,6 +410,7 @@ function ModelList<TModel extends ModelSelectorModel>({
           <div style={style}>
             <FlexRow
               align="flex-end"
+              justify="space-between"
               sx={{
                 px: 1.5,
                 pt: 1.5,
@@ -421,6 +429,21 @@ function ModelList<TModel extends ModelSelectorModel>({
               >
                 Available to download
               </Text>
+              {downloadTargetLabel && (
+                <Tooltip
+                  title={`Downloads land on ${downloadTargetLabel} — where models run in this session.`}
+                >
+                  <Caption
+                    sx={{
+                      fontSize: "var(--fontSizeSmaller)",
+                      color: "text.secondary",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    → {downloadTargetLabel}
+                  </Caption>
+                </Tooltip>
+              )}
             </FlexRow>
           </div>
         );
@@ -432,11 +455,12 @@ function ModelList<TModel extends ModelSelectorModel>({
           checking={row.model.checking}
           onSelect={() => onDownloadSelect?.(row.model)}
           onDownload={() => onDownloadStart?.(row.model)}
+          targetLabel={downloadTargetLabel}
           style={style}
         />
       );
     },
-    [flatRows, renderRow, onDownloadSelect, onDownloadStart]
+    [flatRows, renderRow, onDownloadSelect, onDownloadStart, downloadTargetLabel]
   );
 
   return (

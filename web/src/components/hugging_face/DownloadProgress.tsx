@@ -110,24 +110,36 @@ export const DownloadProgress: React.FC<{
   minimal?: boolean;
 }> = memo(({ name, minimal }) => {
   const download = useModelDownloadStore((state) => state.downloads[name]);
-  const { cancelDownload, removeDownload, wsConnectionState, reconnectWebSocket } =
-    useModelDownloadStore(
-      useShallow((state) => ({
-        cancelDownload: state.cancelDownload,
-        removeDownload: state.removeDownload,
-        wsConnectionState: state.wsConnectionState,
-        reconnectWebSocket: state.reconnectWebSocket
-      }))
-    );
+  const {
+    cancelDownload,
+    cancelAndRemoveDownload,
+    removeDownload,
+    wsConnectionState,
+    reconnectWebSocket
+  } = useModelDownloadStore(
+    useShallow((state) => ({
+      cancelDownload: state.cancelDownload,
+      cancelAndRemoveDownload: state.cancelAndRemoveDownload,
+      removeDownload: state.removeDownload,
+      wsConnectionState: state.wsConnectionState,
+      reconnectWebSocket: state.reconnectWebSocket
+    }))
+  );
   const isDisconnected = wsConnectionState === "disconnected";
   const isReconnecting = wsConnectionState === "connecting";
 
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
+  // The card keeps the cancelled entry visible so the manager can show what
+  // happened; the inline row dismisses itself instead.
   const handleCancelDownload = useCallback(() => {
-    cancelDownload(name);
+    void cancelDownload(name);
   }, [name, cancelDownload]);
+
+  const handleCancelAndDismiss = useCallback(() => {
+    void cancelAndRemoveDownload(name);
+  }, [name, cancelAndRemoveDownload]);
 
   const [now, setNow] = useState(Date.now());
 
@@ -135,6 +147,10 @@ export const DownloadProgress: React.FC<{
     download.status === "running" ||
     download.status === "progress" ||
     download.status === "start";
+
+  // A pending download is only queued, but it is cancellable all the same.
+  const canCancel =
+    isActive || download.status === "pending";
 
   useEffect(() => {
     if (!isActive) return;
@@ -240,6 +256,8 @@ export const DownloadProgress: React.FC<{
         ? "Done"
         : download.status === "error"
         ? "Error"
+        : download.status === "cancelled"
+        ? "Cancelled"
         : totalBytes > 0
         ? `${percent.toFixed(0)}%`
         : "…";
@@ -281,6 +299,15 @@ export const DownloadProgress: React.FC<{
               </Caption>
             )}
           </FlexRow>
+          {canCancel && (
+            <CloseButton
+              onClick={handleCancelAndDismiss}
+              buttonSize="small"
+              tooltip="Cancel download"
+              nodrag={false}
+              sx={{ flexShrink: 0 }}
+            />
+          )}
         </FlexRow>
       </Tooltip>
     );
