@@ -60,6 +60,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/examples`      | `GET`             | none                                           | no                          | The shipped example apps — slug, name, description, workflow names, operation count |
 | Apps      | `/api/applications/examples/{slug}` | `GET`           | none                                           | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
 | Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Depends on `AUTH_PROVIDER`                     | no                          | Install an example into the caller's library, creating the workflows it binds |
+| Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Depends on `AUTH_PROVIDER`                     | no                          | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
 | Providers | `/api/fal/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/fal/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
 | Providers | `/api/fal/pricing/estimate`       | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | What a fal.ai endpoint costs for a given quantity; `204` when no `FAL_API_KEY` is configured |
@@ -1234,6 +1235,65 @@ which answer you want to handle. `released-document` calls it a `200` with a
 
 An id the caller does not own is also a `404`. The CLI wraps the same call as
 `nodetool apps export-bundle <id> [-o file] [--released]`.
+
+### Exporting a Storyboard as a Zip
+
+The web app reads and writes boards over `/trpc/storyboards.*`. `GET
+/api/storyboards/{id}/export-zip` is the one non-tRPC door, because the body is
+a binary archive rather than JSON. Reach for it to hand a board to someone
+without a NodeTool account — a director, a client, a review thread.
+
+```bash
+curl "http://localhost:7777/api/storyboards/<storyboard_id>/export-zip" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -O -J
+```
+
+The response is `application/zip` with `cache-control: no-store` and a
+`content-disposition` built from the board's name, with each run of characters
+outside `A-Za-z0-9._-` replaced by a single `_` — a board named
+`First Light — Travel Teaser` becomes `attachment;
+filename="First_Light_Travel_Teaser.zip"` — so `curl -OJ` writes it under that
+name. Inside:
+
+```
+storyboard.md                      the board, shot by shot, linking its media
+stills/01-dunes-before-sunrise.png the selected keyframe per shot
+clips/01-dunes-before-sunrise.mp4  the selected clip per shot
+```
+
+Media file names are `<two-digit shot number><-slug>.<ext>`, where the slug is
+the shot's own `slug` (or its action text) lowercased and hyphenated to 40
+characters. The extension comes from the stored path; when the path carries
+none it falls back to the ref's type, and then to `.bin`.
+
+`storyboard.md` opens with the board title, then a bullet for each of logline,
+brief, style, aspect ratio, and music prompt the board has set, always a shot
+count, and the narration when there is one. Each shot follows under a level-two
+heading — its number, then its slug or the first line of its action — with the
+still embedded when one was packed, the action text, and a bullet for each of
+camera, motion, dialogue, narration, duration, status, and notes it carries,
+plus a link to its clip.
+
+A shot's media is resolved server-side from `asset://`, a `/api/storage/` path,
+an `https://` URL, or an inline `data:` URI — and only those. A ref in any other
+form is not fatal: the shot keeps its text and the Markdown carries the reason
+where the media would have been.
+
+```markdown
+- **Missing clip:** `asset://f3c1…` could not be read, so it is not in this archive.
+```
+
+That covers a `blob:` handle only the browser ever held, a URL that no longer
+answers, and `package://` — which is what the shipped example boards carry, so
+exporting one of those before rendering anything of your own yields
+`storyboard.md` and no media files.
+
+Unlike a `.nodetool` workflow bundle this is not a re-importable format —
+nothing rewrites the refs, and there is no import route that reads it back. A
+board the caller does not own is a `404` with
+`{"detail": "Storyboard not found"}`, the same answer as an id that does not
+exist.
 
 ### What This Server Supports
 
