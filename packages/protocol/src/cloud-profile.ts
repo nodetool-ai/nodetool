@@ -111,6 +111,13 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
  * - `nodetool.code.Code` — the sandboxed (QuickJS WASM) JavaScript node only.
  *   Admitting it by name rather than whole-listing `nodetool.code` keeps any
  *   future node in that namespace out of the cloud until it is reviewed.
+ * - `lib.comfy.RunWorkflow` / `lib.comfy.RunWorkflowOnWorker` — the two ComfyUI
+ *   runners. Running a ComfyUI graph is image generation, which is what this
+ *   profile is for. Named rather than whole-listed for the same reason as the
+ *   Code node: a later `lib.comfy` node is out until someone reviews it. Each
+ *   node calls the ComfyUI server its `endpoint`/`worker_url` property names,
+ *   so the address is graph data — see the ComfyUI row in
+ *   `docs/url-egress-inventory.md`.
  *
  * `lib.video.download.YtDlpDownload` used to sit here. It is out: a managed
  * multi-tenant server pulling media from arbitrary sites on a user's behalf is
@@ -124,7 +131,10 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
  */
 export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
   // Sandboxed code only.
-  "nodetool.code.Code"
+  "nodetool.code.Code",
+  // ComfyUI runners only — the rest of lib.comfy stays out.
+  "lib.comfy.RunWorkflow",
+  "lib.comfy.RunWorkflowOnWorker"
 ];
 
 /**
