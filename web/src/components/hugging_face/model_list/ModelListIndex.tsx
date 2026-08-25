@@ -2,9 +2,25 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { FlexColumn, FlexRow, Box, Chip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
-import { LoadingSpinner, Text } from "../../ui_primitives";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef
+} from "react";
+import {
+  FlexColumn,
+  FlexRow,
+  Box,
+  EmptyState,
+  LoadingSpinner,
+  Text,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  Z_INDEX
+} from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -19,8 +35,7 @@ import { IconForType } from "../../../config/IconForType";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
 import ModelsRightSidebar from "./ModelsRightSidebar";
-import GoalFilterChips from "./GoalFilterChips";
-import FormatFilterChips from "./FormatFilterChips";
+import ModelFilterBar from "./ModelFilterBar";
 import ModelOnboarding from "../onboarding/ModelOnboarding";
 import { useHardwareProfile } from "../onboarding/useHardwareProfile";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
@@ -35,6 +50,12 @@ import {
   getHfCacheKey
 } from "../../../utils/hfCache";
 import { isString } from "../../../utils/typePredicates";
+
+/** Width of the category rail. */
+const SIDEBAR_WIDTH = 260;
+/** Initial row heights for the virtualizer; real heights come from measurement. */
+const ESTIMATED_HEADER_HEIGHT = 48;
+const ESTIMATED_ROW_HEIGHT = 152;
 
 const styles = (theme: Theme) =>
   css({
@@ -54,67 +75,35 @@ const styles = (theme: Theme) =>
       minHeight: 0
     },
     ".sidebar": {
-      width: "300px",
-      minWidth: "300px",
-      maxWidth: "300px",
+      width: SIDEBAR_WIDTH,
+      minWidth: SIDEBAR_WIDTH,
+      flexShrink: 0,
       height: "100%",
-      padding: "1em",
+      padding: getSpacingPx(SPACING.lg),
       overflowY: "auto",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       background: theme.vars.palette.action.hover
     },
+    // Scroll container for the virtualized rows; the padding keeps the last
+    // card off the bottom edge.
     ".model-list": {
-      paddingBottom: `calc(${getSpacingPx(SPACING.micro)} * 125)`
+      paddingBottom: getSpacingPx(SPACING.xl)
     },
     ".model-list-header": {
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      gap: theme.spacing(2),
-      padding: "1em 1.5em",
-      position: "sticky",
-      top: 0,
-      zIndex: Z_INDEX.raised + 1,
+      gap: theme.spacing(SPACING.md),
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       width: "100%",
-      backdropFilter: theme.vars.palette.glass.blur,
       background: theme.vars.palette.background.paper,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
-    },
-    ".model-list-header button": {
-      padding: ".4em 1em",
-      fontSize: "var(--fontSizeNormal)"
-    },
-    "& .model-type-button": {
-      padding: "0.25em 1em",
-      backgroundColor: "transparent",
-      "&:hover": {
-        color: theme.vars.palette.grey[100]
-      }
-    },
-    ".model-type-button.Mui-selected": {
-      color: theme.vars.palette.text.primary,
-      transition: `background-color ${MOTION.normal}`,
-      borderRadius: BORDER_RADIUS.md,
-      backgroundColor: theme.vars.palette.action.selected
-    },
-    ".model-type-button span": {
-      display: "flex",
-      alignItems: "center",
-      transition: `color ${MOTION.normal}`
-    },
-    ".model-type-button img": {
-      filter: "saturate(0)"
-    },
-    ".model-type-button.Mui-selected span": {
-      color: "var(--palette-primary-main)"
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".content": {
       flexGrow: 1,
       height: "100%",
       overflow: "hidden",
-      padding: "1em 1em 4em 1em",
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)} 0`,
       position: "relative",
       minWidth: 0,
       display: "flex",
@@ -124,18 +113,13 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       borderLeft: `1px solid ${theme.vars.palette.divider}`
     },
-    ".model-list-section": {
-      marginBottom: theme.spacing(6)
-    },
-    // Phone width: the 300px category rail plus the 280px info rail leave the
-    // model list nothing to occupy, and the header row overflows sideways.
-    // Stack the rails, cap the category list, and drop the purely
-    // informational one.
+    // Phone width: the category rail plus the info rail leave the model list
+    // nothing to occupy, and the header row overflows sideways. Stack the
+    // rails, cap the category list, and drop the purely informational one.
     [theme.breakpoints.down("sm")]: {
       ".model-list-header": {
         flexWrap: "wrap",
-        justifyContent: "flex-start",
-        padding: "0.75em 1em"
+        padding: getSpacingPx(SPACING.lg)
       },
       ".main": {
         flexDirection: "column"
@@ -143,10 +127,8 @@ const styles = (theme: Theme) =>
       ".sidebar": {
         width: "100%",
         minWidth: 0,
-        maxWidth: "none",
         height: "auto",
         maxHeight: "35vh",
-        flexShrink: 0,
         borderRight: "none",
         borderBottom: `1px solid ${theme.vars.palette.divider}`
       },
@@ -154,7 +136,7 @@ const styles = (theme: Theme) =>
         height: "auto",
         flex: "1 1 auto",
         minHeight: 0,
-        padding: "1em 0.75em 2em 0.75em"
+        padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)} 0`
       },
       ".right-sidebar": {
         display: "none"
@@ -171,14 +153,18 @@ const ModelListIndex: React.FC = () => {
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const {
-    selectedModelType, setSelectedModelType,
-    modelSearchTerm, setModelSearchTerm,
-    scope, setScope,
-    source, setSource,
-    sourceInitialized, setSourceInitialized,
+    selectedModelType,
+    setSelectedModelType,
+    modelSearchTerm,
+    setModelSearchTerm,
+    scope,
+    setScope,
+    source,
+    setSource,
+    sourceInitialized,
+    setSourceInitialized,
     setSelectedGoal,
     setSelectedFormat,
-    selectedAvailability,
     setSelectedAvailability
   } = useModelManagerStore(
     useShallow((state) => ({
@@ -194,7 +180,6 @@ const ModelListIndex: React.FC = () => {
       setSourceInitialized: state.setSourceInitialized,
       setSelectedGoal: state.setSelectedGoal,
       setSelectedFormat: state.setSelectedFormat,
-      selectedAvailability: state.selectedAvailability,
       setSelectedAvailability: state.setSelectedAvailability
     }))
   );
@@ -238,8 +223,8 @@ const ModelListIndex: React.FC = () => {
     (model: UnifiedModel) => {
       const repoId = model.repo_id || model.id;
       const path = model.path ?? null;
-      const allowPatterns = path ? null : model.allow_patterns ?? null;
-      const ignorePatterns = path ? null : model.ignore_patterns ?? null;
+      const allowPatterns = path ? null : (model.allow_patterns ?? null);
+      const ignorePatterns = path ? null : (model.ignore_patterns ?? null);
       // Route to the attached worker whenever one is attached — that's where
       // the model is needed (execution runs there). The Local/Worker view
       // toggle only changes what you SEE, not where downloads land.
@@ -347,20 +332,21 @@ const ModelListIndex: React.FC = () => {
     count: flattenedList.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: (index) =>
-      flattenedList[index]?.type === "header" ? 48 : 168,
+      flattenedList[index]?.type === "header"
+        ? ESTIMATED_HEADER_HEIGHT
+        : ESTIMATED_ROW_HEIGHT,
     overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => {
       const item = flattenedList[index];
       return item.type === "header"
         ? `header-${item.modelType}`
         : `model-${item.model.id}`;
-    },
+    }
   });
 
   const virtualItems = virtualizer.getVirtualItems();
   const firstVirtualIndex = virtualItems[0]?.index ?? 0;
-  const lastVirtualIndex =
-    virtualItems[virtualItems.length - 1]?.index ?? -1;
+  const lastVirtualIndex = virtualItems[virtualItems.length - 1]?.index ?? -1;
 
   const visibleModels = useMemo(() => {
     if (lastVirtualIndex < firstVirtualIndex) {
@@ -435,6 +421,46 @@ const ModelListIndex: React.FC = () => {
     setSourceInitialized
   ]);
 
+  const emptyState = useMemo(() => {
+    if (modelSearchTerm) {
+      return {
+        searchOff: true,
+        title: `No models found for \u201C${modelSearchTerm}\u201D`,
+        description: "Try a different search term or adjust your filters."
+      };
+    }
+    if (source === "hub") {
+      return {
+        searchOff: false,
+        title: "Search the HuggingFace Hub",
+        description:
+          "Type a name above, or pick a category, to browse and download any public model from huggingface.co."
+      };
+    }
+    if (source === "recommended") {
+      return {
+        searchOff: false,
+        title: "No recommended models",
+        description:
+          "Recommended models are gathered from the nodes you have installed. Add nodes that run models to see suggestions here."
+      };
+    }
+    if (scope === "worker") {
+      return {
+        searchOff: false,
+        title: "No models cached on this worker yet",
+        description:
+          "While this worker is attached, any model you download lands on its volume."
+      };
+    }
+    return {
+      searchOff: true,
+      title: "No models available",
+      description:
+        "Try adjusting the size filter or selecting a different category."
+    };
+  }, [modelSearchTerm, source, scope]);
+
   if (isLoading) {
     return (
       <Box
@@ -459,10 +485,11 @@ const ModelListIndex: React.FC = () => {
       message?: string;
     }
     const err = error as ApiErrorShape;
-    const errorMessage =
-      isString(err?.detail)
-        ? err.detail
-        : (err?.detail as Array<{ msg: string }>)?.[0]?.msg || err?.message || "Unknown error";
+    const errorMessage = isString(err?.detail)
+      ? err.detail
+      : (err?.detail as Array<{ msg: string }>)?.[0]?.msg ||
+        err?.message ||
+        "Unknown error";
 
     const isOllamaError = errorMessage.toLowerCase().includes("ollama");
 
@@ -478,11 +505,7 @@ const ModelListIndex: React.FC = () => {
         <Text size="big" color="error">
           Could not load models
         </Text>
-        <Text
-          size="normal"
-          color="secondary"
-          sx={{ maxWidth: 600 }}
-        >
+        <Text size="normal" color="secondary" sx={{ maxWidth: 600 }}>
           {errorMessage}
         </Text>
         {isOllamaError && (
@@ -532,266 +555,197 @@ const ModelListIndex: React.FC = () => {
           </Box>
         ) : (
           <>
-        <Box className="sidebar">
-          <ModelTypeSidebar />
-        </Box>
-
-        <Box className="content">
-          <GoalFilterChips />
-          <FormatFilterChips />
-          {source === "installed" && (
-            <FlexRow gap={1} sx={{ mb: 1, flexWrap: "wrap" }}>
-              {([
-                ["all", "All"],
-                ["ready", "Ready"],
-                ["download_required", "Download required"],
-                ["unavailable", "Unavailable"]
-              ] as const).map(([value, label]) => (
-                <Chip
-                  key={value}
-                  label={`${label} ${availabilityCounts[value]}`}
-                  size="small"
-                  color={
-                    value === "unavailable"
-                      ? "default"
-                      : value === "download_required"
-                        ? "warning"
-                        : value === "ready"
-                          ? "success"
-                          : "default"
-                  }
-                  variant={selectedAvailability === value ? "filled" : "outlined"}
-                  onClick={() => setSelectedAvailability(value)}
-                  clickable
-                />
-              ))}
-            </FlexRow>
-          )}
-          {isFetching && (
-            <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: Z_INDEX.raised }}>
-              <LoadingSpinner size="small" />
+            <Box className="sidebar">
+              <ModelTypeSidebar />
             </Box>
-          )}
-          {modelSearchTerm && selectedModelType === "All" && (
-            <Text size="normal" weight={600} sx={{ mb: 2, display: "block" }}>
-              Searched models for &quot;{modelSearchTerm}&quot;
-            </Text>
-          )}
-          {selectedModelType !== "All" && (
-            <FlexRow
-              gap={2}
-              align="flex-start"
-              sx={{
-                pt: 1,
-                pb: 3,
-                mb: 1,
-                borderBottom: `1px solid ${theme.vars.palette.divider}`
-              }}
-            >
-              <Box
-                sx={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 40,
-                  height: 40,
-                  borderRadius: BORDER_RADIUS.md,
-                  background:
-                    "rgba(var(--palette-primary-main-channel) / 0.12)",
-                  flexShrink: 0
-                }}
-              >
-                <IconForType
-                  iconName={selectedModelType.replace(/^hf\./, "") || "model"}
-                  containerStyle={{ display: "flex" }}
-                  svgProps={{
-                    style: {
-                      width: 22,
-                      height: 22,
-                      color: theme.vars.palette.primary.main
-                    }
-                  }}
-                  showTooltip={false}
-                />
-              </Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Text size="big" weight={600} sx={{ lineHeight: 1.2 }}>{prettifyModelType(selectedModelType)}</Text>
-                <Text
-                  size="small"
-                  color="secondary"
-                  sx={{ mt: 0.5, display: "block" }}
-                >
-                  {filteredModels.length} model
-                  {filteredModels.length === 1 ? "" : "s"} in this category
-                </Text>
-              </Box>
-            </FlexRow>
-          )}
-          {flattenedList.length > 0 ? (
-            <div
-              ref={scrollRef}
-              className="model-list"
-              style={{
-                flex: 1,
-                minHeight: 0,
-                width: "100%",
-                overflow: "auto"
-              }}
-            >
-              <div
-                style={{
-                  height: virtualizer.getTotalSize(),
-                  width: "100%",
-                  position: "relative",
-                }}
-              >
-                {virtualItems.map((vi) => {
-                  const item = flattenedList[vi.index];
-                  const itemStyle: React.CSSProperties = {
+
+            <Box className="content">
+              <ModelFilterBar
+                source={source}
+                availabilityCounts={availabilityCounts}
+              />
+              {isFetching && (
+                <Box
+                  sx={{
                     position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: vi.size,
-                    transform: `translateY(${vi.start}px)`,
-                  };
-                  if (item.type === "header") {
-                    return (
-                      <Box key={vi.key} style={itemStyle} sx={{ pt: 2, pb: 1 }}>
-                        <Text size="big" >{prettifyModelType(item.modelType)}</Text>
-                      </Box>
-                    );
-                  }
-                  const compatibility = getModelCompatibility(item.model);
-                  const cacheKey = getHfCacheKey(item.model);
-                  const isCacheableHf = canCheckHfCache(item.model);
-                  // Worker scope: the local cache store is irrelevant — trust
-                  // the list's downloaded flag and never show a cache spinner.
-                  const isCheckingCache =
-                    scope !== "worker" &&
-                    isCacheableHf &&
-                    (cachePending[cacheKey] ||
-                      cacheStatuses[cacheKey] === undefined);
-                  const isDownloaded =
-                    item.model.type === "llama_model" || scope === "worker"
-                      ? !!item.model.downloaded
-                      : cacheStatuses[cacheKey] !== undefined
-                        ? !!cacheStatuses[cacheKey]
-                        : !!item.model.downloaded;
-                  const displayModel = {
-                    ...item.model,
-                    downloaded: isDownloaded
-                  };
-                  return (
-                    <Box key={vi.key} style={itemStyle}>
-                      <ModelListItem
-                        model={displayModel}
-                        handleModelDelete={
-                          displayModel.downloaded
-                            ? handleDeleteClick
-                            : undefined
+                    top: SPACING.xl,
+                    right: SPACING.xl,
+                    zIndex: Z_INDEX.raised
+                  }}
+                >
+                  <LoadingSpinner size="small" />
+                </Box>
+              )}
+              {(selectedModelType !== "All" || modelSearchTerm) && (
+                <FlexRow
+                  gap={SPACING.md}
+                  align="center"
+                  sx={{ pb: SPACING.md, mb: SPACING.md }}
+                >
+                  {selectedModelType !== "All" && (
+                    <Box
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 32,
+                        height: 32,
+                        borderRadius: BORDER_RADIUS.md,
+                        background:
+                          "rgba(var(--palette-primary-main-channel) / 0.12)",
+                        flexShrink: 0
+                      }}
+                    >
+                      <IconForType
+                        iconName={
+                          selectedModelType.replace(/^hf\./, "") || "model"
                         }
-                        onDownload={
-                          !displayModel.downloaded
-                            ? () => handleStartDownload(item.model)
-                            : undefined
-                        }
-                        handleShowInExplorer={
-                          displayModel.downloaded
-                            ? handleShowInExplorer
-                            : undefined
-                        }
-                        showModelStats={true}
-                        compatibility={compatibility}
-                        isCheckingCache={isCheckingCache}
-                        fitBudgetGb={hardwareProfile.budgetGb}
+                        containerStyle={{ display: "flex" }}
+                        svgProps={{
+                          style: {
+                            width: 18,
+                            height: 18,
+                            color: theme.vars.palette.primary.main
+                          }
+                        }}
+                        showTooltip={false}
                       />
                     </Box>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <FlexColumn
-              gap={2}
-              align="center"
-              justify="center"
-              sx={{
-                height: "50%",
-                opacity: 0.7
-              }}
-            >
-              {modelSearchTerm ? (
-                <>
-                  <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary" sx={{ display: "block" }}>
-                    No models found for &quot;{modelSearchTerm}&quot;
+                  )}
+                  <Text size="big" weight={600} sx={{ minWidth: 0 }}>
+                    {selectedModelType !== "All"
+                      ? prettifyModelType(selectedModelType)
+                      : `Results for \u201C${modelSearchTerm}\u201D`}
                   </Text>
-                  <Text size="small" color="secondary" sx={{ display: "block" }}>
-                    Try a different search term or adjust your filters
-                  </Text>
-                </>
-              ) : source === "hub" ? (
-                <>
-                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary">
-                    Search the HuggingFace Hub
-                  </Text>
-                  <Text size="small" color="secondary">
-                    Type a name above, or pick a category, to browse and download
-                    any public model from huggingface.co.
-                  </Text>
-                </>
-              ) : source === "recommended" ? (
-                <>
-                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary">
-                    No recommended models
-                  </Text>
-                  <Text size="small" color="secondary">
-                    Recommended models are gathered from the nodes you have
-                    installed. Add nodes that run models to see suggestions here.
-                  </Text>
-                </>
-              ) : scope === "worker" ? (
-                <>
-                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary">
-                    No models cached on this worker yet
-                  </Text>
-                  <Text size="small" color="secondary">
-                    While this worker is attached, any model you download lands
-                    on its volume.
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary" sx={{ display: "block" }}>
-                    No models available
-                  </Text>
-                  <Text size="small" color="secondary" sx={{ display: "block" }}>
-                    Try adjusting the size filter or selecting a different
-                    category
-                  </Text>
-                </>
+                </FlexRow>
               )}
-            </FlexColumn>
-          )}
+              {flattenedList.length > 0 ? (
+                <div
+                  ref={scrollRef}
+                  className="model-list"
+                  style={{
+                    flex: 1,
+                    minHeight: 0,
+                    width: "100%",
+                    overflow: "auto"
+                  }}
+                >
+                  <div
+                    style={{
+                      height: virtualizer.getTotalSize(),
+                      width: "100%",
+                      position: "relative"
+                    }}
+                  >
+                    {virtualItems.map((vi) => {
+                      const item = flattenedList[vi.index];
+                      // No fixed height: rows are measured, so a card whose chips
+                      // wrap to a second line is never clipped.
+                      const itemStyle: React.CSSProperties = {
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        transform: `translateY(${vi.start}px)`
+                      };
+                      if (item.type === "header") {
+                        return (
+                          <Box
+                            key={vi.key}
+                            data-index={vi.index}
+                            ref={virtualizer.measureElement}
+                            style={itemStyle}
+                            sx={{ pt: SPACING.lg, pb: SPACING.md }}
+                          >
+                            <Text size="big" weight={600}>
+                              {prettifyModelType(item.modelType)}
+                            </Text>
+                          </Box>
+                        );
+                      }
+                      const compatibility = getModelCompatibility(item.model);
+                      const cacheKey = getHfCacheKey(item.model);
+                      const isCacheableHf = canCheckHfCache(item.model);
+                      // Worker scope: the local cache store is irrelevant — trust
+                      // the list's downloaded flag and never show a cache spinner.
+                      const isCheckingCache =
+                        scope !== "worker" &&
+                        isCacheableHf &&
+                        (cachePending[cacheKey] ||
+                          cacheStatuses[cacheKey] === undefined);
+                      const isDownloaded =
+                        item.model.type === "llama_model" || scope === "worker"
+                          ? !!item.model.downloaded
+                          : cacheStatuses[cacheKey] !== undefined
+                            ? !!cacheStatuses[cacheKey]
+                            : !!item.model.downloaded;
+                      const displayModel = {
+                        ...item.model,
+                        downloaded: isDownloaded
+                      };
+                      return (
+                        <Box
+                          key={vi.key}
+                          data-index={vi.index}
+                          ref={virtualizer.measureElement}
+                          style={itemStyle}
+                        >
+                          <ModelListItem
+                            model={displayModel}
+                            handleModelDelete={
+                              displayModel.downloaded
+                                ? handleDeleteClick
+                                : undefined
+                            }
+                            onDownload={
+                              !displayModel.downloaded
+                                ? () => handleStartDownload(item.model)
+                                : undefined
+                            }
+                            handleShowInExplorer={
+                              displayModel.downloaded
+                                ? handleShowInExplorer
+                                : undefined
+                            }
+                            showModelStats={true}
+                            compatibility={compatibility}
+                            isCheckingCache={isCheckingCache}
+                            fitBudgetGb={hardwareProfile.budgetGb}
+                          />
+                        </Box>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <FlexColumn justify="center" sx={{ flex: 1, minHeight: 0 }}>
+                  <EmptyState
+                    icon={
+                      emptyState.searchOff ? (
+                        <SearchOffIcon className="empty-icon" />
+                      ) : (
+                        <DownloadIcon className="empty-icon" />
+                      )
+                    }
+                    title={emptyState.title}
+                    description={emptyState.description}
+                  />
+                </FlexColumn>
+              )}
 
-          <DeleteModelDialog
-            modelId={modelToDelete}
-            onClose={handleCancelDelete}
-            scope={scope}
-          />
-        </Box>
+              <DeleteModelDialog
+                modelId={modelToDelete}
+                onClose={handleCancelDelete}
+                scope={scope}
+              />
+            </Box>
 
-        <Box className="right-sidebar">
-          <ModelsRightSidebar
-            models={allModels ?? []}
-            hardwareProfile={hardwareProfile}
-          />
-        </Box>
+            <Box className="right-sidebar">
+              <ModelsRightSidebar
+                models={allModels ?? []}
+                hardwareProfile={hardwareProfile}
+              />
+            </Box>
           </>
         )}
       </Box>

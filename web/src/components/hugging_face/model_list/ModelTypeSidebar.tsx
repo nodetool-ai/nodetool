@@ -134,7 +134,10 @@ const ModelTypeSidebar: React.FC = () => {
                   },
                   "&:hover": {
                     backgroundColor: theme.vars.palette.action.hover
-                  }
+                  },
+                  // Provider logos (HF, Ollama) sit inline in the label; keep
+                  // them monochrome so the rail reads as one list.
+                  "& img": { filter: "saturate(0)" }
                 }}
               >
                 {/* "All" has no inline icon from prettifyModelType, so give it
