@@ -25,6 +25,7 @@ import {
 } from "../../../config/constants";
 import { formatBytes } from "../../../utils/modelFormatting";
 import { getModelUrl } from "../../../utils/providerDisplay";
+import type { UnifiedModel } from "../../../stores/ApiTypes";
 import type { ModelCompatibilityResult } from "./useModelCompatibility";
 import ModelCompatibilityDialog from "./ModelCompatibilityDialog";
 import { classifyModelFit, estimateRequiredGb } from "./modelFit";
@@ -43,6 +44,58 @@ const FIT_CHIP: Record<
   fits: { color: "success", label: () => "Fits your machine" },
   tight: { color: "warning", label: () => "Tight fit" },
   over: { color: "error", label: (gb) => `Needs ~${Math.ceil(gb)} GB` }
+};
+
+/**
+ * Repo name split into owner / model, linked to the provider's model page.
+ * `plain` renders text instead of a link, so clicking a selectable row selects
+ * the model rather than navigating away.
+ */
+const ModelName: React.FC<{ model: UnifiedModel; plain: boolean }> = ({
+  model,
+  plain
+}) => {
+  const full = model.repo_id || model.id;
+  const lastSlash = (full || "").lastIndexOf("/");
+  const owner = lastSlash !== -1 ? full?.slice(0, lastSlash) : "";
+  const repo = lastSlash !== -1 ? full?.slice(lastSlash + 1) : full;
+  const modelUrl = getModelUrl(
+    model.provider ?? undefined,
+    model.id,
+    model.type || undefined
+  );
+
+  const content = (
+    <>
+      {owner ? (
+        <Text component="div" className="model-owner">
+          {owner}
+        </Text>
+      ) : null}
+      <Text component="div" className="model-name">
+        {model.path ? model.path : repo}
+      </Text>
+      {model.path ? (
+        <Text component="div" className="model-path">
+          {repo}
+        </Text>
+      ) : null}
+    </>
+  );
+
+  if (!modelUrl || plain) {
+    return (
+      <div className="model-name-link no-link" title={full}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <TextLink href={modelUrl} external className="model-name-link" title={full}>
+      {content}
+    </TextLink>
+  );
 };
 
 const ModelListItem: React.FC<
@@ -109,14 +162,9 @@ const ModelListItem: React.FC<
     [onSelect]
   );
 
-  const compatibilityCounts = useMemo(() => {
-    if (!compatibility) {
-      return { total: 0 };
-    }
-    return {
-      total: compatibility.recommended.length + compatibility.compatible.length
-    };
-  }, [compatibility]);
+  const nodeCount = compatibility
+    ? compatibility.recommended.length + compatibility.compatible.length
+    : 0;
 
   if (downloadId && download) {
     return (
@@ -148,72 +196,14 @@ const ModelListItem: React.FC<
         <div className="model-top-row">
           <div className="model-info-container">
             <div className="model-header">
-              {(() => {
-                const full = model.repo_id || model.id;
-                const lastSlash = (full || "").lastIndexOf("/");
-                const owner = lastSlash !== -1 ? full?.slice(0, lastSlash) : "";
-                const repo =
-                  lastSlash !== -1 ? full?.slice(lastSlash + 1) : full;
-                const modelUrl = getModelUrl(
-                  model.provider ?? undefined,
-                  model.id,
-                  model.type || undefined
-                );
-
-                const content = (
-                  <>
-                    {owner ? (
-                      <Text component="div" className="model-owner">
-                        {owner}
-                      </Text>
-                    ) : null}
-                    {model.path ? (
-                      <>
-                        <Text component="span" className="model-name">
-                          {model.path}
-                        </Text>
-                        <Text component="span" className="model-path">
-                          {repo}
-                        </Text>
-                      </>
-                    ) : (
-                      <Text component="span" className="model-name">
-                        {repo}
-                      </Text>
-                    )}
-                  </>
-                );
-
-                // When the row itself is selectable, render the name as plain
-                // text so clicking it selects the model instead of navigating
-                // to the repo. The HuggingFace link icon in the actions area
-                // still provides access to the repo page.
-                if (!modelUrl || selectable) {
-                  return (
-                    <div className="model-name-link no-link" title={full}>
-                      {content}
-                    </div>
-                  );
-                }
-
-                return (
-                  <TextLink
-                    href={modelUrl}
-                    external
-                    className="model-name-link"
-                    title={full}
-                  >
-                    {content}
-                  </TextLink>
-                );
-              })()}
+              <ModelName model={model} plain={selectable} />
             </div>
 
             <div className="model-details">
               <Tooltip title={execution.reason ?? execution.label} delay={400}>
                 <Chip
                   label={execution.label}
-                  size="small"
+                  compact
                   component="span"
                   tabIndex={0}
                   aria-label={`${execution.label}: ${execution.reason ?? execution.label}`}
@@ -228,36 +218,18 @@ const ModelListItem: React.FC<
                   }
                   variant="outlined"
                   sx={{
-                    height: 20,
-                    fontSize: theme.vars.fontSizeSmaller,
                     color:
                       execution.state === "unavailable"
                         ? "text.disabled"
                         : undefined,
                     borderColor:
-                      execution.state === "unavailable"
-                        ? "divider"
-                        : undefined,
+                      execution.state === "unavailable" ? "divider" : undefined,
                     cursor: "help"
                   }}
                 />
               </Tooltip>
               {tags.map((tag) => (
-                <Chip
-                  label={tag}
-                  key={tag}
-                  size="small"
-                  component="span"
-                  sx={{
-                    height: 20,
-                    fontSize: theme.vars.fontSizeSmaller,
-                    color: theme.vars.palette.grey[50],
-                    borderColor: "currentColor",
-                    background: "transparent",
-                    borderWidth: 1,
-                    borderStyle: "solid"
-                  }}
-                />
+                <Chip label={tag} key={tag} compact component="span" />
               ))}
               {model.pipeline_tag && (
                 <Tooltip
@@ -272,9 +244,9 @@ const ModelListItem: React.FC<
                   >
                     <Chip
                       label={model.pipeline_tag}
-                      size="small"
-                      className="pipeline-tag"
+                      compact
                       component="span"
+                      sx={{ cursor: "pointer" }}
                     />
                   </TextLink>
                 </Tooltip>
@@ -288,22 +260,20 @@ const ModelListItem: React.FC<
                 >
                   <Chip
                     label={FIT_CHIP[fit].label(estimateRequiredGb(model) ?? 0)}
-                    size="small"
+                    compact
                     component="span"
                     color={FIT_CHIP[fit].color}
                     variant="outlined"
-                    sx={{
-                      height: 20,
-                      fontSize: theme.vars.fontSizeSmaller,
-                      cursor: "help"
-                    }}
+                    sx={{ cursor: "help" }}
                   />
                 </Tooltip>
               )}
-              {compatibility && compatibilityCounts.total > 0 && (
+              {nodeCount > 0 && (
                 <Chip
-                  label={`Works with ${compatibilityCounts.total} node${compatibilityCounts.total > 1 ? "s" : ""}`}
-                  size="small"
+                  label={`Works with ${nodeCount} node${nodeCount > 1 ? "s" : ""}`}
+                  compact
+                  color="primary"
+                  variant="outlined"
                   onClick={handleOpenDialog}
                   icon={
                     <VisibilityIcon
@@ -311,14 +281,8 @@ const ModelListItem: React.FC<
                     />
                   }
                   sx={{
-                    height: 20,
-                    fontSize: theme.vars.fontSizeSmaller,
-                    borderColor: theme.vars.palette.primary.main,
-                    color: theme.vars.palette.primary.main,
                     background:
                       "rgba(var(--palette-primary-main-channel) / 0.1)",
-                    borderWidth: 1,
-                    borderStyle: "solid",
                     cursor: "pointer",
                     "&:hover": {
                       background:
@@ -334,12 +298,7 @@ const ModelListItem: React.FC<
             </div>
           </div>
 
-          <FlexRow
-            className="actions-container"
-            justify="flex-end"
-            align="center"
-            gap={1}
-          >
+          <FlexRow className="actions-container" align="center">
             {model.size_on_disk ? (
               <Text component="span" className="model-size">
                 {formatBytes(model.size_on_disk)}
@@ -357,15 +316,11 @@ const ModelListItem: React.FC<
           </FlexRow>
         </div>
 
-        <div className="model-details">
-          {model.description && (
-            <div className="model-description-container">
-              <Text component="span" className="model-description">
-                {model.description}
-              </Text>
-            </div>
-          )}
-        </div>
+        {model.description && (
+          <Text component="p" className="model-description">
+            {model.description}
+          </Text>
+        )}
       </div>
       {compatibility && (
         <ModelCompatibilityDialog

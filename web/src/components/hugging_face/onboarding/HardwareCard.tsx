@@ -1,12 +1,13 @@
-/** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import MemoryIcon from "@mui/icons-material/Memory";
 import DeveloperBoardIcon from "@mui/icons-material/DeveloperBoard";
 import {
+  Box,
   Card,
   Caption,
   Chip,
+  Tooltip,
   FlexColumn,
   FlexRow,
   SelectField,
@@ -15,10 +16,16 @@ import {
   SPACING
 } from "../../ui_primitives";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
+import { ModelStat } from "../ModelStat";
 import { TIER_LABELS, type HardwareProfile } from "./useHardwareProfile";
 
 interface HardwareCardProps {
   profile: HardwareProfile;
+  /**
+   * Narrow-column layout: header, stats, and the budget select stack instead
+   * of sitting on one row. Used by the model manager's info rail.
+   */
+  dense?: boolean;
 }
 
 const AUTO_VALUE = "auto";
@@ -47,7 +54,16 @@ const budgetNote = (profile: HardwareProfile): string => {
   }
 };
 
-const HardwareCard: React.FC<HardwareCardProps> = ({ profile }) => {
+const gb = (value: number | null | undefined): string =>
+  value != null ? `${Math.round(value)} GB` : "—";
+
+/** Tier labels read "Name — what it runs"; the chip shows the name only. */
+const tierName = (label: string): string => label.split("—")[0].trim();
+
+const HardwareCard: React.FC<HardwareCardProps> = ({
+  profile,
+  dense = false
+}) => {
   const theme = useTheme();
   const setVramOverrideGb = useModelManagerStore(
     (state) => state.setVramOverrideGb
@@ -66,6 +82,83 @@ const HardwareCard: React.FC<HardwareCardProps> = ({ profile }) => {
     [override]
   );
 
+  const header = (
+    <FlexRow gap={SPACING.md} align="center" sx={{ minWidth: 0 }}>
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{
+          width: dense ? 36 : 44,
+          height: dense ? 36 : 44,
+          minWidth: dense ? 36 : 44,
+          borderRadius: BORDER_RADIUS.md,
+          backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
+          color: theme.vars.palette.primary.main
+        }}
+      >
+        <DeveloperBoardIcon sx={{ fontSize: dense ? 20 : 22 }} />
+      </FlexRow>
+      <FlexColumn sx={{ minWidth: 0 }}>
+        <FlexRow gap={SPACING.xs} align="center" sx={{ flexWrap: "wrap" }}>
+          <Text size="normal" weight={600}>
+            Your machine
+          </Text>
+          {profile.tier && (
+            <Tooltip title={TIER_LABELS[profile.tier]} delay={400}>
+              <Chip
+                label={tierName(TIER_LABELS[profile.tier])}
+                compact
+                variant="outlined"
+                sx={{ cursor: "help" }}
+              />
+            </Tooltip>
+          )}
+        </FlexRow>
+        {!dense && (
+          <Caption sx={{ opacity: 0.65, lineHeight: 1.45 }}>
+            {budgetNote(profile)}
+          </Caption>
+        )}
+      </FlexColumn>
+    </FlexRow>
+  );
+
+  const stats = (
+    <>
+      <ModelStat
+        icon={<DeveloperBoardIcon sx={{ fontSize: 14 }} />}
+        label="GPU memory"
+        value={gb(profile.vramGb)}
+      />
+      <ModelStat
+        icon={<MemoryIcon sx={{ fontSize: 14 }} />}
+        label="System RAM"
+        value={gb(profile.ramGb)}
+      />
+      <ModelStat
+        label="Model budget"
+        value={profile.budgetGb != null ? `${profile.budgetGb} GB` : "Not set"}
+        highlight
+      />
+    </>
+  );
+
+  const budgetSelect = (
+    <FlexColumn gap={SPACING.micro} sx={{ minWidth: 128 }}>
+      <Caption sx={{ opacity: 0.6, whiteSpace: "nowrap" }}>
+        Set GPU memory
+      </Caption>
+      <SelectField
+        label="GPU memory budget"
+        hideLabel
+        variant="outlined"
+        value={selectValue}
+        onChange={handleOverrideChange}
+        options={OVERRIDE_OPTIONS}
+      />
+    </FlexColumn>
+  );
+
   return (
     <Card
       variant="outlined"
@@ -76,112 +169,38 @@ const HardwareCard: React.FC<HardwareCardProps> = ({ profile }) => {
         backgroundColor: theme.vars.palette.background.paper
       }}
     >
-      <FlexRow
-        gap={SPACING.md}
-        align="center"
-        justify="space-between"
-        sx={{ flexWrap: "wrap" }}
-      >
-        <FlexRow gap={SPACING.sm} align="center" sx={{ minWidth: 0 }}>
-          <FlexRow
-            align="center"
-            justify="center"
+      {dense ? (
+        <FlexColumn gap={SPACING.md}>
+          {header}
+          <Caption sx={{ opacity: 0.65, lineHeight: 1.5 }}>
+            {budgetNote(profile)}
+          </Caption>
+          <Box
             sx={{
-              width: 44,
-              height: 44,
-              minWidth: 44,
-              borderRadius: BORDER_RADIUS.md,
-              backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
-              color: theme.vars.palette.primary.main
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: SPACING.md
             }}
           >
-            <DeveloperBoardIcon sx={{ fontSize: 22 }} />
-          </FlexRow>
-          <FlexColumn sx={{ minWidth: 0 }}>
-            <FlexRow gap={SPACING.xs} align="center" sx={{ flexWrap: "wrap" }}>
-              <Text size="normal" weight={600}>
-                Your machine
-              </Text>
-              {profile.tier && (
-                <Chip label={TIER_LABELS[profile.tier]} compact variant="outlined" />
-              )}
-            </FlexRow>
-            <Caption sx={{ opacity: 0.65, lineHeight: 1.45 }}>
-              {budgetNote(profile)}
-            </Caption>
-          </FlexColumn>
-        </FlexRow>
-
-        <FlexRow gap={SPACING.lg} align="center" sx={{ flexWrap: "wrap" }}>
-          <Stat
-            icon={<DeveloperBoardIcon sx={{ fontSize: 14 }} />}
-            label="GPU memory"
-            value={
-              profile.vramGb != null ? `${Math.round(profile.vramGb)} GB` : "—"
-            }
-          />
-          <Stat
-            icon={<MemoryIcon sx={{ fontSize: 14 }} />}
-            label="System RAM"
-            value={
-              profile.ramGb != null ? `${Math.round(profile.ramGb)} GB` : "—"
-            }
-          />
-          <Stat
-            label="Recommend for"
-            value={
-              profile.budgetGb != null ? `${profile.budgetGb} GB` : "Not set"
-            }
-            highlight
-          />
-          <FlexColumn gap={SPACING.micro} sx={{ minWidth: 128 }}>
-            <Caption sx={{ opacity: 0.55, whiteSpace: "nowrap" }}>
-              GPU memory
-            </Caption>
-            <SelectField
-              label="GPU memory budget"
-              hideLabel
-              variant="outlined"
-              value={selectValue}
-              onChange={handleOverrideChange}
-              options={OVERRIDE_OPTIONS}
-            />
-          </FlexColumn>
-        </FlexRow>
-      </FlexRow>
-    </Card>
-  );
-};
-
-interface StatProps {
-  label: string;
-  value: string;
-  icon?: React.ReactNode;
-  highlight?: boolean;
-}
-
-const Stat: React.FC<StatProps> = ({ label, value, icon, highlight }) => {
-  const theme = useTheme();
-  return (
-    <FlexColumn align="flex-start" gap={SPACING.micro} sx={{ minWidth: 0 }}>
-      <FlexRow align="center" gap={SPACING.micro}>
-        {icon}
-        <Text
-          size="big"
-          weight={600}
-          sx={{
-            lineHeight: 1.1,
-            fontVariantNumeric: "tabular-nums",
-            color: highlight
-              ? theme.vars.palette.primary.main
-              : theme.vars.palette.text.primary
-          }}
+            {stats}
+          </Box>
+          {budgetSelect}
+        </FlexColumn>
+      ) : (
+        <FlexRow
+          gap={SPACING.md}
+          align="center"
+          justify="space-between"
+          sx={{ flexWrap: "wrap" }}
         >
-          {value}
-        </Text>
-      </FlexRow>
-      <Caption sx={{ opacity: 0.55, whiteSpace: "nowrap" }}>{label}</Caption>
-    </FlexColumn>
+          {header}
+          <FlexRow gap={SPACING.lg} align="center" sx={{ flexWrap: "wrap" }}>
+            {stats}
+            {budgetSelect}
+          </FlexRow>
+        </FlexRow>
+      )}
+    </Card>
   );
 };
 

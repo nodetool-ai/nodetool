@@ -3,9 +3,13 @@ import {
   Text,
   FlexRow,
   ToolbarIconButton,
-  NodeSlider,
   SelectField,
-  Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+  Box,
+  BORDER_RADIUS,
+  CONTROL,
+  SPACING,
+  getSpacingPx
+} from "../../ui_primitives";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import SearchInput from "../../search/SearchInput";
@@ -45,13 +49,56 @@ const SORT_OPTIONS: { value: ModelSortField; label: string }[] = [
   { value: "likes", label: "Likes" }
 ];
 
-const dividerSx = (theme: Theme) => ({
-  alignSelf: "center",
-  width: "1px",
-  height: 22,
-  flexShrink: 0,
-  backgroundColor: theme.vars.palette.divider
+/**
+ * Toolbar look for the general SelectField (not the editor-scoped NodeSelect,
+ * which forces an 11px font). The fit-content wrapper defeats SelectField's
+ * internal `FormControl fullWidth` so the control shrink-wraps its value and
+ * the chevron sits right after the text.
+ */
+const toolbarSelectSx = (theme: Theme) => ({
+  display: "inline-flex",
+  width: "fit-content",
+  "& .MuiInputBase-root": {
+    height: CONTROL.height.md,
+    minWidth: 92,
+    backgroundColor: theme.vars.palette.action.hover,
+    borderRadius: BORDER_RADIUS.lg,
+    fontSize: "var(--fontSizeNormal)"
+  },
+  "& .MuiSelect-select": {
+    display: "flex",
+    alignItems: "center",
+    minHeight: 0,
+    boxSizing: "border-box",
+    padding: `0 ${getSpacingPx(SPACING.xxxl)} 0 ${getSpacingPx(SPACING.lg)}`,
+    lineHeight: 1
+  },
+  "& .MuiOutlinedInput-notchedOutline": {
+    borderColor: theme.vars.palette.divider
+  },
+  "&:hover .MuiOutlinedInput-notchedOutline": {
+    borderColor: theme.vars.palette.text.secondary
+  },
+  "& .MuiSelect-icon": {
+    color: theme.vars.palette.text.secondary,
+    right: 6
+  }
 });
+
+const resultLabel = (
+  source: ModelSource,
+  filteredCount: number,
+  totalCount: number
+): string => {
+  if (source === "hub") {
+    return filteredCount >= HUB_RESULT_LIMIT
+      ? `Top ${HUB_RESULT_LIMIT} results`
+      : `${filteredCount} result${filteredCount === 1 ? "" : "s"}`;
+  }
+  return filteredCount !== totalCount
+    ? `${filteredCount} of ${totalCount} models`
+    : `${totalCount} models`;
+};
 
 const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   totalCount,
@@ -66,8 +113,6 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   const {
     modelSearchTerm,
     setModelSearchTerm,
-    maxModelSizeGB,
-    setMaxModelSizeGB,
     sortField,
     setSortField,
     sortDirection,
@@ -76,8 +121,6 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
     useShallow((state) => ({
       modelSearchTerm: state.modelSearchTerm,
       setModelSearchTerm: state.setModelSearchTerm,
-      maxModelSizeGB: state.maxModelSizeGB,
-      setMaxModelSizeGB: state.setMaxModelSizeGB,
       sortField: state.sortField,
       setSortField: state.setSortField,
       sortDirection: state.sortDirection,
@@ -92,11 +135,6 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   const { scope: downloadScope, label: downloadTargetLabel } =
     useModelDownloadTarget();
 
-  const handleSliderChange = (_: Event, value: number | number[]) => {
-    const v = Array.isArray(value) ? value[0] : value;
-    setMaxModelSizeGB(v);
-  };
-
   const handleSortFieldChange = useCallback(
     (value: string) => {
       setSortField(value as ModelSortField);
@@ -104,48 +142,47 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
     [setSortField]
   );
 
+  if (isOnboarding) {
+    return (
+      <FlexRow align="center" justify="flex-end" sx={{ flex: 1 }}>
+        <SourceToggle source={source} onChange={onSourceChange} />
+      </FlexRow>
+    );
+  }
+
   return (
     <>
-      {!isOnboarding && (
-        <SearchInput
-          focusOnTyping={true}
-          focusSearchInput={false}
-          width={250}
-          maxWidth={"300px"}
-          onSearchChange={setModelSearchTerm}
-          searchTerm={modelSearchTerm}
-        />
-      )}
+      <SearchInput
+        focusOnTyping={true}
+        focusSearchInput={false}
+        width={250}
+        maxWidth={"300px"}
+        onSearchChange={setModelSearchTerm}
+        searchTerm={modelSearchTerm}
+      />
 
-      <FlexRow
-        sx={{
-          alignItems: "center",
-          gap: 2,
-          flex: 1,
-          justifyContent: "flex-end",
-          pr: 2
-        }}
+      <Text
+        size="small"
+        color="secondary"
+        sx={{ whiteSpace: "nowrap", mr: "auto", ml: SPACING.md }}
       >
-        {!isOnboarding && (
-          <Text
-            size="small"
-            color="secondary"
-            sx={{ whiteSpace: "nowrap", mr: "auto", ml: 2 }}
-          >
-            {source === "hub"
-              ? filteredCount >= HUB_RESULT_LIMIT
-                ? `Top ${HUB_RESULT_LIMIT} results`
-                : `${filteredCount} result${filteredCount === 1 ? "" : "s"}`
-              : filteredCount !== totalCount
-                ? `${filteredCount} of ${totalCount} models`
-                : `${totalCount} models`}
-          </Text>
-        )}
+        {resultLabel(source, filteredCount, totalCount)}
+      </Text>
 
+      <FlexRow align="center" gap={SPACING.md} sx={{ flexShrink: 0 }}>
         <SourceToggle source={source} onChange={onSourceChange} />
 
-        {downloadScope === "worker" && !isOnboarding && (
-          <Tooltip title={`Every model you download lands on ${downloadTargetLabel} while this worker is attached.`}>
+        <ScopeToggle
+          scope={scope}
+          onChange={onScopeChange}
+          workerName={workerName}
+          supported={workerSupported}
+        />
+
+        {downloadScope === "worker" && (
+          <Tooltip
+            title={`Every model you download lands on ${downloadTargetLabel} while this worker is attached.`}
+          >
             <Caption
               sx={{
                 whiteSpace: "nowrap",
@@ -158,60 +195,11 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           </Tooltip>
         )}
 
-        {!isOnboarding && (
-          <ScopeToggle
-            scope={scope}
-            onChange={onScopeChange}
-            workerName={workerName}
-            supported={workerSupported}
-          />
-        )}
-
-        {!isOnboarding && (
-          <>
-            <Box sx={dividerSx(theme)} />
-
-            <FlexRow align="center" gap={1.25}>
+        <FlexRow align="center" gap={SPACING.xs}>
           <Text size="small" color="secondary" sx={{ whiteSpace: "nowrap" }}>
             Sort
           </Text>
-          {/* General SelectField (not the editor-scoped NodeSelect, which
-              forces an 11px font via .nt-editor-scope-node). The fit-content
-              wrapper defeats SelectField's internal `FormControl fullWidth` so
-              the control shrink-wraps its value and the chevron sits right after
-              the text. Toolbar look (32px pill, divider border, chevron tint) is
-              applied here via descendant selectors. */}
-          <Box
-            sx={{
-              display: "inline-flex",
-              width: "fit-content",
-              "& .MuiInputBase-root": {
-                height: 32,
-                minWidth: 92,
-                backgroundColor: theme.vars.palette.action.hover,
-                borderRadius: BORDER_RADIUS.lg,
-                fontSize: "var(--fontSizeNormal)"
-              },
-              "& .MuiSelect-select": {
-                display: "flex",
-                alignItems: "center",
-                minHeight: 0,
-                boxSizing: "border-box",
-                padding: `0 ${getSpacingPx(SPACING.xxxl)} 0 ${getSpacingPx(SPACING.lg)}`,
-                lineHeight: 1
-              },
-              "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: theme.vars.palette.divider
-              },
-              "&:hover .MuiOutlinedInput-notchedOutline": {
-                borderColor: theme.vars.palette.text.secondary
-              },
-              "& .MuiSelect-icon": {
-                color: theme.vars.palette.text.secondary,
-                right: 6
-              }
-            }}
-          >
+          <Box sx={toolbarSelectSx(theme)}>
             <SelectField
               label="Sort models by"
               hideLabel
@@ -235,58 +223,10 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             aria-label="Toggle sort direction"
             sx={{
               color: theme.vars.palette.text.secondary,
-              "&:hover": {
-                color: theme.vars.palette.text.primary
-              }
+              "&:hover": { color: theme.vars.palette.text.primary }
             }}
           />
         </FlexRow>
-
-        <Box sx={dividerSx(theme)} />
-
-        <FlexRow align="center" gap={1.25} sx={{ flexShrink: 0 }}>
-          <Text
-            size="small"
-            color="secondary"
-            sx={{ whiteSpace: "nowrap" }}
-          >
-            Max size
-          </Text>
-          <Box
-            sx={{
-              width: 124,
-              px: getSpacingPx(SPACING.sm),
-              boxSizing: "border-box",
-              display: "flex",
-              alignItems: "center"
-            }}
-          >
-            <NodeSlider
-              aria-label="Max model size in GB"
-              value={maxModelSizeGB}
-              onChange={handleSliderChange}
-              valueLabelDisplay="auto"
-              valueLabelFormat={(value) => (value === 0 ? "All" : `${value} GB`)}
-              step={1}
-              min={0}
-              max={50}
-            />
-          </Box>
-          <Text
-            size="small"
-            sx={{
-              whiteSpace: "nowrap",
-              minWidth: 46,
-              textAlign: "right",
-              fontVariantNumeric: "tabular-nums",
-              color: theme.vars.palette.text.primary
-            }}
-          >
-            {maxModelSizeGB === 0 ? "All" : `${maxModelSizeGB} GB`}
-          </Text>
-        </FlexRow>
-          </>
-        )}
       </FlexRow>
     </>
   );

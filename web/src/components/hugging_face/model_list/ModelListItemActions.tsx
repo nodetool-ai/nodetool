@@ -6,6 +6,7 @@ import {
   CopyButton,
   DeleteButton,
   EditorButton,
+  FlexRow,
   LoadingSpinner,
   Tooltip,
   Box,
@@ -83,7 +84,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   );
 
   return (
-    <div className="actions-container" onClick={(e) => e.stopPropagation()}>
+    <FlexRow align="center" gap={1} onClick={(e) => e.stopPropagation()}>
       {isCheckingCache && !downloaded && (
         <Box
           sx={{
@@ -164,13 +165,9 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           <DeleteButton onClick={handleDeleteClick} tooltip="Delete model" />
         )}
       </div>
-      <div className="model-link">
-        {isHuggingFace && (
-          <HuggingFaceLink modelId={model.repo_id || model.id} />
-        )}
-        {isOllama && <OllamaLink modelId={model.id} />}
-      </div>
-    </div>
+      {isHuggingFace && <HuggingFaceLink modelId={model.repo_id || model.id} />}
+      {isOllama && <OllamaLink modelId={model.id} />}
+    </FlexRow>
   );
 };
 

@@ -1,8 +1,8 @@
-/** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import ComputerIcon from "@mui/icons-material/Computer";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   Card,
@@ -12,39 +12,29 @@ import {
   FlexRow,
   Text,
   BORDER_RADIUS,
-  SPACING,
-  getSpacingPx
+  SPACING
 } from "../../ui_primitives";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
+import { formatBytes } from "../../../utils/modelFormatting";
+import { ModelStat } from "../ModelStat";
 
-const formatSize = (bytes: number): string => {
-  if (!bytes || bytes <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let i = 0;
-  let v = bytes;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i += 1;
-  }
-  return `${v.toFixed(v >= 100 || i < 2 ? 0 : 1)} ${units[i]}`;
-};
+const DOCS_URL = "https://docs.nodetool.ai/models-and-providers";
 
 interface LocalModelsHeroProps {
   models: UnifiedModel[];
 }
 
+/** What this machine currently holds: how many models, and how much disk. */
 const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
   const theme = useTheme();
 
   const stats = useMemo(() => {
     const installed = models.filter((m) => m.downloaded);
-    const totalBytes = installed.reduce(
-      (sum, m) => sum + (m.size_on_disk || 0),
-      0
-    );
     return {
       count: installed.length,
-      size: formatSize(totalBytes)
+      size: formatBytes(
+        installed.reduce((sum, m) => sum + (m.size_on_disk || 0), 0)
+      )
     };
   }, [models]);
 
@@ -58,73 +48,44 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
         backgroundColor: theme.vars.palette.background.paper
       }}
     >
-      <FlexRow gap={2} align="center" sx={{ flexWrap: "wrap" }}>
-        <FlexRow align="center" gap={1.5} sx={{ minWidth: 0, flex: "1 1 320px" }}>
+      <FlexColumn gap={SPACING.md}>
+        <FlexRow align="center" gap={SPACING.md} sx={{ minWidth: 0 }}>
           <FlexRow
             align="center"
             justify="center"
             sx={{
-              width: 44,
-              height: 44,
-              minWidth: 44,
+              width: 36,
+              height: 36,
+              minWidth: 36,
               borderRadius: BORDER_RADIUS.md,
               backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
               color: theme.vars.palette.primary.main
             }}
           >
-            <ComputerIcon sx={{ fontSize: 22 }} />
+            <ComputerIcon sx={{ fontSize: 20 }} />
           </FlexRow>
-          <FlexColumn sx={{ minWidth: 0 }}>
-            <Text size="normal" weight={600}>
-              Local Models
-            </Text>
-            <Caption sx={{ opacity: 0.6, lineHeight: 1.4 }}>
-              Run models locally for privacy, speed, and offline access.
-            </Caption>
-            <EditorButton
-              density="compact"
-              variant="text"
-              size="small"
-              endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
-              onClick={() =>
-                window.open(
-                  "https://docs.nodetool.ai/models-and-providers",
-                  "_blank",
-                  "noopener,noreferrer"
-                )
-              }
-              sx={{
-                alignSelf: "flex-start",
-                marginTop: getSpacingPx(SPACING.micro),
-                paddingLeft: 0,
-                paddingRight: 0,
-                fontSize: "var(--fontSizeSmaller)"
-              }}
-            >
-              Learn more
-            </EditorButton>
-          </FlexColumn>
+          <Text size="normal" weight={600}>
+            Local Models
+          </Text>
         </FlexRow>
 
-        <FlexRow gap={3} align="center" sx={{ flexShrink: 0 }}>
-          <Stat
+        <Caption sx={{ opacity: 0.7, lineHeight: 1.5 }}>
+          Run models locally for privacy, speed, and offline access.
+        </Caption>
+
+        <FlexRow gap={SPACING.xl} align="flex-start">
+          <ModelStat
             value={String(stats.count)}
-            label="Models installed"
+            label="Installed"
             icon={
-              <Caption
-                sx={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: BORDER_RADIUS.circle,
-                  border: `1.5px solid ${theme.vars.palette.success.main}`,
-                  display: "inline-block"
-                }}
+              <CheckCircleOutlineIcon
+                sx={{ fontSize: 14, color: theme.vars.palette.success.main }}
               />
             }
           />
-          <Stat
+          <ModelStat
             value={stats.size}
-            label="Storage used"
+            label="On disk"
             icon={
               <StorageOutlinedIcon
                 sx={{ fontSize: 14, color: theme.vars.palette.text.secondary }}
@@ -133,37 +94,18 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
           />
         </FlexRow>
 
-      </FlexRow>
+        <EditorButton
+          density="compact"
+          variant="outlined"
+          size="small"
+          fullWidth
+          endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+          onClick={() => window.open(DOCS_URL, "_blank", "noopener,noreferrer")}
+        >
+          Learn more
+        </EditorButton>
+      </FlexColumn>
     </Card>
-  );
-};
-
-interface StatProps {
-  value: string;
-  label: string;
-  icon: React.ReactNode;
-}
-
-const Stat: React.FC<StatProps> = ({ value, label, icon }) => {
-  return (
-    <FlexColumn align="flex-start" sx={{ minWidth: 0 }}>
-      <FlexRow align="center" gap={0.5}>
-        <Text size="big" weight={600} sx={{ lineHeight: 1.1 }}>
-          {value}
-        </Text>
-        {icon}
-      </FlexRow>
-      <Caption
-        sx={{
-          opacity: 0.55,
-          fontSize: "var(--fontSizeSmaller)",
-          marginTop: getSpacingPx(SPACING.micro),
-          whiteSpace: "nowrap"
-        }}
-      >
-        {label}
-      </Caption>
-    </FlexColumn>
   );
 };
 
