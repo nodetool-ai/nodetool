@@ -1,9 +1,10 @@
 /**
  * The `agents` capability module — delegation to a child agent loop.
  *
- * Two capabilities, `run_subtask` and `run_search`, and unlike every other
- * ported namespace their classes stay exactly as they are. `SubAgentTool` is
- * not a schema plus a function: it owns the depth gate, the child context, the
+ * Four capabilities: `run_subtask` (blocking), `run_search` (read-only
+ * child), `start_subtask` (background spawn) and `wait_subtasks` (collect).
+ * Unlike every other ported namespace their classes stay exactly as they
+ * are. `SubAgentTool` is not a schema plus a function: it owns the depth gate, the child context, the
  * streamed events, the tagging, and the settlement, and the runner constructs
  * one per turn over that turn's provider, model, toolbelt snapshot, and
  * forwarder. Reimplementing that here would be a second copy of the machinery
@@ -35,6 +36,8 @@ import type {
 import {
   runSubtaskSpec,
   runSearchSpec,
+  startSubtaskSpec,
+  waitSubtasksSpec,
   RUN_SUBTASK_DESCRIPTION,
   RUN_SUBTASK_SCHEMA,
   RUN_SEARCH_SCHEMA
@@ -110,10 +113,34 @@ const runSearch: CapabilityExport = {
   }
 };
 
-/** Both delegation capabilities. */
+const startSubtask: CapabilityExport = {
+  spec: startSubtaskSpec,
+  impl: async (run, args) => {
+    const { StartSubtaskTool } = await import("../tools/start-subtask-tool.js");
+    const tool = new StartSubtaskTool(subAgentRuntime(run, "start_subtask"));
+    return runSubAgentTool(tool, run, args);
+  }
+};
+
+const waitSubtasks: CapabilityExport = {
+  spec: waitSubtasksSpec,
+  impl: async (run, args) => {
+    const { WaitSubtasksTool } = await import("../tools/wait-subtasks-tool.js");
+    const runtime = subAgentRuntime(run, "wait_subtasks");
+    return Tool.executeTool(
+      new WaitSubtasksTool({ background: runtime.background }),
+      run.context,
+      args
+    );
+  }
+};
+
+/** Every delegation capability. */
 export const AGENT_CAPABILITIES: readonly CapabilityExport[] = [
   runSubtask,
-  runSearch
+  runSearch,
+  startSubtask,
+  waitSubtasks
 ];
 
 export const module: CapabilityModule = {
@@ -121,4 +148,4 @@ export const module: CapabilityModule = {
   exports: AGENT_CAPABILITIES
 };
 
-export { runSubtask, runSearch };
+export { runSubtask, runSearch, startSubtask, waitSubtasks };

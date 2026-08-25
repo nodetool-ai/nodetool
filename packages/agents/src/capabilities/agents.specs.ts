@@ -11,6 +11,12 @@
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
 import { READ_ONLY_SEARCH_DESCRIPTION } from "../prompts/read-only-search-prompt.js";
+import {
+  START_SUBTASK_DESCRIPTION,
+  START_SUBTASK_SCHEMA,
+  WAIT_SUBTASKS_DESCRIPTION,
+  WAIT_SUBTASKS_SCHEMA
+} from "../prompts/background-subtask-prompt.js";
 import { isString } from "../utils/type-guards.js";
 
 export const RUN_SUBTASK_DESCRIPTION = [
@@ -103,8 +109,36 @@ export const runSearchSpec: CapabilitySpec = {
   }
 };
 
+export const startSubtaskSpec: CapabilitySpec = {
+  name: "start_subtask",
+  description: START_SUBTASK_DESCRIPTION,
+  inputSchema: START_SUBTASK_SCHEMA,
+  // The child's events nest under the caller's card, which needs the caller's
+  // tool-call id — same as `run_subtask`.
+  needsToolCallId: true,
+  // Spawning has no side effect of its own; the child loop's tools are gated
+  // inside it. The registry bookkeeping is per-turn state, not a mutation.
+  category: "read",
+  userMessage: (params) => {
+    const desc =
+      isString(params["description"]) ? params["description"].trim() : "";
+    return desc
+      ? `Starting background subtask: ${desc}`
+      : "Starting background subtask";
+  }
+};
+
+export const waitSubtasksSpec: CapabilitySpec = {
+  name: "wait_subtasks",
+  description: WAIT_SUBTASKS_DESCRIPTION,
+  inputSchema: WAIT_SUBTASKS_SCHEMA,
+  category: "read"
+};
+
 /** Every spec this module declares, in declaration order. */
 export const agentsSpecs: readonly CapabilitySpec[] = [
   runSubtaskSpec,
-  runSearchSpec
+  runSearchSpec,
+  startSubtaskSpec,
+  waitSubtasksSpec
 ];

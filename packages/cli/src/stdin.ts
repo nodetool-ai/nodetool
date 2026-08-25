@@ -27,6 +27,7 @@ import { processChat } from "@nodetool-ai/chat";
 import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
 import {
+  BackgroundSubtaskRegistry,
   createCapabilityRun,
   contextSecretAvailability,
   getBuiltinTools,
@@ -251,31 +252,44 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         process.stderr.write(`[tool] ${msg.name}\n`);
       }
     };
-    // Both delegation tools reach the belt as capabilities over one runtime.
+    // All delegation tools reach the belt as capabilities over one runtime.
     // The class is still what runs — the `agents` module builds one per call —
     // so the depth gate, the child's inherited belt (with a `run_subtask` of
     // its own stitched in, since this snapshot predates the tools below it)
-    // and the event tagging are unchanged.
+    // and the event tagging are unchanged. The background registry is built
+    // ONCE here (not inside `delegationRun`) so every `start_subtask` call
+    // this turn writes records the same turn's `wait_subtasks` reads.
+    const backgroundSubtasks = new BackgroundSubtaskRegistry();
+    const subAgentRuntime = {
+      provider: prov,
+      model: opts.model,
+      parentTools: () => baseTools,
+      forwardMessage,
+      background: backgroundSubtasks
+    };
     const delegationRun = (context: ProcessingContext) =>
       createCapabilityRun({
         context,
         gate: UNGATED,
         availableSecrets: contextSecretAvailability(context),
-        subAgent: {
-          provider: prov,
-          model: opts.model,
-          parentTools: () => baseTools,
-          forwardMessage
-        }
+        subAgent: subAgentRuntime
       });
     const subtaskTool = toolForCapabilityName("run_subtask", delegationRun);
+    const startSubtaskTool = toolForCapabilityName(
+      "start_subtask",
+      delegationRun
+    );
+    const waitSubtasksTool = toolForCapabilityName(
+      "wait_subtasks",
+      delegationRun
+    );
     // Read-only fan-out search (on by default). Filters baseTools to its
     // read-only allowlist internally, so passing the full snapshot is correct.
     if (opts.enableReadOnlySearch !== false) {
       const searchTool = toolForCapabilityName("run_search", delegationRun);
-      return [searchTool, subtaskTool, ...baseTools];
+      return [searchTool, subtaskTool, startSubtaskTool, waitSubtasksTool, ...baseTools];
     }
-    return [subtaskTool, ...baseTools];
+    return [subtaskTool, startSubtaskTool, waitSubtasksTool, ...baseTools];
   };
 
   /**

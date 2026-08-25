@@ -687,7 +687,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_job_logs",
     module: "jobs",
     impl: "packages/agents/src/capabilities/jobs.ts",
-    contract: "a0efde46e363",
+    contract: "e4eb72a3bb2e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-jobs.test.ts",
@@ -1272,6 +1272,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "agents",
     impl: "packages/agents/src/capabilities/agents.ts",
     contract: "4d4c6ddc88ee",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+    ],
+  },
+  {
+    name: "start_subtask",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "cbd1367c51d6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+    ],
+  },
+  {
+    name: "wait_subtasks",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "761238019e95",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-agents.test.ts",

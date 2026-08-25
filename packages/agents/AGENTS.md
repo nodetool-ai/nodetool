@@ -1216,15 +1216,29 @@ pipe and nests in the UI the same way.
 | `SubAgentTool` | Base class for tools that expose a sub-agent to a parent model — subclasses declare the tool surface, translate params into a `SubAgentToolRun`, and pick the child toolset; the base owns depth gate, streaming, tagging, settlement |
 
 Every spawn site goes through it: `RunSubtaskTool` (inherits the full parent
-belt, stitches itself in for recursion) and `RunSearchTool` (read-only
-allowlist, breadth-scaled iteration budget) are thin `SubAgentTool`
-subclasses. A generator that is not a CodeAct child streams through
+belt, stitches itself in for recursion), `RunSearchTool` (read-only
+allowlist, breadth-scaled iteration budget), and `StartSubtaskTool` (same
+child but returns a `subtask_id` receipt immediately so the parent keeps
+its turn) are thin `SubAgentTool` subclasses. `WaitSubtasksTool` reads the
+same per-turn `BackgroundSubtaskRegistry` (`src/background-subtasks.ts`) that
+the background pump settles — `wait_subtasks({ids?, timeout_ms?})` blocks
+until every requested record left "running" (or on timeout/abort, which
+return current statuses instead of throwing). The registry lives on
+`SubAgentToolRuntime.background`, one per chat turn, built by the host
+(websocket runner, CLI); a host with no registry refuses by name. A
+background subtask's events still stream to the UI tagged with
+`parent_tool_call_id`/`subtask_depth`, and nesting depth is still gated
+by `enterSubAgentDepth`. In CodeAct: `await nodetool.agents.start(prompt)`
++ `await nodetool.agents.wait({ids, timeoutMs})` — fan out while you
+keep working. A generator that is not a CodeAct child streams through
 `forwardSubAgentStream` directly. A new delegation tool should be another
 subclass, not another copy of the machinery.
 
 Tests: `tests/subagent.test.ts` (pure-function coverage), plus the spawn-site
-suites (`tests/run-subtask-tool.test.ts`, `tests/run-search-tool.test.ts`)
-which exercise the core end-to-end.
+suites (`tests/run-subtask-tool.test.ts`, `tests/run-search-tool.test.ts`,
+`tests/background-subtasks.test.ts` for `start`/`wait` and the registry,
+`tests/capabilities-agents.test.ts` through the capability seam) which
+exercise the core end-to-end.
 
 ## Code-shaped orchestration is CodeAct, not a mode
 
@@ -1239,6 +1253,7 @@ inside an `execute_code` action:
 | Script primitive | CodeAct equivalent |
 |---|---|
 | `await agent(prompt, opts?)` | `await nodetool.agents.run(prompt)` (a `run_subtask` child) |
+| `await agent.start(prompt)` + `await agent.wait({ids})` | `await nodetool.agents.start(prompt)` + `await nodetool.agents.wait({ids})` — background spawn, collect later |
 | `await parallel(thunks)` | `await Promise.all(...)`, or `nodetool.batch` for a bound |
 | `await pipeline(items, ...stages)` | `nodetool.batch(items, async (item) => …)` |
 | `log(message)` | `console.log(message)` |
