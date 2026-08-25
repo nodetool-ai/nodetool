@@ -31,6 +31,17 @@ export const useCaseEntries: UseCaseEntry[] = [
     accent: "amber",
   },
   {
+    slug: "documentary-teaser",
+    title: "Documentary Teaser Generator",
+    category: "Documentary",
+    teaser:
+      "Describe the film in a sentence and the board comes back readable: a card per shot, a still on every card. Approve the stills, animate them, and cut the teaser on the timeline.",
+    pipeline: ["Premise", "Storyboard", "Stills", "Clips", "Timeline"],
+    video: "/deep_teaser_example.mp4",
+    poster: "/deep-shot-1-800.webp",
+    accent: "sky",
+  },
+  {
     slug: "product-video",
     title: "Product Video Generator",
     category: "Marketing",

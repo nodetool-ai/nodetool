@@ -1,7 +1,7 @@
 import type { QaPair } from "../lib/jsonld";
 
 /**
- * The three `/use-cases/*` pages, in the parts two files need to agree on.
+ * The four `/use-cases/*` pages, in the parts two files need to agree on.
  *
  * The steps render on the page as "How it works" and become the page's `HowTo`
  * schema in its layout; the FAQ renders at the bottom and becomes the page's
@@ -141,6 +141,65 @@ export const movieTrailerUseCase: UseCaseEntry = {
   ],
 };
 
+export const documentaryTeaserUseCase: UseCaseEntry = {
+  slug: "documentary-teaser",
+  route: "/use-cases/documentary-teaser",
+  howToName: "How to generate a documentary teaser with AI in NodeTool",
+  howToDescription:
+    "Turn one sentence about the film into a storyboard, a still on every card, animated clips, and a finished cut on the timeline.",
+  tools: [
+    "NodeTool",
+    "A reasoning model",
+    "An image model",
+    "A video model",
+  ],
+  steps: [
+    {
+      title: "Write the premise",
+      body: "One sentence about the film, the look you want, and how many shots. That is the whole brief.",
+      detail:
+        "A dive from the surface to the abyssal plain · IMAX documentary look · 6 shots",
+    },
+    {
+      title: "Direct the storyboard",
+      body: "Press Direct and the board fills with cards — one beat per card, with its action, camera, and motion, all under the look you asked for.",
+      detail: "6 cards · framing, lens, angle, movement · one style bible",
+    },
+    {
+      title: "Approve the stills",
+      body: "Every card renders a still first. Stills cost cents, so re-roll a card until it looks right — the rest of the board stays put.",
+      detail: "Cinematic 16:9 key art · re-roll one card at a time",
+    },
+    {
+      title: "Animate and cut",
+      body: "Animate only the cards you approved, then send the board to the timeline: the clips arrive in shot order, ready to trim, narrate, score, and export.",
+      detail: "Image-to-video · six clips · 26 seconds · export an MP4",
+    },
+  ],
+  faq: [
+    {
+      question: "How do you make a documentary teaser with AI?",
+      answer:
+        "Write the premise, the visual style, and a shot count. NodeTool's storyboard turns that into a card per shot with action and camera notes, renders a still on each card, animates the ones you approve into clips, and sends the board to the timeline where you trim, narrate, score, and export the cut.",
+    },
+    {
+      question: "Which models does this use?",
+      answer:
+        "Three, and each one is a dropdown: a reasoning model directs the board, an image model renders each card's still, and a video model animates the approved stills into clips. All three run on your own provider keys.",
+    },
+    {
+      question: "Can I keep the same subject across shots?",
+      answer:
+        "Yes. Save the vessel, the submersible, the creatures, and the palette as named entities. Name one in a shot and its description rides into that shot's prompt, so the same subject shows up in every card that mentions it.",
+    },
+    {
+      question: "Do I need a video editor to cut the teaser?",
+      answer:
+        "No. The timeline is built in. The approved clips land on a track in shot order, and you trim, reorder, lay narration and music underneath, and export a finished video without leaving NodeTool.",
+    },
+  ],
+};
+
 export const productVideoUseCase: UseCaseEntry = {
   slug: "product-video",
   route: "/use-cases/product-video",
@@ -199,5 +258,6 @@ export const productVideoUseCase: UseCaseEntry = {
 export const useCaseEntries: UseCaseEntry[] = [
   moviePosterUseCase,
   movieTrailerUseCase,
+  documentaryTeaserUseCase,
   productVideoUseCase,
 ];
