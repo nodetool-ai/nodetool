@@ -304,6 +304,12 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
     if (!job) {
       return;
     }
+    // Direct generation (generate_media RPC) has no server job to cancel —
+    // stop tracking and settle; the provider call runs to completion.
+    if (!job.workflowId) {
+      settleCancelledShotJob(shotId);
+      return;
+    }
     try {
       await trpcClient.jobs.cancel.mutate({ id: job.jobId });
       // Settle immediately rather than waiting for the cancelled job_update —

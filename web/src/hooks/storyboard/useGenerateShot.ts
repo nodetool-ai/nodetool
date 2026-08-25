@@ -1,34 +1,38 @@
 /**
  * useGenerateShot
  *
- * Per-shot generation for the Storyboard surface, adapted from
- * {@link useGenerateClip}. Two entry points:
+ * Per-shot generation for the Storyboard surface. Every entry point fires the
+ * unified runner's `generate_media` RPC — no workflow, no job row:
  *
- *   - `generateKeyframe(boardId, shot)` runs a minimal `TextToImage → Output`
- *     graph (prompt = shot action + board style) to produce the cheap still.
- *   - `generateClip(boardId, shot)` runs `ImageToVideo → Output`, seeded by the
- *     shot's selected keyframe, to render the final clip.
+ *   - `generateKeyframe(boardId, shot)` — mode `image`, prompt from the shot
+ *     action + board style. Entity mentions travel as `entity://<id>` tokens
+ *     the server expands at generation time (name inline, descriptor block,
+ *     reference image routed into the provider inputs); when the board's still
+ *     model cannot edit, descriptors are seasoned client-side instead.
+ *   - `generateClip(boardId, shot)` — mode `video` with the shot's keyframe as
+ *     `source_asset_id` (image-to-video), timed to the linked script's takes.
+ *   - `generateRevisedClip(boardId, shot, instruction)` — mode `video_edit`
+ *     over the shot's rendered clip.
  *
- * Both build a real nodes+edges graph, run it through the per-shot
- * {@link getWorkflowRunnerStore}, register the job on
- * {@link useStoryboardGenerationStore}, and subscribe through the shared
- * GlobalWebSocketManager machinery so completion writes the resulting
- * ImageRef/VideoRef back to the board and settles the shot status.
+ * All three register the request on {@link useStoryboardGenerationStore} and
+ * subscribe through the shared GlobalWebSocketManager machinery so completion
+ * writes the resulting ImageRef/VideoRef back to the board and settles the
+ * shot status.
  */
 
 import { useCallback } from "react";
-import type { Edge, Node } from "@xyflow/react";
 import type { Entity, Shot } from "@nodetool-ai/protocol";
-import type { NodeData } from "../../stores/NodeData";
-import type { WorkflowAttributes } from "../../stores/ApiTypes";
-import type { ImageModelValue } from "../../stores/ApiTypes";
-import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import { injectEntities } from "@nodetool-ai/protocol";
+import {
+  globalWebSocketManager
+} from "../../lib/websocket/GlobalWebSocketManager";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useEntities } from "../../serverState/useEntities";
 import { useImageModelsByProvider } from "../useModelsByProvider";
 import {
-  subscribeShotJob,
+  subscribeDirectShotJob,
+  unsubscribeShotJob,
   useStoryboardGenerationStore,
   type ShotJobKind
 } from "../../stores/storyboard/StoryboardGenerationStore";
@@ -58,80 +62,32 @@ export const __resetStartingShotsForTests = (): void => {
   startingShots.clear();
 };
 
-/** A per-shot runner store id (isolates each shot's run from its siblings). */
-const runnerIdForShot = (shotId: string): string => `storyboard:${shotId}`;
-
-const makeWorkflow = (id: string, name: string): WorkflowAttributes => ({
-  id,
-  name,
-  description: "",
-  access: "private",
-  thumbnail: "",
-  updated_at: new Date().toISOString(),
-  created_at: new Date().toISOString(),
-  settings: { hide_ui: true },
-  run_mode: "workflow",
-  workspace_id: null
-});
-
-/** A `model` property, present only when a model was chosen. */
-type ModelProp<T> = { model?: T };
-
-/** The board's model, when it picked one; the node's default otherwise. */
-const modelProp = <T>(model: T | undefined | null): ModelProp<T> => {
-  const prop: ModelProp<T> = {};
-  if (model) prop.model = model;
-  return prop;
-};
-
-/** Properties for the keyframe generator, which takes an image when editing. */
-const stillProps = (
-  useEditModel: boolean,
-  prompt: string,
-  entities: unknown[],
-  aspectRatio: string,
-  model: ImageModelValue | undefined | null
-) => {
-  // Board-level still model; omitted = the node's default model.
-  const props = {
-    prompt,
-    entities,
-    aspect_ratio: aspectRatio,
-    ...modelProp(model)
-  };
-  return useEditModel ? { image: [], ...props } : props;
-};
-
-const makeNode = (
-  id: string,
-  type: string,
-  x: number,
-  properties: Record<string, unknown>,
-  workflowId: string
-): Node<NodeData> => ({
-  id,
-  type,
-  position: { x, y: 0 },
-  data: {
-    properties,
-    selectable: true,
-    dynamic_properties: {},
-    workflow_id: workflowId
+/** A request id for a direct-generation RPC (no server job exists). */
+const randomRequestId = (): string => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
   }
-});
+  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
 
-const outputEdge = (): Edge => ({
-  id: `${GEN_NODE_ID}-${OUT_NODE_ID}`,
-  source: GEN_NODE_ID,
-  sourceHandle: "output",
-  target: OUT_NODE_ID,
-  targetHandle: "value"
-});
+/** The stored asset id behind a media ref, when it has one. */
+const assetIdFromRef = (ref: unknown): string | undefined => {
+  if (!ref || typeof ref !== "object") return undefined;
+  const r = ref as { asset_id?: unknown; uri?: unknown };
+  if (typeof r.asset_id === "string" && r.asset_id.length > 0) {
+    return r.asset_id;
+  }
+  if (typeof r.uri === "string" && r.uri.startsWith("asset://")) {
+    const bare = r.uri.slice("asset://".length);
+    return bare.slice(0, bare.lastIndexOf("."));
+  }
+  return undefined;
+};
 
 /**
  * Compose an image prompt from a shot's action, camera framing, and board
- * style. Entity descriptors/reference images are NOT injected here — they ride
- * along as an `entities` node property and expand at the provider layer.
+ * style. Entity mentions ride as `entity://` tokens appended to the prompt;
+ * the server expands them (descriptor block + routed reference images).
  */
 const keyframePrompt = (shot: Shot, style: string): string => {
   const parts = [shot.action.trim()];
@@ -149,19 +105,23 @@ const clipPrompt = (shot: Shot): string =>
     .filter((p) => !!p && p.trim().length > 0)
     .join(", ");
 
-/**
- * The wire shape of an entity attached to a generation node: name +
- * descriptor + at most one reference image. The runtime resolves the ref to
- * bytes and the provider layer injects descriptor text / appends the image.
- */
-const wireEntity = (entity: Entity) => ({
-  name: entity.name,
-  descriptor: entity.descriptor,
-  reference_images: entity.reference_images?.slice(0, 1) ?? []
-});
+/** Entity mentions on their own line; the server seasons the prompt with them. */
+const entityTokenSuffix = (entities: Entity[]): string =>
+  entities.length > 0
+    ? `\n${entities.map((e) => `entity://${e.id}`).join(" ")}`
+    : "";
 
 const hasReferenceImage = (entities: Entity[]): boolean =>
   entities.some((e) => (e.reference_images?.length ?? 0) > 0);
+
+/**
+ * Resolution tiers the old generation nodes applied implicitly through their
+ * property defaults — `1K` on the image nodes (packages/image-nodes), `1080p`
+ * on ImageToVideo (packages/video-nodes). The direct requests must carry them
+ * or the provider falls back to its own default.
+ */
+const STILL_RESOLUTION = "1K";
+const CLIP_RESOLUTION = "1080p";
 
 interface UseGenerateShotResult {
   generateKeyframe: (boardId: string, shot: Shot) => Promise<void>;
@@ -199,14 +159,13 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     [allEntities]
   );
 
-  const startJob = useCallback(
+  /** Fire one direct-generation request and track it on the shot. */
+  const startDirectGeneration = useCallback(
     async (
       boardId: string,
       shot: Shot,
       kind: ShotJobKind,
-      nodes: Node<NodeData>[],
-      edges: Edge[],
-      workflowId: string
+      data: Record<string, unknown>
     ): Promise<void> => {
       // Single-flight per shot: skip when a job is active or a start is
       // already in the pre-registration window.
@@ -214,30 +173,27 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         return;
       }
       startingShots.add(shot.id);
+      const requestId = randomRequestId();
       try {
-        const workflow = makeWorkflow(
-          workflowId,
-          shot.slug ?? `Shot ${shot.index + 1}`
-        );
-        const runnerStore = getWorkflowRunnerStore(workflowId);
-        const jobId = await runnerStore
-          .getState()
-          .run({}, workflow, nodes, edges, undefined, undefined, true);
-        if (!jobId) {
-          throw new Error("Workflow runner did not return a job id");
+        registerJob(shot.id, boardId, requestId, "", kind);
+        await subscribeDirectShotJob(requestId, {
+          shotId: shot.id,
+          boardId,
+          kind
+        });
+        try {
+          await globalWebSocketManager.send({
+            command: "generate_media",
+            request_id: requestId,
+            data
+          });
+        } catch (error) {
+          // The request never left: drop the registration and subscription so
+          // a retry is not blocked by a phantom queued job.
+          useStoryboardGenerationStore.getState().clear(shot.id);
+          unsubscribeShotJob(requestId);
+          throw error;
         }
-        registerJob(shot.id, boardId, jobId, workflowId, kind);
-        await subscribeShotJob(
-          jobId,
-          {
-            shotId: shot.id,
-            boardId,
-            workflowId,
-            kind,
-            outputNodeId: OUT_NODE_ID
-          },
-          false
-        );
       } catch (error) {
         // A start that throws has no job and therefore no message stream to
         // report on: record the reason on the shot so the card and a toast
@@ -261,51 +217,40 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       const board = useStoryboardStore.getState().getBoard(boardId);
       const style = board?.style ?? "";
       const aspectRatio = board?.aspectRatio ?? "16:9";
-      const workflowId = runnerIdForShot(shot.id);
       const entities = entitiesForShot(shot, boardEntities(board?.entityIds));
-      // Entities with reference images route through Image To Image when the
-      // board's still model can edit — the provider layer appends the images
-      // as references. Otherwise stay on Text To Image (descriptors only).
+      const entityIds = entities.map((e) => e.id);
+      // Entities with reference images ride as `entity://` tokens when the
+      // board's still model can edit — the server expands them into prompt
+      // text and routes the reference images into the provider call.
+      // Otherwise season descriptors client-side only.
       const stillModel = board?.imageModel?.id
         ? imageModels.find((m) => m.id === board.imageModel?.id)
         : undefined;
       const useEditModel =
         hasReferenceImage(entities) &&
         !!stillModel?.supported_tasks?.includes("image_to_image");
-      const nodes: Node<NodeData>[] = [
-        makeNode(
-          GEN_NODE_ID,
-          useEditModel
-            ? "nodetool.image.ImageToImage"
-            : "nodetool.image.TextToImage",
-          0,
-          stillProps(
-            useEditModel,
-            keyframePrompt(shot, style),
-            entities.map(wireEntity),
-            aspectRatio,
-            board?.imageModel
-          ),
-          workflowId
-        ),
-        makeNode(
-          OUT_NODE_ID,
-          "nodetool.output.Output",
-          400,
-          { name: "keyframe" },
-          workflowId
-        )
-      ];
-      await startJob(
-        boardId,
-        shot,
-        "keyframe",
-        nodes,
-        [outputEdge()],
-        workflowId
-      );
+      const basePrompt = keyframePrompt(shot, style);
+      const prompt =
+        useEditModel && entities.length > 0
+          ? `${basePrompt}${entityTokenSuffix(entities)}`
+          : entityIds.length > 0
+            ? injectEntities(basePrompt, entities, entityIds).prompt
+            : basePrompt;
+
+      const data: Record<string, unknown> = {
+        mode: "image",
+        prompt,
+        aspect_ratio: aspectRatio,
+        resolution: STILL_RESOLUTION,
+        variations: 1
+      };
+      if (board?.imageModel) {
+        data.provider = board.imageModel.provider;
+        data.model = board.imageModel.id;
+      }
+      await startDirectGeneration(boardId, shot, "keyframe", data);
     },
-    [startJob, boardEntities, imageModels]
+    [startDirectGeneration, boardEntities, imageModels]
   );
 
   const generateClip = useCallback(
@@ -313,6 +258,12 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       if (!shot.keyframe) {
         throw new Error(
           "Shot has no keyframe to animate. Generate a still first."
+        );
+      }
+      const sourceAssetId = assetIdFromRef(shot.keyframe);
+      if (!sourceAssetId) {
+        throw new Error(
+          "The shot's still has no stored asset to animate. Generate a still first."
         );
       }
       const board = useStoryboardStore.getState().getBoard(boardId);
@@ -323,37 +274,26 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         board?.screenplay?.script_id,
         shot
       );
-      const workflowId = runnerIdForShot(shot.id);
-      const nodes: Node<NodeData>[] = [
-        makeNode(
-          GEN_NODE_ID,
-          "nodetool.video.ImageToVideo",
-          0,
-          {
-            image: shot.keyframe,
-            prompt: clipPrompt(shot),
-            entities: entitiesForShot(
-              shot,
-              boardEntities(board?.entityIds)
-            ).map(wireEntity),
-            aspect_ratio: aspectRatio,
-            duration: durationSeconds,
-            // Board-level clip model; omitted = the node's default model.
-            ...modelProp(board?.videoModel)
-          },
-          workflowId
-        ),
-        makeNode(
-          OUT_NODE_ID,
-          "nodetool.output.Output",
-          400,
-          { name: "clip" },
-          workflowId
-        )
-      ];
-      await startJob(boardId, shot, "clip", nodes, [outputEdge()], workflowId);
+      const data: Record<string, unknown> = {
+        mode: "video",
+        prompt: `${clipPrompt(shot)}${entityTokenSuffix(
+          entitiesForShot(shot, boardEntities(board?.entityIds))
+        )}`,
+        source_asset_id: sourceAssetId,
+        aspect_ratio: aspectRatio,
+        resolution: CLIP_RESOLUTION,
+        variations: 1
+      };
+      if (durationSeconds !== undefined) {
+        data.duration = durationSeconds;
+      }
+      if (board?.videoModel) {
+        data.provider = board.videoModel.provider;
+        data.model = board.videoModel.id;
+      }
+      await startDirectGeneration(boardId, shot, "clip", data);
     },
-    [startJob, boardEntities]
+    [startDirectGeneration, boardEntities]
   );
 
   const generateRevisedClip = useCallback(
@@ -365,32 +305,25 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       if (prompt.length === 0) {
         throw new Error("A revision instruction is required.");
       }
+      const sourceAssetId = assetIdFromRef(shot.clip);
+      if (!sourceAssetId) {
+        throw new Error(
+          "The shot's clip has no stored asset to revise. Render it again."
+        );
+      }
       const board = useStoryboardStore.getState().getBoard(boardId);
-      const workflowId = runnerIdForShot(shot.id);
-      const nodes: Node<NodeData>[] = [
-        makeNode(
-          GEN_NODE_ID,
-          "nodetool.video.VideoToVideo",
-          0,
-          {
-            video: shot.clip,
-            prompt,
-            // Board-level clip model; omitted = the node's default model.
-            ...modelProp(board?.videoModel)
-          },
-          workflowId
-        ),
-        makeNode(
-          OUT_NODE_ID,
-          "nodetool.output.Output",
-          400,
-          { name: "clip" },
-          workflowId
-        )
-      ];
-      await startJob(boardId, shot, "clip", nodes, [outputEdge()], workflowId);
+      const data: Record<string, unknown> = {
+        mode: "video_edit",
+        prompt,
+        source_asset_id: sourceAssetId
+      };
+      if (board?.videoModel) {
+        data.provider = board.videoModel.provider;
+        data.model = board.videoModel.id;
+      }
+      await startDirectGeneration(boardId, shot, "clip", data);
     },
-    [startJob]
+    [startDirectGeneration]
   );
 
   return { generateKeyframe, generateClip, generateRevisedClip };
