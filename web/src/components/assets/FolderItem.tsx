@@ -118,8 +118,6 @@ interface FolderItemProps {
   enableContextMenu?: boolean;
   showDeleteButton?: boolean;
   onSelect: () => void;
-  onClickParent?: (id: string) => void;
-  openDeleteDialog?: () => void;
   children?: React.ReactNode;
 }
 

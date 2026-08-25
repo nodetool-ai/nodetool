@@ -5,7 +5,7 @@
  */
 
 /** The server's filename from `content-disposition`, or `fallback`. */
-export function filenameFromDisposition(
+function filenameFromDisposition(
   header: string | null,
   fallback: string
 ): string {
@@ -18,7 +18,7 @@ export function filenameFromDisposition(
   return fallback;
 }
 
-export function triggerDownload(blob: Blob, filename: string): void {
+function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

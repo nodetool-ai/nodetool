@@ -334,7 +334,6 @@ export type AssetItemProps = {
   onSelect?: () => void;
   onClickParent?: (id: string) => void;
   onDragStart?: (assetId: string) => string[];
-  onDeleteAssets?: () => void;
   onSetCurrentAudioAsset?: (asset: Asset) => void;
   onDoubleClick?: (asset: Asset) => void;
 };

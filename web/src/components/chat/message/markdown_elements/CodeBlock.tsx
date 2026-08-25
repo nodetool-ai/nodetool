@@ -148,7 +148,7 @@ const SVG_BLOCK_LANGUAGES = new Set(["svg", "xml", "html", "plaintext"]);
  * after stripping a BOM, XML declaration, or SVG doctype. Returns null
  * when the block is not an SVG document.
  */
-export function extractSvgDocument(source: string): string | null {
+function extractSvgDocument(source: string): string | null {
   const trimmed = source.trim().replace(/^\uFEFF/, "");
   if (!trimmed) {
     return null;
