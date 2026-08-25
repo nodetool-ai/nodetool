@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { FlexColumn } from "../ui_primitives";
@@ -9,6 +9,7 @@ import useGlobalChatStore, {
 } from "../../stores/GlobalChatStore";
 import type { Message, LanguageModel } from "../../stores/ApiTypes";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import DocumentLoadStatus from "./DocumentLoadStatus";
 
 const whenChatStoreHydrated = (): Promise<void> => {
   const persistApi = useGlobalChatStore.persist;
@@ -40,6 +41,10 @@ const NO_MESSAGES: Message[] = [];
  */
 const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
   const runtime = useThreadRuntime(refId);
+  // Until the thread's messages are in, an empty cache is indistinguishable
+  // from an empty conversation, and the tab greets the user with the welcome
+  // screen for a thread that has history.
+  const [loadingThread, setLoadingThread] = useState(true);
 
   const { currentThreadId, thread, messages } = useGlobalChatStore(
     useShallow((state) => ({
@@ -98,6 +103,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
   const threadKnown = thread !== undefined;
   useEffect(() => {
     let cancelled = false;
+    setLoadingThread(true);
     const hydrate = async () => {
       try {
         await whenChatStoreHydrated();
@@ -117,6 +123,10 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to load chat thread:", error);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingThread(false);
         }
       }
     };
@@ -177,9 +187,14 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     [sendMessage, selectedModel, refId]
   );
 
-  const welcomePlaceholder = useMemo(
-    () => <WelcomePlaceholder onSuggestionClick={handleSuggestionClick} />,
-    [handleSuggestionClick]
+  const noMessagesPlaceholder = useMemo(
+    () =>
+      loadingThread ? (
+        <DocumentLoadStatus state="loading" label="conversation" />
+      ) : (
+        <WelcomePlaceholder onSuggestionClick={handleSuggestionClick} />
+      ),
+    [loadingThread, handleSuggestionClick]
   );
 
   const handleNewChat = useCallback(async () => {
@@ -217,7 +232,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         currentLogUpdate={runtime.logUpdate}
         workflowId={workflowId}
         chatSource="workspace_chat"
-        noMessagesPlaceholder={welcomePlaceholder}
+        noMessagesPlaceholder={noMessagesPlaceholder}
         showNewChatButton
       />
     </FlexColumn>

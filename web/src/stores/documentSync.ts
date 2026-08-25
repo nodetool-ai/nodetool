@@ -21,6 +21,13 @@
  */
 import { useNotificationStore } from "./NotificationStore";
 
+/**
+ * Where a document editor is in its initial server load. A surface that renders
+ * an empty document while `"loading"` looks like an empty document, so surfaces
+ * show a spinner until the first load settles.
+ */
+export type DocumentLoadState = "loading" | "ready" | "error";
+
 /** `resource_type` as the backend spells it: the lowercased model class name. */
 export type SyncedDocumentType =
   | "timelinesequence"

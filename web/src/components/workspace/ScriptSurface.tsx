@@ -29,6 +29,7 @@ import ScriptDocumentPane from "../script/ScriptDocumentPane";
 import ScriptCastPanel from "../script/ScriptCastPanel";
 import ScriptAgentPanel from "../script/ScriptAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
+import DocumentLoadStatus from "./DocumentLoadStatus";
 
 interface ScriptSurfaceProps {
   refId: string;
@@ -73,7 +74,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
     ensureScript(refId);
   }, [ensureScript, refId]);
 
-  useScriptServerSync(refId);
+  const loadState = useScriptServerSync(refId);
   useScriptAgentBridge(refId);
 
   useDocumentUndoShortcuts({
@@ -115,6 +116,12 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
     ) : (
       <ScriptAgentPanel scriptId={refId} />
     );
+
+  // The store seeds an empty script on mount, so rendering before the server
+  // copy lands looks like a script with no lines.
+  if (loadState !== "ready") {
+    return <DocumentLoadStatus state={loadState} label="script" />;
+  }
 
   // On mobile the fixed 320px side dock would crush the document, so the cast
   // and assistant panels move into a bottom sheet reached by two floating

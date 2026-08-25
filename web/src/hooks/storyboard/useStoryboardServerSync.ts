@@ -17,7 +17,7 @@
  * caller that wrote into the store can learn whether the write persisted.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trpc, trpcClient } from "../../trpc/client";
 import {
   useStoryboardStore,
@@ -25,7 +25,10 @@ import {
 } from "../../stores/storyboard/StoryboardStore";
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import { getErrorMessage } from "../../utils/errorHandling";
-import { registerDocumentSync } from "../../stores/documentSync";
+import {
+  registerDocumentSync,
+  type DocumentLoadState
+} from "../../stores/documentSync";
 import {
   isPermanentSaveError,
   MAX_TRANSIENT_SAVE_RETRIES
@@ -96,8 +99,11 @@ const isNotFound = (error: unknown): boolean =>
 const isConflict = (error: unknown): boolean =>
   /modified since last read/i.test(getErrorMessage(error));
 
-export const useStoryboardServerSync = (boardId: string): void => {
+export const useStoryboardServerSync = (
+  boardId: string
+): DocumentLoadState => {
   const utils = trpc.useUtils();
+  const [loadState, setLoadState] = useState<DocumentLoadState>("loading");
   // The board object reference last written to / read from the server; any
   // other reference in the store means unsaved local edits.
   const syncedRef = useRef<StoryboardBoard | null>(null);
@@ -119,6 +125,7 @@ export const useStoryboardServerSync = (boardId: string): void => {
   useEffect(() => {
     let disposed = false;
     const store = useStoryboardStore;
+    setLoadState("loading");
 
     const applyResponse = (res: StoryboardResponse): void => {
       if (disposed) return;
@@ -315,7 +322,16 @@ export const useStoryboardServerSync = (boardId: string): void => {
     // long as this board is open.
     registerStoryboardSaver(boardId, flushNow);
 
-    loadPromiseRef.current = load();
+    // The initial load is the one that gates rendering: a board with no server
+    // revision after it has settled is a board that failed to load. Later
+    // reloads (CAS conflict, resource_change) leave the state alone — the
+    // surface already has a document to show.
+    loadPromiseRef.current = load().finally(() => {
+      if (disposed) return;
+      setLoadState(
+        store.getState().serverRevisions[boardId] ? "ready" : "error"
+      );
+    });
     void loadPromiseRef.current;
 
     return () => {
@@ -330,6 +346,8 @@ export const useStoryboardServerSync = (boardId: string): void => {
       else void save(true);
     };
   }, [boardId]);
+
+  return loadState;
 };
 
 export default useStoryboardServerSync;
