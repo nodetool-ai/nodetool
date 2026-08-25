@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  FileWatchDebouncer,
   matchesFileWatchPattern,
+  shouldEmitFileWatchEvent,
   shouldProcessFileWatchPath
 } from "../src/lib/file-watch-match.js";
 
@@ -106,5 +108,97 @@ describe("shouldProcessFileWatchPath", () => {
         ignorePatterns: []
       })
     ).toBe(false);
+  });
+});
+
+describe("FileWatchDebouncer", () => {
+  // The clock is injectable, so a test clock or a monotonic source can read a
+  // value below debounceMs. Nothing has fired yet, so nothing is a repeat.
+  it.each([0, 1, 250, 499])(
+    "does not suppress a path's first event on a clock starting at %i",
+    (start) => {
+      const debouncer = new FileWatchDebouncer(500, () => start);
+      expect(debouncer.shouldSuppress("/w/a.txt")).toBe(false);
+    }
+  );
+
+  it("debounces from the first fire, not from the clock's origin", () => {
+    let now = 250;
+    const debouncer = new FileWatchDebouncer(500, () => now);
+
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(false);
+    now = 749; // 499ms after the fire, but 749ms after the clock's origin
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(true);
+    now = 750;
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(false);
+  });
+
+  it("suppresses a repeat inside the window and allows one at the boundary", () => {
+    let now = 1_000_000;
+    const debouncer = new FileWatchDebouncer(500, () => now);
+
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(false);
+    now += 499;
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(true);
+    now += 1; // exactly debounceMs since the fire
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(false);
+  });
+
+  it("keeps one window per path", () => {
+    let now = 0;
+    const debouncer = new FileWatchDebouncer(500, () => now);
+
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(false);
+    expect(debouncer.shouldSuppress("/w/b.txt")).toBe(false);
+    now = 400;
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(true);
+    expect(debouncer.shouldSuppress("/w/b.txt")).toBe(true);
+  });
+
+  it("never suppresses when the debounce window is zero", () => {
+    const debouncer = new FileWatchDebouncer(0, () => 0);
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(false);
+    expect(debouncer.shouldSuppress("/w/a.txt")).toBe(false);
+  });
+});
+
+describe("shouldEmitFileWatchEvent", () => {
+  const filter = {
+    patterns: ["*.csv"],
+    ignorePatterns: ["skip.*"],
+    events: ["created", "modified", "deleted", "moved"]
+  };
+  const emit = (eventType: string, filePath: string, deb: FileWatchDebouncer) =>
+    shouldEmitFileWatchEvent(eventType, filePath, filter, deb);
+
+  it.each([
+    ["emits a watched event on an included file", "modified", "/w/a.csv", true],
+    ["drops an unwatched event type", "renamed", "/w/a.csv", false],
+    ["drops an event type differing only in case", "MODIFIED", "/w/a.csv", false],
+    ["drops an empty event type", "", "/w/a.csv", false],
+    ["drops a file no include pattern matches", "modified", "/w/a.txt", false],
+    ["drops an ignored file", "modified", "/w/skip.csv", false],
+    ["matches on the basename, not the directory", "modified", "/skip.csv/a.csv", true]
+  ])("%s", (_label, eventType, filePath, expected) => {
+    const debouncer = new FileWatchDebouncer(500, () => 1_000_000);
+    expect(emit(eventType, filePath, debouncer)).toBe(expected);
+  });
+
+  it("does not start a debounce window for an event it rejected", () => {
+    let now = 1_000_000;
+    const debouncer = new FileWatchDebouncer(500, () => now);
+
+    // Rejected by event type, then by the pattern filter: neither may record a
+    // fire time, or the first event that does pass gets swallowed.
+    expect(emit("renamed", "/w/a.csv", debouncer)).toBe(false);
+    expect(emit("modified", "/w/skip.csv", debouncer)).toBe(false);
+    expect(emit("modified", "/w/a.csv", debouncer)).toBe(true);
+    now += 100;
+    expect(emit("modified", "/w/a.csv", debouncer)).toBe(false);
+  });
+
+  it("emits the first event of a watch started at clock zero", () => {
+    const debouncer = new FileWatchDebouncer(500, () => 0);
+    expect(emit("created", "/w/a.csv", debouncer)).toBe(true);
   });
 });
