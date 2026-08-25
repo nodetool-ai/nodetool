@@ -73,15 +73,11 @@ import type {
   TTSModel,
   VideoModel
 } from "../../../stores/ApiTypes";
-import {
-  isModelSelected,
-  type Entity,
-  type ModelSelection
-} from "@nodetool-ai/protocol";
+import { isModelSelected, type ModelSelection } from "@nodetool-ai/protocol";
 import type { MediaGenerationRequest } from "../types/media.types";
 import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
-import { resolveAssetUri } from "../../node/output";
 import { useTextareaAssetMention } from "./useTextareaAssetMention";
+import { MentionedEntities } from "./MentionedEntities";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
@@ -280,44 +276,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     [addDroppedFiles]
   );
 
-  // A picked entity reads as part of the message: the hook inlines its name
-  // into the text; here its reference image is attached for consistency.
-  const handleSelectEntity = useCallback(
-    (entity: Entity) => {
-      const refUri = entity.reference_images?.[0]?.uri ?? "";
-      if (!refUri) {
-        return;
-      }
-      // Entity reference images are stored as `<id>.<ext>` keys, so the URL
-      // path carries the extension the asset URI needs.
-      const extMatch = refUri.split(/[?#]/)[0].match(/\.([A-Za-z0-9]+)$/);
-      const ext = extMatch ? extMatch[1].toLowerCase() : "";
-      addDroppedFiles([
-        {
-          id: "",
-          // The preview needs a displayable URL (data:/http(s):/`/`-prefixed);
-          // a raw `asset://…` ref renders as a generic file icon. Resolve it to
-          // the storage URL for the thumbnail while keeping the `asset://` ref
-          // in `assetUri` for the model.
-          dataUri: resolveAssetUri(refUri),
-          type: ext ? `image/${ext === "jpg" ? "jpeg" : ext}` : "image/png",
-          name: entity.name || entity.id,
-          assetUri: ext
-            ? `asset://${entity.id}.${ext}`
-            : `asset://${entity.id}`
-        }
-      ]);
-    },
-    [addDroppedFiles]
-  );
-
   const { mentionMenu, handleKeyDown: handleMentionKeyDown } =
     useTextareaAssetMention({
       textareaRef,
       value: prompt,
       setValue: setPrompt,
       onSelectAsset: handleSelectAsset,
-      onSelectEntity: handleSelectEntity
+      includeEntities: true
     });
 
   const {
@@ -932,6 +897,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             ))}
           </div>
         )}
+
+        <MentionedEntities value={prompt} setValue={setPrompt} />
 
         <textarea
           ref={textareaRef}

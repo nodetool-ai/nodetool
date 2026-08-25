@@ -1,10 +1,12 @@
 import {
   assetMediaKind,
   assetToUri,
+  entityIdsInPrompt,
   entityToUri,
   extForAsset,
   parseAssetUri,
   parseEntityUri,
+  removeEntityMentions,
   tokenizePromptLine,
   variablesInPrompt
 } from "../promptTokens";
@@ -129,6 +131,53 @@ describe("promptTokens", () => {
     it("round-trips the entity URN helpers", () => {
       expect(entityToUri({ id: "abc" })).toBe("entity://abc");
       expect(parseEntityUri("entity://abc")).toBe("abc");
+    });
+  });
+
+  describe("entityIdsInPrompt", () => {
+    it("collects distinct ids in order across lines", () => {
+      expect(
+        entityIdsInPrompt("entity://b meets entity://a\nagain entity://b")
+      ).toEqual(["b", "a"]);
+    });
+
+    it("returns nothing for a prompt with no entity mention", () => {
+      expect(entityIdsInPrompt("asset://a.png {{ v }}")).toEqual([]);
+    });
+  });
+
+  describe("removeEntityMentions", () => {
+    it("drops the token and the space before it", () => {
+      expect(
+        removeEntityMentions("a shot of entity://e1 at dusk", "e1")
+      ).toBe("a shot of at dusk");
+    });
+
+    it("drops the space after a token that opens the line", () => {
+      expect(removeEntityMentions("entity://e1 at dusk", "e1")).toBe("at dusk");
+    });
+
+    it("drops a trailing token and the space before it", () => {
+      expect(removeEntityMentions("a shot of entity://e1", "e1")).toBe(
+        "a shot of"
+      );
+    });
+
+    it("removes every mention of the one entity, leaving the others", () => {
+      expect(
+        removeEntityMentions("entity://a and entity://b and entity://a", "a")
+      ).toBe("and entity://b and");
+    });
+
+    it("leaves text alone when the entity is not mentioned", () => {
+      const text = "a shot of entity://e2  with  wide  spacing";
+      expect(removeEntityMentions(text, "e1")).toBe(text);
+    });
+
+    it("keeps the trailing dot that punctuated the sentence", () => {
+      expect(removeEntityMentions("we meet entity://e1.", "e1")).toBe(
+        "we meet."
+      );
     });
   });
 });

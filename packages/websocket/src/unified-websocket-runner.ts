@@ -1347,6 +1347,13 @@ editor; use a plain link when you only reference one. An embed counts as that
 resource's one link for the reply — don't also link it. Other resource kinds
 have no inline renderer: link them, never embed them with image syntax.
 
+Production entities (characters, locations, styles, props) have their own
+scheme: write \`entity://<id>\` as bare text — no markdown link, no label — and
+the chat UI shows a chip with the entity's name, reference thumbnail and
+descriptor. Use it when you name an entity the user can already see in their
+library; \`list_entities\` gives you the ids. It is not one of the resource
+kinds above and none of the link budget applies.
+
 # File types
 References to documents, images, videos, or audio files have the shape:
 - \`type\`: document | image | video | audio

@@ -37,6 +37,7 @@ import {
 } from "./type-predicates.js";
 import {
   expandAssetReferences,
+  expandEntityRefs,
   inlineTextAssetRefs
 } from "./prompt-asset-refs.js";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
@@ -3185,13 +3186,23 @@ export class ProcessingContext {
         }
         return [unresolvedNote("video", part.video.uri)];
       }
-      if (part.type === "text" && part.text.includes("asset://")) {
+      if (part.type === "text") {
+        // Entity mentions resolve first: each `entity://<id>` becomes the
+        // entity's name inline, a "Consistency references" line carrying its
+        // descriptor, and an `asset://` token for its reference image — which
+        // the asset pass below then turns into a real image block. Resolving
+        // here, per turn, is what makes a later rename or re-description
+        // reach every message that already mentions the entity.
+        const text = await expandEntityRefs(part.text, this, true);
+        if (!text.includes("asset://")) {
+          return text === part.text ? [part] : [{ type: "text", text }];
+        }
         // First split out image / audio mentions into their own blocks; what
         // stays as text is then run through the document inliner so any
         // .md/.txt/.csv mentions become their decoded contents. The image and
         // audio blocks fall through to the URI-resolution branches above on a
         // second pass so the provider receives data URIs.
-        const expanded = expandAssetReferences(part.text);
+        const expanded = expandAssetReferences(text);
         const out: MessageContent[] = [];
         for (const sub of expanded) {
           if (sub.type === "text") {
