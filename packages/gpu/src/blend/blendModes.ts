@@ -5,38 +5,22 @@
  *   - the timeline preview compositor (WebGPU clip compositing)
  *   - the Compositor image node (server-side Sharp/libvips compositing)
  *
- * This module is the single source of truth for the `BlendMode` union, the
- * ordered list used to populate UI dropdowns, the stable numeric ids baked
- * into WGSL shader uniforms, the Canvas2D `globalCompositeOperation`
- * mapping, and the Sharp/libvips `blend` mapping. Keeping all of these in
- * one table guarantees the four implementations agree on naming, ordering,
- * and the numeric ids that the GPU shaders switch on.
+ * The mode names come from `@nodetool-ai/protocol/blend-modes`, where the
+ * document schemas validate against them, and are re-exported here so callers
+ * see one catalog. This module owns what a compositor needs on top of a name:
+ * the stable numeric ids baked into WGSL shader uniforms, the Canvas2D
+ * `globalCompositeOperation` mapping, the Sharp/libvips `blend` mapping, and
+ * the ordered list that populates UI dropdowns. Keeping those in one table
+ * guarantees the implementations agree on ordering and on the numeric ids the
+ * shaders switch on.
  */
 
-/**
- * Canonical blend modes in display order. Declared as a `const` tuple so it
- * can drive both the {@link BlendMode} union and a Zod `z.enum` (which needs
- * a literal tuple to infer the union). `normal` is source-over; the next
- * eleven follow the W3C compositing spec; `add` is additive (Canvas2D
- * `lighter`, libvips `add`).
- */
-export const BLEND_MODE_TUPLE = [
-  "normal",
-  "multiply",
-  "screen",
-  "overlay",
-  "darken",
-  "lighten",
-  "color-dodge",
-  "color-burn",
-  "hard-light",
-  "soft-light",
-  "difference",
-  "exclusion",
-  "add"
-] as const;
+import {
+  BLEND_MODE_TUPLE,
+  type BlendMode
+} from "@nodetool-ai/protocol/blend-modes";
 
-export type BlendMode = (typeof BLEND_MODE_TUPLE)[number];
+export { BLEND_MODE_TUPLE, type BlendMode };
 
 /**
  * Canvas2D `globalCompositeOperation` values we map onto. Declared as a

@@ -33,6 +33,9 @@
       ],
       "@nodetool-ai/protocol/triggers": [
         "../packages/protocol/src/triggers.ts"
+      ],
+      "@nodetool-ai/protocol/blend-modes": [
+        "../packages/protocol/src/blend-modes.ts"
       ]
     }
   },
