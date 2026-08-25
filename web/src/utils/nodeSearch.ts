@@ -195,6 +195,20 @@ function ensureSearchEntries(nodes: NodeMetadata[]): SearchEntry[] {
   return ensureIndexes(nodes).entries;
 }
 
+// The prefix and the path's own depth depend only on `path`, so they are
+// derived once here rather than re-split for every node in the list.
+function selectedPathMatcher(path: string): (namespace: string) => boolean {
+  const prefix = path + ".";
+  const childDepth = path.split(".").length + 1;
+  const isRootNamespace = !path.includes(".");
+
+  return (namespace) => {
+    if (namespace === path) return true;
+    if (!namespace.startsWith(prefix)) return false;
+    return isRootNamespace || namespace.split(".").length === childDepth;
+  };
+}
+
 const MIN_RESULTS_BEFORE_FUZZY = 100;
 const MIN_FUZZY_QUERY_LENGTH = 3;
 
@@ -409,16 +423,10 @@ export function computeSearchResults(
   // Filter by path if one is selected
   let pathFilteredMetadata = typeFilteredMetadata;
   if (selectedPathString) {
-    pathFilteredMetadata = typeFilteredMetadata.filter((node) => {
-      const isExactMatch = node.namespace === selectedPathString;
-      const isDirectChild =
-        node.namespace.startsWith(selectedPathString + ".") &&
-        node.namespace.split(".").length ===
-          selectedPathString.split(".").length + 1;
-      const isRootNamespace = !selectedPathString.includes(".");
-      const isDescendant = node.namespace.startsWith(selectedPathString + ".");
-      return isExactMatch || isDirectChild || (isRootNamespace && isDescendant);
-    });
+    const matchesPath = selectedPathMatcher(selectedPathString);
+    pathFilteredMetadata = typeFilteredMetadata.filter((node) =>
+      matchesPath(node.namespace)
+    );
   }
 
   // If no search term, still rank with recent and quick-action boosts.
@@ -487,6 +495,7 @@ export function filterNodesUtil(
       searchResultKeys.has(`${node.namespace}::${node.title}`)
     );
   } else {
+    const matchesPath = selectedPathMatcher(selectedPathString);
     filteredNodes = nodes.filter((node) => {
       if (
         selectedProviderType !== "all" &&
@@ -494,14 +503,7 @@ export function filterNodesUtil(
       ) {
         return false;
       }
-      const isExactMatch = node.namespace === selectedPathString;
-      const isDirectChild =
-        node.namespace.startsWith(selectedPathString + ".") &&
-        node.namespace.split(".").length ===
-          selectedPathString.split(".").length + 1;
-      const isRootNamespace = !selectedPathString.includes(".");
-      const isDescendant = node.namespace.startsWith(selectedPathString + ".");
-      return isExactMatch || isDirectChild || (isRootNamespace && isDescendant);
+      return matchesPath(node.namespace);
     });
   }
 

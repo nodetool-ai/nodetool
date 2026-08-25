@@ -57,14 +57,22 @@ const isProviderEnabled = (
   return enabled[provider ?? ""] !== false;
 };
 
+// Models come from the query cache and are never mutated, so keying by identity
+// is safe. Without it the tie-break lower-cases two strings per comparison.
+const displayNameCache = new WeakMap<ModelSelectorModel, string>();
+
+const displayNameKey = (model: ModelSelectorModel): string => {
+  const cached = displayNameCache.get(model);
+  if (cached !== undefined) return cached;
+  const key = (model.path || model.name || model.id || "").toLowerCase();
+  displayNameCache.set(model, key);
+  return key;
+};
+
 const compareByDisplayName = (
   a: ModelSelectorModel,
   b: ModelSelectorModel
-): number => {
-  const an = (a.path || a.name || a.id || "").toLowerCase();
-  const bn = (b.path || b.name || b.id || "").toLowerCase();
-  return an.localeCompare(bn);
-};
+): number => displayNameKey(a).localeCompare(displayNameKey(b));
 
 interface ModelRankOptions {
   selectedProvider?: string | null;

@@ -166,6 +166,14 @@ export function buildExecutionTreeState(
 
   const taskMap = new Map<string, TaskState>();
   const activeSteps = new Map<string, string>(); // taskId -> stepId
+  // `tool_call_update` and `step_result` carry a step id and no task id, so
+  // without this they scan every step of every task, once per event.
+  const stepIndex = new Map<string, { task: TaskState; index: number }>();
+  // First declaration wins, matching the old scan's task-insertion order.
+  const indexStep = (task: TaskState, index: number) => {
+    const id = task.steps[index].id;
+    if (id && !stepIndex.has(id)) stepIndex.set(id, { task, index });
+  };
 
   for (const msg of messages) {
     if (msg.role !== "agent_execution") continue;
@@ -219,6 +227,7 @@ export function buildExecutionTreeState(
             toolCalls: []
           };
           taskMap.set(taskId, task);
+          steps.forEach((_, i) => indexStep(task, i));
         }
         state.phase = "executing";
       } else if (event === "step_started") {
@@ -242,6 +251,7 @@ export function buildExecutionTreeState(
               output: "",
               toolCalls: []
             });
+            indexStep(task, task.steps.length - 1);
           }
           task.status = "running";
           activeSteps.set(taskId, stepId);
@@ -281,40 +291,38 @@ export function buildExecutionTreeState(
       const stepId = tc.node_id ?? tc.step_id;
       if (!stepId) continue;
 
-      for (const task of taskMap.values()) {
-        const stepIdx = task.steps.findIndex((s) => s.id === stepId);
-        if (stepIdx !== -1) {
-          const cleanArgs = visibleArgs(tc.args);
-          const argsStr = Object.entries(cleanArgs)
-            .map(([k, v]) => {
-              const val = isString(v) ? v : JSON.stringify(v);
-              return `${k}: ${val.slice(0, 40)}`;
-            })
-            .join(", ");
-          const prev = task.steps[stepIdx];
-          const callId = tc.tool_call_id ?? undefined;
-          const existingIdx = callId
-            ? prev.toolCalls.findIndex((c) => c.id === callId)
-            : -1;
-          const entry: StepToolCallEntry = {
-            id: callId,
-            name: tc.name ?? "",
-            args: cleanArgs,
-            message: tc.message ?? undefined
-          };
-          const nextCalls =
-            existingIdx !== -1
-              ? prev.toolCalls.map((c, i) => (i === existingIdx ? { ...c, ...entry } : c))
-              : [...prev.toolCalls, entry];
-          task.steps[stepIdx] = {
-            ...prev,
-            toolName: tc.name,
-            toolArgs: argsStr,
-            toolCalls: nextCalls,
-            status: "running"
-          };
-          break;
-        }
+      const located = stepIndex.get(stepId);
+      if (located) {
+        const { task, index: stepIdx } = located;
+        const cleanArgs = visibleArgs(tc.args);
+        const argsStr = Object.entries(cleanArgs)
+          .map(([k, v]) => {
+            const val = isString(v) ? v : JSON.stringify(v);
+            return `${k}: ${val.slice(0, 40)}`;
+          })
+          .join(", ");
+        const prev = task.steps[stepIdx];
+        const callId = tc.tool_call_id ?? undefined;
+        const existingIdx = callId
+          ? prev.toolCalls.findIndex((c) => c.id === callId)
+          : -1;
+        const entry: StepToolCallEntry = {
+          id: callId,
+          name: tc.name ?? "",
+          args: cleanArgs,
+          message: tc.message ?? undefined
+        };
+        const nextCalls =
+          existingIdx !== -1
+            ? prev.toolCalls.map((c, i) => (i === existingIdx ? { ...c, ...entry } : c))
+            : [...prev.toolCalls, entry];
+        task.steps[stepIdx] = {
+          ...prev,
+          toolName: tc.name,
+          toolArgs: argsStr,
+          toolCalls: nextCalls,
+          status: "running"
+        };
       }
       continue;
     }
@@ -324,31 +332,29 @@ export function buildExecutionTreeState(
       const stepId = sr.step?.id;
       if (!stepId) continue;
 
-      for (const task of taskMap.values()) {
-        const stepIdx = task.steps.findIndex((s) => s.id === stepId);
-        if (stepIdx !== -1) {
-          const result =
-            isString(sr.result)
-              ? sr.result
-              : JSON.stringify(sr.result ?? "");
-          const rawErr: unknown = sr.error;
-          const errorText =
-            rawErr == null
-              ? undefined
-              : isString(rawErr)
-                ? rawErr
-                : rawErr instanceof Error
-                  ? rawErr.message
-                  : JSON.stringify(rawErr);
-          task.steps[stepIdx] = {
-            ...task.steps[stepIdx],
-            output: result.slice(0, 200),
-            rawResult: sr.result,
-            status: errorText ? "failed" : "completed",
-            error: errorText
-          };
-          break;
-        }
+      const located = stepIndex.get(stepId);
+      if (located) {
+        const { task, index: stepIdx } = located;
+        const result =
+          isString(sr.result)
+            ? sr.result
+            : JSON.stringify(sr.result ?? "");
+        const rawErr: unknown = sr.error;
+        const errorText =
+          rawErr == null
+            ? undefined
+            : isString(rawErr)
+              ? rawErr
+              : rawErr instanceof Error
+                ? rawErr.message
+                : JSON.stringify(rawErr);
+        task.steps[stepIdx] = {
+          ...task.steps[stepIdx],
+          output: result.slice(0, 200),
+          rawResult: sr.result,
+          status: errorText ? "failed" : "completed",
+          error: errorText
+        };
       }
       continue;
     }
