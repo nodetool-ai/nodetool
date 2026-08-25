@@ -1585,7 +1585,7 @@ export class WorkflowRunner {
 
             // If this is an output node, collect the result
             if (this._isOutputNode(node)) {
-              const name = node.name ?? node.id;
+              const name = this._outputCollectionKey(node);
               if (!this._outputs.has(name)) {
                 this._outputs.set(name, []);
               }
@@ -2431,6 +2431,30 @@ export class WorkflowRunner {
       return propertyName;
     }
     return node.name ?? node.id;
+  }
+
+  /**
+   * Key a terminal node's outputs are collected under.
+   *
+   * DSL-authored graphs carry the public name in the Output node's `name`
+   * *property* (`output({ name: "hook", value })`) — the descriptor's
+   * top-level `name` is absent, and the auto-generated node id (`output`,
+   * `output_2`, …) is all that would remain. Promote the property for
+   * output-typed nodes so a run's outputs are keyed by the name the author
+   * asked for. Mirrors `_getExternalInputName` on the input side and the
+   * websocket runner's `require_terminal_result` rewrite; gating on
+   * `nodetool.output.` keeps other terminal sinks keyed by id.
+   */
+  private _outputCollectionKey(node: NodeDescriptor): string {
+    if (isString(node.name) && node.name.trim()) return node.name;
+    if (node.type.startsWith("nodetool.output.")) {
+      const properties = isObjectValue(node.properties) ? node.properties : {};
+      const propertyName = isString(properties.name)
+        ? properties.name.trim()
+        : "";
+      if (propertyName) return propertyName;
+    }
+    return node.id;
   }
 
   private _emit(msg: ProcessingMessage): void {

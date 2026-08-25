@@ -267,6 +267,69 @@ describe("create_workflow", () => {
     });
   });
 
+  // A graph whose model properties are left at the default saves fine and
+  // then every Agent node dies on "Select a model" at run time — after the
+  // upstream half of the graph executed. Nothing stamps models in later.
+  describe("unset model preflight", () => {
+    const modelRegistry = {
+      has: (type: string) => type === "nodetool.agents.Agent",
+      getMetadata: () => undefined,
+      resolveMetadata: () => undefined,
+      validateNode: (
+        _descriptor: unknown,
+        connectedHandles: ReadonlySet<string>
+      ) =>
+        connectedHandles.has("model")
+          ? []
+          : [
+              {
+                code: "unset_model",
+                property: "model",
+                message:
+                  'Property "model" requires a language_model to be selected'
+              }
+            ]
+    } as unknown as NodeRegistry;
+    const checked = capTool("create_workflow", { nodeRegistry: modelRegistry });
+    const graphWithAgent = (edges: unknown[] = []) => ({
+      nodes: [
+        { id: "a1", type: "nodetool.agents.Agent", properties: {} },
+        { id: "src", type: "nodetool.input.StringInput", properties: {} }
+      ],
+      edges
+    });
+
+    it("refuses a workflow whose agent node has no model selected", async () => {
+      const result = (await checked.process(ctx, {
+        name: "WF",
+        graph: graphWithAgent()
+      })) as { error: string; issues: Array<{ code: string; node_id: string }> };
+
+      expect(result.error).toContain("unselected");
+      expect(result.issues[0]?.code).toBe("unset_model");
+      expect(result.issues[0]?.node_id).toBe("a1");
+      const [saved] = await Workflow.paginate(USER, {});
+      expect(saved).toHaveLength(0);
+    });
+
+    it("allows a model property fed by an edge", async () => {
+      const result = (await checked.process(ctx, {
+        name: "WF",
+        graph: graphWithAgent([
+          {
+            id: "e1",
+            source: "src",
+            sourceHandle: "output",
+            target: "a1",
+            targetHandle: "model"
+          }
+        ])
+      })) as Record<string, unknown>;
+      expect(result.id).toEqual(expect.any(String));
+      expect(await Workflow.find(USER, String(result.id))).not.toBeNull();
+    });
+  });
+
   it("persists the workflow under the calling user", async () => {
     const result = (await tool.process(ctx, {
       name: "Test WF",
@@ -1277,6 +1340,25 @@ describe("get_job", () => {
     expect(result.status).toBe("completed");
   });
 
+  // A failed job's own failure message is payload, not a tool failure: a bare
+  // `error` string at the root made the CodeAct bridge throw and discard the
+  // rest of the record.
+  it("carries a failed job's message under job_error, not error", async () => {
+    const job = (await Job.create({
+      workflow_id: "wf-1",
+      user_id: USER,
+      status: "failed",
+      error: "Node \"x\" failed: boom"
+    })) as Job;
+    const result = (await tool.process(ctx, { job_id: job.id })) as Record<
+      string,
+      unknown
+    >;
+    expect(result["status"]).toBe("failed");
+    expect(result["job_error"]).toBe('Node "x" failed: boom');
+    expect(Object.prototype.hasOwnProperty.call(result, "error")).toBe(false);
+  });
+
   it("reports a job that is not the caller's", async () => {
     const result = (await tool.process(ctx, {
       job_id: "job-123"
@@ -1307,6 +1389,26 @@ describe("get_job_logs", () => {
         logs: [{ message: "two" }, { message: "three" }]
       }
     );
+  });
+
+  // The call succeeded even though the job did not — a root-level `error`
+  // string made every failed job's logs unreadable through the sandbox bridge.
+  it("answers a failed job's logs with the failure under job_error", async () => {
+    const job = (await Job.create({
+      workflow_id: "wf-1",
+      user_id: USER,
+      status: "failed",
+      error: "AtlasCloud job failed: request body field <image> is required",
+      logs: [{ message: "submitting" }]
+    })) as Job;
+    const result = (await tool.process(ctx, { job_id: job.id })) as Record<
+      string,
+      unknown
+    >;
+    expect(result["status"]).toBe("failed");
+    expect(result["job_error"]).toContain("AtlasCloud");
+    expect(result["logs"]).toEqual([{ message: "submitting" }]);
+    expect(Object.prototype.hasOwnProperty.call(result, "error")).toBe(false);
   });
 
   it("userMessage includes job_id", () => {

@@ -72,7 +72,8 @@ const SOLUTIONS: Record<string, string[]> = {
        output({ name: "greeting", value: joined.output() })
      );
      const check = await nodetool.workflows.validate(graph);
-     if (!check.valid) throw new Error(JSON.stringify(check.errors));
+     if (!check.ok)
+       throw new Error(check.issues.map((i) => i.message).join("; "));
      const saved = await nodetool.workflows.create("Greeter", graph);
      const run = await nodetool.workflows.run(saved.id, { name: "Ada" });
      await finish({ greeting: run.outputs.greeting });`

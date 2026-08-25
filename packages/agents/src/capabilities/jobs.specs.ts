@@ -74,7 +74,9 @@ export const getJobSpec: CapabilitySpec = {
 
 export const getJobLogsSpec: CapabilitySpec = {
   name: "get_job_logs",
-  description: "Get logs for a job to debug workflow executions.",
+  description:
+    "Get logs for a job to debug workflow executions. Answers the log tail " +
+    "even when the job failed; its failure message is under `job_error`.",
   inputSchema: GET_JOB_LOGS_SCHEMA,
   category: "read",
   userMessage: (params) => `Getting logs for job ${params["job_id"]}`

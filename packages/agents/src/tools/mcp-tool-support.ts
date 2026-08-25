@@ -373,7 +373,9 @@ export const RUNTIME_MODEL_CATALOGS: ModelCatalogs = {
  * registered. This is the cheap half of `validateGraph` — a property walk, no
  * registry metadata — so a creation tool can afford it on every call.
  *
- * Returns null when every selection resolves.
+ * Returns null when every selection resolves. Unselected models are checked
+ * separately by {@link unsetModelSelectionError}, which needs registry
+ * metadata this walk deliberately avoids.
  */
 export async function modelSelectionError(
   graph: unknown,
@@ -398,6 +400,88 @@ export async function modelSelectionError(
       node_type: issue.nodeType,
       message: issue.message
     }))
+  };
+}
+
+/**
+ * Refuse a graph whose nodes leave a declared model property unselected.
+ *
+ * The cheap selection walk above reads only the property bag; an agent that
+ * omits `model` entirely (as the DSL does) stores nothing to find, and full
+ * graph validation never runs on the create path. Without this gate such a
+ * workflow saves fine and every Agent node dies on "Select a model" at run
+ * time — after the upstream half of the graph executed and was paid for.
+ *
+ * Reuses `registry.validateNode`'s own `unset_model` finding (which skips
+ * edge-connected properties) so both surfaces report one thing.
+ */
+export function unsetModelSelectionError(
+  graph: unknown,
+  nodeRegistry: {
+    has: (type: string) => boolean;
+    validateNode: (
+      descriptor: { id: string; type: string; properties: Record<string, unknown> },
+      connectedHandles: ReadonlySet<string>
+    ) => Array<{ code?: string; message: string }>;
+  }
+): Record<string, unknown> | null {
+  if (!isObjectLike(graph)) return null;
+  const record = graph as { nodes?: unknown; edges?: unknown };
+  const nodes = Array.isArray(record.nodes) ? record.nodes : [];
+  if (nodes.length === 0) return null;
+
+  // Property names fed by an incoming data edge are supplied at run time;
+  // their stored defaults are not what executes.
+  const connected = new Map<string, Set<string>>();
+  for (const raw of Array.isArray(record.edges) ? record.edges : []) {
+    if (!isObjectLike(raw)) continue;
+    const edge = raw as Record<string, unknown>;
+    if (edge["edge_type"] === "control" || edge["type"] === "control") continue;
+    const target = String(edge["target"] ?? "");
+    const handle = String(
+      edge["targetHandle"] ?? edge["target_handle"] ?? ""
+    );
+    if (!target || !handle) continue;
+    let handles = connected.get(target);
+    if (!handles) {
+      handles = new Set<string>();
+      connected.set(target, handles);
+    }
+    handles.add(handle);
+  }
+
+  const issues: Array<Record<string, unknown>> = [];
+  for (const node of nodes) {
+    if (!isObjectLike(node)) continue;
+    const n = node as Record<string, unknown>;
+    const type = String(n["type"] ?? "");
+    const id = String(n["id"] ?? "");
+    if (!type || !nodeRegistry.has(type)) continue;
+    const properties = isObjectLike(n["properties"])
+      ? (n["properties"] as Record<string, unknown>)
+      : {};
+    for (const issue of nodeRegistry.validateNode(
+      { id, type, properties },
+      connected.get(id) ?? new Set<string>()
+    )) {
+      if (issue.code !== "unset_model") continue;
+      issues.push({
+        code: "unset_model",
+        node_id: id,
+        node_type: type,
+        message:
+          `${issue.message} Pick a model with find_model and assign its ` +
+          "`ref` before saving."
+      });
+    }
+  }
+  if (issues.length === 0) return null;
+  return {
+    error:
+      "The graph leaves one or more model properties unselected. Every " +
+      "model node needs a selected model at save time — nothing stamps one " +
+      "in at run time.",
+    issues
   };
 }
 

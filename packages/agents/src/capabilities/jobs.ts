@@ -60,7 +60,12 @@ const getJob: CapabilityExport = {
     const jobId = String(params["job_id"]);
     const job = await Job.find(userIdOf(run.context), jobId);
     if (!job) return { error: `Job ${jobId} was not found.` };
-    return { ...jobRecord(job), params: job.params ?? null };
+    const record = jobRecord(job);
+    // The job's own failure message is payload, not a tool failure — a bare
+    // `error` string at the result root makes the CodeAct bridge throw and
+    // discard everything else on a failed job.
+    const { error, ...rest } = record;
+    return { ...rest, job_error: error ?? null, params: job.params ?? null };
   }
 };
 
@@ -75,10 +80,12 @@ const getJobLogs: CapabilityExport = {
     // failure. Previously it was forwarded to an endpoint that ignored it.
     const limit = Number(params["limit"] ?? 200);
     const logs = job.logs ?? [];
+    // `job_error`, not `error`: the call succeeded even when the job did not,
+    // and a root-level `error` string reads as a tool failure downstream.
     return {
       job_id: job.id,
       status: job.status,
-      error: job.error_message ?? job.error ?? null,
+      job_error: job.error_message ?? job.error ?? null,
       total_logs: logs.length,
       logs: logs.slice(Math.max(0, logs.length - limit))
     };

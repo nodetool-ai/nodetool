@@ -1247,7 +1247,9 @@ could not be reached, and a catalog only enumerable over the network (Anthropic,
 Ollama, ASR ids anywhere) reports nothing rather than calling a real id a typo.
 The check runs at graph *creation* time too — `validate_workflow` sits on the
 authoring agent's belt, `create_workflow` refuses to save a graph whose
-provider or model the model hallucinated — and
+provider or model the model hallucinated, and one whose model properties are
+left unselected (nothing stamps models in at run time, so every Agent node
+would die on "Select a model") — and
 `POST /api/workflows/:id/run|debug` refuses the run with a
 400 before the job row exists, instead of failing on the model node after the
 upstream half of the graph has been paid for. The same refusal covers

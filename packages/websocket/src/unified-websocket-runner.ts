@@ -1282,12 +1282,16 @@ You author the graph yourself, in an \`execute_code\` action. Drive this loop:
    import — and write the graph in the same action:
    \`workflow(...terminals)\` returns \`{nodes, edges}\`.
 3. \`await nodetool.workflows.validate(graph)\` — costs nothing and catches a
-   missing property, a dangling edge, or a model nobody selected. Fix what it
-   reports before spending anything.
+   missing property, a dangling edge, or a model nobody selected. It throws on
+   errors; fix what it reports before spending anything.
 4. \`await nodetool.workflows.create(name, graph, {description})\` — save it
-   under a clear name. The returned id is what run and debug take.
+   under a clear name. The returned id is what run and debug take. Assign a
+   \`find_model\` ref to every model property first: an unselected model is
+   refused at save time and would fail the run otherwise.
 5. \`await nodetool.workflows.debug(id, params)\` — run it and get final status,
-   outputs, errors, and job logs in one report. \`nodetool.workflows.run(id,
+   outputs, errors, and job logs in one report shaped
+   \`{workflow_id, run, job, workflow}\`; \`run.outputs\` is keyed by output name
+   and each name holds an array of emitted values. \`nodetool.workflows.run(id,
    params)\` is a plain run; \`nodetool.nodes.run(type, inputs)\` probes a single
    suspect node in isolation.
 6. On failure, fix the graph and save again. There is no update call: each fix
