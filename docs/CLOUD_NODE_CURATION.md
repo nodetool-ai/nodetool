@@ -130,6 +130,19 @@ host-filesystem nodes, which are dropped via `CLOUD_NODE_DENYLIST`:
 Admitting it by name rather than whole-listing the namespace keeps any future
 `nodetool.code` node out of the cloud until it is reviewed.
 
+`lib.comfy` is trimmed the same way — the two runners are admitted via
+`CLOUD_NODE_ALLOWLIST`, the namespace is not:
+
+| From `lib.comfy`        | Kept node                                     |
+| ----------------------- | --------------------------------------------- |
+| `RunWorkflow`           | Runs a prompt against a ComfyUI HTTP endpoint |
+| `RunWorkflowOnWorker`   | Runs it over a NodeTool worker's bridge       |
+
+Running a ComfyUI graph is image generation, which is what the profile is for.
+Each node calls the server its own property names, so the address is graph data;
+that egress policy is written down in the ComfyUI row of
+[url-egress-inventory.md](url-egress-inventory.md).
+
 ### Creative media toolkit
 
 | Namespace   | What it is                                            |
@@ -150,7 +163,8 @@ Admitting it by name rather than whole-listing the namespace keeps any future
 - **System/automation:** `lib.os`, `nodetool.workspace`,
   `nodetool.triggers`, `lib.browser`, `lib.video.download`
 - **Databases/cloud/integrations:** `lib.sqlite`, `lib.http`, `lib.graphql`,
-  `lib.mail`, `lib.secret`, `lib.comfy`
+  `lib.mail`, `lib.secret` (`lib.comfy` is dropped as a namespace, but its two
+  runners are allowlisted by name — see above)
 - **Messaging:** `messaging.discord`, `messaging.telegram`
 - **NLP/ML utility:** `lib.nlp`, `vector` (RAG),
   `lib.validate`, `lib.datetime`

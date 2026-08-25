@@ -136,7 +136,10 @@ in the data module with its auth scope.
 **Deliberately private hosts.** Reaching an internal address is the feature:
 
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
-  localhost or the LAN. The address comes from settings, never from a graph.
+  localhost or the LAN, so screening private addresses would refuse the ordinary
+  case. The address is the node's `endpoint` property, so the graph author picks
+  it, and `lib.comfy.RunWorkflow` / `lib.comfy.RunWorkflowOnWorker` are
+  allowlisted on the cloud profile.
 - `packages/agents/src/capabilities/web.ts` — `BROWSER_URL`, the operator's
   screenshot service. Every model-named URL in that file goes through
   `safeFetch`; this one is the operator's own.

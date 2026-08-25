@@ -20,9 +20,17 @@ Two nodes cover two topologies:
 | Workflow loader in the editor | Yes | No (see [limitations](#known-limitations)) |
 | Outputs | Streamed, one frame per file | Buffered, returned at the end |
 
-Both live in the `lib.comfy` namespace, which ships in the **Developer Tools**
-optional node pack. If the nodes don't appear in the node menu, enable that pack
-first.
+Both live in the `lib.comfy` namespace and ship in the built-in `base` node
+pack, so every install registers them — including a server running the curated
+cloud profile (`NODETOOL_NODE_PROFILE=cloud`, the production default), which
+allowlists the two runners by name while dropping the rest of the namespace.
+See [Cloud Node Curation](CLOUD_NODE_CURATION.md).
+
+If they don't appear in the node menu, that is the menu's own decluttering, not
+a gate: `lib.comfy` sits in the **Developer Tools** group of
+`web/src/config/optionalNodePacks.ts`, hidden from the browsable namespace tree
+until you reveal that group. Search, paste, and saved workflows resolve the
+nodes either way.
 
 ---
 

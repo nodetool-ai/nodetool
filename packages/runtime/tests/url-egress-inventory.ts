@@ -397,14 +397,14 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   {
     file: "packages/runtime/src/comfy-executor.ts",
     owner: "ComfyUI executor",
-    inputSource: "operator",
+    inputSource: "workflow",
     schemes: ["http", "https"],
     authScope: "operator-configured token",
     redirects: "runtime-follows",
     dnsRebinding: "n/a",
     policy: "private-integration",
     guardedBy: [],
-    note: "A Comfy server is normally on localhost or the LAN — reaching it is the feature. The address comes from settings, never from a graph."
+    note: "A Comfy server is normally on localhost or the LAN — reaching it is the feature, so screening private addresses would refuse the ordinary case. The address is the node's `endpoint` property, so the graph author picks it, and the two runners are allowlisted on the cloud profile."
   },
   {
     file: "packages/agents/src/capabilities/web.ts",
