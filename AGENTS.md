@@ -1233,7 +1233,9 @@ Checks a workflow against the node registry **without running it** — unknown
 node types, missing required properties, unselected models, model properties
 naming an unregistered provider or a model id that provider does not offer,
 dangling and mis-typed edges, dynamic slots typed with a
-JSON-Schema/TypeScript name instead of NodeTool's (`integer` → `int`), and Code
+JSON-Schema/TypeScript name instead of NodeTool's (`integer` → `int`), DSL
+wiring handles left in a property bag (a connection that was never made), and
+Code
 node bodies. On a DB-id target, where the store is reachable, it also warns
 about declared credentials (`required_settings`, a Code node's `secrets`) this
 install cannot resolve. Returns in well under a second, so it's the cheap

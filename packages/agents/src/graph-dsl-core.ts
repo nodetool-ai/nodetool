@@ -60,6 +60,71 @@ function __graphDslBuilder() {
   const isHandle = (value) =>
     value !== null && typeof value === "object" && value.__handle === true;
 
+  const findNestedHandlePath = (value, seen) => {
+    if (value === null || typeof value !== "object") return null;
+    if (seen.indexOf(value) !== -1) return null;
+    seen.push(value);
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i++) {
+        const item = value[i];
+        if (isHandle(item)) return "[" + i + "]";
+        const deeper = findNestedHandlePath(item, seen);
+        if (deeper !== null) return "[" + i + "]" + deeper;
+      }
+      return null;
+    }
+    for (const key of Object.keys(value)) {
+      if (isHandle(value[key])) return "." + key;
+      const deeper = findNestedHandlePath(value[key], seen);
+      if (deeper !== null) return "." + key + deeper;
+    }
+    return null;
+  };
+
+  /**
+   * Classify one non-handle property value for wiring. An array whose every
+   * element is a handle is list fan-in — the same shape the editor produces
+   * when several sources feed one list input — and wires one edge per
+   * element. Anything else holding a handle anywhere inside is refused with
+   * the path named.
+   */
+  const classifyValue = (key, value) => {
+    if (Array.isArray(value)) {
+      let sawHandle = false;
+      let sawLiteral = false;
+      for (const item of value) {
+        if (isHandle(item)) sawHandle = true;
+        else sawLiteral = true;
+      }
+      if (!sawHandle) return "plain";
+      if (sawLiteral) {
+        throw new Error(
+          'Property "' +
+            key +
+            '" mixes wired outputs and literal values in one array. Wire ' +
+            "the whole list — every element an output() handle — or pass " +
+            "plain values only."
+        );
+      }
+      return "fanin";
+    }
+    const nested = findNestedHandlePath(value, []);
+    if (nested !== null) {
+      throw new Error(
+        'Property "' +
+          key +
+          '" holds a node output at "' +
+          key +
+          nested +
+          '". A connection is only made from a handle assigned directly to ' +
+          "a property — one buried in an object is not wired, and the node " +
+          "producing it would be left out of the graph. Give each source " +
+          "its own property."
+      );
+    }
+    return "plain";
+  };
+
   const makeHandle = (nodeId, slot) => {
     if (slot !== undefined && (typeof slot !== "string" || slot.length === 0)) {
       throw new Error("output(slot): slot must be a non-empty string");
@@ -104,6 +169,10 @@ function __graphDslBuilder() {
       const value = props[key];
       if (isHandle(value)) {
         addEdge(value.source, value.sourceHandle, targetId, key);
+      } else if (classifyValue(key, value) === "fanin") {
+        for (const handle of value) {
+          addEdge(handle.source, handle.sourceHandle, targetId, key);
+        }
       } else {
         plain[key] = value;
       }

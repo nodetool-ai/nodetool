@@ -592,6 +592,24 @@ function deriveNamespace(nodeType: string): string {
   return lastDot > 0 ? nodeType.slice(0, lastDot) : "";
 }
 
+/**
+ * The declared input types of one node type, as a `propertyTypes`-shaped map
+ * (`{[property]: "list[image]" | "str" | …}`). This is the kernel's authority
+ * on list-ness — correlation analysis and multi-edge fan-in read it — so
+ * hydration paths that do not go through `Graph.loadFromDict` stamp it from
+ * here rather than re-deriving the rendering.
+ */
+export function propertyTypesForMetadata(
+  metadata: NodeMetadata
+): Record<string, string> {
+  return Object.fromEntries(
+    (metadata.properties ?? []).map((prop) => [
+      prop.name,
+      typeMetadataToString(prop.type)
+    ])
+  );
+}
+
 export function createGraphNodeTypeResolver(
   registry: NodeRegistry,
   options: RegistryGraphResolverOptions = {}
@@ -620,12 +638,7 @@ export function createGraphNodeTypeResolver(
       const cls = registry.getClass(nodeType);
       const resolveStreamingInput = cls?.resolveStreamingInput;
 
-      const propertyTypes = Object.fromEntries(
-        (metadata.properties ?? []).map((prop) => [
-          prop.name,
-          typeMetadataToString(prop.type)
-        ])
-      );
+      const propertyTypes = propertyTypesForMetadata(metadata);
       const propertyMeta = Object.fromEntries(
         // Stryker disable next-line ArrayDeclaration: a bogus seed element lacks description/min/max, so the .filter below drops it — the result is unchanged (equivalent).
         (metadata.properties ?? [])

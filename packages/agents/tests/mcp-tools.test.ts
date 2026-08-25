@@ -328,6 +328,125 @@ describe("create_workflow", () => {
       expect(result.id).toEqual(expect.any(String));
       expect(await Workflow.find(USER, String(result.id))).not.toBeNull();
     });
+
+    /**
+     * A registry that validates the bag it is handed, the way the real one
+     * does. create_workflow normalizes a kernel-shape graph into the editor
+     * shape (bag under `data`) before checking, and the check used to read
+     * only `properties` — so every graph with a selected model was refused
+     * as unselected.
+     */
+    const bagRegistry = {
+      has: (type: string) => type === "nodetool.agents.Agent",
+      getMetadata: () => undefined,
+      resolveMetadata: () => undefined,
+      validateNode: (
+        descriptor: { properties: Record<string, unknown> },
+        connectedHandles: ReadonlySet<string>
+      ) =>
+        connectedHandles.has("model") ||
+        (descriptor.properties["model"] &&
+          typeof descriptor.properties["model"] === "object")
+          ? []
+          : [
+              {
+                code: "unset_model",
+                property: "model",
+                message:
+                  'Property "model" requires a language_model to be selected'
+              }
+            ]
+    } as unknown as NodeRegistry;
+    const bagChecked = capTool("create_workflow", {
+      nodeRegistry: bagRegistry,
+      // Silent catalogs: this test is about the unselected-model gate, not
+      // the provider/model id walk.
+      modelCatalogs: {
+        listProviderIds: () => [],
+        listModelIds: () => undefined
+      }
+    });
+    const agentGraphWithModel = (model: Record<string, unknown>) => ({
+      nodes: [
+        { id: "a1", type: "nodetool.agents.Agent", properties: { model } }
+      ],
+      edges: []
+    });
+
+    it("reads a selected model from the normalized (editor-shape) graph", async () => {
+      const result = (await bagChecked.process(ctx, {
+        name: "WF",
+        graph: agentGraphWithModel({
+          type: "language_model",
+          provider: "kie",
+          id: "m1"
+        })
+      })) as { id?: string; error?: string };
+
+      expect(result.error).toBeUndefined();
+      expect(result.id).toEqual(expect.any(String));
+      expect(await Workflow.find(USER, String(result.id))).not.toBeNull();
+    });
+
+    it("still flags a genuinely empty model on that shape", async () => {
+      const result = (await bagChecked.process(ctx, {
+        name: "WF",
+        graph: graphWithAgent()
+      })) as { error: string; issues: Array<{ code: string }> };
+
+      expect(result.error).toContain("unselected");
+      expect(result.issues[0]?.code).toBe("unset_model");
+      const [saved] = await Workflow.paginate(USER, {});
+      expect(saved).toHaveLength(0);
+    });
+  });
+
+  // A DSL wiring handle stored as a property value means the edge was never
+  // created — the input is unconnected and the node producing the value may
+  // be missing from the graph. Saving such a graph used to succeed silently
+  // and fail on the first run.
+  describe("leftover wiring handle preflight", () => {
+    const handleGraph = () => ({
+      nodes: [
+        {
+          id: "grid",
+          type: "lib.grid.CombineImageGrid",
+          properties: {
+            tiles: [
+              { __handle: true, source: "img", sourceHandle: "output" }
+            ],
+            columns: 3
+          }
+        },
+        { id: "out", type: "nodetool.output.Output", properties: {} }
+      ],
+      edges: []
+    });
+    const checked = capTool("create_workflow", {});
+
+    it("refuses to save a graph whose property holds a wiring handle", async () => {
+      const result = (await checked.process(ctx, {
+        name: "WF",
+        graph: handleGraph()
+      })) as { error: string; issues: Array<{ code: string; message: string }> };
+
+      expect(result.error).toContain("wiring handles");
+      expect(result.issues[0]?.code).toBe("leftover_wiring_handle");
+      expect(result.issues[0]?.message).toContain("tiles[0]");
+      const [saved] = await Workflow.paginate(USER, {});
+      expect(saved).toHaveLength(0);
+    });
+
+    it("saves a clean graph unchanged", async () => {
+      const result = (await checked.process(ctx, {
+        name: "WF",
+        graph: {
+          nodes: [{ id: "out", type: "x.Y", properties: { tiles: ["a"] } }],
+          edges: []
+        }
+      })) as Record<string, unknown>;
+      expect(result.id).toEqual(expect.any(String));
+    });
   });
 
   it("persists the workflow under the calling user", async () => {

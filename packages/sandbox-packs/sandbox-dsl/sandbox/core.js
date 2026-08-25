@@ -47,6 +47,85 @@ export function isOutputHandle(value) {
   );
 }
 
+/**
+ * Find a handle nested inside a prop value — in an array, or under an object
+ * key. Returns the path to the first one, or null.
+ *
+ * A connection is only made from a handle assigned directly to an input (or,
+ * for a list input, from an array of handles). One buried deeper is not wired:
+ * it used to be written verbatim into the node's properties, the node
+ * producing it was never reached, and the graph validated clean with the
+ * producer missing entirely. Reporting the path turns that silent hole into an
+ * error a caller can act on.
+ */
+function findNestedHandlePath(value, seen) {
+  if (value === null || typeof value !== "object") return null;
+  if (seen.indexOf(value) !== -1) return null;
+  seen.push(value);
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const item = value[i];
+      if (isOutputHandle(item)) return "[" + i + "]";
+      const deeper = findNestedHandlePath(item, seen);
+      if (deeper !== null) return "[" + i + "]" + deeper;
+    }
+    return null;
+  }
+  for (const key of Object.keys(value)) {
+    if (isOutputHandle(value[key])) return "." + key;
+    const deeper = findNestedHandlePath(value[key], seen);
+    if (deeper !== null) return "." + key + deeper;
+  }
+  return null;
+}
+
+/**
+ * Classify one non-handle input value for wiring.
+ *
+ * An array whose every element is a handle is list fan-in — the same shape the
+ * editor produces when several sources feed one `list[...]` input — and wires
+ * one edge per element. Anything else holding a handle anywhere inside is
+ * refused with the path named.
+ */
+function classifyInput(name, value) {
+  if (Array.isArray(value)) {
+    let sawHandle = false;
+    let sawLiteral = false;
+    for (const item of value) {
+      if (isOutputHandle(item)) {
+        sawHandle = true;
+      } else {
+        sawLiteral = true;
+      }
+    }
+    if (!sawHandle) return { kind: "plain" };
+    if (sawLiteral) {
+      throw new Error(
+        'Input "' +
+          name +
+          '" mixes wired outputs and literal values in one array. Wire the ' +
+          "whole list — every element an output() handle — or pass plain " +
+          "values only."
+      );
+    }
+    return { kind: "fanin" };
+  }
+  const nested = findNestedHandlePath(value, []);
+  if (nested !== null) {
+    throw new Error(
+      'Input "' +
+        name +
+        '" holds a node output at "' +
+        name +
+        nested +
+        '". A connection is only made from a handle assigned directly to an ' +
+        "input — one buried in an object is not wired, and the node producing " +
+        "it would be left out of the graph. Give each source its own input."
+    );
+  }
+  return { kind: "plain" };
+}
+
 function createHandle(nodeId, slot) {
   const handle = {
     __handle: true,
@@ -138,6 +217,8 @@ export function workflow(...terminals) {
   const reached = new Map();
   const edges = [];
   const queue = [];
+  /** Inputs fully supplied by edges; their stored values are not shipped. */
+  const wiredInputs = new Set();
 
   const admit = (node) => {
     const id = node && node.nodeId;
@@ -161,22 +242,37 @@ export function workflow(...terminals) {
     const currentId = queue.shift();
     const descriptor = reached.get(currentId);
     for (const [name, value] of Object.entries(descriptor.inputs)) {
-      if (!isOutputHandle(value)) continue;
-      edges.push({
-        id: "e" + (edges.length + 1) + "_" + value.source + "_" + currentId,
-        source: value.source,
-        sourceHandle: value.sourceHandle,
-        target: currentId,
-        targetHandle: name
-      });
-      admit({ nodeId: value.source });
+      let sources;
+      if (isOutputHandle(value)) {
+        sources = [value];
+      } else {
+        const kind = classifyInput(name, value);
+        if (kind.kind !== "fanin") continue;
+        sources = value;
+      }
+      wiredInputs.add(currentId + "." + name);
+      for (const handle of sources) {
+        edges.push({
+          id: "e" + (edges.length + 1) + "_" + handle.source + "_" + currentId,
+          source: handle.source,
+          sourceHandle: handle.sourceHandle,
+          target: currentId,
+          targetHandle: name
+        });
+        admit({ nodeId: handle.source });
+      }
     }
   }
 
   const nodes = [...reached.values()].map((descriptor) => {
     const properties = {};
     for (const [name, value] of Object.entries(descriptor.inputs)) {
-      if (!isOutputHandle(value)) properties[name] = value;
+      if (
+        !isOutputHandle(value) &&
+        !wiredInputs.has(descriptor.nodeId + "." + name)
+      ) {
+        properties[name] = value;
+      }
     }
     return {
       id: descriptor.nodeId,

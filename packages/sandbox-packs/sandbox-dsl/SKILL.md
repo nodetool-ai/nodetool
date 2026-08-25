@@ -86,6 +86,20 @@ is wired for you:
 const wired = resize({ image: source.output(), width: 512 });
 ```
 
+A `list[...]` input takes an array of handles — one edge per element, and the
+sources run in parallel:
+
+```js
+const strip = combineImageGrid({
+  tiles: [a.output(), b.output(), c.output()],
+  columns: 3
+});
+```
+
+Every element must be a handle; mixing wired outputs and literal values in one
+array throws. A handle buried inside an object value throws too — a connection
+is only made from a handle assigned directly to an input.
+
 A node with several outputs has no default, so `output()` without a slot throws
 and names the slots it has. A slot the node does not have throws the same way.
 

@@ -125,11 +125,36 @@ class CodeNode extends BaseNode {
   }
 }
 
+/**
+ * Stand-in for `lib.grid.CombineImageGrid` so an authored program can exercise
+ * list fan-in against a real registry and kernel run without importing
+ * base-nodes. Its `process()` joins the tiles, so the accumulated list is
+ * observable in the workflow output.
+ */
+class FakeCombineImageGrid extends BaseNode {
+  static readonly nodeType = "lib.grid.CombineImageGrid";
+  static readonly title = "Combine Image Grid";
+  static readonly description = "Combine image tiles into one image.";
+  static readonly metadataOutputTypes = { output: "str" };
+
+  @prop({ type: "list[str]", default: [] })
+  declare tiles: unknown[];
+
+  @prop({ type: "int", default: 0 })
+  declare columns: number;
+
+  async process(): Promise<Record<string, unknown>> {
+    const tiles = Array.isArray(this.tiles) ? this.tiles : [];
+    return { output: tiles.map((t) => String(t)).join("|") };
+  }
+}
+
 function buildRegistry(): NodeRegistry {
   const registry = new NodeRegistry();
   registry.register(StringConstant);
   registry.register(OutputNode);
   registry.register(CodeNode);
+  registry.register(FakeCombineImageGrid);
   return registry;
 }
 
@@ -646,6 +671,116 @@ describe("a Code node's dynamic output handle", () => {
     expect(bare.ok).toBe(false);
     expect(bare.error).toContain("nodetool.code.Code");
     expect(bare.error).toContain("name one");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5.5 A list input wired from several sources
+// ---------------------------------------------------------------------------
+
+const GRID_PACKAGES = [
+  DSL,
+  `${DSL}/nodetool.constant`,
+  `${DSL}/lib.grid`,
+  `${DSL}/nodetool.output`
+];
+
+const GRID_PROGRAM = `
+  import { workflow } from "${DSL}";
+  import { string } from "${DSL}/nodetool.constant";
+  import { combineImageGrid } from "${DSL}/lib.grid";
+  import { output } from "${DSL}/nodetool.output";
+
+  const a = string({ value: "hello" });
+  const b = string({ value: "world" });
+  const grid = combineImageGrid({ tiles: [a.output(), b.output()], columns: 2 });
+  return workflow(output({ name: "strip", value: grid.output() }));
+`;
+
+describe("a list input wired from an array of handles", () => {
+  /**
+   * Regression: the collector only followed handles assigned directly to an
+   * input, so `tiles: [a.output(), b.output()]` stored the handle markers as
+   * literal property values, created no edges, and dropped every upstream
+   * node from the graph. The saved two-node workflow validated clean and then
+   * failed on its first run with "Image input is required."
+   */
+  it("wires one edge per element and ships every upstream node", async () => {
+    const outcome = await action(GRID_PROGRAM, { packages: GRID_PACKAGES });
+    expect(outcome.error).toBeUndefined();
+    const graph = outcome.result as GraphShape;
+    expect(graph.nodes.map((n) => n.type).sort()).toEqual([
+      "lib.grid.CombineImageGrid",
+      "nodetool.constant.String",
+      "nodetool.constant.String",
+      "nodetool.output.Output"
+    ]);
+    const grid = graph.nodes.find((n) => n.type === "lib.grid.CombineImageGrid");
+    expect(grid?.properties).toEqual({ columns: 2 });
+    const fanIn = graph.edges.filter(
+      (e) => e.target === "combine_image_grid" && e.targetHandle === "tiles"
+    );
+    expect(fanIn.map((e) => e.source).sort()).toEqual(["string", "string_2"]);
+    expect(fanIn.every((e) => e.sourceHandle === "output")).toBe(true);
+  });
+
+  it("validates, saves and runs the fan-in end to end", async () => {
+    const outcome = await action(
+      `import { validate_workflow, create_workflow, run_workflow } from "${WORKFLOWS}";
+       ${GRID_PROGRAM.replace(
+         "return workflow(",
+         "const graph = workflow("
+       )}
+       const report = await validate_workflow({ graph });
+       if (!report.ok) return { issues: report.issues };
+       const saved = await create_workflow({ name: "Strip", graph });
+       return await run_workflow({ workflow_id: saved.id });`,
+      { run: ungatedRun(), packages: [...GRID_PACKAGES, WORKFLOWS] }
+    );
+    expect(outcome.error).toBeUndefined();
+    const run = outcome.result as {
+      status: string;
+      error: string | null;
+      outputs: Record<string, unknown>;
+      issues?: unknown[];
+    };
+    expect(run.issues ?? []).toEqual([]);
+    expect(run.error).toBeNull();
+    expect(run.status).toBe("completed");
+    const values = (run.outputs["strip"] as string[] | undefined) ?? [];
+    // Arrival order across two parallel sources is not guaranteed.
+    expect(values).toHaveLength(1);
+    expect(String(values[0]).split("|").sort()).toEqual(["hello", "world"]);
+  }, 60_000);
+
+  it("refuses an array mixing wired outputs and literal values", async () => {
+    const outcome = await action(
+      `import { workflow } from "${DSL}";
+       import { string } from "${DSL}/nodetool.constant";
+       import { combineImageGrid } from "${DSL}/lib.grid";
+       const a = string({ value: "hello" });
+       const grid = combineImageGrid({ tiles: [a.output(), "literal"], columns: 2 });
+       return workflow(grid);`,
+      { packages: [DSL, `${DSL}/nodetool.constant`, `${DSL}/lib.grid`] }
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toContain('"tiles"');
+    expect(outcome.error).toContain("mixes wired outputs and literal values");
+  });
+
+  it("refuses a handle buried inside an object value", async () => {
+    const outcome = await action(
+      `import { workflow } from "${DSL}";
+       import { string } from "${DSL}/nodetool.constant";
+       import { code } from "${DSL}/nodetool.code";
+       const a = string({ value: "hello" });
+       const snippet = code({ code: "return {};", options: { source: a.output() } });
+       return workflow(snippet);`,
+      { packages: [DSL, `${DSL}/nodetool.constant`, `${DSL}/nodetool.code`] }
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toContain('"options.source"');
+    expect(outcome.error).toContain("not wired");
   });
 });
 

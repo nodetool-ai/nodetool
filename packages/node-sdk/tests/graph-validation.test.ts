@@ -95,6 +95,81 @@ describe("validateGraph", () => {
     expect(report.edgeCount).toBe(1);
   });
 
+  it("flags a DSL wiring handle left in a property bag", () => {
+    // The builders mint these to wire an edge. One that survives into a
+    // stored graph means the connection was never created and the node
+    // producing the value may be missing entirely.
+    const registry = fakeRegistry({
+      "lib.grid.CombineImageGrid": meta("lib.grid.CombineImageGrid", { tiles: "list[image]" }, {})
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "grid",
+            type: "lib.grid.CombineImageGrid",
+            properties: {
+              tiles: [{ __handle: true, source: "img", sourceHandle: "output" }],
+              columns: 3
+            }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    const leftover = report.issues.filter(
+      (i) => i.code === "leftover_wiring_handle"
+    );
+    expect(leftover).toHaveLength(1);
+    expect(leftover[0].severity).toBe("error");
+    expect(leftover[0].message).toContain("tiles[0]");
+    expect(leftover[0].message).toContain("never created");
+  });
+
+  it("flags a wiring handle even when the node type is unknown", () => {
+    const registry = fakeRegistry({});
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "n1",
+            type: "some.RemovedType",
+            properties: { config: { deep: { __handle: true, source: "x", sourceHandle: "output" } } }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(
+      report.issues.filter((i) => i.code === "leftover_wiring_handle")
+    ).toHaveLength(1);
+  });
+
+  it("does not flag plain object properties as handles", () => {
+    const registry = fakeRegistry({
+      "a.Sink": meta("a.Sink", { in: "list[image]" }, {})
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "s",
+            type: "a.Sink",
+            properties: { in: [{ uri: "asset://1" }, { other: true }] }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(
+      report.issues.filter((i) => i.code === "leftover_wiring_handle")
+    ).toEqual([]);
+  });
+
   it("flags unknown node types", () => {
     const registry = fakeRegistry({ "a.Known": meta("a.Known", {}, {}) });
     const report = validateGraph(
