@@ -29,6 +29,7 @@ import {
   RUNTIME_MODEL_CATALOGS,
   annotateEscalatedRun,
   jobRecord,
+  leftoverWiringHandleError,
   lightWorkflowList,
   modelSelectionError,
   noRegistryError,
@@ -184,6 +185,8 @@ const createWorkflow: CapabilityExport = {
       run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
     );
     if (badModels) return badModels;
+    const leftoverHandles = leftoverWiringHandleError(graph);
+    if (leftoverHandles) return leftoverHandles;
     if (run.nodeRegistry) {
       const unselected = unsetModelSelectionError(graph, run.nodeRegistry);
       if (unselected) return unselected;
@@ -247,6 +250,8 @@ const updateWorkflow: CapabilityExport = {
         run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
       );
       if (badModels) return badModels;
+      const leftoverHandles = leftoverWiringHandleError(graph);
+      if (leftoverHandles) return leftoverHandles;
       if (run.nodeRegistry) {
         const unselected = unsetModelSelectionError(graph, run.nodeRegistry);
         if (unselected) return unselected;

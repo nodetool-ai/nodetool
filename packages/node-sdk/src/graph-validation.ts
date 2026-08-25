@@ -300,6 +300,35 @@ function readProperties(node: GraphValidationNode): Record<string, unknown> {
   );
 }
 
+/** True for a DSL wiring handle ({__handle: true, source, sourceHandle}). */
+function isWiringHandle(value: unknown): boolean {
+  return isRecord(value) && value["__handle"] === true;
+}
+
+/** Property paths holding a wiring handle, e.g. `tiles[0]`. */
+function collectWiringHandlePaths(
+  value: unknown,
+  path: string,
+  out: string[],
+  depth = 0
+): void {
+  if (depth > MODEL_REF_MAX_DEPTH) return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      collectWiringHandlePaths(item, `${path}[${index}]`, out, depth + 1)
+    );
+    return;
+  }
+  if (!isRecord(value)) return;
+  if (isWiringHandle(value)) {
+    out.push(path);
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    collectWiringHandlePaths(child, path ? `${path}.${key}` : key, out, depth + 1);
+  }
+}
+
 interface NormEdge {
   id: string;
   source: string;
@@ -1110,6 +1139,30 @@ export function validateGraph(
   // validating the shadowed copy's properties would report everything twice.
   for (const [id, node] of byId) {
     const type = String(node.type ?? "");
+
+    // ── DSL wiring handles stored as property values. The builders mint
+    // these to wire an edge; one that survives into a bag means the
+    // connection was never made, so the input is unconnected and the node
+    // producing it may be missing from the graph entirely. Checked before the
+    // registry guard: the marker is shape-level, not type-level.
+    for (const [propName, value] of Object.entries(readProperties(node))) {
+      const handlePaths: string[] = [];
+      collectWiringHandlePaths(value, propName, handlePaths);
+      for (const path of handlePaths) {
+        issues.push({
+          severity: "error",
+          code: "leftover_wiring_handle",
+          nodeId: id,
+          nodeType: type,
+          message:
+            `Property "${path}" on node "${id}" still holds a wiring ` +
+            "handle — the connection was never created, so the node " +
+            "producing this output may be missing from the graph. Re-wire " +
+            "it as an edge."
+        });
+      }
+    }
+
     if (!type || !registry.has(type)) continue;
     const propIssues = registry.validateNode(
       {

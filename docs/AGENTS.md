@@ -255,7 +255,8 @@ from inside an agent:
 - **`validate_workflow`** — static check of an inline `graph` ({nodes, edges})
   being built or a saved `workflow_id`: unknown node types, missing required
   props, unselected models, unregistered providers, model ids the provider does
-  not offer, dangling/mis-typed edges. Sub-second. Run it before the expensive
+  not offer, dangling/mis-typed edges, leftover DSL wiring handles.
+  Sub-second. Run it before the expensive
   `debug`. `create_workflow` and `POST /api/workflows/:id/run|debug` apply the
   provider/model half of this check themselves, so a hallucinated model id is
   refused at save and at run rather than surfacing mid-execution.

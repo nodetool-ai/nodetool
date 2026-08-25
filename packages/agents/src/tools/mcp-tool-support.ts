@@ -404,6 +404,111 @@ export async function modelSelectionError(
 }
 
 /**
+ * The declared property bag of a node, from either graph shape.
+ *
+ * Mirrors `readProperties` in @nodetool-ai/node-sdk's graph-validation: the
+ * kernel shape nests the bag under `properties`, the persisted/editor shape
+ * under `data.properties`, and older hand-written shapes flattened it onto
+ * `data`. Reading only `properties` made every normalized graph — which is
+ * what create_workflow checks, since it normalizes first — look like every
+ * model property was left unselected.
+ */
+function readNodeProperties(node: Record<string, unknown>): Record<string, unknown> {
+  if (isObjectLike(node["properties"])) {
+    return node["properties"] as Record<string, unknown>;
+  }
+  const data = node["data"];
+  if (isObjectLike(data)) {
+    const record = data as Record<string, unknown>;
+    if (isObjectLike(record["properties"])) {
+      return record["properties"] as Record<string, unknown>;
+    }
+    return record;
+  }
+  return {};
+}
+
+/**
+ * True for a DSL wiring handle ({__handle: true, source, sourceHandle}) —
+ * the marker the graph builders create to wire an edge before collecting the
+ * graph. One that survives into a stored property bag means the connection
+ * was never made.
+ */
+function isWiringHandle(value: unknown): boolean {
+  return isObjectLike(value) && (value as Record<string, unknown>)["__handle"] === true;
+}
+
+/** Property paths holding a wiring handle, e.g. `tiles[0]`. */
+function collectWiringHandlePaths(
+  value: unknown,
+  path: string,
+  out: string[],
+  depth = 0
+): void {
+  if (depth > 4) return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      collectWiringHandlePaths(item, `${path}[${index}]`, out, depth + 1)
+    );
+    return;
+  }
+  if (!isObjectLike(value)) return;
+  if (isWiringHandle(value)) {
+    out.push(path);
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    collectWiringHandlePaths(child, path ? `${path}.${key}` : key, out, depth + 1);
+  }
+}
+
+/**
+ * Refuse a graph whose property bags still hold DSL wiring handles.
+ *
+ * A stored handle is a connection that was never created: the edge does not
+ * exist, so the node producing the value is unreachable and the input either
+ * stays empty or receives the marker itself at run time. This is exactly how
+ * a graph built with handles inside an array property used to save clean and
+ * then fail on its first run ("Image input is required."). Re-authoring the
+ * wiring fixes it; validate_workflow reports the same finding statically.
+ */
+export function leftoverWiringHandleError(graph: unknown): Record<string, unknown> | null {
+  if (!isObjectLike(graph)) return null;
+  const record = graph as { nodes?: unknown };
+  const nodes = Array.isArray(record.nodes) ? record.nodes : [];
+  const issues: Array<Record<string, unknown>> = [];
+  for (const raw of nodes) {
+    if (!isObjectLike(raw)) continue;
+    const node = raw as Record<string, unknown>;
+    const id = String(node["id"] ?? "");
+    const type = String(node["type"] ?? node["node_type"] ?? "");
+    for (const [name, value] of Object.entries(readNodeProperties(node))) {
+      const paths: string[] = [];
+      collectWiringHandlePaths(value, name, paths);
+      for (const path of paths) {
+        issues.push({
+          code: "leftover_wiring_handle",
+          node_id: id,
+          node_type: type,
+          message:
+            `Property "${path}" on node "${id || type}" still holds a ` +
+            "wiring handle — the connection was never created, so the node " +
+            "producing this output may be missing from the graph entirely. " +
+            "Re-wire it as an edge."
+        });
+      }
+    }
+  }
+  if (issues.length === 0) return null;
+  return {
+    error:
+      "The graph stores DSL wiring handles as property values instead of " +
+      "edges. These inputs are not connected.",
+    issues
+  };
+}
+
+/**
  * Refuse a graph whose nodes leave a declared model property unselected.
  *
  * The cheap selection walk above reads only the property bag; an agent that
@@ -457,11 +562,8 @@ export function unsetModelSelectionError(
     const type = String(n["type"] ?? "");
     const id = String(n["id"] ?? "");
     if (!type || !nodeRegistry.has(type)) continue;
-    const properties = isObjectLike(n["properties"])
-      ? (n["properties"] as Record<string, unknown>)
-      : {};
     for (const issue of nodeRegistry.validateNode(
-      { id, type, properties },
+      { id, type, properties: readNodeProperties(n) },
       connected.get(id) ?? new Set<string>()
     )) {
       if (issue.code !== "unset_model") continue;

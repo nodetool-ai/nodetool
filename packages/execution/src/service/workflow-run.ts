@@ -17,6 +17,7 @@ import { BoundedHandle, WorkflowRunner } from "@nodetool-ai/kernel";
 import { Job, Workflow, getSecret } from "@nodetool-ai/models";
 import {
   hydrateGraphNodeFlags,
+  propertyTypesForMetadata,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
 import type {
@@ -38,6 +39,7 @@ import {
   buildRunVerdict,
   collectInterventionWarnings
 } from "../debug/verdict.js";
+import { rewriteOutputNames } from "../output-names.js";
 import {
   debugSessions,
   DebugSession,
@@ -70,6 +72,42 @@ export type {
 const log = createLogger("nodetool.execution.workflow-run");
 
 type WorkflowRunResult = Awaited<ReturnType<WorkflowRunner["run"]>>;
+
+/**
+ * Hydrate a saved graph for the kernel: registry-resolved execution flags,
+ * plus each node's declared input types under `propertyTypes`.
+ *
+ * Flags-only hydration leaves `propertyTypes` unset, and the kernel reads
+ * list-ness only from that map — so a genuine `list[...]` fan-in (several
+ * upstreams wired into one input, exactly what the editor and the graph DSL
+ * produce) was rejected by correlation analysis as "receives N edges but is
+ * not a list type". The full-fat alternative (`Graph.loadFromDict` with a
+ * resolver, the websocket runner's path) drops every node type this registry
+ * cannot resolve, which a service run over a saved workflow must not do — an
+ * unknown type has to fail loudly at executor resolution, not vanish. So:
+ * flags hydration keeps every node, and the property-type map is stamped from
+ * metadata per node where the registry can speak.
+ */
+function hydrateRunGraph(
+  graph: Parameters<typeof hydrateGraphNodeFlags>[0],
+  registry: NodeRegistry
+): ReturnType<typeof hydrateGraphNodeFlags> {
+  const hydrated = hydrateGraphNodeFlags(graph, registry);
+  for (const node of hydrated.nodes) {
+    const metadata = registry.resolveMetadata(node.type);
+    if (!metadata) continue;
+    node.propertyTypes = {
+      ...propertyTypesForMetadata(metadata),
+      ...(node.propertyTypes ?? {})
+    };
+  }
+  // Resolver-style hydration stamps each node's `name` with the registry
+  // title, which would outrank an Output node's public `name` *property* in
+  // the kernel's collection key. Flags hydration does not stamp one, but the
+  // rewrite makes the two paths agree and is what ExecutionSession applies.
+  rewriteOutputNames(hydrated);
+  return hydrated;
+}
 
 /**
  * What the host brings to a run: the node registry, and — for a host that also
@@ -534,7 +572,7 @@ export async function runWorkflow(
       runnerOptions.supervisor = supervisorHandle;
     }
     runner = new WorkflowRunner(job.id, runnerOptions);
-    hydratedGraph = hydrateGraphNodeFlags(runnableGraph, registry);
+    hydratedGraph = hydrateRunGraph(runnableGraph, registry);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await markJobFailed(job, message);
