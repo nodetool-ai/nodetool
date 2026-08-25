@@ -416,19 +416,23 @@ export function loadVideoModels(
  * Does this entry refuse the call without an input of `kind`?
  *
  * The declaration, not the name: a manifest field marked `required` is the
- * endpoint's own statement that it cannot run without that media. Kie's
- * `uploads` descriptors carry no requiredness, so they answer false and the
- * name-based inference stands.
+ * endpoint's own statement that it cannot run without that media. Read across
+ * both manifest conventions — FAL/Replicate `inputFields` (`propType`) and
+ * AtlasCloud/Kie `fields` (`type`). Kie's `uploads` descriptors carry no
+ * requiredness, so they answer false and the name-based inference stands.
  */
 export function requiresMediaInput(
   n: ManifestNode,
   kind: "image" | "video"
 ): boolean {
+  const required = (t: string, fRequired?: boolean): boolean =>
+    fRequired === true && (t === kind || t === `list[${kind}]`);
   // Stryker disable next-line ArrayDeclaration: an entry with no inputFields declares nothing required either way.
-  return (n.inputFields ?? []).some((f) => {
-    const t = f.propType.toLowerCase();
-    return f.required === true && (t === kind || t === `list[${kind}]`);
-  });
+  if (n.inputFields?.some((f) => required(f.propType.toLowerCase(), f.required))) {
+    return true;
+  }
+  // Stryker disable next-line ArrayDeclaration: same rationale for the fields convention.
+  return n.fields?.some((f) => required(f.type.toLowerCase(), f.required)) ?? false;
 }
 
 /**

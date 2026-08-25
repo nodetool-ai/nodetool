@@ -371,6 +371,52 @@ describe("narrowTasksByRequiredInputs", () => {
     ).toEqual(["image_to_image"]);
   });
 
+  // AtlasCloud manifests describe inputs under `fields` (`type`, not
+  // `propType`). Blind to that convention, `requiresMediaInput` answered
+  // false for every entry, and edit-only endpoints like
+  // `openai/gpt-image-2/edit` ranked as top text_to_image answers — then
+  // failed at call time with "request body field <image> is required".
+  it("reads requiredness off AtlasCloud/Kie-style fields too", () => {
+    const atlasEdit = {
+      outputType: "image",
+      modelId: "openai/gpt-image-2/edit",
+      fields: [
+        { name: "prompt", type: "str", required: true },
+        { name: "images", type: "list[image]", required: true }
+      ]
+    };
+    expect(requiresMediaInput(atlasEdit, "image")).toBe(true);
+    expect(requiresMediaInput(atlasEdit, "video")).toBe(false);
+    expect(
+      requiresMediaInput(
+        { fields: [{ name: "image", type: "image", required: false }] },
+        "image"
+      )
+    ).toBe(false);
+    expect(
+      narrowTasksByRequiredInputs(
+        ["text_to_image", "image_to_image"],
+        atlasEdit,
+        "image"
+      )
+    ).toEqual(["image_to_image"]);
+  });
+
+  it("an edit-only endpoint stops qualifying as a text_to_image model", () => {
+    const [model] = buildImageModels([
+      {
+        outputType: "image",
+        modelId: "openai/gpt-image-2/edit",
+        fields: [
+          { name: "prompt", type: "str", required: true },
+          { name: "images", type: "list[image]", required: true }
+        ]
+      }
+    ], "atlascloud");
+    expect(model.id).toBe("openai/gpt-image-2/edit");
+    expect(model.supportedTasks).toEqual(["image_to_image"]);
+  });
+
   it("drops text_to_video from a video endpoint that requires an image", () => {
     expect(
       narrowTasksByRequiredInputs(
