@@ -157,9 +157,11 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         const speaker: ScriptSpeaker = {
           id,
           name,
-          voice: voice ?? null,
-          ...(entityId ? { entityId } : {})
+          voice: voice ?? null
         };
+        if (entityId) {
+          speaker.entityId = entityId;
+        }
         store().addSpeaker(scriptId, speaker);
         const created = requireSpeaker(id);
         return toSpeakerNode(created);
