@@ -28,6 +28,8 @@ module.exports = {
     // not pull in the full protocol graph by themselves.
     '^@nodetool-ai/protocol/triggers$':
       '<rootDir>/../packages/protocol/src/triggers.ts',
+    '^@nodetool-ai/protocol/blend-modes$':
+      '<rootDir>/../packages/protocol/src/blend-modes.ts',
     // Those packages' sources use ESM `.js` specifiers for their own modules.
     '^(\\.{1,2}/.+)\\.js$': '$1',
   },

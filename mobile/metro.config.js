@@ -57,6 +57,7 @@ const SOURCE_PACKAGES = [
  */
 const SOURCE_MODULES = {
   "@nodetool-ai/protocol/triggers": path.join(protocolSrc, "triggers.ts"),
+  "@nodetool-ai/protocol/blend-modes": path.join(protocolSrc, "blend-modes.ts"),
 };
 
 const config = getDefaultConfig(projectRoot);

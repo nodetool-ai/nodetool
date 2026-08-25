@@ -21,7 +21,6 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/gpu": "*",
     "zod": "^4.0.0"
   },
   "devDependencies": {
@@ -36,6 +35,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./blend-modes": {
+      "nodetool-dev": "./src/blend-modes.ts",
+      "types": "./dist/blend-modes.d.ts",
+      "import": "./dist/blend-modes.js",
+      "default": "./dist/blend-modes.js"
     },
     "./builtin-packs": {
       "nodetool-dev": "./src/builtin-packs.ts",
