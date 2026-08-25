@@ -344,6 +344,25 @@ describe("ShotCard", () => {
       unmount();
     }
   });
+
+  it("marks the card as generating so the animated border renders", () => {
+    const statuses: ShotStatus[] = [
+      "planned",
+      "keyframe_generating",
+      "clip_generating",
+      "rendered"
+    ];
+    for (const status of statuses) {
+      const { container, unmount } = renderCard(makeShot({ status }));
+      const card = container.firstElementChild as HTMLElement;
+      expect(card?.getAttribute("data-generating")).toBe(
+        status === "keyframe_generating" || status === "clip_generating"
+          ? "true"
+          : null
+      );
+      unmount();
+    }
+  });
 });
 
 describe("ShotCard duration source", () => {
