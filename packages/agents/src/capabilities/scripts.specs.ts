@@ -112,15 +112,17 @@ export const EDIT_SCRIPT_SCHEMA: JsonSchema = {
       type: "array",
       description:
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
-        "add_speaker {name, color?, provider?, model?, voice?}, " +
-        "set_speaker {target, name?, color?}, " +
+        "add_speaker {name, color?, provider?, model?, voice?, entityId?}, " +
+        "set_speaker {target, name?, color?, entityId?}, " +
         "set_speaker_voice {target, provider, model, voice, settings?}, " +
         "remove_speaker {target}, add_section {title?}, " +
         "add_line {text, speaker?, section?, direction?, pause_after_ms?, index?}, " +
         "set_line_text {target, text}, set_line_speaker {target, speaker}, " +
-        "remove_line {target}. A line `target` is its id, its 0-based index " +
-        "across the script, or its exact text; a speaker `target` is its id " +
-        "or name.",
+        "remove_line {target}. `entityId` is an asset id from the ingredient " +
+        "library (list_entities) — when set the speaker is that character/entity " +
+        "and storyboard renders can season prompts with it. A line `target` is " +
+        "its id, its 0-based index across the script, or its exact text; a " +
+        "speaker `target` is its id or name.",
       items: { type: "object" }
     }
   },

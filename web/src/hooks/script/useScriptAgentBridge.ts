@@ -52,7 +52,8 @@ const toSpeakerNode = (speaker: ScriptSpeaker): ScriptSpeakerNode => ({
   id: speaker.id,
   name: speaker.name,
   color: speaker.color,
-  voice: speaker.voice ?? null
+  voice: speaker.voice ?? null,
+  entityId: (speaker as { entityId?: string | null }).entityId ?? null
 });
 
 export const useScriptAgentBridge = (scriptId: string): void => {

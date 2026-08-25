@@ -47,6 +47,7 @@ export interface ScriptSpeakerNode {
   name: string;
   color?: string;
   voice: VoiceBinding | null;
+  entityId?: string | null;
 }
 
 /** Full snapshot of the open script the agent reads to plan its edits. */

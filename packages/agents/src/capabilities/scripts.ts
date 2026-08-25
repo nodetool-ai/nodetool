@@ -515,7 +515,8 @@ const getScript: CapabilityExport = {
       cast: doc.cast.map((speaker) => ({
         id: speaker.id,
         name: speaker.name,
-        voice: speaker.voice ?? null
+        voice: speaker.voice ?? null,
+        entityId: (speaker as { entityId?: string | null }).entityId ?? null
       })),
       lines: scriptLines(doc.sections).map((line, index) => {
         const voice = effectiveVoice(line, doc.cast);
@@ -977,6 +978,18 @@ function applyScriptOp(
   { op, args }: ParsedScriptOp,
   scriptLines: (sections: ScriptDocument["sections"]) => ScriptLine[]
 ) {
+  // entity linkage — accept `entityId` or `entity_id`, string to link, null/"" to clear
+  const entityIdArg = (a: Record<string, unknown>): string | null | undefined => {
+    const raw = a["entityId"] ?? a["entity_id"];
+    if (raw === undefined) return undefined;
+    if (raw === null) return null;
+    if (isString(raw)) {
+      const v = raw.trim();
+      return v.length > 0 ? v : null;
+    }
+    throw new Error("entityId must be a string (asset id from list_entities) or null to clear.");
+  };
+
   switch (op) {
     case "add_speaker": {
       const name = args["name"];
@@ -989,8 +1002,15 @@ function applyScriptOp(
         voice: parseVoiceBinding(args)
       };
       if (isString(args["color"])) speaker.color = args["color"];
+      const eid = entityIdArg(args);
+      if (eid !== undefined) speaker.entityId = eid;
       doc.cast.push(speaker);
-      return { id: speaker.id, name: speaker.name, has_voice: !!speaker.voice };
+      return {
+        id: speaker.id,
+        name: speaker.name,
+        has_voice: !!speaker.voice,
+        entityId: speaker.entityId ?? null
+      };
     }
 
     case "set_speaker": {
@@ -1000,8 +1020,10 @@ function applyScriptOp(
       const speaker = { ...doc.cast[index] };
       if (args["name"] !== undefined) speaker.name = String(args["name"]);
       if (args["color"] !== undefined) speaker.color = String(args["color"]);
+      const eid = entityIdArg(args);
+      if (eid !== undefined) speaker.entityId = eid;
       doc.cast[index] = speaker;
-      return { id: speaker.id, name: speaker.name };
+      return { id: speaker.id, name: speaker.name, entityId: speaker.entityId ?? null };
     }
 
     case "set_speaker_voice": {
@@ -1164,7 +1186,8 @@ const editScript: CapabilityExport = {
         cast: doc.cast.map((speaker) => ({
           id: speaker.id,
           name: speaker.name,
-          has_voice: !!speaker.voice
+          has_voice: !!speaker.voice,
+          entityId: (speaker as { entityId?: string | null }).entityId ?? null
         })),
         lines: scriptLines(doc.sections).map((line, index) => ({
           id: line.id,

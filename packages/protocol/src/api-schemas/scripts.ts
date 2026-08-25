@@ -20,7 +20,11 @@ export const speaker = z.object({
   name: z.string(),
   /** Gutter chip color; free-form so the UI can theme it. */
   color: z.string().optional(),
-  voice: voiceBinding.nullable().optional()
+  voice: voiceBinding.nullable().optional(),
+  /** Optional link to an ingredient-library entity (asset id). When set the
+   *  speaker is that character/location/style/prop; the agent and storyboard
+   *  can season prompts with it. */
+  entityId: z.string().nullable().optional()
 });
 export type Speaker = z.infer<typeof speaker>;
 
