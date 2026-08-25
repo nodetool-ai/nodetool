@@ -8,6 +8,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   admitCodeAction,
   declaredActionRisk,
+  executeCodeDescription,
   EXECUTE_CODE_INPUT_SCHEMA,
   EXECUTE_CODE_TOOL_NAME
 } from "../src/codeact/execute-code-contract.js";
@@ -40,10 +41,17 @@ function makeGate(
   return { gate, asked };
 }
 
-const lowAction = { title: "Counting rows", risk: "low", code: "return 1;" };
+const lowAction = {
+  title: "Counting rows",
+  risk: "low",
+  description: "",
+  code: "return 1;"
+};
 const highAction = {
   title: "Deleting the old workflows",
   risk: "high",
+  description:
+    "Deletes the 3 archived workflows listed above. They cannot be restored.",
   code: "return 1;"
 };
 
@@ -51,12 +59,30 @@ describe("the execute_code contract", () => {
   it("carries risk as a required enum", () => {
     const schema = EXECUTE_CODE_INPUT_SCHEMA;
     expect(schema.properties.risk.enum).toEqual(["low", "high"]);
-    expect(schema.required).toEqual(["title", "risk", "code"]);
+    expect(schema.required).toEqual(["title", "risk", "description", "code"]);
     // OpenAI structured outputs reject a strict schema that leaves a property
     // out of `required`.
     expect(Object.keys(schema.properties).sort()).toEqual(
       [...schema.required].sort()
     );
+  });
+});
+
+describe("executeCodeDescription", () => {
+  it("reads what the model wrote, trimmed", () => {
+    expect(executeCodeDescription(highAction)).toBe(
+      "Deletes the 3 archived workflows listed above. They cannot be restored."
+    );
+    expect(executeCodeDescription({ description: "  spaced  " })).toBe(
+      "spaced"
+    );
+  });
+
+  it("is empty when there is none to read", () => {
+    expect(executeCodeDescription(lowAction)).toBe("");
+    expect(executeCodeDescription({})).toBe("");
+    expect(executeCodeDescription(null)).toBe("");
+    expect(executeCodeDescription({ description: 42 })).toBe("");
   });
 });
 
@@ -109,9 +135,12 @@ describe("admitCodeAction", () => {
     expect(asked[0]).toMatchObject({
       toolName: EXECUTE_CODE_TOOL_NAME,
       category: "execute",
-      message: "Deleting the old workflows"
+      message: "Deleting the old workflows",
+      // What the dialog asks about: the effect, not the program.
+      description:
+        "Deletes the 3 archived workflows listed above. They cannot be restored."
     });
-    // The user sees the program they are approving.
+    // The program is still there to unfold.
     expect(asked[0].args).toEqual({
       title: "Deleting the old workflows",
       risk: "high",
@@ -147,6 +176,8 @@ describe("admitCodeAction", () => {
     });
     expect(admission.allowed).toBe(false);
     expect(asked).toHaveLength(1);
+    // No description written, so the dialog has only the title to ask about.
+    expect(asked[0].description).toBe("");
   });
 });
 

@@ -323,6 +323,12 @@ export interface ApprovalRequest {
   args: Record<string, unknown>;
   /** Resolved user-facing status (LLM `_message` or the tool's template). */
   message: string;
+  /**
+   * What the call will do, in plain sentences, for the approval dialog to ask
+   * about. A high-risk code action supplies one (`execute_code`'s
+   * `description`); most calls have none and the dialog shows `message`.
+   */
+  description?: string;
 }
 
 export type RequestApproval = (

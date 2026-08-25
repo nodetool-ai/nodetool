@@ -5062,6 +5062,7 @@ export class UnifiedWebSocketRunner {
       tool_name: request.toolName,
       category: request.category,
       message: request.message,
+      description: request.description ?? "",
       args: request.args
     });
     try {

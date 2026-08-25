@@ -99,6 +99,8 @@ interface PendingApproval {
   tool_name: string;
   category: string;
   message: string;
+  /** Plain-sentence account of the call; empty when the caller sent none. */
+  description: string;
   args: Record<string, unknown>;
 }
 
@@ -110,6 +112,7 @@ interface ToolApprovalRequest {
   tool_name: string;
   category: "write" | "execute" | "external";
   message: string;
+  description?: string;
   args: Record<string, unknown>;
 }
 
@@ -598,6 +601,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
               tool_name: req.tool_name,
               category: req.category,
               message: req.message,
+              description: req.description ?? "",
               args: req.args
             }
           }

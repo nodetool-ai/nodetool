@@ -65,6 +65,12 @@ Rules:
   user loses work they never agreed to lose. Keep the destructive or costly
   part in its own action: the routine work around it then still runs
   unattended.
+- A \`"high"\` risk call also carries a \`description\`: one to three plain
+  sentences naming what the program will change, delete, send, or spend, and
+  on what. That is the text the approval dialog asks the user about — the code
+  sits behind a fold — so a description that restates the title, or describes
+  the code instead of its effect, is a user clicking Allow on something they
+  could not read. Write \`""\` for a \`"low"\` risk call; nobody is asked.
 - Chain the WHOLE pipeline into one action: call several tools, loop over
   items, branch on intermediate results, retry inside try/catch, and
   post-process in the same program. Hold intermediates in local variables.
