@@ -33,6 +33,7 @@ export const staticEntries: PageEntry[] = [
   { route: "/use-cases/product-video", title: "Product Video", description: "Make product videos with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/use-cases/movie-poster", title: "Movie Poster", description: "Generate movie posters with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/use-cases/movie-trailer", title: "Movie Trailer", description: "Storyboard a trailer, then cut it on the timeline.", priority: 0.6, changeFrequency: "monthly", indexable: true },
+  { route: "/use-cases/documentary-teaser", title: "Documentary Teaser", description: "Board a documentary teaser shot by shot, then cut it on the timeline.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/imprint", title: "Imprint", description: "Legal imprint.", priority: 0.3, changeFrequency: "yearly", indexable: true },
   { route: "/privacy", title: "Privacy Policy", description: "Privacy policy.", priority: 0.3, changeFrequency: "yearly", indexable: true },
   { route: "/terms", title: "Terms of Service", description: "Terms of service.", priority: 0.3, changeFrequency: "yearly", indexable: true },

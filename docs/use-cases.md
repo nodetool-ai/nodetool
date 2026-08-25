@@ -30,6 +30,20 @@ us, and you can switch any model for a better one the day it ships.
   </article>
 
   <article class="usecase-card">
+    <a href="{{ '/use-cases/documentary-teaser' | relative_url }}" class="usecase-media">
+      <img src="{{ '/assets/use-cases/deep-shot-6.jpg' | relative_url }}" alt="Bioluminescent whale frame from the Documentary Teaser Generator">
+    </a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Documentary</span>
+      <h3><a href="{{ '/use-cases/documentary-teaser' | relative_url }}">Documentary Teaser Generator</a></h3>
+      <p>Describe the film in a sentence and the storyboard boards it shot by shot: a card per beat, a still on every card, animated clips, and a cut teaser on the timeline.</p>
+      <div class="pipeline-chips">
+        <span>Premise</span><span>Storyboard</span><span>Stills</span><span>Clips</span><span>Timeline</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="usecase-card">
     <a href="{{ '/use-cases/product-video' | relative_url }}" class="usecase-media">
       <img src="{{ '/assets/use-cases/smartwatch.png' | relative_url }}" alt="Product photo feeding the Product Video Generator">
     </a>

@@ -43,6 +43,9 @@ are available for Linux. Developers can skip the installer and
 
 * **[Movie trailer](https://nodetool.ai/use-cases/movie-trailer)** — one logline
   becomes a storyboard, key art per shot, animated clips, and a cut trailer.
+* **[Documentary teaser](https://nodetool.ai/use-cases/documentary-teaser)** —
+  one sentence becomes a six-shot board, a still per card, animated clips, and a
+  26-second cut.
 * **[Product video](https://nodetool.ai/use-cases/product-video)** — a campaign
   brief and one product photo become a 16:9 spot, directed by an agent and
   rendered by a text-to-video model.
