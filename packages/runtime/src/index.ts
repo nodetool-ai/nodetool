@@ -195,6 +195,7 @@ export {
   classifyTextToken,
   expandAssetReferences,
   expandEntityRefs,
+  expandEntitiesForGeneration,
   findAssetRefs,
   findImageAssetRefs,
   findTextAssetRefs,
@@ -206,7 +207,9 @@ export {
   type TextAssetRef,
   type PromptAssetTextField,
   type PromptAssetInputField,
-  type InjectedAssetRef
+  type InjectedAssetRef,
+  type EntityRefResolver,
+  type ExpandedEntityPrompt
 } from "./prompt-asset-refs.js";
 export { logPythonWorkerStderr } from "./python-worker-stderr.js";
 export {
