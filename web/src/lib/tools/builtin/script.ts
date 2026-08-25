@@ -56,14 +56,17 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_script_add_speaker",
   description:
-    "Add a cast member (speaker). `name` is required; optionally bind a `voice` (provider/model/voice) the speaker is voiced with. Lines assigned to this speaker inherit its voice. Returns the created speaker with its id.",
+    "Add a cast member (speaker). `name` is required; optionally bind a `voice` (provider/model/voice) the speaker is voiced with and an `entityId` (asset id from list_entities) so the speaker is that character/entity. Lines assigned to this speaker inherit its voice. Returns the created speaker with its id.",
   parameters: z.object({
     script_id: scriptIdParam,
     name: z.string(),
-    voice: voiceParam.optional()
+    voice: voiceParam.optional(),
+    entityId: z.string().nullable().optional().describe("Asset id of a character entity to link — from list_entities."),
+    entity_id: z.string().nullable().optional().describe("Alias for entityId.")
   }),
-  async execute({ script_id, name, voice }) {
-    const speaker = getScriptAgentHandler(script_id).addSpeaker(name, voice);
+  async execute({ script_id, name, voice, entityId, entity_id }) {
+    const eid = (entityId ?? entity_id ?? null) as string | null;
+    const speaker = getScriptAgentHandler(script_id).addSpeaker(name, voice, eid);
     return { ok: true, speaker, url: docUrl("script", script_id) };
   }
 });

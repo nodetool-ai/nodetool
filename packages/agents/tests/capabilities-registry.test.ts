@@ -53,6 +53,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   create_collection: "write",
   create_entity: "write",
   create_js_script_version: "write",
+  delete_entity: "write",
   create_model3d: "write",
   create_script: "write",
   create_sketch: "write",

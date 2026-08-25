@@ -147,10 +147,19 @@ export const useScriptAgentBridge = (scriptId: string): void => {
     return {
       getSnapshot,
 
-      addSpeaker(name: string, voice?: VoiceBinding) {
+      addSpeaker(
+        name: string,
+        voice?: VoiceBinding,
+        entityId?: string | null
+      ) {
         requireScript();
         const id = crypto.randomUUID();
-        const speaker: ScriptSpeaker = { id, name, voice: voice ?? null };
+        const speaker: ScriptSpeaker = {
+          id,
+          name,
+          voice: voice ?? null,
+          ...(entityId ? { entityId } : {})
+        };
         store().addSpeaker(scriptId, speaker);
         const created = requireSpeaker(id);
         return toSpeakerNode(created);

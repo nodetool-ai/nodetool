@@ -80,7 +80,11 @@ export interface ScriptAddLineInput {
  */
 export interface ScriptAgentHandler {
   getSnapshot: () => ScriptSnapshot;
-  addSpeaker: (name: string, voice?: VoiceBinding) => ScriptSpeakerNode;
+  addSpeaker: (
+    name: string,
+    voice?: VoiceBinding,
+    entityId?: string | null
+  ) => ScriptSpeakerNode;
   setSpeakerVoice: (
     speakerId: string,
     voice: VoiceBinding

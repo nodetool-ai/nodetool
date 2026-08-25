@@ -62,6 +62,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "apply_entities",
   "create_entity",
   "update_entity",
+  "delete_entity",
 
   // Script → voiced takes → timeline, without authoring a workflow
   "list_scripts",

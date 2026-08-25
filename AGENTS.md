@@ -1595,7 +1595,8 @@ reads one in full, and **`apply_entities`** pastes their descriptors into a
 prompt and returns the reference-image asset ids to pass to an image model.
 **`create_entity`** tags one of the caller's image assets as an entity (the
 same marker write the browser's Save Entity does; generate or save the image
-first), and **`update_entity`** changes an existing entity's fields.
+first), **`update_entity`** changes an existing entity's fields, and
+**`delete_entity`** untags one (marker cleared, asset kept).
 
 The injection rule is `injectEntities` in `@nodetool-ai/protocol`, shared with
 the browser's `ui_entity_apply` and the Director node: with explicit

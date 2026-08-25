@@ -55,13 +55,14 @@ describe("entities capability module", () => {
     expect(capabilityModuleIssues("entities", loaded)).toEqual([]);
   });
 
-  it("carries the five wire names and the gate's categories", () => {
+  it("carries the six wire names and the gate's categories", () => {
     expect(ENTITY_CAPABILITIES.map((e) => e.spec.name)).toEqual([
       "list_entities",
       "get_entity",
       "apply_entities",
       "create_entity",
-      "update_entity"
+      "update_entity",
+      "delete_entity"
     ]);
     for (const entry of ENTITY_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
@@ -362,5 +363,39 @@ describe("create_entity and update_entity", () => {
         descriptor: "high contrast"
       })
     ).toMatchObject({ error: expect.stringMatching(/was not found/) });
+  });
+
+  it("removes the marker but keeps the asset, and reports missing ids", async () => {
+    const mara = await makeEntity("Mara", "character", "red hair");
+    const plain = (await Asset.create({
+      user_id: USER,
+      name: "plain.png",
+      content_type: "image/png"
+    })) as Asset;
+
+    const removed = (await run().invoke("delete_entity", {
+      entity_id: mara.id
+    })) as { ok: boolean; entity_id: string };
+    expect(removed).toMatchObject({ ok: true, entity_id: mara.id });
+
+    const listed = (await run().invoke("list_entities", {})) as {
+      entities: Array<{ id: string }>;
+    };
+    expect(listed.entities.map((e) => e.id)).not.toContain(mara.id);
+
+    expect(
+      await run().invoke("get_entity", { entity_id: mara.id })
+    ).toMatchObject({ error: expect.stringMatching(/was not found/) });
+
+    const asset = await Asset.find(USER, mara.id);
+    expect(asset).not.toBeNull();
+    expect(asset?.metadata?.["nodetool_entity"]).toBeUndefined();
+
+    expect(
+      await run().invoke("delete_entity", { entity_id: plain.id })
+    ).toMatchObject({ error: expect.stringMatching(/was not found/) });
+    expect(
+      await run().invoke("delete_entity", {})
+    ).toMatchObject({ error: expect.stringMatching(/entity_id is required/) });
   });
 });
