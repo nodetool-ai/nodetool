@@ -212,10 +212,35 @@ export const updateEntitySpec: CapabilitySpec = {
   description:
     "Change an existing entity's fields — kind, name, descriptor, notes, " +
     "voice, tags, LoRA, or palette. Only the fields you pass change; the " +
-    "reference image stays whatever asset carries the entity.",
+    "reference image stays whatever asset carries the entity. To swap the " +
+    "photo, delete_entity and create_entity on the new asset — the id is the " +
+    "asset, so moves are delete+create.",
   inputSchema: UPDATE_ENTITY_SCHEMA,
   category: "write",
   userMessage: (params) => `Updating entity ${String(params["entity_id"])}`
+};
+
+export const DELETE_ENTITY_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    entity_id: {
+      type: "string",
+      description: "The entity's id (its asset id), from list_entities."
+    }
+  },
+  required: ["entity_id"]
+};
+
+export const deleteEntitySpec: CapabilitySpec = {
+  name: "delete_entity",
+  description:
+    "Remove an entity from the ingredients library. The underlying image " +
+    "asset stays intact — only the entity marker is cleared, exactly what the " +
+    "browser's Remove does. Linked script speakers keep their entityId until " +
+    "you clear it with edit_script; they just read as dangling.",
+  inputSchema: DELETE_ENTITY_SCHEMA,
+  category: "write",
+  userMessage: (params) => `Removing entity ${String(params["entity_id"])}`
 };
 
 /** Every spec this module declares, in declaration order. */
@@ -224,5 +249,6 @@ export const entitiesSpecs: readonly CapabilitySpec[] = [
   getEntitySpec,
   applyEntitiesSpec,
   createEntitySpec,
-  updateEntitySpec
+  updateEntitySpec,
+  deleteEntitySpec
 ];

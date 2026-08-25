@@ -107,6 +107,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   apply_entities: "read",
   create_entity: "write",
   update_entity: "write",
+  delete_entity: "write",
   validate_js_script: "read",
   list_js_scripts: "read",
   get_js_script: "read",

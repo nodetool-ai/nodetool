@@ -58,6 +58,7 @@ export interface ScriptSpeaker {
   name: string;
   color?: string;
   voice?: VoiceBinding | null;
+  entityId?: string | null;
 }
 
 /**

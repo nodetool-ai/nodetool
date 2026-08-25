@@ -47,6 +47,7 @@ export interface ScriptSpeakerNode {
   name: string;
   color?: string;
   voice: VoiceBinding | null;
+  entityId?: string | null;
 }
 
 /** Full snapshot of the open script the agent reads to plan its edits. */
@@ -79,7 +80,11 @@ export interface ScriptAddLineInput {
  */
 export interface ScriptAgentHandler {
   getSnapshot: () => ScriptSnapshot;
-  addSpeaker: (name: string, voice?: VoiceBinding) => ScriptSpeakerNode;
+  addSpeaker: (
+    name: string,
+    voice?: VoiceBinding,
+    entityId?: string | null
+  ) => ScriptSpeakerNode;
   setSpeakerVoice: (
     speakerId: string,
     voice: VoiceBinding

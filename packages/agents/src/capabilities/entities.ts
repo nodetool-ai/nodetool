@@ -7,9 +7,9 @@
  * steady from shot to shot.
  *
  * The browser reads the library through `ui_entity_list` / `ui_entity_apply`,
- * which need an open app. These five answer the same questions with no
- * browser: list, read one, season a prompt, tag an asset as an entity, and
- * retag one. The injection rule itself is `injectEntities` in
+ * which need an open app. These six answer the same questions with no
+ * browser: list, read one, season a prompt, tag an asset as an entity,
+ * retag one, and untag one. The injection rule itself is `injectEntities` in
  * `@nodetool-ai/protocol`, shared with the browser tool and the Director node,
  * so a prompt seasoned here and one seasoned in the editor come out the same.
  */
@@ -30,8 +30,10 @@ import {
 } from "./entities.specs.js";
 import {
   CREATE_ENTITY_SCHEMA,
+  DELETE_ENTITY_SCHEMA,
   UPDATE_ENTITY_SCHEMA,
   createEntitySpec,
+  deleteEntitySpec,
   updateEntitySpec
 } from "./entities.specs.js";
 import { MIME_TO_EXT } from "../tools/asset-persist.js";
@@ -45,7 +47,8 @@ export {
   GET_ENTITY_SCHEMA,
   APPLY_ENTITIES_SCHEMA,
   CREATE_ENTITY_SCHEMA,
-  UPDATE_ENTITY_SCHEMA
+  UPDATE_ENTITY_SCHEMA,
+  DELETE_ENTITY_SCHEMA
 } from "./entities.specs.js";
 
 /** The metadata key an entity's marker lives under, set by the library UI. */
@@ -431,13 +434,42 @@ const updateEntity: CapabilityExport = {
   }
 };
 
+const deleteEntity: CapabilityExport = {
+  spec: deleteEntitySpec,
+  impl: async (run, params) => {
+    const entityId = params["entity_id"];
+    if (!isString(entityId) || entityId.trim() === "") {
+      return { error: "entity_id is required (use list_entities to find one)." };
+    }
+    const userId = userIdOf(run.context);
+    if (!userId) return { error: "No user is bound to this session." };
+
+    const { Asset } = await import("@nodetool-ai/models");
+    const asset = await Asset.find(userId, entityId.trim());
+    if (!asset) {
+      return { error: `Entity ${entityId} was not found.` };
+    }
+    const entity = entityFromAsset(asset);
+    if (!entity) {
+      return { error: `Entity ${entityId} was not found.` };
+    }
+
+    const nextMetadata = { ...(asset.metadata ?? {}) } as Record<string, unknown>;
+    delete nextMetadata[ENTITY_METADATA_KEY];
+    asset.metadata = nextMetadata;
+    await asset.save();
+    return { ok: true, entity_id: entityId.trim(), asset_id: entityId.trim() };
+  }
+};
+
 /** Every entity capability, in declaration order. */
 export const ENTITY_CAPABILITIES: readonly CapabilityExport[] = [
   listEntities,
   getEntity,
   applyEntities,
   createEntity,
-  updateEntity
+  updateEntity,
+  deleteEntity
 ];
 
 export const module: CapabilityModule = {
@@ -450,5 +482,6 @@ export {
   getEntity,
   applyEntities,
   createEntity,
-  updateEntity
+  updateEntity,
+  deleteEntity
 };
