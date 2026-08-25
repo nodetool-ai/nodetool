@@ -224,6 +224,26 @@ export type {
   ForwardMessage
 } from "./tools/run-subtask-tool.js";
 export {
+  StartSubtaskTool
+} from "./tools/start-subtask-tool.js";
+export type { StartSubtaskToolOptions } from "./tools/start-subtask-tool.js";
+export {
+  WaitSubtasksTool
+} from "./tools/wait-subtasks-tool.js";
+export type { WaitSubtasksToolOptions } from "./tools/wait-subtasks-tool.js";
+export {
+  BackgroundSubtaskRegistry,
+  DEFAULT_WAIT_TIMEOUT_MS,
+  MAX_WAIT_TIMEOUT_MS
+} from "./background-subtasks.js";
+export type {
+  BackgroundSubtaskStatus,
+  BackgroundSubtaskSettlement,
+  BackgroundSubtaskSnapshot,
+  WaitedSubtask,
+  WaitBackgroundOptions
+} from "./background-subtasks.js";
+export {
   RunSearchTool,
   READ_ONLY_TOOL_NAMES
 } from "./tools/run-search-tool.js";

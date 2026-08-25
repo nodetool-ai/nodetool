@@ -174,6 +174,11 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // list_directory/read_shared only); the call itself has no side effects, so
   // it always runs ungated.
   run_search: "read",
+  // start_subtask spawns the same kind of child, detached; the registry it
+  // writes to is per-turn bookkeeping, not an external mutation. wait_subtasks
+  // only reads that registry.
+  start_subtask: "read",
+  wait_subtasks: "read",
 
   // --- write: produces files / artifacts / costly media ---
   write_file: "write",

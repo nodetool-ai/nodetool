@@ -41,6 +41,7 @@ import type {
   TurnBudget
 } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
+import type { BackgroundSubtaskRegistry } from "./background-subtasks.js";
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
 import { Tool } from "./tools/base-tool.js";
 import {
@@ -376,6 +377,12 @@ export interface SubAgentToolRuntime {
   maxDepth?: number;
   /** Max LLM iterations per child loop. */
   maxIterations?: number;
+  /**
+   * Per-turn registry behind `start_subtask` / `wait_subtasks`. A host that
+   * does not build one (an MCP mount, a headless harness) leaves the field
+   * off, and background delegation refuses by name instead of half-working.
+   */
+  background?: BackgroundSubtaskRegistry;
 }
 
 /** What one invocation of a {@link SubAgentTool} should run. */

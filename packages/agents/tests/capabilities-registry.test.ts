@@ -214,6 +214,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   set_workflow_access: "external",
   share_result: "read",
   start_background_job: "execute",
+  start_subtask: "read",
   take_node_stream: "read",
   take_screenshot: "read",
   test_code: "execute",
@@ -249,6 +250,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   vector_text_search: "read",
   view_image: "read",
   voice_script_lines: "write",
+  wait_subtasks: "read",
   web_search: "read",
   write_file: "write",
   yt_dlp: "external"

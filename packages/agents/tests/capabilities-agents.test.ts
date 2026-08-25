@@ -1,7 +1,8 @@
 /**
- * The `agents` capability module: `run_subtask` and `run_search`.
+ * The `agents` capability module: `run_subtask`, `run_search`,
+ * `start_subtask` and `wait_subtasks`.
  *
- * These two are the exception to the port. `SubAgentTool` owns the depth gate,
+ * These are the exception to the port. `SubAgentTool` owns the depth gate,
  * the child context, the streamed events and the settlement, and the runner
  * constructs one per turn over that turn's provider, model, toolbelt snapshot
  * and forwarder — so the classes stay untouched and the capability is the
@@ -18,7 +19,9 @@ import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import {
   AGENT_CAPABILITIES,
   runSearch,
-  runSubtask
+  runSubtask,
+  startSubtask,
+  waitSubtasks
 } from "../src/capabilities/agents.js";
 import {
   capabilityModuleDrift,
@@ -27,12 +30,14 @@ import {
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { SubAgentToolRuntime } from "../src/subagent.js";
+import { BackgroundSubtaskRegistry } from "../src/background-subtasks.js";
 import {
   SUBTASK_DEPTH_KEY,
   TOOL_CALL_ID_FIELD
 } from "../src/tools/subtask-fields.js";
 import { RunSubtaskTool } from "../src/tools/run-subtask-tool.js";
 import { RunSearchTool } from "../src/tools/run-search-tool.js";
+import { StartSubtaskTool } from "../src/tools/start-subtask-tool.js";
 
 function makeCtx(): ProcessingContext {
   return new ProcessingContext({ jobId: "test-job", userId: "test" });
@@ -104,12 +109,14 @@ function stubRuntime(
 }
 
 describe("the agents capability module", () => {
-  it("registers without drift and exports both wire names", async () => {
+  it("registers without drift and exports every delegation wire name", async () => {
     expect(await capabilityModuleDrift()).toEqual([]);
     const mod = await loadCapabilityModule("agents");
     expect(mod.exports.map((e) => e.spec.name)).toEqual([
       "run_subtask",
-      "run_search"
+      "run_search",
+      "start_subtask",
+      "wait_subtasks"
     ]);
   });
 
@@ -139,12 +146,22 @@ describe("the agents capability module", () => {
     expect(runSearch.spec.userMessage?.({ query: "where is X" })).toBe(
       search.userMessage({ query: "where is X" })
     );
+
+    const start = new StartSubtaskTool(stubRuntime());
+    expect(startSubtask.spec.name).toBe(start.name);
+    expect(startSubtask.spec.description).toBe(start.description);
+    expect(startSubtask.spec.inputSchema).toEqual(start.inputSchema);
+    expect(
+      startSubtask.spec.userMessage?.({ description: "Research X" })
+    ).toBe(start.userMessage({ description: "Research X" }));
   });
 
   it("names the missing field when the run carries no sub-agent runtime", async () => {
     const run = createCapabilityRun({ context: makeCtx(), gate: UNGATED });
     await expect(run.invoke("run_subtask", {})).rejects.toThrow(/`subAgent`/);
     await expect(run.invoke("run_search", {})).rejects.toThrow(/`subAgent`/);
+    await expect(run.invoke("start_subtask", {})).rejects.toThrow(/`subAgent`/);
+    await expect(run.invoke("wait_subtasks", {})).rejects.toThrow(/`subAgent`/);
   });
 
   it("spawns a child loop and nests its events under the parent call", async () => {
@@ -207,5 +224,74 @@ describe("the agents capability module", () => {
       unknown
     >;
     expect(result.error).toBe("missing_query");
+  });
+
+  it("spawns in the background and collects through the same registry", async () => {
+    const registry = new BackgroundSubtaskRegistry();
+    const forwarded: ProcessingMessage[] = [];
+    const run = createCapabilityRun({
+      context: makeCtx(),
+      gate: UNGATED,
+      subAgent: stubRuntime({
+        provider: createMockProvider([
+          [{ type: "chunk", content: "background answer", done: true }]
+        ]),
+        forwardMessage: (m) => {
+          forwarded.push(m);
+        },
+        background: registry
+      })
+    });
+
+    const receipt = (await run.invoke("start_subtask", {
+      description: "fan-out worker",
+      prompt: "work while the parent moves on",
+      [TOOL_CALL_ID_FIELD]: "tc_root"
+    })) as Record<string, unknown>;
+    expect(receipt.status).toBe("running");
+    expect(registry.runningCount).toBe(1);
+
+    const waited = (await run.invoke("wait_subtasks", {})) as {
+      subtasks: Array<Record<string, unknown>>;
+      all_settled: boolean;
+    };
+    expect(waited.all_settled).toBe(true);
+    expect(waited.subtasks).toHaveLength(1);
+    expect(waited.subtasks[0]).toMatchObject({
+      subtask_id: receipt.subtask_id,
+      status: "completed"
+    });
+    expect(String(waited.subtasks[0].result)).toContain("background answer");
+
+    const nested = forwarded.find(
+      (m) =>
+        (m as { parent_tool_call_id?: string }).parent_tool_call_id ===
+        "tc_root"
+    ) as { subtask_depth?: number } | undefined;
+    expect(nested?.subtask_depth).toBe(1);
+  });
+
+  it("refuses background delegation when the host builds no registry", async () => {
+    const spawn = createCapabilityRun({
+      context: makeCtx(),
+      gate: UNGATED,
+      subAgent: stubRuntime()
+    });
+    const result = (await spawn.invoke("start_subtask", {
+      description: "d",
+      prompt: "p"
+    })) as Record<string, unknown>;
+    expect(result.error).toBe("background_unavailable");
+
+    const wait = createCapabilityRun({
+      context: makeCtx(),
+      gate: UNGATED,
+      subAgent: stubRuntime()
+    });
+    const waited = (await wait.invoke("wait_subtasks", {})) as Record<
+      string,
+      unknown
+    >;
+    expect(waited.error).toBe("background_unavailable");
   });
 });

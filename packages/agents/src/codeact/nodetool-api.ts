@@ -44,7 +44,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   // as raw catalog signatures.
   packs: ["list_sandbox_packages", "get_sandbox_package_docs"],
   nodes: ["search_nodes", "get_node_info", "list_nodes", "run_node"],
-  agents: ["run_subtask"],
+  agents: ["run_subtask", "start_subtask", "wait_subtasks"],
   models: ["find_model", "list_models", "list_provider_models"],
   media: [
     "generate_image",
@@ -555,7 +555,8 @@ const nodetool = (() => {
        * conversation — put everything it needs into the prompt, and ask for
        * JSON there when you want structure. Runs take real time and money;
        * delegate work that benefits from a fresh focused context, not
-       * one-tool errands.
+       * one-tool errands. Blocks until the child finishes; fan out with
+       * \`Promise.all\` or \`nodetool.batch\`.
        */
       run(prompt, opts) {
         const text = String(prompt === undefined || prompt === null ? "" : prompt);
@@ -564,6 +565,36 @@ const nodetool = (() => {
           text.split(/\\s+/).slice(0, 6).join(" ") ||
           "Subtask";
         return __need("run_subtask")({ description: description, prompt: text });
+      },
+      /**
+       * Start a sub-agent WITHOUT blocking: returns
+       * \`{subtask_id, status: "running"}\` right away while the child works.
+       * Collect results later in the same action with \`wait()\` — results of
+       * subtasks you never wait for are lost to the turn.
+       */
+      start(prompt, opts) {
+        const text = String(prompt === undefined || prompt === null ? "" : prompt);
+        const description =
+          (opts && opts.description) ||
+          text.split(/\\s+/).slice(0, 6).join(" ") ||
+          "Subtask";
+        return __need("start_subtask")({ description: description, prompt: text });
+      },
+      /**
+       * Wait for background subagents started with \`start()\`. Pass
+       * \`{ids: [...], timeoutMs}\` to bound the block. Resolves with rows:
+       * \`{subtask_id, status, result | error}\`. Never end an action with
+       * unwaited subtasks whose results you still need.
+       */
+      wait(opts) {
+        return __need("wait_subtasks")(
+          opts
+            ? {
+                ids: opts.ids,
+                timeout_ms: opts.timeoutMs
+              }
+            : {}
+        );
       }
     },
 
@@ -1245,7 +1276,11 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   spawns a child with this belt's tools but a FRESH context: the prompt must be
   self-contained (ask for JSON in it when you want structure back). Fan out
   with \`nodetool.batch(prompts, (p) => nodetool.agents.run(p))\` — one
-  settled \`{ok, value | error}\` entry per prompt. Delegate work that benefits
+  settled \`{ok, value | error}\` entry per prompt. For independent work that
+  can run while you do something else, \`start(prompt)\` returns
+  \`(subtask_id)\` immediately and \`await wait({ids})\` collects
+  \`(status, result | error)\` later in the same action — never end without
+  waiting for results you need. Delegate work that benefits
   from a fresh focused context, not one-tool errands.`
   },
   {

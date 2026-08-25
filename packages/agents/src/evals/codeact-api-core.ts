@@ -560,6 +560,7 @@ const EXAMPLE_WORKFLOWS: readonly WorldWorkflow[] = [
  */
 export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
   const world = new CoreWorld();
+  const pendingBg = new Map<string, { description: string; result: unknown }>();
 
   const tool = <TResult>(
     name: string,
@@ -1525,6 +1526,48 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
             words: prompt.split(/\s+/).filter((w) => w.length > 0).length
           }
         };
+      }
+    ),
+    tool(
+      "start_subtask",
+      "Start a background sub-agent and return a receipt immediately.",
+      { description: s, prompt: s },
+      (params) => {
+        const prompt = str(params["prompt"]);
+        const numbers = (prompt.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
+        const id = `bg-${world.assets.size + 1}`;
+        const result = {
+          sum: numbers.reduce((total, n) => total + n, 0),
+          numbers,
+          words: prompt.split(/\s+/).filter((w) => w.length > 0).length
+        };
+        pendingBg.set(id, { description: str(params["description"]), result });
+        return { subtask_id: id, description: str(params["description"]), status: "running" };
+      }
+    ),
+    tool(
+      "wait_subtasks",
+      "Collect background sub-agent results.",
+      {
+        ids: { type: "array", items: s },
+        timeout_ms: { type: "number" }
+      },
+      (params) => {
+        const ids = Array.isArray(params["ids"])
+          ? (params["ids"] as unknown[]).map(String)
+          : [...pendingBg.keys()];
+        const subtasks = ids.map((id) => {
+          const entry = pendingBg.get(id);
+          return entry
+            ? {
+                subtask_id: id,
+                description: entry.description,
+                status: "completed" as const,
+                result: entry.result
+              }
+            : { subtask_id: id, status: "unknown" as const };
+        });
+        return { subtasks, all_settled: true };
       }
     )
   ];

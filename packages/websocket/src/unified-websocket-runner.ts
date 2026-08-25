@@ -183,6 +183,7 @@ import {
   capabilityFromTool,
   createCapabilityRun,
   contextSecretAvailability,
+  BackgroundSubtaskRegistry,
   UNGATED,
   extractInjectableImages,
   PLAN_APPROVAL_CONTEXT_KEY,
@@ -5718,14 +5719,17 @@ export class UnifiedWebSocketRunner {
         provider,
         model,
         parentTools: () => baseTools,
-        forwardMessage: forwardSubtaskMessage
+        forwardMessage: forwardSubtaskMessage,
+        background: new BackgroundSubtaskRegistry()
       };
-      // Both delegation tools reach the belt as capabilities over this
+      // All four delegation tools reach the belt as capabilities over this
       // runtime. The class is still what runs — the `agents` module builds one
       // per call — so the depth gate, the child's inherited belt (with a
       // `run_subtask` of its own stitched in by `buildChildToolset`, since this
       // snapshot deliberately predates the unshift), and the
       // `parent_tool_call_id` / `subtask_depth` tagging are unchanged.
+      // `start_subtask` / `wait_subtasks` share the per-turn registry above:
+      // spawn returns immediately, and the parent collects on its own terms.
       const delegationRun = (context: ProcessingContext) =>
         createCapabilityRun({
           context,
@@ -5736,6 +5740,12 @@ export class UnifiedWebSocketRunner {
           subAgent: subAgentRuntime
         });
       serverTools.unshift(toolForCapabilityName("run_subtask", delegationRun));
+      serverTools.unshift(
+        toolForCapabilityName("start_subtask", delegationRun)
+      );
+      serverTools.unshift(
+        toolForCapabilityName("wait_subtasks", delegationRun)
+      );
 
       // Read-only fan-out search (opt-in). Reuses the same runtime — the
       // capability filters the parent belt to its read-only allowlist
