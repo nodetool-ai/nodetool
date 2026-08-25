@@ -56,6 +56,13 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "asset_search",
   "asset_list",
 
+  // Entities (reusable ingredients — characters, locations, styles, props)
+  "list_entities",
+  "get_entity",
+  "apply_entities",
+  "create_entity",
+  "update_entity",
+
   // Script → voiced takes → timeline, without authoring a workflow
   "list_scripts",
   "create_script",

@@ -55,11 +55,13 @@ describe("entities capability module", () => {
     expect(capabilityModuleIssues("entities", loaded)).toEqual([]);
   });
 
-  it("carries the three wire names and the gate's categories", () => {
+  it("carries the five wire names and the gate's categories", () => {
     expect(ENTITY_CAPABILITIES.map((e) => e.spec.name)).toEqual([
       "list_entities",
       "get_entity",
-      "apply_entities"
+      "apply_entities",
+      "create_entity",
+      "update_entity"
     ]);
     for (const entry of ENTITY_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
@@ -221,5 +223,144 @@ describe("entities capabilities against the database", () => {
     expect(applied.prompt).toBe(
       injectEntities("Mara waits", [listed.entity]).prompt
     );
+  });
+});
+
+describe("create_entity and update_entity", () => {
+  it("tags an image asset, keeps its other metadata, and lists it", async () => {
+    const asset = (await Asset.create({
+      user_id: USER,
+      name: "mara.png",
+      content_type: "image/png",
+      metadata: { prompt: "portrait of Mara" }
+    })) as Asset;
+
+    const created = (await run().invoke("create_entity", {
+      asset_id: asset.id,
+      kind: "character",
+      name: "Mara",
+      descriptor: "a tall woman with red hair",
+      voice_id: "v1"
+    })) as {
+      entity: {
+        id: string;
+        kind: string;
+        name: string;
+        descriptor: string;
+        voice_id: string | null;
+        reference_images: Array<{ asset_id: string }>;
+      };
+    };
+    expect(created.entity).toMatchObject({
+      id: asset.id,
+      kind: "character",
+      name: "Mara",
+      descriptor: "a tall woman with red hair",
+      voice_id: "v1"
+    });
+    expect(created.entity.reference_images[0].asset_id).toBe(asset.id);
+
+    // The write touches only the marker; the rest of the metadata survives.
+    const stored = await Asset.find(USER, asset.id);
+    expect(stored?.metadata).toMatchObject({
+      prompt: "portrait of Mara",
+      nodetool_entity: { kind: "character", name: "Mara" }
+    });
+
+    const listed = (await run().invoke("list_entities", {})) as {
+      entities: Array<{ id: string }>;
+    };
+    expect(listed.entities.map((e) => e.id)).toContain(asset.id);
+  });
+
+  it("refuses non-image assets and assets that are already entities", async () => {
+    const doc = (await Asset.create({
+      user_id: USER,
+      name: "notes.pdf",
+      content_type: "application/pdf"
+    })) as Asset;
+    expect(
+      await run().invoke("create_entity", {
+        asset_id: doc.id,
+        kind: "prop",
+        name: "Notes",
+        descriptor: "some pages"
+      })
+    ).toMatchObject({ error: expect.stringMatching(/entities are image assets/) });
+
+    const mara = await makeEntity("Mara", "character", "red hair");
+    expect(
+      await run().invoke("create_entity", {
+        asset_id: mara.id,
+        kind: "character",
+        name: "Mara II",
+        descriptor: "another look"
+      })
+    ).toMatchObject({ error: expect.stringMatching(/use update_entity/) });
+  });
+
+  it("changes only the fields passed, clears optionals on null, and validates input", async () => {
+    const mara = await makeEntity("Mara", "character", "red hair", {
+      voice_id: "v1",
+      tags: ["lead"]
+    });
+
+    const updated = (await run().invoke("update_entity", {
+      entity_id: mara.id,
+      descriptor: "a tall woman with cropped red hair",
+      tags: ["lead", "season-2"],
+      voice_id: null
+    })) as {
+      entity: { name: string; kind: string; descriptor: string; tags?: string[]; voice_id: string | null };
+    };
+    expect(updated.entity).toEqual(
+      expect.objectContaining({
+        name: "Mara",
+        kind: "character",
+        descriptor: "a tall woman with cropped red hair",
+        tags: ["lead", "season-2"],
+        voice_id: null
+      })
+    );
+
+    expect(
+      await run().invoke("update_entity", {
+        entity_id: mara.id,
+        kind: "vehicle"
+      })
+    ).toMatchObject({ error: expect.stringMatching(/kind must be one of/) });
+    expect(
+      await run().invoke("update_entity", {
+        entity_id: mara.id,
+        name: "  "
+      })
+    ).toMatchObject({ error: expect.stringMatching(/non-empty/) });
+    expect(await run().invoke("update_entity", {})).toMatchObject({
+      error: expect.stringMatching(/entity_id is required/)
+    });
+    expect(
+      await run().invoke("update_entity", { entity_id: mara.id })
+    ).toMatchObject({ error: expect.stringMatching(/Nothing to update/) });
+  });
+
+  it("reports an untagged or foreign asset as not an entity", async () => {
+    const plain = (await Asset.create({
+      user_id: USER,
+      name: "plain.png",
+      content_type: "image/png"
+    })) as Asset;
+    expect(
+      await run().invoke("update_entity", { entity_id: plain.id })
+    ).toMatchObject({
+      error: expect.stringMatching(/use create_entity to tag it/)
+    });
+    expect(
+      await run().invoke("create_entity", {
+        asset_id: "gone",
+        kind: "style",
+        name: "Noir",
+        descriptor: "high contrast"
+      })
+    ).toMatchObject({ error: expect.stringMatching(/was not found/) });
   });
 });
