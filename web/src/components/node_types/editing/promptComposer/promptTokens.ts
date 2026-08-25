@@ -223,6 +223,55 @@ export const tokenizePromptLine = (line: string): PromptToken[] => {
 export const tokenizePrompt = (text: string): PromptToken[][] =>
   text.split("\n").map(tokenizePromptLine);
 
+/** Collect the distinct entity ids referenced in a prompt string, in order. */
+export const entityIdsInPrompt = (text: string): string[] => {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const line of tokenizePrompt(text)) {
+    for (const token of line) {
+      if (token.kind === "entity" && !seen.has(token.entityId)) {
+        seen.add(token.entityId);
+        ids.push(token.entityId);
+      }
+    }
+  }
+  return ids;
+};
+
+/** Matches one `entity://<id>` token; mirrors the entity arm of {@link TOKEN_RE}. */
+const ENTITY_URI_RE = /entity:\/\/[A-Za-z0-9._~-]+/g;
+
+/**
+ * Drop every `entity://<id>` token for one entity from a prompt, closing the
+ * gap it leaves — the space before the token, or the one after it when the
+ * token opened the line. Text around the tokens is spliced out verbatim, so
+ * nothing else in the prompt is reformatted.
+ *
+ * Used by the chat composer's chip row, where removing a chip has to
+ * un-reference the entity in the text the chip was derived from.
+ */
+export const removeEntityMentions = (text: string, entityId: string): string => {
+  let out = "";
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+  ENTITY_URI_RE.lastIndex = 0;
+  while ((match = ENTITY_URI_RE.exec(text)) !== null) {
+    const uri = trimTrailingDots(match[0]);
+    if (parseEntityUri(uri) !== entityId) {
+      continue;
+    }
+    let head = out + text.slice(cursor, match.index);
+    cursor = match.index + uri.length;
+    if (head.endsWith(" ")) {
+      head = head.slice(0, -1);
+    } else if (text[cursor] === " ") {
+      cursor += 1;
+    }
+    out = head;
+  }
+  return out + text.slice(cursor);
+};
+
 /** Collect the distinct variable expressions referenced in a prompt string. */
 export const variablesInPrompt = (text: string): string[] => {
   const names = new Set<string>();

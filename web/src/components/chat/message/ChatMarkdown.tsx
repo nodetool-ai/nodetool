@@ -18,6 +18,8 @@ import { BASE_URL } from "../../../stores/BASE_URL";
 import { trpc } from "../../../trpc/client";
 import { useResolvedMedia } from "../../../hooks/useResolvedMediaUri";
 import ResourceChip from "./ResourceChip";
+import { EntityMentionChip } from "../../node_types/editing/promptComposer/EntityMentionChip";
+import { remarkEntityMentions } from "./remarkEntityMentions";
 import { isNumber, isString } from "../../../utils/typePredicates";
 import "../../../styles/markdown/github-markdown.css";
 
@@ -86,12 +88,18 @@ const markdownStyles = css({
   }
 });
 
-const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
+const REMARK_PLUGINS: Options["remarkPlugins"] = [
+  remarkGfm,
+  remarkEntityMentions
+];
 const REHYPE_PLUGINS: Options["rehypePlugins"] = [rehypeRaw];
+
+/** An `entity://<id>` mention — its own scheme, not one of the resource kinds. */
+const isEntityUri = (url: string): boolean => url.startsWith("entity://");
 
 /** react-markdown drops unknown schemes; resource URIs (asset://, timeline://, …) are ours. */
 const urlTransform: NonNullable<Options["urlTransform"]> = (url) =>
-  isResourceUri(url) ? url : defaultUrlTransform(url);
+  isResourceUri(url) || isEntityUri(url) ? url : defaultUrlTransform(url);
 
 /** Link text as a plain string — `[**Bold**](…)` hands the `a` override nodes. */
 const linkText = (node: React.ReactNode): string => {
@@ -366,6 +374,11 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
         ),
       a: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"a">) => {
         const { href, children } = props;
+        if (href && isEntityUri(href)) {
+          return (
+            <EntityMentionChip uri={href} label={linkText(children) || href} />
+          );
+        }
         if (href?.startsWith("asset://")) {
           return (
             <ChatMarkdownAssetLink

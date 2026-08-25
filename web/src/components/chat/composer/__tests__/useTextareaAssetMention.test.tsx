@@ -126,8 +126,8 @@ describe("findMentionTrigger", () => {
 
 const Harness: React.FC<{
   onSelectAsset: (asset: Asset) => void;
-  onSelectEntity?: (entity: Entity) => void;
-}> = ({ onSelectAsset, onSelectEntity }) => {
+  includeEntities?: boolean;
+}> = ({ onSelectAsset, includeEntities }) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
   const { mentionMenu, handleKeyDown } = useTextareaAssetMention({
@@ -135,7 +135,7 @@ const Harness: React.FC<{
     value,
     setValue,
     onSelectAsset,
-    onSelectEntity
+    includeEntities
   });
   return (
     <>
@@ -252,7 +252,7 @@ describe("useTextareaAssetMention", () => {
     expect(screen.getByTestId("asset-mention-menu")).toBeInTheDocument();
   });
 
-  it("hides entities when the host provides no onSelectEntity", async () => {
+  it("hides entities unless the host opts in", async () => {
     const user = userEvent.setup();
     render(<Harness onSelectAsset={jest.fn()} />);
 
@@ -261,13 +261,10 @@ describe("useTextareaAssetMention", () => {
     expect(screen.queryByTestId("entity-tile-e1")).not.toBeInTheDocument();
   });
 
-  it("selecting an entity inlines its name in place of the @query", async () => {
+  it("selecting an entity inlines its entity:// token in place of the @query", async () => {
     const user = userEvent.setup();
     const onSelectAsset = jest.fn();
-    const onSelectEntity = jest.fn();
-    render(
-      <Harness onSelectAsset={onSelectAsset} onSelectEntity={onSelectEntity} />
-    );
+    render(<Harness onSelectAsset={onSelectAsset} includeEntities />);
     const textarea = screen.getByLabelText("prompt") as HTMLTextAreaElement;
 
     await user.type(textarea, "hi @mar");
@@ -275,16 +272,15 @@ describe("useTextareaAssetMention", () => {
 
     // Entities come first in the combined order, so Enter picks Marta.
     await user.keyboard("{Enter}");
-    expect(onSelectEntity).toHaveBeenCalledWith(MOCK_ENTITIES[0]);
     expect(onSelectAsset).not.toHaveBeenCalled();
-    await waitFor(() => expect(textarea.value).toBe("hi Marta "));
+    await waitFor(() => expect(textarea.value).toBe("hi entity://e1 "));
   });
 
   it("keyboard nav crosses from entities into assets", async () => {
     const user = userEvent.setup();
     const onSelectAsset = jest.fn();
     render(
-      <Harness onSelectAsset={onSelectAsset} onSelectEntity={jest.fn()} />
+      <Harness onSelectAsset={onSelectAsset} includeEntities />
     );
     const textarea = screen.getByLabelText("prompt");
 

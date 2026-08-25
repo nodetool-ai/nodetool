@@ -15,6 +15,7 @@ import { Z_INDEX } from "../../ui_primitives";
 import { useRecentAssetsStore } from "../../../stores/RecentAssetsStore";
 import { AssetMentionMenu } from "../../node_types/editing/promptComposer/AssetMentionMenu";
 import { useAssetMentionSearch } from "../../node_types/editing/promptComposer/useAssetMentionSearch";
+import { entityToUri } from "../../node_types/editing/promptComposer/promptTokens";
 
 /** An active `@`-mention span in a textarea's value. */
 interface MentionTrigger {
@@ -89,10 +90,11 @@ interface UseTextareaAssetMentionOptions {
   /** Called with the picked asset once the `@query` has been removed. */
   onSelectAsset: (asset: Asset) => void;
   /**
-   * Called with the picked entity after its name has replaced the `@query`
-   * in the text. When omitted, entities are not offered in the picker.
+   * Offer library entities alongside assets. A picked entity is written into
+   * the text as its `entity://<id>` token, so unlike an asset the host has
+   * nothing to attach and there is no selection callback.
    */
-  onSelectEntity?: (entity: Entity) => void;
+  includeEntities?: boolean;
 }
 
 /**
@@ -107,7 +109,7 @@ export const useTextareaAssetMention = ({
   value,
   setValue,
   onSelectAsset,
-  onSelectEntity
+  includeEntities = false
 }: UseTextareaAssetMentionOptions): UseTextareaAssetMention => {
   const addRecentAsset = useRecentAssetsStore((state) => state.addRecentAsset);
 
@@ -131,11 +133,10 @@ export const useTextareaAssetMention = ({
     loadMoreSaved,
     handleRename
   } = useAssetMentionSearch(trigger ? trigger.query : null);
-  // Entities are only offered when the host can do something with one. The
-  // shared empty array keeps the identity stable when there is no handler; a
+  // The shared empty array keeps the identity stable when entities are off; a
   // fresh `[]` per render invalidated `selectIndex` and the portaled menu's
   // memo on every keystroke.
-  const entities = (onSelectEntity && matchedEntities) || NO_ENTITIES;
+  const entities = (includeEntities && matchedEntities) || NO_ENTITIES;
 
   const measure = useCallback(() => {
     const el = textareaRef.current;
@@ -258,21 +259,23 @@ export const useTextareaAssetMention = ({
     [trigger, value, setValue, onSelectAsset, addRecentAsset, close]
   );
 
-  // An entity reads as part of the sentence: its name replaces the typed
-  // `@query` inline, then the host attaches its reference image.
+  // An entity reads as part of the sentence, so its reference goes inline where
+  // the `@query` was — as the `entity://<id>` token the Prompt composer also
+  // stores. The server resolves it per turn into the entity's name, its
+  // descriptor and its reference image, so a later rename or re-description
+  // reaches messages that were already sent.
   const selectEntity = useCallback(
     (entity: Entity) => {
       if (trigger) {
-        const inserted = `${entity.name} `;
+        const inserted = `${entityToUri(entity)} `;
         pendingCaretRef.current = trigger.start + inserted.length;
         setValue(
           value.slice(0, trigger.start) + inserted + value.slice(trigger.end)
         );
       }
-      onSelectEntity?.(entity);
       close();
     },
-    [trigger, value, setValue, onSelectEntity, close]
+    [trigger, value, setValue, close]
   );
 
   // Combined selection order: entities first, then the active asset bucket.

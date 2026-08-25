@@ -1482,6 +1482,87 @@ describe("ProcessingContext – asset helper methods", () => {
     }
   });
 
+  it("resolveMessageMediaUris expands entity:// mentions into name, descriptor and image", async () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      userId: "u1",
+      modelInterfaces: {
+        getAssetInfo: async ({ assetId }) =>
+          assetId === "ent1"
+            ? {
+                id: "ent1",
+                content_type: "image/png",
+                name: "marta.png",
+                metadata: {
+                  nodetool_entity: {
+                    kind: "character",
+                    name: "Marta",
+                    descriptor: "a tall woman in a red coat"
+                  }
+                }
+              }
+            : null
+      },
+      fetchFn: async (input: string | URL | Request) => {
+        const url = String(input);
+        if (url.endsWith("/api/assets/ent1.png")) {
+          return new Response(
+            JSON.stringify({ id: "ent1", get_url: "/api/storage/ent1.png" }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        }
+        if (url.endsWith("/api/storage/ent1.png")) {
+          return new Response(pngBytes, {
+            status: 200,
+            headers: { "content-type": "image/png" }
+          });
+        }
+        return new Response("not found", { status: 404 });
+      }
+    });
+
+    const resolved = await ctx.resolveMessageMediaUris([
+      {
+        role: "user",
+        content: [{ type: "text", text: "a shot of entity://ent1 at dusk" }]
+      }
+    ]);
+
+    const parts = resolved[0].content as Array<Record<string, any>>;
+    expect(parts[0].type).toBe("text");
+    expect(parts[0].text).toContain("a shot of Marta at dusk");
+    expect(parts[0].text).toContain(
+      "Consistency references:\n- Marta: a tall woman in a red coat"
+    );
+    // The entity's reference image rides in as a real image block.
+    expect(parts[1].type).toBe("image_url");
+    expect(parts[1].image.uri).toBe(
+      `data:image/png;base64,${Buffer.from(pngBytes).toString("base64")}`
+    );
+  });
+
+  it("resolveMessageMediaUris drops an entity:// mention it cannot resolve", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+
+    const resolved = await ctx.resolveMessageMediaUris([
+      { role: "user", content: [{ type: "text", text: "see entity://gone here" }] }
+    ]);
+
+    expect(resolved[0].content).toEqual([{ type: "text", text: "see here" }]);
+  });
+
+  it("resolveMessageMediaUris leaves entity-free text untouched", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const part = { type: "text", text: "plain prose" } as const;
+
+    const resolved = await ctx.resolveMessageMediaUris([
+      { role: "user", content: [part] }
+    ]);
+
+    expect(resolved[0].content).toEqual([part]);
+  });
+
   it("resolveMessageMediaUris dereferences asset:// image URIs to data URIs", async () => {
     const root = await mkdtemp(join(tmpdir(), "nodetool-resolve-asset-media-"));
     try {
