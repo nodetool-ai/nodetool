@@ -70,10 +70,12 @@ describe("ProgressManager", () => {
       expect(idx).toBe(1);
     });
 
-    it("auto-starts if not started", () => {
-      pm.addTask("op1", "Task");
-      // Should not throw
+    it("registers the task without an explicit start()", () => {
+      const idx = pm.addTask("op1", "Task");
+      expect(idx).toBe(0);
+
       pm.updateTask("op1", 10);
+      expect(logger.logs).toEqual(["  Task"]);
     });
 
     it("does not duplicate existing task", () => {

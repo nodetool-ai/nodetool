@@ -48,16 +48,23 @@ vi.mock("../src/docker-run.js", () => {
     generateHash: vi.fn().mockReturnValue("abc123hash"),
     getContainerName: vi.fn().mockReturnValue("nodetool-test")
   };
+  // Records what self-hosted.ts converted the deployment into, so tests can
+  // assert the conversion rather than the canned command above.
+  const constructedWith: unknown[] = [];
   const DockerRunGenerator = class DockerRunGenerator {
     generateCommand = mockGenerator.generateCommand;
     generateHash = mockGenerator.generateHash;
     getContainerName = mockGenerator.getContainerName;
+    constructor(deployment: unknown) {
+      constructedWith.push(deployment);
+    }
   };
   return {
     DockerRunGenerator,
     INTERNAL_API_PORT: 7777,
     APP_ENV_PORT: 8000,
-    __mockGenerator: mockGenerator
+    __mockGenerator: mockGenerator,
+    __constructedWith: constructedWith
   };
 });
 
@@ -744,7 +751,7 @@ describe("DockerDeployer construction", () => {
 });
 
 describe("DockerDeployer with persistent paths", () => {
-  it("should create deployer with persistent paths config", () => {
+  it("maps each persistent path onto its own container env var", async () => {
     const deployment = makeDockerDeployment({
       persistent_paths: {
         users_file: "/workspace/users.yaml",
@@ -761,7 +768,22 @@ describe("DockerDeployer with persistent paths", () => {
       deployment,
       sm as any
     );
-    expect(deployer.deployment.persistent_paths).toBeDefined();
+
+    const { __constructedWith } = (await import("../src/docker-run.js")) as any;
+    __constructedWith.length = 0;
+    (deployer as any).containerGenerator("docker");
+
+    // Each snake_case path must land on its own camelCase field. Swapping any
+    // two silently mounts the wrong host path in production.
+    expect(__constructedWith).toHaveLength(1);
+    expect(__constructedWith[0].persistentPaths).toEqual({
+      usersFile: "/workspace/users.yaml",
+      dbPath: "/workspace/nodetool.db",
+      chromaPath: "/workspace/chroma",
+      hfCache: "/workspace/hf-cache",
+      assetBucket: "/workspace/assets",
+      logsPath: "/workspace/logs"
+    });
   });
 });
 
