@@ -188,16 +188,16 @@ const TemplateRow = memo(function TemplateRow({
   const [thumbFailed, setThumbFailed] = useState(false);
   const category = getCategoryForWorkflow(workflow);
 
-  // The server-provided URL carries an md5-based ?v=<hash> cache buster;
-  // shipped templates fall back to the asset packaged with them.
+  // The server sets thumbnail_url only when the image exists (with an
+  // md5-based ?v=<hash> cache buster), so a missing one means there is
+  // nothing to request — guessing a URL just logs a 404 per row.
   const thumbUrl = useMemo(() => {
-    if (workflow.thumbnail_url) {
-      return workflow.thumbnail_url.startsWith("http")
-        ? workflow.thumbnail_url
-        : `${BASE_URL}${workflow.thumbnail_url}`;
+    const url = workflow.thumbnail_url;
+    if (!url) {
+      return null;
     }
-    return `${BASE_URL}/api/assets/packages/${workflow.package_name}/${workflow.name}.jpg`;
-  }, [workflow.thumbnail_url, workflow.package_name, workflow.name]);
+    return url.startsWith("http") ? url : `${BASE_URL}${url}`;
+  }, [workflow.thumbnail_url]);
 
   return (
     <button
@@ -210,14 +210,14 @@ const TemplateRow = memo(function TemplateRow({
         className="tpl-icon"
         aria-hidden
         style={
-          category && thumbFailed
+          category && (!thumbUrl || thumbFailed)
             ? { background: `${category.color}24`, color: category.color }
             : undefined
         }
       >
         {isLoading ? (
           <LoadingSpinner size="small" />
-        ) : thumbFailed ? (
+        ) : !thumbUrl || thumbFailed ? (
           templateGlyph
         ) : (
           <img

@@ -30,12 +30,18 @@ jest.mock("../../../stores/KeyPressedStore", () => ({
   useGlobalCombo: () => {}
 }));
 
-const template = (id: string, name: string, tags: string[]): Workflow =>
+const template = (
+  id: string,
+  name: string,
+  tags: string[],
+  thumbnailUrl: string | null = null
+): Workflow =>
   ({
     id,
     name,
     description: `${name} description`,
     tags,
+    thumbnail_url: thumbnailUrl,
     access: "public",
     created_at: "2026-08-01T00:00:00Z",
     updated_at: "2026-08-01T00:00:00Z",
@@ -43,7 +49,7 @@ const template = (id: string, name: string, tags: string[]): Workflow =>
   }) as unknown as Workflow;
 
 const TEMPLATES = [
-  template("t1", "Image upscaler", ["image"]),
+  template("t1", "Image upscaler", ["image"], "/api/thumb/upscaler.jpg?v=1"),
   template("t2", "Podcast cutter", ["audio"]),
   template("t3", "Web researcher", ["research"])
 ];
@@ -88,6 +94,25 @@ describe("DashboardTemplates", () => {
     expect(handleExampleClick).toHaveBeenCalledWith(
       expect.objectContaining({ id: "t3" })
     );
+  });
+
+  // The server sets thumbnail_url only when the image exists, so a row that
+  // requests one anyway logs a 404 — which fails the docker smoke check.
+  it("requests a thumbnail only for templates that have one", async () => {
+    renderTemplates();
+
+    const withThumb = await screen.findByRole("button", {
+      name: /image upscaler/i
+    });
+    expect(withThumb.querySelector("img")).toHaveAttribute(
+      "src",
+      expect.stringContaining("/api/thumb/upscaler.jpg?v=1")
+    );
+
+    const withoutThumb = screen.getByRole("button", {
+      name: /podcast cutter/i
+    });
+    expect(withoutThumb.querySelector("img")).toBeNull();
   });
 
   it("narrows the list to the selected category", async () => {

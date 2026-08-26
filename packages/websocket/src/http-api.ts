@@ -149,7 +149,7 @@ export interface HttpApiOptions {
    * The sibling `assets` directory is automatically derived from this path to
    * serve thumbnail images at both:
    *   - `/api/workflows/examples/thumbnails/<name>.jpg` (used by WorkflowTile)
-   *   - `/api/assets/packages/<package-name>/<name>.jpg` (used by the dashboard templates list)
+   *   - `/api/assets/packages/<package-name>/<name>.jpg` (the `package://` asset route)
    *
    * When examples are overridden (e.g. a Docker volume) but thumbnails remain
    * bundled with the server, set `examplesAssetsFallbackDir` to that assets path.
