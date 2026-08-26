@@ -35,17 +35,20 @@ import {
   FlexColumn,
   ShimmerText,
   Collapse,
+  SPACING,
   ToolbarIconButton
 } from "../../ui_primitives";
+import type { SvgIconComponent } from "@mui/icons-material";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
-import { getToolVisual } from "./toolCallIcon";
+import { getToolIcon } from "./toolCallIcon";
 
 import AgentExecutionView from "./AgentExecutionView";
 import MediaOutputGroup from "./MediaOutputGroup";
@@ -63,6 +66,7 @@ import {
   toolCallGroupPreview,
   type ToolCallRun
 } from "./groupToolCalls";
+import { toolCallPhrase, toolCallRunDisplay } from "./toolCallPhrase";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -85,21 +89,6 @@ const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
 });
 PrettyJson.displayName = "PrettyJson";
 
-/**
- * `run_subtask` is the recursive-decomposition primitive. We render its
- * tool-call card differently from generic tools: the LLM-provided `title`
- * becomes the headline, `instructions` go into the expanded section, and a
- * tree icon signals that this card represents a deeper sub-execution.
- */
-const RUN_SUBTASK_TOOL_NAME = "run_subtask";
-
-/**
- * `execute_code` is the CodeAct action primitive (docs/codeact-design.md):
- * its one argument is a JavaScript program, so the card renders it as a
- * highlighted code block instead of a JSON-escaped string.
- */
-const EXECUTE_CODE_TOOL_NAME = "execute_code";
-
 function formatTime(dateStr?: string | null): string | null {
   if (!dateStr) {
     return null;
@@ -117,14 +106,48 @@ function formatTime(dateStr?: string | null): string | null {
 }
 
 /**
- * ToolCallCard - Memoized component for displaying tool calls.
- * Extracted outside MessageView to prevent recreation on every render.
+ * `run_subtask` is the recursive-decomposition primitive: its LLM-provided
+ * `description` becomes the row label and `prompt` goes into the expanded
+ * section, so the row reads as the work rather than as a tool name.
  */
-const ToolCallCard: React.FC<{
+const RUN_SUBTASK_TOOL_NAME = "run_subtask";
+
+/**
+ * `execute_code` is the CodeAct action primitive (docs/codeact-design.md):
+ * its one argument is a JavaScript program, so the row renders it as a
+ * highlighted code block instead of a JSON-escaped string.
+ */
+const EXECUTE_CODE_TOOL_NAME = "execute_code";
+
+/**
+ * ToolRowRail — the glyph column and the hairline that ties one row to the
+ * next. The rail is what makes a sequence of calls read as a timeline rather
+ * than a stack of cards.
+ */
+const ToolRowRail: React.FC<{
+  Icon: SvgIconComponent;
+  connected: boolean;
+}> = React.memo(({ Icon, connected }) => (
+  <div className="tool-row-rail" aria-hidden>
+    <span className="tool-row-glyph">
+      <Icon />
+    </span>
+    {connected && <span className="tool-row-connector" />}
+  </div>
+));
+ToolRowRail.displayName = "ToolRowRail";
+
+/**
+ * ToolCallRow - one call in the timeline: a glyph, what it did, and the thing
+ * it did it to. Arguments and the result live behind the row.
+ */
+const ToolCallRow: React.FC<{
   tc: ToolCall;
   result?: { name?: string | null; content: unknown };
   durationMs?: number | null;
-}> = React.memo(({ tc, result, durationMs }) => {
+  connected?: boolean;
+  tight?: boolean;
+}> = React.memo(({ tc, result, durationMs, connected = false, tight = false }) => {
   const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
   const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
   const [open, setOpen] = useState(false);
@@ -139,7 +162,7 @@ const ToolCallCard: React.FC<{
   );
 
   // For run_subtask we lift `description` / `prompt` (Claude-Code Task naming)
-  // out of args into headline + expanded body. Tolerate the older
+  // out of args into label + expanded body. Tolerate the older
   // `title`/`instructions` keys for messages already in the DB.
   const rawArgs =
     (tc.args as Record<string, unknown> | null | undefined) ?? null;
@@ -200,144 +223,120 @@ const ToolCallCard: React.FC<{
     }
   }, []);
 
-  // For subtasks we keep the title + "Subtask" badge as the headline. For
-  // regular tool calls we drop the tool name entirely and let the LLM-authored
-  // `tc.message` carry the row — falling back to the formatted tool name only
-  // when no message was provided.
+  // The LLM-authored `message` is the best label when there is one; otherwise
+  // the tool's category supplies a verb phrase. Either way the distinctive
+  // argument rides alongside in mono, unless the label already names it.
   const liveMessage = isRunning ? runningToolMessage || tc.message : tc.message;
-  const fallbackName = formatToolName(tc.name);
-  const headline = isSubtask
-    ? subtaskTitle || fallbackName
+  const phrase = toolCallPhrase(tc);
+  const label = isSubtask
+    ? subtaskTitle || formatToolName(tc.name)
     : isCodeAction
-      ? actionTitle || liveMessage || fallbackName
-      : liveMessage || fallbackName;
-  const showSeparateMessage = isSubtask && !!liveMessage;
-  const headlineLabel = isSubtask ? "Subtask" : null;
-  const { Icon: ToolIcon, accent } = getToolVisual(tc.name);
+      ? actionTitle || liveMessage || formatToolName(tc.name)
+      : liveMessage || phrase.label;
+  const detail =
+    !isSubtask &&
+    !isCodeAction &&
+    phrase.detail &&
+    !label.includes(phrase.detail)
+      ? phrase.detail
+      : null;
+  const ToolIcon = getToolIcon(tc.name);
 
   return (
     <div
-      className={`tool-call-card${isRunning ? " running" : ""}${
-        isSubtask ? " run-subtask" : ""
-      }`}
+      className={`tool-row${isRunning ? " running" : ""}${
+        isSubtask ? " subtask" : ""
+      }${tight ? " tight" : ""}`}
     >
-      <FlexRow
-        className={`tool-call-header${hasDetails ? " expandable" : ""}`}
-        align="center"
-        fullWidth
-        gap={1}
-        role={hasDetails ? "button" : undefined}
-        tabIndex={hasDetails ? 0 : undefined}
-        aria-expanded={hasDetails ? open : undefined}
-        onClick={hasDetails ? handleToggleOpen : undefined}
-        onKeyDown={hasDetails ? handleHeaderKeyDown : undefined}
-      >
-        <span className={`tool-icon-tile accent-${accent}`} aria-hidden>
-          <ToolIcon />
-        </span>
-        <FlexRow align="center" gap={1} sx={{ minWidth: 0, flex: 1 }}>
-          {headlineLabel && (
-            <Text
-              component="span"
-              size="small"
-              className="tool-call-badge"
-            >
-              {headlineLabel}
-            </Text>
-          )}
+      <ToolRowRail Icon={ToolIcon} connected={connected} />
+      <div className="tool-row-main">
+        <FlexRow
+          className={`tool-row-header${hasDetails ? " expandable" : ""}`}
+          align="center"
+          fullWidth
+          gap={SPACING.xs}
+          role={hasDetails ? "button" : undefined}
+          tabIndex={hasDetails ? 0 : undefined}
+          aria-expanded={hasDetails ? open : undefined}
+          onClick={hasDetails ? handleToggleOpen : undefined}
+          onKeyDown={hasDetails ? handleHeaderKeyDown : undefined}
+        >
           <Text
             component="span"
             size="small"
-            weight={500}
-            className="tool-call-name"
-            truncate
+            className="tool-row-label"
+            truncate={!isSubtask}
           >
-            {isRunning ? <ShimmerText>{headline}</ShimmerText> : headline}
+            {isRunning ? <ShimmerText>{label}</ShimmerText> : label}
           </Text>
-          {showSeparateMessage && (
-            <Text
-              component="span"
-              size="small"
-              className="tool-message"
-              truncate
-            >
-              {liveMessage}
-            </Text>
-          )}
-          {/* Show the raw tool identifier only when the headline is an
-              LLM-authored message — otherwise it would duplicate the
-              formatted tool name sitting right next to it. */}
-          {!isSubtask && !!liveMessage && (
-            <span className="tool-call-id">{tc.name}</span>
-          )}
-        </FlexRow>
-        <FlexRow align="center" gap={1} sx={{ flexShrink: 0 }}>
+          {detail && <span className="tool-row-detail">{detail}</span>}
+          <span className="tool-row-gap" />
           {durationLabel && (
-            <span className="tool-call-duration">{durationLabel}</span>
+            <span className="tool-row-duration">{durationLabel}</span>
           )}
           {hasDetails && (
             <ExpandMoreIcon
-              className={`expand-icon${open ? " expanded" : ""}`}
+              className={`tool-row-chevron${open ? " expanded" : ""}`}
               aria-hidden
             />
           )}
         </FlexRow>
-      </FlexRow>
-      {isRunning &&
-        isCodeAction &&
-        activePredictions.map((prediction) => (
-          <MediaPredictionInline key={prediction.id} prediction={prediction} />
-        ))}
-      <Collapse in={open} timeout="auto" unmountOnExit>
-        <FlexColumn className="tool-call-details" gap={0.5}>
-          {isSubtask && subtaskInstructions && (
-            <FlexColumn gap={0.5}>
-              <Caption className="tool-section-title">Instructions</Caption>
-              <Text size="small" className="subtask-instructions">
-                {subtaskInstructions}
-              </Text>
-            </FlexColumn>
-          )}
-          {formattedActionCode && (
-            <FlexColumn gap={0.5}>
-              <Caption className="tool-section-title">Code</Caption>
-              <CodeBlock inline={false} className="language-javascript">
-                {formattedActionCode}
-              </CodeBlock>
-            </FlexColumn>
-          )}
-          {hasArgs && (
-            <FlexColumn gap={0.5}>
-              <Caption className="tool-section-title">
-                {isSubtask ? "Other arguments" : "Arguments"}
-              </Caption>
-              <PrettyJson value={displayArgs} />
-            </FlexColumn>
-          )}
-          {hasResult && (
-            <FlexColumn gap={0.5}>
-              <FlexRow
-                className="tool-section-header"
-                align="center"
-                justify="space-between"
-                fullWidth
-              >
-                <Caption className="tool-section-title">Result</Caption>
-                <CopyButton
-                  value={resultContent}
-                  tooltip="Copy result"
-                  buttonSize="small"
-                />
-              </FlexRow>
-              <ToolResult toolName={tc.name} content={resultContent} />
-            </FlexColumn>
-          )}
-        </FlexColumn>
-      </Collapse>
+        {isRunning &&
+          isCodeAction &&
+          activePredictions.map((prediction) => (
+            <MediaPredictionInline key={prediction.id} prediction={prediction} />
+          ))}
+        <Collapse in={open} timeout="auto" unmountOnExit>
+          <FlexColumn className="tool-row-details" gap={SPACING.xs}>
+            {isSubtask && subtaskInstructions && (
+              <FlexColumn gap={SPACING.xs}>
+                <Caption className="tool-section-title">Instructions</Caption>
+                <Text size="small" className="subtask-instructions">
+                  {subtaskInstructions}
+                </Text>
+              </FlexColumn>
+            )}
+            {formattedActionCode && (
+              <FlexColumn gap={SPACING.xs}>
+                <Caption className="tool-section-title">Code</Caption>
+                <CodeBlock inline={false} className="language-javascript">
+                  {formattedActionCode}
+                </CodeBlock>
+              </FlexColumn>
+            )}
+            {hasArgs && (
+              <FlexColumn gap={SPACING.xs}>
+                <Caption className="tool-section-title">
+                  {isSubtask ? "Other arguments" : "Arguments"}
+                </Caption>
+                <PrettyJson value={displayArgs} />
+              </FlexColumn>
+            )}
+            {hasResult && (
+              <FlexColumn gap={SPACING.xs}>
+                <FlexRow
+                  className="tool-section-header"
+                  align="center"
+                  justify="space-between"
+                  fullWidth
+                >
+                  <Caption className="tool-section-title">Result</Caption>
+                  <CopyButton
+                    value={resultContent}
+                    tooltip="Copy result"
+                    buttonSize="small"
+                  />
+                </FlexRow>
+                <ToolResult toolName={tc.name} content={resultContent} />
+              </FlexColumn>
+            )}
+          </FlexColumn>
+        </Collapse>
+      </div>
     </div>
   );
 });
-ToolCallCard.displayName = "ToolCallCard";
+ToolCallRow.displayName = "ToolCallRow";
 
 type ToolResultLookup = Record<
   string,
@@ -350,15 +349,16 @@ type CallTiming = {
 };
 
 /**
- * Collapsed run of consecutive same-tool calls. Expands to the individual
- * cards. Closed by default — the point is to hide a stack of identical rows.
+ * ToolCallCountRow - a run of same-tool calls the timeline shows as one
+ * counted row ("Ran 3 searches"). Expands to a row per call.
  */
-const ToolCallRunCard: React.FC<{
+const ToolCallCountRow: React.FC<{
   name: string;
   calls: ToolCall[];
   durationFor: (tc: ToolCall) => CallTiming;
   messageCreatedAt?: string | null;
-}> = React.memo(({ name, calls, durationFor, messageCreatedAt }) => {
+  connected?: boolean;
+}> = React.memo(({ name, calls, durationFor, messageCreatedAt, connected = false }) => {
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
@@ -366,8 +366,8 @@ const ToolCallRunCard: React.FC<{
   const isRunning = calls.some(
     (tc) => tc.id && runningToolCallId === tc.id
   );
-  const { Icon: ToolIcon, accent } = getToolVisual(name);
-  const headline = toolCallGroupHeadline(name, calls);
+  const ToolIcon = getToolIcon(name);
+  const label = toolCallGroupHeadline(name, calls);
   const preview = toolCallGroupPreview(name, calls);
 
   const handleToggleOpen = useCallback(() => {
@@ -413,92 +413,115 @@ const ToolCallRunCard: React.FC<{
       : null;
 
   return (
-    <div
-      className={`tool-call-card tool-call-run${isRunning ? " running" : ""}`}
-    >
-      <FlexRow
-        className="tool-call-header expandable"
-        align="center"
-        fullWidth
-        gap={1}
-        role="button"
-        tabIndex={0}
-        aria-expanded={open}
-        aria-label={`${headline}, ${calls.length} ${name}`}
-        onClick={handleToggleOpen}
-        onKeyDown={handleHeaderKeyDown}
-      >
-        <span className={`tool-icon-tile accent-${accent}`} aria-hidden>
-          <ToolIcon />
-        </span>
-        <FlexColumn sx={{ minWidth: 0, flex: 1 }} gap={0}>
-          <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-            <Text
-              component="span"
-              size="small"
-              weight={500}
-              className="tool-call-name"
-              truncate
-            >
-              {isRunning ? <ShimmerText>{headline}</ShimmerText> : headline}
-            </Text>
-            <span className="tool-call-id">
-              {name} ×{calls.length}
-            </span>
-          </FlexRow>
+    <div className={`tool-row tool-row-count${isRunning ? " running" : ""}`}>
+      <ToolRowRail Icon={ToolIcon} connected={connected} />
+      <div className="tool-row-main">
+        <FlexRow
+          className="tool-row-header expandable"
+          align="center"
+          fullWidth
+          gap={SPACING.xs}
+          role="button"
+          tabIndex={0}
+          aria-expanded={open}
+          aria-label={`${label}, ${calls.length} ${name}`}
+          onClick={handleToggleOpen}
+          onKeyDown={handleHeaderKeyDown}
+        >
+          <Text
+            component="span"
+            size="small"
+            className="tool-row-label"
+            truncate
+          >
+            {isRunning ? <ShimmerText>{label}</ShimmerText> : label}
+          </Text>
           {preview && !open && (
-            <Text
-              component="span"
-              size="smaller"
-              color="secondary"
-              className="tool-call-run-preview"
-              truncate
-            >
-              {preview}
-            </Text>
+            <span className="tool-row-detail">{preview}</span>
           )}
-        </FlexColumn>
-        <FlexRow align="center" gap={1} sx={{ flexShrink: 0 }}>
+          <span className="tool-row-gap" />
           {progressLabel && (
-            <span className="tool-call-run-progress">{progressLabel}</span>
+            <span className="tool-row-duration">{progressLabel}</span>
           )}
           {durationLabel && (
-            <span className="tool-call-duration">{durationLabel}</span>
+            <span className="tool-row-duration">{durationLabel}</span>
           )}
           <ExpandMoreIcon
-            className={`expand-icon${open ? " expanded" : ""}`}
+            className={`tool-row-chevron${open ? " expanded" : ""}`}
             aria-hidden
           />
         </FlexRow>
-      </FlexRow>
-      <Collapse in={open} timeout="auto" unmountOnExit>
-        <FlexColumn className="tool-call-run-items" gap={0}>
-          {calls.map((tc, i) => {
-            const { toolResult, durationMs: callDuration } = durationFor(tc);
-            return (
-              <ToolCallCard
-                key={tc.id || i}
-                tc={tc}
-                result={toolResult}
-                durationMs={callDuration}
-              />
-            );
-          })}
-        </FlexColumn>
-      </Collapse>
+        <Collapse in={open} timeout="auto" unmountOnExit>
+          <FlexColumn className="tool-row-children" gap={SPACING.none}>
+            {calls.map((tc, i) => {
+              const { toolResult, durationMs: callDuration } = durationFor(tc);
+              return (
+                <ToolCallRow
+                  key={tc.id || i}
+                  tc={tc}
+                  result={toolResult}
+                  durationMs={callDuration}
+                  tight={i > 0}
+                />
+              );
+            })}
+          </FlexColumn>
+        </Collapse>
+      </div>
     </div>
   );
 });
-ToolCallRunCard.displayName = "ToolCallRunCard";
-
+ToolCallCountRow.displayName = "ToolCallCountRow";
 
 /**
- * ToolCallGroup - Renders a message's tool calls as a chain. Consecutive
- * calls of the same groupable tool collapse into one run card. Mixed tools
- * keep the section label, hairline rule, and summary bar. A single visual
- * item (one card or one run) has no chain chrome.
+ * One entry in the rendered timeline. A run of same-tool calls becomes either
+ * a row per call (`tight` on all but the first) or one counted row —
+ * `toolCallRunDisplay` decides, on whether each call names a place worth
+ * reading.
  */
-const ToolCallGroup: React.FC<{
+type TimelineRow =
+  | { key: string; kind: "call"; call: ToolCall; tight: boolean }
+  | { key: string; kind: "count"; name: string; calls: ToolCall[] };
+
+function timelineRows(runs: readonly ToolCallRun[]): TimelineRow[] {
+  const rows: TimelineRow[] = [];
+  runs.forEach((run, i) => {
+    if (run.kind === "single") {
+      rows.push({
+        key: run.call.id || `call-${i}`,
+        kind: "call",
+        call: run.call,
+        tight: false
+      });
+      return;
+    }
+    if (toolCallRunDisplay(run.name, run.calls) === "list") {
+      run.calls.forEach((call, j) => {
+        rows.push({
+          key: call.id || `call-${i}-${j}`,
+          kind: "call",
+          call,
+          tight: j > 0
+        });
+      });
+      return;
+    }
+    rows.push({
+      key: run.calls[0]?.id || `run-${run.name}-${i}`,
+      kind: "count",
+      name: run.name,
+      calls: run.calls
+    });
+  });
+  return rows;
+}
+
+/**
+ * ToolCallTimeline - a message's tool calls as a connected sequence of rows.
+ * Two or more rows carry a footer that reports how long the whole sequence
+ * took and folds the rows away.
+ */
+const ToolCallTimeline: React.FC<{
   toolCalls: ToolCall[];
   toolResultsByCallId?: ToolResultLookup;
   messageCreatedAt?: string | null;
@@ -531,35 +554,42 @@ const ToolCallGroup: React.FC<{
     [toolResultsByCallId, messageCreatedAt]
   );
 
-  const runs = useMemo(
-    () => groupConsecutiveToolCalls(toolCalls),
+  const rows = useMemo(
+    () => timelineRows(groupConsecutiveToolCalls(toolCalls)),
     [toolCalls]
   );
 
-  const renderRun = useCallback(
-    (run: ToolCallRun, i: number) => {
-      if (run.kind === "single") {
-        const { toolResult, durationMs } = durationFor(run.call);
+  const renderRow = useCallback(
+    (row: TimelineRow, i: number) => {
+      // The hairline runs to the next row unless that row sits tight against
+      // this one — a cluster of same-tool calls reads as one step.
+      const next = rows[i + 1];
+      const connected = next !== undefined && !(next.kind === "call" && next.tight);
+      if (row.kind === "call") {
+        const { toolResult, durationMs } = durationFor(row.call);
         return (
-          <ToolCallCard
-            key={run.call.id || i}
-            tc={run.call}
+          <ToolCallRow
+            key={row.key}
+            tc={row.call}
             result={toolResult}
             durationMs={durationMs}
+            connected={connected}
+            tight={row.tight}
           />
         );
       }
       return (
-        <ToolCallRunCard
-          key={run.calls[0]?.id || `run-${run.name}-${i}`}
-          name={run.name}
-          calls={run.calls}
+        <ToolCallCountRow
+          key={row.key}
+          name={row.name}
+          calls={row.calls}
           durationFor={durationFor}
           messageCreatedAt={messageCreatedAt}
+          connected={connected}
         />
       );
     },
-    [durationFor, messageCreatedAt]
+    [rows, durationFor, messageCreatedAt]
   );
 
   const isRunning = toolCalls.some(
@@ -581,67 +611,49 @@ const ToolCallGroup: React.FC<{
     return { completedCount: completed, totalDurationMs: maxMs };
   }, [toolCalls, durationFor]);
 
-  // One visual item (a single card or one collapsed run) needs no chain chrome.
-  if (runs.length <= 1) {
-    return <>{runs.map(renderRun)}</>;
+  // A lone row is its own summary — no footer, nothing to fold.
+  if (rows.length <= 1) {
+    return <div className="tool-timeline">{rows.map(renderRow)}</div>;
   }
 
   const totalDurationLabel =
     totalDurationMs !== null ? formatDuration(totalDurationMs) : null;
+  const stepsLabel = `${toolCalls.length} steps`;
+  const footerLabel = isRunning
+    ? `Working · ${completedCount}/${toolCalls.length}`
+    : totalDurationLabel
+      ? `Worked for ${totalDurationLabel}`
+      : stepsLabel;
 
   return (
-    <div className="tool-call-group">
+    <div className="tool-timeline">
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <div className="tool-timeline-rows">{rows.map(renderRow)}</div>
+      </Collapse>
       <FlexRow
-        className="tool-call-group-header"
+        className="tool-timeline-footer"
         align="center"
-        gap={1}
+        // Matches the row grid's column gap so the footer text lines up with
+        // the labels above it.
+        gap={SPACING.md}
         role="button"
         tabIndex={0}
         aria-expanded={open}
         onClick={handleToggleOpen}
         onKeyDown={handleKeyDown}
       >
-        <Text
-          component="span"
-          size="small"
-          className="tool-call-group-label"
-        >
-          {isRunning ? (
-            <ShimmerText>Tool execution chain</ShimmerText>
-          ) : (
-            "Tool execution chain"
-          )}
+        <span className="tool-row-glyph" aria-hidden>
+          <DragIndicatorIcon />
+        </span>
+        <Text component="span" size="small" className="tool-timeline-summary">
+          {isRunning ? <ShimmerText>{footerLabel}</ShimmerText> : footerLabel}
         </Text>
-        <span className="tool-call-group-rule" aria-hidden />
-        <ExpandMoreIcon
-          className={`expand-icon${open ? " expanded" : ""}`}
-          aria-hidden
-        />
+        {!open && <span className="tool-row-detail">{stepsLabel}</span>}
       </FlexRow>
-      <Collapse in={open} timeout="auto" unmountOnExit>
-        <FlexColumn className="tool-call-chain" gap={1}>
-          {runs.map(renderRun)}
-          <FlexRow className="tool-call-summary" align="center" gap={1.5}>
-            <span className="tool-call-summary-count">
-              {completedCount}/{toolCalls.length} completed
-            </span>
-            {totalDurationLabel && (
-              <>
-                <span className="tool-call-summary-divider" aria-hidden>
-                  |
-                </span>
-                <span className="tool-call-summary-duration">
-                  {totalDurationLabel}
-                </span>
-              </>
-            )}
-          </FlexRow>
-        </FlexColumn>
-      </Collapse>
     </div>
   );
 });
-ToolCallGroup.displayName = "ToolCallGroup";
+ToolCallTimeline.displayName = "ToolCallTimeline";
 
 function markdownAssetFilename(text: string): string {
   const firstLine = text
@@ -926,7 +938,7 @@ export const MessageView: React.FC<
             {message.role === "assistant" &&
               Array.isArray(message.tool_calls) &&
               !message.agent_execution_id && ( // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
-                <ToolCallGroup
+                <ToolCallTimeline
                   toolCalls={message.tool_calls}
                   toolResultsByCallId={toolResultsByCallId}
                   messageCreatedAt={message.created_at}

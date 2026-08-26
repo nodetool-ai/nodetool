@@ -3,7 +3,6 @@ import type { Message, ToolCall } from "../../../../stores/ApiTypes";
 import {
   collapseToolCallOnlyMessages,
   groupConsecutiveToolCalls,
-  groupCountLabel,
   mergeableToolName,
   toolCallGroupHeadline,
   toolCallGroupPreview
@@ -114,18 +113,7 @@ describe("toolCallGroupHeadline", () => {
       call("a", "browser", { message: "Fetching https://a.example" }),
       call("b", "browser", { message: "Fetching https://b.example" })
     ];
-    expect(toolCallGroupHeadline("browser", calls)).toBe("Fetching 2 pages");
-  });
-});
-
-describe("groupCountLabel", () => {
-  it("pluralizes web searches and browser fetches", () => {
-    expect(groupCountLabel("web_search", 9)).toBe("9 web searches");
-    expect(groupCountLabel("browser", 5)).toBe("Fetching 5 pages");
-  });
-
-  it("uses a times-sign label for other tools", () => {
-    expect(groupCountLabel("read_file", 4)).toBe("4× Read File");
+    expect(toolCallGroupHeadline("browser", calls)).toBe("Opened 2 pages");
   });
 });
 

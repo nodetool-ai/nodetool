@@ -2,6 +2,10 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { MOTION, BORDER_RADIUS, TYPOGRAPHY, SPACING } from "../../ui_primitives";
 
+/** Glyph column width and single-line row height for the tool-call timeline. */
+const TOOL_RAIL_WIDTH = 20;
+const TOOL_ROW_HEIGHT = 22;
+
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
     backgroundColor: theme.vars.palette.background.default,
@@ -359,165 +363,176 @@ export const createStyles = (theme: Theme) => ({
       ...TYPOGRAPHY.sans.label
     },
 
-    // ── Tool execution chain ────────────────────────────────────────────────
-    // A message's tool calls render as a chain: tiny uppercase section label
-    // with a hairline rule, one bordered card per call, and a summary bar.
-    ".tool-call-group": {
+    // ── Tool call timeline ──────────────────────────────────────────────────
+    // A message's tool calls read as a sequence of steps, not a stack of
+    // cards: a glyph column, a hairline tying each row to the next, the verb
+    // phrase for what happened, and the thing it happened to in mono. A
+    // sequence of two or more ends in a footer that folds the rows away.
+    ".tool-timeline": {
       width: "100%",
-      margin: theme.spacing(0.5, 0)
+      margin: theme.spacing(SPACING.xs, 0)
     },
 
-    ".tool-call-group-header": {
-      cursor: "pointer",
-      userSelect: "none",
-      borderRadius: BORDER_RADIUS.sm,
-      padding: theme.spacing(0.25, 0),
-      "&:focus-visible": {
-        outline: `2px solid ${theme.vars.palette.primary.main}`,
-        outlineOffset: 1
-      }
+    ".tool-row": {
+      display: "grid",
+      gridTemplateColumns: `${TOOL_RAIL_WIDTH}px 1fr`,
+      columnGap: theme.spacing(SPACING.md),
+      minWidth: 0
     },
 
-    ".tool-call-group-label": {
-      color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      whiteSpace: "nowrap"
+    ".tool-row-rail": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      minHeight: TOOL_ROW_HEIGHT
     },
 
-    ".tool-call-group-rule": {
-      height: 1,
-      flex: 1,
-      background: theme.vars.palette.divider
-    },
-
-    ".tool-call-chain": {
-      marginTop: theme.spacing(1)
-    },
-
-    ".tool-call-summary": {
-      background: theme.vars.palette.action.hover,
-      borderRadius: BORDER_RADIUS.sm,
-      padding: theme.spacing(0.5, 1.5),
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmaller)"
-    },
-
-    ".tool-call-summary-divider": {
-      opacity: 0.3
-    },
-
-    ".tool-call-summary-duration": {
-      fontFamily: theme.fontFamily2,
-      fontVariantNumeric: "tabular-nums"
-    },
-
-    ".tool-call-card": {
-      width: "100%",
-      borderRadius: BORDER_RADIUS.md,
-      background: theme.vars.palette.action.hover,
-      overflow: "hidden",
-      marginBottom: 0
-    },
-
-    ".tool-icon-tile": {
-      width: 24,
-      height: 24,
-      borderRadius: BORDER_RADIUS.sm,
+    ".tool-row-glyph": {
+      width: TOOL_RAIL_WIDTH,
+      height: TOOL_ROW_HEIGHT,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
+      color: theme.vars.palette.text.disabled,
+      "& svg": { fontSize: 16 }
+    },
+
+    ".tool-row-connector": {
+      flex: 1,
+      width: 1,
+      minHeight: theme.spacing(SPACING.sm),
+      background: theme.vars.palette.divider
+    },
+
+    ".tool-row-main": {
+      minWidth: 0,
+      paddingBottom: theme.spacing(SPACING.xs)
+    },
+
+    // A run of same-tool calls sits flush, so the cluster reads as one step.
+    ".tool-row.tight .tool-row-main": {
+      paddingBottom: 0
+    },
+
+    ".tool-row-header": {
+      minHeight: TOOL_ROW_HEIGHT,
+      lineHeight: 1.3,
+      borderRadius: BORDER_RADIUS.sm,
+      padding: theme.spacing(SPACING.none, SPACING.sm),
+      marginLeft: theme.spacing(-SPACING.sm)
+    },
+
+    ".tool-row-header.expandable": {
+      cursor: "pointer",
+      userSelect: "none",
+      transition: MOTION.background,
+      "&:hover": {
+        background: theme.vars.palette.action.hover
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: -2
+      }
+    },
+
+    ".tool-row-label": {
       color: theme.vars.palette.text.secondary,
-      background: theme.vars.palette.action.hover,
-      "& svg": { fontSize: 15 }
+      minWidth: 0
     },
 
-    ".tool-icon-tile.accent-info": {
-      color: theme.vars.palette.info.main,
-      background: `rgb(${theme.vars.palette.info.mainChannel} / 0.12)`
-    },
-    ".tool-icon-tile.accent-warning": {
-      color: theme.vars.palette.warning.main,
-      background: `rgb(${theme.vars.palette.warning.mainChannel} / 0.12)`
-    },
-    ".tool-icon-tile.accent-success": {
-      color: theme.vars.palette.success.main,
-      background: `rgb(${theme.vars.palette.success.mainChannel} / 0.12)`
-    },
-    ".tool-icon-tile.accent-primary": {
-      color: theme.vars.palette.primary.main,
-      background: `rgb(${theme.vars.palette.primary.mainChannel} / 0.12)`
-    },
-    ".tool-icon-tile.accent-secondary": {
-      color: theme.vars.palette.secondary.main,
-      background: `rgb(${theme.vars.palette.secondary.mainChannel} / 0.12)`
+    ".tool-row.running .tool-row-label": {
+      color: theme.vars.palette.text.primary
     },
 
-    ".tool-call-id": {
+    ".tool-row.subtask .tool-row-label": {
+      // Subtask titles are a phrase, not an identifier — let them wrap.
+      whiteSpace: "normal",
+      color: theme.vars.palette.text.primary
+    },
+
+    // The thing the row acted on: a URL, a path, a query. Mono so it reads
+    // apart from the prose that names the action.
+    ".tool-row-detail": {
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       whiteSpace: "nowrap",
       overflow: "hidden",
-      textOverflow: "ellipsis"
+      textOverflow: "ellipsis",
+      minWidth: 0
     },
 
-    ".tool-call-duration": {
+    ".tool-row-gap": {
+      flex: 1,
+      minWidth: theme.spacing(SPACING.md)
+    },
+
+    ".tool-row-duration": {
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.secondary,
+      color: theme.vars.palette.text.disabled,
       fontVariantNumeric: "tabular-nums",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      flexShrink: 0
     },
 
-    ".tool-call-details": {
-      padding: theme.spacing(1, 1.5, 1.25),
-      borderTop: `1px solid ${theme.vars.palette.divider}`,
+    // The chevron is an affordance, not decoration: it shows on approach.
+    ".tool-row-chevron": {
+      transition: MOTION.all,
+      color: theme.vars.palette.text.disabled,
+      fontSize: 15,
+      flexShrink: 0,
+      opacity: 0
+    },
+
+    ".tool-row-header:hover .tool-row-chevron, .tool-row-header:focus-visible .tool-row-chevron, .tool-row-chevron.expanded":
+      {
+        opacity: 1
+      },
+
+    ".tool-row-chevron.expanded": {
+      transform: "rotate(180deg)"
+    },
+
+    ".tool-row-details": {
+      padding: theme.spacing(SPACING.xs, 0, SPACING.md),
       minWidth: 0,
       ".code-block-container": {
         marginBottom: 0
       }
     },
 
-    ".tool-call-card.running .tool-call-name": {
-      color: theme.vars.palette.info.main
+    ".tool-row-children": {
+      paddingBottom: theme.spacing(SPACING.xs)
     },
 
-    // `run_subtask` cards stand apart from generic tool calls — a light
-    // accent border + soft background marks them as a deeper sub-execution.
-    ".tool-call-card.run-subtask": {
-      borderLeft: `2px solid ${theme.vars.palette.primary.main}`,
-      background: `rgb(${theme.vars.palette.primary.mainChannel} / 0.04)`,
-      marginBottom: theme.spacing(0.5)
-    },
-
-    ".tool-call-card.run-subtask .tool-call-badge": {
-      letterSpacing: "0.04em",
-      textTransform: "uppercase",
-      color: theme.vars.palette.primary.main,
-      lineHeight: 1,
-      padding: theme.spacing(0.5, 1.5),
-      border: `1px solid ${theme.vars.palette.primary.main}55`,
-      borderRadius: BORDER_RADIUS.sm,
-      background: "transparent",
-      flexShrink: 0
-    },
-
-    ".tool-call-card.run-subtask .tool-call-name": {
-      // Subtask titles tend to be a phrase, not a snake_case identifier — let
-      // them wrap rather than truncate so the user can read the whole thing.
-      whiteSpace: "normal",
-      fontWeight: 500,
-      color: theme.vars.palette.text.primary,
-      fontSize: "var(--fontSizeSmall)"
-    },
-
-    ".tool-call-card.run-subtask .subtask-instructions": {
+    ".subtask-instructions": {
       whiteSpace: "pre-wrap",
       color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.45
+    },
+
+    ".tool-timeline-footer": {
+      cursor: "pointer",
+      userSelect: "none",
+      marginTop: theme.spacing(SPACING.xs),
+      borderRadius: BORDER_RADIUS.sm,
+      padding: theme.spacing(SPACING.none, SPACING.sm),
+      marginLeft: theme.spacing(-SPACING.sm),
+      minHeight: TOOL_ROW_HEIGHT,
+      transition: MOTION.background,
+      "&:hover": {
+        background: theme.vars.palette.action.hover
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: -2
+      }
+    },
+
+    ".tool-timeline-summary": {
+      color: theme.vars.palette.text.disabled
     },
 
     ".chat-message.tool-calls-only": {
@@ -535,38 +550,6 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       flexDirection: "column",
       gap: "0.1em"
-    },
-
-    ".chat-message.has-tool-calls .tool-call-card + .tool-call-card": {
-      marginTop: theme.spacing(1)
-    },
-
-    ".tool-call-run-preview": {
-      color: theme.vars.palette.text.secondary,
-      lineHeight: 1.3,
-      paddingRight: theme.spacing(SPACING.sm)
-    },
-
-    ".tool-call-run-progress": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.secondary,
-      fontVariantNumeric: "tabular-nums",
-      whiteSpace: "nowrap"
-    },
-
-    ".tool-call-run-items": {
-      borderTop: `1px solid ${theme.vars.palette.divider}`
-    },
-
-    ".tool-call-run-items .tool-call-card": {
-      background: "transparent",
-      borderRadius: 0
-    },
-
-    ".tool-call-run-items .tool-call-card + .tool-call-card": {
-      marginTop: 0,
-      borderTop: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".chat-message.has-tool-calls .markdown": {
@@ -591,69 +574,22 @@ export const createStyles = (theme: Theme) => ({
         marginBottom: "0.2em"
       },
 
-    ".chat-message.tool-calls-only .tool-call-card:last-child": {
-      marginBottom: 0
-    },
-
-    ".tool-call-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(1),
-      lineHeight: 1.25,
-      padding: theme.spacing(1, 1.5)
-    },
-
-    ".tool-call-header.expandable": {
-      cursor: "pointer",
-      userSelect: "none",
-      transition: MOTION.background,
-      "&:hover": {
-        background: theme.vars.palette.action.selected
-      },
-      "&:focus-visible": {
-        outline: `2px solid ${theme.vars.palette.primary.main}`,
-        outlineOffset: -2
-      }
-    },
-
-    ".tool-call-name": {
-      fontSize: "var(--fontSizeSmall)",
-      fontWeight: 500,
-      color: theme.vars.palette.text.primary,
-      whiteSpace: "nowrap"
-    },
-
-    ".tool-message": {
-      fontSize: "var(--fontSizeSmall)",
-      color: theme.vars.palette.text.secondary
-    },
-
-    ".media-prediction-inline": {
-      padding: theme.spacing(0, 1.5, 1, 1.5)
-    },
-
-    ".expand-icon": {
-      transition: MOTION.transform,
-      color: theme.vars.palette.text.disabled,
-      fontSize: 16
-    },
-
-    ".expand-icon.expanded": {
-      transform: "rotate(180deg)"
-    },
-
     ".tool-section-header": {
-      minHeight: theme.spacing(6)
+      minHeight: theme.spacing(SPACING.xxl)
     },
 
     ".tool-section-title": {
       color: theme.vars.palette.text.disabled,
       display: "block",
-      marginBottom: theme.spacing(0.5)
+      marginBottom: theme.spacing(SPACING.xs)
     },
 
     ".tool-section-header .tool-section-title": {
       marginBottom: 0
+    },
+
+    ".media-prediction-inline": {
+      padding: theme.spacing(SPACING.none, SPACING.none, SPACING.xs)
     },
 
     ".pretty-json": {

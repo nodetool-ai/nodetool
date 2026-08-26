@@ -446,16 +446,16 @@
     width: 90% !important;
   }
 
-  .mobile .chat-messages-list .tool-call-card {
+  .mobile .chat-messages-list .tool-row {
     font-size: 0.875em !important;
   }
 
-  .mobile .chat-messages-list .tool-call-header {
+  .mobile .chat-messages-list .tool-row-header {
     padding: var(--spacing-micro) var(--spacing-sm) !important;
     gap: var(--spacing-xs) !important;
   }
 
-  .mobile .chat-messages-list .tool-message {
+  .mobile .chat-messages-list .media-prediction-label {
     font-size: var(--fontSizeSmall) !important;
   }
 

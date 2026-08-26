@@ -1,8 +1,11 @@
 /**
- * toolCallIcon — maps a tool name to a category icon + accent color for the
- * tool execution chain. Categories are keyword-driven so any provider's tool
- * naming (snake_case, MCP `mcp__server__tool`, `ui_*`) lands in a sensible
- * bucket; unknown tools fall back to a neutral wrench.
+ * toolCallIcon — maps a tool name to a category glyph for the tool-call
+ * timeline. Categories are keyword-driven so any provider's naming
+ * (snake_case, MCP `mcp__server__tool`, `ui_*`) lands in a sensible bucket;
+ * unknown tools fall back to a neutral wrench.
+ *
+ * The timeline is monochrome: the glyph says what kind of work happened, the
+ * row's text says what it did. No per-tool color.
  */
 
 import type { SvgIconComponent } from "@mui/icons-material";
@@ -15,61 +18,40 @@ import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
 
-/** Accent keys resolve to theme palette colors in the chat styles. */
-export type ToolAccent =
-  | "info"
-  | "warning"
-  | "success"
-  | "primary"
-  | "secondary"
-  | "neutral";
-
-interface ToolVisual {
-  Icon: SvgIconComponent;
-  accent: ToolAccent;
-}
-
-const CATEGORIES: Array<{ pattern: RegExp; visual: ToolVisual }> = [
-  {
-    pattern: /subtask|agent|task/,
-    visual: { Icon: AccountTreeOutlinedIcon, accent: "primary" }
-  },
+const CATEGORIES: Array<{ pattern: RegExp; Icon: SvgIconComponent }> = [
+  { pattern: /subtask|agent|task/, Icon: AccountTreeOutlinedIcon },
   {
     pattern: /database|query|sql|collection|vector|index|table|record/,
-    visual: { Icon: StorageRoundedIcon, accent: "info" }
+    Icon: StorageRoundedIcon
   },
-  {
-    pattern: /search|find|grep|glob|lookup|list/,
-    visual: { Icon: SearchRoundedIcon, accent: "warning" }
-  },
+  { pattern: /search|find|grep|glob|lookup|list/, Icon: SearchRoundedIcon },
   {
     pattern: /file|read|write|edit|directory|folder|asset|document|save|open/,
-    visual: { Icon: DescriptionOutlinedIcon, accent: "warning" }
+    Icon: DescriptionOutlinedIcon
   },
   {
     pattern: /http|web|fetch|url|browser|download|upload|request|api|notif|send|mail|message/,
-    visual: { Icon: PublicRoundedIcon, accent: "success" }
+    Icon: PublicRoundedIcon
   },
   {
     pattern: /image|video|audio|speech|generate|render|draw|media/,
-    visual: { Icon: ImageOutlinedIcon, accent: "secondary" }
+    Icon: ImageOutlinedIcon
   },
   {
     pattern: /shell|bash|terminal|command|exec|run|code|script|node|workflow/,
-    visual: { Icon: TerminalRoundedIcon, accent: "primary" }
+    Icon: TerminalRoundedIcon
   }
 ];
 
-const DEFAULT_VISUAL: ToolVisual = {
-  Icon: BuildOutlinedIcon,
-  accent: "neutral"
-};
-
-export function getToolVisual(name?: string | null): ToolVisual {
-  if (!name) return DEFAULT_VISUAL;
-  const normalized = name.toLowerCase();
-  for (const { pattern, visual } of CATEGORIES) {
-    if (pattern.test(normalized)) return visual;
+export function getToolIcon(name?: string | null): SvgIconComponent {
+  if (!name) {
+    return BuildOutlinedIcon;
   }
-  return DEFAULT_VISUAL;
+  const normalized = name.toLowerCase();
+  for (const { pattern, Icon } of CATEGORIES) {
+    if (pattern.test(normalized)) {
+      return Icon;
+    }
+  }
+  return BuildOutlinedIcon;
 }

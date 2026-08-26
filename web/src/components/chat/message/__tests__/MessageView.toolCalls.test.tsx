@@ -46,8 +46,8 @@ const toolCall = (id: string, name: string): ToolCall => ({
   args: {}
 });
 
-describe("MessageView tool-call grouping", () => {
-  it("renders multiple tool calls as an expanded execution chain with a summary", () => {
+describe("MessageView tool-call timeline", () => {
+  it("renders every call as a connected row under one footer", () => {
     renderView({
       id: "m1",
       role: "assistant",
@@ -59,11 +59,13 @@ describe("MessageView tool-call grouping", () => {
       ]
     } as Message);
 
-    expect(screen.getByText("Tool execution chain")).toBeInTheDocument();
-    // Expanded by default: every card is visible along with the summary bar.
+    expect(document.querySelectorAll(".tool-timeline-rows > .tool-row"))
+      .toHaveLength(4);
+    expect(screen.getByText("Ran 1 search")).toBeInTheDocument();
     expect(screen.getByText("Run Tests")).toBeInTheDocument();
-    expect(screen.getByText("Search")).toBeInTheDocument();
-    expect(screen.getByText("0/4 completed")).toBeInTheDocument();
+    expect(screen.getByText("4 steps")).toBeInTheDocument();
+    // The hairline runs to the next row, and stops at the last one.
+    expect(document.querySelectorAll(".tool-row-connector")).toHaveLength(3);
   });
 
   it("rerenders only the active message when a thought is toggled", async () => {
@@ -92,7 +94,7 @@ describe("MessageView tool-call grouping", () => {
     expect(screen.getByText("Private reasoning")).toBeInTheDocument();
   });
 
-  it("collapses the chain when the section header is toggled", async () => {
+  it("folds the rows away when the footer is toggled", async () => {
     const user = userEvent.setup();
     renderView({
       id: "m2",
@@ -102,18 +104,16 @@ describe("MessageView tool-call grouping", () => {
 
     expect(screen.getByText("Run Tests")).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole("button", { name: /tool execution chain/i })
-    );
+    await user.click(screen.getByRole("button", { name: /2 steps/i }));
 
     // Collapse unmounts its children once the exit transition finishes.
     await waitFor(() => {
       expect(screen.queryByText("Run Tests")).not.toBeInTheDocument();
     });
-    expect(screen.queryByText("Search")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ran 1 search")).not.toBeInTheDocument();
   });
 
-  it("counts a call with an empty result as completed in the summary", () => {
+  it("counts a call with an empty result as completed in the footer", () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <MessageView
@@ -134,20 +134,19 @@ describe("MessageView tool-call grouping", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByText("1/2 completed")).toBeInTheDocument();
+    expect(screen.getByText("2 steps")).toBeInTheDocument();
   });
 
-  it("renders a single tool call inline without the group wrapper", () => {
+  it("renders a lone tool call with no footer and no hairline", () => {
     renderView({
       id: "m3",
       role: "assistant",
       tool_calls: [toolCall("a", "search")]
     } as Message);
 
-    expect(
-      screen.queryByText(/tool execution chain/i)
-    ).not.toBeInTheDocument();
-    expect(screen.getByText("Search")).toBeInTheDocument();
+    expect(document.querySelector(".tool-timeline-footer")).toBeNull();
+    expect(document.querySelector(".tool-row-connector")).toBeNull();
+    expect(screen.getByText("Ran 1 search")).toBeInTheDocument();
   });
 
   it("collapses consecutive same-tool calls into one closed run", () => {
@@ -176,19 +175,15 @@ describe("MessageView tool-call grouping", () => {
       ]
     } as Message);
 
-    expect(
-      screen.queryByText(/tool execution chain/i)
-    ).not.toBeInTheDocument();
+    expect(document.querySelector(".tool-timeline-footer")).toBeNull();
     expect(screen.getByText("Searching the web")).toBeInTheDocument();
-    expect(screen.getByText("web_search ×3")).toBeInTheDocument();
     expect(
       screen.getByText("facebook ads · tiktok creative · linkedin tests")
     ).toBeInTheDocument();
-    expect(screen.queryByText("0/3 completed")).not.toBeInTheDocument();
-    expect(document.querySelector(".tool-call-run-items")).toBeNull();
+    expect(document.querySelector(".tool-row-children")).toBeNull();
   });
 
-  it("expands a tool-call run to show each call", async () => {
+  it("expands a counted run to a row per call", async () => {
     const user = userEvent.setup();
     renderView({
       id: "m-run-open",
@@ -213,11 +208,11 @@ describe("MessageView tool-call grouping", () => {
       screen.getByRole("button", { name: /searching the web, 2 web_search/i })
     );
 
-    expect(document.querySelectorAll(".tool-call-run-items .tool-call-card"))
+    expect(document.querySelectorAll(".tool-row-children .tool-row"))
       .toHaveLength(2);
   });
 
-  it("keeps execute_code cards ungrouped next to a search run", () => {
+  it("keeps execute_code rows ungrouped next to a search run", () => {
     renderView({
       id: "m-mixed",
       role: "assistant",
@@ -242,12 +237,11 @@ describe("MessageView tool-call grouping", () => {
       ]
     } as Message);
 
-    expect(screen.getByText("Tool execution chain")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /planning ad framework research/i })
     ).toBeInTheDocument();
-    expect(screen.getByText("web_search ×2")).toBeInTheDocument();
-    expect(screen.getByText("0/3 completed")).toBeInTheDocument();
+    expect(screen.getByText("Searching the web")).toBeInTheDocument();
+    expect(screen.getByText("3 steps")).toBeInTheDocument();
   });
 });
 
@@ -268,7 +262,7 @@ describe("MessageView CodeAct actions", () => {
       ]
     } as Message);
 
-    // CodeAct cards start collapsed — the program is behind the header.
+    // CodeAct rows start collapsed — the program is behind the row.
     expect(screen.queryByText("Code")).not.toBeInTheDocument();
     expect(document.querySelector(".code-block-container")).toBeNull();
 
@@ -290,7 +284,7 @@ describe("MessageView CodeAct actions", () => {
     expect(screen.queryByText("Arguments")).not.toBeInTheDocument();
   });
 
-  it("shows the action's title as the card headline", () => {
+  it("shows the action's title as the row label", () => {
     renderView({
       id: "m6",
       role: "assistant",
@@ -316,7 +310,7 @@ describe("MessageView CodeAct actions", () => {
     expect(screen.queryByText("Arguments")).not.toBeInTheDocument();
   });
 
-  it("shows the in-flight media prediction on a running execute_code card", () => {
+  it("shows the in-flight media prediction on a running execute_code row", () => {
     const store = asMock(useGlobalChatStore);
     const state = {
       currentThreadId: "t1",
