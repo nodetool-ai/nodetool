@@ -59,7 +59,7 @@ export const landingEntries: LandingEntry[] = [
     eyebrow: "Use case",
     headline: "AI Music Video Generator",
     subhead:
-      "Drop in a track and a concept. An agent breaks the song into scenes, renders each as key art, and animates them into a cut that moves with the music.",
+      "Drop in a track and a concept. The agent breaks the song into scenes, renders each as key art, and cuts them to the beat on a timeline you can still edit.",
     featuredTemplate: "music-video-visualizer",
     highlights: [
       "Beat-aware scene breakdown from one prompt",
@@ -96,7 +96,7 @@ export const landingEntries: LandingEntry[] = [
     eyebrow: "Use case",
     headline: "AI Social Media Content Generator",
     subhead:
-      "Describe a campaign and a cadence. An agent plans the calendar, a list generator writes each post, and matching visuals render for every slot.",
+      "Pitch a campaign and a cadence. The agent plans the calendar, writes each post, and renders matching visuals for every slot.",
     featuredTemplate: "social-media-calendar-filler",
     highlights: [
       "A full calendar of posts from one brief",
@@ -133,7 +133,7 @@ export const landingEntries: LandingEntry[] = [
     eyebrow: "Use case",
     headline: "AI YouTube Thumbnail Generator",
     subhead:
-      "Give it a video title and a hook. The canvas drafts thumbnail concepts, renders a batch of variants, and lays in the text so you can pick a winner.",
+      "Give it a video title and a hook. The agent drafts thumbnail concepts, renders a batch of variants, and lays in the text so you can pick a winner.",
     featuredTemplate: "hook-and-thumbnail-factory",
     highlights: [
       "A batch of thumbnail variants per title",

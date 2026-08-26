@@ -6,8 +6,8 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return ogImage(
-    "Visual AI workflows in your browser",
-    "Zero setup, no GPU. Bring your own keys to every provider.",
+    "The agent-first studio in your browser",
+    "Zero setup, no GPU. Bring your own keys, no token markups.",
     { image: "screen_chat.png", accent: "cyan", eyebrow: "Cloud — Alpha" }
   );
 }

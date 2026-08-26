@@ -57,7 +57,7 @@ export default function UseCasesShowcase() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            From a brief to a finished asset
+            From a pitch to a finished cut
           </motion.h2>
           <motion.p
             initial={false}
@@ -66,8 +66,8 @@ export default function UseCasesShowcase() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed"
           >
-            Real workflows you can open, run, and change. Each one runs from the
-            brief to the finished piece without leaving the canvas, and every one
+            Real projects you can open, run, and re-cut. Each one runs from the
+            pitch to the finished piece without leaving the canvas, and every one
             is built from the blocks you get on day one.
           </motion.p>
         </div>

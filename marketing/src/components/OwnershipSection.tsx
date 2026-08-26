@@ -6,23 +6,23 @@ import { Shield, Cpu, Globe, Lock } from "lucide-react";
 
 const features = [
   {
-    title: "Use your own provider keys",
-    body: "Connect directly to OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and specialized video generators. Your account keys stay on your disk in Studio, encrypted in Cloud.",
+    title: "Bring your own keys",
+    body: "Connect directly to OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and the specialized video models. Your keys stay on your disk in Studio, encrypted in Cloud.",
     icon: Lock,
   },
   {
-    title: "Pay official rates directly",
-    body: "Skip artificial credit systems. If an image costs $0.03 to generate through a provider, you pay exactly $0.03 to that provider. NodeTool takes no cut.",
+    title: "No token markups",
+    body: "No credit packs, no subscription traps. If an image costs $0.03 at the provider, you pay $0.03 to the provider. NodeTool takes no cut.",
     icon: Shield,
   },
   {
-    title: "100% open source",
-    body: "Free to use and inspect. Studio and Cloud are built from the same AGPL-3.0 source, with no artificial paywalls or locked features, and you can host it yourself at any time.",
+    title: "Open source, end to end",
+    body: "Studio and Cloud are built from the same AGPL-3.0 source, with no paywalled features. Read it, fork it, or host it yourself at any time.",
     icon: Globe,
   },
   {
-    title: "Run private models on your computer",
-    body: "Download and run free, open-weight models locally on your own hardware — MLX, Ollama, llama.cpp, vLLM, and LM Studio — with no internet connection.",
+    title: "Run it on your own hardware",
+    body: "Download open-weight models and run inference locally — MLX, Ollama, llama.cpp, vLLM, and LM Studio — with no internet connection.",
     icon: Cpu,
   },
 ];
@@ -47,7 +47,7 @@ export default function OwnershipSection({
             transition={{ duration: 0.25 }}
             className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Access top AI tools directly. <br />
+            Local. Open. Yours. <br />
             <span className="text-slate-300">No middlemen, no markups.</span>
           </motion.h2>
           <motion.p
@@ -57,10 +57,10 @@ export default function OwnershipSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Pick the best AI service for the job — OpenAI, Google, Anthropic,
-            or a specialized image and video engine — and switch between them
-            with one click. NodeTool charges you what the providers charge, and
-            is released under a license that outlives whoever built it.
+            No locked project formats, no token markups, zero subscription
+            traps. Run inference locally or bring your own API keys, and switch
+            between providers with one click. You own the files, the workflow,
+            and the final cut.
           </motion.p>
         </div>
 

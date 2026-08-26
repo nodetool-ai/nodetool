@@ -115,9 +115,10 @@ export default function AgentsGraphHero() {
                             NodeTool isn&apos;t a chat box bolted onto an editor. Every surface —
                             the node canvas, the sketch pad, the storyboard, the video timeline,
                             the app builder — is exposed to agents as tools, around 120 in all.
-                            Hand over a brief and the agent plans the shots, builds the workflow,
-                            runs it across Flux, Seedance, Veo, Kling, Suno, and ElevenLabs, and
-                            retries what misses. You direct, it executes.
+                            Pitch a concept and the agent drafts the script, boards the scenes,
+                            generates the footage across Flux, Seedance, Veo, Kling, Suno, and
+                            ElevenLabs, and cuts the timeline. You direct the vision; it does
+                            the heavy lifting.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -133,7 +134,7 @@ export default function AgentsGraphHero() {
                         <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-400 font-medium">
                             <span className="flex items-center gap-2"><Command className="w-4 h-4" /> Open Source</span>
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
-                            <span>Your own keys, paid straight to the provider</span>
+                            <span>Your own keys, no token markups</span>
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
                             <span>Every decision on screen</span>
                         </div>

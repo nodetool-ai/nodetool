@@ -65,10 +65,10 @@ export default function StoryboardSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-300 leading-relaxed"
           >
-            Write a brief and a visual style, press Direct, and get a shot list
-            back — action, camera, motion, and duration per card. Approve the
-            stills you like, render only those into clips, then assemble the
-            whole thing into the timeline editor in one click.
+            Pitch a concept and a visual style, press Direct, and get a shot
+            list back — action, camera, motion, and duration per card. Approve
+            the stills you like, animate only those, then lay the whole thing
+            onto the multi-track timeline in one click.
           </motion.p>
         </div>
 

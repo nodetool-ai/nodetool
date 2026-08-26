@@ -31,9 +31,9 @@ const marketingBenefits = [
     icon: TrendingUp,
   },
   {
-    title: "Every model, your keys",
+    title: "Model freedom",
     description:
-      "Flux, Veo, Kling, Seedance, Suno, ElevenLabs, and more, all run with your own provider keys at list price. No credit packs and no per-seat markup.",
+      "Route each asset through Flux, Veo, Kling, Seedance, Suno, or ElevenLabs on your own provider keys at list price — or run open weights locally. No credit packs, no per-seat markup.",
     icon: Zap,
   },
   {
@@ -137,11 +137,11 @@ export default function MarketingSegmentPage() {
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Hand the brief to an agent: it builds the workflow that turns
-                  out product videos, ad creative, social calendars, and brand
-                  assets from every major model, run with your own keys. No
-                  marked-up credits, nothing locking you in, and built for
-                  steady output rather than one-off polish.
+                  Pitch the brief to an agent and it builds the workflow that
+                  turns out product videos, ad creative, social calendars, and
+                  brand assets — routed through every major model on your own
+                  keys. No token markups, no platform lock-in, and every asset
+                  lands as an editable project rather than a flat render.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -362,14 +362,15 @@ export default function MarketingSegmentPage() {
               viewport={{ once: true }}
             >
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Every model. Your keys. <br />
+                Ready to ship <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-emerald-400 to-cyan-400">
-                  Campaign volume.
+                  at campaign volume?
                 </span>
               </h2>
               <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                Download NodeTool, connect the providers you already pay for,
-                and build the workflow that produces your next campaign.
+                Download the open-source studio for macOS, Windows, and Linux.
+                Connect the providers you already pay for, and build the
+                workflow that produces your next campaign.
               </p>
               <SmartDownloadButton
                 icon={<Download className="w-6 h-6" />}

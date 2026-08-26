@@ -22,7 +22,7 @@ const highlights = [
   {
     icon: Download,
     title: "Export a finished cut",
-    body: "Render the whole sequence to a single video — the edit happens where you generate, not in another app.",
+    body: "Render the whole sequence to one video. The cut happens where you generate, not in another app.",
   },
 ];
 
@@ -55,7 +55,7 @@ export default function TimelineEditorSection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Built-in <span className="text-white">video editor</span>
+            A real timeline. <span className="text-white">Not a black box.</span>
           </motion.h2>
 
           <motion.p
@@ -65,9 +65,9 @@ export default function TimelineEditorSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-300 leading-relaxed"
           >
-            Generate AI video and audio straight onto a multi-track timeline.
-            Prompt a model at the playhead, drop the clip on a track, then trim,
-            split, and export a finished cut.
+            Instead of a single unfixable video file, the agent hands you a
+            fully editable multi-track project. Generate at the playhead, then
+            fine-tune every frame, layer, and audio stem before you export.
           </motion.p>
         </div>
 

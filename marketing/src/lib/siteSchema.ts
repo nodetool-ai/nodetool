@@ -14,7 +14,7 @@ export const softwareApplicationSchema: JsonLdObject = {
   "@type": "SoftwareApplication",
   name: "NodeTool",
   description:
-    "NodeTool is the open-source, agent-first creative workspace. Every editor — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools, around 120 in all: say what you want and the agent builds the workflow and runs it across every major model from every major provider, using your own keys. It runs as a desktop app on macOS, Windows, and Linux, or in the browser with NodeTool Cloud.",
+    "NodeTool is the open-source, agent-first creative workspace for film production. Every editor — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools, around 120 in all: pitch your concept and the agent drafts the script, casts the voices, boards the scenes, generates the footage, and cuts a multi-track timeline you can still edit, running on every major model from every major provider with your own keys. It runs as a desktop app on macOS, Windows, and Linux, or in the browser with NodeTool Cloud.",
   applicationCategory: "MultimediaApplication",
   applicationSubCategory: "Creative AI Workspace",
   operatingSystem: "macOS, Windows, Linux",
@@ -68,7 +68,7 @@ export const organizationSchema: JsonLdObject = {
     "https://discord.gg/WmQTWZRcYE",
   ],
   description:
-    "NodeTool builds the open, agent-first creative workspace: every editor is exposed to agents as tools, connecting every major model from every major provider using the user's own keys, available as a desktop app and as a hosted browser edition.",
+    "NodeTool builds the open, agent-first creative workspace: every editor is exposed to agents as tools, connecting every major model from every major provider using the creator's own keys, available as a desktop app and as a hosted browser edition.",
 };
 
 /** The demo video on the home page. Emitted by the page that shows it. */
@@ -77,7 +77,7 @@ export const demoVideoSchema: JsonLdObject = {
   "@type": "VideoObject",
   name: "NodeTool — the open, agent-first creative workspace (demo)",
   description:
-    "A walkthrough of NodeTool: connecting image, video, audio, and text models from every major provider on one visual canvas, using your own keys.",
+    "A trailer built end to end in NodeTool: the agent drafts the script, boards the shots, generates the footage, and cuts the timeline — on one canvas, with your own keys.",
   thumbnailUrl: "https://nodetool.ai/preview.png",
   contentUrl: "https://nodetool.ai/demo.mp4",
   uploadDate: "2026-01-01",

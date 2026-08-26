@@ -130,10 +130,10 @@ export default function MoviePosterUseCase() {
                 Movie Poster Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
-                Type a title, a genre, and an audience. The canvas writes a real
+                Pitch a title, a genre, and an audience. The agent writes a real
                 creative strategy and renders a batch of cinematic poster
-                concepts, no designer, no brief deck, one canvas you can re-run
-                for any film.
+                concepts — no designer, no brief deck, one canvas you re-run for
+                any film.
               </p>
             </motion.div>
 
@@ -300,11 +300,11 @@ export default function MoviePosterUseCase() {
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Make it yours
+                Direct it yourself
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                Nothing here is locked. Swap models, shift the tone, or point it
-                at a different title.
+                Nothing here is locked. Swap models, shift the tone, re-roll a
+                concept, or point the whole thing at a different title.
               </p>
             </div>
 
@@ -344,8 +344,8 @@ export default function MoviePosterUseCase() {
                   </h2>
                   <p className="mt-4 text-slate-400 leading-relaxed">
                     Called with your own keys. The bill comes from the provider,
-                    not from us, and you can switch any of them for a better
-                    model the day it ships.
+                    not from us — no token markups — and you can switch any of
+                    them for a better model the day it ships.
                   </p>
                   <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300">
                     <Check className="h-4 w-4" />
@@ -390,8 +390,8 @@ export default function MoviePosterUseCase() {
               Design your poster set
             </h2>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-              Free, open source, and yours to run. Download Studio, open this
-              workflow, and render a campaign in minutes.
+              Download the open-source studio for macOS, Windows, and Linux,
+              open this workflow, and render a campaign in minutes.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

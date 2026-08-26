@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 const TITLE = "The Agent-First Workspace in Your Browser — NodeTool Cloud (Alpha)";
 const DESCRIPTION =
-  "The agent-first workspace in your browser — no install, no GPU required. Tell the agent what you want and it builds and runs the workflow. NodeTool Cloud is the hosted, browser-based edition of the open-source NodeTool platform, currently in alpha (not yet generally available). Bring your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more. AGPL-3.0.";
+  "The agent-first studio in your browser — no install, no GPU required. Pitch your idea and the agent drafts the script, boards the scenes, generates the footage, and cuts a timeline you can still edit. NodeTool Cloud is the hosted, browser-based edition of the open-source NodeTool platform, currently in alpha (not yet generally available). Bring your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more. AGPL-3.0.";
 
 export const metadata: Metadata = {
   title: TITLE,

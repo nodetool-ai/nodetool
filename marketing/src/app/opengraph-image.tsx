@@ -6,8 +6,8 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return ogImage(
-    "From prompt to final cut on one canvas",
-    "Every model. Your keys. One workspace.",
+    "You direct the vision. The agent builds the film.",
+    "Every model. Your keys. A timeline you can still edit.",
     { image: "screen_canvas.png", accent: "blue" }
   );
 }

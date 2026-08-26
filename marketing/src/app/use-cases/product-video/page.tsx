@@ -121,9 +121,10 @@ export default function ProductVideoUseCase() {
                 Product Video Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
-                Turn a campaign brief and a single product photo into a
-                cinematic 16:9 product video. No editor, no agency, one
-                canvas you can re-run for every new product.
+                Pitch a campaign brief and one product photo, and the agent
+                returns a cinematic 16:9 spot on an editable timeline. No
+                agency, no export hops, one canvas you re-run for every new
+                product.
               </p>
             </motion.div>
 
@@ -296,11 +297,11 @@ export default function ProductVideoUseCase() {
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Make it yours
+                Direct it yourself
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                Nothing here is locked. Swap models, change the tone, or point it
-                at a different product.
+                Nothing here is locked. Swap models, shift the tone, re-roll a
+                shot, or point the whole thing at a different product.
               </p>
             </div>
 
@@ -340,8 +341,8 @@ export default function ProductVideoUseCase() {
                   </h2>
                   <p className="mt-4 text-slate-400 leading-relaxed">
                     Called with your own keys. The bill comes from the provider,
-                    not from us, and you can switch any of them for a better
-                    model the day it ships.
+                    not from us — no token markups — and you can switch any of
+                    them for a better model the day it ships.
                   </p>
                   <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300">
                     <Check className="h-4 w-4" />
@@ -386,8 +387,8 @@ export default function ProductVideoUseCase() {
               Build your product video
             </h2>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-              Free, open source, and yours to run. Download Studio, open this
-              workflow, and ship your first spot today.
+              Download the open-source studio for macOS, Windows, and Linux,
+              open this workflow, and ship your first spot today.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

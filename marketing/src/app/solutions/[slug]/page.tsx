@@ -209,8 +209,8 @@ export default async function SolutionPage({
               Build it on your own machine
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-400">
-              Free, open source, and yours to run. Download Studio, open the template, and make
-              it yours with your own keys.
+              Download the open-source studio for macOS, Windows, and Linux. Open
+              the template and direct it yourself, on your own keys.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

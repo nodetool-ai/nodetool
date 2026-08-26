@@ -1,6 +1,6 @@
 # NodeTool
 
-*Every model. Your keys. Your canvas.*
+*You direct the vision. The agent builds the film.*
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
 [![Downloads](https://img.shields.io/github/downloads/nodetool-ai/nodetool/total?color=3fb950)](https://github.com/nodetool-ai/nodetool/releases)
@@ -11,14 +11,24 @@
 
 ![NodeTool node editor](marketing/public/screen_canvas.webp)
 
-NodeTool is an open-source creative AI suite that runs on your machine. A
-node-based canvas, a video timeline, a sketch editor, storyboards and mini-apps
-share one workspace, and every major AI model, cloud or local, plugs straight
-in.
+NodeTool is an open-source AI production studio that runs on your machine.
+Describe your idea and the agent writes the script, boards every scene,
+generates the footage, and cuts the timeline — then hands you an editable
+multi-track project, not a flat render.
+
+A node canvas, a video timeline, a sketch editor, storyboards, and mini-apps
+share one workspace, and every major model, cloud or local, plugs straight in.
 
 It is agent-first: every action you can take in the UI is also an agent tool,
 so an agent can wire a graph, paint a layer, cut a clip, or place a widget on
 the same surfaces you use, then run the result and repair what fails.
+
+* **01 / Pitch** — tell the agent your concept, style, and tone. It drafts the
+  script, casts the voices, and sets the visual direction.
+* **02 / Automate** — it storyboards the scenes, generates the footage, syncs
+  the audio, and cuts it together on a multi-track timeline.
+* **03 / Direct** — jump in at any moment. Swap a voice take, re-roll a clip, or
+  trim frames. The agent builds the foundation; you make the final cut.
 
 ## Get NodeTool
 
@@ -56,14 +66,14 @@ are available for Linux. Developers can skip the installer and
 More in the [showcase](https://nodetool.ai/showcase) and the
 [template gallery](https://nodetool.ai/templates).
 
-## Why NodeTool
+## Local. Open. Yours.
 
-Closed platforms lock you in. NodeTool is built for independence.
+No locked project formats, no token markups, zero subscription traps.
 
-* **Independent pricing.** Your own API keys, provider prices, no markup — or
-  local models for free.
-* **Independent data.** Workflows, keys, and files stay on your machine.
-* **Independent software.** Open source, AGPL-3.0.
+* **Bring your own keys.** Provider prices, billed by the provider — or open
+  weights on your own hardware for free.
+* **Your files stay yours.** Projects, keys, and footage stay on your machine.
+* **Open source.** AGPL-3.0, end to end. Read it, fork it, host it.
 
 If a provider raises prices or deprecates a model, swap the node. The rest of
 the workflow doesn't change.
@@ -109,10 +119,10 @@ cost. See the [agent guide](https://docs.nodetool.ai/agents/) and
 | | |
 | :--- | :--- |
 | **Node canvas** | Drag-and-drop nodes, type-safe connections, live output at every node |
-| **Video editor** | Multi-track timeline — sequence, composite, and AI-generate clips, then export MP4 |
+| **Video editor** | A real multi-track timeline — sequence, composite, and generate clips, then export MP4 |
 | **Sketch editor** | Layered paint canvas — draw, mask, and generate onto layers, feed the result downstream |
-| **Storyboard** | Brief → screenplay → stills you pick from → clips → an assembled cut |
-| **Script editor** | Write a script, cast a voice per speaker, audition takes, send them to a timeline |
+| **Storyboard** | Pitch → screenplay → stills you pick from → clips → an assembled cut |
+| **Script editor** | Draft a script, cast a voice per character, audition takes, send them to a timeline |
 | **Mini apps** | Wire widgets to workflow inputs and outputs and publish a version |
 | **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layers, compositing |
 
@@ -121,7 +131,7 @@ cost. See the [agent guide](https://docs.nodetool.ai/agents/) and
 | | |
 | :--- | :--- |
 | **Every modality** | Image, video, audio, and text in one workflow |
-| **BYOK everywhere** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace |
+| **BYOK everywhere** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace — no markups |
 | **Local inference** | Ollama, MLX (Apple Silicon), and GGUF |
 | **Document search** | Built-in vector store for indexing and querying your files |
 | **JS scripts** | Versioned JavaScript documents with ports, tests, and a sandbox |
@@ -177,11 +187,11 @@ workflow it binds — and import it anywhere.
 [App builder guide →](https://docs.nodetool.ai/app-builder) ·
 [Mini apps guide →](https://docs.nodetool.ai/mini-apps)
 
-### Storyboard — plan a film shot by shot before you pay for video
+### Storyboard — board the film shot by shot before you pay for video
 
 ![NodeTool storyboard](marketing/public/surface-storyboard-poster.webp)
 
-Write a brief and a visual style, pick a shot count, and press **Direct**: the
+Pitch a concept and a visual style, pick a shot count, and press **Direct**: the
 Director node returns a typed screenplay — logline, style bible, narration,
 music direction, and one structured shot per card with action, camera, motion,
 and duration.
@@ -204,14 +214,14 @@ with `render_storyboard_stills`, `render_storyboard_clips`, and
 
 [Creative agent guide →](https://docs.nodetool.ai/creative-agent)
 
-### Script editor — narration as a document, audio derived from it
+### Script editor — scripting and casting, with the words as the source of truth
 
 ![NodeTool script editor — the transcript panel beside the sequence it assembles into](marketing/public/surface-script-poster.webp)
 
 A script lives on its own, line by line and section by section, and the text is
 the source of truth.
 
-* **Cast a voice per speaker.** Each speaker carries a provider, model, and
+* **Cast a voice per character.** Each speaker carries a provider, model, and
   voice; every line inherits it unless you override the line.
 * **Takes, not overwrites.** Voicing a line saves a take with its own word
   timings. Audition several, keep the one you want.
@@ -224,15 +234,16 @@ An agent does the same without the editor open: `voice_script_lines` voices
 every draft or stale line with its cast voice, and `assemble_script_timeline`
 cuts the result into a saved sequence that `validate_timeline` then checks.
 
-### Video editor — a generation-aware multi-track timeline
+### Video editor — a real multi-track timeline, not a black box
 
 ![NodeTool video editor](screen_video_editor.png)
 
+Instead of a single unfixable video file, you get a fully editable project.
 Drop in your own footage or bind a workflow to a clip — text-to-image,
 image-to-video, or text-to-speech — and generate it in place. Change a parameter
 and the clip regenerates; tweak the bound workflow and the clip flags itself
-stale. Composite a live preview across video, audio, and overlay tracks, then
-export the sequence to MP4.
+stale. Fine-tune every frame, layer, and audio stem across video, audio, and
+overlay tracks, then export the sequence to MP4.
 
 [Video editor guide →](https://docs.nodetool.ai/video-editor)
 
@@ -282,7 +293,7 @@ Agents get the same surface through `list_js_scripts`, `save_js_script`,
 
 | | NodeTool | ComfyUI | Weavy | n8n |
 | :--- | :--- | :--- | :--- | :--- |
-| **Built for** | Creatives working with AI | Stable Diffusion power users | Creative teams (now part of Figma) | Business workflows |
+| **Built for** | Filmmakers and creators working with AI | Stable Diffusion power users | Creative teams (now part of Figma) | Business workflows |
 | **Modalities** | Image, video, audio, text | Image, video | Image, video | Text |
 | **Agents** | Every editor is a toolbelt; agents build, run, and repair | Community extensions | Assistant features | AI nodes in a workflow |
 | **Models** | Every major provider, BYOK | Stable Diffusion | Curated marketplace | API integrations |
