@@ -79,16 +79,28 @@ export function isValidSkillDescription(description: string): boolean {
 export function parseSkillDocument(source: string): SkillDocument | null {
   if (!source.startsWith("---")) return null;
 
-  // Frontmatter is delimited by the first two `---` fences. Rejoin everything
-  // after the second fence so a `---` horizontal rule inside the body is
-  // preserved rather than truncated (a limited `split` would discard the tail).
-  const parts = source.split("---");
-  if (parts.length < 3) return null;
+  // Frontmatter is delimited by the first two `---` fences, and a fence is a
+  // whole line. Scanning for the closing line keeps a `---` written inside a
+  // value from ending the frontmatter early: splitting on the substring cut
+  // the description at the dashes and spilled the rest of the frontmatter into
+  // the body, which then read as instructions. `trim` also drops the `\r` of a
+  // CRLF source.
+  const lines = source.split("\n");
+  let close = -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === "---") {
+      close = i;
+      break;
+    }
+  }
+  if (close === -1) return null;
 
-  const metadata = parseFrontmatter(parts[1] ?? "");
+  const metadata = parseFrontmatter(lines.slice(1, close).join("\n"));
   const name = (metadata["name"] ?? "").trim();
   const description = (metadata["description"] ?? "").trim();
-  const instructions = parts.slice(2).join("---").trim();
+  // Everything after the closing fence, so a `---` horizontal rule inside the
+  // body survives.
+  const instructions = lines.slice(close + 1).join("\n").trim();
 
   if (!isValidSkillName(name)) return null;
   if (!isValidSkillDescription(description)) return null;
