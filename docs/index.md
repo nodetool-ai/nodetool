@@ -4,10 +4,10 @@ description: "NodeTool — the open creative AI workspace. Ask an agent to build
 ---
 
 <section class="home-hero">
-  <p class="eyebrow">The open creative AI workspace</p>
-  <h1>Ask for it. Then take the controls.</h1>
+  <p class="eyebrow">A free and open AI workspace</p>
+  <h1>Tell the AI what to make. Then you take control.</h1>
   <p class="lead">
-   Describe what you want and NodeTool's agent builds it: a workflow, a layered image, a video cut, a small app. Everything it makes lands on a canvas you can open, inspect, and change by hand. Your keys or your own hardware. Open source, AGPL-3.0.
+   Tell NodeTool what you need, and its agent will build it for you. It can create workflows, images, videos, or simple apps. Everything it makes appears on a canvas where you can easily view and edit it yourself. You can use your own accounts or your own computer. It is open source and free to use (AGPL-3.0).
   </p>
   <img src="{{ '/assets/home.png' | relative_url }}" alt="NodeTool canvas" class="home-screenshot">
   <div class="cta-row">
@@ -19,20 +19,17 @@ description: "NodeTool — the open creative AI workspace. Ask an agent to build
 
 ## Start by asking
 
-One agent runs through the whole app. It reads the document you have open and
-edits it with the same actions you would use by hand, so its work is a normal
-workflow, sketch, or timeline afterwards. Nothing it builds is locked, and
-nothing it builds is hidden.
+One agent works across the whole app. It looks at your open document and edits it just like you would. This means everything it creates acts like a normal workflow, drawing, or timeline. Nothing is locked, and nothing is hidden from you.
 
 <div class="pattern-grid">
   <article class="pattern-card">
     <h5>Say what you want</h5>
-    <p>"Turn this logline into a storyboard and a cut teaser." The agent picks nodes, wires them, chooses models, and runs it.</p>
+    <p>"Turn this story idea into a storyboard and a short video trailer." The agent picks the right parts, connects them, chooses the best tools, and runs it all.</p>
     <a href="{{ '/global-chat-agents' | relative_url }}">Chat &amp; Agents →</a>
   </article>
   <article class="pattern-card">
     <h5>Watch it work</h5>
-    <p>Every step streams: the plan, each tool call, each node as it lights up. A permission chip sets whether it asks first.</p>
+    <p>You can see everything happen in real-time: the plan, every tool it uses, and every part as it works. A simple setting lets you choose if it needs your permission before doing anything.</p>
     <a href="{{ '/global-chat' | relative_url }}#agent-mode">The agent loop →</a>
   </article>
   <article class="pattern-card">
@@ -42,11 +39,7 @@ nothing it builds is hidden.
   </article>
 </div>
 
-The same agent works on every surface: the node graph, the [Sketch
-Editor]({{ '/sketch-editor' | relative_url }}), the [Video
-Editor]({{ '/video-editor' | relative_url }}), scripts and storyboards, and the
-[App Builder]({{ '/app-builder' | relative_url }}). Ask it to add a track, paint
-a layer, revise a shot, or wire a form field, and watch the document change.
+The same agent works everywhere: the node view, the [Sketch Editor]({{ '/sketch-editor' | relative_url }}), the [Video Editor]({{ '/video-editor' | relative_url }}), scripts, storyboards, and the [App Builder]({{ '/app-builder' | relative_url }}). Just ask it to add a new music track, draw a layer, change a video clip, or connect a form, and watch it happen.
 
 ## Featured use cases
 
@@ -100,14 +93,14 @@ story. [See all use cases →]({{ '/use-cases' | relative_url }})
 
 ## What you can do
 
-* **Have the agent build it** — Describe the outcome and it assembles the graph, picks the models, runs it, and reports what came back.
-* **Edit what it built** — Click a node, change a value, re-run. Nothing is generated behind glass; the graph is a file you own.
-* **Put agents inside the pipeline too** — An Agent node plans, calls tools, and streams, as one step of a larger workflow.
-* **Mix models from every vendor** — Wire Flux next to GPT-5.6 next to ElevenLabs in one graph. Pick the best model per step, not per project.
-* **Run frontier models locally** — Ollama, MLX, and GGUF on your hardware. Works offline. Files never leave your disk.
-* **Bring your own keys** — Pay OpenAI, Anthropic, Gemini, Replicate, FAL, and ElevenLabs directly. No credit markup, no provider tax.
-* **Ship a workflow as a Mini-App** — Hide the graph, expose just inputs and outputs. Share a link, no install required.
-* **Chat with your documents** — Local SQLite-vec, embeddings, RAG. Your data never leaves the machine.
+* **Let the AI build it** — Describe what you want, and it puts everything together, chooses the tools, runs them, and shows you the result.
+* **Edit what it built** — Click any part, change its settings, and run it again. Nothing is hidden; you own everything it creates.
+* **Put AI inside your workflows** — You can make an agent act as one step in a larger process, letting it plan and use tools.
+* **Mix models from anywhere** — Use different AI models together, like an image maker with a text writer and a voice generator, all in one place. Choose the best tool for each specific job.
+* **Run advanced models on your computer** — Run powerful models directly on your hardware. It works without the internet, and your files stay private.
+* **Use your own accounts** — Pay AI companies like OpenAI or Google directly. We do not add any extra fees or charges.
+* **Share your workflow as a Mini-App** — Turn your complex work into a simple app with just inputs and outputs. Share a link, and others can use it without installing anything.
+* **Chat with your documents** — Search and talk to your own files securely. Your data stays safely on your computer.
 
 ## Studio or Cloud
 
