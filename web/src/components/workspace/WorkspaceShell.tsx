@@ -98,7 +98,6 @@ const WorkspaceShell = () => {
   );
   const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
-  const panelSize = usePanelStore((state) => state.panel.panelSize);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Cmd+W ("Close Tab") closes the active tab for every surface, not just the
@@ -118,11 +117,18 @@ const WorkspaceShell = () => {
   // full-bleed. The width here mirrors PanelLeft's drawer sizing.
   // On mobile PanelLeft renders as a floating hamburger + bottom sheet, so
   // there is no rail to clear — the content runs full-bleed.
+  const needsDrawerGutter =
+    !isMobile && activeTab?.type === "timeline" && panelVisible;
+  // Read the size only in that case: subscribing unconditionally re-rendered
+  // the shell on every pointer frame of a left-panel drag.
+  const drawerWidth = usePanelStore((state) =>
+    needsDrawerGutter ? state.panel.panelSize : 0
+  );
   const contentMarginLeft = isMobile
     ? 0
-    : activeTab?.type === "timeline" && panelVisible
+    : needsDrawerGutter
       ? TOOLBAR_WIDTH +
-        Math.max(panelSize - TOOLBAR_WIDTH, LEFT_PANEL_MIN_DRAWER_WIDTH)
+        Math.max(drawerWidth - TOOLBAR_WIDTH, LEFT_PANEL_MIN_DRAWER_WIDTH)
       : TOOLBAR_WIDTH;
 
   // Keep the WorkflowManager's "current workflow" aligned with the active
