@@ -7,7 +7,7 @@ description: "NodeTool — the open creative AI workspace. Ask an agent to build
   <p class="eyebrow">A free and open AI workspace</p>
   <h1>Tell the AI what to make. Then you take control.</h1>
   <p class="lead">
-   Tell NodeTool what you need, and its AI helper will build it for you. It can create workflows, images, videos, or simple apps. Everything it makes appears on a canvas where you can easily view and edit it yourself. You can use your own accounts or your own computer. It is open source and free to use (AGPL-3.0).
+   Tell NodeTool what you need, and its agent will build it for you. It can create workflows, images, videos, or simple apps. Everything it makes appears on a canvas where you can easily view and edit it yourself. You can use your own accounts or your own computer. It is open source and free to use (AGPL-3.0).
   </p>
   <img src="{{ '/assets/home.png' | relative_url }}" alt="NodeTool canvas" class="home-screenshot">
   <div class="cta-row">
@@ -19,12 +19,12 @@ description: "NodeTool — the open creative AI workspace. Ask an agent to build
 
 ## Start by asking
 
-One AI helper works across the whole app. It looks at your open document and edits it just like you would. This means everything it creates acts like a normal workflow, drawing, or timeline. Nothing is locked, and nothing is hidden from you.
+One agent works across the whole app. It looks at your open document and edits it just like you would. This means everything it creates acts like a normal workflow, drawing, or timeline. Nothing is locked, and nothing is hidden from you.
 
 <div class="pattern-grid">
   <article class="pattern-card">
     <h5>Say what you want</h5>
-    <p>"Turn this story idea into a storyboard and a short video trailer." The AI helper picks the right parts, connects them, chooses the best tools, and runs it all.</p>
+    <p>"Turn this story idea into a storyboard and a short video trailer." The agent picks the right parts, connects them, chooses the best tools, and runs it all.</p>
     <a href="{{ '/global-chat-agents' | relative_url }}">Chat &amp; Agents →</a>
   </article>
   <article class="pattern-card">
@@ -39,7 +39,7 @@ One AI helper works across the whole app. It looks at your open document and edi
   </article>
 </div>
 
-The same AI helper works everywhere: the node view, the [Sketch Editor]({{ '/sketch-editor' | relative_url }}), the [Video Editor]({{ '/video-editor' | relative_url }}), scripts, storyboards, and the [App Builder]({{ '/app-builder' | relative_url }}). Just ask it to add a new music track, draw a layer, change a video clip, or connect a form, and watch it happen.
+The same agent works everywhere: the node view, the [Sketch Editor]({{ '/sketch-editor' | relative_url }}), the [Video Editor]({{ '/video-editor' | relative_url }}), scripts, storyboards, and the [App Builder]({{ '/app-builder' | relative_url }}). Just ask it to add a new music track, draw a layer, change a video clip, or connect a form, and watch it happen.
 
 ## Featured use cases
 
@@ -95,7 +95,7 @@ story. [See all use cases →]({{ '/use-cases' | relative_url }})
 
 * **Let the AI build it** — Describe what you want, and it puts everything together, chooses the tools, runs them, and shows you the result.
 * **Edit what it built** — Click any part, change its settings, and run it again. Nothing is hidden; you own everything it creates.
-* **Put AI inside your workflows** — You can make an AI helper act as one step in a larger process, letting it plan and use tools.
+* **Put AI inside your workflows** — You can make an agent act as one step in a larger process, letting it plan and use tools.
 * **Mix models from anywhere** — Use different AI models together, like an image maker with a text writer and a voice generator, all in one place. Choose the best tool for each specific job.
 * **Run advanced models on your computer** — Run powerful models directly on your hardware. It works without the internet, and your files stay private.
 * **Use your own accounts** — Pay AI companies like OpenAI or Google directly. We do not add any extra fees or charges.
