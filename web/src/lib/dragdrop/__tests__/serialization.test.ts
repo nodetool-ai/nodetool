@@ -3,7 +3,6 @@ import {
   deserializeDragData,
   hasExternalFiles,
   extractFiles,
-  createDragCountBadge,
   DRAG_DATA_MIME
 } from "../serialization";
 import { stub } from "../../../test-utils/doubles";
@@ -337,23 +336,6 @@ describe("serialization", () => {
       expect(result).toHaveLength(2);
       expect(result[0]).toBe(file1);
       expect(result[1]).toBe(file2);
-    });
-  });
-
-  describe("createDragCountBadge", () => {
-    it("should create a styled div with the count", () => {
-      const badge = createDragCountBadge(5);
-
-      expect(badge.tagName).toBe("DIV");
-      expect(badge.textContent).toBe("5");
-      expect(badge.style.position).toBe("absolute");
-      expect(badge.style.display).toBe("flex");
-    });
-
-    it("should handle single item count", () => {
-      const badge = createDragCountBadge(1);
-
-      expect(badge.textContent).toBe("1");
     });
   });
 });

@@ -18,7 +18,6 @@ export {
   deserializeDragData,
   hasExternalFiles,
   extractFiles,
-  createDragCountBadge,
   resolveAssetsMultiple,
   DRAG_DATA_MIME
 } from "./serialization";
