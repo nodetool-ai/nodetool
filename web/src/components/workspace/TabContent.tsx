@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { memo, Suspense } from "react";
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import { LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
@@ -71,9 +71,13 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
  * Resolves a workspace tab's `(type, mode)` to its editor surface. Most types
  * delegate to a `{ refId, mode, active }` surface that wraps the existing
  * viewer/editor for that document type.
+ *
+ * Memoized because every open tab stays mounted: without it, one WorkspaceShell
+ * render re-renders every surface at once. `WorkspaceTabsStore` replaces a tab
+ * object only when that tab changes, so the shallow compare holds.
  */
 const TabContent = ({ tab, active }: TabContentProps) => (
   <Suspense fallback={<LoadingSpinner />}>{surfaceFor(tab, active)}</Suspense>
 );
 
-export default TabContent;
+export default memo(TabContent);
