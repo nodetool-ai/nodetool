@@ -39,19 +39,23 @@ const ALWAYS_ALLOWED_PACKAGES = new Set(["kernel", "execution"]);
 // A5 (docs/RELIABILITY_TASKS.md Track A) migrated
 // `packages/websocket/src/unified-websocket-runner.ts` onto
 // `ExecutionSession` — it no longer imports `WorkflowRunner` at all, so it's
-// removed from this list rather than left in place. `http-api.ts` and
-// `mcp-server.ts` construct `WorkflowRunner` through their own, independent
-// `getWorkflowRuntimeEnvironment`/`getRuntimeEnvironment` helper (a third
-// executor-resolution pattern, per the execution package README's inventory
-// table) — a separate migration, not part of A5, so they stay listed.
+// removed from this list rather than left in place.
 // `packages/agents/src/agent-workflow-runner.ts` was flattened into
 // `execute-agent-graph.ts`, which now runs its graph through
 // `ExecutionSession` — the entry is dropped, not renamed onto the new path.
+// `http-api.ts` and `mcp-server.ts` followed: `http-api.ts` runs every
+// workflow through `runWorkflow` from `@nodetool-ai/execution/service` and
+// only supplies the environment, and `mcp-server.ts` no longer runs workflows
+// at all. Neither imports `WorkflowRunner`, so both entries are gone and the
+// check now guards those two files.
+//
+// The three that remain are the ones the execution package's own inventory
+// table marks out of scope for the facade — a child runner inside a running
+// parent node, the DSL's multi-registry resolver, and the browser runner.
+// See packages/execution/README.md.
 const ALLOWLIST = new Set([
   "packages/core-nodes/src/nodes/run-inner-graph.ts",
   "packages/dsl/src/core.ts",
-  "packages/websocket/src/mcp-server.ts",
-  "packages/websocket/src/http-api.ts",
   "packages/workflow-runner/src/run.ts"
 ]);
 
