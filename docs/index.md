@@ -163,8 +163,8 @@ More patterns — pipelines, data, RAG, email — in the [Cookbook]({{ '/cookboo
 
 <ol class="step-sequence">
   <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> for macOS, Windows, or Linux.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-2--ask-for-what-you-want">Connect a provider and ask the agent for something.</a></li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-4--change-something">Open what it built, change it, ship it as a Mini-App.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-and-connect-your-models">Connect a language, image, and video model.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-2--ask-the-agent-for-a-storyboard">Ask the agent for a storyboard, render it, and export the film.</a></li>
 </ol>
 
 ## Explore
