@@ -113,15 +113,19 @@ export default function StudioPage() {
   }, []);
 
   useEffect(() => {
-    if (reducedMotion) return;
+    // The grid is a viewport-sized fixed layer, so it scrolls via
+    // background-position. Reduced motion pins it to the page (factor 1)
+    // instead of parallaxing it.
+    const factor = reducedMotion ? 1 : 0.5;
     let ticking = false;
     const handleScroll = () => {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
         if (parallaxRef.current) {
-          const yOffset = window.scrollY * 0.5;
-          parallaxRef.current.style.transform = `translate3d(0, ${yOffset}px, 0)`;
+          parallaxRef.current.style.backgroundPositionY = `${
+            -window.scrollY * factor
+          }px`;
         }
         ticking = false;
       });
@@ -168,13 +172,12 @@ export default function StudioPage() {
         <div
           aria-hidden="true"
           className="absolute inset-0"
-          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(2px)" }}
+          style={{ background: "rgba(0,0,0,0.7)" }}
         />
         <div
           ref={parallaxRef}
           aria-hidden="true"
-          className="h-full w-full will-change-transform bg-grid-pattern"
-          style={{ transform: "translate3d(0,0,0)" }}
+          className="fixed inset-0 bg-grid-pattern"
         />
       </div>
 
