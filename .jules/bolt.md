@@ -99,3 +99,6 @@
 ## 2026-05-25 - O(N*C^2) mapping optimization in TableActions paste operation
 **Learning:** Found an $O(N \times C^2)$ performance bottleneck in `web/src/components/node/DataTable/TableActions.tsx` when pasting large sets of data into the DataTable. For every column in every row, the code looped over `columnMapping.entries()` (which is size $C$) to find the corresponding paste column index.
 **Action:** Replaced the paste column index lookup via `Map.entries()` iteration with a pre-computed `$O(1)$` lookup. By inverting the map from `columnMapping` to `dfIdxToPasteIdx` (mapping dataframe column index to pasted index), the time complexity of pasting data is reduced to $O(N \times C)$.
+## 2024-06-25 - Bolt: Optimize provider instantiation to run in parallel
+**Learning:** Checking configurations and instantiating providers sequentially in a `for...of` loop creates an O(N) wait bounded by I/O. Using `Promise.all` mapping over the array of provider IDs resolves them in parallel, reducing wait time to roughly O(1) in terms of latency, resulting in significantly faster resolution (e.g. going from 252ms down to 50ms in testing).
+**Action:** Refactored `getProvidersInfo` in `packages/websocket/src/models-api.ts` to utilize `Promise.all` and `.map` to fetch providers concurrently instead of iterating sequentially with `await` in a loop.
