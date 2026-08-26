@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useGridParallax, usePrefersReducedMotion } from "../lib/useGridParallax";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 // Static imports so every section is server-rendered into the HTML (P1).
 // These components are SSR-safe (no window/document at render, no ReactFlow);
@@ -117,49 +118,11 @@ const providerBadgeBorderColors = [
 ];
 
 // Prefer reduced motion hook
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(m.matches);
-    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
-    m.addEventListener?.("change", onChange);
-    return () => m.removeEventListener?.("change", onChange);
-  }, []);
-  return reduced;
-}
-
 export default function Home() {
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const stars = useGithubStars();
-  const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
-
-  // Parallax with reduced-motion guard and passive scroll
-  useEffect(() => {
-    // The grid is a viewport-sized fixed layer, so it scrolls via
-    // background-position. Reduced motion pins it to the page (factor 1)
-    // instead of parallaxing it.
-    const factor = reducedMotion ? 1 : 0.5;
-
-    let ticking = false;
-    const handleScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        if (parallaxRef.current) {
-          parallaxRef.current.style.backgroundPositionY = `${
-            -window.scrollY * factor
-          }px`;
-        }
-        ticking = false;
-      });
-    };
-
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [reducedMotion]);
+  const parallaxRef = useGridParallax();
 
   // Close modal via ESC and manage focus
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {

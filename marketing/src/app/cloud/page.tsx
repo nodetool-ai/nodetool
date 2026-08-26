@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import { useGridParallax, usePrefersReducedMotion } from "../../lib/useGridParallax";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import {
@@ -39,18 +40,6 @@ const ContactSection = dynamic(
 );
 
 const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(m.matches);
-    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
-    m.addEventListener?.("change", onChange);
-    return () => m.removeEventListener?.("change", onChange);
-  }, []);
-  return reduced;
-}
 
 const proPoints = [
   {
@@ -106,8 +95,8 @@ const consPoints = [
 
 export default function CloudPage() {
   const [stars, setStars] = useState<number | null>(null);
-  const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
+  const parallaxRef = useGridParallax();
 
   useEffect(() => {
     fetch("https://api.github.com/repos/nodetool-ai/nodetool")
@@ -115,29 +104,6 @@ export default function CloudPage() {
       .then((j) => setStars(j.stargazers_count))
       .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    // The grid is a viewport-sized fixed layer, so it scrolls via
-    // background-position. Reduced motion pins it to the page (factor 1)
-    // instead of parallaxing it.
-    const factor = reducedMotion ? 1 : 0.5;
-    let ticking = false;
-    const handleScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        if (parallaxRef.current) {
-          parallaxRef.current.style.backgroundPositionY = `${
-            -window.scrollY * factor
-          }px`;
-        }
-        ticking = false;
-      });
-    };
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [reducedMotion]);
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
