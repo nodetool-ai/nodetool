@@ -27,7 +27,8 @@ import {
   CLASSNAME_TO_MODEL_TYPE,
   KNOWN_TYPE_REPO_MATCHERS,
   SINGLE_FILE_DIFFUSION_EXTENSIONS,
-  HF_DEFAULT_FILE_PATTERNS
+  HF_DEFAULT_FILE_PATTERNS,
+  UnifiedModel
 } from "../src/hf-models.js";
 
 // ---------------------------------------------------------------------------
@@ -640,6 +641,152 @@ describe("_matchesModelType", () => {
       path: null
     };
     expect(_matchesModelType(model, "hf.flux")).toBe(false);
+  });
+
+  const hfModel = (overrides: Partial<UnifiedModel> = {}): UnifiedModel => ({
+    id: "org/repo",
+    type: null,
+    name: "Model",
+    repo_id: "org/repo",
+    path: null,
+    ...overrides
+  });
+
+  describe("declared model type", () => {
+    it("matches a declared checkpoint variant against the base request", () => {
+      const model = hfModel({ type: "hf.flux_checkpoint", path: "flux.safetensors" });
+      expect(_matchesModelType(model, "hf.flux")).toBe(true);
+    });
+
+    it("matches a declared base type against a checkpoint request", () => {
+      const model = hfModel({ type: "hf.flux", path: "flux.safetensors" });
+      expect(_matchesModelType(model, "hf.flux_checkpoint")).toBe(true);
+    });
+
+    it("falls through to heuristics for a generic declared type", () => {
+      const model = hfModel({ type: "hf.model", repo_id: "org/flux-thing" });
+      expect(_matchesModelType(model, "hf.flux")).toBe(true);
+    });
+
+    it("returns false for a generic declared type with no heuristic hit", () => {
+      const model = hfModel({ type: "hf.model", repo_id: "org/bert" });
+      expect(_matchesModelType(model, "hf.flux")).toBe(false);
+    });
+  });
+
+  describe("qwen image components", () => {
+    it("rejects a text-encoder file for hf.qwen_image", () => {
+      const model = hfModel({
+        type: "hf.qwen_image",
+        path: "text_encoders/qwen_2.5_vl.safetensors"
+      });
+      expect(_matchesModelType(model, "hf.qwen_image")).toBe(false);
+    });
+
+    it("rejects a vae file for hf.qwen_image_edit", () => {
+      const model = hfModel({
+        type: "hf.qwen_image_edit",
+        path: "vae/diffusion_pytorch_model.safetensors"
+      });
+      expect(_matchesModelType(model, "hf.qwen_image_edit")).toBe(false);
+    });
+
+    it("accepts a transformer file for hf.qwen_image", () => {
+      const model = hfModel({
+        type: "hf.qwen_image",
+        path: "transformer/diffusion_pytorch_model.safetensors"
+      });
+      expect(_matchesModelType(model, "hf.qwen_image")).toBe(true);
+    });
+
+    it("rejects a text-encoder file for hf.qwen_image with no declared type", () => {
+      const model = hfModel({
+        repo_id: "Comfy-Org/Qwen-Image_ComfyUI",
+        path: "text_encoder/model.safetensors"
+      });
+      expect(_matchesModelType(model, "hf.qwen_image")).toBe(false);
+    });
+
+    it("lets a qwen-image model answer an hf.vae request", () => {
+      const model = hfModel({
+        type: "hf.qwen_image",
+        repo_id: "org/qwen",
+        path: "vae/diffusion_pytorch_model.safetensors"
+      });
+      expect(_matchesModelType(model, "hf.vae")).toBe(true);
+    });
+
+    it("does not let a non-qwen model answer an hf.vae request", () => {
+      const model = hfModel({
+        type: "hf.stable_diffusion",
+        repo_id: "org/sd",
+        path: "vae/diffusion_pytorch_model.safetensors"
+      });
+      expect(_matchesModelType(model, "hf.vae")).toBe(false);
+    });
+
+    it("hf.qwen_vl requires a text-encoder path", () => {
+      const encoder = hfModel({
+        type: "hf.qwen_image",
+        path: "text_encoders/qwen_2.5_vl.safetensors"
+      });
+      const vae = hfModel({
+        type: "hf.qwen_image",
+        path: "vae/diffusion_pytorch_model.safetensors"
+      });
+      expect(_matchesModelType(encoder, "hf.qwen_vl")).toBe(true);
+      expect(_matchesModelType(vae, "hf.qwen_vl")).toBe(false);
+    });
+
+    it("hf.qwen_vl returns false when the model has no path", () => {
+      expect(_matchesModelType(hfModel(), "hf.qwen_vl")).toBe(false);
+    });
+  });
+
+  describe("heuristics", () => {
+    it("matches a known repo taken from the id when repo_id is unset", () => {
+      const model = hfModel({
+        id: "Comfy-Org/stable-diffusion-3.5-fp8:vae.safetensors",
+        repo_id: null,
+        path: "vae.safetensors"
+      });
+      expect(_matchesModelType(model, "hf.t5")).toBe(true);
+    });
+
+    it("matches on artifact family regardless of case", () => {
+      const model = hfModel({
+        repo_id: "org/mystery",
+        artifact_family: "SDXL-Base",
+        artifact_component: "UNET"
+      });
+      expect(_matchesModelType(model, "hf.stable_diffusion_xl")).toBe(true);
+    });
+
+    it("matches a keyword found in the tags", () => {
+      const model = hfModel({ repo_id: "org/mystery", tags: ["ControlNet"] });
+      expect(_matchesModelType(model, "hf.controlnet")).toBe(true);
+    });
+
+    it("matches a keyword found in the path", () => {
+      const model = hfModel({
+        repo_id: "org/mystery",
+        path: "weights/my_lora.safetensors"
+      });
+      expect(_matchesModelType(model, "hf.lora_sd")).toBe(true);
+    });
+
+    it("falls back to the derived pipeline tag", () => {
+      const model = hfModel({
+        repo_id: "org/mystery",
+        pipeline_tag: "text-to-image"
+      });
+      expect(_matchesModelType(model, "hf.text_to_image")).toBe(true);
+    });
+
+    it("returns false when nothing matches", () => {
+      const model = hfModel({ repo_id: "org/mystery", pipeline_tag: "fill-mask" });
+      expect(_matchesModelType(model, "hf.text_to_image")).toBe(false);
+    });
   });
 });
 
