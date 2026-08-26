@@ -14,7 +14,13 @@ The canvas: place nodes, connect ports, run, debug. Covers basic navigation thro
 
 ## Where this fits
 
-The workflow editor is NodeTool's automation layer. A workflow reads **assets**, calls models, and writes new assets — which flow on into the **Sketch Editor** and **Video Editor** for hand editing, come back as fresh assets, or ship to non-technical users as a **Mini-App**. Every surface shares this graph's outputs through one asset store and the same model/provider system.
+The workflow editor is NodeTool's automation layer. A workflow reads **assets**, calls AI models, and generates new assets.
+
+These new assets can then be:
+- Sent to the **Sketch Editor** or **Video Editor** for manual adjustments.
+- Packaged as a **Mini-App** for non-technical users.
+
+Everything connects back to the same shared asset store and AI models.
 
 See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
 
@@ -266,13 +272,13 @@ NodeTool includes professional editing tools for creative work.
 
 ![Sketch Editor](assets/screenshots/sketch-editor.png)
 
-Open a blank canvas from **+ New → New image** in the workspace tab bar, or edit an existing image asset, to use the full layered editor:
+Open a blank canvas (**+ New → New image** in the workspace tab bar) or edit an existing image to use the full layered editor:
 
-- **Layers**: Blend modes, per-layer opacity, lock, and visibility
-- **Painting**: Brush, pencil, eraser, fill, gradient, blur, clone stamp
-- **Shapes & transform**: Rectangle, ellipse, line, arrow, crop, free transform
-- **AI generation**: Generate a layer from a prompt or bind it to a workflow
-- **History**: Unlimited undo/redo
+- **Layers**: Control blend modes, opacity, and visibility.
+- **Painting**: Brush, pencil, eraser, fill, gradient, blur, and clone stamp tools.
+- **Shapes & Transform**: Add shapes (rectangle, ellipse, line, arrow), crop, or freely transform layers.
+- **AI Generation**: Create a layer directly from a text prompt or connect it to a workflow.
+- **History**: Unlimited undo and redo steps.
 
 > **📖 Full Guide:** See [Sketch Editor](sketch-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
 
@@ -280,19 +286,19 @@ Open a blank canvas from **+ New → New image** in the workspace tab bar, or ed
 
 ![Text and code editor](assets/screenshots/text-code-editor.png)
 
-Long string properties open in a full editor with syntax highlighting, line numbers, and search — the same surface used for code nodes.
+Long text or code properties open in a full editor featuring syntax highlighting, line numbers, and search. This is the same editor used for code nodes.
 
 ### DataFrame Editor
 
 ![DataFrame editor](assets/screenshots/dataframe-editor.png)
 
-Tabular values are edited as a spreadsheet: add and remove rows and columns, retype cells, and sort.
+Edit tabular data just like a spreadsheet: add or remove rows and columns, edit cell values, and sort your data.
 
 ### Image Comparer
 
 ![Image comparer](assets/screenshots/image-compare.png)
 
-Preview nodes that hold a before/after pair render a slider you drag across the two images.
+Preview nodes with before/after images show a slider. Drag it left or right to compare the two images.
 
 ### Color Picker
 
