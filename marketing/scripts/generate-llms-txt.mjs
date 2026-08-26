@@ -56,7 +56,7 @@ const KEY_PAGE_BLURBS = {
   "/pricing": "edition comparison and how BYOK pricing works.",
   "/agents": "the agent-first model: every editor exposed to agents as tools.",
   "/creatives": "artists, motion designers, AI-native illustrators.",
-  "/developers": "TypeScript SDK, REST API, MCP server, custom nodes in TypeScript or Python.",
+  "/developers": "The QuickJS sandbox, the node DSL inside it, and how agents drive NodeTool from sandboxed code.",
   "/marketing": "hand a brief to an agent; campaign assets at volume.",
 };
 
@@ -133,10 +133,14 @@ Cloud uses bring-your-own provider keys. See [pricing](${BASE_URL}/pricing.md) a
   "developers.md": {
     title: "NodeTool Developer Platform",
     description:
-      "Build, run, extend, and deploy NodeTool workflows with code — or through an agent.",
-    body: `NodeTool provides a TypeScript SDK, CLI, HTTP and WebSocket APIs, custom-node APIs, and a deployable workflow runtime. It is agent-first: every editor action is also an agent tool, and the full toolbelt speaks MCP, so Claude Code or any MCP-aware agent can build, validate, run, and debug workflows.
+      "One QuickJS sandbox runs every Code node body, saved script, and agent action \u2014 with the node catalog and the platform reachable by import.",
+    body: `Every piece of JavaScript NodeTool did not write itself runs in one QuickJS WebAssembly isolate: a Code node body, a saved JS script, and every action an agent takes. Same engine, same limits, same imports.
 
-Use the [CLI](https://docs.nodetool.ai/cli.md) for automation, the [node catalog](https://docs.nodetool.ai/nodes/catalog.json) to discover node schemas, and the [developer guide](https://docs.nodetool.ai/developer/index.md) to extend NodeTool.`,
+Inside the guest, capabilities are globals the host granted for that run (\`fetch\` behind an SSRF guard, a contained \`workspace\`, scoped secrets, media and canvas bridges), and libraries are imports from 38 shipped packs. Two of those packs are NodeTool's own node catalog: \`@nodetool-ai/sandbox-flow\` calls 424 node types as async functions, and \`@nodetool-ai/sandbox-dsl\` builds a workflow graph you can validate, save, and open in the editor.
+
+Agents drive NodeTool through the same surface. An agent step acts by writing a program, not by emitting a JSON tool call: the model sees one provider tool, \`execute_code({code})\`, and reaches 208 platform tools across 33 namespaces as imports from \`@nodetool-ai/sandbox-nodetool/*\`.
+
+Read the [sandbox reference](https://docs.nodetool.ai/javascript-sandbox), the [CLI](https://docs.nodetool.ai/cli.md) for the validate/run/test loop, the [node catalog](https://docs.nodetool.ai/nodes/catalog.json) for node schemas, and the [developer guide](https://docs.nodetool.ai/developer/index.md) to write custom nodes.`,
   },
   "agents.md": {
     title: "NodeTool Agents",
