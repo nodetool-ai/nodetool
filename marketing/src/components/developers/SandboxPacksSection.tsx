@@ -42,21 +42,21 @@ const hostPacks = [
 const rules = [
   {
     icon: Package,
-    title: "A pack is two declarative files",
+    title: "A pack is two config files",
     body:
-      "A package.json manifest and a SKILL.md. No shipped pack authors a line of code — the compiler bundles the npm dependency into the guest, cached by content digest, never by version.",
+      "A package.json manifest and a SKILL.md. No shipped pack writes a line of code — the compiler bundles the npm dependency into the guest and caches it by content digest, never by version.",
   },
   {
     icon: ServerCog,
     title: "Host-side when the guest cannot hold it",
     body:
-      "zip runs on the host because a 50 MB inflation cap enforced inside the guest is enforced by code the guest can decline to call. tfjs, because model weights outlive a run and outsize the 64 MB heap.",
+      "zip runs on the host because an inflation cap enforced inside the guest is enforced by code the guest can decline to call. tfjs runs there because model weights outlive a run and outsize the 64 MB heap.",
   },
   {
     icon: ShieldAlert,
     title: "A pack cannot bring host code",
     body:
-      "kind: \"host\" carries an id, never an implementation, and the id resolves only if a first-party table pins that exact package to it. The per-run dispatcher re-checks on every call.",
+      "kind: \"host\" carries an id, never an implementation, and that id resolves only if a first-party table pins the exact package to it. The per-run dispatcher re-checks on every call.",
   },
 ];
 
@@ -83,7 +83,7 @@ export default function SandboxPacksSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            38 libraries, available out of the box
+            38 built-in sandbox packs
           </motion.h2>
           <motion.p
             initial={false}
@@ -92,10 +92,10 @@ export default function SandboxPacksSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto"
           >
-            There is no library global and no second route. A body declares what
-            it needs by importing it, and the packs those imports name are
-            resolved against the installed catalog before the guest starts — so
-            an import nobody serves fails the node, not the run.
+            Bodies declare what they need by importing it. Every import is
+            resolved against the installed catalog before the guest starts, so
+            importing something we do not serve fails the node immediately —
+            not halfway through a run you already paid for.
           </motion.p>
         </div>
 
@@ -119,10 +119,11 @@ export default function SandboxPacksSection() {
           >
             <div className="rounded-2xl bg-slate-800/40 p-6 ring-1 ring-slate-700/50">
               <h3 className="text-sm font-semibold text-teal-300">
-                Compiled into the guest
+                Guest-compiled
               </h3>
               <p className="mt-1 text-xs text-slate-500">
-                esbuild bundle, scope-aware scan, QuickJS admission probe
+                Lightweight libraries bundled straight into the isolate by
+                esbuild, then scanned and probed before admission
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {guestPacks.map((p) => (
@@ -137,11 +138,11 @@ export default function SandboxPacksSection() {
             </div>
             <div className="rounded-2xl bg-slate-800/40 p-6 ring-1 ring-slate-700/50">
               <h3 className="text-sm font-semibold text-violet-300">
-                Run on the host, reached through a generated facade
+                Host-bridged
               </h3>
               <p className="mt-1 text-xs text-slate-500">
-                Needs Node builtins, a DOM, or a limit the guest could not
-                enforce on itself
+                Heavy workloads, Node builtins, a DOM, or a limit the guest
+                could not enforce on itself — reached through a generated facade
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {hostPacks.map((p) => (
