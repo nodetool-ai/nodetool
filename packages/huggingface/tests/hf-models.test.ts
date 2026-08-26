@@ -654,7 +654,10 @@ describe("_matchesModelType", () => {
 
   describe("declared model type", () => {
     it("matches a declared checkpoint variant against the base request", () => {
-      const model = hfModel({ type: "hf.flux_checkpoint", path: "flux.safetensors" });
+      const model = hfModel({
+        type: "hf.flux_checkpoint",
+        path: "flux.safetensors"
+      });
       expect(_matchesModelType(model, "hf.flux")).toBe(true);
     });
 
@@ -784,7 +787,10 @@ describe("_matchesModelType", () => {
     });
 
     it("returns false when nothing matches", () => {
-      const model = hfModel({ repo_id: "org/mystery", pipeline_tag: "fill-mask" });
+      const model = hfModel({
+        repo_id: "org/mystery",
+        pipeline_tag: "fill-mask"
+      });
       expect(_matchesModelType(model, "hf.text_to_image")).toBe(false);
     });
   });
@@ -877,9 +883,7 @@ describe("_CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING", () => {
 
   it("maps BlipForConditionalGeneration to hf.image_to_text", () => {
     expect(
-      _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING[
-        "BlipForConditionalGeneration"
-      ]
+      _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING["BlipForConditionalGeneration"]
     ).toBe("hf.image_to_text");
   });
 
