@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import { useShallow } from "zustand/react/shallow";
 import isEqual from "../../utils/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
@@ -14,9 +13,8 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import AddIcon from "@mui/icons-material/Add";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { openPageTab } from "../workspace/openPageTab";
-import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
+import { useWorkspaceExplorer } from "../../hooks/useWorkspaceExplorer";
 import WorkspaceSelect from "./WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
 
@@ -273,70 +271,51 @@ const shouldLoadChildren = (item: TreeViewItem | undefined): boolean => {
   );
 };
 
+/**
+ * Browser for the files in a workspace folder.
+ *
+ * Independent of the graph editor: it shows whichever workspace the user
+ * picked here, works with no workflow open, and changing that pick moves only
+ * this tree — a workflow keeps whatever workspace its runs write to.
+ */
 const WorkspaceTree: React.FC = () => {
   const theme = useTheme();
   const [files, setFiles] = useState<TreeViewItem[]>([]);
   const filesRef = useRef<TreeViewItem[]>([]);
   filesRef.current = files;
   const [selectedFilePath, setSelectedFilePath] = useState<string>("");
-  const [filesWorkspaceId, setFilesWorkspaceId] = useState<string | undefined>();
-  const filesWorkspaceIdRef = useRef<string | undefined>(undefined);
-  filesWorkspaceIdRef.current = filesWorkspaceId;
-  const previousWorkflowId = useRef<string | null | undefined>(undefined);
-  const { currentWorkflowId, getCurrentWorkflow } = useWorkflowManager(
-    useShallow((state) => ({
-      currentWorkflowId: state.currentWorkflowId,
-      getCurrentWorkflow: state.getCurrentWorkflow
-    }))
-  );
 
-  const currentWorkflow = getCurrentWorkflow();
-  const workflowId = currentWorkflowId ?? currentWorkflow?.id;
-  const { workspaceId, setWorkspaceId } = useCurrentWorkspace();
+  const {
+    workspaceId,
+    setWorkspaceId,
+    isLoading: isLoadingWorkspaces
+  } = useWorkspaceExplorer();
+  const workspaceIdRef = useRef<string | undefined>(workspaceId);
+  workspaceIdRef.current = workspaceId;
 
   const {
     data: initialFiles,
     isLoading: isLoadingFiles,
     refetch: refetchFiles
   } = useQuery({
-    queryKey: ["workspace-files", filesWorkspaceId],
-    queryFn: () => fetchWorkspaceFiles(filesWorkspaceId!),
-    enabled: Boolean(filesWorkspaceId)
+    queryKey: ["workspace-files", workspaceId],
+    queryFn: () => fetchWorkspaceFiles(workspaceId!),
+    enabled: Boolean(workspaceId)
   });
 
-  const handleWorkspaceChange = useCallback(
-    async (newWorkspaceId: string | undefined) => {
-      await setWorkspaceId(newWorkspaceId);
-      setFilesWorkspaceId(newWorkspaceId);
-    },
-    [setWorkspaceId]
-  );
-
+  // The query answers with the root listing; lazily-loaded children are merged
+  // into this copy as folders expand.
   useEffect(() => {
-    if (initialFiles) {
-      setFiles(initialFiles);
-    }
+    setFiles(initialFiles ?? []);
   }, [initialFiles]);
 
   useEffect(() => {
     setSelectedFilePath("");
-    setFiles([]);
-  }, [filesWorkspaceId, workflowId]);
-
-  useEffect(() => {
-    if (workflowId !== previousWorkflowId.current) {
-      previousWorkflowId.current = workflowId;
-      setFilesWorkspaceId(workspaceId ?? undefined);
-      return;
-    }
-    if (filesWorkspaceId === undefined && workspaceId) {
-      setFilesWorkspaceId(workspaceId);
-    }
-  }, [filesWorkspaceId, workflowId, workspaceId]);
+  }, [workspaceId]);
 
   const loadItemChildren = useCallback(
     async (itemId: string) => {
-      const wsId = filesWorkspaceIdRef.current;
+      const wsId = workspaceIdRef.current;
       if (!wsId) return;
 
       const currentFiles = filesRef.current;
@@ -404,25 +383,6 @@ const WorkspaceTree: React.FC = () => {
       ? selectedFilePath.split("/").filter(Boolean)
       : [];
 
-  if (!workflowId) {
-    return (
-      <Box css={workspaceTreeStyles(theme)}>
-        <PanelHeadline title="Workspace Explorer" docsTopic="workspaces" />
-        <div className="empty-workspace">
-          <FolderOpenIcon
-            sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }}
-          />
-          <Text size="small" color="secondary">
-            No workflow selected
-          </Text>
-          <Caption color="secondary">
-            Open a workflow to access its workspace files
-          </Caption>
-        </div>
-      </Box>
-    );
-  }
-
   return (
     <Box css={workspaceTreeStyles(theme)}>
       <PanelHeadline
@@ -439,8 +399,8 @@ const WorkspaceTree: React.FC = () => {
 
       <div className="workspace-selector">
         <WorkspaceSelect
-          value={workspaceId ?? undefined}
-          onChange={handleWorkspaceChange}
+          value={workspaceId}
+          onChange={setWorkspaceId}
         />
         <SettingsButton
           className="settings-button"
@@ -484,7 +444,16 @@ const WorkspaceTree: React.FC = () => {
       )}
 
       <div className="file-tree-container">
-        {!workspaceId ? (
+        {isLoadingWorkspaces || isLoadingFiles ? (
+          <div className="skeleton-tree">
+            <Skeleton variant="text" width="60%" height={24} />
+            <Skeleton variant="text" width="45%" height={24} sx={{ ml: 2 }} />
+            <Skeleton variant="text" width="70%" height={24} sx={{ ml: 2 }} />
+            <Skeleton variant="text" width="50%" height={24} />
+            <Skeleton variant="text" width="55%" height={24} sx={{ ml: 2 }} />
+            <Skeleton variant="text" width="40%" height={24} />
+          </div>
+        ) : !workspaceId ? (
           <div className="empty-workspace">
             <FolderOpenIcon
               sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }}
@@ -502,15 +471,6 @@ const WorkspaceTree: React.FC = () => {
             >
               Create Workspace
             </EditorButton>
-          </div>
-        ) : isLoadingFiles ? (
-          <div className="skeleton-tree">
-            <Skeleton variant="text" width="60%" height={24} />
-            <Skeleton variant="text" width="45%" height={24} sx={{ ml: 2 }} />
-            <Skeleton variant="text" width="70%" height={24} sx={{ ml: 2 }} />
-            <Skeleton variant="text" width="50%" height={24} />
-            <Skeleton variant="text" width="55%" height={24} sx={{ ml: 2 }} />
-            <Skeleton variant="text" width="40%" height={24} />
           </div>
         ) : files.length > 0 ? (
           <div onDoubleClick={handleTreeDoubleClick}>
