@@ -29,8 +29,6 @@ import Help from "../content/Help/Help";
 import Logo from "../Logo";
 import { Popover, MenuItemPrimitive, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
-const workspacesEnabled = !isProduction;
-
 const logoButtonStyles = (theme: Theme) =>
   css({
     display: "flex",
@@ -247,16 +245,13 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
             label="Entities"
             icon={<PersonOutlineOutlinedIcon />}
             onClick={goEntities}
-            dividerAfter={!workspacesEnabled}
           />
-          {workspacesEnabled && (
-            <MenuItemPrimitive
-              label="Workspaces"
-              icon={<FolderSpecialOutlinedIcon />}
-              onClick={goWorkspaces}
-              dividerAfter
-            />
-          )}
+          <MenuItemPrimitive
+            label="Workspaces"
+            icon={<FolderSpecialOutlinedIcon />}
+            onClick={goWorkspaces}
+            dividerAfter
+          />
           <MenuItemPrimitive
             label="Settings"
             icon={<SettingsIcon />}

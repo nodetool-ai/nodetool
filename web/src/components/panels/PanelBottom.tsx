@@ -32,7 +32,6 @@ import { VersionHistoryPanel } from "../version";
 import PanelHeadline from "../ui/PanelHeadline";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { isProduction } from "../../lib/env";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
@@ -50,8 +49,6 @@ import HistoryIcon from "@mui/icons-material/History";
 import FolderIcon from "@mui/icons-material/Folder";
 import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
 import MemoryIcon from "@mui/icons-material/Memory";
-
-const workspacesEnabled = !isProduction;
 
 const HEADER_HEIGHT = 32;
 
@@ -118,46 +115,18 @@ interface ViewSpec {
   id: BottomPanelView;
   label: string;
   icon: React.ReactNode;
-  enabled: boolean;
 }
 
 const VIEW_SPECS = {
-  logs: { id: "logs", label: "Logs", icon: <ArticleIcon />, enabled: true },
-  queue: {
-    id: "queue",
-    label: "Queue",
-    icon: <PlaylistPlayIcon />,
-    enabled: true
-  },
-  workers: {
-    id: "workers",
-    label: "Workers",
-    icon: <MemoryIcon />,
-    enabled: true
-  },
-  versions: {
-    id: "versions",
-    label: "Versions",
-    icon: <HistoryIcon />,
-    enabled: true
-  },
-  workspace: {
-    id: "workspace",
-    label: "Workspace",
-    icon: <FolderIcon />,
-    enabled: workspacesEnabled
-  },
-  trace: {
-    id: "trace",
-    label: "Trace",
-    icon: <TimelineIcon />,
-    enabled: true
-  }
+  logs: { id: "logs", label: "Logs", icon: <ArticleIcon /> },
+  queue: { id: "queue", label: "Queue", icon: <PlaylistPlayIcon /> },
+  workers: { id: "workers", label: "Workers", icon: <MemoryIcon /> },
+  versions: { id: "versions", label: "Versions", icon: <HistoryIcon /> },
+  workspace: { id: "workspace", label: "Workspace", icon: <FolderIcon /> },
+  trace: { id: "trace", label: "Trace", icon: <TimelineIcon /> }
 } satisfies Record<BottomPanelView, ViewSpec>;
 
-const ENABLED_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) =>
-  g.views.filter((v) => VIEW_SPECS[v]?.enabled)
-);
+const PANEL_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) => g.views);
 
 const styles = (theme: Theme) =>
   css({
@@ -465,14 +434,14 @@ const PanelBodyContent = memo(function PanelBodyContent({
         />
       ) : null;
     case "workspace":
-      return workspacesEnabled ? (
+      return (
         <Box
           className="workspace-panel"
           sx={{ width: "100%", height: "100%", overflow: "hidden" }}
         >
           <WorkspaceTree />
         </Box>
-      ) : null;
+      );
     case "trace":
       return <TracePanel />;
     default:
@@ -494,7 +463,6 @@ const PanelBottom: React.FC = () => {
   } = useResizeBottomPanel();
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
-  const setActiveView = useBottomPanelStore((state) => state.setActiveView);
 
   const isConnected = useWsConnected();
 
@@ -516,21 +484,10 @@ const PanelBottom: React.FC = () => {
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
   useCombo(["l"], () => handlePanelToggle("logs"), false);
 
-  // Production-disabled-view safeguard: if a previous session persisted a
-  // gated-off view (workspace), migrate the store to "logs" so the
-  // active view and the rendered body stay in sync.
-  useEffect(() => {
-    if (!VIEW_SPECS[activeView]?.enabled) {
-      setActiveView("logs");
-    }
-  }, [activeView, setActiveView]);
-
   // Shown in the legacy editor (/editor) and the unified workspace (/workspace).
   if (!path.startsWith("/editor") && !path.startsWith("/workspace")) {
     return null;
   }
-
-  const enabledViews = ENABLED_VIEWS;
 
   const openHeight = isVisible
     ? Math.min(
@@ -602,7 +559,7 @@ const PanelBottom: React.FC = () => {
               <WorkerStatusIndicator />
             </div>
             <div className="tab-rail" role="tablist">
-              {enabledViews.map((view) => (
+              {PANEL_VIEWS.map((view) => (
                 <TabButton
                   key={view}
                   spec={VIEW_SPECS[view]}

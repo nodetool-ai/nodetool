@@ -82,6 +82,26 @@ it("opens Settings as a page tab and focuses the workspace", async () => {
   expect(mockNavigateTo).toHaveBeenCalledWith("/workspace");
 });
 
+it("opens Workspaces as a page tab", async () => {
+  const user = userEvent.setup();
+  renderMenu();
+
+  await user.click(screen.getByRole("button", { name: /open app menu/i }));
+  await user.click(screen.getByRole("menuitem", { name: /workspaces/i }));
+
+  const { tabs, activeTabId } = useWorkspaceTabsStore.getState();
+  const expectedId = tabId("page", "workspaces");
+  expect(tabs).toEqual([
+    expect.objectContaining({
+      id: expectedId,
+      type: "page",
+      ref: "workspaces",
+      title: "Workspaces"
+    })
+  ]);
+  expect(activeTabId).toBe(expectedId);
+});
+
 it("keeps Dashboard on its route (not a tab)", async () => {
   const user = userEvent.setup();
   renderMenu();
