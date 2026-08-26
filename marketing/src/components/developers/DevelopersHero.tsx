@@ -1,14 +1,20 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Code2, Terminal, Boxes, Rocket, Bot } from "lucide-react";
+import { Boxes, Cpu, Lock, Terminal, Workflow } from "lucide-react";
+
+const pills = [
+  { icon: Cpu, text: "QuickJS-ng WASM guest" },
+  { icon: Boxes, text: "38 sandbox packs" },
+  { icon: Workflow, text: "424 nodes as callables" },
+  { icon: Terminal, text: "208 platform tools" },
+  { icon: Lock, text: "Capability-scoped per run" },
+];
 
 export default function DevelopersHero() {
   return (
     <div className="relative pt-16 pb-12 sm:pt-24 sm:pb-16">
-      {/* Main Hero Content */}
       <div className="text-center max-w-4xl mx-auto">
-        {/* Badge */}
         <motion.div
           initial={false}
           animate={{ opacity: 1, y: 0 }}
@@ -16,12 +22,11 @@ export default function DevelopersHero() {
           className="mb-6"
         >
           <span className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 px-4 py-1.5 text-sm font-medium text-violet-300 ring-1 ring-inset ring-violet-500/20">
-            <Terminal className="h-4 w-4" />
-            Open source SDK, CLI, and runtime
+            <Cpu className="h-4 w-4" />
+            The JavaScript sandbox
           </span>
         </motion.div>
 
-        {/* Title */}
         <motion.h1
           id="hero-title"
           initial={false}
@@ -29,43 +34,38 @@ export default function DevelopersHero() {
           transition={{ duration: 0.25, delay: 0.05 }}
           className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight"
         >
-          <span className="text-white">Built for code. </span>
+          <span className="text-white">The sandbox is the API. </span>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-teal-400">
-            Built for agents.
+            Write it, or let an agent write it.
           </span>
         </motion.h1>
 
-        {/* Subtitle */}
         <motion.p
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.05 }}
           className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
         >
-          One execution layer instead of a stack of provider SDKs and
-          hand-rolled orchestration. The same open-source, TypeScript-first
-          runtime powers the canvas, the agent, and your code. Write a custom
-          node, drive the canvas from the CLI, or point Claude Code at the MCP
-          server: every editor action is also a tool, with validators and debug
-          harnesses built for the agent loop.
+          Every piece of JavaScript NodeTool did not write itself runs in one
+          QuickJS WebAssembly isolate: a Code node body, a saved script, and
+          every action an agent takes. Same engine, same limits, same imports.
+          Capabilities are globals the host granted for that run. Libraries are
+          imports. And 424 AI nodes are async functions you can{" "}
+          <code className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-base text-teal-300">
+            await
+          </code>
+          .
         </motion.p>
 
-        {/* Feature Pills */}
         <motion.div
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.08 }}
           className="mt-8 flex flex-wrap justify-center gap-3"
         >
-          {[
-            { icon: Code2, text: "Developer SDK" },
-            { icon: Bot, text: "MCP Server" },
-            { icon: Terminal, text: "Graph DSL" },
-            { icon: Boxes, text: "Custom Nodes" },
-            { icon: Rocket, text: "Cloud Deploy" },
-          ].map((item, idx) => (
+          {pills.map((item) => (
             <span
-              key={idx}
+              key={item.text}
               className="inline-flex items-center gap-2 rounded-lg bg-slate-800/60 px-4 py-2 text-sm text-slate-300 ring-1 ring-slate-700/50"
             >
               <item.icon className="h-4 w-4 text-violet-400" />
@@ -74,7 +74,6 @@ export default function DevelopersHero() {
           ))}
         </motion.div>
 
-        {/* CTA Buttons */}
         <motion.div
           initial={false}
           animate={{ opacity: 1, y: 0 }}
@@ -82,12 +81,12 @@ export default function DevelopersHero() {
           className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <a
-            href="https://docs.nodetool.ai"
+            href="https://docs.nodetool.ai/javascript-sandbox"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition-all hover:bg-violet-500 hover:shadow-violet-900/40"
           >
-            Read the Docs
+            Read the sandbox reference
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>

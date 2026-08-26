@@ -25,7 +25,7 @@
 - [Pricing](https://nodetool.ai/pricing.md): edition comparison and how BYOK pricing works.
 - [Agents](https://nodetool.ai/agents.md): the agent-first model: every editor exposed to agents as tools.
 - [For creatives](https://nodetool.ai/creatives.md): artists, motion designers, AI-native illustrators.
-- [For developers](https://nodetool.ai/developers.md): TypeScript SDK, REST API, MCP server, custom nodes in TypeScript or Python.
+- [For developers](https://nodetool.ai/developers.md): The QuickJS sandbox, the node DSL inside it, and how agents drive NodeTool from sandboxed code.
 - [For marketing teams](https://nodetool.ai/marketing.md): hand a brief to an agent; campaign assets at volume.
 - [Documentation](https://docs.nodetool.ai/llms.txt): install guides, key concepts, node reference, API reference, CLI.
 

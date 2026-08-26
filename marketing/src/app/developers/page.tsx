@@ -9,20 +9,32 @@ const DevelopersHero = dynamic(
   () => import("../../components/developers/DevelopersHero"),
   { ssr: true }
 );
-const DeveloperFeaturesSection = dynamic(
-  () => import("../../components/developers/DeveloperFeaturesSection"),
+const SandboxSection = dynamic(
+  () => import("../../components/developers/SandboxSection"),
   { ssr: true }
 );
-const DeveloperCoreSection = dynamic(
-  () => import("../../components/developers/DeveloperCoreSection"),
+const SandboxPacksSection = dynamic(
+  () => import("../../components/developers/SandboxPacksSection"),
   { ssr: true }
 );
-const DeveloperCLISection = dynamic(
-  () => import("../../components/developers/DeveloperCLISection"),
+const SandboxDslSection = dynamic(
+  () => import("../../components/developers/SandboxDslSection"),
   { ssr: true }
 );
-const DeveloperIntegrationsSection = dynamic(
-  () => import("../../components/developers/DeveloperIntegrationsSection"),
+const AgentSandboxSection = dynamic(
+  () => import("../../components/developers/AgentSandboxSection"),
+  { ssr: true }
+);
+const SandboxGrantSection = dynamic(
+  () => import("../../components/developers/SandboxGrantSection"),
+  { ssr: true }
+);
+const SandboxAuthoringSection = dynamic(
+  () => import("../../components/developers/SandboxAuthoringSection"),
+  { ssr: true }
+);
+const DeveloperPlatformSection = dynamic(
+  () => import("../../components/developers/DeveloperPlatformSection"),
   { ssr: true }
 );
 const CommunitySection = dynamic(
@@ -172,17 +184,26 @@ export default function DevelopersPage() {
           </div>
         </section>
 
-        {/* Features */}
-        <DeveloperFeaturesSection />
+        {/* The sandbox */}
+        <SandboxSection />
 
-        {/* Core Engine */}
-        <DeveloperCoreSection />
+        {/* Libraries as imports */}
+        <SandboxPacksSection />
 
-        {/* CLI & API */}
-        <DeveloperCLISection />
+        {/* The DSL inside the sandbox */}
+        <SandboxDslSection />
 
-        {/* Integrations */}
-        <DeveloperIntegrationsSection />
+        {/* Agents driving NodeTool from the sandbox */}
+        <AgentSandboxSection />
+
+        {/* Limits and the security model */}
+        <SandboxGrantSection />
+
+        {/* Validate, run, test */}
+        <SandboxAuthoringSection />
+
+        {/* Custom nodes, MCP, self-hosting */}
+        <DeveloperPlatformSection />
 
         {/* Community */}
         <CommunitySection stars={stars} />

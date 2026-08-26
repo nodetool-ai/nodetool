@@ -2,35 +2,34 @@ import type { Metadata, Viewport } from "next";
 import JsonLd from "../../components/JsonLd";
 
 export const metadata: Metadata = {
-  title: "NodeTool for Developers | Agent-First SDK, API & MCP Server",
+  title: "NodeTool for Developers | The QuickJS Sandbox, the DSL, and Agent Code Execution",
   description:
-    "Build creative AI applications with NodeTool's TypeScript SDK and REST API — or let an agent do it: every editor is exposed as tools, around 120 in all, over MCP for Claude Code and any MCP-aware agent. Write custom nodes in TypeScript or Python, validate and debug workflows from the CLI, deploy to production. Open source under AGPL-3.0.",
+    "One QuickJS WebAssembly isolate runs every Code node body, saved script, and agent action in NodeTool. Capabilities are globals granted per run, libraries are imports from 38 shipped packs, and 424 AI nodes are async functions you can await. 208 platform tools reachable from sandboxed code. Open source under AGPL-3.0.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/developers",
   },
   keywords: [
-    "AI SDK",
+    "QuickJS sandbox",
+    "WebAssembly JavaScript sandbox",
+    "sandboxed code execution",
+    "CodeAct agent",
+    "agent code execution",
+    "LLM code interpreter",
+    "AI workflow DSL",
+    "TypeScript AI framework",
     "MCP server",
     "agent tools API",
-    "agent-first platform",
-    "TypeScript AI framework",
-    "Python AI framework",
-    "AI workflow API",
-    "open-source AI",
     "custom AI nodes",
-    "AI development tools",
-    "LLM integration",
-    "machine learning SDK",
-    "AI automation API",
+    "open-source AI",
     "self-hosted AI platform",
-    "developer AI tools",
+    "capability-based security",
     "model-agnostic SDK",
   ],
   openGraph: {
-    title: "NodeTool for Developers | Agent-First SDK, API & MCP Server",
+    title: "NodeTool for Developers | The QuickJS Sandbox and the DSL Inside It",
     description:
-      "Build creative AI applications with NodeTool's TypeScript SDK and REST API — or point your agent at the MCP server and let it build them. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production.",
+      "Write sandboxed JavaScript that calls 424 AI nodes as async functions, builds workflow graphs, and reaches 208 platform tools by import — the same isolate your agent acts in.",
     url: "https://nodetool.ai/developers",
     siteName: "NodeTool",
     images: [
@@ -46,7 +45,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool for Developers",
     description:
-      "Agent-first SDK, API, and MCP server for creative AI applications. Open source under AGPL-3.0.",
+      "A QuickJS sandbox where your code and your agent's code run on the same engine, with the same limits and the same imports. Open source under AGPL-3.0.",
     images: ["/preview.png"],
   },
 };
@@ -69,7 +68,7 @@ export default function DevelopersLayout({
           "@type": "SoftwareSourceCode",
           name: "NodeTool",
           description:
-            "Open-source, agent-first creative workspace. TypeScript SDK, REST API, and an MCP server exposing every editor as agent tools; write custom nodes in TypeScript or Python, drive the canvas from a CLI, and generate workflows in code.",
+            "Open-source creative workspace built on a QuickJS WebAssembly sandbox. Code node bodies, saved scripts, and agent actions run on one isolate with capability-scoped host bridges, 38 library packs, 424 nodes callable as async functions, and 208 platform tools reachable by import.",
           codeRepository: "https://github.com/nodetool-ai/nodetool",
           programmingLanguage: ["TypeScript", "Python"],
           license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
