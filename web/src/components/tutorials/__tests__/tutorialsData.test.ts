@@ -4,9 +4,12 @@ import { join } from "path";
 import { TUTORIALS, getTutorial } from "../tutorialsData";
 import type { Tutorial } from "../tutorialsData";
 
-/** Where `/tutorials/<file>` resolves to on disk. */
-const publicPath = (webPath: string) =>
-  join(__dirname, "../../../../public", webPath);
+/** The docs site serves these; the repo checks them in under `docs/assets`. */
+const DOCS_ASSETS = "https://docs.nodetool.ai/assets/tutorials/";
+
+/** Where a tutorial URL resolves to in this repo. */
+const repoPath = (url: string) =>
+  join(__dirname, "../../../../../docs/assets/tutorials", url.slice(DOCS_ASSETS.length));
 
 describe("tutorialsData", () => {
   describe("TUTORIALS", () => {
@@ -45,15 +48,15 @@ describe("tutorialsData", () => {
       }
     });
 
-    it("every video path starts with /tutorials/", () => {
+    it("every video is served from the docs site, not the app bundle", () => {
       for (const tutorial of TUTORIALS) {
-        expect(tutorial.video).toMatch(/^\/tutorials\//);
+        expect(tutorial.video.startsWith(DOCS_ASSETS)).toBe(true);
       }
     });
 
-    it("every poster path starts with /tutorials/", () => {
+    it("every poster is served from the docs site, not the app bundle", () => {
       for (const tutorial of TUTORIALS) {
-        expect(tutorial.poster).toMatch(/^\/tutorials\//);
+        expect(tutorial.poster.startsWith(DOCS_ASSETS)).toBe(true);
       }
     });
 
@@ -69,9 +72,9 @@ describe("tutorialsData", () => {
       }
     });
 
-    it("every video and poster exists under web/public", () => {
+    it("every video and poster is checked in under docs/assets/tutorials", () => {
       const missing = TUTORIALS.flatMap((t) =>
-        [t.video, t.poster].filter((p) => !existsSync(publicPath(p)))
+        [t.video, t.poster].filter((url) => !existsSync(repoPath(url)))
       );
       expect(missing).toEqual([]);
     });

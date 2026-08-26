@@ -133,7 +133,16 @@ npm run render:tutorial:chat-agent-qa           # Ask the chat agent → web/pub
 npm run render:tutorial:timeline-trim-arrange   # Cut a scene together → web/public/tutorials/timeline-trim-arrange.mp4
 npm run render:tutorials:docs                   # the five document tutorials (sketch, script, storyboard, JS script, app)
 npm run still:tutorials:docs                    # their posters
+npm run render:tutorials:steering               # the three steering tutorials (correction, ask-before-spend, red-then-green)
+npm run still:tutorials:steering                # their posters
 ```
+
+The steering casts revisit three surfaces the document tutorials already cover,
+so a surface has more than one cast: `sketch-correction` answers a result the
+user rejects, `storyboard-ask` stops on a question and renders nothing until
+it is answered, and `jsscript-repair` runs a saved case red before the repair
+makes it green. What they teach is not the surface but the loop around it —
+correct, decide, verify.
 
 A rendered MP4 is only half a tutorial: the app plays it from
 `web/src/components/tutorials/tutorialsData.ts`, so add an entry there (id,
