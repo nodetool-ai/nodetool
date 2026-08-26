@@ -1,6 +1,6 @@
 # Document sync: merge external changes into a dirty draft
 
-Decisions: [ADR 0001](adr/0001-document-sync-draft-wins.md). Terms: [CONTEXT.md](../CONTEXT.md).
+Decisions: [ADR 0001](adr/0001-document-sync-draft-wins.md). Terms: [CONTEXT.md](https://github.com/nodetool-ai/nodetool/blob/main/CONTEXT.md).
 
 Today `documentSync.ts` reloads a clean editor and warns a dirty one. A dirty editor's next autosave fails the CAS and the only recovery is a refresh. This plan replaces the warning with a per-merge-unit merge, draft wins, one conflict banner.
 
