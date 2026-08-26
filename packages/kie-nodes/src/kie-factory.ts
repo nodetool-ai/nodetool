@@ -51,6 +51,9 @@ interface KieFieldDef {
     | "audio"
     | "video"
     | "list[str]"
+    | "list[int]"
+    | "list[float]"
+    | "list[dict]"
     | "list[image]"
     | "list[video]"
     | "list[audio]";
@@ -122,8 +125,16 @@ function isAssetType(type: string): boolean {
   ].includes(type);
 }
 
-function isListStrType(type: string): boolean {
-  return type === "list[str]";
+/** The list types the API takes by value rather than as an uploaded asset. */
+const VALUE_LIST_TYPES: ReadonlySet<string> = new Set([
+  "list[str]",
+  "list[int]",
+  "list[float]",
+  "list[dict]"
+]);
+
+function isValueListType(type: string): boolean {
+  return VALUE_LIST_TYPES.has(type);
 }
 
 function normalizeStringList(value: unknown): string[] {
@@ -134,6 +145,45 @@ function normalizeStringList(value: unknown): string[] {
     return [value.trim()];
   }
   return [];
+}
+
+function normalizeNumberList(value: unknown): number[] {
+  const items = Array.isArray(value) ? value : [value];
+  return items.map(Number).filter((item) => Number.isFinite(item));
+}
+
+/**
+ * A `list[dict]` parameter (Kling 3.0 Omni's `elements` and `multi_prompt`)
+ * carries request objects the caller supplies, so it passes through untouched.
+ * A JSON string is accepted too — that is what a text upstream wires in.
+ */
+function normalizeRecordList(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value.filter((item) => item !== null && item !== undefined);
+  }
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      // Not JSON — nothing this parameter can carry, so send nothing.
+      return [];
+    }
+  }
+  return [];
+}
+
+function normalizeValueList(value: unknown, type: string): unknown[] {
+  if (type === "list[int]") {
+    return normalizeNumberList(value).map((item) => Math.trunc(item));
+  }
+  if (type === "list[float]") {
+    return normalizeNumberList(value);
+  }
+  if (type === "list[dict]") {
+    return normalizeRecordList(value);
+  }
+  return normalizeStringList(value);
 }
 
 /** A scalar as the KIE API takes it, after coercion from the stored value. */
@@ -157,10 +207,7 @@ function computeFieldClassification(fields: KieFieldDef[]) {
     fields.map((f) => ({ name: f.name, propType: f.type }))
   );
   for (const field of fields) {
-    if (
-      field.type === "list[str]" &&
-      !base.inputFields.includes(field.name)
-    ) {
+    if (isValueListType(field.type) && !base.inputFields.includes(field.name)) {
       base.inputFields.push(field.name);
     }
   }
@@ -272,8 +319,8 @@ async function buildParams(
     const paramName = spec.paramNames?.[field.name] ?? field.name;
     const defLit = field.default ?? defaultForPropType(field.type);
 
-    if (isListStrType(field.type)) {
-      const list = normalizeStringList(value ?? defLit);
+    if (isValueListType(field.type)) {
+      const list = normalizeValueList(value ?? defLit, field.type);
       if (list.length) {
         params[paramName] = list;
       }

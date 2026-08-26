@@ -17,6 +17,22 @@
     {
       "url": "https://docs.kie.ai/market/elevenlabs/audio-isolation.md",
       "doc": "docs/market_elevenlabs_audio-isolation.md"
+    },
+    {
+      "url": "https://docs.kie.ai/market/kling/v3-omni-text-to-video.md",
+      "doc": "docs/market_kling_v3-omni-text-to-video.md"
+    },
+    {
+      "url": "https://docs.kie.ai/market/grok-imagine-image-2-0/image-edit.md",
+      "doc": "docs/market_grok-imagine-image-2-0_image-edit.md"
+    },
+    {
+      "url": "https://docs.kie.ai/market/wan/3-0-video.md",
+      "doc": "docs/market_wan_3-0-video.md"
+    },
+    {
+      "url": "https://docs.kie.ai/market/happyhorse/reference-to-video.md",
+      "doc": "docs/market_happyhorse_reference-to-video.md"
     }
   ],
   "outputs": [

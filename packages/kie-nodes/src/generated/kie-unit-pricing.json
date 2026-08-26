@@ -1,7 +1,32 @@
 {
   "schemaVersion": 1,
-  "writtenAt": "2026-08-06T06:00:22.535Z",
+  "writtenAt": "2026-08-26T15:49:38.326Z",
   "prices": {
+    "pixverse-v6": {
+      "model_id": "pixverse-v6",
+      "unit_price": 4,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 24
+    },
+    "grok-imagine-image-2-0": {
+      "model_id": "grok-imagine-image-2-0",
+      "unit_price": 4,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 2
+    },
+    "bytedance/seedance-2-5": {
+      "model_id": "bytedance/seedance-2-5",
+      "unit_price": 17,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.085,
+      "tier_count": 6,
+      "pricing_url": "https://kie.ai/seedance-2-5"
+    },
     "qwen3/pro-image-to-image": {
       "model_id": "qwen3/pro-image-to-image",
       "unit_price": 0.5,
@@ -40,28 +65,28 @@
     },
     "minimax-h3/reference-to-video": {
       "model_id": "minimax-h3/reference-to-video",
-      "unit_price": 22.5,
+      "unit_price": 16,
       "billing_unit": "second",
       "currency": "credits",
-      "usd_price": 0.1125,
+      "usd_price": 0.08,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/minimax-h3"
     },
     "minimax-h3/image-to-video": {
       "model_id": "minimax-h3/image-to-video",
-      "unit_price": 22.5,
+      "unit_price": 16,
       "billing_unit": "second",
       "currency": "credits",
-      "usd_price": 0.1125,
+      "usd_price": 0.08,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/minimax-h3"
     },
     "minimax-h3/text-to-video": {
       "model_id": "minimax-h3/text-to-video",
-      "unit_price": 22.5,
+      "unit_price": 16,
       "billing_unit": "second",
       "currency": "credits",
-      "usd_price": 0.1125,
+      "usd_price": 0.08,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/minimax-h3"
     },
@@ -94,10 +119,10 @@
     },
     "bytedance/seedance-2-mini": {
       "model_id": "bytedance/seedance-2-mini",
-      "unit_price": 6,
+      "unit_price": 2.4,
       "billing_unit": "second",
       "currency": "credits",
-      "usd_price": 0.03,
+      "usd_price": 0.012,
       "tier_count": 4,
       "pricing_url": "https://kie.ai/seedance-2-0-mini"
     },
@@ -274,10 +299,10 @@
     },
     "bytedance/seedance-2-fast": {
       "model_id": "bytedance/seedance-2-fast",
-      "unit_price": 9,
+      "unit_price": 6.8,
       "billing_unit": "second",
       "currency": "credits",
-      "usd_price": 0.045,
+      "usd_price": 0.034,
       "tier_count": 4,
       "pricing_url": "https://kie.ai/seedance-2-0"
     },
