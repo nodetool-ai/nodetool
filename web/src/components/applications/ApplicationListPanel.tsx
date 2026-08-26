@@ -1,18 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import {
-  Fragment,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { memo, useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -28,24 +19,19 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import { useSidebarDocumentMenu } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
-import { groupByDate } from "../../utils/groupByDate";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
-import CategorySearchBar from "../node_menu/CategorySearchBar";
-import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
   Dialog,
+  DocumentListPanel,
   EmptyState,
   FlexColumn,
   ListPanelItem,
   LoadingSpinner,
-  Text,
   ToolbarIconButton,
   TruncatedText,
   Tooltip,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx,
-  listPanelStyles
+  getSpacingPx
 } from "../ui_primitives";
 
 const UNTITLED = "Untitled app";
@@ -209,19 +195,6 @@ export const CreateApplicationFromWorkflowButton = memo(
 );
 
 const ApplicationListPanel = () => {
-  const theme = useTheme();
-  const [filterValue, setFilterValue] = useState("");
-  const searchRef = useRef<HTMLInputElement>(null);
-  const autoFocusEnabled = useAutoFocusEnabled();
-
-  // Focus the filter on open so users can immediately type to search — except
-  // on touch, where the virtual keyboard would cover the list.
-  useEffect(() => {
-    if (autoFocusEnabled) {
-      searchRef.current?.focus();
-    }
-  }, [autoFocusEnabled]);
-
   const { data, isLoading, isError, error } = useApplications();
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const openApplication = useOpenApplication();
@@ -229,17 +202,6 @@ const ApplicationListPanel = () => {
   const activeApplicationId = activeTabId?.startsWith("application:")
     ? activeTabId.slice("application:".length)
     : null;
-
-  const applications = useMemo(() => {
-    const all = data ?? [];
-    const needle = filterValue.trim().toLowerCase();
-    const filtered = needle
-      ? all.filter((app) => app.name.toLowerCase().includes(needle))
-      : all;
-    return [...filtered].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
-  }, [data, filterValue]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<SidebarDocumentItem | null>(
@@ -335,105 +297,38 @@ const ApplicationListPanel = () => {
   }, [addNotification, itemToDelete, deleteApplication, utils]);
 
   return (
-    <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
-      <ConfirmDialog
-        open={itemToDelete !== null}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        title="Delete app"
-        content={`Delete "${itemToDelete?.name ?? ""}"? This cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
-      />
-      <div className="list-panel-search">
-        <CategorySearchBar
-          ref={searchRef}
-          value={filterValue}
-          onChange={setFilterValue}
-          placeholder="Search apps..."
+    <DocumentListPanel
+      singular="app"
+      plural="apps"
+      documents={data}
+      isLoading={isLoading}
+      isError={isError}
+      errorMessage={error?.message}
+      emptyDescription="Create an app with the + button above, or scaffold one from a workflow."
+      deleteTarget={itemToDelete}
+      onCancelDelete={() => setItemToDelete(null)}
+      onConfirmDelete={handleConfirmDelete}
+      renderItem={(app) => (
+        <ListPanelItem
+          id={app.id}
+          name={app.name}
+          fallbackName={UNTITLED}
+          renameLabel="App name"
+          icon={DashboardCustomizeOutlinedIcon}
+          secondary={
+            app.operationCount === 1
+              ? "1 operation"
+              : `${app.operationCount} operations`
+          }
+          active={app.id === activeApplicationId}
+          editing={app.id === editingId}
+          onOpen={openApplication}
+          onContextMenu={handleContextMenu}
+          onCommitRename={handleCommitRename}
+          onCancelRename={() => setEditingId(null)}
         />
-      </div>
-
-      {isLoading ? (
-        <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
-          <LoadingSpinner size="large" text="Loading apps" />
-        </FlexColumn>
-      ) : isError ? (
-        <FlexColumn
-          gap={2}
-          justify="center"
-          align="center"
-          sx={{ flex: 1, px: 2 }}
-        >
-          <EmptyState
-            variant="error"
-            title="Could not load apps"
-            description={error?.message ?? "Try again later."}
-          />
-        </FlexColumn>
-      ) : applications.length === 0 ? (
-        <FlexColumn
-          gap={2}
-          justify="center"
-          align="center"
-          sx={{ flex: 1, px: 2 }}
-        >
-          <EmptyState
-            title={filterValue ? "No matching apps" : "No apps yet"}
-            description={
-              filterValue
-                ? "Try a different search term."
-                : "Create an app with the + button above, or scaffold one from a workflow."
-            }
-          />
-        </FlexColumn>
-      ) : (
-        <FlexColumn className="list-panel-list" gap={0.5}>
-          {(() => {
-            let currentGroup = "";
-            return applications.map((app) => {
-              const group = groupByDate(app.updatedAt);
-              const showHeader = group !== currentGroup;
-              currentGroup = group;
-              return (
-                <Fragment key={app.id}>
-                  {showHeader && (
-                    <div className="date-header-row">
-                      <Text
-                        className="date-header"
-                        size="small"
-                        color="secondary"
-                        weight={400}
-                      >
-                        {group}
-                      </Text>
-                    </div>
-                  )}
-                  <ListPanelItem
-                    id={app.id}
-                    name={app.name}
-                    fallbackName={UNTITLED}
-                    renameLabel="App name"
-                    icon={DashboardCustomizeOutlinedIcon}
-                    secondary={
-                      app.operationCount === 1
-                        ? "1 operation"
-                        : `${app.operationCount} operations`
-                    }
-                    active={app.id === activeApplicationId}
-                    editing={app.id === editingId}
-                    onOpen={openApplication}
-                    onContextMenu={handleContextMenu}
-                    onCommitRename={handleCommitRename}
-                    onCancelRename={() => setEditingId(null)}
-                  />
-                </Fragment>
-              );
-            });
-          })()}
-        </FlexColumn>
       )}
-    </FlexColumn>
+    />
   );
 };
 

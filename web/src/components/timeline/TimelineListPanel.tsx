@@ -1,16 +1,6 @@
-/** @jsxImportSource @emotion/react */
-import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
-import {
-  Fragment,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { memo, useCallback, useState } from "react";
 import type { DragEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -24,24 +14,16 @@ import {
   type SidebarDocumentContextMenuHandler
 } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
-import { groupByDate } from "../../utils/groupByDate";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { notifyMutationError } from "../../utils/notifyMutationError";
-import CategorySearchBar from "../node_menu/CategorySearchBar";
-import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
-  EmptyState,
-  FlexColumn,
+  DocumentListPanel,
   ListPanelItem,
-  LoadingSpinner,
-  Text,
   ToolbarIconButton,
   Tooltip,
   BORDER_RADIUS,
   FONT_WEIGHT,
   SPACING,
-  getSpacingPx,
-  listPanelStyles
+  getSpacingPx
 } from "../ui_primitives";
 import { newDocumentId } from "../../lib/newDocumentId";
 
@@ -220,19 +202,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
 });
 
 const TimelineListPanel = () => {
-  const theme = useTheme();
-  const [filterValue, setFilterValue] = useState("");
-  const searchRef = useRef<HTMLInputElement>(null);
-  const autoFocusEnabled = useAutoFocusEnabled();
   const { data, isLoading, isError, error } = useTimelines();
-
-  // Focus the filter on open so users can immediately type to search — except
-  // on touch, where the virtual keyboard would cover the list.
-  useEffect(() => {
-    if (autoFocusEnabled) {
-      searchRef.current?.focus();
-    }
-  }, [autoFocusEnabled]);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -244,27 +214,6 @@ const TimelineListPanel = () => {
     : location.pathname.startsWith("/timeline/")
       ? location.pathname.split("/")[2]
       : null;
-
-  const timelines = useMemo(() => {
-    const all = data ?? [];
-    const needle = filterValue.trim().toLowerCase();
-    const filtered = needle
-      ? all.filter((timeline) => timeline.name.toLowerCase().includes(needle))
-      : all;
-    const withTimestamps = filtered.map((timeline) => ({
-      ...timeline,
-      updatedAtMs: new Date(timeline.updatedAt).getTime()
-    }));
-    withTimestamps.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
-
-    let currentGroup = "";
-    return withTimestamps.map((timeline) => {
-      const group = groupByDate(timeline.updatedAt);
-      const showHeader = group !== currentGroup;
-      currentGroup = group;
-      return { ...timeline, group, showHeader };
-    });
-  }, [data, filterValue]);
 
   const handleOpen = useCallback(
     (id: string, name: string) => {
@@ -364,80 +313,31 @@ const TimelineListPanel = () => {
   }, [itemToDelete, deleteTimeline]);
 
   return (
-    <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
-      <ConfirmDialog
-        open={itemToDelete !== null}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        title="Delete timeline"
-        content={`Delete "${itemToDelete?.name ?? ""}"? This cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
-      />
-      <div className="list-panel-search">
-        <CategorySearchBar
-          ref={searchRef}
-          value={filterValue}
-          onChange={setFilterValue}
-          placeholder="Search timelines..."
+    <DocumentListPanel
+      singular="timeline"
+      plural="timelines"
+      documents={data}
+      isLoading={isLoading}
+      isError={isError}
+      errorMessage={error?.message}
+      emptyDescription="Create a new video timeline with the + button above."
+      deleteTarget={itemToDelete}
+      onCancelDelete={() => setItemToDelete(null)}
+      onConfirmDelete={handleConfirmDelete}
+      renderItem={(timeline) => (
+        <TimelineListItem
+          id={timeline.id}
+          name={timeline.name}
+          updatedAt={timeline.updatedAt}
+          active={timeline.id === activeTimelineId}
+          editing={timeline.id === editingId}
+          onOpen={handleOpen}
+          onContextMenu={handleContextMenu}
+          onCommitRename={handleCommitRename}
+          onCancelRename={handleCancelRename}
         />
-      </div>
-
-      {isLoading ? (
-        <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
-          <LoadingSpinner size="large" text="Loading timelines" />
-        </FlexColumn>
-      ) : isError ? (
-        <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
-          <EmptyState
-            variant="error"
-            title="Could not load timelines"
-            description={error?.message ?? "Try again later."}
-          />
-        </FlexColumn>
-      ) : timelines.length === 0 ? (
-        <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
-          <EmptyState
-            title={filterValue ? "No matching timelines" : "No timelines yet"}
-            description={
-              filterValue
-                ? "Try a different search term."
-                : "Create a new video timeline with the + button above."
-            }
-          />
-        </FlexColumn>
-      ) : (
-        <FlexColumn className="list-panel-list" gap={0.5}>
-          {timelines.map((timeline) => (
-            <Fragment key={timeline.id}>
-              {timeline.showHeader && (
-                <div className="date-header-row">
-                  <Text
-                    className="date-header"
-                    size="small"
-                    color="secondary"
-                    weight={400}
-                  >
-                    {timeline.group}
-                  </Text>
-                </div>
-              )}
-              <TimelineListItem
-                id={timeline.id}
-                name={timeline.name}
-                updatedAt={timeline.updatedAt}
-                active={timeline.id === activeTimelineId}
-                editing={timeline.id === editingId}
-                onOpen={handleOpen}
-                onContextMenu={handleContextMenu}
-                onCommitRename={handleCommitRename}
-                onCancelRename={handleCancelRename}
-              />
-            </Fragment>
-          ))}
-        </FlexColumn>
       )}
-    </FlexColumn>
+    />
   );
 };
 

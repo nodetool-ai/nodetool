@@ -264,6 +264,11 @@ export {
 export { listPanelStyles } from "./listPanelStyles";
 export { ListPanelItem } from "./ListPanelItem";
 export type { ListPanelItemProps } from "./ListPanelItem";
+export { DocumentListPanel } from "./DocumentListPanel";
+export type {
+  DocumentListPanelDocument,
+  DocumentListPanelProps
+} from "./DocumentListPanel";
 
 // Keyboard activation for non-native-button click targets
 export { activateOnKey } from "./keyboardActivation";

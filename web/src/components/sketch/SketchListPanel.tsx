@@ -1,16 +1,6 @@
-/** @jsxImportSource @emotion/react */
-import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
-import {
-  Fragment,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { memo, useCallback, useState } from "react";
 import type { DragEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -23,24 +13,16 @@ import {
   type SidebarDocumentContextMenuHandler
 } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
-import { groupByDate } from "../../utils/groupByDate";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { notifyMutationError } from "../../utils/notifyMutationError";
-import CategorySearchBar from "../node_menu/CategorySearchBar";
-import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
-  EmptyState,
-  FlexColumn,
+  DocumentListPanel,
   ListPanelItem,
-  LoadingSpinner,
-  Text,
   ToolbarIconButton,
   Tooltip,
   BORDER_RADIUS,
   FONT_WEIGHT,
   SPACING,
-  getSpacingPx,
-  listPanelStyles
+  getSpacingPx
 } from "../ui_primitives";
 import { newDocumentId } from "../../lib/newDocumentId";
 
@@ -224,18 +206,6 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
 });
 
 const SketchListPanel = () => {
-  const theme = useTheme();
-  const [filterValue, setFilterValue] = useState("");
-  const searchRef = useRef<HTMLInputElement>(null);
-  const autoFocusEnabled = useAutoFocusEnabled();
-
-  // Focus the filter on open so users can immediately type to search — except
-  // on touch, where the virtual keyboard would cover the list.
-  useEffect(() => {
-    if (autoFocusEnabled) {
-      searchRef.current?.focus();
-    }
-  }, [autoFocusEnabled]);
   const { data, isLoading, isError, error } = trpc.sketch.list.useQuery(
     {},
     { staleTime: 30_000 }
@@ -251,17 +221,6 @@ const SketchListPanel = () => {
     : location.pathname.startsWith("/sketch/")
       ? location.pathname.split("/")[2]
       : null;
-
-  const sketches = useMemo(() => {
-    const all = data ?? [];
-    const needle = filterValue.trim().toLowerCase();
-    const filtered = needle
-      ? all.filter((sketch) => sketch.name.toLowerCase().includes(needle))
-      : all;
-    return [...filtered].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
-  }, [data, filterValue]);
 
   const handleOpen = useCallback(
     (id: string, name: string) => {
@@ -357,88 +316,31 @@ const SketchListPanel = () => {
   }, [itemToDelete, deleteSketch]);
 
   return (
-    <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
-      <ConfirmDialog
-        open={itemToDelete !== null}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        title="Delete sketch"
-        content={`Delete "${itemToDelete?.name ?? ""}"? This cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
-      />
-      <div className="list-panel-search">
-        <CategorySearchBar
-          ref={searchRef}
-          value={filterValue}
-          onChange={setFilterValue}
-          placeholder="Search sketches..."
+    <DocumentListPanel
+      singular="sketch"
+      plural="sketches"
+      documents={data}
+      isLoading={isLoading}
+      isError={isError}
+      errorMessage={error?.message}
+      emptyDescription="Create a new sketch with the + button above."
+      deleteTarget={itemToDelete}
+      onCancelDelete={() => setItemToDelete(null)}
+      onConfirmDelete={handleConfirmDelete}
+      renderItem={(sketch) => (
+        <SketchListItem
+          id={sketch.id}
+          name={sketch.name}
+          updatedAt={sketch.updatedAt}
+          active={sketch.id === activeSketchId}
+          editing={sketch.id === editingId}
+          onOpen={handleOpen}
+          onContextMenu={handleContextMenu}
+          onCommitRename={handleCommitRename}
+          onCancelRename={() => setEditingId(null)}
         />
-      </div>
-
-      {isLoading ? (
-        <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
-          <LoadingSpinner size="large" text="Loading sketches" />
-        </FlexColumn>
-      ) : isError ? (
-        <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
-          <EmptyState
-            variant="error"
-            title="Could not load sketches"
-            description={error?.message ?? "Try again later."}
-          />
-        </FlexColumn>
-      ) : sketches.length === 0 ? (
-        <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
-          <EmptyState
-            title={filterValue ? "No matching sketches" : "No sketches yet"}
-            description={
-              filterValue
-                ? "Try a different search term."
-                : "Create a new sketch with the + button above."
-            }
-          />
-        </FlexColumn>
-      ) : (
-        <FlexColumn className="list-panel-list" gap={0.5}>
-          {(() => {
-            let currentGroup = "";
-            return sketches.map((sketch) => {
-              const group = groupByDate(sketch.updatedAt);
-              const showHeader = group !== currentGroup;
-              currentGroup = group;
-              return (
-                <Fragment key={sketch.id}>
-                  {showHeader && (
-                    <div className="date-header-row">
-                      <Text
-                        className="date-header"
-                        size="small"
-                        color="secondary"
-                        weight={400}
-                      >
-                        {group}
-                      </Text>
-                    </div>
-                  )}
-                  <SketchListItem
-                    id={sketch.id}
-                    name={sketch.name}
-                    updatedAt={sketch.updatedAt}
-                    active={sketch.id === activeSketchId}
-                    editing={sketch.id === editingId}
-                    onOpen={handleOpen}
-                    onContextMenu={handleContextMenu}
-                    onCommitRename={handleCommitRename}
-                    onCancelRename={() => setEditingId(null)}
-                  />
-                </Fragment>
-              );
-            });
-          })()}
-        </FlexColumn>
       )}
-    </FlexColumn>
+    />
   );
 };
 

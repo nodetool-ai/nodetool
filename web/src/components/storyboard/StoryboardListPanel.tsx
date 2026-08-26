@@ -1,16 +1,6 @@
-/** @jsxImportSource @emotion/react */
-import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import {
-  Fragment,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { memo, useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -22,21 +12,13 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import { useSidebarDocumentMenu } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
-import { groupByDate } from "../../utils/groupByDate";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 import { downgradeScriptsLinkedToBoard } from "../../lib/scriptStoryboardDowngrade";
-import CategorySearchBar from "../node_menu/CategorySearchBar";
-import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
-  EmptyState,
-  FlexColumn,
+  DocumentListPanel,
   ListPanelItem,
-  LoadingSpinner,
-  Text,
   ToolbarIconButton,
-  Tooltip,
-  listPanelStyles
+  Tooltip
 } from "../ui_primitives";
 
 export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
@@ -81,18 +63,6 @@ export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
 });
 
 const StoryboardListPanel = () => {
-  const theme = useTheme();
-  const [filterValue, setFilterValue] = useState("");
-  const searchRef = useRef<HTMLInputElement>(null);
-  const autoFocusEnabled = useAutoFocusEnabled();
-
-  // Focus the filter on open so users can immediately type to search — except
-  // on touch, where the virtual keyboard would cover the list.
-  useEffect(() => {
-    if (autoFocusEnabled) {
-      searchRef.current?.focus();
-    }
-  }, [autoFocusEnabled]);
   const { data, isLoading, isError, error } = useStoryboards();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
@@ -103,17 +73,6 @@ const StoryboardListPanel = () => {
   const activeStoryboardId = activeTabId?.startsWith("storyboard:")
     ? activeTabId.slice("storyboard:".length)
     : null;
-
-  const storyboards = useMemo(() => {
-    const all = data ?? [];
-    const needle = filterValue.trim().toLowerCase();
-    const filtered = needle
-      ? all.filter((board) => board.name.toLowerCase().includes(needle))
-      : all;
-    return [...filtered].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
-  }, [data, filterValue]);
 
   const handleOpen = useCallback(
     (id: string, name: string) => {
@@ -209,102 +168,33 @@ const StoryboardListPanel = () => {
   }, [itemToDelete, deleteStoryboard, utils]);
 
   return (
-    <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
-      <ConfirmDialog
-        open={itemToDelete !== null}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        title="Delete storyboard"
-        content={`Delete "${itemToDelete?.name ?? ""}"? This cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
-      />
-      <div className="list-panel-search">
-        <CategorySearchBar
-          ref={searchRef}
-          value={filterValue}
-          onChange={setFilterValue}
-          placeholder="Search storyboards..."
+    <DocumentListPanel
+      singular="storyboard"
+      plural="storyboards"
+      documents={data}
+      isLoading={isLoading}
+      isError={isError}
+      errorMessage={error?.message}
+      emptyDescription="Create a new storyboard with the + button above."
+      deleteTarget={itemToDelete}
+      onCancelDelete={() => setItemToDelete(null)}
+      onConfirmDelete={handleConfirmDelete}
+      renderItem={(board) => (
+        <ListPanelItem
+          id={board.id}
+          name={board.name}
+          fallbackName="Untitled storyboard"
+          renameLabel="Storyboard name"
+          icon={DashboardOutlinedIcon}
+          active={board.id === activeStoryboardId}
+          editing={board.id === editingId}
+          onOpen={handleOpen}
+          onContextMenu={handleContextMenu}
+          onCommitRename={handleCommitRename}
+          onCancelRename={() => setEditingId(null)}
         />
-      </div>
-
-      {isLoading ? (
-        <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
-          <LoadingSpinner size="large" text="Loading storyboards" />
-        </FlexColumn>
-      ) : isError ? (
-        <FlexColumn
-          gap={2}
-          justify="center"
-          align="center"
-          sx={{ flex: 1, px: 2 }}
-        >
-          <EmptyState
-            variant="error"
-            title="Could not load storyboards"
-            description={error?.message ?? "Try again later."}
-          />
-        </FlexColumn>
-      ) : storyboards.length === 0 ? (
-        <FlexColumn
-          gap={2}
-          justify="center"
-          align="center"
-          sx={{ flex: 1, px: 2 }}
-        >
-          <EmptyState
-            title={
-              filterValue ? "No matching storyboards" : "No storyboards yet"
-            }
-            description={
-              filterValue
-                ? "Try a different search term."
-                : "Create a new storyboard with the + button above."
-            }
-          />
-        </FlexColumn>
-      ) : (
-        <FlexColumn className="list-panel-list" gap={0.5}>
-          {(() => {
-            let currentGroup = "";
-            return storyboards.map((board) => {
-              const group = groupByDate(board.updatedAt);
-              const showHeader = group !== currentGroup;
-              currentGroup = group;
-              return (
-                <Fragment key={board.id}>
-                  {showHeader && (
-                    <div className="date-header-row">
-                      <Text
-                        className="date-header"
-                        size="small"
-                        color="secondary"
-                        weight={400}
-                      >
-                        {group}
-                      </Text>
-                    </div>
-                  )}
-                  <ListPanelItem
-                    id={board.id}
-                    name={board.name}
-                    fallbackName="Untitled storyboard"
-                    renameLabel="Storyboard name"
-                    icon={DashboardOutlinedIcon}
-                    active={board.id === activeStoryboardId}
-                    editing={board.id === editingId}
-                    onOpen={handleOpen}
-                    onContextMenu={handleContextMenu}
-                    onCommitRename={handleCommitRename}
-                    onCancelRename={() => setEditingId(null)}
-                  />
-                </Fragment>
-              );
-            });
-          })()}
-        </FlexColumn>
       )}
-    </FlexColumn>
+    />
   );
 };
 
