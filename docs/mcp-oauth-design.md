@@ -191,9 +191,14 @@ timeout 5 s), and never trusted across the `client_id` mismatch.
 `POST /oauth/register` accepts `{client_name, redirect_uris, grant_types,
 token_endpoint_auth_method: "none", application_type}` and answers a generated
 `client_id` (`ntc_<random>`), no secret. Rows live in a new `mcp_oauth_clients`
-table. Registration is open (that is the point of DCR) but rate-limited via the
-existing `fastifyRateLimit` registration, and rows are garbage-collected when
-they age out with no grant ever issued (30 days).
+table. Registration is open (that is the point of DCR) but bounded three ways:
+the existing `fastifyRateLimit` registration caps requests, a route-level
+`bodyLimit` of 8 KB caps each one (the server's own limit is 100 MB, which at
+ten requests a minute is a gigabyte a minute of durable client metadata), and
+the document itself is capped — `client_name` ≤ 256 characters, at most 10
+`redirect_uris`, each ≤ 2048 characters. Rows are garbage-collected when they
+age out with no grant ever issued (30 days), on the server's periodic cleanup
+tick.
 
 Redirect URIs at registration and at authorize time must be `https://…` or
 loopback (`http://127.0.0.1[:port]/…`, `http://localhost[:port]/…`); anything
@@ -229,16 +234,22 @@ redirect_uri) render in-page and never redirect — open-redirect rule.
 `POST /oauth/token`, `application/x-www-form-urlencoded`:
 
 - **`grant_type=authorization_code`** — verify: code exists, unexpired
-  (≤ 10 min), unused; `client_id` matches; `redirect_uri` exact-matches the
+  (≤ 10 min); `client_id` matches; `redirect_uri` exact-matches the
   authorize request; `code_verifier` S256-hashes to the stored
   `code_challenge` (constant-time compare — `PKCEHelper` in
   `packages/runtime/src/providers/oauth/pkce-helper.ts` already implements
-  S256); `resource`, when sent, equals the one bound at authorize time. A
-  **reused** code revokes every token already issued from it (OAuth 2.1 code
-  replay rule), not just fails.
+  S256); `resource`, when sent, equals the one bound at authorize time. Every
+  one of those is checked *before* the code is spent, so someone holding a
+  leaked code but not the verifier cannot burn it — redeeming first made the
+  legitimate exchange look like a replay and revoked the grant. Only once the
+  bindings hold is the code consumed, and a **reused** code then revokes every
+  token already issued from it (OAuth 2.1 code replay rule).
 - **`grant_type=refresh_token`** — rotate: verify the `ntr_` token, issue a
   new access + refresh pair, invalidate the old refresh token. A rotated-out
   refresh token presented again is reuse-detection: revoke the whole grant.
+  The rotation runs in one transaction, and only the unique-index violation on
+  `rotated_from` counts as reuse — a transient write failure rolls the whole
+  attempt back and propagates, rather than revoking a working grant.
 
 Response: `access_token` (`nta_…`, `expires_in: 3600`), `token_type:
 "Bearer"`, `refresh_token` (`ntr_…`, absolute lifetime 30 days), `scope`.
@@ -300,6 +311,8 @@ escape hatch for an operator who wants token-paste only.
 - AS endpoints HTTPS in production; loopback exception local — enforced per request by the shared gate (`oauth/gate.ts`).
 - Secrets stored hashed; raw token appears once in the token response — token model.
 - Rate limits on `/oauth/token` and `/oauth/register` — existing `fastifyRateLimit`.
+- Size limits on `/oauth/register` (8 KB body, bounded name and redirect URIs) — register route.
+- Code bindings validated before the code is consumed — token endpoint.
 
 ## Out of scope, deliberately
 

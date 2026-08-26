@@ -26,7 +26,7 @@ import { randomBytes } from "node:crypto";
 import { digestsMatch, hashSecret } from "./access-token.js";
 import { and, eq, isNull, lt, notInArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getDb, getDbType, type DbTransaction } from "./db.js";
 import {
   mcpOauthClients,
   mcpOauthGrants,
@@ -350,9 +350,16 @@ function tokenPrefix(kind: "access" | "refresh"): string {
     : MCP_OAUTH_REFRESH_TOKEN_PREFIX;
 }
 
-async function saveTokenRow(row: MintedTokenRow): Promise<void> {
-  const db = getDb();
-  await db.insert(mcpOauthTokens).values({
+function tokenValues(row: MintedTokenRow): {
+  id: string;
+  grant_id: string;
+  kind: "access" | "refresh";
+  secret_hash: string;
+  expires_at: string;
+  rotated_from: string | null;
+  last_used_at: string | null;
+} {
+  return {
     id: row.id,
     grant_id: row.grant_id,
     kind: row.kind,
@@ -360,7 +367,263 @@ async function saveTokenRow(row: MintedTokenRow): Promise<void> {
     expires_at: row.expiresAt.toISOString(),
     rotated_from: row.rotatedFrom,
     last_used_at: null
-  });
+  };
+}
+
+async function saveTokenRow(row: MintedTokenRow): Promise<void> {
+  const db = getDb();
+  await db.insert(mcpOauthTokens).values(tokenValues(row));
+}
+
+/** The name of the unique index that makes a rotation an atomic claim. */
+const ROTATED_FROM_INDEX = "idx_mcp_oauth_token_rotated_from";
+
+/**
+ * True only for the unique-index violation on `rotated_from` — the one error
+ * that means another rotation already claimed this refresh token, which is
+ * reuse. Every other failure (a closed connection, a full disk, a timeout) is
+ * transient and must propagate: classifying it as reuse would revoke a working
+ * grant because the database hiccuped.
+ */
+function isRotatedFromConflict(err: unknown): boolean {
+  let current: unknown = err;
+  for (let depth = 0; current != null && depth < 5; depth += 1) {
+    const candidate = current as {
+      code?: unknown;
+      constraint_name?: unknown;
+      message?: unknown;
+      cause?: unknown;
+    };
+    const code = typeof candidate.code === "string" ? candidate.code : "";
+    const constraint =
+      typeof candidate.constraint_name === "string"
+        ? candidate.constraint_name
+        : "";
+    const message =
+      typeof candidate.message === "string" ? candidate.message : "";
+    // better-sqlite3
+    if (
+      code === "SQLITE_CONSTRAINT_UNIQUE" &&
+      message.includes("mcp_oauth_tokens.rotated_from")
+    ) {
+      return true;
+    }
+    // postgres.js
+    if (
+      code === "23505" &&
+      (constraint === ROTATED_FROM_INDEX || message.includes(ROTATED_FROM_INDEX))
+    ) {
+      return true;
+    }
+    if (candidate.cause === current) break;
+    current = candidate.cause;
+  }
+  return false;
+}
+
+/** Mark a grant revoked and delete every token minted for it. */
+function revokeGrantSync(tx: DbTransaction, grant_id: string): void {
+  tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.grant_id, grant_id)).run();
+  tx.update(mcpOauthGrants)
+    .set({ revoked_at: isoNow() })
+    .where(eq(mcpOauthGrants.id, grant_id))
+    .run();
+}
+
+async function revokeGrantAsync(
+  tx: DbTransaction,
+  grant_id: string
+): Promise<void> {
+  await tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.grant_id, grant_id));
+  await tx
+    .update(mcpOauthGrants)
+    .set({ revoked_at: isoNow() })
+    .where(eq(mcpOauthGrants.id, grant_id));
+}
+
+/** Revoke a grant in its own transaction — the two writes never land apart. */
+async function revokeGrantCompletely(grant_id: string): Promise<void> {
+  const db = getDb();
+  if (getDbType() === "sqlite") {
+    // better-sqlite3 transactions must be fully synchronous; an async callback
+    // returns a Promise the driver rejects.
+    db.transaction((tx: DbTransaction): void => revokeGrantSync(tx, grant_id));
+    return;
+  }
+  await db.transaction(
+    async (tx: DbTransaction): Promise<void> => revokeGrantAsync(tx, grant_id)
+  );
+}
+
+/** The grant a refresh-token row belongs to, read outside any transaction. */
+async function grantIdOfToken(tokenId: string): Promise<string | null> {
+  const rows = await getDb()
+    .select({ grant_id: mcpOauthTokens.grant_id })
+    .from(mcpOauthTokens)
+    .where(eq(mcpOauthTokens.id, tokenId))
+    .limit(1);
+  return rows[0]?.grant_id ?? null;
+}
+
+/** What one refresh rotation decided. */
+export type RefreshRotation =
+  | {
+      accessToken: string;
+      refreshToken: string;
+      expiresAt: Date;
+      grantId: string;
+    }
+  | { reuseDetected: true }
+  | null;
+
+interface ParsedToken {
+  id: string;
+  secret: string;
+}
+
+type RotationStep =
+  | { verdict: "unknown" }
+  | { verdict: "reuse"; grantId: string }
+  | { verdict: "expired"; grantId: string }
+  | { verdict: "rotate"; record: McpOauthToken };
+
+/**
+ * The rotation decision that needs no database access: what the presented row
+ * means. Shared by both dialect branches so they cannot drift.
+ */
+function rotationStep(
+  row: Record<string, unknown> | undefined,
+  parsed: ParsedToken,
+  hasSuccessor: boolean,
+  now: number
+): RotationStep {
+  if (!row) return { verdict: "unknown" };
+  const record = new McpOauthToken(row);
+  if (!digestsMatch(record.secret_hash, hashSecret(parsed.secret))) {
+    return { verdict: "unknown" };
+  }
+  if (hasSuccessor) return { verdict: "reuse", grantId: record.grant_id };
+  if (isRowExpired(record.expires_at, now)) {
+    return { verdict: "expired", grantId: record.grant_id };
+  }
+  return { verdict: "rotate", record };
+}
+
+/** The pair a rotation mints, given the row it replaces. */
+function rotationPair(record: McpOauthToken): {
+  access: MintedTokenRow;
+  refresh: MintedTokenRow;
+} {
+  return {
+    access: mintTokenRow(record.grant_id, "access", MCP_OAUTH_ACCESS_TTL_MS),
+    refresh: mintTokenRow(
+      record.grant_id,
+      "refresh",
+      MCP_OAUTH_REFRESH_TTL_MS,
+      record.id,
+      new Date(record.expires_at)
+    )
+  };
+}
+
+function rotated(
+  access: MintedTokenRow,
+  refresh: MintedTokenRow,
+  grantId: string
+): RefreshRotation {
+  return {
+    accessToken: rawToken(access),
+    refreshToken: rawToken(refresh),
+    expiresAt: access.expiresAt,
+    grantId
+  };
+}
+
+function rotateSqlite(
+  tx: DbTransaction,
+  parsed: ParsedToken,
+  now: number
+): RefreshRotation {
+  const row = tx
+    .select()
+    .from(mcpOauthTokens)
+    .where(
+      and(eq(mcpOauthTokens.id, parsed.id), eq(mcpOauthTokens.kind, "refresh"))
+    )
+    .limit(1)
+    .get();
+  const successor = row
+    ? tx
+        .select({ id: mcpOauthTokens.id })
+        .from(mcpOauthTokens)
+        .where(eq(mcpOauthTokens.rotated_from, parsed.id))
+        .limit(1)
+        .get()
+    : undefined;
+  const step = rotationStep(
+    row as Record<string, unknown> | undefined,
+    parsed,
+    successor !== undefined,
+    now
+  );
+  if (step.verdict === "unknown") return null;
+  if (step.verdict === "reuse") {
+    revokeGrantSync(tx, step.grantId);
+    return { reuseDetected: true };
+  }
+  if (step.verdict === "expired") {
+    tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, parsed.id)).run();
+    return null;
+  }
+  const { access, refresh } = rotationPair(step.record);
+  // The refresh row goes first: the unique index on `rotated_from` makes it
+  // the atomic claim on this rotation. Two concurrent presentations of the
+  // same token both pass the successor check above, but only one insert
+  // survives the constraint — the loser is a reuse presentation, classified
+  // by `isRotatedFromConflict` and handled by the caller.
+  tx.insert(mcpOauthTokens).values(tokenValues(refresh)).run();
+  tx.insert(mcpOauthTokens).values(tokenValues(access)).run();
+  return rotated(access, refresh, step.record.grant_id);
+}
+
+async function rotatePostgres(
+  tx: DbTransaction,
+  parsed: ParsedToken,
+  now: number
+): Promise<RefreshRotation> {
+  const rows = await tx
+    .select()
+    .from(mcpOauthTokens)
+    .where(
+      and(eq(mcpOauthTokens.id, parsed.id), eq(mcpOauthTokens.kind, "refresh"))
+    )
+    .limit(1);
+  const successors = rows[0]
+    ? await tx
+        .select({ id: mcpOauthTokens.id })
+        .from(mcpOauthTokens)
+        .where(eq(mcpOauthTokens.rotated_from, parsed.id))
+        .limit(1)
+    : [];
+  const step = rotationStep(
+    rows[0] as Record<string, unknown> | undefined,
+    parsed,
+    successors.length > 0,
+    now
+  );
+  if (step.verdict === "unknown") return null;
+  if (step.verdict === "reuse") {
+    await revokeGrantAsync(tx, step.grantId);
+    return { reuseDetected: true };
+  }
+  if (step.verdict === "expired") {
+    await tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, parsed.id));
+    return null;
+  }
+  const { access, refresh } = rotationPair(step.record);
+  await tx.insert(mcpOauthTokens).values(tokenValues(refresh));
+  await tx.insert(mcpOauthTokens).values(tokenValues(access));
+  return rotated(access, refresh, step.record.grant_id);
 }
 
 function rawToken(row: MintedTokenRow): string {
@@ -460,84 +723,33 @@ export class McpOauthToken extends DBModel {
    * is exactly what makes reuse detectable: presenting it again finds a
    * successor already pointing back at it and revokes the whole grant.
    */
-  static async rotateRefresh(token: string): Promise<
-    | { accessToken: string; refreshToken: string; expiresAt: Date; grantId: string }
-    | { reuseDetected: true }
-    | null
-  > {
+  static async rotateRefresh(token: string): Promise<RefreshRotation> {
     const parsed = parseToken(token, MCP_OAUTH_REFRESH_TOKEN_PREFIX);
     if (!parsed) return null;
     const db = getDb();
-    const rows = await db
-      .select()
-      .from(mcpOauthTokens)
-      .where(
-        and(
-          eq(mcpOauthTokens.id, parsed.id),
-          eq(mcpOauthTokens.kind, "refresh")
-        )
-      )
-      .limit(1);
-    const row = rows[0];
-    if (!row) return null;
-    const record = new McpOauthToken(row as Record<string, unknown>);
-    if (!digestsMatch(record.secret_hash, hashSecret(parsed.secret))) {
-      return null;
-    }
-
-    const successors = await db
-      .select({ id: mcpOauthTokens.id })
-      .from(mcpOauthTokens)
-      .where(eq(mcpOauthTokens.rotated_from, record.id))
-      .limit(1);
-    if (successors.length > 0) {
-      await McpOauthToken.revokeGrantTokens(record.grant_id);
-      await db
-        .update(mcpOauthGrants)
-        .set({ revoked_at: isoNow() })
-        .where(eq(mcpOauthGrants.id, record.grant_id));
-      return { reuseDetected: true };
-    }
-
-    if (isRowExpired(record.expires_at, Date.now())) {
-      await record.delete();
-      return null;
-    }
-
-    const access = mintTokenRow(
-      record.grant_id,
-      "access",
-      MCP_OAUTH_ACCESS_TTL_MS
-    );
-    const refresh = mintTokenRow(
-      record.grant_id,
-      "refresh",
-      MCP_OAUTH_REFRESH_TTL_MS,
-      record.id,
-      new Date(record.expires_at)
-    );
-    // The refresh row goes first: the unique index on `rotated_from` makes
-    // it the atomic claim on this rotation. Two concurrent presentations of
-    // the same token both pass the successor check above, but only one
-    // insert survives the constraint — the loser is a reuse presentation,
-    // and reuse revokes the grant.
+    const now = Date.now();
     try {
-      await saveTokenRow(refresh);
-    } catch {
-      await McpOauthToken.revokeGrantTokens(record.grant_id);
-      await db
-        .update(mcpOauthGrants)
-        .set({ revoked_at: isoNow() })
-        .where(eq(mcpOauthGrants.id, record.grant_id));
+      if (getDbType() === "sqlite") {
+        // better-sqlite3 transactions must be fully synchronous; an async
+        // callback returns a Promise the driver rejects.
+        return db.transaction((tx: DbTransaction): RefreshRotation =>
+          rotateSqlite(tx, parsed, now)
+        );
+      }
+      return await db.transaction(
+        async (tx: DbTransaction): Promise<RefreshRotation> =>
+          rotatePostgres(tx, parsed, now)
+      );
+    } catch (err) {
+      if (!isRotatedFromConflict(err)) throw err;
+      // Another presentation of this same token claimed the rotation while
+      // this one was in flight — that, and only that, is reuse. The
+      // transaction rolled back, so nothing of this attempt survives; the
+      // grant goes.
+      const grantId = await grantIdOfToken(parsed.id);
+      if (grantId) await revokeGrantCompletely(grantId);
       return { reuseDetected: true };
     }
-    await saveTokenRow(access);
-    return {
-      accessToken: rawToken(access),
-      refreshToken: rawToken(refresh),
-      expiresAt: access.expiresAt,
-      grantId: record.grant_id
-    };
   }
 
   /** Delete every token row for a grant. Used by rotation-reuse and by
@@ -575,11 +787,7 @@ export class McpOauthToken extends DBModel {
       return false;
     }
     if (record.kind === "refresh") {
-      await McpOauthToken.revokeGrantTokens(record.grant_id);
-      await db
-        .update(mcpOauthGrants)
-        .set({ revoked_at: isoNow() })
-        .where(eq(mcpOauthGrants.id, record.grant_id));
+      await revokeGrantCompletely(record.grant_id);
       return true;
     }
     await record.delete();

@@ -299,6 +299,38 @@ describe("McpOauthGrant + McpOauthToken", () => {
     ).rejects.toThrow();
   });
 
+  it("a write failure mid-rotation rolls back and is not read as reuse", async () => {
+    const grantId = await makeGrant();
+    const pair = await McpOauthToken.mintPair(grantId);
+    const { getRawDb } = await import("../src/db.js");
+    // Stand in for a transient database failure on the second insert: the
+    // refresh row is already written when the access row fails.
+    getRawDb().exec(
+      "CREATE TRIGGER fail_access_insert BEFORE INSERT ON mcp_oauth_tokens " +
+        "WHEN NEW.kind = 'access' BEGIN SELECT RAISE(ABORT, 'disk on fire'); END;"
+    );
+    try {
+      await expect(
+        McpOauthToken.rotateRefresh(pair.refreshToken)
+      ).rejects.toThrow(/disk on fire/);
+    } finally {
+      getRawDb().exec("DROP TRIGGER fail_access_insert;");
+    }
+
+    // Only a `rotated_from` conflict means reuse. A transient failure must
+    // leave the grant working.
+    const grant = await McpOauthGrant.get(grantId);
+    expect(grant!.revoked_at).toBeNull();
+
+    // The rolled-back attempt kept nothing, so the client's retry is an
+    // ordinary rotation rather than a presentation that looks superseded.
+    const retried = await McpOauthToken.rotateRefresh(pair.refreshToken);
+    expect(retried).not.toBeNull();
+    expect("reuseDetected" in (retried as object)).toBe(false);
+    const { accessToken } = retried as { accessToken: string };
+    expect(await McpOauthToken.verifyAccess(accessToken)).not.toBeNull();
+  });
+
   it("revokeByRawToken returns false for an unknown or malformed token", async () => {
     expect(await McpOauthToken.revokeByRawToken("nta_deadbeef_x")).toBe(
       false

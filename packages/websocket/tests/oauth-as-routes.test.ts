@@ -264,6 +264,69 @@ describe("POST /oauth/register", () => {
     expect(res.json().error).toBe("invalid_client_metadata");
   });
 
+  it("rejects an over-long client_name", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/oauth/register",
+      payload: JSON.stringify({
+        client_name: "x".repeat(257),
+        redirect_uris: ["https://client.example/cb"]
+      }),
+      headers: { "content-type": "application/json" }
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("invalid_client_metadata");
+  });
+
+  it("rejects more redirect_uris than a client can plausibly need", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/oauth/register",
+      payload: JSON.stringify({
+        client_name: "Greedy",
+        redirect_uris: Array.from(
+          { length: 11 },
+          (_unused, i) => `https://client.example/cb${i}`
+        )
+      }),
+      headers: { "content-type": "application/json" }
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("invalid_client_metadata");
+  });
+
+  it("rejects an over-long redirect_uri", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/oauth/register",
+      payload: JSON.stringify({
+        client_name: "Long redirect",
+        redirect_uris: [`https://client.example/${"p".repeat(2048)}`]
+      }),
+      headers: { "content-type": "application/json" }
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("invalid_redirect_uri");
+  });
+
+  it("refuses a body past the route's own limit, well under the server's", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/oauth/register",
+      payload: JSON.stringify({
+        client_name: "Padded",
+        redirect_uris: ["https://client.example/cb"],
+        padding: "x".repeat(16 * 1024)
+      }),
+      headers: { "content-type": "application/json" }
+    });
+    expect(res.statusCode).toBe(413);
+  });
+
   it("rejects an unregisterable redirect_uri", async () => {
     const app = await buildApp();
     const res = await app.inject({
@@ -474,6 +537,48 @@ describe("POST /oauth/token — authorization_code", () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe("invalid_grant");
+  });
+
+  it("a failed exchange does not burn the code — the real client still redeems it", async () => {
+    const app = await buildApp();
+    const { clientId, redirectUri, verifier, code, grantId } =
+      await authorizeAndApprove(app);
+
+    // Someone holding the code but not the verifier gets one refusal...
+    const stolen = await app.inject({
+      method: "POST",
+      url: "/oauth/token",
+      payload: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_verifier: "not-the-right-verifier"
+      }).toString(),
+      headers: { "content-type": "application/x-www-form-urlencoded" }
+    });
+    expect(stolen.statusCode).toBe(400);
+
+    // ...and the legitimate exchange still works, instead of reading as a
+    // replay and revoking the grant.
+    const real = await app.inject({
+      method: "POST",
+      url: "/oauth/token",
+      payload: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_verifier: verifier
+      }).toString(),
+      headers: { "content-type": "application/x-www-form-urlencoded" }
+    });
+    expect(real.statusCode).toBe(200);
+    expect(real.json().access_token.startsWith("nta_")).toBe(true);
+
+    const { McpOauthGrant } = await import("@nodetool-ai/models");
+    const grant = await McpOauthGrant.get(grantId);
+    expect(grant!.revoked_at).toBeNull();
   });
 
   it("rejects an expired code", async () => {
