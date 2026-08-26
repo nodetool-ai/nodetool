@@ -135,6 +135,44 @@ Security notes:
 - Use the service role key only in server environments. Do not expose it to clients.
 - Public buckets make generated URLs directly accessible. For private buckets, add a signing step.
 
+## Serving the Web UI and TLS
+
+The API server can also serve the built web app. `STATIC_FOLDER` points at the
+directory holding `index.html`; unset, or naming a directory that is not there,
+no static handler is registered and anything outside the API routes answers
+`404`.
+
+```bash
+STATIC_FOLDER=/app/web/dist nodetool serve
+```
+
+With it set the server serves that directory at `/`, sends `index.html` for `/`
+and `/apps/index.html`, and falls back to `index.html` for any other
+extension-less `GET` that is not under `/api`, `/ws`, `/trpc`, `/mcp`,
+`/health`, `/v1`, `/.well-known/`, or `/oauth` (except `/oauth/consent`, which
+is the SPA's MCP consent page) — so client-side routing survives a reload. The
+Docker image and the desktop app set it to their own bundled copy.
+
+TLS is on when both a certificate and a key resolve:
+
+```bash
+TLS_CERT=/etc/ssl/nodetool/cert.pem \
+TLS_KEY=/etc/ssl/nodetool/key.pem \
+REDIRECT_PORT=8080 \
+nodetool serve --host 0.0.0.0 --port 8443
+```
+
+- A variable naming a path that does not exist is ignored. The server then
+  looks for `cert.pem` and `key.pem` by walking up to five directories from its
+  working directory, so a stray pair beside the process turns TLS on with
+  neither variable set.
+- With TLS active every URL the server logs uses `https` / `wss`, and a plain
+  HTTP listener on `REDIRECT_PORT` (default `80`) answers `301` to
+  `https://<request Host>:<server port><path>`.
+- Ports below 1024 need elevated privileges. When that bind fails with `EACCES`
+  the server logs that the redirect listener was skipped and keeps serving
+  HTTPS.
+
 ## Python Nodes
 
 Python nodes run in a separate worker process that NodeTool spawns and talks to
@@ -414,8 +452,13 @@ missing binary.
 | Variable | Purpose | Secret | Notes |
 |----------|---------|--------|-------|
 | `NODE_ENV` | Environment name (`development`, `test`, `production`) | no | Defaults to `development`; controls `.env` file load order |
+| `STATIC_FOLDER` | Directory the server serves the built web app from | no | Unset, or naming a directory that is not there, no static handler is registered and anything outside the API routes answers `404`. Set, the directory is served at `/`, `/` and `/apps/index.html` send `index.html`, and other extension-less `GET`s fall back to it so client-side routing survives a reload. See [Serving the Web UI and TLS](#serving-the-web-ui-and-tls) |
+| `TLS_CERT` / `TLS_KEY` | PEM certificate and private key that put the server on HTTPS/WSS | no | Both are paths, and both must resolve or TLS stays off. A path that does not exist is ignored — the server then walks up to five directories from its working directory looking for `cert.pem` and `key.pem`, so a stray pair beside the process turns TLS on with neither variable set |
+| `REDIRECT_PORT` | Port of the plain-HTTP listener that redirects to the HTTPS one | no | Default `80`, and only bound when TLS is active. Answers `301` to `https://<request Host>:<server port><path>`. A port below 1024 needs elevated privileges; on `EACCES` the server logs that the redirect listener was skipped and keeps serving HTTPS |
 | `SUPABASE_URL` / `SUPABASE_KEY` | Enable Supabase auth mode (both required) | `SUPABASE_KEY` | When both are set, the server enforces auth and validates Supabase JWTs. See [Authentication](authentication.md#authentication-modes) |
 | `SERVER_AUTH_TOKEN` | Deploy-tooling bearer token (`@nodetool-ai/deploy`) | yes | Generated automatically if unset; not used by the websocket server's auth mode selection |
+| `USERS_FILE` | Path to the JSON registry of API users and hashed bearer tokens | no | Default `~/.config/nodetool/users.json`, or `%APPDATA%\nodetool\users.json` on Windows. It selects no auth mode — the server picks that from the Supabase credentials ([Authentication](authentication.md#authentication-modes)) — it is the file the admin user routes and `nodetool deploy users-add \| users-list \| users-reset-token \| users-remove` read and write. A file that is missing or unparseable reads as no users. See [CLI › API users on the deployment](cli.md#nodetool-deploy) |
+| `ADMIN_USER_IDS` | User ids allowed to call the admin user-management routes | no | Comma-separated, whitespace trimmed. User `1` — the loopback user in local auth mode — is always admin, so a single-user install never needs this. On a Supabase-mode server, list the ids that may create, list, remove, and reset API users; every other caller gets `FORBIDDEN` |
 | `NODETOOL_TRUST_LOCALHOST` | Allow loopback connections to bypass auth as user `1` | no | Defaults **off** when auth is enforced (Supabase), **on** otherwise. Leave off behind a reverse proxy/SSH tunnel where the proxy connects from loopback. |
 | `NODETOOL_TRUST_LOCAL_NETWORKS` | ⚠️ Source CIDRs trusted as user `1` **without a password** (Local mode only) | no | Comma-separated IPs/CIDRs; ignored in Supabase mode. Needed so Docker's NAT'd bridge traffic isn't rejected — scope to the bridge (`172.16.0.0/12`), **never `0.0.0.0/0`** on a public IP. See [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker). |
 | `NODETOOL_TRUSTED_PROXIES` | Reverse proxies whose `X-Forwarded-For` is trusted | no | Comma-separated IPs/CIDRs. When unset, `X-Forwarded-For` is ignored and the socket peer address is used. |
@@ -425,6 +468,13 @@ missing binary.
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Provider access | yes | Set only the providers you use |
 | `HF_TOKEN` / `FAL_API_KEY` / `REPLICATE_API_TOKEN` | HuggingFace-family providers | yes | Optional per workflow |
 | `OLLAMA_API_URL` | Local Ollama base URL | no | Default `http://127.0.0.1:11434` |
+| `KIE_WEBHOOK_URL` | Public base URL kie.ai calls back when a task finishes | no | Unset, kie tasks are polled. Set, a submission carries `callBackUrl: <value>/api/kie/webhook` and the run waits for that request instead of polling — so it has to be an address kie.ai can reach from the internet, e.g. `https://nodetool.example.com`. Trailing slashes are stripped |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | OAuth App credentials for the GitHub sign-in flow at `/api/oauth/github/*` | `GITHUB_CLIENT_SECRET` | Without the id, `/api/oauth/github/start` answers `500` naming it. The flow builds its redirect URI from the request's own `Host` — `http://<host>/api/oauth/github/callback` for a `localhost` host, `https://…` otherwise — so register exactly that on the OAuth App. Read from the process environment, not the encrypted secret store: a value entered only in **Settings** never reaches this code path |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth client the server refreshes an expired Google access token with | `GOOGLE_CLIENT_SECRET` | The same pair configured for the Google provider in the Supabase dashboard. Supabase does not refresh provider tokens, so without them a Google credential stops working an hour after sign-in and the server logs `Google token expired but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are unset`. Set them wherever the Google Workspace capability is on — see `NODETOOL_GOOGLE_WORKSPACE` below |
+| `NODE_LLAMA_CPP_MODELS_DIR` | Directory the `node_llama_cpp` provider loads GGUF models from | no | Unset, node-llama-cpp uses its own default. A secret stored under the same name wins over the environment variable |
+| `NODE_LLAMA_CPP_GPU_BACKEND` | GPU backend node-llama-cpp runs against | no | `auto`, `metal`, `cuda`, `vulkan`, or `cpu`, matched case-insensitively. Any other value is ignored and the library chooses for itself. Same secret-over-environment precedence |
+| `LLAMA_CPP_CACHE_DIR` | Cache root checked for GGUF files a separate `llama.cpp` already downloaded | no | Default `~/Library/Caches/llama.cpp/hf` on every platform, so set it explicitly off macOS. Consulted only when the file is not already in the HuggingFace cache; a repo is looked for at `<dir>/<repo cache dir>/snapshots` |
+| `TRANSFORMERS_JS_CACHE_DIR` | Cache directory for the Transformers.js runtime | no | Default `<data dir>/transformers-js-cache`. Deliberately outside `~/.cache/huggingface`: Transformers.js uses a flat `{cacheDir}/{repo_id}/{file_path}` layout the Python `huggingface_hub` cache cannot share |
 | `NODETOOL_INTEGRATION_TOKEN` | Service token for messaging-bridge integrations (Telegram bot) | yes | ≥16 chars. Enables `/api/integrations/:provider/*` (account linking + delegated tokens); unset, those routes do not exist. Set the same value on the bridge process. See [telegram-bot-design.md](telegram-bot-design.md) §5 |
 | `NODETOOL_PUBLIC_URL` | Base URL the integration link page is reachable at | no | Trailing slashes are stripped. Only read when building the `url` that `/api/integrations/:provider/link/start` returns. Unset, that URL is built from the request's own `Host` header — set it when the bridge reaches the server at an address the user's browser cannot, such as `http://nodetool:7777` inside a compose network. See [telegram-bot-design.md](telegram-bot-design.md) §5 |
 | `TELEGRAM_BOT_USERNAME` | Bot username for the Telegram link deep link | no | Without the `@`. When set, Settings → Integrations renders `t.me/<username>?start=<code>` links; unset, the UI shows the bare code for manual `/start` entry |
