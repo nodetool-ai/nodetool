@@ -53,8 +53,7 @@ export const config: ModuleConfig = {
 
     "xai/grok-imagine-video/v1.5/text-to-video": {
       className: "GrokImagineVideoV15TextToVideo",
-      docstring:
-        "Grok Imagine Video 1.5 generates videos from text prompts.",
+      docstring: "Grok Imagine Video 1.5 generates videos from text prompts.",
       tags: ["video", "generation", "text-to-video", "txt2vid", "grok", "xai"],
       useCases: [
         "Generate clips from a written prompt",
@@ -2079,6 +2078,156 @@ export const config: ModuleConfig = {
         "Batch processing",
         "Professional applications",
         "Rapid prototyping"
+      ]
+    },
+
+    "alibaba/wan-3.0/text-to-video": {
+      className: "Wan30TextToVideo",
+      docstring:
+        "Wan 3.0 generates video from a text prompt with smoother motion and stronger scene coherence than Wan 2.x.",
+      tags: ["generation", "text-to-video", "txt2vid", "video", "wan", "wan-3"],
+      useCases: [
+        "Generate cinematic shots from a written prompt",
+        "Produce social clips without filming",
+        "Storyboard a scene as motion",
+        "Iterate on shot ideas quickly",
+        "Create B-roll for edits"
+      ]
+    },
+
+    "alibaba/wan-3.0-prime/text-to-video": {
+      className: "Wan30PrimeTextToVideo",
+      docstring:
+        "Wan 3.0 Prime generates video from text with faster turnaround than the base Wan 3.0 endpoint.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "video",
+        "wan",
+        "wan-3",
+        "fast"
+      ],
+      useCases: [
+        "Iterate on shot ideas at speed",
+        "Preview a prompt before a final render",
+        "Generate short social videos in bulk",
+        "Draft motion for a storyboard",
+        "Explore several takes of one scene"
+      ]
+    },
+
+    "bytedance/seedance-2.5/text-to-video": {
+      className: "BytedanceSeedance25TextToVideo",
+      docstring:
+        "Seedance 2.5 generates a native 30-second single-shot video at up to 720p from one text prompt.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "video",
+        "seedance",
+        "bytedance",
+        "long-form"
+      ],
+      useCases: [
+        "Generate a full 30-second shot in one pass",
+        "Avoid stitching several short clips",
+        "Produce single-take narrative video",
+        "Create long social videos from a prompt",
+        "Keep lighting consistent across a shot"
+      ]
+    },
+
+    "lightricks/ltx-2.5/text-to-video/fast": {
+      className: "Ltx25TextToVideoFast",
+      docstring:
+        "LTX 2.5 generates synchronized video and audio from text in a speed-optimized pass.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "video",
+        "ltx",
+        "ltx-2-5",
+        "audio",
+        "fast"
+      ],
+      useCases: [
+        "Preview a prompt before a final render",
+        "Iterate on shots cheaply",
+        "Generate video with matching audio",
+        "Draft social clips at speed",
+        "Explore several takes of one idea"
+      ]
+    },
+
+    "lightricks/ltx-2.5/text-to-video/pro": {
+      className: "Ltx25TextToVideoPro",
+      docstring:
+        "LTX 2.5 generates synchronized video and audio from text in a quality-optimized pass.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "video",
+        "ltx",
+        "ltx-2-5",
+        "audio",
+        "quality"
+      ],
+      useCases: [
+        "Render the final take of a shot",
+        "Produce video with its own soundtrack",
+        "Deliver high-fidelity generated footage",
+        "Create ads with synchronized audio",
+        "Finish a shot approved from a fast preview"
+      ]
+    },
+
+    "minimax/h3/text-to-video/lora": {
+      className: "MinimaxH3TextToVideoLora",
+      docstring:
+        "MiniMax H3 generates video with synchronized audio from text, with a trained LoRA applied at adjustable strength.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "video",
+        "minimax",
+        "h3",
+        "lora",
+        "audio"
+      ],
+      useCases: [
+        "Generate video in a fine-tuned style",
+        "Keep a trained character consistent",
+        "Apply a learned motion signature",
+        "Blend a LoRA at partial strength",
+        "Produce branded video with audio"
+      ]
+    },
+
+    "mirage-api/avatar-x/text-to-video": {
+      className: "AvatarXTextToVideo",
+      docstring:
+        "Avatar X generates a talking-head video from text with strong identity preservation and expressive delivery.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "video",
+        "avatar",
+        "lipsync",
+        "talking-head",
+        "mirage"
+      ],
+      useCases: [
+        "Generate a presenter video from a script",
+        "Produce training content without filming",
+        "Localize a spokesperson video",
+        "Create avatar-led product explainers",
+        "Automate recurring video updates"
       ]
     }
   }

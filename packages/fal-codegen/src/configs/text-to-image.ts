@@ -3541,6 +3541,146 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+
+    "bria/fibo-gen-1.5/text-to-image": {
+      className: "BriaFiboGen15TextToImage",
+      docstring:
+        "Fibo Gen 1.5 generates images from text or JSON-structured prompts, trained on licensed data for commercial use.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "image",
+        "bria",
+        "fibo",
+        "typography",
+        "licensed"
+      ],
+      useCases: [
+        "Generate commercially safe product visuals",
+        "Render accurate typography in images",
+        "Drive generation from structured JSON prompts",
+        "Produce photoreal marketing imagery",
+        "Create on-brand illustrations at scale"
+      ]
+    },
+
+    "xai/grok-imagine-image/v2.0/text-to-image": {
+      className: "GrokImagineImageV20",
+      docstring: "Grok Imagine 2.0 generates images from text.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "image",
+        "xai",
+        "grok",
+        "grok-imagine"
+      ],
+      useCases: [
+        "Generate illustrations from a prompt",
+        "Produce concept art quickly",
+        "Create social imagery at scale",
+        "Render product visuals",
+        "Explore visual directions for a brief"
+      ]
+    },
+
+    "recraft/v4/style/text-to-image": {
+      className: "RecraftV4StyleTextToImage",
+      docstring:
+        "Recraft V4 Styles generates raster images that hold a consistent style from a style id or reference images.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "image",
+        "recraft",
+        "recraft-v4",
+        "style",
+        "consistency"
+      ],
+      useCases: [
+        "Generate a set of on-style images",
+        "Apply a saved style id to a prompt",
+        "Keep campaign visuals consistent",
+        "Produce illustrations in a house style",
+        "Render variations without style drift"
+      ]
+    },
+
+    "recraft/v4/style/text-to-vector": {
+      className: "RecraftV4StyleTextToVector",
+      docstring:
+        "Recraft V4 Styles generates vector images that hold a consistent style from a style id or reference images.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "image",
+        "recraft",
+        "recraft-v4",
+        "style",
+        "vector",
+        "svg"
+      ],
+      useCases: [
+        "Generate on-style vector icons",
+        "Produce scalable brand illustrations",
+        "Build a consistent icon set",
+        "Create logos in a saved style",
+        "Deliver print-ready vector art"
+      ]
+    },
+
+    "recraft/v4/style/pro/text-to-image": {
+      className: "RecraftV4StyleProTextToImage",
+      docstring:
+        "Recraft V4 Styles Pro generates raster images that hold a consistent style from a style id or reference images.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "image",
+        "recraft",
+        "recraft-v4",
+        "style",
+        "pro",
+        "consistency"
+      ],
+      useCases: [
+        "Render final on-style raster assets",
+        "Apply a Pro style id at delivery quality",
+        "Keep a campaign visually uniform",
+        "Produce hero imagery in a house style",
+        "Scale approved art direction"
+      ]
+    },
+
+    "recraft/v4/style/pro/text-to-vector": {
+      className: "RecraftV4StyleProTextToVector",
+      docstring:
+        "Recraft V4 Styles Pro generates vector images that hold a consistent style from a style id or reference images.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "image",
+        "recraft",
+        "recraft-v4",
+        "style",
+        "pro",
+        "vector",
+        "svg"
+      ],
+      useCases: [
+        "Deliver final vector assets on style",
+        "Produce a Pro-quality icon set",
+        "Render scalable brand marks",
+        "Keep vector art consistent across a suite",
+        "Prepare print-ready illustrations"
+      ]
     }
   }
 };
