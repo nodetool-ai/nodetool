@@ -59,9 +59,9 @@ const tabs = [
     pack: "@nodetool-ai/sandbox-flow",
     icon: Workflow,
     accent: "text-teal-300",
-    headline: "await is the edge. A variable is the wire.",
+    headline: "Use this when you just want the data.",
     blurb:
-      "424 node types across 68 namespace modules, each a generated async function whose name and inputs come from the node's own metadata. The call resolves the node from the registry, injects secrets, runs process(), and returns the outputs record — the same execution the kernel performs, minus the actor.",
+      "Functions are direct, awaitable API calls. You handle concurrency with Promise.all and branching with if/else. Nothing is scheduled: the call resolves the node from the registry, injects secrets, runs process(), and returns the outputs — the same execution the kernel performs, minus the actor.",
     code: flowCode,
     stats: [
       ["424", "node callables"],
@@ -69,8 +69,8 @@ const tabs = [
       ["0", "graphs built"],
     ],
     notes: [
-      "if, for, try and retry are themselves. The pack ships no control-flow combinators.",
-      "Nothing is saved or scheduled. The call runs the node and resolves to its outputs.",
+      "if, for and try are themselves. The pack ships no control-flow combinators.",
+      "Each callable is generated from the node's own metadata, so its inputs are the node's inputs.",
       "Recursion is capped at depth 4, with 16 concurrently open streams per run.",
     ],
   },
@@ -80,9 +80,9 @@ const tabs = [
     pack: "@nodetool-ai/sandbox-dsl",
     icon: GitBranch,
     accent: "text-violet-300",
-    headline: "When the graph itself is the deliverable.",
+    headline: "Use this when you want an artifact.",
     blurb:
-      "441 builders across 70 namespace modules, generated from the same registry metadata as the visual catalog. A node function returns a reference; assign a handle to an input and the edge is wired for you. The result is kernel-shaped { nodes, edges } you hand straight to validate or create.",
+      "Nothing executes. Each call builds up a workflow graph instead — assign a handle to an input and the edge is wired for you. What you get back is kernel-shaped { nodes, edges }: validate it, run it on a server, or open it in the visual editor.",
     code: dslCode,
     stats: [
       ["441", "node builders"],
@@ -90,9 +90,9 @@ const tabs = [
       ["1", "graph per workflow() call"],
     ],
     notes: [
-      "A node type this pack does not export has no import to resolve, so a hallucinated type fails before the program runs.",
-      "A handle is not text: interpolating one throws rather than writing [object Object] into a property and wiring no edge.",
-      "Pure computation. No model is called, no asset resolves, no node executes.",
+      "The builders come from the same registry metadata the visual canvas draws from.",
+      "A node type the pack does not export has no import to resolve, so a hallucinated type fails before the program runs.",
+      "A handle is not text: interpolating one throws, rather than writing [object Object] into a property and wiring no edge.",
     ],
   },
 ] as const;
@@ -113,7 +113,7 @@ export default function SandboxDslSection() {
             className="inline-flex items-center gap-2 rounded-full bg-teal-500/10 px-4 py-1.5 text-sm font-medium text-teal-300 ring-1 ring-inset ring-teal-500/20 mb-4"
           >
             <Workflow className="h-4 w-4" />
-            The DSL inside the sandbox
+            Flow vs. DSL
           </motion.span>
           <motion.h2
             id="dsl-title"
@@ -123,7 +123,7 @@ export default function SandboxDslSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Every node NodeTool ships, as an import
+            Pick your paradigm
           </motion.h2>
           <motion.p
             initial={false}
@@ -132,10 +132,9 @@ export default function SandboxDslSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto"
           >
-            Two packs, one codegen pass, the same node catalog the canvas draws
-            from. One runs a node and hands you the values. The other builds the
-            graph and hands you something you can open in the editor. Pick by
-            what you want at the end.
+            Every node NodeTool ships is available as an import. We expose them
+            two ways, and which one you want depends on what you need at the
+            end: the values, or the graph that produced them.
           </motion.p>
         </div>
 
@@ -216,13 +215,13 @@ export default function SandboxDslSection() {
           transition={{ duration: 0.25 }}
           className="mt-10 rounded-2xl bg-slate-800/40 p-6 sm:p-8 ring-1 ring-slate-700/50"
         >
-          <h3 className="text-lg font-semibold text-white">Which one, and why not the kernel</h3>
+          <h3 className="text-lg font-semibold text-white">Which one to reach for</h3>
           <div className="mt-5 grid gap-5 md:grid-cols-3">
             <div>
               <p className="font-mono text-sm text-teal-300">sandbox-flow</p>
               <p className="mt-2 text-sm text-slate-400">
                 You want values. Branching, retries and concurrency are plain
-                JavaScript, and each call still opens a{" "}
+                JavaScript, and every call still opens a{" "}
                 <span className="font-mono text-slate-300">node.process</span>{" "}
                 span and bills through the run&apos;s own context.
               </p>
@@ -230,17 +229,17 @@ export default function SandboxDslSection() {
             <div>
               <p className="font-mono text-sm text-violet-300">sandbox-dsl</p>
               <p className="mt-2 text-sm text-slate-400">
-                You want an artifact — something to open in the editor, validate,
-                supervise, or hand to the server. The graph is data until
-                something checks it, so validate before you save.
+                You want an artifact — something to open in the editor,
+                validate, supervise, or hand to the server. The graph is just
+                data until something checks it, so validate before you save.
               </p>
             </div>
             <div>
               <p className="font-mono text-sm text-slate-300">WorkflowRunner</p>
               <p className="mt-2 text-sm text-slate-400">
-                An actor per node, correlated lineage, end-of-stream propagation.
-                Right for the editor and for supervised runs, and overhead when
-                the caller is code that just wants a value.
+                An actor per node, correlated lineage, end-of-stream
+                propagation. Right for the editor and for supervised runs, pure
+                overhead when the caller is code that just wants a value.
               </p>
             </div>
           </div>

@@ -1,14 +1,24 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Boxes, Cpu, Lock, Terminal, Workflow } from "lucide-react";
+import { Boxes, Cpu, Globe, Workflow } from "lucide-react";
 
-const pills = [
-  { icon: Cpu, text: "QuickJS-ng WASM guest" },
-  { icon: Boxes, text: "38 sandbox packs" },
-  { icon: Workflow, text: "424 nodes as callables" },
-  { icon: Terminal, text: "208 platform tools" },
-  { icon: Lock, text: "Capability-scoped per run" },
+const claims = [
+  {
+    icon: Globe,
+    title: "Capabilities are globals",
+    body: "Host-granted permissions — fetch, workspace, secrets, media — are injected as globals for that run.",
+  },
+  {
+    icon: Boxes,
+    title: "Libraries are imports",
+    body: "38 built-in utility packs, reached with a standard ES import. No library global, no second route.",
+  },
+  {
+    icon: Workflow,
+    title: "Nodes are functions",
+    body: "Call any of 424 AI nodes as a standard async function. await is the edge, a variable is the wire.",
+  },
 ];
 
 export default function DevelopersHero() {
@@ -34,7 +44,7 @@ export default function DevelopersHero() {
           transition={{ duration: 0.25, delay: 0.05 }}
           className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight"
         >
-          <span className="text-white">The sandbox is the API. </span>
+          <span className="text-white">One execution environment. </span>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-teal-400">
             Write it, or let an agent write it.
           </span>
@@ -46,31 +56,30 @@ export default function DevelopersHero() {
           transition={{ duration: 0.25, delay: 0.05 }}
           className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
         >
-          Every piece of JavaScript NodeTool did not write itself runs in one
-          QuickJS WebAssembly isolate: a Code node body, a saved script, and
-          every action an agent takes. Same engine, same limits, same imports.
-          Capabilities are globals the host granted for that run. Libraries are
-          imports. And 424 AI nodes are async functions you can{" "}
-          <code className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-base text-teal-300">
-            await
-          </code>
-          .
+          Write a custom Code node, save a reusable script, or let an agent
+          generate the logic. It all runs in the same QuickJS WebAssembly
+          isolate — same engine, same limits, same imports.
         </motion.p>
 
         <motion.div
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.08 }}
-          className="mt-8 flex flex-wrap justify-center gap-3"
+          className="mt-10 grid gap-4 sm:grid-cols-3 text-left"
         >
-          {pills.map((item) => (
-            <span
-              key={item.text}
-              className="inline-flex items-center gap-2 rounded-lg bg-slate-800/60 px-4 py-2 text-sm text-slate-300 ring-1 ring-slate-700/50"
+          {claims.map((claim) => (
+            <div
+              key={claim.title}
+              className="rounded-2xl bg-slate-800/40 p-5 ring-1 ring-slate-700/50"
             >
-              <item.icon className="h-4 w-4 text-violet-400" />
-              {item.text}
-            </span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 ring-1 ring-violet-500/20">
+                <claim.icon className="h-4 w-4 text-violet-400" />
+              </div>
+              <p className="mt-3 text-base font-semibold text-white">
+                {claim.title}
+              </p>
+              <p className="mt-1.5 text-sm text-slate-400">{claim.body}</p>
+            </div>
           ))}
         </motion.div>
 

@@ -45,21 +45,21 @@ const namespaces = [
 const facts = [
   {
     icon: Layers,
-    title: "One provider tool",
+    title: "Token savings, by construction",
     body:
-      "The model sees execute_code({ code }) and nothing else. A single action chains, loops over, branches on and reduces any number of tool calls — where the JSON-per-call loop spent one round trip each.",
+      "The data stays in the guest isolate. You do not pay to pass giant JSON arrays back and forth to the model — only the reduction crosses into its context. The model sees execute_code({ code }) and nothing else.",
   },
   {
     icon: ShieldCheck,
-    title: "No new privilege",
+    title: "Zero new privileges",
     body:
-      "Every imported function is a tool the model could have called directly, and per-step allowlists stay a boundary. Third-party packs need session consent; an off-allowlist import stops the action before the guest starts.",
+      "An agent gets the same limits and the same toolbelt as a developer writing a Code node. Every imported function is a tool the model could have called directly; an off-allowlist import stops the action before the guest starts, and third-party packs need session consent.",
   },
   {
     icon: Eye,
-    title: "Still observable",
+    title: "Fully observable",
     body:
-      "Each call inside an action surfaces to the host as a tool_call_update, so composition does not become opacity. A per-action cap of 50 tool calls bounds a runaway loop.",
+      "Every call inside an action still surfaces to the host as a tool_call_update, so composition does not become opacity. Tool calls are hard-capped at 50 per action, which stops a runaway loop.",
   },
 ];
 
@@ -86,7 +86,7 @@ export default function AgentSandboxSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Agents drive NodeTool from inside the sandbox
+            Agents write code, not tool calls
           </motion.h2>
           <motion.p
             initial={false}
@@ -95,11 +95,12 @@ export default function AgentSandboxSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto"
           >
-            An agent step acts by writing a program, not by emitting a tool
-            call. The program runs in the same isolate your Code node runs in,
-            with 208 platform tools reachable as imports across 33 namespaces.
-            The action&apos;s return value, logs and thrown errors come back as
-            the observation for the next turn.
+            Standard tool-calling is a round trip per call: emit JSON, wait,
+            loop. With CodeAct the agent writes a whole JavaScript program
+            instead, and it runs in the same isolate your Code node runs in. It
+            loops, branches and reduces locally, reaching 208 platform tools as
+            imports across 33 namespaces. Its return value, logs and thrown
+            errors are the observation for the next turn.
           </motion.p>
         </div>
 
@@ -113,9 +114,8 @@ export default function AgentSandboxSection() {
           >
             <CodeBlock code={actionCode} language="typescript" />
             <p className="mt-4 text-sm text-slate-400">
-              The payload stays in the guest. Only the reduction crosses into
-              the model&apos;s context, which is where the token savings in the
-              CodeAct and code-execution-with-MCP results come from.
+              Five tool calls, one action, one observation. The payload never
+              leaves the guest — only the reduction does.
             </p>
           </motion.div>
 
@@ -132,9 +132,9 @@ export default function AgentSandboxSection() {
               </span>
             </h3>
             <p className="mt-2 text-sm text-slate-400">
-              33 namespaces, 208 tools. Only the ones an action imports are
-              mounted, so an import costs one module&apos;s dependency cone
-              rather than the whole registry.
+              33 namespaces, 208 tools. Only what an action imports gets
+              mounted, so you pay for one module&apos;s dependency cone rather
+              than the whole registry.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {namespaces.map((ns) => (
@@ -147,10 +147,9 @@ export default function AgentSandboxSection() {
               ))}
             </div>
             <p className="mt-5 text-sm text-slate-400">
-              Everything a capability touches resolves against the run&apos;s
-              own user id, and missing and not-yours are one answer, so a run
-              cannot probe for ids. What is deliberately unreachable is written
-              down per procedure and checked against the live router.
+              Every capability resolves against the run&apos;s own user id, and
+              &quot;missing&quot; and &quot;not yours&quot; are the same answer,
+              so a run cannot probe for ids.
             </p>
           </motion.div>
         </div>
@@ -182,15 +181,15 @@ export default function AgentSandboxSection() {
           className="mt-8 rounded-2xl bg-gradient-to-br from-emerald-900/15 to-slate-900/20 p-6 sm:p-8 ring-1 ring-emerald-500/20"
         >
           <h3 className="text-xl font-semibold text-white">
-            Your body and its action are the same program
+            Your code and the agent&apos;s are the same program
           </h3>
           <p className="mt-3 max-w-3xl text-slate-400">
             A Code node body is code a person saved. An action is code the model
-            just wrote. They differ in what the host granted them — the packs a
-            session consented to, the secret names in scope, the tools on the
-            belt — and in nothing else. The engine, the limits, the marshaling
-            and the import surface are one implementation, so what you test by
-            hand is what the agent gets at runtime.
+            just wrote. The only difference is what the host granted each one:
+            the packs a session consented to, the secret names in scope, the
+            tools on the belt. Engine, limits, marshaling and imports are one
+            implementation, so what you test by hand is what the agent gets at
+            runtime.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a

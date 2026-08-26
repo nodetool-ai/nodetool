@@ -15,7 +15,7 @@ const limits: Array<[string, string, string]> = [
   ["Redirect hops", "5", "re-checked at every hop"],
   ["Output size", "100 KB", "10 MB"],
   ["Media handles", "256 MB per run", "total encoded payload"],
-  ["Tool calls per action", "50", "bounds a runaway loop"],
+  ["Tool calls per action", "50", "stops a runaway loop"],
 ];
 
 const guarantees = [
@@ -23,31 +23,31 @@ const guarantees = [
     icon: ShieldCheck,
     title: "No dynamic code generation",
     body:
-      "eval and Function are deleted before any user code evaluates, and dynamic import() is denied outright. Enforcement sits in the module normalizer rather than the loader, because QuickJS serves a cached module without consulting the loader.",
+      "No eval, no Function constructor, and dynamic import() is blocked outright. Enforcement sits in the module normalizer, not the loader — QuickJS serves a cached module without ever consulting the loader.",
   },
   {
     icon: KeyRound,
-    title: "Secrets are scoped, and never written",
+    title: "Scoped secrets, and no setter",
     body:
-      "A run declares the names it needs and the bridge refuses every other one, so a node that talks to one service cannot read another's credentials. There is no setter: request_secret takes a name and a reason, the user types the key in their own client, and the value never enters the guest, the websocket frame, or the model's context.",
+      "A script declares the secrets it needs up front and the bridge refuses every other name, so a node that talks to one service cannot read another's credentials. Writing one goes through the user's own client: request_secret takes a name and a reason, never a value. The credential never enters the guest, the websocket frame, or an LLM context.",
   },
   {
     icon: Network,
-    title: "SSRF guard, per hop",
+    title: "SSRF guard, on every hop",
     body:
-      "fetch refuses loopback, link-local and private ranges, including IPv6 forms and IPv4-mapped addresses, and re-checks on every redirect. The switch that lifts it is host-set only, so guest code cannot enable it for itself.",
+      "The built-in fetch blocks loopback, link-local and private ranges, including IPv6 forms and IPv4-mapped addresses, and validates every single redirect hop. The switch that lifts it is host-set only, so guest code cannot enable it for itself.",
   },
   {
     icon: Radar,
-    title: "Workspace containment",
+    title: "Strict workspace containment",
     body:
-      "Every workspace call resolves inside the run's root and re-checks the symlink-resolved real path immediately before the operation. Widening it to the host filesystem is a host-set switch that defaults off.",
+      "workspace.read, write and the rest are jailed to the run's root directory, with symlinks resolved and the real path re-checked immediately before every operation. Widening it to the host filesystem is a host-set switch that defaults off.",
   },
   {
     icon: Timer,
-    title: "Cancellation, and a clock that suspends",
+    title: "Hard abort, suspendable clock",
     body:
-      "Once the abort signal fires, every subsequent bridge call fails fast and the guest unwinds. Time parked waiting on a person's approval is added back, so a prompt nobody answers does not kill the program that asked.",
+      "Once the abort signal fires, every bridge call after it fails fast and the guest unwinds. Time parked waiting on a human approval is credited back, so a prompt nobody answers does not kill the program that asked.",
   },
 ];
 
@@ -64,7 +64,7 @@ export default function SandboxGrantSection() {
             className="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-4 py-1.5 text-sm font-medium text-sky-300 ring-1 ring-inset ring-sky-500/20 mb-4"
           >
             <ShieldCheck className="h-4 w-4" />
-            The grant
+            Security and limits
           </motion.span>
           <motion.h2
             id="limits-title"
@@ -74,7 +74,7 @@ export default function SandboxGrantSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Every limit is a number with a ceiling
+            Locked down by default
           </motion.h2>
           <motion.p
             initial={false}
@@ -83,10 +83,10 @@ export default function SandboxGrantSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto"
           >
-            A caller can tighten any limit, or raise it within bounds. No caller
-            can switch a protection off, and nothing inside the guest can raise
-            its own. These are the defaults a Code node and an agent action both
-            start from.
+            Hard ceilings: 64 MB guest heap, 30 s of CPU, a 512 KB call stack.
+            A caller can tighten any limit or raise it within bounds. Nobody can
+            switch a protection off, and nothing inside the guest can raise its
+            own. A Code node and an agent action start from the same numbers.
           </motion.p>
         </div>
 

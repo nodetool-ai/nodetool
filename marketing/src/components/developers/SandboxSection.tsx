@@ -23,44 +23,44 @@ const capabilities = [
     icon: Globe,
     name: "fetch",
     detail:
-      "HTTP with the SSRF guard in front of it. 20 calls, 1 MB bodies, 15 s each, redirects re-checked hop by hop.",
+      "HTTP with the SSRF guard in front of it. 20 calls, 1 MB bodies, 15 s each, every redirect re-checked.",
   },
   {
     icon: HardDrive,
     name: "workspace",
     detail:
-      "read, write, list, stat, copy, move, mkdir, remove — resolved inside the run's workspace root, symlinks realpathed before every call.",
+      "read, write, list, stat, copy, move, mkdir, remove. Jailed to the run's workspace root, symlinks resolved before every call.",
   },
   {
     icon: KeyRound,
     name: "nodetool.secrets",
     detail:
-      "get, tryGet, list, narrowed to the names the node declared. There is no setter anywhere in the guest.",
+      "get, tryGet, list — narrowed to the names the node declared. There is no setter anywhere in the guest.",
   },
   {
     icon: ImageIcon,
     name: "image / audio / video",
     detail:
-      "Decode, trim, resize, mix, composite. Transforms return handles, so encoded payloads stay on the host while calls chain.",
+      "Decode, trim, resize, mix, composite. Transforms return handles, so the bytes stay on the host while you chain calls.",
   },
   {
     icon: Radio,
     name: "emit / output / stream",
     detail:
-      "The node's IO contract. emit streams a value now under backpressure, output records a final, stream() pulls connected handles as they arrive.",
+      "The node's IO contract. emit streams a value now under backpressure, output records a final, stream() pulls items as they arrive.",
   },
   {
     icon: Cpu,
     name: "media / canvas / crypto / format",
     detail:
-      "Resolve a ref to bytes, draw a 2D surface replayed on a real host context, hash with WebCrypto, format with the host's Intl.",
+      "Resolve a ref to bytes, draw on a 2D surface replayed on a real host context, hash with WebCrypto, format with the host's Intl.",
   },
 ];
 
 const deleted = [
   ["eval and Function", "Deleted before a single line of user code evaluates."],
-  ["setTimeout and friends", "Their callbacks would fire outside the never-reject convention. sleep(ms) is the only timer."],
-  ["Ambient modules", "A body that imports nothing gets no loader at all. Dynamic import() is always denied."],
+  ["setTimeout and friends", "Their callbacks would fire outside the run's error contract. sleep(ms) is the only timer."],
+  ["Ambient modules", "A body that imports nothing gets no loader at all. Dynamic import() is denied outright."],
   ["Buffer, process, env", "The Node-compat preamble never installs them, and the prelude deletes them anyway."],
 ];
 
@@ -87,7 +87,7 @@ export default function SandboxSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Capabilities are globals. Libraries are imports.
+            A stripped-down guest, and what the host hands it
           </motion.h2>
           <motion.p
             initial={false}
@@ -96,9 +96,10 @@ export default function SandboxSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto"
           >
-            The guest starts with less than plain QuickJS. Everything past that
-            is a bridge the host built for this run, bound to its limits and its
-            abort signal. Nothing in the guest can widen a grant it was given.
+            Your code starts with less than plain QuickJS. Everything past that
+            is a bridge the host built for this specific run, bound to its
+            limits and its abort signal. Nothing in the guest can widen a grant
+            it was given.
           </motion.p>
         </div>
 
@@ -117,10 +118,10 @@ export default function SandboxSection() {
             </p>
             <CodeBlock code={codeNodeBody} language="typescript" />
             <p className="mt-4 text-sm text-slate-400">
-              <span className="text-slate-200 font-medium">The body decides the mode.</span>{" "}
+              <span className="text-slate-200 font-medium">The body picks the mode.</span>{" "}
               Mention <code className="font-mono text-teal-300">stream(name)</code> and it runs
-              once for the whole stream and pulls its own items. Never mention
-              it and it runs once per incoming item. Nothing is configured.
+              once for the whole stream, pulling its own items. Leave it out and
+              it runs once per incoming item. There is nothing to configure.
             </p>
           </motion.div>
 

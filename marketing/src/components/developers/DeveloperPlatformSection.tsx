@@ -32,21 +32,21 @@ npm run dev:nodetool -- serve   # HTTP + WebSocket on :7777`;
 const cards = [
   {
     icon: Blocks,
-    title: "Custom nodes",
+    title: "Custom nodes in 15 lines",
     body:
-      "Extend BaseNode, decorate the properties, implement process(). Register the package and the node appears in the canvas, in the DSL codegen, and as a sandbox-flow callable — one definition, every surface.",
+      "Extend BaseNode, decorate the properties, implement process(). Register the package and the node shows up in the visual canvas, in the DSL codegen, and as a sandbox-flow callable. One definition, every surface.",
   },
   {
     icon: Plug,
-    title: "MCP, for agents outside NodeTool",
+    title: "Native MCP support",
     body:
-      "The toolbelt speaks MCP. nodetool mcp install wires up a CLI agent; the .mcpb bundle installs into Claude Desktop by drag-and-drop and hot-attaches when the server appears. A deployed server is reached at /mcp with a token minted in settings.",
+      "The whole toolbelt speaks Model Context Protocol. nodetool mcp install wires up a CLI agent in one command; the .mcpb bundle installs into Claude Desktop by drag-and-drop and hot-attaches when the server appears. A deployed server is reached at /mcp with a token minted in settings.",
   },
   {
     icon: Server,
-    title: "Run it yourself",
+    title: "Self-host anywhere",
     body:
-      "The deploy unit is a self-contained container image with the frontend and the example workflows baked in. Docker Compose for self-hosting, or the deploy tooling for SSH, RunPod, GCP and Supabase targets. AGPL-3.0, your keys, your files.",
+      "AGPL-3.0. The deploy unit is one self-contained container image with the frontend and the example workflows baked in: Docker Compose for your own box, or the deploy tooling for SSH, RunPod, GCP and Supabase. Your keys, your files, providers billed directly.",
   },
 ];
 
@@ -62,7 +62,7 @@ export default function DeveloperPlatformSection() {
             transition={{ duration: 0.25 }}
             className="inline-flex items-center gap-2 rounded-full bg-slate-500/10 px-4 py-1.5 text-sm font-medium text-slate-300 ring-1 ring-inset ring-slate-500/20 mb-4"
           >
-            Around the sandbox
+            Extend and deploy
           </motion.span>
           <motion.h2
             id="platform-title"
@@ -72,7 +72,7 @@ export default function DeveloperPlatformSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            The rest of the runtime
+            The rest of the runtime is yours too
           </motion.h2>
           <motion.p
             initial={false}
@@ -81,9 +81,9 @@ export default function DeveloperPlatformSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto"
           >
-            Sandboxed code is where you spend most of your time. Below it sits
+            Sandboxed code is where you spend most of your time. Under it sits
             an actor-model kernel, a node SDK, an HTTP and WebSocket API, and a
-            container you can run on your own boxes.
+            container image you can run on your own hardware.
           </motion.p>
         </div>
 
@@ -130,8 +130,8 @@ export default function DeveloperPlatformSection() {
             <p className="mt-4 text-sm text-slate-400">
               The <span className="font-mono text-slate-300">@nodetool-ai</span>{" "}
               packages are not on npm yet, so host-side imports resolve from a
-              source checkout. The sandbox specifiers on this page are a
-              different thing: they resolve inside the guest, and every pack
+              source checkout. The sandbox specifiers elsewhere on this page are
+              a different thing — they resolve inside the guest, and every pack
               listed above ships with the app.
             </p>
           </motion.div>

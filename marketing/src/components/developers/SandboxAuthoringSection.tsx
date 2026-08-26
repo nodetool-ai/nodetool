@@ -34,21 +34,21 @@ nodetool debug my-workflow.json --watch`;
 const cards = [
   {
     icon: CheckCircle2,
-    title: "One analysis, every caller",
+    title: "Sub-second static analysis",
     body:
-      "The AST that reports an unresolvable import, a bare read of a node input, or a declared output nothing writes lives in one package. The CLI validator, the authoring planner and the editor all read it, so a body cannot pass in one surface and fail in another.",
-  },
-  {
-    icon: GitCompare,
-    title: "--watch prints the diff, not the report",
-    body:
-      "Re-run on every save and see only what moved: verdict transitions, issues that appeared and resolved, token and cost movement. The edit-verify loop reads as a changelog instead of a fresh wall of output.",
+      "jsscript validate runs an AST check: unresolvable imports, undefined names, a bare read of a node input, a declared output nothing writes. Milliseconds, before you pay for a run. One implementation serves the CLI, the authoring planner and the editor, so a body cannot pass in one surface and fail in another.",
   },
   {
     icon: Recycle,
-    title: "Scripts compose, bounded",
+    title: "Headless testing",
     body:
-      "A script runs inside its own envelope — its declared secrets intersected with the caller's allowance, its own timeout, its own imports. Composition is capped at depth 4 with a script-id chain, so a cycle fails the call naming it.",
+      "jsscript test runs the document's own saved cases and exits non-zero on any failure. No browser, no database — a file target is enough, which is what makes it usable from a pre-commit hook or CI.",
+  },
+  {
+    icon: GitCompare,
+    title: "Diff-based watch mode",
+    body:
+      "debug --watch does not spam the terminal. On save it prints only what moved: verdict transitions, issues that appeared and resolved, token and cost movement. The edit-verify loop reads as a changelog.",
   },
 ];
 
@@ -65,7 +65,7 @@ export default function SandboxAuthoringSection() {
             className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-300 ring-1 ring-inset ring-emerald-500/20 mb-4"
           >
             <Terminal className="h-4 w-4" />
-            The author loop
+            The developer loop
           </motion.span>
           <motion.h2
             id="authoring-title"
@@ -75,7 +75,7 @@ export default function SandboxAuthoringSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Validate, run, test — headless, from a file
+            You don&apos;t need a browser to build
           </motion.h2>
           <motion.p
             initial={false}
@@ -84,8 +84,8 @@ export default function SandboxAuthoringSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto"
           >
-            Every surface is drivable without a browser, and a file target needs
-            no database. The same three verbs an agent reaches as{" "}
+            Everything is drivable from the CLI, and a file target needs no
+            database. The three verbs an agent reaches as{" "}
             <span className="font-mono text-slate-300">validate_code</span>,{" "}
             <span className="font-mono text-slate-300">run_code</span> and{" "}
             <span className="font-mono text-slate-300">test_code</span> are the
@@ -104,11 +104,10 @@ export default function SandboxAuthoringSection() {
             <h3 className="text-lg font-semibold text-white mb-4">The script</h3>
             <CodeBlock code={scriptBody} language="typescript" />
             <p className="mt-4 text-sm text-slate-400">
-              A body that mentions{" "}
-              <code className="font-mono text-teal-300">stream</code> runs once
-              for the whole stream and pulls its own items. Time parked on a
-              take is clock-suspended, so a slow upstream cannot kill a correct
-              consumer.
+              Scripts compose inside their own envelope: declared secrets
+              intersected with the caller&apos;s allowance, own timeout, own
+              imports. Depth is capped at 4 with a script-id chain, so a cycle
+              fails the call and names it.
             </p>
           </motion.div>
 
@@ -122,8 +121,8 @@ export default function SandboxAuthoringSection() {
             <h3 className="text-lg font-semibold text-white mb-4">The loop</h3>
             <CodeBlock code={loopCommands} language="bash" />
             <p className="mt-4 text-sm text-slate-400">
-              Static checks return in well under a second, which is what makes
-              them the pre-flight rather than an afterthought.
+              Static checks return in well under a second. That is what makes
+              them a pre-flight instead of an afterthought.
             </p>
           </motion.div>
         </div>
