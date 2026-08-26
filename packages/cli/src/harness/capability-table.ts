@@ -1146,6 +1146,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
+      "packages/agents/tests/browser-tools.test.ts",
     ],
   },
   {
