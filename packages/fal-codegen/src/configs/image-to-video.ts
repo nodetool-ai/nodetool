@@ -137,6 +137,27 @@ export const config: ModuleConfig = {
       ]
     },
 
+    "minimax/h3-max/image-to-video": {
+      className: "MinimaxH3MaxImageToVideo",
+      docstring:
+        "MiniMax H3 Max animates a still into video at higher fidelity than H3, optionally toward an end frame.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "minimax",
+        "h3"
+      ],
+      useCases: [
+        "Deliver a final animated still",
+        "Animate key art at full fidelity",
+        "Interpolate between a first and last frame",
+        "Add motion to product photography",
+        "Finish a shot approved from an H3 draft"
+      ]
+    },
+
     "minimax/h3/reference-to-video": {
       className: "MinimaxH3ReferenceToVideo",
       docstring:
@@ -3405,6 +3426,28 @@ export const config: ModuleConfig = {
         "Hold character identity across clips",
         "Apply a custom style to animation",
         "Generate video with matching audio",
+        "Produce consistent series content"
+      ]
+    },
+
+    "minimax/h3-max/image-to-video/lora": {
+      className: "MinimaxH3MaxImageToVideoLora",
+      docstring:
+        "MiniMax H3 Max animates a still into video with trained LoRAs applied at adjustable strength.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "minimax",
+        "h3",
+        "lora"
+      ],
+      useCases: [
+        "Animate a still with a trained subject",
+        "Hold character identity across clips",
+        "Apply a custom style to animation",
+        "Stack several LoRAs on one shot",
         "Produce consistent series content"
       ]
     },

@@ -51,6 +51,27 @@ export const config: ModuleConfig = {
       ]
     },
 
+    "minimax/h3-max/text-to-video": {
+      className: "MinimaxH3MaxTextToVideo",
+      docstring:
+        "MiniMax H3 Max generates video from text at higher fidelity than H3, with optional prompt expansion.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "minimax",
+        "h3"
+      ],
+      useCases: [
+        "Render the final take of a written shot",
+        "Generate high-fidelity narrative clips",
+        "Produce ads from a script",
+        "Expand a terse prompt before generating",
+        "Finish a shot approved from an H3 draft"
+      ]
+    },
+
     "xai/grok-imagine-video/v1.5/text-to-video": {
       className: "GrokImagineVideoV15TextToVideo",
       docstring: "Grok Imagine Video 1.5 generates videos from text prompts.",
@@ -2205,6 +2226,28 @@ export const config: ModuleConfig = {
         "Apply a learned motion signature",
         "Blend a LoRA at partial strength",
         "Produce branded video with audio"
+      ]
+    },
+
+    "minimax/h3-max/text-to-video/lora": {
+      className: "MinimaxH3MaxTextToVideoLora",
+      docstring:
+        "MiniMax H3 Max generates video from text with trained LoRAs applied at adjustable strength.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "video",
+        "minimax",
+        "h3",
+        "lora"
+      ],
+      useCases: [
+        "Generate video in a fine-tuned style",
+        "Keep a trained character consistent",
+        "Stack several LoRAs on one shot",
+        "Blend a LoRA at partial strength",
+        "Produce branded video at full fidelity"
       ]
     },
 

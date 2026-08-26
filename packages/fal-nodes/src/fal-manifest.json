@@ -349259,5 +349259,825 @@
       }
     ],
     "moduleName": "video_to_video"
+  },
+  {
+    "endpointId": "minimax/h3-max/image-to-video",
+    "className": "MinimaxH3MaxImageToVideo",
+    "docstring": "MiniMax H3 Max animates a still into video at higher fidelity than H3, optionally toward an end frame.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "minimax",
+      "h3"
+    ],
+    "useCases": [
+      "Deliver a final animated still",
+      "Animate key art at full fidelity",
+      "Interpolate between a first and last frame",
+      "Add motion to product photography",
+      "Finish a shot approved from an H3 draft"
+    ],
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional URL of the image to use as the first frame. When provided, the output aspect ratio follows this image. When omitted, the request is handled as text-to-video (16:9 by default).",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "768P",
+        "description": "The native generation resolution of the video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480P",
+          "768P"
+        ]
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt_expansion_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "balanced",
+        "description": "How much effort to spend rewriting the prompt before generation. 'disabled' skips prompt expansion. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt.",
+        "fieldType": "input",
+        "required": true,
+        "enumRef": "PromptExpansionMode",
+        "enumValues": [
+          "disabled",
+          "balanced",
+          "quality"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "The duration of the video in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "end_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional URL of the image to use as the last frame, for first-to-last keyframe generation.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "end_image_url"
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 50000
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Return the generated video as base64 instead of a CDN URL.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed. A random seed is selected when omitted.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "timings",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Timing breakdown in seconds. 'inference' is the DiT denoising time on the GPU backend. Null on routes that do not report backend timings.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "expanded_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt after expansion, as sent to the model. Null when prompt expansion was disabled, left the prompt unchanged, or was performed internally by MiniMax's hosted API.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480P"
+          ],
+          [
+            "VALUE_768P",
+            "768P"
+          ]
+        ],
+        "description": "The native generation resolution of the video."
+      },
+      {
+        "name": "PromptExpansionMode",
+        "values": [
+          [
+            "DISABLED",
+            "disabled"
+          ],
+          [
+            "BALANCED",
+            "balanced"
+          ],
+          [
+            "QUALITY",
+            "quality"
+          ]
+        ],
+        "description": "How much effort to spend rewriting the prompt before generation. 'disabled' skips prompt expansion. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "minimax/h3-max/image-to-video/lora",
+    "className": "MinimaxH3MaxImageToVideoLora",
+    "docstring": "MiniMax H3 Max animates a still into video with trained LoRAs applied at adjustable strength.",
+    "tags": [
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "video",
+      "minimax",
+      "h3",
+      "lora"
+    ],
+    "useCases": [
+      "Animate a still with a trained subject",
+      "Hold character identity across clips",
+      "Apply a custom style to animation",
+      "Stack several LoRAs on one shot",
+      "Produce consistent series content"
+    ],
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional URL of the image to use as the first frame. When provided, the output aspect ratio follows this image. When omitted, the request is handled as text-to-video (16:9 by default).",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "768P",
+        "description": "The native generation resolution of the video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480P",
+          "768P"
+        ]
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt_expansion_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "balanced",
+        "description": "How much effort to spend rewriting the prompt before generation. 'disabled' skips prompt expansion. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt.",
+        "fieldType": "input",
+        "required": true,
+        "enumRef": "PromptExpansionMode",
+        "enumValues": [
+          "disabled",
+          "balanced",
+          "quality"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "The duration of the video in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "end_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional URL of the image to use as the last frame, for first-to-last keyframe generation.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "end_image_url"
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 50000
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Return the generated video as base64 instead of a CDN URL.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "loras",
+        "tsType": "LoRAInput[]",
+        "propType": "list[LoRAInput]",
+        "default": [],
+        "description": "List of LoRA adapters to apply to the transformer.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 3
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed. A random seed is selected when omitted.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "timings",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Timing breakdown in seconds. 'inference' is the DiT denoising time on the GPU backend. Null on routes that do not report backend timings.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "expanded_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt after expansion, as sent to the model. Null when prompt expansion was disabled, left the prompt unchanged, or was performed internally by MiniMax's hosted API.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480P"
+          ],
+          [
+            "VALUE_768P",
+            "768P"
+          ]
+        ],
+        "description": "The native generation resolution of the video."
+      },
+      {
+        "name": "PromptExpansionMode",
+        "values": [
+          [
+            "DISABLED",
+            "disabled"
+          ],
+          [
+            "BALANCED",
+            "balanced"
+          ],
+          [
+            "QUALITY",
+            "quality"
+          ]
+        ],
+        "description": "How much effort to spend rewriting the prompt before generation. 'disabled' skips prompt expansion. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "minimax/h3-max/text-to-video",
+    "className": "MinimaxH3MaxTextToVideo",
+    "docstring": "MiniMax H3 Max generates video from text at higher fidelity than H3, with optional prompt expansion.",
+    "tags": [
+      "video",
+      "generation",
+      "text-to-video",
+      "txt2vid",
+      "minimax",
+      "h3"
+    ],
+    "useCases": [
+      "Render the final take of a written shot",
+      "Generate high-fidelity narrative clips",
+      "Produce ads from a script",
+      "Expand a terse prompt before generating",
+      "Finish a shot approved from an H3 draft"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "768P",
+        "description": "The native generation resolution of the video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480P",
+          "768P"
+        ]
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt_expansion_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "balanced",
+        "description": "How much effort to spend rewriting the prompt before generation. 'disabled' skips prompt expansion. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt.",
+        "fieldType": "input",
+        "required": true,
+        "enumRef": "PromptExpansionMode",
+        "enumValues": [
+          "disabled",
+          "balanced",
+          "quality"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "The duration of the video in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed. A random seed is selected when omitted.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 50000
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Return the generated video as base64 instead of a CDN URL.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "The aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "timings",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Timing breakdown in seconds. 'inference' is the DiT denoising time on the GPU backend. Null on routes that do not report backend timings.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "expanded_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt after expansion, as sent to the model. Null when prompt expansion was disabled, left the prompt unchanged, or was performed internally by MiniMax's hosted API.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480P"
+          ],
+          [
+            "VALUE_768P",
+            "768P"
+          ]
+        ],
+        "description": "The native generation resolution of the video."
+      },
+      {
+        "name": "PromptExpansionMode",
+        "values": [
+          [
+            "DISABLED",
+            "disabled"
+          ],
+          [
+            "BALANCED",
+            "balanced"
+          ],
+          [
+            "QUALITY",
+            "quality"
+          ]
+        ],
+        "description": "How much effort to spend rewriting the prompt before generation. 'disabled' skips prompt expansion. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "minimax/h3-max/text-to-video/lora",
+    "className": "MinimaxH3MaxTextToVideoLora",
+    "docstring": "MiniMax H3 Max generates video from text with trained LoRAs applied at adjustable strength.",
+    "tags": [
+      "generation",
+      "text-to-video",
+      "txt2vid",
+      "video",
+      "minimax",
+      "h3",
+      "lora"
+    ],
+    "useCases": [
+      "Generate video in a fine-tuned style",
+      "Keep a trained character consistent",
+      "Stack several LoRAs on one shot",
+      "Blend a LoRA at partial strength",
+      "Produce branded video at full fidelity"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "768P",
+        "description": "The native generation resolution of the video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480P",
+          "768P"
+        ]
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt_expansion_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "balanced",
+        "description": "How much effort to spend rewriting the prompt before generation. 'disabled' skips prompt expansion. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt.",
+        "fieldType": "input",
+        "required": true,
+        "enumRef": "PromptExpansionMode",
+        "enumValues": [
+          "disabled",
+          "balanced",
+          "quality"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "The duration of the video in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed. A random seed is selected when omitted.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 50000
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Return the generated video as base64 instead of a CDN URL.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "The aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "loras",
+        "tsType": "LoRAInput[]",
+        "propType": "list[LoRAInput]",
+        "default": [],
+        "description": "List of LoRA adapters to apply to the transformer.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 3
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "timings",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Timing breakdown in seconds. 'inference' is the DiT denoising time on the GPU backend. Null on routes that do not report backend timings.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "expanded_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt after expansion, as sent to the model. Null when prompt expansion was disabled, left the prompt unchanged, or was performed internally by MiniMax's hosted API.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480P"
+          ],
+          [
+            "VALUE_768P",
+            "768P"
+          ]
+        ],
+        "description": "The native generation resolution of the video."
+      },
+      {
+        "name": "PromptExpansionMode",
+        "values": [
+          [
+            "DISABLED",
+            "disabled"
+          ],
+          [
+            "BALANCED",
+            "balanced"
+          ],
+          [
+            "QUALITY",
+            "quality"
+          ]
+        ],
+        "description": "How much effort to spend rewriting the prompt before generation. 'disabled' skips prompt expansion. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "text_to_video"
   }
 ]
