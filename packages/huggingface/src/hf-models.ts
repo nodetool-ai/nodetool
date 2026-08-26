@@ -1272,111 +1272,103 @@ export function _matchesArtifactDetection(
   return false;
 }
 
+/**
+ * Image requests a qwen repo's own text encoder and VAE files must not answer —
+ * those files are components of the image model, not the image model.
+ */
+const QWEN_IMAGE_TYPES: ReadonlySet<string> = new Set([
+  "hf.qwen_image",
+  "hf.qwen_image_edit"
+]);
+
+/** Requested types a model declaring a qwen-image family type may still answer. */
+const QWEN_IMAGE_COMPONENT_TYPES: ReadonlySet<string> = new Set([
+  "hf.qwen_image_checkpoint",
+  "hf.qwen_vl",
+  "hf.vae"
+]);
+
+/** The declared types that lend their components to the requests above. */
+const QWEN_IMAGE_FAMILY_TYPES: ReadonlySet<string> = new Set([
+  "hf.qwen_image",
+  "hf.qwen_image_checkpoint"
+]);
+
+/** A file inside a qwen repo holding the text encoder rather than the image model. */
+function _isQwenTextEncoderPath(pathLower: string): boolean {
+  return (
+    pathLower.includes("text_encoders") ||
+    pathLower.includes("text_encoder") ||
+    pathLower.includes("qwen_2.5_vl")
+  );
+}
+
+/** Strip the `_checkpoint` suffix so a checkpoint variant compares as its base. */
+function _baseModelType(type: string): string {
+  return type.endsWith("_checkpoint")
+    ? type.slice(0, -"_checkpoint".length)
+    : type;
+}
+
 /** Semantic match for hf.* types (no structural checks here). */
 export function _matchesModelType(
   model: UnifiedModel,
   modelType: string
 ): boolean {
-  let normalizedType = modelType.toLowerCase();
-  let checkpointVariant: string | null = null;
-  if (normalizedType.endsWith("_checkpoint")) {
-    checkpointVariant = normalizedType;
-    normalizedType = normalizedType.slice(0, -"_checkpoint".length);
-  }
+  const normalizedType = _baseModelType(modelType.toLowerCase());
 
-  const modelTypeLower = (model.type ?? "").toLowerCase();
+  const declaredType = (model.type ?? "").toLowerCase();
   const repoId = (model.repo_id ?? "").toLowerCase();
   const repoIdFromId = model.id ? model.id.split(":")[0].toLowerCase() : "";
   const pathLower = (model.path ?? "").toLowerCase();
 
-  function isQwenTextEncoder(p: string | null): boolean {
-    if (!p) return false;
-    return (
-      p.includes("text_encoders") ||
-      p.includes("text_encoder") ||
-      p.includes("qwen_2.5_vl")
-    );
-  }
+  const isQwenComponentFile =
+    _isQwenTextEncoderPath(pathLower) || pathLower.includes("vae");
 
-  function isQwenVae(p: string | null): boolean {
-    if (!p) return false;
-    return p.includes("vae");
-  }
-
-  const targetTypes = new Set([normalizedType]);
-  if (checkpointVariant) targetTypes.add(checkpointVariant);
-
-  if (modelTypeLower) {
-    const modelTypeBase = modelTypeLower.endsWith("_checkpoint")
-      ? modelTypeLower.slice(0, -"_checkpoint".length)
-      : modelTypeLower;
-    if (targetTypes.has(modelTypeLower) || modelTypeBase === normalizedType) {
-      return !(
-        (normalizedType === "hf.qwen_image" ||
-          normalizedType === "hf.qwen_image_edit") &&
-        (isQwenTextEncoder(pathLower) || isQwenVae(pathLower))
-      );
+  if (declaredType) {
+    if (_baseModelType(declaredType) === normalizedType) {
+      return !(QWEN_IMAGE_TYPES.has(normalizedType) && isQwenComponentFile);
     }
-
-    if (!GENERIC_HF_TYPES.has(modelTypeLower)) {
-      const qwenFamilyTypes = new Set([
-        "hf.qwen_image",
-        "hf.qwen_image_checkpoint"
-      ]);
-      const allowedFamily =
-        (normalizedType === "hf.qwen_image_checkpoint" ||
-          normalizedType === "hf.qwen_vl" ||
-          normalizedType === "hf.vae") &&
-        qwenFamilyTypes.has(modelTypeLower);
-      if (!allowedFamily) return false;
+    // Some other concrete type is declared. Only the qwen-image family lends
+    // its members to a component request; anything else is a mismatch.
+    const lendsQwenComponent =
+      QWEN_IMAGE_COMPONENT_TYPES.has(normalizedType) &&
+      QWEN_IMAGE_FAMILY_TYPES.has(declaredType);
+    if (!GENERIC_HF_TYPES.has(declaredType) && !lendsQwenComponent) {
+      return false;
     }
   }
 
-  if (
-    normalizedType === "hf.qwen_image" ||
-    normalizedType === "hf.qwen_image_edit"
-  ) {
-    if (isQwenTextEncoder(pathLower) || isQwenVae(pathLower)) return false;
-  }
-
-  if (normalizedType === "hf.qwen_vl") {
-    return isQwenTextEncoder(pathLower);
-  }
+  if (QWEN_IMAGE_TYPES.has(normalizedType) && isQwenComponentFile) return false;
+  if (normalizedType === "hf.qwen_vl") return _isQwenTextEncoderPath(pathLower);
 
   if (_matchesRepoForType(normalizedType, repoId, repoIdFromId)) return true;
 
-  const artifactFamily = (model.artifact_family ?? "").toLowerCase();
-  const artifactComponent = (model.artifact_component ?? "").toLowerCase();
-  if (artifactFamily || artifactComponent) {
-    if (
-      _matchesArtifactDetection(
-        normalizedType,
-        artifactFamily,
-        artifactComponent
-      )
-    ) {
-      return true;
-    }
+  if (
+    _matchesArtifactDetection(
+      normalizedType,
+      model.artifact_family,
+      model.artifact_component
+    )
+  ) {
+    return true;
   }
 
-  const tags = (model.tags ?? []).map((t) => (t ?? "").toLowerCase());
+  const tags = (model.tags ?? []).map((tag) => (tag ?? "").toLowerCase());
   const keywords = HF_TYPE_KEYWORD_MATCHERS[normalizedType] ?? [];
-  if (keywords.length > 0) {
-    if (
-      keywords.some(
-        (keyword) =>
-          repoId.includes(keyword) || tags.some((tag) => tag.includes(keyword))
-      )
-    ) {
-      return true;
-    }
-    if (pathLower && keywords.some((keyword) => pathLower.includes(keyword))) {
-      return true;
-    }
+  if (
+    keywords.some(
+      (keyword) =>
+        repoId.includes(keyword) ||
+        pathLower.includes(keyword) ||
+        tags.some((tag) => tag.includes(keyword))
+    )
+  ) {
+    return true;
   }
 
   const derivedPipeline = _derivePipelineTag(normalizedType);
-  return !!(derivedPipeline && model.pipeline_tag === derivedPipeline);
+  return !!derivedPipeline && model.pipeline_tag === derivedPipeline;
 }
 
 // ---------------------------------------------------------------------------
