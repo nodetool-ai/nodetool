@@ -177,30 +177,37 @@ lazy implementation table disagree.
 
 | Module | Capabilities |
 |---|---|
-| `workflows` | `list_workflows`, `get_workflow`, `create_workflow`, `list_workflow_versions`, `get_workflow_version`, `create_workflow_version`, `restore_workflow_version`, `delete_workflow_version`, `run_workflow`, `debug_workflow`, `resolve_workflow_escalation`, `validate_workflow`, `start_background_job`, `get_example_workflow`, `export_workflow_digraph` |
+| `workflows` | `list_workflows`, `get_workflow`, `create_workflow`, `update_workflow`, `delete_workflow`, `list_workflow_versions`, `get_workflow_version`, `create_workflow_version`, `restore_workflow_version`, `delete_workflow_version`, `set_workflow_access`, `run_workflow`, `debug_workflow`, `resolve_workflow_escalation`, `validate_workflow`, `start_background_job`, `get_example_workflow`, `export_workflow_digraph` |
 | `nodes` | `list_nodes`, `search_nodes`, `get_node_info` |
 | `models` | `find_model`, `list_models`, `list_provider_models` |
 | `files` | `read_file`, `write_file`, `list_directory`, `edit_file`, `glob`, `grep`, `todo_write` |
 | `web` | `web_search`, `browser`, `take_screenshot`, `download_file`, `http_request` |
+| `serpapi` | `list_serpapi_engines`, `get_serpapi_engine_schema`, `serpapi_search`, `get_serpapi_account`, `get_serpapi_locations` |
 | `apify` | `search_apify_actors`, `get_apify_actor`, `get_apify_actor_schema`, `run_apify_actor`, `get_apify_run`, `abort_apify_run`, `get_apify_dataset_items`, `get_apify_key_value_record` |
-| `collections` | `list_collections`, `query_collection`, `vector_text_search`, `vector_index`, `vector_hybrid_search`, `vector_recursive_split_and_index`, `vector_markdown_split_and_index`, `vector_batch_index` |
+| `collections` | `list_collections`, `query_collection`, `vector_text_search`, `vector_index`, `vector_hybrid_search`, `vector_recursive_split_and_index`, `vector_markdown_split_and_index`, `vector_batch_index`, `create_collection`, `delete_collection` |
 | `documents` | `extract_pdf_text`, `extract_pdf_tables`, `convert_pdf_to_markdown`, `convert_markdown_to_pdf`, `convert_document` |
 | `email` | `search_email`, `archive_email`, `add_label_to_email` |
-| `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image` |
-| `jobs` | `list_jobs`, `get_job`, `get_job_logs` |
+| `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image`, `update_asset` |
+| `jobs` | `list_jobs`, `get_job`, `get_job_logs`, `cancel_job` |
+| `costs` | `get_cost_summary` |
 | `apps` | `list_apps`, `get_app`, `create_app`, `edit_app`, `debug_app`, `delete_app` |
 | `code` | `validate_code`, `run_code`, `test_code` |
-| `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
-| `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video` |
-| `timelines` | `list_timelines`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `delete_timeline_version`, `edit_timeline`, `validate_timeline` |
-| `sketches` | `list_sketches`, `create_sketch`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `delete_sketch_version`, `edit_sketch`, `validate_sketch` |
-| `storyboards` | `list_storyboards`, `create_storyboard`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard` |
-| `scripts` | `list_scripts`, `get_script`, `voice_script_lines`, `assemble_script_timeline`, `edit_script` |
+| `flow` | `invoke_node`, `open_node_stream`, `take_node_stream`, `close_node_stream` |
+| `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script`, `list_js_script_versions`, `get_js_script_version`, `create_js_script_version`, `restore_js_script_version`, `delete_js_script_version`, `delete_js_script` |
+| `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `generate_music`, `transcribe_audio`, `embed_text`, `read_media_bytes`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video`, `ffmpeg`, `ffprobe`, `yt_dlp` |
+| `timelines` | `list_timelines`, `create_timeline`, `get_timeline`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `delete_timeline_version`, `edit_timeline`, `validate_timeline`, `delete_timeline` |
+| `sketches` | `list_sketches`, `create_sketch`, `get_sketch`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `delete_sketch_version`, `edit_sketch`, `validate_sketch`, `delete_sketch` |
+| `model3d` | `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d` |
+| `storyboards` | `list_storyboards`, `create_storyboard`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard`, `extract_script_from_storyboard`, `delete_storyboard` |
+| `scripts` | `list_scripts`, `create_script`, `get_script`, `voice_script_lines`, `assemble_script_timeline`, `edit_script`, `derive_storyboard_from_script`, `delete_script` |
+| `entities` | `list_entities`, `get_entity`, `apply_entities`, `create_entity`, `update_entity`, `delete_entity` |
 | `memory` | `thread_memory_save`, `thread_memory_list`, `thread_memory_update`, `thread_memory_delete` |
+| `threads` | `list_threads`, `get_thread`, `get_message` |
 | `shared` | `list_shared`, `read_shared`, `share_result` |
-| `agents` | `run_subtask`, `run_search` |
+| `agents` | `run_subtask`, `run_search`, `start_subtask`, `wait_subtasks` |
 | `google` | `google_drive_*`, `gmail_*`, `google_docs_*`, `google_sheets_*`, `google_calendar_*` |
 | `packs` | `list_sandbox_packages`, `get_sandbox_package_docs` |
+| `settings` | `list_settings`, `get_setting`, `set_setting`, `list_secrets`, `request_secret` |
 | `style` | `record_style_preference`, `get_style_profile` |
 | `ui` | the `ui_*` workflow-document tools, derived from `WORKFLOW_DOCUMENT_TOOL_NAMES` |
 
@@ -303,7 +310,7 @@ A CodeAct action (`execute_code`) and the `CodeNode` workflow node both run user
 | Max `fetch` calls | 20 |
 | Max response body | 1 MB |
 
-The sandbox exposes a curated surface: vanilla JavaScript plus bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`, `console`). Third-party libraries (lodash, dayjs, etc.) are intentionally excluded — use dedicated workflow nodes instead.
+The sandbox exposes a curated surface: vanilla JavaScript plus bridge globals (`fetch`, `workspace`, `getSecret`, `nodetool.secrets.*`, `sleep`, `crypto`, `console`, `media`, `image`/`audio`/`video`). Third-party libraries are not globals — each is a **sandbox package** the body imports (`import yaml from "@nodetool-ai/sandbox-yaml"`). NodeTool ships thirty-eight of them in `packages/sandbox-packs/`. See [javascript-sandbox.md](javascript-sandbox.md) for the full global table and the pack list.
 
 ### Tool Registry
 
