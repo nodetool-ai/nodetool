@@ -179,13 +179,13 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       const entry: StorageEntry = {
         key: childKey,
         uri: `supabase://${this.bucket}/${childKey}`,
-        size: (item.metadata?.size as number) ?? 0,
+        size: item.metadata?.size ?? 0,
         modifiedAt: item.updated_at
           ? new Date(item.updated_at).getTime()
           : Date.now()
       };
       if (item.metadata?.mimetype) {
-        entry.contentType = item.metadata.mimetype as string;
+        entry.contentType = item.metadata.mimetype;
       }
       entries.push(entry);
     }
@@ -212,13 +212,13 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     if (!item) return null;
     const stat: StorageStat = {
       key: parsed.key,
-      size: (item.metadata?.size as number) ?? 0,
+      size: item.metadata?.size ?? 0,
       modifiedAt: item.updated_at
         ? new Date(item.updated_at).getTime()
         : Date.now()
     };
     if (item.metadata?.mimetype) {
-      stat.contentType = item.metadata.mimetype as string;
+      stat.contentType = item.metadata.mimetype;
     }
     return stat;
   }

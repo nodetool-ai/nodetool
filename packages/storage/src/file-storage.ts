@@ -7,6 +7,15 @@ import { isWithinRoot, normalizeStorageKey } from "./storage-keys.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 
 /**
+ * A missing path, whichever layer reported it: `node:fs` raises `ENOENT`,
+ * fs-safe raises its own `not-found`.
+ */
+function isNotFound(err: Error): boolean {
+  if (err instanceof FsSafeError) return err.code === "not-found";
+  return "code" in err && err.code === "ENOENT";
+}
+
+/**
  * File-backed `AbstractStorage` that holds caller-controlled keys inside a
  * single trusted directory. Path resolution and all reads/writes go through
  * `@openclaw/fs-safe` so symlinked or hardlinked aliases pointing outside the
@@ -45,10 +54,7 @@ export class FileStorage implements AbstractStorage {
     try {
       return await r.readBytes(rel);
     } catch (err) {
-      if (
-        (err as { code?: string } | null)?.code === "ENOENT" ||
-        (err instanceof FsSafeError && err.code === "not-found")
-      ) {
+      if (err instanceof Error && isNotFound(err)) {
         throw new Error(`Key not found: ${key}`, { cause: err });
       }
       throw err;

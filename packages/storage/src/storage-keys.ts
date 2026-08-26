@@ -61,7 +61,7 @@ export function assetObjectKey(userId: string, fileName: string): string {
   if (userId.includes("/") || userId.includes("\\")) {
     throw new Error(`Invalid userId for a storage key: ${userId}`);
   }
-  if ((RESERVED_KEY_PREFIXES as readonly string[]).includes(userId)) {
+  if (RESERVED_KEY_PREFIXES.some((prefix) => prefix === userId)) {
     throw new Error(
       `Invalid userId for a storage key: "${userId}" is a reserved prefix`
     );

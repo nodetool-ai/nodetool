@@ -17,13 +17,20 @@ interface SupabaseDownloadData {
   arrayBuffer(): Promise<ArrayBuffer>;
 }
 
+/** Object metadata the Storage `list` endpoint reports, as this package reads it. */
+export interface SupabaseObjectMetadata {
+  size?: number;
+  mimetype?: string;
+}
+
 /** One entry from the Storage `list` endpoint. */
 export interface SupabaseObjectEntry {
   name: string;
   /** `null`/absent for pseudo-directory entries. */
   id?: string | null;
   updated_at?: string | null;
-  metadata?: Record<string, unknown> | null;
+  /** Absent for pseudo-directory entries. */
+  metadata?: SupabaseObjectMetadata | null;
 }
 
 interface SupabaseListOptions {
@@ -83,9 +90,31 @@ export interface SupabaseStorageApi {
   };
 }
 
+/** Headers for one Storage request: name → value. */
+interface StorageRequestHeaders {
+  [name: string]: string;
+}
+
 /** Encode an object key path segment-by-segment (slashes stay literal). */
 function encodeKey(key: string): string {
   return key.split("/").map(encodeURIComponent).join("/");
+}
+
+/** The `object/sign` response body: a path relative to `/storage/v1`. */
+interface SupabaseSignResponse {
+  signedURL?: string;
+}
+
+/** The `object/upload/sign` response body: a path relative to `/storage/v1`. */
+interface SupabaseSignUploadResponse {
+  url?: string;
+}
+
+/** The error body the Storage API returns on a non-2xx response. */
+interface SupabaseErrorBody {
+  statusCode?: string;
+  error?: string;
+  message?: string;
 }
 
 /**
@@ -95,12 +124,8 @@ function encodeKey(key: string): string {
 async function readError(response: Response): Promise<SupabaseError> {
   let message = "";
   try {
-    const body = (await response.json()) as Record<string, unknown>;
-    if (typeof body.message === "string" && body.message) {
-      message = body.message;
-    } else if (typeof body.error === "string" && body.error) {
-      message = body.error;
-    }
+    const body: SupabaseErrorBody = await response.json();
+    message = body.message || body.error || "";
   } catch {
     // Non-JSON error body — use the status fallback below.
   }
@@ -133,7 +158,7 @@ export function createSupabaseStorageClient(
 
         return {
           async upload(key, data, options = {}) {
-            const headers: Record<string, string> = { ...authHeaders };
+            const headers: StorageRequestHeaders = { ...authHeaders };
             if (options.contentType) {
               headers["Content-Type"] = options.contentType;
             }
@@ -212,7 +237,7 @@ export function createSupabaseStorageClient(
             if (!response.ok) {
               return { data: null, error: await readError(response) };
             }
-            const data = (await response.json()) as SupabaseObjectEntry[];
+            const data: SupabaseObjectEntry[] = await response.json();
             return { data, error: null };
           },
 
@@ -228,7 +253,7 @@ export function createSupabaseStorageClient(
             if (!response.ok) {
               return { data: null, error: await readError(response) };
             }
-            const body = (await response.json()) as { signedURL?: string };
+            const body: SupabaseSignResponse = await response.json();
             if (!body.signedURL) {
               return {
                 data: null,
@@ -249,7 +274,7 @@ export function createSupabaseStorageClient(
             if (!response.ok) {
               return { data: null, error: await readError(response) };
             }
-            const body = (await response.json()) as { url?: string };
+            const body: SupabaseSignUploadResponse = await response.json();
             if (!body.url) {
               return {
                 data: null,

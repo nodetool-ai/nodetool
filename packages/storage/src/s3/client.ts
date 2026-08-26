@@ -11,7 +11,7 @@
  * exponential backoff.
  */
 
-import { request as httpRequest } from "node:http";
+import { request as httpRequest, type IncomingHttpHeaders } from "node:http";
 import { request as httpsRequest } from "node:https";
 import {
   cacheCredentials,
@@ -25,7 +25,8 @@ import {
   presignUrl,
   sha256Hex,
   signRequest,
-  type SigV4Credentials
+  type SigV4Credentials,
+  type SigV4Query
 } from "./signer.js";
 import { xmlBlocks, xmlText } from "./xml.js";
 
@@ -217,6 +218,14 @@ function hasDotSegments(key: string): boolean {
 }
 
 /**
+ * One response header as `Headers` takes it. node reports a header sent more
+ * than once as an array, and a header it never saw as `undefined`.
+ */
+function headerText(value: IncomingHttpHeaders[string]): string | undefined {
+  return Array.isArray(value) ? value.join(", ") : value;
+}
+
+/**
  * Send a request over node:http(s) with the path preserved verbatim. fetch
  * (WHATWG URL) normalizes dot segments like `/a/../b` — which S3 treats as a
  * literal key — so those requests bypass fetch entirely.
@@ -259,8 +268,8 @@ function rawPathRequest(input: {
         const body = Buffer.concat(chunks);
         const headers = new Headers();
         for (const [name, value] of Object.entries(res.headers)) {
-          if (typeof value === "string") headers.set(name, value);
-          else if (Array.isArray(value)) headers.set(name, value.join(", "));
+          const text = headerText(value);
+          if (text !== undefined) headers.set(name, text);
         }
         const bodyAllowed =
           input.method !== "HEAD" && status !== 204 && status !== 304;
@@ -385,7 +394,7 @@ export class S3Client implements S3Api {
     method: string;
     bucket: string | null;
     key?: string;
-    query?: Record<string, string>;
+    query?: SigV4Query;
     headers?: Record<string, string>;
     body?: Uint8Array;
     /** Retry transient failures. Only safe/idempotent operations set this. */
@@ -573,7 +582,7 @@ export class S3Client implements S3Api {
   async listObjectsV2(
     input: S3ListObjectsV2Input
   ): Promise<S3ListObjectsV2Result> {
-    const query: Record<string, string> = { "list-type": "2" };
+    const query: SigV4Query = { "list-type": "2" };
     if (input.prefix) query.prefix = input.prefix;
     if (input.delimiter) query.delimiter = input.delimiter;
     if (input.maxKeys !== undefined) query["max-keys"] = String(input.maxKeys);

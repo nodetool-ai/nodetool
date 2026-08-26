@@ -50,15 +50,23 @@ function fromEnv(
   return credentials;
 }
 
+/** One `[section]` of the credentials file: lower-cased key → raw value. */
+export interface IniProfile {
+  [key: string]: string;
+}
+
+/** A parsed shared credentials file: profile name → its section. */
+export interface IniProfiles {
+  [profile: string]: IniProfile;
+}
+
 /**
  * Minimal INI parser for the AWS shared credentials file: `[section]`
  * headers, `key = value` lines, `#`/`;` comments.
  */
-export function parseIniProfiles(
-  text: string
-) {
-  const profiles: Record<string, Record<string, string>> = {};
-  let current: Record<string, string> | null = null;
+export function parseIniProfiles(text: string): IniProfiles {
+  const profiles: IniProfiles = {};
+  let current: IniProfile | null = null;
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line || line.startsWith("#") || line.startsWith(";")) continue;
@@ -146,17 +154,16 @@ export function cacheCredentials(
     ) {
       return cached;
     }
-    pending ??= provider().then(
-      (creds) => {
+    // The in-flight request is cleared however it settles, so a failed refresh
+    // is retried on the next call rather than replayed from `pending`.
+    pending ??= provider()
+      .then((creds) => {
         cached = creds;
-        pending = null;
         return creds;
-      },
-      (err: unknown) => {
+      })
+      .finally(() => {
         pending = null;
-        throw err;
-      }
-    );
+      });
     return pending;
   };
 }

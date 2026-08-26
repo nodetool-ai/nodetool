@@ -40,11 +40,11 @@ export class SupabaseStorage implements AbstractStorage {
   ): Promise<void> {
     assertUploadWithinLimit(key, data.byteLength);
     const b = await this.bucket();
-    const options: { contentType?: string } = {};
-    if (contentType) {
-      options.contentType = contentType;
-    }
-    const { error } = await b.upload(key, data, options);
+    const { error } = await b.upload(
+      key,
+      data,
+      contentType ? { contentType } : {}
+    );
     if (error) {
       throw new Error(
         `Supabase upload failed for key "${key}": ${error.message}`

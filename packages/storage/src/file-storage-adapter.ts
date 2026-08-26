@@ -1,4 +1,4 @@
-import { FsSafeError, root, type Root } from "@openclaw/fs-safe";
+import { root, type Root } from "@openclaw/fs-safe";
 import { mkdirSync, realpathSync } from "node:fs";
 import {
   lstat,
@@ -138,9 +138,9 @@ export class FileStorageAdapter implements StorageAdapter {
     }
     try {
       return await r.readBytes(rel);
-    } catch (err) {
-      if (err instanceof FsSafeError) return null;
-      if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return null;
+    } catch {
+      // A key that cannot be read — missing, denied, or outside the root — is
+      // reported the same way as one that was never stored.
       return null;
     }
   }
@@ -296,9 +296,9 @@ export class FileStorageAdapter implements StorageAdapter {
     try {
       await unlink(abs);
       return true;
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return false;
-      if (err instanceof FsSafeError) return false;
+    } catch {
+      // Nothing was deleted, whether the object was already gone or the
+      // unlink was refused.
       return false;
     }
   }

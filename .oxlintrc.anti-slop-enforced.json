@@ -94,6 +94,7 @@
         "packages/sandbox-compiler/src/**",
         "packages/sdk/src/**",
         "packages/security/src/**",
+        "packages/storage/src/**",
         "packages/text-nodes/src/**",
         "packages/topaz-nodes/src/**",
         "packages/transformers-js-nodes/src/**",
@@ -125,6 +126,7 @@
         "packages/reve-nodes/src/**",
         "packages/sdk/src/**",
         "packages/security/src/**",
+        "packages/storage/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -218,6 +220,7 @@
         "packages/reve-nodes/src/**",
         "packages/sdk/src/**",
         "packages/security/src/**",
+        "packages/storage/src/**",
         "packages/text-nodes/src/**",
         "packages/workflow-runner/src/**"
       ],
@@ -246,6 +249,7 @@
         "packages/reve-nodes/src/**",
         "packages/sdk/src/**",
         "packages/security/src/**",
+        "packages/storage/src/**",
         "packages/transformers-js-provider/src/**",
         "packages/workflow-runner/src/**"
       ],
@@ -316,6 +320,7 @@
         "packages/reve-nodes/src/**",
         "packages/sdk/src/**",
         "packages/security/src/**",
+        "packages/storage/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -336,6 +341,7 @@
         "packages/reve-nodes/src/**",
         "packages/sdk/src/**",
         "packages/security/src/**",
+        "packages/storage/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
