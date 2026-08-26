@@ -195,8 +195,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ]
     },
@@ -369,8 +369,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ]
     },
@@ -492,8 +492,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -1187,14 +1187,14 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "input_urls"
+          "paramName": "input_urls",
+          "isList": true
         },
         {
           "field": "videos",
           "kind": "video",
-          "isList": true,
-          "paramName": "video_urls"
+          "paramName": "video_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -1270,14 +1270,14 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "input_urls"
+          "paramName": "input_urls",
+          "isList": true
         },
         {
           "field": "videos",
           "kind": "video",
-          "isList": true,
-          "paramName": "video_urls"
+          "paramName": "video_urls",
+          "isList": true
         }
       ]
     },
@@ -1373,7 +1373,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "multi_prompt",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Multi Prompt",
           "description": "Shot prompts. Takes effect when multi_shots is true. Used to describe the text and duration of each shot. Supports up to 5 shots. Each shot duration is 1-12 seconds. If you need to use elements, add them after the prompt.",
@@ -1383,7 +1383,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "kling_elements",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Kling Elements",
           "description": "Referenced elements. Detailed information about elements referenced in the prompt. A single task can reference a maximum of three elements.",
@@ -1395,8 +1395,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -1512,6 +1512,14 @@ export const videoConfig: ModuleConfig = {
           "max": 2500
         },
         {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": true
+        },
+        {
           "name": "duration",
           "type": "str",
           "default": "5",
@@ -1530,22 +1538,14 @@ export const videoConfig: ModuleConfig = {
             "720p",
             "1080p"
           ]
-        },
-        {
-          "name": "images",
-          "type": "list[image]",
-          "default": [],
-          "title": "Images",
-          "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
-          "required": true
         }
       ],
       "uploads": [
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -1563,6 +1563,473 @@ export const videoConfig: ModuleConfig = {
           "field": "resolution",
           "rule": "not_empty",
           "message": "Resolution is required"
+        }
+      ]
+    },
+    {
+      "className": "Kling30OmniReferenceToVideo",
+      "modelId": "kling-3.0-omni/reference-to-video",
+      "title": "Kling 3.0 Omni Reference To Video",
+      "description": "Kling 3.0 Omni Reference To Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Video description. It must not be empty after leading and trailing whitespace is removed. Maximum length: 3,072 characters.",
+          "required": true,
+          "min": 1,
+          "max": 3072
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Array of reference image URLs. The maximum number of images depends on the number and types of reference subjects. When there is no reference video and only multi-image subjects are used, the combined number of reference images and multi-image subjects must not exceed 7. When there is no reference video and both video character and multi-image subjects are used, the combined number of reference images and multi-image subjects must not exceed 4. HTTP, HTTPS, and OSS URLs are supported. Images must be in JPG, JPEG, or PNG format; each file must not exceed 50 MB; both width and height must be at least 300 px; and the aspect ratio must be between 0.4 and 2.5.",
+          "required": true,
+          "max": 7
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Total video duration in seconds. Optional; the default is 5 seconds. Supports integer values from 3 to 15.",
+          "required": false,
+          "min": 3,
+          "max": 15
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution. `720p` outputs a 720p video, `1080p` outputs a 1080p video, and `4k` outputs a 4K video.",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "When no video is provided, `16:9`, `9:16`, and `1:1` are supported.",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "bool",
+          "default": false,
+          "title": "Audio",
+          "description": "Whether to enable audio. When no video is provided, both `true` and `false` are supported.",
+          "required": false
+        },
+        {
+          "name": "customize_multi_shots",
+          "type": "bool",
+          "default": false,
+          "title": "Customize Multi Shots",
+          "description": "Whether to enable multiple shots. Both `true` and `false` are supported.",
+          "required": false
+        },
+        {
+          "name": "prefer_multi_shots",
+          "type": "bool",
+          "default": false,
+          "title": "Prefer Multi Shots",
+          "description": "Whether to enable intelligent shot planning. This field is mutually exclusive with `customize_multi_shots`.",
+          "required": false
+        },
+        {
+          "name": "multi_prompt",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Multi Prompt",
+          "description": "List of custom shots. When `customize_multi_shots=true`, this field is required, must not be empty, and may contain up to 6 shots. When `customize_multi_shots=false`, it must be an empty array or omitted.",
+          "required": false,
+          "min": 1,
+          "max": 6
+        },
+        {
+          "name": "elements",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Elements",
+          "description": "List of one-time subject assets. The default is an empty array. The number of subjects is jointly limited by the reference images, reference video, and subject types. When there is no reference video and only multi-image subjects are used, the combined number of reference images and multi-image subjects must not exceed 7. When there is no reference video and only video character subjects are used, the number of video character subjects must not exceed 3. When there is no reference video and both video character and multi-image subjects are used, the number of video character subjects must not exceed 3, and the combined number of reference images and multi-image subjects must not exceed 4.",
+          "required": false
+        },
+        {
+          "name": "videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Videos",
+          "description": "Array of video URLs. Exactly 1 video is required. HTTP, HTTPS, and OSS URLs are supported. Videos must be in MP4 or MOV format; each file must not exceed 200 MB; duration must be between 3 and 15.5 seconds; width and height must each be between 700 and 4,553 px; total pixels must not exceed 8,294,400; the aspect ratio must be between 0.4 and 2; and the frame rate must be between 24 and 60 fps.",
+          "required": false,
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "image_urls",
+          "isList": true
+        },
+        {
+          "field": "videos",
+          "kind": "video",
+          "paramName": "video_urls",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Kling30OmniTransformation",
+      "modelId": "kling-3.0-omni/transformation",
+      "title": "Kling 3.0 Omni Transformation",
+      "description": "Kling 3.0 Omni Transformation via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Video description. It must not be empty after leading and trailing whitespace is removed. Maximum length: 3,072 characters.",
+          "required": false,
+          "min": 1,
+          "max": 3072
+        },
+        {
+          "name": "videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Videos",
+          "description": "Array of video URLs. Exactly 1 video is required. HTTP, HTTPS, and OSS URLs are supported. Videos must be in MP4 or MOV format; each file must not exceed 200 MB; duration must be between 3 and 15.5 seconds; width and height must each be between 700 and 4,553 px; total pixels must not exceed 8,294,400; the aspect ratio must be between 0.4 and 2; and the frame rate must be between 24 and 60 fps.",
+          "required": false,
+          "min": 1,
+          "max": 1
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Array of image URLs. The maximum number of images depends on the number and types of reference subjects. When using only multi-image subjects, the combined number of reference images and multi-image subjects must not exceed 4. Video character subjects cannot be used together with multi-image subjects or reference images. HTTP, HTTPS, and OSS URLs are supported. Images must be in JPG, JPEG, or PNG format; each file must not exceed 50 MB; both width and height must be at least 300 px; and the aspect ratio must be between 0.4 and 2.5.",
+          "required": false,
+          "max": 4
+        },
+        {
+          "name": "duration",
+          "type": "str",
+          "default": "",
+          "title": "Duration",
+          "description": "Video duration. This field may be configured when using a video with images.",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution. `720p` outputs a 720p video, `1080p` outputs a 1080p video, and `4k` outputs a 4K video.",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio. Only `auto` can be used with video-only input. When using a video with images, `16:9`, `9:16`, and `1:1` are supported; `auto` is not supported.",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "auto"
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "bool",
+          "default": false,
+          "title": "Audio",
+          "description": "Whether to enable audio.",
+          "required": false
+        },
+        {
+          "name": "elements",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Elements",
+          "description": "List of one-time subject assets. The default is an empty array. When using only multi-image subjects, up to 7 subjects can be uploaded. When using only video character subjects, the number of video character subjects must not exceed 3. When using both video character and multi-image subjects, the number of video character subjects must not exceed 3, and the number of multi-image subjects must not exceed 4.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "videos",
+          "kind": "video",
+          "paramName": "video_urls",
+          "isList": true
+        },
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "image_urls",
+          "isList": true
+        }
+      ]
+    },
+    {
+      "className": "Kling30OmniImageToVideo",
+      "modelId": "kling-3.0-omni/image-to-video",
+      "title": "Kling 3.0 Omni  Image To Video",
+      "description": "Kling 3.0 Omni  Image To Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Video description. It must not be empty after leading and trailing whitespace is removed. Maximum length: 3,072 characters.",
+          "required": true,
+          "min": 3,
+          "max": 3072
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Array of first-frame image URLs. Exactly 1 image is required. HTTP, HTTPS, and OSS URLs are supported. Images must be in JPG, JPEG, or PNG format; each file must not exceed 50 MB; both width and height must be at least 300 px; and the aspect ratio must be between 0.4 and 2.5.",
+          "required": true,
+          "min": 1,
+          "max": 1
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Total video duration in seconds. Optional; the default is 5 seconds. Supports integer values from 3 to 15.",
+          "required": false,
+          "min": 3,
+          "max": 15
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution. `720p` outputs a 720p video, `1080p` outputs a 1080p video, and `4k` outputs a 4K video.",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio. `16:9`, `9:16`, and `1:1` can be selected only when custom multi-shot mode is enabled through `customize_multi_shots`; otherwise, use `auto`.",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "auto"
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "bool",
+          "default": false,
+          "title": "Audio",
+          "description": "Whether to enable audio. Passing this value explicitly is recommended. `true` enables audio; `false` disables audio.",
+          "required": false
+        },
+        {
+          "name": "customize_multi_shots",
+          "type": "bool",
+          "default": false,
+          "title": "Customize Multi Shots",
+          "description": "Whether to enable multiple shots. Passing this value explicitly is recommended.",
+          "required": false
+        },
+        {
+          "name": "prefer_multi_shots",
+          "type": "bool",
+          "default": false,
+          "title": "Prefer Multi Shots",
+          "description": "Whether to enable intelligent shot planning. This field is mutually exclusive with `customize_multi_shots`.",
+          "required": false
+        },
+        {
+          "name": "multi_prompt",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Multi Prompt",
+          "description": "List of custom shots. When `customize_multi_shots=true`, this field is required and may contain up to 6 shots. When `customize_multi_shots=false`, it must be an empty array or omitted.",
+          "required": false,
+          "min": 1,
+          "max": 6
+        },
+        {
+          "name": "elements",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Elements",
+          "description": "List of one-time subject assets. The default is an empty array, with up to 3 subjects. The subject is automatically identified as a multi-image subject or video character subject based on `element_input_urls`.",
+          "required": false,
+          "max": 3
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "image_urls",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Kling30OmniTextToVideo",
+      "modelId": "kling-3.0-omni/text-to-video",
+      "title": "Kling 3.0 Omni Text to Video",
+      "description": "Kling 3.0 Omni Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text description of the video. It must not be empty after leading and trailing whitespace is removed, and must not exceed 3,072 characters.",
+          "required": true,
+          "min": 1,
+          "max": 3072
+        },
+        {
+          "name": "customize_multi_shots",
+          "type": "bool",
+          "default": true,
+          "title": "Customize Multi Shots",
+          "description": "Whether to enable multi-shot mode. Explicitly specifying this value is recommended. `true` enables multiple shots; `false` uses a single shot.",
+          "required": false
+        },
+        {
+          "name": "prefer_multi_shots",
+          "type": "bool",
+          "default": false,
+          "title": "Prefer Multi Shots",
+          "description": "Whether to enable intelligent shot planning. This field is mutually exclusive with `customize_multi_shots`. Both fields may be `false`, but they cannot both be `true`.",
+          "required": false
+        },
+        {
+          "name": "multi_prompt",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Multi Prompt",
+          "description": "List of custom shots. When `customize_multi_shots` is `true`, this field is required, must not be empty, and supports up to 6 shots. When `customize_multi_shots` is `false`, it must be an empty array or omitted.",
+          "required": false,
+          "max": 6
+        },
+        {
+          "name": "elements",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Elements",
+          "description": "List of one-time subject assets. The default is an empty array. When using only multi-image subjects, up to 7 subjects can be uploaded. When using only video character subjects, the number of video character subjects must not exceed 3. When using both video character and multi-image subjects, the number of video character subjects must not exceed 3, and the number of multi-image subjects must not exceed 4.",
+          "required": false
+        },
+        {
+          "name": "audio",
+          "type": "bool",
+          "default": false,
+          "title": "Audio",
+          "description": "Whether to add audio to the generated video. `true` enables audio; `false` disables audio.",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Resolution of the generated video. Available values are `720p` (outputs a 720p video), `1080p` (outputs a 1080p video), and `4k` (outputs a 4K video).",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated video. Supported values are `16:9`, `9:16`, and `1:1`.",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Total video duration in seconds. The supported range is 3 to 15 seconds, and the default is 5 seconds.",
+          "required": false,
+          "min": 3,
+          "max": 15
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
@@ -1720,20 +2187,20 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "reference_images",
           "kind": "image",
-          "isList": true,
-          "paramName": "reference_image_urls"
+          "paramName": "reference_image_urls",
+          "isList": true
         },
         {
           "field": "reference_videos",
           "kind": "video",
-          "isList": true,
-          "paramName": "reference_video_urls"
+          "paramName": "reference_video_urls",
+          "isList": true
         },
         {
           "field": "reference_audios",
           "kind": "audio",
-          "isList": true,
-          "paramName": "reference_audio_urls"
+          "paramName": "reference_audio_urls",
+          "isList": true
         }
       ]
     },
@@ -1889,20 +2356,20 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "reference_images",
           "kind": "image",
-          "isList": true,
-          "paramName": "reference_image_urls"
+          "paramName": "reference_image_urls",
+          "isList": true
         },
         {
           "field": "reference_videos",
           "kind": "video",
-          "isList": true,
-          "paramName": "reference_video_urls"
+          "paramName": "reference_video_urls",
+          "isList": true
         },
         {
           "field": "reference_audios",
           "kind": "audio",
-          "isList": true,
-          "paramName": "reference_audio_urls"
+          "paramName": "reference_audio_urls",
+          "isList": true
         }
       ]
     },
@@ -2058,20 +2525,209 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "reference_images",
           "kind": "image",
-          "isList": true,
-          "paramName": "reference_image_urls"
+          "paramName": "reference_image_urls",
+          "isList": true
         },
         {
           "field": "reference_videos",
           "kind": "video",
-          "isList": true,
-          "paramName": "reference_video_urls"
+          "paramName": "reference_video_urls",
+          "isList": true
         },
         {
           "field": "reference_audios",
           "kind": "audio",
-          "isList": true,
-          "paramName": "reference_audio_urls"
+          "paramName": "reference_audio_urls",
+          "isList": true
+        }
+      ]
+    },
+    {
+      "className": "BytedanceSeedance25",
+      "modelId": "bytedance/seedance-2-5",
+      "title": "Bytedance Seedance 2.5",
+      "description": "Bytedance Seedance 2.5 via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video.. ( Max length: 30000 characters)",
+          "required": false,
+          "max": 30000
+        },
+        {
+          "name": "first_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "First Frame",
+          "description": "First frame image url or asset://{assetId} (for example: asset://asset-20260404242101-76djj) Cannot be used simultaneously with reference_image_urls, reference_video_urls, or reference_audio_urls.",
+          "required": false
+        },
+        {
+          "name": "last_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Last Frame",
+          "description": "End frame image url or asset://{assetId} (for example: asset://asset-20260404242101-76djj) last_frame_url cannot be passed alone; first_frame_url must be provided together with it.",
+          "required": false
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 30. Mutually exclusive with the first/last-frame scenario;",
+          "required": false,
+          "max": 30
+        },
+        {
+          "name": "reference_videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Reference Videos",
+          "description": "Enter a list of video URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single video requirements: Video format: mp4, mov. Resolution: 480p, 720p Dimensions: Aspect ratio (width/height): [0.4, 2.5] Width/height (px): [300, 6000] Total pixels: [640×640=409600, 834×1112=927408], i.e., the product of width and height must meet the range requirement of [409600, 927408]. Size: Single video not exceeding 200 MB. Frame rate (FPS): [24, 60] Single video duration: [2, 30] seconds; Mutually exclusive with the first/last-frame scenario; Total duration of reference videos must not exceed 30 seconds.",
+          "required": false,
+          "min": 409600,
+          "max": 10
+        },
+        {
+          "name": "reference_audios",
+          "type": "list[audio]",
+          "default": [],
+          "title": "Reference Audios",
+          "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single audio requirements: Format: wav, mp3 Size: Single audio file size not exceeding 15 MB. Single audio duration: [2, 30] seconds; Mutually exclusive with the first/last-frame scenario; Total duration of reference videos must not exceed 30 seconds.",
+          "required": false,
+          "min": 2,
+          "max": 10
+        },
+        {
+          "name": "return_last_frame",
+          "type": "bool",
+          "default": false,
+          "title": "Return Last Frame",
+          "description": "Whether to return the last frame of the video. When draft=true, this parameter cannot be set to true.",
+          "required": false
+        },
+        {
+          "name": "generate_audio",
+          "type": "bool",
+          "default": true,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video. - **true**: Generate with audio (higher cost) - **false**: Generate without audio Note: Enabling audio will increase the generation cost",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance.",
+          "required": false,
+          "values": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "adaptive",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio configuration.",
+          "required": false,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9",
+            "adaptive"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Video duration in 4-30 seconds. Special values -1: Pass -1 for automatic duration selection — the model picks a suitable duration itself (for video-editing tasks, it matches the input video's length; for other task types, it selects within the valid range), instead of you specifying an exact value.",
+          "required": false,
+          "min": 4,
+          "max": 30
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "mp4",
+          "title": "Output Format",
+          "description": "Video output format.",
+          "required": false,
+          "values": [
+            "mp4",
+            "mov"
+          ]
+        },
+        {
+          "name": "web_search",
+          "type": "bool",
+          "default": false,
+          "title": "Web Search",
+          "description": "Enable online search.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "first_frame",
+          "kind": "image",
+          "paramName": "first_frame_url"
+        },
+        {
+          "field": "last_frame",
+          "kind": "image",
+          "paramName": "last_frame_url"
+        },
+        {
+          "field": "reference_images",
+          "kind": "image",
+          "paramName": "reference_image_urls",
+          "isList": true
+        },
+        {
+          "field": "reference_videos",
+          "kind": "video",
+          "paramName": "reference_video_urls",
+          "isList": true
+        },
+        {
+          "field": "reference_audios",
+          "kind": "audio",
+          "paramName": "reference_audio_urls",
+          "isList": true
         }
       ]
     },
@@ -2169,8 +2825,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "videos",
           "kind": "video",
-          "isList": true,
-          "paramName": "input_urls"
+          "paramName": "input_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -3130,8 +3786,8 @@ export const videoConfig: ModuleConfig = {
     {
       "className": "Wan22A14bImageToVideoTurbo",
       "modelId": "wan/2-2-a14b-image-to-video-turbo",
-      "title": "Wan - Image to Video",
-      "description": "Wan - Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Transform images into dynamic videos powered by Wan's advanced AI model",
+      "title": "Wan - 2.2 A14B Image to Video Turbo",
+      "description": "Wan - 2.2 A14B Image to Video Turbo via Kie.ai.\n\n    kie, video, ai\n\n    Transform images into dynamic videos powered by Wan's advanced AI model",
       "outputType": "video",
       "fields": [
         {
@@ -3379,8 +4035,8 @@ export const videoConfig: ModuleConfig = {
     {
       "className": "Wan22A14bTextToVideoTurbo",
       "modelId": "wan/2-2-a14b-text-to-video-turbo",
-      "title": "Wan - Text to Video",
-      "description": "Wan - Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    High-quality video generation from text descriptions powered by Wan's advanced AI model",
+      "title": "Wan - 2.2 A14B Text to Video Turbo",
+      "description": "Wan - 2.2 A14B Text to Video Turbo via Kie.ai.\n\n    kie, video, ai\n\n    High-quality video generation from text descriptions powered by Wan's advanced AI model",
       "outputType": "video",
       "fields": [
         {
@@ -3584,14 +4240,6 @@ export const videoConfig: ModuleConfig = {
             "580p",
             "720p"
           ]
-        },
-        {
-          "name": "nsfw_checker",
-          "type": "bool",
-          "default": false,
-          "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
-          "required": false
         }
       ],
       "uploads": [
@@ -3678,8 +4326,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -3826,8 +4474,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "videos",
           "kind": "video",
-          "isList": true,
-          "paramName": "video_urls"
+          "paramName": "video_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -3917,8 +4565,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -4007,8 +4655,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "videos",
           "kind": "video",
-          "isList": true,
-          "paramName": "video_urls"
+          "paramName": "video_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -4827,14 +5475,14 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "reference_image",
           "kind": "image",
-          "isList": true,
-          "paramName": "reference_image"
+          "paramName": "reference_image",
+          "isList": true
         },
         {
           "field": "reference_video",
           "kind": "video",
-          "isList": true,
-          "paramName": "reference_video"
+          "paramName": "reference_video",
+          "isList": true
         },
         {
           "field": "first_frame",
@@ -4852,6 +5500,376 @@ export const videoConfig: ModuleConfig = {
           "field": "prompt",
           "rule": "not_empty",
           "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan30Video",
+      "modelId": "wan/3-0-video",
+      "title": "Wan 3.0 - Video",
+      "description": "Wan 3.0 - Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt, supporting both Chinese and English. Up to 20,000 characters; excess characters will be truncated automatically. Required for text-to-video generation; for other modes, it is recommended to provide it together with media. In reference mode, use Image1/Video1/Audio1 to reference the provided media.",
+          "required": false,
+          "max": 20000
+        },
+        {
+          "name": "first_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "First Frame",
+          "description": "URL of the first-frame image. Up to 1 image, used strictly as the first frame of the video. Used for first-frame-to-video / first-and-last-frame-to-video generation. Cannot be provided together with `reference_*_urls`. Formats: JPEG/JPG, PNG (transparency not supported), BMP, WEBP; each side [240, 8000] px; aspect ratio ≤ 8:1; ≤ 20MB.",
+          "required": false
+        },
+        {
+          "name": "last_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Last Frame",
+          "description": "URL of the first-frame image. Up to 1 image, used strictly as the first frame of the video. Used for first-frame-to-video / first-and-last-frame-to-video generation. Cannot be provided together with `reference_*_urls`. Formats: JPEG/JPG, PNG (transparency not supported), BMP, WEBP; each side [240, 8000] px; aspect ratio ≤ 8:1; ≤ 20MB.",
+          "required": false
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "Reference images for the all-purpose reference mode, with up to 10 images. Correspond to Image1, Image2, … in the prompt according to array order. Specifications are the same as `first_frame_url`. Cannot be provided together with the first-frame/last-frame parameters.",
+          "required": false,
+          "max": 10
+        },
+        {
+          "name": "reference_videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Reference Videos",
+          "description": "Reference videos for the all-purpose reference mode, with up to 5 clips. Each clip must be 1–15 seconds, with a total duration ≤ 15 seconds. Correspond to Video1, Video2, … according to array order. Formats: mp4, mov; each side [240, 4096] px; aspect ratio ≤ 8:1; each file ≤ 100MB. There is an additional constraint on the output side: the input video duration + `duration` must not exceed 30 seconds.",
+          "required": false,
+          "max": 5
+        },
+        {
+          "name": "reference_audios",
+          "type": "list[audio]",
+          "default": [],
+          "title": "Reference Audios",
+          "description": "Reference audio for the all-purpose reference mode, with up to 5 clips. Each clip must be 1–15 seconds, with a total duration ≤ 15 seconds. Correspond to Audio1, Audio2, … according to array order. Formats: wav, mp3; ≤ 15MB. Audio should not be used alone as the only media input; pairing it with an image or video is still recommended.",
+          "required": false,
+          "max": 5
+        },
+        {
+          "name": "reference_file_urls",
+          "type": "list[str]",
+          "default": [],
+          "title": "Reference File Urls",
+          "description": "File-to-video generation. Up to 1 file. Cannot be provided together with `reference_link_urls`, or with the first-frame/last-frame parameters. Formats: docx/doc/xlsx/xls/pptx/ppt/pdf/txt/key/pages/numbers/md; ≤ 100MB; pdf/docx/ppt/key/pages, etc. ≤ 50 pages.",
+          "required": false,
+          "max": 1
+        },
+        {
+          "name": "reference_link_urls",
+          "type": "list[str]",
+          "default": [],
+          "title": "Reference Link Urls",
+          "description": "Link-to-video generation. Up to 1 publicly accessible webpage that does not require login. Cannot be provided together with `reference_file_urls`, or with the first-frame/last-frame parameters.",
+          "required": false,
+          "max": 1
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080P",
+          "title": "Resolution",
+          "description": "Output resolution. Default: **1080P**.",
+          "required": false,
+          "values": [
+            "480P",
+            "720P",
+            "1080P"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "adaptive",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio. `adaptive` (default) automatically selects the ratio based on the input media and intent.",
+          "required": false,
+          "values": [
+            "adaptive",
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output video duration in seconds. Default: 5. Without video input, the range is [2, 30]. With reference videos: input video duration + output duration ≤ 30. Pass `-1` to use an intelligent duration determined by the model.",
+          "required": false,
+          "min": 2,
+          "max": 30
+        },
+        {
+          "name": "audio",
+          "type": "bool",
+          "default": true,
+          "title": "Audio",
+          "description": "Whether the output video includes an audio track. Default: true.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed used to reproduce results. If omitted, a random seed will be used.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "first_frame",
+          "kind": "image",
+          "paramName": "first_frame_url"
+        },
+        {
+          "field": "last_frame",
+          "kind": "image",
+          "paramName": "last_frame_url"
+        },
+        {
+          "field": "reference_images",
+          "kind": "image",
+          "paramName": "reference_image_urls",
+          "isList": true
+        },
+        {
+          "field": "reference_videos",
+          "kind": "video",
+          "paramName": "reference_video_urls",
+          "isList": true
+        },
+        {
+          "field": "reference_audios",
+          "kind": "audio",
+          "paramName": "reference_audio_urls",
+          "isList": true
+        }
+      ]
+    },
+    {
+      "className": "Wan30PrimeVideo",
+      "modelId": "wan/3-0-video-prime",
+      "title": "Wan 3.0 - Video Prime",
+      "description": "Wan 3.0 - Video Prime via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt. Chinese and English are supported. Up to 20,000 characters; excess characters are truncated automatically. Required for text-to-video; for other modes, it is recommended to provide it together with media. In reference mode, use Image1/Video1/Audio1 to reference the provided materials.",
+          "required": false,
+          "max": 20000
+        },
+        {
+          "name": "first_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "First Frame",
+          "description": "URL of the first-frame image. Up to 1 image, used strictly as the first frame of the video. Used for first-frame-to-video or first-and-last-frame-to-video generation. Cannot be provided together with `reference_*_urls`. Formats: JPEG/JPG, PNG (transparency not supported), BMP, WEBP; each side [240, 8000] px; aspect ratio ≤ 8:1; ≤ 20MB.",
+          "required": false
+        },
+        {
+          "name": "last_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Last Frame",
+          "description": "URL of the first-frame image. Up to 1 image, used strictly as the first frame of the video. Used for first-frame-to-video or first-and-last-frame-to-video generation. Cannot be provided together with `reference_*_urls`. Formats: JPEG/JPG, PNG (transparency not supported), BMP, WEBP; each side [240, 8000] px; aspect ratio ≤ 8:1; ≤ 20MB.",
+          "required": false
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "Reference images for all-purpose reference mode. Up to 10 images. Correspond to Image1, Image2, and so on in the prompt according to array order. Same specifications as `first_frame_url`. Cannot be provided together with the first-frame or last-frame image.",
+          "required": false,
+          "max": 10
+        },
+        {
+          "name": "reference_videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Reference Videos",
+          "description": "Reference videos for all-purpose reference mode. Up to 5 videos. Each video must be 1–15s, with a combined duration of ≤ 15s. Correspond to Video1, Video2, and so on according to array order. Formats: mp4, mov; each side [240, 4096] px; aspect ratio ≤ 8:1; each file ≤ 100MB. There is an additional output-side limit: the input video duration plus `duration` cannot exceed 30 seconds.",
+          "required": false,
+          "max": 5
+        },
+        {
+          "name": "reference_audios",
+          "type": "list[audio]",
+          "default": [],
+          "title": "Reference Audios",
+          "description": "Reference audio files for all-purpose reference mode. Up to 5 audio files. Each file must be 1–15s, with a combined duration of ≤ 15s. Correspond to Audio1, Audio2, and so on according to array order. Formats: wav, mp3; ≤ 15MB. Even when used as the only media input, it is still recommended to provide an image or video together with it.",
+          "required": false,
+          "max": 5
+        },
+        {
+          "name": "reference_file_urls",
+          "type": "list[str]",
+          "default": [],
+          "title": "Reference File Urls",
+          "description": "File-to-video generation. Up to 1 file. Cannot be provided together with `reference_link_urls`, or with the first-frame/last-frame image. Formats: docx/doc/xlsx/xls/pptx/ppt/pdf/txt/key/pages/numbers/md; ≤ 100MB; pdf/docx/ppt/key/pages, etc. ≤ 50 pages.",
+          "required": false,
+          "max": 1
+        },
+        {
+          "name": "reference_link_urls",
+          "type": "list[str]",
+          "default": [],
+          "title": "Reference Link Urls",
+          "description": "Link-to-video generation. Up to 1 publicly accessible webpage that does not require login. Cannot be provided together with `reference_file_urls`, or with the first-frame/last-frame image.",
+          "required": false,
+          "max": 1
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080P",
+          "title": "Resolution",
+          "description": "Output resolution level. Default: **1080P**.",
+          "required": false,
+          "values": [
+            "480P",
+            "720P",
+            "1080P"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "adaptive",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio. `adaptive` (default) automatically selects the aspect ratio based on the input materials and intent.",
+          "required": false,
+          "values": [
+            "adaptive",
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output video duration in seconds. Default: 5. When there is no video input, the value must be within [2, 30]. When reference videos are provided: input video duration plus output duration ≤ 30. Pass `-1` to use an intelligent duration determined by the model.",
+          "required": false
+        },
+        {
+          "name": "audio",
+          "type": "bool",
+          "default": true,
+          "title": "Audio",
+          "description": "Whether the output video includes an audio track. Default: true.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed used to reproduce results. If omitted, a random seed is used.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "first_frame",
+          "kind": "image",
+          "paramName": "first_frame_url"
+        },
+        {
+          "field": "last_frame",
+          "kind": "image",
+          "paramName": "last_frame_url"
+        },
+        {
+          "field": "reference_images",
+          "kind": "image",
+          "paramName": "reference_image_urls",
+          "isList": true
+        },
+        {
+          "field": "reference_videos",
+          "kind": "video",
+          "paramName": "reference_video_urls",
+          "isList": true
+        },
+        {
+          "field": "reference_audios",
+          "kind": "audio",
+          "paramName": "reference_audio_urls",
+          "isList": true
         }
       ]
     },
@@ -5231,8 +6249,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -5489,7 +6507,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "image_references",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Image References",
           "description": "Fusion multi-reference image list. `ref_name` must be unique within the same list. You can reference the reference object in the prompt via `@ref_name`.",
@@ -5823,20 +6841,20 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "reference_images",
           "kind": "image",
-          "isList": true,
-          "paramName": "reference_image_urls"
+          "paramName": "reference_image_urls",
+          "isList": true
         },
         {
           "field": "reference_videos",
           "kind": "video",
-          "isList": true,
-          "paramName": "reference_video_urls"
+          "paramName": "reference_video_urls",
+          "isList": true
         },
         {
           "field": "reference_audios",
           "kind": "audio",
-          "isList": true,
-          "paramName": "reference_audio_urls"
+          "paramName": "reference_audio_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -5981,8 +6999,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ]
     },
@@ -6058,6 +7076,14 @@ export const videoConfig: ModuleConfig = {
           "required": false,
           "min": 0,
           "max": 2147483647
+        }
+      ],
+      "uploads": [
+        {
+          "field": "reference_image",
+          "kind": "image",
+          "paramName": "reference_image",
+          "isList": true
         }
       ],
       "validation": [
@@ -6150,6 +7176,12 @@ export const videoConfig: ModuleConfig = {
           "field": "video",
           "kind": "video",
           "paramName": "video_url"
+        },
+        {
+          "field": "reference_image",
+          "kind": "image",
+          "paramName": "reference_image",
+          "isList": true
         }
       ],
       "validation": [
@@ -6212,8 +7244,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ]
     },
@@ -6355,8 +7387,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "reference_image",
           "kind": "image",
-          "isList": true,
-          "paramName": "reference_image"
+          "paramName": "reference_image",
+          "isList": true
         }
       ],
       "validation": [
@@ -6470,8 +7502,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         },
         {
           "field": "video_list",
@@ -6600,8 +7632,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -6703,8 +7735,8 @@ export const videoConfig: ModuleConfig = {
         {
           "field": "mask_url",
           "kind": "image",
-          "isList": true,
-          "paramName": "mask_url"
+          "paramName": "mask_url",
+          "isList": true
         },
         {
           "field": "audio",

@@ -183,6 +183,8 @@
 - Video Models > Wan [Wan 2.7 - Image to Video](https://docs.kie.ai/market/wan/2-7-image-to-video.md): ## Create Task
 - Video Models > Wan [Wan 2.7 - Video Edit](https://docs.kie.ai/market/wan/2-7-videoedit.md): ## Create Task
 - Video Models > Wan [Wan 2.7 - Reference to Video](https://docs.kie.ai/market/wan/2-7-r2v.md): ## Create Task
+- Video Models > Wan [Wan 3.0 - Video](https://docs.kie.ai/market/wan/3-0-video.md): ## Create Task
+- Video Models > Wan [Wan 3.0 - Video Prime](https://docs.kie.ai/market/wan/3-0-video-prime.md): ## Create Task
 - Video Models > Topaz [Topaz - Video Upscale](https://docs.kie.ai/market/topaz/video-upscale.md): Enhance video resolution and quality using advanced AI upscaling powered by Topaz
 - Video Models > Infinitalk [Infinitalk - From Audio](https://docs.kie.ai/market/infinitalk/from-audio.md): Content generation using infinitalk/from-audio
 - Video Models > Runway API > Aleph [Generate Aleph Video](https://docs.kie.ai/runway-api/generate-aleph-video.md): > Using Runway Aleph model for video-to-video conversion to create dynamic AI-generated videos
@@ -405,6 +407,8 @@
 - Video Models > Wan [Wan 2.7 - 文转视频](https://docs.kie.ai/cn/market/wan/2-7-text-to-video.md): ## 创建任务
 - Video Models > Wan [Wan 2.7 - 图转视频](https://docs.kie.ai/cn/market/wan/2-7-image-to-video.md): ## 创建任务
 - Video Models > Wan [Wan 2.7 - 视频编辑](https://docs.kie.ai/cn/market/wan/2-7-videoedit.md): ## 创建任务
+- Video Models > Wan [Wan 3.0 - 生成视频](https://docs.kie.ai/cn/market/wan/3-0-video.md): ## 创建任务
+- Video Models > Wan [Wan 3.0 - 高速生成视频](https://docs.kie.ai/cn/market/wan/3-0-video-prime.md): ## 创建任务
 - Video Models > Wan [Wan 2.7 - 参考生视频](https://docs.kie.ai/cn/market/wan/2-7-r2v.md): ## 创建任务
 - Video Models > Topaz [Topaz视频优化](https://docs.kie.ai/cn/market/topaz/video-upscale.md): ## 查询任务状态
 - Video Models > Infinitalk [Infinitalk视频生成](https://docs.kie.ai/cn/market/infinitalk/from-audio.md): ## 查询任务状态

@@ -65,6 +65,15 @@ function isAssetType(type: string): boolean {
 }
 
 /**
+ * The list types the API takes by value. `String(...)` on one of these would
+ * send `"[object Object]"`, so they are emitted as the array itself — matching
+ * how `kie-factory.ts` builds the same parameter at runtime.
+ */
+function isValueListType(type: string): boolean {
+  return ["list[str]", "list[int]", "list[float]", "list[dict]"].includes(type);
+}
+
+/**
  * Compute inlineFields and inputFields from a Kie field list.
  * Delegates to the shared `classifyFields` rule in node-sdk after mapping
  * each Kie `FieldDef.type` onto the `{ name, propType }` shape it expects.
@@ -275,6 +284,16 @@ function renderProcess(
     const paramName = node.paramNames?.[field.name] ?? field.name;
     const cast = castFn(field.type);
     const defLit = defaultLiteral(field.default, field.type);
+
+    if (isValueListType(field.type)) {
+      lines.push(
+        `    const ${fieldToVarName(field.name)}List = Array.isArray(this.${field.name}) ? this.${field.name} : [];`
+      );
+      lines.push(
+        `    if (${fieldToVarName(field.name)}List.length) params[${JSON.stringify(paramName)}] = ${fieldToVarName(field.name)}List;`
+      );
+      continue;
+    }
 
     const conditional = node.conditionalFields?.find(
       (c) => c.field === field.name

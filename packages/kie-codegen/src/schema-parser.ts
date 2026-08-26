@@ -184,6 +184,27 @@ const LIST_TYPE_FOR_MEDIA = {
   video: "list[video]"
 } satisfies Record<MediaKind, FieldDef["type"]>;
 
+/**
+ * The list type a non-media array maps onto, read off its item schema. Typing
+ * every unrecognized array as `list[image]` gave the node an asset handle the
+ * factory then skipped, so the parameter never reached the request at all —
+ * Kling 3.0 Omni's `elements` and Grok's `mask_indexs` are arrays of objects
+ * and integers, not images.
+ */
+function listTypeForItems(itemSchema: JsonRecord): FieldDef["type"] {
+  switch (String(itemSchema.type ?? "string")) {
+    case "object":
+    case "array":
+      return "list[dict]";
+    case "integer":
+      return "list[int]";
+    case "number":
+      return "list[float]";
+    default:
+      return "list[str]";
+  }
+}
+
 function defaultForMedia(kind: MediaKind): MediaRefDefault {
   if (kind === "audio") {
     return AUDIO_REF;
@@ -194,7 +215,8 @@ function defaultForMedia(kind: MediaKind): MediaRefDefault {
   return IMAGE_REF;
 }
 
-function inferMediaKind(name: string, schema: JsonRecord): MediaKind | null {
+/** The media kind a parameter's own name names, ignoring its description. */
+function mediaKindFromName(name: string): MediaKind | null {
   const lowerName = name.toLowerCase();
   if (/image_urls?|^images?$|_image/.test(lowerName)) {
     return "image";
@@ -204,6 +226,26 @@ function inferMediaKind(name: string, schema: JsonRecord): MediaKind | null {
   }
   if (/audio_urls?|_audio/.test(lowerName)) {
     return "audio";
+  }
+  // A first/last frame is always a still. Left to the description sniff, Wan
+  // 3.0's reads "used strictly as the first frame of the video" and lands on a
+  // video handle.
+  if (/(^|_)(first|last)_frame(_urls?)?$/.test(lowerName)) {
+    return "image";
+  }
+  return null;
+}
+
+function inferMediaKind(name: string, schema: JsonRecord): MediaKind | null {
+  const byName = mediaKindFromName(name);
+  if (byName) {
+    return byName;
+  }
+  // `reference_file_urls` takes a document and `reference_link_urls` takes a
+  // web page, but both describe themselves as "…-to-video generation" — which
+  // the description sniff below would read as a video handle.
+  if (/(^|_)(file|link)_urls?$/.test(name.toLowerCase())) {
+    return null;
   }
   const text = `${name} ${String(schema.description ?? "")}`.toLowerCase();
   if (/\baudio\b|mp3|wav|aac|ogg|mpeg/.test(text)) {
@@ -326,14 +368,28 @@ function mapField(
   const enumValues = asStringArray(schema.enum);
   const isArray = schemaType === "array";
   const itemSchema = asRecord(schema.items) ?? {};
+  // A string array named for a medium is a list of media URLs even when KIE
+  // spells the parameter without the `_urls` suffix and declares no `uri`
+  // format — HappyHorse's `reference_image` takes 1–9 image URLs.
+  const isMediaNameArray =
+    isArray &&
+    String(itemSchema.type ?? "string") === "string" &&
+    mediaKindFromName(sourceName) !== null;
   const isUrlArray =
     isArray &&
     (sourceName.endsWith("_urls") ||
       itemSchema.format === "uri" ||
+      isMediaNameArray ||
       cleanDescription(schema.description).includes("asset://"));
+  // KIE pages sometimes declare a URL parameter as an empty `type: object`
+  // (Wan 3.0 does, reusing one YAML anchor for every media parameter). Trust
+  // the `_url` suffix over the declared type — a bare object schema carries no
+  // properties to build anything else from.
   const isUrl =
-    schemaType === "string" &&
-    (sourceName.endsWith("_url") || schema.format === "uri");
+    !isArray &&
+    !enumValues?.length &&
+    (sourceName.endsWith("_url") ||
+      (schemaType === "string" && schema.format === "uri"));
   const isIdArray =
     isArray &&
     sourceName.endsWith("_ids") &&
@@ -401,6 +457,22 @@ function mapField(
     return { field, upload };
   }
 
+  // A `_urls` array whose kind no rule can name (documents, web links) stays a
+  // list of URL strings the caller pastes — never `list[dict]` off an item
+  // schema that KIE declares as a bare `type: object`.
+  if (isUrlArray) {
+    const field: FieldDef = {
+      name: sourceName,
+      type: "list[str]",
+      default: [],
+      title: toTitle(sourceName),
+      description: cleanDescription(schema.description),
+      required
+    };
+    applyBounds(field, schema);
+    return { field };
+  }
+
   let type: FieldDef["type"];
   if (enumValues?.length) {
     type = "enum";
@@ -410,8 +482,8 @@ function mapField(
     type = "int";
   } else if (schemaType === "number") {
     type = "float";
-  } else if (schemaType === "array") {
-    type = "list[image]";
+  } else if (isArray) {
+    type = listTypeForItems(itemSchema);
   } else {
     type = "str";
   }

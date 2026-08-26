@@ -323,3 +323,84 @@ describe("createKieNodeClass single-output", () => {
     expect(params.num_images).toBe("1");
   });
 });
+
+const valueListSpec: KieManifestEntry = {
+  className: "Kling30OmniTextToVideo",
+  moduleName: "video",
+  modelId: "kling-3.0-omni/text-to-video",
+  title: "Kling 3.0 Omni Text to Video",
+  description: "test",
+  outputType: "video",
+  pollInterval: 8000,
+  maxAttempts: 450,
+  fields: [
+    { name: "prompt", type: "str", default: "", required: true },
+    { name: "multi_prompt", type: "list[dict]", default: [] },
+    { name: "mask_indexs", type: "list[int]", default: [] },
+    { name: "weights", type: "list[float]", default: [] }
+  ]
+};
+
+describe("createKieNodeClass value lists", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const runWith = async (values: Record<string, unknown>) => {
+    vi.mocked(kieExecuteTask).mockResolvedValue({
+      data: "AAAA",
+      items: ["AAAA"],
+      taskId: "t"
+    });
+    const NodeClass = createKieNodeClass(valueListSpec);
+    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
+    Object.assign(node as unknown as Record<string, unknown>, {
+      prompt: "a fox",
+      ...values
+    });
+    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+    await node.process();
+    return vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<string, unknown>;
+  };
+
+  it("sends object and number lists by value instead of stringifying them", async () => {
+    const params = await runWith({
+      multi_prompt: [{ prompt: "wide shot", duration: 2 }],
+      mask_indexs: [1, "2"],
+      weights: [0.5, 1]
+    });
+
+    expect(params.multi_prompt).toEqual([{ prompt: "wide shot", duration: 2 }]);
+    expect(params.mask_indexs).toEqual([1, 2]);
+    expect(params.weights).toEqual([0.5, 1]);
+  });
+
+  it("omits an empty value list rather than sending an empty array", async () => {
+    const params = await runWith({});
+
+    expect(params).not.toHaveProperty("multi_prompt");
+    expect(params).not.toHaveProperty("mask_indexs");
+    expect(params).not.toHaveProperty("weights");
+  });
+
+  it("parses a JSON string wired into a list[dict] parameter", async () => {
+    const params = await runWith({
+      multi_prompt: '[{"prompt":"close-up","duration":3}]'
+    });
+
+    expect(params.multi_prompt).toEqual([
+      { prompt: "close-up", duration: 3 }
+    ]);
+  });
+
+  it("exposes value lists as input handles", () => {
+    const NodeClass = createKieNodeClass(valueListSpec);
+    const inputFields = (
+      NodeClass as unknown as { inputFields: string[] }
+    ).inputFields;
+
+    expect(inputFields).toEqual(
+      expect.arrayContaining(["multi_prompt", "mask_indexs", "weights"])
+    );
+  });
+});

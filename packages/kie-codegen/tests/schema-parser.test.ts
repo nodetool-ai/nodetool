@@ -561,3 +561,214 @@ describe("parseKieSchema", () => {
     expect(node?.className).toBe("Happyhorse11ImageToVideo");
   });
 });
+
+const valueArrayDocs = `# Kling 3.0 Omni Text to Video
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/jobs/createTask:
+    post:
+      summary: Kling 3.0 Omni Text to Video
+      operationId: kling-3.0-omni-text-to-video
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  enum:
+                    - kling-3.0-omni/text-to-video
+                  default: kling-3.0-omni/text-to-video
+                input:
+                  type: object
+                  properties:
+                    prompt:
+                      type: string
+                      description: Video description.
+                    multi_prompt:
+                      type: array
+                      description: List of custom shots.
+                      maxItems: 6
+                      items:
+                        type: object
+                        properties:
+                          prompt:
+                            type: string
+                          duration:
+                            type: integer
+                    mask_indexs:
+                      type: array
+                      description: Index numbers of the segment array items to use.
+                      items:
+                        type: integer
+                    weights:
+                      type: array
+                      items:
+                        type: number
+                    tags:
+                      type: array
+                      items:
+                        type: string
+\`\`\`
+`;
+
+const anchoredUrlDocs = `# Wan 3.0 - Video
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/jobs/createTask:
+    post:
+      summary: Wan 3.0 - Video
+      operationId: wan-3-0-video
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  enum:
+                    - wan/3-0-video
+                  default: wan/3-0-video
+                input:
+                  type: object
+                  properties:
+                    first_frame_url: &ref_0
+                      description: >-
+                        URL of the first-frame image, used strictly as the first
+                        frame of the video. Formats: JPEG/JPG, PNG, BMP, WEBP.
+                      type: object
+                      properties: {}
+                    last_frame_url: *ref_0
+                    reference_file_urls:
+                      type: array
+                      maxItems: 1
+                      items: *ref_0
+                      description: >-
+                        File-to-video generation. Formats:
+                        docx/xlsx/pptx/pdf/txt/md.
+                    reference_link_urls:
+                      type: array
+                      maxItems: 1
+                      items: *ref_0
+                      description: >-
+                        Link-to-video generation. One publicly accessible
+                        webpage that does not require login.
+\`\`\`
+`;
+
+const mediaNameArrayDocs = `# happyhorse/reference-to-video
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/jobs/createTask:
+    post:
+      summary: happyhorse/reference-to-video
+      operationId: happyhorse-reference-to-video
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  enum:
+                    - happyhorse/reference-to-video
+                  default: happyhorse/reference-to-video
+                input:
+                  type: object
+                  properties:
+                    reference_image:
+                      type: array
+                      maxItems: 9
+                      items:
+                        type: string
+                      description: Reference image URL list. Provide 1-9 images.
+\`\`\`
+`;
+
+describe("parseKieSchema value arrays", () => {
+  const parse = (docs: string, modelId: string) =>
+    parseKieSchema(docs, {
+      category: "Video Models",
+      title: modelId,
+      url: `https://docs.kie.ai/market/${modelId}.md`,
+      summary: modelId
+    });
+
+  it("types a non-media array by its item schema", () => {
+    const node = parse(valueArrayDocs, "kling-3.0-omni/text-to-video");
+    const typeOf = (name: string) =>
+      node?.fields.find((field) => field.name === name)?.type;
+
+    expect(typeOf("multi_prompt")).toBe("list[dict]");
+    expect(typeOf("mask_indexs")).toBe("list[int]");
+    expect(typeOf("weights")).toBe("list[float]");
+    expect(typeOf("tags")).toBe("list[str]");
+    // None of them is an asset, so none carries an upload the factory would
+    // otherwise use to skip the parameter.
+    expect(node?.uploads ?? []).toEqual([]);
+  });
+
+  it("reads a URL parameter KIE declares as a bare object", () => {
+    const node = parse(anchoredUrlDocs, "wan/3-0-video");
+
+    expect(node?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "first_frame", type: "image" }),
+        expect.objectContaining({ name: "last_frame", type: "image" })
+      ])
+    );
+    expect(node?.uploads).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "first_frame",
+          kind: "image",
+          paramName: "first_frame_url"
+        }),
+        expect.objectContaining({
+          field: "last_frame",
+          kind: "image",
+          paramName: "last_frame_url"
+        })
+      ])
+    );
+  });
+
+  it("keeps document and web-page URL lists as plain strings", () => {
+    const node = parse(anchoredUrlDocs, "wan/3-0-video");
+    const typeOf = (name: string) =>
+      node?.fields.find((field) => field.name === name)?.type;
+
+    expect(typeOf("reference_file_urls")).toBe("list[str]");
+    expect(typeOf("reference_link_urls")).toBe("list[str]");
+    expect(
+      node?.uploads?.some((upload) => /file|link/.test(upload.field))
+    ).toBeFalsy();
+  });
+
+  it("maps a media-named string array onto an AssetRef list", () => {
+    const node = parse(mediaNameArrayDocs, "happyhorse/reference-to-video");
+
+    expect(node?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "reference_image", type: "list[image]" })
+      ])
+    );
+    expect(node?.uploads).toEqual([
+      expect.objectContaining({
+        field: "reference_image",
+        kind: "image",
+        isList: true,
+        paramName: "reference_image"
+      })
+    ]);
+  });
+});

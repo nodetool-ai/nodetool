@@ -44,7 +44,7 @@ export const audioConfig: ModuleConfig = {
       "fields": [
         {
           "name": "dialogue",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Dialogue",
           "description": "Array of dialogue items. Each item contains text and voice. The total character count of all text fields combined must not exceed 5000 characters.",
@@ -538,7 +538,7 @@ export const audioConfig: ModuleConfig = {
         },
         {
           "name": "speakers",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Speakers",
           "description": "List of speaker configurations",
@@ -546,7 +546,7 @@ export const audioConfig: ModuleConfig = {
         },
         {
           "name": "dialogue_turns",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Dialogue Turns",
           "description": "List of dialogue turns, output in sequential order",
@@ -589,7 +589,7 @@ export const audioConfig: ModuleConfig = {
         },
         {
           "name": "speakers",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Speakers",
           "description": "List of speaker configurations",
@@ -597,7 +597,7 @@ export const audioConfig: ModuleConfig = {
         },
         {
           "name": "dialogue_turns",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Dialogue Turns",
           "description": "List of dialogue turns, output in sequential order",
@@ -619,7 +619,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**: Maximum 3000 characters - **V4_5 & V4_5PLUS**: Maximum 5000 characters - **V4_5ALL**: Maximum 5000 characters - **V5_5 & V5**: Maximum 5000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Maximum 500 characters. Example: \"A short relaxing piano tune\"",
+          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**: Maximum 3000 characters - **V4_5 & V4_5PLUS**: Maximum 5000 characters - **V4_5ALL**: Maximum 5000 characters - **V5_5 & V5**: Maximum 5000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Maximum 3000 characters. Example: \"A short relaxing piano tune\"",
           "required": true
         },
         {
@@ -1692,7 +1692,7 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Infill Start S",
-          "description": "Start time point for replacement (seconds), 2 decimal places. Must be less than infillEndS. The time interval (infillEndS - infillStartS) must be between 6 and 60 seconds.",
+          "description": "Start time point for replacement (seconds), 2 decimal places. Must be less than infillEndS. The time interval (infillEndS - infillStartS) must be at least 10 seconds.",
           "required": true,
           "min": 0
         },
@@ -1701,7 +1701,7 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Infill End S",
-          "description": "End time point for replacement (seconds), 2 decimal places. Must be greater than infillStartS. The time interval (infillEndS - infillStartS) must be between 6 and 60 seconds.",
+          "description": "End time point for replacement (seconds), 2 decimal places. Must be greater than infillStartS. The time interval (infillEndS - infillStartS) must be at least 10 seconds.",
           "required": true,
           "min": 0
         },
@@ -2023,8 +2023,8 @@ export const audioConfig: ModuleConfig = {
         {
           "field": "uploadUrlList",
           "kind": "audio",
-          "isList": true,
-          "paramName": "uploadUrlList"
+          "paramName": "uploadUrlList",
+          "isList": true
         }
       ],
       "validation": [

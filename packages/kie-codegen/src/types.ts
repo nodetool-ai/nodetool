@@ -47,6 +47,9 @@ export interface FieldDef {
     | "audio"
     | "video"
     | "list[str]"
+    | "list[int]"
+    | "list[float]"
+    | "list[dict]"
     | "list[image]"
     | "list[video]"
     | "list[audio]";

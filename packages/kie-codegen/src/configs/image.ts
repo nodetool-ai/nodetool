@@ -6,65 +6,6 @@ export const imageConfig: ModuleConfig = {
   "defaultMaxAttempts": 400,
   "nodes": [
     {
-      "className": "BytedanceSeedream",
-      "modelId": "bytedance/seedream",
-      "title": "Seedream3.0 - Text to Image",
-      "description": "Seedream3.0 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Seedream3.0",
-      "outputType": "image",
-      "fields": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "default": "",
-          "title": "Prompt",
-          "description": "The text prompt used to generate the image (Max length: 5000 characters)",
-          "required": true,
-          "max": 5000
-        },
-        {
-          "name": "image_size",
-          "type": "enum",
-          "default": "square_hd",
-          "title": "Image Size",
-          "description": "Select description",
-          "required": false,
-          "values": [
-            "square",
-            "square_hd",
-            "portrait_4_3",
-            "portrait_16_9",
-            "landscape_4_3",
-            "landscape_16_9"
-          ]
-        },
-        {
-          "name": "guidance_scale",
-          "type": "float",
-          "default": 2.5,
-          "title": "Guidance Scale",
-          "description": "Controls how closely the output image aligns with the input prompt. Higher values mean stronger prompt correlation. (Min: 1, Max: 10, Step: 0.1) (step: 0.1)",
-          "required": false,
-          "min": 1,
-          "max": 10
-        },
-        {
-          "name": "seed",
-          "type": "int",
-          "default": 0,
-          "title": "Seed",
-          "description": "Random seed to control the stochasticity of image generation.",
-          "required": false
-        }
-      ],
-      "validation": [
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
-        }
-      ]
-    },
-    {
       "className": "BytedanceSeedreamV4TextToImage",
       "modelId": "bytedance/seedream-v4-text-to-image",
       "title": "Seedream4.0 - Text to Image",
@@ -168,7 +109,7 @@ export const imageConfig: ModuleConfig = {
           "type": "list[image]",
           "default": [],
           "title": "Images",
-          "description": "List of URLs of input images for editing. Presently, up to 10 image inputs are allowed. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "description": "List of URLs of input images for editing. Presently, up to 10 image inputs are allowed. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
           "required": true,
           "max": 10
         },
@@ -235,8 +176,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -341,7 +282,7 @@ export const imageConfig: ModuleConfig = {
           "type": "list[image]",
           "default": [],
           "title": "Images",
-          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
           "required": true,
           "max": 14
         },
@@ -388,8 +329,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -519,7 +460,7 @@ export const imageConfig: ModuleConfig = {
           "type": "list[image]",
           "default": [],
           "title": "Images",
-          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
           "required": true,
           "max": 14
         },
@@ -579,8 +520,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -709,7 +650,7 @@ export const imageConfig: ModuleConfig = {
           "type": "list[image]",
           "default": [],
           "title": "Images",
-          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
           "required": true,
           "max": 10
         },
@@ -768,8 +709,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -787,6 +728,133 @@ export const imageConfig: ModuleConfig = {
           "field": "quality",
           "rule": "not_empty",
           "message": "Quality is required"
+        }
+      ]
+    },
+    {
+      "className": "Seedream5ProLayerDecomposition",
+      "modelId": "seedream/5-pro-layer-decomposition",
+      "title": "Seedream 5.0 Pro -  Layer Decomposition",
+      "description": "Seedream 5.0 Pro -  Layer Decomposition via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Optional prompt for layer separation. - When a prompt is provided, the model separates the specified elements based on the prompt - When no prompt is provided, the model automatically identifies the main elements in the image - Supports using `<bbox>x1 y1 x2 y2</bbox>` to precisely specify element positions, recommending the use of normalized coordinates in the 0-1000 range",
+          "required": false,
+          "min": 0,
+          "max": 5000
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The source image URL for layer separation. - Must upload exactly 1 image - Supports PNG, JPEG, WebP, BMP, TIFF, GIF - Does not support HEIC, HEIF - Image size must not exceed 30 MB - Total pixel range is 262,144-36,000,000 - Aspect ratio range is 1:16-16:1",
+          "required": true,
+          "min": 262,
+          "max": 144
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "default": "auto",
+          "title": "Size",
+          "description": "Resolution level of the output image. The base image maintains the aspect ratio of the input image, and each separated layer maintains the aspect ratio of the corresponding element in the original image. - `auto`: Automatically selected based on the input image size - `1K`: 1K resolution level - `1.5K`: 1.5K resolution level - `2K`: 2K resolution level",
+          "required": false,
+          "values": [
+            "auto",
+            "1K",
+            "1.5K",
+            "2K"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "jpeg",
+          "title": "Output Format",
+          "description": "Output format of the base image. This parameter only controls the base image format; all separated layers are fixed to output as PNG.",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceSeedream",
+      "modelId": "bytedance/seedream",
+      "title": "Seedream3.0 - Text to Image",
+      "description": "Seedream3.0 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Seedream3.0",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the image (Max length: 5000 characters)",
+          "required": true,
+          "max": 5000
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "square_hd",
+          "title": "Image Size",
+          "description": "Select description",
+          "required": false,
+          "values": [
+            "square",
+            "square_hd",
+            "portrait_4_3",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_16_9"
+          ]
+        },
+        {
+          "name": "guidance_scale",
+          "type": "float",
+          "default": 2.5,
+          "title": "Guidance Scale",
+          "description": "Controls how closely the output image aligns with the input prompt. Higher values mean stronger prompt correlation. (Min: 1, Max: 10, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 1,
+          "max": 10
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed to control the stochasticity of image generation.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
@@ -1082,8 +1150,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -1236,8 +1304,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "image_input",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_input"
+          "paramName": "image_input",
+          "isList": true
         }
       ],
       "validation": [
@@ -1328,8 +1396,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "image_input",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_input"
+          "paramName": "image_input",
+          "isList": true
         }
       ],
       "validation": [
@@ -1395,8 +1463,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -1480,8 +1548,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "input_urls"
+          "paramName": "input_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -1642,8 +1710,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "input_urls"
+          "paramName": "input_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -1738,6 +1806,142 @@ export const imageConfig: ModuleConfig = {
       ]
     },
     {
+      "className": "GrokImagineImage20TextToImage",
+      "modelId": "grok-imagine-image-2-0/text-to-image",
+      "title": "Grok Imagine Image 2.0 Text To Image",
+      "description": "Grok Imagine Image 2.0 Text To Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired image. This field is required.",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "Specifies the width-to-height ratio of the generated image. Controls the aspect ratio of the output. This field is required.",
+          "required": true,
+          "values": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "16:9",
+            "9:16"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        }
+      ]
+    },
+    {
+      "className": "GrokImagineImage2SegmentMap",
+      "modelId": "grok-imagine-image-2-0/segment-map",
+      "title": "Grok Imagine Image 2.0 Segment Map",
+      "description": "Grok Imagine Image 2.0 Segment Map via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "The ID of an existing task. Required.",
+          "required": true,
+          "min": 1
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The URL of the reference image.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        }
+      ]
+    },
+    {
+      "className": "GrokImagineImage20SegmentEdit",
+      "modelId": "grok-imagine-image-2-0/segment-edit",
+      "title": "Grok Imagine Image 2.0 Segment Edit",
+      "description": "Grok Imagine Image 2.0 Segment Edit via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired image.",
+          "required": true
+        },
+        {
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "The source task ID to use for image editing(This can be a task ID generated by the `grok-imagine-image-2-0/text-to-image` model, or a task ID generated by the `grok-imagine-image-2-0/segment-map` model by passing an `image_url`.).",
+          "required": true
+        },
+        {
+          "name": "mask_indexs",
+          "type": "list[int]",
+          "default": [],
+          "title": "Mask Indexs",
+          "description": "Please enter the index numbers of the segment array items you want to use.",
+          "required": false,
+          "min": 1
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        }
+      ]
+    },
+    {
       "className": "GrokImagineTextToImage",
       "modelId": "grok-imagine/text-to-image",
       "title": "Grok Imagine - Text to Image",
@@ -1793,6 +1997,64 @@ export const imageConfig: ModuleConfig = {
       ]
     },
     {
+      "className": "GrokImagineImage20ImageToImage",
+      "modelId": "grok-imagine-image-2-0/image-edit",
+      "title": "Grok Imagine Image 2.0 Image Edit",
+      "description": "Grok Imagine Image 2.0 Image Edit via Kie.ai.\n\n    kie, image, ai\n\n    ## Query Task Status",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description specifying the desired content or style of the generated image. (Max length: 390000 characters)",
+          "required": false,
+          "max": 390000
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "Specifies the width-to-height ratio of the generated image. Controls the aspect ratio of the output. This field is required.",
+          "required": true,
+          "values": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "16:9",
+            "9:16",
+            "auto"
+          ]
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "An array containing up to 5 and at least 1 URL strings pointing to a reference image.",
+          "required": true,
+          "max": 5
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "image_urls",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        }
+      ]
+    },
+    {
       "className": "GrokImagineImageToImage",
       "modelId": "grok-imagine/image-to-image",
       "title": "Grok Imagine - image to image",
@@ -1816,22 +2078,14 @@ export const imageConfig: ModuleConfig = {
           "description": "An array containing up to 1 URL string pointing to reference images. (Use file URLs after upload, not raw file content. Accepted types: image/jpeg, image/png, image/webp. Max size: 10.0MB per image.) In your prompt, reference the uploaded image by typing @image(n) followed by a space (for example: @image1 a sunset over the ocean).",
           "required": true,
           "max": 5
-        },
-        {
-          "name": "nsfw_checker",
-          "type": "bool",
-          "default": false,
-          "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
-          "required": false
         }
       ],
       "uploads": [
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ]
     },
@@ -1948,8 +2202,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "input_urls"
+          "paramName": "input_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -2103,8 +2357,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "input_urls"
+          "paramName": "input_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -2336,8 +2590,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "reference_images",
           "kind": "image",
-          "isList": true,
-          "paramName": "reference_image_urls"
+          "paramName": "reference_image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -2503,14 +2757,14 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "reference_images",
           "kind": "image",
-          "isList": true,
-          "paramName": "reference_image_urls"
+          "paramName": "reference_image_urls",
+          "isList": true
         },
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -2631,8 +2885,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "reference_images",
           "kind": "image",
-          "isList": true,
-          "paramName": "reference_image_urls"
+          "paramName": "reference_image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -3069,14 +3323,6 @@ export const imageConfig: ModuleConfig = {
             "regular",
             "high"
           ]
-        },
-        {
-          "name": "nsfw_checker",
-          "type": "bool",
-          "default": false,
-          "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
-          "required": false
         }
       ],
       "validation": [
@@ -3558,7 +3804,7 @@ export const imageConfig: ModuleConfig = {
           "description": "The positive prompt that describes the image content, style, and composition you want to generate or edit. Both Chinese and English are supported.",
           "required": true,
           "min": 0,
-          "max": 800
+          "max": 5000
         },
         {
           "name": "resolution",
@@ -3662,7 +3908,7 @@ export const imageConfig: ModuleConfig = {
           "description": "The positive prompt that describes the image content, style, and composition you want to generate or edit. Both Chinese and English are supported.",
           "required": true,
           "min": 0,
-          "max": 800
+          "max": 5000
         },
         {
           "name": "resolution",
@@ -3776,7 +4022,7 @@ export const imageConfig: ModuleConfig = {
           "description": "The positive prompt that describes the image content, style, and composition you want to generate or edit. Both Chinese and English are supported.",
           "required": true,
           "min": 0,
-          "max": 800
+          "max": 5000
         },
         {
           "name": "resolution",
@@ -3861,8 +4107,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -3898,7 +4144,7 @@ export const imageConfig: ModuleConfig = {
           "description": "The positive prompt that describes the image content, style, and composition you want to generate or edit. Both Chinese and English are supported.",
           "required": true,
           "min": 0,
-          "max": 800
+          "max": 5000
         },
         {
           "name": "resolution",
@@ -3983,8 +4229,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
+          "paramName": "image_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -4079,7 +4325,7 @@ export const imageConfig: ModuleConfig = {
         },
         {
           "name": "color_palette",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Color Palette",
           "description": "(Optional) Custom color theme. Only available when `enable_sequential=false`. Requires 3-10 colors, 8 recommended.",
@@ -4089,7 +4335,7 @@ export const imageConfig: ModuleConfig = {
         },
         {
           "name": "bbox_list",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Bbox List",
           "description": "(Optional) Interactive editing bounding box areas. The outer list length should match `input_urls`; maximum 2 boxes per image; single box format is `[x1, y1, x2, y2]`.",
@@ -4126,8 +4372,8 @@ export const imageConfig: ModuleConfig = {
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "input_urls"
+          "paramName": "input_urls",
+          "isList": true
         }
       ],
       "validation": [
@@ -4222,7 +4468,7 @@ export const imageConfig: ModuleConfig = {
         },
         {
           "name": "color_palette",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Color Palette",
           "description": "(Optional) Custom color theme. Only available when `enable_sequential=false`. Requires 3-10 colors, 8 recommended.",
@@ -4232,7 +4478,7 @@ export const imageConfig: ModuleConfig = {
         },
         {
           "name": "bbox_list",
-          "type": "list[image]",
+          "type": "list[dict]",
           "default": [],
           "title": "Bbox List",
           "description": "(Optional) Interactive editing bounding box areas. The outer list length should match `input_urls`; maximum 2 boxes per image; single box format is `[x1, y1, x2, y2]`.",
@@ -4255,22 +4501,14 @@ export const imageConfig: ModuleConfig = {
           "required": false,
           "min": 0,
           "max": 2147483647
-        },
-        {
-          "name": "nsfw_checker",
-          "type": "bool",
-          "default": false,
-          "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
-          "required": false
         }
       ],
       "uploads": [
         {
           "field": "images",
           "kind": "image",
-          "isList": true,
-          "paramName": "input_urls"
+          "paramName": "input_urls",
+          "isList": true
         }
       ],
       "validation": [

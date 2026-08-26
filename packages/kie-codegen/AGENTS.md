@@ -37,6 +37,13 @@ changes.
     or `type: "list[audio]"`
 - Upload configs for list fields must set `isList: true` and the API parameter
   name, for example `paramName: "reference_image_urls"`.
+- Arrays that are not media get their list type from the item schema —
+  `list[dict]`, `list[int]`, `list[float]`, `list[str]`. Never fall back to
+  `list[image]`: an asset-typed field with no upload config is skipped by
+  `kie-factory.ts`, so the parameter silently never reaches the request.
+- A `_url`/`_urls` parameter is media even when KIE declares it `type: object`
+  (Wan 3.0 reuses one YAML anchor for all of them). A `_file_urls` /
+  `_link_urls` parameter is not media — it stays `list[str]`.
 
 ## Fixture mode and the drift gate
 
