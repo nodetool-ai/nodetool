@@ -916,7 +916,6 @@ Regression suites: `packages/protocol/tests/skill-document.test.ts`;
 `packages/node-sdk/tests/sandbox-pack-skill.test.ts`;
 `packages/agents/tests/sandbox-package-docs.test.ts` and
 `codeact-prompt-drift.test.ts`;
-`web/src/components/properties/__tests__/SandboxPackagesProperty.test.tsx` and
 `web/src/components/packages/__tests__/SandboxPackDisclosure.test.tsx`.
 
 ### M2 — Delivery parity (removes the flag)

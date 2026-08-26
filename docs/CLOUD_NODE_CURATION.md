@@ -91,7 +91,6 @@ provider registry alone.
 | `nodetool.output`    | Output nodes                            |
 | `nodetool.constant`  | Constants                               |
 | `nodetool.control`   | Control flow (If, ForEach, Switch, …)   |
-| `nodetool.list`      | List ops                                |
 | `nodetool.compare`   | Compare                                 |
 | `nodetool.workflows` | Sub-workflow, Subgraph, Preview         |
 | `nodetool.group`     | Editor Loop / Group containers          |
