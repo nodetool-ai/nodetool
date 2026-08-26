@@ -33,7 +33,7 @@ export const filtersThresholdV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "filters",
-  linearity: "nonlinear-in-rgb",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: ThresholdParams,
   paramDefaults: { threshold: 0.7, softness: 0.1 },
@@ -48,10 +48,12 @@ export const filtersThresholdV1 = defineModule({
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let p = layout.$.params;
-  let luma = dot(src.rgb, vec3f(0.299, 0.587, 0.114)); // premul: ok TODO(invariant-fixes): see review §BUGS — luma read on premul rgb
+  let safeA = max(src.a, 1.0 / 255.0);
+  let straight = src.rgb / safeA;
+  let luma = dot(straight, vec3f(0.299, 0.587, 0.114));
   let soft = max(p.softness, 0.0001);
   let t = smoothstep(p.threshold - soft, p.threshold + soft, luma);
-  return vec4f(src.rgb * t, src.a * t); // premul: ok — scalar '* t' preserves rgb <= a; mis-tagged as nonlinear (TODO retag linear)
+  return vec4f(src.rgb * t, src.a * t);
 }
 `,
   io: {

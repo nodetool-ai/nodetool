@@ -102,3 +102,6 @@
 ## 2024-06-25 - Bolt: Optimize provider instantiation to run in parallel
 **Learning:** Checking configurations and instantiating providers sequentially in a `for...of` loop creates an O(N) wait bounded by I/O. Using `Promise.all` mapping over the array of provider IDs resolves them in parallel, reducing wait time to roughly O(1) in terms of latency, resulting in significantly faster resolution (e.g. going from 252ms down to 50ms in testing).
 **Action:** Refactored `getProvidersInfo` in `packages/websocket/src/models-api.ts` to utilize `Promise.all` and `.map` to fetch providers concurrently instead of iterating sequentially with `await` in a loop.
+## 2026-05-25 - N+1 query optimization in pruneOldAutosaves
+**Learning:** Found an N+1 query bottleneck in `packages/models/src/workflow-version.ts` where `v.delete()` was called inside a loop over the oldest autosave versions. For workflows with many excess autosaves (e.g. 1500), doing 1500 sequential `DELETE` queries took ~392ms.
+**Action:** Replaced the sequential deletes with batched `DELETE WHERE id IN (...)` queries (using `inArray` from Drizzle) grouped in chunks of 500 to satisfy SQLite query limits. This reduced the time to prune 1500 versions to ~18ms, a significant speedup.

@@ -2,7 +2,7 @@
  * WorkflowVersion model – stores versioned snapshots of workflow graphs.
  */
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflowVersions } from "./schema/workflow-versions.js";
@@ -91,7 +91,7 @@ export class WorkflowVersion extends DBModel {
   ): Promise<void> {
     const db = getDb();
     const rows = await db
-      .select()
+      .select({ id: workflowVersions.id })
       .from(workflowVersions)
       .where(
         and(
@@ -101,11 +101,16 @@ export class WorkflowVersion extends DBModel {
       )
       .orderBy(desc(workflowVersions.version));
     if (rows.length <= maxAutosaves) return;
-    const toDelete = rows
+    const toDeleteIds = rows
       .slice(Math.max(0, maxAutosaves))
-      .map((row: Record<string, unknown>) => new WorkflowVersion(row));
-    for (const v of toDelete) {
-      await v.delete();
+      .map((row) => row.id);
+
+    // chunk IDs to avoid SQLite limits
+    for (let i = 0; i < toDeleteIds.length; i += 500) {
+      const chunk = toDeleteIds.slice(i, i + 500);
+      await db
+        .delete(workflowVersions)
+        .where(inArray(workflowVersions.id, chunk));
     }
   }
 }
