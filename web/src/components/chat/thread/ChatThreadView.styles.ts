@@ -60,17 +60,11 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
-      gap: theme.spacing(1),
-      border: "1px solid transparent",
-      transition: MOTION.border
+      gap: theme.spacing(1)
     },
     ".chat-message.assistant": {
       padding: theme.spacing(3, 4),
-      borderRadius: BORDER_RADIUS.xl,
-      transition: MOTION.border
-    },
-    ".chat-message.assistant:hover": {
-      border: `1px solid ${theme.vars.palette.divider}`
+      borderRadius: BORDER_RADIUS.xl
     },
     // User message container (transparent, just for layout)
     ".user": {
@@ -93,13 +87,7 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.text.primary,
       borderRadius: BORDER_RADIUS.xl,
       padding: "0.2em",
-      textAlign: "left",
-      border: "1px solid transparent",
-      transition: `border-color ${MOTION.fast}`
-    },
-
-    ".user:hover .message-content": {
-      borderColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.35)`
+      textAlign: "left"
     },
 
     ".chat-message.user .markdown": {
@@ -121,8 +109,7 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".assistant .message-content": {
-      borderRadius: ".5em",
-      transition: `border-color ${MOTION.fast}`
+      borderRadius: ".5em"
     },
 
     // Keep user->assistant transitions compact.
@@ -208,10 +195,6 @@ export const createStyles = (theme: Theme) => ({
       padding: "0.6em 0"
     },
 
-    ".chat-message.assistant.chat-message--meta:hover": {
-      border: "1px solid transparent"
-    },
-
     ".chat-message--meta .message-body": {
       display: "flex",
       flexDirection: "column",
@@ -265,10 +248,6 @@ export const createStyles = (theme: Theme) => ({
       textAlign: "left",
       padding: 0,
       border: "none"
-    },
-
-    ".chat-message.user.chat-message--meta:hover .message-content": {
-      borderColor: "transparent"
     },
 
     ".chat-message.user.chat-message--meta .markdown": {
