@@ -1419,9 +1419,11 @@ export async function handleWorkflowsExportBundle(
   if (ids.length === 0) {
     return errorResponse(400, "workflow_ids (non-empty array) is required");
   }
+  const loadedResults = await Promise.all(
+    ids.map((id) => loadBundledWorkflow(id, userId))
+  );
   const workflows: BundledWorkflow[] = [];
-  for (const id of ids) {
-    const loaded = await loadBundledWorkflow(id, userId);
+  for (const loaded of loadedResults) {
     if ("error" in loaded) {
       return loaded.error;
     }
