@@ -64,6 +64,7 @@ import {
   initDb,
   initPostgresDb,
   isAccessToken,
+  McpOauthClient,
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   migrateSqliteDb,
   runSeeds
@@ -79,6 +80,9 @@ import { runAutomaticStorageCleanup } from "./storage-retention.js";
 
 /** User id the auth middleware assigns in local (no-account) mode. */
 const LOCAL_USER_ID = "1";
+/** How long an MCP OAuth client nobody ever approved is kept before the
+ * periodic cleanup deletes it. */
+const UNUSED_OAUTH_CLIENT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 import type { SdkV1RouteApiOptions } from "./routes/sdk-v1.js";
 import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 import { handleMcpHttpRequest } from "./mcp-server.js";
@@ -325,6 +329,21 @@ try {
       .catch((error) => {
         log.warn(
           "Automatic history cleanup failed",
+          error instanceof Error ? error : new Error(String(error))
+        );
+      });
+    // `/oauth/register` is anonymous and writes a durable row, so the rows it
+    // leaves behind need a sweep of their own: a client nobody ever approved
+    // is dead weight. One with any grant — active or revoked — is kept.
+    void McpOauthClient.gcUnused(UNUSED_OAUTH_CLIENT_TTL_MS)
+      .then((deleted) => {
+        if (deleted > 0) {
+          log.info("Deleted unapproved MCP OAuth clients", { deleted });
+        }
+      })
+      .catch((error) => {
+        log.warn(
+          "MCP OAuth client cleanup failed",
           error instanceof Error ? error : new Error(String(error))
         );
       });

@@ -57,6 +57,18 @@ import { isClientIdUrl, fetchClientMetadata } from "../oauth/cimd.js";
 const OAUTH_ROUTE_RATE_LIMIT = { max: 30, timeWindow: "1 minute" };
 const OAUTH_REGISTER_RATE_LIMIT = { max: 10, timeWindow: "1 minute" };
 
+/**
+ * Bounds on what an anonymous `/oauth/register` may write. The route is
+ * unauthenticated and its row is durable, so the rate limit alone is not a
+ * size limit: ten requests a minute at the server's 100 MB body cap is a
+ * gigabyte a minute of client metadata. A registration document is a name and
+ * a handful of redirect URIs — 8 KB is generous for that.
+ */
+const REGISTER_BODY_LIMIT_BYTES = 8 * 1024;
+const MAX_CLIENT_NAME_LENGTH = 256;
+const MAX_REDIRECT_URIS = 10;
+const MAX_REDIRECT_URI_LENGTH = 2048;
+
 function notFound(reply: FastifyReply): FastifyReply {
   return reply.status(404).send({ error: "not_found" });
 }
@@ -365,8 +377,12 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       return oauthError(reply, 400, "invalid_request", "missing code");
     }
 
-    const entry = pendingStore.consumeCode(code);
-    if (!entry) {
+    // Every binding the code carries is checked before the code is spent.
+    // Consuming first meant one bad exchange from anyone holding a leaked
+    // code burned it permanently, and the legitimate client's exchange then
+    // read as a replay and revoked the grant.
+    const peeked = pendingStore.peekCode(code);
+    if (!peeked) {
       return oauthError(
         reply,
         400,
@@ -375,17 +391,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       );
     }
 
-    if (entry.consumedBefore) {
-      await McpOauthGrant.revoke(entry.userId, entry.grantId);
-      return oauthError(
-        reply,
-        400,
-        "invalid_grant",
-        "authorization code has already been used"
-      );
-    }
-
-    const { request } = entry;
+    const { request } = peeked;
 
     if (params.get("client_id") !== request.clientId) {
       return oauthError(
@@ -416,6 +422,27 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
         400,
         "invalid_target",
         "resource does not match this server's MCP endpoint"
+      );
+    }
+
+    // Bindings hold: spend the code. A second correctly-bound exchange is the
+    // OAuth 2.1 replay case and revokes the grant.
+    const entry = pendingStore.consumeCode(code);
+    if (!entry) {
+      return oauthError(
+        reply,
+        400,
+        "invalid_grant",
+        "authorization code is invalid or expired"
+      );
+    }
+    if (entry.consumedBefore) {
+      await McpOauthGrant.revoke(entry.userId, entry.grantId);
+      return oauthError(
+        reply,
+        400,
+        "invalid_grant",
+        "authorization code has already been used"
       );
     }
 
@@ -497,81 +524,112 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
 
   // ── POST /oauth/register (RFC 7591) ─────────────────────────────────
 
-  app.post("/oauth/register", { config: { rateLimit: OAUTH_REGISTER_RATE_LIMIT } }, async (req, reply) => {
-    const publicUrl = resolveEnabledPublicUrl();
-    if (!publicUrl) return notFound(reply);
+  app.post(
+    "/oauth/register",
+    {
+      bodyLimit: REGISTER_BODY_LIMIT_BYTES,
+      config: { rateLimit: OAUTH_REGISTER_RATE_LIMIT }
+    },
+    async (req, reply) => {
+      const publicUrl = resolveEnabledPublicUrl();
+      if (!publicUrl) return notFound(reply);
 
-    const body = req.body;
-    const doc =
-      typeof body === "object" && body !== null
-        ? (body as Record<string, unknown>)
-        : null;
-    if (!doc) {
-      return oauthError(
-        reply,
-        400,
-        "invalid_client_metadata",
-        "request body must be a JSON object"
-      );
+      const body = req.body;
+      const doc =
+        typeof body === "object" && body !== null
+          ? (body as Record<string, unknown>)
+          : null;
+      if (!doc) {
+        return oauthError(
+          reply,
+          400,
+          "invalid_client_metadata",
+          "request body must be a JSON object"
+        );
+      }
+
+      const authMethod = doc["token_endpoint_auth_method"];
+      if (authMethod !== undefined && authMethod !== "none") {
+        return oauthError(
+          reply,
+          400,
+          "invalid_client_metadata",
+          "only public clients (token_endpoint_auth_method=none) are supported"
+        );
+      }
+
+      const clientName = doc["client_name"];
+      if (typeof clientName !== "string" || clientName.length === 0) {
+        return oauthError(
+          reply,
+          400,
+          "invalid_client_metadata",
+          "client_name is required"
+        );
+      }
+      if (clientName.length > MAX_CLIENT_NAME_LENGTH) {
+        return oauthError(
+          reply,
+          400,
+          "invalid_client_metadata",
+          `client_name must be at most ${MAX_CLIENT_NAME_LENGTH} characters`
+        );
+      }
+
+      const redirectUris = doc["redirect_uris"];
+      if (
+        !Array.isArray(redirectUris) ||
+        redirectUris.length === 0 ||
+        !redirectUris.every((uri): uri is string => typeof uri === "string")
+      ) {
+        return oauthError(
+          reply,
+          400,
+          "invalid_client_metadata",
+          "redirect_uris must be a non-empty array of strings"
+        );
+      }
+      if (redirectUris.length > MAX_REDIRECT_URIS) {
+        return oauthError(
+          reply,
+          400,
+          "invalid_client_metadata",
+          `redirect_uris must hold at most ${MAX_REDIRECT_URIS} entries`
+        );
+      }
+      if (redirectUris.some((uri) => uri.length > MAX_REDIRECT_URI_LENGTH)) {
+        return oauthError(
+          reply,
+          400,
+          "invalid_redirect_uri",
+          `each redirect_uri must be at most ${MAX_REDIRECT_URI_LENGTH} characters`
+        );
+      }
+      if (!redirectUris.every((uri) => isAllowedRedirectUri(uri))) {
+        return oauthError(
+          reply,
+          400,
+          "invalid_redirect_uri",
+          "redirect_uris must be https, or http on 127.0.0.1/localhost"
+        );
+      }
+
+      const { id } = await McpOauthClient.create({
+        client_name: clientName,
+        redirect_uris: redirectUris
+      });
+
+      return reply.status(201).send({
+        client_id: id,
+        client_id_issued_at: Math.floor(Date.now() / 1000),
+        client_name: clientName,
+        redirect_uris: redirectUris,
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "none"
+      });
     }
-
-    const authMethod = doc["token_endpoint_auth_method"];
-    if (authMethod !== undefined && authMethod !== "none") {
-      return oauthError(
-        reply,
-        400,
-        "invalid_client_metadata",
-        "only public clients (token_endpoint_auth_method=none) are supported"
-      );
-    }
-
-    const clientName = doc["client_name"];
-    if (typeof clientName !== "string" || clientName.length === 0) {
-      return oauthError(
-        reply,
-        400,
-        "invalid_client_metadata",
-        "client_name is required"
-      );
-    }
-
-    const redirectUris = doc["redirect_uris"];
-    if (
-      !Array.isArray(redirectUris) ||
-      redirectUris.length === 0 ||
-      !redirectUris.every((uri): uri is string => typeof uri === "string")
-    ) {
-      return oauthError(
-        reply,
-        400,
-        "invalid_client_metadata",
-        "redirect_uris must be a non-empty array of strings"
-      );
-    }
-    if (!redirectUris.every((uri) => isAllowedRedirectUri(uri))) {
-      return oauthError(
-        reply,
-        400,
-        "invalid_redirect_uri",
-        "redirect_uris must be https, or http on 127.0.0.1/localhost"
-      );
-    }
-
-    const { id } = await McpOauthClient.create({
-      client_name: clientName,
-      redirect_uris: redirectUris
-    });
-
-    return reply.status(201).send({
-      client_id: id,
-      client_id_issued_at: Math.floor(Date.now() / 1000),
-      client_name: clientName,
-      redirect_uris: redirectUris,
-      grant_types: ["authorization_code", "refresh_token"],
-      response_types: ["code"],
-      token_endpoint_auth_method: "none"
-    });
-  });
+  );
 
   // ── POST /oauth/revoke (RFC 7009) ───────────────────────────────────
 

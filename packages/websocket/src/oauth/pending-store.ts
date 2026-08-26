@@ -37,6 +37,24 @@ interface CodeEntry {
   consumed: boolean;
 }
 
+/** What a code redeems to: the request it was minted for, who approved it,
+ * and whether it had already been spent. */
+export interface CodeRedemption {
+  request: PendingAuthorizeRequest;
+  userId: string;
+  grantId: string;
+  consumedBefore: boolean;
+}
+
+function redemption(entry: CodeEntry): CodeRedemption {
+  return {
+    request: entry.request,
+    userId: entry.userId,
+    grantId: entry.grantId,
+    consumedBefore: entry.consumed
+  };
+}
+
 export class PendingStore {
   private readonly requests = new Map<string, PendingAuthorizeRequest>();
   private readonly codes = new Map<string, CodeEntry>();
@@ -113,6 +131,32 @@ export class PendingStore {
     return code;
   }
 
+  /** The live entry for a code, or null when it is unknown or expired. */
+  private liveEntry(code: string): CodeEntry | null {
+    this.pruneCodes();
+    const entry = this.codes.get(code);
+    if (!entry) {
+      return null;
+    }
+    if (Date.now() - entry.createdAt > CODE_TTL_MS) {
+      this.codes.delete(code);
+      return null;
+    }
+    return entry;
+  }
+
+  /**
+   * Read a code's entry without consuming it, so the token endpoint can check
+   * every binding the code carries — client_id, redirect_uri, PKCE, resource —
+   * before spending it. Redeeming first let anyone holding a leaked code burn
+   * it with one bad exchange: the legitimate client's exchange then looked
+   * like a replay and revoked the grant.
+   */
+  peekCode(code: string): CodeRedemption | null {
+    const entry = this.liveEntry(code);
+    return entry ? redemption(entry) : null;
+  }
+
   /**
    * Consume an authorization code at the token endpoint. `consumedBefore`
    * is true when this code was already consumed once — the OAuth 2.1 code
@@ -123,29 +167,14 @@ export class PendingStore {
    * nothing. Accepted narrowing — a leaked code is valuable immediately or
    * not at all, and the 10-minute window covers the realistic race.
    */
-  consumeCode(code: string): {
-    request: PendingAuthorizeRequest;
-    userId: string;
-    grantId: string;
-    consumedBefore: boolean;
-  } | null {
-    this.pruneCodes();
-    const entry = this.codes.get(code);
+  consumeCode(code: string): CodeRedemption | null {
+    const entry = this.liveEntry(code);
     if (!entry) {
-      return null;
-    }
-    if (Date.now() - entry.createdAt > CODE_TTL_MS) {
-      this.codes.delete(code);
       return null;
     }
     const consumedBefore = entry.consumed;
     entry.consumed = true;
-    return {
-      request: entry.request,
-      userId: entry.userId,
-      grantId: entry.grantId,
-      consumedBefore
-    };
+    return { ...redemption(entry), consumedBefore };
   }
 }
 

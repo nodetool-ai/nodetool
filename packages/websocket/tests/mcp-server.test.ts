@@ -5,7 +5,16 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  vi
+} from "vitest";
 import {
   MCP_GUEST_CONTRACT,
   MCP_SANDBOX_ASSET_SNIPPET,
@@ -19,10 +28,14 @@ import {
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
+  closeAllMcpHttpSessions,
   createMcpServer,
   createMcpStdioTransport,
   handleMcpHttpRequest,
-  MCP_SCOPE_REQUIRED_MESSAGE
+  MCP_MAX_SESSIONS,
+  MCP_MAX_SESSIONS_PER_USER,
+  MCP_SCOPE_REQUIRED_MESSAGE,
+  MCP_SESSION_IDLE_TTL_MS
 } from "../src/mcp-server.js";
 import {
   MCP_CAPABILITIES_RESOURCE_URI,
@@ -391,6 +404,11 @@ describe("sandbox snippets run", () => {
 });
 
 describe("session scope", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    closeAllMcpHttpSessions();
+  });
+
   it("refuses to build a session with no bound user", () => {
     expect(() => createMcpServer()).toThrow(MCP_SCOPE_REQUIRED_MESSAGE);
   });
@@ -471,6 +489,98 @@ describe("session scope", () => {
     );
     expect(owned!.status).toBeLessThan(400);
   });
+
+  it("evicts a session that goes idle past the TTL", async () => {
+    const sessionId = await openHttpSession("alice");
+    const alice = { agentToolsScope: { userId: "alice", source: "http-session" as const } };
+    expect(
+      (await handleMcpHttpRequest(sessionRequest("POST", sessionId), alice))!.status
+    ).toBe(200);
+
+    // A client that disappears sends no DELETE. Only `Date` is faked —
+    // faking timers wholesale stalls the transport's own async work.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.now() + MCP_SESSION_IDLE_TTL_MS + 1);
+    const afterIdle = await handleMcpHttpRequest(
+      sessionRequest("POST", sessionId),
+      alice
+    );
+    expect(afterIdle!.status).toBe(404);
+  });
+
+  it("keeps a session alive while it is being used", async () => {
+    const sessionId = await openHttpSession("alice");
+    const alice = { agentToolsScope: { userId: "alice", source: "http-session" as const } };
+    vi.useFakeTimers({ toFake: ["Date"] });
+    for (let step = 0; step < 3; step += 1) {
+      vi.setSystemTime(Date.now() + MCP_SESSION_IDLE_TTL_MS - 1000);
+      const response = await handleMcpHttpRequest(
+        sessionRequest("POST", sessionId),
+        alice
+      );
+      expect(response!.status).toBe(200);
+    }
+  });
+
+  it("caps one user's concurrent sessions, dropping their oldest first", async () => {
+    const alice = { agentToolsScope: { userId: "alice", source: "http-session" as const } };
+    const sessions: string[] = [];
+    for (let i = 0; i < MCP_MAX_SESSIONS_PER_USER + 1; i += 1) {
+      sessions.push(await openHttpSession("alice"));
+    }
+
+    // The first one opened is the one that went.
+    const evicted = await handleMcpHttpRequest(
+      sessionRequest("POST", sessions[0]!),
+      alice
+    );
+    expect(evicted!.status).toBe(404);
+
+    // Everything after it still answers — the cap drops one session, not the
+    // whole tail.
+    const statuses: number[] = [];
+    for (const sessionId of sessions.slice(1)) {
+      const response = await handleMcpHttpRequest(
+        sessionRequest("POST", sessionId),
+        alice
+      );
+      statuses.push(response!.status);
+    }
+    expect(statuses).toEqual(new Array(MCP_MAX_SESSIONS_PER_USER).fill(200));
+  });
+
+  it("does not evict another user's sessions when one user hits their cap", async () => {
+    const bobSession = await openHttpSession("bob");
+    for (let i = 0; i < MCP_MAX_SESSIONS_PER_USER + 1; i += 1) {
+      await openHttpSession("alice");
+    }
+    const response = await handleMcpHttpRequest(
+      sessionRequest("POST", bobSession),
+      { agentToolsScope: { userId: "bob", source: "http-session" } }
+    );
+    expect(response!.status).toBe(200);
+  });
+
+  it("refuses a new session once the server-wide cap is reached", async () => {
+    // One session each, so the per-user cap never fires and the global one is
+    // what answers.
+    for (let i = 0; i < MCP_MAX_SESSIONS; i += 1) {
+      await openHttpSession(`user-${i}`);
+    }
+    const refused = await handleMcpHttpRequest(
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream"
+        },
+        body: initializeBody
+      }),
+      { agentToolsScope: { userId: "one-too-many", source: "http-session" } }
+    );
+    expect(refused!.status).toBe(503);
+    expect(refused!.headers.get("retry-after")).toBe("60");
+  }, 60_000);
 
   it("refuses an unscoped HTTP initialize with the fix named", async () => {
     const response = await handleMcpHttpRequest(
