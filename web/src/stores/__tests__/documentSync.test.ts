@@ -7,15 +7,7 @@ import {
   handleDocumentResourceChange,
   registerDocumentSync
 } from "../documentSync";
-import { useNotificationStore } from "../NotificationStore";
-
-const addNotification = jest.fn();
-
-jest.mock("../NotificationStore", () => ({
-  useNotificationStore: {
-    getState: () => ({ addNotification })
-  }
-}));
+import { useConflictStore, clearAllConflicts } from "../ConflictStore";
 
 const subscriber = (
   overrides: Partial<{
@@ -24,12 +16,15 @@ const subscriber = (
   }> = {}
 ) => {
   const reload = jest.fn();
+  const merge = jest.fn();
   return {
     reload,
+    merge,
     handle: {
       localRevision: () => overrides.revision ?? "rev-1",
       isDirty: () => overrides.dirty ?? false,
-      reload
+      reload,
+      merge
     }
   };
 };
@@ -38,15 +33,11 @@ describe("handleDocumentResourceChange", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     clearDocumentSyncSubscribers();
-  });
-
-  afterEach(() => {
-    // The store mock is shared; keep the type reference honest.
-    expect(useNotificationStore.getState).toEqual(expect.any(Function));
+    clearAllConflicts();
   });
 
   it("reloads a clean editor when the row changed elsewhere", () => {
-    const { handle, reload } = subscriber({ revision: "rev-1" });
+    const { handle, reload, merge } = subscriber({ revision: "rev-1" });
     registerDocumentSync("timelinesequence", "t1", handle);
 
     handleDocumentResourceChange("timelinesequence", {
@@ -56,11 +47,11 @@ describe("handleDocumentResourceChange", () => {
     });
 
     expect(reload).toHaveBeenCalledTimes(1);
-    expect(addNotification).not.toHaveBeenCalled();
+    expect(merge).not.toHaveBeenCalled();
   });
 
   it("ignores the editor's own write", () => {
-    const { handle, reload } = subscriber({ revision: "rev-2" });
+    const { handle, reload, merge } = subscriber({ revision: "rev-2" });
     registerDocumentSync("timelinesequence", "t1", handle);
 
     handleDocumentResourceChange("timelinesequence", {
@@ -70,31 +61,55 @@ describe("handleDocumentResourceChange", () => {
     });
 
     expect(reload).not.toHaveBeenCalled();
-    expect(addNotification).not.toHaveBeenCalled();
+    expect(merge).not.toHaveBeenCalled();
   });
 
-  it("keeps a dirty editor's edits and says the document changed", () => {
-    const { handle, reload } = subscriber({ revision: "rev-1", dirty: true });
+  it("merges into a dirty editor instead of reloading", () => {
+    const { handle, reload, merge } = subscriber({
+      revision: "rev-1",
+      dirty: true
+    });
     registerDocumentSync("script", "s1", handle);
 
+    const ops = [{ tool: "set_line_text", input: {} }];
     handleDocumentResourceChange("script", {
       event: "updated",
       id: "s1",
-      updatedAt: "rev-2"
+      updatedAt: "rev-2",
+      ops
     });
 
     expect(reload).not.toHaveBeenCalled();
-    expect(addNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "warning",
-        content: expect.stringContaining("changed outside the editor")
-      })
+    expect(merge).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "s1", updatedAt: "rev-2", ops })
     );
   });
 
-  it("reports a delete rather than reloading", () => {
-    const { handle, reload } = subscriber();
+  it("still calls merge when the write carried no ops", () => {
+    const { handle, merge } = subscriber({ revision: "rev-1", dirty: true });
     registerDocumentSync("storyboard", "b1", handle);
+
+    handleDocumentResourceChange("storyboard", {
+      event: "updated",
+      id: "b1",
+      updatedAt: "rev-2"
+    });
+
+    expect(merge).toHaveBeenCalledTimes(1);
+    const [notice] = merge.mock.calls[0];
+    expect(notice).toMatchObject({ id: "b1", updatedAt: "rev-2" });
+    expect(notice.ops).toBeUndefined();
+  });
+
+  it("reports a delete to onExternalChange rather than reloading", () => {
+    const onExternalChange = jest.fn();
+    const reload = jest.fn();
+    registerDocumentSync("storyboard", "b1", {
+      localRevision: () => "rev-1",
+      isDirty: () => false,
+      reload,
+      onExternalChange
+    });
 
     handleDocumentResourceChange("storyboard", {
       event: "deleted",
@@ -103,10 +118,8 @@ describe("handleDocumentResourceChange", () => {
     });
 
     expect(reload).not.toHaveBeenCalled();
-    expect(addNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        content: expect.stringContaining("deleted outside the editor")
-      })
+    expect(onExternalChange).toHaveBeenCalledWith(
+      expect.objectContaining({ event: "deleted" })
     );
   });
 
@@ -114,7 +127,11 @@ describe("handleDocumentResourceChange", () => {
     const first = subscriber();
     const second = subscriber();
     registerDocumentSync("imagedocument", "d1", first.handle);
-    const unsubscribe = registerDocumentSync("imagedocument", "d2", second.handle);
+    const unsubscribe = registerDocumentSync(
+      "imagedocument",
+      "d2",
+      second.handle
+    );
 
     handleDocumentResourceChange("imagedocument", {
       event: "updated",
@@ -132,27 +149,44 @@ describe("handleDocumentResourceChange", () => {
     });
     expect(second.reload).toHaveBeenCalledTimes(1);
   });
+});
 
-  it("hands a custom handler the notice instead of notifying", () => {
-    const onExternalChange = jest.fn();
-    const reload = jest.fn();
-    registerDocumentSync("application", "a1", {
-      localRevision: () => "rev-1",
-      isDirty: () => true,
-      reload,
-      onExternalChange
-    });
+describe("conflict store", () => {
+  beforeEach(() => {
+    clearAllConflicts();
+  });
 
-    handleDocumentResourceChange("application", {
-      event: "updated",
-      id: "a1",
-      updatedAt: "rev-2"
-    });
+  const resolvers = {
+    onAccept: jest.fn(),
+    onDiscard: jest.fn()
+  };
 
-    expect(onExternalChange).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "a1", updatedAt: "rev-2" })
+  it("registers, resolves, and clears conflicts per key", () => {
+    const store = useConflictStore.getState();
+    store.setConflicts("script:s1", [{ unit: { kind: "line", id: "l4", label: "Line 4" }, external: {}, reason: "edited" }], resolvers);
+
+    expect(useConflictStore.getState().byKey["script:s1"].conflicts).toHaveLength(1);
+
+    useConflictStore.getState().discard("script:s1", "l4");
+    expect(resolvers.onDiscard).toHaveBeenCalledWith("l4");
+    expect(useConflictStore.getState().byKey["script:s1"]).toBeUndefined();
+  });
+
+  it("accept removes only the resolved conflict", () => {
+    const store = useConflictStore.getState();
+    store.setConflicts(
+      "storyboard:b1",
+      [
+        { unit: { kind: "shot", id: "s3", label: "Shot 3" }, external: {}, reason: "edited" },
+        { unit: { kind: "shot", id: "s5", label: "Shot 5" }, external: null, reason: "deleted" }
+      ],
+      resolvers
     );
-    expect(reload).not.toHaveBeenCalled();
-    expect(addNotification).not.toHaveBeenCalled();
+
+    useConflictStore.getState().accept("storyboard:b1", "s3");
+    expect(resolvers.onAccept).toHaveBeenCalledWith("s3");
+    expect(
+      useConflictStore.getState().byKey["storyboard:b1"].conflicts.map((c) => c.unit.id)
+    ).toEqual(["s5"]);
   });
 });

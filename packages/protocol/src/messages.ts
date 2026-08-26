@@ -27,6 +27,7 @@
 
 import { z } from "zod";
 import { isRecord, isString } from "./predicates.js";
+import type { DocumentOp } from "./document-ops.js";
 import {
   supervisorDecisionSchema,
   supervisorEscalationSchema,
@@ -903,6 +904,13 @@ export interface ResourceChangeMessage {
   event: "created" | "updated" | "deleted";
   resource_type: string;
   resource: Record<string, unknown>;
+  /**
+   * The per-merge-unit ops the write was made with, when the writer attached
+   * them (`meta.ops` on the model write). A change without ops — another tab's
+   * autosave, a CLI restore — is treated by editors as a whole-document
+   * replacement.
+   */
+  ops?: DocumentOp[];
 }
 
 export type WebSocketControlMessage =

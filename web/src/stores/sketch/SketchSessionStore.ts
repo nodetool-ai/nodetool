@@ -29,8 +29,9 @@ import type {
   LayerWorkflowBinding
 } from "@nodetool-ai/image-editor";
 
-import { type SketchTool } from "../../components/sketch/types";
+import { type SketchDocument, type SketchTool } from "../../components/sketch/types";
 import type { SketchStore } from "../../components/sketch/state";
+import { rebaselineHistoryForMerge } from "../../components/sketch/state/slices/historySlice";
 import {
   useSketchInstance,
   type SketchInstance
@@ -38,6 +39,14 @@ import {
 import { trpc, trpcClient } from "../../trpc/client";
 import { useNotificationStore } from "../NotificationStore";
 import { registerDocumentSync } from "../documentSync";
+import { reportDocumentConflicts } from "../documentConflictReporter";
+import type { MergeConflict } from "../documentMerge";
+import type { DocumentOp } from "@nodetool-ai/protocol";
+import {
+  mergeSketchDocuments,
+  sketchExternalLayerOwnership,
+  type SketchMergeDoc
+} from "./merge";
 import { useAssetStore } from "../AssetStore";
 import { useLastModelStore, modelKindForBinding } from "../lastModelStore";
 import {
@@ -113,6 +122,15 @@ export interface SketchSessionState {
   name: string;
   baseUpdatedAt: string | null;
   lastServerHash: string | null;
+  /**
+   * The persisted document as the editor last read or wrote it — the merge
+   * base for an external change into a dirty draft (ADR 0001). Set on load
+   * and refreshed by every landed save.
+   */
+  lastSavedDocument: {
+    sketch: Record<string, unknown>;
+    layerBindings: LayerWorkflowBinding[];
+  } | null;
   saveState: "idle" | "saving" | "error";
   hasConflict: boolean;
 
@@ -123,7 +141,8 @@ export interface SketchSessionState {
   // ── Document lifecycle ──────────────────────────────────────────────
   setLoadedDocument: (
     response: Pick<SketchDocumentResponse, "id" | "name" | "updatedAt">,
-    serverHash: string
+    serverHash: string,
+    saved?: { sketch: Record<string, unknown>; layerBindings: LayerWorkflowBinding[] }
   ) => void;
   /** Update the in-memory document name (kept in sync with the workspace tab). */
   setName: (name: string) => void;
@@ -136,7 +155,11 @@ export interface SketchSessionState {
    */
   clearHydrated: () => void;
   markSaving: () => void;
-  markSaved: (updatedAt: string, serverHash: string) => void;
+  markSaved: (
+    updatedAt: string,
+    serverHash: string,
+    saved?: { sketch: Record<string, unknown>; layerBindings: LayerWorkflowBinding[] }
+  ) => void;
   markSaveFailed: (conflict: boolean) => void;
   reset: () => void;
 
@@ -244,6 +267,7 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
   name: "",
   baseUpdatedAt: null,
   lastServerHash: null,
+  lastSavedDocument: null,
   saveState: "idle",
   hasConflict: false,
 
@@ -251,12 +275,13 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
   bindings: {},
   extras: {},
 
-  setLoadedDocument: (response, serverHash) =>
+  setLoadedDocument: (response, serverHash, saved) =>
     set({
       documentId: response.id,
       name: response.name,
       baseUpdatedAt: response.updatedAt,
       lastServerHash: serverHash,
+      lastSavedDocument: saved ?? null,
       saveState: "idle",
       hasConflict: false
     }),
@@ -264,13 +289,23 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
   markHydrated: (documentId) => set({ hydratedDocumentId: documentId }),
   clearHydrated: () => set({ hydratedDocumentId: null }),
   markSaving: () => set({ saveState: "saving", hasConflict: false }),
-  markSaved: (updatedAt, serverHash) =>
-    set({
-      baseUpdatedAt: updatedAt,
-      lastServerHash: serverHash,
-      saveState: "idle",
-      hasConflict: false
-    }),
+  markSaved: (updatedAt, serverHash, saved) =>
+    set(
+      saved
+        ? {
+            baseUpdatedAt: updatedAt,
+            lastServerHash: serverHash,
+            lastSavedDocument: saved,
+            saveState: "idle",
+            hasConflict: false
+          }
+        : {
+            baseUpdatedAt: updatedAt,
+            lastServerHash: serverHash,
+            saveState: "idle",
+            hasConflict: false
+          }
+    ),
   markSaveFailed: (conflict) => set({ saveState: "error", hasConflict: conflict }),
   reset: () =>
     set({
@@ -279,6 +314,7 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
       name: "",
       baseUpdatedAt: null,
       lastServerHash: null,
+      lastSavedDocument: null,
       saveState: "idle",
       hasConflict: false,
       bindings: {},
@@ -821,7 +857,10 @@ async function saveSnapshot(
         layerBindings
       }
     });
-    session.getState().markSaved(response.updatedAt, nextHash);
+    session.getState().markSaved(response.updatedAt, nextHash, {
+      sketch: sketch as unknown as Record<string, unknown>,
+      layerBindings
+    });
     // Mirror the freshly-saved document into the trpc query cache so a
     // remount of `SketchEditorPage` doesn't hydrate from a pre-edit cached
     // payload. Without this the page query (`staleTime: Infinity`,
@@ -950,7 +989,16 @@ export function useStandaloneSketchDocument(
         name: response.name,
         updatedAt: response.updatedAt
       },
-      serverHash
+      serverHash,
+      // Round-trip through the editor persist shape so the merge base
+      // matches the draft. A raw server row missing layer defaults would
+      // make every layer look draft-changed.
+      {
+        sketch: toPersistedSketchEditorState(
+          initialState
+        ) as unknown as Record<string, unknown>,
+        layerBindings: response.document.layerBindings ?? []
+      }
     );
     session.setBindings(response.document.layerBindings ?? []);
   }, [enabled, initialState, response, sessionStore]);
@@ -964,7 +1012,12 @@ export function useStandaloneSketchDocument(
     // Use the instance-level flag so manual saves (saveSketchDocument) share the same guard.
     const inFlightRef = instance.saveInFlight;
 
+    const holdAutosaveRef = { current: false };
+
     const flush = () => {
+      if (holdAutosaveRef.current) {
+        return;
+      }
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -1013,8 +1066,199 @@ export function useStandaloneSketchDocument(
     // Writes from outside this browser (agent doc-ops, CLI, another tab) come
     // in as `resource_change`. A clean editor re-hydrates from the server copy
     // — dropping the hydration marker is what lets the refetched document back
-    // past the lifecycle gate. A dirty one is told instead: re-seeding the
-    // canvas under unsaved strokes would throw them away.
+    // past the lifecycle gate. A dirty one merges the external change per
+    // merge unit (layer, binding, canvas): draft wins, refused values land in
+    // the conflict banner, and no undo entry is recorded for them (ADR 0001).
+    const mergeExternal = (notice: { ops?: DocumentOp[] }): void => {
+      const session = sessionStore.getState();
+      const base = session.lastSavedDocument;
+      if (!base) return;
+      void (async () => {
+        let fresh: SketchDocumentResponse;
+        try {
+          fresh = await trpcClient.sketch.get.query({ id: response.id });
+        } catch (error) {
+          console.error("Failed to fetch sketch for merge", error);
+          return;
+        }
+        if (!alive) return;
+
+        const persistSketch = (raw: unknown): PersistedSketchEditorState =>
+          toPersistedSketchEditorState(fromPersistedSketchEditorState(raw));
+        const draftSketch = toPersistedSketchEditorState(
+          buildSnapshot(instance.editor)
+        );
+        const baseSketch = persistSketch(base.sketch);
+        const serverSketch = persistSketch(fresh.document.sketch);
+        const baseDoc: SketchMergeDoc = {
+          layers: baseSketch.layers ?? [],
+          layerBindings: base.layerBindings,
+          canvas: baseSketch.canvas ?? draftSketch.canvas
+        };
+        const draftDoc: SketchMergeDoc = {
+          layers: draftSketch.layers ?? [],
+          layerBindings: Object.values(sessionStore.getState().bindings),
+          canvas: draftSketch.canvas
+        };
+        const serverDoc: SketchMergeDoc = {
+          layers: serverSketch.layers ?? [],
+          layerBindings: fresh.document.layerBindings ?? [],
+          canvas: serverSketch.canvas ?? draftSketch.canvas
+        };
+
+        const { doc, conflicts } = mergeSketchDocuments(
+          baseDoc,
+          draftDoc,
+          serverDoc,
+          notice.ops
+        );
+
+        // Apply without touching undo history or selection (ADR 0001).
+        // `setDocument` would reset history/selectedLayerIds, so write the
+        // document directly.
+        const mergedPersisted: typeof draftSketch = {
+          ...draftSketch,
+          layers: doc.layers as typeof draftSketch.layers,
+          canvas: doc.canvas as typeof draftSketch.canvas
+        };
+        const restored = fromPersistedSketchEditorState(mergedPersisted);
+        // Re-baseline the undo stack onto the merged document so Cmd-Z can
+        // only revert the user's own edits (ADR 0001).
+        const rebased = rebaselineHistoryForMerge(
+          editorStore.getState().history,
+          restored.document.layers,
+          sketchExternalLayerOwnership(draftDoc, doc)
+        );
+        if (rebased !== editorStore.getState().history) {
+          editorStore.setState({
+            document: restored.document,
+            history: rebased
+          });
+        } else {
+          editorStore.setState({
+            document: restored.document
+          });
+        }
+        sessionStore.getState().setBindings(
+          doc.layerBindings as LayerWorkflowBinding[]
+        );
+        // Roll the merge base to what the server now holds, not the merged
+        // draft, and advance the CAS token. The next autosave then persists
+        // the merged document on top of the external write.
+        const serverHash = computeImageDocumentHash(
+          toPersistedSketchEditorState(
+            fromPersistedSketchEditorState(
+              fresh.document.sketch as unknown as PersistedSketchEditorState
+            )
+          ),
+          fresh.document.layerBindings ?? []
+        );
+        sessionStore.getState().markSaved(fresh.updatedAt, serverHash, {
+          sketch: serverSketch as unknown as Record<string, unknown>,
+          layerBindings: fresh.document.layerBindings ?? []
+        });
+        const replaced = conflicts.some(
+          (conflict) => conflict.reason === "replaced"
+        );
+        if (replaced) {
+          holdAutosaveRef.current = true;
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+        } else {
+          holdAutosaveRef.current = false;
+          pendingDirtyRef.current = true;
+          schedule();
+        }
+
+        // Name id-less units (a whole-document replacement) by kind so the
+        // banner's accept can address them.
+        const listed = conflicts.map((conflict) =>
+          conflict.unit.id
+            ? conflict
+            : { ...conflict, unit: { ...conflict.unit, id: conflict.unit.kind } }
+        );
+        reportDocumentConflicts(
+          `imagedocument:${response.id}`,
+          listed,
+          {
+            onAccept: (unitId) => {
+              holdAutosaveRef.current = false;
+              acceptConflict(unitId, fresh, listed);
+            },
+            onDiscard: () => {
+              if (replaced) {
+                holdAutosaveRef.current = false;
+                pendingDirtyRef.current = true;
+                schedule();
+              }
+            }
+          }
+        );
+      })();
+    };
+
+    /** Take one refused external value into the draft as an undoable edit. */
+    const acceptConflict = (
+      unitId: string,
+      fresh: SketchDocumentResponse,
+      listed: MergeConflict[]
+    ): void => {
+      const conflict = listed.find((c) => c.unit.id === unitId);
+      if (!conflict) return;
+
+      if (conflict.reason === "replaced") {
+        // Take the whole server copy: drop hydration so the refetched
+        // document re-seeds the editor.
+        sessionStore.getState().markSaved(fresh.updatedAt, computeImageDocumentHash(
+          toPersistedSketchEditorState(
+            fromPersistedSketchEditorState(fresh.document.sketch)
+          ),
+          fresh.document.layerBindings ?? []
+        ));
+        sessionStore
+          .getState()
+          .setBindings(fresh.document.layerBindings ?? []);
+        sessionStore.getState().clearHydrated();
+        void utilsRef.current.sketch.get.invalidate({ id: response.id });
+        return;
+      }
+
+      if (conflict.unit.kind === "layer") {
+        const layers = editorStore.getState().document.layers;
+        if (conflict.external != null) {
+          const incoming = conflict.external as SketchDocument["layers"][number];
+          editorStore.getState().pushHistory("Accept external change");
+          const exists = layers.some((l) => l.id === incoming.id);
+          const nextLayers = exists
+            ? layers.map((l) => (l.id === incoming.id ? incoming : l))
+            : [...layers, incoming];
+          editorStore.setState({
+            document: { ...editorStore.getState().document, layers: nextLayers }
+          });
+        } else {
+          editorStore.getState().pushHistory("Accept external delete");
+          editorStore.getState().removeLayer(conflict.unit.id);
+        }
+        return;
+      }
+      if (conflict.unit.kind === "binding" && conflict.external != null) {
+        sessionStore
+          .getState()
+          .upsertBinding(conflict.external as LayerWorkflowBinding);
+        return;
+      }
+      if (conflict.unit.kind === "field" && conflict.external != null) {
+        const canvas = conflict.external as SketchMergeDoc["canvas"];
+        editorStore.getState().pushHistory("Accept external canvas");
+        editorStore.getState().resizeCanvas(canvas.width, canvas.height);
+        if (canvas.backgroundColor !== undefined) {
+          editorStore.getState().setCanvasBackgroundColor(canvas.backgroundColor);
+        }
+      }
+    };
+
     const unwatchDocument = registerDocumentSync("imagedocument", response.id, {
       localRevision: () => sessionStore.getState().baseUpdatedAt,
       isDirty: () =>
@@ -1024,7 +1268,8 @@ export function useStandaloneSketchDocument(
       reload: () => {
         sessionStore.getState().clearHydrated();
         void utilsRef.current.sketch.get.invalidate({ id: response.id });
-      }
+      },
+      merge: mergeExternal
     });
 
     type SelectedFields = {

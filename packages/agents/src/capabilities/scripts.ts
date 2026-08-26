@@ -90,8 +90,8 @@ export {
 } from "./scripts.specs.js";
 /** Lines one call may voice, so a whole-script call cannot run away. */
 const MAX_LINES_PER_CALL = 60;
-/** Attempts to land a document write before reporting a conflict. */
-const CAS_ATTEMPTS = 5;
+/** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
+const CAS_ATTEMPTS = 2;
 
 type ToolError = { error: string };
 
@@ -200,7 +200,17 @@ async function appendTake(
     const saved = await Script.updateFieldsIfUnchanged(
       scriptId,
       row.updated_at,
-      { document: JSON.stringify({ ...doc, sections }) }
+      { document: JSON.stringify({ ...doc, sections }) },
+      // The take op rides on the write so an open editor merges this into its
+      // draft per line instead of treating the whole script as replaced.
+      {
+        ops: [
+          {
+            tool: "append_take",
+            input: { line_id: lineId, take_id: take.id }
+          }
+        ]
+      }
     );
     if (saved) return updated;
   }
@@ -789,59 +799,119 @@ const assembleScriptTimeline: CapabilityExport = {
     const reuse =
       existing && existing.user_id === context.userId ? existing : null;
 
-    let tracks = assembled.tracks;
-    let clips = assembled.clips;
-    let durationMs = assembled.durationMs;
-
-    if (reuse) {
-      // Re-assembling replaces this script's voiceover track and clips, and
-      // leaves everything another surface put in the sequence alone.
-      const foreign = foreignTimelineParts(
-        reuse.toDocument(),
-        (clip) => clip.scriptId === row.id
-      );
-      tracks = [...assembled.tracks, ...foreign.tracks];
-      clips = [...assembled.clips, ...foreign.clips];
-      durationMs = clips.reduce(
-        (end, c) => Math.max(end, c.startMs + c.durationMs),
-        0
-      );
-    }
-
-    const sequence =
-      reuse ??
-      new TimelineSequence({
+    if (!reuse) {
+      const sequence = new TimelineSequence({
         user_id: context.userId,
         project_id: row.project_id,
         name
       });
-    sequence.name = name;
-    sequence.fps = fps;
-    sequence.duration_ms = durationMs;
-    const previous = reuse?.toDocument();
-    sequence.fromDocument({
-      ...previous,
-      tracks,
-      clips,
-      markers: previous ? previous.markers : []
-    });
-    await sequence.save();
-
-    if (row.timeline_id !== sequence.id) {
-      await Script.updateFieldsIfUnchanged(row.id, row.updated_at, {
-        timeline_id: sequence.id
+      sequence.name = name;
+      sequence.fps = fps;
+      sequence.duration_ms = assembled.durationMs;
+      sequence.fromDocument({
+        tracks: assembled.tracks,
+        clips: assembled.clips,
+        markers: []
       });
+      await sequence.save();
+
+      if (row.timeline_id !== sequence.id) {
+        await Script.updateFieldsIfUnchanged(
+          row.id,
+          row.updated_at,
+          { timeline_id: sequence.id },
+          { ops: [{ tool: "set_link", input: { timeline_id: sequence.id } }] }
+        );
+      }
+
+      return {
+        ok: true,
+        timeline_id: sequence.id,
+        name: sequence.name,
+        fps,
+        duration_ms: assembled.durationMs,
+        clip_count: assembled.clips.length,
+        track_count: assembled.tracks.length,
+        skipped_line_ids: assembled.skippedLineIds
+      };
+    }
+
+    // Re-assembling over an existing sequence is a CAS write carrying its
+    // ops (S2.1): the foreign parts are re-read per attempt, and an open
+    // editor merges the change instead of seeing the sequence as replaced.
+    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+      const current =
+        attempt === 0 ? reuse : await TimelineSequence.findById(reuse.id);
+      if (
+        !current ||
+        current.user_id !== context.userId
+      ) {
+        return {
+          error: `Timeline ${reuse.id} was deleted while assembling; create a new timeline by calling this again.`
+        };
+      }
+      // Re-assembling replaces this script's voiceover track and clips, and
+      // leaves everything another surface put in the sequence alone.
+      const foreign = foreignTimelineParts(
+        current.toDocument(),
+        (clip) => clip.scriptId === row.id
+      );
+      const tracks = [...assembled.tracks, ...foreign.tracks];
+      const clips = [...assembled.clips, ...foreign.clips];
+      const durationMs = clips.reduce(
+        (end, c) => Math.max(end, c.startMs + c.durationMs),
+        0
+      );
+      const previous = current.toDocument();
+      const nextDocument = {
+        ...previous,
+        tracks,
+        clips,
+        markers: previous.markers ?? []
+      };
+      const saved = await TimelineSequence.updateFieldsIfUnchanged(
+        current.id,
+        current.updated_at,
+        {
+          name,
+          fps,
+          duration_ms: durationMs,
+          document: JSON.stringify(nextDocument)
+        },
+        {
+          ops: [
+            {
+              tool: "assemble_script_timeline",
+              input: { script_id: row.id }
+            }
+          ]
+        }
+      );
+      if (!saved) continue;
+
+      if (row.timeline_id !== current.id) {
+        await Script.updateFieldsIfUnchanged(
+          row.id,
+          row.updated_at,
+          { timeline_id: current.id },
+          { ops: [{ tool: "set_link", input: { timeline_id: current.id } }] }
+        );
+      }
+
+      return {
+        ok: true,
+        timeline_id: current.id,
+        name,
+        fps,
+        duration_ms: durationMs,
+        clip_count: clips.length,
+        track_count: tracks.length,
+        skipped_line_ids: assembled.skippedLineIds
+      };
     }
 
     return {
-      ok: true,
-      timeline_id: sequence.id,
-      name: sequence.name,
-      fps,
-      duration_ms: durationMs,
-      clip_count: clips.length,
-      track_count: tracks.length,
-      skipped_line_ids: assembled.skippedLineIds
+      error: `Timeline ${reuse.id} is being modified concurrently; the assembly finished but could not be saved. Retry the call.`
     };
   }
 };
@@ -971,6 +1041,21 @@ interface ScriptOpRecord {
   result?: unknown;
   error?: string;
 }
+
+/**
+ * The key an op's own vocabulary names its unit by. The editor's merge adapter
+ * reads `line_id` before `target` before `id`, so stamping every key on every
+ * op would file a speaker op under `section.lines`. One key per op, plus the
+ * canonical `id` every consumer can read.
+ */
+const UNIT_KEY_BY_OP: Record<string, "target" | "line_id"> = {
+  set_speaker: "target",
+  set_speaker_voice: "target",
+  remove_speaker: "target",
+  set_line_text: "line_id",
+  set_line_speaker: "line_id",
+  remove_line: "line_id"
+};
 
 /** Apply one script operation. Returns its summary, or throws with the reason. */
 function applyScriptOp(
@@ -1155,15 +1240,34 @@ const editScript: CapabilityExport = {
       // A failing op is recorded and the script continues: stopping at the
       // first error hides every problem behind it.
       const records: ScriptOpRecord[] = [];
+      const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
       for (const parsed of ops) {
         try {
+          const result = applyScriptOp(doc, parsed, scriptLines) as
+            | Record<string, unknown>
+            | undefined;
           records.push({
             op: parsed.op,
             ok: true,
-            result: applyScriptOp(doc, parsed, scriptLines)
+            result
+          });
+          const canonicalId =
+            typeof result?.["id"] === "string"
+              ? (result["id"] as string)
+              : typeof result?.["removed"] === "string"
+                ? (result["removed"] as string)
+                : undefined;
+          const key = UNIT_KEY_BY_OP[parsed.op];
+          resolvedOps.push({
+            tool: parsed.op,
+            input:
+              canonicalId && key
+                ? { ...parsed.args, [key]: canonicalId, id: canonicalId }
+                : parsed.args
           });
         } catch (e) {
           records.push({ op: parsed.op, ok: false, error: errorMessage(e) });
+          resolvedOps.push({ tool: parsed.op, input: parsed.args });
         }
       }
 
@@ -1172,7 +1276,10 @@ const editScript: CapabilityExport = {
         row.updated_at,
         {
           document: JSON.stringify(doc)
-        }
+        },
+        // The ops ride on the write so an open editor merges this change per
+        // merge unit instead of treating the script as replaced.
+        { ops: resolvedOps }
       );
       if (!saved) continue;
 

@@ -344,6 +344,55 @@ describe("scripts capability behaviour", () => {
     expect(result.lines.map((l) => l.text)).toEqual(["Rewritten", "Second"]);
   });
 
+  it("stamps each broadcast op with the one key its vocabulary uses", async () => {
+    const row = await makeScript([
+      line({ id: "l1", speakerId: "sp1", text: "First" })
+    ]);
+    const seen: Array<{ tool: string; input: Record<string, unknown> }> = [];
+    ModelObserver.subscribe((_instance, _event, meta) => {
+      for (const op of (meta?.ops ?? []) as {
+        tool: string;
+        input: Record<string, unknown>;
+      }[]) {
+        seen.push(op);
+      }
+    }, "Script");
+
+    await run(ctx().context).invoke("edit_script", {
+      script_id: row.id,
+      ops: [
+        { op: "set_line_text", target: "l1", text: "Rewritten" },
+        { op: "set_speaker", target: "Narrator", name: "Chorus" },
+        { op: "add_section", title: "Act II" }
+      ]
+    });
+
+    const keys = (tool: string): string[] => {
+      const op = seen.find((o) => o.tool === tool);
+      return ["line_id", "target", "id", "section_id"].filter(
+        (k) => op?.input[k] !== undefined
+      );
+    };
+    // A line op is addressed by line_id, never by a stamped target: the
+    // editor's adapter reads line_id first and would file a speaker op under
+    // `section.lines` if both were stamped.
+    expect(seen.find((o) => o.tool === "set_line_text")?.input["line_id"]).toBe(
+      "l1"
+    );
+    expect(keys("set_line_text").sort()).toEqual(["id", "line_id", "target"]);
+    // `target` here is the caller's own argument, left as written.
+    expect(seen.find((o) => o.tool === "set_line_text")?.input["target"]).toBe(
+      "l1"
+    );
+    // A speaker op carries no line_id at all.
+    expect(keys("set_speaker").sort()).toEqual(["id", "target"]);
+    expect(seen.find((o) => o.tool === "set_speaker")?.input["target"]).toBe(
+      "sp1"
+    );
+    // An add resolves through existence: nothing is stamped.
+    expect(keys("add_section")).toEqual([]);
+  });
+
   it("records an op naming a line the script lacks", async () => {
     const row = await makeScript([line({ id: "l1", speakerId: "sp1" })]);
     const result = (await run(ctx().context).invoke("edit_script", {

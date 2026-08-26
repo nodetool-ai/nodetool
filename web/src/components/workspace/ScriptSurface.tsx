@@ -22,9 +22,11 @@ import {
   TabGroup,
   EditorButton,
   MobileBottomSheet,
+  ConflictBanner,
   SPACING,
   Z_INDEX
 } from "../ui_primitives";
+import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import ScriptDocumentPane from "../script/ScriptDocumentPane";
 import ScriptCastPanel from "../script/ScriptCastPanel";
 import ScriptAgentPanel from "../script/ScriptAgentPanel";
@@ -88,6 +90,27 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
     setTabTitle(refId, "script", title || "Untitled script");
   }, [setTabTitle, refId, title]);
 
+  // External writes the dirty draft refused — offered per merge unit.
+  const conflicts = useDocumentConflicts("script", refId);
+  const conflictBanner = conflicts.items.length > 0 && (
+    <ConflictBanner
+      conflicts={conflicts.items}
+      onAccept={conflicts.accept}
+      onDiscard={conflicts.discard}
+      sx={{
+        position: "absolute",
+        top: SPACING.md,
+        left: SPACING.md,
+        right: SPACING.md,
+        zIndex: Z_INDEX.sticky,
+        // The banner reads as a document-level notice, not a full-width
+        // bar: one breakpoint step wide, centred over the surface.
+        maxWidth: theme.breakpoints.values.sm,
+        mx: "auto"
+      }}
+    />
+  );
+
   const dockTabs = useMemo(
     () => [
       { value: "cast", label: "Cast", icon: <GroupsIcon /> },
@@ -129,6 +152,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   if (isMobile) {
     return (
       <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
+        {conflictBanner}
         <ScriptDocumentPane scriptId={refId} readOnly={readOnly} />
         {!readOnly && (
           <>
@@ -181,6 +205,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
 
   return (
     <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
+      {conflictBanner}
       <ScriptDocumentPane scriptId={refId} readOnly={readOnly} />
       {!readOnly && (
         <ResizableSideDock

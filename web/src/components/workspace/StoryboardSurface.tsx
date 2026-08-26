@@ -14,7 +14,16 @@ import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay"
 import { useStoryboardServerSync } from "../../hooks/storyboard/useStoryboardServerSync";
 import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
 import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
-import { Box, FlexColumn, FlexRow, TabGroup } from "../ui_primitives";
+import {
+  Box,
+  FlexColumn,
+  FlexRow,
+  TabGroup,
+  ConflictBanner,
+  Z_INDEX,
+  SPACING
+} from "../ui_primitives";
+import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import StoryboardBoard from "../storyboard/StoryboardBoard";
 import StoryboardQueueOverlay from "../storyboard/StoryboardQueueOverlay";
 import StoryboardAgentPanel from "../storyboard/StoryboardAgentPanel";
@@ -85,6 +94,26 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   useStoryboardAgentBridge(refId);
   useStoryboardGenerationSubscriptions();
 
+  const conflicts = useDocumentConflicts("storyboard", refId);
+  const conflictBanner = conflicts.items.length > 0 && (
+    <ConflictBanner
+      conflicts={conflicts.items}
+      onAccept={conflicts.accept}
+      onDiscard={conflicts.discard}
+      sx={{
+        position: "absolute",
+        top: SPACING.md,
+        left: SPACING.md,
+        right: SPACING.md,
+        zIndex: Z_INDEX.sticky,
+        // The banner reads as a document-level notice, not a full-width
+        // bar: one breakpoint step wide, centred over the surface.
+        maxWidth: theme.breakpoints.values.sm,
+        mx: "auto"
+      }}
+    />
+  );
+
   const { direct, directing, error } = useDirectScreenplay();
   const handleDirect = useCallback(
     (shotCount: number) => direct(refId, shotCount),
@@ -132,6 +161,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   if (isMobile && mode !== "view") {
     return (
       <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
+        {conflictBanner}
         <TabGroup
           tabs={MOBILE_TABS}
           value={mobilePane}
@@ -176,6 +206,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   return (
     <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
       <StoryboardQueueOverlay boardId={refId} />
+      {conflictBanner}
       <Box sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>{board}</Box>
       {mode !== "view" && (
         <ResizableSideDock

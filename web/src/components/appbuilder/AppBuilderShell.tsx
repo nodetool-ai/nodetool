@@ -17,6 +17,10 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 import { createEmptyData, type AppDocument } from "./appData";
+import {
+  getPuckAgentHandler,
+  hasPuckAgentHandler
+} from "./puck/puckAgentBridge";
 import PuckAppEditor from "./puck/PuckAppEditor";
 import AppDataPanel from "./AppDataPanel";
 import { isString } from "../../utils/typePredicates";
@@ -161,21 +165,24 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
       // The author's pick wins; a root that never carried the field at all
       // (a surface that does not edit it) leaves the document's theme alone.
       const themeId = rootProps && "theme" in rootProps ? rootProps.theme : null;
+      const live = hasPuckAgentHandler(applicationId)
+        ? getPuckAgentHandler(applicationId).document()
+        : document;
       onSave({
-        ...document,
+        ...live,
         ui: nextData,
         operations: meta.operations,
         resources: meta.resources,
         variables: meta.variables,
         theme:
           themeId === null
-            ? document.theme
+            ? live.theme
             : isString(themeId) && themeId
               ? { id: themeId }
               : undefined
       });
     },
-    [document, meta, onSave]
+    [applicationId, document, meta, onSave]
   );
 
   return (

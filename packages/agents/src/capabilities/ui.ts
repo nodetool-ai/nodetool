@@ -122,7 +122,10 @@ function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
     const persisted = await Workflow.updateFieldsIfUnchanged(
       workflowId,
       stored.updated_at,
-      { graph: applied.graph }
+      { graph: applied.graph },
+      // The tool name rides on the write so an open editor can attribute the
+      // external change to the nodes it touched (per merge unit).
+      { ops: [{ tool: name, input: params }] }
     );
     if (!persisted) {
       return {

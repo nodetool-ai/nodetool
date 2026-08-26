@@ -373,6 +373,67 @@ type JsScriptChanges = {
   name?: string;
 };
 
+
+/**
+ * The op names an open editor can attribute a save to. Derived from the diff
+ * between the stored document and the incoming one — `save_js_script` takes a
+ * whole document, so there is no explicit op list to forward.
+ */
+const JS_SCRIPT_DIFF_OPS = [
+  { field: "code", tool: "set_code" },
+  { field: "inputs", tool: "set_ports" },
+  { field: "outputs", tool: "set_ports" },
+  { field: "tests", tool: "set_tests" },
+  { field: "description", tool: "set_meta" },
+  { field: "secrets", tool: "set_meta" },
+  { field: "timeoutSeconds", tool: "set_meta" },
+  { field: "name", tool: "set_meta" }
+] as const;
+
+function diffJsScriptOps(
+  prevDocument: unknown,
+  nextSerialized: string,
+  names?: { prev: string; next?: string }
+): {
+  tool: string;
+  input: unknown;
+}[] {
+  let prev: Record<string, unknown> | null = null;
+  if (typeof prevDocument === "string") {
+    try {
+      prev = JSON.parse(prevDocument) as Record<string, unknown>;
+    } catch {
+      prev = null;
+    }
+  } else if (prevDocument && typeof prevDocument === "object") {
+    prev = prevDocument as Record<string, unknown>;
+  }
+  if (!prev) return [];
+  let next: Record<string, unknown>;
+  try {
+    next = JSON.parse(nextSerialized) as Record<string, unknown>;
+  } catch {
+    return [];
+  }
+
+  if (names?.next !== undefined) {
+    // Copy before stamping the name in: `prevDocument` may be the stored row's
+    // own document object, and writing a `name` field into it would corrupt
+    // the record the caller still holds.
+    prev = { ...prev, name: names.prev };
+    next = { ...next, name: names.next };
+  }
+  const tools = new Set<string>();
+  for (const { field, tool } of JS_SCRIPT_DIFF_OPS) {
+    if (
+      JSON.stringify(prev[field] ?? null) !== JSON.stringify(next[field] ?? null)
+    ) {
+      tools.add(tool);
+    }
+  }
+  return [...tools].map((tool) => ({ tool, input: {} }));
+}
+
 const saveJsScript: CapabilityExport = {
   spec: saveJsScriptSpec,
   impl: async (run, params) => {
@@ -440,10 +501,18 @@ const saveJsScript: CapabilityExport = {
     }
     const changes: JsScriptChanges = { document: serialized };
     if (name) changes.name = name;
+    // The tool takes a whole document, so the ops come from the diff it made:
+    // an open editor uses them to merge per port/test instead of treating the
+    // whole script as replaced.
+    const ops = diffJsScriptOps(existing.document, serialized, {
+      prev: existing.name,
+      next: name ?? existing.name
+    });
     const updated = await JsScript.updateFieldsIfUnchanged(
       existing.id,
       expected ?? existing.updated_at,
-      changes
+      changes,
+      ops.length > 0 ? { ops } : undefined
     );
     if (!updated) {
       return {

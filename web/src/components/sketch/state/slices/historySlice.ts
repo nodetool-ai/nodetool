@@ -72,7 +72,7 @@ function resolveLayerStructure(
 /**
  * Build a LayerStructureSnapshot array from current document layers.
  */
-function captureLayerStructure(layers: readonly Layer[]): LayerStructureSnapshot[] {
+export function captureLayerStructure(layers: readonly Layer[]): LayerStructureSnapshot[] {
   return layers.map((l) => ({
     id: l.id,
     name: l.name,
@@ -98,6 +98,122 @@ function captureDocumentCanvas(
   canvas: SketchDocument["canvas"]
 ): SketchDocument["canvas"] {
   return { ...canvas };
+}
+
+/** Which layer units an external merge took out of the draft's hands. */
+export interface ExternalLayerOwnership {
+  /** Layers the external write added or rewrote; the merged value wins. */
+  changedLayerIds: ReadonlySet<string>;
+  /** Layers the external write removed from the draft. */
+  removedLayerIds: ReadonlySet<string>;
+}
+
+/**
+ * Re-baseline the undo stack after an external merge.
+ *
+ * Invariant (ADR 0001): once a merge has landed, every history entry differs
+ * from the merged document only in the units the *user* changed. Each entry
+ * therefore carries the merged value — structure, props and bitmap — for
+ * every layer the external write owns, and drops the layers it removed. No
+ * undo step can then revert (and autosave away) work the editor did not do.
+ * Layers the draft won are left exactly as the entry recorded them, so the
+ * user's own undo, including of their own deletes, stays intact.
+ */
+export function rebaselineHistoryForMerge(
+  history: HistoryEntry[],
+  mergedLayers: readonly Layer[],
+  external: ExternalLayerOwnership
+): HistoryEntry[] {
+  if (history.length === 0) return history;
+  const { changedLayerIds, removedLayerIds } = external;
+  if (changedLayerIds.size === 0 && removedLayerIds.size === 0) return history;
+
+  const mergedById = new Map(mergedLayers.map((layer) => [layer.id, layer]));
+  const mergedIndexById = new Map(
+    mergedLayers.map((layer, index) => [layer.id, index])
+  );
+  const mergedStructureById = new Map(
+    captureLayerStructure(mergedLayers).map((snapshot) => [
+      snapshot.id,
+      snapshot
+    ])
+  );
+
+  let historyChanged = false;
+  const next = history.map((entry) => {
+    let entryChanged = false;
+
+    const layerSnapshots = { ...entry.layerSnapshots };
+    for (const id of changedLayerIds) {
+      const data = mergedById.get(id)?.data ?? null;
+      if (!(id in layerSnapshots) || layerSnapshots[id] !== data) {
+        layerSnapshots[id] = data;
+        entryChanged = true;
+      }
+    }
+    for (const id of removedLayerIds) {
+      if (id in layerSnapshots) {
+        delete layerSnapshots[id];
+        entryChanged = true;
+      }
+    }
+
+    // A runtime canvas snapshot outranks the data URL on restore, so a stale
+    // one would re-paint the pre-merge bitmap.
+    let layerCanvasSnapshots = entry.layerCanvasSnapshots;
+    if (layerCanvasSnapshots) {
+      const stale = Object.keys(layerCanvasSnapshots).filter(
+        (id) => changedLayerIds.has(id) || removedLayerIds.has(id)
+      );
+      if (stale.length > 0) {
+        const kept = { ...layerCanvasSnapshots };
+        for (const id of stale) delete kept[id];
+        layerCanvasSnapshots = kept;
+        entryChanged = true;
+      }
+    }
+
+    // Selection-only entries capture no structure and never change it; they
+    // resolve theirs from an earlier entry, which this pass already fixed.
+    let layerStructure = entry.layerStructure;
+    if (layerStructure.length > 0) {
+      const rebased: LayerStructureSnapshot[] = [];
+      for (const snapshot of layerStructure) {
+        if (removedLayerIds.has(snapshot.id)) continue;
+        rebased.push(
+          changedLayerIds.has(snapshot.id)
+            ? mergedStructureById.get(snapshot.id) ?? snapshot
+            : snapshot
+        );
+      }
+      const present = new Set(rebased.map((snapshot) => snapshot.id));
+      for (const layer of mergedLayers) {
+        if (present.has(layer.id) || !changedLayerIds.has(layer.id)) continue;
+        const snapshot = mergedStructureById.get(layer.id);
+        if (!snapshot) continue;
+        // Externally added: place it where the merged document holds it,
+        // not at the bottom of the stack.
+        const at = Math.min(
+          mergedIndexById.get(layer.id) ?? rebased.length,
+          rebased.length
+        );
+        rebased.splice(at, 0, snapshot);
+      }
+      if (
+        rebased.length !== layerStructure.length ||
+        rebased.some((snapshot, i) => snapshot !== layerStructure[i])
+      ) {
+        layerStructure = rebased;
+        entryChanged = true;
+      }
+    }
+
+    if (!entryChanged) return entry;
+    historyChanged = true;
+    return { ...entry, layerSnapshots, layerCanvasSnapshots, layerStructure };
+  });
+
+  return historyChanged ? next : history;
 }
 
 /**

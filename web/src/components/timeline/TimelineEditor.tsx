@@ -31,6 +31,7 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   Caption,
+  ConflictBanner,
   Dialog,
   EditorButton,
   EmptyState,
@@ -39,12 +40,14 @@ import {
   LoadingSpinner,
   MobileBottomSheet,
   ProgressBar,
+  SPACING,
   TabGroup,
   Text,
   ToolbarIconButton,
   BORDER_RADIUS,
   MOTION
 } from "../ui_primitives";
+import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
@@ -717,6 +720,17 @@ const TimelineEditorBody: React.FC<
     [isExporting, hasExportError, cancelExport, clearExportError]
   );
 
+  // External writes that the dirty draft refused — offered per merge unit.
+  const conflicts = useDocumentConflicts("timelinesequence", sequenceId ?? "");
+  const conflictBanner = sequenceUnavailable ? null : conflicts.items.length > 0 && (
+    <ConflictBanner
+      conflicts={conflicts.items}
+      onAccept={conflicts.accept}
+      onDiscard={conflicts.discard}
+      sx={{ mx: SPACING.md }}
+    />
+  );
+
   return (
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
@@ -729,6 +743,7 @@ const TimelineEditorBody: React.FC<
         onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
         activitySlot={activitySlot}
       />
+      {conflictBanner}
       <SaveToFolderMenu
         anchorEl={saveAssetAnchor}
         open={!!saveAssetAnchor}

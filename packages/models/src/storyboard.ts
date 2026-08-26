@@ -3,6 +3,7 @@ import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import {
   DBModel,
   ModelChangeEvent,
+  ModelChangeMeta,
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
@@ -185,7 +186,8 @@ export class Storyboard extends DBModel {
       name: string;
       document: string;
       timeline_id: string | null;
-    }>
+    }>,
+    meta?: ModelChangeMeta
   ): Promise<Storyboard | null> {
     if (fields.document !== undefined) {
       assertValidDocument(JSON.parse(fields.document) as StoryboardDocument);
@@ -207,7 +209,7 @@ export class Storyboard extends DBModel {
     if (!row) return null;
 
     const updated = new Storyboard(row);
-    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
 }

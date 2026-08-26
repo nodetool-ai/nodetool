@@ -289,6 +289,9 @@ export type { ChipProps } from "./Chip";
 export { AlertBanner } from "./AlertBanner";
 export type { AlertBannerProps } from "./AlertBanner";
 
+export { ConflictBanner } from "./ConflictBanner";
+export type { ConflictBannerProps, ConflictBannerConflict } from "./ConflictBanner";
+
 export { TabGroup, TabPanel } from "./TabGroup";
 export type { TabGroupProps, TabPanelProps, TabItem } from "./TabGroup";
 

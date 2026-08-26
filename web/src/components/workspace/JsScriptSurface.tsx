@@ -24,10 +24,13 @@ import {
 } from "../jsScript/jsScriptAgentBridge";
 import {
   Box,
+  ConflictBanner,
   FlexColumn,
   FlexRow,
+  SPACING,
   TabGroup
 } from "../ui_primitives";
+import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import JsScriptEditorPane from "../jsScript/JsScriptEditorPane";
 import JsScriptSettingsPanel from "../jsScript/JsScriptSettingsPanel";
 import JsScriptAgentPanel from "../jsScript/JsScriptAgentPanel";
@@ -111,6 +114,17 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
   useEffect(() => {
     setTabTitle(refId, "jsscript", name || DEFAULT_NAME);
   }, [setTabTitle, refId, name]);
+
+  // External writes the dirty draft refused — offered per merge unit.
+  const conflicts = useDocumentConflicts("jsscript", refId);
+  const conflictBanner = conflicts.items.length > 0 && (
+    <ConflictBanner
+      conflicts={conflicts.items}
+      onAccept={conflicts.accept}
+      onDiscard={conflicts.discard}
+      sx={{ mx: SPACING.md, flexShrink: 0 }}
+    />
+  );
 
   // Run and test go through the same handler the agent tools use, so the
   // console and the assistant cannot execute a script two different ways.
@@ -217,6 +231,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
   return (
     <FlexRow fullHeight sx={{ minHeight: 0 }}>
       <FlexColumn fullHeight sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+        {conflictBanner}
         <FlexColumn
           fullWidth
           padding={1}

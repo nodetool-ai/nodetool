@@ -55,11 +55,19 @@ const makeUtilsProxy = () =>
   new Proxy(
     {},
     {
-      get(_target, _prop) {
+      get(_target, prop) {
+        const procedure = makeProcedureUtils();
+        // A util read at this level ends the chain: `utils.sketch.get` hands
+        // back a proxy, and `.setData` on it must be the function itself.
+        // SAFETY: `prop in procedure` was just checked, and every value of
+        // that object literal is a jest mock.
+        if (typeof prop === "string" && prop in procedure) {
+          return (procedure as Record<string, unknown>)[prop];
+        }
         // Each procedure (e.g. `sketch.get`) returns its own utils object;
         // routers (e.g. `sketch`) return another proxy so chained access
         // like `utils.sketch.get.setData(...)` resolves correctly.
-        return new Proxy(makeProcedureUtils(), {
+        return new Proxy(procedure, {
           get(procTarget, procProp) {
             if (procProp in procTarget) {
               return (procTarget as Record<string | symbol, unknown>)[procProp];

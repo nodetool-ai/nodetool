@@ -31,13 +31,16 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
+  ConflictBanner,
   EditorMenuItem,
   EmptyState,
   FlexColumn,
   ListItemIcon,
   ListItemText,
-  LoadingSpinner
+  LoadingSpinner,
+  Z_INDEX
 } from "../ui_primitives";
+import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import SketchEditor, { type SketchEditorHandle } from "./SketchEditor";
 import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import { trpc } from "../../trpc/client";
@@ -75,6 +78,31 @@ interface StandaloneSketchEditorProps {
    */
   active?: boolean;
 }
+
+/**
+ * The document-level conflict banner for this editor: lists the external
+ * changes a merge refused and offers accept/discard per unit.
+ */
+const ConflictBannerHost: React.FC<{ documentId: string }> = ({ documentId }) => {
+  const conflicts = useDocumentConflicts("imagedocument", documentId);
+  if (conflicts.items.length === 0) return null;
+  return (
+    <ConflictBanner
+      conflicts={conflicts.items}
+      onAccept={conflicts.accept}
+      onDiscard={conflicts.discard}
+      sx={{
+        position: "absolute",
+        top: 16,
+        left: 16,
+        right: 16,
+        zIndex: Z_INDEX.sticky,
+        maxWidth: 640,
+        margin: "0 auto"
+      }}
+    />
+  );
+};
 
 const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
   function StandaloneSketchEditorBody({ documentId, headerActions }) {
@@ -227,6 +255,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
 
     return (
       <div className="sketch-editor-page" css={styles}>
+        <ConflictBannerHost documentId={documentId} />
         <SketchEditor
           ref={editorRef}
           documentId={documentId}

@@ -9,6 +9,7 @@ import type {
 import {
   DBModel,
   ModelChangeEvent,
+  ModelChangeMeta,
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
@@ -256,7 +257,8 @@ export class TimelineSequence extends DBModel {
   static async updateDocumentIfUnchanged(
     id: string,
     expectedUpdatedAt: string,
-    doc: TimelineDocument
+    doc: TimelineDocument,
+    meta?: ModelChangeMeta
   ): Promise<TimelineSequence | null> {
     validateTimelineDocument(doc);
     const db = getDb();
@@ -280,7 +282,7 @@ export class TimelineSequence extends DBModel {
     if (!row) return null;
 
     const updated = new TimelineSequence(row);
-    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
 
@@ -301,7 +303,8 @@ export class TimelineSequence extends DBModel {
       duration_ms: number;
       workflow_id: string | null;
       document: string;
-    }>
+    }>,
+    meta?: ModelChangeMeta
   ): Promise<TimelineSequence | null> {
     if (fields.document !== undefined) {
       validateTimelineDocument(JSON.parse(fields.document) as TimelineDocument);
@@ -323,7 +326,7 @@ export class TimelineSequence extends DBModel {
     if (!row) return null;
 
     const updated = new TimelineSequence(row);
-    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
 
@@ -339,7 +342,8 @@ export class TimelineSequence extends DBModel {
       doc: TimelineDocument,
       sequence: TimelineSequence
     ) => T | Promise<T>,
-    maxRetries = 5
+    maxRetries = 5,
+    meta?: ModelChangeMeta
   ): Promise<TimelineSequenceMutationResult<T> | null> {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const seq = await TimelineSequence.get<TimelineSequence>(id);
@@ -350,7 +354,8 @@ export class TimelineSequence extends DBModel {
       const updated = await TimelineSequence.updateDocumentIfUnchanged(
         id,
         seq.updated_at,
-        doc
+        doc,
+        meta
       );
       if (updated) {
         return { sequence: updated, result };

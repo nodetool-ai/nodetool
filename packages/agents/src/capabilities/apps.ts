@@ -337,7 +337,12 @@ const editApp: CapabilityExport = {
     const updated = await Application.updateFieldsIfUnchanged(
       app.id,
       app.updated_at,
-      changes
+      changes,
+      // The steps ride on the write so an open editor merges this change per
+      // component/operation instead of treating the app as replaced.
+      {
+        ops: steps.map((step) => ({ tool: step.tool, input: step.input }))
+      }
     );
     if (!updated) {
       return {

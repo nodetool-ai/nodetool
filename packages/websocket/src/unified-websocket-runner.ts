@@ -76,6 +76,7 @@ import {
   settleInvocation,
   Message,
   ModelChangeEvent,
+  ModelChangeMeta,
   ModelObserver,
   Prediction,
   Script,
@@ -9216,7 +9217,8 @@ export class UnifiedWebSocketRunner {
 
   private onModelChange = (
     instance: DBModel,
-    event: ModelChangeEvent
+    event: ModelChangeEvent,
+    meta?: ModelChangeMeta
   ): void => {
     if (!this.websocket) return;
     // Only forward changes for models the connected user owns. Models without
@@ -9247,12 +9249,16 @@ export class UnifiedWebSocketRunner {
       }
     }
 
-    this.sendDetached({
+    const message: Record<string, unknown> = {
       type: "resource_change",
       event,
       resource_type: instance.constructor.name.toLowerCase(),
       resource
-    });
+    };
+    if (meta?.ops && meta.ops.length > 0) {
+      message.ops = meta.ops;
+    }
+    this.sendDetached(message);
   };
 
   private onResourceEvent = (payload: ResourceChangePayload): void => {

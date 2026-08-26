@@ -2,6 +2,7 @@ import { eq, desc, and } from "drizzle-orm";
 import {
   DBModel,
   ModelChangeEvent,
+  ModelChangeMeta,
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
@@ -229,7 +230,8 @@ export class Script extends DBModel {
       document: string;
       timeline_id: string | null;
       storyboard_id: string | null;
-    }>
+    }>,
+    meta?: ModelChangeMeta
   ): Promise<Script | null> {
     if (fields.document !== undefined) {
       assertValidDocument(JSON.parse(fields.document) as ScriptDocument);
@@ -246,7 +248,7 @@ export class Script extends DBModel {
     if (!row) return null;
 
     const updated = new Script(row);
-    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
 }

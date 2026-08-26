@@ -114,7 +114,7 @@ export type ScriptSaveStatus =
   | "error"
   | "reloaded";
 
-interface ScriptStoreState {
+export interface ScriptStoreState {
   scripts: Record<string, ScriptDraft>;
   /** Server `updated_at` token per script — the CAS base for the next save. */
   serverRevisions: Record<string, string>;
@@ -133,10 +133,24 @@ interface ScriptStoreState {
   setServerRevision: (scriptId: string, revision: string | null) => void;
   setSaveStatus: (scriptId: string, status: ScriptSaveStatus) => void;
   ensureScript: (id: string) => void;
+  /** Replace one section's lines wholesale. Records an undo checkpoint. */
+  setSectionLines: (
+    scriptId: string,
+    sectionId: string,
+    lines: ScriptDraft["sections"][number]["lines"]
+  ) => void;
   loadScript: (
     id: string,
-    script: Omit<ScriptDraft, "id" | "updatedAt">
+    script: Omit<ScriptDraft, "id" | "updatedAt">,
+    options?: { checkpoint?: boolean }
   ) => void;
+  /**
+   * Apply a document merged with an external change. Stamps `updatedAt` so
+   * autosave picks the result up, and records no undo checkpoint: an external
+   * change never enters the undo stack (ADR 0001). Accepting one conflicted
+   * value later goes through the normal actions and is undoable.
+   */
+  applyMerged: (id: string, script: ScriptDraft) => void;
   removeScript: (id: string) => void;
   getScript: (id: string) => ScriptDraft | undefined;
 
@@ -179,6 +193,12 @@ interface ScriptStoreState {
     scriptId: string,
     lineId: string,
     patch: Partial<Omit<ScriptLine, "id" | "takes">>
+  ) => void;
+  /** Merge arbitrary non-lines fields onto one section (external accepts). */
+  patchSection: (
+    scriptId: string,
+    sectionId: string,
+    patch: Partial<Omit<ScriptSection, "id" | "lines">>
   ) => void;
   removeLine: (scriptId: string, lineId: string) => void;
   reorderLines: (
@@ -355,11 +375,52 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
         : { scripts: { ...state.scripts, [id]: emptyScript(id) } }
     ),
 
-  loadScript: (id, script) =>
+  setSectionLines: (scriptId, sectionId, lines) =>
+    set((state) =>
+      withScript(state, scriptId, (script) => {
+        const sections = script.sections.map((section) =>
+          section.id === sectionId ? { ...section, lines } : section
+        );
+        if (
+          sections.every(
+            (section, i) => section === script.sections[i]
+          )
+        ) {
+          return null;
+        }
+        return { ...script, sections };
+      })
+    ),
+
+  loadScript: (id, script, options) =>
+    set((state) => {
+      const prev = state.scripts[id];
+      const next = {
+        ...emptyScript(id),
+        ...script,
+        id,
+        updatedAt: Date.now()
+      };
+      const patch: Partial<ScriptStoreState> = {
+        scripts: { ...state.scripts, [id]: next }
+      };
+      if (options?.checkpoint && prev) {
+        patch.history = pushHistory(
+          state.history,
+          id,
+          prev,
+          null,
+          Date.now()
+        );
+      }
+      return patch;
+    }),
+
+  applyMerged: (id, script) =>
     set((state) => ({
       scripts: {
         ...state.scripts,
-        [id]: { ...emptyScript(id), ...script, id, updatedAt: Date.now() }
+        [id]: { ...script, id, updatedAt: Date.now() }
       }
     })),
 
@@ -614,6 +675,19 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
         { coalesceKey: `line:${lineId}:${keys.join(",")}` }
       );
     }),
+
+  patchSection: (scriptId, sectionId, patch) =>
+    set((state) =>
+      withScript(state, scriptId, (s) => {
+        const sections = s.sections.map((section) =>
+          section.id === sectionId ? { ...section, ...patch } : section
+        );
+        if (sections.every((section, i) => section === s.sections[i])) {
+          return null;
+        }
+        return { ...s, sections };
+      })
+    ),
 
   removeLine: (scriptId, lineId) =>
     set((state) =>

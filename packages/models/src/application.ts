@@ -21,6 +21,7 @@ import {
 import {
   DBModel,
   ModelChangeEvent,
+  ModelChangeMeta,
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
@@ -352,7 +353,8 @@ export class Application extends DBModel {
   static async updateFieldsIfUnchanged(
     id: string,
     expectedUpdatedAt: string,
-    fields: Partial<{ name: string; description: string; document: string }>
+    fields: Partial<{ name: string; description: string; document: string }>,
+    meta?: ModelChangeMeta
   ): Promise<Application | null> {
     if (fields.document !== undefined) parseDocumentOrThrow(fields.document);
     const db = getDb();
@@ -372,7 +374,7 @@ export class Application extends DBModel {
     if (!row) return null;
 
     const updated = new Application(row);
-    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
 }

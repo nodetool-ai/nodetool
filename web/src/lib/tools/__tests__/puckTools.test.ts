@@ -30,7 +30,8 @@ const emptySnapshot: PuckSnapshot = {
   components: []
 };
 
-const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
+const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler =>
+  ({
   getSnapshot: () => emptySnapshot,
   listComponentTypes: () => [],
   addComponent: () => ({
@@ -82,11 +83,13 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
     operations: input.operations ?? ["read"]
   }),
   removeResource: () => true,
+  updateResource: () => null,
   getBindingTargets: () => ({
     operations: [],
     variables: [],
     resources: []
   }),
+  applyExternalDocument: () => undefined,
   document: () => ({
     schemaVersion: 3,
     ui: { root: { props: {} }, content: [], zones: {} },
@@ -95,7 +98,7 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
     variables: []
   }),
   ...over
-});
+  }) as PuckAgentHandler;
 
 const restFetchMock = restFetch as jest.MockedFunction<typeof restFetch>;
 

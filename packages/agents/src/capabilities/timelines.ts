@@ -462,7 +462,7 @@ const deleteTimelineVersion: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 /** Attempts to land the document write before reporting a conflict. */
-const CAS_ATTEMPTS = 5;
+const CAS_ATTEMPTS = 2;
 /** Operations one call may apply, so a runaway script cannot rewrite a cut. */
 const MAX_OPS = 60;
 
@@ -628,6 +628,89 @@ async function applyOps(
   return { records, state: bridge.finalState() };
 }
 
+const TIMELINE_OP_ID_KEYS = ["id", "target", "clip_id", "track_id"] as const;
+
+function resolveNamedUnit(
+  value: string,
+  clips: { id: string; name: string }[],
+  tracks: { id: string; name: string }[]
+): string {
+  const lower = value.toLowerCase();
+  const clip =
+    clips.find((c) => c.id === value) ??
+    clips.find((c) => c.name.toLowerCase() === lower);
+  if (clip) return clip.id;
+  const track =
+    tracks.find((t) => t.id === value) ??
+    tracks.find((t) => t.name.toLowerCase() === lower);
+  if (track) return track.id;
+  return value;
+}
+
+/**
+ * The unit ids one op's result names.
+ *
+ * The bridge answers `{ok, clip}`, `{ok, track}`, `{ok, clips}` (a split),
+ * `{ok, deleted}` (a delete) or `{ok, selected}` — never a bare `id`, which
+ * is why reading `result.id` alone left every `"selected"` target unresolved.
+ */
+export function resultUnitIds(result: unknown): string[] {
+  if (!isRecord(result)) return [];
+  const ids: string[] = [];
+  const push = (value: unknown): void => {
+    if (isRecord(value) && isString(value["id"])) ids.push(value["id"]);
+  };
+  for (const key of ["clip", "track", "deleted", "selected"]) {
+    push(result[key]);
+  }
+  const clips = result["clips"];
+  if (Array.isArray(clips)) {
+    for (const clip of clips) push(clip);
+  }
+  if (isString(result["id"])) ids.push(result["id"]);
+  return ids;
+}
+
+/**
+ * Canonicalize one op input for the `resource_change` broadcast: names and
+ * `"selected"` become ids, and an op that created something carries the id it
+ * created. Without that stamp an editor merging this write cannot tell which
+ * unit an `add_track` touched and falls back to contesting every unit that
+ * happens to have drifted.
+ */
+export function resolveTimelineOpInput(
+  input: Record<string, unknown>,
+  before: TimelineDocument,
+  state: TimelineBridgeFinalState,
+  result: unknown
+): Record<string, unknown> {
+  const clips = [
+    ...before.clips.map((c) => ({ id: c.id, name: c.name })),
+    ...state.clips
+  ];
+  const tracks = [
+    ...before.tracks.map((t) => ({ id: t.id, name: t.name })),
+    ...state.tracks
+  ];
+  const resultIds = resultUnitIds(result);
+  const next = { ...input };
+  for (const key of TIMELINE_OP_ID_KEYS) {
+    const value = next[key];
+    if (typeof value !== "string" || value.length === 0) continue;
+    if (value.toLowerCase() === "selected") {
+      if (resultIds[0]) next[key] = resultIds[0];
+      continue;
+    }
+    next[key] = resolveNamedUnit(value, clips, tracks);
+  }
+  // An op that named no unit either created one or addressed the selection;
+  // the result says which, so stamp it.
+  if (next["id"] === undefined && resultIds.length > 0) {
+    next["id"] = resultIds.length === 1 ? resultIds[0] : resultIds;
+  }
+  return next;
+}
+
 const editTimeline: CapabilityExport = {
   spec: editTimelineSpec,
   impl: async (run, params) => {
@@ -661,7 +744,18 @@ const editTimeline: CapabilityExport = {
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
         timelineId,
         sequence.updated_at,
-        next
+        next,
+        {
+          ops: ops.map((parsed, index) => ({
+            tool: parsed.op,
+            input: resolveTimelineOpInput(
+              parsed.input,
+              document,
+              state,
+              records[index]?.result
+            )
+          }))
+        }
       );
       if (!saved) continue;
 

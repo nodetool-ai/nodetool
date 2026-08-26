@@ -212,6 +212,17 @@ export interface NodeStoreState {
   getWorkflow: () => Workflow;
   setWorkflowDirty: (dirty: boolean) => void;
   setWorkflowUpdatedAt: (updatedAt: string) => void;
+  /**
+   * Apply a graph merged with an external change. Records no undo entry and
+   * leaves `workflowIsDirty` unchanged — the merged canvas still holds the
+   * user's unsaved edits — while rolling the row's sync tokens so the next
+   * save compares against the external write (ADR 0001).
+   */
+  applyExternalGraph: (
+    nodes: Node<NodeData>[],
+    edges: Edge[],
+    token?: { etag?: string; updatedAt?: string }
+  ) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -256,7 +267,7 @@ export const createNodeStore = (
 ): NodeStore =>
   create<NodeStoreState>()(
     temporal(
-      (set, get) => {
+      (set, get, api) => {
         const metadata = useMetadataStore.getState().metadata;
         const nodeTypes = useMetadataStore.getState().nodeTypes;
         const addUnknownNodeTypes =
@@ -1138,6 +1149,30 @@ export const createNodeStore = (
             set((state) => ({
               workflow: { ...state.workflow, updated_at: updatedAt }
             }));
+          },
+          applyExternalGraph: (nodes, edges, token) => {
+            // SAFETY: zundo's `temporal` middleware stamps `temporal` onto the
+            // store api at runtime, but the generic `StoreApi` this factory is
+            // typed against does not declare it. Optional so a store built
+            // without the middleware simply skips the pause.
+            const temporalApi = (
+              api as unknown as {
+                temporal?: StoreApi<TemporalState<PartializedNodeStore>>;
+              }
+            ).temporal;
+            temporalApi?.getState().pause();
+            try {
+              set({ nodes, edges });
+              if (!token?.etag && !token?.updatedAt) return;
+              set((state) => {
+                const workflow = { ...state.workflow };
+                if (token.etag) workflow.etag = token.etag;
+                if (token.updatedAt) workflow.updated_at = token.updatedAt;
+                return { workflow };
+              });
+            } finally {
+              temporalApi?.getState().resume();
+            }
           },
           autoLayout: async (): Promise<void> => {
             const allNodes = get().nodes;

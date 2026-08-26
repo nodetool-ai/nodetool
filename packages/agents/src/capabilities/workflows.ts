@@ -275,7 +275,10 @@ const updateWorkflow: CapabilityExport = {
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,
       expected,
-      fields as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2]
+      fields as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2],
+      // A whole-graph write names no units, so an open editor falls back to
+      // diff-based touching instead of treating the graph as replaced.
+      "graph" in fields ? { ops: [{ tool: "update_graph", input: {} }] } : undefined
     );
     if (!updated) {
       return {
@@ -435,7 +438,9 @@ const restoreWorkflowVersion: CapabilityExport = {
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,
       existing.updated_at,
-      { graph: version.graph }
+      { graph: version.graph },
+      // Whole-graph restore: no unit attribution, diff-based touching.
+      { ops: [{ tool: "restore_version", input: {} }] }
     );
     if (!updated) {
       return {
@@ -490,7 +495,8 @@ const setWorkflowAccess: CapabilityExport = {
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,
       existing.updated_at,
-      { access } as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2]
+      { access } as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2],
+      { ops: [{ tool: "set_link", input: { access } }] }
     );
     if (!updated) {
       return {

@@ -8,6 +8,7 @@ import { eq, and, desc, or, isNull, lt, inArray, type SQL } from "drizzle-orm";
 import {
   DBModel,
   ModelChangeEvent,
+  ModelChangeMeta,
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
@@ -132,7 +133,8 @@ export class Workflow extends DBModel {
   static async updateFieldsIfUnchanged(
     id: string,
     expectedUpdatedAt: string,
-    fields: WorkflowUpdateFields
+    fields: WorkflowUpdateFields,
+    meta?: ModelChangeMeta
   ): Promise<Workflow | null> {
     const db = getDb();
     const rows = await db
@@ -150,7 +152,7 @@ export class Workflow extends DBModel {
     if (!row) return null;
 
     const updated = new Workflow(row);
-    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
 

@@ -19,9 +19,25 @@ export enum ModelChangeEvent {
   DELETED = "deleted"
 }
 
+/**
+ * Context about one write, attached to the observer notification. The ops
+ * belong to that single write — not to a request — so they travel as an
+ * argument rather than through ambient state.
+ */
+export interface ModelChangeMeta {
+  /**
+   * The per-merge-unit ops the write was made with (the `ui_*` op list a
+   * headless bridge attaches to its document mutation). Forwarded on the
+   * `resource_change` broadcast so an open editor can merge the external
+   * change into its draft per merge unit.
+   */
+  ops?: unknown[];
+}
+
 export type ModelObserverCallback = (
   instance: DBModel,
-  event: ModelChangeEvent
+  event: ModelChangeEvent,
+  meta?: ModelChangeMeta
 ) => void;
 
 export class ModelObserver {
@@ -45,12 +61,16 @@ export class ModelObserver {
     if (idx >= 0) list.splice(idx, 1);
   }
 
-  static notify(instance: DBModel, event: ModelChangeEvent): void {
+  static notify(
+    instance: DBModel,
+    event: ModelChangeEvent,
+    meta?: ModelChangeMeta
+  ): void {
     const className = instance.constructor.name;
 
     for (const cb of ModelObserver.observers.get(className) ?? []) {
       try {
-        cb(instance, event);
+        cb(instance, event, meta);
       } catch (err) {
         log.error(`Observer notification failed for ${className}`, {
           error: String(err)
@@ -60,7 +80,7 @@ export class ModelObserver {
 
     for (const cb of ModelObserver.observers.get(null) ?? []) {
       try {
-        cb(instance, event);
+        cb(instance, event, meta);
       } catch (err) {
         log.error("Global observer notification failed", {
           error: String(err)
