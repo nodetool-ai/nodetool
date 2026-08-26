@@ -1,87 +1,81 @@
 ---
 layout: page
 title: "Why NodeTool: Comparisons vs ComfyUI, n8n & More"
-description: "Why NodeTool exists, what agent-first means, and head-to-head comparisons: NodeTool vs ComfyUI, Dify, Flowise, Langflow, n8n, and Figma Weave (formerly Weavy)."
+description: "Why NodeTool exists, what makes it unique, and how it compares to ComfyUI, Dify, Flowise, Langflow, n8n, and Figma Weave (formerly Weavy)."
 ---
 
-> NodeTool is the open-source, agent-first creative AI workspace — every major model, your keys, one canvas.
+> NodeTool is the open-source creative AI workspace. It combines every major model, lets you use your own API keys, and puts everything on one simple canvas.
 
-Ask its agent for what you want and it builds the workflow on a node canvas where image, video, audio, and LLM models run side by side. Then you open that canvas and change it. Bring your keys, or run everything locally. Open source, AGPL-3.0.
+Just tell the built-in AI agent what you want to make. It will automatically build a workflow for you using image, video, audio, and text models working together. After it's built, you can easily change it yourself. You can use your own API keys, or run everything locally on your computer. It is completely open source (AGPL-3.0).
 
-Say you're making a thirty-second product video. The storyboard prompts live in a ChatGPT tab. The stills come from a Flux tab, downloaded one by one. You upload each still to a video model, download the clips, drag them into an editor on your desktop, then open a fourth tab for music. Four subscriptions, a downloads folder full of `final_v3.png`, and when the client asks for a warmer version next Tuesday, the recipe exists only in your chat history and your memory.
+Imagine you want to make a short product video. Usually, you write ideas in ChatGPT. Then you make images in another app like Flux and download them one by one. Next, you upload those images to a video app, download the videos, and finally mix them with music in a different video editor. That means paying for four different subscriptions, dealing with messy downloads folders, and manually remembering all the steps if you ever want to change something.
 
-None of those tools is bad. They just don't compose:
+These other tools are great, but they don't work together easily:
 
-* **Every model lives behind its own UI.** Moving between them means downloading, re-uploading, and re-explaining context. Outputs don't flow into inputs.
-* **SaaS canvases tax every token.** Hosted creative tools mark up provider credits 2–5x. You pay for the same OpenAI call twice.
-* **Local-only tools are model-narrow.** ComfyUI gives you diffusion internals but treats LLMs, agents, and cloud APIs as second-class.
-* **Nothing is reproducible.** Prompts in chat history, settings in screenshots, the pipeline in your head.
-* **Privacy is a yes/no toggle.** Either everything goes to a vendor, or nothing leaves your machine. No mixed mode.
+- **Too many different apps.** You have to constantly download and upload files between different websites.
+- **Extra costs.** Hosted AI tools often charge you 2-5x more for the same AI models.
+- **Local tools can be limited.** Tools like ComfyUI are great for images but not as good for text or other tasks.
+- **Hard to recreate.** Your steps are scattered across chat history and screenshots.
+- **Privacy is all or nothing.** You usually have to send everything to a company or do everything locally. It's hard to mix both.
 
-## The same day on one canvas
+## Everything on one canvas
 
-Ask for it, then own it:
+NodeTool fixes this:
 
-**An agent that builds the pipeline.** Describe the result and it plans the graph, wires it, picks models, and runs it. Chat tools that write prose hand you instructions; this one hands you a running workflow.
+**An AI assistant that builds the tools for you.** Tell it what you need, and it picks the right models and connects them for you. Instead of just giving you instructions, it gives you a ready-to-use tool.
 
-**Nothing generated behind glass.** What the agent builds is the same graph you would have drawn. Open it, rewire it, swap a model, re-run. It edits sketches, timelines, storyboards, and mini apps the same way.
+**You are in control.** The AI builds a visual graph of steps. You can open it, change how things connect, swap out models, and run it again.
 
-Your keys stay yours. OpenAI, Anthropic, Gemini, Replicate, FAL, Kie, ElevenLabs, MiniMax, HuggingFace — you pay each provider its list price, with no credit markup. And local and cloud mix per node: run Llama on MLX for the script, route the render to FAL, keep the client's source footage on disk.
+**You pay the real price.** Use your own keys for OpenAI, Anthropic, Replicate, ElevenLabs, and more. You pay exactly what they charge, with no extra fees. You can also mix local and cloud models easily.
 
-## You don't have to wire it yourself
+## You don't have to be a programmer
 
-Here is the part the comparison tables miss. NodeTool is agent-first: every editor — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools, around 120 in all. Describe the pipeline and an agent authors the graph: picks the nodes, wires the edges, selects the models, and validates the result before anything runs. What it leaves behind is a workflow you can inspect, edit, and rerun, not a chat transcript.
+NodeTool is designed for the AI to help you. The AI assistant can use all the tools in NodeTool to build your project. It can even check its own work and fix errors if something goes wrong while running.
 
-The agent stays on the job after the build. Supervised runs put it on the failure path — when a step fails mid-run it decides whether to retry, repair the output, skip the item, or stop, inside a decision and cost budget you set, with every intervention logged. And the toolbelt speaks MCP, so Claude Desktop, Claude Code, or any MCP-aware agent can drive the same surfaces you click.
-
-**Agents inside the pipeline too.** Planning, tool calling, streaming. Drop an Agent node into any graph as one step of it.
+You can also add an AI Agent as a step inside your own workflows to help make decisions or process information.
 
 ## Head-to-head comparisons
 
-Full write-ups against specific tools:
+Read our full guides on how NodeTool compares to other tools:
 
-- [NodeTool vs ComfyUI](https://nodetool.ai/vs/comfyui) — a diffusion-only node editor vs one canvas for image, video, audio, and text, with editing tools built in.
-- [NodeTool vs Dify](https://nodetool.ai/vs/dify) — a text-first LLM app platform vs the same agent and RAG ground plus native image, video, and music generation.
-- [NodeTool vs Flowise](https://nodetool.ai/vs/flowise) — the fastest path to a LangChain RAG chatbot vs that chatbot plus native media generation on the same canvas.
-- [NodeTool vs Langflow](https://nodetool.ai/vs/langflow) — a low-code builder for chat, RAG, and agents vs the same ground plus native image, video, and music generation.
-- [NodeTool vs n8n](https://nodetool.ai/vs/n8n) — app-to-app automation vs workflows built to generate media and run agents.
-- [NodeTool vs Weavy](https://nodetool.ai/vs/weavy) — SaaS credits and a curated model roster vs open source, BYOK, no lock-in.
-- [NodeTool vs Figma Weave](https://nodetool.ai/vs/figma-weave) — Weavy's new life inside Figma: hosted, credit-billed, ecosystem-bound vs open source and BYOK.
+- [NodeTool vs ComfyUI](https://nodetool.ai/vs/comfyui) — NodeTool supports image, video, audio, and text all in one place, while ComfyUI focuses mostly on images.
+- [NodeTool vs Dify](https://nodetool.ai/vs/dify) — Dify is mostly for text apps, while NodeTool adds native image, video, and music creation.
+- [NodeTool vs Flowise](https://nodetool.ai/vs/flowise) — NodeTool lets you build chat bots like Flowise, but also includes media creation on the same canvas.
+- [NodeTool vs Langflow](https://nodetool.ai/vs/langflow) — NodeTool goes beyond Langflow's text features to include image, video, and music generation.
+- [NodeTool vs n8n](https://nodetool.ai/vs/n8n) — n8n connects different business apps, while NodeTool is designed for creative AI and generating media.
+- [NodeTool vs Weavy](https://nodetool.ai/vs/weavy) — NodeTool is open source and lets you use your own keys, without locking you into a subscription.
+- [NodeTool vs Figma Weave](https://nodetool.ai/vs/figma-weave) — Figma Weave is a paid service, while NodeTool is open source and gives you full control.
 
 ## Feature Comparison
 
-| Feature | NodeTool | Figma Weave (formerly Weavy) | ComfyUI |
-|---------|----------|-------|---------|
-| **Category** | Open creative AI workspace | Closed SaaS creative canvas | Diffusion-focused node editor |
-| **License** | AGPL-3.0 (open source) | Proprietary SaaS | GPL-3.0 (open source) |
-| **Runs on your machine** | ✅ Mac, Windows, Linux desktop | ❌ Browser-only, hosted | ✅ Local-first |
-| **Bring your own keys (BYOK)** | ✅ FAL, Kie, OpenAI, Anthropic, Gemini, Replicate, Atlas, ElevenLabs, MiniMax | ❌ Credits only, provider markup | ⚠️ Via custom nodes for cloud APIs |
-| **Pricing model** | Pay providers directly, no markup | Proprietary credits | Free (you pay your own GPU/API) |
-| **Model coverage** | Image, video, audio, text, TTS, ASR — local + cloud | Image, video, audio — cloud only | Diffusion (image/video) — local |
-| **Image generation** | Local: FLUX, Qwen Image · API: FAL, Kie, Replicate, OpenAI, Gemini | Cloud: FLUX, Seedance, Ideogram, etc. | Deep control over diffusion internals |
-| **Video generation** | Local: Wan · API: FAL, Kie, Sora, Veo, Kling | Cloud: Kling, Veo, Runway, etc. | Local diffusion video (AnimateDiff, etc.) |
-| **Audio & music** | Local: MusicGen, AudioLDM, Stable Audio · API: Kie, ElevenLabs, MiniMax | Cloud: Suno, ElevenLabs, etc. | ⚠️ Via custom nodes |
-| **TTS / ASR** | Local: Kokoro, Sesame, Whisper · API: OpenAI, ElevenLabs | Cloud only | ⚠️ Via custom nodes |
-| **Agent-first editing** | ✅ Every editor exposed as agent tools (~120); agents build, run, and repair workflows | ❌ | ❌ |
-| **LLMs & agents** | Built-in agent nodes, tool calling, streaming, Ollama, MLX | Limited LLM nodes | ⚠️ Via custom nodes |
-| **MCP server** | ✅ Claude Desktop, Claude Code, any MCP agent | ❌ | ❌ |
-| **Diffusion control** | Standard parameters | ❌ Hidden behind presets | ✅ Latents, VAE, samplers, ControlNet |
-| **RAG / vector search** | ✅ Local SQLite-vec, plus Pinecone & Supabase pgvector | ❌ | ❌ |
-| **Mini-apps from workflows** | ✅ Turn a graph into a simple UI | ⚠️ Share-as-template | ❌ |
-| **Real-time streaming** | ✅ Token-by-token, live progress | ✅ Live preview | ❌ Queue-based execution |
-| **Source available** | ✅ Full source on GitHub | ❌ | ✅ Full source on GitHub |
+| Feature                        | NodeTool                                        | Figma Weave (formerly Weavy) | ComfyUI                                  |
+| ------------------------------ | ----------------------------------------------- | ---------------------------- | ---------------------------------------- |
+| **Category**                   | Open creative AI workspace                      | Closed SaaS creative canvas  | Image-focused node editor                |
+| **License**                    | AGPL-3.0 (open source)                          | Proprietary SaaS             | GPL-3.0 (open source)                    |
+| **Runs on your machine**       | ✅ Mac, Windows, Linux desktop                  | ❌ Browser-only, hosted      | ✅ Local-first                           |
+| **Bring your own keys (BYOK)** | ✅ Use your own API keys for all providers      | ❌ Credits only, extra fees  | ⚠️ Hard to use cloud APIs                |
+| **Pricing model**              | Pay providers directly, no extra fees           | Buy proprietary credits      | Free (you pay for your own hardware/API) |
+| **Model coverage**             | Image, video, audio, text, voice                | Image, video, audio          | Image and video                          |
+| **Image generation**           | Local models and Cloud APIs                     | Cloud models only            | Deep control over local models           |
+| **Video generation**           | Local models and Cloud APIs                     | Cloud models only            | Local video models                       |
+| **Audio & music**              | Local models and Cloud APIs                     | Cloud models only            | ⚠️ Requires extra plugins                |
+| **Text & Voice**               | Local models and Cloud APIs                     | Cloud only                   | ⚠️ Requires extra plugins                |
+| **AI assistant editor**        | ✅ AI can build and fix workflows for you       | ❌                           | ❌                                       |
+| **LLMs & AI agents**           | Built-in text AI and agents                     | Limited text AI              | ⚠️ Requires extra plugins                |
+| **Mini-apps**                  | ✅ Turn a workflow into a simple user interface | ⚠️ Share as template only    | ❌                                       |
+| **Source available**           | ✅ Full source on GitHub                        | ❌                           | ✅ Full source on GitHub                 |
 
-### When to pick each
+### When to pick each tool
 
-**NodeTool** — every modality, every provider, on one canvas, with an agent that can build and repair the pipeline for you. Local, cloud, or mixed.
+**NodeTool** — Choose NodeTool when you want to use image, video, audio, and text models together in one place, without extra fees, and want an AI assistant to help build it.
 
-**Figma Weave** (formerly Weavy) — hosted SaaS if you want a managed product with credits inside the Figma ecosystem and don't need BYOK, local execution, or open source.
+**Figma Weave** (formerly Weavy) — Choose this if you want a paid, hosted product that works well within Figma and you don't mind paying extra for credits.
 
-**ComfyUI** — deep diffusion control: samplers, VAE, ControlNet, latents.
+**ComfyUI** — Choose this if you are a power user who wants total, complex control over how images are generated locally.
 
 ---
 
 ## Next steps
 
 - [Quick Start](getting-started.md) — install and run your first workflow in minutes.
-- [Models & Providers](models-and-providers.md) — every model NodeTool wires up.
+- [Models & Providers](models-and-providers.md) — a list of every model NodeTool supports.
