@@ -10,6 +10,9 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { keyframes } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { ImageRef, Shot, ShotStatus, VideoRef } from "@nodetool-ai/protocol";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -32,7 +35,9 @@ import {
   ToolbarIconButton,
   VideoPlayer,
   BORDER_RADIUS,
+  MOTION,
   SPACING,
+  reducedMotion,
   type StatusType
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
@@ -99,6 +104,49 @@ const cardGridSx = {
   }
 } as const;
 
+/** The glow that travels around the frame while a still or clip renders. */
+const borderOrbit = keyframes`
+  0% { background-position: 0% 0%; }
+  25% { background-position: 100% 0%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+`;
+
+/**
+ * Animated border for a shot whose still or clip is rendering: the card's
+ * own border goes transparent and a pseudo-element paints a two-layer
+ * background — paper over the interior, a radial-gradient tile above the
+ * border ring. The tile is larger than the card, and the orbit keyframes
+ * move it corner to corner, so the glow circles the frame.
+ */
+const generatingSx = (theme: Theme): Record<string, unknown> => ({
+  position: "relative",
+  outline: "none",
+  border: "1px solid transparent",
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    borderRadius: "inherit",
+    pointerEvents: "none",
+    backgroundImage: `linear-gradient(${theme.vars.palette.background.paper}, ${theme.vars.palette.background.paper}), radial-gradient(
+      circle closest-side,
+      ${theme.vars.palette.primary.light} 0%,
+      ${theme.vars.palette.primary.main} 45%,
+      transparent 100%
+    )`,
+    backgroundSize: "auto, 250% 250%",
+    backgroundRepeat: "no-repeat",
+    backgroundOrigin: "border-box",
+    backgroundClip: "padding-box, border-box",
+    animation: `${borderOrbit.name} ${MOTION.pulse} infinite`
+  },
+  ...reducedMotion({
+    "&::before": { animation: "none" }
+  })
+});
+
 const cameraLine = (shot: Shot): string =>
   [
     shot.camera?.framing,
@@ -147,6 +195,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   );
 
   const meta = STATUS_META[shot.status];
+  const theme = useTheme();
   // Why the last still or clip failed. Kept on the shot's job state until the
   // next attempt registers, so the card can say more than "Failed".
   const renderError = useStoryboardGenerationStore((state) => {
@@ -227,11 +276,10 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       variant="outlined"
       padding="compact"
       className="shot-card"
+      data-generating={isGenerating ? "true" : undefined}
       sx={{
         ...cardGridSx,
-        ...(isGenerating
-          ? { outline: "1px solid", outlineColor: "primary.main" }
-          : undefined)
+        ...(isGenerating ? generatingSx(theme) : undefined)
       }}
     >
       <Box sx={previewSx} onDoubleClick={previewMedia ? handleOpenViewer : undefined}>

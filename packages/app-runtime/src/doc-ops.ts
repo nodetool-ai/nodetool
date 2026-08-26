@@ -272,6 +272,19 @@ export const addResource = (
   };
 };
 
+export const updateResource = (
+  meta: AppDocMeta,
+  id: string,
+  patch: Partial<Omit<ResourceBinding, "id">>
+) => {
+  const index = meta.resources.findIndex((r) => r.id === id);
+  if (index < 0) return { meta, resource: null };
+  const resource = { ...meta.resources[index], ...patch, id };
+  const resources = [...meta.resources];
+  resources[index] = resource;
+  return { meta: { ...meta, resources }, resource };
+};
+
 export const removeResource = (
   meta: AppDocMeta,
   id: string

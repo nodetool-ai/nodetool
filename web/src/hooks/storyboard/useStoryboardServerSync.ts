@@ -23,12 +23,15 @@ import {
   useStoryboardStore,
   type StoryboardBoard
 } from "../../stores/storyboard/StoryboardStore";
-import type { Screenplay, Shot } from "@nodetool-ai/protocol";
+import type { DocumentOp, Screenplay, Shot } from "@nodetool-ai/protocol";
 import { getErrorMessage } from "../../utils/errorHandling";
 import {
   registerDocumentSync,
   type DocumentLoadState
 } from "../../stores/documentSync";
+import { mergeByUnits, type MergeConflict } from "../../stores/documentMerge";
+import { useConflictStore } from "../../stores/ConflictStore";
+import { storyboardMergeAdapter } from "../../stores/storyboard/merge";
 import {
   isPermanentSaveError,
   MAX_TRANSIENT_SAVE_RETRIES
@@ -99,6 +102,12 @@ const isNotFound = (error: unknown): boolean =>
 const isConflict = (error: unknown): boolean =>
   /modified since last read/i.test(getErrorMessage(error));
 
+/** The part of a `resource_change` notice this hook reads. */
+interface ExternalNotice {
+  updatedAt: string | null;
+  ops?: DocumentOp[];
+}
+
 export const useStoryboardServerSync = (
   boardId: string
 ): DocumentLoadState => {
@@ -107,6 +116,7 @@ export const useStoryboardServerSync = (
   // The board object reference last written to / read from the server; any
   // other reference in the store means unsaved local edits.
   const syncedRef = useRef<StoryboardBoard | null>(null);
+  const revisionRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
   // The save currently in flight, so a flush can await it instead of starting
   // a second, overlapping save.
@@ -127,9 +137,18 @@ export const useStoryboardServerSync = (
     const store = useStoryboardStore;
     setLoadState("loading");
 
+    // Notices that arrived while a save was in flight. One of them may be that
+    // save's own echo, which only the save's response token identifies; the
+    // rest are foreign writes and are handled once the save settles.
+    const pendingNotices: ExternalNotice[] = [];
+
+    const isDirty = (): boolean =>
+      (store.getState().boards[boardId] ?? null) !== syncedRef.current;
+
     const applyResponse = (res: StoryboardResponse): void => {
       if (disposed) return;
       store.getState().loadBoard(boardId, responseToBoard(res));
+      revisionRef.current = res.updatedAt;
       store.getState().setServerRevision(boardId, res.updatedAt);
       syncedRef.current = store.getState().boards[boardId] ?? null;
     };
@@ -152,6 +171,7 @@ export const useStoryboardServerSync = (
             document: local ? boardToDocument(local) : undefined
           });
           if (disposed) return;
+          revisionRef.current = created.updatedAt;
           store.getState().setServerRevision(boardId, created.updatedAt);
           syncedRef.current = store.getState().boards[boardId] ?? null;
           void utilsRef.current.storyboards.list.invalidate();
@@ -176,6 +196,188 @@ export const useStoryboardServerSync = (
       });
     };
 
+    // The server copy behind the newest merge, for a conflict accept that
+    // takes the whole external document ("replaced").
+    let externalBoard: StoryboardBoard | null = null;
+
+    /**
+     * Take one refused external value into the draft through the store's own
+     * actions, so the accept is an undoable user edit (ADR 0001).
+     */
+    const acceptConflict = (
+      conflict: MergeConflict,
+      serverBoard: StoryboardBoard | null
+    ): void => {
+      const s = store.getState();
+      if (conflict.reason === "replaced") {
+        if (!serverBoard) return;
+        s.loadBoard(boardId, serverBoard, { checkpoint: true });
+        return;
+      }
+      if (conflict.reason === "deleted" && conflict.external === null) {
+        s.removeShot(boardId, conflict.unit.id);
+        return;
+      }
+      if (conflict.unit.kind === "shot" && conflict.external != null) {
+        const shot = conflict.external as Shot;
+        if (s.boards[boardId]?.shots.some((cand) => cand.id === shot.id)) {
+          s.updateShot(boardId, shot.id, shot);
+        } else {
+          s.upsertShot(boardId, shot);
+        }
+        return;
+      }
+      if (conflict.unit.kind === "field" && serverBoard) {
+        const field = conflict.unit.id as keyof StoryboardBoard;
+        const value = serverBoard[field];
+        switch (field) {
+          case "brief":
+            s.setBrief(boardId, value as string);
+            break;
+          case "style":
+            s.setStyle(boardId, value as string);
+            break;
+          case "aspectRatio":
+            s.setAspectRatio(boardId, value as string);
+            break;
+          case "entityIds":
+            s.setEntityIds(boardId, value as string[]);
+            break;
+          case "directorModel":
+            s.setDirectorModel(
+              boardId,
+              value as StoryboardBoard["directorModel"]
+            );
+            break;
+          case "imageModel":
+            s.setImageModel(boardId, value as StoryboardBoard["imageModel"]);
+            break;
+          case "videoModel":
+            s.setVideoModel(boardId, value as StoryboardBoard["videoModel"]);
+            break;
+          case "timelineId":
+            s.setTimelineLink(boardId, value as string | null);
+            break;
+          case "screenplay":
+            if (value) s.setScreenplay(boardId, value as Screenplay);
+            break;
+          default:
+            break;
+        }
+      }
+    };
+
+    /**
+     * Merge one external write into the dirty draft per merge unit
+     * (ADR 0001): fetch the server copy, run the engine against the last
+     * synced board as base, apply without an undo checkpoint, and list what
+     * the draft refused.
+     */
+    const mergeExternal = async (
+      notice: ExternalNotice,
+      prefetched?: StoryboardResponse
+    ): Promise<void> => {
+      let res: StoryboardResponse;
+      if (prefetched) {
+        res = prefetched;
+      } else {
+        try {
+          res = await trpcClient.storyboards.get.query({ id: boardId });
+        } catch (error) {
+          console.error("Failed to fetch storyboard for merge", error);
+          return;
+        }
+      }
+      if (disposed) return;
+      const base = syncedRef.current;
+      const draft = store.getState().boards[boardId];
+      if (!base || !draft || base === draft) return;
+
+      const serverBoard: StoryboardBoard = {
+        ...responseToBoard(res),
+        id: boardId,
+        updatedAt: Date.now()
+      };
+      externalBoard = serverBoard;
+
+      const { doc: merged, conflicts } = mergeByUnits(base, draft, serverBoard, storyboardMergeAdapter, { ops: notice.ops });
+      store.getState().applyMerged(boardId, merged);
+      revisionRef.current = res.updatedAt;
+      store.getState().setServerRevision(boardId, res.updatedAt);
+      // Roll the merge base to what the server now holds, not the merged draft.
+      // Without this, a second external write on the same unit reads as "both
+      // changed" and the agent's second edit is refused.
+      syncedRef.current = serverBoard;
+
+      // A whole-document replacement has no unit id; name it "document" so
+      // the banner's accept/discard can address it.
+      const listed = conflicts.map((conflict) =>
+        conflict.unit.id
+          ? conflict
+          : { ...conflict, unit: { ...conflict.unit, id: conflict.unit.kind } }
+      );
+      useConflictStore.getState().setConflicts(`storyboard:${boardId}`, listed, {
+        onAccept: (unitId) => {
+          const entry = useConflictStore.getState().byKey[`storyboard:${boardId}`];
+          const conflict = entry?.conflicts.find((c) => c.unit.id === unitId);
+          if (conflict) acceptConflict(conflict, externalBoard);
+        },
+        onDiscard: () => {}
+      });
+    };
+
+    /**
+     * Handle the notices buffered during a save now that it has settled.
+     * `ownToken` is the `updated_at` the save's own response carried, so the
+     * echo of this write can be told apart from a foreign one; a save that
+     * never landed has no token and every buffered notice is foreign.
+     */
+    const drainPendingNotices = async (
+      ownToken: string | null
+    ): Promise<void> => {
+      const notices = pendingNotices.splice(0, pendingNotices.length);
+      for (const notice of notices) {
+        if (disposed) return;
+        if (notice.updatedAt && notice.updatedAt === ownToken) continue;
+        if (notice.updatedAt && notice.updatedAt === revisionRef.current) {
+          continue;
+        }
+        if (!isDirty()) {
+          await load();
+          continue;
+        }
+        await mergeExternal(notice);
+      }
+    };
+
+    /**
+     * Recover from a CAS rejection without dropping the draft. A clean editor
+     * takes the server copy. A dirty one re-reads: when the server holds
+     * exactly the revision this editor already merged, the save merely raced
+     * that merge and is retried with the current token; otherwise the newer
+     * server copy is merged in (no ops, so a whole-document `replaced`
+     * conflict) and the save is rescheduled.
+     */
+    const recoverFromConflict = async (): Promise<void> => {
+      if (!isDirty()) {
+        await load();
+        return;
+      }
+      let res: StoryboardResponse;
+      try {
+        res = await trpcClient.storyboards.get.query({ id: boardId });
+      } catch (error) {
+        console.error("Failed to re-read storyboard after a conflict", error);
+        return;
+      }
+      if (disposed) return;
+      if (res.updatedAt !== revisionRef.current) {
+        await mergeExternal({ updatedAt: res.updatedAt }, res);
+        if (disposed) return;
+      }
+      schedule();
+    };
+
     /** The board's last known server state, for a caller that flushes. */
     const currentRevision = (): string | null =>
       store.getState().serverRevisions[boardId] ?? null;
@@ -186,6 +388,10 @@ export const useStoryboardServerSync = (
     ): Promise<StoryboardSaveResult> => {
       let saved = false;
       let result: StoryboardSaveResult;
+      // The token our own write came back with, so its echo can be told apart
+      // from a foreign notice buffered during the same window.
+      let ownToken: string | null = null;
+      let casConflict = false;
       try {
         const updated = await trpcClient.storyboards.update.mutate({
           id: boardId,
@@ -194,6 +400,8 @@ export const useStoryboardServerSync = (
           document: boardToDocument(board),
           timelineId: board.timelineId
         });
+        revisionRef.current = updated.updatedAt;
+        ownToken = updated.updatedAt;
         store.getState().setServerRevision(boardId, updated.updatedAt);
         syncedRef.current = board;
         saved = true;
@@ -214,9 +422,11 @@ export const useStoryboardServerSync = (
         result = { ok: false, error: message };
         console.error("Storyboard autosave failed", error);
         if (isConflict(error)) {
-          // CAS conflict: the server copy wins. Unmounted mid-flush, no live
-          // hook remains to reload — the next mount reconciles instead.
-          if (!disposed) await load();
+          // Recovered below, once the in-flight flag is down: a dirty draft
+          // merges the newer server copy instead of being reloaded over.
+          // Unmounted mid-flush, no live hook remains — the next mount
+          // reconciles instead.
+          casConflict = !disposed;
         } else if (isPermanentSaveError(error)) {
           // Resending the same document can never succeed. Say so once and
           // stop, instead of a retry loop nobody can see.
@@ -235,6 +445,10 @@ export const useStoryboardServerSync = (
       } finally {
         inFlightRef.current = false;
         inFlightPromiseRef.current = null;
+        if (!disposed && (pendingNotices.length > 0 || casConflict)) {
+          await drainPendingNotices(ownToken);
+          if (casConflict) await recoverFromConflict();
+        }
         if (saved && flushAfterSaveRef.current) {
           flushAfterSaveRef.current = false;
           void save(true);
@@ -306,15 +520,25 @@ export const useStoryboardServerSync = (
 
     // Writes from outside this browser (agent doc-ops, CLI, another tab) come
     // in as `resource_change`. A clean tab takes the server copy; a dirty one
-    // is told rather than overwritten — its next save hits the CAS conflict
-    // and reloads through the same path.
+    // merges the change per merge unit — draft wins, refused values land in
+    // the conflict banner.
     const unwatch = registerDocumentSync("storyboard", boardId, {
-      localRevision: () => store.getState().serverRevisions[boardId] ?? null,
+      localRevision: () => revisionRef.current,
       isDirty: () =>
-        inFlightRef.current ||
         (store.getState().boards[boardId] ?? null) !== syncedRef.current,
       reload: () => {
         void load();
+      },
+      merge: (notice) => {
+        // A save in flight makes the notice ambiguous: it may be that save's
+        // own echo, and only the save's response token says so. Hold it until
+        // then rather than guessing — guessing hides another tab's write and
+        // rolls the revision to a token we never received.
+        if (inFlightRef.current) {
+          pendingNotices.push({ updatedAt: notice.updatedAt, ops: notice.ops });
+          return;
+        }
+        void mergeExternal(notice);
       }
     });
 
@@ -339,6 +563,7 @@ export const useStoryboardServerSync = (
       registerStoryboardSaver(boardId, null);
       unwatch();
       unsubscribe();
+      useConflictStore.getState().clear(`storyboard:${boardId}`);
       if (timerRef.current) clearTimeout(timerRef.current);
       // Flush any pending debounced edit instead of dropping it with the
       // timer — leaving the page must not lose the last keystrokes.

@@ -31,6 +31,7 @@ import {
   removeResource,
   removeVariable,
   updateOperation,
+  updateResource,
   updateVariable,
   type AppDocMeta,
   type ApplicationDocument,
@@ -107,6 +108,19 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
     const applyMeta = (next: AppDocMeta) => {
       metaRef.current = next;
       onMetaChangeRef.current(next);
+    };
+    const applyExternalDocument = (document: ApplicationDocument) => {
+      working.current = document.ui as Data;
+      puckRef.current.dispatch({
+        type: "setData",
+        data: document.ui as Data,
+        recordHistory: false
+      });
+      applyMeta({
+        operations: document.operations,
+        resources: document.resources,
+        variables: document.variables
+      });
     };
 
     const handler: PuckAgentHandler = {
@@ -247,6 +261,15 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
         applyMeta(next);
         return resource;
       },
+      updateResource: (id, patch) => {
+        const { meta: next, resource } = updateResource(
+          metaRef.current,
+          id,
+          patch
+        );
+        if (resource) applyMeta(next);
+        return resource;
+      },
       removeResource: (id) => {
         const { meta: next, removed } = removeResource(metaRef.current, id);
         if (removed) applyMeta(next);
@@ -283,7 +306,8 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
           document.theme = { id: themeId };
         }
         return document;
-      }
+      },
+      applyExternalDocument
     };
 
     setPuckAgentHandler(applicationId, handler);

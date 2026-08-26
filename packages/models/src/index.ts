@@ -63,7 +63,11 @@ export {
   createTimeOrderedUuid,
   computeEtag
 } from "./base-model.js";
-export type { ModelObserverCallback, DrizzleTable } from "./base-model.js";
+export type {
+  ModelObserverCallback,
+  ModelChangeMeta,
+  DrizzleTable
+} from "./base-model.js";
 
 // ── Domain Models ────────────────────────────────────────────────────
 export { Job } from "./job.js";

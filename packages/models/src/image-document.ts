@@ -6,6 +6,7 @@ import type {
 import {
   DBModel,
   ModelChangeEvent,
+  ModelChangeMeta,
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
@@ -253,7 +254,8 @@ export class ImageDocument extends DBModel {
       workflow_id: string | null;
       document: string;
       thumbnail_asset_id: string | null;
-    }>
+    }>,
+    meta?: ModelChangeMeta
   ): Promise<ImageDocument | null> {
     if (fields.document !== undefined) {
       assertValidDocumentData(JSON.parse(fields.document) as ImageDocumentData);
@@ -275,14 +277,15 @@ export class ImageDocument extends DBModel {
     if (!row) return null;
 
     const updated = new ImageDocument(row);
-    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
 
   static async updateDocumentDataIfUnchanged(
     id: string,
     expectedUpdatedAt: string,
-    data: ImageDocumentData
+    data: ImageDocumentData,
+    meta?: ModelChangeMeta
   ): Promise<ImageDocument | null> {
     assertValidDocumentData(data);
     const db = getDb();
@@ -308,7 +311,7 @@ export class ImageDocument extends DBModel {
     }
 
     const updated = new ImageDocument(row);
-    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
 
@@ -318,7 +321,8 @@ export class ImageDocument extends DBModel {
       data: ImageDocumentData,
       document: ImageDocument
     ) => T | Promise<T>,
-    maxRetries = 5
+    maxRetries = 5,
+    meta?: ModelChangeMeta
   ): Promise<ImageDocumentMutationResult<T> | null> {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const doc = await ImageDocument.get<ImageDocument>(id);
@@ -331,7 +335,8 @@ export class ImageDocument extends DBModel {
       const updated = await ImageDocument.updateDocumentDataIfUnchanged(
         id,
         doc.updated_at,
-        data
+        data,
+        meta
       );
       if (updated) {
         return { document: updated, result };

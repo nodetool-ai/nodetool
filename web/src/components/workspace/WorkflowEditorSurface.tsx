@@ -21,7 +21,13 @@ import SubgraphTabStrip from "./SubgraphTabStrip";
 import SubgraphTabContent from "./SubgraphTabContent";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { FlexColumn, LoadingSpinner } from "../ui_primitives";
+import {
+  ConflictBanner,
+  FlexColumn,
+  LoadingSpinner,
+  SPACING
+} from "../ui_primitives";
+import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 
 // Floating editor status message: sits above the canvas and node overlays but
 // below the node-info panel (15000) and find dialog (20000). Beyond the shared
@@ -114,6 +120,7 @@ const WorkflowEditorSurface = ({
                   <StatusMessage />
                 </div>
               )}
+              <WorkflowConflictBanner workflowId={workflowId} />
               <SubgraphTabStrip
                 hostId={workflowId}
                 hostActiveKey={null}
@@ -176,3 +183,30 @@ const WorkflowEditorSurface = ({
 };
 
 export default WorkflowEditorSurface;
+
+/**
+ * The document-level conflict banner for this workflow: lists the external
+ * graph changes a merge refused and offers accept/discard per unit.
+ */
+const WorkflowConflictBanner: React.FC<{ workflowId: string }> = ({
+  workflowId
+}) => {
+  const conflicts = useDocumentConflicts("workflow", workflowId);
+  if (conflicts.items.length === 0) return null;
+  return (
+    <ConflictBanner
+      conflicts={conflicts.items}
+      onAccept={conflicts.accept}
+      onDiscard={conflicts.discard}
+      sx={{
+        position: "absolute",
+        top: SPACING.md,
+        left: SPACING.md,
+        right: SPACING.md,
+        zIndex: STATUS_MESSAGE_Z_INDEX + 1,
+        maxWidth: 640,
+        margin: "0 auto"
+      }}
+    />
+  );
+};

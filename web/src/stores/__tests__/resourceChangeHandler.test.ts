@@ -79,7 +79,7 @@ describe("handleResourceChange", () => {
       resource: { id: "workflow-123", etag: "abc123" }
     });
 
-    expect(reload).toHaveBeenCalledWith("workflow-123", "abc123");
+    expect(reload).toHaveBeenCalledWith("workflow-123", "abc123", undefined);
   });
 
   it("invalidates job queries on job created", () => {

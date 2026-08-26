@@ -5,6 +5,7 @@ import {
   classifyTextToken,
   expandAssetReferences,
   expandEntityRefs,
+  expandEntitiesForGeneration,
   findAssetRefs,
   findImageAssetRefs,
   findTextAssetRefs,
@@ -547,6 +548,63 @@ describe("expandEntityRefs", () => {
   it("returns text untouched when no entity token is present", async () => {
     const out = await expandEntityRefs("plain prompt", undefined, true);
     expect(out).toBe("plain prompt");
+  });
+});
+
+describe("expandEntitiesForGeneration", () => {
+  const liam = {
+    content_type: "image/jpeg",
+    name: "liam.jpg",
+    metadata: {
+      nodetool_entity: {
+        kind: "character",
+        name: "Liam",
+        descriptor: "the detective's informant, always in a grey hoodie"
+      }
+    }
+  };
+
+  it("expands names + descriptors and routes reference images out of the text", async () => {
+    const out = await expandEntitiesForGeneration(
+      "A shot of entity://e1 meeting entity://e2.",
+      entityContext({ e1: marta, e2: liam })
+    );
+    expect(out.prompt).toBe(
+      "A shot of Marta meeting Liam.\n\n" +
+        "Consistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat\n" +
+        "- Liam: the detective's informant, always in a grey hoodie"
+    );
+    expect(out.referenceImages.map((r) => r.uri)).toEqual([
+      "asset://e1.png",
+      "asset://e2.jpeg"
+    ]);
+  });
+
+  it("leaves a prompt without entity tokens alone", async () => {
+    const out = await expandEntitiesForGeneration(
+      "plain prompt",
+      entityContext({})
+    );
+    expect(out).toEqual({ prompt: "plain prompt", referenceImages: [] });
+  });
+
+  it("drops an unresolvable entity mention", async () => {
+    const out = await expandEntitiesForGeneration(
+      "see entity://missing here",
+      entityContext({})
+    );
+    expect(out.prompt).toBe("see here");
+    expect(out.referenceImages).toEqual([]);
+  });
+
+  it("keeps a pre-existing image mention literal and un-routed", async () => {
+    const out = await expandEntitiesForGeneration(
+      "in the style of asset://style1.png, starring entity://e1",
+      entityContext({ e1: marta })
+    );
+    expect(out.prompt).toContain("asset://style1.png");
+    expect(out.referenceImages.map((r) => r.uri)).toEqual(["asset://e1.png"]);
   });
 });
 

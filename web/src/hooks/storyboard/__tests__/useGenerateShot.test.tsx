@@ -2,29 +2,30 @@
  * @jest-environment jsdom
  *
  * Regression test: concurrent shot-generation starts are single-flight — the
- * pre-registration async window must not admit a second paid job.
+ * pre-registration async window must not admit a second paid request. Also
+ * pins the direct `generate_media` request shapes for stills and clips
+ * (entity tokens vs client-side descriptor seasoning, image-to-video source,
+ * script-timed duration, revise mode).
  */
 import { renderHook, act } from "@testing-library/react";
 
-const run = jest.fn();
-jest.mock("../../../stores/WorkflowRunner", () => ({
-  getWorkflowRunnerStore: () => ({ getState: () => ({ run }) })
+const send = jest.fn();
+jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
+  globalWebSocketManager: {
+    ensureConnection: jest.fn().mockResolvedValue(undefined),
+    send: (...args: unknown[]) => send(...(args as [])),
+    subscribe: jest.fn().mockReturnValue(() => {})
+  }
 }));
-jest.mock("../../../stores/storyboard/StoryboardGenerationStore", () => {
-  const actual = jest.requireActual(
-    "../../../stores/storyboard/StoryboardGenerationStore"
-  );
-  return { ...actual, subscribeShotJob: jest.fn().mockResolvedValue(undefined) };
-});
-// The hook resolves board entities through React Query; an empty library
-// keeps these single-flight tests hermetic.
+// The hook resolves board entities through React Query; the tests below seed
+// these arrays per scenario.
+const mockEntities: unknown[] = [];
+const mockImageModels: Array<{ id: string; supported_tasks?: string[] }> = [];
 jest.mock("../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: [] })
+  useEntities: () => ({ data: mockEntities })
 }));
-// Model catalog lookup (still-model image_to_image support) is irrelevant to
-// the single-flight behavior under test.
 jest.mock("../../useModelsByProvider", () => ({
-  useImageModelsByProvider: () => ({ models: [] })
+  useImageModelsByProvider: () => ({ models: mockImageModels })
 }));
 // The clip render reads the linked script to time the shot; this stands in for
 // the tRPC round trip.
@@ -37,7 +38,7 @@ jest.mock("../../../trpc/client", () => ({
 import { useGenerateShot, __resetStartingShotsForTests } from "../useGenerateShot";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
-import type { Shot } from "@nodetool-ai/protocol";
+import type { Entity, Shot } from "@nodetool-ai/protocol";
 
 const BOARD = "board-sf";
 const shot: Shot = {
@@ -48,50 +49,136 @@ const shot: Shot = {
   status: "planned"
 };
 
+/** A location entity — `entitiesForShot` applies locations unconditionally. */
+const location: Entity = {
+  type: "entity",
+  id: "ent-1",
+  name: "The Shore",
+  kind: "location",
+  descriptor: "a basalt coast under a grey sky",
+  reference_images: [{ type: "image", asset_id: "ref-1" }]
+};
+
 beforeEach(() => {
-  run.mockReset();
+  send.mockReset();
+  send.mockResolvedValue(undefined);
+  mockEntities.length = 0;
+  mockImageModels.length = 0;
   __resetStartingShotsForTests();
   useStoryboardGenerationStore.getState().clear(shot.id);
   useStoryboardStore.getState().ensureBoard(BOARD);
   useStoryboardStore.getState().upsertShot(BOARD, shot);
 });
 
-it("starts exactly one job for concurrent generateKeyframe calls", async () => {
-  let release: (v: string) => void = () => {};
-  run.mockImplementation(
-    () => new Promise<string>((resolve) => (release = resolve))
+it("starts exactly one generation for concurrent generateKeyframe calls", async () => {
+  let release: () => void = () => {};
+  send.mockImplementation(
+    () => new Promise<void>((resolve) => (release = resolve))
   );
 
   const { result } = renderHook(() => useGenerateShot());
   await act(async () => {
     const first = result.current.generateKeyframe(BOARD, shot);
     const second = result.current.generateKeyframe(BOARD, shot);
-    // Second call must return without starting a run while the first is in
-    // its pre-registration window.
+    // Second call must return without starting a request while the first is
+    // in its pre-registration window.
     await second;
-    expect(run).toHaveBeenCalledTimes(1);
-    release("job-1");
+    // Flush every pending microtask so the first start reaches its send.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(send).toHaveBeenCalledTimes(1);
+    release();
     await first;
   });
-  expect(run).toHaveBeenCalledTimes(1);
+  expect(send).toHaveBeenCalledTimes(1);
 });
 
 it("allows a new start after the previous one settles", async () => {
-  run.mockResolvedValue("job-1");
   const { result } = renderHook(() => useGenerateShot());
   await act(async () => {
     await result.current.generateKeyframe(BOARD, shot);
   });
-  // The first job is now registered as queued — still busy, so a re-run is
-  // refused until the job settles.
-  expect(run).toHaveBeenCalledTimes(1);
+  // The request registered a queued job — still busy, so a re-run is refused
+  // until it settles.
+  expect(send).toHaveBeenCalledTimes(1);
   await act(async () => {
     await result.current.generateKeyframe(BOARD, shot);
   });
-  expect(run).toHaveBeenCalledTimes(1);
+  expect(send).toHaveBeenCalledTimes(1);
 });
 
-describe("clip length on a script-linked board", () => {
+describe("keyframe prompt composition", () => {
+  const stillModel = {
+    type: "image_model",
+    id: "model-1",
+    provider: "prov",
+    name: "Still Model",
+    path: ""
+  } as unknown as import("../../../stores/ApiTypes").ImageModelValue;
+
+  /** The `data` payload of the first generate_media send. */
+  const sentData = (): Record<string, unknown> => {
+    const frame = send.mock.calls[0][0] as {
+      data?: Record<string, unknown>;
+    };
+    return frame.data ?? {};
+  };
+
+  const frameWithModel = async (
+    shotToRender: Shot,
+    supportedTasks: string[]
+  ): Promise<Record<string, unknown>> => {
+    mockImageModels.push({ id: "model-1", supported_tasks: supportedTasks });
+    const store = useStoryboardStore.getState();
+    store.setImageModel(BOARD, stillModel);
+    store.setEntityIds(BOARD, ["ent-1"]);
+    store.upsertShot(BOARD, shotToRender);
+    mockEntities.push(location);
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateKeyframe(BOARD, shotToRender);
+    });
+    return sentData();
+  };
+
+  it("sends every keyframe param when the still model can take reference images", async () => {
+    const data = await frameWithModel(
+      { ...shot, id: "shot-edit", entity_ids: ["ent-1"] },
+      ["image_to_image"]
+    );
+    expect(data).toEqual({
+      mode: "image",
+      provider: "prov",
+      model: "model-1",
+      prompt: "a lighthouse\nentity://ent-1",
+      aspect_ratio: "16:9",
+      resolution: "1K",
+      variations: 1
+    });
+    expect(String(data.prompt)).not.toContain("Consistency references");
+  });
+
+  it("sends every keyframe param when the model cannot edit", async () => {
+    const data = await frameWithModel(
+      { ...shot, id: "shot-noedit", entity_ids: ["ent-1"] },
+      []
+    );
+    // Same envelope as the edit path — only the prompt seasoning differs.
+    expect(data).toEqual({
+      mode: "image",
+      provider: "prov",
+      model: "model-1",
+      prompt:
+        "a lighthouse\n\nConsistency references:\n" +
+        "- The Shore: a basalt coast under a grey sky",
+      aspect_ratio: "16:9",
+      resolution: "1K",
+      variations: 1
+    });
+    expect(String(data.prompt)).not.toContain("entity://");
+  });
+});
+
+describe("clip generation on a script-linked board", () => {
   // A fresh board per test: `ensureBoard` keeps whatever screenplay a previous
   // test put on the id.
   let boardSeq = 0;
@@ -102,7 +189,7 @@ describe("clip length on a script-linked board", () => {
     index: 0,
     action: "a lighthouse",
     status: "keyframe_ready",
-    keyframe: { type: "image", uri: "http://example.com/still.png" },
+    keyframe: { type: "image", uri: "asset://still-1", asset_id: "still-1" },
     duration_seconds: 8,
     script_line_ids: ["line-1"]
   };
@@ -140,19 +227,25 @@ describe("clip length on a script-linked board", () => {
     }
   });
 
-  /** The `duration` the ImageToVideo node was given. */
-  const renderedDuration = async (shotToRender: Shot): Promise<unknown> => {
+  /** The `data` payload of the first generate_media send. */
+  const sentData = (): Record<string, unknown> => {
+    const frame = send.mock.calls[0][0] as {
+      data?: Record<string, unknown>;
+    };
+    return frame.data ?? {};
+  };
+
+  const renderClip = async (
+    shotToRender: Shot
+  ): Promise<Record<string, unknown>> => {
     const { result } = renderHook(() => useGenerateShot());
     await act(async () => {
       await result.current.generateClip(LINKED, shotToRender);
     });
-    const nodes = run.mock.calls[0][2] as Array<{
-      id: string;
-      data: { properties: Record<string, unknown> };
-    }>;
-    return nodes.find((n) => n.id === "gen")?.data.properties["duration"];
+    return sentData();
   };
 
+  let shotToSeed: Shot = linkedShot;
   const seedBoard = (scriptId: string | null): void => {
     boardSeq += 1;
     LINKED = `board-linked-${boardSeq}`;
@@ -166,22 +259,50 @@ describe("clip length on a script-linked board", () => {
         shots: []
       });
     }
-    useStoryboardStore.getState().upsertShot(LINKED, linkedShot);
+    useStoryboardStore.getState().upsertShot(LINKED, shotToSeed);
   };
 
   beforeEach(() => {
-    run.mockReset();
-    run.mockResolvedValue("job-clip");
+    send.mockReset();
+    send.mockResolvedValue(undefined);
     scriptQuery.mockReset();
     __resetStartingShotsForTests();
     useStoryboardGenerationStore.getState().clear(linkedShot.id);
+    shotToSeed = linkedShot;
+    mockEntities.length = 0;
+  });
+
+  const videoModel = {
+    type: "video_model",
+    id: "vid-1",
+    provider: "vprov",
+    name: "Clip Model",
+    path: null
+  } as unknown as import("../../../stores/ApiTypes").VideoModelValue;
+
+  it("sends the keyframe as the image-to-video source with every param", async () => {
+    seedBoard(null);
+    useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+    const data = await renderClip(linkedShot);
+    expect(data).toEqual({
+      mode: "video",
+      provider: "vprov",
+      model: "vid-1",
+      prompt: "a lighthouse",
+      source_asset_id: "still-1",
+      aspect_ratio: "16:9",
+      resolution: "1080p",
+      duration: 8,
+      variations: 1
+    });
+    expect(scriptQuery).not.toHaveBeenCalled();
   });
 
   it("renders a linked shot as long as the takes it covers", async () => {
     seedBoard("script-1");
     scriptQuery.mockResolvedValue(script(true));
     // 3400 ms + 250 ms of silence, rounded up to whole seconds.
-    expect(await renderedDuration(linkedShot)).toBe(4);
+    expect(await renderClip(linkedShot)).toMatchObject({ duration: 4 });
     expect(scriptQuery).toHaveBeenCalledWith({ id: "script-1" });
   });
 
@@ -189,27 +310,53 @@ describe("clip length on a script-linked board", () => {
     seedBoard("script-1");
     scriptQuery.mockResolvedValue(script(true));
     expect(
-      await renderedDuration({ ...linkedShot, duration_source: "manual" })
-    ).toBe(8);
+      await renderClip({ ...linkedShot, duration_source: "manual" })
+    ).toMatchObject({ duration: 8 });
     expect(scriptQuery).not.toHaveBeenCalled();
   });
 
   it("keeps the shot's own length when the linked line is unvoiced", async () => {
     seedBoard("script-1");
     scriptQuery.mockResolvedValue(script(false));
-    expect(await renderedDuration(linkedShot)).toBe(8);
+    expect(await renderClip(linkedShot)).toMatchObject({ duration: 8 });
   });
 
-  it("leaves an unlinked board's shots alone", async () => {
+  it("seasons clip prompts with entity tokens for the server to expand", async () => {
     seedBoard(null);
-    expect(await renderedDuration(linkedShot)).toBe(8);
-    expect(scriptQuery).not.toHaveBeenCalled();
+    mockEntities.push(location);
+    useStoryboardStore.getState().setEntityIds(LINKED, ["ent-1"]);
+    const data = await renderClip(linkedShot);
+    expect(String(data.prompt)).toBe("a lighthouse\nentity://ent-1");
+    expect(String(data.prompt)).not.toContain("Consistency references");
+  });
+
+  it("revises a rendered clip through video_edit with every param", async () => {
+    seedBoard(null);
+    useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+    const revised: Shot = {
+      ...linkedShot,
+      id: "shot-revised",
+      status: "rendered",
+      clip: { type: "video", uri: "asset://clip-9", asset_id: "clip-9" }
+    };
+    useStoryboardStore.getState().upsertShot(LINKED, revised);
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateRevisedClip(LINKED, revised, "more fog");
+    });
+    expect(sentData()).toEqual({
+      mode: "video_edit",
+      provider: "vprov",
+      model: "vid-1",
+      prompt: "more fog",
+      source_asset_id: "clip-9"
+    });
   });
 });
 
 describe("a start that fails", () => {
   it("records the reason on the shot and rethrows", async () => {
-    run.mockRejectedValue(new Error("No image model configured"));
+    send.mockRejectedValue(new Error("No image model configured"));
     const { result } = renderHook(() => useGenerateShot());
 
     await act(async () => {
@@ -226,18 +373,26 @@ describe("a start that fails", () => {
     ).toBe("failed");
   });
 
-  it("records a reason when the runner returns no job id", async () => {
-    run.mockResolvedValue(undefined);
+  it("records a reason when a clip's request fails to send", async () => {
+    const clipShot: Shot = {
+      ...shot,
+      id: "shot-clip-send-fail",
+      status: "keyframe_ready",
+      keyframe: { type: "image", asset_id: "still-2" }
+    };
+    useStoryboardStore.getState().upsertShot(BOARD, clipShot);
+    useStoryboardGenerationStore.getState().clear(clipShot.id);
+    send.mockRejectedValue(new Error("socket closed"));
     const { result } = renderHook(() => useGenerateShot());
 
     await act(async () => {
       await expect(
-        result.current.generateKeyframe(BOARD, shot)
-      ).rejects.toThrow("Workflow runner did not return a job id");
+        result.current.generateClip(BOARD, clipShot)
+      ).rejects.toThrow("socket closed");
     });
 
-    expect(
-      useStoryboardGenerationStore.getState().shotJobs[shot.id]?.errorMessage
-    ).toBe("Workflow runner did not return a job id");
+    const job = useStoryboardGenerationStore.getState().shotJobs[clipShot.id];
+    expect(job?.status).toBe("failed");
+    expect(job?.errorMessage).toBe("socket closed");
   });
 });

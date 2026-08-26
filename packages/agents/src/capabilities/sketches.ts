@@ -803,6 +803,38 @@ const editSketch: CapabilityExport = {
     let layerSummary: { id: string; name: string; index: number }[] = [];
     let activeLayerId = "";
 
+    // Resolve non-id targets (name, "active") to canonical layer ids so the
+    // merge adapter can attribute the write to the real unit.
+    const preData = existing.toDocumentData();
+    const resolvedOps: { tool: string; input: Record<string, unknown> }[] = ops.map(
+      (parsed) => {
+        const rawTarget = parsed.args["target"];
+        if (
+          typeof rawTarget === "string" &&
+          (parsed.op === "set_layer_props" ||
+            parsed.op === "rename_layer" ||
+            parsed.op === "duplicate_layer" ||
+            parsed.op === "remove_layer" ||
+            parsed.op === "reorder_layer" ||
+            parsed.op === "select_layer")
+        ) {
+          const idx = findLayerIndex(
+            preData.sketch.layers as unknown as SketchLayer[],
+            preData.sketch.activeLayerId,
+            rawTarget
+          );
+          if (idx >= 0) {
+            const canonical = (preData.sketch.layers as unknown as SketchLayer[])[idx].id;
+            return {
+              tool: parsed.op,
+              input: { ...parsed.args, target: canonical, id: canonical }
+            };
+          }
+        }
+        return { tool: parsed.op, input: parsed.args };
+      }
+    );
+
     try {
       const mutated = await ImageDocument.mutateDocumentData(
         sketchId,
@@ -847,7 +879,11 @@ const editSketch: CapabilityExport = {
           }));
           activeLayerId = state.activeLayerId;
           return applied;
-        }
+        },
+        // The ops ride on the write so an open editor merges this change per
+        // layer instead of treating the sketch as replaced.
+        undefined,
+        { ops: resolvedOps }
       );
       if (!mutated) return { error: `Sketch ${sketchId} was not found.` };
 

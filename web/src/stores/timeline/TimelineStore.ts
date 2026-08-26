@@ -85,15 +85,53 @@ export interface TimelineStoreState {
    * Single source of truth, always a definite boolean post-normalization.
    */
   scriptEnabled: boolean;
+  /**
+   * The document as the editor last read or wrote it — the merge base for an
+   * external change into a dirty draft. Refreshed by `loadSequence` and by
+   * `setBaseUpdatedAt` (which only autosave calls after a landed write).
+   */
+  syncedDocument: {
+    tracks: TimelineTrack[];
+    clips: TimelineClip[];
+    markers: TimelineMarker[];
+    transcript: TranscriptLine[];
+    scriptEnabled: boolean;
+    fps: number;
+    width: number;
+    height: number;
+  } | null;
 
   // ── Initialisation ───────────────────────────────────────────────────────
 
   /** Load a full sequence document into the store (replaces all state). */
   loadSequence: (seq: TimelineSequence) => void;
+  /**
+   * Apply a document merged with an external change. Callers pause the
+   * temporal middleware around it so no undo entry is recorded (ADR 0001).
+   * Clips are reflowed and `durationMs` recomputed after the patch.
+   */
+  applyExternalMerge: (patch: {
+    tracks?: TimelineTrack[];
+    clips?: TimelineClip[];
+    markers?: TimelineMarker[];
+    transcript?: TranscriptLine[];
+    scriptEnabled?: boolean;
+    fps?: number;
+    width?: number;
+    height?: number;
+  }) => void;
   /** Reset the store to an empty document. */
   reset: () => void;
-  /** Roll `baseUpdatedAt` forward after a successful server save. */
-  setBaseUpdatedAt: (updatedAt: string) => void;
+  /**
+   * Roll `baseUpdatedAt` forward after a successful server save, snapshotting
+   * the current document as the next merge base — or an explicit server
+   * snapshot when the caller has one (an external merge must record what the
+   * server holds, never the dirty draft it produced).
+   */
+  setBaseUpdatedAt: (
+    updatedAt: string,
+    synced?: NonNullable<TimelineStoreState["syncedDocument"]> | null
+  ) => void;
   /** Show or hide the script feature (non-destructive; does not touch clips). */
   setScriptEnabled: (enabled: boolean) => void;
 
@@ -721,7 +759,8 @@ const emptyState = {
   clips: [],
   markers: [],
   transcript: [],
-  scriptEnabled: false
+  scriptEnabled: false,
+  syncedDocument: null
 } satisfies {
   sequenceId: string | null;
   baseUpdatedAt: string | null;
@@ -734,7 +773,44 @@ const emptyState = {
   markers: TimelineMarker[];
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
+  syncedDocument: TimelineStoreState["syncedDocument"];
 };
+
+/**
+ * Whether `candidate` is a strictly older concurrency token than `current`.
+ *
+ * `updated_at` tokens are ISO timestamps, so ordering them is a date compare.
+ * A pair that does not parse as dates carries no ordering, and reads as "not
+ * older" — the caller then proceeds as it did before this check existed.
+ */
+export function isOlderUpdatedAt(
+  candidate: string,
+  current: string | null
+): boolean {
+  if (current == null || candidate === current) return false;
+  const candidateMs = Date.parse(candidate);
+  const currentMs = Date.parse(current);
+  if (Number.isNaN(candidateMs) || Number.isNaN(currentMs)) return false;
+  return candidateMs < currentMs;
+}
+
+/** The current document as the merge base for the next external change. */
+const syncedSnapshotOf = (
+  state: Pick<
+    TimelineStoreState,
+    "tracks" | "clips" | "markers" | "transcript" | "scriptEnabled" |
+    "fps" | "width" | "height"
+  >
+): NonNullable<TimelineStoreState["syncedDocument"]> => ({
+  tracks: state.tracks,
+  clips: state.clips,
+  markers: state.markers,
+  transcript: state.transcript,
+  scriptEnabled: state.scriptEnabled,
+  fps: state.fps,
+  width: state.width,
+  height: state.height
+});
 
 // ── Factory ────────────────────────────────────────────────────────────────
 
@@ -775,7 +851,7 @@ export const createTimelineStore = (
               audioTrack.id
             );
             const { clips, durationMs } = reflowGenerated(migrated);
-            set({
+            const next = {
               sequenceId: seq.id,
               baseUpdatedAt: seq.updatedAt,
               fps: seq.fps,
@@ -785,13 +861,17 @@ export const createTimelineStore = (
               tracks,
               clips,
               markers: seq.markers,
-              transcript: [],
+              transcript: [] as TranscriptLine[],
               scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip)
+            };
+            set({
+              ...next,
+              syncedDocument: syncedSnapshotOf(next)
             });
             return;
           }
 
-          set({
+          const next = {
             sequenceId: seq.id,
             baseUpdatedAt: seq.updatedAt,
             fps: seq.fps,
@@ -803,12 +883,47 @@ export const createTimelineStore = (
             markers: seq.markers,
             transcript: [],
             scriptEnabled: seq.scriptEnabled ?? seq.clips.some(isTranscriptClip)
+          };
+          set({
+            ...next,
+            syncedDocument: syncedSnapshotOf(next)
           });
         },
 
         reset: () => set({ ...emptyState }),
 
-        setBaseUpdatedAt: (updatedAt) => set({ baseUpdatedAt: updatedAt }),
+        applyExternalMerge: (patch) => {
+          set((state) => {
+            const clips = patch.clips ?? state.clips;
+            const next: Partial<TimelineStoreState> = { ...patch, clips };
+            if (patch.clips !== undefined || patch.tracks !== undefined) {
+              const reflowed = reflowGenerated(clips);
+              next.clips = reflowed.clips;
+              // Recomputed from the merged clips, not raised to fit them: a
+              // merge that drops or shortens clips must shorten the sequence
+              // too, or the timeline keeps empty tail the document no longer
+              // has. A patch that leaves the clips alone leaves it alone.
+              if (patch.clips !== undefined) {
+                next.durationMs = reflowed.durationMs;
+              }
+            }
+            return next;
+          });
+        },
+
+        setBaseUpdatedAt: (updatedAt, synced) =>
+          set((state) => {
+            if (synced !== undefined) {
+              return { baseUpdatedAt: updatedAt, syncedDocument: synced };
+            }
+            return {
+              baseUpdatedAt: updatedAt,
+              // A landed save is the server accepting this document: it
+              // becomes the merge base for the next external change.
+              syncedDocument:
+                state.sequenceId != null ? syncedSnapshotOf(state) : null
+            };
+          }),
 
         setScriptEnabled: (enabled) => set({ scriptEnabled: enabled }),
 

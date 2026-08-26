@@ -30,7 +30,8 @@ import {
   ImageDocumentConflictError,
   ImageDocumentVersion,
   Workflow,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  type ModelChangeMeta
 } from "@nodetool-ai/models";
 import type {
   ImageDocumentData,
@@ -200,10 +201,22 @@ function findBinding(
   return data.layerBindings.find((b) => b.layerId === layerId);
 }
 
+function layerWriteMeta(layerId: string): ModelChangeMeta {
+  return {
+    ops: [
+      {
+        tool: "set_layer_props",
+        input: { target: layerId, id: layerId }
+      }
+    ]
+  };
+}
+
 async function mutateOwnedDocumentData<T>(
   ctxUserId: string | null,
   id: string,
-  mutator: (data: ImageDocumentData) => T | Promise<T>
+  mutator: (data: ImageDocumentData) => T | Promise<T>,
+  meta?: ModelChangeMeta
 ): Promise<T> {
   if (!ctxUserId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
 
@@ -215,7 +228,9 @@ async function mutateOwnedDocumentData<T>(
           throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
         }
         return mutator(data);
-      }
+      },
+      undefined,
+      meta
     );
     if (!mutation) {
       throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
@@ -503,7 +518,7 @@ export const sketchRouter = router({
           );
 
           return newVersion;
-        });
+        }, layerWriteMeta(input.layerId));
       }),
 
     setFavorite: protectedProcedure
@@ -525,7 +540,7 @@ export const sketchRouter = router({
 
           version.favorite = input.favorite;
           return version;
-        });
+        }, layerWriteMeta(input.layerId));
       }),
 
     delete: protectedProcedure
@@ -547,7 +562,7 @@ export const sketchRouter = router({
           }
 
           return { ok: true as const };
-        });
+        }, layerWriteMeta(input.layerId));
       })
   }),
 
@@ -751,7 +766,7 @@ export const sketchRouter = router({
           }
           latest.layerBindings.push(newBinding);
           return newBinding;
-        });
+        }, layerWriteMeta(input.layerId));
       }),
 
     duplicate: protectedProcedure
@@ -792,7 +807,7 @@ export const sketchRouter = router({
 
           latest.layerBindings.push(newBinding);
           return newBinding;
-        });
+        }, layerWriteMeta(input.newLayerId));
       })
   })
 });

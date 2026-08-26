@@ -61,6 +61,26 @@ export interface StoryboardJobContext {
   outputNodeId: string;
 }
 
+/**
+ * Context for a direct-generation request (`generate_media` RPC): no job, no
+ * workflow — completion arrives as an `rpc_response` on the request id.
+ */
+export interface DirectShotJobContext {
+  shotId: string;
+  boardId: string;
+  kind: ShotJobKind;
+}
+
+type ShotJobContext = StoryboardJobContext | DirectShotJobContext;
+
+/** The wire shape of a `generate_media` reply. */
+interface DirectGenRpcResponse extends WebSocketMessage {
+  type: "rpc_response";
+  request_id: string;
+  result?: { asset_ids?: unknown };
+  error?: { code?: string; message?: string };
+}
+
 interface StoryboardGenerationStoreState {
   /** shotId → active job state */
   shotJobs: Record<string, ShotJobState>;
@@ -337,7 +357,7 @@ export const useStoryboardGenerationStore =
 // ── WebSocket job machinery ──────────────────────────────────────────────────
 
 const jobSubscriptions = new Map<string, () => void>();
-const jobContexts = new Map<string, StoryboardJobContext>();
+const jobContexts = new Map<string, ShotJobContext>();
 const jobOutputs = new Map<string, unknown>();
 
 const isActiveStatus = (status: ShotGenerationStatus): boolean =>
@@ -415,7 +435,8 @@ export const settleCancelledShotJob = (shotId: string): void => {
   unsubscribeShotJob(job.jobId);
 };
 
-const unsubscribeShotJob = (jobId: string): void => {
+/** Drop a job's subscription and cached context/output. */
+export const unsubscribeShotJob = (jobId: string): void => {
   const unsubscribe = jobSubscriptions.get(jobId);
   if (unsubscribe) {
     unsubscribe();
@@ -428,7 +449,7 @@ const unsubscribeShotJob = (jobId: string): void => {
 /** Test-only: run the job message handler with a pre-seeded context. */
 export const __handleShotJobMessageForTests = (
   jobId: string,
-  context: StoryboardJobContext,
+  context: StoryboardJobContext | DirectShotJobContext,
   message: WebSocketMessage
 ): void => {
   jobContexts.set(jobId, context);
@@ -442,6 +463,68 @@ export const __resetStoryboardSubscriptionsForTests = (): void => {
   jobSubscriptions.clear();
   jobContexts.clear();
   jobOutputs.clear();
+};
+
+/**
+ * Write a produced asset back onto its shot and settle the status. Shared by
+ * the workflow-job completion branch and the direct-generation response.
+ */
+const settleShotAsset = (
+  context: Pick<ShotJobContext, "boardId" | "shotId" | "kind">,
+  ref: ImageRef | VideoRef,
+  assetId?: string
+): void => {
+  const storyboard = useStoryboardStore.getState();
+  if (context.kind === "keyframe") {
+    storyboard.setShotKeyframe(
+      context.boardId,
+      context.shotId,
+      ref as ImageRef
+    );
+    storyboard.setShotStatus(context.boardId, context.shotId, "keyframe_ready");
+  } else {
+    storyboard.setShotClip(context.boardId, context.shotId, ref as VideoRef);
+    storyboard.setShotStatus(context.boardId, context.shotId, "rendered");
+    // Round-trip the new clip into an assembled timeline, if one is linked.
+    if (assetId) {
+      void syncShotClipToTimeline(context.boardId, context.shotId, assetId);
+    }
+  }
+};
+
+/** Settle a direct-generation request from its rpc_response. */
+const handleDirectResponse = (
+  requestId: string,
+  context: DirectShotJobContext,
+  message: DirectGenRpcResponse
+): void => {
+  const generationStore = useStoryboardGenerationStore.getState();
+  const assetIds = Array.isArray(message.result?.asset_ids)
+    ? (message.result!.asset_ids as unknown[]).filter(
+        (v): v is string => typeof v === "string"
+      )
+    : [];
+  const assetId = assetIds[0];
+  const errorMessage =
+    message.error?.message?.trim() ||
+    (assetId ? "" : "Direct generation returned no asset.");
+  if (!assetId || errorMessage) {
+    // Parity with a failed workflow job: keep the row so the card can read
+    // the reason; drop only the subscription.
+    generationStore.updateJobStatus(requestId, "failed", {
+      errorMessage: errorMessage || "Direct generation failed."
+    });
+    unsubscribeShotJob(requestId);
+    return;
+  }
+  const ref: ImageRef | VideoRef =
+    context.kind === "keyframe"
+      ? { type: "image", uri: `asset://${assetId}`, asset_id: assetId }
+      : { type: "video", uri: `asset://${assetId}`, asset_id: assetId };
+  settleShotAsset(context, ref, assetId);
+  generationStore.updateJobStatus(requestId, "completed", { assetId });
+  generationStore.clear(context.shotId);
+  unsubscribeShotJob(requestId);
 };
 
 const handleShotJobMessage = (jobId: string, message: WebSocketMessage): void => {
@@ -462,7 +545,23 @@ const handleShotJobMessage = (jobId: string, message: WebSocketMessage): void =>
     return;
   }
 
-  if (isOutputUpdate(message) && message.node_id === context.outputNodeId) {
+  if (message.type === "rpc_response") {
+    // Only a direct-generation request settles on an rpc_response.
+    if (!("outputNodeId" in context)) {
+      handleDirectResponse(
+        jobId,
+        context,
+        message as DirectGenRpcResponse
+      );
+    }
+    return;
+  }
+
+  if (
+    isOutputUpdate(message) &&
+    "outputNodeId" in context &&
+    message.node_id === context.outputNodeId
+  ) {
     jobOutputs.set(jobId, normalizeOutputUpdateValue(message));
     return;
   }
@@ -503,23 +602,7 @@ const handleShotJobMessage = (jobId: string, message: WebSocketMessage): void =>
       unsubscribeShotJob(jobId);
       return;
     }
-    const storyboard = useStoryboardStore.getState();
-    if (context.kind === "keyframe") {
-      storyboard.setShotKeyframe(
-        context.boardId,
-        context.shotId,
-        ref as ImageRef
-      );
-      storyboard.setShotStatus(context.boardId, context.shotId, "keyframe_ready");
-    } else {
-      storyboard.setShotClip(context.boardId, context.shotId, ref as VideoRef);
-      storyboard.setShotStatus(context.boardId, context.shotId, "rendered");
-      // Round-trip the new clip into an assembled timeline, if one is linked.
-      const syncAssetId = extractAssetId(value);
-      if (syncAssetId) {
-        void syncShotClipToTimeline(context.boardId, context.shotId, syncAssetId);
-      }
-    }
+    settleShotAsset(context, ref, extractAssetId(value));
     generationStore.updateJobStatus(jobId, "completed", {
       assetId: extractAssetId(value)
     });
@@ -563,13 +646,36 @@ export const subscribeShotJob = async (
   );
   jobSubscriptions.set(jobId, unsubscribe);
 
-  if (reconnect) {
+  // A direct-generation request has no server job to replay; its subscription
+  // survives remounts (module-level) and only a full reload loses it.
+  if (reconnect && context.workflowId) {
     await globalWebSocketManager.send({
       type: "reconnect_job",
       command: "reconnect_job",
       data: { job_id: jobId, workflow_id: context.workflowId }
     });
   }
+};
+
+/**
+ * Subscribe to a direct-generation request (`generate_media` RPC) keyed by
+ * its request id. No reconnect handshake — the reply is one rpc_response.
+ */
+export const subscribeDirectShotJob = async (
+  requestId: string,
+  context: DirectShotJobContext
+): Promise<void> => {
+  if (jobSubscriptions.has(requestId)) {
+    jobContexts.set(requestId, context);
+    return;
+  }
+  await globalWebSocketManager.ensureConnection();
+  jobContexts.set(requestId, context);
+  const unsubscribe = globalWebSocketManager.subscribe(
+    requestId,
+    (message) => handleShotJobMessage(requestId, message)
+  );
+  jobSubscriptions.set(requestId, unsubscribe);
 };
 
 /**
@@ -602,8 +708,10 @@ export const useStoryboardGenerationSubscriptions = (): void => {
     for (const job of activeJobs) {
       // A reconnected job may have lost its output-node context; skip until the
       // originating run re-registers it. Its context is set on subscribe.
+      // Direct-generation requests have no server job to replay — their
+      // module-level subscription survives remounts as-is.
       const context = jobContexts.get(job.jobId);
-      if (context) {
+      if (context && "outputNodeId" in context) {
         void subscribeShotJob(job.jobId, context, true);
       }
     }

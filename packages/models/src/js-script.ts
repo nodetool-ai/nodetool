@@ -7,6 +7,7 @@ import {
 import {
   DBModel,
   ModelChangeEvent,
+  ModelChangeMeta,
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
@@ -142,7 +143,8 @@ export class JsScript extends DBModel {
     fields: Partial<{
       name: string;
       document: string;
-    }>
+    }>,
+    meta?: ModelChangeMeta
   ): Promise<JsScript | null> {
     if (fields.document !== undefined) {
       assertValidJsScriptDocument(JSON.parse(fields.document) as unknown);
@@ -161,7 +163,7 @@ export class JsScript extends DBModel {
     if (!row) return null;
 
     const updated = new JsScript(row);
-    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
 }

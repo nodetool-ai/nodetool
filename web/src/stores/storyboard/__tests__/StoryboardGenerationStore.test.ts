@@ -184,6 +184,113 @@ describe("updateJobStatus", () => {
   });
 });
 
+describe("direct generation responses (generate_media rpc)", () => {
+  const directContext = (shotId: string) => ({
+    shotId,
+    boardId: BOARD,
+    kind: "keyframe" as const
+  });
+
+  beforeEach(() => {
+    useNotificationStore.getState().clearNotifications();
+  });
+
+  it("writes the returned asset onto the shot and clears the job", () => {
+    seedShot("s-direct");
+    const gen = useStoryboardGenerationStore.getState();
+    gen.registerJob("s-direct", BOARD, "req-1", "", "keyframe");
+
+    __handleShotJobMessageForTests(
+      "req-1",
+      directContext("s-direct"),
+      {
+        type: "rpc_response",
+        request_id: "req-1",
+        result: { asset_ids: ["ast-1"] }
+      } as never
+    );
+
+    const shot = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((s) => s.id === "s-direct");
+    expect(shot?.status).toBe("keyframe_ready");
+    expect(shot?.keyframe?.asset_id).toBe("ast-1");
+    expect(shot?.keyframe?.uri).toBe("asset://ast-1");
+    // A completed job leaves no row behind — the shot is settled.
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs["s-direct"]
+    ).toBeUndefined();
+  });
+
+  it("fails the shot and keeps the reason when the rpc carries an error", () => {
+    seedShot("s-direct-err");
+    const gen = useStoryboardGenerationStore.getState();
+    gen.registerJob("s-direct-err", BOARD, "req-2", "", "keyframe");
+
+    __handleShotJobMessageForTests(
+      "req-2",
+      directContext("s-direct-err"),
+      {
+        type: "rpc_response",
+        request_id: "req-2",
+        error: { code: "INTERNAL_ERROR", message: "model unavailable" }
+      } as never
+    );
+
+    const job =
+      useStoryboardGenerationStore.getState().shotJobs["s-direct-err"];
+    expect(job?.status).toBe("failed");
+    expect(job?.errorMessage).toBe("model unavailable");
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.shots.find((s) => s.id === "s-direct-err")?.status).toBe("failed");
+    expect(
+      useNotificationStore.getState().notifications.at(-1)?.content
+    ).toContain("model unavailable");
+  });
+
+  it("reports an rpc_response that names no asset", () => {
+    seedShot("s-direct-empty");
+    const gen = useStoryboardGenerationStore.getState();
+    gen.registerJob("s-direct-empty", BOARD, "req-3", "", "keyframe");
+
+    __handleShotJobMessageForTests(
+      "req-3",
+      directContext("s-direct-empty"),
+      {
+        type: "rpc_response",
+        request_id: "req-3",
+        result: {}
+      } as never
+    );
+
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs["s-direct-empty"]
+        ?.errorMessage
+    ).toContain("returned no asset");
+  });
+
+  it("ignores a workflow job's context for rpc messages", () => {
+    seedShot("s-wf-rpc");
+    const gen = useStoryboardGenerationStore.getState();
+    gen.registerJob("s-wf-rpc", BOARD, "job-wf-rpc", "wf-x", "keyframe");
+
+    __handleShotJobMessageForTests(
+      "job-wf-rpc",
+      context("s-wf-rpc", "keyframe"),
+      {
+        type: "rpc_response",
+        request_id: "job-wf-rpc",
+        result: { asset_ids: ["ast-x"] }
+      } as never
+    );
+
+    // The workflow job is untouched — only a direct request settles on rpc.
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs["s-wf-rpc"]?.status
+    ).toBe("queued");
+  });
+});
+
 describe("failure reporting", () => {
   beforeEach(() => {
     useNotificationStore.getState().clearNotifications();

@@ -3,6 +3,7 @@
  */
 
 export * from "./messages.js";
+export type { DocumentOp } from "./document-ops.js";
 export * from "./supervisor.js";
 export * from "./ws-commands.js";
 export * from "./bridge-frames.js";

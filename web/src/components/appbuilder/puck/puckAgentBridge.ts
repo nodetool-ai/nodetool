@@ -74,6 +74,10 @@ export interface PuckAgentHandler {
   removeVariable: (id: string) => boolean;
   listResources: () => ResourceBinding[];
   addResource: (input: ResourceInput) => ResourceBinding;
+  updateResource: (
+    id: string,
+    patch: Partial<Omit<ResourceBinding, "id">>
+  ) => ResourceBinding | null;
   removeResource: (id: string) => boolean;
   getBindingTargets: () => BindingTargets;
   /**
@@ -83,6 +87,13 @@ export interface PuckAgentHandler {
    * the draft the agent is editing rather than the last saved row.
    */
   document: () => ApplicationDocument;
+  /**
+   * Apply a whole external document to the live editor WITHOUT recording a
+   * history entry (`recordHistory: false`). This is how a merged external
+   * change lands: work the user did not make never enters their undo stack
+   * (ADR 0001).
+   */
+  applyExternalDocument: (document: ApplicationDocument) => void;
 }
 
 const handlers = new Map<string, PuckAgentHandler>();

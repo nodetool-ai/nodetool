@@ -76,6 +76,7 @@ import {
   settleInvocation,
   Message,
   ModelChangeEvent,
+  ModelChangeMeta,
   ModelObserver,
   Prediction,
   Script,
@@ -107,7 +108,8 @@ import type {
   TextToVideoParams,
   ImageToImageParams,
   InpaintingParams,
-  ImageToVideoParams
+  ImageToVideoParams,
+  PromptAssetRef
 } from "@nodetool-ai/runtime";
 import {
   ProcessingContext as RuntimeProcessingContext,
@@ -116,6 +118,7 @@ import {
   detectImageMime,
   IMAGE_MIME_TO_EXT,
   encodeRawRgbaToPng,
+  expandEntitiesForGeneration,
   fetchExternalMedia,
   getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
@@ -217,6 +220,7 @@ import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
+import { resolveImageSize } from "./lib/media-size.js";
 import type {
   FrontendRendererRegistry,
   FrontendRendererToolCall,
@@ -1747,7 +1751,7 @@ export function resolveRunJobUserId(
 }
 
 interface DirectMediaGenerationRequest {
-  mode: "image" | "image_edit" | "inpaint" | "video" | "audio";
+  mode: "image" | "image_edit" | "inpaint" | "video" | "video_edit" | "audio";
   provider: string;
   model: string;
   prompt: string;
@@ -1759,6 +1763,7 @@ interface DirectMediaGenerationRequest {
   resolution?: string;
   strength?: number;
   numInferenceSteps?: number;
+  durationSeconds?: number;
   variations?: number;
   voice?: string;
   speed?: number;
@@ -6754,6 +6759,18 @@ export class UnifiedWebSocketRunner {
 
     if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
 
+    // Entity mentions in the prompt (`entity://<id>`, written by @-mention
+    // pickers) expand against the library here, exactly as the generate_media
+    // RPC expands them: name inline, descriptor into a Consistency references
+    // block, reference image routed into the generation inputs below. A
+    // mention that resolves to no entity drops.
+    const { prompt: expandedPrompt, referenceImages } =
+      await expandEntitiesForGeneration(prompt, this.entityRefResolver(userId));
+    const entityImageBytes = await this.resolveEntityReferenceImages(
+      userId,
+      referenceImages
+    );
+
     const provider = await this.resolveProvider(providerId, userId);
     // Wire up progress forwarding so provider.emitMessage() reaches the client.
     provider.setMessageEmitter((msg) => {
@@ -6809,7 +6826,7 @@ export class UnifiedWebSocketRunner {
         };
         const params: TextToImageParams = {
           model: imageModel,
-          prompt,
+          prompt: expandedPrompt,
           width,
           height,
           signal
@@ -6827,7 +6844,22 @@ export class UnifiedWebSocketRunner {
 
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
           return;
-        const imageBytesList = await provider.textToImages(params, variations);
+        // A mentioned entity carries a reference image: the generation becomes
+        // an edit against those images, mirroring the generate_media RPC.
+        const imageBytesList =
+          entityImageBytes.length > 0
+            ? await provider.imageToImages(
+                entityImageBytes,
+                {
+                  model: imageModel,
+                  prompt: expandedPrompt,
+                  targetWidth: width ?? null,
+                  targetHeight: height ?? null,
+                  signal
+                },
+                variations
+              )
+            : await provider.textToImages(params, variations);
         if (cancelled()) return;
         const imageContents: Array<Record<string, unknown>> = [];
         for (const bytes of imageBytesList) {
@@ -6907,7 +6939,7 @@ export class UnifiedWebSocketRunner {
         if (sourceBytes && sourceBytes.length > 0) {
           const i2vParams: ImageToVideoParams = {
             model: videoModel,
-            prompt,
+            prompt: expandedPrompt,
             aspectRatio,
             resolution,
             durationSeconds: duration,
@@ -6918,7 +6950,7 @@ export class UnifiedWebSocketRunner {
         } else {
           const params: TextToVideoParams = {
             model: videoModel,
-            prompt,
+            prompt: expandedPrompt,
             aspectRatio,
             resolution,
             durationSeconds: duration,
@@ -7001,7 +7033,7 @@ export class UnifiedWebSocketRunner {
         // audio. Prefer that path when available and honor the requested
         // container when the provider supports it.
         const encoded = await provider.textToSpeechEncoded({
-          text: prompt,
+          text: expandedPrompt,
           model: modelId,
           voice,
           speed,
@@ -7041,7 +7073,7 @@ export class UnifiedWebSocketRunner {
           let totalBytes = 0;
           let chunkSampleRate = 24000;
           for await (const chunk of provider.textToSpeech({
-            text: prompt,
+            text: expandedPrompt,
             model: modelId,
             voice,
             speed,
@@ -7211,7 +7243,7 @@ export class UnifiedWebSocketRunner {
           };
           const params: ImageToImageParams = {
             model: editModel,
-            prompt,
+            prompt: expandedPrompt,
             targetWidth: targetWidth ?? null,
             targetHeight: targetHeight ?? null,
             strength: strength ?? null,
@@ -7221,7 +7253,7 @@ export class UnifiedWebSocketRunner {
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
             return;
           const imageBytesList = await provider.imageToImages(
-            [sourceBytes],
+            [sourceBytes, ...entityImageBytes],
             params,
             variations
           );
@@ -7288,7 +7320,7 @@ export class UnifiedWebSocketRunner {
         };
         const params: ImageToVideoParams = {
           model: i2vModel,
-          prompt,
+          prompt: expandedPrompt,
           aspectRatio,
           resolution,
           durationSeconds: duration,
@@ -8077,12 +8109,106 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  /**
+   * Entity-mention resolver over the Asset model, scoped to one user. Backs
+   * `expandEntitiesForGeneration` on every direct-generation surface.
+   */
+  private entityRefResolver(
+    userId: string
+  ): {
+    getAssetInfo: (assetId: string) => Promise<{
+      id: string;
+      content_type: string;
+      name: string;
+      metadata: Record<string, unknown> | null;
+    } | null>;
+  } {
+    return {
+      getAssetInfo: async (assetId) => {
+        const asset = await Asset.find(userId, assetId);
+        if (!asset) return null;
+        return {
+          id: asset.id,
+          content_type: asset.content_type,
+          name: asset.name,
+          metadata: asset.metadata ?? null
+        };
+      }
+    };
+  }
+
+  /**
+   * Resolve entity-derived reference images to provider input bytes. A ref
+   * whose asset is gone (or reads back empty) contributes nothing — the same
+   * drop rule as an unresolvable mention.
+   */
+  private async resolveEntityReferenceImages(
+    userId: string,
+    refs: PromptAssetRef[]
+  ): Promise<Uint8Array[]> {
+    const out: Uint8Array[] = [];
+    for (const ref of refs) {
+      const bare = ref.uri.slice("asset://".length);
+      const assetId = bare.slice(0, bare.lastIndexOf("."));
+      if (!assetId) continue;
+      const asset = await Asset.find(userId, assetId);
+      if (!asset) continue;
+      const bytes = await retrieveAssetBytes(
+        getAssetAdapter(),
+        userId,
+        asset.id,
+        asset.content_type
+      );
+      if (!bytes || bytes.length === 0) continue;
+      out.push(bytes);
+    }
+    return out;
+  }
+
+  /**
+   * Read one owned asset's bytes, with the descriptive errors the generation
+   * paths surface verbatim to callers.
+   */
+  private async retrieveSourceAssetBytes(
+    userId: string,
+    assetId: string
+  ): Promise<Uint8Array> {
+    const asset = await Asset.find(userId, assetId);
+    if (!asset) {
+      throw new Error(`Source asset not found: ${assetId}`);
+    }
+    const bytes = await retrieveAssetBytes(
+      getAssetAdapter(),
+      userId,
+      assetId,
+      asset.content_type
+    );
+    if (!bytes) {
+      throw new Error(`Source asset bytes not found: ${assetId}`);
+    }
+    return bytes;
+  }
+
   private async runDirectMediaGenerationInner(
     req: DirectMediaGenerationRequest,
     provider: BaseProvider
   ): Promise<{ asset_ids: string[] }> {
     const userId = this.userId ?? "1";
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+
+    // Entity mentions in the prompt (`entity://<id>`, written by @-mention
+    // pickers) expand against the library here: name inline, descriptor into
+    // a Consistency references block, reference image routed into the
+    // generation inputs below — the same rule node prompts get through
+    // mapPromptAssetsToInputs. A mention that resolves to no entity drops.
+    const { prompt, referenceImages } = await expandEntitiesForGeneration(
+      req.prompt,
+      this.entityRefResolver(userId)
+    );
+    const entityImageBytes = await this.resolveEntityReferenceImages(
+      userId,
+      referenceImages
+    );
 
     const storeAsset = async (
       bytes: Uint8Array,
@@ -8110,17 +8236,71 @@ export class UnifiedWebSocketRunner {
       return asset.id;
     };
 
+    // Image modes are pixel-addressed on several providers (GPT Image's
+    // `size`): derive explicit dimensions from the resolution tier + aspect
+    // ratio when the caller sent none — the same numbers the generation nodes
+    // always computed. Caller-supplied pixels win.
+    const imageSize =
+      req.mode === "image" || req.mode === "image_edit"
+        ? (resolveImageSize(req.resolution, req.aspectRatio) ?? undefined)
+        : undefined;
+    const width = req.width ?? imageSize?.width;
+    const height = req.height ?? imageSize?.height;
+
     if (req.mode === "video") {
       const videoModel: ProviderVideoModel = {
         id: req.model,
         name: req.model,
         provider: req.provider
       };
-      const params: TextToVideoParams = {
-        model: videoModel,
-        prompt: req.prompt
+      let bytes: Uint8Array;
+      if (req.sourceAssetId) {
+        // A source image turns the request into image-to-video: the image is
+        // the frame the animation starts from.
+        const sourceBytes = await this.retrieveSourceAssetBytes(
+          userId,
+          req.sourceAssetId
+        );
+        const i2vParams: ImageToVideoParams = {
+          model: videoModel,
+          prompt,
+          aspectRatio: req.aspectRatio ?? null,
+          resolution: req.resolution ?? null,
+          durationSeconds: req.durationSeconds ?? null
+        };
+        bytes = await provider.imageToVideo([sourceBytes], i2vParams);
+      } else {
+        const params: TextToVideoParams = {
+          model: videoModel,
+          prompt,
+          durationSeconds: req.durationSeconds ?? null
+        };
+        bytes = await provider.textToVideo(params);
+      }
+      const assetId = await storeAsset(bytes, "video/mp4", "mp4");
+      return { asset_ids: [assetId] };
+    }
+
+    if (req.mode === "video_edit") {
+      if (!req.sourceAssetId) {
+        throw new Error("source_asset_id is required for video_edit");
+      }
+      const sourceBytes = await this.retrieveSourceAssetBytes(
+        userId,
+        req.sourceAssetId
+      );
+      const videoModel: ProviderVideoModel = {
+        id: req.model,
+        name: req.model,
+        provider: req.provider
       };
-      const bytes = await provider.textToVideo(params);
+      const bytes = await provider.videoToVideo(sourceBytes, {
+        model: videoModel,
+        prompt,
+        strength: req.strength ?? null,
+        durationSeconds: req.durationSeconds ?? null,
+        resolution: req.resolution ?? null
+      });
       const assetId = await storeAsset(bytes, "video/mp4", "mp4");
       return { asset_ids: [assetId] };
     }
@@ -8141,7 +8321,7 @@ export class UnifiedWebSocketRunner {
 
       // Prefer providers that return fully-encoded audio (OpenAI, HuggingFace).
       const encoded = await provider.textToSpeechEncoded({
-        text: req.prompt,
+        text: prompt,
         model: req.model,
         voice: req.voice,
         speed: req.speed,
@@ -8167,7 +8347,7 @@ export class UnifiedWebSocketRunner {
       let totalBytes = 0;
       let chunkSampleRate = 24000;
       for await (const chunk of provider.textToSpeech({
-        text: req.prompt,
+        text: prompt,
         model: req.model,
         voice: req.voice,
         speed: req.speed,
@@ -8238,12 +8418,28 @@ export class UnifiedWebSocketRunner {
     };
 
     let images: Uint8Array[];
-    if (req.mode === "image") {
+    if (req.mode === "image" && entityImageBytes.length > 0) {
+      // A mentioned entity carries a reference image: the generation becomes
+      // an edit against those images, mirroring how node prompts with
+      // entity images route through ImageToImage. The provider throws when
+      // the chosen model cannot take input images.
+      const params: ImageToImageParams = {
+        model: imageModel,
+        prompt,
+        targetWidth: width ?? null,
+        targetHeight: height ?? null,
+        aspectRatio: req.aspectRatio ?? null,
+        resolution: req.resolution ?? null,
+        strength: req.strength ?? null,
+        numInferenceSteps: req.numInferenceSteps ?? null
+      };
+      images = await provider.imageToImages(entityImageBytes, params, variations);
+    } else if (req.mode === "image") {
       const params: TextToImageParams = {
         model: imageModel,
-        prompt: req.prompt,
-        width: req.width,
-        height: req.height,
+        prompt,
+        width,
+        height,
         aspectRatio: req.aspectRatio ?? null,
         resolution: req.resolution ?? null
       };
@@ -8284,7 +8480,7 @@ export class UnifiedWebSocketRunner {
         throw new Error(`Mask asset bytes not found: ${req.maskAssetId}`);
       const params: InpaintingParams = {
         model: imageModel,
-        prompt: req.prompt,
+        prompt,
         targetWidth: req.width ?? null,
         targetHeight: req.height ?? null,
         aspectRatio: req.aspectRatio ?? null,
@@ -8313,15 +8509,19 @@ export class UnifiedWebSocketRunner {
       }
       const params: ImageToImageParams = {
         model: imageModel,
-        prompt: req.prompt,
-        targetWidth: req.width ?? null,
-        targetHeight: req.height ?? null,
+        prompt,
+        targetWidth: width ?? null,
+        targetHeight: height ?? null,
         aspectRatio: req.aspectRatio ?? null,
         resolution: req.resolution ?? null,
         strength: req.strength ?? null,
         numInferenceSteps: req.numInferenceSteps ?? null
       };
-      images = await provider.imageToImages([sourceBytes], params, variations);
+      images = await provider.imageToImages(
+        [sourceBytes, ...entityImageBytes],
+        params,
+        variations
+      );
     }
 
     const assetIds: string[] = [];
@@ -8862,16 +9062,24 @@ export class UnifiedWebSocketRunner {
       }
       case "generate_media": {
         const rawMode = data.mode;
-        const mode: "image" | "image_edit" | "inpaint" | "video" | "audio" =
+        const mode:
+          | "image"
+          | "image_edit"
+          | "inpaint"
+          | "video"
+          | "video_edit"
+          | "audio" =
           rawMode === "image_edit"
             ? "image_edit"
             : rawMode === "inpaint"
               ? "inpaint"
               : rawMode === "video"
                 ? "video"
-                : rawMode === "audio"
-                  ? "audio"
-                  : "image";
+                : rawMode === "video_edit"
+                  ? "video_edit"
+                  : rawMode === "audio"
+                    ? "audio"
+                    : "image";
         const provider = String(data.provider ?? this.defaultProvider);
         const model = String(data.model ?? this.defaultModel);
         const prompt = String(data.prompt ?? "");
@@ -8897,6 +9105,9 @@ export class UnifiedWebSocketRunner {
         const numInferenceSteps = isNumber(data.num_inference_steps)
           ? (data.num_inference_steps as number)
           : undefined;
+        const durationSeconds = isNumber(data.duration)
+          ? (data.duration as number)
+          : undefined;
         const variations = isNumber(data.variations)
           ? (data.variations as number)
           : undefined;
@@ -8919,6 +9130,7 @@ export class UnifiedWebSocketRunner {
             resolution,
             strength,
             numInferenceSteps,
+            durationSeconds,
             variations,
             voice,
             speed,
@@ -9006,7 +9218,8 @@ export class UnifiedWebSocketRunner {
 
   private onModelChange = (
     instance: DBModel,
-    event: ModelChangeEvent
+    event: ModelChangeEvent,
+    meta?: ModelChangeMeta
   ): void => {
     if (!this.websocket) return;
     // Only forward changes for models the connected user owns. Models without
@@ -9037,12 +9250,16 @@ export class UnifiedWebSocketRunner {
       }
     }
 
-    this.sendDetached({
+    const message: Record<string, unknown> = {
       type: "resource_change",
       event,
       resource_type: instance.constructor.name.toLowerCase(),
       resource
-    });
+    };
+    if (meta?.ops && meta.ops.length > 0) {
+      message.ops = meta.ops;
+    }
+    this.sendDetached(message);
   };
 
   private onResourceEvent = (payload: ResourceChangePayload): void => {

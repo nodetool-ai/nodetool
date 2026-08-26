@@ -8,6 +8,7 @@
  * database without requiring manual cache invalidation or polling.
  */
 import { queryClient } from "../queryClient";
+import type { DocumentOp } from "@nodetool-ai/protocol";
 import { ResourceChangeUpdate } from "./ApiTypes";
 import { loadMetadata } from "../serverState/useMetadata";
 import {
@@ -16,7 +17,11 @@ import {
 } from "./documentSync";
 import { isString } from "../utils/typePredicates";
 
-type WorkflowResourceReloader = (workflowId: string, etag?: string) => void;
+type WorkflowResourceReloader = (
+  workflowId: string,
+  etag?: string,
+  ops?: DocumentOp[]
+) => void;
 
 let workflowResourceReloader: WorkflowResourceReloader | null = null;
 
@@ -179,7 +184,8 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
       event,
       id: resource.id,
       updatedAt:
-        isString(resource.updated_at) ? resource.updated_at : null
+        isString(resource.updated_at) ? resource.updated_at : null,
+      ops: update.ops
     });
     return;
   }
@@ -215,15 +221,22 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     }
 
     if (resource_type === "workflow") {
+      if (event === "updated") {
+        // Merge against the cached base BEFORE invalidation. An observer
+        // refetch that lands first would make base == server and drop the
+        // external change silently.
+        workflowResourceReloader?.(
+          resource.id,
+          isString(resource.etag) ? resource.etag : undefined,
+          update.ops
+        );
+      }
       queryClient.invalidateQueries({
         queryKey: ["workflow", resource.id]
       });
       queryClient.invalidateQueries({
         queryKey: ["workflow", resource.id, "versions"]
       });
-      if (event === "updated") {
-        workflowResourceReloader?.(resource.id, resource.etag);
-      }
     }
 
     if (resource_type === "thread") {

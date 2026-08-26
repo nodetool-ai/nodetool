@@ -50,9 +50,140 @@ import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 import { setWorkflowResourceReloader } from "./resourceChangeHandler";
 import { shouldApplyWorkflowRefresh } from "./workflowRefreshPolicy";
 import { isString } from "../utils/typePredicates";
+import type { DocumentOp } from "@nodetool-ai/protocol";
+import { mergeWorkflowDocuments } from "./workflowMerge";
+import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
+import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
+import { reportDocumentConflicts } from "./documentConflictReporter";
+import type { Node, Edge } from "@xyflow/react";
+import type { NodeData } from "./NodeData";
+
+/**
+ * Merge one external graph write into a dirty canvas: run the engine against
+ * the last known server copy, apply without an undo entry or dirty-flag
+ * change, roll the sync tokens, and list what the draft refused.
+ */
+function mergeExternalGraph(
+  store: NodeStore,
+  workflowId: string,
+  baseWorkflow: Workflow,
+  fresh: Workflow,
+  ops: DocumentOp[]
+): void {
+  const state = store.getState();
+  // SAFETY: `Workflow["graph"]` types its arrays with the generated API
+  // shapes, which the two converters accept in their own (structurally
+  // identical) spellings. `never[]` lets each element adopt the converter's
+  // parameter type; the runtime values are the graph the server sent.
+  const convertNodes = (wf: Workflow) =>
+    ((wf.graph?.nodes ?? []) as never[]).map((node) =>
+      graphNodeToReactFlowNode(wf, node)
+    );
+  const convertEdges = (wf: Workflow) =>
+    ((wf.graph?.edges ?? []) as never[]).map((edge) =>
+      graphEdgeToReactFlowEdge(edge)
+    );
+
+  const { doc: merged, conflicts } = mergeWorkflowDocuments(
+    {
+      nodes: convertNodes(baseWorkflow),
+      edges: convertEdges(baseWorkflow)
+    },
+    { nodes: state.nodes, edges: state.edges },
+    { nodes: convertNodes(fresh), edges: convertEdges(fresh) },
+    ops
+  );
+
+  state.applyExternalGraph(
+    merged.nodes as Node<NodeData>[],
+    merged.edges as Edge[],
+    { etag: fresh.etag ?? undefined, updatedAt: fresh.updated_at }
+  );
+
+  const listed = conflicts.map((conflict) =>
+    conflict.unit.id
+      ? conflict
+      : { ...conflict, unit: { ...conflict.unit, id: conflict.unit.kind } }
+  );
+  reportDocumentConflicts(`workflow:${workflowId}`, listed, {
+    onAccept: (unitId) => {
+      const conflict = listed.find((c) => c.unit.id === unitId);
+      if (!conflict) return;
+      const s = store.getState();
+      if (conflict.reason === "deleted" && conflict.external === null) {
+        if (conflict.unit.kind === "node") s.deleteNode(conflict.unit.id);
+        else s.deleteEdge(conflict.unit.id);
+        return;
+      }
+      if (conflict.unit.kind === "node" && conflict.external != null) {
+        const incoming = conflict.external as Node<NodeData>;
+        if (s.findNode(incoming.id)) {
+          s.updateNode(incoming.id, {
+            position: incoming.position,
+            data: incoming.data
+          });
+        } else {
+          s.addNode(incoming);
+        }
+        return;
+      }
+      if (conflict.unit.kind === "edge" && conflict.external != null) {
+        const incoming = conflict.external as Edge;
+        if (s.edges.some((edge) => edge.id === incoming.id)) {
+          s.updateEdge(incoming);
+        } else {
+          s.addEdge(incoming);
+        }
+      }
+    },
+    onDiscard: () => {}
+  });
+}
+
+/**
+ * Swap one workflow's node store for the server's copy: the clean-reload
+ * path and a `replaced` conflict accept both land here.
+ */
+function replaceWorkflowFromServer(
+  get: StoreApi<WorkflowManagerState>["getState"],
+  set: StoreApi<WorkflowManagerState>["setState"],
+  workflowId: string,
+  freshWorkflow: Workflow,
+  mergeBases: Map<string, Workflow>
+): void {
+  mergeBases.set(workflowId, freshWorkflow);
+  const currentStore = get().nodeStores[workflowId];
+  if (!currentStore) return;
+  const replacement = createNodeStore(freshWorkflow);
+  currentStore.getState().cleanup();
+  set((state) => ({
+    nodeStores: {
+      ...state.nodeStores,
+      [workflowId]: replacement
+    },
+    openWorkflows: state.openWorkflows.map((workflow) =>
+      workflow.id === workflowId ? omit(freshWorkflow, "graph") : workflow
+    )
+  }));
+  get().queryClient?.setQueryData(workflowQueryKey(workflowId), freshWorkflow);
+}
+
+/** The etag of the graph currently in one node store, if it has loaded. */
+const currentWorkflowEtag = (store: NodeStore): string | undefined =>
+  store.getState().getWorkflow().etag ?? undefined;
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
+
+/**
+ * An external-change notice that arrived while a save was in flight. Only the
+ * save response's etag says whether it is that save echoing back, so the
+ * notice waits for the response instead of being dropped.
+ */
+interface HeldChangeNotice {
+  etag?: string;
+  ops?: DocumentOp[];
+}
 
 const isWorkflowNotFoundError = (err: unknown): boolean => {
   if (!isRecord(err)) return false;
@@ -152,7 +283,11 @@ export type WorkflowManagerState = {
   // upsert with "Workflow not found".
   unsavedWorkflowIds: Record<string, true>;
   getWorkflow: (workflowId: string) => Workflow | undefined;
-  refreshWorkflow: (workflowId: string, etag?: string) => Promise<void>;
+  refreshWorkflow: (
+    workflowId: string,
+    etag?: string,
+    ops?: DocumentOp[]
+  ) => Promise<void>;
   addWorkflow: (workflow: Workflow) => void;
   removeWorkflow: (workflowId: string) => void;
   getNodeStore: (workflowId: string) => NodeStore | undefined;
@@ -259,6 +394,24 @@ const releasePricingUnsubs = (workflowId: string): void => {
  * @returns {WorkflowManagerStore} The configured workflow manager store
  */
 export const createWorkflowManagerStore = (queryClient: QueryClient) => {
+  /**
+   * The server copy each open draft diverged from — the three-way merge base.
+   * Deliberately not the query cache: a `resource_change` invalidates the
+   * workflow query, and with an active observer that refetch can land before
+   * `refreshWorkflow`'s own fetch. The base would then equal the server copy
+   * and the external change would vanish with neither a merge nor a conflict.
+   * Rolled on load, on a successful save, and after a merge.
+   */
+  const mergeBases = new Map<string, Workflow>();
+
+  /**
+   * Workflows with a save in flight, holding the external notices that
+   * arrived meanwhile. Released when the save response lands: a notice whose
+   * etag is the response's is this save echoing back, the rest go through
+   * `refreshWorkflow` as usual.
+   */
+  const savesInFlight = new Map<string, HeldChangeNotice[]>();
+
   const store = create<WorkflowManagerState>()((set, get) => {
     return {
       nodeStores: {},
@@ -307,6 +460,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @throws {Error} If the save operation fails
        */
       saveWorkflow: async (workflow: Workflow) => {
+        savesInFlight.set(workflow.id, []);
+        // The etag the server assigns this save. Every notice held while the
+        // save runs is judged against it: equal means our own write.
+        let savedEtag: string | undefined;
+        try {
         // Snapshot the node store's state references before the awaited
         // mutation. Every NodeStore mutation produces new `nodes`/`edges`/
         // `workflow` references, so reference equality after the await tells
@@ -369,6 +527,15 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           ...data,
           run_mode: workflow.run_mode ?? data.run_mode
         };
+        savedEtag = persistedWorkflow.etag ?? undefined;
+
+        // The server now holds the graph this save sent, so it is the base
+        // the next external change merges against. The update response may
+        // omit the graph; what we sent is what the row holds.
+        mergeBases.set(persistedWorkflow.id, {
+          ...persistedWorkflow,
+          graph: persistedWorkflow.graph ?? workflow.graph
+        });
 
         if (window.api) {
           window.api.onUpdateWorkflow(persistedWorkflow);
@@ -395,12 +562,17 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               nodeStore.getState().setWorkflowDirty(false);
             } else {
               // The save itself succeeded, so the server row now carries this
-              // response's updated_at. Adopt it as the concurrency token —
-              // keeping the old one makes every later save and autosave fail
-              // with an optimistic-concurrency conflict.
-              nodeStore
-                .getState()
-                .setWorkflowUpdatedAt(persistedWorkflow.updated_at);
+              // response's updated_at and etag. Adopt both as the concurrency
+              // tokens — keeping the old ones makes every later save and
+              // autosave fail with an optimistic-concurrency conflict.
+              const currentWorkflow = nodeStore.getState().workflow;
+              nodeStore.setState({
+                workflow: {
+                  ...currentWorkflow,
+                  updated_at: persistedWorkflow.updated_at,
+                  etag: persistedWorkflow.etag ?? currentWorkflow.etag
+                }
+              });
             }
           }
 
@@ -417,6 +589,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           };
         });
 
+        get().queryClient?.setQueryData(
+          workflowQueryKey(persistedWorkflow.id),
+          persistedWorkflow
+        );
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
         get().queryClient?.invalidateQueries({
           queryKey: ["workflow", persistedWorkflow.id]
@@ -425,6 +601,15 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         get().queryClient?.invalidateQueries({
           queryKey: ["workflow", persistedWorkflow.id, "versions"]
         });
+        } finally {
+          const held = savesInFlight.get(workflow.id) ?? [];
+          savesInFlight.delete(workflow.id);
+          for (const notice of held) {
+            // Our own write echoing back — the save already applied it.
+            if (savedEtag && notice.etag === savedEtag) continue;
+            void get().refreshWorkflow(workflow.id, notice.etag, notice.ops);
+          }
+        }
       },
 
       /**
@@ -617,12 +802,26 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return store ? store.getState().getWorkflow() : undefined;
       },
 
-      refreshWorkflow: async (workflowId: string, etag?: string) => {
+      refreshWorkflow: async (
+        workflowId: string,
+        etag?: string,
+        ops?: DocumentOp[]
+      ) => {
         const storeBefore = get().nodeStores[workflowId];
-        if (!storeBefore || storeBefore.getState().workflowIsDirty) return;
+        if (!storeBefore) return;
 
-        const currentWorkflow = storeBefore.getState().getWorkflow();
-        if (etag && currentWorkflow.etag === etag) return;
+        // Read the merge base before the first await. The notice that brought
+        // us here also invalidates the workflow query, so anything read after
+        // the await may already be the server copy.
+        const baseWorkflow = mergeBases.get(workflowId);
+
+        // A save is in flight: nothing yet says whether this notice is that
+        // save echoing back. Hold it — the response decides (see saveWorkflow).
+        const held = savesInFlight.get(workflowId);
+        if (held) {
+          held.push({ etag, ops });
+          return;
+        }
 
         let freshWorkflow: Workflow;
         try {
@@ -636,6 +835,77 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         }
 
         const currentStore = get().nodeStores[workflowId];
+        const dirty = currentStore.getState().workflowIsDirty;
+
+        if (!ops && etag && currentWorkflowEtag(currentStore) === etag) return;
+
+        // A write with no ops is a whole-document replacement: a dirty draft
+        // keeps everything and offers the server copy through one conflict.
+        // Accepting it takes the server graph (the same swap a clean reload
+        // performs); discarding keeps the draft.
+        if (dirty && !ops) {
+          reportDocumentConflicts(`workflow:${workflowId}`, [
+            {
+              unit: { kind: "document", id: "document", label: "document" },
+              external: freshWorkflow,
+              reason: "replaced"
+            }
+          ], {
+            onAccept: (unitId) => {
+              // Only ever offered for the document unit; re-check anyway so a
+              // stale callback cannot wipe the canvas.
+              if (unitId !== "document") return;
+              replaceWorkflowFromServer(
+                get,
+                set,
+                workflowId,
+                freshWorkflow,
+                mergeBases
+              );
+            },
+            onDiscard: () => {}
+          });
+          return;
+        }
+
+        if (dirty && ops) {
+          if (baseWorkflow) {
+            mergeExternalGraph(
+              currentStore,
+              workflowId,
+              baseWorkflow,
+              freshWorkflow,
+              ops
+            );
+            mergeBases.set(workflowId, freshWorkflow);
+            get().queryClient?.setQueryData(
+              workflowQueryKey(workflowId),
+              freshWorkflow
+            );
+          } else {
+            reportDocumentConflicts(`workflow:${workflowId}`, [
+              {
+                unit: { kind: "document", id: "document", label: "document" },
+                external: freshWorkflow,
+                reason: "replaced"
+              }
+            ], {
+              onAccept: (unitId) => {
+                if (unitId !== "document") return;
+                replaceWorkflowFromServer(
+                  get,
+                  set,
+                  workflowId,
+                  freshWorkflow,
+                  mergeBases
+                );
+              },
+              onDiscard: () => {}
+            });
+          }
+          return;
+        }
+
         if (
           !shouldApplyWorkflowRefresh(
             storeBefore,
@@ -646,21 +916,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           return;
         }
 
-        const replacement = createNodeStore(freshWorkflow);
-        currentStore.getState().cleanup();
-        set((state) => ({
-          nodeStores: {
-            ...state.nodeStores,
-            [workflowId]: replacement
-          },
-          openWorkflows: state.openWorkflows.map((workflow) =>
-            workflow.id === workflowId ? omit(freshWorkflow, "graph") : workflow
-          )
-        }));
-        get().queryClient?.setQueryData(
-          workflowQueryKey(workflowId),
-          freshWorkflow
-        );
+        replaceWorkflowFromServer(
+                get,
+                set,
+                workflowId,
+                freshWorkflow,
+                mergeBases
+              );
       },
 
       /**
@@ -675,6 +937,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           );
           return;
         }
+
+        // The copy the editor opens on is the merge base until it saves or
+        // merges again.
+        mergeBases.set(workflow.id, workflow);
 
         const newStore = createNodeStore(workflow);
         const workflowAttributes = omit(workflow, "graph");
@@ -810,6 +1076,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to remove
        */
       removeWorkflow: (workflowId: string) => {
+        mergeBases.delete(workflowId);
+        savesInFlight.delete(workflowId);
         stopRunReconciliation(workflowId);
         unsubscribeFromWorkflowUpdates(workflowId);
         releasePricingUnsubs(workflowId);
@@ -1052,8 +1320,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
   setGetNodeStore((workflowId: string) =>
     store.getState().getNodeStore(workflowId)
   );
-  setWorkflowResourceReloader((workflowId, etag) => {
-    void store.getState().refreshWorkflow(workflowId, etag);
+  setWorkflowResourceReloader((workflowId, etag, ops) => {
+    void store.getState().refreshWorkflow(workflowId, etag, ops);
   });
 
   return store;

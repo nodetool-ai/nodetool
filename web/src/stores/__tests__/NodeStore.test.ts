@@ -1137,6 +1137,30 @@ describe("createNodeStore Type Compatibility", () => {
     expect(store.temporal.getState().redo).toBeDefined();
     expect(store.temporal.getState().clear).toBeDefined();
   });
+
+  test("applyExternalGraph does not push an undo entry", () => {
+    const store = createNodeStore();
+    store.getState().addNode({
+      id: "n1",
+      type: "nodetool.text.Input",
+      position: { x: 0, y: 0 },
+      data: { title: "A" }
+    } as never);
+    const pastBefore = store.temporal.getState().pastStates.length;
+    store.getState().applyExternalGraph(
+      [
+        {
+          id: "n2",
+          type: "nodetool.text.Input",
+          position: { x: 10, y: 10 },
+          data: { title: "B" }
+        } as never
+      ],
+      []
+    );
+    expect(store.temporal.getState().pastStates.length).toBe(pastBefore);
+    expect(store.getState().nodes.map((n) => n.id)).toEqual(["n2"]);
+  });
 });
 
 describe("Input Node Name Generation", () => {

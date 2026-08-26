@@ -10,7 +10,7 @@
  * pointer at something no board confirms (design §7).
  */
 
-const CAS_ATTEMPTS = 5;
+const CAS_ATTEMPTS = 2;
 
 /**
  * Point `scriptId` at `storyboardId` (or clear it with `null`), CAS on the
@@ -32,7 +32,8 @@ export async function stampScriptStoryboardId(
     const saved = await Script.updateFieldsIfUnchanged(
       scriptId,
       row.updated_at,
-      { storyboard_id: storyboardId }
+      { storyboard_id: storyboardId },
+      { ops: [{ tool: "set_link", input: { storyboard_id: storyboardId } }] }
     );
     if (saved) return { ok: true };
   }

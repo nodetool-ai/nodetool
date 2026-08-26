@@ -717,6 +717,28 @@ describe("save_js_script", () => {
     const reloaded = await JsScript.findById(script.id);
     expect(reloaded?.toDocument().code).toContain('"v", 2');
   });
+
+  it("attaches set_meta ops on a rename-only save", async () => {
+    const script = await makeScript(V_SCRIPT);
+    const metas: unknown[] = [];
+    ModelObserver.subscribe((_instance, event, meta) => {
+      if (event === "updated") metas.push(meta);
+    });
+    const result = (await toolForCapabilityName("save_js_script").execute(
+      context(),
+      {
+        js_script_id: script.id,
+        base_updated_at: script.updated_at,
+        name: "Renamed",
+        document: document(V_SCRIPT)
+      }
+    )) as { ok: boolean };
+
+    expect(result.ok).toBe(true);
+    expect(metas).toContainEqual({
+      ops: [{ tool: "set_meta", input: {} }]
+    });
+  });
 });
 
 describe("list_js_scripts and get_js_script", () => {

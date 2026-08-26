@@ -473,4 +473,50 @@ describe("useTimelineAutosave", () => {
     };
     expect(arg.document.tracks).toHaveLength(1);
   });
+  it("does not roll the base token back over a newer merge-adopted token", async () => {
+    seedSequence();
+    let answer: (response: unknown) => void = () => {};
+    updateMutate.mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+    act(() => {
+      useTimelineStore.getState().addTrack("video");
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+
+    // An external merge lands while the save is in flight: it adopts the
+    // server copy and the token that goes with it.
+    const serverDocument = {
+      tracks: [],
+      clips: [],
+      markers: [],
+      transcript: [],
+      scriptEnabled: false,
+      fps: 30,
+      width: 1920,
+      height: 1080
+    };
+    act(() => {
+      useTimelineStore
+        .getState()
+        .setBaseUpdatedAt("2026-01-01T00:00:09Z", serverDocument);
+    });
+
+    // The save answers with the older token it earned before the merge.
+    await act(async () => {
+      answer({ updatedAt: "2026-01-01T00:00:01Z" });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const state = useTimelineStore.getState();
+    expect(state.baseUpdatedAt).toBe("2026-01-01T00:00:09Z");
+    expect(state.syncedDocument).toBe(serverDocument);
+  });
 });

@@ -8,18 +8,20 @@
  * invisible until the next save collided with it.
  *
  * The backend already broadcasts every DBModel write as a `resource_change`
- * carrying the row's new `updated_at` (see
- * `packages/websocket/src/unified-websocket-runner.ts` `onModelChange`). This
- * module routes those notices to whichever editor has that row open:
+ * carrying the row's new `updated_at` and, when the writer attached them, the
+ * per-merge-unit ops (see `packages/websocket/src/unified-websocket-runner.ts`
+ * `onModelChange`). This module routes those notices to whichever editor has
+ * that row open:
  *
  *   - The token matches what the editor last saved → it is the editor's own
  *     write echoing back. Ignore it.
  *   - The editor is clean → pull the server copy in (`reload`).
- *   - The editor has unsaved edits → say so and keep both sides. Overwriting
- *     the canvas would drop the user's work; overwriting the server would drop
- *     the agent's.
+ *   - The editor has unsaved edits → merge the external change per merge
+ *     unit (`merge`). Where both sides touched the same unit the draft wins
+ *     and the refused value lands in the conflict banner. A write with no ops
+ *     counts as a whole-document replacement.
  */
-import { useNotificationStore } from "./NotificationStore";
+import type { DocumentOp } from "@nodetool-ai/protocol";
 
 /**
  * Where a document editor is in its initial server load. A surface that renders
@@ -37,21 +39,13 @@ export type SyncedDocumentType =
   | "jsscript"
   | "application";
 
-/** Human name per type, used in the "changed elsewhere" message. */
-const DOCUMENT_LABEL = {
-  timelinesequence: "timeline",
-  imagedocument: "sketch",
-  storyboard: "storyboard",
-  script: "script",
-  jsscript: "JS script",
-  application: "app"
-} satisfies Record<SyncedDocumentType, string>;
-
 interface DocumentChangeNotice {
   event: "created" | "updated" | "deleted";
   id: string;
   /** The row's `updated_at` after the write, when the backend forwarded it. */
   updatedAt: string | null;
+  /** The per-merge-unit ops the external write was made with, when attached. */
+  ops?: DocumentOp[];
 }
 
 interface DocumentSyncSubscriber {
@@ -62,8 +56,15 @@ interface DocumentSyncSubscriber {
   /** Pull the server copy into the editor. Only called when it is clean. */
   reload: () => void;
   /**
-   * Called instead of `reload` when the editor is dirty, or on a delete.
-   * Defaults to a deduped warning notification.
+   * Merge an external change into the dirty draft. Called instead of `reload`
+   * when the editor is dirty. The implementation fetches the server copy,
+   * runs the merge engine with the surface's adapter, applies the result
+   * without touching undo history, and registers conflicts.
+   */
+  merge?: (notice: DocumentChangeNotice) => void;
+  /**
+   * Called for notices no other field handled — today, a delete of the open
+   * row. Defaults to nothing; surfaces surface deletions themselves.
    */
   onExternalChange?: (notice: DocumentChangeNotice) => void;
 }
@@ -97,23 +98,6 @@ export function registerDocumentSync(
   };
 }
 
-function warnChangedElsewhere(
-  type: SyncedDocumentType,
-  notice: DocumentChangeNotice
-): void {
-  const label = DOCUMENT_LABEL[type];
-  useNotificationStore.getState().addNotification({
-    type: "warning",
-    alert: false,
-    dedupeKey: `document-changed-elsewhere:${type}:${notice.id}`,
-    replaceExisting: true,
-    content:
-      notice.event === "deleted"
-        ? `This ${label} was deleted outside the editor.`
-        : `This ${label} changed outside the editor. Your unsaved edits are still here — saving will report a conflict.`
-  });
-}
-
 /**
  * Route one `resource_change` notice to the editors holding that row.
  *
@@ -130,18 +114,21 @@ export function handleDocumentResourceChange(
     if (notice.event === "created") continue;
     if (notice.event === "updated") {
       // Our own write coming back around. Without the token we cannot tell,
-      // so fall through and treat it as external — the dirty/clean branches
-      // below are both non-destructive.
+      // so fall through — the merge and reload branches below are both
+      // non-destructive.
       if (notice.updatedAt && notice.updatedAt === subscriber.localRevision()) {
         continue;
       }
-    }
-    if (notice.event === "updated" && !subscriber.isDirty()) {
-      subscriber.reload();
-      continue;
+      if (!subscriber.isDirty()) {
+        subscriber.reload();
+        continue;
+      }
+      if (subscriber.merge) {
+        subscriber.merge(notice);
+        continue;
+      }
     }
     if (subscriber.onExternalChange) subscriber.onExternalChange(notice);
-    else warnChangedElsewhere(type, notice);
   }
 }
 

@@ -448,6 +448,14 @@ describe("sketch router", () => {
         updateArgs?.[1]?.document as string
       ) as ImageDocumentData;
       expect(persisted.layerBindings[0]!.versions).toHaveLength(2);
+      expect(ID.mutateDocumentData.mock.calls[0][3]).toEqual({
+        ops: [
+          {
+            tool: "set_layer_props",
+            input: { target: "layer-1", id: "layer-1" }
+          }
+        ]
+      });
     });
 
     it("setFavorite toggles the favorite flag", async () => {

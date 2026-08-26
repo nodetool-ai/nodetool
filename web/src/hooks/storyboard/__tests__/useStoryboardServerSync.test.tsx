@@ -1,8 +1,10 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import type { DocumentLoadState } from "../../../stores/documentSync";
+import { handleDocumentResourceChange } from "../../../stores/documentSync";
 import { act } from "react";
 import { trpc, trpcClient } from "../../../trpc/client";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
+import { useConflictStore } from "../../../stores/ConflictStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useStoryboardServerSync } from "../useStoryboardServerSync";
 import { flushStoryboardSave } from "../storyboardSaveRegistry";
@@ -241,5 +243,541 @@ describe("flushStoryboardSave", () => {
       ok: true,
       updatedAt: null
     });
+  });
+});
+
+describe("useStoryboardServerSync — external changes merge into a dirty draft", () => {
+  const shot = (id: string, index: number, action: string) => ({
+    type: "shot",
+    id,
+    index,
+    action,
+    status: "planned"
+  });
+
+  const docWith = (shots: ReturnType<typeof shot>[]) => ({
+    ...emptyDocument,
+    shots
+  });
+
+  const serverResponse = (
+    document: unknown,
+    updatedAt = "rev-1"
+  ): Record<string, unknown> => ({
+    id: "board-1",
+    name: "Saved board",
+    document,
+    timelineId: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt
+  });
+
+  const conflictsFor = (): string[] =>
+    (useConflictStore.getState().byKey["storyboard:board-1"]?.conflicts ?? []).map(
+      (c) => c.unit.id
+    );
+
+  beforeEach(() => {
+    useConflictStore.setState({ byKey: {} });
+  });
+
+  it("merges an untouched agent write while shot text is dirty — no conflict", async () => {
+    getQuery.mockResolvedValue(
+      serverResponse(docWith([shot("s1", 0, "One"), shot("s2", 1, "Two"), shot("s3", 2, "Three")]))
+    );
+    const rendered = await mountLoaded();
+
+    // The user rewrites shot 3's action; the draft is now dirty.
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .updateShot("board-1", "s3", { action: "Three — draft" })
+    );
+    const historyLenBefore =
+      useStoryboardStore.getState().history["board-1"]?.past.length ?? 0;
+    expect(useConflictStore.getState().byKey["storyboard:board-1"]).toBeUndefined();
+
+    // The agent lands a keyframe on shot 2 and the board is saved elsewhere.
+    getQuery.mockResolvedValue(
+      serverResponse(
+        docWith([
+          shot("s1", 0, "One"),
+          {
+            ...shot("s2", 1, "Two"),
+            status: "keyframe_ready"
+          },
+          shot("s3", 2, "Three")
+        ]),
+        "rev-9"
+      )
+    );
+    await act(async () => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "update_shot", input: { target: "s2" } }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const shots = useStoryboardStore.getState().boards["board-1"]?.shots ?? [];
+    expect(shots.map((s) => s.id)).toEqual(["s1", "s2", "s3"]);
+    expect(shots.find((s) => s.id === "s2")?.status).toBe("keyframe_ready");
+    expect(shots.find((s) => s.id === "s3")?.action).toBe("Three — draft");
+    expect(conflictsFor()).toEqual([]);
+    // The merged external change never enters the undo stack: the only
+    // checkpoint is the user's own edit from before the merge.
+    expect(useStoryboardStore.getState().history["board-1"]?.past ?? []).toHaveLength(
+      historyLenBefore
+    );
+    // The revision rolled, so the next autosave saves the merged board.
+    expect(useStoryboardStore.getState().serverRevisions["board-1"]).toBe("rev-9");
+
+    rendered.unmount();
+    useConflictStore.getState().clear("storyboard:board-1");
+  });
+
+  it("keeps the draft text and lists a conflict when the same shot is rewritten", async () => {
+    getQuery.mockResolvedValue(
+      serverResponse(docWith([shot("s1", 0, "One"), shot("s3", 1, "Three")]))
+    );
+    const rendered = await mountLoaded();
+
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .updateShot("board-1", "s3", { action: "Three — draft" })
+    );
+
+    getQuery.mockResolvedValue(
+      serverResponse(
+        docWith([shot("s1", 0, "One"), shot("s3", 1, "Three — rewritten by agent")]),
+        "rev-9"
+      )
+    );
+    await act(async () => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "update_shot", input: { target: "s3" } }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const state = useStoryboardStore.getState();
+    expect(
+      state.boards["board-1"]?.shots.find((s) => s.id === "s3")?.action
+    ).toBe("Three — draft");
+    expect(conflictsFor()).toEqual(["s3"]);
+
+    // Accepting the external value is an undoable user edit.
+    act(() => useConflictStore.getState().accept("storyboard:board-1", "s3"));
+    expect(conflictsFor()).toEqual([]);
+    expect(
+      useStoryboardStore.getState().boards["board-1"]?.shots.find((s) => s.id === "s3")
+        ?.action
+    ).toBe("Three — rewritten by agent");
+    expect(
+      useStoryboardStore.getState().history["board-1"]?.past.length ?? 0
+    ).toBeGreaterThan(0);
+
+    rendered.unmount();
+    useConflictStore.getState().clear("storyboard:board-1");
+  });
+
+  it("treats a write with no ops as a whole-document replacement offer", async () => {
+    getQuery.mockResolvedValue(serverResponse(docWith([shot("s1", 0, "One")])));
+    const rendered = await mountLoaded();
+
+    act(() =>
+      useStoryboardStore.getState().updateShot("board-1", "s1", { action: "draft" })
+    );
+
+    getQuery.mockResolvedValue(
+      serverResponse(docWith([shot("s1", 0, "One"), shot("s2", 1, "From CLI")]), "rev-9")
+    );
+    await act(async () => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-9"
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // A dirty draft keeps everything and lists one conflict.
+    expect(
+      useStoryboardStore.getState().boards["board-1"]?.shots.map((s) => s.action)
+    ).toEqual(["draft"]);
+    expect(conflictsFor()).toEqual(["document"]);
+
+    rendered.unmount();
+    useConflictStore.getState().clear("storyboard:board-1");
+  });
+
+  it("attributes a render write that names the shot by id, not target", async () => {
+    getQuery.mockResolvedValue(
+      serverResponse(docWith([shot("s1", 0, "One"), shot("s2", 1, "Two")]))
+    );
+    const rendered = await mountLoaded();
+
+    act(() =>
+      useStoryboardStore.getState().updateShot("board-1", "s2", { action: "Two — draft" })
+    );
+
+    // The render path emits { id }, the editor ops { target } — both must
+    // attribute.
+    getQuery.mockResolvedValue(
+      serverResponse(
+        docWith([
+          shot("s1", 0, "One"),
+          { ...shot("s2", 1, "Two"), status: "render_ready" }
+        ]),
+        "rev-9"
+      )
+    );
+    await act(async () => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "update_shot", input: { id: "s2" } }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(conflictsFor()).toEqual(["s2"]);
+    expect(
+      useStoryboardStore
+        .getState()
+        .boards["board-1"]?.shots.find((s) => s.id === "s2")?.action
+    ).toBe("Two — draft");
+
+    rendered.unmount();
+    useConflictStore.getState().clear("storyboard:board-1");
+  });
+
+  it("takes a second external write to the same shot after a first merge", async () => {
+    getQuery.mockResolvedValue(
+      serverResponse(
+        docWith([shot("s1", 0, "One"), shot("s2", 1, "Two"), shot("s3", 2, "Three")])
+      )
+    );
+    const rendered = await mountLoaded();
+
+    // The user is still editing shot 3.
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .updateShot("board-1", "s3", { action: "Three — draft" })
+    );
+
+    // First agent write on shot 2.
+    getQuery.mockResolvedValue(
+      serverResponse(
+        docWith([
+          shot("s1", 0, "One"),
+          shot("s2", 1, "Two — agent 1"),
+          shot("s3", 2, "Three")
+        ]),
+        "rev-9"
+      )
+    );
+    await act(async () => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "update_shot", input: { target: "s2" } }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(conflictsFor()).toEqual([]);
+
+    // Second agent write on the same shot. The base must have rolled to the
+    // server copy, or this reads as "both changed" and is refused.
+    getQuery.mockResolvedValue(
+      serverResponse(
+        docWith([
+          shot("s1", 0, "One"),
+          shot("s2", 1, "Two — agent 2"),
+          shot("s3", 2, "Three")
+        ]),
+        "rev-10"
+      )
+    );
+    await act(async () => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-10",
+        ops: [{ tool: "update_shot", input: { target: "s2" } }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const shots = useStoryboardStore.getState().boards["board-1"]?.shots ?? [];
+    expect(shots.find((s) => s.id === "s2")?.action).toBe("Two — agent 2");
+    expect(shots.find((s) => s.id === "s3")?.action).toBe("Three — draft");
+    expect(conflictsFor()).toEqual([]);
+    expect(useStoryboardStore.getState().serverRevisions["board-1"]).toBe("rev-10");
+
+    rendered.unmount();
+    useConflictStore.getState().clear("storyboard:board-1");
+  });
+
+  it("renumbers merged shots so index always equals position", async () => {
+    getQuery.mockResolvedValue(
+      serverResponse(docWith([shot("s1", 0, "One"), shot("s2", 1, "Two")]))
+    );
+    const rendered = await mountLoaded();
+
+    act(() =>
+      useStoryboardStore.getState().updateShot("board-1", "s1", { action: "One — draft" })
+    );
+
+    // The server inserted a new shot in the middle; the draft's dirty first
+    // shot keeps its slot and everything after it shifts.
+    getQuery.mockResolvedValue(
+      serverResponse(
+        docWith([
+          shot("s1", 0, "One"),
+          shot("s-new", 1, "Inserted"),
+          shot("s2", 2, "Two")
+        ]),
+        "rev-9"
+      )
+    );
+    await act(async () => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "add_shot", input: {} }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const shots = useStoryboardStore.getState().boards["board-1"]?.shots ?? [];
+    expect(shots.map((s) => [s.id, s.index])).toEqual([
+      ["s1", 0],
+      ["s-new", 1],
+      ["s2", 2]
+    ]);
+    expect(shots.find((s) => s.id === "s1")?.action).toBe("One — draft");
+
+    rendered.unmount();
+    useConflictStore.getState().clear("storyboard:board-1");
+  });
+});
+
+describe("useStoryboardServerSync — notices that arrive during an in-flight save", () => {
+  const shot = (id: string, index: number, action: string) => ({
+    type: "shot",
+    id,
+    index,
+    action,
+    status: "planned"
+  });
+
+  const response = (
+    shots: ReturnType<typeof shot>[],
+    updatedAt: string
+  ): Record<string, unknown> => ({
+    id: "board-1",
+    name: "Saved board",
+    document: { ...emptyDocument, shots },
+    timelineId: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt
+  });
+
+  const conflicts = () =>
+    useConflictStore.getState().byKey["storyboard:board-1"]?.conflicts ?? [];
+
+  /** Mount, load, and hold the next save open so notices land mid-flight. */
+  const mountWithHeldSave = async (
+    shots: ReturnType<typeof shot>[]
+  ): Promise<{
+    rendered: ReturnType<typeof renderHook>;
+    settle: {
+      resolve: (value: unknown) => void;
+      reject: (error: unknown) => void;
+    };
+  }> => {
+    getQuery.mockResolvedValue(response(shots, "rev-1"));
+    const rendered = renderHook(() => useStoryboardServerSync("board-1"));
+    await waitFor(() =>
+      expect(useStoryboardStore.getState().serverRevisions["board-1"]).toBe(
+        "rev-1"
+      )
+    );
+    const settle: {
+      resolve: (value: unknown) => void;
+      reject: (error: unknown) => void;
+    } = { resolve: () => {}, reject: () => {} };
+    updateMutate.mockImplementationOnce(
+      () =>
+        new Promise((resolve, reject) => {
+          settle.resolve = resolve;
+          settle.reject = reject;
+        })
+    );
+    return { rendered, settle };
+  };
+
+  const shotsNow = () =>
+    useStoryboardStore.getState().boards["board-1"]?.shots ?? [];
+
+  beforeEach(() => {
+    useConflictStore.setState({ byKey: {} });
+  });
+
+  afterEach(() => {
+    useConflictStore.getState().clear("storyboard:board-1");
+  });
+
+  it("keeps the draft when an external write lands mid-save and the CAS fails", async () => {
+    const { rendered, settle } = await mountWithHeldSave([
+      shot("s1", 0, "One"),
+      shot("s2", 1, "Two")
+    ]);
+
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .updateShot("board-1", "s2", { action: "Two — draft" })
+    );
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1), {
+      timeout: 3000
+    });
+
+    // The agent rewrites shot 1 while our save is in flight.
+    getQuery.mockResolvedValue(
+      response([shot("s1", 0, "One — agent"), shot("s2", 1, "Two")], "rev-9")
+    );
+    act(() => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "update_shot", input: { target: "s1" } }]
+      });
+    });
+    // Our save then loses the CAS to that write.
+    await act(async () => {
+      settle.reject(new Error("Storyboard was modified since last read"));
+      await Promise.resolve();
+    });
+    await waitFor(() =>
+      expect(useStoryboardStore.getState().serverRevisions["board-1"]).toBe(
+        "rev-9"
+      )
+    );
+
+    expect(shotsNow().find((s) => s.id === "s2")?.action).toBe("Two — draft");
+    expect(shotsNow().find((s) => s.id === "s1")?.action).toBe("One — agent");
+    expect(conflicts()).toEqual([]);
+    // The draft is saved again on the merged revision, not reloaded over.
+    await waitFor(
+      () =>
+        expect(updateMutate).toHaveBeenLastCalledWith(
+          expect.objectContaining({ baseUpdatedAt: "rev-9" })
+        ),
+      { timeout: 3000 }
+    );
+
+    rendered.unmount();
+  });
+
+  it("does not swallow a foreign no-ops write that arrives mid-save", async () => {
+    const { rendered, settle } = await mountWithHeldSave([shot("s1", 0, "One")]);
+
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .updateShot("board-1", "s1", { action: "One — draft" })
+    );
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1), {
+      timeout: 3000
+    });
+
+    // Another tab autosaved the whole document: no ops to attribute.
+    getQuery.mockResolvedValue(
+      response([shot("s1", 0, "One — other tab")], "rev-9")
+    );
+    act(() => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-9"
+      });
+    });
+    await act(async () => {
+      settle.reject(new Error("Storyboard was modified since last read"));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(conflicts()).toHaveLength(1));
+    expect(conflicts()[0]).toMatchObject({ reason: "replaced" });
+    expect(shotsNow()[0]?.action).toBe("One — draft");
+
+    rendered.unmount();
+  });
+
+  it("ignores our own save echo that arrives before its response", async () => {
+    const { rendered, settle } = await mountWithHeldSave([shot("s1", 0, "One")]);
+
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .updateShot("board-1", "s1", { action: "One — draft" })
+    );
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1), {
+      timeout: 3000
+    });
+
+    // The broadcast of our own write overtakes its response, and the user
+    // keeps typing meanwhile.
+    act(() => {
+      handleDocumentResourceChange("storyboard", {
+        event: "updated",
+        id: "board-1",
+        updatedAt: "rev-2"
+      });
+    });
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .updateShot("board-1", "s1", { action: "One — draft!" })
+    );
+    await act(async () => {
+      settle.resolve({
+        id: "board-1",
+        name: "Saved board",
+        document: emptyDocument,
+        timelineId: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "rev-2"
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(conflicts()).toEqual([]);
+    // No merge fetch: the only get was the initial load.
+    expect(getQuery).toHaveBeenCalledTimes(1);
+    expect(shotsNow()[0]?.action).toBe("One — draft!");
+
+    rendered.unmount();
   });
 });

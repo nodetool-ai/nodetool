@@ -95,7 +95,19 @@ interface StoryboardStoreState {
    * Hydrate a board from its server document. Overwrites local state for that
    * board and records the server revision for CAS autosaves.
    */
-  loadBoard: (id: string, board: Omit<StoryboardBoard, "id" | "updatedAt">) => void;
+  loadBoard: (
+    id: string,
+    board: Omit<StoryboardBoard, "id" | "updatedAt">,
+    options?: { checkpoint?: boolean }
+  ) => void;
+
+  /**
+   * Apply a document merged with an external change. Stamps `updatedAt` so
+   * autosave picks the result up, and records no undo checkpoint: an external
+   * change never enters the undo stack (ADR 0001). Accepting one conflicted
+   * value later goes through the normal actions and is undoable.
+   */
+  applyMerged: (id: string, board: StoryboardBoard) => void;
 
   /** Load a screenplay into a board, seeding `shots` from `screenplay.shots`. */
   setScreenplay: (boardId: string, screenplay: Screenplay) => void;
@@ -270,6 +282,15 @@ export const sameMediaRef = (
   b.asset_id ? a.asset_id === b.asset_id : a.uri === b.uri;
 
 /** Patch the single shot with `shotId`; returns the same board on a no-op. */
+/**
+ * Re-stamp `index` to the array position. `index` is the field the surface
+ * sorts and numbers shots by, so any path that changes the order — a move, a
+ * merge that inserted a server shot — must renumber or the board renders out
+ * of order. Shots already at their position keep their identity.
+ */
+export const renumberShots = (shots: Shot[]): Shot[] =>
+  shots.map((shot, i) => (shot.index === i ? shot : { ...shot, index: i }));
+
 const patchShot = (
   board: StoryboardBoard,
   shotId: string,
@@ -338,27 +359,36 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       return { serverRevisions };
     }),
 
-  loadBoard: (id, board) =>
-    set((state) => ({
-      boards: {
-        ...state.boards,
-        [id]: {
-          ...emptyBoard(id),
-          ...board,
+  loadBoard: (id, board, options) =>
+    set((state) => {
+      const prev = state.boards[id];
+      const next = {
+        ...emptyBoard(id),
+        ...board,
+        id,
+        shots: board.shots.map((s) =>
+          s.status === "keyframe_generating"
+            ? { ...s, status: "planned" as const }
+            : s.status === "clip_generating"
+              ? { ...s, status: "keyframe_ready" as const }
+              : s
+        ),
+        updatedAt: Date.now()
+      };
+      const patch: Partial<StoryboardStoreState> = {
+        boards: { ...state.boards, [id]: next }
+      };
+      if (options?.checkpoint && prev) {
+        patch.history = pushHistory(
+          state.history,
           id,
-          // Jobs don't survive a reload — settle in-flight statuses back to
-          // the state they'd retry from.
-          shots: board.shots.map((s) =>
-            s.status === "keyframe_generating"
-              ? { ...s, status: "planned" as const }
-              : s.status === "clip_generating"
-                ? { ...s, status: "keyframe_ready" as const }
-                : s
-          ),
-          updatedAt: Date.now()
-        }
+          prev,
+          null,
+          Date.now()
+        );
       }
-    })),
+      return patch;
+    }),
 
   ensureBoard: (id) =>
     set((state) =>
@@ -366,6 +396,21 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         ? state
         : { boards: { ...state.boards, [id]: emptyBoard(id) } }
     ),
+
+  applyMerged: (id, board) =>
+    set((state) => ({
+      boards: {
+        ...state.boards,
+        [id]: {
+          ...board,
+          id,
+          updatedAt: Date.now(),
+          // Merged shots keep the draft's order but can carry stale or
+          // duplicate indices; renumber so shot N is always index N.
+          shots: renumberShots(board.shots)
+        }
+      }
+    })),
 
   removeBoard: (id) =>
     set((state) => {
@@ -727,7 +772,7 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         shots.splice(to, 0, moved);
         return {
           ...b,
-          shots: shots.map((s, i) => (s.index === i ? s : { ...s, index: i }))
+          shots: renumberShots(shots)
         };
       })
     ),

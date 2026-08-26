@@ -1,11 +1,13 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import type { DocumentLoadState } from "../../../stores/documentSync";
+import { handleDocumentResourceChange } from "../../../stores/documentSync";
 import { act } from "react";
 import { trpc, trpcClient } from "../../../trpc/client";
 import {
   emptyJsScriptDocument,
   useJsScriptStore
 } from "../../../stores/jsScript/JsScriptStore";
+import { useConflictStore } from "../../../stores/ConflictStore";
 import { useJsScriptServerSync } from "../useJsScriptServerSync";
 import { flushJsScriptSave } from "../jsScriptSaveRegistry";
 
@@ -255,5 +257,227 @@ describe("flushJsScriptSave", () => {
       ok: true,
       updatedAt: null
     });
+  });
+});
+
+describe("useJsScriptServerSync merge", () => {
+  const withCodeAndTests = (
+    code: string,
+    tests: { name: string }[]
+  ): Record<string, unknown> => {
+    const doc = emptyJsScriptDocument();
+    doc.code = code;
+    doc.tests = tests as never;
+    return { ...doc } as Record<string, unknown>;
+  };
+
+  beforeEach(() => {
+    useConflictStore.setState({ byKey: {} });
+  });
+
+  afterEach(() => {
+    useConflictStore.getState().clear("jsscript:js-1");
+  });
+
+  it("merges external set_tests into a dirty body — code kept, no conflict", async () => {
+    getQuery.mockResolvedValue({
+      ...serverScript("rev-1"),
+      document: withCodeAndTests("return 1;", [])
+    });
+    renderHook(() => useJsScriptServerSync("js-1"));
+    await loaded();
+
+    // The user edits the body; the draft is dirty.
+    act(() => useJsScriptStore.getState().setCode("js-1", "return 2; // draft"));
+
+    // An agent saved new tests alongside the old code.
+    getQuery.mockResolvedValue({
+      ...serverScript("rev-9"),
+      document: withCodeAndTests("return 1;", [
+        { name: "adds-one" }
+      ] as never)
+    });
+
+    await act(async () => {
+      handleDocumentResourceChange("jsscript", {
+        event: "updated",
+        id: "js-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "set_tests", input: {} }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const entry = useJsScriptStore.getState().scripts["js-1"];
+    expect(entry?.name).toBe("Saved script");
+    expect(entry?.document.code).toBe("return 2; // draft");
+    expect(entry?.document.tests).toHaveLength(1);
+    expect(entry?.document.tests[0]?.name).toBe("adds-one");
+    expect(
+      useConflictStore.getState().byKey["jsscript:js-1"]
+    ).toBeUndefined();
+    // The revision rolled so autosave persists the merged document.
+    expect(useJsScriptStore.getState().serverRevisions["js-1"]).toBe("rev-9");
+  });
+
+  it("keeps the dirty code and lists one conflict when the body was rewritten", async () => {
+    getQuery.mockResolvedValue({
+      ...serverScript("rev-1"),
+      document: withCodeAndTests("return 1;", [])
+    });
+    renderHook(() => useJsScriptServerSync("js-1"));
+    await loaded();
+
+    act(() => useJsScriptStore.getState().setCode("js-1", "return 2; // draft"));
+
+    getQuery.mockResolvedValue({
+      ...serverScript("rev-9"),
+      document: withCodeAndTests("return 'agent';", [])
+    });
+
+    await act(async () => {
+      handleDocumentResourceChange("jsscript", {
+        event: "updated",
+        id: "js-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "set_code", input: {} }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(
+      useJsScriptStore.getState().scripts["js-1"]?.document.code
+    ).toBe("return 2; // draft");
+    const conflicts =
+      useConflictStore.getState().byKey["jsscript:js-1"]?.conflicts ?? [];
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]).toMatchObject({
+      reason: "edited",
+      unit: { kind: "field", id: "code" },
+      external: "return 'agent';",
+      draft: "return 2; // draft"
+    });
+  });
+
+  it("accepts a whole-document replacement with the server's own name", async () => {
+    getQuery.mockResolvedValue({
+      ...serverScript("rev-1"),
+      document: withCodeAndTests("return 1;", [])
+    });
+    renderHook(() => useJsScriptServerSync("js-1"));
+    await loaded();
+
+    act(() => useJsScriptStore.getState().setCode("js-1", "return 2; // draft"));
+
+    // Another tab saved a rename and a new body, attaching no ops.
+    getQuery.mockResolvedValue({
+      ...serverScript("rev-9"),
+      name: "Renamed elsewhere",
+      document: withCodeAndTests("return 'other tab';", [])
+    });
+
+    await act(async () => {
+      handleDocumentResourceChange("jsscript", {
+        event: "updated",
+        id: "js-1",
+        updatedAt: "rev-9"
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const conflicts =
+      useConflictStore.getState().byKey["jsscript:js-1"]?.conflicts ?? [];
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]?.reason).toBe("replaced");
+
+    act(() =>
+      useConflictStore
+        .getState()
+        .accept("jsscript:js-1", conflicts[0].unit.id)
+    );
+
+    const entry = useJsScriptStore.getState().scripts["js-1"];
+    // Accept takes the server ENTRY: its rename came with its body.
+    expect(entry?.name).toBe("Renamed elsewhere");
+    expect(entry?.document.code).toBe("return 'other tab';");
+  });
+
+  it("rolls the store's CAS token when an unattributed write lands mid-save", async () => {
+    let resolveSave: (value: { updatedAt: string }) => void = () => {};
+    updateMutate.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSave = resolve as (value: { updatedAt: string }) => void;
+        })
+    );
+
+    renderHook(() => useJsScriptServerSync("js-1"));
+    await loaded();
+    act(() => useJsScriptStore.getState().setCode("js-1", "return 2;"));
+
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1), {
+      timeout: 3000
+    });
+
+    // A no-ops notice arrives while that save is still in flight.
+    await act(async () => {
+      handleDocumentResourceChange("jsscript", {
+        event: "updated",
+        id: "js-1",
+        updatedAt: "rev-42"
+      });
+      await Promise.resolve();
+    });
+
+    // The token the next save reads lives in the store, not only in the ref.
+    expect(useJsScriptStore.getState().serverRevisions["js-1"]).toBe("rev-42");
+    await act(async () => {
+      resolveSave({ updatedAt: "rev-2" });
+      await Promise.resolve();
+    });
+  });
+
+  it("saves the merged document with the rolled token after a merge", async () => {
+    getQuery.mockResolvedValue({
+      ...serverScript("rev-1"),
+      document: withCodeAndTests("return 1;", [])
+    });
+    renderHook(() => useJsScriptServerSync("js-1"));
+    await loaded();
+
+    act(() => useJsScriptStore.getState().setCode("js-1", "return 2; // draft"));
+
+    getQuery.mockResolvedValue({
+      ...serverScript("rev-9"),
+      name: "Renamed elsewhere",
+      document: withCodeAndTests("return 1;", [{ name: "adds-one" }] as never)
+    });
+
+    await act(async () => {
+      handleDocumentResourceChange("jsscript", {
+        event: "updated",
+        id: "js-1",
+        updatedAt: "rev-9",
+        ops: [{ tool: "set_tests", input: {} }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await flushJsScriptSave("js-1");
+    });
+
+    expect(updateMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "js-1",
+        baseUpdatedAt: "rev-9",
+        name: "Renamed elsewhere",
+        document: expect.objectContaining({ code: "return 2; // draft" })
+      })
+    );
   });
 });

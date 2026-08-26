@@ -17,6 +17,7 @@ import {
   CreateWorkflowVersionRequest,
   DataframeRef,
   Datetime,
+  DocumentOp,
   DocumentRef,
   Edge,
   EdgeUpdate,
@@ -106,7 +107,7 @@ export type { CollectionResponse };
 export type { Chunk };
 export type { ColumnDef };
 export type { CreateWorkflowVersionRequest };
-export type { DataframeRef };
+export type { DataframeRef, DocumentOp };
 export type { Datetime };
 export type { DocumentRef };
 export type { Edge };
@@ -344,6 +345,12 @@ export interface ResourceChangeUpdate {
     etag?: string;
     [key: string]: unknown;
   };
+  /**
+   * The per-merge-unit ops the write was made with, when the writer attached
+   * them. A change without ops counts as a whole-document replacement for an
+   * editor holding a dirty draft.
+   */
+  ops?: DocumentOp[];
 }
 
 // ---------------------------------------------------------------------------

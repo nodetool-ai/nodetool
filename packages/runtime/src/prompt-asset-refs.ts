@@ -21,7 +21,7 @@
  * contents into the prompt text in place of the token.
  */
 
-import type { ProcessingContext } from "./context.js";
+import type { AssetInfoEntry, ProcessingContext } from "./context.js";
 import type { MessageContent } from "./providers/types.js";
 import { encodeBase64, loadMediaRefBytes } from "./media-ref-bytes.js";
 import { isCallable, isObjectLike, isString } from "./type-predicates.js";
@@ -598,6 +598,15 @@ function readEntityMarker(
 }
 
 /**
+ * What entity-mention expansion needs from its caller: owned-asset lookup.
+ * `ProcessingContext` satisfies this structurally; standalone surfaces that
+ * have no context instance (the direct media-generation RPC) supply their own.
+ */
+export interface EntityRefResolver {
+  getAssetInfo(assetId: string): Promise<AssetInfoEntry | null>;
+}
+
+/**
  * Expand `entity://<id>` mentions (entities are library assets tagged with a
  * `nodetool_entity` marker; the `@`-mention pickers encode them as this token).
  *
@@ -614,7 +623,7 @@ function readEntityMarker(
  */
 export async function expandEntityRefs(
   text: string,
-  context: ProcessingContext | undefined,
+  context: EntityRefResolver | undefined,
   includeImageRefs: boolean
 ): Promise<string> {
   if (!text.includes("entity://")) return text;
@@ -689,6 +698,52 @@ export async function expandEntityRefs(
     result += `\n${imageTokens.join(" ")}`;
   }
   return result;
+}
+
+/** The result of {@link expandEntitiesForGeneration}. */
+export interface ExpandedEntityPrompt {
+  /** The prompt with entity mentions expanded; no `entity://` tokens remain. */
+  prompt: string;
+  /**
+   * Reference images contributed by mentioned entities, as `asset://` refs.
+   * Callers with image inputs resolve these to bytes and pass them alongside
+   * any source image; callers without inputs drop them (the descriptor text
+   * has already been folded into `prompt`).
+   */
+  referenceImages: PromptAssetRef[];
+}
+
+/**
+ * Expand the entity mentions in a generation prompt and separate what the
+ * provider call needs from it: the seasoned text (names inline + a
+ * Consistency references block) and the entities' reference images as typed
+ * refs — never left in the text as dangling tokens.
+ *
+ * This is the direct-generation counterpart of what node prompts get through
+ * {@link mapPromptAssetsToInputs}: same expansion rule, but returning the
+ * routed images instead of writing them onto node input fields. Image
+ * mentions that were already in the caller's text are left untouched — only
+ * tokens this expansion itself produced are extracted and stripped.
+ */
+export async function expandEntitiesForGeneration(
+  prompt: string,
+  resolver: EntityRefResolver
+): Promise<ExpandedEntityPrompt> {
+  const preExisting = new Set(findImageAssetRefs(prompt).map((r) => r.uri));
+  const expanded = await expandEntityRefs(prompt, resolver, true);
+  if (expanded === prompt) {
+    return { prompt, referenceImages: [] };
+  }
+  const referenceImages = findImageAssetRefs(expanded).filter(
+    (ref) => !preExisting.has(ref.uri)
+  );
+  return {
+    prompt:
+      referenceImages.length > 0
+        ? stripAssetRefs(expanded, referenceImages).trimEnd()
+        : expanded,
+    referenceImages
+  };
 }
 
 /**

@@ -84,8 +84,8 @@ export {
 } from "./storyboards.specs.js";
 /** Shots one call may render, so a stray `targets: "all"` cannot bankrupt a run. */
 const MAX_SHOTS_PER_CALL = 24;
-/** Attempts to land a document write before reporting a conflict. */
-const CAS_ATTEMPTS = 5;
+/** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
+const CAS_ATTEMPTS = 2;
 
 interface BoardHandle {
   row: Storyboard;
@@ -304,7 +304,10 @@ async function patchShot(
     const saved = await Storyboard.updateFieldsIfUnchanged(
       storyboardId,
       row.updated_at,
-      { document: JSON.stringify({ ...doc, shots }) }
+      { document: JSON.stringify({ ...doc, shots }) },
+      // One update_shot per write, so an open editor merges this into its
+      // draft per shot instead of treating the board as replaced.
+      { ops: [{ tool: "update_shot", input: { id: shotId } }] }
     );
     if (saved) return updated;
   }
@@ -987,69 +990,139 @@ const assembleStoryboardTimeline: CapabilityExport = {
     const reuse =
       existing && existing.user_id === context.userId ? existing : null;
 
-    let tracks = assembled.tracks;
-    let clips = assembled.clips;
-    let durationMs = assembled.durationMs;
-    const previous = reuse?.toDocument();
-    if (previous) {
+    if (!reuse) {
+      const sequence = new TimelineSequence({
+        user_id: context.userId,
+        project_id: row.project_id,
+        name
+      });
+      sequence.name = name;
+      sequence.fps = fps;
+      sequence.width = width;
+      sequence.height = height;
+      sequence.duration_ms = assembled.durationMs;
+      sequence.fromDocument({
+        tracks: assembled.tracks,
+        clips: assembled.clips,
+        markers: []
+      });
+      await sequence.save();
+
+      if (row.timeline_id !== sequence.id) {
+        await Storyboard.updateFieldsIfUnchanged(
+          row.id,
+          row.updated_at,
+          { timeline_id: sequence.id },
+          { ops: [{ tool: "set_link", input: { timeline_id: sequence.id } }] }
+        );
+      }
+
+      const created: Record<string, unknown> = {
+        ok: true,
+        timeline_id: sequence.id,
+        name: sequence.name,
+        fps,
+        width,
+        height,
+        duration_ms: assembled.durationMs,
+        clip_count: assembled.clips.length,
+        track_count: assembled.tracks.length,
+        script_id: script ? scriptId : null,
+        skipped_shot_ids: assembled.skippedShotIds,
+        skipped_line_ids: skippedLineIds
+      };
+      if (warnings.length) {
+        created.warnings = warnings;
+      }
+      return created;
+    }
+
+    // Re-assembling over an existing sequence is a CAS write carrying its
+    // ops (S2.1): the foreign parts are re-read per attempt, and an open
+    // editor merges the change instead of seeing the sequence as replaced.
+    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+      const current =
+        attempt === 0 ? reuse : await TimelineSequence.findById(reuse.id);
+      if (!current || current.user_id !== context.userId) {
+        return {
+          error: `Timeline ${reuse.id} was deleted while assembling; create a new timeline by calling this again.`
+        };
+      }
+
+      const previous = current.toDocument();
       const foreign = foreignTimelineParts(
         previous,
         (clip) =>
           clip.storyboardBoardId === row.id ||
           (!!scriptId && clip.scriptId === scriptId)
       );
-      tracks = [...assembled.tracks, ...foreign.tracks];
-      clips = [...assembled.clips, ...foreign.clips];
-      durationMs = clips.reduce(
+      const tracks = [...assembled.tracks, ...foreign.tracks];
+      const clips = [...assembled.clips, ...foreign.clips];
+      const durationMs = clips.reduce(
         (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
         0
       );
+
+      const nextDocument = {
+        ...previous,
+        tracks,
+        clips,
+        markers: previous.markers ?? []
+      };
+      const saved = await TimelineSequence.updateFieldsIfUnchanged(
+        current.id,
+        current.updated_at,
+        {
+          name,
+          fps,
+          width,
+          height,
+          duration_ms: durationMs,
+          document: JSON.stringify(nextDocument)
+        },
+        {
+          ops: [
+            {
+              tool: "assemble_storyboard_timeline",
+              input: { storyboard_id: row.id }
+            }
+          ]
+        }
+      );
+      if (!saved) continue;
+
+      if (row.timeline_id !== current.id) {
+        await Storyboard.updateFieldsIfUnchanged(
+          row.id,
+          row.updated_at,
+          { timeline_id: current.id },
+          { ops: [{ tool: "set_link", input: { timeline_id: current.id } }] }
+        );
+      }
+
+      const result: Record<string, unknown> = {
+        ok: true,
+        timeline_id: current.id,
+        name,
+        fps,
+        width,
+        height,
+        duration_ms: durationMs,
+        clip_count: clips.length,
+        track_count: tracks.length,
+        script_id: script ? scriptId : null,
+        skipped_shot_ids: assembled.skippedShotIds,
+        skipped_line_ids: skippedLineIds
+      };
+      if (warnings.length) {
+        result.warnings = warnings;
+      }
+      return result;
     }
 
-    const sequence =
-      reuse ??
-      new TimelineSequence({
-        user_id: context.userId,
-        project_id: row.project_id,
-        name
-      });
-    sequence.name = name;
-    sequence.fps = fps;
-    sequence.width = width;
-    sequence.height = height;
-    sequence.duration_ms = durationMs;
-    sequence.fromDocument({
-      ...previous,
-      tracks,
-      clips,
-      markers: previous ? previous.markers : []
-    });
-    await sequence.save();
-
-    if (row.timeline_id !== sequence.id) {
-      await Storyboard.updateFieldsIfUnchanged(row.id, row.updated_at, {
-        timeline_id: sequence.id
-      });
-    }
-
-    const result: Record<string, unknown> = {
-      ok: true,
-      timeline_id: sequence.id,
-      name: sequence.name,
-      fps,
-      width,
-      height,
-      duration_ms: durationMs,
-      clip_count: clips.length,
-      track_count: tracks.length,
-      script_id: script ? scriptId : null,
-      skipped_shot_ids: assembled.skippedShotIds,
-      skipped_line_ids: skippedLineIds
+    return {
+      error: `Timeline ${reuse.id} is being modified concurrently; the assembly finished but could not be saved. Retry the call.`
     };
-    if (warnings.length) {
-      result.warnings = warnings;
-    }
-    return result;
   }
 };
 
@@ -1320,19 +1393,38 @@ const editStoryboard: CapabilityExport = {
       // A failing op is recorded and the script continues: stopping at the
       // first error hides every problem behind it.
       const records: BoardOpRecord[] = [];
+      const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
       for (const parsed of ops) {
         try {
+          const result = applyBoardOp(doc, parsed) as Record<string, unknown> | undefined;
           records.push({
             op: parsed.op,
             ok: true,
-            result: applyBoardOp(doc, parsed)
+            result
           });
+          // Resolve non-id targets (index/slug) to the canonical shot id so
+          // the merge adapter can attribute the write to the real unit.
+          const canonicalId =
+            typeof result?.["id"] === "string"
+              ? (result["id"] as string)
+              : typeof result?.["removed"] === "string"
+                ? (result["removed"] as string)
+                : undefined;
+          if (canonicalId && (parsed.op === "update_shot" || parsed.op === "remove_shot" || parsed.op === "reorder_shot")) {
+            resolvedOps.push({
+              tool: parsed.op,
+              input: { ...parsed.args, target: canonicalId, id: canonicalId }
+            });
+          } else {
+            resolvedOps.push({ tool: parsed.op, input: parsed.args });
+          }
         } catch (e) {
           records.push({
             op: parsed.op,
             ok: false,
             error: e instanceof Error ? e.message : String(e)
           });
+          resolvedOps.push({ tool: parsed.op, input: parsed.args });
         }
       }
 
@@ -1341,7 +1433,10 @@ const editStoryboard: CapabilityExport = {
         row.updated_at,
         {
           document: JSON.stringify(doc)
-        }
+        },
+        // The ops ride on the write so an open editor can merge this change
+        // per shot instead of treating the board as replaced.
+        { ops: resolvedOps }
       );
       if (!saved) continue;
 
@@ -1497,7 +1592,8 @@ const extractScriptFromStoryboard: CapabilityExport = {
               script_id: scriptId
             }
           })
-        }
+        },
+        { ops: [{ tool: "set_link", input: { script_id: scriptId } }] }
       );
       if (!saved) continue;
 

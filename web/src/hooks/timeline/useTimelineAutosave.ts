@@ -32,7 +32,8 @@ import { useEffect, useRef } from "react";
 
 import {
   useTimelineStoreApi,
-  timelineTemporalOf
+  timelineTemporalOf,
+  isOlderUpdatedAt
 } from "../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
@@ -172,9 +173,15 @@ export function useTimelineAutosave(
           ?.updatedAt;
         // Only roll the token forward while the store still holds the saved
         // sequence — otherwise we'd poison a newly loaded sequence's token.
+        // And only forward: an external merge that adopted a newer server copy
+        // while this save was in flight already set the base token and the
+        // server document behind it, so adopting this response would roll both
+        // back and snapshot the pre-merge draft as the merge base.
+        const settled = store.getState();
         if (
           isString(updatedAt) &&
-          store.getState().sequenceId === snapshot.sequenceId
+          settled.sequenceId === snapshot.sequenceId &&
+          !isOlderUpdatedAt(updatedAt, settled.baseUpdatedAt)
         ) {
           store.getState().setBaseUpdatedAt(updatedAt);
         }

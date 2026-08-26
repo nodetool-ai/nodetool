@@ -100,8 +100,15 @@ interface JsScriptStoreState {
   ensureScript: (id: string) => void;
   loadScript: (
     id: string,
-    entry: Omit<JsScriptEntry, "id" | "updatedAt">
+    entry: Omit<JsScriptEntry, "id" | "updatedAt">,
+    options?: { checkpoint?: boolean }
   ) => void;
+  /**
+   * Apply a document merged with an external change. Stamps `updatedAt` so
+   * autosave picks the result up, and records no undo checkpoint: an external
+   * change never enters the undo stack (ADR 0001).
+   */
+  applyMerged: (id: string, entry: JsScriptEntry) => void;
   removeScript: (id: string) => void;
   getScript: (id: string) => JsScriptEntry | undefined;
 
@@ -254,7 +261,26 @@ export const useJsScriptStore = create<JsScriptStoreState>((set, get) => ({
         : { scripts: { ...state.scripts, [id]: emptyEntry(id) } }
     ),
 
-  loadScript: (id, entry) =>
+  loadScript: (id, entry, options) =>
+    set((state) => {
+      const prev = state.scripts[id];
+      const next = { ...entry, id, updatedAt: Date.now() };
+      const patch: Partial<JsScriptStoreState> = {
+        scripts: { ...state.scripts, [id]: next }
+      };
+      if (options?.checkpoint && prev) {
+        patch.history = pushHistory(
+          state.history,
+          id,
+          prev,
+          null,
+          Date.now()
+        );
+      }
+      return patch;
+    }),
+
+  applyMerged: (id, entry) =>
     set((state) => ({
       scripts: {
         ...state.scripts,
