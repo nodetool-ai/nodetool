@@ -4,19 +4,19 @@ title: "Quick Start"
 description: "Install NodeTool, connect a language, image, and video model, ask the agent for a storyboard, render stills and clips, assemble the cut on the timeline, and export the film."
 ---
 
-Turn one sentence into a short film: the agent writes the screenplay, you pick
-the frames worth paying for, and the cut lands in a video editor you export
-from. About 30 minutes, most of it waiting on renders. No account required —
-you bring your own API keys.
+Turn one sentence into a short film: the AI agent writes the script, you choose
+the images you like, and the final video is ready for you to edit and export.
+It takes about 30 minutes, mostly just waiting for the video to generate.
+No account is required — you just need your own API keys.
 
 This page assumes you have never used a tool like this. Every term is explained
 the first time it appears, and the [Glossary](glossary.md) covers the rest.
 
 ![Storyboard surface with five shot cards](assets/creative-agent/storyboard-surface.png)
 
-The five steps below are the whole pipeline. Each one is cheaper than the next,
-which is the point: a still costs cents, a clip costs dollars, and you look at
-the still before you buy the clip.
+The five steps below show the entire process. Each step costs a bit more than the last,
+which is why we do it in this order: an image costs cents, a short video costs dollars,
+and you always approve the image before spending money on the video.
 
 ---
 
@@ -45,10 +45,10 @@ only matters if you later run models locally — see the
 
 ### Connect three kinds of model
 
-NodeTool has no AI model built in. You point it at providers with an **API key**:
-a long password-like string you copy from an AI company's site. It lets NodeTool
-send requests on your account, and that company bills you for what you use.
-Some providers also offer one-click sign-in instead of a key.
+NodeTool does not have its own AI models. Instead, you connect it to AI providers using an **API key**.
+An API key is like a long password you copy from an AI company's website. It allows NodeTool
+to use their AI on your behalf, and the company bills you for what you use.
+Some providers also let you sign in with one click instead of using a key.
 
 A film needs three roles filled, and one provider can fill more than one:
 
@@ -206,10 +206,10 @@ Set the output first. The **Settings** button in the timeline's top bar opens
 **Project settings**: canvas width and height (or a preset) and the frame rate.
 The sequence renders at exactly those numbers.
 
-Then **Export video**. NodeTool renders the timeline frame by frame through the
-same compositor that drew the preview, mixes the audio offline, and muxes the
-two into an MP4. A progress dialog reports the phase — preparing, audio, video,
-finalizing — and you can cancel mid-render.
+Then **Export video**. NodeTool processes the timeline frame by frame,
+combines the audio and video, and saves it as an MP4 file.
+A progress dialog shows the current step — preparing, audio, video,
+finalizing — and you can cancel at any time.
 
 ![The timeline editor](assets/screenshots/timeline-editor.png)
 
