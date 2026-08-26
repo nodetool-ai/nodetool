@@ -289,14 +289,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         const hasHeaderRow = matchingHeaders.length >= Math.min(2, dataframeColumns.length);
         
         // Build column index mapping
-        const columnMapping: Map<number, number> = new Map(); // pasted index -> dataframe column index
+        const dfIdxToPasteIdx: Map<number, number> = new Map(); // dataframe column index -> pasted index
         
         if (hasHeaderRow) {
           // Map by header name
           firstRow.forEach((header, pasteIdx) => {
             const dfIdx = colNames.indexOf(header);
             if (dfIdx !== -1) {
-              columnMapping.set(pasteIdx, dfIdx);
+              dfIdxToPasteIdx.set(dfIdx, pasteIdx);
             }
           });
         } else {
@@ -312,7 +312,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             }
           }
           dataframeColumns.forEach((_, dfIdx) => {
-            columnMapping.set(firstNonEmptyIdx + dfIdx, dfIdx);
+            dfIdxToPasteIdx.set(dfIdx, firstNonEmptyIdx + dfIdx);
           });
         }
         
@@ -324,14 +324,12 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           dataframeColumns.forEach((col, dfIdx) => {
             // Find which paste column maps to this dataframe column
             let value: DataframeCellValue = "";
-            for (const [pasteIdx, mappedDfIdx] of columnMapping.entries()) {
-              if (mappedDfIdx === dfIdx) {
-                value = row[pasteIdx] ?? "";
-                // Remove surrounding quotes
-                if (isString(value)) {
-                  value = value.replace(/^"|"$/g, "");
-                }
-                break;
+            const pasteIdx = dfIdxToPasteIdx.get(dfIdx);
+            if (pasteIdx !== undefined) {
+              value = row[pasteIdx] ?? "";
+              // Remove surrounding quotes
+              if (isString(value)) {
+                value = value.replace(/^"|"$/g, "");
               }
             }
             // Coerce to correct type

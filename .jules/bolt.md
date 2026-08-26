@@ -96,3 +96,6 @@
 ## 2026-05-25 - O(N^2) Bottleneck in Timeline Clip Merging
 **Learning:** Found an $O(N^2)$ performance bottleneck in `web/src/stores/timeline/TimelineStore.ts` inside `mergeClipsAtTime` where `clips.find(...)` was called inside a loop over `clips`. For large timelines with many clips, deleting a marker (which triggers merging) caused significant UI thread stalling.
 **Action:** Replaced the nested `.find()` with a pre-computed `Map` that groups candidate clips by a string key (`${trackId}::${currentAssetId}`) and filters them by end time in a single $O(N)$ pass before the main loop. This drops the overall time complexity to $O(N)$ and eliminates the stall.
+## 2026-05-25 - O(N*C^2) mapping optimization in TableActions paste operation
+**Learning:** Found an $O(N \times C^2)$ performance bottleneck in `web/src/components/node/DataTable/TableActions.tsx` when pasting large sets of data into the DataTable. For every column in every row, the code looped over `columnMapping.entries()` (which is size $C$) to find the corresponding paste column index.
+**Action:** Replaced the paste column index lookup via `Map.entries()` iteration with a pre-computed `$O(1)$` lookup. By inverting the map from `columnMapping` to `dfIdxToPasteIdx` (mapping dataframe column index to pasted index), the time complexity of pasting data is reduced to $O(N \times C)$.
