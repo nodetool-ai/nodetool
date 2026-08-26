@@ -24,7 +24,7 @@ export const createStyles = (theme: Theme) => ({
     alignItems: "center",
     overflowY: "auto",
     overflowAnchor: "none",
-    padding: theme.spacing(2),
+    padding: theme.spacing(2, 0),
     marginTop: 0,
     position: "relative",
 

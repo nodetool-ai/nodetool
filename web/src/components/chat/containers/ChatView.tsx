@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
       flexDirection: "row",
       overflow: "hidden",
       minHeight: 0,
-      padding: theme.spacing(0, 0, 6, 6)
+      padding: theme.spacing(0, 6, 6, 6)
     },
     ".chat-main": {
       position: "relative",
@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      paddingRight: 8
+      paddingRight: 0
     },
     // Floats over the thread rather than reserving a row of its own.
     ".chat-overlay-actions": {
@@ -87,11 +87,11 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       paddingBottom: theme.spacing(2),
       width: "100%",
-      maxWidth: "1180px",
+      maxWidth: "800px",
       alignSelf: "center"
     },
     ".chat-controls": {
-      padding: `0 ${getSpacingPx(SPACING.xl)} 0 0`,
+      padding: "0",
       marginTop: "auto",
       zIndex: Z_INDEX.dropdown,
       display: "flex",
@@ -102,7 +102,7 @@ const styles = (theme: Theme) =>
       flex: 1,
       minWidth: 0,
       width: "100%",
-      maxWidth: "1180px",
+      maxWidth: "800px",
       alignSelf: "center"
     }
   });

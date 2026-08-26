@@ -12,7 +12,7 @@ export type ChatComposerVariant = "media" | "simple";
 
 const styles = (_theme: Theme) =>
   css({
-    width: "90%",
+    width: "100%",
     // Match the 800px message column (`chatMessagesList`) so the composer and
     // the thread share the same left/right edges.
     maxWidth: "800px",
