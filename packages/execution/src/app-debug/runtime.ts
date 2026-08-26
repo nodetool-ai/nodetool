@@ -169,36 +169,24 @@ export interface HeadlessResourceCommand {
   args?: Record<string, unknown>;
 }
 
-/**
- * The collection behind one resource binding, headless.
- *
- * The web runtime reads collections over tRPC and hands widgets a `ResourceRef`
- * to act on; a headless run has no server and no user, so it gets the same
- * envelope from a seeded provider instead. Nothing here touches the database —
- * a run only ever sees what the interaction script or `--params` put in.
- */
-export interface HeadlessResourceProvider {
-  readonly kind: ResourceKind;
-  list(): ResourceItem[];
-  get(id: string): ResourceItem | null;
-  /** The item a `from: "resource"` param sends and a command acts on. */
-  selected(): ResourceRef | null;
-  select(ref: ResourceRef | null): void;
-  apply(op: HeadlessResourceCommand): ResourceItem | null;
-}
-
 /** How to seed a collection, named in every message about an unseeded one. */
 export const seedResourceHint = (resourceBindingId: string): string =>
   `seed it with an interaction step {"seedResource":{"id":"${resourceBindingId}","items":[{"id":"item-1"}]}} or a "resource:${resourceBindingId}" param`;
 
 /**
- * A collection held in memory for the length of one debug run.
+ * The collection behind one resource binding, held in memory for the length of
+ * one debug run.
+ *
+ * The web runtime reads collections over tRPC and hands widgets a `ResourceRef`
+ * to act on; a headless run has no server and no user, so it gets the same
+ * envelope from a seeded provider instead. Nothing here touches the database —
+ * a run only ever sees what the interaction script or `--params` put in.
  *
  * Selection follows `useBoundResource`: a pinned `fixedId` wins, else the item
  * the last command or `select` chose, else the first member — so a picker that
  * nobody touched still has something to send.
  */
-export class InMemoryResourceProvider implements HeadlessResourceProvider {
+export class InMemoryResourceProvider {
   readonly kind: ResourceKind;
   private readonly items: ResourceItem[] = [];
   private readonly pinnedId: string | null;
@@ -240,6 +228,7 @@ export class InMemoryResourceProvider implements HeadlessResourceProvider {
     return this.items.find((item) => item.ref.id === id) ?? null;
   }
 
+  /** The item a `from: "resource"` param sends and a command acts on. */
   selected(): ResourceRef | null {
     const targetId =
       this.pinnedId ?? this.chosenId ?? this.items[0]?.ref.id ?? null;
@@ -422,7 +411,7 @@ export class HeadlessAppRuntime {
   /** Declared resource bindings, keyed by id. */
   private readonly resourceBindings = new Map<string, ResourceBinding>();
   /** Seeded collections, keyed by resource binding id. */
-  private readonly providers = new Map<string, HeadlessResourceProvider>();
+  private readonly providers = new Map<string, InMemoryResourceProvider>();
   /** Every resource command dispatched, in order. */
   readonly resourceCommands: Array<{
     resourceBindingId: string;
@@ -505,7 +494,7 @@ export class HeadlessAppRuntime {
   seedResource(
     resourceBindingId: string,
     items: ReadonlyArray<SeedResourceItem>
-  ): HeadlessResourceProvider {
+  ): InMemoryResourceProvider {
     const binding = this.resourceBindings.get(resourceBindingId);
     if (!binding) {
       const declared = [...this.resourceBindings.keys()];
@@ -526,7 +515,7 @@ export class HeadlessAppRuntime {
   }
 
   /** The collection behind a resource binding, or null when nothing seeded it. */
-  resourceProvider(resourceBindingId: string): HeadlessResourceProvider | null {
+  resourceProvider(resourceBindingId: string): InMemoryResourceProvider | null {
     return this.providers.get(resourceBindingId) ?? null;
   }
 
