@@ -32,6 +32,33 @@ const renderPage = () =>
     </MemoryRouter>
   );
 
+describe("TutorialsPage video loading", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  // The videos live on the docs site. Setting `src` on mount would fetch a
+  // cross-origin file on every page load — including in CI, before the docs
+  // site has published a newly added tutorial.
+  it("requests no video until the viewer presses play", async () => {
+    setViewport(false);
+    const first = TUTORIALS[0];
+    const { container } = renderPage();
+
+    const video = container.querySelector("video") as HTMLVideoElement;
+    expect(video).toHaveAttribute("poster", first.poster);
+    expect(video).not.toHaveAttribute("src");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: `Play video: ${first.title}` })
+    );
+
+    expect(container.querySelector("video")).toHaveAttribute("src", first.video);
+  });
+});
+
 describe("TutorialsPage responsive layout", () => {
   const originalMatchMedia = window.matchMedia;
   const second = TUTORIALS[1];

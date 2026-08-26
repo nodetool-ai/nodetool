@@ -3,10 +3,11 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import Logo from "../Logo";
 import {
   BORDER_RADIUS,
@@ -133,6 +134,7 @@ const styles = (theme: Theme) =>
     },
     ".tut-main .stage": { maxWidth: 920, margin: "0 auto" },
     ".tut-player": {
+      position: "relative",
       width: "100%",
       aspectRatio: "16 / 9",
       borderRadius: BORDER_RADIUS.lg,
@@ -141,6 +143,28 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.common.black,
       boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
       [theme.breakpoints.down("md")]: { boxShadow: "none" }
+    },
+    ".tut-play": {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      border: "none",
+      background: "transparent",
+      color: theme.vars.palette.common.white,
+      cursor: "pointer",
+      transition: MOTION.background,
+      "&:hover": {
+        background: "rgba(var(--palette-common-black-channel) / 0.25)"
+      },
+      svg: {
+        width: getSpacingPx(16),
+        height: getSpacingPx(16),
+        borderRadius: BORDER_RADIUS.circle,
+        background: "rgba(var(--palette-common-black-channel) / 0.55)",
+        padding: getSpacingPx(2)
+      }
     },
     ".tut-meta": {
       display: "flex",
@@ -226,6 +250,13 @@ const TutorialsPage: React.FC = () => {
 
   const active = getTutorial(params.get("id"));
 
+  // The videos stream from the docs site, so none is requested until someone
+  // asks for one — the poster ships with the app and carries the stage. Keyed
+  // by id so switching tutorials returns to the poster.
+  const [startedId, setStartedId] = useState<string | null>(null);
+  const started = startedId === active.id;
+  const start = useCallback(() => setStartedId(active.id), [active.id]);
+
   const select = useCallback(
     (id: string) => {
       setParams({ id }, { replace: true });
@@ -271,11 +302,25 @@ const TutorialsPage: React.FC = () => {
             <div className="tut-player">
               <VideoPlayer
                 key={active.id}
-                src={resolveStaticMediaUri(active.video) ?? undefined}
+                src={
+                  started
+                    ? resolveStaticMediaUri(active.video) ?? undefined
+                    : undefined
+                }
                 poster={resolveStaticMediaUri(active.poster) ?? undefined}
-                autoplay
+                autoplay={started}
                 muted
               />
+              {!started && (
+                <button
+                  type="button"
+                  className="tut-play"
+                  onClick={start}
+                  aria-label={`Play video: ${active.title}`}
+                >
+                  <PlayArrowRoundedIcon />
+                </button>
+              )}
             </div>
 
             <div className="tut-meta">

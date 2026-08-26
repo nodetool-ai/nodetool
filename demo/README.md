@@ -50,7 +50,7 @@ A ready-to-render "How to use NodeTool" walkthrough ships alongside the sample:
 ```bash
 cd demo
 npm run studio                 # open Studio, pick "Tutorial-first-workflow"
-npm run render:tutorial:first  # → web/public/tutorials/first-workflow.mp4
+npm run render:tutorial:first  # → docs/assets/tutorials/first-workflow.mp4
 npm run render:tutorials       # all seven tutorial compositions
 ```
 
@@ -129,8 +129,8 @@ call sites.
 
 ```bash
 cd demo
-npm run render:tutorial:chat-agent-qa           # Ask the chat agent → web/public/tutorials/chat-agent-qa.mp4
-npm run render:tutorial:timeline-trim-arrange   # Cut a scene together → web/public/tutorials/timeline-trim-arrange.mp4
+npm run render:tutorial:chat-agent-qa           # Ask the chat agent → docs/assets/tutorials/chat-agent-qa.mp4
+npm run render:tutorial:timeline-trim-arrange   # Cut a scene together → docs/assets/tutorials/timeline-trim-arrange.mp4
 npm run render:tutorials:docs                   # the five document tutorials (sketch, script, storyboard, JS script, app)
 npm run still:tutorials:docs                    # their posters
 npm run render:tutorials:steering               # the three steering tutorials (correction, ask-before-spend, red-then-green)
@@ -144,11 +144,22 @@ it is answered, and `jsscript-repair` runs a saved case red before the repair
 makes it green. What they teach is not the surface but the loop around it —
 correct, decide, verify.
 
+Everything renders into `docs/assets/tutorials/`, which the documentation
+site serves. The app streams the MP4s from there and ships only the posters,
+so after rendering run `npm run sync:posters` to copy the JPGs into
+`web/public/tutorials/` — a test fails if the two copies differ, or if an MP4
+turns up in the app bundle.
+
 A rendered MP4 is only half a tutorial: the app plays it from
 `web/src/components/tutorials/tutorialsData.ts`, so add an entry there (id,
-title, `learn` bullets, `/tutorials/<slug>.mp4`, `/tutorials/<slug>.jpg`) once
-the files exist. The entries and the files land in the same change — the
-Tutorials page 404s on an entry whose video was never rendered.
+title, `learn` bullets, video, poster) once the files exist. The entries and
+the files land in the same change — a test fails on an entry whose video was
+never rendered.
+
+One ordering note: the app's `<video>` gets no `src` until the viewer presses
+play, so a tutorial whose MP4 has not reached the live docs site yet still
+renders (the poster is local) and only 404s if someone plays it before the
+docs deploy.
 
 **Chat** (`web/src/demo/chat/`): `ChatView` is prop-driven, not store-driven, so
 `ChatDemoPlayer` skips the "engine" machinery entirely — `computeChatStateAt`
