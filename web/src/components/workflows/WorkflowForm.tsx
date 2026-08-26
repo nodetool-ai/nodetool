@@ -9,9 +9,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
-import { isProduction } from "../../lib/env";
-
-const workspacesEnabled = !isProduction;
 
 const RUN_MODE_OPTIONS = [
   { value: "workflow", label: "Workflow" },
@@ -289,18 +286,14 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
       <FormSection label="Advanced" className="settings-section">
         <Caption sx={{ display: "block" }}>
-          {workspacesEnabled
-            ? "Advanced configuration for workspaces and API/tool usage"
-            : "Advanced configuration for API/tool usage"}
+          Advanced configuration for workspaces and API/tool usage
         </Caption>
 
-        {workspacesEnabled && (
-          <WorkspaceSelect
-            value={localWorkflow.workspace_id ?? undefined}
-            onChange={handleWorkspaceChange}
-            helperText="Associate a workspace folder with this workflow for agent access"
-          />
-        )}
+        <WorkspaceSelect
+          value={localWorkflow.workspace_id ?? undefined}
+          onChange={handleWorkspaceChange}
+          helperText="Associate a workspace folder with this workflow for agent access"
+        />
 
         <FormField
           label="Tool Name"
