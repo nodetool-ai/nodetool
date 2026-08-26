@@ -23,14 +23,6 @@ export const isLocalProvider = (provider?: string): boolean => {
   );
 };
 
-export const isCloudProvider = (provider?: string): boolean => {
-  if (!provider) {
-    return false;
-  }
-  // If it's not local, we assume it's an API/Cloud provider
-  return !isLocalProvider(provider);
-};
-
 const insertSpacesBeforeCapitals = (value: string): string => {
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
 };

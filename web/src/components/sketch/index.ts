@@ -42,8 +42,6 @@ export { getToolHandler } from "./tools";
 export type { ToolHandler, ToolContext, ToolPointerEvent } from "./tools";
 export { SegmentTool } from "./tools/SegmentTool";
 
-export { useCollapsedSections } from "./useCollapsedSections";
-
 export {
   ALL_TOOL_DEFINITIONS,
   PAINTING_TOOLS,

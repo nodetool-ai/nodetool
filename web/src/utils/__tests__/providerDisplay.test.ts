@@ -2,7 +2,6 @@ import { describe, it, expect } from "@jest/globals";
 import {
   isHuggingFaceProvider,
   isLocalProvider,
-  isCloudProvider,
   getModelUrl,
   toTitleCase,
   getProviderBaseName,
@@ -350,23 +349,6 @@ describe("providerDisplay", () => {
     it("returns false for undefined/empty", () => {
       expect(isLocalProvider(undefined)).toBe(false);
       expect(isLocalProvider("")).toBe(false);
-    });
-  });
-
-  describe("isCloudProvider", () => {
-    it("returns true for cloud providers", () => {
-      expect(isCloudProvider("openai")).toBe(true);
-      expect(isCloudProvider("anthropic")).toBe(true);
-    });
-
-    it("returns false for local providers", () => {
-      expect(isCloudProvider("ollama")).toBe(false);
-      expect(isCloudProvider("huggingface-local")).toBe(false);
-    });
-
-    it("returns false for undefined/empty", () => {
-      expect(isCloudProvider(undefined)).toBe(false);
-      expect(isCloudProvider("")).toBe(false);
     });
   });
 

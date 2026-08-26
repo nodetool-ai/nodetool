@@ -5,7 +5,6 @@
  * compatibility for existing dataTransfer keys.
  */
 
-import { BORDER_RADIUS, FONT_WEIGHT } from "../../components/ui_primitives";
 import type { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import { isArray } from "../../utils/typePredicates";
 import type { DragData, DragDataType } from "./types";
@@ -236,26 +235,4 @@ export function hasExternalFiles(dataTransfer: ExternalFileProbe): boolean {
 
 export function extractFiles(dataTransfer: DataTransfer): File[] {
   return Array.from(dataTransfer.files);
-}
-
-/** Build an off-screen badge element showing `count`, for use as a drag image. */
-export function createDragCountBadge(count: number): HTMLElement {
-  const dragImage = document.createElement("div");
-  dragImage.textContent = count.toString();
-  dragImage.style.cssText = `
-    position: absolute;
-    top: -99999px;
-    background-color: var(--palette-background-paper);
-    color: var(--palette-grey-300);
-    border: 3px solid var(--palette-grey-800);
-    border-radius: ${BORDER_RADIUS.sm};
-    height: 40px;
-    width: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--fontSizeBig);
-    font-weight: ${FONT_WEIGHT.semibold};
-  `;
-  return dragImage;
 }
