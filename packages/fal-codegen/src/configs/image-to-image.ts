@@ -34,14 +34,7 @@ export const config: ModuleConfig = {
       className: "Flux2LoraEdit",
       docstring:
         "FLUX.2 Edit with LoRA weights applies custom-trained styles and subjects while editing an image.",
-      tags: [
-        "editing",
-        "image-to-image",
-        "img2img",
-        "flux",
-        "flux-2",
-        "lora"
-      ],
+      tags: ["editing", "image-to-image", "img2img", "flux", "flux-2", "lora"],
       useCases: [
         "Edit images in a custom-trained style",
         "Insert a fine-tuned subject into a photo",
@@ -5938,6 +5931,299 @@ export const config: ModuleConfig = {
         "Batch processing",
         "Professional applications",
         "Rapid prototyping"
+      ]
+    },
+
+    "bria/fibo-edit-1.5/edit": {
+      className: "BriaFiboEdit15",
+      docstring:
+        "Fibo Edit 1.5 edits an image from a natural-language instruction plus up to four reference images.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "bria",
+        "fibo",
+        "editing",
+        "reference",
+        "licensed"
+      ],
+      useCases: [
+        "Combine a subject with reference objects",
+        "Replace a background from a reference",
+        "Run virtual try-on with a garment image",
+        "Transfer a style from reference images",
+        "Composite characters into a scene"
+      ]
+    },
+
+    "bytedance/seedream/v5/pro/layerize": {
+      className: "BytedanceSeedreamV5ProLayerize",
+      docstring:
+        "Seedream 5.0 Pro Layerize splits an image into 2 to 17 independent transparent-PNG layers described in text.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "seedream",
+        "bytedance",
+        "layers",
+        "editing",
+        "utility"
+      ],
+      useCases: [
+        "Split a composite into editable layers",
+        "Extract a subject onto transparency",
+        "Recover a background plate",
+        "Prepare assets for a design tool",
+        "Enable non-destructive image reuse"
+      ]
+    },
+
+    "google/virtual-try-on": {
+      className: "GoogleVirtualTryOn",
+      docstring:
+        "Google Virtual Try On renders a person image wearing a supplied clothing product image.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "virtual-try-on",
+        "fashion",
+        "ecommerce",
+        "google"
+      ],
+      useCases: [
+        "Show a garment on a model without a shoot",
+        "Build try-on previews for a storefront",
+        "Generate catalog imagery per size run",
+        "Swap outfits on an existing photo",
+        "Preview styling combinations"
+      ]
+    },
+
+    "xai/grok-imagine-image/v2.0/edit": {
+      className: "GrokImagineImageV20Edit",
+      docstring:
+        "Grok Imagine 2.0 edits an existing image from a text instruction.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "editing",
+        "xai",
+        "grok",
+        "grok-imagine"
+      ],
+      useCases: [
+        "Apply a described edit to a photo",
+        "Change an object in an existing image",
+        "Restyle artwork with an instruction",
+        "Fix details without a redraw",
+        "Iterate on an approved composition"
+      ]
+    },
+
+    "topaz/adjust/image": {
+      className: "TopazAdjustImage",
+      docstring:
+        "Topaz Adjust corrects exposure, white balance, and color, and can colorize black-and-white photos.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "topaz",
+        "color-correction",
+        "exposure",
+        "enhancement"
+      ],
+      useCases: [
+        "Fix exposure on an underlit photo",
+        "Remove a color cast",
+        "Colorize a black-and-white image",
+        "Batch-correct a photo set",
+        "Normalize color before publishing"
+      ]
+    },
+
+    "topaz/sharpen/image": {
+      className: "TopazSharpenImage",
+      docstring:
+        "Topaz Sharpen removes lens, motion, portrait, and wildlife blur, with a generative mode for severe blur.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "topaz",
+        "sharpen",
+        "deblur",
+        "enhancement"
+      ],
+      useCases: [
+        "Rescue an out-of-focus shot",
+        "Remove motion blur from action photos",
+        "Sharpen portraits without halos",
+        "Recover severely blurred images",
+        "Prepare soft images for print"
+      ]
+    },
+
+    "topaz/denoise/image": {
+      className: "TopazDenoiseImage",
+      docstring:
+        "Topaz Denoise cleans image noise at source resolution, with a generative mode that recovers detail.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "topaz",
+        "denoise",
+        "noise-reduction",
+        "enhancement"
+      ],
+      useCases: [
+        "Clean high-ISO night photography",
+        "Remove sensor noise from raw exports",
+        "Recover detail lost to noise",
+        "Batch-denoise an event shoot",
+        "Prepare noisy images for upscaling"
+      ]
+    },
+
+    "topaz/restore/image": {
+      className: "TopazRestoreImage",
+      docstring:
+        "Topaz Restore rebuilds detail in degraded photos and removes film dust and scratches.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "topaz",
+        "restoration",
+        "film",
+        "enhancement"
+      ],
+      useCases: [
+        "Restore an old family photograph",
+        "Clean dust and scratches from scans",
+        "Rebuild detail in a degraded image",
+        "Digitize a print archive",
+        "Prepare heritage images for print"
+      ]
+    },
+
+    "topaz/upscale/image/precision": {
+      className: "TopazUpscaleImagePrecision",
+      docstring:
+        "Topaz Gigapixel precision models enlarge images up to 4x while staying faithful to the source.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "topaz",
+        "upscale",
+        "gigapixel",
+        "super-resolution"
+      ],
+      useCases: [
+        "Enlarge a photo for large-format print",
+        "Upscale without inventing detail",
+        "Prepare CGI renders at higher resolution",
+        "Refine text inside an enlarged image",
+        "Scale catalog photography"
+      ]
+    },
+
+    "topaz/upscale/image/generative": {
+      className: "TopazUpscaleImageGenerative",
+      docstring:
+        "Topaz generative upscaling rebuilds sharp detail in small or blurry images, with prompt-guided and extreme-recovery modes.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "topaz",
+        "upscale",
+        "generative",
+        "super-resolution"
+      ],
+      useCases: [
+        "Rebuild detail in a low-resolution source",
+        "Guide an upscale with a prompt",
+        "Recover an extremely small image",
+        "Enlarge web-sized assets for print",
+        "Restore thumbnails to usable size"
+      ]
+    },
+
+    "topaz/upscale/image/creative": {
+      className: "TopazUpscaleImageCreative",
+      docstring:
+        "Topaz creative upscaling reinvents detail with adjustable creativity and color preservation.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "topaz",
+        "upscale",
+        "creative",
+        "super-resolution"
+      ],
+      useCases: [
+        "Enhance AI-generated images at scale",
+        "Add invented detail to flat renders",
+        "Push a stylized image to high resolution",
+        "Trade fidelity for visual impact",
+        "Finish concept art for presentation"
+      ]
+    },
+
+    "topaz/upscale/image/transparent": {
+      className: "TopazUpscaleImageTransparent",
+      docstring:
+        "Topaz transparent upscaling enlarges images while preserving the alpha channel, returning PNG.",
+      tags: [
+        "image-to-image",
+        "img2img",
+        "image",
+        "topaz",
+        "upscale",
+        "transparency",
+        "alpha",
+        "png"
+      ],
+      useCases: [
+        "Upscale a logo without losing alpha",
+        "Enlarge stickers and cutout assets",
+        "Prepare transparent art for print",
+        "Scale UI assets with transparency",
+        "Keep alpha intact through an upscale"
+      ]
+    },
+
+    "hitem3d/hi3d/image-to-relief": {
+      className: "Hi3dImageToRelief",
+      docstring: "Hi3D generates a 3D relief depth map from a single image.",
+      tags: ["image-to-image", "depth", "relief", "3d", "hi3d"],
+      useCases: [
+        "Generate a relief for CNC carving",
+        "Produce a depth map from a photo",
+        "Create embossed artwork",
+        "Prepare a bas-relief for printing",
+        "Derive depth for a parallax effect"
+      ]
+    },
+
+    "fal-ai/workflow-utilities/pick-image-by-index": {
+      className: "WorkflowUtilitiesPickImageByIndex",
+      docstring: "Picks the Nth image from a list of image URLs.",
+      tags: ["utility", "workflow", "image", "list"],
+      useCases: [
+        "Select one image from a batch",
+        "Pick a specific variation to continue with",
+        "Branch a workflow on an index",
+        "Feed one result into the next node",
+        "Reduce a list output to a single image"
       ]
     }
   }

@@ -2924,6 +2924,241 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+
+    "alibaba/wan-3.0-prime/reference-to-video": {
+      className: "Wan30PrimeReferenceToVideo",
+      docstring:
+        "Wan 3.0 Prime combines reference images, video, and audio into one clip with multimodal coherence.",
+      tags: ["video-to-video", "vid2vid", "video", "reference", "wan", "wan-3"],
+      useCases: [
+        "Drive a video from image and audio references",
+        "Keep an identity consistent across takes",
+        "Restyle footage against a reference",
+        "Match motion from a reference clip",
+        "Produce controlled character animation"
+      ]
+    },
+
+    "blackforestlabs/flux-video-upscale": {
+      className: "FluxVideoUpscale",
+      docstring:
+        "FLUX video super-resolution upscales footage to 1080p, 2K, or 4K in a precise or creative detail mode.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "upscale",
+        "super-resolution",
+        "flux",
+        "enhancement"
+      ],
+      useCases: [
+        "Upscale archive footage to 4K",
+        "Sharpen low-resolution clips for delivery",
+        "Enhance AI-generated video before edit",
+        "Prepare social clips for large displays",
+        "Recover detail in compressed footage"
+      ]
+    },
+
+    "minimax/h3/reference-to-video/lora": {
+      className: "MinimaxH3ReferenceToVideoLora",
+      docstring:
+        "MiniMax H3 generates video with synchronized audio from references, with LoRA support.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "reference",
+        "minimax",
+        "h3",
+        "lora",
+        "audio"
+      ],
+      useCases: [
+        "Drive video from reference material",
+        "Combine a LoRA with reference control",
+        "Keep a set and cast consistent",
+        "Restyle references into new shots",
+        "Produce continuity across episodes"
+      ]
+    },
+
+    "topaz/upscale/video/precision": {
+      className: "TopazUpscaleVideoPrecision",
+      docstring:
+        "Topaz precision video models enhance footage up to 4x while staying faithful to the source.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "topaz",
+        "upscale",
+        "super-resolution",
+        "enhancement"
+      ],
+      useCases: [
+        "Upscale real-world footage to 4K",
+        "Enhance interviews without artifacts",
+        "Prepare archive video for delivery",
+        "Scale drone footage faithfully",
+        "Deliver clean natural upscales"
+      ]
+    },
+
+    "topaz/upscale/video/generative": {
+      className: "TopazUpscaleVideoGenerative",
+      docstring:
+        "Topaz Starlight generative video upscaling rebuilds detail absent from the source, with cheaper fast variants.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "topaz",
+        "upscale",
+        "generative",
+        "super-resolution"
+      ],
+      useCases: [
+        "Restore heavily compressed footage",
+        "Rebuild detail in archive video",
+        "Upscale low-quality user clips",
+        "Recover detail lost to re-encoding",
+        "Trade cost for quality with fast variants"
+      ]
+    },
+
+    "topaz/upscale/video/creative": {
+      className: "TopazUpscaleVideoCreative",
+      docstring:
+        "Topaz Astra creative video upscaling reimagines fine detail and typically delivers 4K output.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "topaz",
+        "upscale",
+        "creative",
+        "super-resolution"
+      ],
+      useCases: [
+        "Push a hero shot to maximum impact",
+        "Reimagine detail in cinematic footage",
+        "Finish stylized clips at 4K",
+        "Enhance generated video for delivery",
+        "Add invented texture to flat footage"
+      ]
+    },
+
+    "topaz/denoise/video": {
+      className: "TopazDenoiseVideo",
+      docstring:
+        "Topaz Nyx models remove video noise at source resolution, with a lighter fast pass.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "topaz",
+        "denoise",
+        "noise-reduction",
+        "enhancement"
+      ],
+      useCases: [
+        "Clean low-light footage",
+        "Remove grain from high-ISO clips",
+        "Denoise before upscaling",
+        "Reduce noise in night interviews",
+        "Run a cheaper fast denoise pass"
+      ]
+    },
+
+    "topaz/deblur/video": {
+      className: "TopazDeblurVideo",
+      docstring:
+        "Topaz Themis 2 restores clarity to motion-blurred footage at source resolution.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "topaz",
+        "deblur",
+        "motion-blur",
+        "enhancement"
+      ],
+      useCases: [
+        "Sharpen fast-moving sports footage",
+        "Recover clarity in action clips",
+        "Fix handheld motion blur",
+        "Clean up panning shots",
+        "Prepare blurred footage for upscale"
+      ]
+    },
+
+    "topaz/interpolate/video": {
+      className: "TopazInterpolateVideo",
+      docstring:
+        "Topaz Apollo, Chronos, and Aion retime footage up to 120 fps for smooth motion or slow motion.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "topaz",
+        "interpolate",
+        "frame-rate",
+        "slow-motion"
+      ],
+      useCases: [
+        "Convert 24 fps footage to 60 fps",
+        "Create extreme slow motion",
+        "Smooth stuttering motion",
+        "Retime clips for a timeline",
+        "Generate 120 fps from standard footage"
+      ]
+    },
+
+    "topaz/colorize/video": {
+      className: "TopazColorizeVideo",
+      docstring:
+        "Topaz video colorization brings natural color to black-and-white footage, upscaled to at least 1080p.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "topaz",
+        "colorize",
+        "restoration",
+        "archival"
+      ],
+      useCases: [
+        "Colorize historical footage",
+        "Restore black-and-white home movies",
+        "Prepare archive clips for a documentary",
+        "Add color to vintage advertising",
+        "Modernize monochrome material"
+      ]
+    },
+
+    "topaz/sdr-to-hdr/video": {
+      className: "TopazSdrToHdrVideo",
+      docstring:
+        "Topaz Hyperion 2.5 converts SDR footage to HDR, preserving detail in text, faces, and motion.",
+      tags: [
+        "video-to-video",
+        "vid2vid",
+        "video",
+        "topaz",
+        "hdr",
+        "sdr-to-hdr",
+        "color"
+      ],
+      useCases: [
+        "Give SDR footage an HDR look",
+        "Prepare legacy video for HDR delivery",
+        "Expand dynamic range without clipping",
+        "Grade archive material for HDR displays",
+        "Convert a catalog to HDR"
+      ]
     }
   }
 };

@@ -283,6 +283,50 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+
+    "lightricks/ltx-2.5/audio-to-video/fast": {
+      className: "Ltx25AudioToVideoFast",
+      docstring:
+        "LTX 2.5 generates video timed to a supplied audio clip in a speed-optimized pass.",
+      tags: [
+        "generation",
+        "audio-to-video",
+        "video",
+        "ltx",
+        "ltx-2-5",
+        "lipsync",
+        "fast"
+      ],
+      useCases: [
+        "Preview visuals against a music track",
+        "Draft a dialogue-led short",
+        "Time a clip to an existing voiceover",
+        "Iterate on a music video concept",
+        "Test sync before a final render"
+      ]
+    },
+
+    "lightricks/ltx-2.5/audio-to-video/pro": {
+      className: "Ltx25AudioToVideoPro",
+      docstring:
+        "LTX 2.5 generates video timed to a supplied audio clip in a quality-optimized pass.",
+      tags: [
+        "generation",
+        "audio-to-video",
+        "video",
+        "ltx",
+        "ltx-2-5",
+        "lipsync",
+        "quality"
+      ],
+      useCases: [
+        "Render final visuals for a track",
+        "Produce a music-driven video",
+        "Sync footage to recorded dialogue",
+        "Deliver an ad keyed to a soundtrack",
+        "Finish an approved audio-timed draft"
+      ]
     }
   }
 };

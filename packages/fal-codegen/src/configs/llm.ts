@@ -97,6 +97,20 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+
+    "openrouter/router/enterprise": {
+      className: "OpenRouterEnterprise",
+      docstring:
+        "Runs any OpenRouter LLM through fal on the enterprise routing tier.",
+      tags: ["llm", "text", "chat", "openrouter", "enterprise"],
+      useCases: [
+        "Route prompts to any OpenRouter model",
+        "Compare models behind one endpoint",
+        "Run enterprise-tier inference",
+        "Fall back across providers",
+        "Centralize LLM access through fal"
+      ]
     }
   }
 };

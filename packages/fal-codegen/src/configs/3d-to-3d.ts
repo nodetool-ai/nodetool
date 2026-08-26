@@ -119,6 +119,75 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+
+    "hitem3d/hi3d/texture": {
+      className: "Hi3dTexture",
+      docstring:
+        "Hi3D textures an existing geometry mesh from a reference image.",
+      tags: ["3d-to-3d", "3d", "mesh", "texture", "hi3d"],
+      useCases: [
+        "Texture an untextured mesh",
+        "Apply a reference look to geometry",
+        "Retexture an imported model",
+        "Produce PBR-ready assets",
+        "Match a mesh to concept art"
+      ]
+    },
+
+    "hitem3d/hi3d/split": {
+      className: "Hi3dSplit",
+      docstring: "Hi3D splits a 3D model into separate parts.",
+      tags: ["3d-to-3d", "3d", "mesh", "segmentation", "hi3d"],
+      useCases: [
+        "Split a model for separate printing",
+        "Break a mesh into editable parts",
+        "Prepare components for rigging",
+        "Isolate parts for texturing",
+        "Decompose an asset for reuse"
+      ]
+    },
+
+    "hitem3d/hi3d/multicolor": {
+      className: "Hi3dMulticolor",
+      docstring:
+        "Hi3D converts a textured 3D model into a multicolor model suited to multicolor 3D printing.",
+      tags: ["3d-to-3d", "3d", "mesh", "3d-printing", "color", "hi3d"],
+      useCases: [
+        "Prepare a model for multicolor printing",
+        "Convert textures into printable color",
+        "Produce color-separated geometry",
+        "Ready an asset for a color printer",
+        "Turn a textured mesh into print parts"
+      ]
+    },
+
+    "tripo3d/tripo/remesh": {
+      className: "Tripo3dRemesh",
+      docstring:
+        "Tripo3D converts triangle meshes into clean quad topology at a target polygon count.",
+      tags: ["3d-to-3d", "3d", "mesh", "retopology", "quad", "tripo"],
+      useCases: [
+        "Retopologize a scanned mesh",
+        "Prepare geometry for animation",
+        "Hit a polygon budget for a game",
+        "Clean up generated 3D output",
+        "Convert triangles to quads"
+      ]
+    },
+
+    "tripo3d/tripo/segment": {
+      className: "Tripo3dSegment",
+      docstring:
+        "Tripo3D splits a 3D model into semantic parts for editing, texturing, and rigging.",
+      tags: ["3d-to-3d", "3d", "mesh", "segmentation", "tripo"],
+      useCases: [
+        "Separate a model into named parts",
+        "Prepare a mesh for rigging",
+        "Texture parts independently",
+        "Edit one component of an asset",
+        "Extract parts for reuse"
+      ]
     }
   }
 };

@@ -501,6 +501,104 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+
+    "hitem3d/hi3d/image-to-3d": {
+      className: "Hi3dImageTo3d",
+      docstring: "Hi3D generates a 3D model from a single image.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "hi3d"],
+      useCases: [
+        "Turn a product photo into a mesh",
+        "Generate 3D props from concept art",
+        "Build game assets from references",
+        "Prototype a model from one photo",
+        "Create printable geometry from an image"
+      ]
+    },
+
+    "hitem3d/hi3d/multi-view-to-3d": {
+      className: "Hi3dMultiViewTo3d",
+      docstring:
+        "Hi3D generates a 3D model from several view images of one object.",
+      tags: ["generation", "image-to-3d", "multiview", "3d", "mesh", "hi3d"],
+      useCases: [
+        "Reconstruct an object from photos",
+        "Build a mesh from turntable shots",
+        "Improve accuracy over single-image 3D",
+        "Digitize a physical product",
+        "Generate game assets from reference sheets"
+      ]
+    },
+
+    "hitem3d/hi3d/v3.0/image-to-3d": {
+      className: "Hi3dV30ImageTo3d",
+      docstring: "Hi3D V3.0 generates a 3D model from a single image.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "hi3d", "v3"],
+      useCases: [
+        "Generate a mesh from one photo",
+        "Convert concept art to 3D",
+        "Produce game-ready props",
+        "Prototype geometry for print",
+        "Rebuild an object from a reference"
+      ]
+    },
+
+    "hitem3d/hi3d/v3.0/multi-view-to-3d": {
+      className: "Hi3dV30MultiViewTo3d",
+      docstring:
+        "Hi3D V3.0 generates a 3D model from several view images of one object.",
+      tags: [
+        "generation",
+        "image-to-3d",
+        "multiview",
+        "3d",
+        "mesh",
+        "hi3d",
+        "v3"
+      ],
+      useCases: [
+        "Reconstruct an object from multiple angles",
+        "Digitize a product for a catalog",
+        "Build accurate meshes from photo sets",
+        "Generate assets from reference sheets",
+        "Capture geometry without a scanner"
+      ]
+    },
+
+    "meshy/v7/image-to-3d": {
+      className: "MeshyV7ImageTo3d",
+      docstring:
+        "Meshy V7 turns a single image into a textured PBR-ready mesh with game-ready topology.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "pbr", "meshy"],
+      useCases: [
+        "Convert concept art to a game asset",
+        "Generate a mesh from a product photo",
+        "Produce PBR textures automatically",
+        "Control polygon count for engines",
+        "Prototype 3D from a single image"
+      ]
+    },
+
+    "meshy/v7/multi-image-to-3d": {
+      className: "MeshyV7MultiImageTo3d",
+      docstring:
+        "Meshy V7 reconstructs a textured mesh from several angle views of one object, with polygon control.",
+      tags: [
+        "generation",
+        "image-to-3d",
+        "multiview",
+        "3d",
+        "mesh",
+        "pbr",
+        "meshy"
+      ],
+      useCases: [
+        "Reconstruct an object from photo sets",
+        "Improve fidelity over single-image 3D",
+        "Digitize props for a game",
+        "Produce game-ready topology from photos",
+        "Capture geometry without a scanner"
+      ]
     }
   }
 };

@@ -3228,6 +3228,209 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+
+    "alibaba/wan-3.0/image-to-video": {
+      className: "Wan30ImageToVideo",
+      docstring:
+        "Wan 3.0 animates a still image into video while keeping the source composition and identity.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "wan",
+        "wan-3"
+      ],
+      useCases: [
+        "Animate a product photo",
+        "Bring a character illustration to life",
+        "Add camera movement to a still",
+        "Turn concept art into motion",
+        "Extend a photo into a short clip"
+      ]
+    },
+
+    "alibaba/wan-3.0/reference-to-video": {
+      className: "Wan30ReferenceToVideo",
+      docstring:
+        "Wan 3.0 generates video that follows reference images for character, style, and scene consistency.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "reference",
+        "wan",
+        "wan-3"
+      ],
+      useCases: [
+        "Keep one character consistent across shots",
+        "Lock a visual style from references",
+        "Reuse a set across scenes",
+        "Generate variations of a referenced subject",
+        "Match brand art direction in video"
+      ]
+    },
+
+    "alibaba/wan-3.0-prime/image-to-video": {
+      className: "Wan30PrimeImageToVideo",
+      docstring:
+        "Wan 3.0 Prime animates a still image into video with rapid turnaround and natural motion.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "wan",
+        "wan-3",
+        "fast"
+      ],
+      useCases: [
+        "Animate stills quickly for review",
+        "Add motion to product photography",
+        "Preview an animation direction",
+        "Generate looping clips from art",
+        "Batch-animate a photo set"
+      ]
+    },
+
+    "bytedance/seedance-2.5/image-to-video": {
+      className: "BytedanceSeedance25ImageToVideo",
+      docstring:
+        "Seedance 2.5 animates one still into a native 30-second clip at up to 720p without multi-clip stitching.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "seedance",
+        "bytedance",
+        "long-form"
+      ],
+      useCases: [
+        "Extend a single frame into a long take",
+        "Animate key art into a full shot",
+        "Produce drift-free long animation",
+        "Turn a photo into a 30-second clip",
+        "Generate continuous motion from a still"
+      ]
+    },
+
+    "bytedance/seedance-2.5/reference-to-video": {
+      className: "BytedanceSeedance25ReferenceToVideo",
+      docstring:
+        "Seedance 2.5 generates video from up to 50 image, video, audio, and style references, locking character and palette across a 30-second take.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "reference",
+        "seedance",
+        "bytedance",
+        "long-form"
+      ],
+      useCases: [
+        "Lock a character across a long take",
+        "Hold a set and palette consistent",
+        "Drive video from many reference inputs",
+        "Match an existing production look",
+        "Generate continuity-safe scenes"
+      ]
+    },
+
+    "lightricks/ltx-2.5/image-to-video/fast": {
+      className: "Ltx25ImageToVideoFast",
+      docstring:
+        "LTX 2.5 animates a still into video with synchronized audio in a speed-optimized pass.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "ltx",
+        "ltx-2-5",
+        "audio",
+        "fast"
+      ],
+      useCases: [
+        "Preview how a still will animate",
+        "Iterate on motion direction cheaply",
+        "Animate key art with sound",
+        "Batch-draft clips from a photo set",
+        "Test a shot before a quality render"
+      ]
+    },
+
+    "lightricks/ltx-2.5/image-to-video/pro": {
+      className: "Ltx25ImageToVideoPro",
+      docstring:
+        "LTX 2.5 animates a still into video with synchronized audio in a quality-optimized pass.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "ltx",
+        "ltx-2-5",
+        "audio",
+        "quality"
+      ],
+      useCases: [
+        "Deliver a final animated still",
+        "Produce high-fidelity motion from key art",
+        "Animate product photography with sound",
+        "Finish an approved motion draft",
+        "Create polished clips from images"
+      ]
+    },
+
+    "minimax/h3/image-to-video/lora": {
+      className: "MinimaxH3ImageToVideoLora",
+      docstring:
+        "MiniMax H3 animates an image into video with synchronized audio, with LoRA support for subject consistency.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "minimax",
+        "h3",
+        "lora",
+        "audio"
+      ],
+      useCases: [
+        "Animate a still with a trained subject",
+        "Hold character identity across clips",
+        "Apply a custom style to animation",
+        "Generate video with matching audio",
+        "Produce consistent series content"
+      ]
+    },
+
+    "mirage-api/avatar-x/reference-to-video": {
+      className: "AvatarXReferenceToVideo",
+      docstring:
+        "Avatar X generates a talking-head video from reference material, preserving the referenced identity.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "video",
+        "avatar",
+        "lipsync",
+        "talking-head",
+        "reference",
+        "mirage"
+      ],
+      useCases: [
+        "Animate a reference portrait as a presenter",
+        "Keep one avatar identity across videos",
+        "Produce lip-synced spokesperson clips",
+        "Reuse a cast member in new scripts",
+        "Generate consistent avatar series"
+      ]
     }
   }
 };

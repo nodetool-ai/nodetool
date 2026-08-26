@@ -148,6 +148,20 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+
+    "meshy/v7/text-to-3d": {
+      className: "MeshyV7TextTo3d",
+      docstring:
+        "Meshy V7 generates a textured PBR-ready mesh from text, with game-ready topology at a target polygon count.",
+      tags: ["generation", "text-to-3d", "3d", "mesh", "pbr", "meshy"],
+      useCases: [
+        "Generate a game prop from a prompt",
+        "Create PBR assets without modelling",
+        "Hit a polygon budget from text",
+        "Prototype 3D concepts quickly",
+        "Fill an asset library from descriptions"
+      ]
     }
   }
 };

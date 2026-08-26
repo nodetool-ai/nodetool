@@ -717,6 +717,27 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+
+    "minimax/music-3": {
+      className: "MinimaxMusic3",
+      docstring:
+        "MiniMax Music 3 generates complete songs up to five minutes long from a prompt and lyrics.",
+      tags: [
+        "generation",
+        "audio",
+        "music",
+        "text-to-audio",
+        "song",
+        "minimax"
+      ],
+      useCases: [
+        "Generate a full-length song from a brief",
+        "Write backing music for a video",
+        "Produce royalty-free tracks",
+        "Turn lyrics into a finished song",
+        "Create theme music for a product"
+      ]
     }
   }
 };
