@@ -472,19 +472,21 @@ async function instantiateProvider(
 }
 
 async function getProvidersInfo(userId = "1"): Promise<ProviderInfo[]> {
-  const infos: ProviderInfo[] = [];
-  for (const provider of await getAvailableProviderIds(userId)) {
-    const instance = await instantiateProvider(provider, userId);
-    if (!instance) continue;
-    const metadata = getRegisteredProvider(provider)?.metadata;
-    infos.push({
-      provider,
-      capabilities: instance.getCapabilities(),
-      access: metadata?.access ?? "remote_api",
-      display_name: metadata?.displayName ?? provider
-    });
-  }
-  return infos;
+  const providerIds = await getAvailableProviderIds(userId);
+  const infos = await Promise.all(
+    providerIds.map(async (provider) => {
+      const instance = await instantiateProvider(provider, userId);
+      if (!instance) return null;
+      const metadata = getRegisteredProvider(provider)?.metadata;
+      return {
+        provider,
+        capabilities: instance.getCapabilities() as string[],
+        access: metadata?.access ?? "remote_api",
+        display_name: metadata?.displayName ?? provider
+      };
+    })
+  );
+  return infos.filter((info): info is ProviderInfo => info !== null);
 }
 
 async function withProvider<T>(
