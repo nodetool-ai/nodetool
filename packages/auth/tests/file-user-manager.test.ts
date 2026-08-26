@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { FileUserManager } from "../src/file-user-manager.js";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -109,12 +110,15 @@ describe("FileUserManager.resetToken", () => {
 
   it("the new token is persisted", async () => {
     await manager.addUser("henry");
+    const before = await manager.getUser("henry");
     const { token: newToken } = await manager.resetToken("henry");
+
     const manager2 = new FileUserManager(usersFilePath);
     const stored = await manager2.getUser("henry");
-    // We cannot read back the raw token (only hash stored), but the userId must match.
-    expect(stored).not.toBeNull();
-    expect(newToken).toBeTruthy();
+    expect(stored!.tokenHash).toBe(
+      createHash("sha256").update(newToken).digest("hex")
+    );
+    expect(stored!.tokenHash).not.toBe(before!.tokenHash);
   });
 
   it("preserves the stored record's identity fields after reset", async () => {
@@ -206,8 +210,10 @@ describe("USERS_FILE env var", () => {
     try {
       const m = new FileUserManager();
       await m.addUser("envuser");
-      const user = await m.getUser("envuser");
-      expect(user).not.toBeNull();
+      const raw = JSON.parse(await readFile(envPath, "utf8")) as {
+        users: Record<string, unknown>;
+      };
+      expect(Object.keys(raw.users)).toEqual(["envuser"]);
     } finally {
       delete process.env["USERS_FILE"];
     }
