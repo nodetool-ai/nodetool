@@ -508,6 +508,163 @@ describe("createAtlasNodeClass.process", () => {
     });
   });
 
+  it("merges wrapInto asset fields into one {url, type} array", async () => {
+    const submitted: { body: unknown } = { body: null };
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/generateVideo")) {
+        submitted.body = JSON.parse(init!.body as string);
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { id: "r" } })
+        } as Response;
+      }
+      if (u.includes("/prediction/r")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({
+              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
+            })
+        } as Response;
+      }
+      if (u === "https://cdn/out.mp4") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([1]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const Cls = createAtlasNodeClass(
+      makeSpec({
+        modality: "video",
+        outputType: "video",
+        modelId: "test/model/r2v",
+        fields: [
+          { name: "prompt", type: "str", default: "" },
+          {
+            name: "reference_images",
+            type: "list[image]",
+            wrapInto: "refers",
+            default: null
+          },
+          {
+            name: "reference_videos",
+            type: "list[video]",
+            wrapInto: "refers",
+            default: null
+          },
+          {
+            name: "reference_audios",
+            type: "list[audio]",
+            wrapInto: "refers",
+            default: null
+          }
+        ]
+      })
+    ) as unknown as new () => {
+      prompt: string;
+      reference_images: unknown;
+      reference_videos: unknown;
+      reference_audios: unknown;
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (k: string, v: unknown) => void;
+    };
+    const node = new Cls();
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    node.prompt = "dance to this";
+    node.reference_images = [
+      { uri: "https://input/a.png" },
+      { uri: "https://input/b.png" }
+    ];
+    node.reference_videos = [{ uri: "https://input/c.mp4" }];
+    node.reference_audios = [{ uri: "https://input/d.mp3" }];
+
+    await node.process({ storage: null });
+
+    // One mixed array in manifest field order, each entry tagged with the
+    // media kind its input declared — never the per-kind field names.
+    expect(submitted.body).toEqual({
+      model: "test/model/r2v",
+      prompt: "dance to this",
+      refers: [
+        { url: "https://input/a.png", type: "image" },
+        { url: "https://input/b.png", type: "image" },
+        { url: "https://input/c.mp4", type: "video" },
+        { url: "https://input/d.mp3", type: "audio" }
+      ]
+    });
+  });
+
+  it("omits the wrapInto array entirely when no reference is wired", async () => {
+    const submitted: { body: unknown } = { body: null };
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/generateVideo")) {
+        submitted.body = JSON.parse(init!.body as string);
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { id: "r" } })
+        } as Response;
+      }
+      if (u.includes("/prediction/r")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({
+              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
+            })
+        } as Response;
+      }
+      if (u === "https://cdn/out.mp4") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([1]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const Cls = createAtlasNodeClass(
+      makeSpec({
+        modality: "video",
+        outputType: "video",
+        modelId: "test/model/r2v",
+        fields: [
+          { name: "prompt", type: "str", default: "" },
+          {
+            name: "reference_images",
+            type: "list[image]",
+            wrapInto: "refers",
+            default: null
+          }
+        ]
+      })
+    ) as unknown as new () => {
+      prompt: string;
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (k: string, v: unknown) => void;
+    };
+    const node = new Cls();
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    node.prompt = "no references";
+
+    await node.process({ storage: null });
+
+    expect(submitted.body).toEqual({
+      model: "test/model/r2v",
+      prompt: "no references"
+    });
+  });
+
   it("resolves list[image] fields element-by-element", async () => {
     const submitted: { body: unknown } = { body: null };
     global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
@@ -914,6 +1071,22 @@ describe("atlascloud-manifest", () => {
       .filter((e) => e.fields.some((f) => f.name === "return_last_frame"))
       .map((e) => e.className);
     expect(offenders).toEqual([]);
+  });
+
+  it("only wraps asset fields, and never collides with a declared field name", () => {
+    const wrapped = manifest.flatMap((e) =>
+      e.fields
+        .filter((f) => f.wrapInto !== undefined)
+        .map((f) => ({ entry: e, field: f }))
+    );
+    // Wan 3.0 / Wan 3.0 Prime / MiniMax H3 reference-to-video: 3 inputs each.
+    expect(wrapped.length).toBe(9);
+    for (const { entry, field } of wrapped) {
+      expect(field.type).toMatch(/^list\[(image|video|audio)\]$/);
+      // The wrap target is the API parameter, so no node property may claim it
+      // — the factory would overwrite one with the wrapped array.
+      expect(entry.fields.some((f) => f.name === field.wrapInto)).toBe(false);
+    }
   });
 
   it("models multi-image edit inputs as list[image], not a single wrapped image", () => {

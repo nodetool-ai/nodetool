@@ -3,8 +3,9 @@
 AtlasCloud.ai nodes for [NodeTool](https://nodetool.ai).
 
 Run [AtlasCloud](https://www.atlascloud.ai) image and video models inside NodeTool
-workflows — GPT Image, Nano Banana, Seedream, Qwen Image and Wan for images;
-Seedance, Veo, Kling, Wan, HappyHorse and Grok Imagine for video.
+workflows — GPT Image, Nano Banana, Seedream, Qwen Image, Reve, Youchuan and Wan
+for images; Seedance, Veo, Kling, Wan, MiniMax, HappyHorse and Grok Imagine for
+video.
 
 Node fields are generated from AtlasCloud's published model schemas. Re-sync them
 with `node scripts/sync-atlascloud-manifest.mjs` (or `--check` to detect drift).
@@ -26,6 +27,8 @@ npm install @nodetool-ai/atlascloud-nodes
 | GPT Image 1.5 — Text to Image | `atlascloud.image.GPTImage15TextToImage` |
 | GPT Image 2 — Edit | `atlascloud.image.GPTImage2Edit` |
 | GPT Image 2 — Text to Image | `atlascloud.image.GPTImage2TextToImage` |
+| Grok Imagine Image 2.0 — Edit | `atlascloud.image.GrokImagineImage2Edit` |
+| Grok Imagine Image 2.0 — Text to Image | `atlascloud.image.GrokImagineImage2TextToImage` |
 | Grok Imagine Image Quality — Edit | `atlascloud.image.GrokImagineImageQualityEdit` |
 | Grok Imagine Image Quality — Text to Image | `atlascloud.image.GrokImagineImageQualityTextToImage` |
 | MAI Image 2.5 — Edit | `atlascloud.image.MaiImage25Edit` |
@@ -43,6 +46,13 @@ npm install @nodetool-ai/atlascloud-nodes
 | Qwen Image 2.0 — Text to Image | `atlascloud.image.QwenImage2TextToImage` |
 | Qwen Image 2.0 Pro — Edit | `atlascloud.image.QwenImage2ProEdit` |
 | Qwen Image 2.0 Pro — Text to Image | `atlascloud.image.QwenImage2ProTextToImage` |
+| Qwen Image 3.0 — Edit | `atlascloud.image.QwenImage3Edit` |
+| Qwen Image 3.0 — Text to Image | `atlascloud.image.QwenImage3TextToImage` |
+| Qwen Image 3.0 Pro — Edit | `atlascloud.image.QwenImage3ProEdit` |
+| Qwen Image 3.0 Pro — Text to Image | `atlascloud.image.QwenImage3ProTextToImage` |
+| Reve 2.1 — Edit | `atlascloud.image.Reve21Edit` |
+| Reve 2.1 — Remix | `atlascloud.image.Reve21Remix` |
+| Reve 2.1 — Text to Image | `atlascloud.image.Reve21TextToImage` |
 | Seedream v5.0 Lite — Edit | `atlascloud.image.SeedreamV5LiteEdit` |
 | Seedream v5.0 Lite — Text to Image | `atlascloud.image.SeedreamV5LiteTextToImage` |
 | Seedream v5.0 Pro — Edit | `atlascloud.image.SeedreamV5ProEdit` |
@@ -56,6 +66,11 @@ npm install @nodetool-ai/atlascloud-nodes
 | Youchuan v8.1 — Remove Background | `atlascloud.image.YouchuanV81RemoveBackground` |
 | Youchuan v8.1 — Style Transfer | `atlascloud.image.YouchuanV81StyleTransfer` |
 | Youchuan v8.1 — Text to Image | `atlascloud.image.YouchuanV81TextToImage` |
+| Youchuan v8.2 — Blend | `atlascloud.image.YouchuanV82Blend` |
+| Youchuan v8.2 — Image to Image | `atlascloud.image.YouchuanV82ImageToImage` |
+| Youchuan v8.2 — Remove Background | `atlascloud.image.YouchuanV82RemoveBackground` |
+| Youchuan v8.2 — Style Transfer | `atlascloud.image.YouchuanV82StyleTransfer` |
+| Youchuan v8.2 — Text to Image | `atlascloud.image.YouchuanV82TextToImage` |
 | Z-Image Turbo — Text to Image | `atlascloud.image.ZImageTurboTextToImage` |
 | Avatar Omni Human 1.5 — Audio to Video | `atlascloud.video.AvatarOmniHuman15` |
 | Gemini Omni Flash — Image to Video | `atlascloud.video.GeminiOmniFlashImageToVideo` |
@@ -74,6 +89,9 @@ npm install @nodetool-ai/atlascloud-nodes
 | Kling v3.0 Turbo — Text to Video | `atlascloud.video.KlingV3TurboTextToVideo` |
 | Kling Video O3 4K — Image to Video | `atlascloud.video.KlingVideoO34kImageToVideo` |
 | Kling Video O3 4K — Text to Video | `atlascloud.video.KlingVideoO34kTextToVideo` |
+| MiniMax H3 — Image to Video | `atlascloud.video.MinimaxH3ImageToVideo` |
+| MiniMax H3 — Reference to Video | `atlascloud.video.MinimaxH3ReferenceToVideo` |
+| MiniMax H3 — Text to Video | `atlascloud.video.MinimaxH3TextToVideo` |
 | Seedance 2.0 — Image to Video | `atlascloud.video.Seedance2ImageToVideo` |
 | Seedance 2.0 — Reference to Video | `atlascloud.video.Seedance2ReferenceToVideo` |
 | Seedance 2.0 — Text to Video | `atlascloud.video.Seedance2TextToVideo` |
@@ -83,6 +101,9 @@ npm install @nodetool-ai/atlascloud-nodes
 | Seedance 2.0 Mini — Image to Video | `atlascloud.video.Seedance2MiniImageToVideo` |
 | Seedance 2.0 Mini — Reference to Video | `atlascloud.video.Seedance2MiniReferenceToVideo` |
 | Seedance 2.0 Mini — Text to Video | `atlascloud.video.Seedance2MiniTextToVideo` |
+| Seedance 2.5 — Image to Video | `atlascloud.video.Seedance25ImageToVideo` |
+| Seedance 2.5 — Reference to Video | `atlascloud.video.Seedance25ReferenceToVideo` |
+| Seedance 2.5 — Text to Video | `atlascloud.video.Seedance25TextToVideo` |
 | Veo 3.1 — Image to Video | `atlascloud.video.Veo31ImageToVideo` |
 | Veo 3.1 — Text to Video | `atlascloud.video.Veo31TextToVideo` |
 | Veo 3.1 Fast — Image to Video | `atlascloud.video.Veo31FastImageToVideo` |
@@ -91,7 +112,14 @@ npm install @nodetool-ai/atlascloud-nodes
 | Veo 3.1 Lite — Text to Video | `atlascloud.video.Veo31LiteTextToVideo` |
 | Wan 2.7 — Image to Video | `atlascloud.video.Wan27ImageToVideo` |
 | Wan 2.7 — Text to Video | `atlascloud.video.Wan27TextToVideo` |
+| Wan 3.0 — Image to Video | `atlascloud.video.Wan30ImageToVideo` |
+| Wan 3.0 — Reference to Video | `atlascloud.video.Wan30ReferenceToVideo` |
+| Wan 3.0 — Text to Video | `atlascloud.video.Wan30TextToVideo` |
+| Wan 3.0 Prime — Image to Video | `atlascloud.video.Wan30PrimeImageToVideo` |
+| Wan 3.0 Prime — Reference to Video | `atlascloud.video.Wan30PrimeReferenceToVideo` |
+| Wan 3.0 Prime — Text to Video | `atlascloud.video.Wan30PrimeTextToVideo` |
 | Youchuan v8.1 — Image to Video | `atlascloud.video.YouchuanV81ImageToVideo` |
+| Youchuan v8.2 — Image to Video | `atlascloud.video.YouchuanV82ImageToVideo` |
 
 ## Configuration
 

@@ -5269,5 +5269,2470 @@
         "description": "The random seed to use for the generation. -1 means a random seed will be used."
       }
     ]
+  },
+  {
+    "className": "Wan30TextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-3.0/text-to-video",
+    "outputType": "video",
+    "title": "Wan 3.0 — Text to Video",
+    "description": "AtlasCloud / Alibaba Wan 3.0 — cinematic video from a text prompt, up to 30s with native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the scene, subject, and action (up to 20000 characters).",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output resolution. Native tiers: 480p, 720p, 1080p. ESR tiers: 720p-esr, 1080p-esr, 1440p-esr, 4k-esr.",
+        "values": [
+          "1080p",
+          "720p",
+          "480p",
+          "720p-esr",
+          "1080p-esr",
+          "1440p-esr",
+          "4k-esr"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video length in seconds (2-30). Pass -1 for smart-duration (the model picks the best length).",
+        "values": [
+          -1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose.",
+        "values": [
+          "adaptive",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether the output video includes an audio track. Same price either way."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "Wan30ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-3.0/image-to-video",
+    "outputType": "video",
+    "title": "Wan 3.0 — Image to Video",
+    "description": "AtlasCloud / Alibaba Wan 3.0 — animates a first frame (and an optional last frame) into cinematic video.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the motion / action for the video (up to 20000 characters).",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First frame of the video (strict first-frame mode). Public URL. Formats: jpeg, jpg, png (no alpha), bmp, webp. Single edge 240-8000px, aspect ratio <= 8:1, <= 20MB.",
+        "required": true
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame Image",
+        "description": "Optional last frame of the video. When provided, the model interpolates from the first frame to this one. Same format limits as 'image'."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output resolution. Native tiers: 480p, 720p, 1080p. ESR tiers: 720p-esr, 1080p-esr, 1440p-esr, 4k-esr.",
+        "values": [
+          "1080p",
+          "720p",
+          "480p",
+          "720p-esr",
+          "1080p-esr",
+          "1440p-esr",
+          "4k-esr"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video length in seconds (2-30). Pass -1 for smart-duration (the model picks the best length).",
+        "values": [
+          -1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      {
+        "name": "audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether the output video includes an audio track. Same price either way."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "Wan30ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-3.0/reference-to-video",
+    "outputType": "video",
+    "title": "Wan 3.0 — Reference to Video",
+    "description": "AtlasCloud / Alibaba Wan 3.0 — generates video from reference images, videos and audio. Up to 20 references per request.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the scene and action for the referenced subjects (up to 20000 characters).",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor the generation. Formats: jpeg, jpg, png, bmp, webp. Reference mode is mutually exclusive with the first/last-frame mode.",
+        "wrapInto": "refers"
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference videos that anchor the generation. Formats: mp4, mov.",
+        "wrapInto": "refers"
+      },
+      {
+        "name": "reference_audios",
+        "type": "list[audio]",
+        "default": null,
+        "title": "Reference Audios",
+        "description": "Reference audio that anchors the generation. Formats: wav, mp3.",
+        "wrapInto": "refers"
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output resolution. Native tiers: 480p, 720p, 1080p. ESR tiers: 720p-esr, 1080p-esr, 1440p-esr, 4k-esr.",
+        "values": [
+          "1080p",
+          "720p",
+          "480p",
+          "720p-esr",
+          "1080p-esr",
+          "1440p-esr",
+          "4k-esr"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video length in seconds (2-30). Pass -1 for smart-duration (the model picks the best length).",
+        "values": [
+          -1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose from the references.",
+        "values": [
+          "adaptive",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether the output video includes an audio track. Same price either way."
+      },
+      {
+        "name": "enable_thinking",
+        "type": "bool",
+        "default": false,
+        "title": "Enable Thinking",
+        "description": "Enable deep thinking mode. Required when providing a file or link input (document / webpage parsing). Not recommended when no file/link is provided."
+      },
+      {
+        "name": "file",
+        "type": "str",
+        "default": "",
+        "title": "Document URL",
+        "description": "Optional document input to parse (requires enable_thinking). Public URL. Formats: docx, doc, xlsx, xls, pptx, ppt, pdf, txt, key, pages, numbers, md; <= 100MB, <= 50 pages."
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "default": "",
+        "title": "Webpage URL",
+        "description": "Optional public webpage URL to parse (requires enable_thinking). Only pages that need no login. Mutually exclusive with 'file'."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "Wan30PrimeTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-3.0-prime/text-to-video",
+    "outputType": "video",
+    "title": "Wan 3.0 Prime — Text to Video",
+    "description": "AtlasCloud / Alibaba Wan 3.0 Prime — hyper-real video from a text prompt, up to 30s with native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the scene, subject, and action (up to 20000 characters).",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output resolution. Native tiers: 480p, 720p, 1080p. ESR tiers: 720p-esr, 1080p-esr, 1440p-esr, 4k-esr.",
+        "values": [
+          "1080p",
+          "720p",
+          "480p",
+          "720p-esr",
+          "1080p-esr",
+          "1440p-esr",
+          "4k-esr"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video length in seconds (2-30). Pass -1 for smart-duration (the model picks the best length).",
+        "values": [
+          -1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose.",
+        "values": [
+          "adaptive",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether the output video includes an audio track. Same price either way."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "Wan30PrimeImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-3.0-prime/image-to-video",
+    "outputType": "video",
+    "title": "Wan 3.0 Prime — Image to Video",
+    "description": "AtlasCloud / Alibaba Wan 3.0 Prime — animates a first frame (and an optional last frame) into hyper-real video.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the motion / action for the video (up to 20000 characters).",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First frame of the video (strict first-frame mode). Public URL. Formats: jpeg, jpg, png (no alpha), bmp, webp. Single edge 240-8000px, aspect ratio <= 8:1, <= 20MB.",
+        "required": true
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame Image",
+        "description": "Optional last frame of the video. When provided, the model interpolates from the first frame to this one. Same format limits as 'image'."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output resolution. Native tiers: 480p, 720p, 1080p. ESR tiers: 720p-esr, 1080p-esr, 1440p-esr, 4k-esr.",
+        "values": [
+          "1080p",
+          "720p",
+          "480p",
+          "720p-esr",
+          "1080p-esr",
+          "1440p-esr",
+          "4k-esr"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video length in seconds (2-30). Pass -1 for smart-duration (the model picks the best length).",
+        "values": [
+          -1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      {
+        "name": "audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether the output video includes an audio track. Same price either way."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "Wan30PrimeReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-3.0-prime/reference-to-video",
+    "outputType": "video",
+    "title": "Wan 3.0 Prime — Reference to Video",
+    "description": "AtlasCloud / Alibaba Wan 3.0 Prime — generates video from reference images, videos and audio. Up to 20 references per request.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the scene and action for the referenced subjects (up to 20000 characters).",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor the generation. Formats: jpeg, jpg, png, bmp, webp. Reference mode is mutually exclusive with the first/last-frame mode.",
+        "wrapInto": "refers"
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference videos that anchor the generation. Formats: mp4, mov.",
+        "wrapInto": "refers"
+      },
+      {
+        "name": "reference_audios",
+        "type": "list[audio]",
+        "default": null,
+        "title": "Reference Audios",
+        "description": "Reference audio that anchors the generation. Formats: wav, mp3.",
+        "wrapInto": "refers"
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output resolution. Native tiers: 480p, 720p, 1080p. ESR tiers: 720p-esr, 1080p-esr, 1440p-esr, 4k-esr.",
+        "values": [
+          "1080p",
+          "720p",
+          "480p",
+          "720p-esr",
+          "1080p-esr",
+          "1440p-esr",
+          "4k-esr"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video length in seconds (2-30). Pass -1 for smart-duration (the model picks the best length).",
+        "values": [
+          -1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose from the references.",
+        "values": [
+          "adaptive",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether the output video includes an audio track. Same price either way."
+      },
+      {
+        "name": "enable_thinking",
+        "type": "bool",
+        "default": true,
+        "title": "Enable Thinking",
+        "description": "Enable deep thinking mode. Required when providing a file or link input (document / webpage parsing). Not recommended when no file/link is provided."
+      },
+      {
+        "name": "file",
+        "type": "str",
+        "default": "",
+        "title": "Document URL",
+        "description": "Optional document input to parse (requires enable_thinking). Public URL. Formats: docx, doc, xlsx, xls, pptx, ppt, pdf, txt, key, pages, numbers, md; <= 100MB, <= 50 pages."
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "default": "",
+        "title": "Webpage URL",
+        "description": "Optional public webpage URL to parse (requires enable_thinking). Only pages that need no login. Mutually exclusive with 'file'."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "Seedance25TextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.5/text-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.5 — Text to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.5 — generates video from text with native audio, up to 30s and 4K.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "A golden retriever running on a sunny beach, waves crashing in the background, cinematic lighting",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video. Supports Chinese and English. Recommended length: Chinese < 500 characters, English < 1000 words.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds (4-30), or -1 for model to choose automatically.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution. 480p, 720p, and 1080p are native Seedance outputs.",
+        "values": [
+          "480p",
+          "720p",
+          "720p-sr",
+          "720p-esr",
+          "1080p",
+          "1080p-sr",
+          "1080p-esr",
+          "1080p-esr & 60fps",
+          "1440p-sr",
+          "1440p-esr",
+          "4k-esr"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio. 'adaptive' automatically selects based on prompt context.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate synchronized audio (voice, sound effects, background music)."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark",
+        "description": "Whether to add a watermark."
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "mp4",
+        "title": "Output Format",
+        "description": "Output video container format. 'mp4' is the default; 'mov' encodes yuv444p for higher color fidelity, suited to multi-round editing/extension pipelines where recompression loss acc…",
+        "values": [
+          "mp4",
+          "mov"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Seedance25ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.5/image-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.5 — Image to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.5 — animates a first frame (and an optional last frame) into video with native audio.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "The scene comes alive with gentle motion and cinematic lighting",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video motion. Optional but recommended."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First-frame image URL, Base64, or asset reference (asset://<ASSET_ID>). The video starts from this image.",
+        "required": true
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame Image",
+        "description": "Last-frame image URL, Base64, or asset reference. The video transitions from the first frame to this last frame. Same format requirements as image."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds (4-30), or -1 for model to choose automatically.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution. 480p, 720p, and 1080p are native Seedance outputs.",
+        "values": [
+          "480p",
+          "720p",
+          "720p-sr",
+          "720p-esr",
+          "1080p",
+          "1080p-sr",
+          "1080p-esr",
+          "1080p-esr & 60fps",
+          "1440p-sr",
+          "1440p-esr",
+          "4k-esr"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio. Seedance 2.5 image-to-video (first-frame and first+last-frame) accepts only 'adaptive': the output preserves the source image's aspect ratio.",
+        "values": [
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate synchronized audio."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark",
+        "description": "Whether to add a watermark."
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "mp4",
+        "title": "Output Format",
+        "description": "Output video container format. 'mp4' is the default; 'mov' encodes yuv444p for higher color fidelity, suited to multi-round editing/extension pipelines where recompression loss acc…",
+        "values": [
+          "mp4",
+          "mov"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Seedance25ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.5/reference-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.5 — Reference to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.5 — generates video from reference images, videos and audio. Audio-only referencing drives pacing and lip-sync.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "The character in image 1 dances gracefully to the music",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video. Cite reference inputs in submission order with @-syntax: @Image1, @Video1, @Audio1, etc. Prompts phrased as EDITING an input video (e.g."
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference image URLs, Base64, or asset references (asset://<ASSET_ID>). Up to 30 images for character/style/scene references, video editing, or combined generation."
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference video URLs or asset references for multimodal reference, video editing, or extension. Up to 10 videos."
+      },
+      {
+        "name": "reference_audios",
+        "type": "list[audio]",
+        "default": null,
+        "title": "Reference Audios",
+        "description": "Reference audio URLs, Base64, or asset references. Formats: wav/mp3, duration [2,30]s per clip, max 15MB each."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds (4-30), or -1 for the model to choose automatically.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution. 480p, 720p, and 1080p are native Seedance outputs.",
+        "values": [
+          "480p",
+          "720p",
+          "720p-sr",
+          "720p-esr",
+          "1080p",
+          "1080p-sr",
+          "1080p-esr",
+          "1080p-esr & 60fps",
+          "1440p-sr",
+          "1440p-esr",
+          "4k-esr"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio. 'adaptive' uses the primary media aspect ratio.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate synchronized audio."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark",
+        "description": "Whether to add a watermark."
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "mp4",
+        "title": "Output Format",
+        "description": "Output video container format. 'mp4' is the default; 'mov' encodes yuv444p for higher color fidelity, suited to multi-round editing/extension pipelines where recompression loss acc…",
+        "values": [
+          "mp4",
+          "mov"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineImage2TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "xai/grok-imagine-image-2.0/text-to-image",
+    "outputType": "image",
+    "title": "Grok Imagine Image 2.0 — Text to Image",
+    "description": "AtlasCloud / xAI Grok Imagine Image 2.0 — generates up to four images per call at 1K or 2K.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Natural-language description of the image to generate. Up to 8000 characters.",
+        "required": true
+      },
+      {
+        "name": "num_images",
+        "type": "int",
+        "default": 1,
+        "title": "Number of Images",
+        "description": "Number of images to generate. Each image is billed separately.",
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "3:4",
+          "4:3",
+          "9:16",
+          "16:9",
+          "2:3",
+          "3:2",
+          "9:19.5",
+          "19.5:9",
+          "9:20",
+          "20:9",
+          "1:2",
+          "2:1"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "description": "Output resolution. 1k = 1024x1024, 2k = 2048x2048. Combined with `quality` this sets the per-image price: low/1k $0.04, low/2k $0.06, medium/1k $0.06, medium/2k $0.08.",
+        "values": [
+          "1k",
+          "2k"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "Rendering quality tier. `low` is cheaper and roughly 8x faster (~10s vs ~84s at 1K); `medium` is the default and produces the model's best output.",
+        "values": [
+          "low",
+          "medium"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineImage2Edit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "xai/grok-imagine-image-2.0/edit",
+    "outputType": "image",
+    "title": "Grok Imagine Image 2.0 — Edit",
+    "description": "AtlasCloud / xAI Grok Imagine Image 2.0 — edits up to three source images from a text instruction.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Editing instruction describing the change to apply. When supplying multiple source images, cite them as <IMAGE_0>, <IMAGE_1>, <IMAGE_2>. Up to 8000 characters.",
+        "required": true
+      },
+      {
+        "name": "image_urls",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Source images. Up to 3 are supported. Each entry is either a public URL or a base64-encoded data URI (e.g. `data:image/png;base64,...`). Each input image is billed at $0.01.",
+        "required": true
+      },
+      {
+        "name": "num_images",
+        "type": "int",
+        "default": 1,
+        "title": "Number of Images",
+        "description": "Number of edited images to generate. Each output image is billed separately.",
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the edited image. The output generally respects the source image's aspect ratio regardless of this value. `auto` lets the model pick.",
+        "values": [
+          "auto",
+          "1:1",
+          "3:4",
+          "4:3",
+          "9:16",
+          "16:9",
+          "2:3",
+          "3:2",
+          "9:19.5",
+          "19.5:9",
+          "9:20",
+          "20:9",
+          "1:2",
+          "2:1"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "description": "Output resolution. 1k = 1024x1024, 2k = 2048x2048. Combined with `quality` this sets the per-image price: low/1k $0.04, low/2k $0.06, medium/1k $0.06, medium/2k $0.08.",
+        "values": [
+          "1k",
+          "2k"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "Rendering quality tier. `low` is cheaper and roughly 8x faster (~10s vs ~84s at 1K); `medium` is the default and produces the model's best output.",
+        "values": [
+          "low",
+          "medium"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "QwenImage3TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "qwen-image-3.0/text-to-image",
+    "outputType": "image",
+    "title": "Qwen Image 3.0 — Text to Image",
+    "description": "AtlasCloud / Alibaba Qwen Image 3.0 — generates up to four images per call. Resolutions from 512*512 to 2048*2048.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "",
+        "title": "Size",
+        "description": "Output resolution as width*height (e.g. 2048*2048). Omit to let the model pick a resolution automatically from the prompt. Valid range: 512*512–2048*2048."
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "Number of Images",
+        "description": "Number of images to generate.",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describes content that should NOT appear in the generated image."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Seed for reproducible generation, range [0, 2147483647]. Omit for a random seed.",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "name": "prompt_extend",
+        "type": "bool",
+        "default": true,
+        "title": "Expand Prompt",
+        "description": "Enable intelligent prompt rewriting for richer results."
+      },
+      {
+        "name": "prompt_extend_mode",
+        "type": "enum",
+        "default": "direct",
+        "title": "Prompt Rewrite Mode",
+        "description": "Prompt rewriting strategy. 'direct' (DPE) rewrites in a single pass; 'agent' (APE) uses an agentic rewrite pipeline.",
+        "values": [
+          "direct",
+          "agent"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "QwenImage3Edit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "qwen-image-3.0/edit",
+    "outputType": "image",
+    "title": "Qwen Image 3.0 — Edit",
+    "description": "AtlasCloud / Alibaba Qwen Image 3.0 — edits one image, or composes up to three reference images into a subject-driven edit.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The editing instruction describing how to transform the reference image(s).",
+        "required": true
+      },
+      {
+        "name": "reference_image_urls",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference image URLs for image editing. Provide one URL for single-image editing, or up to three URLs for multi-image reference / subject-driven editing.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "",
+        "title": "Size",
+        "description": "Output resolution as width*height (e.g. 1440*1440). Omit to let the model pick a resolution automatically. Valid range: 512*512–1440*1440."
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "Number of Images",
+        "description": "Number of images to generate.",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describes content that should NOT appear in the generated image."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Seed for reproducible generation, range [0, 2147483647]. Omit for a random seed.",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "name": "prompt_extend",
+        "type": "bool",
+        "default": true,
+        "title": "Expand Prompt",
+        "description": "Enable intelligent prompt rewriting for richer results."
+      },
+      {
+        "name": "prompt_extend_mode",
+        "type": "enum",
+        "default": "direct",
+        "title": "Prompt Rewrite Mode",
+        "description": "Prompt rewriting strategy. 'direct' (DPE) rewrites in a single pass; 'agent' (APE) uses an agentic rewrite pipeline.",
+        "values": [
+          "direct"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "QwenImage3ProTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "qwen-image-3.0-pro/text-to-image",
+    "outputType": "image",
+    "title": "Qwen Image 3.0 Pro — Text to Image",
+    "description": "AtlasCloud / Alibaba Qwen Image 3.0 Pro — generates up to four high-fidelity images per call. Resolutions from 512*512 to 2048*2048.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "",
+        "title": "Size",
+        "description": "Output resolution as width*height (e.g. 2048*2048). Omit to let the model pick a resolution automatically from the prompt. Valid range: 512*512–2048*2048."
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "Number of Images",
+        "description": "Number of images to generate.",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describes content that should NOT appear in the generated image."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Seed for reproducible generation, range [0, 2147483647]. Omit for a random seed.",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "name": "prompt_extend",
+        "type": "bool",
+        "default": true,
+        "title": "Expand Prompt",
+        "description": "Enable intelligent prompt rewriting for richer results."
+      },
+      {
+        "name": "prompt_extend_mode",
+        "type": "enum",
+        "default": "direct",
+        "title": "Prompt Rewrite Mode",
+        "description": "Prompt rewriting strategy. 'direct' (DPE) rewrites in a single pass; 'agent' (APE) uses an agentic rewrite pipeline.",
+        "values": [
+          "direct",
+          "agent"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "QwenImage3ProEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "qwen-image-3.0-pro/edit",
+    "outputType": "image",
+    "title": "Qwen Image 3.0 Pro — Edit",
+    "description": "AtlasCloud / Alibaba Qwen Image 3.0 Pro — edits one image, or composes up to three reference images into a subject-driven edit.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The editing instruction describing how to transform the reference image(s).",
+        "required": true
+      },
+      {
+        "name": "reference_image_urls",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference image URLs for image editing. Provide one URL for single-image editing, or up to three URLs for multi-image reference / subject-driven editing.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "",
+        "title": "Size",
+        "description": "Output resolution as width*height (e.g. 1440*1440). Omit to let the model pick a resolution automatically. Valid range: 512*512–1440*1440."
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "Number of Images",
+        "description": "Number of images to generate.",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describes content that should NOT appear in the generated image."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Seed for reproducible generation, range [0, 2147483647]. Omit for a random seed.",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "name": "prompt_extend",
+        "type": "bool",
+        "default": true,
+        "title": "Expand Prompt",
+        "description": "Enable intelligent prompt rewriting for richer results."
+      },
+      {
+        "name": "prompt_extend_mode",
+        "type": "enum",
+        "default": "direct",
+        "title": "Prompt Rewrite Mode",
+        "description": "Prompt rewriting strategy. 'direct' (DPE) rewrites in a single pass; 'agent' (APE) uses an agentic rewrite pipeline.",
+        "values": [
+          "direct"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3TextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3/text-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 — Text to Video",
+    "description": "AtlasCloud / MiniMax H3 — generates 4-15s video from text at 768P or 2K.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the video to generate.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "2K",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "768P",
+          "2K"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3/image-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 — Image to Video",
+    "description": "AtlasCloud / MiniMax H3 — animates a first frame (and an optional end frame) into 4-15s video.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the motion / action for the video.",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First frame of the video. Public URL or Base64. Formats: png, jpeg, jpg, webp.",
+        "required": true
+      },
+      {
+        "name": "end_image",
+        "type": "image",
+        "default": null,
+        "title": "End Frame Image",
+        "description": "Optional last frame of the video. Public URL or Base64. Formats: png, jpeg, jpg, webp."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "2K",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "768P",
+          "2K"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose.",
+        "values": [
+          "adaptive"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3/reference-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 — Reference to Video",
+    "description": "AtlasCloud / MiniMax H3 — generates video from reference images, videos and audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the video to generate.",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor the generation. Formats: png, jpeg, jpg, webp. At least one reference image or video is required.",
+        "wrapInto": "refers",
+        "required": true
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference videos that anchor the generation. Formats: mp4, mov. At least one reference image or video is required.",
+        "wrapInto": "refers",
+        "required": true
+      },
+      {
+        "name": "reference_audios",
+        "type": "list[audio]",
+        "default": null,
+        "title": "Reference Audios",
+        "description": "Reference audio that anchors the generation. Formats: mp3, wav. Audio alone is not enough — pair it with an image or video.",
+        "wrapInto": "refers",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "2K",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "768P",
+          "2K"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose.",
+        "values": [
+          "adaptive",
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Reve21TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "reve-ai/reve-2.1/text-to-image",
+    "outputType": "image",
+    "title": "Reve 2.1 — Text to Image",
+    "description": "AtlasCloud / Reve 2.1 — generates a 4K image from text, with optional background removal.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text description of the desired image. The maximum length is 2560 characters. The prompt is automatically enhanced by the model.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "The desired aspect ratio of the generated image. Use \"auto\" to let the model pick the most appropriate aspect ratio.",
+        "values": [
+          "auto",
+          "4:1",
+          "3:1",
+          "21:9",
+          "2:1",
+          "17:9",
+          "16:9",
+          "3:2",
+          "4:3",
+          "5:4",
+          "1:1",
+          "4:5",
+          "3:4",
+          "2:3",
+          "9:16",
+          "1:2",
+          "1:3",
+          "1:4"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "4k",
+        "title": "Resolution",
+        "description": "The output resolution. 4k is the default resolution.",
+        "values": [
+          "4k"
+        ]
+      },
+      {
+        "name": "remove_background",
+        "type": "bool",
+        "default": false,
+        "title": "Remove Background",
+        "description": "If enabled, keeps only the central subject and makes the background of the image transparent as a post-processing step."
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "The format of the output image.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Reve21Edit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "reve-ai/reve-2.1/edit",
+    "outputType": "image",
+    "title": "Reve 2.1 — Edit",
+    "description": "AtlasCloud / Reve 2.1 — edits one image at 4K from a text instruction.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text description of the desired image. The maximum length is 4000 characters.",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "The input image to edit. Can be a URL or a base64-encoded image string.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "The desired aspect ratio of the generated image. Use \"auto\" to keep the aspect ratio of the input image.",
+        "values": [
+          "auto",
+          "4:1",
+          "3:1",
+          "21:9",
+          "2:1",
+          "17:9",
+          "16:9",
+          "3:2",
+          "4:3",
+          "5:4",
+          "1:1",
+          "4:5",
+          "3:4",
+          "2:3",
+          "9:16",
+          "1:2",
+          "1:3",
+          "1:4"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "4k",
+        "title": "Resolution",
+        "description": "The output resolution. 4k is the default resolution.",
+        "values": [
+          "4k"
+        ]
+      },
+      {
+        "name": "remove_background",
+        "type": "bool",
+        "default": false,
+        "title": "Remove Background",
+        "description": "If enabled, keeps only the central subject and makes the background of the image transparent as a post-processing step."
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "The format of the output image.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Reve21Remix",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "reve-ai/reve-2.1/remix",
+    "outputType": "image",
+    "title": "Reve 2.1 — Remix",
+    "description": "AtlasCloud / Reve 2.1 — remixes 1-6 reference images at 4K. Refer to them in the prompt with <frame>0</frame> tags.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text description of the desired image. The maximum length is 4000 characters.",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "A list of reference images. Each image can be a URL or a base64-encoded image string. You must provide between 1 and 6 reference images.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "The desired aspect ratio of the generated image. Use \"auto\" to let the model pick the most appropriate aspect ratio.",
+        "values": [
+          "auto",
+          "4:1",
+          "3:1",
+          "21:9",
+          "2:1",
+          "17:9",
+          "16:9",
+          "3:2",
+          "4:3",
+          "5:4",
+          "1:1",
+          "4:5",
+          "3:4",
+          "2:3",
+          "9:16",
+          "1:2",
+          "1:3",
+          "1:4"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "4k",
+        "title": "Resolution",
+        "description": "The output resolution. 4k is the default resolution.",
+        "values": [
+          "4k"
+        ]
+      },
+      {
+        "name": "remove_background",
+        "type": "bool",
+        "default": false,
+        "title": "Remove Background",
+        "description": "If enabled, keeps only the central subject and makes the background of the image transparent as a post-processing step."
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "The format of the output image.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV82TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.2/text-to-image",
+    "outputType": "image",
+    "title": "Youchuan v8.2 — Text to Image",
+    "description": "AtlasCloud / Youchuan v8.2 — generates four images per task with optional native 2K HD.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Natural-language description of the image to generate. Maximum 1024 characters (Youchuan command flags embedded in the prompt are not counted toward the limit).",
+        "required": true
+      },
+      {
+        "name": "sref",
+        "type": "str",
+        "default": "",
+        "title": "Style Reference URL",
+        "description": "Optional URL of a style-reference image. Must be a publicly reachable https image URL."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "4:3",
+          "3:4",
+          "2:3",
+          "3:2",
+          "9:21",
+          "21:9"
+        ]
+      },
+      {
+        "name": "hd",
+        "type": "bool",
+        "default": false,
+        "title": "HD (2K)",
+        "description": "Enable native 2K HD generation. Costs 1.5x."
+      },
+      {
+        "name": "stylize",
+        "type": "int",
+        "default": 0,
+        "title": "Stylize",
+        "description": "Controls how strongly the model's default aesthetic is applied (0-1000).",
+        "min": 0,
+        "max": 1000
+      },
+      {
+        "name": "chaos",
+        "type": "int",
+        "default": 0,
+        "title": "Chaos",
+        "description": "Higher values produce more unusual and varied results (0-100).",
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "weird",
+        "type": "int",
+        "default": 0,
+        "title": "Weird",
+        "description": "Makes results quirky and unconventional (0-3000).",
+        "min": 0,
+        "max": 3000
+      },
+      {
+        "name": "quality",
+        "type": "int",
+        "default": 1,
+        "title": "Quality",
+        "description": "Controls image detail. 4 = higher detail at the same price (slower). v8.2 supports 1 or 4 only.",
+        "values": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Use the same seed and prompt to get reproducible results. -1 = random."
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV82ImageToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.2/image-to-image",
+    "outputType": "image",
+    "title": "Youchuan v8.2 — Image to Image",
+    "description": "AtlasCloud / Youchuan v8.2 — restyles an input image from a text prompt.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Input image to re-imagine. A publicly reachable https image URL (or upload). Each task returns 4 images.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt guiding the generation. Maximum 1024 characters. Each task returns 4 images.",
+        "required": true
+      },
+      {
+        "name": "sref",
+        "type": "str",
+        "default": "",
+        "title": "Style Reference URL",
+        "description": "Optional URL of a style-reference image. Must be a publicly reachable https image URL."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "4:3",
+          "3:4",
+          "2:3",
+          "3:2",
+          "9:21",
+          "21:9"
+        ]
+      },
+      {
+        "name": "hd",
+        "type": "bool",
+        "default": false,
+        "title": "HD (2K)",
+        "description": "Enable native 2K HD generation. Costs 1.5x."
+      },
+      {
+        "name": "stylize",
+        "type": "int",
+        "default": 0,
+        "title": "Stylize",
+        "description": "Controls how strongly the model's default aesthetic is applied (0-1000).",
+        "min": 0,
+        "max": 1000
+      },
+      {
+        "name": "chaos",
+        "type": "int",
+        "default": 0,
+        "title": "Chaos",
+        "description": "Higher values produce more unusual and varied results (0-100).",
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "weird",
+        "type": "int",
+        "default": 0,
+        "title": "Weird",
+        "description": "Makes results quirky and unconventional (0-3000).",
+        "min": 0,
+        "max": 3000
+      },
+      {
+        "name": "quality",
+        "type": "int",
+        "default": 1,
+        "title": "Quality",
+        "description": "Controls image detail. 4 = higher detail at the same price (slower). v8.2 supports 1 or 4 only.",
+        "values": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Use the same seed and inputs to get reproducible results. -1 = random."
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV82Blend",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.2/blend",
+    "outputType": "image",
+    "title": "Youchuan v8.2 — Blend",
+    "description": "AtlasCloud / Youchuan v8.2 — fuses 2-5 input images into blended results.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Two to five input images to blend. Publicly reachable https image URLs (or uploads). Each task returns 4 fused images.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text prompt guiding the blend. Maximum 1024 characters."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "4:3",
+          "3:4",
+          "2:3",
+          "3:2",
+          "9:21",
+          "21:9"
+        ]
+      },
+      {
+        "name": "hd",
+        "type": "bool",
+        "default": false,
+        "title": "HD (2K)",
+        "description": "Enable native 2K HD generation. Costs 1.5x."
+      },
+      {
+        "name": "stylize",
+        "type": "int",
+        "default": 0,
+        "title": "Stylize",
+        "description": "Controls how strongly the model's default aesthetic is applied (0-1000).",
+        "min": 0,
+        "max": 1000
+      },
+      {
+        "name": "chaos",
+        "type": "int",
+        "default": 0,
+        "title": "Chaos",
+        "description": "Higher values produce more unusual and varied results (0-100).",
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "weird",
+        "type": "int",
+        "default": 0,
+        "title": "Weird",
+        "description": "Makes results quirky and unconventional (0-3000).",
+        "min": 0,
+        "max": 3000
+      },
+      {
+        "name": "quality",
+        "type": "int",
+        "default": 1,
+        "title": "Quality",
+        "description": "Controls image detail. 4 = higher detail at the same price (slower). v8.2 supports 1 or 4 only.",
+        "values": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Use the same seed and inputs to get reproducible results. -1 = random."
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV82StyleTransfer",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.2/style-transfer",
+    "outputType": "image",
+    "title": "Youchuan v8.2 — Style Transfer",
+    "description": "AtlasCloud / Youchuan v8.2 — applies a described style to an input image.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Input image to restyle. A publicly reachable https image URL (or upload). Each task returns 4 restyled images that keep the original composition.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Description of the target artistic style (e.g. 'cyberpunk neon night style').",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV82RemoveBackground",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.2/remove-background",
+    "outputType": "image",
+    "title": "Youchuan v8.2 — Remove Background",
+    "description": "AtlasCloud / Youchuan v8.2 — removes the background from an input image.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Input image whose background will be removed. A publicly reachable https image URL (or upload). Returns 1 image with transparent background.",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV82ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "youchuan/v8.2/image-to-video",
+    "outputType": "video",
+    "title": "Youchuan v8.2 — Image to Video",
+    "description": "AtlasCloud / Youchuan v8.2 — four 5-second videos per task at 480p/720p from an input image.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First-frame image to animate. A publicly reachable https image URL (or upload). The generated video keeps the input image's aspect ratio. Each task returns 4 five-second videos.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text describing the motion / scene for the generated video."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "480p",
+        "title": "Resolution",
+        "description": "Output resolution. 720p costs 3x of 480p.",
+        "values": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
+        "name": "motion",
+        "type": "enum",
+        "default": "low",
+        "title": "Motion",
+        "description": "Amount of motion in the generated video.",
+        "values": [
+          "low",
+          "high"
+        ]
+      }
+    ]
   }
 ]

@@ -95,6 +95,8 @@ interface FieldInfo {
   /** Allowed values when the field is an enum. Numbers stay numbers. */
   values?: Array<string | number>;
   default?: unknown;
+  /** Request array this field belongs in, as `{url, type}` — see the manifest. */
+  wrapInto?: string;
 }
 
 interface ModelInfo {
@@ -133,6 +135,9 @@ function buildModelMap(): Map<string, ModelInfo> {
       }
       if (f.default !== undefined) {
         field.default = f.default;
+      }
+      if (f.wrapInto !== undefined) {
+        field.wrapInto = f.wrapInto;
       }
       fields.set(f.name, field);
     }
@@ -760,18 +765,24 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     }
     const info = this.resolveModel(params.model.id, "video");
     const input = mapVideoParams(info, params);
-    // Seedance image-to-video uses `image` (singular); Grok Imagine Video uses
-    // `image_url`. Reference-to-video has `reference_images` (list) instead —
-    // generic imageToVideo can't target it.
+    // Each endpoint family names its input image differently: Seedance uses
+    // `image` (singular), Grok Imagine Video `image_url`, the edit endpoints
+    // `images`, and reference-to-video `reference_images`. First match wins.
     const dataUri = bytesToImageDataUri(image);
-    if (info.fields.has("image")) {
-      input.image = dataUri;
-    } else if (info.fields.has("image_url")) {
-      input.image_url = dataUri;
-    } else if (info.fields.has("images")) {
-      input.images = [dataUri];
-    } else if (info.fields.has("reference_images")) {
-      input.reference_images = [dataUri];
+    const imageField = ["image", "image_url", "images", "reference_images"].find(
+      (name) => info.fields.has(name)
+    );
+    if (imageField) {
+      // Wan 3.0 / MiniMax H3 take one mixed `refers` array of `{url, type}`
+      // objects; the manifest splits it into typed inputs that name it.
+      const wrapInto = info.fields.get(imageField)?.wrapInto;
+      if (wrapInto) {
+        input[wrapInto] = [{ url: dataUri, type: "image" }];
+      } else if (imageField === "images" || imageField === "reference_images") {
+        input[imageField] = [dataUri];
+      } else {
+        input[imageField] = dataUri;
+      }
     } else {
       throw new Error(
         `AtlasCloud model ${params.model.id} does not accept an input image (try the Seedance image-to-video variant)`
