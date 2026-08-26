@@ -8,13 +8,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
+import { BASE_URL } from "../../stores/BASE_URL";
 import {
   TOP_CATEGORIES,
   workflowsForCategory,
   isGettingStarted,
   getCategoryForWorkflow
 } from "../../utils/templateCategories";
-import WorkflowCard from "../workflows/WorkflowCard";
 import {
   EmptyState,
   LoadingSpinner,
@@ -30,7 +30,8 @@ import {
   SectionLink
 } from "./dashboardChrome";
 
-const MAX_VISIBLE = 8;
+/** Rows shown on the dashboard before the user searches or opens /examples. */
+const MAX_VISIBLE = 18;
 
 /** Anchor the dashboard checklist scrolls to for its "open a template" step. */
 export const DASHBOARD_TEMPLATES_SECTION_ID = "dashboard-templates";
@@ -40,26 +41,29 @@ const styles = (theme: Theme) =>
     paddingTop: getSpacingPx(SPACING.md),
     ".cats": {
       display: "flex",
-      gap: getSpacingPx(SPACING.md),
       flexWrap: "wrap",
-      marginBottom: getSpacingPx(SPACING.md)
+      gap: getSpacingPx(SPACING.micro),
+      paddingBottom: getSpacingPx(SPACING.sm)
     },
     ".cat": {
       display: "inline-flex",
       alignItems: "center",
-      gap: `${theme.spacing(SPACING.xs)}`,
-      height: 30,
-      padding: `0 ${theme.spacing(SPACING.md)}`,
-      borderRadius: BORDER_RADIUS.pill,
-      fontSize: "var(--fontSizeSmall)",
-      background: "transparent",
-      color: theme.vars.palette.text.secondary,
+      gap: getSpacingPx(SPACING.xs),
+      height: 26,
+      padding: `0 ${getSpacingPx(SPACING.sm)}`,
+      background: theme.vars.palette.c_node_bg,
       border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: BORDER_RADIUS.pill,
+      color: theme.vars.palette.text.secondary,
+      fontSize: "var(--fontSizeSmaller)",
       cursor: "pointer",
-      transition: `color ${MOTION.fast}, border-color ${MOTION.fast}, background ${MOTION.fast}`,
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        borderColor: theme.vars.palette.action.focus
+      transition: `background ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
+      "&:hover": { color: theme.vars.palette.text.primary },
+      // Neutral "All" active state; category pills override colours inline.
+      "&.on": {
+        background: theme.vars.palette.c_node_bg_group,
+        borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
+        color: theme.vars.palette.text.primary
       }
     },
     ".cat-dot": {
@@ -68,30 +72,78 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.circle,
       flexShrink: 0
     },
-    // Neutral "All" active state; category pills override colours inline.
-    ".cat.on": {
-      background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.14)`,
-      color: theme.vars.palette.primary.light,
-      borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.45)`
+    ".tpl-list": {
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: BORDER_RADIUS.lg,
+      background: theme.vars.palette.c_node_bg,
+      padding: getSpacingPx(SPACING.sm),
+      display: "flex",
+      flexDirection: "column",
+      gap: getSpacingPx(SPACING.micro)
     },
-    ".tpl-grid": {
-      display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
+    ".tpl-row": {
+      display: "flex",
+      alignItems: "center",
       gap: getSpacingPx(SPACING.md),
-      [theme.breakpoints.down("lg")]: {
-        gridTemplateColumns: "repeat(3, 1fr)"
-      },
-      [theme.breakpoints.down("md")]: {
-        gridTemplateColumns: "repeat(2, 1fr)"
-      },
-      [theme.breakpoints.down("sm")]: {
-        gridTemplateColumns: "1fr"
-      }
+      width: "100%",
+      textAlign: "left",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
+      background: "transparent",
+      border: "none",
+      borderRadius: BORDER_RADIUS.sm,
+      cursor: "pointer",
+      transition: `background ${MOTION.fast}`,
+      "&:hover": { background: theme.vars.palette.action.hover },
+      "&.loading": { cursor: "wait", pointerEvents: "none" }
+    },
+    ".tpl-icon": {
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      width: 24,
+      height: 24,
+      borderRadius: BORDER_RADIUS.sm,
+      background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
+      color: theme.vars.palette.primary.main,
+      overflow: "hidden"
+    },
+    ".tpl-thumb": {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover"
+    },
+    ".tpl-title": {
+      flexShrink: 0,
+      maxWidth: "50%",
+      fontSize: "var(--fontSizeSmall)",
+      color: theme.vars.palette.text.primary,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    ".tpl-desc": {
+      flex: 1,
+      minWidth: 0,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.secondary,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      [theme.breakpoints.down("sm")]: { display: "none" }
+    },
+    ".tpl-cat": {
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.xs),
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.disabled
     },
     ".tpl-loading, .tpl-empty": {
       display: "flex",
       justifyContent: "center",
-      padding: `${getSpacingPx(10)} 0`, // was 40px 0
+      padding: `${getSpacingPx(SPACING.xxl)} 0`,
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeNormal)"
     }
@@ -105,6 +157,88 @@ const fullPageStyles = css({
   overflowY: "auto",
   paddingTop: getSpacingPx(SPACING.xxl),
   paddingBottom: getSpacingPx(SPACING.xxxl)
+});
+
+/** Stand-in when a template ships no thumbnail (or it fails to load). */
+const templateGlyph = (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+  >
+    <rect x="2.5" y="2.5" width="11" height="11" rx="2" />
+    <path d="M2.5 6.5h11M6.5 6.5v7" />
+  </svg>
+);
+
+interface TemplateRowProps {
+  workflow: Workflow;
+  isLoading: boolean;
+  onClick: (workflow: Workflow) => void;
+}
+
+const TemplateRow = memo(function TemplateRow({
+  workflow,
+  isLoading,
+  onClick
+}: TemplateRowProps) {
+  const [thumbFailed, setThumbFailed] = useState(false);
+  const category = getCategoryForWorkflow(workflow);
+
+  // The server-provided URL carries an md5-based ?v=<hash> cache buster;
+  // shipped templates fall back to the asset packaged with them.
+  const thumbUrl = useMemo(() => {
+    if (workflow.thumbnail_url) {
+      return workflow.thumbnail_url.startsWith("http")
+        ? workflow.thumbnail_url
+        : `${BASE_URL}${workflow.thumbnail_url}`;
+    }
+    return `${BASE_URL}/api/assets/packages/${workflow.package_name}/${workflow.name}.jpg`;
+  }, [workflow.thumbnail_url, workflow.package_name, workflow.name]);
+
+  return (
+    <button
+      type="button"
+      className={isLoading ? "tpl-row loading" : "tpl-row"}
+      title={workflow.description || workflow.name}
+      onClick={() => onClick(workflow)}
+    >
+      <span
+        className="tpl-icon"
+        aria-hidden
+        style={
+          category && thumbFailed
+            ? { background: `${category.color}24`, color: category.color }
+            : undefined
+        }
+      >
+        {isLoading ? (
+          <LoadingSpinner size="small" />
+        ) : thumbFailed ? (
+          templateGlyph
+        ) : (
+          <img
+            className="tpl-thumb"
+            src={thumbUrl}
+            alt=""
+            loading="lazy"
+            onError={() => setThumbFailed(true)}
+          />
+        )}
+      </span>
+      <span className="tpl-title">{workflow.name}</span>
+      <span className="tpl-desc">{workflow.description}</span>
+      {category && (
+        <span className="tpl-cat">
+          <span className="cat-dot" style={{ background: category.color }} />
+          {category.label}
+        </span>
+      )}
+    </button>
+  );
 });
 
 interface DashboardTemplatesProps {
@@ -172,9 +306,9 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
   const visible = fullPage ? filtered : filtered.slice(0, MAX_VISIBLE);
   const countLabel = fullPage
     ? `${filtered.length} example${filtered.length === 1 ? "" : "s"}`
-    : query.trim() || category !== "all"
-      ? `${filtered.length} match${filtered.length === 1 ? "" : "es"}`
-      : `hand-picked · ${Math.min(filtered.length, MAX_VISIBLE)}`;
+    : visible.length === filtered.length
+      ? `${filtered.length}`
+      : `${visible.length} of ${filtered.length}`;
 
   return (
     <section
@@ -198,7 +332,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
           )}
         </SectionHeader>
 
-        <div className="cats">
+        <div className="cats" role="group" aria-label="Filter by category">
           <button
             type="button"
             className={`cat${category === "all" ? " on" : ""}`}
@@ -231,15 +365,6 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
               </button>
             );
           })}
-          {!fullPage && (
-            <button
-              type="button"
-              className="cat"
-              onClick={handleViewAllTemplates}
-            >
-              More…
-            </button>
-          )}
         </div>
 
         {isLoading ? (
@@ -282,25 +407,15 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
             )}
           </div>
         ) : (
-          <div className="tpl-grid">
-            {visible.map((workflow: Workflow) => {
-              const cat = getCategoryForWorkflow(workflow);
-              return (
-                <WorkflowCard
-                  key={workflow.id}
-                  workflow={workflow}
-                  matchedNodes={[]}
-                  nodesOnlySearch={false}
-                  isLoading={loadingExampleId === workflow.id}
-                  onClick={handleExampleClick}
-                  tint={cat?.color}
-                  categoryLabel={cat?.label}
-                  hideTags={cat?.tags}
-                  maxChips={1}
-                  descriptionLines={2}
-                />
-              );
-            })}
+          <div className="tpl-list">
+            {visible.map((workflow: Workflow) => (
+              <TemplateRow
+                key={workflow.id}
+                workflow={workflow}
+                isLoading={loadingExampleId === workflow.id}
+                onClick={handleExampleClick}
+              />
+            ))}
           </div>
         )}
       </div>
