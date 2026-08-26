@@ -50,7 +50,6 @@ export {
 export type {
   HeadlessOperationInit,
   HeadlessResourceCommand,
-  HeadlessResourceProvider,
   HeadlessRunResult,
   ResourceItem
 } from "./runtime.js";
