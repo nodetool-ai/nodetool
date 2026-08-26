@@ -51,7 +51,7 @@ const PREAMBLE = `# NodeTool
 /** A short blurb per key page, keyed by route (falls back to entry.description). */
 const KEY_PAGE_BLURBS = {
   "/": "what NodeTool is, the agent-first model, Studio vs Cloud.",
-  "/studio": "the free, open-source desktop app; the agent and models run locally.",
+  "/studio": "the free, open-source desktop app; the agent writes the script, boards the scenes, generates the footage, and cuts the timeline, with the models running locally.",
   "/cloud": "the hosted, browser-based edition (alpha).",
   "/pricing": "edition comparison and how BYOK pricing works.",
   "/agents": "the agent-first model: every editor exposed to agents as tools.",
