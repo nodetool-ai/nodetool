@@ -90,8 +90,9 @@ Server-owned, in `packages/models/src/credits.ts` (`@nodetool-ai/models`):
   (`packages/websocket/src/credit-gate.ts`): a workflow run is gated only on
   the slice of its estimate whose provider is `nodetool`
   (`estimateNodetoolSpend` → `admitCreditRun`, next to the
-  application-budget gate); the direct `generate_media`/`transcribe_audio`
-  RPCs are gated only when called with `provider: "nodetool"`. BYOK
+  application-budget gate); the direct `generate_media`/`generate_text`/
+  `transcribe_audio` RPCs are gated only when called with
+  `provider: "nodetool"`. BYOK
   providers are never gated — credits and bring-your-own-key coexist on one
   server, per user, per call. The gate fails open on its own errors.
 - **UI**: the header chip reads `credits.status` and links to
@@ -105,9 +106,10 @@ Still open, in order of value:
    and the voice-all button can show "≈ 3 credits" before the click.
 2. **Payments.** Stripe (or similar) in front of `setPlan`/`topup`; the
    ledger and gate don't change.
-3. **Direct-RPC metering.** `generate_media`/`transcribe_audio` are gated but
-   still write no prediction rows, so their spend doesn't decrement the
-   balance. Recording a row at the provider's reported cost closes that.
+3. **Direct-RPC metering.** Done: `generate_media`, `generate_text` and
+   `transcribe_audio` each write a prediction row on the managed provider
+   (`direct.<mode>`, `direct.text`/`direct.structured`, `direct.transcription`),
+   so their spend decrements the balance the gate reads.
 
 ## From prototype to product
 

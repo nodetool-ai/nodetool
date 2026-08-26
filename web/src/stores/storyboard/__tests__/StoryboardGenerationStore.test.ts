@@ -1,9 +1,11 @@
 /**
  * @jest-environment node
  *
- * Regression tests for the storyboard job completion path:
- *  - inline `data` outputs (no asset_id/uri) are successes, not failures
- *  - updateJobStatus never reclassifies a completed job as failed
+ * Regression tests for the storyboard render path. Every render is a direct
+ * `generate_media` request, so the store settles on one `rpc_response`:
+ *  - a returned asset lands on the shot and clears the row
+ *  - an error keeps the row so the card can read the reason, and notifies
+ *  - a cancel restores the status the shot already held
  */
 
 jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
@@ -18,19 +20,17 @@ import {
   settleCancelledShotJob,
   __handleShotJobMessageForTests,
   __resetStoryboardSubscriptionsForTests,
-  type StoryboardJobContext
+  type DirectShotJobContext
 } from "../StoryboardGenerationStore";
 import { useStoryboardStore } from "../StoryboardStore";
 import { useNotificationStore } from "../../NotificationStore";
 
 const BOARD = "board-t";
-const context = (shotId: string, kind: "keyframe" | "clip"): StoryboardJobContext => ({
-  shotId,
-  boardId: BOARD,
-  workflowId: `wf-${shotId}`,
-  kind,
-  outputNodeId: "out"
-});
+
+const context = (
+  shotId: string,
+  kind: "keyframe" | "clip"
+): DirectShotJobContext => ({ shotId, boardId: BOARD, kind });
 
 const seedShot = (shotId: string): void => {
   const store = useStoryboardStore.getState();
@@ -48,70 +48,136 @@ afterEach(() => {
   __resetStoryboardSubscriptionsForTests();
 });
 
-describe("inline data outputs", () => {
-  it("completes a keyframe job whose image ref has only inline data", () => {
-    seedShot("s-img");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-img", BOARD, "job-img", "wf-s-img", "keyframe");
-
-    __handleShotJobMessageForTests("job-img", context("s-img", "keyframe"), {
-      type: "output_update",
-      node_id: "out",
-      value: { type: "image", data: "aGVsbG8=" }
-    } as never);
-    __handleShotJobMessageForTests("job-img", context("s-img", "keyframe"), {
-      type: "job_update",
-      status: "completed"
-    } as never);
-
-    const shot = useStoryboardStore
-      .getState()
-      .getBoard(BOARD)
-      ?.shots.find((s) => s.id === "s-img");
-    expect(shot?.status).toBe("keyframe_ready");
-    expect(shot?.keyframe?.data).toBe("aGVsbG8=");
-    expect(
-      useStoryboardGenerationStore.getState().failedShotIds
-    ).not.toContain("s-img");
+describe("direct generation responses (generate_media rpc)", () => {
+  beforeEach(() => {
+    useNotificationStore.getState().clearNotifications();
   });
 
-  it("completes a clip job whose video ref has only inline data", () => {
-    seedShot("s-vid");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-vid", BOARD, "job-vid", "wf-s-vid", "clip");
+  it("registers a sent request as running — there is no server queue", () => {
+    seedShot("s-running");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-running", BOARD, "req-0", "keyframe");
 
-    __handleShotJobMessageForTests("job-vid", context("s-vid", "clip"), {
-      type: "output_update",
-      node_id: "out",
-      value: { type: "video", data: "d29ybGQ=" }
-    } as never);
-    __handleShotJobMessageForTests("job-vid", context("s-vid", "clip"), {
-      type: "job_update",
-      status: "completed"
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs["s-running"]?.status
+    ).toBe("running");
+    expect(
+      useStoryboardGenerationStore.getState().generatingShotIds
+    ).toContain("s-running");
+  });
+
+  it("writes the returned asset onto the shot and clears the job", () => {
+    seedShot("s-direct");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-direct", BOARD, "req-1", "keyframe");
+
+    __handleShotJobMessageForTests("req-1", context("s-direct", "keyframe"), {
+      type: "rpc_response",
+      request_id: "req-1",
+      result: { asset_ids: ["ast-1"] }
     } as never);
 
     const shot = useStoryboardStore
       .getState()
       .getBoard(BOARD)
-      ?.shots.find((s) => s.id === "s-vid");
-    expect(shot?.status).toBe("rendered");
-    expect(shot?.clip?.data).toBe("d29ybGQ=");
+      ?.shots.find((s) => s.id === "s-direct");
+    expect(shot?.status).toBe("keyframe_ready");
+    expect(shot?.keyframe?.asset_id).toBe("ast-1");
+    expect(shot?.keyframe?.uri).toBe("asset://ast-1");
+    // A completed request leaves no row behind — the shot is settled.
     expect(
-      useStoryboardGenerationStore.getState().failedShotIds
-    ).not.toContain("s-vid");
+      useStoryboardGenerationStore.getState().shotJobs["s-direct"]
+    ).toBeUndefined();
+  });
+
+  it("writes a clip asset and marks the shot rendered", () => {
+    seedShot("s-direct-clip");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-direct-clip", BOARD, "req-clip", "clip");
+
+    __handleShotJobMessageForTests(
+      "req-clip",
+      context("s-direct-clip", "clip"),
+      {
+        type: "rpc_response",
+        request_id: "req-clip",
+        result: { asset_ids: ["ast-clip"] }
+      } as never
+    );
+
+    const shot = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((s) => s.id === "s-direct-clip");
+    expect(shot?.status).toBe("rendered");
+    expect(shot?.clip?.asset_id).toBe("ast-clip");
+  });
+
+  it("fails the shot and keeps the reason when the rpc carries an error", () => {
+    seedShot("s-direct-err");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-direct-err", BOARD, "req-2", "keyframe");
+
+    __handleShotJobMessageForTests(
+      "req-2",
+      context("s-direct-err", "keyframe"),
+      {
+        type: "rpc_response",
+        request_id: "req-2",
+        error: { code: "INTERNAL_ERROR", message: "model unavailable" }
+      } as never
+    );
+
+    const job =
+      useStoryboardGenerationStore.getState().shotJobs["s-direct-err"];
+    expect(job?.status).toBe("failed");
+    expect(job?.errorMessage).toBe("model unavailable");
+    expect(
+      useStoryboardStore
+        .getState()
+        .getBoard(BOARD)
+        ?.shots.find((s) => s.id === "s-direct-err")?.status
+    ).toBe("failed");
+    expect(
+      useNotificationStore.getState().notifications.at(-1)?.content
+    ).toContain("model unavailable");
+  });
+
+  it("reports an rpc_response that names no asset", () => {
+    seedShot("s-direct-empty");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-direct-empty", BOARD, "req-3", "keyframe");
+
+    __handleShotJobMessageForTests(
+      "req-3",
+      context("s-direct-empty", "keyframe"),
+      {
+        type: "rpc_response",
+        request_id: "req-3",
+        result: {}
+      } as never
+    );
+
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs["s-direct-empty"]
+        ?.errorMessage
+    ).toContain("returned no asset");
   });
 });
 
-describe("cancelled jobs", () => {
-  it("settles a cancelled keyframe job back to planned when the shot has no still", () => {
+describe("cancelled renders", () => {
+  it("settles a cancelled keyframe render back to planned when the shot has no still", () => {
     seedShot("s-cxl");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-cxl", BOARD, "job-cxl", "wf", "keyframe");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-cxl", BOARD, "req-cxl", "keyframe");
 
-    __handleShotJobMessageForTests("job-cxl", context("s-cxl", "keyframe"), {
-      type: "job_update",
-      status: "cancelled"
-    } as never);
+    settleCancelledShotJob("s-cxl");
 
     const shot = useStoryboardStore
       .getState()
@@ -134,8 +200,9 @@ describe("cancelled jobs", () => {
       status: "keyframe_ready",
       keyframe: { type: "image", uri: "asset://still" }
     } as never);
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-regen", BOARD, "job-regen", "wf", "keyframe");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-regen", BOARD, "req-regen", "keyframe");
 
     settleCancelledShotJob("s-regen");
 
@@ -147,7 +214,7 @@ describe("cancelled jobs", () => {
     expect(shot?.keyframe?.uri).toBe("asset://still");
   });
 
-  it("settles a cancelled clip job back to keyframe_ready", () => {
+  it("settles a cancelled clip render back to keyframe_ready", () => {
     const store = useStoryboardStore.getState();
     store.ensureBoard(BOARD);
     store.upsertShot(BOARD, {
@@ -158,8 +225,9 @@ describe("cancelled jobs", () => {
       status: "clip_generating",
       keyframe: { type: "image", uri: "asset://still" }
     } as never);
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-clip-cxl", BOARD, "job-clip-cxl", "wf", "clip");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-clip-cxl", BOARD, "req-clip-cxl", "clip");
 
     settleCancelledShotJob("s-clip-cxl");
 
@@ -175,119 +243,12 @@ describe("updateJobStatus", () => {
   it("keeps a completed job completed when no assetId is supplied", () => {
     seedShot("s-plain");
     const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-plain", BOARD, "job-plain", "wf", "keyframe");
-    gen.updateJobStatus("job-plain", "completed", {});
+    gen.registerJob("s-plain", BOARD, "req-plain", "keyframe");
+    gen.updateJobStatus("req-plain", "completed", {});
 
     const job = useStoryboardGenerationStore.getState().shotJobs["s-plain"];
     expect(job?.status).toBe("completed");
     expect(job?.errorMessage).toBeUndefined();
-  });
-});
-
-describe("direct generation responses (generate_media rpc)", () => {
-  const directContext = (shotId: string) => ({
-    shotId,
-    boardId: BOARD,
-    kind: "keyframe" as const
-  });
-
-  beforeEach(() => {
-    useNotificationStore.getState().clearNotifications();
-  });
-
-  it("writes the returned asset onto the shot and clears the job", () => {
-    seedShot("s-direct");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-direct", BOARD, "req-1", "", "keyframe");
-
-    __handleShotJobMessageForTests(
-      "req-1",
-      directContext("s-direct"),
-      {
-        type: "rpc_response",
-        request_id: "req-1",
-        result: { asset_ids: ["ast-1"] }
-      } as never
-    );
-
-    const shot = useStoryboardStore
-      .getState()
-      .getBoard(BOARD)
-      ?.shots.find((s) => s.id === "s-direct");
-    expect(shot?.status).toBe("keyframe_ready");
-    expect(shot?.keyframe?.asset_id).toBe("ast-1");
-    expect(shot?.keyframe?.uri).toBe("asset://ast-1");
-    // A completed job leaves no row behind — the shot is settled.
-    expect(
-      useStoryboardGenerationStore.getState().shotJobs["s-direct"]
-    ).toBeUndefined();
-  });
-
-  it("fails the shot and keeps the reason when the rpc carries an error", () => {
-    seedShot("s-direct-err");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-direct-err", BOARD, "req-2", "", "keyframe");
-
-    __handleShotJobMessageForTests(
-      "req-2",
-      directContext("s-direct-err"),
-      {
-        type: "rpc_response",
-        request_id: "req-2",
-        error: { code: "INTERNAL_ERROR", message: "model unavailable" }
-      } as never
-    );
-
-    const job =
-      useStoryboardGenerationStore.getState().shotJobs["s-direct-err"];
-    expect(job?.status).toBe("failed");
-    expect(job?.errorMessage).toBe("model unavailable");
-    expect(useStoryboardStore.getState().getBoard(BOARD)?.shots.find((s) => s.id === "s-direct-err")?.status).toBe("failed");
-    expect(
-      useNotificationStore.getState().notifications.at(-1)?.content
-    ).toContain("model unavailable");
-  });
-
-  it("reports an rpc_response that names no asset", () => {
-    seedShot("s-direct-empty");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-direct-empty", BOARD, "req-3", "", "keyframe");
-
-    __handleShotJobMessageForTests(
-      "req-3",
-      directContext("s-direct-empty"),
-      {
-        type: "rpc_response",
-        request_id: "req-3",
-        result: {}
-      } as never
-    );
-
-    expect(
-      useStoryboardGenerationStore.getState().shotJobs["s-direct-empty"]
-        ?.errorMessage
-    ).toContain("returned no asset");
-  });
-
-  it("ignores a workflow job's context for rpc messages", () => {
-    seedShot("s-wf-rpc");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-wf-rpc", BOARD, "job-wf-rpc", "wf-x", "keyframe");
-
-    __handleShotJobMessageForTests(
-      "job-wf-rpc",
-      context("s-wf-rpc", "keyframe"),
-      {
-        type: "rpc_response",
-        request_id: "job-wf-rpc",
-        result: { asset_ids: ["ast-x"] }
-      } as never
-    );
-
-    // The workflow job is untouched — only a direct request settles on rpc.
-    expect(
-      useStoryboardGenerationStore.getState().shotJobs["s-wf-rpc"]?.status
-    ).toBe("queued");
   });
 });
 
@@ -296,46 +257,7 @@ describe("failure reporting", () => {
     useNotificationStore.getState().clearNotifications();
   });
 
-  it("keeps the job error and notifies when a job fails", () => {
-    seedShot("s-fail");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-fail", BOARD, "job-fail", "wf", "keyframe");
-
-    __handleShotJobMessageForTests("job-fail", context("s-fail", "keyframe"), {
-      type: "job_update",
-      status: "failed",
-      error: "Provider rejected the prompt"
-    } as never);
-
-    const job = useStoryboardGenerationStore.getState().shotJobs["s-fail"];
-    expect(job?.status).toBe("failed");
-    expect(job?.errorMessage).toBe("Provider rejected the prompt");
-
-    const notification =
-      useNotificationStore.getState().notifications.at(-1);
-    expect(notification?.type).toBe("error");
-    expect(notification?.content).toContain("Provider rejected the prompt");
-  });
-
-  it("reports a completed job that produced no output", () => {
-    seedShot("s-empty");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s-empty", BOARD, "job-empty", "wf", "keyframe");
-
-    __handleShotJobMessageForTests("job-empty", context("s-empty", "keyframe"), {
-      type: "job_update",
-      status: "completed"
-    } as never);
-
-    expect(
-      useStoryboardGenerationStore.getState().shotJobs["s-empty"]?.errorMessage
-    ).toBe("Workflow finished without producing an output.");
-    expect(
-      useNotificationStore.getState().notifications.at(-1)?.content
-    ).toContain("Workflow finished without producing an output.");
-  });
-
-  it("records a failure that happened before any job existed", () => {
+  it("records a failure that happened before the request was sent", () => {
     seedShot("s-unstarted");
     useStoryboardGenerationStore
       .getState()

@@ -30,10 +30,7 @@ import type { TimelineStoreState } from "./TimelineStore";
 import { useTimelinePlaybackStore } from "./TimelinePlaybackStore";
 import * as ops from "./transcriptOps";
 import type { TokenRef } from "./transcriptOps";
-import {
-  globalWebSocketManager,
-  type WebSocketMessage
-} from "../../lib/websocket/GlobalWebSocketManager";
+import { rpcRequest } from "../../lib/websocket/rpcRequest";
 import { useAssetStore } from "../AssetStore";
 import type { Asset } from "../ApiTypes";
 import { getAssetUrl } from "../../utils/assetHelpers";
@@ -67,48 +64,6 @@ const DEFAULT_CONFIG: TranscriptGenerationConfig = {
 export type LineGenerationStatus = "idle" | "generating" | "failed";
 
 // ── RPC helpers (mirror useTimelineDirectGenJob's request/response pattern) ──
-
-interface RpcResponse extends WebSocketMessage {
-  type: "rpc_response";
-  request_id: string;
-  result?: Record<string, unknown>;
-  error?: { code?: string; message?: string };
-}
-
-function randomRequestId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-/** Send an RPC command and resolve with its single `rpc_response` result. */
-async function rpcRequest(
-  command: string,
-  data: Record<string, unknown>
-): Promise<Record<string, unknown>> {
-  await globalWebSocketManager.ensureConnection();
-  const requestId = randomRequestId();
-  return new Promise((resolve, reject) => {
-    const unsubscribe = globalWebSocketManager.subscribe(requestId, (msg) => {
-      if (msg.type !== "rpc_response") return;
-      const response = msg as RpcResponse;
-      if (response.request_id !== requestId) return;
-      unsubscribe();
-      if (response.error) {
-        reject(new Error(response.error.message ?? "RPC failed"));
-        return;
-      }
-      resolve(response.result ?? {});
-    });
-    globalWebSocketManager
-      .send({ command, request_id: requestId, data })
-      .catch((err) => {
-        unsubscribe();
-        reject(err instanceof Error ? err : new Error(String(err)));
-      });
-  });
-}
 
 /** Decode an audio asset's duration (ms) from its metadata. */
 async function probeAudioDurationMs(url: string): Promise<number | null> {

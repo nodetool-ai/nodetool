@@ -58,6 +58,7 @@ export const UNIFIED_COMMAND_TYPES = [
   "list_nodes",
   "get_node",
   "generate_media",
+  "generate_text",
   "transcribe_audio"
 ] as const;
 
@@ -244,6 +245,55 @@ export const transcribeAudioDataSchema = z
  * only catches `data` not being an object at all — everything else is left
  * to `handleCommand`.
  */
+/**
+ * One message in a `generate_text` request. Role stays a bare string — the
+ * runner maps anything it does not know onto "user" rather than rejecting the
+ * frame, which is the loose-schema convention this file follows.
+ */
+const generateTextMessageSchema = z
+  .object({
+    role: z.string(),
+    content: z.string()
+  })
+  .passthrough();
+
+/**
+ * `generate_text` gets a real schema for the same reason `run_job` does: its
+ * `schema` payload becomes a tool's `inputSchema` and its `messages` are
+ * mapped without a shape guard first, so a string where an object belongs, or
+ * a `messages` that is not an array, is worth rejecting before it reaches the
+ * provider. What is required is still `handleCommand`'s call.
+ */
+export const generateTextDataSchema = z
+  .object({
+    provider: z.string().optional(),
+    model: z.string().optional(),
+    prompt: z.string().optional(),
+    system: z.string().optional(),
+    messages: z.array(generateTextMessageSchema).optional(),
+    max_tokens: z.number().int().positive().optional(),
+    schema: z.record(z.string(), z.unknown()).optional(),
+    schema_name: z.string().optional(),
+    schema_description: z.string().optional()
+  })
+  .passthrough();
+
+/**
+ * Request payload for the `generate_text` RPC — one LLM call, no thread, no
+ * workflow, no job row. The text twin of `GenerateMediaRequest`, and how a
+ * surface that needs a model to write or decide something reaches one without
+ * authoring a graph to hold a single node.
+ *
+ * With `schema` set the call becomes structured output: the model is forced
+ * to answer through one tool whose input schema is that shape, and the
+ * response carries the parsed object in `data`. Without it the response
+ * carries `text`.
+ *
+ * Unlike the `inference` command this does not stream — the caller wants the
+ * finished answer, correlated to its `request_id`.
+ */
+export type GenerateTextRequest = z.infer<typeof generateTextDataSchema>;
+
 export const commandDataSchemas = {
   run_job: runJobDataSchema,
   reconnect_job: reconnectJobDataSchema,
@@ -268,6 +318,7 @@ export const commandDataSchemas = {
   list_nodes: looseDataSchema,
   get_node: looseDataSchema,
   generate_media: looseDataSchema,
+  generate_text: generateTextDataSchema,
   transcribe_audio: looseDataSchema
 } satisfies Record<UnifiedCommandType, z.ZodTypeAny>;
 

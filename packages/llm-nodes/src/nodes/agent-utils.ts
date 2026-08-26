@@ -9,7 +9,11 @@ import type {
   ProviderStreamItem,
   ToolCall
 } from "@nodetool-ai/runtime";
-import { expandAssetReferences } from "@nodetool-ai/runtime";
+import {
+  expandAssetReferences,
+  extractJson,
+  generateStructured
+} from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 import {
@@ -21,6 +25,12 @@ import {
   isRecord,
   isString
 } from "./type-predicates.js";
+
+// The structured-output call and its JSON fallback live in
+// `@nodetool-ai/runtime` — one implementation for the nodes, the agents, and
+// the server's `generate_text` RPC. Re-exported: this module is their import
+// site.
+export { extractJson, generateStructured };
 
 type MessagePart = { type?: string; text?: string };
 type LanguageModelLike = { provider?: string; id?: string; name?: string };
@@ -76,25 +86,6 @@ export function asText(value: unknown): string {
   return "";
 }
 
-export function extractJson(text: string): Record<string, unknown> | null {
-  try {
-    const parsed: unknown = JSON.parse(text);
-    return isRecord(parsed) ? parsed : null;
-  } catch {
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        const parsed: unknown = JSON.parse(text.slice(start, end + 1));
-        return isRecord(parsed) ? parsed : null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-}
-
 export function makeThreadId(): string {
   return `thread_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -132,47 +123,6 @@ export function hasProviderSupport(
   getProvider(providerId: string): Promise<BaseProvider>;
 } {
   return hasProviderAccess(context) && !!providerId && !!modelId;
-}
-
-/**
- * Call a provider with a result tool to get structured output.
- * The model is forced to call the tool via toolChoice, and the
- * parsed args are returned directly.
- */
-export async function generateStructured(
-  provider: BaseProvider,
-  args: {
-    messages: Message[];
-    model: string;
-    maxTokens?: number;
-    toolName: string;
-    toolDescription: string;
-    schema: Record<string, unknown>;
-  }
-): Promise<Record<string, unknown> | null> {
-  const call =
-    isCallable(provider.generateMessageTraced)
-      ? provider.generateMessageTraced.bind(provider)
-      : provider.generateMessage.bind(provider);
-  const result = await call({
-    messages: args.messages,
-    model: args.model,
-    maxTokens: args.maxTokens,
-    tools: [
-      {
-        name: args.toolName,
-        description: args.toolDescription,
-        inputSchema: args.schema
-      }
-    ],
-    toolChoice: args.toolName
-  });
-  const tc = result.toolCalls?.[0];
-  if (tc && tc.name === args.toolName) {
-    return tc.args as Record<string, unknown>;
-  }
-  // Fallback: try to parse JSON from text content
-  return extractJson(messageContentText(result.content));
 }
 
 export function normalizeProviderStreamItem(

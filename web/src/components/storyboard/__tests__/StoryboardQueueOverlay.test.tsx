@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
@@ -10,16 +11,9 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   }
 }));
 
-jest.mock("../../../trpc/client", () => ({
-  trpcClient: { jobs: { cancel: { mutate: jest.fn().mockResolvedValue({}) } } }
-}));
-
 import StoryboardQueueOverlay from "../StoryboardQueueOverlay";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
-import { trpcClient } from "../../../trpc/client";
-
-const mockCancel = jest.mocked(trpcClient.jobs.cancel.mutate);
 
 const BOARD = "qo-board";
 
@@ -44,6 +38,8 @@ const renderOverlay = () =>
   );
 
 describe("StoryboardQueueOverlay", () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
     jest.clearAllMocks();
     useStoryboardGenerationStore.setState({
@@ -54,7 +50,7 @@ describe("StoryboardQueueOverlay", () => {
     });
   });
 
-  it("renders nothing when the board has no active jobs", () => {
+  it("renders nothing when the board has no active renders", () => {
     seedShot("s-idle", 0, "Opening");
     const { container } = renderOverlay();
     expect(container).toBeEmptyDOMElement();
@@ -62,9 +58,9 @@ describe("StoryboardQueueOverlay", () => {
 
   it("collapsed: summarizes a single rendering shot with its kind", () => {
     seedShot("s1", 0, "Opening");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s1", BOARD, "job-1", "wf-1", "keyframe");
-    gen.updateJobStatus("job-1", "running");
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s1", BOARD, "req-1", "keyframe");
 
     renderOverlay();
     expect(screen.getByText("1. Opening")).toBeInTheDocument();
@@ -74,42 +70,46 @@ describe("StoryboardQueueOverlay", () => {
     ).toBeInTheDocument();
   });
 
-  it("expands into Rendering and Enqueued sections", () => {
+  it("expands into a card per in-flight render", async () => {
     seedShot("s1", 0, "Opening");
     seedShot("s2", 1, "Chase");
     const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s1", BOARD, "job-1", "wf-1", "keyframe");
-    gen.updateJobStatus("job-1", "running");
-    gen.registerJob("s2", BOARD, "job-2", "wf-2", "clip");
+    gen.registerJob("s1", BOARD, "req-1", "keyframe");
+    gen.registerJob("s2", BOARD, "req-2", "clip");
 
     renderOverlay();
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /expand render queue/i })
     );
 
-    expect(screen.getByText("Rendering")).toBeInTheDocument();
-    expect(screen.getByText("Enqueued")).toBeInTheDocument();
     expect(screen.getByText("1. Opening")).toBeInTheDocument();
     expect(screen.getByText("2. Chase")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /cancel render/i })).toHaveLength(2);
   });
 
-  it("cancels a queued job and settles the shot", async () => {
+  it("cancels one render and settles the shot", async () => {
     seedShot("s1", 0, "Opening");
-    seedShot("s2", 1, "Chase");
+    const store = useStoryboardStore.getState();
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "s2",
+      index: 1,
+      slug: "Chase",
+      action: "test action",
+      status: "keyframe_ready",
+      keyframe: { type: "image", uri: "asset://still" }
+    } as never);
     const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s1", BOARD, "job-1", "wf-1", "keyframe");
-    gen.updateJobStatus("job-1", "running");
-    gen.registerJob("s2", BOARD, "job-2", "wf-2", "clip");
+    gen.registerJob("s1", BOARD, "req-1", "keyframe");
+    gen.registerJob("s2", BOARD, "req-2", "clip");
 
     renderOverlay();
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /expand render queue/i })
     );
-    fireEvent.click(screen.getByRole("button", { name: /remove from queue/i }));
+    const cancels = screen.getAllByRole("button", { name: /cancel render/i });
+    await user.click(cancels[1]);
 
-    await waitFor(() =>
-      expect(mockCancel).toHaveBeenCalledWith({ id: "job-2" })
-    );
     await waitFor(() =>
       expect(
         useStoryboardGenerationStore.getState().shotJobs["s2"]
@@ -122,47 +122,25 @@ describe("StoryboardQueueOverlay", () => {
     expect(shot?.status).toBe("keyframe_ready");
   });
 
-  it("cancels every active job via Cancel all", async () => {
+  it("cancels every in-flight render via Cancel all", async () => {
     seedShot("s1", 0, "Opening");
     seedShot("s2", 1, "Chase");
     const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s1", BOARD, "job-1", "wf-1", "keyframe");
-    gen.updateJobStatus("job-1", "running");
-    gen.registerJob("s2", BOARD, "job-2", "wf-2", "clip");
+    gen.registerJob("s1", BOARD, "req-1", "keyframe");
+    gen.registerJob("s2", BOARD, "req-2", "clip");
 
     renderOverlay();
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /expand render queue/i })
     );
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /cancel all renders/i })
     );
 
-    await waitFor(() => expect(mockCancel).toHaveBeenCalledTimes(2));
-    expect(mockCancel).toHaveBeenCalledWith({ id: "job-1" });
-    expect(mockCancel).toHaveBeenCalledWith({ id: "job-2" });
-  });
-
-  it("keeps tracking a job when the cancel call fails", async () => {
-    seedShot("s1", 0, "Opening");
-    const gen = useStoryboardGenerationStore.getState();
-    gen.registerJob("s1", BOARD, "job-1", "wf-1", "keyframe");
-    gen.updateJobStatus("job-1", "running");
-    mockCancel.mockRejectedValueOnce(new Error("nope"));
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-
-    renderOverlay();
-    fireEvent.click(
-      screen.getByRole("button", { name: /expand render queue/i })
+    await waitFor(() =>
+      expect(
+        Object.keys(useStoryboardGenerationStore.getState().shotJobs)
+      ).toHaveLength(0)
     );
-    fireEvent.click(screen.getByRole("button", { name: /cancel render/i }));
-
-    await waitFor(() => expect(mockCancel).toHaveBeenCalled());
-    expect(
-      useStoryboardGenerationStore.getState().shotJobs["s1"]?.status
-    ).toBe("running");
-    consoleSpy.mockRestore();
   });
 });

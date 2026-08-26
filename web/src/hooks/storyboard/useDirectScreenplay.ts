@@ -1,57 +1,31 @@
 /**
  * useDirectScreenplay
  *
- * Wires the Storyboard's "Direct" button to a real Director run: builds a
- * one-node `nodetool.creative.Director → Output` graph from the board's brief,
- * style, aspect ratio, and requested shot count, runs it through the workflow
- * runner, and writes the resulting screenplay into the board (which seeds the
- * shot cards). Mirrors the run/subscribe pattern of {@link useGenerateShot},
- * but board-scoped instead of shot-scoped.
+ * Wires the Storyboard's "Direct" button to a real Director run: one
+ * `generate_text` request against the board's brief, style, aspect ratio, cast
+ * and requested shot count, answered as structured output against the
+ * screenplay schema. No workflow, no job row — the same shape as the per-shot
+ * renders in {@link useGenerateShot}, but board-scoped.
+ *
+ * The system prompt, the schema, the prompt shaping and the parse all come
+ * from `@nodetool-ai/protocol`, so a screenplay directed here and one directed
+ * by the `nodetool.creative.Director` node are authored the same way.
  */
 
-import { useCallback, useRef, useState } from "react";
-import type { Edge, Node } from "@xyflow/react";
-import { isScreenplay, type Screenplay } from "@nodetool-ai/protocol";
-import type { NodeData } from "../../stores/NodeData";
-import type { WorkflowAttributes } from "../../stores/ApiTypes";
-import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import { useCallback, useState } from "react";
 import {
-  globalWebSocketManager,
-  type WebSocketMessage
-} from "../../lib/websocket/GlobalWebSocketManager";
-import { normalizeOutputUpdateValue, isOutputUpdate } from "../../stores/outputUpdateValue";
+  DIRECTOR_SYSTEM_PROMPT,
+  SCREENPLAY_TOOL_DESCRIPTION,
+  SCREENPLAY_TOOL_NAME,
+  buildDirectorPrompt,
+  buildScreenplaySchema,
+  clampShotCount,
+  fallbackScreenplay,
+  parseScreenplay
+} from "@nodetool-ai/protocol";
+import { rpcRequest } from "../../lib/websocket/rpcRequest";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../serverState/useEntities";
-import { isString } from "../../utils/typePredicates";
-
-const DIRECTOR_NODE_ID = "director";
-const OUT_NODE_ID = "out";
-
-const makeWorkflow = (id: string): WorkflowAttributes => ({
-  id,
-  name: "Direct screenplay",
-  description: "",
-  access: "private",
-  thumbnail: "",
-  updated_at: new Date().toISOString(),
-  created_at: new Date().toISOString(),
-  settings: { hide_ui: true },
-  run_mode: "workflow",
-  workspace_id: null
-});
-
-/** Coerce a Director `screenplay` output value into a Screenplay, or null. */
-export const coerceScreenplay = (value: unknown): Screenplay | null => {
-  let candidate: unknown = value;
-  if (isString(candidate)) {
-    try {
-      candidate = JSON.parse(candidate);
-    } catch {
-      return null;
-    }
-  }
-  return isScreenplay(candidate) ? candidate : null;
-};
 
 interface UseDirectScreenplayResult {
   direct: (boardId: string, shotCount: number) => Promise<void>;
@@ -63,13 +37,11 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
   const [directing, setDirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: allEntities } = useEntities();
-  // The output captured from the run's output_update, keyed per invocation.
-  const outputRef = useRef<unknown>(undefined);
 
   const direct = useCallback(
-    async (boardId: string, shotCount: number): Promise<void> => {
+    async (boardId: string, requestedShots: number): Promise<void> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
-      let brief = board?.brief?.trim() ?? "";
+      const brief = board?.brief?.trim() ?? "";
       if (brief.length === 0) {
         setError("Write a brief before directing.");
         return;
@@ -80,13 +52,15 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
       const cast = (board?.entityIds ?? [])
         .map((id) => entitiesMap.get(id))
         .filter((e): e is NonNullable<typeof e> => !!e);
-      if (cast.length > 0) {
-        const lines = cast.map(
-          (e) =>
-            `- ${e.name} (${e.kind})${e.descriptor ? `: ${e.descriptor}` : ""}`
-        );
-        brief += `\n\nCast & ingredients — reference these by exact name in the shots:\n${lines.join("\n")}`;
-      }
+      const castLines = cast.map(
+        (e) => `- ${e.name} (${e.kind})${e.descriptor ? `: ${e.descriptor}` : ""}`
+      );
+      // The cast reaches the model but not the fallback: placeholder shots are
+      // built from the brief the user wrote, not from a reference block.
+      const directedBrief =
+        castLines.length > 0
+          ? `${brief}\n\nCast & ingredients — reference these by exact name in the shots:\n${castLines.join("\n")}`
+          : brief;
       const model = board?.directorModel;
       if (!model?.id) {
         setError("Pick a model before directing.");
@@ -94,101 +68,39 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
       }
       setError(null);
       setDirecting(true);
-      outputRef.current = undefined;
 
-      const workflowId = `storyboard-direct:${boardId}`;
-      const nodes: Node<NodeData>[] = [
-        {
-          id: DIRECTOR_NODE_ID,
-          type: "nodetool.creative.Director",
-          position: { x: 0, y: 0 },
-          data: {
-            properties: {
-              model,
-              brief,
-              style: board?.style ?? "",
-              shot_count: shotCount,
-              aspect_ratio: board?.aspectRatio ?? "16:9"
-            },
-            selectable: true,
-            dynamic_properties: {},
-            workflow_id: workflowId
-          }
-        },
-        {
-          id: OUT_NODE_ID,
-          type: "nodetool.output.Output",
-          position: { x: 400, y: 0 },
-          data: {
-            properties: { name: "screenplay" },
-            selectable: true,
-            dynamic_properties: {},
-            workflow_id: workflowId
-          }
-        }
-      ];
-      const edges: Edge[] = [
-        {
-          id: `${DIRECTOR_NODE_ID}-${OUT_NODE_ID}`,
-          source: DIRECTOR_NODE_ID,
-          sourceHandle: "screenplay",
-          target: OUT_NODE_ID,
-          targetHandle: "value"
-        }
-      ];
+      const style = board?.style ?? "";
+      const aspectRatio = board?.aspectRatio ?? "16:9";
+      const shotCount = clampShotCount(requestedShots);
 
       try {
-        const runnerStore = getWorkflowRunnerStore(workflowId);
-        const jobId = await runnerStore
-          .getState()
-          .run({}, makeWorkflow(workflowId), nodes, edges, undefined, undefined, true);
-        if (!jobId) {
-          throw new Error("Workflow runner did not return a job id");
-        }
-        await globalWebSocketManager.ensureConnection();
-        await new Promise<void>((resolve, reject) => {
-          const unsubscribe = globalWebSocketManager.subscribe(
-            jobId,
-            (message: WebSocketMessage) => {
-              if (isOutputUpdate(message) && message.node_id === OUT_NODE_ID) {
-                outputRef.current = normalizeOutputUpdateValue(message);
-                return;
-              }
-              if (message.type !== "job_update") {
-                return;
-              }
-              if (message.status === "completed") {
-                unsubscribe();
-                const screenplay = coerceScreenplay(outputRef.current);
-                if (!screenplay) {
-                  reject(
-                    new Error("Director finished without a usable screenplay.")
-                  );
-                  return;
-                }
-                useStoryboardStore
-                  .getState()
-                  .setScreenplay(boardId, screenplay);
-                resolve();
-                return;
-              }
-              if (
-                message.status === "failed" ||
-                message.status === "timed_out" ||
-                message.status === "cancelled"
-              ) {
-                unsubscribe();
-                reject(
-                  new Error(
-                    isString(message.error) && message.error.length > 0
-                      ? message.error
-                      : `Director run ${message.status}`
-                  )
-                );
-              }
-            }
-          );
+        const result = await rpcRequest("generate_text", {
+          provider: model.provider,
+          model: model.id,
+          system: DIRECTOR_SYSTEM_PROMPT,
+          prompt: buildDirectorPrompt(
+            directedBrief,
+            style,
+            shotCount,
+            aspectRatio
+          ),
+          max_tokens: 8192,
+          schema: buildScreenplaySchema(shotCount),
+          schema_name: SCREENPLAY_TOOL_NAME,
+          schema_description: SCREENPLAY_TOOL_DESCRIPTION
         });
+        const parsed = result.data
+          ? parseScreenplay(result.data, { shotCount, aspectRatio })
+          : null;
+        // No usable answer — a provider without tool support, or the fake
+        // provider — falls back to placeholder shots derived from the brief,
+        // the same rule the Director node applies. The board keeps flowing
+        // and the user can edit the beats; only a provider error throws.
+        const screenplay =
+          parsed && parsed.shots.length > 0
+            ? parsed
+            : fallbackScreenplay({ brief, style, shotCount, aspectRatio });
+        useStoryboardStore.getState().setScreenplay(boardId, screenplay);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {

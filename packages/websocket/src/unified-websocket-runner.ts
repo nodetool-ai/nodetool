@@ -118,8 +118,11 @@ import {
   detectImageMime,
   IMAGE_MIME_TO_EXT,
   encodeRawRgbaToPng,
+  calculateChatCost,
   expandEntitiesForGeneration,
   fetchExternalMedia,
+  generateStructured,
+  messageText,
   getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
   isProviderMessageEvent,
@@ -155,6 +158,7 @@ import type {
   UiSurfaceType
 } from "@nodetool-ai/protocol";
 import {
+  resolveNodetoolDelegate,
   webSocketCommandEnvelopeSchema,
   commandDataSchemas,
   controlMessageInSchemas,
@@ -1770,6 +1774,58 @@ interface DirectMediaGenerationRequest {
   audioFormat?: string;
 }
 
+/**
+ * Chars per token for the up-front spend estimate. Deliberately low (real
+ * English averages nearer 4) so the estimate over-books rather than under.
+ */
+const ESTIMATE_CHARS_PER_TOKEN = 3;
+
+/** Output budget assumed when a request names no `max_tokens`. */
+const ESTIMATE_DEFAULT_OUTPUT_TOKENS = 4096;
+
+/**
+ * A conservative up-front price for one text generation, in USD: every
+ * character the messages carry counted as input tokens, plus the request's
+ * whole output budget as output tokens, at the delegate model's rate.
+ *
+ * It over-estimates on purpose. The figure is what gets *reserved* for the
+ * duration of the call, and the real cost replaces it afterwards — an
+ * over-booking that is released beats letting concurrent calls each admit
+ * against a balance none of them has spent yet.
+ */
+export function estimateDirectTextSpend(req: {
+  provider: string;
+  model: string;
+  messages: Array<{ content: string }>;
+  maxTokens?: number;
+}): number {
+  const delegate =
+    req.provider === "nodetool" ? resolveNodetoolDelegate(req.model) : null;
+  const modelId = delegate?.model ?? req.model;
+  const providerId = delegate?.provider ?? req.provider;
+  const chars = req.messages.reduce((sum, m) => sum + m.content.length, 0);
+  const inputTokens = Math.ceil(chars / ESTIMATE_CHARS_PER_TOKEN);
+  const outputTokens = req.maxTokens ?? ESTIMATE_DEFAULT_OUTPUT_TOKENS;
+  try {
+    return calculateChatCost(modelId, inputTokens, outputTokens, 0, providerId);
+  } catch {
+    // An unpriced model estimates at zero: the gate still admits against the
+    // balance, and the real cost is recorded when the call returns.
+    return 0;
+  }
+}
+
+interface DirectTextGenerationRequest {
+  provider: string;
+  model: string;
+  messages: Array<{ role: string; content: string }>;
+  maxTokens?: number;
+  /** Present → the call is structured output against this JSON Schema. */
+  schema?: Record<string, unknown>;
+  schemaName: string;
+  schemaDescription: string;
+}
+
 interface ActiveJob {
   jobId: string;
   workflowId: string | null;
@@ -2114,6 +2170,12 @@ export class UnifiedWebSocketRunner {
    * every provider call the turn makes.
    */
   private chatAbort: AbortController | null = null;
+  /**
+   * Abort controllers for RPC calls that are still waiting on a provider.
+   * An RPC has no chat turn to hang off, so a `stop` command and a dropped
+   * socket reach an in-flight model call through this set.
+   */
+  private readonly rpcAborts = new Set<AbortController>();
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
   private clientToolsManifestReady = false;
   private toolBridge = new ToolBridge();
@@ -2233,6 +2295,12 @@ export class UnifiedWebSocketRunner {
   private cancelChatTurn(): void {
     this.chatAbort?.abort();
     this.chatAbort = null;
+  }
+
+  /** Abort every RPC still waiting on a provider. Idempotent. */
+  private cancelRpcCalls(): void {
+    for (const abort of this.rpcAborts) abort.abort();
+    this.rpcAborts.clear();
   }
 
   /**
@@ -2469,6 +2537,9 @@ export class UnifiedWebSocketRunner {
       this.frontendRendererId = null;
     }
     this.rendererToolBridge.cancelAll();
+    // An RPC has no session to detach into and no client left to answer, so
+    // it is always cancelled — unlike a resilient chat turn below.
+    this.cancelRpcCalls();
 
     // A resilient chat turn survives the socket: detach it (frames keep
     // buffering in the session for replay) instead of aborting. The session's
@@ -8047,6 +8118,123 @@ export class UnifiedWebSocketRunner {
    * image layers and the timeline's direct-gen video / audio clips; the
    * chat-path equivalents stay in `handleMediaGenerationMessage` for now.
    */
+  /**
+   * Run a one-shot text generation and return the answer — no chat thread, no
+   * job row, no workflow. The text twin of `runDirectMediaGeneration`, and
+   * what a surface calls when it needs a model to write or decide one thing.
+   *
+   * With a schema the call is structured output: the model is forced through
+   * one tool whose input schema is that shape, and the parsed object comes
+   * back in `data`. `generateStructured` owns that mechanism, shared with the
+   * Director node and the agent nodes, so a schema answered here and a schema
+   * answered in a workflow are answered the same way.
+   */
+  private async runDirectTextGeneration(
+    req: DirectTextGenerationRequest
+  ): Promise<{ text: string; data: Record<string, unknown> | null }> {
+    if (!this.resolveProvider) {
+      throw new Error("No provider resolver configured");
+    }
+    if (!req.model) {
+      throw new Error("model is required");
+    }
+    if (req.messages.length === 0) {
+      throw new Error("prompt or messages is required");
+    }
+    const userId = this.userId ?? "1";
+    const provider = await this.resolveProvider(req.provider, userId);
+    if (req.provider !== "nodetool") {
+      // BYOK: the user's own keys, never metered.
+      return this.runDirectTextGenerationInner(req, provider);
+    }
+
+    // NodeTool's managed provider: admit against the balance (including
+    // in-flight reservations), hold the estimate for the duration of the call
+    // so concurrent requests admit against each other, and record the real
+    // token cost as a prediction row so the balance decrements.
+    const estimatedUsd = estimateDirectTextSpend(req);
+    const decision = await admitSpend(userId, estimatedUsd);
+    if (!decision.allowed) {
+      throw new Error(decision.reason);
+    }
+    const reservationKey = `text:${randomUUID()}`;
+    reserveSpend(userId, reservationKey, estimatedUsd);
+    try {
+      const result = await this.runDirectTextGenerationInner(req, provider);
+      // The estimate deliberately over-books, so the tracked token cost is
+      // the charge — never the reservation.
+      const cost = provider.getTotalCost();
+      if (cost > 0) {
+        try {
+          await Prediction.create<Prediction>({
+            user_id: userId,
+            provider: "nodetool",
+            model: req.model,
+            node_type: req.schema ? "direct.structured" : "direct.text",
+            cost,
+            currency: "USD",
+            billing_unit: "tokens",
+            quantity: 1,
+            workflow_id: null,
+            node_id: "",
+            status: "completed"
+          });
+        } catch (err) {
+          this.logError("direct text cost persistence failed", err);
+        }
+      }
+      return result;
+    } finally {
+      releaseSpend(userId, reservationKey);
+    }
+  }
+
+  /**
+   * The provider call itself. Runs under an abort signal registered on the
+   * connection, so a `stop` command or a dropped socket interrupts a model
+   * that is still generating instead of billing for an answer nobody reads.
+   */
+  private async runDirectTextGenerationInner(
+    req: DirectTextGenerationRequest,
+    provider: BaseProvider
+  ): Promise<{ text: string; data: Record<string, unknown> | null }> {
+    const messages: ProviderMessage[] = req.messages.map((m) => ({
+      role: (m.role === "system" || m.role === "assistant" || m.role === "tool"
+        ? m.role
+        : "user") as ProviderMessage["role"],
+      content: m.content,
+      toolCallId: null,
+      toolCalls: null,
+      threadId: null
+    }));
+
+    const abort = new AbortController();
+    this.rpcAborts.add(abort);
+    try {
+      if (req.schema) {
+        const data = await generateStructured(provider, {
+          messages,
+          model: req.model,
+          maxTokens: req.maxTokens,
+          toolName: req.schemaName,
+          toolDescription: req.schemaDescription,
+          schema: req.schema,
+          signal: abort.signal
+        });
+        return { text: "", data };
+      }
+      const result = await provider.generateMessageTraced({
+        messages,
+        model: req.model,
+        maxTokens: req.maxTokens,
+        signal: abort.signal
+      });
+      return { text: messageText(result.content), data: null };
+    } finally {
+      this.rpcAborts.delete(abort);
+    }
+  }
+
   private async runDirectMediaGeneration(
     req: DirectMediaGenerationRequest
   ): Promise<{ asset_ids: string[] }> {
@@ -8979,6 +9167,7 @@ export class UnifiedWebSocketRunner {
         // yield boundaries; the signal interrupts blocked awaits and stops
         // providers that own a subprocess.
         this.cancelChatTurn();
+        this.cancelRpcCalls();
         this.currentTask = null;
         if (jobId) {
           const active = this.activeJobs.get(jobId);
@@ -9058,6 +9247,47 @@ export class UnifiedWebSocketRunner {
         const caller = this.getTrpcCaller();
         return this.runRpc(command, () =>
           caller.nodes.get({ node_type: String(data.node_type ?? "") })
+        );
+      }
+      case "generate_text": {
+        const provider = String(data.provider ?? this.defaultProvider);
+        const model = String(data.model ?? this.defaultModel);
+        const rawMessages = Array.isArray(data.messages) ? data.messages : [];
+        const messages: Array<{ role: string; content: string }> =
+          rawMessages.length > 0
+            ? rawMessages.map((m) => {
+                const msg = m as Record<string, unknown>;
+                return {
+                  role: isString(msg.role) ? msg.role : "user",
+                  content: isString(msg.content) ? msg.content : ""
+                };
+              })
+            : [];
+        if (messages.length === 0) {
+          const system = isString(data.system) ? data.system.trim() : "";
+          const prompt = isString(data.prompt) ? data.prompt : "";
+          if (system) messages.push({ role: "system", content: system });
+          if (prompt.trim()) messages.push({ role: "user", content: prompt });
+        }
+        const schema = isRecord(data.schema)
+          ? (data.schema as Record<string, unknown>)
+          : undefined;
+        return this.runRpc(command, () =>
+          this.runDirectTextGeneration({
+            provider,
+            model,
+            messages,
+            maxTokens: isNumber(data.max_tokens)
+              ? (data.max_tokens as number)
+              : undefined,
+            schema,
+            schemaName: isString(data.schema_name)
+              ? (data.schema_name as string)
+              : "result",
+            schemaDescription: isString(data.schema_description)
+              ? (data.schema_description as string)
+              : "Answer with the requested structure."
+          })
         );
       }
       case "generate_media": {

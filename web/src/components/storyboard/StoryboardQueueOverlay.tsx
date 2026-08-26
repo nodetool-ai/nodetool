@@ -3,10 +3,12 @@
  * StoryboardQueueOverlay
  *
  * Floating render queue for the Storyboard surface, mirroring the node
- * editor's {@link QueueOverlay}: shows the board's still and clip jobs that
- * are queued or rendering, with per-job cancel and a cancel-all action.
- * Collapses to a compact summary bar and hides entirely when the board is
- * idle.
+ * editor's {@link QueueOverlay}: shows the board's in-flight still and clip
+ * renders, with per-render cancel and a cancel-all action. Collapses to a
+ * compact summary bar and hides entirely when the board is idle.
+ *
+ * A render is a direct `generate_media` request, so there is no server queue
+ * to wait in — every tracked render is already running.
  */
 import { css, keyframes } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
@@ -29,11 +31,9 @@ import {
 import type { SxProps } from "@mui/material/styles";
 import TheatersIcon from "@mui/icons-material/Theaters";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
-import ScheduleIcon from "@mui/icons-material/Schedule";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import CloseIcon from "@mui/icons-material/Close";
-import { trpcClient } from "../../trpc/client";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import {
   useStoryboardGenerationStore,
@@ -185,53 +185,6 @@ const RenderingCard = memo(function RenderingCard({
   );
 });
 
-const EnqueuedCard = memo(function EnqueuedCard({
-  row,
-  position,
-  onCancel
-}: {
-  row: JobRow;
-  position: number;
-  onCancel: (shotId: string) => void;
-}) {
-  return (
-    <Box sx={cardSx}>
-      <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
-        <Caption color="secondary" sx={{ flex: "0 0 auto" }}>
-          #{position + 1}
-        </Caption>
-        <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
-          {row.name}
-        </Text>
-        <KindTag kind={row.kind} />
-        <ToolbarIconButton
-          icon={<CloseIcon sx={{ fontSize: "1em" }} />}
-          tooltip="Remove from queue"
-          ariaLabel="Remove from queue"
-          variant="error"
-          onClick={() => onCancel(row.shotId)}
-        />
-      </FlexRow>
-    </Box>
-  );
-});
-
-const SectionLabel = ({ children }: { children: string }) => (
-  <Caption
-    color="secondary"
-    sx={{
-      display: "block",
-      px: SPACING.micro,
-      pt: SPACING.md,
-      pb: SPACING.xs,
-      textTransform: "uppercase",
-      letterSpacing: "0.08em"
-    }}
-  >
-    {children}
-  </Caption>
-);
-
 const HeaderCount = ({
   icon,
   count
@@ -278,7 +231,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
   const shots = useStoryboardStore((state) => state.boards[boardId]?.shots);
   const shotJobs = useStoryboardGenerationStore((state) => state.shotJobs);
 
-  const { rendering, queued } = useMemo(() => {
+  const rendering = useMemo(() => {
     const byId = new Map((shots ?? []).map((s) => [s.id, s]));
     const rows: JobRow[] = Object.values(shotJobs)
       .filter((job) => job.boardId === boardId)
@@ -293,42 +246,22 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         };
       })
       .sort((a, b) => a.index - b.index);
-    return {
-      rendering: rows.filter((row) => row.status === "running"),
-      queued: rows.filter((row) => row.status === "queued")
-    };
+    return rows.filter((row) => row.status === "running");
   }, [shotJobs, shots, boardId]);
 
-  const handleCancel = useCallback(async (shotId: string) => {
-    const job = useStoryboardGenerationStore.getState().shotJobs[shotId];
-    if (!job) {
-      return;
-    }
-    // Direct generation (generate_media RPC) has no server job to cancel —
-    // stop tracking and settle; the provider call runs to completion.
-    if (!job.workflowId) {
-      settleCancelledShotJob(shotId);
-      return;
-    }
-    try {
-      await trpcClient.jobs.cancel.mutate({ id: job.jobId });
-      // Settle immediately rather than waiting for the cancelled job_update —
-      // a job cancelled before it starts may never emit one.
-      settleCancelledShotJob(shotId);
-    } catch (err) {
-      // Keep tracking the job: if the cancel failed because the run already
-      // finished, the completion message settles the shot on its own.
-      console.error("Failed to cancel storyboard render:", err);
-    }
+  // A direct request has no server job to cancel: stop tracking and settle,
+  // and the provider call runs to completion unwatched.
+  const handleCancel = useCallback((shotId: string) => {
+    settleCancelledShotJob(shotId);
   }, []);
 
   const handleCancelAll = useCallback(() => {
-    for (const row of [...rendering, ...queued]) {
-      void handleCancel(row.shotId);
+    for (const row of rendering) {
+      handleCancel(row.shotId);
     }
-  }, [rendering, queued, handleCancel]);
+  }, [rendering, handleCancel]);
 
-  if (rendering.length === 0 && queued.length === 0) {
+  if (rendering.length === 0) {
     return null;
   }
 
@@ -338,13 +271,9 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
       <Box css={overlayStyles(theme)}>
         <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.sm }}>
           <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
-            <Dot color={rendering.length ? "primary.main" : "grey.600"} />
+            <Dot />
             <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
-              {single
-                ? single.name
-                : rendering.length
-                  ? `${rendering.length} shots rendering`
-                  : "Render queue"}
+              {single ? single.name : `${rendering.length} shots rendering`}
             </Text>
             {single && <KindTag kind={single.kind} />}
             <ToolbarIconButton
@@ -354,19 +283,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
               onClick={() => setExpanded(true)}
             />
           </FlexRow>
-          {rendering.length > 0 && (
-            <RenderBar progress={single?.progress} />
-          )}
-          {queued.length > 0 && (
-            <FlexRow
-              align="center"
-              gap={SPACING.micro}
-              sx={{ color: "text.secondary" }}
-            >
-              <ScheduleIcon sx={{ fontSize: "1em" }} />
-              <Caption color="secondary">{queued.length} queued</Caption>
-            </FlexRow>
-          )}
+          <RenderBar progress={single?.progress} />
         </FlexColumn>
       </Box>
     );
@@ -383,16 +300,10 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         <Text size="small" sx={{ flex: 1 }}>
           Render queue
         </Text>
-        <FlexRow align="center" gap={SPACING.md}>
-          <HeaderCount
-            icon={<PlayArrowOutlinedIcon sx={{ fontSize: "1em" }} />}
-            count={rendering.length}
-          />
-          <HeaderCount
-            icon={<ScheduleIcon sx={{ fontSize: "1em" }} />}
-            count={queued.length}
-          />
-        </FlexRow>
+        <HeaderCount
+          icon={<PlayArrowOutlinedIcon sx={{ fontSize: "1em" }} />}
+          count={rendering.length}
+        />
         <ToolbarIconButton
           icon={<CloseIcon sx={{ fontSize: "1em" }} />}
           tooltip="Cancel all renders"
@@ -412,35 +323,11 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         thin
         sx={{ flex: 1, minHeight: 0, px: SPACING.md, pb: SPACING.md }}
       >
-        {rendering.length > 0 && (
-          <>
-            <SectionLabel>Rendering</SectionLabel>
-            <FlexColumn gap={SPACING.xs}>
-              {rendering.map((row) => (
-                <RenderingCard
-                  key={row.jobId}
-                  row={row}
-                  onCancel={handleCancel}
-                />
-              ))}
-            </FlexColumn>
-          </>
-        )}
-        {queued.length > 0 && (
-          <>
-            <SectionLabel>Enqueued</SectionLabel>
-            <FlexColumn gap={SPACING.xs}>
-              {queued.map((row, position) => (
-                <EnqueuedCard
-                  key={row.jobId}
-                  row={row}
-                  position={position}
-                  onCancel={handleCancel}
-                />
-              ))}
-            </FlexColumn>
-          </>
-        )}
+        <FlexColumn gap={SPACING.xs} sx={{ pt: SPACING.sm }}>
+          {rendering.map((row) => (
+            <RenderingCard key={row.jobId} row={row} onCancel={handleCancel} />
+          ))}
+        </FlexColumn>
       </ScrollArea>
     </Box>
   );

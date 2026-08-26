@@ -39,9 +39,6 @@ import {
 import { fetchShotDurationSeconds } from "./useShotDuration";
 import { getErrorMessage } from "../../utils/errorHandling";
 
-const GEN_NODE_ID = "gen";
-const OUT_NODE_ID = "out";
-
 /**
  * Shots with a start in flight, before `registerJob` marks them active in the
  * generation store. Without this, two rapid clicks (or concurrent agent
@@ -175,7 +172,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       startingShots.add(shot.id);
       const requestId = randomRequestId();
       try {
-        registerJob(shot.id, boardId, requestId, "", kind);
+        registerJob(shot.id, boardId, requestId, kind);
         await subscribeDirectShotJob(requestId, {
           shotId: shot.id,
           boardId,

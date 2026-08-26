@@ -158,8 +158,7 @@ describe("ShotCard", () => {
         "shot-1": {
           shotId: "shot-1",
           boardId: "board-1",
-          jobId: "job-1",
-          workflowId: "wf",
+          jobId: "req-1",
           kind: "keyframe",
           status: "failed",
           errorMessage: "Out of credits"

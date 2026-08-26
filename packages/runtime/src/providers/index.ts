@@ -63,6 +63,12 @@ import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export {
+  generateStructured,
+  extractJson,
+  messageText
+} from "./structured-output.js";
+export type { StructuredCallArgs } from "./structured-output.js";
+export {
   PROBE_MANIFEST,
   probeProviders,
   formatProbeReport,

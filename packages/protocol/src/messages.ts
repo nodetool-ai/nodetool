@@ -689,6 +689,7 @@ export type UnifiedCommandType =
   | "list_nodes"
   | "get_node"
   | "generate_media"
+  | "generate_text"
   | "transcribe_audio";
 
 /**
@@ -698,6 +699,8 @@ export type UnifiedCommandType =
  *
  * `generate_media` is included here because the sketch editor and other
  * non-chat callers want a single asset id back, not a streamed Message row.
+ * `generate_text` is its text twin: one answer, or one object matching a
+ * JSON schema, with no thread and no workflow behind it.
  * `transcribe_audio` likewise returns word-level caption timing in one shot.
  */
 export type RpcCommandType =
@@ -708,6 +711,7 @@ export type RpcCommandType =
   | "list_nodes"
   | "get_node"
   | "generate_media"
+  | "generate_text"
   | "transcribe_audio";
 
 export interface WebSocketCommandEnvelope<
@@ -813,6 +817,22 @@ export interface GenerateMediaRequest {
 
 export interface GenerateMediaResponse {
   asset_ids: string[];
+}
+
+/**
+ * Answer to a `generate_text` request. The request payload itself is
+ * `GenerateTextRequest` in `ws-commands.ts`, derived from the Zod schema that
+ * validates the frame.
+ */
+export interface GenerateTextResponse {
+  /** The model's text answer. Empty on a structured call answered by tool. */
+  text: string;
+  /**
+   * The parsed object, on a request that carried a `schema`. Null when the
+   * model produced neither a tool call nor JSON the fallback could read —
+   * the caller decides whether that is an error or a reason to fall back.
+   */
+  data: Record<string, unknown> | null;
 }
 
 export interface RpcErrorPayload {
