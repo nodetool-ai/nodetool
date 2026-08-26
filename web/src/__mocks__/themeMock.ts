@@ -91,6 +91,7 @@ interface MockVarsPalette {
   FilledInput?: { bg: string; hoverBg: string; disabledBg: string };
   TableCell?: { border: string };
   Tooltip?: { bg: string };
+  Skeleton?: { bg: string };
   OutlinedInput?: { border: string; hoverBorder: string };
   Slider?: Record<string, string>;
   Chip?: {
@@ -479,6 +480,9 @@ draft.vars.palette.TableCell = {
 };
 draft.vars.palette.Tooltip = {
   bg: "rgba(97, 97, 97, 0.92)",
+};
+draft.vars.palette.Skeleton = {
+  bg: "rgba(255, 255, 255, 0.11)",
 };
 draft.vars.palette.OutlinedInput = {
   border: "rgba(255, 255, 255, 0.23)",
