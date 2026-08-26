@@ -24,7 +24,6 @@ Both live in the `lib.comfy` namespace and ship in the built-in `base` node
 pack, so every install registers them — including a server running the curated
 cloud profile (`NODETOOL_NODE_PROFILE=cloud`, the production default), which
 allowlists the two runners by name while dropping the rest of the namespace.
-See [Cloud Node Curation](CLOUD_NODE_CURATION.md).
 
 If they don't appear in the node menu, that is the menu's own decluttering, not
 a gate: `lib.comfy` sits in the **Developer Tools** group of

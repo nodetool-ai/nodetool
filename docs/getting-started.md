@@ -1,24 +1,26 @@
 ---
 layout: page
 title: "Quick Start"
-description: "Install NodeTool, ask the agent to build a workflow, run a ready-made example, change it, and turn it into a small app anyone can use."
+description: "Install NodeTool, connect a language, image, and video model, ask the agent for a storyboard, render stills and clips, assemble the cut on the timeline, and export the film."
 ---
 
-Install NodeTool, ask its agent to build something, open a ready-made example,
-change it, and turn it into a form anyone can use. About 10 minutes. No account
-required.
+Turn one sentence into a short film: the agent writes the screenplay, you pick
+the frames worth paying for, and the cut lands in a video editor you export
+from. About 30 minutes, most of it waiting on renders. No account required —
+you bring your own API keys.
 
 This page assumes you have never used a tool like this. Every term is explained
 the first time it appears, and the [Glossary](glossary.md) covers the rest.
 
-Prefer to watch first? Here is a finished example running. The
-[Tutorials](tutorials.md) page has more.
+![Storyboard surface with five shot cards](assets/creative-agent/storyboard-surface.png)
 
-<video controls preload="metadata" poster="{{ '/assets/tutorials/first-workflow.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/first-workflow.mp4' | relative_url }}" type="video/mp4">
-</video>
+The five steps below are the whole pipeline. Each one is cheaper than the next,
+which is the point: a still costs cents, a clip costs dollars, and you look at
+the still before you buy the clip.
 
-## Step 1 — Install
+---
+
+## Step 1 — Install and connect your models
 
 ### Will it run on my computer?
 
@@ -28,212 +30,220 @@ Prefer to watch first? Here is a finished example running. The
 | **Free disk space** | 10 GB | 50 GB if you download AI models |
 | **Operating system** | macOS 13+, Windows 10+, Ubuntu 22+ | The latest version |
 
-No graphics card needed. The simplest way to use NodeTool is to connect an
-online AI service with your own key, and the models then run on that service's
-machines. A graphics card only enters the picture if you later decide to run
-models on your own machine — see the
+No graphics card needed. Everything in this guide runs on cloud models billed
+to your own key, so the work happens on the provider's machines. A graphics card
+only matters if you later run models locally — see the
 [hardware notes](installation.md#what-different-tasks-need).
 
 ### Install it
 
 1. Download NodeTool from [nodetool.ai](https://nodetool.ai).
 2. Run the installer.
-3. Open the app. There is no setup wizard — it opens on the Dashboard and asks
-   what you want to make. Pick a track and it drops a starter workflow on the
-   canvas; skip it and you get an empty one.
+3. Open the app. It lands on the Dashboard, which asks what you want to make
+   and carries a short setup checklist. Per-OS instructions are on the
+   [Installation](installation.md) page.
 
-![First launch: pick what you want to make](assets/screenshots/onboarding-welcome.png)
+### Connect three kinds of model
 
-Under the tracks is a getting-started checklist — connect a provider, open a
-template, run it, build your own. It disappears when you finish the four steps
-or press Dismiss, and the app then opens straight into the workspace.
+NodeTool has no AI model built in. You point it at providers with an **API key**:
+a long password-like string you copy from an AI company's site. It lets NodeTool
+send requests on your account, and that company bills you for what you use.
+Some providers also offer one-click sign-in instead of a key.
 
-![Getting-started checklist](assets/screenshots/onboarding-checklist.png)
+A film needs three roles filled, and one provider can fill more than one:
 
-Step-by-step instructions per operating system are on the
-[Installation](installation.md) page.
+| Role | What it does | Connect one of |
+|---|---|---|
+| **Language model** | Writes the screenplay and drives the assistants | OpenAI, Anthropic, Google Gemini, Groq, Mistral — or a Claude subscription |
+| **Image model** | Renders each shot's still | FAL, Google Gemini, OpenAI, Replicate, Hugging Face |
+| **Video model** | Animates a still into a clip | FAL, Replicate, Google Gemini |
 
-### Connect it to an AI service
+FAL plus one language provider is the shortest path: FAL covers both the stills
+and the clips.
 
-NodeTool has no AI model built in. You point it at one, and the fastest way is
-an **API key**: a long password-like string you copy from an AI company's
-website. It lets NodeTool send requests on your account, and that company bills
-you for what you use.
-
-The checklist's **Connect an AI provider** step opens this dialog — sign in with
-one click where the provider supports it, or paste a key from
-[OpenAI](https://platform.openai.com),
-[Anthropic](https://www.anthropic.com), or
-[Google](https://ai.google.dev). One key is enough for the examples below. You
-can reach the same providers any time under **Settings → Models & Providers**.
+Open **Settings → Models & Providers**, or let the app open the same dialog the
+first time something needs a key it doesn't have. Sign in where the provider
+supports it, otherwise paste the key.
 
 ![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
 
-Want the AI to run on your own machine instead, with no account and no bill?
-That works too, and it needs a download of several gigabytes per model. See
-[Models & Providers](models-and-providers.md).
+Each card shows what the provider is good for, what it charges, and whether it
+has a free tier. Model dropdowns are built from the providers you have
+connected, so a key you skip is a model you won't see later.
+
+Prefer models on your own machine, with no account and no bill? That works for
+the language and image steps and needs a download of several gigabytes per
+model. See [Models & Providers](models-and-providers.md).
 
 ---
 
-## Step 2 — Ask for what you want
+## Step 2 — Ask the agent for a storyboard
 
-The fastest way in is to describe the result and let the agent build it. Click
-the **Chats** icon in the left rail, start a new thread, pick a model with the
-chip in the composer, and type something like:
+A **storyboard** is a board of cards, one per shot. Each card holds the shot's
+action text, its still, and its clip. It is where the film is planned before any
+money is spent.
 
-> Build me a workflow that takes a product photo and a short brief and writes
-> three ad captions for it.
+Press **+** on the workspace tab bar and pick **New storyboard… → Blank
+storyboard**. The same menu lists example boards that ship with the install;
+those arrive finished — action text, still, and clip on every shot — if you want
+to see the end state before making your own.
 
-The agent plans a graph, checks it against the node library, saves it as a
-workflow, and runs it. The thread shows each step as it happens: the plan, every
-tool it calls, and what came back. When it finishes, open the workflow it made
-and you are looking at ordinary nodes and lines, the same as if you had placed
-them yourself.
+The board has two halves. On the left you write the film:
 
-Three things worth knowing on the first try:
+- **Title** — what it's called.
+- **Brief** — your film in one or two sentences.
+- **Style** — palette, light, lens, texture. This is what holds the look
+  together across shots.
+- **Entities** — optional named characters, locations, styles, and props reused
+  across shots. See [Creative Agent → Entities](creative-agent.md).
+
+On the right you pick the machinery: **Screenplay model** (language),
+**Still model** (image), **Clip model** (image-to-video), **Aspect ratio**, and
+how many **Shots** you want. Six is a good first number.
+
+Press **Direct**. The `nodetool.creative.Director` node returns a typed
+screenplay — title, logline, style bible, narration, music direction — and one
+card per shot carrying its action, camera (framing, lens, angle, movement),
+motion, and duration. Nothing has rendered yet, so this step costs one language
+model call.
+
+![Storyboard board with entity chips](assets/screenshots/storyboard-board.png)
+
+### Or just ask for it
+
+Everything the board's buttons do is also a tool the agent can call. The
+**Storyboard Assistant** is docked to the right of the board — ask it in plain
+language and watch the cards change:
+
+> Break this brief into six shots, opening on a wide establishing shot and
+> ending on a close-up.
+
+> Add a reaction shot after shot 3 and make shot 5 a slow push-in.
+
+From the **Chats** panel — with no board open — the agent can create the board
+from scratch: *"Create a storyboard for a 40-second noir short about a courier
+who loses the package, six shots."* It creates the board, writes the shots, and
+tells you the id; open it from the **Storyboards** section of the left panel.
+
+Two things worth knowing on the first try:
 
 - **The permission chip decides how far it goes on its own.** *Plan* proposes
   without touching anything, *Default* asks before actions, *Auto* runs
-  everything. It is set per thread.
-- **It works on whatever you have open.** With a workflow, sketch, timeline, or
-  storyboard in front of you, ask for a change to *that* document: "add an
-  upscale step after the image node", "put the voiceover on a new audio track".
-- **You can stop and take over at any point.** Nothing it built is locked.
-
-Full details are in [Chat](global-chat.md) and
-[Chat & Agents](global-chat-agents.md).
+  everything. It is set per thread, and it is what stands between a chat message
+  and a render bill.
+- **Re-directing replaces every shot.** The app asks first. Stills and clips
+  already generated stay in your asset library, but the cards are rebuilt.
 
 ---
 
-## Step 3 — Run a ready-made example
+## Step 3 — Render stills, then clips
 
-Everything you build lives on a **canvas**: a large open work area where you
-place boxes and draw lines between them.
+This is the step that spends money, so it runs in two passes.
 
-- Each box is a **node**, and it does one job: write some text, make an image,
-  save a file.
-- A line carries the result of one node into the next one. Lines are also called
-  **connections**.
-- The whole picture, boxes and lines together, is a **workflow**.
+**Stills first.** Press **Generate all stills** — the button counts the shots
+still waiting — or **Generate still** on one card. Each still is saved as an
+asset and becomes that shot's keyframe. Don't like one? Press **New still**; the
+previous take is kept, and the **Takes** row under the card clicks back to it.
+The card shows a `~$` estimate before you commit.
 
-You don't have to build one yet. NodeTool ships with **templates**: finished
-workflows you can open and run as they are. Find them on the Dashboard, the
-screen you land on until you finish the checklist, or on the Examples page.
-After that the app opens straight into the workspace; **Settings → General →
-Show Welcome Screen** puts the Dashboard back on startup.
+**Clips second, from the still you chose.** **Generate clip** animates that
+shot's selected still with the video model; **Generate all clips** does every
+shot that has a still and no clip yet. A card that never got a still is reported
+and skipped, not rendered blind.
 
-![Examples page](assets/screenshots/examples-page.png)
+**Revise clip** takes a text instruction — "make it darker, add rain" — and runs
+video-to-video on the clip you already have, swapping the result in place. Fixing
+shot 3 never means re-rolling shots 1–5.
 
-### Movie Posters
+Cards move through **Planned → Still ready → Rendering → Rendered**, and
+**Preview** plays the whole board in order — each shot's clip where one exists,
+its still held on screen where it doesn't.
 
-1. Go to Dashboard → Templates → **Movie Posters**.
-2. The workflow opens. Read it left to right: the boxes where you type go on the
-   left, the AI in the middle, the image maker next, and the finished picture on
-   the right.
-3. Type into the boxes on the left:
-   - **Title**: Ocean Depths
-   - **Genre**: Sci-Fi Thriller
-   - **Audience**: Adults who love mystery
-4. Two nodes, Agent and List Generator, ask you to pick a model. A **model** is
-   the specific AI you want to use, such as GPT-5.6 or Claude Opus 5. Pick any one from
-   the dropdown. This is the step that needs the API key from above.
-5. Press <kbd>Ctrl/⌘ + Enter</kbd> to run it.
+The assistant drives all of it:
 
-Nodes light up one at a time as they work. Text and images appear inside the
-Preview node on the right as they are produced, so you can watch the poster
-being made instead of waiting for a finished file.
+> Render stills for every planned shot.
 
-### Creative Story Ideas
-
-![Editor](assets/screenshots/editor-empty-state.png)
-
-1. Go to Dashboard → Templates → **Creative Story Ideas**.
-2. Type into the boxes on the left:
-   - **Genre**: Cyberpunk
-   - **Character**: Rogue AI detective
-   - **Setting**: Neon-lit underwater city
-3. Pick a model for the Agent and List Generator nodes.
-4. Press <kbd>Ctrl/⌘ + Enter</kbd> to run it.
+> Animate shots 1 through 4, then show me what's left.
 
 ---
 
-## Step 4 — Change something
+## Step 4 — Assemble the cut on the timeline
 
-The template is now yours. Change it, run it again, and see what happens. Every
-run uses whatever is on the canvas at that moment, so there is nothing to
-rebuild or recompile.
+Press **Assemble timeline**. NodeTool creates a saved timeline sequence and
+opens it in a tab.
 
-1. Change one of your typed inputs, or pick a different model, then press
-   <kbd>Ctrl/⌘ + Enter</kbd> again.
-2. Press <kbd>Ctrl/⌘ + S</kbd> to save your version.
-3. Click a node to see its settings in the panel on the right. Hover over a line
-   to see the data passing through it.
-4. To watch any value anywhere in the workflow, press `Space` to open the node
-   list, search for "Preview", and drop one onto the canvas. Connect a line into
-   it and it will show whatever arrives.
-5. Or describe the change instead of making it: with the workflow open, ask the
-   agent in the Chats panel to "add a second image model and preview both".
-   It edits the graph in front of you, and you can undo it like any other edit.
+![The assembled cut in the timeline editor](assets/creative-agent/assembled-timeline.png)
 
-### Finding more nodes
+What lands there:
 
-NodeTool comes with hundreds of nodes. Showing all of them at once would make
-the list unusable, so the more specialised ones are grouped into **packs** that
-start switched off. Turning a pack on adds its nodes to the list.
+- Every rendered shot as a clip on a video track, in board order.
+- Each clip's own sound on a linked **Shot Audio** track beside it. Mute one when
+  a shot should play silent under narration.
+- The screenplay's narration and music as draft text-to-audio clips on their own
+  tracks — generate them from the clip inspector when you want them.
+- The screenplay text in the script panel.
 
-Press `Space` to open the node list, then click **Optional packs** at the bottom
-of the category list.
+From here it's an ordinary edit. Drag to move, drag an edge to trim, `S` splits
+at the playhead, `Delete` removes, and clips snap to the playhead and to each
+other. The **Animate** section of the inspector adds entrance, exit, emphasis,
+and loop motion without keyframes. Full reference:
+[Video Editor](video-editor.md).
 
-![Optional node packs](assets/screenshots/node-menu-optional-packs.png)
+The **Editor Assistant** is docked here too: *"split the selected clip at the
+playhead"*, *"fade out the last clip"*, *"generate a 5-second clip of a city at
+night"*.
 
-- **Categories** — switch on a group (Documents, Image & Graphics, Web &
-  Scraping, and others) to show its nodes while browsing. Search always finds
-  every node, even in a pack that is switched off, so nothing is ever truly
-  hidden.
-- **Providers** — nodes for an AI company appear as soon as you add that
-  company's API key, in **Settings → Models & Providers** or with the **Add API key**
-  button right here. No restart needed. Packs that run on your own machine, like
-  Transformers.js, need no key and have a normal on/off switch.
-
-Opening a workflow that someone else made switches on any pack it needs, so
-shared workflows run without setup.
+Every assembled clip stays linked to the shot it came from. Go back to the
+storyboard, revise a shot, and the new render replaces that clip in the saved
+cut. Press **Assemble timeline** again after adding shots and the same sequence
+is rewritten in place, keeping tracks you added by hand.
 
 ---
 
-## Step 5 — Turn it into an app
+## Step 5 — Export the video
 
-A **Mini-App** is the same workflow with the boxes and lines hidden. What's left
-is a plain form: fill in the fields, press a button, get the result. Hand it to
-someone who should never have to look at a canvas.
+Set the output first. The **Settings** button in the timeline's top bar opens
+**Project settings**: canvas width and height (or a preset) and the frame rate.
+The sequence renders at exactly those numbers.
 
-1. Open the workflow.
-2. Click **Mini-App** in the toolbar.
-3. Fill in the fields and run it. Same workflow underneath, no canvas.
+Then **Export video**. NodeTool renders the timeline frame by frame through the
+same compositor that drew the preview, mixes the audio offline, and muxes the
+two into an MP4. A progress dialog reports the phase — preparing, audio, video,
+finalizing — and you can cancel mid-render.
 
-![A Mini App running](assets/screenshots/mini-app-run.png)
+![The timeline editor](assets/screenshots/timeline-editor.png)
 
-The agent builds these too. In the App Builder, ask it for the form you want —
-"a dropdown for tone, a big text box for the brief, and the result underneath" —
-and it places and wires the widgets.
-
-To design the form yourself, see [Mini Apps](mini-apps.md) for what they are,
-[Building Mini Apps](mini-apps-guide.md) for worked examples, and
-[App Builder](app-builder.md) for the editor.
+**Save as Asset** writes the same render into your asset library instead of
+downloading it, which is what you want if the film is an ingredient in something
+else rather than the delivery.
 
 ---
 
 ## What you just learned
 
-The steps above are the loop NodeTool is built around: gather your files, get a
-workflow built (by asking, or by hand), produce something, and share it as a
-Mini-App.
+The loop is: direct, render cheap, render expensive, cut, export. Cheap stages
+gate the expensive ones, nothing renders twice unless you ask, and a revision
+made after assembly flows forward into the cut.
 
-Two other work areas plug into the same loop, and the agent works in both. The
-[Sketch Editor](sketch-editor.md) is for still images built from layers, the way
-Photoshop works. The [Video Editor](video-editor.md) is for arranging video and
-audio clips over time. Anything any of them produces is a file NodeTool calls an
-**asset**, and all four areas read and write the same set of assets, using the
-same AI services.
+Every one of those steps has a button and a tool behind it. You can click the
+whole pipeline, ask for the whole pipeline in chat, or mix the two — press
+**Direct** yourself and let the assistant render the shots you point at.
+External agents reach the same tools over MCP (`nodetool mcp serve`), so Claude
+Code can direct a board you then open and finish by hand.
+
+---
+
+## Beyond the film
+
+The same models and the same asset library back the rest of NodeTool:
+
+- **[Workflows](key-concepts.md)** — nodes and connections on a canvas, for
+  pipelines that run on a schedule or over a batch. The agent builds these too:
+  *"take a product photo and a brief and write three ad captions."*
+- **[Mini Apps](mini-apps.md)** — a workflow with the canvas hidden, so someone
+  else fills in a form and presses a button.
+- **[Sketch Editor](sketch-editor.md)** — layered still images, the way
+  Photoshop works. Useful for fixing a keyframe before animating it.
 
 [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together)
 has the full picture with a diagram.
@@ -244,13 +254,14 @@ has the full picture with a diagram.
 
 | If you want to | Read |
 |------|------|
+| Go deeper on the film pipeline | [Creative Agent](creative-agent.md) |
+| Learn the timeline editor | [Video Editor](video-editor.md) |
+| Keep a character consistent across shots | [Creative Agent → Entities](creative-agent.md) |
 | Get more out of the agent | [Chat](global-chat.md), [Chat & Agents](global-chat-agents.md) |
-| Understand how workflows work | [Key Concepts](key-concepts.md) |
-| Learn the interface | [User Interface](user-interface.md), [Workflow Editor](workflow-editor.md) |
-| See more examples | [Gallery](workflows/), [Cookbook](cookbook.md) |
 | Choose AI models | [Models & Providers](models-and-providers.md) |
+| Build workflows by hand | [Key Concepts](key-concepts.md), [Workflow Editor](workflow-editor.md) |
+| See more examples | [Gallery](workflows/), [Cookbook](cookbook.md) |
 | Look up a word | [Glossary](glossary.md) |
-| Put a workflow on a server | [Deployment](deployment.md) |
 | Fix something that broke | [Troubleshooting](troubleshooting.md), [Debugging](workflow-debugging.md) |
 
 Questions: [Discord](https://discord.gg/WmQTWZRcYE) ·
