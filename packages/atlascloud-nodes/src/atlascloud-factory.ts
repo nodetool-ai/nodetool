@@ -67,6 +67,17 @@ export interface AtlasFieldDef {
    * array. Used by AtlasCloud `*-edit` endpoints which expect `images: [url]`.
    */
   array?: boolean;
+  /**
+   * Send this asset field's resolved URLs as `{ url, type }` objects appended
+   * to the named request array instead of under the field's own name.
+   *
+   * AtlasCloud's newer reference-to-video models (Wan 3.0, MiniMax H3) take one
+   * mixed `refers` array rather than per-kind lists. Splitting it into typed
+   * `reference_images` / `reference_videos` / `reference_audios` node inputs
+   * keeps the editor's asset wiring, and the media kind each input declares is
+   * exactly the `type` those objects require.
+   */
+  wrapInto?: string;
 }
 
 export interface AtlasManifestEntry {
@@ -544,6 +555,26 @@ function promptAssetOverrides(
   return mapPromptAssetsToInputs(textFields, assetFields, context);
 }
 
+/**
+ * Append resolved asset URLs to a request array of `{ url, type }` objects,
+ * creating it on first use. Order follows manifest field order, so a model
+ * that reads its references positionally sees images before videos before
+ * audio.
+ */
+function appendWrapped(
+  input: Record<string, unknown>,
+  key: string,
+  urls: string[],
+  kind: "image" | "video" | "audio"
+): void {
+  const existing = input[key];
+  const bucket = Array.isArray(existing) ? existing : [];
+  for (const url of urls) {
+    bucket.push({ url, type: kind });
+  }
+  input[key] = bucket;
+}
+
 export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
   const nodeType = `atlascloud.${spec.moduleName}.${spec.className}`;
   const title = spec.title || classNameToTitle(spec.className);
@@ -572,7 +603,11 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
           const resolved =
             v == null ? null : await resolveAssetForAtlas(v, context, inner);
           if (resolved !== null) {
-            input[f.name] = f.array ? [resolved] : resolved;
+            if (f.wrapInto) {
+              appendWrapped(input, f.wrapInto, [resolved], inner);
+            } else {
+              input[f.name] = f.array ? [resolved] : resolved;
+            }
           } else if (f.required) {
             throw new Error(
               `${specRef.title}: the ${inner} input "${f.title ?? f.name}" is empty — connect or upload a${inner === "image" ? "n" : ""} ${inner}`
@@ -592,7 +627,13 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
             const r = await resolveAssetForAtlas(item, context, inner);
             if (r !== null) resolved.push(r);
           }
-          if (resolved.length > 0) input[f.name] = resolved;
+          if (resolved.length > 0) {
+            if (f.wrapInto) {
+              appendWrapped(input, f.wrapInto, resolved, inner);
+            } else {
+              input[f.name] = resolved;
+            }
+          }
           continue;
         }
 

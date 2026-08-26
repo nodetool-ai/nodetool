@@ -40,6 +40,8 @@ interface ManifestField {
   required?: boolean;
   min?: number;
   max?: number;
+  /** AtlasCloud: send this field inside the named `{url, type}` array instead. */
+  wrapInto?: string;
 }
 
 /**
@@ -607,6 +609,12 @@ export interface ModelInputField {
    * provider enforce the cap before spending the round trip.
    */
   max?: number;
+  /**
+   * The request array this field's value belongs in, as `{ url, type }`
+   * objects, rather than under `name`. AtlasCloud's reference-to-video models
+   * take one mixed `refers` array; the manifest splits it into typed inputs.
+   */
+  wrapInto?: string;
 }
 
 /**
@@ -641,6 +649,9 @@ export function getModelInputFields(
       }
       if (isNumber(f.max)) {
         field.max = f.max;
+      }
+      if (f.wrapInto !== undefined) {
+        field.wrapInto = f.wrapInto;
       }
       return field;
     });

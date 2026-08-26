@@ -27,8 +27,23 @@ Package specifics from shipped fixes:
   for extension-less / `asset://` URIs.
 - **Model multi-image inputs as `list[image]`**, not a single `image` with
   `array: true`.
+- **A mixed reference array is `wrapInto`, not one untyped list.** Wan 3.0 and
+  MiniMax H3 reference-to-video take a single `refers: [{url, type}]` covering
+  images, videos and audio. The manifest splits that into typed
+  `reference_images` / `reference_videos` / `reference_audios` inputs, each
+  carrying `"wrapInto": "refers"`; the factory appends their resolved URLs into
+  one array in field order and tags each entry with the kind its input
+  declared. The wire name is never a node property — the runtime provider reads
+  the same flag so its generic `imageToVideo` posts `refers`, not
+  `reference_images`. Seedance 2.5 keeps the per-kind names because its API
+  really does take three arrays.
 - **Don't expose an API option that yields an extra output** the single-output
   node can't surface (the `return_last_frame` Seedance option was dropped).
+  The same rule keeps whole models out: `pickOutputUrl` returns the first
+  output, so `bytedance/seedream-v5.0-pro/layer-decomposition` — whose point is
+  the *set* of layers it returns — is deliberately not shipped. A model that
+  returns N interchangeable variants (`n`, `num_images`) is fine; one whose
+  outputs are not interchangeable is not.
 - **The manifest is generated, not hand-edited.** `node
   scripts/sync-atlascloud-manifest.mjs` reconciles every entry's fields against
   the `Input` schema AtlasCloud publishes for that model (reachable from the

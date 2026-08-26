@@ -453,4 +453,21 @@ describe("AtlasCloudProvider — imageToVideo", () => {
       /^data:image\/png;base64,/
     );
   });
+
+  it("sends one `refers` array on a model whose manifest wraps its references", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    await p.imageToVideo([Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], {
+      model: videoModel("minimax/h3/reference-to-video"),
+      prompt: "anchor on this"
+    });
+    const body = capture.submitBody!;
+    // MiniMax H3 takes `refers: [{url, type}]`, not per-kind lists — posting
+    // `reference_images` would be rejected by the endpoint.
+    expect(body.reference_images).toBeUndefined();
+    expect(body.refers).toEqual([
+      { url: expect.stringMatching(/^data:image\/png;base64,/), type: "image" }
+    ]);
+  });
 });
