@@ -146,6 +146,75 @@ export const DOC_TUTORIALS: DocTutorialEntry[] = [
       "Publish a release and share the link",
     ],
   }),
+
+  entry("sketch-correction", 30, {
+    castId: "sketch-correction",
+    title: "Correct it without starting over",
+    subtitle: "Sketch editor · the second ask amends the first",
+    replayWindowMs: 21000,
+    steps: [
+      { atMs: 500, label: "Ask for a warm wash" },
+      { atMs: 6800, label: "Too strong" },
+      { atMs: 14400, label: "Same layer, half the strength" },
+    ],
+    captions: [
+      { fromMs: 600, toMs: 4600, text: "Ask for the look you want. The assistant adds the layer and sets the blend." },
+      { fromMs: 7200, toMs: 10400, text: "It came back heavy. Say so in the next message — you do not start again." },
+      { fromMs: 11000, toMs: 20600, text: "The fix lands on the layer already there: two layers before, two after, nothing regenerated." },
+    ],
+    outroTitle: "Correct it, don't restart it",
+    outroPoints: [
+      "A second ask edits what is already there",
+      "The layer stack never grew",
+      "Finish it by hand — the panel slider is yours",
+    ],
+  }),
+
+  entry("storyboard-ask", 30, {
+    castId: "storyboard-ask",
+    title: "It asks before it spends",
+    subtitle: "Storyboard · a question, not a guess",
+    replayWindowMs: 19000,
+    steps: [
+      { atMs: 500, label: "An under-specified brief" },
+      { atMs: 2000, label: "It asks instead of guessing" },
+      { atMs: 8400, label: "Your answer shapes the board" },
+    ],
+    captions: [
+      { fromMs: 600, toMs: 1800, text: "Trailer slot or social? The two answers cost different money." },
+      { fromMs: 2200, toMs: 7000, text: "So it asks, and stops. The board stays empty while you decide — nothing is spent." },
+      { fromMs: 8600, toMs: 18600, text: "Answer, and the shots land in the format you picked. Planned only: still no frame rendered." },
+    ],
+    outroTitle: "A question beats a guess",
+    outroPoints: [
+      "Nothing renders while the dock waits on you",
+      "Your answer picks the format and the shot count",
+      "Shots arrive planned — you approve the spend",
+    ],
+  }),
+
+  entry("jsscript-repair", 30, {
+    castId: "jsscript-repair",
+    title: "A test catches it",
+    subtitle: "JS scripts · red, then the repair, then green",
+    replayWindowMs: 22000,
+    steps: [
+      { atMs: 500, label: "Name the case you suspect" },
+      { atMs: 4600, label: "It runs red" },
+      { atMs: 11200, label: "The fix, then green" },
+    ],
+    captions: [
+      { fromMs: 600, toMs: 4200, text: "Tell it the edge case you do not trust. The case is saved before the code is touched." },
+      { fromMs: 4800, toMs: 10800, text: "The run fails in the open, with the reason: one bad cell turned the sum into NaN." },
+      { fromMs: 11400, toMs: 21600, text: "One call repairs the body, the same cases run again, and both come back green." },
+    ],
+    outroTitle: "A check you watched fail",
+    outroPoints: [
+      "The failing run is the evidence, not the claim",
+      "The case stays saved for the next edit",
+      "Every call it made stays on screen",
+    ],
+  }),
 ];
 
 /** Total frames for a document tutorial entry: intro + replay window + outro. */
