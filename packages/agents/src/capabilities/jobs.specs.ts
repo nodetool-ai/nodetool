@@ -45,7 +45,11 @@ export const GET_JOB_LOGS_SCHEMA: JsonSchema = {
 
 export const listJobsSpec: CapabilitySpec = {
   name: "list_jobs",
-  description: "List jobs (workflow executions) with optional filtering.",
+  description:
+    "List jobs (workflow executions) with optional filtering. Each entry " +
+    "carries status, timing, error and the names of the outputs the run " +
+    "produced — not the outputs themselves. Use get_job to read a job's " +
+    "values.",
   inputSchema: LIST_JOBS_SCHEMA,
   category: "read",
   userMessage: (params) => {
@@ -57,7 +61,8 @@ export const listJobsSpec: CapabilitySpec = {
 export const getJobSpec: CapabilitySpec = {
   name: "get_job",
   description:
-    "Get details about a specific job including status, timing, and error info.",
+    "Get details about a specific job including status, timing, error info, " +
+    "and the outputs the run produced.",
   inputSchema: {
     type: "object",
     properties: {

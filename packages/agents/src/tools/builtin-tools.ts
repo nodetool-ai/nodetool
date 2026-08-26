@@ -10,7 +10,10 @@
  * Capabilities that need something a run must carry (a node registry, a vector
  * collection, a provider map, an example catalog) are NOT listed here; the
  * subsystem that owns the dependency builds them — `getAllMcpTools`,
- * base-nodes, sandbox-tools.
+ * base-nodes, sandbox-tools. Reaching a provider at call time is not such a
+ * dependency: `runProviderPrediction` is on the context, so the media tools
+ * belong here even though `find_model` — which enumerates the injected
+ * provider map — does not.
  *
  * In particular the recursive-decomposition primitive (`run_subtask`) and the
  * read-only fan-out search primitive (`run_search`) are intentionally excluded:
@@ -139,6 +142,22 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Video understanding (a multimodal chat model reads a whole clip)
   "understand_video",
+
+  // Media generation. Each reaches a provider through
+  // `ProcessingContext.runProviderPrediction` and reads nothing off the run, so
+  // a context is the whole dependency — the same one `critique_image` above and
+  // `render_storyboard_stills` already run on. They used to be added only
+  // beside `find_model`/`list_models`, which do need the injected provider map,
+  // so a host that injected none — a Code node, a JS script — got a belt that
+  // could judge an image and score its adherence but had no way to make one.
+  "generate_image",
+  "edit_image",
+  "generate_video",
+  "animate_image",
+  "generate_speech",
+  "generate_music",
+  "transcribe_audio",
+  "embed_text",
 
   // Web
   "browser",

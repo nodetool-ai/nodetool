@@ -652,7 +652,21 @@ and specifier shape live in `@nodetool-ai/protocol`
 declare one. `createCapabilityDispatcher` validates module key, export name and
 argument list on every call, then delegates to `invoke` — it never gates on its
 own, so the import path and the belt bridge reach one implementation past one
-gate. The flat `tools.<name>()` global is gone: every capability is an import,
+gate.
+
+`coerceCapabilityArgs` (`capabilities/args.ts`) is the argument half of that
+check, and it both folds and refuses. It folds camelCase onto snake_case, a
+lone string onto the first required string field, and a bare `id` onto the one
+required `*_id` key — only when there is exactly one, so nothing is guessed.
+Then it refuses a call that brought arguments but not the required ones,
+naming the call, the missing keys and what was passed instead. Before that,
+`get_workflow({ id })` reached the implementation as `workflow_id: undefined`
+and answered **"Workflow undefined was not found"** — a report about a missing
+workflow for what was a misspelled argument, and one an agent read as a broken
+database. It cost six calls and three wrong theories in one session. A call
+with *no* arguments is still passed through: `{}` is the documented shape for
+the capabilities that require nothing, and for the rest the implementation's own
+"x is required" already names the field. The flat `tools.<name>()` global is gone: every capability is an import,
 and what a session added at its own call site is grafted onto `.../session`
 (client `ui_*` tools onto `.../ui`) so one import shape covers everything. The
 `nodetool` object model stays a global.
@@ -739,6 +753,18 @@ injection through `getAllMcpTools(options)`:
 
 The server builds all three in `packages/websocket/src/mcp-tool-deps.ts` and
 spreads `mcpToolHostDeps()` into every `getAllMcpTools` call site.
+
+A fourth, `providers`, adds `find_model` and `list_models` — and only those.
+They enumerate the injected map, so without one they can say nothing but "no
+providers configured". The media tools (`generate_image`, `generate_speech`, …)
+used to be added beside them and are built-ins now: each reaches a provider
+through `context.runProviderPrediction` and reads nothing off the run, so the
+map was never their dependency. Gating them on it meant a host that injects
+none — a Code node, a JS script — got a belt that could `critique_image` and
+`score_image_adherence` but had no way to make an image, and
+`nodetool.media.generateImage` threw `tool "generate_image" is not in this
+toolbelt` after the run had paid for the prompt that produced its argument.
+Pinned by `tests/sandbox-belt-reach.test.ts`.
 
 ## Script Voicing Tools (`src/tools/script-voice-tools.ts`)
 

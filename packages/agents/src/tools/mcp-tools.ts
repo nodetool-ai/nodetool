@@ -278,23 +278,18 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
   if (options.providers && Object.keys(options.providers).length > 0) {
     // The providers map rides on the run and is read at call time, so a host
     // that fills it lazily still serves what it resolved after construction.
+    // Only the two catalog capabilities read it: `find_model` and `list_models`
+    // enumerate the map itself, so without one they can only answer "no
+    // providers configured". The media tools that used to be added here go
+    // through `context.runProviderPrediction` and read nothing off the run, so
+    // they are built-ins now (`BUILTIN_TOOL_NAMES`) and a host that injects no
+    // map still gets them.
     const providers = options.providers;
     const modelRun = (context: ProcessingContext): CapabilityRun =>
       createCapabilityRun({ context, gate: UNGATED, providers });
-    const mediaRun = (context: ProcessingContext): CapabilityRun =>
-      createCapabilityRun({ context, gate: UNGATED });
     tools.push(
       withRun("find_model", modelRun),
-      withRun("list_models", modelRun),
-      ...[
-        "generate_image",
-        "edit_image",
-        "generate_video",
-        "animate_image",
-        "generate_speech",
-        "transcribe_audio",
-        "embed_text"
-      ].map((name) => withRun(name, mediaRun))
+      withRun("list_models", modelRun)
     );
   }
 

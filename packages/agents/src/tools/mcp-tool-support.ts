@@ -99,8 +99,19 @@ export function workflowRecord(workflow: Workflow) {
   };
 }
 
-/** A job row as the tools report it — the same fields `/api/jobs` returns. */
-export function jobRecord(job: Job) {
+/**
+ * A job row without what the run produced — every field of {@link jobRecord}
+ * but `outputs`, plus the output names so a caller can see there is something
+ * to fetch. This is what a *listing* reports.
+ *
+ * A job's outputs are the whole answer of a workflow, and `list_jobs` defaults
+ * to a hundred of them. One agent listing carried 140 KB of beat sheets past a
+ * 25 KB tool-result cap — twice, to read a `status` field — and what was cut
+ * was the tail of the JSON, so nothing downstream could parse it either.
+ * `get_job` is where a value is read, one job at a time.
+ */
+export function jobSummaryRecord(job: Job) {
+  const outputs = job.runOutputs();
   return {
     id: job.id,
     user_id: job.user_id,
@@ -111,6 +122,16 @@ export function jobRecord(job: Job) {
     finished_at: job.finished_at ?? null,
     error: job.error_message ?? job.error ?? null,
     cost: job.cost ?? null,
+    // Names, not values: "this job produced `beat_sheet` and `keyframes`; call
+    // get_job to read them" is the sentence a listing can afford.
+    output_names: outputs === null ? null : Object.keys(outputs)
+  };
+}
+
+/** A job row as the tools report it — the same fields `/api/jobs` returns. */
+export function jobRecord(job: Job) {
+  return {
+    ...jobSummaryRecord(job),
     // What the run produced, once it settled. A completed job used to report
     // only that it had completed, so an agent that started a background run
     // had no way to read its result.

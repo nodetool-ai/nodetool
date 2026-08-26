@@ -40,8 +40,8 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "500f60f725d0",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-args.test.ts",
       "packages/agents/tests/capabilities-dispatcher.test.ts",
-      "packages/agents/tests/capabilities-gate-parity.test.ts",
     ],
   },
   {
@@ -306,7 +306,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -317,7 +316,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -328,7 +326,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -360,7 +357,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -371,7 +367,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
   },
   {
@@ -392,6 +387,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
       {
@@ -659,7 +655,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_jobs",
     module: "jobs",
     impl: "packages/agents/src/capabilities/jobs.ts",
-    contract: "28a42cc21664",
+    contract: "2d22d3a3e08e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-jobs.test.ts",
@@ -670,7 +666,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_job",
     module: "jobs",
     impl: "packages/agents/src/capabilities/jobs.ts",
-    contract: "09a18e26091b",
+    contract: "2beacec6db44",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-jobs.test.ts",
@@ -1146,7 +1142,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "take_screenshot",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "363807424500",
+    contract: "fae5f5a3d1c0",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",

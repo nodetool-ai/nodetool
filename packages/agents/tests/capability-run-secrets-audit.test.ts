@@ -97,12 +97,14 @@ const OMITS_SECRET_RESOLVER: Record<string, { reason: string; sites: number }> =
       reason: "internal run for generate_speech",
       sites: 1
     },
-    // The `ui_*` document tools, node discovery, `find_model`/`list_models`,
-    // and the media belt. None validates a graph; the workflow belt above
-    // them does, and it injects.
+    // The `ui_*` document tools, node discovery, and `find_model`/
+    // `list_models`. None validates a graph; the workflow belt above them
+    // does, and it injects. The media belt was a fourth site and is gone: the
+    // media tools are built-ins now, over the run `getBuiltinTools()` builds,
+    // which does inject.
     "packages/agents/src/tools/mcp-tools.ts": {
-      reason: "document, discovery, model and media belts validate no graph",
-      sites: 4
+      reason: "document, discovery and model belts validate no graph",
+      sites: 3
     }
   };
 
