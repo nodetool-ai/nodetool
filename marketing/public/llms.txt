@@ -20,7 +20,7 @@
 ## Key pages
 
 - [Home](https://nodetool.ai/index.md): what NodeTool is, the agent-first model, Studio vs Cloud.
-- [Studio](https://nodetool.ai/studio.md): the free, open-source desktop app; the agent and models run locally.
+- [Studio](https://nodetool.ai/studio.md): the free, open-source desktop app; the agent writes the script, boards the scenes, generates the footage, and cuts the timeline, with the models running locally.
 - [Cloud](https://nodetool.ai/cloud.md): the hosted, browser-based edition (alpha).
 - [Pricing](https://nodetool.ai/pricing.md): edition comparison and how BYOK pricing works.
 - [Agents](https://nodetool.ai/agents.md): the agent-first model: every editor exposed to agents as tools.

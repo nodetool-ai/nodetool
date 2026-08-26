@@ -12,12 +12,20 @@ import {
   Zap,
   Github,
   Download,
+  Layers,
+  KeyRound,
 } from "lucide-react";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import SiteHeader from "../../components/SiteHeader";
 import CanvasScreenshot from "../../components/CanvasScreenshot";
 import SiteFooter from "../../components/SiteFooter";
 
+// The three-step story is the same one the landing page tells, so it is the
+// same component — the two pages cannot drift on what NodeTool actually does.
+const BuildRunDeploy = dynamic(
+  () => import("../../components/BuildRunDeploy"),
+  { ssr: true }
+);
 const ModelSupportSection = dynamic(
   () => import("../../components/ModelSupportSection"),
   { ssr: true }
@@ -55,7 +63,7 @@ const proPoints = [
   {
     icon: Cpu,
     title: "Run open weights locally",
-    body: "Ollama, MLX for Apple Silicon, llama.cpp, and Hugging Face all work with the same building blocks. Pick any open model and pay no usage fees.",
+    body: "Ollama, MLX for Apple Silicon, llama.cpp, and Hugging Face all work with the same building blocks. Pick any open model and pay no usage fees. When a cloud model is the better call, plug in your own API keys and pay the provider's price with no markup.",
   },
   {
     icon: Zap,
@@ -169,20 +177,20 @@ export default function StudioPage() {
                 </span>
                 <h1
                   id="studio-hero-title"
-                  className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
+                  className="mt-6 text-balance text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2.25rem,3.6vw,3.25rem)]"
                 >
-                  An agent-first studio
+                  You direct the vision.
                   <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300">
-                    that runs on your hardware.
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300 pb-[0.12em]">
+                    The agent builds the film on your hardware.
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  NodeTool Studio is the desktop app for creators who want
-                  their models, their files, and their agent on their own
-                  machine. Pitch a concept and the agent builds the piece on
-                  open weights running locally through Ollama and MLX, or on
-                  your own API keys when a cloud model is the right call.
+                  Describe your idea. The agent writes the script, boards every
+                  scene, generates the footage, and cuts the timeline — all of
+                  it on your own machine, on open weights through Ollama and
+                  MLX, or on your own API keys when a cloud model is the right
+                  call.
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
                   <SmartDownloadButton
@@ -200,6 +208,20 @@ export default function StudioPage() {
                     </a>
                   </p>
                 </div>
+                <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
+                  <li className="flex items-center gap-1.5">
+                    <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
+                    Script, storyboard, sketch, timeline, 3D
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <KeyRound className="h-3.5 w-3.5 text-emerald-400" />
+                    Your own API keys, no token markups
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <WifiOff className="h-3.5 w-3.5 text-amber-300" />
+                    Runs offline, files stay on your disk
+                  </li>
+                </ul>
                 <div className="mt-6 inline-flex items-center gap-2 text-sm text-slate-400">
                   <span>Prefer the browser?</span>
                   <a
@@ -234,6 +256,36 @@ export default function StudioPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* How it works — the same three-step model the landing page tells,
+            so a visitor entering on /studio learns what NodeTool does before
+            learning why it runs locally. */}
+        <section
+          id="how"
+          aria-labelledby="studio-how-title"
+          className="rhythm-section py-16 scroll-mt-24"
+        >
+          <div className={sectionContainer}>
+            <header className="mb-10 max-w-3xl">
+              <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
+                <span className="h-px w-8 bg-amber-300/60" />
+                How it works
+              </div>
+              <h2
+                id="studio-how-title"
+                className="text-3xl md:text-5xl font-bold tracking-tight text-white"
+              >
+                One film shouldn&apos;t take five separate apps.
+              </h2>
+              <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
+                Pitch it, let the agent run it, then direct the final cut — one
+                desktop app, one editable project, and nothing leaving the
+                machine unless you send it.
+              </p>
+            </header>
+            <BuildRunDeploy />
           </div>
         </section>
 
@@ -348,16 +400,17 @@ export default function StudioPage() {
                 The full workspace, running locally.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Studio is not a lite edition. The canvas, the agent, and the
-                built-in editors — storyboard, script, timeline, sketch, and
-                mini apps — all ship in the desktop app.
+                Studio is not a lite edition. The canvas, the agent, and every
+                editor — script, storyboard, sketch, timeline, 3D, and mini
+                apps — ship in the desktop app, and the agent drives all of
+                them through the same tools you click.
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium">
                 <a
-                  href="/#how-title"
+                  href="/#surfaces"
                   className="text-amber-300 hover:text-amber-200 underline underline-offset-2"
                 >
-                  See how NodeTool works →
+                  See every editor →
                 </a>
                 <a
                   href="/agents"

@@ -31,27 +31,27 @@ export interface ProviderCatalog {
 export const providerCatalog: Record<string, ProviderCatalog> = {
   "fal_ai": {
     "id": "fal_ai",
-    "total": 1453,
+    "total": 1554,
     "counts": {
-      "3d": 48,
-      "image": 703,
-      "audio": 126,
-      "text": 15,
-      "video": 561
+      "3d": 60,
+      "image": 734,
+      "audio": 127,
+      "text": 18,
+      "video": 615
     },
     "topTags": [
-      "editing",
       "generation",
+      "editing",
       "video",
       "image to image",
       "img2img",
       "transformation",
-      "text to image",
       "video to video",
+      "text to image",
       "vid2vid",
-      "txt2img",
       "image to video",
-      "img2vid"
+      "txt2img",
+      "lora"
     ],
     "models": [
       {
@@ -118,6 +118,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "generation",
           "text to image",
           "txt2img"
+        ]
+      },
+      {
+        "id": "bria/fibo-edit-1.5/edit",
+        "name": "Bria Fibo Edit15",
+        "kind": "image",
+        "desc": "Fibo Edit 1.5 edits an image from a natural-language instruction plus up to four reference images.",
+        "tags": [
+          "image to image",
+          "img2img",
+          "image"
         ]
       },
       {
@@ -264,6 +275,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bria/fibo-gen-1.5/text-to-image",
+        "name": "Bria Fibo Gen15 Text To Image",
+        "kind": "image",
+        "desc": "Fibo Gen 1.5 generates images from text or JSON-structured prompts, trained on licensed data for commercial use.",
+        "tags": [
+          "generation",
+          "text to image",
+          "txt2img"
+        ]
+      },
+      {
         "id": "bria/fibo-lite/generate",
         "name": "Bria Fibo Lite Generate",
         "kind": "image",
@@ -385,6 +407,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bytedance/seedream/v5/pro/layerize",
+        "name": "Bytedance Seedream V5 Pro Layerize",
+        "kind": "image",
+        "desc": "Seedream 5.0 Pro Layerize splits an image into 2 to 17 independent transparent-PNG layers described in text.",
+        "tags": [
+          "image to image",
+          "img2img",
+          "image"
+        ]
+      },
+      {
         "id": "bytedance/seedream/v5/pro/text-to-image",
         "name": "Seedream V5 Pro Text To Image",
         "kind": "image",
@@ -462,39 +495,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
-        "id": "fal-ai/bagel",
-        "name": "Bagel",
-        "kind": "image",
-        "desc": "Bagel is a 7B parameter from Bytedance-Seed multimodal model that can generate both text and images.",
-        "tags": [
-          "generation",
-          "text to image",
-          "txt2img"
-        ]
-      },
-      {
-        "id": "fal-ai/bagel/edit",
-        "name": "Bagel Edit",
-        "kind": "image",
-        "desc": "Bagel is a 7B parameter multimodal model from Bytedance-Seed that can generate both images and text.",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bagel/understand",
-        "name": "Bagel Understand",
-        "kind": "image",
-        "desc": "Bagel is a 7B parameter multimodal model from Bytedance-Seed that can generate both text and images.",
-        "tags": [
-          "vision",
-          "analysis",
-          "json"
-        ]
-      },
-      {
         "id": "alibaba/happy-horse/image-to-video",
         "name": "Alibaba Happy Horse Image To Video",
         "kind": "video",
@@ -569,6 +569,72 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "editing",
           "video to video",
           "vid2vid"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0-prime/image-to-video",
+        "name": "Wan30 Prime Image To Video",
+        "kind": "video",
+        "desc": "Wan 3.0 Prime animates a still image into video with rapid turnaround and natural motion.",
+        "tags": [
+          "generation",
+          "image to video",
+          "img2vid"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0-prime/reference-to-video",
+        "name": "Wan30 Prime Reference To Video",
+        "kind": "video",
+        "desc": "Wan 3.0 Prime combines reference images, video, and audio into one clip with multimodal coherence.",
+        "tags": [
+          "video to video",
+          "vid2vid",
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0-prime/text-to-video",
+        "name": "Wan30 Prime Text To Video",
+        "kind": "video",
+        "desc": "Wan 3.0 Prime generates video from text with faster turnaround than the base Wan 3.0 endpoint.",
+        "tags": [
+          "generation",
+          "text to video",
+          "txt2vid"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0/image-to-video",
+        "name": "Wan30 Image To Video",
+        "kind": "video",
+        "desc": "Wan 3.0 animates a still image into video while keeping the source composition and identity.",
+        "tags": [
+          "generation",
+          "image to video",
+          "img2vid"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0/reference-to-video",
+        "name": "Wan30 Reference To Video",
+        "kind": "video",
+        "desc": "Wan 3.0 generates video that follows reference images for character, style, and scene consistency.",
+        "tags": [
+          "generation",
+          "image to video",
+          "img2vid"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0/text-to-video",
+        "name": "Wan30 Text To Video",
+        "kind": "video",
+        "desc": "Wan 3.0 generates video from a text prompt with smoother motion and stronger scene coherence than Wan 2.x.",
+        "tags": [
+          "generation",
+          "text to video",
+          "txt2vid"
         ]
       },
       {
@@ -715,6 +781,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "blackforestlabs/flux-video-upscale",
+        "name": "Flux Video Upscale",
+        "kind": "video",
+        "desc": "FLUX video super-resolution upscales footage to 1080p, 2K, or 4K in a precise or creative detail mode.",
+        "tags": [
+          "video to video",
+          "vid2vid",
+          "video"
+        ]
+      },
+      {
         "id": "bria/bria_video_eraser/erase/keypoints",
         "name": "Bria Video Eraser Keypoints",
         "kind": "video",
@@ -855,83 +932,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "generation",
           "image to video",
           "img2vid"
-        ]
-      },
-      {
-        "id": "bytedance/seedance-2.0/mini/image-to-video",
-        "name": "Seedance20 Mini Image To Video",
-        "kind": "video",
-        "desc": "Seedance 2.0 Mini is a faster version of Seedance 2.0 that brings great performance and high generation speed at a lower cost.",
-        "tags": [
-          "generation",
-          "image to video",
-          "img2vid"
-        ]
-      },
-      {
-        "id": "bytedance/seedance-2.0/mini/reference-to-video",
-        "name": "Seedance20 Mini Reference To Video",
-        "kind": "video",
-        "desc": "Seedance 2.0 Mini is a faster version of Seedance 2.0 that brings great performance and high generation speed at a lower cost.",
-        "tags": [
-          "generation",
-          "image to video",
-          "img2vid"
-        ]
-      },
-      {
-        "id": "bytedance/seedance-2.0/mini/text-to-video",
-        "name": "Seedance20 Mini Text To Video",
-        "kind": "video",
-        "desc": "Seedance 2.0 Mini is a faster version of Seedance 2.0 that brings great performance and high generation speed at a lower cost.",
-        "tags": [
-          "generation",
-          "text to video",
-          "txt2vid"
-        ]
-      },
-      {
-        "id": "bytedance/seedance-2.0/reference-to-video",
-        "name": "Bytedance Seedance20 Reference To Video",
-        "kind": "video",
-        "desc": "Reference-image-to-video with ByteDance Seedance 2.0.",
-        "tags": [
-          "generation",
-          "image to video",
-          "img2vid"
-        ]
-      },
-      {
-        "id": "bytedance/seedance-2.0/text-to-video",
-        "name": "Bytedance Seedance20 Text To Video",
-        "kind": "video",
-        "desc": "Generate videos from text using ByteDance Seedance 2.0.",
-        "tags": [
-          "generation",
-          "text to video",
-          "txt2vid"
-        ]
-      },
-      {
-        "id": "cassetteai/video-sound-effects-generator",
-        "name": "Cassetteai Video Sound Effects Generator",
-        "kind": "video",
-        "desc": "Add sound effects to your videos",
-        "tags": [
-          "video",
-          "editing",
-          "video to video"
-        ]
-      },
-      {
-        "id": "clarityai/crystal-video-upscaler",
-        "name": "Clarityai Crystal Video Upscaler",
-        "kind": "video",
-        "desc": "Crystal Upscaler [Video]",
-        "tags": [
-          "video",
-          "editing",
-          "video to video"
         ]
       },
       {
@@ -2263,11 +2263,11 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "kie": {
     "id": "kie",
-    "total": 151,
+    "total": 163,
     "counts": {
-      "image": 48,
+      "image": 53,
       "audio": 28,
-      "video": 73,
+      "video": 80,
       "text": 2
     },
     "topTags": [],
@@ -2382,6 +2382,34 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "GPT Image 1.5 Text to Image",
         "kind": "image",
         "desc": "GPT Image-1.5 - Text to Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "grok-imagine-image-2-0/image-edit",
+        "name": "Grok Imagine Image 2.0 Image Edit",
+        "kind": "image",
+        "desc": "Grok Imagine Image 2.0 Image Edit via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "grok-imagine-image-2-0/segment-edit",
+        "name": "Grok Imagine Image 2.0 Segment Edit",
+        "kind": "image",
+        "desc": "Grok Imagine Image 2.0 Segment Edit via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "grok-imagine-image-2-0/segment-map",
+        "name": "Grok Imagine Image 2.0 Segment Map",
+        "kind": "image",
+        "desc": "Grok Imagine Image 2.0 Segment Map via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "grok-imagine-image-2-0/text-to-image",
+        "name": "Grok Imagine Image 2.0 Text To Image",
+        "kind": "image",
+        "desc": "Grok Imagine Image 2.0 Text To Image via Kie.ai.",
         "tags": []
       },
       {
@@ -2525,34 +2553,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
-        "id": "recraft/crisp-upscale",
-        "name": "Recraft Crisp Upscale",
-        "kind": "image",
-        "desc": "Recraft - Crisp Upscale via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "recraft/remove-background",
-        "name": "Recraft Remove Background",
-        "kind": "image",
-        "desc": "Recraft - Remove Background via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "seedream/4.5-edit",
-        "name": "Seedream4.5 Edit",
-        "kind": "image",
-        "desc": "Seedream4.5 - Edit via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "seedream/4.5-text-to-image",
-        "name": "Seedream4.5 Text to Image",
-        "kind": "image",
-        "desc": "Seedream4.5 - Text to Image via Kie.ai.",
-        "tags": []
-      },
-      {
         "id": "bytedance/seedance-1.5-pro",
         "name": "Bytedance Seedance 1.5 Pro",
         "kind": "video",
@@ -2564,6 +2564,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "bytedance seedance 2",
         "kind": "video",
         "desc": "bytedance-seedance-2 via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "bytedance/seedance-2-5",
+        "name": "Bytedance Seedance 2.5",
+        "kind": "video",
+        "desc": "Bytedance Seedance 2.5 via Kie.ai.",
         "tags": []
       },
       {
@@ -2777,6 +2784,34 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "kling-3.0-omni/image-to-video",
+        "name": "Kling 3.0 Omni Image To Video",
+        "kind": "video",
+        "desc": "Kling 3.0 Omni Image To Video via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "kling-3.0-omni/reference-to-video",
+        "name": "Kling 3.0 Omni Reference To Video",
+        "kind": "video",
+        "desc": "Kling 3.0 Omni Reference To Video via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "kling-3.0-omni/text-to-video",
+        "name": "Kling 3.0 Omni Text to Video",
+        "kind": "video",
+        "desc": "Kling 3.0 Omni Text to Video via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "kling-3.0-omni/transformation",
+        "name": "Kling 3.0 Omni Transformation",
+        "kind": "video",
+        "desc": "Kling 3.0 Omni Transformation via Kie.ai.",
+        "tags": []
+      },
+      {
         "id": "kling-3.0/motion-control",
         "name": "Kling 3.0 motion control",
         "kind": "video",
@@ -2795,41 +2830,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Kling AI Avatar Pro",
         "kind": "video",
         "desc": "Kling AI Avatar Pro via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "kling/ai-avatar-standard",
-        "name": "Kling AI Avatar Standard",
-        "kind": "video",
-        "desc": "Kling AI Avatar Standard via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "kling/v2-1-master-image-to-video",
-        "name": "Kling V2.5 Turbo Image to Video Pro",
-        "kind": "video",
-        "desc": "Kling - V2.5 Turbo Image to Video Pro via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "kling/v2-1-master-image-to-video",
-        "name": "Kling V2.1 Master Image to Video",
-        "kind": "video",
-        "desc": "Kling V2.1 Master Image to Video via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "kling/v2-1-master-text-to-video",
-        "name": "Kling V2.1 Master Text to Video",
-        "kind": "video",
-        "desc": "Kling V2.1 Master Text to Video via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "kling/v2-1-pro",
-        "name": "Kling V2.1 Pro",
-        "kind": "video",
-        "desc": "Kling V2.1 Pro via Kie.ai.",
         "tags": []
       },
       {
@@ -3582,10 +3582,10 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "atlascloud": {
     "id": "atlascloud",
-    "total": 70,
+    "total": 97,
     "counts": {
-      "video": 35,
-      "image": 35
+      "video": 48,
+      "image": 49
     },
     "topTags": [
       "image",
@@ -3800,6 +3800,42 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "qwen-image-3.0-pro/edit",
+        "name": "Qwen Image 3.0 Pro — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Qwen Image 3.0 Pro — edits one image, or composes up to three reference images into a subject-driven edit.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "qwen-image-3.0-pro/text-to-image",
+        "name": "Qwen Image 3.0 Pro — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Qwen Image 3.0 Pro — generates up to four high-fidelity images per call.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "qwen-image-3.0/edit",
+        "name": "Qwen Image 3.0 — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Qwen Image 3.0 — edits one image, or composes up to three reference images into a subject-driven edit.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "qwen-image-3.0/text-to-image",
+        "name": "Qwen Image 3.0 — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Qwen Image 3.0 — generates up to four images per call.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
         "id": "qwen/qwen-image-2.0-pro/edit",
         "name": "Qwen Image 2.0 Pro — Edit",
         "kind": "image",
@@ -3836,6 +3872,51 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "reve-ai/reve-2.1/edit",
+        "name": "Reve 2.1 — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Reve 2.1 — edits one image at 4K from a text instruction.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "reve-ai/reve-2.1/remix",
+        "name": "Reve 2.1 — Remix",
+        "kind": "image",
+        "desc": "AtlasCloud / Reve 2.1 — remixes 1-6 reference images at 4K.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "reve-ai/reve-2.1/text-to-image",
+        "name": "Reve 2.1 — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Reve 2.1 — generates a 4K image from text, with optional background removal.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "xai/grok-imagine-image-2.0/edit",
+        "name": "Grok Imagine Image 2.0 — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / xAI Grok Imagine Image 2.0 — edits up to three source images from a text instruction.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "xai/grok-imagine-image-2.0/text-to-image",
+        "name": "Grok Imagine Image 2.0 — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / xAI Grok Imagine Image 2.0 — generates up to four images per call at 1K or 2K.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
         "id": "xai/grok-imagine-image-quality/edit",
         "name": "Grok Imagine Image Quality — Edit",
         "kind": "image",
@@ -3867,42 +3948,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Youchuan v8.1 — Image to Image",
         "kind": "image",
         "desc": "AtlasCloud / Youchuan v8.1 — re-imagines an input image with text guidance; returns four images.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "youchuan/v8.1/remove-background",
-        "name": "Youchuan v8.1 — Remove Background",
-        "kind": "image",
-        "desc": "AtlasCloud / Youchuan v8.1 — automatic background removal.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "youchuan/v8.1/style-transfer",
-        "name": "Youchuan v8.1 — Style Transfer",
-        "kind": "image",
-        "desc": "AtlasCloud / Youchuan v8.1 — applies an artistic style described in the prompt to an input image.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "youchuan/v8.1/text-to-image",
-        "name": "Youchuan v8.1 — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / Youchuan v8.1 — generates four images per task with optional native 2K HD.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "z-image/turbo",
-        "name": "Z Image Turbo — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / Tongyi-MAI Z-Image Turbo — 6B-parameter text-to-image generating photorealistic images in sub-second time.",
         "tags": [
           "image"
         ]
@@ -3948,6 +3993,60 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Wan 2.7 — Text to Video",
         "kind": "video",
         "desc": "AtlasCloud / Alibaba Wan 2.7 — generates video from text with multi-shot narrative, audio generation, and sound-image synchronization.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0-prime/image-to-video",
+        "name": "Wan 3.0 Prime — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 3.0 Prime — animates a first frame (and an optional last frame) into hyper-real video.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0-prime/reference-to-video",
+        "name": "Wan 3.0 Prime — Reference to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 3.0 Prime — generates video from reference images, videos and audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0-prime/text-to-video",
+        "name": "Wan 3.0 Prime — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 3.0 Prime — hyper-real video from a text prompt, up to 30s with native audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0/image-to-video",
+        "name": "Wan 3.0 — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 3.0 — animates a first frame (and an optional last frame) into cinematic video.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0/reference-to-video",
+        "name": "Wan 3.0 — Reference to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 3.0 — generates video from reference images, videos and audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-3.0/text-to-video",
+        "name": "Wan 3.0 — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 3.0 — cinematic video from a text prompt, up to 30s with native audio.",
         "tags": [
           "video"
         ]
@@ -4038,6 +4137,33 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Seedance 2.0 — Text to Video",
         "kind": "video",
         "desc": "AtlasCloud / ByteDance Seedance 2.0 — generates video from text with native audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "bytedance/seedance-2.5/image-to-video",
+        "name": "Seedance 2.5 — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / ByteDance Seedance 2.5 — animates a first frame (and an optional last frame) into video with native audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "bytedance/seedance-2.5/reference-to-video",
+        "name": "Seedance 2.5 — Reference to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / ByteDance Seedance 2.5 — generates video from reference images, videos and audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "bytedance/seedance-2.5/text-to-video",
+        "name": "Seedance 2.5 — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / ByteDance Seedance 2.5 — generates video from text with native audio, up to 30s and 4K.",
         "tags": [
           "video"
         ]
@@ -4182,42 +4308,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Kling v3.0 Turbo — Text to Video",
         "kind": "video",
         "desc": "AtlasCloud / KwaiVGI Kling v3.0 Turbo — dynamic cinematic text-to-video.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "kwaivgi/kling-video-o3-4k/image-to-video",
-        "name": "Kling Video O3 4 K — Image to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / KwaiVGI Kling Video O3 4K — 4K cinematic image-to-video with optional end frame and audio.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "kwaivgi/kling-video-o3-4k/text-to-video",
-        "name": "Kling Video O3 4 K — Text to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / KwaiVGI Kling Video O3 4K — high-quality 4K text-to-video with optional audio.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "xai/grok-imagine-video-v1.5/image-to-video",
-        "name": "Grok Imagine Video v1.5 — Image to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / xAI Grok Imagine Video v1.5 — animates a starting frame with natural-language motion prompts at 480p/720p/1080p.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "youchuan/v8.1/image-to-video",
-        "name": "Youchuan v8.1 — Image to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / Youchuan v8.1 — four 5-second videos per task at 480p/720p from an input image.",
         "tags": [
           "video"
         ]
