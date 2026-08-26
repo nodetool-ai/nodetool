@@ -263,23 +263,10 @@ export interface RunResult {
   messages: ProcessingMessage[];
 
   /** Final job status. */
-  status: "completed" | "failed" | "cancelled" | "suspended";
+  status: "completed" | "failed" | "cancelled";
 
   /** Error message if status is 'failed'. */
   error?: string;
-
-  /**
-   * Set when status is 'suspended': the node that suspended, the human
-   * reason, and the saved state/metadata to persist for a future resume.
-   * snake_case to match the wire / job_update convention and
-   * `WorkflowSuspendedError.toDict()`.
-   */
-  suspend?: {
-    node_id: string;
-    reason: string;
-    state: Record<string, unknown>;
-    metadata: Record<string, unknown>;
-  };
 
   /**
    * Every supervisor escalation and the verdict it received, in order. A
@@ -435,19 +422,6 @@ export class WorkflowRunner {
    * final `_sendEOS` both guard against double-marking via this set.
    */
   private _eosSentEdges = new Set<string>();
-
-  /**
-   * First suspension reported by a node actor (`WorkflowSuspendedError`).
-   * Precedence in finalization is cancel > suspend > failed > completed.
-   */
-  private _suspend:
-    | {
-        node_id: string;
-        reason: string;
-        state: Record<string, unknown>;
-        metadata: Record<string, unknown>;
-      }
-    | undefined;
 
   /** Supervisor escalations and their verdicts, in decision order. */
   private _interventions: Intervention[] = [];
@@ -744,32 +718,6 @@ export class WorkflowRunner {
       // Post-completion: drain any edges that still have pending/open state
       this._enforceCleanEdgeDrain(this._drainActiveEdges());
 
-      // A suspension is a distinct terminal outcome (suspended, not failed).
-      // Precedence is cancel > suspend > failed > completed: cancel is
-      // checked first, then suspend takes priority over node errors so a
-      // human-in-the-loop pause isn't masked by an incidental sibling error.
-      if (!this._cancelled && this._suspend) {
-        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-        log.info("Workflow suspended", {
-          jobId: request.job_id,
-          nodeId: this._suspend.node_id,
-          reason: this._suspend.reason
-        });
-        this._emit({
-          type: "job_update",
-          status: "suspended",
-          job_id: request.job_id,
-          workflow_id: request.workflow_id ?? null
-        });
-        return {
-          outputs: Object.fromEntries(this._outputs),
-          messages: this._messages,
-          status: "suspended",
-          suspend: this._suspend,
-          interventions: this._recordedInterventions()
-        };
-      }
-
       // A node failure fails the whole job (Python parity). Actors swallow
       // their own errors so sibling branches can finish, but the final
       // status must not report success when any node errored.
@@ -865,7 +813,6 @@ export class WorkflowRunner {
     this._nodeErrors = new Map();
     this._correlation = undefined;
     this._eosSentEdges = new Set();
-    this._suspend = undefined;
     this._interventions = [];
     this._recordedOutputs = new Map();
   }
@@ -1538,17 +1485,6 @@ export class WorkflowRunner {
               this._nodeErrors.set(node.id, result.error);
             }
 
-            // A suspension is a distinct terminal outcome, not an error.
-            // Record the first one; precedence is resolved at finalization.
-            if (result.suspend !== undefined) {
-              this._suspend ??= {
-                node_id: result.suspend.nodeId,
-                reason: result.suspend.reason,
-                state: result.suspend.state,
-                metadata: result.suspend.metadata
-              };
-            }
-
             // After actor completes, send EOS to all downstream inboxes
             await this._sendEOS(node.id);
 
@@ -1634,7 +1570,7 @@ export class WorkflowRunner {
     // Check for in-flight messages after all actors complete (Python parity: _check_pending_inbox_work)
     const pendingNodes = this._checkPendingInboxWork();
     if (pendingNodes.length > 0) {
-      if (this._options.strict && !this._cancelled && !this._suspend) {
+      if (this._options.strict && !this._cancelled) {
         throw new Error(
           `Strict mode: pending inbox work detected after all actors ` +
             `completed for node(s): ${pendingNodes.join(", ")}`
@@ -1662,7 +1598,7 @@ export class WorkflowRunner {
       .filter(([, queue]) => queue.length > 0)
       .map(([nodeId]) => nodeId);
     if (pendingControlNodes.length > 0) {
-      if (this._options.strict && !this._cancelled && !this._suspend) {
+      if (this._options.strict && !this._cancelled) {
         throw new Error(
           `Strict mode: pending control-event responses never resolved for ` +
             `node(s): ${pendingControlNodes.join(", ")}`
@@ -2368,7 +2304,7 @@ export class WorkflowRunner {
    * `_processGraph`) and as a second line of defense should that ordering
    * ever change.
    *
-   * A cancelled or suspended run, or one with node errors, legitimately
+   * A cancelled run, or one with node errors, legitimately
    * leaves edges mid-flight — that is what the drain reports to the
    * frontend in every mode. Only a run that is otherwise clean but still has
    * leftover edge state is a §6 violation ("zero pending work" after a
@@ -2379,7 +2315,6 @@ export class WorkflowRunner {
       !this._options.strict ||
       leftoverEdgeIds.length === 0 ||
       this._cancelled ||
-      this._suspend ||
       this._nodeErrors.size > 0
     ) {
       return;

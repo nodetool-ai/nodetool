@@ -13,7 +13,7 @@ import {
 
 // Explicit lifecycle buckets; everything else (completed, failed, timed out)
 // lands in the "Completed" column so no job is hidden.
-const RUNNING = new Set(["running", "suspended", "paused"]);
+const RUNNING = new Set(["running"]);
 const QUEUED = new Set(["queued", "scheduled", "starting"]);
 const CANCELLED = new Set(["cancelled"]);
 

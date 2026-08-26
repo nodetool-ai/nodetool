@@ -15,12 +15,9 @@ export type JobStatus =
   | "scheduled"
   | "queued"
   | "running"
-  | "suspended"
-  | "paused"
   | "completed"
   | "failed"
-  | "cancelled"
-  | "recovering";
+  | "cancelled";
 
 export class Job extends DBModel {
   static override table = jobs;
@@ -46,10 +43,6 @@ export class Job extends DBModel {
   declare retry_count: number;
   declare max_retries: number;
   declare version: number;
-  declare suspended_node_id: string | null;
-  declare suspension_reason: string | null;
-  declare suspension_state_json: Record<string, unknown> | null;
-  declare suspension_metadata_json: Record<string, unknown> | null;
   declare execution_strategy: string | null;
   declare execution_id: string | null;
   /**
@@ -85,10 +78,6 @@ export class Job extends DBModel {
     this.error_message ??= null;
     this.cost ??= null;
     this.logs ??= null;
-    this.suspended_node_id ??= null;
-    this.suspension_reason ??= null;
-    this.suspension_state_json ??= null;
-    this.suspension_metadata_json ??= null;
     this.execution_strategy ??= null;
     this.execution_id ??= null;
     this.runner_instance ??= null;
@@ -144,31 +133,6 @@ export class Job extends DBModel {
       : null;
   }
 
-  markSuspended(
-    nodeId: string,
-    reason: string,
-    state?: Record<string, unknown>,
-    metadata?: Record<string, unknown>
-  ): void {
-    this.status = "suspended";
-    this.suspended_node_id = nodeId;
-    this.suspension_reason = reason;
-    if (state) this.suspension_state_json = state;
-    if (metadata) this.suspension_metadata_json = metadata;
-  }
-
-  markResumed(): void {
-    this.status = "running";
-  }
-
-  markPaused(): void {
-    this.status = "paused";
-  }
-
-  markRecovering(): void {
-    this.status = "recovering";
-  }
-
   // ── Ownership / heartbeat ─────────────────────────────────────────
 
   async claim(workerId: string): Promise<void> {
@@ -199,20 +163,6 @@ export class Job extends DBModel {
 
   isOwnedBy(workerId: string): boolean {
     return this.worker_id === workerId;
-  }
-
-  isResumable(): boolean {
-    return ["running", "suspended", "paused", "recovering", "failed"].includes(
-      this.status
-    );
-  }
-
-  isPaused(): boolean {
-    return this.status === "paused";
-  }
-
-  isSuspended(): boolean {
-    return this.status === "suspended";
   }
 
   isComplete(): boolean {

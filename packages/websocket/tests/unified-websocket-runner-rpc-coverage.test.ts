@@ -208,14 +208,10 @@ describe("handleCommand dispatch (non-RPC branches)", () => {
     await runner.disconnect();
   });
 
-  it("reconnect_job / resume_job require a job_id", async () => {
+  it("reconnect_job requires a job_id", async () => {
     const runner = await makeRunner(ws);
     const a = await runOne(ws, runner, { command: "reconnect_job", data: {} });
     expect(a.error).toBe("job_id is required");
-    ws.sentBytes.length = 0;
-    ws.sentText.length = 0;
-    const b = await runOne(ws, runner, { command: "resume_job", data: {} });
-    expect(b.error).toBe("job_id is required");
     await runner.disconnect();
   });
 

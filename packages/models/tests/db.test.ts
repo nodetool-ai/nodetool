@@ -101,7 +101,6 @@ describe("db", () => {
     expect(jobCols).toContain("execution_strategy");
     expect(jobCols).toContain("execution_id");
     expect(jobCols).toContain("metadata_json");
-    expect(jobCols).toContain("suspension_metadata_json");
   });
 
   it("migrateSqliteDb applies SQLite migrations without initializing the global DB", async () => {

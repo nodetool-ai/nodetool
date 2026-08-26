@@ -69,8 +69,6 @@ describe("handleUpdate job_update — runner state", () => {
   it.each([
     ["running", "running"],
     ["queued", "running"],
-    ["suspended", "suspended"],
-    ["paused", "paused"],
     ["completed", "idle"],
     ["cancelled", "cancelled"],
     ["failed", "error"],
@@ -148,30 +146,6 @@ describe("handleUpdate job_update — queue position and status message", () => 
     });
   });
 
-  it("shows the suspension reason when a run suspends", () => {
-    const runnerStore = makeRunnerStore({ job_id: "A", state: "running" });
-    send(
-      {
-        job_id: "A",
-        status: "suspended",
-        run_state: {
-          status: "suspended",
-          is_resumable: true,
-          suspension_reason: "waiting for input"
-        }
-      },
-      runnerStore
-    );
-    expect(writes(runnerStore).statusMessage).toBe("waiting for input");
-    // The toast is separate from the status message: it prefers `message` and
-    // otherwise says the generic line, never the suspension reason.
-    expect(mockAddNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "info",
-        content: "Workflow suspended - waiting for external input"
-      })
-    );
-  });
 });
 
 describe("handleUpdate job_update — jobs list refresh", () => {
@@ -180,9 +154,7 @@ describe("handleUpdate job_update — jobs list refresh", () => {
     "running",
     "completed",
     "cancelled",
-    "failed",
-    "suspended",
-    "paused"
+    "failed"
   ])("refreshes the jobs list on %s", (status) => {
     send({ job_id: "A", status }, makeRunnerStore({ job_id: "A" }));
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["jobs"] });

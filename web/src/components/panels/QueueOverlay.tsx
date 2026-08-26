@@ -31,7 +31,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 
-const RUNNING = new Set(["running", "suspended", "paused"]);
+const RUNNING = new Set(["running"]);
 const QUEUED = new Set(["queued", "scheduled", "starting"]);
 
 /** Elapsed clock "M:SS" since an ISO start time, empty when unknown. */

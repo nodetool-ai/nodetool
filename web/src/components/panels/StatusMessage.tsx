@@ -8,9 +8,7 @@ const StatusMessage = memo(function StatusMessage() {
   const isActive =
     runnerState === "running" ||
     runnerState === "connecting" ||
-    runnerState === "connected" ||
-    runnerState === "paused" ||
-    runnerState === "suspended";
+    runnerState === "connected";
 
   if (!isActive) {return null;}
 

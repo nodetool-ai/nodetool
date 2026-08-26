@@ -2860,6 +2860,28 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP TABLE IF EXISTS mcp_oauth_grants");
       await db.execute("DROP TABLE IF EXISTS mcp_oauth_clients");
     }
+  },
+
+  // ── Drop the unwired durable-execution tables ──────────────────────
+  // `run_leases` and `run_node_state` were ported from the Python codebase
+  // for a resume-from-suspension runtime that was never built. Nothing read
+  // or wrote either table. The suspend/resume code they belonged to is gone;
+  // these follow it.
+  {
+    version: "20260826_000000",
+    name: "drop_run_leases_and_run_node_state",
+    createsTables: [],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_run_leases_expires");
+      await db.execute("DROP TABLE IF EXISTS run_leases");
+      await db.execute("DROP INDEX IF EXISTS idx_run_node_state_run_status");
+      await db.execute("DROP INDEX IF EXISTS idx_run_node_state_run_node");
+      await db.execute("DROP TABLE IF EXISTS run_node_state");
+    },
+    async down() {
+      // One-way: the tables held no data any code ever wrote.
+    }
   }
 ];
 

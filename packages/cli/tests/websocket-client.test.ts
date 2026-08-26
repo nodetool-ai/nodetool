@@ -390,9 +390,9 @@ describe("WebSocketChatClient.runJob", () => {
   });
 });
 
-// ─── reconnectJob / resumeJob ─────────────────────────────────────────────────
+// ─── reconnectJob ─────────────────────────────────────────────────────────────
 
-describe("WebSocketChatClient.reconnectJob and resumeJob", () => {
+describe("WebSocketChatClient.reconnectJob", () => {
   it("reconnectJob sends reconnect_job command", async () => {
     const client = await makeConnectedClient();
     const gen = client.reconnectJob("job-99");
@@ -405,20 +405,6 @@ describe("WebSocketChatClient.reconnectJob and resumeJob", () => {
       .find((m) => m["command"] === "reconnect_job");
     expect(cmd).toBeDefined();
     expect((cmd!["data"] as Record<string, unknown>)["job_id"]).toBe("job-99");
-  });
-
-  it("resumeJob sends resume_job command", async () => {
-    const client = await makeConnectedClient();
-    const gen = client.resumeJob("job-88");
-    const p = gen.next();
-    currentFakeWs.push({ type: "job_update", status: "completed" });
-    await p;
-
-    const cmd = currentFakeWs.sent
-      .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["command"] === "resume_job");
-    expect(cmd).toBeDefined();
-    expect((cmd!["data"] as Record<string, unknown>)["job_id"]).toBe("job-88");
   });
 });
 

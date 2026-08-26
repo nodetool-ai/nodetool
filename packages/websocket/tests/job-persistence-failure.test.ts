@@ -81,7 +81,7 @@ async function waitForTerminal(
   timeoutMs = 3000
 ): Promise<Record<string, unknown>> {
   const deadline = Date.now() + timeoutMs;
-  const terminalStatuses = new Set(["completed", "failed", "cancelled", "suspended"]);
+  const terminalStatuses = new Set(["completed", "failed", "cancelled"]);
   while (Date.now() < deadline) {
     const terminal = decodeAll(ws).find(
       (m) => m.type === "job_update" && m.job_id === jobId && terminalStatuses.has(String(m.status))

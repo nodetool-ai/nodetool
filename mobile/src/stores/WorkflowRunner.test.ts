@@ -247,24 +247,6 @@ describe('WorkflowRunner', () => {
       expect(store.getState().statusMessage).toContain('booting');
     });
 
-    it('handles suspended with a suspension_reason', async () => {
-      const { store, handler } = await bootStore();
-      handler({
-        type: 'job_update',
-        status: 'suspended',
-        suspension_reason: 'needs input',
-      });
-      expect(store.getState().state).toBe('suspended');
-      expect(store.getState().statusMessage).toBe('Suspended: needs input');
-    });
-
-    it('handles paused → paused state', async () => {
-      const { store, handler } = await bootStore();
-      handler({ type: 'job_update', status: 'paused' });
-      expect(store.getState().state).toBe('paused');
-      expect(store.getState().statusMessage).toBe('Paused');
-    });
-
     it('does not overwrite error state with a stale running update', async () => {
       const { store, handler } = await bootStore();
       handler({ type: 'job_update', status: 'failed', error: 'x' });
@@ -467,18 +449,6 @@ describe('WorkflowRunner', () => {
       expect(store.getState().state).toBe('cancelled');
       expect(mockWs.send).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'cancel_job' }),
-        '/ws'
-      );
-    });
-
-    it('resume sends resume_job and returns to running', async () => {
-      const { store } = await bootStore();
-      store.setState({ job_id: 'job-1' });
-      mockWs.send.mockClear();
-      await store.getState().resume();
-      expect(store.getState().state).toBe('running');
-      expect(mockWs.send).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'resume_job' }),
         '/ws'
       );
     });

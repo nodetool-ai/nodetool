@@ -49,9 +49,6 @@ const ACTIVE_STATUSES = new Set([
   'starting',
   'running',
   'in_progress',
-  'paused',
-  'suspended',
-  'recovering',
 ]);
 
 function isActiveStatus(status: string | null | undefined): boolean {

@@ -13,7 +13,6 @@ export type RunStatus =
   | "cancelled"
   | "error"
   | "timeout"
-  | "suspended"
   | "skipped";
 
 /** A single workflow entry in the suite manifest. */

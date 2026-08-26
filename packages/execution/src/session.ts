@@ -164,11 +164,7 @@ export class ExecutionSession {
       });
   }
 
-  /**
-   * Map a kernel run status onto the `job.end` reason. A suspended run is
-   * still `completed` as far as the worker is concerned: its nodes are done
-   * and their weights are eligible — resuming builds new ones.
-   */
+  /** Map a kernel run status onto the `job.end` reason. */
   private endReason(
     status: RunResult["status"]
   ): "completed" | "failed" | "cancelled" {

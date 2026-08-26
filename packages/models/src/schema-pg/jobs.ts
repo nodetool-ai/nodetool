@@ -25,14 +25,6 @@ export const jobs = pgTable(
     retry_count: integer("retry_count").notNull().default(0),
     max_retries: integer("max_retries").notNull().default(3),
     version: integer("version").notNull().default(0),
-    suspended_node_id: text("suspended_node_id"),
-    suspension_reason: text("suspension_reason"),
-    suspension_state_json: jsonText<Record<string, unknown>>()(
-      "suspension_state_json"
-    ),
-    suspension_metadata_json: jsonText<Record<string, unknown>>()(
-      "suspension_metadata_json"
-    ),
     execution_strategy: text("execution_strategy"),
     execution_id: text("execution_id"),
     // The server instance executing this run (Fly machine id). Null on a

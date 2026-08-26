@@ -11,7 +11,7 @@
  *
  * The `Job` row is created with status `running` *before* the run starts, so
  * the job is visible in the jobs UI / tRPC list while it executes; the
- * terminal status (`completed` / `failed` / `cancelled` / `suspended`) is
+ * terminal status (`completed` / `failed` / `cancelled`) is
  * persisted when the runner settles. A job cancelled externally via the
  * DB-only cancel path (tRPC `jobs.cancel`) keeps its `cancelled` status.
  */
@@ -75,11 +75,7 @@ export interface StartHeadlessJobOptions {
   onAccepted?: (jobId: string) => void;
 }
 
-export type HeadlessJobStatus =
-  | "completed"
-  | "failed"
-  | "cancelled"
-  | "suspended";
+export type HeadlessJobStatus = "completed" | "failed" | "cancelled";
 
 interface HeadlessJobResult {
   jobId: string;
@@ -117,13 +113,6 @@ async function persistTerminalStatus(
       job.markCompleted();
     } else if (result.status === "cancelled") {
       job.markCancelled();
-    } else if (result.status === "suspended") {
-      job.markSuspended(
-        result.suspend?.node_id ?? "",
-        result.suspend?.reason ?? "",
-        result.suspend?.state,
-        result.suspend?.metadata
-      );
     } else {
       job.markFailed(result.error ?? "Workflow run failed");
     }

@@ -18,9 +18,7 @@ Supports both **SQLite** (local / Electron) and **PostgreSQL / Supabase** (cloud
 | `Workspace` | `nodetool_workspaces` | File-system workspace directories |
 | `WorkflowVersion` | `nodetool_workflow_versions` | Versioned workflow snapshots |
 | `Prediction` | `nodetool_predictions` | LLM/AI call records |
-| `RunNodeState` | `run_node_state` | Per-node execution state for a run |
 | `RunEvent` | `run_events` | Append-only execution event log |
-| `RunLease` | `run_leases` | Worker lease records |
 | `Setting` | `nodetool_settings` | Per-user key/value settings |
 | `teamTasks` | `nodetool_team_tasks` | Multi-agent task coordination — Drizzle table only, no `DBModel` class |
 

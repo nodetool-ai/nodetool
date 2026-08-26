@@ -22,7 +22,7 @@
       "media_type": "application/schema+json",
       "path": "sdk-v1.execution.schema.json",
       "profile": "execution",
-      "sha256": "fdbbcb892655ee62aa768f0601b850569194ed620cb7bfb5e3aba16af0feb42a"
+      "sha256": "c1e68c8984b0c39a53a95d45988c37b1abbe781434ae615860eb54de2244dbfb"
     },
     {
       "media_type": "application/schema+json",

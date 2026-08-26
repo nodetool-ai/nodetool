@@ -296,7 +296,7 @@ describe("strict mode: pending control-event responses", () => {
 // `_enforceCleanEdgeDrain` is the private helper the runner calls with
 // `_drainActiveEdges`'s findings, and is independently exercised here with a
 // fabricated leftover-edge list against both strict settings, plus the
-// "legitimately mid-flight" exemptions (cancelled/suspended/node-errored).
+// "legitimately mid-flight" exemptions (cancelled/node-errored).
 
 describe("strict mode: _drainActiveEdges", () => {
   function makeBareRunner(strict: boolean): WorkflowRunner {
@@ -309,14 +309,12 @@ describe("strict mode: _drainActiveEdges", () => {
   function internals(runner: WorkflowRunner): {
     _enforceCleanEdgeDrain: (ids: string[]) => void;
     _cancelled: boolean;
-    _suspend: unknown;
     _nodeErrors: Map<string, string>;
   } {
     return runner as unknown as {
       _enforceCleanEdgeDrain: (ids: string[]) => void;
       _cancelled: boolean;
-      _suspend: unknown;
-      _nodeErrors: Map<string, string>;
+        _nodeErrors: Map<string, string>;
     };
   }
 
@@ -341,18 +339,6 @@ describe("strict mode: _drainActiveEdges", () => {
     const runner = makeBareRunner(true);
     const i = internals(runner);
     i._cancelled = true;
-    expect(() => i._enforceCleanEdgeDrain(["e1"])).not.toThrow();
-  });
-
-  it("strict: does not throw for a suspended run (legitimately mid-flight)", () => {
-    const runner = makeBareRunner(true);
-    const i = internals(runner);
-    i._suspend = {
-      node_id: "n",
-      reason: "r",
-      state: {},
-      metadata: {}
-    };
     expect(() => i._enforceCleanEdgeDrain(["e1"])).not.toThrow();
   });
 

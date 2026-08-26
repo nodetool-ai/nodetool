@@ -27,18 +27,11 @@ import { useAuth } from "./useAuth";
 import { isAuthRequired } from "../lib/runtimeConfig";
 import { setPendingResumeJobId } from "./resumeJobHint";
 
-/**
- * Row statuses that can still have a live run behind them. "suspended" is
- * deliberately absent: a suspended row is a durable, resumable state that can
- * outlive any session, and reattaching to one whose session is gone would
- * only report it failed.
- */
+/** Row statuses that can still have a live run behind them. */
 const IN_FLIGHT_JOB_STATUSES: ReadonlySet<string> = new Set([
   "scheduled",
   "queued",
-  "running",
-  "paused",
-  "recovering"
+  "running"
 ]);
 
 /** How many recent jobs to inspect for in-flight runs of one workflow. */

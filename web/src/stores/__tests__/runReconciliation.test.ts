@@ -151,18 +151,6 @@ it("does nothing when every job already settled", async () => {
   expect(mockSend).not.toHaveBeenCalled();
 });
 
-it("never reattaches a suspended row", async () => {
-  // Suspended is durable and resumable through its own flow; a reattach whose
-  // session is gone would only report it failed.
-  mockListQuery.mockResolvedValue({ jobs: [job("A", "suspended")] });
-  const runnerStore = makeRunnerStore();
-
-  startRunReconciliation("wf", workflow, runnerStore as never);
-  await flush();
-
-  expect(runnerStore.reconnectWithWorkflow).not.toHaveBeenCalled();
-});
-
 it("leaves a runner that already tracks a job alone", async () => {
   const runnerStore = makeRunnerStore({ job_id: "live", state: "running" });
 

@@ -58,7 +58,6 @@ const mockWorkflow = {
 const baseJob: Job = {
   user_id: "user-123",
   job_type: "workflow",
-  is_resumable: false,
   id: "job-123",
   workflow_id: "workflow-123",
   status: "completed",

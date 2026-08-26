@@ -11,8 +11,6 @@ import { getDb, getDbType, getRawDb } from "./db.js";
 import { jobs } from "./schema/jobs.js";
 import { runEvents } from "./schema/run-events.js";
 import { runInboxMessages } from "./schema/run-inbox-messages.js";
-import { runLeases } from "./schema/run-leases.js";
-import { runNodeState } from "./schema/run-node-state.js";
 import { triggerInputs } from "./schema/trigger-inputs.js";
 import { workflowVersions } from "./schema/workflow-versions.js";
 
@@ -248,11 +246,9 @@ async function deleteJobs(ids: string[]): Promise<void> {
   for (let offset = 0; offset < ids.length; offset += DELETE_BATCH_SIZE) {
     const batch = ids.slice(offset, offset + DELETE_BATCH_SIZE);
     await db.delete(runEvents).where(inArray(runEvents.run_id, batch));
-    await db.delete(runNodeState).where(inArray(runNodeState.run_id, batch));
     await db
       .delete(runInboxMessages)
       .where(inArray(runInboxMessages.run_id, batch));
-    await db.delete(runLeases).where(inArray(runLeases.run_id, batch));
     await db.delete(triggerInputs).where(inArray(triggerInputs.run_id, batch));
     await db.delete(jobs).where(inArray(jobs.id, batch));
   }

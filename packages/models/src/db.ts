@@ -317,10 +317,6 @@ const TABLE_COLUMNS = {
     retry_count: "integer",
     max_retries: "integer",
     version: "integer",
-    suspended_node_id: "text",
-    suspension_reason: "text",
-    suspension_state_json: "text",
-    suspension_metadata_json: "text",
     execution_strategy: "text",
     execution_id: "text",
     runner_instance: "text",
@@ -480,24 +476,6 @@ const TABLE_COLUMNS = {
     created_at: "text",
     updated_at: "text"
   },
-  run_node_state: {
-    id: "text",
-    run_id: "text",
-    node_id: "text",
-    status: "text",
-    attempt: "integer",
-    scheduled_at: "text",
-    started_at: "text",
-    completed_at: "text",
-    failed_at: "text",
-    suspended_at: "text",
-    updated_at: "text",
-    last_error: "text",
-    retryable: "integer",
-    suspension_reason: "text",
-    resume_state_json: "text",
-    outputs_json: "text"
-  },
   nodetool_predictions: {
     id: "text",
     user_id: "text",
@@ -538,12 +516,6 @@ const TABLE_COLUMNS = {
     event_time: "text",
     node_id: "text",
     payload: "text"
-  },
-  run_leases: {
-    run_id: "text",
-    worker_id: "text",
-    acquired_at: "text",
-    expires_at: "text"
   },
   nodetool_team_tasks: {
     id: "text",
@@ -750,10 +722,6 @@ function getCreateSchemaSql(): string {
       "retry_count" integer NOT NULL DEFAULT 0,
       "max_retries" integer NOT NULL DEFAULT 3,
       "version" integer NOT NULL DEFAULT 0,
-      "suspended_node_id" text,
-      "suspension_reason" text,
-      "suspension_state_json" text,
-      "suspension_metadata_json" text,
       "execution_strategy" text,
       "execution_id" text,
       "runner_instance" text,
@@ -885,27 +853,6 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_oauth_user_provider" ON "nodetool_oauth_credentials" ("user_id", "provider");
     CREATE UNIQUE INDEX IF NOT EXISTS "idx_oauth_user_provider_account" ON "nodetool_oauth_credentials" ("user_id", "provider", "account_id");
 
-    CREATE TABLE IF NOT EXISTS "run_node_state" (
-      "id" text PRIMARY KEY NOT NULL,
-      "run_id" text NOT NULL,
-      "node_id" text NOT NULL,
-      "status" text NOT NULL DEFAULT 'idle',
-      "attempt" integer NOT NULL DEFAULT 1,
-      "scheduled_at" text,
-      "started_at" text,
-      "completed_at" text,
-      "failed_at" text,
-      "suspended_at" text,
-      "updated_at" text NOT NULL,
-      "last_error" text,
-      "retryable" integer NOT NULL DEFAULT 0,
-      "suspension_reason" text,
-      "resume_state_json" text,
-      "outputs_json" text
-    );
-    CREATE INDEX IF NOT EXISTS "idx_run_node_state_run_status" ON "run_node_state" ("run_id", "status");
-    CREATE UNIQUE INDEX IF NOT EXISTS "idx_run_node_state_run_node" ON "run_node_state" ("run_id", "node_id");
-
     CREATE TABLE IF NOT EXISTS "nodetool_predictions" (
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,
@@ -955,14 +902,6 @@ function getCreateSchemaSql(): string {
     CREATE UNIQUE INDEX IF NOT EXISTS "idx_run_events_run_seq" ON "run_events" ("run_id", "seq");
     CREATE INDEX IF NOT EXISTS "idx_run_events_run_node" ON "run_events" ("run_id", "node_id");
     CREATE INDEX IF NOT EXISTS "idx_run_events_run_type" ON "run_events" ("run_id", "event_type");
-
-    CREATE TABLE IF NOT EXISTS "run_leases" (
-      "run_id" text PRIMARY KEY NOT NULL,
-      "worker_id" text NOT NULL,
-      "acquired_at" text NOT NULL,
-      "expires_at" text NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS "idx_run_leases_expires" ON "run_leases" ("expires_at");
 
     CREATE TABLE IF NOT EXISTS "nodetool_team_tasks" (
       "id" text PRIMARY KEY NOT NULL,

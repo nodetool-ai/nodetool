@@ -91,25 +91,6 @@ export type EdgeStatus = "active" | "completed";
 // Lightweight embedded types
 // ---------------------------------------------------------------------------
 
-/** Mirrors RunStateInfo from src/nodetool/types/job.py */
-export interface RunStateInfo {
-  status: string;
-  suspended_node_id?: string | null;
-  suspension_reason?: string | null;
-  error_message?: string | null;
-  execution_strategy?: string | null;
-  is_resumable: boolean;
-}
-
-export const runStateInfoSchema: z.ZodType<RunStateInfo> = z.object({
-  status: z.string(),
-  suspended_node_id: z.string().nullable().optional(),
-  suspension_reason: z.string().nullable().optional(),
-  error_message: z.string().nullable().optional(),
-  execution_strategy: z.string().nullable().optional(),
-  is_resumable: z.boolean()
-});
-
 /**
  * Minimal Task / Step references used by TaskUpdate and StepResult.
  * Full definitions live in the agent layer; here we keep only the
@@ -202,7 +183,6 @@ export const jobUpdateSchema = z.object({
   result: z.record(z.string(), z.unknown()).nullable().optional(),
   error: z.string().nullable().optional(),
   traceback: z.string().nullable().optional(),
-  run_state: runStateInfoSchema.nullable().optional(),
   duration: z.number().nullable().optional(),
   /**
    * 1-based position in the server's pending-run queue. Present when
@@ -668,7 +648,6 @@ export type WebSocketMode = "binary" | "text";
 export type UnifiedCommandType =
   | "run_job"
   | "reconnect_job"
-  | "resume_job"
   | "cancel_job"
   | "update_node_properties"
   | "get_status"

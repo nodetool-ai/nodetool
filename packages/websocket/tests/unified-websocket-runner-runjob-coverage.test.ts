@@ -9,7 +9,7 @@
  * Job status. Rather than stand up a real kernel graph (the main test already
  * exercises the happy path that way), these tests drive `streamJobMessages`
  * directly with a fake ActiveJob + fake ProcessingContext so each branch —
- * autosave, provider cost, suspended/failed/cancelled persistence, the
+ * autosave, provider cost, failed/cancelled persistence, the
  * output-update fallback, message sanitization — is reached deterministically.
  *
  * The job-QUEUE surface (enqueue at capacity, per-workflow limit, queued
@@ -665,26 +665,6 @@ describe("UnifiedWebSocketRunner run_job — terminal persistence", () => {
     expect(failed?.error).toBe("exec boom");
     const job = await Job.get<Job>("FJ");
     expect(job?.status).toBe("failed");
-  });
-
-  it("persists a suspended terminal state with its saved node state", async () => {
-    await seedJob("SJ");
-    const active = makeActive({ jobId: "SJ", workflowId: "wf", messages: [] });
-    await streamTo(
-      runner,
-      active,
-      Promise.resolve({
-        status: "suspended",
-        suspend: {
-          node_id: "pauseNode",
-          reason: "await-human",
-          state: { step: 2 },
-          metadata: { kind: "hitl" }
-        }
-      })
-    );
-    const job = await Job.get<Job>("SJ");
-    expect(job?.status).toBe("suspended");
   });
 
   it("persists a cancelled terminal state", async () => {

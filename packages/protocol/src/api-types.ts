@@ -926,11 +926,7 @@ export interface JobResponse {
   started_at?: string | null;
   finished_at?: string | null;
   cost?: number | null;
-  suspended_node_id?: string | null;
-  suspension_reason?: string | null;
   error_message?: string | null;
-  execution_strategy?: string | null;
-  is_resumable?: boolean;
   etag?: string | null;
 }
 

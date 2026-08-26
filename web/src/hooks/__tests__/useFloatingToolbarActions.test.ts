@@ -95,8 +95,6 @@ describe("useFloatingToolbarActions", () => {
 
   const mockRun = jest.fn();
   const mockCancel = jest.fn();
-  const mockPause = jest.fn();
-  const mockResume = jest.fn();
   const mockSaveWorkflow = jest.fn();
   const mockGetWorkflow = jest.fn(() => mockWorkflow);
   const mockAutoLayout = jest.fn();
@@ -110,8 +108,6 @@ describe("useFloatingToolbarActions", () => {
     selectFrom<WorkflowRunner>({
       run: mockRun,
       cancel: mockCancel,
-      pause: mockPause,
-      resume: mockResume,
       state,
       queuePosition: null
     });
@@ -355,30 +351,6 @@ describe("useFloatingToolbarActions", () => {
     });
   });
 
-  describe("handlePause", () => {
-    it("calls pause", () => {
-      const { result } = renderHook(() => useFloatingToolbarActions());
-
-      act(() => {
-        result.current.handlePause();
-      });
-
-      expect(mockPause).toHaveBeenCalled();
-    });
-  });
-
-  describe("handleResume", () => {
-    it("calls resume", () => {
-      const { result } = renderHook(() => useFloatingToolbarActions());
-
-      act(() => {
-        result.current.handleResume();
-      });
-
-      expect(mockResume).toHaveBeenCalled();
-    });
-  });
-
   describe("handleSave", () => {
     beforeEach(() => {
       useNotificationStore.getState().clearNotifications();
@@ -564,18 +536,14 @@ describe("useFloatingToolbarActions", () => {
       const { result } = renderHook(() => useFloatingToolbarActions());
 
       expect(result.current.isWorkflowRunning).toBe(true);
-      expect(result.current.isPaused).toBe(false);
-      expect(result.current.isSuspended).toBe(false);
     });
 
-    it("exposes paused state", () => {
-      mockUseWebsocketRunner.mockImplementation(runnerInState("paused"));
+    it("exposes idle state", () => {
+      mockUseWebsocketRunner.mockImplementation(runnerInState("idle"));
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
       expect(result.current.isWorkflowRunning).toBe(false);
-      expect(result.current.isPaused).toBe(true);
-      expect(result.current.isSuspended).toBe(false);
     });
   });
 });
