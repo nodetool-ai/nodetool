@@ -172,17 +172,18 @@ async function deleteFolderRecursive(
   if (visited.has(folderId)) return [];
   visited.add(folderId);
 
-  const deletedIds: string[] = [];
   const children = await Asset.getChildren(userId, folderId, 10000);
-  for (const child of children) {
-    if (child.content_type === "folder") {
-      const subDeleted = await deleteFolderRecursive(userId, child.id, visited);
-      deletedIds.push(...subDeleted);
-    } else {
-      await deleteAssetWithObjects(child);
-      deletedIds.push(child.id);
-    }
-  }
+  const deletedIdsArrays = await Promise.all(
+    children.map(async (child) => {
+      if (child.content_type === "folder") {
+        return deleteFolderRecursive(userId, child.id, visited);
+      } else {
+        await deleteAssetWithObjects(child);
+        return [child.id];
+      }
+    })
+  );
+  const deletedIds = deletedIdsArrays.flat();
   const folder = await Asset.find(userId, folderId);
   if (folder) {
     await folder.delete();
