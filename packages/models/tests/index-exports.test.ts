@@ -20,10 +20,8 @@ describe("models index exports", () => {
     expect(models.workspaces).toBeDefined();
     expect(models.workflowVersions).toBeDefined();
     expect(models.oauthCredentials).toBeDefined();
-    expect(models.runNodeState).toBeDefined();
     expect(models.predictions).toBeDefined();
     expect(models.runEvents).toBeDefined();
-    expect(models.runLeases).toBeDefined();
   });
 
   it("exports ConditionBuilder utilities (legacy compat)", () => {
@@ -73,9 +71,7 @@ describe("models index exports", () => {
     expect(models.OAuthCredential).toBeDefined();
     expect(models.Prediction).toBeDefined();
     expect(models.Workspace).toBeDefined();
-    expect(models.RunNodeState).toBeDefined();
     expect(models.RunEvent).toBeDefined();
-    expect(models.RunLease).toBeDefined();
   });
 
   it("exports api-graph utilities", () => {

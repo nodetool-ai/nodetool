@@ -375,7 +375,7 @@ describe("WorkflowRunner", () => {
   });
 
   describe("run", () => {
-    it.each(["connecting", "running", "paused", "suspended"] as const)(
+    it.each(["connecting", "running"] as const)(
       "submits a queued run_job while state is %s without disturbing the active run",
       async (state) => {
         store.setState({ state, job_id: "job-active" });

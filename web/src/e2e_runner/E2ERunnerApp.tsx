@@ -51,7 +51,6 @@ const STATUS_COLOR: Record<string, string> = {
   failed: "#EF4444",
   error: "#EF4444",
   cancelled: "#F59E0B",
-  suspended: "#F59E0B",
   timeout: "#F59E0B",
   skipped: "#94A3B8"
 };

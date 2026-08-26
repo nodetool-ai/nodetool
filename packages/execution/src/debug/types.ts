@@ -66,7 +66,7 @@ export interface DebugError {
 
 /** Everything distilled from a run's processing-message stream. */
 export interface ExecutionSummary {
-  /** Final job status (completed | failed | cancelled | suspended | …). */
+  /** Final job status (completed | failed | cancelled | …). */
   status: string;
   error: string | null;
   nodes: NodeDebug[];

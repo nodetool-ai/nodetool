@@ -277,15 +277,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const {
     handleRun,
     handleStop,
-    handleResume,
     handleSave,
     handleDownload,
     handleAutoLayout,
     handleToggleNodeMenu,
     handleToggleMiniMap,
     isWorkflowRunning,
-    isPaused,
-    isSuspended,
     queuePosition,
     pendingRunCount
   } = useFloatingToolbarActions();
@@ -316,7 +313,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflow = useNodes((state) => state.workflow);
 
-  const isRunningish = isWorkflowRunning || isPaused || isSuspended;
+  const isRunningish = isWorkflowRunning;
 
   // Conversation overlay: floats above the composer, showing the active chat
   // thread. It surfaces dynamically — auto-opening whenever a new message
@@ -709,13 +706,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           secondary={instantUpdate ? "On" : "Off"}
           onClick={runWithClose(handleToggleInstantUpdate)}
         />
-        {(isPaused || isSuspended) && (
-          <MenuItemPrimitive
-            label="Resume"
-            icon={<PlayCircleIcon fontSize="small" />}
-            onClick={runWithClose(handleResume)}
-          />
-        )}
         {isRunningish && (
           <MenuItemPrimitive
             label="Stop"

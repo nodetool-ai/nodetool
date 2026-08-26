@@ -193,4 +193,4 @@ Twenty-one scenarios were run against the design. These are the ones that shaped
 
 **Phase 1 (this PRD).** Registrations, the dispatch loop, cron and interval schedules, the webhook route, self-scheduling, state, serialization, the safety rules, the Triggers tab, and the desktop file adapter. Deletion of the dead layer.
 
-**Phase 2 (not scheduled).** Parked runs: a node that suspends a run until an event addresses it, resumed from `run_node_state`. Use case 6 shows that the two-workflow split covers most approval flows without it, so Phase 2 waits for a case that split cannot serve.
+**Phase 2 — dropped (2026-08-26).** Parked runs (a node that suspends a run until an event addresses it) needed a resume path that was never built: only the suspending node's state was ever persisted, so a resume would have re-run every upstream node. The suspend half, `run_leases`, and `run_node_state` are deleted. Use case 6's two-workflow split is the answer for approval flows. Reviving this means designing output persistence and a replay contract first, not restoring the tables.

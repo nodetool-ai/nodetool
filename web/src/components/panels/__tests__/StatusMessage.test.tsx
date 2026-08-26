@@ -113,19 +113,6 @@ describe("StatusMessage", () => {
       expect(message).toBeInTheDocument();
     });
 
-    it("renders when workflow is paused", () => {
-      // Mock the hook to return paused state
-      (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
-        const state = { state: "paused", statusMessage: "Workflow paused" };
-        return mockIsSelector(selector) ? selector(state) : state;
-      });
-
-      renderWithTheme();
-
-      const message = screen.queryByText("Workflow paused");
-      expect(message).toBeInTheDocument();
-    });
-
     it("does not render when workflow is cancelled", () => {
       // Mock the hook to return cancelled state
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {

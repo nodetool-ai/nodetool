@@ -86,7 +86,7 @@ interface RunJobCommandData {
   job_id?: string;
 }
 
-/** `reconnect_job` / `resume_job` payload. */
+/** `reconnect_job` payload. */
 interface JobStreamCommandData {
   job_id: string;
   workflow_id?: string;
@@ -103,7 +103,7 @@ type OutboundFrame =
   | { command: "chat_message"; data: ChatMessageCommandData }
   | { command: "inference"; data: InferenceCommandData }
   | { command: "run_job"; data: RunJobCommandData }
-  | { command: "reconnect_job" | "resume_job"; data: JobStreamCommandData }
+  | { command: "reconnect_job"; data: JobStreamCommandData }
   | { command: "cancel_job"; data: { job_id: string } }
   | { command: "get_status"; data: { job_id?: string } }
   | { command: "stop"; data: StopCommandData };
@@ -539,20 +539,7 @@ export class WebSocketChatClient {
     yield* this.consumeJobEvents();
   }
 
-  /** Resume a paused/interrupted job. */
-  async *resumeJob(
-    jobId: string,
-    workflowId?: string
-  ): AsyncGenerator<JobEvent> {
-    this.contentQueue.length = 0;
-    this.send({
-      command: "resume_job",
-      data: { job_id: jobId, workflow_id: workflowId }
-    });
-    yield* this.consumeJobEvents();
-  }
-
-  /** Shared job event consumer used by runJob, reconnectJob, resumeJob. */
+  /** Shared job event consumer used by runJob and reconnectJob. */
   private async *consumeJobEvents(): AsyncGenerator<JobEvent> {
     while (true) {
       const event = await this.nextContent();

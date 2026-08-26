@@ -557,20 +557,6 @@ describe("JobResponse", () => {
     expect(job.status).toBe("running");
     expect(job.error).toBeUndefined();
   });
-
-  it("has optional resumable fields", () => {
-    const job: JobResponse = {
-      id: "j2",
-      user_id: "u1",
-      job_type: "workflow",
-      workflow_id: "wf-1",
-      status: "failed",
-      is_resumable: true,
-      suspension_reason: "user_input_required"
-    };
-    expect(job.is_resumable).toBe(true);
-    expect(job.suspension_reason).toBe("user_input_required");
-  });
 });
 
 describe("RunJobRequest", () => {

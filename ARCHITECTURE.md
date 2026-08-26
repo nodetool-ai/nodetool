@@ -223,7 +223,7 @@ Core business logic for workflows, nodes, agents, and persistence.
 - `executeAgentGraph` (`src/execute-agent-graph.ts`) — Hands a `GraphData` graph to `WorkflowRunner` (kernel) and yields the run's `ProcessingMessage`s. Planner-authored `nodetool.agents.Agent` nodes carry no model; `applyRunPolicy` stamps the run's configured provider+model onto them, and the live tool set is injected into a child `ProcessingContext`.
 - Tool system with 100+ tools across categories: search (Google, DataForSEO), code execution, file I/O, browser automation (Playwright), email, image generation, PDF processing, vector search, workflow management, and MCP (Model Context Protocol) integration.
 
-**`models`** — Database persistence layer using Drizzle ORM over SQLite. Defines tables for: `workflows` (DAG definitions), `jobs` (execution records), `messages` / `threads` (chat history), `assets` (file metadata), `secrets` (encrypted credentials), `workspaces`, `workflowVersions`, `oauthCredentials`, `predictions` (usage/cost tracking), `runNodeState`, `runEvents`, and `runLeases` (distributed job leasing).
+**`models`** — Database persistence layer using Drizzle ORM over SQLite. Defines tables for: `workflows` (DAG definitions), `jobs` (execution records), `messages` / `threads` (chat history), `assets` (file metadata), `secrets` (encrypted credentials), `workspaces`, `workflowVersions`, `oauthCredentials`, `predictions` (usage/cost tracking), and `runEvents`.
 
 ### Feature Layer
 

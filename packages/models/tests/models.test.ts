@@ -42,30 +42,9 @@ describe("Job model", () => {
     expect(job.worker_id).toBe("worker-1");
     expect(job.started_at).toBeTruthy();
 
-    job.markSuspended("node-5", "waiting for input", { foo: "bar" });
-    expect(job.status).toBe("suspended");
-    expect(job.suspended_node_id).toBe("node-5");
-    expect(job.suspension_reason).toBe("waiting for input");
-    expect(job.suspension_state_json).toEqual({ foo: "bar" });
-
-    job.markResumed();
-    expect(job.status).toBe("running");
-
     job.markCompleted();
     expect(job.status).toBe("completed");
     expect(job.finished_at).toBeTruthy();
-  });
-
-  it("markPaused sets status to paused", async () => {
-    const job = await Job.create<Job>({ user_id: "u1", workflow_id: "w1" });
-    job.markPaused();
-    expect(job.status).toBe("paused");
-  });
-
-  it("markRecovering sets status to recovering", async () => {
-    const job = await Job.create<Job>({ user_id: "u1", workflow_id: "w1" });
-    job.markRecovering();
-    expect(job.status).toBe("recovering");
   });
 
   it("incrementRetry increases retry_count", async () => {
@@ -111,8 +90,6 @@ describe("Job model", () => {
     expect(job.execution_strategy).toBeNull();
     expect(job.execution_id).toBeNull();
     expect(job.max_retries).toBe(3);
-    expect(job.suspension_reason).toBeNull();
-    expect(job.suspension_metadata_json).toBeNull();
     expect(job.metadata_json).toBeNull();
     expect(job.completed_at).toBeNull();
     expect(job.failed_at).toBeNull();
@@ -131,29 +108,14 @@ describe("Job model", () => {
     expect(job.heartbeat_at).toBeNull();
   });
 
-  it("isResumable / isComplete / isSuspended / isPaused", async () => {
+  it("isComplete", async () => {
     const job = await Job.create<Job>({ user_id: "u1", workflow_id: "w1" });
 
     job.markRunning();
-    expect(job.isResumable()).toBe(true);
     expect(job.isComplete()).toBe(false);
-
-    job.markSuspended("n1", "waiting");
-    expect(job.isSuspended()).toBe(true);
-
-    job.markPaused();
-    expect(job.isPaused()).toBe(true);
-    expect(job.isResumable()).toBe(true);
 
     job.markCompleted();
     expect(job.isComplete()).toBe(true);
-    expect(job.isResumable()).toBe(false);
-  });
-
-  it("markSuspended with metadata", async () => {
-    const job = await Job.create<Job>({ user_id: "u1", workflow_id: "w1" });
-    job.markSuspended("n1", "input needed", { s: 1 }, { m: 2 });
-    expect(job.suspension_metadata_json).toEqual({ m: 2 });
   });
 
   it("beforeSave increments version", async () => {

@@ -77,13 +77,10 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
     expect(res?.message).toContain("Model clearing");
   });
 
-  it("reconnect_job / resume_job / cancel_job require a job_id", async () => {
+  it("reconnect_job / cancel_job require a job_id", async () => {
     expect(
       (await runner.handleCommand({ command: "reconnect_job", data: {} }))
         ?.error
-    ).toBe("job_id is required");
-    expect(
-      (await runner.handleCommand({ command: "resume_job", data: {} }))?.error
     ).toBe("job_id is required");
     expect(
       (await runner.handleCommand({ command: "cancel_job", data: {} }))?.error
@@ -461,7 +458,6 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     expect(
       sent.some((m) => m.type === "edge_update" && m.edge_id === "e1")
     ).toBe(true);
-    await expect(runner.resumeJob("missing")).resolves.toBeUndefined();
   });
 
   it("reconnectJob reports a completed job's real status when its events cannot be replayed", async () => {

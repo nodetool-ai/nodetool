@@ -52,15 +52,6 @@ describe("Job model (SQLite)", () => {
     expect(job.worker_id).toBe("worker-1");
     expect(job.started_at).toBeTruthy();
 
-    job.markSuspended("node-5", "waiting for input", { foo: "bar" });
-    expect(job.status).toBe("suspended");
-    expect(job.suspended_node_id).toBe("node-5");
-    expect(job.suspension_reason).toBe("waiting for input");
-    expect(job.suspension_state_json).toEqual({ foo: "bar" });
-
-    job.markResumed();
-    expect(job.status).toBe("running");
-
     job.markCompleted();
     expect(job.status).toBe("completed");
     expect(job.finished_at).toBeTruthy();

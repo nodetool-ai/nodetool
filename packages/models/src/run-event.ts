@@ -74,7 +74,7 @@ export class RunEvent extends DBModel {
    *
    * The next-seq read and the insert run inside a single transaction so two
    * concurrent appends for the same run can't compute the same seq and collide
-   * on the UNIQUE (run_id, seq) index. Mirrors RunLease.acquire's dual-dialect
+   * on the UNIQUE (run_id, seq) index. Uses the same dual-dialect
    * transaction pattern (better-sqlite3 transactions must be synchronous).
    */
   static async appendEvent(

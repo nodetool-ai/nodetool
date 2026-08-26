@@ -238,8 +238,7 @@ const TERMINAL_JOB_STATUSES = [
   "completed",
   "failed",
   "cancelled",
-  "error",
-  "suspended"
+  "error"
 ];
 
 /**
@@ -1833,7 +1832,7 @@ interface ActiveJob {
   session: ExecutionSession;
   graph: HydratedGraphData;
   finished: boolean;
-  status: "running" | "completed" | "failed" | "cancelled" | "suspended";
+  status: "running" | "completed" | "failed" | "cancelled";
   error?: string;
   requireTerminalResult: boolean;
   executionOptions: RunJobExecutionOptions;
@@ -1845,13 +1844,6 @@ interface ActiveJob {
     preRunMs: number;
     persistenceMs: number;
     kernelStartedAt: number;
-  };
-  /** Suspension detail when status is "suspended" (node + saved state). */
-  suspend?: {
-    node_id: string;
-    reason: string;
-    state: Record<string, unknown>;
-    metadata: Record<string, unknown>;
   };
   streamTask?: Promise<void>;
   /**
@@ -3907,15 +3899,9 @@ export class UnifiedWebSocketRunner {
   private async streamJobMessages(
     active: ActiveJob,
     executePromise: Promise<{
-      status: "completed" | "failed" | "cancelled" | "suspended";
+      status: "completed" | "failed" | "cancelled";
       error?: string;
       outputs?: Record<string, unknown[]>;
-      suspend?: {
-        node_id: string;
-        reason: string;
-        state: Record<string, unknown>;
-        metadata: Record<string, unknown>;
-      };
     }>
   ): Promise<void> {
     // The drain loop has awaited operations (Asset.paginate, normalizeOutputValue,
@@ -3984,15 +3970,6 @@ export class UnifiedWebSocketRunner {
             job.markFailed(active.error ?? "Unknown error");
           } else if (active.status === "cancelled") {
             job.markCancelled();
-          } else if (active.status === "suspended") {
-            // A node paused the run (e.g. human-in-the-loop). Persist the
-            // saved state so the job can be resumed later.
-            job.markSuspended(
-              active.suspend?.node_id ?? "",
-              active.suspend?.reason ?? "",
-              active.suspend?.state,
-              active.suspend?.metadata
-            );
           }
         }
         job.cost =
@@ -4035,15 +4012,9 @@ export class UnifiedWebSocketRunner {
   private async _streamJobMessagesInner(
     active: ActiveJob,
     executePromise: Promise<{
-      status: "completed" | "failed" | "cancelled" | "suspended";
+      status: "completed" | "failed" | "cancelled";
       error?: string;
       outputs?: Record<string, unknown[]>;
-      suspend?: {
-        node_id: string;
-        reason: string;
-        state: Record<string, unknown>;
-        metadata: Record<string, unknown>;
-      };
     }>
   ): Promise<void> {
     let terminalSeen = false;
@@ -4099,7 +4070,6 @@ export class UnifiedWebSocketRunner {
       .then((result) => {
         active.status = result.status;
         active.error = result.error;
-        active.suspend = result.suspend;
         finalOutputs = result.outputs ?? {};
       })
       .catch((err) => {
@@ -4467,8 +4437,8 @@ export class UnifiedWebSocketRunner {
       // completed, and the replay-unavailable note rides alongside as an
       // `error` string explaining only the missing events.
       //
-      // Every other row status (queued, scheduled, running, recovering,
-      // suspended, paused) is reported as failed: nothing is left that could
+      // Every other row status (queued, scheduled, running) is reported as
+      // failed: nothing is left that could
       // ever send this client another frame, and reporting the row as-is
       // parks the UI in a state that never settles — a `queued` row from a
       // dead connection's drained queue reads as "running" with a live Stop
@@ -4492,8 +4462,8 @@ export class UnifiedWebSocketRunner {
       // reattaches, and re-reports the same loss forever. A row claimed by
       // another instance is left alone: on a multi-instance deployment this
       // connection may simply have been balanced away from a run that is
-      // still executing. Suspended rows are durable by design — never touched.
-      if (job && !settled && job.status !== "suspended") {
+      // still executing.
+      if (job && !settled) {
         const instanceId = getInstanceId();
         const ownedHere =
           !job.runner_instance ||
@@ -4550,14 +4520,6 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId ?? active.workflowId
       });
     }
-  }
-
-  async resumeJob(
-    jobId: string,
-    workflowId?: string,
-    lastSeq = 0
-  ): Promise<void> {
-    await this.reconnectJob(jobId, workflowId, lastSeq);
   }
 
   async cancelJob(
@@ -7758,7 +7720,6 @@ export class UnifiedWebSocketRunner {
         .then((r) => {
           active.status = r.status;
           active.error = r.error;
-          active.suspend = r.suspend;
           finalOutputs = r.outputs ?? {};
         })
         .catch((err) => {
@@ -7894,13 +7855,6 @@ export class UnifiedWebSocketRunner {
             else if (active.status === "failed")
               job.markFailed(active.error ?? "Unknown error");
             else if (active.status === "cancelled") job.markCancelled();
-            else if (active.status === "suspended")
-              job.markSuspended(
-                active.suspend?.node_id ?? "",
-                active.suspend?.reason ?? "",
-                active.suspend?.state,
-                active.suspend?.metadata
-              );
           }
           job.cost =
             (active.providerCostTotal ?? 0) > 0
@@ -8910,18 +8864,6 @@ export class UnifiedWebSocketRunner {
         );
         return {
           message: `Reconnecting to job ${jobId}`,
-          job_id: jobId,
-          workflow_id: workflowId ?? null
-        };
-      case "resume_job":
-        if (!jobId) return { error: "job_id is required" };
-        await this.resumeJob(jobId, workflowId, resumeLastSeq(data)).catch(
-          (err) => {
-            log.warn("resume_job failed", { jobId, error: String(err) });
-          }
-        );
-        return {
-          message: `Resumption initiated for job ${jobId}`,
           job_id: jobId,
           workflow_id: workflowId ?? null
         };

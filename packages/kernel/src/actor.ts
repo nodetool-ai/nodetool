@@ -61,7 +61,6 @@ import {
 import { withNodeSpan } from "@nodetool-ai/runtime/tracing";
 import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
-import { WorkflowSuspendedError } from "./suspendable.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";
 import { applyDynamicSlotTypes } from "./dynamic-slots.js";
 import {
@@ -183,16 +182,6 @@ export function enumerateAllPendingKeys(
 export interface ActorResult {
   outputs: Record<string, unknown>;
   error?: string;
-  /**
-   * Set when the node raised `WorkflowSuspendedError`. The runner treats this
-   * as a distinct terminal outcome (suspended, not failed).
-   */
-  suspend?: {
-    nodeId: string;
-    reason: string;
-    state: Record<string, unknown>;
-    metadata: Record<string, unknown>;
-  };
 }
 
 /**
@@ -362,7 +351,6 @@ export class NodeActor {
   private async _runImpl(): Promise<ActorResult> {
     let errorMessage: string | undefined;
     let errorDetail: NodeErrorDetail | undefined;
-    let suspend: ActorResult["suspend"] | undefined;
     this._executionContext?.clearProviderCost?.();
     try {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
@@ -521,41 +509,24 @@ export class NodeActor {
         await this._runCorrelated(this._correlation);
       }
     } catch (err) {
-      if (err instanceof WorkflowSuspendedError) {
-        // Suspension is a control-flow signal, not an error. Capture its
-        // payload so the runner can report a distinct "suspended" outcome.
-        suspend = {
-          nodeId: err.nodeId,
-          reason: err.reason,
-          state: err.state,
-          metadata: err.metadata
+      errorMessage = err instanceof Error ? err.message : String(err);
+      // A credential failure carries the provider and the key that failed,
+      // so the editor can send the user straight to the screen that fixes it
+      // instead of asking them to parse the message.
+      const failure = providerFailureDetail(err);
+      if (failure) {
+        errorDetail = {
+          code: failure.code,
+          provider: failure.provider,
+          secret_key: failure.secretKey
         };
-        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-        log.info("Actor suspended", {
-          nodeId: this.node.id,
-          type: this.node.type,
-          reason: err.reason
-        });
-      } else {
-        errorMessage = err instanceof Error ? err.message : String(err);
-        // A credential failure carries the provider and the key that failed,
-        // so the editor can send the user straight to the screen that fixes it
-        // instead of asking them to parse the message.
-        const failure = providerFailureDetail(err);
-        if (failure) {
-          errorDetail = {
-            code: failure.code,
-            provider: failure.provider,
-            secret_key: failure.secretKey
-          };
-        }
-        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-        log.error("Actor failed", {
-          nodeId: this.node.id,
-          type: this.node.type,
-          error: errorMessage
-        });
       }
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+      log.error("Actor failed", {
+        nodeId: this.node.id,
+        type: this.node.type,
+        error: errorMessage
+      });
     } finally {
       // Always finalize, even on error (Python parity: gap #13)
       if (this._executor.finalize) {
@@ -565,14 +536,6 @@ export class NodeActor {
           // Swallow finalize errors — don't mask original error
         }
       }
-    }
-
-    if (suspend !== undefined) {
-      // Report the suspension as a distinct node status. The human reason
-      // rides on the status; `result` carries the saved state and `error`
-      // stays null since this is not a failure.
-      this._emitNodeStatus("suspended", suspend.state);
-      return { outputs: {}, suspend };
     }
 
     if (errorMessage !== undefined) {
@@ -1184,7 +1147,6 @@ export class NodeActor {
       try {
         return await inInvocationAccount(account, invoke);
       } catch (err) {
-        if (err instanceof WorkflowSuspendedError) throw err;
         if (!this._supervisor) {
           if (!this._degradeOnContentFilter(err, false)) throw err;
           await this._skipInvocation();
@@ -1502,7 +1464,6 @@ export class NodeActor {
           }
         });
       } catch (err) {
-        if (err instanceof WorkflowSuspendedError) throw err;
         if (err instanceof RoutingError) throw err.cause;
         if (!this._supervisor) {
           if (!this._degradeOnContentFilter(err, emitted)) throw err;
@@ -1560,7 +1521,6 @@ export class NodeActor {
         this._executor.run!(nodeInputs, nodeOutputs, this._executionContext)
       );
     } catch (err) {
-      if (err instanceof WorkflowSuspendedError) throw err;
       if (err instanceof RoutingError) throw err.cause;
       if (!this._supervisor) throw err;
       const verdict = await this._escalate(err, {}, 1, account, {

@@ -31,8 +31,7 @@ const TERMINAL_STATUSES = new Set([
   "completed",
   "failed",
   "cancelled",
-  "error",
-  "suspended"
+  "error"
 ]);
 // Faked nodes complete near-instantly; a tight per-run cap keeps the whole
 // 49-template suite within the Playwright test budget even when a template

@@ -65,13 +65,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
       return getWorkflowRunnerStore(effectiveWorkflowId).getState().cancel;
     }, [effectiveWorkflowId]);
 
-    const resume = useMemo(() => {
-      if (!effectiveWorkflowId) {return undefined;}
-      return getWorkflowRunnerStore(effectiveWorkflowId).getState().resume;
-    }, [effectiveWorkflowId]);
-
     const isRunning = runState === "running" || runState === "connecting";
-    const isPaused = runState === "paused" || runState === "suspended";
 
     // Spin animation for running state
     const spinAnim = useRef(new Animated.Value(0)).current;
@@ -143,10 +137,6 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
       cancel?.();
     }, [cancel]);
 
-    const handleResume = useCallback(() => {
-      resume?.();
-    }, [resume]);
-
     const handleAddNode = useCallback(() => {
       showNodePicker(-1);
     }, [showNodePicker]);
@@ -187,7 +177,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* Stop */}
-        {(isRunning || isPaused) && (
+        {isRunning && (
           <TouchableOpacity
             style={[styles.button, { backgroundColor: colors.error + "20" }]}
             onPress={handleStop}
@@ -198,38 +188,22 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
           </TouchableOpacity>
         )}
 
-        {/* Resume (paused/suspended) */}
-        {isPaused && (
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primary + "20" }]}
-            onPress={handleResume}
-            accessibilityRole="button"
-            accessibilityLabel="Resume workflow"
-          >
-            <Ionicons name="play-forward" size={20} color={colors.primary} />
-          </TouchableOpacity>
-        )}
-
         {/* Run / Running indicator */}
         <TouchableOpacity
           style={[
             styles.runButton,
             isRunning && styles.runButtonRunning,
             {
-              backgroundColor: isRunning ? colors.surface
-                : isPaused ? colors.surface
-                : colors.primary,
-              borderColor: isRunning ? colors.primary
-                : isPaused ? "#F59E0B"
-                : colors.primary,
-              borderWidth: isRunning || isPaused ? 2 : 0,
+              backgroundColor: isRunning ? colors.surface : colors.primary,
+              borderColor: colors.primary,
+              borderWidth: isRunning ? 2 : 0,
             },
           ]}
-          onPress={isRunning || isPaused ? undefined : handleRun}
-          disabled={isRunning || isPaused || chain.length === 0}
-          activeOpacity={isRunning || isPaused ? 1 : 0.7}
+          onPress={isRunning ? undefined : handleRun}
+          disabled={isRunning || chain.length === 0}
+          activeOpacity={isRunning ? 1 : 0.7}
           accessibilityRole="button"
-          accessibilityLabel={isRunning ? "Running" : isPaused ? "Paused" : "Run workflow"}
+          accessibilityLabel={isRunning ? "Running" : "Run workflow"}
         >
           {isRunning ? (
             <View style={styles.runningContent}>
@@ -244,8 +218,6 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
                 {formatTime(elapsed)}
               </Text>
             </View>
-          ) : isPaused ? (
-            <Ionicons name="pause" size={20} color="#F59E0B" />
           ) : (
             <Ionicons name="play" size={20} color="#fff" />
           )}

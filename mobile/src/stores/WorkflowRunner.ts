@@ -32,8 +32,6 @@ export type RunnerState =
   | "connecting"
   | "connected"
   | "running"
-  | "paused"
-  | "suspended"
   | "error"
   | "cancelled"
   | "completed";
@@ -89,7 +87,6 @@ export type WorkflowRunner = {
    * several invocations of one workflow in flight passes the job it means.
    */
   cancel: (jobId?: string) => Promise<void>;
-  resume: () => Promise<void>;
 };
 
 export type WorkflowRunnerStore = UseBoundStore<StoreApi<WorkflowRunner>>;
@@ -285,24 +282,6 @@ export const createWorkflowRunnerStore = (
       if (!jobId || jobId === get().job_id) {
         set({ state: "cancelled", statusMessage: "Cancelled" });
       }
-    },
-
-    resume: async () => {
-      const { job_id } = get();
-      if (job_id && workflowId) {
-        await webSocketService.send(
-          {
-            type: "resume_job",
-            command: "resume_job",
-            data: {
-              job_id,
-              workflow_id: workflowId
-            }
-          },
-          "/ws"
-        );
-        set({ state: "running", statusMessage: "Resuming..." });
-      }
     }
   }));
 
@@ -432,19 +411,6 @@ function handleMessage(
             state: "running",
             statusMessage: "Queued — worker is booting..."
           });
-          break;
-        case "suspended": {
-          const reason =
-            (msg.suspension_reason as string | undefined) ||
-            "Waiting for input";
-          set({
-            state: "suspended",
-            statusMessage: `Suspended: ${reason}`
-          });
-          break;
-        }
-        case "paused":
-          set({ state: "paused", statusMessage: "Paused" });
           break;
       }
       break;

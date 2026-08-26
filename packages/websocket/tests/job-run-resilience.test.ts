@@ -480,26 +480,4 @@ describe("workflow runs survive a dropped socket", () => {
     const row = (await Job.get(jobId)) as Job | null;
     expect(row?.status).toBe("running");
   });
-
-  it("never settles a suspended row", async () => {
-    const jobId = "resilient-job-10";
-    await Job.create({
-      id: jobId,
-      workflow_id: "wf",
-      user_id: "1",
-      status: "suspended",
-      params: {},
-      graph: { nodes: [], edges: [] }
-    });
-
-    await runner1.handleCommand({
-      command: "reconnect_job",
-      data: { job_id: jobId, workflow_id: "wf" }
-    });
-
-    // Suspended is a durable, resumable state — replay being gone does not
-    // make the run dead.
-    const row = (await Job.get(jobId)) as Job | null;
-    expect(row?.status).toBe("suspended");
-  });
 });

@@ -35,7 +35,6 @@ import {
   predictionSchema,
   llmCallUpdateSchema,
   todoUpdateSchema,
-  runStateInfoSchema,
   providerCostSchema,
   taskRefSchema,
   stepRefSchema,
@@ -72,10 +71,6 @@ const samples: Record<MessageType, unknown> = {
   job_update: {
     type: "job_update",
     status: "running",
-    run_state: {
-      status: "running",
-      is_resumable: false
-    },
     validation_issues: [
       { node_id: "n1", property: "prompt", message: "required" }
     ]
@@ -328,23 +323,6 @@ describe("Chunk — Float32Array content", () => {
 });
 
 describe("embedded schemas", () => {
-  it("runStateInfoSchema accepts a full sample", () => {
-    expect(
-      runStateInfoSchema.safeParse({
-        status: "suspended",
-        suspended_node_id: "n1",
-        suspension_reason: "waiting_on_input",
-        is_resumable: true
-      }).success
-    ).toBe(true);
-  });
-
-  it("runStateInfoSchema rejects a missing required is_resumable", () => {
-    expect(runStateInfoSchema.safeParse({ status: "running" }).success).toBe(
-      false
-    );
-  });
-
   it("providerCostSchema accepts a minimal sample", () => {
     expect(
       providerCostSchema.safeParse({

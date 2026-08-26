@@ -12,7 +12,6 @@
  *   /run <workflow_id> [json_params]  — run a workflow
  *   /stop                             — stop in-progress generation
  *   /reconnect <job_id>               — reconnect to a running job
- *   /resume <job_id>                  — resume a paused job
  *   /cancel <job_id>                  — cancel a running job
  *   /status [job_id]                  — get job/all-jobs status
  *   /new                              — start a new chat session
@@ -158,17 +157,6 @@ async function handleSlashCommand(
       return;
     }
 
-    case "resume": {
-      const jobId = cmd.args.trim();
-      if (!jobId) {
-        process.stderr.write("Usage: /resume <job_id>\n");
-        return;
-      }
-      process.stderr.write(`Resuming job ${jobId}...\n`);
-      await displayJobEvents(wsClient.resumeJob(jobId));
-      return;
-    }
-
     case "cancel": {
       const jobId = cmd.args.trim();
       if (!jobId) {
@@ -203,7 +191,6 @@ async function handleSlashCommand(
           "  /run <workflow_id> [json_params]  — Run a workflow",
           "  /stop                             — Stop in-progress generation",
           "  /reconnect <job_id>               — Reconnect to a running job",
-          "  /resume <job_id>                  — Resume a paused job",
           "  /cancel <job_id>                  — Cancel a running job",
           "  /status [job_id]                  — Get job status",
           "  /new                              — Start a new chat session",

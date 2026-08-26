@@ -36,10 +36,7 @@ import { useNotificationStore } from "./NotificationStore";
 import useOnboardingStore from "./OnboardingStore";
 import { openProviderOnboarding } from "./ProviderOnboardingStore";
 import type { NodeErrorDetail } from "@nodetool-ai/protocol";
-import {
-  NOTIFICATION_TIMEOUT_JOB_COMPLETED,
-  NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED
-} from "../config/constants";
+import { NOTIFICATION_TIMEOUT_JOB_COMPLETED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { preloadBrowserRunner } from "../lib/workflow/browserWorkflowRunner";
@@ -194,8 +191,6 @@ const mapJobStatusToRunState = (status: string): RunState | undefined => {
     case "queued":
       return "queued";
     case "running":
-    case "suspended":
-    case "paused":
       return "running";
     case "completed":
       return "completed";
@@ -609,9 +604,7 @@ function isAudioChunkValue(value: unknown): value is Chunk {
 const UNSETTLED_RUNNER_STATES: ReadonlySet<string> = new Set([
   "connecting",
   "connected",
-  "running",
-  "paused",
-  "suspended"
+  "running"
 ]);
 
 /**
@@ -712,9 +705,7 @@ const QUEUE_PANEL_JOB_STATUSES: ReadonlySet<string> = new Set([
   "running",
   "completed",
   "cancelled",
-  "failed",
-  "suspended",
-  "paused"
+  "failed"
 ]);
 
 /**
@@ -728,10 +719,6 @@ const mapJobStatusToRunnerState = (
     case "running":
     case "queued":
       return "running";
-    case "suspended":
-      return "suspended";
-    case "paused":
-      return "paused";
     case "completed":
       return "idle";
     case "cancelled":
@@ -899,10 +886,6 @@ const handleJobUpdate = (
       queuePosition:
         job.status === "queued" ? (job.queue_position ?? null) : null
     });
-
-    if (newState === "suspended" && job.run_state?.suspension_reason) {
-      runnerStore.setState({ statusMessage: job.run_state.suspension_reason });
-    }
   }
 
   // Refresh the Queue panel when a job moves between lifecycle columns. Silent
@@ -996,21 +979,12 @@ const handleJobUpdate = (
     case "running":
       // Clear the carried-over status ("Workflow starting…" from run(), or
       // "Queued…" if it sat in the queue) once the run actually starts. Node
-      // updates set no per-node status text, so without this the "starting"
+
       // message would linger top-right for the whole run. No "started" toast —
       // the Queue panel/overlay shows the running job.
       if (isRunnerJob) {
         runnerStore.setState({ statusMessage: null });
       }
-      break;
-    case "suspended":
-      runner.addNotification({
-        type: "info",
-        alert: true,
-        content:
-          job.message || "Workflow suspended - waiting for external input",
-        timeout: NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED
-      });
       break;
   }
 };
@@ -1405,8 +1379,8 @@ export const handleUpdate = (
     } else {
       // Intentionally no per-node status text: a "<node> running/completed"
       // line on every node_update is pure churn (and a constant flicker during
-      // live slider scrubs). Job-level statusMessages (starting / queued /
-      // suspended) still drive the canvas StatusMessage.
+      // live slider scrubs). Job-level statusMessages (starting / queued)
+      // still drive the canvas StatusMessage.
 
       // Silent live-preview jobs (slider scrubs) only refresh the picture —
       // recording per-node status / timing / cost would flash the running

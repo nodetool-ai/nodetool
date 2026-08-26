@@ -37,7 +37,6 @@ import type { UnifiedCommandType } from "./messages.js";
 export const UNIFIED_COMMAND_TYPES = [
   "run_job",
   "reconnect_job",
-  "resume_job",
   "cancel_job",
   "update_node_properties",
   "get_status",
@@ -297,7 +296,6 @@ export type GenerateTextRequest = z.infer<typeof generateTextDataSchema>;
 export const commandDataSchemas = {
   run_job: runJobDataSchema,
   reconnect_job: reconnectJobDataSchema,
-  resume_job: reconnectJobDataSchema,
   cancel_job: looseDataSchema,
   update_node_properties: looseDataSchema,
   get_status: looseDataSchema,
@@ -568,7 +566,7 @@ export const chatTurnActiveMessageOutSchema = z
   .passthrough();
 
 /**
- * Reply to a `reconnect_job` / `resume_job` command. Sent before any
+ * Reply to a `reconnect_job` command. Sent before any
  * replayed frames.
  *
  * `status` reports what the server holds for the job: `"running"` (the run

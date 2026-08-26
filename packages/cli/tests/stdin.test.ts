@@ -163,10 +163,6 @@ vi.mock("../src/websocket-client.js", () => ({
       yield { type: "job_update", status: "completed" };
       yield { type: "done" };
     }
-    async *resumeJob(_id: string): AsyncGenerator<{ type: string }> {
-      yield { type: "job_update", status: "completed" };
-      yield { type: "done" };
-    }
     cancelJob(id: string) {
       _mockCancelJobSpy(id);
     }
@@ -333,33 +329,6 @@ describe("runStdinMode — /reconnect command", () => {
 
   it("writes usage hint when job_id is missing", async () => {
     _nextLines = ["/reconnect"];
-    await runStdinMode({
-      provider: "openai",
-      model: "gpt-4o",
-      workspaceDir: "/tmp",
-      wsUrl: "ws://test"
-    });
-    expect(stderrLines.some((s) => s.includes("Usage:"))).toBe(true);
-  });
-});
-
-describe("runStdinMode — /resume command", () => {
-  beforeEach(captureIO);
-  afterEach(releaseIO);
-
-  it("writes resume message to stderr", async () => {
-    _nextLines = ["/resume job-r1"];
-    await runStdinMode({
-      provider: "openai",
-      model: "gpt-4o",
-      workspaceDir: "/tmp",
-      wsUrl: "ws://test"
-    });
-    expect(stderrLines.some((s) => s.includes("job-r1"))).toBe(true);
-  });
-
-  it("writes usage hint when job_id is missing", async () => {
-    _nextLines = ["/resume"];
     await runStdinMode({
       provider: "openai",
       model: "gpt-4o",

@@ -43,7 +43,6 @@ describe("useRunningJobs", () => {
       job_type: "workflow",
       workflow_id: "workflow-1",
       status: "running",
-      is_resumable: false,
     },
     {
       id: "job-2",
@@ -51,7 +50,6 @@ describe("useRunningJobs", () => {
       job_type: "workflow",
       workflow_id: "workflow-2",
       status: "queued",
-      is_resumable: false,
     },
     {
       id: "job-3",
@@ -59,7 +57,6 @@ describe("useRunningJobs", () => {
       job_type: "workflow",
       workflow_id: "workflow-3",
       status: "completed",
-      is_resumable: false,
     },
   ];
 
@@ -86,7 +83,7 @@ describe("useRunningJobs", () => {
 
   it("filters to only active jobs", async () => {
     const activeJobs = mockJobs.filter((j) =>
-      j.status && ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
+      j.status && ["running", "queued", "starting"].includes(j.status)
     );
     listQuery.mockResolvedValueOnce({ jobs: activeJobs, next_start_key: null });
 
@@ -105,7 +102,7 @@ describe("useRunningJobs", () => {
 
   it("returns all jobs when all are active", async () => {
     const allActiveJobs = mockJobs.filter((j) =>
-      ["running", "queued", "starting", "suspended", "paused"].includes(j.status ?? "")
+      ["running", "queued", "starting"].includes(j.status ?? "")
     );
     listQuery.mockResolvedValueOnce({
       jobs: allActiveJobs,
@@ -151,71 +148,9 @@ describe("useRunningJobs", () => {
     expect(result.current.error).toBeDefined();
   });
 
-  it("includes jobs with suspended status", async () => {
-    const activeJobs = mockJobs.filter((j) =>
-      j.status && ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
-    );
-    const jobsWithSuspended = [
-      ...activeJobs,
-      {
-        type: "job",
-        id: "job-4",
-        workflow_id: "workflow-4",
-        status: "suspended",
-        created_at: "2026-01-22T10:15:00Z",
-      },
-    ];
-    listQuery.mockResolvedValueOnce({
-      jobs: jobsWithSuspended,
-      next_start_key: null
-    });
-
-    const { result } = renderHook(() => useRunningJobs(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data).toHaveLength(3);
-    expect(result.current.data?.find((j) => j.id === "job-4")).toBeDefined();
-  });
-
-  it("includes jobs with paused status", async () => {
-    const activeJobs = mockJobs.filter((j) =>
-      j.status && ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
-    );
-    const jobsWithPaused = [
-      ...activeJobs,
-      {
-        type: "job",
-        id: "job-5",
-        workflow_id: "workflow-5",
-        status: "paused",
-        created_at: "2026-01-22T10:20:00Z",
-      },
-    ];
-    listQuery.mockResolvedValueOnce({
-      jobs: jobsWithPaused,
-      next_start_key: null
-    });
-
-    const { result } = renderHook(() => useRunningJobs(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data).toHaveLength(3);
-    expect(result.current.data?.find((j) => j.id === "job-5")).toBeDefined();
-  });
-
   it("includes jobs with starting status", async () => {
     const activeJobs = mockJobs.filter((j) =>
-      j.status && ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
+      j.status && ["running", "queued", "starting"].includes(j.status)
     );
     const jobsWithStarting = [
       ...activeJobs,
@@ -246,7 +181,7 @@ describe("useRunningJobs", () => {
 
   it("filters out failed jobs", async () => {
     const activeJobs = mockJobs.filter((j) =>
-      j.status && ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
+      j.status && ["running", "queued", "starting"].includes(j.status)
     );
     // The API should filter out failed jobs, so we only return active jobs
     listQuery.mockResolvedValueOnce({

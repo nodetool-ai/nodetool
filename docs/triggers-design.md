@@ -338,7 +338,7 @@ IMAP polling is `scope = 'cloud'` and is an ordinary polling workflow, not an ad
 | `Workflow.hasTriggerNodes()` and its tests | ~40 |
 | `trigger_inputs`, `run_inbox_messages`, `run_leases`, `workers` schemas and models | ~200 |
 
-`Wait` stays, with the `setTimeout` clamp fixed and a documented ceiling. `run_node_state` stays for Phase 2.
+`Wait` stays, with the `setTimeout` clamp fixed and a documented ceiling. `run_node_state` and `run_leases` were deleted on 2026-08-26 along with the whole suspend/resume path — see PRD §11.
 
 The kernel symbols are exported from `@nodetool-ai/kernel`, so they are deprecated in one release and deleted in the next.
 
@@ -348,7 +348,7 @@ Net: roughly 2800 lines removed, roughly 900 added.
 
 ## 13. Alternatives considered
 
-**Wire up the existing durable-execution substrate.** `run_inbox_messages`, `run_leases`, `run_node_state`, and `workers` describe a durable actor runtime with claim leases and per-node inbox persistence. It solves resume-from-mid-flight, which this design explicitly does not (PRD §N1). Rejected for now because it is a much larger surface, and because no shipped use case needs it: polling and webhooks retry from the top correctly, and approval flows split into two workflows. It stays in the schema for Phase 2.
+**Wire up the existing durable-execution substrate.** `run_inbox_messages`, `run_leases`, and `run_node_state` described a durable actor runtime with claim leases and per-node inbox persistence. It solves resume-from-mid-flight, which this design explicitly does not (PRD §N1). Rejected: polling and webhooks retry from the top correctly, and approval flows split into two workflows. `run_inbox_messages` was kept and is now the trigger delivery inbox; `run_leases` and `run_node_state` were deleted on 2026-08-26.
 
 **Keep trigger nodes, fix them.** Rejected. Every fix (cancellation, restart, port binding, persistence) is a step toward reimplementing a scheduler inside the runtime, and it leaves the graph impure and untestable by hand.
 
