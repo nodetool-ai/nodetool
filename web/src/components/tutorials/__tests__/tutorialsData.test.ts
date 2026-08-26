@@ -1,5 +1,12 @@
+import { existsSync } from "fs";
+import { join } from "path";
+
 import { TUTORIALS, getTutorial } from "../tutorialsData";
 import type { Tutorial } from "../tutorialsData";
+
+/** Where `/tutorials/<file>` resolves to on disk. */
+const publicPath = (webPath: string) =>
+  join(__dirname, "../../../../public", webPath);
 
 describe("tutorialsData", () => {
   describe("TUTORIALS", () => {
@@ -60,6 +67,13 @@ describe("tutorialsData", () => {
       for (const tutorial of TUTORIALS) {
         expect(tutorial.durationLabel).toMatch(/^\d+:\d{2}$/);
       }
+    });
+
+    it("every video and poster exists under web/public", () => {
+      const missing = TUTORIALS.flatMap((t) =>
+        [t.video, t.poster].filter((p) => !existsSync(publicPath(p)))
+      );
+      expect(missing).toEqual([]);
     });
   });
 

@@ -28,6 +28,108 @@ export interface Tutorial {
 
 export const TUTORIALS: Tutorial[] = [
   {
+    id: "sketch-assistant",
+    title: "Edit a sketch by asking",
+    tagline: "Sketch editor · the assistant paints the layer",
+    description:
+      "Say what you want changed and the assistant works the real layer tools: it adds the layer, sets the blend mode, and dials in opacity while you watch the panel update.",
+    level: "Beginner",
+    durationLabel: "0:21",
+    video: "/tutorials/sketch-assistant.mp4",
+    poster: "/tutorials/sketch-assistant.jpg",
+    accent: "#d946ef",
+    learn: [
+      "Asking for an edit against the layer stack you already have",
+      "Watching layers appear in the panel as the assistant works",
+      "Taking over by hand — every edit stays yours to change",
+    ],
+  },
+  {
+    id: "script-assistant",
+    title: "Write and voice a script",
+    tagline: "Script editor · cast, lines, takes",
+    description:
+      "From a blank page to voiced audio in one ask: the assistant casts the speakers, writes their lines, then synthesizes a take for each one.",
+    level: "Beginner",
+    durationLabel: "0:24",
+    video: "/tutorials/script-assistant.mp4",
+    poster: "/tutorials/script-assistant.jpg",
+    accent: "#0ea5e9",
+    learn: [
+      "Describing a script by length, voices, and tone",
+      "How speakers are cast before any line is written",
+      "Voicing lines into takes you can swap or re-record",
+    ],
+  },
+  {
+    id: "storyboard-assistant",
+    title: "Board a shot list",
+    tagline: "Storyboard · direction, then stills",
+    description:
+      "Describe the piece and the assistant writes the shots — camera and all — before spending a frame. Approve the board, then the stills render shot by shot.",
+    level: "Beginner",
+    durationLabel: "0:30",
+    video: "/tutorials/storyboard-assistant.mp4",
+    poster: "/tutorials/storyboard-assistant.jpg",
+    accent: "#ef4444",
+    learn: [
+      "Getting a shot list before any image is generated",
+      "Revising a shot while it is still free to change",
+      "Rendering stills across the board in one call",
+    ],
+  },
+  {
+    id: "app-assistant",
+    title: "Build a mini app",
+    tagline: "App builder · operation, setting, widgets",
+    description:
+      "Describe an app in a sentence — an input, a button, an answer — and the assistant binds the workflow as an operation and places each widget against something the app declares.",
+    level: "Beginner",
+    durationLabel: "0:25",
+    video: "/tutorials/app-assistant.mp4",
+    poster: "/tutorials/app-assistant.jpg",
+    accent: "#6366f1",
+    learn: [
+      "Turning a workflow into an app anyone can run",
+      "Saving a value as a setting that persists between sessions",
+      "Binding widgets to inputs, outputs, and variables",
+    ],
+  },
+  {
+    id: "jsscript-assistant",
+    title: "Write a JS script",
+    tagline: "JS scripts · ports, body, saved test",
+    description:
+      "Say what goes in and what should come out. The assistant declares the ports first, writes the body, and saves a test case that grades it in the sandbox.",
+    level: "Intermediate",
+    durationLabel: "0:25",
+    video: "/tutorials/jsscript-assistant.mp4",
+    poster: "/tutorials/jsscript-assistant.jpg",
+    accent: "#84cc16",
+    learn: [
+      "Declaring ports as the script's contract",
+      "Reading a body that runs sandboxed — no filesystem access",
+      "Keeping a saved case that catches the next breaking edit",
+    ],
+  },
+  {
+    id: "chat-agent-qa",
+    title: "Ask the chat agent",
+    tagline: "Global Chat · tool calls, streamed live",
+    description:
+      "A question goes straight to Global Chat: the agent calls a web-search tool in the open, then streams its answer back token by token.",
+    level: "Beginner",
+    durationLabel: "0:17",
+    video: "/tutorials/chat-agent-qa.mp4",
+    poster: "/tutorials/chat-agent-qa.jpg",
+    accent: "#06b6d4",
+    learn: [
+      "Sending a message from Global Chat",
+      "Watching a tool call run in the open",
+      "Reading a streamed answer as it arrives",
+    ],
+  },
+  {
     id: "first-workflow",
     title: "Build your first workflow",
     tagline: "Text → enhance → image, end to end",
@@ -144,23 +246,6 @@ export const TUTORIALS: Tutorial[] = [
       "Bringing an image into a graph",
       "Sending a picture to a vision model",
       "Reusing the streamed description downstream",
-    ],
-  },
-  {
-    id: "chat-agent-qa",
-    title: "Ask the chat agent",
-    tagline: "Global Chat · tool calls, streamed live",
-    description:
-      "A question goes straight to Global Chat: the agent calls a web-search tool in the open, then streams its answer back token by token.",
-    level: "Beginner",
-    durationLabel: "0:17",
-    video: "/tutorials/chat-agent-qa.mp4",
-    poster: "/tutorials/chat-agent-qa.jpg",
-    accent: "#06b6d4",
-    learn: [
-      "Sending a message from Global Chat",
-      "Watching a tool call run in the open",
-      "Reading a streamed answer as it arrives",
     ],
   },
   {
