@@ -213,7 +213,12 @@ describe("ScreenshotTool", () => {
   it("has correct name and schema", () => {
     expect(tool.name).toBe("take_screenshot");
     expect((tool.inputSchema as any).required).toContain("url");
-    expect((tool.inputSchema as any).required).toContain("output_file");
+    // `output_file` carries a default and the implementation applies it, so
+    // it is optional. Requiring it said the opposite of the default beside it.
+    expect((tool.inputSchema as any).required).not.toContain("output_file");
+    expect((tool.inputSchema as any).properties.output_file.default).toBe(
+      "screenshot.png"
+    );
   });
 
   it("returns error when url is missing", async () => {

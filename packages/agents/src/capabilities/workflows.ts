@@ -537,6 +537,16 @@ const debugWorkflow: CapabilityExport = {
       params: (params["params"] as Record<string, unknown>) ?? {},
       interactive: params["interactive"] === true
     });
+    // A run the service refused never started, so there is no report to nest.
+    // Nesting it under `run` put the failure where nothing looks: the caller
+    // reads a `{workflow_id, run}` record, and the sandbox dispatcher — which
+    // throws on a top-level `{error}` so a guest cannot compute with a
+    // failure — sees an ordinary object. A 404 came back as a value the guest
+    // logged as `Status: 404` and carried on from. `run_workflow` and
+    // `start_background_job` already return this at the top level.
+    if (outcome.kind !== "payload") {
+      return outcomeResult(outcome);
+    }
     const result = outcomeResult(outcome);
 
     // An escalated run has produced no report yet — the job is parked on the

@@ -120,6 +120,42 @@ describe("jobs capabilities against the database", () => {
     expect(tail.logs).toEqual([{ message: "two" }, { message: "three" }]);
   });
 
+  /**
+   * A listing reports which jobs exist; `get_job` reports what one produced.
+   * They were the same record, so `list_jobs` — which defaults to a hundred —
+   * carried every job's full outputs. One agent listing ran to 140 KB of beat
+   * sheets, was cut at the 25 KB tool-result cap mid-JSON, and had been called
+   * to read a `status` field.
+   */
+  it("lists jobs without the values they produced", async () => {
+    const job = (await Job.create({
+      user_id: USER,
+      workflow_id: "wf-outputs",
+      status: "completed",
+      params: {},
+      graph: { nodes: [], edges: [] }
+    })) as Job;
+    job.metadata_json = { outputs: { beat_sheet: "x".repeat(50_000) } };
+    await job.save();
+
+    const listed = (await asTool("list_jobs").process(ctx, {
+      workflow_id: "wf-outputs"
+    })) as { jobs: Array<Record<string, unknown>> };
+    const entry = listed.jobs.find((j) => j.id === job.id);
+    expect(entry).toBeDefined();
+    expect(entry).not.toHaveProperty("outputs");
+    // The names are there, so the agent knows a `get_job` is worth making.
+    expect(entry?.output_names).toEqual(["beat_sheet"]);
+    expect(JSON.stringify(listed).length).toBeLessThan(5_000);
+
+    const got = (await asTool("get_job").process(ctx, {
+      job_id: job.id
+    })) as Record<string, unknown>;
+    expect((got.outputs as Record<string, string>).beat_sheet).toHaveLength(
+      50_000
+    );
+  });
+
   it("cancels a running job, and says so when there was nothing to cancel", async () => {
     const job = (await Job.create({
       user_id: USER,

@@ -138,7 +138,10 @@ export const takeScreenshotSpec: CapabilitySpec = {
         default: "screenshot.png"
       }
     },
-    required: ["url", "output_file"]
+    // `output_file` carries a default and the implementation applies it, so
+    // requiring it said the opposite of what the schema next to it said —
+    // and told every model a screenshot needs a filename chosen for it.
+    required: ["url"]
   },
   category: "read",
   userMessage: (params) => {

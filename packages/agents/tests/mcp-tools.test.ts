@@ -762,6 +762,23 @@ describe("debug_workflow", () => {
     })) as Record<string, unknown>;
     expect(report.workflow).toBeUndefined();
   });
+
+  /**
+   * A refused run never started, so there is no report to nest it in. Nested
+   * under `run`, the failure was invisible to the sandbox dispatcher — which
+   * throws on a top-level `{error}` precisely so a guest cannot compute with
+   * one — and a 404 came back as a value an agent logged as `Status: 404` and
+   * carried on from. `run_workflow` has always answered at the top level.
+   */
+  it("reports a workflow it cannot find as an error, not as a report", async () => {
+    const tool = capTool("debug_workflow", { nodeRegistry: stubRegistry });
+    const result = (await tool.process(ctx, {
+      workflow_id: "wf-does-not-exist"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("not found");
+    expect(result.status).toBe(404);
+    expect(result.run).toBeUndefined();
+  });
 });
 
 describe("resolve_workflow_escalation", () => {
@@ -1751,7 +1768,7 @@ describe("getAllMcpTools", () => {
     expect(names).not.toContain("find_model");
   });
 
-  it("adds find_model + media tools when providers are supplied (with registry)", () => {
+  it("adds the model catalog tools when providers are supplied (with registry)", () => {
     const registry = {
       listMetadata: () => [],
       getMetadata: () => undefined
@@ -1762,29 +1779,31 @@ describe("getAllMcpTools", () => {
     }).map((t) => t.name);
     expect(names).toContain("find_model");
     expect(names).toContain("list_models");
-    expect(names).toContain("generate_image");
-    expect(names).toContain("edit_image");
-    expect(names).toContain("generate_video");
-    expect(names).toContain("animate_image");
-    expect(names).toContain("generate_speech");
-    expect(names).toContain("transcribe_audio");
-    expect(names).toContain("embed_text");
   });
 
-  it("adds find_model + media tools when providers supplied WITHOUT a registry (multi-task path)", () => {
+  it("adds them without a registry too (multi-task path)", () => {
     const names = getAllMcpTools({
       providers: { fake: {} as unknown as BaseProvider }
     }).map((t) => t.name);
     expect(names).toContain("find_model");
-    expect(names).toContain("generate_image");
-    expect(names).toContain("generate_speech");
-    expect(names).toContain("embed_text");
+    expect(names).toContain("list_models");
   });
 
-  it("omits the provider-backed tools when no providers are supplied", () => {
+  it("omits the model catalog tools when no providers are supplied", () => {
     const names = getAllMcpTools().map((t) => t.name);
     expect(names).not.toContain("find_model");
     expect(names).not.toContain("list_models");
+  });
+
+  // The media tools read nothing off the run — `runProviderPrediction` is on
+  // the context — so the provider map is not their dependency and never was.
+  // Adding them here meant a host that injected none (a Code node, a JS
+  // script) had no way to generate anything, while `critique_image` on the
+  // same belt could judge an image it could not make.
+  it("leaves the media tools to the built-in belt", () => {
+    const names = getAllMcpTools({
+      providers: { fake: {} as unknown as BaseProvider }
+    }).map((t) => t.name);
     expect(names).not.toContain("generate_image");
     expect(names).not.toContain("generate_speech");
   });

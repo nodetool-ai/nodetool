@@ -22,7 +22,10 @@ import {
   SERPAPI_TOOL_NAMES
 } from "../src/tools/external-capability-tools.js";
 import { runInSandbox } from "../src/js-sandbox.js";
-import { NODETOOL_API_PRELUDE_FULL } from "../src/codeact/nodetool-api.js";
+import {
+  NODETOOL_API_NAMESPACE_TOOLS,
+  NODETOOL_API_PRELUDE_FULL
+} from "../src/codeact/nodetool-api.js";
 import { TOOLS_PRELUDE } from "../src/codeact/tools-prelude.js";
 
 const PRELUDE = `${TOOLS_PRELUDE}\n${NODETOOL_API_PRELUDE_FULL}`;
@@ -59,6 +62,71 @@ describe("the sandbox toolbelt", () => {
   it("names every tool once", () => {
     const names = assembleSandboxToolbelt().map((tool) => tool.name);
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  /**
+   * The same failure one namespace over. `nodetool.media.generateImage` is in
+   * the object model and `Object.keys(nodetool.media)` lists it, but the tool
+   * behind it was added only beside `find_model`, which needs an injected
+   * provider map this belt has none of. So a Code node that had just spent
+   * four LLM calls writing twenty-five keyframe prompts got
+   * `tool "generate_image" is not in this toolbelt` twenty-five times.
+   *
+   * Nothing about generation needs the map: these go through
+   * `context.runProviderPrediction`, the same call `critique_image` and
+   * `render_storyboard_stills` — both already here — make.
+   */
+  it("can generate media, not only judge it", () => {
+    const names = new Set(assembleSandboxToolbelt().map((tool) => tool.name));
+    for (const name of [
+      "generate_image",
+      "edit_image",
+      "generate_video",
+      "animate_image",
+      "generate_speech",
+      "generate_music",
+      "transcribe_audio",
+      "embed_text"
+    ]) {
+      expect(names.has(name)).toBe(true);
+    }
+  });
+
+  /**
+   * The object model's own promise: a namespace it reports as live must be
+   * callable. `capabilities()` filters `NODETOOL_API_NAMESPACE_TOOLS` by the
+   * belt, so a name it returns is one `__need` will not throw on.
+   */
+  it("serves the whole media namespace the object model advertises", () => {
+    const names = new Set(assembleSandboxToolbelt().map((tool) => tool.name));
+    const advertised = NODETOOL_API_NAMESPACE_TOOLS["media"] ?? [];
+    const missing = advertised.filter((name) => !names.has(name));
+    // `yt_dlp` is dropped under the cloud profile; nothing else may be.
+    expect(missing.filter((name) => name !== "yt_dlp")).toEqual([]);
+  });
+
+  /**
+   * The failure as the guest met it: a Code node body calling the object
+   * model, over the belt a Code node really gets.
+   */
+  it("dispatches nodetool.media.generateImage instead of throwing", async () => {
+    const names = assembleSandboxToolbelt().map((tool) => tool.name);
+    const result = await run(
+      `const r = await nodetool.media.generateImage("a red fox in snow", {
+         provider: "fal_ai",
+         model_id: "fal-ai/flux/schnell"
+       });
+       return r.called;`,
+      names
+    );
+    expect(result.error).toBeUndefined();
+    expect(result.result).toBe("generate_image");
+  });
+
+  it("reports media as a live namespace", async () => {
+    const names = assembleSandboxToolbelt().map((tool) => tool.name);
+    const result = await run(`return nodetool.capabilities().media;`, names);
+    expect(result.result).toContain("generate_image");
   });
 });
 

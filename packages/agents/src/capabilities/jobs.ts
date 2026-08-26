@@ -13,7 +13,11 @@
  */
 
 import type { JsonSchema } from "@nodetool-ai/runtime";
-import { jobRecord, userIdOf } from "../tools/mcp-tool-support.js";
+import {
+  jobRecord,
+  jobSummaryRecord,
+  userIdOf
+} from "../tools/mcp-tool-support.js";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
 import {
   listJobsSpec,
@@ -45,7 +49,9 @@ const listJobs: CapabilityExport = {
       page.workflowId = workflowId;
     }
     const [jobs, next] = await Job.paginate(userIdOf(run.context), page);
-    return { jobs: jobs.map(jobRecord), next: next || null };
+    // Summaries, not full records: a listing reports which jobs exist and how
+    // they settled. `get_job` reads one job's outputs.
+    return { jobs: jobs.map(jobSummaryRecord), next: next || null };
   }
 };
 

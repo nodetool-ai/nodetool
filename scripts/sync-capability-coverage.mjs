@@ -42,6 +42,10 @@ const SUITE_EXTRAS = [
   "nodetool-api-workflows.test.ts",
   "mcp-tools.test.ts",
   "memory-tools.test.ts",
+  // Drives `take_screenshot`, `browser` and `http_request` by wire name and
+  // asserts their schemas. Outside the `capabilit*-` naming convention, so the
+  // pool missed the one suite that actually pins those contracts.
+  "browser-tools.test.ts",
   "sandbox-package-docs.test.ts",
   "sandbox-package-listing.test.ts",
   "code-capabilities.test.ts",

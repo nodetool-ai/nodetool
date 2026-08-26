@@ -205,10 +205,13 @@ describe("the gate", () => {
   it("prompts for a write capability reached through the import", async () => {
     const prompts: ApprovalRequest[] = [];
     const run = gatedRun("default", "deny", prompts);
+    // A well-formed call: the argument check refuses a call missing a
+    // required field before the gate runs, and asking a person to approve
+    // something that cannot run is the wrong order.
     const outcome = await action(
       run,
       `import { create_workflow } from "${WORKFLOWS}";\n` +
-        `return await create_workflow({ name: "x", objective: "y" });`
+        `return await create_workflow({ name: "x", graph: { nodes: [], edges: [] } });`
     );
     expect(prompts.map((p) => p.toolName)).toEqual(["create_workflow"]);
     expect(prompts[0].category).toBe("write");
@@ -216,6 +219,28 @@ describe("the gate", () => {
     // prelude surfaces as the action's error.
     expect(outcome.ok).toBe(false);
     expect(outcome.error).toContain("declined to run");
+  });
+
+  /**
+   * The argument check runs before the gate, so a call that cannot run never
+   * becomes a question for a person. The message names the call rather than
+   * the entity: `get_workflow({ id })` used to reach the implementation as
+   * `workflow_id: undefined` and answer "Workflow undefined was not found".
+   */
+  it("refuses a call missing a required argument without prompting", async () => {
+    const prompts: ApprovalRequest[] = [];
+    const run = gatedRun("default", "deny", prompts);
+    const outcome = await action(
+      run,
+      `import { create_workflow } from "${WORKFLOWS}";\n` +
+        `return await create_workflow({ name: "x", objective: "y" });`
+    );
+    expect(prompts).toEqual([]);
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toContain(
+      "create_workflow: missing required argument graph"
+    );
+    expect(outcome.error).toContain("Got: name, objective");
   });
 
   it("never prompts for a read capability, on either path", async () => {
