@@ -109,6 +109,14 @@ export function explicitTasks(n: ManifestNode): string[] | undefined {
  * Enum values declared for a manifest input field, by canonical API name.
  * Reads both the FAL/Replicate `inputFields` (`apiParamName ?? name` →
  * `enumValues`) and the Kie `fields` (`name` → `values`) conventions.
+ *
+ * Values are stringified rather than returned as read: the manifests are JSON
+ * and the declared `string[]` is a claim about them, not a guarantee. FAL's
+ * two LoRA trainers declare `resolution` as an enum of numbers (768/1024 and
+ * 512/1024), which reached `unifiedModel.resolutions` — `z.array(z.string())`
+ * — and failed output validation for the whole `models.imageByProvider`
+ * query. `videoConstraints` reads durations back with `Number()`, so a
+ * numeric enum still works there.
  */
 export function enumValuesFor(
   n: ManifestNode,
@@ -119,11 +127,11 @@ export function enumValuesFor(
     (f) => (f.apiParamName ?? f.name) === apiName
   );
   const fromInput = inputField?.enumValues;
-  if (fromInput && fromInput.length > 0) return fromInput;
+  if (fromInput && fromInput.length > 0) return fromInput.map(String);
   // Stryker disable next-line ArrayDeclaration: same rationale — a non-array node yields no matching field either way.
   const field = (n.fields ?? []).find((f) => f.name === apiName);
   const fromField = field?.values;
-  return fromField && fromField.length > 0 ? fromField : undefined;
+  return fromField && fromField.length > 0 ? fromField.map(String) : undefined;
 }
 
 /** Option constraints (duration/resolution/aspect) for a video endpoint. */
