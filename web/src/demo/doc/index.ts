@@ -17,4 +17,7 @@ export { scriptAssistantCast } from "./scriptAssistantCast";
 export { storyboardAssistantCast } from "./storyboardAssistantCast";
 export { jsScriptAssistantCast } from "./jsScriptAssistantCast";
 export { appAssistantCast } from "./appAssistantCast";
+export { sketchCorrectionCast } from "./sketchCorrectionCast";
+export { storyboardAskCast } from "./storyboardAskCast";
+export { jsScriptRepairCast } from "./jsScriptRepairCast";
 export { docCasts } from "./casts";

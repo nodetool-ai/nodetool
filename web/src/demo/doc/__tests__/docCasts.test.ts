@@ -23,8 +23,11 @@ import {
 import { disposeDocState, docStateAt, seedDocState } from "../docReplay";
 import { docCasts } from "../casts";
 import { jsScriptAssistantCast } from "../jsScriptAssistantCast";
+import { jsScriptRepairCast } from "../jsScriptRepairCast";
 import { scriptAssistantCast } from "../scriptAssistantCast";
 import { sketchAssistantCast } from "../sketchAssistantCast";
+import { sketchCorrectionCast } from "../sketchCorrectionCast";
+import { storyboardAskCast } from "../storyboardAskCast";
 import { storyboardAssistantCast } from "../storyboardAssistantCast";
 
 /** Every document type the app can open, per `stores/documentSync.ts`. */
@@ -41,10 +44,14 @@ const seeded = (cast: DocDemoCast, timeMs: number): void => {
 };
 
 describe("document casts — coverage", () => {
-  it("ships one cast per document type", () => {
-    expect(docCasts.map((c) => c.surface).sort()).toEqual(
-      [...EXPECTED_SURFACES].sort()
-    );
+  it("ships a cast for every document type", () => {
+    const covered = new Set(docCasts.map((c) => c.surface));
+    expect([...covered].sort()).toEqual([...EXPECTED_SURFACES].sort());
+  });
+
+  it("gives every cast a unique id", () => {
+    const ids = docCasts.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it.each(docCasts.map((c) => [c.id, c] as const))(
@@ -217,6 +224,64 @@ describe("document casts — the surfaces get their data", () => {
       .filter((b): b is string => Boolean(b));
     expect(bindings).toContain("var:topic");
     expect(bindings).toContain("op:write/out:headline");
+  });
+
+  it("sketch correction: the second ask amends the layer, it does not add one", () => {
+    const added = docStateAt(sketchCorrectionCast, 5000);
+    expect(added.document.layers).toHaveLength(2);
+    expect(added.document.layers[1].blendMode).toBe("normal");
+
+    const settled = docStateAt(sketchCorrectionCast, 8000);
+    expect(settled.document.layers[1].opacity).toBeCloseTo(0.85);
+    expect(settled.document.layers[1].blendMode).toBe("screen");
+
+    // The correction halves the strength of the layer already there — the
+    // stack stays at two, and nothing is regenerated.
+    const corrected = docStateAt(sketchCorrectionCast, 16000);
+    expect(corrected.document.layers).toHaveLength(2);
+    expect(corrected.document.layers[1].id).toBe("layer-warm-wash");
+    expect(corrected.document.layers[1].opacity).toBeCloseTo(0.4);
+  });
+
+  it("storyboard ask: nothing lands on the board until the question is answered", () => {
+    const id = storyboardAskCast.docId;
+
+    // The assistant has asked and is idle. An empty board is the point.
+    seeded(storyboardAskCast, 6000);
+    const waiting = useStoryboardStore.getState().boards[id];
+    expect(waiting.shots).toHaveLength(0);
+    expect(waiting.screenplay).toBeNull();
+    expect(waiting.aspectRatio).toBe("16:9");
+
+    // The answer picks the format, and the shots arrive planned — still no
+    // frame rendered.
+    seeded(storyboardAskCast, 15000);
+    const boarded = useStoryboardStore.getState().boards[id];
+    expect(boarded.shots).toHaveLength(3);
+    expect(boarded.aspectRatio).toBe("9:16");
+    expect(boarded.shots.every((s) => s.status === "planned")).toBe(true);
+    expect(boarded.shots.some((s) => s.keyframe)).toBe(false);
+  });
+
+  it("jsscript repair: the case is saved, fails, and the fix turns it green", () => {
+    const id = jsScriptRepairCast.docId;
+
+    seeded(jsScriptRepairCast, 2000);
+    const before = useJsScriptStore.getState().getScript(id)?.document;
+    expect(before?.tests).toHaveLength(1);
+    expect(before?.code).toContain("?? 0");
+
+    // The edge case is saved against the body that still breaks on it.
+    seeded(jsScriptRepairCast, 6000);
+    const red = useJsScriptStore.getState().getScript(id)?.document;
+    expect(red?.tests).toHaveLength(2);
+    expect(red?.code).toContain("?? 0");
+
+    seeded(jsScriptRepairCast, 16000);
+    const green = useJsScriptStore.getState().getScript(id)?.document;
+    expect(green?.code).toContain("Number.isFinite");
+    expect(green?.code).not.toContain("?? 0");
+    expect(green?.tests).toHaveLength(2);
   });
 
   it("disposeDocState drops the rows the replay wrote", () => {
