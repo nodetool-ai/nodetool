@@ -10,20 +10,20 @@ import { ArrowRight } from "lucide-react";
 
 const frictions = [
   {
-    where: "Juggling five browser tabs",
-    what: "One app for images, another for animation, a third for voiceovers, and a separate video editor to stitch them together.",
+    where: "Five browser tabs per shot",
+    what: "One app for images, another for animation, a third for voiceovers, and a separate editor to stitch it together.",
   },
   {
     where: "Export, import, repeat",
-    what: "Moving files between apps loses your settings, prompts, and original ideas along the way.",
+    what: "Every hop between apps drops your settings, your prompts, and the reasoning behind them.",
   },
   {
-    where: "Paying marked-up credit packs",
-    what: "Buying expensive proprietary credits locked to whatever tools that platform chooses for you.",
+    where: "Token markups on every take",
+    what: "Credit packs priced above what the models cost, spendable only on the models that platform picked.",
   },
   {
-    where: "Losing access when tools change",
-    what: "Subscriptions jump in price, features disappear, and your projects are trapped in someone else's system.",
+    where: "One flat file, no way back in",
+    what: "A finished render you cannot re-cut, in a project format that opens nowhere else.",
   },
 ];
 
@@ -45,13 +45,13 @@ export default function StatusQuoSection() {
                 id="status-quo-title"
                 className="text-2xl font-bold tracking-tight text-white md:text-3xl"
               >
-                Creating one project
+                One film
                 <br />
-                shouldn&apos;t require five separate apps.
+                shouldn&apos;t take five separate apps.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Work on a single visual board. Use your own AI accounts. Keep
-                the complete project file when you&apos;re done.
+                Direct it on one canvas. Run it on your own accounts. Keep the
+                editable project when you&apos;re done.
               </p>
               <a
                 href="#differences"

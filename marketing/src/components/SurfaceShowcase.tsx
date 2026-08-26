@@ -36,7 +36,7 @@ const SURFACES: Surface[] = [
     label: "Storyboard",
     icon: Clapperboard,
     headline: "Visual storyboards",
-    body: "Plan out scenes card by card. Generate low-cost draft images first to lock in the look before spending time and compute on full animation.",
+    body: "Board the film shot by shot. Generate cheap stills first to lock the look, then pay to animate only the shots you approved.",
     asset: "surface-storyboard",
     deepLink: "#storyboard",
   },
@@ -44,8 +44,8 @@ const SURFACES: Surface[] = [
     id: "script",
     label: "Script & voice",
     icon: FileText,
-    headline: "Script & voice studio",
-    body: "Write your script, assign unique AI voices to each character, and generate natural-sounding dialogue takes. Change the words and the take goes stale, so you see what still needs voicing.",
+    headline: "Scripting & casting",
+    body: "Draft the dialogue, cast a voice per character, and audition alternate line readings. Change the words and the take flags itself stale, so you see exactly what still needs voicing.",
     asset: "surface-script",
     deepLink: "#script-editor",
   },
@@ -53,8 +53,8 @@ const SURFACES: Surface[] = [
     id: "timeline",
     label: "Timeline",
     icon: Film,
-    headline: "Timeline video editor",
-    body: "Arrange, trim, and layer AI-generated video and audio clips across multiple tracks to render a finished video. An agent edits the same document when you ask it to tighten the opening.",
+    headline: "Multi-track timeline",
+    body: "Arrange, trim, and layer generated video and audio across multiple tracks, down to the frame and the stem. The agent edits the same document when you ask it to tighten the opening.",
     asset: "surface-timeline",
     deepLink: "#timeline-editor",
   },
@@ -141,13 +141,13 @@ export default function SurfaceShowcase() {
             id="surfaces-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Professional editing tools built right next to the AI
+            Professional post, right next to the models
           </h2>
           <p className="text-lg text-slate-300">
-            Edit and refine your work directly on the canvas without switching
-            software. A storyboard becomes a script, the script becomes takes,
-            the takes land on a timeline — and an agent works every one of them
-            through the tools you click.
+            Cut and refine on the same canvas you generate on, with no export
+            hops. A storyboard becomes a script, the script becomes takes, the
+            takes land on a multi-track timeline — and the agent works every one
+            of them through the tools you click.
           </p>
         </div>
 

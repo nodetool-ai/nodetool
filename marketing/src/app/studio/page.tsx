@@ -60,12 +60,12 @@ const proPoints = [
   },
   {
     icon: Shield,
-    title: "Your data never leaves the device",
-    body: "Workflows, files, prompts, and results stay on your disk. Nothing is reported back to us, and nothing leaves the machine unless you call a remote provider on purpose.",
+    title: "Your files never leave the device",
+    body: "Projects, footage, prompts, and takes stay on your disk. Nothing is reported back to us, and nothing leaves the machine unless you call a remote provider on purpose.",
   },
   {
     icon: Cpu,
-    title: "Run open models on your machine",
+    title: "Run open weights locally",
     body: "Ollama, MLX for Apple Silicon, llama.cpp, and Hugging Face all work with the same building blocks. Pick any open model and pay no usage fees.",
   },
   {
@@ -202,18 +202,18 @@ export default function StudioPage() {
                   id="studio-hero-title"
                   className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
                 >
-                  An agent-first studio that
+                  An agent-first studio
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300">
-                    runs on your machine.
+                    that runs on your hardware.
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  NodeTool Studio is the desktop app for people who want their
-                  models, data — and their agent — on their own machine. Tell
-                  the agent what you want and it builds and runs the workflow
-                  with free local models via Ollama and MLX, or with your own
-                  keys for a cloud provider whenever you need one.
+                  NodeTool Studio is the desktop app for creators who want
+                  their models, their files, and their agent on their own
+                  machine. Pitch a concept and the agent builds the piece on
+                  open weights running locally through Ollama and MLX, or on
+                  your own API keys when a cloud model is the right call.
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
                   <SmartDownloadButton

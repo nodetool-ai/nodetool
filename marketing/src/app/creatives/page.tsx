@@ -27,9 +27,9 @@ import UseCasesShowcase from "../../components/UseCasesShowcase";
 // Features for creative professionals
 const creativeFeatures = [
   {
-    title: "Visual Workflow Canvas",
+    title: "One canvas, pitch to final cut",
     description:
-      "Snap blocks together into complete creative workflows, so the whole process sits on one screen, from brief to final render.",
+      "Snap blocks together into a complete production, so the whole piece sits on one screen — brief, shots, sound, and the cut.",
     icon: Layers,
     image: "/screen_canvas.png",
     features: [
@@ -39,17 +39,17 @@ const creativeFeatures = [
     ],
   },
   {
-    title: "Image generation & editing",
+    title: "Key art and image editing",
     description:
-      "Run Flux, Qwen-Image, Nano-Banana, Z-Image, gpt-image, and the rest. Generate, mask, inpaint, outpaint, relight, and upscale, all on the canvas.",
+      "Route a shot through Flux, Qwen-Image, Nano-Banana, Z-Image, or gpt-image. Generate, mask, inpaint, outpaint, relight, and upscale on the same canvas.",
     icon: Wand2,
     image: "/disaster_girl.mp4",
     features: ["Masks, inpaint, outpaint", "Multi-model support", "Batch processing"],
   },
   {
-    title: "Video workflows",
+    title: "Model freedom for every shot",
     description:
-      "Put Seedance, Kling, Veo, Runway, and Sora next to your editing steps. Generate, transform, and join clips without exporting between tools.",
+      "Put Seedance, Kling, Veo, Runway, and Sora next to your editing steps. Generate, re-roll, and join clips without exporting between tools.",
     icon: Video,
     image: "/sora.mp4",
     features: [
@@ -59,9 +59,9 @@ const creativeFeatures = [
     ],
   },
   {
-    title: "Storyboard, script, and cut",
+    title: "Scripting, casting, and the cut",
     description:
-      "Turn a one-line brief into a shot list, approve the cheap stills before paying to render clips, voice the script line by line, and assemble the result in the timeline editor.",
+      "Turn a one-line pitch into a shot list, approve the cheap stills before paying to render clips, cast a voice per character, and assemble the takes on a multi-track timeline.",
     icon: Clapperboard,
     image: "/screen_storyboard.png",
     features: [
@@ -71,9 +71,9 @@ const creativeFeatures = [
     ],
   },
   {
-    title: "Audio on the same surface",
+    title: "Score and sound, same canvas",
     description:
-      "Write music with Suno, make voices with ElevenLabs, and turn speech into text with Whisper. Same canvas, no extra tabs.",
+      "Write music with Suno, cast voices with ElevenLabs, and transcribe with Whisper. Same canvas, no extra tabs, audio stems you can still edit.",
     icon: Music,
     image: "/suno.png",
     features: ["Stem separation", "Music generation", "Voice generation"],
@@ -135,26 +135,27 @@ export default function CreativesPage() {
                 <div className="relative inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-rose-500/30 bg-gradient-to-r from-rose-500/[0.08] via-amber-500/[0.05] to-cyan-500/[0.08] mb-10 shadow-[0_0_40px_-10px_rgba(244,63,94,0.35)]">
                   <Sparkles className="w-4 h-4 text-rose-400" />
                   <span className="text-sm font-medium text-white tracking-wide">
-                    The agent-first canvas for working creatives
+                    The agent-first studio for filmmakers and creators
                   </span>
                 </div>
 
                 <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.05] mb-10">
-                  <span className="text-white">Say it.</span>{" "}
+                  <span className="text-white">You direct the vision.</span>{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 to-cyan-400">
-                    Watch it made.
+                    The agent builds the film.
                   </span>
                   <br />
                   <span className="text-white/90 text-3xl md:text-5xl lg:text-6xl">
-                    Image, music &amp; video in one agent-first studio.
+                    Image, music &amp; video in one open studio.
                   </span>
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Every model. Your keys. Your agent. Describe the piece and the
-                  agent plans the shots, builds the workflow, and runs Seedance,
-                  Kling, Veo, Runway, Luma, Suno, and Flux in one open-source
-                  workspace — no marked-up credits, nothing locking you in.
+                  Pitch your concept and the agent drafts the script, boards
+                  every scene, generates the footage, and cuts a multi-track
+                  timeline you can still edit. Route your shots through
+                  Seedance, Kling, Veo, Runway, Luma, Suno, and Flux on your own
+                  keys — no token markups, no platform lock-in.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -170,7 +171,7 @@ export default function CreativesPage() {
                     className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-sm text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
                   >
                     <Play className="w-5 h-5" />
-                    See how it works
+                    Watch the agent work
                   </a>
                 </div>
 
@@ -241,12 +242,12 @@ export default function CreativesPage() {
                 Built-in video editor
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">
-                Generate AI video and audio straight onto the timeline.
+                A real timeline. Not a black box.
               </h2>
               <p className="text-lg text-slate-400 leading-relaxed">
-                Type a prompt at the playhead, pick a model, and the new clip drops onto
-                the track — video and audio on one multi-track timeline. Trim, split, and
-                arrange like any editor, then export a finished cut.
+                The agent hands you an editable multi-track project, not a flat
+                render. Prompt a model at the playhead and the clip drops onto
+                the track, then trim frames, layer stems, and export the cut.
               </p>
             </motion.div>
 
@@ -505,17 +506,16 @@ export default function CreativesPage() {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Why creatives{" "}
+                Why directors{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                   choose NodeTool
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                The agent does the assembling, and what it leaves behind is a
-                process you can open, tweak, and run again. The second
-                variation costs minutes, not another afternoon — and when a
-                step looks wrong, you change that step instead of starting
-                over.
+                The agent does the heavy lifting, and what it leaves behind is a
+                project you can open, re-cut, and run again. The second version
+                costs minutes, not another afternoon — and when a shot looks
+                wrong, you re-roll that shot instead of the reel.
               </p>
             </motion.div>
 
@@ -531,18 +531,18 @@ export default function CreativesPage() {
                   borderColor: "border-emerald-500/20",
                 },
                 {
-                  title: "No credits. No markup.",
+                  title: "No token markups",
                   description:
-                    "Studio is free and open source under AGPL-3.0. Bring your own keys and pay providers directly.",
+                    "Studio is free and open source under AGPL-3.0. Bring your own keys and pay providers their published prices.",
                   icon: Sparkles,
                   color: "text-amber-400",
                   bgColor: "bg-amber-500/10",
                   borderColor: "border-amber-500/20",
                 },
                 {
-                  title: "Every model on one canvas",
+                  title: "Model freedom",
                   description:
-                    "Seedance, Kling, Veo, Runway, Luma, Suno, ElevenLabs, Flux, Ideogram, and more. Switch the moment a better one arrives.",
+                    "Seedance, Kling, Veo, Runway, Luma, Suno, ElevenLabs, Flux, Ideogram, and open weights on your own hardware. Switch the moment a better one arrives.",
                   icon: Zap,
                   color: "text-amber-400",
                   bgColor: "bg-teal-500/10",
@@ -586,14 +586,15 @@ export default function CreativesPage() {
               viewport={{ once: true }}
             >
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Every model. Your keys. <br />
+                Ready to <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-400 to-cyan-400">
-                  Your canvas.
+                  call action?
                 </span>
               </h2>
               <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                Download NodeTool, connect the providers you already pay for,
-                and start your next piece on a canvas you actually own.
+                Download the open-source studio for macOS, Windows, and Linux.
+                Connect the providers you already pay for, and start your next
+                film on a canvas you own.
               </p>
               <a
                 href="https://github.com/nodetool-ai/nodetool/releases"

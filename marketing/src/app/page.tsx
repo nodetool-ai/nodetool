@@ -434,14 +434,13 @@ export default function Home() {
               id="closing-cta-title"
               className="text-3xl md:text-4xl font-bold tracking-tight text-white"
             >
-              Built out in the open.
+              Ready to call action?
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Describe what you want to create. Watch the agent build it. Keep
-              the whole project. NodeTool is free, open-source software built
-              alongside working artists, designers, and video editors —
-              download the desktop app, or try it in your browser with nothing
-              to install.
+              Download the open-source studio for macOS, Windows, and Linux.
+              Free, AGPL-3.0, and built alongside working filmmakers, designers,
+              and video editors. Or open it in your browser with nothing to
+              install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

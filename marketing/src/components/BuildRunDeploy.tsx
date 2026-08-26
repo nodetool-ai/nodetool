@@ -45,30 +45,30 @@ export default function BuildRunDeploy() {
       <div className="scroll-fade grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card
           step="01"
-          title="Start with an idea"
+          title="Pitch"
           icon={<Workflow className="h-6 w-6" />}
           accent="blue"
-          description="Describe your goal — a product video, a movie trailer, a social campaign. That's all it takes to begin. Prefer to wire it yourself? It's the same canvas."
+          description="Tell the agent your concept, style, and tone. It drafts the script, casts the voices, and sets the visual direction. Prefer to wire it yourself? It's the same canvas."
         >
           <BuildVisual />
         </Card>
 
         <Card
           step="02"
-          title="Watch it build in real time"
+          title="Automate"
           icon={<PlayCircle className="h-6 w-6" />}
           accent="fuchsia"
-          description="The agent selects the right tools, connects the steps on your board, and runs them from start to finish — generation, editing, and assembly chained into a finished piece, on your own accounts at provider prices."
+          description="The agent storyboards scenes, generates the footage, syncs the audio, and cuts it all together on a multi-track timeline — running on your own accounts at provider prices."
         >
           <RunVisual />
         </Card>
 
         <Card
           step="03"
-          title="Take full control"
+          title="Direct"
           icon={<Wand2 className="h-6 w-6" />}
           accent="amber"
-          description="Click into any step to swap a tool, change an image, or adjust a prompt. Everything remains editable, and the workflow is yours to save and reuse."
+          description="Jump in at any moment. Swap a voice take, re-roll a clip, or trim frames. The agent builds the foundation; you refine the final cut."
         >
           <EditVisual />
         </Card>

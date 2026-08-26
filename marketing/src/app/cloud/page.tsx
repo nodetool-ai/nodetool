@@ -56,7 +56,7 @@ const proPoints = [
   {
     icon: Zap,
     title: "Start in 30 seconds",
-    body: "Sign in and describe what you want to make. Start from the agent, an existing workflow, or a blank canvas — no installer, no drivers, nothing beyond a browser tab.",
+    body: "Sign in and pitch the piece. Start from the agent, an existing workflow, or a blank canvas — no installer, no drivers, nothing beyond a browser tab.",
   },
   {
     icon: Globe,
@@ -71,7 +71,7 @@ const proPoints = [
   {
     icon: KeyRound,
     title: "Bring your own keys",
-    body: "OpenAI, Anthropic, Gemini, Mistral, Groq, Replicate, FAL, ElevenLabs, and HuggingFace all bill your account directly, not ours.",
+    body: "OpenAI, Anthropic, Gemini, Mistral, Groq, Replicate, FAL, ElevenLabs, and HuggingFace all bill your account directly, not ours. No token markups.",
   },
   {
     icon: RefreshCcw,
@@ -212,18 +212,18 @@ export default function CloudPage() {
                   id="cloud-hero-title"
                   className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
                 >
-                  The agent-first workspace
+                  The agent-first studio
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
                     in your browser.
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  NodeTool Cloud is the hosted version of the same open-source,
-                  agent-first app. There is nothing to install and no hardware
-                  to set up: sign in, say what you want, and the agent builds
-                  the workflow and runs it. Bring your own API keys for
-                  whichever providers you want to use.
+                  NodeTool Cloud is the hosted version of the same open-source
+                  studio. Nothing to install, no hardware to set up: sign in,
+                  pitch your idea, and the agent builds the film on a canvas
+                  you can still edit. Bring your own API keys for whichever
+                  providers you want to use.
                 </p>
                 <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm text-amber-100/90 max-w-xl">
                   <strong className="text-amber-200">Heads up:</strong> Cloud is

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 const TITLE = "NodeTool Studio — The Agent-First Desktop App";
 const DESCRIPTION =
-  "NodeTool Studio is the open-source, agent-first desktop app: every editor is exposed to agents as tools, and the agent runs on your own hardware. Tell it what you want and it builds and runs workflows with Ollama, MLX, and GGUF models locally — offline, data on disk. macOS, Windows, Linux. AGPL-3.0.";
+  "NodeTool Studio is the open-source, agent-first desktop app: every editor is exposed to agents as tools, and the agent runs on your own hardware. Pitch a concept and it drafts the script, boards the scenes, generates the footage, and cuts a multi-track timeline you can still edit — on Ollama, MLX, and GGUF models running locally, offline, files on disk. macOS, Windows, Linux. AGPL-3.0.";
 
 export const metadata: Metadata = {
   title: TITLE,

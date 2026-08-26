@@ -23,12 +23,12 @@ export default function AgentBuildRunDeploy() {
             <div className="relative mx-auto max-w-6xl w-full z-10">
                 <div className="mb-12 text-center max-w-2xl mx-auto">
                     <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-4 tracking-tight">
-                        Say it. Watch it build. Keep it.
+                        Pitch. Automate. Direct.
                     </h2>
                     <p className="text-slate-400 text-lg">
-                        The agent works with the same tools you click. It builds the actual
-                        workflow on your canvas, runs it in front of you, and leaves behind
-                        something you can rerun — not a chat transcript.
+                        The agent works with the same tools you click. It lays the
+                        workflow out on your canvas, runs it in front of you, and leaves
+                        an editable project behind — not a chat transcript.
                     </p>
                 </div>
 

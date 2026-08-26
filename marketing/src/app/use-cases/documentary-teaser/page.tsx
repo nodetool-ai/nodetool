@@ -181,11 +181,11 @@ export default function DocumentaryTeaserUseCase() {
                 Documentary Teaser Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
-                Describe the film in a sentence and the storyboard comes back
+                Pitch the film in a sentence and the storyboard comes back
                 readable: a card per shot, a still on every card. Approve the
-                stills, animate those, and the clips land on a timeline you cut
-                and export. The board below is one run — a deep-sea series
-                teaser, surface to abyss in six shots.
+                stills, animate those, and the clips land on a multi-track
+                timeline you cut and export. The board below is one run — a
+                deep-sea series teaser, surface to abyss in six shots.
               </p>
             </motion.div>
 
@@ -391,11 +391,11 @@ export default function DocumentaryTeaserUseCase() {
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Make it yours
+                Direct it yourself
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                Nothing here is locked. Change the look, change the model,
-                change one shot — the rest of the board stays where you left it.
+                Nothing here is locked. Re-roll a clip, swap a model, or trim
+                one shot — the rest of the board stays where you left it.
               </p>
             </div>
 
@@ -436,8 +436,8 @@ export default function DocumentaryTeaserUseCase() {
                   <p className="mt-4 text-slate-400 leading-relaxed">
                     The board needs one model per job, and each is a dropdown.
                     They are called with your own keys — the bill comes from the
-                    provider, not from us, and you can switch any of them for a
-                    better model the day it ships.
+                    provider, not from us, with no token markups, and you can
+                    switch any of them for a better model the day it ships.
                   </p>
                   <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300">
                     <Check className="h-4 w-4" />
@@ -485,8 +485,8 @@ export default function DocumentaryTeaserUseCase() {
               Board your first dive
             </h2>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-              Free, open source, and yours to run. Download Studio, open the
-              storyboard, and board a teaser from one line today.
+              Download the open-source studio for macOS, Windows, and Linux,
+              open the storyboard, and board a teaser from one line today.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

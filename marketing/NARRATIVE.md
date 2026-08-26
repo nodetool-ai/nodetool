@@ -8,15 +8,16 @@ same change.
 
 ## Positioning line
 
-**From prompt to final cut on one canvas.**
+**You direct the vision. The agent builds the film.**
 
-The hero claim is not the feature list and not the category label. It is the
-outcome: one workspace carries the piece from the first prompt to the finished
-cut, with no export hops between tools. The previous line — *"Describe the
-piece. Keep the workflow."* — survives as claim 1 below: a closed tool
-generates behind glass and hands you a file; NodeTool's agent generates *and*
-hands you the graph that made it — a normal, inspectable file you can open,
-rewire, and run again.
+The hero claim is not the feature list and not the category label. It names who
+does what: the agent handles the tedious stretch between a blank page and a
+rough cut — script, board, footage, sound, cut — and the creator stays the
+director throughout. The earlier lines — *"From prompt to final cut on one
+canvas"* and *"Describe the piece. Keep the workflow."* — survive as claims 1
+and 2 below: a closed tool generates behind glass and hands you a file;
+NodeTool's agent generates *and* hands you the multi-track project that made
+it, a normal, editable file you can open, re-cut, and run again.
 
 "The agent-first creative workspace" stays as the category descriptor in
 `<title>`, meta descriptions, and schema. It is accurate and it is what people
@@ -27,22 +28,25 @@ search for. It is not the H1: it names a category instead of a benefit.
 Everything below the hero earns its place by advancing one of three claims, in
 this order of importance:
 
-1. **The agent builds something you own.** Not chat that tells you what to do,
-   and not a black box that returns a render. Show the graph appearing, the node
-   being edited, the run resuming from the middle.
-2. **One canvas, generation through finish.** Image, video, audio, text, plus
-   the editors — storyboard, timeline, sketch, script — so a piece never leaves
-   the workspace to be finished.
-3. **Independence.** Your keys, your files, your models, AGPL-3.0, local option.
-   Stated as fact, never as a pitch.
+1. **Agentic automation, and what it leaves behind.** Not chat that tells you
+   what to do, and not a black box that returns a render. The agent does the
+   heavy lifting and hands back a multi-track project you can still edit. Show
+   the graph appearing, the node being edited, the run resuming from the middle.
+2. **One canvas, pitch through final cut.** Image, video, audio, text, plus the
+   editors — storyboard, timeline, sketch, script — so a piece never leaves the
+   workspace to be finished.
+3. **Creative sovereignty.** Your keys, your files, your models, AGPL-3.0, local
+   option. No token markups, no locked project formats. Stated as fact, never as
+   a pitch.
 
 Provider lists, node counts, tool counts, and architecture belong under those
 claims, not next to them.
 
 ## Order of the page
 
-Hero → the status quo (the pain, once, briefly) → the demo → use cases with real
-output → the three claims above → proof → comparisons → download.
+Hero → the status quo (the pain, once, briefly) → the demo → the three steps
+(Pitch / Automate / Direct) → use cases with real output → the three claims
+above → proof → comparisons → download.
 
 The pain section comes before any feature because the features only mean
 something against it. Comparisons come late: a reader who is convinced does not
@@ -50,9 +54,9 @@ need them, and a reader who is not will scroll to them.
 
 ## Audience
 
-The front door speaks to **creatives and small teams** — filmmakers, designers,
-marketers, content studios — who want production output without becoming ML
-engineers or paying a credit tax.
+The front door speaks to **filmmakers, directors, and creators** — plus the
+small teams around them: designers, marketers, content studios — who want
+production output without becoming ML engineers or paying a token tax.
 
 Technical depth is the back door, not the doorway: `/developers`, `/agents`, the
 CLI and SDK pages. Keeping it off the homepage is what stops the site reading as
@@ -84,11 +88,16 @@ better than a manufactured superlative.
 
 Beyond [docs/WRITING_STYLE.md](../docs/WRITING_STYLE.md), which applies here too:
 
-- "Workspace" or "studio", not "workflow builder" — the latter undersells the
+- "Studio" or "canvas", not "workflow builder" — the latter undersells the
   editors and puts us in the n8n bracket.
+- "Agent", not "the AI" or "the algorithm". "Pitch" or "direct", not "prompt
+  engineering". "Takes" and "cast", not "generations" and "outputs".
+- "Multi-track timeline", not "output" or "render" — the result is a workspace,
+  not a locked file.
+- "Filmmakers", "directors", "creators" — never "users" or "content creators".
 - "Every major model, your keys" instead of a fourteen-name provider list. Name
   providers where a reader is checking for a specific one (pricing, model pages).
 - Concrete over categorical: "a Seedance run that costs $0.18 on KIE costs $0.18
   here" beats "no markup".
-- No "seamless", "powerful", "unlock", "empower". If a sentence survives its own
-  deletion, delete it.
+- No "magic", "revolutionary", "seamless", "powerful", "unlock", "empower". If a
+  sentence survives its own deletion, delete it.

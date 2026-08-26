@@ -174,10 +174,11 @@ export default function MovieTrailerUseCase() {
                 Movie Trailer Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
-                Write one line about your film. It comes back as a storyboard
-                you can read: a card per shot, a still on every card. Approve
-                the ones you like, animate those, and the clips land on a
-                timeline you cut and export. It works the way a shoot does.
+                Pitch your film in one line. It comes back as a storyboard you
+                can read: a card per shot, a still on every card. Approve the
+                shots you like, animate those, and the clips land on a
+                multi-track timeline you cut and export. It works the way a
+                shoot does.
               </p>
             </motion.div>
 
@@ -431,11 +432,11 @@ export default function MovieTrailerUseCase() {
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Make it yours
+                Direct it yourself
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                Nothing here is locked. Change the look, change the model,
-                change one shot — the rest of the board stays where you left it.
+                Nothing here is locked. Re-roll a clip, swap a model, or trim
+                one shot — the rest of the board stays where you left it.
               </p>
             </div>
 
@@ -475,8 +476,8 @@ export default function MovieTrailerUseCase() {
                   </h2>
                   <p className="mt-4 text-slate-400 leading-relaxed">
                     Called with your own keys. The bill comes from the provider,
-                    not from us, and you can switch any of them for a better
-                    model the day it ships.
+                    not from us — no token markups — and you can switch any of
+                    them for a better model the day it ships.
                   </p>
                   <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300">
                     <Check className="h-4 w-4" />
@@ -521,8 +522,8 @@ export default function MovieTrailerUseCase() {
               Cut your first trailer
             </h2>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-              Free, open source, and yours to run. Download Studio, open the
-              storyboard, and board a teaser from one line today.
+              Download the open-source studio for macOS, Windows, and Linux,
+              open the storyboard, and board a teaser from one line today.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

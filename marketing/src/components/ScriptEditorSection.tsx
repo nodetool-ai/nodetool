@@ -67,7 +67,7 @@ export default function ScriptEditorSection() {
               transition={{ duration: 0.25 }}
               className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
             >
-              Write the script, <span className="text-white">then voice it</span>
+              Scripting <span className="text-white">&amp; casting</span>
             </motion.h2>
 
             <motion.p
@@ -77,11 +77,11 @@ export default function ScriptEditorSection() {
               transition={{ duration: 0.25, delay: 0.05 }}
               className="text-lg text-slate-300 leading-relaxed"
             >
-              A script is its own document, not a byproduct of a timeline. The
-              words are the source of truth and the audio is derived from them:
-              draft the lines, cast a voice per speaker, voice the script, and
-              send the takes to a timeline as clips that carry word-level
-              captions.
+              Go from prompt to screenplay in seconds. Draft the dialogue,
+              cast a voice per character, and audition alternate line readings
+              with automatic word-level sync. The script is its own document —
+              the words are the source of truth, and the takes are derived from
+              them.
             </motion.p>
           </div>
 

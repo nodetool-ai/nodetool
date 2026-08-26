@@ -98,8 +98,8 @@ export default function PricingPage() {
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
             NodeTool Studio is free and open source. NodeTool Cloud is a
             subscription that covers hosting. In both, you bring your own API keys
-            and pay each provider their list price. There are no credits, no
-            markup, and no restricted list of models.
+            and pay each provider their list price. No credit packs, no token
+            markups, and no curated list of models you are stuck with.
           </p>
         </section>
 

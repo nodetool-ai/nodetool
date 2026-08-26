@@ -5,10 +5,10 @@ import { motion } from "framer-motion";
 import Tilt3D from "./Tilt3D";
 import {
   Workflow,
-  Database,
   Layers,
   MousePointer2,
-  Activity,
+  Mic,
+  Film,
 } from "lucide-react";
 
 interface FeaturesSectionProps {
@@ -46,9 +46,9 @@ export default function FeaturesSection({
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            One canvas <br />
+            One canvas. <br />
             <span className="text-white">
-              for the whole craft
+              The whole production.
             </span>
           </motion.h2>
 
@@ -59,9 +59,9 @@ export default function FeaturesSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Image, video, audio, and text on a single visual canvas, with the
-            editing tools you already rely on sitting right next to the models.
-            You direct the whole piece instead of generating parts of it.
+            Script, storyboard, footage, sound, and the cut — on one canvas,
+            with the editing tools sitting right next to the models. You direct
+            the whole piece instead of generating parts of it.
           </motion.p>
         </div>
 
@@ -112,37 +112,37 @@ export default function FeaturesSection({
         >
           {[
             {
-              title: "Edit where you generate",
+              title: "Scripting & casting",
               description:
-                "Mask, retouch, extend, relight, upscale, layer, and composite. The editing tools you reach for live on the same canvas as the models.",
-              icon: MousePointer2,
+                "Go from prompt to screenplay in seconds. Draft dialogue, cast character voices, and audition alternate line readings with automatic word-level sync.",
+              icon: Mic,
               color: "text-blue-400",
               bg: "bg-blue-500/10",
               border: "border-blue-500/20",
             },
             {
-              title: "Watch every step render",
+              title: "Any model, local or cloud",
               description:
-                "Results appear as each step finishes. Inspect any frame, swap a model, and re-run from that point on.",
-              icon: Activity,
+                "Route your shots through Flux, Seedance, Wan, Whisper, ElevenLabs, Suno, and the rest — or run open weights locally on your own hardware. No platform lock-in.",
+              icon: Layers,
               color: "text-purple-400",
               bg: "bg-purple-500/10",
               border: "border-purple-500/20",
             },
             {
-              title: "Your keys, provider prices",
+              title: "A real timeline, not a black box",
               description:
-                "Bring your own keys for FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and the rest. The bill comes from the provider, not from us.",
-              icon: Database,
+                "Instead of a single unfixable video file, the agent hands you a fully editable multi-track project. Fine-tune every frame, layer, and audio stem.",
+              icon: Film,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",
               border: "border-emerald-500/20",
             },
             {
-              title: "Image, video, audio, text",
+              title: "Edit where you generate",
               description:
-                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, and Suno, all on one canvas under their real names. You always know which model you are running.",
-              icon: Layers,
+                "Mask, retouch, extend, relight, upscale, layer, and composite. The tools you reach for live on the same canvas as the models.",
+              icon: MousePointer2,
               color: "text-orange-400",
               bg: "bg-orange-500/10",
               border: "border-orange-500/20",

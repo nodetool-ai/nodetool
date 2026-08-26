@@ -35,22 +35,23 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-5 text-balance text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2.25rem,3.6vw,3.25rem)]"
           >
-            <span className="block">Describe it.</span>
+            <span className="block">You direct the vision.</span>
             <span className="block bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text pb-[0.12em] text-transparent">
-              An agent makes the film.
+              The agent builds the film.
             </span>
           </h1>
 
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-300">
-            It writes the script, boards the shots, generates the footage, and
-            cuts the timeline — on an open{" "}
+            Describe your idea. The agent writes the script, boards every
+            scene, generates the footage, and cuts the timeline — end-to-end
+            production on an open{" "}
             <a
               href="/node-based-ai"
               className="text-slate-200 underline decoration-slate-500/50 underline-offset-2 transition-colors hover:text-white hover:decoration-slate-300"
             >
               node-based canvas
-            </a>{" "}
-            that stays yours.
+            </a>
+            , with complete creative control.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -75,11 +76,11 @@ export default function NodeToolHero() {
             </li>
             <li className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-emerald-400" />
-              Your own provider accounts, no credits
+              Your own API keys, no token markups
             </li>
             <li className="flex items-center gap-1.5">
               <Code2 className="h-3.5 w-3.5 text-blue-400" />
-              Open source, yours to keep
+              Open source, you own the files
             </li>
           </ul>
         </div>
