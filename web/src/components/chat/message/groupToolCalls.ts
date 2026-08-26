@@ -7,8 +7,8 @@
  */
 
 import type { Message, ToolCall } from "../../../stores/ApiTypes";
-import { formatToolName } from "../../../utils/formatUtils";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
+import { toolCallCountLabel, toolCallDetail } from "./toolCallPhrase";
 
 /** Tools that never collapse — each call is a distinct unit of work. */
 const UNGROUPABLE_TOOL_NAMES = new Set([
@@ -21,17 +21,6 @@ const UNGROUPABLE_TOOL_NAMES = new Set([
 
 /** Minimum consecutive same-name calls before a run becomes a group. */
 const TOOL_CALL_GROUP_THRESHOLD = 2;
-
-const DISTINCTIVE_ARG_KEYS = [
-  "query",
-  "url",
-  "uri",
-  "path",
-  "file",
-  "filename",
-  "target",
-  "q"
-] as const;
 
 const PREVIEW_LIMIT = 3;
 
@@ -86,17 +75,7 @@ export function toolCallGroupHeadline(name: string, calls: readonly ToolCall[]):
   if (shared) {
     return messages[0];
   }
-  return groupCountLabel(name, calls.length);
-}
-
-export function groupCountLabel(name: string, count: number): string {
-  if (name === "web_search") {
-    return count === 1 ? "1 web search" : `${count} web searches`;
-  }
-  if (name === "browser") {
-    return count === 1 ? "Fetching 1 page" : `Fetching ${count} pages`;
-  }
-  return `${count}× ${formatToolName(name)}`;
+  return toolCallCountLabel(name, calls.length);
 }
 
 /**
@@ -111,7 +90,7 @@ export function toolCallGroupPreview(
   const values: string[] = [];
   const seen = new Set<string>();
   for (const call of calls) {
-    const value = distinctiveArgValue(call);
+    const value = toolCallDetail(call, "short");
     if (!value || seen.has(value)) {
       continue;
     }
@@ -129,37 +108,6 @@ export function toolCallGroupPreview(
   const extra = values.length - shown.length;
   const joined = shown.join(" · ");
   return extra > 0 ? `${joined} +${extra}` : joined;
-}
-
-function distinctiveArgValue(call: ToolCall): string | null {
-  const args = call.args;
-  if (!isObjectLike(args)) {
-    return null;
-  }
-  for (const key of DISTINCTIVE_ARG_KEYS) {
-    const raw = args[key];
-    if (!isString(raw)) {
-      continue;
-    }
-    const trimmed = raw.trim();
-    if (trimmed.length === 0) {
-      continue;
-    }
-    return compactArgValue(key, trimmed);
-  }
-  return null;
-}
-
-function compactArgValue(key: string, value: string): string {
-  if (key !== "url" && key !== "uri") {
-    return value;
-  }
-  try {
-    const url = new URL(value);
-    return url.hostname.replace(/^www\./, "");
-  } catch {
-    return value;
-  }
 }
 
 function messageHasVisibleContent(message: Message): boolean {

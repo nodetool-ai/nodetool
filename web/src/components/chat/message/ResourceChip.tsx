@@ -24,19 +24,26 @@ import { parseResourceUri, type ResourceKind, type ResourceUri } from "@nodetool
 import { BORDER_RADIUS, Chip, SPACING, TYPOGRAPHY, getSpacingPx } from "../../ui_primitives";
 import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 import { canOpenResource, openResource } from "../../../lib/chat/openResource";
-import type { ToolAccent } from "./toolCallIcon";
 
 interface ResourceChipProps {
   uri: string;
   label: string;
 }
 
+/** Accent keys resolve to theme palette colors on the chip. */
+type ChipAccent =
+  | "info"
+  | "warning"
+  | "success"
+  | "primary"
+  | "secondary"
+  | "neutral";
+
 interface KindVisual {
   Icon: SvgIconComponent;
-  accent: ToolAccent;
+  accent: ChipAccent;
 }
 
-/** Kinds share the accent vocabulary of `getToolVisual` so chat reads as one surface. */
 const KIND_VISUALS = {
   asset: { Icon: ImageOutlinedIcon, accent: "secondary" },
   workflow: { Icon: AccountTreeOutlinedIcon, accent: "primary" },
@@ -52,7 +59,7 @@ const KIND_VISUALS = {
 
 type ChipColor = "default" | "primary" | "secondary" | "success" | "warning" | "error" | "info";
 
-const chipColor = (accent: ToolAccent): ChipColor =>
+const chipColor = (accent: ChipAccent): ChipColor =>
   accent === "neutral" ? "default" : accent;
 
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"];

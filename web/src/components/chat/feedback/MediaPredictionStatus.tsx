@@ -74,7 +74,7 @@ export const MediaPredictionInline: React.FC<MediaPredictionRowProps> = memo(
           component="span"
           size="small"
           color="secondary"
-          className="tool-message"
+          className="media-prediction-label"
           truncate
         >
           <ShimmerText>
