@@ -42,20 +42,17 @@ export interface DirtyRect {
  * evaluated. Carries working-space and dynamic-range metadata so downstream
  * consumers (compositing, export, thumbnails) can make informed decisions.
  *
- * **Phase 3C contract:**
  * - `workingSpace` declares the color space of the surface pixels.
- *   `"srgb"` means standard gamma-encoded sRGB (current default for all paths).
- *   `"linear-srgb"` means linear-light sRGB — required for physically correct
- *   blending, tonemapping, and bloom.
+ *   `"srgb"` means standard gamma-encoded sRGB.
+ *   `"linear-srgb"` means linear-light sRGB.
  * - `dynamicRange` declares whether pixel values may exceed [0, 1].
  *   `"sdr"` means values are clamped to 8-bit [0, 255] per channel.
  *   `"hdr"` means the surface may contain values outside [0, 1] (e.g. via
- *   `rgba16float` textures) that require tonemapping before display.
+ *   `rgba16float` textures).
  *
- * **Current state:** All paths return `{ workingSpace: "srgb", dynamicRange: "sdr" }`.
- * The metadata exists so future shader-backed effects (curves, tonemap, bloom)
- * can declare when they produce linear-light or HDR intermediates without
- * changing the interface.
+ * Every path returns `{ workingSpace: "srgb", dynamicRange: "sdr" }` — the
+ * effect stack is CSS-filter based and stays in gamma-encoded SDR sRGB. The
+ * `"linear-srgb"` and `"hdr"` variants have no producer today.
  */
 export type WorkingSpace = "srgb" | "linear-srgb";
 export type DynamicRange = "sdr" | "hdr";
@@ -318,15 +315,10 @@ export interface SketchRuntime {
    * all output paths (main canvas, thumbnails, flatten/export, solo preview)
    * must call it. Bypassing it is a bug.
    *
-   * **Current implementation (Phase 3C — temporary SDR plumbing):**
-   * Simple SDR adjustments (brightness/contrast, hue/saturation, exposure) are
-   * evaluated via CSS `ctx.filter` on a Canvas2D scratch surface. This is
-   * adequate for SDR editing but does **not** define the long-term semantics
-   * for curves, true exposure, tonemapping, or bloom — those require
-   * shader-backed evaluation with explicit working-space handling.
-   *
-   * Advanced effects (`curves`, `tonemap`, `bloom`) throw in development to
-   * prevent silent correctness degradation.
+   * Every effect (brightness/contrast, hue/saturation, exposure) is evaluated
+   * via CSS `ctx.filter` on a Canvas2D scratch surface, so the result stays in
+   * SDR sRGB. The WebGPU runtime delegates here rather than evaluating on the
+   * GPU.
    */
   evaluateLayerEffects(
     layerId: string,

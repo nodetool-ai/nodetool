@@ -14,7 +14,7 @@ Last updated: 2026-05-09.
 
 The AI Image Editor is a **generation-aware, layer-based** image editing surface for NodeTool — a Photoshop-class editor where every layer can be (a) imported, (b) hand-painted, or (c) backed by an embedded NodeTool workflow that generates and re-generates that layer's pixels on demand. Generated layers remember how they were made and can be inspected, tweaked, regenerated, versioned, and round-tripped to the Node Editor without leaving the image.
 
-The editor surface itself already exists on the `sketch-editor-rc` branch: WebGPU-composited layers, 12 blend modes, 15 tools (brush, pencil, eraser, fill, gradient, shapes, transform, crop, blur, clone-stamp, eyedropper, text, select, move, segment), pressure-sensitive painting, layer effects (brightness/contrast, hue/saturation, exposure, curves, tonemap, bloom), SAM segmentation, undo/redo, and a serialized document format. Today that editor lives only as a modal inside the `SketchNode` / `ImageEditorNode` workflow node.
+The editor surface itself already exists on the `sketch-editor-rc` branch: WebGPU-composited layers, 12 blend modes, 15 tools (brush, pencil, eraser, fill, gradient, shapes, transform, crop, blur, clone-stamp, eyedropper, text, select, move, segment), pressure-sensitive painting, layer effects (brightness/contrast, hue/saturation, exposure), SAM segmentation, undo/redo, and a serialized document format. Today that editor lives only as a modal inside the `SketchNode` / `ImageEditorNode` workflow node.
 
 This PRD does two things:
 
@@ -83,7 +83,7 @@ The sketch-editor-rc branch already implements the entire painting/compositing/l
 | Painting tools (brush, pencil, eraser, blur, clone, fill, gradient, shapes, text, eyedropper, segment, select, move, transform, crop) | `web/src/components/sketch/tools/*` and `painting/*` | — |
 | Layers panel, layer groups, alpha lock, blend mode, opacity, visibility | `web/src/components/sketch/SketchLayersPanel.tsx`, `editor-shell/ConnectedLayersPanel.tsx`, `state/slices/documentSlice.ts` | — |
 | Selection (rect, ellipse, lasso, magic wand) and finalization | `web/src/components/sketch/selection/*`, `state/slices/selectionSlice.ts` | — |
-| Layer effects (brightness/contrast, hue/sat, exposure, curves, tonemap, bloom) | existing non-destructive effect chain on `Layer.effects` | — |
+| Layer effects (brightness/contrast, hue/sat, exposure) | existing non-destructive effect chain on `Layer.effects` | — |
 | Pressure / stabilization / symmetry | `painting/StabilizerBuffer.ts`, symmetry modes in `toolSlice` | — |
 | SAM segmentation (FAL + local backends) | `web/src/components/sketch/sam/*` | — |
 | Undo/redo (max 30 snapshots) | `state/slices/historySlice.ts` | — |
@@ -449,7 +449,7 @@ Goal: render the layer stack at the viewport's zoom and pan, at interactive fram
 
 - Per-layer texture upload with dirty-rect tracking.
 - All 12 blend modes.
-- The full layer-effects pipeline (brightness/contrast, hue/saturation, exposure, curves, tonemap, bloom).
+- The layer-effects pipeline (brightness/contrast, hue/saturation, exposure).
 - WebGPU device-loss fallback to Canvas2D.
 - GPU mask compositing for selection ants and committed selections (added on the branch in May 2026).
 

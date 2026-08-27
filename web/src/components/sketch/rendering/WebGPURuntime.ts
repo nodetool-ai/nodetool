@@ -1827,9 +1827,7 @@ export class WebGPURuntime implements SketchRuntime {
     source: HTMLCanvasElement,
     effects: import("../types").LayerEffect[] | null
   ): ResolvedLayerBitmap {
-    // Delegate to the CPU runtime; WebGPU-accelerated effects will be added later.
-    // When GPU-backed effects are implemented, this method will evaluate them
-    // directly on the GPU and may return linear-srgb or HDR results.
+    // The effect stack is CSS-filter based, so it runs on the CPU runtime.
     return this.cpuRuntime.evaluateLayerEffects(layerId, source, effects);
   }
 

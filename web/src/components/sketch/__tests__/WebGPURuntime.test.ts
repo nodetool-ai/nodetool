@@ -10,6 +10,7 @@
 
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
 import { isWebGPUAvailable, createRuntime } from "../rendering/initWebGPU";
+import type { LayerEffect } from "../types";
 
 describe("WebGPU initialization", () => {
   describe("isWebGPUAvailable", () => {
@@ -115,14 +116,18 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
     expect(result.surface.width).toBe(64);
   });
 
-  it("throws for unsupported effect types in development", () => {
-    // curves/tonemap/bloom are not yet implemented — they must fail loudly
-    // in dev mode so unsupported effects never silently no-op.
-    expect(() => {
-      runtime.evaluateLayerEffects("layer1", sourceCanvas, [
-        { type: "curves", enabled: true, params: { rgb: [] } }
-      ]);
-    }).toThrow(/not yet implemented/);
+  it("ignores an effect type outside the union", () => {
+    // A document saved by an older build can carry an effect type this build no
+    // longer knows, so the cast is the case under test rather than a type hole.
+    const retired = {
+      type: "tonemap",
+      enabled: true,
+      params: { operator: "aces" }
+    } as unknown as LayerEffect;
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      retired
+    ]);
+    expect(result.surface).toBe(sourceCanvas);
   });
 
   it("chains multiple enabled effects", () => {
