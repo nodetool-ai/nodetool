@@ -16,6 +16,35 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "meta/muse-image/text-to-image": {
+      className: "MuseImageTextToImage",
+      docstring:
+        "Meta Muse Image generates images from text, reasoning about the request before rendering to compose scenes with strong prompt adherence.",
+      tags: ["generation", "text-to-image", "txt2img", "meta", "muse"],
+      useCases: [
+        "Generate photorealistic images from prompts",
+        "Create editorial and marketing visuals",
+        "Produce illustrations with fine detail",
+        "Generate multiple variations from one prompt",
+        "Render images at a chosen aspect ratio"
+      ],
+      fieldOverrides: {
+        prompt: {
+          description: "The text prompt used to generate the image"
+        },
+        num_images: {
+          description: "The number of images to generate"
+        },
+        aspect_ratio: {
+          description:
+            "The output aspect ratio. If omitted, Muse chooses the dimensions automatically"
+        },
+        output_format: {
+          description: "The format of the generated image"
+        }
+      }
+    },
+
     "fal-ai/flux-2": {
       className: "Flux2",
       docstring:
