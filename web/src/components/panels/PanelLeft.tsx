@@ -17,6 +17,7 @@ import {
   Tooltip,
   Z_INDEX,
   getSpacingPx,
+  reducedMotion,
   thinScrollbarStyles
 } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
@@ -103,7 +104,9 @@ const isWorkflowEditOnlyView = (view: string): view is LeftPanelView =>
 const styles = (
   theme: Theme,
   hasHeader: boolean = true,
-  isMobile: boolean = false
+  isMobile: boolean = false,
+  drawerVisible: boolean = true,
+  isDragging: boolean = false
 ) => {
   const headerHeight = hasHeader
     ? isMobile
@@ -126,7 +129,7 @@ const styles = (
     pointerEvents: "none",
 
     ".drawer-content": {
-      pointerEvents: "auto",
+      pointerEvents: drawerVisible ? "auto" : "none",
       marginTop: getSpacingPx(10), // 40px
       height: "calc(100% - 40px)",
       backgroundColor: theme.vars.palette.background.default,
@@ -134,7 +137,14 @@ const styles = (
       boxShadow: "4px 0 8px rgba(0, 0, 0, 0.05)",
       overflow: "hidden",
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      transform: drawerVisible ? "translateX(0)" : "translateX(-100%)",
+      opacity: drawerVisible ? 1 : 0,
+      transition: isDragging
+        ? "none"
+        : `transform ${MOTION.slow}, opacity ${MOTION.slow}`,
+      ...reducedMotion({ transition: MOTION.none }),
+      willChange: "transform, opacity"
     },
 
     ".panel-resize-handle": {
@@ -961,12 +971,6 @@ const PanelLeft: React.FC = () => {
     (location.pathname.startsWith("/workspace") &&
       activeTabType === "workflow" &&
       activeTabMode === "edit");
-  const hasHeader = !isStandaloneMode;
-  const panelLeftStyles = useMemo(
-    () => styles(theme, hasHeader, false),
-    [theme, hasHeader]
-  );
-
   const {
     ref: panelRef,
     size: panelSize,
@@ -975,6 +979,12 @@ const PanelLeft: React.FC = () => {
     handleMouseDown,
     handlePanelToggle
   } = useResizePanel("left");
+
+  const hasHeader = !isStandaloneMode;
+  const panelLeftStyles = useMemo(
+    () => styles(theme, hasHeader, false, isVisible, isDragging),
+    [theme, hasHeader, isVisible, isDragging]
+  );
 
   const {
     activeView: rawActiveView,
@@ -1066,57 +1076,56 @@ const PanelLeft: React.FC = () => {
           hiddenViews={hiddenViews}
         />
 
-        {isVisible && (
+        <div
+          ref={panelRef}
+          className={`drawer-content ${isDragging ? "dragging" : ""}`}
+          role="region"
+          aria-label="Left panel"
+          aria-hidden={!isVisible}
+          style={{
+            width: `${Math.max(
+              panelSize - TOOLBAR_WIDTH,
+              LEFT_PANEL_MIN_DRAWER_WIDTH
+            )}px`,
+            minWidth: `${LEFT_PANEL_MIN_DRAWER_WIDTH}px`
+          }}
+          onKeyDown={(e) => {
+            if (
+              e.key === "Escape" &&
+              (displayActiveView === "nodes" ||
+                displayActiveView === "workflows" ||
+                displayActiveView === "chats" ||
+                displayActiveView === "sketches" ||
+                displayActiveView === "timelines" ||
+                displayActiveView === "storyboards" ||
+                displayActiveView === "entities" ||
+                displayActiveView === "scripts" ||
+                displayActiveView === "jsscripts")
+            ) {
+              e.stopPropagation();
+              setVisibility(false);
+            }
+          }}
+        >
           <div
-            ref={panelRef}
-            className={`drawer-content ${isDragging ? "dragging" : ""}`}
-            role="region"
-            aria-label="Left panel"
-            style={{
-              width: `${Math.max(
-                panelSize - TOOLBAR_WIDTH,
-                LEFT_PANEL_MIN_DRAWER_WIDTH
-              )}px`,
-              minWidth: `${LEFT_PANEL_MIN_DRAWER_WIDTH}px`
-            }}
-            onKeyDown={(e) => {
-              if (
-                e.key === "Escape" &&
-                (displayActiveView === "nodes" ||
-                  displayActiveView === "workflows" ||
-                  displayActiveView === "chats" ||
-                  displayActiveView === "sketches" ||
-                  displayActiveView === "timelines" ||
-                  displayActiveView === "storyboards" ||
-                  displayActiveView === "entities" ||
-                  displayActiveView === "scripts" ||
-                  displayActiveView === "jsscripts")
-              ) {
-                e.stopPropagation();
-                setVisibility(false);
-              }
-            }}
-          >
-            <div
-              className="panel-resize-handle"
-              onMouseDown={handleMouseDown}
-              role="slider"
-              aria-label="Resize panel"
-              aria-valuenow={panelSize}
-              aria-valuemin={60}
-              aria-valuemax={800}
-              tabIndex={-1}
+            className="panel-resize-handle"
+            onMouseDown={handleMouseDown}
+            role="slider"
+            aria-label="Resize panel"
+            aria-valuenow={panelSize}
+            aria-valuemin={60}
+            aria-valuemax={800}
+            tabIndex={-1}
+          />
+          <div className="panel-inner-content">
+            <PanelContent
+              activeView={displayActiveView}
+              activeNodeCategory={activeNodeCategory}
+              setActiveNodeCategory={setActiveNodeCategory}
+              handlePanelToggle={handlePanelToggle}
             />
-            <div className="panel-inner-content">
-              <PanelContent
-                activeView={displayActiveView}
-                activeNodeCategory={activeNodeCategory}
-                setActiveNodeCategory={setActiveNodeCategory}
-                handlePanelToggle={handlePanelToggle}
-              />
-            </div>
           </div>
-        )}
+        </div>
       </ContextMenuProvider>
     </div>
   );

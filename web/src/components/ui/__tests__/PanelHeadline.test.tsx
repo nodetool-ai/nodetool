@@ -141,9 +141,12 @@ describe("PanelHeadline", () => {
       expect(
         await screen.findByText("Open, create, and manage workflows.")
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole("link", { name: "Workflows documentation" })
-      ).toHaveTextContent("OPEN DOCUMENTATION");
+      const link = screen.getByRole("link", {
+        name: "Workflows documentation"
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).not.toHaveTextContent("OPEN DOCUMENTATION");
+      expect(link.querySelector("svg")).toBeInTheDocument();
     });
   });
 

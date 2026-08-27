@@ -52,10 +52,10 @@ const styles = (theme: Theme, isMobile: boolean) =>
     ".nl-header": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
+      gap: theme.spacing(SPACING.md),
       padding: isMobile
-        ? theme.spacing(SPACING.micro, SPACING.xs, SPACING.xs, SPACING.xs)
-        : theme.spacing(SPACING.sm, SPACING.lg, SPACING.xs, SPACING.lg)
+        ? theme.spacing(SPACING.none, SPACING.xs, SPACING.none, SPACING.xs)
+        : theme.spacing(SPACING.none, SPACING.lg, SPACING.none, SPACING.lg)
     },
     ".nl-count": {
       display: "inline-flex",
@@ -72,14 +72,14 @@ const styles = (theme: Theme, isMobile: boolean) =>
     ".nl-search": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
+      gap: theme.spacing(SPACING.xs),
       margin: theme.spacing(
         SPACING.none,
         isMobile ? SPACING.xs : SPACING.lg,
         SPACING.xs,
         isMobile ? SPACING.xs : SPACING.lg
       ),
-      padding: theme.spacing(1, 1),
+      padding: theme.spacing(SPACING.xs, SPACING.xs),
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -194,9 +194,9 @@ const styles = (theme: Theme, isMobile: boolean) =>
       position: "relative",
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
+      gap: theme.spacing(SPACING.xs),
       width: "100%",
-      padding: theme.spacing(1, 1, 1, 1),
+      padding: theme.spacing(SPACING.xs),
       border: "none",
       background: "transparent",
       borderRadius: BORDER_RADIUS.md,
@@ -283,7 +283,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
     ".nl-footer-hint": {
       display: "inline-flex",
       alignItems: "center",
-      gap: theme.spacing(1)
+      gap: theme.spacing(SPACING.xs)
     }
   });
 

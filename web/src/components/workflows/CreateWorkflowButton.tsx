@@ -1,39 +1,11 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import { useCallback, memo } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { Tooltip, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton } from "../ui_primitives";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
-const styles = (theme: Theme) =>
-  css({
-    width: "26px",
-    height: "26px",
-    minWidth: "26px",
-    padding: 0,
-    borderRadius: BORDER_RADIUS.xs,
-    border: "none",
-    backgroundColor: theme.vars.palette.primary.main,
-    transition: MOTION.all,
-    "& svg": {
-      fontSize: "var(--fontSizeSmall)",
-      color: theme.vars.palette.primary.contrastText
-    },
-    "&:hover": {
-      backgroundColor: theme.vars.palette.primary.dark
-    },
-    "&:focus-visible": {
-      outline: `2px solid ${theme.vars.palette.primary.main}`,
-      outlineOffset: "2px"
-    }
-  });
-
 const CreateWorkflowButton = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
@@ -45,13 +17,12 @@ const CreateWorkflowButton = () => {
   }, [navigate, createNewWorkflow, queryClient]);
 
   return (
-    <Tooltip title="Create new workflow" placement="left">
+    <Tooltip title="New workflow" placement="right-start">
       <ToolbarIconButton
+        ariaLabel="New workflow"
+        onClick={() => void handleCreate()}
+        tabIndex={-1}
         icon={<AddIcon />}
-        ariaLabel="Create new workflow"
-        onClick={handleCreate}
-        css={styles(theme)}
-        nodrag={false}
       />
     </Tooltip>
   );

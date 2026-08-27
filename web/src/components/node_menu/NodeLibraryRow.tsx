@@ -17,10 +17,10 @@ const rowStyles = (theme: Theme) =>
     "&.nl-row": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
+      gap: theme.spacing(SPACING.xs),
       width: "100%",
       height: "100%",
-      padding: theme.spacing(0.5, 1),
+      padding: theme.spacing(SPACING.xs),
       borderRadius: BORDER_RADIUS.md,
       cursor: "grab",
       userSelect: "none",

@@ -8,8 +8,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconButton, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { docsLink, type DocsTopic } from "../../config/docsLinks";
-import { MOTION, TYPOGRAPHY, reducedMotion } from "./tokens";
-import { SPACING, getSpacingPx } from "./spacing";
+import { MOTION, reducedMotion } from "./tokens";
 
 export interface DocsHelpLinkProps {
   /** Documentation page this surface maps to. */
@@ -38,21 +37,18 @@ const labelStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: getSpacingPx(SPACING.micro),
-    color: theme.vars.palette.text.secondary,
-    ...TYPOGRAPHY.sans.label,
-    letterSpacing: "0.04em",
+    justifyContent: "center",
+    color: theme.vars.palette.text.disabled,
     lineHeight: 1,
     textDecoration: "none",
     whiteSpace: "nowrap",
     transition: `color ${MOTION.normal}`,
     ...reducedMotion({ transition: MOTION.none }),
     "&:hover": {
-      color: theme.vars.palette.primary.main,
-      textDecoration: "underline"
+      color: theme.vars.palette.primary.main
     },
     "& .docs-help-link-icon": {
-      fontSize: "1em"
+      fontSize: "var(--fontSizeSmall)"
     }
   });
 
@@ -86,7 +82,6 @@ const DocsHelpLinkInternal: React.FC<DocsHelpLinkProps> = ({
         className={`docs-help-link nodrag${className ? ` ${className}` : ""}`}
         css={labelStyles(theme)}
       >
-        <span>OPEN DOCUMENTATION</span>
         <OpenInNewIcon className="docs-help-link-icon" aria-hidden="true" />
       </a>
     ) : (

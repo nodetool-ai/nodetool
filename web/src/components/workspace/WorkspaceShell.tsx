@@ -14,6 +14,7 @@ import {
   TOOLBAR_WIDTH,
   LEFT_PANEL_MIN_DRAWER_WIDTH
 } from "../../config/constants";
+import { MOTION, reducedMotion } from "../ui_primitives";
 import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import WorkspaceEmptyView from "./WorkspaceEmptyView";
@@ -28,7 +29,7 @@ const Alert = React.lazy(() => import("../node_editor/Alert"));
 // area must sit above it. (PanelBottom's own HEADER_HEIGHT — kept in sync here.)
 const BOTTOM_STRIP_HEIGHT = 32;
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, isDragging: boolean) =>
   css({
     display: "flex",
     flexDirection: "column",
@@ -65,6 +66,8 @@ const styles = (theme: Theme) =>
       minWidth: 0,
       marginLeft: `${TOOLBAR_WIDTH}px`,
       marginBottom: `${BOTTOM_STRIP_HEIGHT}px`,
+      transition: isDragging ? "none" : `margin-left ${MOTION.slow}`,
+      ...reducedMotion({ transition: MOTION.none }),
       // On mobile the left rail is a floating hamburger and the bottom panel
       // is hidden, so neither gutter exists.
       [theme.breakpoints.down("sm")]: {
@@ -89,7 +92,12 @@ const styles = (theme: Theme) =>
  */
 const WorkspaceShell = () => {
   const theme = useTheme();
-  const shellStyles = useMemo(() => styles(theme), [theme]);
+  const panelVisible = usePanelStore((state) => state.panel.isVisible);
+  const isDragging = usePanelStore((state) => state.panel.isDragging);
+  const shellStyles = useMemo(
+    () => styles(theme, !!isDragging),
+    [theme, isDragging]
+  );
   const tabs = useWorkspaceTabsStore((state) => state.tabs);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
@@ -97,7 +105,6 @@ const WorkspaceShell = () => {
     (state) => state.setCurrentWorkflowId
   );
   const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
-  const panelVisible = usePanelStore((state) => state.panel.isVisible);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Cmd+W ("Close Tab") closes the active tab for every surface, not just the
@@ -110,15 +117,15 @@ const WorkspaceShell = () => {
   );
 
   // The left rail (PanelLeft) is position:fixed, so its open drawer normally
-  // floats over the content. For the timeline that covers the start of the
-  // tracks and makes dropping assets onto them hard, so when a timeline tab is
-  // active we reserve the drawer's width and let the content sit beside it.
-  // Other surfaces (node editor, etc.) keep the overlay so the canvas stays
-  // full-bleed. The width here mirrors PanelLeft's drawer sizing.
+  // floats over the content. The node canvas keeps the overlay so it stays
+  // full-bleed; every other surface reserves the drawer's width and sits
+  // beside it so the panel does not cover the content.
   // On mobile PanelLeft renders as a floating hamburger + bottom sheet, so
   // there is no rail to clear — the content runs full-bleed.
   const needsDrawerGutter =
-    !isMobile && activeTab?.type === "timeline" && panelVisible;
+    !isMobile &&
+    panelVisible &&
+    !(activeTab?.type === "workflow" && activeTab.mode === "edit");
   // Read the size only in that case: subscribing unconditionally re-rendered
   // the shell on every pointer frame of a left-panel drag.
   const drawerWidth = usePanelStore((state) =>

@@ -41,11 +41,13 @@ describe("DocsHelpLink", () => {
       />
     );
 
-    expect(
-      screen.getByRole("link", {
-        name: "Workflows documentation"
-      })
-    ).toHaveTextContent("OPEN DOCUMENTATION");
+    const link = screen.getByRole("link", {
+      name: "Workflows documentation"
+    });
+    expect(link).toBeInTheDocument();
+    expect(link).not.toHaveTextContent("OPEN DOCUMENTATION");
+    // label variant now shows just the external-link icon
+    expect(link.querySelector("svg")).toBeInTheDocument();
   });
 
   it("keeps the documentation link in the keyboard tab order", async () => {
