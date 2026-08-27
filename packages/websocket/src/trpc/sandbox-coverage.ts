@@ -1001,6 +1001,20 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "sandbox has its own workspace API, contained to the run's " +
       "directory, which is the point of it."
   },
+  "workspace.readFile": {
+    withheld:
+      "A workspace names an absolute path on the host filesystem, so " +
+      "reading a file out of one is host-path read. The sandbox has its " +
+      "own workspace API, contained to the run's directory, which is the " +
+      "point of it."
+  },
+  "workspace.writeFile": {
+    withheld:
+      "A workspace names an absolute path on the host filesystem, so " +
+      "writing a file into one is host-path write. The sandbox has its " +
+      "own workspace API, contained to the run's directory, which is the " +
+      "point of it."
+  },
   "workspace.update": {
     withheld:
       "A workspace names an absolute path on the host filesystem, so " +
