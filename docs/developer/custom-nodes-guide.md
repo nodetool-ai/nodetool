@@ -4,7 +4,7 @@ title: "Custom Nodes Guide (TypeScript)"
 description: "How to author, package, register, and distribute custom NodeTool nodes in a TypeScript pack."
 ---
 
-This is the full guide to writing **TypeScript** custom nodes for NodeTool — the in-process counterpart to the Python node guides ([Node Examples](node-examples.md), [Node Patterns](node-patterns.md), [Node Reference](node-reference.md)).
+This is the full guide to writing **TypeScript** custom nodes for NodeTool. [Node Patterns](node-patterns.md) and [Node Reference](node-reference.md) cover the same TypeScript API in less depth; [Node Examples](node-examples.md) covers the Python nodes reached through the Python bridge.
 
 A custom node lives in a standalone npm package — a **pack** — that the server discovers and loads at startup. There is nothing to register by hand: drop a `nodetool` field in `package.json`, install the package, and the loader does the rest.
 
@@ -749,7 +749,7 @@ import { ReverseTextNode } from "./nodes/reverse";      // bad
 - [Node Packs](../node-packs.md) — user-facing intro to packs.
 - [Package Registry Guide](../packages.md) — first-party package conventions.
 - [Node Implementation Examples (Python)](node-examples.md) — annotated Python node examples.
-- [Node Patterns (Python)](node-patterns.md) — design patterns shared across languages.
-- [Node Reference (Python)](node-reference.md) — exhaustive Python API reference.
+- [Node Patterns](node-patterns.md) — TypeScript design patterns: multi-output, streaming, stateful, media refs, secrets.
+- [Node Reference](node-reference.md) — TypeScript `@prop` / `process()` / `genProcess()` templates.
 - [TypeScript DSL Guide](ts-dsl-guide.md) — use your nodes in code-defined workflows.
-- [Suspendable Nodes](suspendable-nodes.md) — long-running and resumable patterns.
+- [Suspendable Nodes](suspendable-nodes.md) — why there is no pause/resume node API.

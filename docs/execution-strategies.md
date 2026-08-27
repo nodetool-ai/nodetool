@@ -63,12 +63,10 @@ message counters for the UI (throttled `edge_update` events), propagates EOS
 
 ### Job outcomes
 
-`run()` returns a `RunResult` with status `completed`, `failed`, `cancelled`, or
-`suspended`. Precedence at finalization is **cancel > suspend > failed >
-completed**: a node throwing `WorkflowSuspendedError` yields a `suspend`
-payload (human-in-the-loop pause), a node error fails the whole job, and
-`cancel()` aborts the run-level `AbortController` and closes every inbox to
-unblock waiting actors.
+`run()` returns a `RunResult` with status `completed`, `failed`, or `cancelled`.
+Precedence at finalization is **cancel > failed > completed**: a node error
+fails the whole job, and `cancel()` aborts the run-level `AbortController` and
+closes every inbox to unblock waiting actors.
 
 ### The four actor modes
 
