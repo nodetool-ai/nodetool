@@ -152,6 +152,24 @@ function parseContent(msg: Message): NormalizedMessage {
   return { content, eventType };
 }
 
+/** A `step_result` error rendered as text, whatever shape it arrived in. */
+function errorText(error: unknown): string | undefined {
+  if (error == null) return undefined;
+  if (isString(error)) return error;
+  if (error instanceof Error) return error.message;
+  return JSON.stringify(error);
+}
+
+/** The one-line `name: value` summary shown on a step's tree row. */
+function summarizeToolArgs(args: Record<string, unknown>): string {
+  return Object.entries(args)
+    .map(([k, v]) => {
+      const val = isString(v) ? v : JSON.stringify(v);
+      return `${k}: ${val.slice(0, 40)}`;
+    })
+    .join(", ");
+}
+
 export function buildExecutionTreeState(
   messages: Message[],
   toolCallsByStep?: Record<string, StepToolCall[]>
@@ -165,7 +183,6 @@ export function buildExecutionTreeState(
   };
 
   const taskMap = new Map<string, TaskState>();
-  const activeSteps = new Map<string, string>(); // taskId -> stepId
   // `tool_call_update` and `step_result` carry a step id and no task id, so
   // without this they scan every step of every task, once per event.
   const stepIndex = new Map<string, { task: TaskState; index: number }>();
@@ -179,36 +196,47 @@ export function buildExecutionTreeState(
     if (msg.role !== "agent_execution") continue;
     const { content, eventType } = normalizeContent(msg);
 
-    if (eventType === "planning_update") {
-      const pu = content as PlanningUpdate;
-      state.phase = "planning";
-      if (pu.content) state.planningContent = pu.content;
-      state.planningLog.push({
-        phase: pu.phase ?? "",
-        status: pu.status ?? "",
-        content: pu.content ?? ""
-      });
-      if (pu.status === "Failed" && pu.phase === "complete") state.phase = "done";
-      continue;
-    }
+    switch (eventType) {
+      case "planning_update": {
+        const pu = content as PlanningUpdate;
+        state.phase = "planning";
+        if (pu.content) state.planningContent = pu.content;
+        state.planningLog.push({
+          phase: pu.phase ?? "",
+          status: pu.status ?? "",
+          content: pu.content ?? ""
+        });
+        if (pu.status === "Failed" && pu.phase === "complete") {
+          state.phase = "done";
+        }
+        break;
+      }
 
-    if (eventType === "log_update") {
-      const lu = content as { node_id?: string; content?: string; severity?: string };
-      state.logs.push({
-        nodeId: lu.node_id ?? "",
-        content: isString(lu.content) ? lu.content : JSON.stringify(lu.content),
-        severity: lu.severity ?? "info"
-      });
-      continue;
-    }
+      case "log_update": {
+        const lu = content as {
+          node_id?: string;
+          content?: string;
+          severity?: string;
+        };
+        state.logs.push({
+          nodeId: lu.node_id ?? "",
+          content: isString(lu.content) ? lu.content : JSON.stringify(lu.content),
+          severity: lu.severity ?? "info"
+        });
+        break;
+      }
 
-    if (eventType === "task_update") {
-      const tu = content as TaskUpdate;
-      const taskId = tu.task?.id ?? "";
-      const event = tu.event;
+      case "task_update": {
+        const tu = content as TaskUpdate;
+        const event = tu.event;
+        const taskId = tu.task?.id ?? "";
+        const task = taskMap.get(taskId);
+        const stepId = tu.step?.id ?? "";
 
-      if (event === "task_created") {
-        if (!taskMap.has(taskId)) {
+        if (event === "task_created") {
+          state.phase = "executing";
+          // First declaration wins: a repeat carries the same plan.
+          if (task) break;
           const steps: StepState[] = (tu.task?.steps ?? []).map((s) => ({
             id: s.id ?? "",
             name: s.instructions?.slice(0, 80) ?? s.id ?? "",
@@ -217,7 +245,7 @@ export function buildExecutionTreeState(
             output: "",
             toolCalls: []
           }));
-          const task: TaskState = {
+          const created: TaskState = {
             id: taskId,
             name: tu.task?.title ?? taskId,
             status: "running",
@@ -226,15 +254,15 @@ export function buildExecutionTreeState(
             expanded: true,
             toolCalls: []
           };
-          taskMap.set(taskId, task);
-          steps.forEach((_, i) => indexStep(task, i));
+          taskMap.set(taskId, created);
+          steps.forEach((_, i) => indexStep(created, i));
+          break;
         }
-        state.phase = "executing";
-      } else if (event === "step_started") {
-        const task = taskMap.get(taskId);
-        if (task) {
-          const stepId = tu.step?.id ?? "";
-          const stepIdx = task.steps.findIndex((s) => s.id === stepId);
+
+        if (!task) break;
+        const stepIdx = task.steps.findIndex((s) => s.id === stepId);
+
+        if (event === "step_started") {
           if (stepIdx !== -1) {
             task.steps[stepIdx] = {
               ...task.steps[stepIdx],
@@ -254,120 +282,96 @@ export function buildExecutionTreeState(
             indexStep(task, task.steps.length - 1);
           }
           task.status = "running";
-          activeSteps.set(taskId, stepId);
+          break;
         }
-      } else if (event === "step_completed" || event === "step_failed") {
-        const task = taskMap.get(taskId);
-        if (task) {
-          const stepId = tu.step?.id ?? "";
-          const stepIdx = task.steps.findIndex((s) => s.id === stepId);
-          if (stepIdx !== -1) {
-            const step = task.steps[stepIdx];
-            task.steps[stepIdx] = {
-              ...step,
-              status: event === "step_completed" ? "completed" : "failed",
-              duration: step.startedAt
-                ? (Date.now() - step.startedAt) / 1000
-                : undefined
-            };
-          }
+
+        if (event === "step_completed" || event === "step_failed") {
+          if (stepIdx === -1) break;
+          const step = task.steps[stepIdx];
+          task.steps[stepIdx] = {
+            ...step,
+            status: event === "step_completed" ? "completed" : "failed",
+            duration: step.startedAt
+              ? (Date.now() - step.startedAt) / 1000
+              : undefined
+          };
+          break;
         }
-      } else if (event === "task_completed" || event === "task_failed") {
-        const task = taskMap.get(taskId);
-        if (task) {
+
+        if (event === "task_completed" || event === "task_failed") {
           task.status = event === "task_failed" ? "failed" : "completed";
           task.expanded = false;
           task.duration = task.startedAt
             ? (Date.now() - task.startedAt) / 1000
             : undefined;
-          activeSteps.delete(taskId);
         }
+        break;
       }
-      continue;
-    }
 
-    if (eventType === "tool_call_update") {
-      const tc = content as ToolCallUpdate;
-      const stepId = tc.node_id ?? tc.step_id;
-      if (!stepId) continue;
+      case "tool_call_update": {
+        const tc = content as ToolCallUpdate;
+        const stepId = tc.node_id ?? tc.step_id;
+        const located = stepId ? stepIndex.get(stepId) : undefined;
+        if (!located) break;
 
-      const located = stepIndex.get(stepId);
-      if (located) {
         const { task, index: stepIdx } = located;
-        const cleanArgs = visibleArgs(tc.args);
-        const argsStr = Object.entries(cleanArgs)
-          .map(([k, v]) => {
-            const val = isString(v) ? v : JSON.stringify(v);
-            return `${k}: ${val.slice(0, 40)}`;
-          })
-          .join(", ");
         const prev = task.steps[stepIdx];
+        const cleanArgs = visibleArgs(tc.args);
         const callId = tc.tool_call_id ?? undefined;
-        const existingIdx = callId
-          ? prev.toolCalls.findIndex((c) => c.id === callId)
-          : -1;
         const entry: StepToolCallEntry = {
           id: callId,
           name: tc.name ?? "",
           args: cleanArgs,
           message: tc.message ?? undefined
         };
-        const nextCalls =
-          existingIdx !== -1
-            ? prev.toolCalls.map((c, i) => (i === existingIdx ? { ...c, ...entry } : c))
-            : [...prev.toolCalls, entry];
+        // A repeated tool_call_id is the same call streaming its result in.
+        const existingIdx = callId
+          ? prev.toolCalls.findIndex((c) => c.id === callId)
+          : -1;
         task.steps[stepIdx] = {
           ...prev,
           toolName: tc.name,
-          toolArgs: argsStr,
-          toolCalls: nextCalls,
+          toolArgs: summarizeToolArgs(cleanArgs),
+          toolCalls:
+            existingIdx !== -1
+              ? prev.toolCalls.map((c, i) =>
+                  i === existingIdx ? { ...c, ...entry } : c
+                )
+              : [...prev.toolCalls, entry],
           status: "running"
         };
+        break;
       }
-      continue;
-    }
 
-    if (eventType === "step_result") {
-      const sr = content as StepResult;
-      const stepId = sr.step?.id;
-      if (!stepId) continue;
+      case "step_result": {
+        const sr = content as StepResult;
+        const stepId = sr.step?.id;
+        const located = stepId ? stepIndex.get(stepId) : undefined;
+        if (!located) break;
 
-      const located = stepIndex.get(stepId);
-      if (located) {
         const { task, index: stepIdx } = located;
-        const result =
-          isString(sr.result)
-            ? sr.result
-            : JSON.stringify(sr.result ?? "");
-        const rawErr: unknown = sr.error;
-        const errorText =
-          rawErr == null
-            ? undefined
-            : isString(rawErr)
-              ? rawErr
-              : rawErr instanceof Error
-                ? rawErr.message
-                : JSON.stringify(rawErr);
+        const result = isString(sr.result)
+          ? sr.result
+          : JSON.stringify(sr.result ?? "");
+        const error = errorText(sr.error);
         task.steps[stepIdx] = {
           ...task.steps[stepIdx],
           output: result.slice(0, 200),
           rawResult: sr.result,
-          status: errorText ? "failed" : "completed",
-          error: errorText
+          status: error ? "failed" : "completed",
+          error
         };
+        break;
       }
-      continue;
     }
   }
 
   // Attach tool calls from GlobalChatStore
-  if (toolCallsByStep) {
-    for (const task of taskMap.values()) {
-      for (const step of task.steps) {
-        const calls = toolCallsByStep[step.id];
-        if (calls && calls.length > 0) {
-          step.toolName = calls[calls.length - 1].name;
-        }
+  for (const task of taskMap.values()) {
+    for (const step of task.steps) {
+      const calls = toolCallsByStep?.[step.id];
+      if (calls?.length) {
+        step.toolName = calls[calls.length - 1].name;
       }
     }
   }

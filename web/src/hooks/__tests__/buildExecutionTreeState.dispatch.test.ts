@@ -10,11 +10,14 @@ import { buildExecutionTreeState } from "../useExecutionTreeState";
 import { stub } from "../../test-utils/doubles";
 import type { Message } from "../../stores/ApiTypes";
 
-function makeMessage(eventType: string | undefined, content: unknown): Message {
+function makeMessage(
+  eventType: string | undefined,
+  content: Message["content"]
+): Message {
   return stub<Message>({
     role: "agent_execution",
     execution_event_type: eventType,
-    content: content as Message["content"]
+    content
   });
 }
 
