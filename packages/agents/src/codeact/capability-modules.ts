@@ -20,7 +20,12 @@ import {
   sandboxCapabilitySpecifier,
   SANDBOX_CAPABILITY_PACK
 } from "@nodetool-ai/protocol";
-import { parseCodeBody, staticImportSpecifiers } from "@nodetool-ai/node-sdk";
+import {
+  parseCodeBody,
+  staticImportBindings,
+  staticImportSpecifiers
+} from "@nodetool-ai/node-sdk";
+import type { CodeBodyStatement } from "@nodetool-ai/node-sdk";
 
 import {
   capabilityModuleSpecs,
@@ -143,6 +148,9 @@ export async function mountCapabilityModules(
     sessionNames.set(name, new Set(added));
   }
 
+  const unknown = unknownImportedExports(parsed.statements, exportsByModule);
+  if (unknown !== undefined) return { ok: false, error: unknown };
+
   const facades = new Map(
     unique.map((name) => [
       sandboxCapabilitySpecifier(name),
@@ -181,4 +189,52 @@ export async function mountCapabilityModules(
     return dispatcher.call(moduleKey, exportName, args);
   };
   return { ok: true, mount: { facades, call } };
+}
+
+/**
+ * A capability module exports its wire names verbatim — `generate_image`, not
+ * `generateImage` — so the spelling a model reaches for by habit resolves to
+ * nothing. Left to the guest that surfaces as QuickJS's "Could not find export
+ * 'generateImage'", which names neither the module's exports nor the one it
+ * meant; the model then guesses again. Refuse the action here instead, with
+ * the export list and the near match.
+ *
+ * Returns the refusal, or `undefined` when every imported name exists.
+ */
+function unknownImportedExports(
+  statements: readonly CodeBodyStatement[],
+  exportsByModule: ReadonlyMap<string, readonly string[]>
+): string | undefined {
+  for (const binding of staticImportBindings(statements)) {
+    const module = sandboxCapabilityModuleName(binding.specifier);
+    const available =
+      module === undefined ? undefined : exportsByModule.get(module);
+    if (available === undefined) continue;
+    const missing = binding.named.filter((name) => !available.includes(name));
+    if (missing.length === 0) continue;
+    const names = missing.map((name) => `"${name}"`).join(", ");
+    const suggestions = missing
+      .map((name) => nearMatchSentence(name, available))
+      .filter((sentence) => sentence.length > 0)
+      .join(" ");
+    return (
+      `The action imports ${names} from "${binding.specifier}", which that ` +
+      `module does not export. ${suggestions}Capability modules export the ` +
+      `wire name verbatim, in snake_case. "${binding.specifier}" exports: ` +
+      `${available.join(", ")}.`
+    );
+  }
+  return undefined;
+}
+
+/** "Did you mean …" for the one name that differs only in casing or `_`. */
+function nearMatchSentence(
+  wanted: string,
+  available: readonly string[]
+): string {
+  const flatten = (name: string): string =>
+    name.replace(/_/g, "").toLowerCase();
+  const target = flatten(wanted);
+  const match = available.find((name) => flatten(name) === target);
+  return match === undefined ? "" : `Did you mean "${match}" for "${wanted}"? `;
 }

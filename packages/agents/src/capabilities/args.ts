@@ -126,6 +126,12 @@ function missingRequiredArgs(
 /**
  * Name the call, the keys it is missing, and — when it passed something — what
  * it passed instead, which is usually the whole diagnosis.
+ *
+ * A key that is present but null/undefined has to be called out, or the report
+ * contradicts itself: `edit_storyboard({storyboard_id, ops})` with an unset
+ * variable read "missing required argument storyboard_id. Got: storyboard_id,
+ * ops", which sends the caller hunting for a spelling that was already right
+ * instead of at the value that never got computed.
  */
 function missingArgsMessage(
   spec: CapabilityArgSpec,
@@ -136,8 +142,16 @@ function missingArgsMessage(
   const got = Object.keys(args);
   const gotPart =
     got.length > 0 ? ` Got: ${got.join(", ")}.` : " Got no arguments.";
+  const empty = missing.filter((key) => key in args);
+  const emptyPart =
+    empty.length === 0
+      ? ""
+      : ` ${empty.join(", ")} ${empty.length === 1 ? "was" : "were"} ` +
+        `passed as null/undefined — the key is right, the value is missing.`;
   return (
-    `${spec.name}: missing required ${plural} ${missing.join(", ")}.` + gotPart
+    `${spec.name}: missing required ${plural} ${missing.join(", ")}.` +
+    gotPart +
+    emptyPart
   );
 }
 

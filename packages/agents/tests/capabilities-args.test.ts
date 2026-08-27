@@ -153,6 +153,20 @@ describe("coerceCapabilityArgs argument checking", () => {
     ).toThrow(/save_asset: missing required argument name/);
   });
 
+  it("says a required key was passed empty rather than reading as self-contradictory", () => {
+    expect(() =>
+      coerceCapabilityArgs(SAVE_ASSET, [{ name: undefined, source: "s" }])
+    ).toThrow(
+      /Got: name, source\. name was passed as null\/undefined — the key is right, the value is missing\./
+    );
+  });
+
+  it("says nothing about empty values when the key is simply absent", () => {
+    expect(() =>
+      coerceCapabilityArgs(SAVE_ASSET, [{ source: "s" }])
+    ).toThrow(/save_asset: missing required argument name\. Got: source\.$/);
+  });
+
   it("leaves a call with no arguments to the implementation", () => {
     expect(coerceCapabilityArgs(SAVE_ASSET, [])).toEqual({});
   });
