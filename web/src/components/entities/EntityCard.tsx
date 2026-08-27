@@ -17,11 +17,10 @@ import {
   FlexRow,
   FlexColumn,
   ToolbarIconButton,
-  BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
-import { ENTITY_KIND_COLOR } from "./entityKind";
+import { getEntityKindChipSx } from "./entityKind";
 
 interface EntityCardProps {
   entity: Entity;
@@ -88,9 +87,9 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
           </Text>
           <Chip
             label={entity.kind}
-            color={ENTITY_KIND_COLOR[entity.kind]}
             compact
-            sx={{ borderRadius: BORDER_RADIUS.xs, flexShrink: 0 }}
+            variant="outlined"
+            sx={{ ...getEntityKindChipSx(entity.kind), flexShrink: 0 }}
           />
         </FlexRow>
 

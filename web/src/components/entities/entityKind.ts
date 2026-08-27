@@ -10,6 +10,7 @@ import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import type { EntityKind } from "@nodetool-ai/protocol";
+import { BORDER_RADIUS } from "../ui_primitives";
 
 /** ui_primitives Chip color per entity kind. */
 export const ENTITY_KIND_COLOR = {
@@ -18,6 +19,27 @@ export const ENTITY_KIND_COLOR = {
   style: "secondary",
   prop: "success"
 } satisfies Record<EntityKind, "primary" | "secondary" | "info" | "success">;
+
+/**
+ * Subtle chip styling per entity kind. Uses a translucent tint instead of a
+ * solid `filled` background so storyboard chips read as metadata, not as
+ * saturated alerts. The palette key stays the same, only the alpha changes.
+ */
+export const getEntityKindChipSx = (kind: EntityKind) => {
+  const palette = ENTITY_KIND_COLOR[kind];
+  return {
+    borderRadius: BORDER_RADIUS.pill,
+    backgroundColor: `rgba(var(--palette-${palette}-mainChannel) / 0.12)`,
+    color: `var(--palette-${palette}-main)`,
+    borderColor: `rgba(var(--palette-${palette}-mainChannel) / 0.22)`,
+    "& .MuiChip-deleteIcon": {
+      color: `var(--palette-${palette}-main)`
+    },
+    "& .MuiChip-deleteIcon:hover": {
+      color: `var(--palette-${palette}-main)`
+    }
+  } as const;
+};
 
 /** Icon per entity kind, used where a thumbnail is missing or too small. */
 export const ENTITY_KIND_ICON = {

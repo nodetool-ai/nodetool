@@ -50,7 +50,7 @@ import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useShotDuration } from "../../hooks/storyboard/useShotDuration";
 import { useEntities } from "../../serverState/useEntities";
-import { ENTITY_KIND_COLOR } from "../entities/entityKind";
+import { getEntityKindChipSx } from "../entities/entityKind";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
 interface ShotCardProps {
@@ -374,7 +374,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                 color={duration.source === "audio" ? "info" : "default"}
                 variant={duration.source === "audio" ? "filled" : "outlined"}
                 label={durationLabel}
-                sx={{ borderRadius: BORDER_RADIUS.sm }}
+                sx={{ borderRadius: BORDER_RADIUS.pill }}
                 title={
                   duration.source === "audio"
                     ? "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own duration."
@@ -450,12 +450,15 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                   key={entity.id}
                   compact
                   label={entity.name || "Untitled"}
-                  color={applied ? ENTITY_KIND_COLOR[entity.kind] : "default"}
-                  variant={applied ? "filled" : "outlined"}
-                  sx={{
-                    borderRadius: BORDER_RADIUS.sm,
-                    ...(applied ? undefined : { opacity: 0.55 })
-                  }}
+                  variant="outlined"
+                  sx={
+                    applied
+                      ? getEntityKindChipSx(entity.kind)
+                      : {
+                          borderRadius: BORDER_RADIUS.pill,
+                          opacity: 0.55
+                        }
+                  }
                   title={
                     applied
                       ? `${entity.descriptor || entity.name}: click to exclude from this shot`

@@ -25,7 +25,10 @@ import {
 } from "../ui_primitives";
 import { useEntities } from "../../serverState/useEntities";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
-import { ENTITY_KIND_COLOR, ENTITY_KIND_ICON } from "../entities/entityKind";
+import {
+  ENTITY_KIND_ICON,
+  getEntityKindChipSx
+} from "../entities/entityKind";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
 interface StoryboardEntitiesFieldProps {
@@ -111,11 +114,11 @@ const StoryboardEntitiesFieldInner: React.FC<StoryboardEntitiesFieldProps> = ({
         <Chip
           key={entity.id}
           label={entity.name || "Untitled"}
-          color={ENTITY_KIND_COLOR[entity.kind]}
           variant="outlined"
           icon={<EntityAvatar entity={entity} />}
           title={entity.descriptor || entity.name}
           onDelete={() => handleRemove(entity.id)}
+          sx={getEntityKindChipSx(entity.kind)}
         />
       ))}
       <EditorButton

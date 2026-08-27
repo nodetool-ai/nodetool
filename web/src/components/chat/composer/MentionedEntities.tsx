@@ -9,7 +9,10 @@
 import React, { useCallback, useMemo } from "react";
 
 import { Chip, FlexRow, SPACING } from "../../ui_primitives";
-import { ENTITY_KIND_COLOR, ENTITY_KIND_ICON } from "../../entities/entityKind";
+import {
+  ENTITY_KIND_ICON,
+  getEntityKindChipSx
+} from "../../entities/entityKind";
 import { useEntities } from "../../../serverState/useEntities";
 import {
   entityIdsInPrompt,
@@ -35,11 +38,12 @@ const MentionedEntityChip: React.FC<{
   return (
     <Chip
       compact
-      color={ENTITY_KIND_COLOR[kind]}
+      variant="outlined"
       icon={<Icon />}
       label={name}
       title={descriptor || `${name} · ${kind}`}
       onDelete={handleDelete}
+      sx={getEntityKindChipSx(kind)}
     />
   );
 };
