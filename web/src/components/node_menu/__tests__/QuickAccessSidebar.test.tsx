@@ -45,7 +45,8 @@ describe("QuickAccessSidebar", () => {
       "Storyboards",
       "Entities",
       "Timelines",
-      "JS Scripts"
+      "JS Scripts",
+      "Skills"
     ]);
     expect(
       within(bottom)
