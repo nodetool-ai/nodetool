@@ -41,7 +41,7 @@ import {
   seedJsScriptLookup,
   seedRegistry
 } from "./corpus.js";
-import { SEED_GRAPHS } from "./seeds.js";
+import { SEED_CODE_BODIES, SEED_GRAPHS } from "./seeds.js";
 
 /** The corpus Stryker scores against, and the one the snapshots pin. */
 const PINNED_SEED = 20260817;
@@ -210,7 +210,7 @@ describe(`crash oracle: validateGraph (seed ${SEED})`, () => {
 
 describe(`crash oracle: Code node analysis (seed ${SEED})`, () => {
   it("generates a non-empty corpus", () => {
-    expect(codeMutants.length).toBe(COUNT * 5);
+    expect(codeMutants.length).toBe(COUNT * SEED_CODE_BODIES.length);
   });
 
   it.each(codeMutants.map((m) => [m.id, m.mutation, m] as const))(

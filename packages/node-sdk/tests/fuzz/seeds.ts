@@ -433,5 +433,43 @@ export const SEED_CODE_BODIES: readonly { id: string; code: string }[] = [
     id: "branching",
     code: "if (inputs.flag) {\n  return { a: 1 };\n}\nreturn { a: 2 };"
   },
-  { id: "empty-ish", code: "// nothing to see\n" }
+  { id: "empty-ish", code: "// nothing to see\n" },
+
+  // ── The streaming-input contract ─────────────────────────────────────────
+  // The `stream` seed above is the one well-formed streaming body. These four
+  // are each of the ways one can be wrong, which is where the checks live.
+  {
+    id: "stream-unknown",
+    code:
+      "for await (const item of stream('missing')) {\n" +
+      "  await emit('out', item);\n" +
+      "}\n" +
+      "await output('n', inputs.items.length);"
+  },
+  {
+    id: "stream-unconnected",
+    code:
+      "const head = await stream.first('text');\n" +
+      "for await (const item of stream.any()) {\n" +
+      "  await emit('out', item);\n" +
+      "}\n" +
+      "await output('n', head);"
+  },
+  {
+    id: "stream-computed",
+    code:
+      "const handle = inputs.a;\n" +
+      "for await (const item of stream(handle)) {\n" +
+      "  await output('n', item);\n" +
+      "}"
+  },
+  {
+    id: "stream-no-emit",
+    code:
+      "const rows = [];\n" +
+      "for await (const row of stream('items')) {\n" +
+      "  rows.push(row);\n" +
+      "}\n" +
+      "return { n: rows.length };"
+  }
 ];
