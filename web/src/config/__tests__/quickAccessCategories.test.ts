@@ -33,7 +33,7 @@ const idsIn = (category: NodeCategoryId, all: NodeMetadata[]): string[] =>
   );
 
 describe("quickAccessCategories", () => {
-  it("ships fourteen top-level views in order", () => {
+  it("ships fifteen top-level views in order", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
     expect(ids).toEqual([
       "nodes",
@@ -45,6 +45,7 @@ describe("quickAccessCategories", () => {
       "sketches",
       "scripts",
       "storyboards",
+      "entities",
       "timelines",
       "jsscripts",
       "settings",
@@ -74,7 +75,13 @@ describe("quickAccessCategories", () => {
       {
         id: "editors",
         placement: "top",
-        views: ["sketches", "scripts", "storyboards", "timelines"]
+        views: [
+          "sketches",
+          "scripts",
+          "storyboards",
+          "entities",
+          "timelines"
+        ]
       },
       {
         id: "developer-tools",

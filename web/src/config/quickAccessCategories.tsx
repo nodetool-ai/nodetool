@@ -35,6 +35,7 @@ import HubIcon from "@mui/icons-material/Hub";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
 import {
@@ -166,6 +167,14 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
     docsTopic: "storyboards",
     icon: <DashboardOutlinedIcon />
   },
+  entities: {
+    id: "entities",
+    label: "Entities",
+    description:
+      "Reusable characters, locations, styles, and props for prompts and shots.",
+    docsTopic: "storyboards",
+    icon: <PersonOutlineOutlinedIcon />
+  },
   timelines: {
     id: "timelines",
     label: "Timelines",
@@ -225,6 +234,7 @@ export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
       LEFT_PANEL_CATEGORY_BY_ID.sketches,
       LEFT_PANEL_CATEGORY_BY_ID.scripts,
       LEFT_PANEL_CATEGORY_BY_ID.storyboards,
+      LEFT_PANEL_CATEGORY_BY_ID.entities,
       LEFT_PANEL_CATEGORY_BY_ID.timelines
     ]
   },
