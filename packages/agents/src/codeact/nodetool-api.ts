@@ -78,15 +78,15 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "take_screenshot"
   ],
   memory: [
-    "thread_memory_save",
-    "thread_memory_list",
-    "thread_memory_update",
-    "thread_memory_delete"
+    "memory_save",
+    "memory_list",
+    "memory_search",
+    "memory_update",
+    "memory_delete"
   ],
   shared: ["list_shared", "read_shared", "share_result"],
   threads: ["list_threads", "get_thread", "get_message"],
   email: ["search_email", "archive_email", "add_label_to_email"],
-  style: ["get_style_profile", "record_style_preference"],
   settings: [
     "list_settings",
     "get_setting",
@@ -931,16 +931,19 @@ const nodetool = (() => {
     },
 
     memory: {
-      /** Remember something durably in THIS conversation. */
+      /** Remember something durably. Readable from every conversation. */
       save: (content, opts) =>
-        __need("thread_memory_save")(__merge(opts, { content: content })),
-      list: (opts) => __need("thread_memory_list")(__merge(opts)),
+        __need("memory_save")(__merge(opts, { content: content })),
+      list: (opts) => __need("memory_list")(__merge(opts)),
+      /** Find memories by keyword. Every word must appear. */
+      search: (query, opts) =>
+        __need("memory_search")(__merge(opts, { query: query })),
       update: (memoryId, fields) =>
-        __need("thread_memory_update")(
+        __need("memory_update")(
           __merge(fields, { memory_id: memoryId })
         ),
       remove: (memoryId) =>
-        __need("thread_memory_delete")({ memory_id: memoryId })
+        __need("memory_delete")({ memory_id: memoryId })
     },
 
     threads: {
@@ -982,24 +985,6 @@ const nodetool = (() => {
         }),
       label: (messageId, label) =>
         __need("add_label_to_email")({ message_id: messageId, label: label })
-    },
-
-    style: {
-      /**
-       * The user's accumulated taste as a prompt-ready block: a string, which
-       * is what generation prompts and \`taste_profile\` take.
-       */
-      profile: (opts) =>
-        __need("get_style_profile")(__merge(opts)).then((r) =>
-          r && typeof r === "object" && typeof r.profile === "string"
-            ? r.profile
-            : r
-        ),
-      /** Record one preference learned from a choice or a correction. */
-      record: (takeaway, opts) =>
-        __need("record_style_preference")(
-          __merge(opts, { takeaway: takeaway })
-        )
     },
 
     assets: {
@@ -1322,7 +1307,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   result, its \`asset_uri\`, or an asset id and return run-local handles. They
   can combine media too: for example, \`video.addAudio(videoHandle, audioHandle)\`.
   Save finished handles with \`nodetool.media.toImage/toAudio/toVideo\` before
-  the action ends; keep the returned \`asset://\` ref (in thread memory if a
+  the action ends; keep the returned \`asset://\` ref (in memory if a
   later turn needs it). Do not pull bytes into the guest, and do not use a
   handle in a later action — it is dead there.
   Judging lives here too, so generate → critique → regenerate is one namespace:
@@ -1366,11 +1351,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "memory",
-    doc: `- \`nodetool.memory\` — durable notes for THIS conversation, shown back to you
-  at the start of each turn. \`save(content, {title, kind, resources})\` —
-  put the assets, workflows and collections you produce in \`resources\` so you
-  can reuse them later — plus \`list({limit})\`, \`update(memoryId, {content,
-  title, resources})\`, and \`remove(memoryId)\`.`
+    doc: `- \`nodetool.memory\` — durable notes that outlive the conversation. What
+  you save here is readable from every later thread; this thread's notes are
+  shown back to you at the start of each turn, the rest you search for.
+  \`save(content, {title, kind, resources})\` — put the assets, workflows and
+  collections you produce in \`resources\` so you can reuse them later —
+  \`search(query, {limit, thread, kinds})\` finds them by keyword — every word
+  must appear in the title or content — plus \`list({limit, thread, kinds})\`,
+  \`update(memoryId, {content, title, resources})\`, and \`remove(memoryId)\`.`
   },
   {
     namespace: "threads",
@@ -1392,14 +1380,6 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {title, description})\` stores under \`shared:<key>\` for later steps and
   sub-agents to find. Upstream step and task results land here, so read them
   rather than asking for them again.`
-  },
-  {
-    namespace: "style",
-    doc: `- \`nodetool.style\` — the user's accumulated taste. \`profile({query, k})\`
-  returns a string block to inject into generation prompts and to pass as
-  \`taste_profile\` to \`nodetool.media.critique/compare\`;
-  \`record(takeaway, {chosen, rejected, brief})\` saves one preference
-  whenever the user picks between candidates or corrects a style.`
   },
   {
     namespace: "email",

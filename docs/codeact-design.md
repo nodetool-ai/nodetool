@@ -80,7 +80,7 @@ Inside the sandbox, on top of the standard surface (`console`, `fetch`,
   returns an `{error}` payload throws in the guest, so `try/catch` is the
   error-handling idiom. Per-action tool-call cap (`maxToolCallsPerAction`,
   default 50) so a runaway loop can't drain budgets silently.
-- **Thread memory** — the durable carry between actions and turns. There is no
+- **Memory** — the durable carry between actions and turns. There is no
   cross-action variable bag: local variables die with the action, `return` is
   the observation only. Generation calls save their result as an asset and
   return its `asset://` uri; an action records what later actions or turns
@@ -126,7 +126,7 @@ provider transcript only carries `execute_code`.
 
 `buildCodeActSystemPrompt` renders:
 
-1. The action contract (write code, observe, repair; thread-memory carry;
+1. The action contract (write code, observe, repair; memory carry;
    keep observations small — return summaries, save payloads as assets or in
    memory).
 2. The tool catalog as **typed signatures**, generated from each tool's JSON
@@ -282,7 +282,7 @@ specifier nor the prompt section naming it.
 picks whichever search backend the belt carries (`"default"`, `"openai"`,
 `"google"`, `"dataforseo"` pin one), with `news`, `images`, `browse(url)`,
 `fetch(url)`, `download` and `screenshot` alongside. `memory` is the
-conversation's durable notes (`thread_memory_*`), `style` the user's
+conversation's durable notes (`memory_*`), `style` the user's
 accumulated taste, `email` the Gmail three.
 
 Every wrapped tool is filtered out of the prompt's tool catalog

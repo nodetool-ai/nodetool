@@ -10,7 +10,7 @@
  * leaves the routing where it is. Everything else matches the step executor:
  * one `execute_code` provider tool, `nodetool.searchTools()` for the deferred
  * long tail, and an observation envelope as the tool result. Results a later
- * turn needs go through thread memory (`nodetool.memory.*`).
+ * turn needs go through memory (`nodetool.memory.*`).
  *
  * When the belt carries the `ui_*` workflow document tools, actions also get
  * the graph object model (`openWorkflow()` — see graph-model.ts), so graph and
@@ -324,7 +324,7 @@ export function createChatCodeActSession(
 
   // Uncommitted graph-model op queues, carried across the turn's actions.
   // Internal plumbing for `openWorkflow()` — durable results belong in
-  // thread memory (`nodetool.memory.*`).
+  // memory (`nodetool.memory.*`).
   const graphQueues: Record<string, unknown> = {};
   let totalCalls = 0;
   let actionCalls = 0;

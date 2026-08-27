@@ -6,7 +6,7 @@
  * tools broaden discovery to every content type (images, video, audio,
  * documents) so an agent working a creative project can find a video it
  * rendered two turns ago, or the logo it generated, and reference it again —
- * on its own or by recording it in thread memory (thread_memory_save).
+ * on its own or by recording it in memory (memory_save).
  *
  * Both return lightweight handles (id, name, content_type, size, asset:// uri)
  * — no bytes are loaded. Use view_image to see image pixels.

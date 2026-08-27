@@ -39,18 +39,14 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
     sendMessage,
     stopGeneration,
     selectedModel,
-    setSelectedModel,
-    memoryEnabled,
-    setMemoryEnabled
+    setSelectedModel
   } = useGlobalChatStore(
     useShallow((state) => ({
       status: state.status,
       sendMessage: state.sendMessage,
       stopGeneration: state.stopGeneration,
       selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel,
-      memoryEnabled: state.memoryEnabled,
-      setMemoryEnabled: state.setMemoryEnabled
+      setSelectedModel: state.setSelectedModel
     }))
   );
 
@@ -127,8 +123,6 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       onStop={stopGeneration}
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
-      memoryEnabled={memoryEnabled}
-      onMemoryToggle={setMemoryEnabled}
       autoFocus={false}
       leadingActions={leadingActions}
       trailingActions={trailingActions}

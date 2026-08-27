@@ -51,9 +51,9 @@ import { scriptsSpecs } from "./scripts.specs.js";
 import { serpApiSpecs } from "./serpapi.specs.js";
 import { settingsSpecs } from "./settings.specs.js";
 import { sharedSpecs } from "./shared.specs.js";
+import { skillsSpecs } from "./skills.specs.js";
 import { sketchesSpecs } from "./sketches.specs.js";
 import { storyboardsSpecs } from "./storyboards.specs.js";
-import { styleSpecs } from "./style.specs.js";
 import { threadsSpecs } from "./threads.specs.js";
 import { timelinesSpecs } from "./timelines.specs.js";
 import { uiSpecs } from "./ui.specs.js";
@@ -68,7 +68,6 @@ const MODULES: Readonly<Record<string, Loader>> = {
   workflows: () => import("./workflows.js").then((m) => m.module),
   models: () => import("./models.js").then((m) => m.module),
   media: () => import("./media.js").then((m) => m.module),
-  style: () => import("./style.js").then((m) => m.module),
   collections: () => import("./collections.js").then((m) => m.module),
   costs: () => import("./costs.js").then((m) => m.module),
   nodes: () => import("./nodes.js").then((m) => m.module),
@@ -97,7 +96,8 @@ const MODULES: Readonly<Record<string, Loader>> = {
   ui: () => import("./ui.js").then((m) => m.module),
   apify: () => import("./apify.js").then((m) => m.module),
   serpapi: () => import("./serpapi.js").then((m) => m.module),
-  settings: () => import("./settings.js").then((m) => m.module)
+  settings: () => import("./settings.js").then((m) => m.module),
+  skills: () => import("./skills.js").then((m) => m.module)
 };
 
 /**
@@ -111,7 +111,6 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "workflows",
   "models",
   "media",
-  "style",
   "collections",
   "costs",
   "nodes",
@@ -140,7 +139,8 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "ui",
   "apify",
   "serpapi",
-  "settings"
+  "settings",
+  "skills"
 ];
 
 /**
@@ -159,7 +159,6 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   workflows: workflowsSpecs,
   models: modelsSpecs,
   media: mediaSpecs,
-  style: styleSpecs,
   collections: collectionsSpecs,
   costs: costsSpecs,
   nodes: nodesSpecs,
@@ -188,7 +187,8 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   ui: uiSpecs,
   apify: apifySpecs,
   serpapi: serpApiSpecs,
-  settings: settingsSpecs
+  settings: settingsSpecs,
+  skills: skillsSpecs
 };
 
 const SPEC_BY_NAME: ReadonlyMap<string, CapabilitySpec> = new Map(

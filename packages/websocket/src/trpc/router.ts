@@ -23,7 +23,7 @@ import { settingsRouter } from "./routers/settings.js";
 import { fontsRouter } from "./routers/fonts.js";
 import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
-import { threadMemoriesRouter } from "./routers/thread-memories.js";
+import { memoriesRouter } from "./routers/memories.js";
 import { sketchRouter } from "./routers/sketch.js";
 import { storyboardsRouter } from "./routers/storyboards.js";
 import { skillsRouter } from "./routers/skills.js";
@@ -67,7 +67,7 @@ export const appRouter = router({
   resources: resourcesRouter,
   storage: storageRouter,
   threads: threadsRouter,
-  threadMemories: threadMemoriesRouter,
+  memories: memoriesRouter,
   timeline: timelineRouter,
   users: usersRouter,
   worker: workerRouter,

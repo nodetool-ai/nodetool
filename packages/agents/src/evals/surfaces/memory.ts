@@ -1,8 +1,8 @@
 /**
- * Headless bridge for the thread-memory tool-loop eval.
+ * Headless bridge for the memory tool-loop eval.
  *
  * Unlike the editor-surface bridges (which reimplement browser `ui_*` effects),
- * this bridge drives the REAL backend tools — `thread_memory_save/list` and
+ * this bridge drives the REAL backend tools — `memory_save/list` and
  * `asset_search` — against an in-memory SQLite DB, plus a stub `generate_image`
  * that persists a real asset the way a generation node would. So the eval
  * exercises the actual DB writes, resource validation, and asset resolution a
@@ -13,9 +13,9 @@
 import { z } from "zod";
 import {
   Asset,
-  ThreadMemory,
+  Memory,
   initTestDb,
-  type ThreadMemoryResource
+  type MemoryResource
 } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { toolForCapabilityName } from "../../capabilities/lazy-tool.js";
@@ -31,11 +31,11 @@ const EVAL_USER = "eval-user";
 const EVAL_THREAD = "eval-thread";
 
 /** Snapshot the case predicates run against. */
-export interface ThreadMemoryBridgeFinalState {
+export interface MemoryBridgeFinalState {
   memories: Array<{
     kind: string;
     content: string;
-    resources: ThreadMemoryResource[];
+    resources: MemoryResource[];
   }>;
   assets: Array<{ id: string; name: string; content_type: string }>;
 }
@@ -61,26 +61,29 @@ function slug(text: string): string {
  * Build a fresh headless bridge over a clean in-memory DB. `seed` can pre-load
  * an asset + memory (used by the recall case).
  */
-export function createThreadMemoryToolBridge(
+export function createMemoryToolBridge(
   seed?: (ctx: ProcessingContext) => Promise<void>
-): HeadlessSurfaceBridge<ThreadMemoryBridgeFinalState> {
+): HeadlessSurfaceBridge<MemoryBridgeFinalState> {
   initTestDb();
   const partialCtx: Pick<ProcessingContext, "userId" | "threadId"> = {
     userId: EVAL_USER,
     threadId: EVAL_THREAD
   };
-  // SAFETY: the thread-memory tools read only the user and thread ids off the
+  // SAFETY: the memory tools read only the user and thread ids off the
   // context; nothing in this bridge reaches for another member.
   const ctx = partialCtx as ProcessingContext;
 
-  const saveTool = toolForCapabilityName("thread_memory_save");
-  const listTool = toolForCapabilityName("thread_memory_list");
+  const saveTool = toolForCapabilityName("memory_save");
+  const listTool = toolForCapabilityName("memory_list");
+  const memorySearchTool = toolForCapabilityName("memory_search");
   const searchTool = toolForCapabilityName("asset_search");
 
-  let state: ThreadMemoryBridgeFinalState = { memories: [], assets: [] };
+  let state: MemoryBridgeFinalState = { memories: [], assets: [] };
 
   const refresh = async (): Promise<void> => {
-    const rows = await ThreadMemory.listByThread(EVAL_USER, EVAL_THREAD, 200);
+    // User-scoped, like the store: a case that seeds another thread must see
+    // its memory in the final state.
+    const rows = await Memory.list(EVAL_USER, { limit: 200 });
     const [assetRows] = await Asset.searchAssetsGlobal(EVAL_USER, "", {
       limit: 200
     });
@@ -164,6 +167,21 @@ export function createThreadMemoryToolBridge(
       }
     },
     {
+      name: memorySearchTool.name,
+      description: memorySearchTool.description,
+      parameters: z.object({
+        query: z.string(),
+        thread: z.enum(["all", "current"]).optional(),
+        limit: z.number().optional()
+      }),
+      execute: async (args) => {
+        await ready;
+        const result = await memorySearchTool.process(ctx, args);
+        await refresh();
+        return result;
+      }
+    },
+    {
       name: searchTool.name,
       description: searchTool.description,
       parameters: z.object({
@@ -185,7 +203,7 @@ export function createThreadMemoryToolBridge(
 
 // --- predicates --------------------------------------------------------------
 
-const memoryReferencesAnAsset: ToolLoopStatePredicate<ThreadMemoryBridgeFinalState> =
+const memoryReferencesAnAsset: ToolLoopStatePredicate<MemoryBridgeFinalState> =
   {
     name: "a saved memory references a generated asset",
     test: (s) =>
@@ -198,26 +216,35 @@ const memoryReferencesAnAsset: ToolLoopStatePredicate<ThreadMemoryBridgeFinalSta
         )
       ),
     detail:
-      "Expected at least one thread memory whose resources include an asset " +
+      "Expected at least one memory whose resources include an asset " +
       "ref pointing at a generated image."
   };
 
-const atLeastOneMemory: ToolLoopStatePredicate<ThreadMemoryBridgeFinalState> = {
+const atLeastOneMemory: ToolLoopStatePredicate<MemoryBridgeFinalState> = {
   name: "at least one memory persisted",
   test: (s) => s.memories.length >= 1
 };
 
-const THREAD_MEMORY_SYSTEM_PROMPT = `You are a creative assistant with durable, per-conversation memory.
+/** The seeded palette memory survives the run — recall must not rewrite it. */
+const paletteMemoryIntact: ToolLoopStatePredicate<MemoryBridgeFinalState> = {
+  name: "the memory saved in the other conversation is still there",
+  test: (s) => s.memories.some((m) => /viridian/i.test(m.content)),
+  detail:
+    "Expected the seeded cross-thread memory to be found and left in place."
+};
+
+const MEMORY_SYSTEM_PROMPT = `You are a creative assistant with durable memory that spans every conversation.
 
 You work on media projects over many turns. Use these tools:
 - generate_image({ prompt }) — create an image; returns { asset_id, uri }.
-- thread_memory_save({ content, kind?, resources? }) — remember project facts and the media you make. Reference assets by passing resources like [{ "type": "asset", "id": "<asset_id>" }] so you can reuse them later.
-- thread_memory_list() — recall everything you saved for this conversation.
+- memory_save({ content, kind?, resources? }) — remember project facts and the media you make. Reference assets by passing resources like [{ "type": "asset", "id": "<asset_id>" }] so you can reuse them later.
+- memory_list() — recall everything you have saved, in any conversation.
+- memory_search({ query }) — find memories whose title or content contain every word of the query, across every conversation.
 - asset_search({ query?, content_type? }) — find assets already created.
 
 Call one tool at a time and use each result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
 
-export const THREAD_MEMORY_TOOL_LOOP_CASES: ToolLoopEvalCase<ThreadMemoryBridgeFinalState>[] =
+export const MEMORY_TOOL_LOOP_CASES: ToolLoopEvalCase<MemoryBridgeFinalState>[] =
   [
     {
       id: "generate-and-remember",
@@ -225,11 +252,11 @@ export const THREAD_MEMORY_TOOL_LOOP_CASES: ToolLoopEvalCase<ThreadMemoryBridgeF
         "Generate an image, then save a memory that references the generated asset for reuse.",
       objective:
         "Generate an image of a red fox mascot logo, then save it as the approved project logo, referencing the generated image so you can reuse it later.",
-      systemPrompt: THREAD_MEMORY_SYSTEM_PROMPT,
-      createBridge: () => createThreadMemoryToolBridge(),
+      systemPrompt: MEMORY_SYSTEM_PROMPT,
+      createBridge: () => createMemoryToolBridge(),
       expect: {
-        requiredTools: ["generate_image", "thread_memory_save"],
-        ordering: [["generate_image", "thread_memory_save"]],
+        requiredTools: ["generate_image", "memory_save"],
+        ordering: [["generate_image", "memory_save"]],
         finalState: [memoryReferencesAnAsset],
         minToolCalls: 2,
         maxToolCalls: 12
@@ -238,18 +265,18 @@ export const THREAD_MEMORY_TOOL_LOOP_CASES: ToolLoopEvalCase<ThreadMemoryBridgeF
     {
       id: "recall-existing",
       description:
-        "Recall memories saved earlier in the conversation via thread_memory_list.",
+        "Recall memories saved earlier in the conversation via memory_list.",
       objective:
         "We've worked on this project before. Look at what you've already saved for this conversation and tell me which image was approved as the logo.",
-      systemPrompt: THREAD_MEMORY_SYSTEM_PROMPT,
+      systemPrompt: MEMORY_SYSTEM_PROMPT,
       createBridge: () =>
-        createThreadMemoryToolBridge(async () => {
+        createMemoryToolBridge(async () => {
           const asset = await Asset.create<Asset>({
             user_id: EVAL_USER,
             name: "approved-logo.png",
             content_type: "image/png"
           });
-          await ThreadMemory.create<ThreadMemory>({
+          await Memory.create<Memory>({
             user_id: EVAL_USER,
             thread_id: EVAL_THREAD,
             kind: "resource",
@@ -265,8 +292,32 @@ export const THREAD_MEMORY_TOOL_LOOP_CASES: ToolLoopEvalCase<ThreadMemoryBridgeF
           });
         }),
       expect: {
-        requiredTools: ["thread_memory_list"],
+        requiredTools: ["memory_list"],
         finalState: [atLeastOneMemory],
+        maxToolCalls: 10
+      }
+    },
+    {
+      id: "search-across-threads",
+      description:
+        "Find, by keyword, a memory saved in a different conversation.",
+      objective:
+        "In some earlier conversation I settled on a brand colour. Search your memory for it and tell me the colour name.",
+      systemPrompt: MEMORY_SYSTEM_PROMPT,
+      createBridge: () =>
+        createMemoryToolBridge(async () => {
+          // Deliberately NOT this thread: only a cross-thread read finds it.
+          await Memory.create<Memory>({
+            user_id: EVAL_USER,
+            thread_id: "an-earlier-conversation",
+            kind: "decision",
+            title: "Brand colour",
+            content: "We settled on viridian as the brand colour."
+          });
+        }),
+      expect: {
+        requiredTools: ["memory_search"],
+        finalState: [paletteMemoryIntact],
         maxToolCalls: 10
       }
     }

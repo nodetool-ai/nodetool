@@ -22,7 +22,7 @@ The agent uses the same tools you do, so you can watch changes happen in real ti
 ## Core guides
 
 - **[Chat](global-chat.md)** — How to use the composer, threads, permissions, and the agent.
-- **[Agent Memory](agent-memory.md)** & **[Long-Term Memory](long-term-memory.md)** — How the agent remembers things between messages and threads.
+- **[Agent Memory](agent-memory.md)** — How the agent shares results between the steps of one run.
 - **[Agent CLI](agent-cli.md)** — Run the agent from your terminal.
 - **[Chat CLI](chat-cli.md)** & **[Chat Server](chat-server.md)** — Automate chats or build your own custom interface.
 - **[Chat API](chat-api.md)** — Start chats, get responses, and run tools from your own code.

@@ -242,17 +242,6 @@ export interface GlobalChatState {
    */
   chatReplayCursors: Record<string, number>;
 
-  // Long-term memory opt-in
-  /**
-   * When true, the server resolves a per-user, per-thread `LongTermMemory`
-   * for this chat session: relevant items are recalled into the system
-   * prompt before each LLM call, and new memories are mined from the
-   * conversation after each turn. Default off — memory is a trust
-   * boundary, not a quiet convenience. Persisted across reloads.
-   */
-  memoryEnabled: boolean;
-  setMemoryEnabled: (enabled: boolean) => void;
-
   /** Clear the current error (e.g. when dismissing an error banner). */
   clearError: () => void;
 
@@ -446,7 +435,6 @@ interface PersistedChatState {
   selectedModel: LanguageModel | null;
   permissionMode: Record<string, PermissionMode>;
   lastPermissionMode?: PermissionMode;
-  memoryEnabled?: boolean;
   workflowThreadId?: Record<string, string>;
   threadWorkflowId?: Record<string, string | null>;
 }
@@ -542,9 +530,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
       messageCursors: {},
       isLoadingMessages: false,
       chatReplayCursors: {},
-
-      memoryEnabled: false,
-      setMemoryEnabled: (enabled: boolean) => set({ memoryEnabled: enabled }),
 
       clearError: () => set({ error: null }),
 
@@ -951,8 +936,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         message: Message | ChatOutgoingMessage,
         targetThreadId?: string
       ) => {
-        const { currentThreadId, workflowId, memoryEnabled, selectedModel } =
-          get();
+        const { currentThreadId, workflowId, selectedModel } = get();
 
         // Agent mode is no longer a UI toggle — every chat session runs the
         // unified LLM-with-tools loop, and the agent decides for itself
@@ -1080,8 +1064,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Preserve workflow_id if already set by caller (e.g., WorkflowAssistantChat)
         const messageForCache: Message = {
           ...message,
-          thread_id: threadId,
-          memory_enabled: memoryEnabled
+          thread_id: threadId
         };
         if (mediaGeneration) {
           messageForCache.media_generation = mediaGeneration;
@@ -1104,7 +1087,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
           ...messageWithoutTools,
           workflow_id: message.workflow_id ?? boundWorkflowId,
           thread_id: threadId,
-          memory_enabled: memoryEnabled,
           permission_mode: get().getPermissionMode(threadId),
           model: isMediaGeneration
             ? (mediaGeneration?.model ?? message.model ?? selectedModel?.id)
@@ -1813,7 +1795,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
           selectedModel: state.selectedModel,
           permissionMode: state.permissionMode,
           lastPermissionMode: state.lastPermissionMode,
-          memoryEnabled: state.memoryEnabled,
           // Per-workflow thread binding so the editor side panel restores the
           // right conversation across reloads.
           workflowThreadId: state.workflowThreadId,

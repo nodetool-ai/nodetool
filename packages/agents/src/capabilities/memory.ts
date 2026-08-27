@@ -1,15 +1,16 @@
 /**
- * The `memory` capability module — durable, per-conversation memory an agent
- * manages explicitly.
+ * The `memory` capability module — durable memory an agent manages explicitly.
  *
- * Four capabilities that used to be four `Tool` subclasses in
- * `../tools/thread-memory-tools.ts`, which now keeps only their names. Wire
- * names, descriptions and schemas are unchanged; a belt builds all four from
- * `memory.specs.ts` by name.
+ * Scope is the **user**, not the conversation. A memory saved in one thread is
+ * readable from every other one; `thread_id` records where it was written and
+ * is a filter callers may apply, never a boundary the store enforces. Saving
+ * still needs no thread — a memory written outside a chat carries an empty
+ * `thread_id`.
  *
- * Scope is the AgentMemory-free half of memory. The run-scoped half —
- * `list_shared` / `read_shared` / `share_result` over `context.memory` — is the
- * `shared` module, kept apart because its lifetime is the run, not the thread.
+ * Five capabilities, built by name from `memory.specs.ts`. The run-scoped half
+ * of memory — `list_shared` / `read_shared` / `share_result` over
+ * `context.memory` — is the `shared` module, kept apart because its lifetime is
+ * the run, not the user.
  *
  * `@nodetool-ai/models` is imported inside each implementation, so loading
  * this module never opens a database.
@@ -21,16 +22,17 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   Asset,
-  ThreadMemory as ThreadMemoryRow,
-  ThreadMemoryKind,
-  ThreadMemoryResource
+  Memory as MemoryRow,
+  MemoryKind,
+  MemoryResource
 } from "@nodetool-ai/models";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
 import {
-  threadMemorySaveSpec,
-  threadMemoryListSpec,
-  threadMemoryUpdateSpec,
-  threadMemoryDeleteSpec,
+  memorySaveSpec,
+  memoryListSpec,
+  memorySearchSpec,
+  memoryUpdateSpec,
+  memoryDeleteSpec,
   KNOWN_RESOURCE_TYPES,
   KIND_SCHEMA,
   RESOURCES_SCHEMA
@@ -51,10 +53,10 @@ const VALID_KINDS: ReadonlySet<string> = new Set([
   "resource"
 ]);
 
-function coerceKind(value: unknown): ThreadMemoryKind {
+function coerceKind(value: unknown): MemoryKind {
   if (!isString(value)) return "note";
   const lower = value.toLowerCase().trim();
-  return (VALID_KINDS.has(lower) ? lower : "note") as ThreadMemoryKind;
+  return (VALID_KINDS.has(lower) ? lower : "note") as MemoryKind;
 }
 
 /** Build the canonical `asset://<id>.<ext>` uri for an asset. */
@@ -73,20 +75,20 @@ async function normalizeResources(
   userId: string,
   raw: unknown
 ): Promise<{
-  resources: ThreadMemoryResource[];
-  dropped: ThreadMemoryResource[];
+  resources: MemoryResource[];
+  dropped: MemoryResource[];
 }> {
   if (!Array.isArray(raw)) return { resources: [], dropped: [] };
   const { Asset } = await import("@nodetool-ai/models");
-  const resources: ThreadMemoryResource[] = [];
-  const dropped: ThreadMemoryResource[] = [];
+  const resources: MemoryResource[] = [];
+  const dropped: MemoryResource[] = [];
   for (const value of raw) {
     if (!isObjectLike(value)) continue;
     const obj = value as Record<string, unknown>;
     const type = isString(obj.type) ? obj.type.trim() : "";
     const id = isString(obj.id) ? obj.id.trim() : "";
     if (!type || !id) continue;
-    const ref: ThreadMemoryResource = { type, id };
+    const ref: MemoryResource = { type, id };
     if (isString(obj.uri) && obj.uri) ref.uri = obj.uri;
     if (isString(obj.label) && obj.label) ref.label = obj.label;
     if (type === "asset") {
@@ -111,11 +113,11 @@ async function normalizeResources(
  */
 async function resolveResources(
   userId: string,
-  resources: ThreadMemoryResource[] | null | undefined
-): Promise<ThreadMemoryResource[]> {
+  resources: MemoryResource[] | null | undefined
+): Promise<MemoryResource[]> {
   if (!Array.isArray(resources) || resources.length === 0) return [];
   const { Asset } = await import("@nodetool-ai/models");
-  const out: ThreadMemoryResource[] = [];
+  const out: MemoryResource[] = [];
   for (const ref of resources) {
     if (!isObjectLike(ref)) continue;
     if (ref.type === "asset") {
@@ -135,23 +137,48 @@ async function resolveResources(
   return out;
 }
 
-function requireThread(
+function requireUser(
   context: ProcessingContext
 ): { userId: string; threadId: string } | { error: string } {
   const userId = context.userId;
-  if (!userId)
-    return { error: "No user context; cannot access thread memory." };
-  const threadId = context.threadId;
-  if (!threadId) {
-    return {
-      error:
-        "No active thread; thread memory is only available inside a chat thread."
-    };
-  }
-  return { userId, threadId };
+  if (!userId) return { error: "No user context; cannot access memory." };
+  // Empty outside a chat thread. Saving stamps it as provenance; reading uses
+  // it only when the caller asks for `thread: "current"`.
+  return { userId, threadId: context.threadId ?? "" };
 }
 
-function droppedNote(dropped: ThreadMemoryResource[]): Record<string, unknown> {
+/**
+ * Turn the `thread` parameter into a listing filter. `"current"` narrows to
+ * the thread the turn is running in; anything else — including the default —
+ * reads every thread.
+ */
+function threadFilter(
+  value: unknown,
+  threadId: string
+): { threadId?: string } {
+  return isString(value) && value.trim().toLowerCase() === "current"
+    ? { threadId }
+    : {};
+}
+
+/** The `kinds` parameter, keeping only recognized kinds. */
+function kindsFilter(value: unknown): { kinds?: string[] } {
+  if (!Array.isArray(value)) return {};
+  const kinds = value.filter(
+    (kind): kind is string => isString(kind) && VALID_KINDS.has(kind)
+  );
+  return kinds.length > 0 ? { kinds } : {};
+}
+
+/** Clamp a caller-supplied count into [1, max], falling back to `fallback`. */
+function boundedLimit(value: unknown, fallback: number, max: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0
+    ? Math.min(Math.floor(parsed), max)
+    : fallback;
+}
+
+function droppedNote(dropped: MemoryResource[]): Record<string, unknown> {
   return dropped.length > 0
     ? {
         dropped_resources: dropped,
@@ -161,13 +188,13 @@ function droppedNote(dropped: ThreadMemoryResource[]): Record<string, unknown> {
 }
 
 // ---------------------------------------------------------------------------
-// thread_memory_save
+// memory_save
 // ---------------------------------------------------------------------------
 
-const threadMemorySave: CapabilityExport = {
-  spec: threadMemorySaveSpec,
+const memorySave: CapabilityExport = {
+  spec: memorySaveSpec,
   impl: async (run, params) => {
-    const scope = requireThread(run.context);
+    const scope = requireUser(run.context);
     if ("error" in scope) return { success: false, error: scope.error };
 
     const content =
@@ -184,8 +211,8 @@ const threadMemorySave: CapabilityExport = {
     );
 
     try {
-      const { ThreadMemory } = await import("@nodetool-ai/models");
-      const memory = await ThreadMemory.create<ThreadMemoryRow>({
+      const { Memory } = await import("@nodetool-ai/models");
+      const memory = await Memory.create<MemoryRow>({
         user_id: scope.userId,
         thread_id: scope.threadId,
         kind: coerceKind(params.kind),
@@ -210,39 +237,47 @@ const threadMemorySave: CapabilityExport = {
 };
 
 // ---------------------------------------------------------------------------
-// thread_memory_list
+// memory_list
 // ---------------------------------------------------------------------------
 
-const threadMemoryList: CapabilityExport = {
-  spec: threadMemoryListSpec,
+/** Shape one row for a tool result, resolving its resource refs. */
+async function toItem(
+  userId: string,
+  currentThreadId: string,
+  memory: MemoryRow
+): Promise<Record<string, unknown>> {
+  return {
+    memory_id: memory.id,
+    kind: memory.kind,
+    title: memory.title,
+    content: memory.content,
+    // Says which conversation the memory came from, so an agent reading a
+    // cross-thread result knows what is from here and what is not.
+    from_current_thread: Boolean(
+      currentThreadId && memory.thread_id === currentThreadId
+    ),
+    created_at: memory.created_at,
+    updated_at: memory.updated_at,
+    resources: await resolveResources(userId, memory.resources)
+  };
+}
+
+const memoryList: CapabilityExport = {
+  spec: memoryListSpec,
   impl: async (run, params) => {
-    const scope = requireThread(run.context);
+    const scope = requireUser(run.context);
     if ("error" in scope) return { success: false, error: scope.error };
 
-    const limitParam = Number(params.limit);
-    const limit =
-      Number.isFinite(limitParam) && limitParam > 0
-        ? Math.min(Math.floor(limitParam), 200)
-        : 100;
-
     try {
-      const { ThreadMemory } = await import("@nodetool-ai/models");
-      const memories = await ThreadMemory.listByThread(
-        scope.userId,
-        scope.threadId,
-        limit
-      );
+      const { Memory } = await import("@nodetool-ai/models");
+      const rows = await Memory.list(scope.userId, {
+        limit: boundedLimit(params.limit, 100, 200),
+        ...threadFilter(params.thread, scope.threadId),
+        ...kindsFilter(params.kinds)
+      });
       const items = [];
-      for (const memory of memories) {
-        items.push({
-          memory_id: memory.id,
-          kind: memory.kind,
-          title: memory.title,
-          content: memory.content,
-          created_at: memory.created_at,
-          updated_at: memory.updated_at,
-          resources: await resolveResources(scope.userId, memory.resources)
-        });
+      for (const memory of rows) {
+        items.push(await toItem(scope.userId, scope.threadId, memory));
       }
       return { success: true, count: items.length, memories: items };
     } catch (e) {
@@ -255,13 +290,49 @@ const threadMemoryList: CapabilityExport = {
 };
 
 // ---------------------------------------------------------------------------
-// thread_memory_update
+// memory_search
 // ---------------------------------------------------------------------------
 
-const threadMemoryUpdate: CapabilityExport = {
-  spec: threadMemoryUpdateSpec,
+const memorySearch: CapabilityExport = {
+  spec: memorySearchSpec,
   impl: async (run, params) => {
-    const scope = requireThread(run.context);
+    const scope = requireUser(run.context);
+    if ("error" in scope) return { success: false, error: scope.error };
+
+    const query = isString(params.query) ? params.query.trim() : "";
+    if (!query) {
+      return { success: false, error: "query is required" };
+    }
+
+    try {
+      const { Memory } = await import("@nodetool-ai/models");
+      const rows = await Memory.search(scope.userId, query, {
+        limit: boundedLimit(params.limit, 25, 200),
+        ...threadFilter(params.thread, scope.threadId),
+        ...kindsFilter(params.kinds)
+      });
+      const items = [];
+      for (const memory of rows) {
+        items.push(await toItem(scope.userId, scope.threadId, memory));
+      }
+      return { success: true, count: items.length, memories: items };
+    } catch (e) {
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : String(e)
+      };
+    }
+  }
+};
+
+// ---------------------------------------------------------------------------
+// memory_update
+// ---------------------------------------------------------------------------
+
+const memoryUpdate: CapabilityExport = {
+  spec: memoryUpdateSpec,
+  impl: async (run, params) => {
+    const scope = requireUser(run.context);
     if ("error" in scope) return { success: false, error: scope.error };
 
     const memoryId =
@@ -271,13 +342,13 @@ const threadMemoryUpdate: CapabilityExport = {
     }
 
     try {
-      const { ThreadMemory } = await import("@nodetool-ai/models");
-      const memory = await ThreadMemory.find(scope.userId, memoryId);
-      if (!memory || memory.thread_id !== scope.threadId) {
+      const { Memory } = await import("@nodetool-ai/models");
+      const memory = await Memory.find(scope.userId, memoryId);
+      if (!memory) {
         return { success: false, error: `Memory not found: ${memoryId}` };
       }
 
-      let dropped: ThreadMemoryResource[] = [];
+      let dropped: MemoryResource[] = [];
       if (isString(params.content))
         memory.content = params.content.trim();
       if (isString(params.title)) memory.title = params.title.trim();
@@ -309,13 +380,13 @@ const threadMemoryUpdate: CapabilityExport = {
 };
 
 // ---------------------------------------------------------------------------
-// thread_memory_delete
+// memory_delete
 // ---------------------------------------------------------------------------
 
-const threadMemoryDelete: CapabilityExport = {
-  spec: threadMemoryDeleteSpec,
+const memoryDelete: CapabilityExport = {
+  spec: memoryDeleteSpec,
   impl: async (run, params) => {
-    const scope = requireThread(run.context);
+    const scope = requireUser(run.context);
     if ("error" in scope) return { success: false, error: scope.error };
 
     const memoryId =
@@ -325,9 +396,9 @@ const threadMemoryDelete: CapabilityExport = {
     }
 
     try {
-      const { ThreadMemory } = await import("@nodetool-ai/models");
-      const memory = await ThreadMemory.find(scope.userId, memoryId);
-      if (!memory || memory.thread_id !== scope.threadId) {
+      const { Memory } = await import("@nodetool-ai/models");
+      const memory = await Memory.find(scope.userId, memoryId);
+      if (!memory) {
         return { success: false, error: `Memory not found: ${memoryId}` };
       }
       await memory.delete();
@@ -341,12 +412,13 @@ const threadMemoryDelete: CapabilityExport = {
   }
 };
 
-/** Every memory capability, in the order thread-memory-tools.ts declared them. */
+/** Every memory capability, in the order memory-tools.ts declared them. */
 export const MEMORY_CAPABILITIES: readonly CapabilityExport[] = [
-  threadMemorySave,
-  threadMemoryList,
-  threadMemoryUpdate,
-  threadMemoryDelete
+  memorySave,
+  memoryList,
+  memorySearch,
+  memoryUpdate,
+  memoryDelete
 ];
 
 export const module: CapabilityModule = {
@@ -355,8 +427,9 @@ export const module: CapabilityModule = {
 };
 
 export {
-  threadMemorySave,
-  threadMemoryList,
-  threadMemoryUpdate,
-  threadMemoryDelete
+  memorySave,
+  memoryList,
+  memorySearch,
+  memoryUpdate,
+  memoryDelete
 };

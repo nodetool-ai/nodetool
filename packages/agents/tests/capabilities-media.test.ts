@@ -1,13 +1,11 @@
 /**
- * The `media` and `style` capability modules: registry hygiene, classification
- * parity with the map the gate reads today, identity parity with the
- * deprecated tool classes, and one behavioral round trip per module through
- * the adapter.
+ * The `media` capability module: registry hygiene, classification parity with
+ * the map the gate reads today, identity parity with the deprecated tool
+ * classes, and one behavioral round trip through the adapter.
  *
  * Generation and judging both go through
  * `ProcessingContext.runProviderPrediction`, which is stubbed here — no
- * provider, network, or database. The style pair runs against a stubbed
- * long-term memory carried on the run.
+ * provider, network, or database.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -40,13 +38,7 @@ import {
   ffmpeg,
   ytDlp
 } from "../src/capabilities/media.js";
-import {
-  STYLE_CAPABILITIES,
-  getStyleProfile,
-  recordStylePreference
-} from "../src/capabilities/style.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
-import type { LongTermMemory } from "../src/long-term-memory.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
@@ -73,13 +65,13 @@ function reply(json: unknown): Message {
   return { role: "assistant", content: JSON.stringify(json) };
 }
 
-function asTool(entry: CapabilityExport, memory?: LongTermMemory): Tool {
+function asTool(entry: CapabilityExport): Tool {
   return toolFromCapability(entry.spec, entry.impl, (context) =>
-    createCapabilityRun({ context, gate: UNGATED, memory })
+    createCapabilityRun({ context, gate: UNGATED })
   );
 }
 
-describe("media and style capability modules", () => {
+describe("the media capability module", () => {
   it("register without drift", async () => {
     expect(await capabilityModuleDrift()).toEqual([]);
     const media = await loadCapabilityModule("media");
@@ -101,15 +93,10 @@ describe("media and style capability modules", () => {
       "ffprobe",
       "yt_dlp"
     ]);
-    const style = await loadCapabilityModule("style");
-    expect(style.exports.map((e) => e.spec.name)).toEqual([
-      "record_style_preference",
-      "get_style_profile"
-    ]);
   });
 
   it("class every export the way the permission map does", () => {
-    for (const entry of [...MEDIA_CAPABILITIES, ...STYLE_CAPABILITIES]) {
+    for (const entry of MEDIA_CAPABILITIES) {
       expect(entry.spec.category).toBe(permissionCategoryFor(entry.spec.name));
     }
   });
@@ -129,9 +116,7 @@ describe("wire identity: a Tool built from the spec", () => {
     [scoreImageAdherence, toolForCapabilityName("score_image_adherence")],
     [understandVideo, toolForCapabilityName("understand_video")],
     [ffmpeg, toolForCapabilityName("ffmpeg")],
-    [ytDlp, toolForCapabilityName("yt_dlp")],
-    [recordStylePreference, toolForCapabilityName("record_style_preference")],
-    [getStyleProfile, toolForCapabilityName("get_style_profile")]
+    [ytDlp, toolForCapabilityName("yt_dlp")]
   ];
 
   it.each(
@@ -334,56 +319,6 @@ describe("understand_video through the adapter", () => {
     )) as Record<string, unknown>;
     expect(String(result["error"])).toBe(
       "understand_video failed: no video support"
-    );
-  });
-});
-
-describe("style capabilities through the adapter", () => {
-  function makeMemory(over: Partial<LongTermMemory>): LongTermMemory {
-    return {
-      remember: vi.fn(async () => null),
-      recall: vi.fn(async () => []),
-      ...over
-    } as unknown as LongTermMemory;
-  }
-
-  it("records a preference against the run's memory", async () => {
-    const remember = vi.fn(async () => ({ id: "mem-1" }));
-    const memory = makeMemory({ remember: remember as never });
-    const result = (await asTool(recordStylePreference, memory).process(
-      makeContext(),
-      { takeaway: "Muted palettes", chosen: "A", rejected: "B" }
-    )) as Record<string, unknown>;
-
-    expect(result).toEqual({
-      stored: true,
-      id: "mem-1",
-      text: "Muted palettes (chose: A; over: B)"
-    });
-    expect(remember).toHaveBeenCalledWith(
-      "Muted palettes (chose: A; over: B)",
-      { kind: "preference", importance: 0.6, source: "style_preference" }
-    );
-  });
-
-  it("renders recalled preferences as a profile block", async () => {
-    const recall = vi.fn(async () => [
-      { id: "m1", text: "Muted palettes", importance: 0.7, kind: "preference" },
-      { id: "m2", text: "Unrelated fact", importance: 0.4, kind: "fact" }
-    ]);
-    const memory = makeMemory({ recall: recall as never });
-    const result = (await asTool(getStyleProfile, memory).process(
-      makeContext(),
-      { k: 5 }
-    )) as Record<string, unknown>;
-
-    expect(result["profile"]).toBe("- Muted palettes");
-    expect(result["items"]).toEqual([
-      { id: "m1", text: "Muted palettes", importance: 0.7 }
-    ]);
-    expect(recall).toHaveBeenCalledWith(
-      "visual style aesthetic preference taste",
-      { k: 5 }
     );
   });
 });

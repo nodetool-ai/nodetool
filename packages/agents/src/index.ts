@@ -430,30 +430,23 @@ export {
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
 export type { AgentSkill, AgentOptions } from "./agent.js";
 
-// Long-term memory (cross-session, automatically queried)
+// Skills in the prompt: the always-on catalog, and the bodies a `/name`
+// invocation pulls in.
 export {
-  LongTermMemory,
-  formatMemoryForPrompt,
-  createDefaultLongTermMemory,
-  setLongTermMemory,
-  getLongTermMemory
-} from "./long-term-memory.js";
+  findInvokedSkillNames,
+  formatSkillCatalogForPrompt,
+  formatInvokedSkillsForPrompt
+} from "./skill-prompt.js";
 export type {
-  LongTermMemoryItem,
-  LongTermMemoryOptions,
-  CreateDefaultLongTermMemoryOptions,
-  MemoryKind as LongTermMemoryKind
-} from "./long-term-memory.js";
-export { formatSynthesizedMemoryForPrompt } from "./prompts/memory-synthesis-prompt.js";
-export type {
-  SynthesizedFact,
-  FactUtility
-} from "./prompts/memory-synthesis-prompt.js";
+  SkillCatalogEntry,
+  SkillInstructions
+} from "./skill-prompt.js";
+
 export {
-  getThreadMemoryTools,
-  formatThreadMemoriesForPrompt,
-  THREAD_MEMORY_TOOL_NAMES
-} from "./tools/thread-memory-tools.js";
+  getMemoryTools,
+  formatMemoriesForPrompt,
+  MEMORY_TOOL_NAMES
+} from "./tools/memory-tools.js";
 export {
   getAssetLibraryTools,
   ASSET_LIBRARY_TOOL_NAMES
@@ -696,10 +689,10 @@ export type {
   ToolLoopRun
 } from "./app-build/tool-loop.js";
 export {
-  createThreadMemoryToolBridge,
-  THREAD_MEMORY_TOOL_LOOP_CASES
-} from "./evals/surfaces/thread-memory.js";
-export type { ThreadMemoryBridgeFinalState } from "./evals/surfaces/thread-memory.js";
+  createMemoryToolBridge,
+  MEMORY_TOOL_LOOP_CASES
+} from "./evals/surfaces/memory.js";
+export type { MemoryBridgeFinalState } from "./evals/surfaces/memory.js";
 export {
   createCreativePipelineBridge,
   CREATIVE_PIPELINE_TOOL_LOOP_CASES,

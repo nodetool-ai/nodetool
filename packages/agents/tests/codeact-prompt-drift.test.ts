@@ -82,7 +82,7 @@ describe("CodeAct prompt / sandbox drift", () => {
       expect(prompt).toContain(
         "Never re-run generate, speak, or fetch"
       );
-      expect(prompt).toContain("into thread memory:");
+      expect(prompt).toContain("into memory:");
       expect(prompt).not.toContain("`state`");
     }
   });

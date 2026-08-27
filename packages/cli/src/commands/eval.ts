@@ -620,9 +620,9 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
     (mod) => mod.APP_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
-    "thread-memory-tools",
-    "Run the thread-memory tool-loop eval suite (thread_memory_*/asset tools, real DB) against a provider/model",
-    (mod) => mod.THREAD_MEMORY_TOOL_LOOP_CASES
+    "memory-tools",
+    "Run the memory tool-loop eval suite (memory_*/asset tools, real DB) against a provider/model",
+    (mod) => mod.MEMORY_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "creative-pipeline",

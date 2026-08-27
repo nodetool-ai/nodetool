@@ -67,15 +67,26 @@ export const RESOURCES_SCHEMA = {
     "validated and resolved to their asset:// uri; other kinds are stored as-is."
 };
 
-export const threadMemorySaveSpec: CapabilitySpec = {
-  name: "thread_memory_save",
+export const THREAD_SCOPE_SCHEMA = {
+  type: "string" as const,
+  enum: ["all", "current"],
   description:
-    "Save a durable memory to the current conversation. Use it to remember " +
-    "project facts, user preferences, decisions, and — crucially — the " +
-    "resources you produce or rely on (pass them in `resources`: the assets " +
-    "you generate, a workflow you built, a collection, a URL) so you can reuse " +
-    "them later. Memories persist across turns and are shown back to you at " +
-    "the start of each turn.",
+    "Which conversation's memories to read. 'all' (the default) reads every " +
+    "memory you have ever saved, in any conversation. 'current' narrows to " +
+    "the ones recorded in this conversation."
+};
+
+export const memorySaveSpec: CapabilitySpec = {
+  name: "memory_save",
+  description:
+    "Save a durable memory. Use it to remember project facts, user " +
+    "preferences, decisions, and — crucially — the resources you produce or " +
+    "rely on (pass them in `resources`: the assets you generate, a workflow " +
+    "you built, a collection, a URL) so you can reuse them later. Memories " +
+    "are yours across every conversation, not just this one: what you save " +
+    "here you can read back in any later thread. The current conversation's " +
+    "memories are shown back to you at the start of each turn; reach the rest " +
+    "with memory_search or memory_list.",
   inputSchema: {
     type: "object",
     properties: {
@@ -101,38 +112,85 @@ export const threadMemorySaveSpec: CapabilitySpec = {
   }
 };
 
-export const threadMemoryListSpec: CapabilitySpec = {
-  name: "thread_memory_list",
+export const memoryListSpec: CapabilitySpec = {
+  name: "memory_list",
   description:
-    "List the durable memories saved for the current conversation, newest " +
-    "first, each with its referenced resources resolved (asset references " +
-    "carry a live asset:// uri you can pass to view_image or reuse in " +
-    "generation tools).",
+    "List your durable memories, newest first, across every conversation. " +
+    "Each carries its referenced resources resolved (asset references carry a " +
+    "live asset:// uri you can pass to view_image or reuse in generation " +
+    "tools). Use memory_search instead when you know what you are looking for.",
   inputSchema: {
     type: "object",
     properties: {
       limit: {
         type: "number",
         description: "Maximum memories to return (default 100, max 200)."
+      },
+      thread: THREAD_SCOPE_SCHEMA,
+      kinds: {
+        type: "array",
+        items: KIND_SCHEMA,
+        description: "Only these kinds. Omit for every kind."
       }
     },
     required: []
   },
   category: "read",
-  userMessage: () => "Recalling conversation memory"
+  userMessage: () => "Recalling memory"
 };
 
-export const threadMemoryUpdateSpec: CapabilitySpec = {
-  name: "thread_memory_update",
+export const memorySearchSpec: CapabilitySpec = {
+  name: "memory_search",
   description:
-    "Update a memory in the current conversation by id. Only the fields you " +
-    "pass are changed; pass `resources` to replace the referenced resources.",
+    "Search your durable memories by keyword, across every conversation. " +
+    "Every word you pass must appear in a memory's title or content, matched " +
+    "case-insensitively, so fewer words find more. Use it to recall what you " +
+    "learned in an earlier conversation — e.g. 'palette' or 'hero image'. " +
+    "Results are newest first with their resources resolved.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description:
+          "Words to look for, separated by spaces (e.g. 'brand colour'). " +
+          "A memory matches only when it contains all of them."
+      },
+      limit: {
+        type: "number",
+        description: "Maximum matches to return (default 25, max 200)."
+      },
+      thread: THREAD_SCOPE_SCHEMA,
+      kinds: {
+        type: "array",
+        items: KIND_SCHEMA,
+        description: "Only search these kinds. Omit for every kind."
+      }
+    },
+    required: ["query"]
+  },
+  category: "read",
+  userMessage: (params) => {
+    const query = isString(params.query) ? params.query.trim() : "";
+    return query
+      ? `Searching memory for "${query.slice(0, 40)}"`
+      : "Searching memory";
+  }
+};
+
+export const memoryUpdateSpec: CapabilitySpec = {
+  name: "memory_update",
+  description:
+    "Update one of your memories by id, whichever conversation it was saved " +
+    "in. Only the fields you pass are changed; pass `resources` to replace " +
+    "the referenced resources.",
   inputSchema: {
     type: "object",
     properties: {
       memory_id: {
         type: "string",
-        description: "Id of the memory to update (from thread_memory_list)."
+        description:
+          "Id of the memory to update (from memory_list or memory_search)."
       },
       content: { type: "string", description: "New content text." },
       title: { type: "string", description: "New title." },
@@ -145,17 +203,18 @@ export const threadMemoryUpdateSpec: CapabilitySpec = {
   userMessage: () => "Updating conversation memory"
 };
 
-export const threadMemoryDeleteSpec: CapabilitySpec = {
-  name: "thread_memory_delete",
+export const memoryDeleteSpec: CapabilitySpec = {
+  name: "memory_delete",
   description:
-    "Delete a memory from the current conversation by id when it's no longer " +
-    "relevant or was superseded.",
+    "Delete one of your memories by id, whichever conversation it was saved " +
+    "in, when it is no longer relevant or was superseded.",
   inputSchema: {
     type: "object",
     properties: {
       memory_id: {
         type: "string",
-        description: "Id of the memory to delete (from thread_memory_list)."
+        description:
+          "Id of the memory to delete (from memory_list or memory_search)."
       }
     },
     required: ["memory_id"]
@@ -166,8 +225,9 @@ export const threadMemoryDeleteSpec: CapabilitySpec = {
 
 /** Every spec this module declares, in declaration order. */
 export const memorySpecs: readonly CapabilitySpec[] = [
-  threadMemorySaveSpec,
-  threadMemoryListSpec,
-  threadMemoryUpdateSpec,
-  threadMemoryDeleteSpec
+  memorySaveSpec,
+  memoryListSpec,
+  memorySearchSpec,
+  memoryUpdateSpec,
+  memoryDeleteSpec
 ];

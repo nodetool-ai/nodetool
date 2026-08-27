@@ -108,6 +108,13 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   create_entity: "write",
   update_entity: "write",
   delete_entity: "write",
+  // Skills are the user's own instruction documents in the local DB: reading
+  // the catalog or one body touches nothing, authoring one is a local write.
+  list_skills: "read",
+  load_skill: "read",
+  create_skill: "write",
+  update_skill: "write",
+  delete_skill: "write",
   validate_js_script: "read",
   list_js_scripts: "read",
   get_js_script: "read",
@@ -157,8 +164,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_shared: "read",
   read_shared: "read",
   share_result: "read",
-  // Thread-memory reads + asset-library discovery have no side effects.
-  thread_memory_list: "read",
+  // Memory reads + asset-library discovery have no side effects.
+  memory_list: "read",
+  memory_search: "read",
   asset_search: "read",
   asset_list: "read",
   create_plan: "read",
@@ -191,11 +199,11 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   convert_markdown_to_pdf: "write",
   convert_document: "write",
   save_asset: "write",
-  // Thread-memory mutations touch local DB state (not third-party), so they
+  // Memory mutations touch local DB state (not third-party), so they
   // are `write` (gated in default/plan mode), not the conservative `external`.
-  thread_memory_save: "write",
-  thread_memory_update: "write",
-  thread_memory_delete: "write",
+  memory_save: "write",
+  memory_update: "write",
+  memory_delete: "write",
   create_workflow: "write",
   ui_add_node: "write",
   ui_connect_nodes: "write",

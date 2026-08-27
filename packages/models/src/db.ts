@@ -401,7 +401,7 @@ const TABLE_COLUMNS = {
     rotated_from: "text",
     last_used_at: "text"
   },
-  nodetool_thread_memories: {
+  nodetool_memories: {
     id: "text",
     user_id: "text",
     thread_id: "text",
@@ -1279,10 +1279,10 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_skills_updated" ON "skills" ("updated_at");
     CREATE UNIQUE INDEX IF NOT EXISTS "idx_skills_user_name_unique" ON "skills" ("user_id", "name");
 
-    CREATE TABLE IF NOT EXISTS "nodetool_thread_memories" (
+    CREATE TABLE IF NOT EXISTS "nodetool_memories" (
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,
-      "thread_id" text NOT NULL,
+      "thread_id" text NOT NULL DEFAULT '',
       "kind" text NOT NULL DEFAULT 'note',
       "title" text NOT NULL DEFAULT '',
       "content" text NOT NULL DEFAULT '',
@@ -1291,8 +1291,8 @@ function getCreateSchemaSql(): string {
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
-    CREATE INDEX IF NOT EXISTS "idx_thread_memory_thread_created" ON "nodetool_thread_memories" ("thread_id", "created_at");
-    CREATE INDEX IF NOT EXISTS "idx_thread_memory_user" ON "nodetool_thread_memories" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_memory_user_created" ON "nodetool_memories" ("user_id", "created_at");
+    CREATE INDEX IF NOT EXISTS "idx_memory_thread_created" ON "nodetool_memories" ("thread_id", "created_at");
 
     CREATE TABLE IF NOT EXISTS "external_identities" (
       "id" text PRIMARY KEY NOT NULL,

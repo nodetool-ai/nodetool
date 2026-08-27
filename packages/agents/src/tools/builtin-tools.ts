@@ -44,11 +44,19 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Task tracking
   "todo_write",
 
-  // Thread-level memory (durable per-conversation notes + asset references)
-  "thread_memory_save",
-  "thread_memory_list",
-  "thread_memory_update",
-  "thread_memory_delete",
+  // Durable memory (user-scoped notes + asset references, every thread)
+  "memory_save",
+  "memory_list",
+  "memory_search",
+  "memory_update",
+  "memory_delete",
+
+  // Skills (the user's own instructions: discover, read, author)
+  "list_skills",
+  "load_skill",
+  "create_skill",
+  "update_skill",
+  "delete_skill",
 
   // Chat history (past conversations and what was said in them)
   "list_threads",
@@ -137,8 +145,6 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "critique_image",
   "compare_images",
   "score_image_adherence",
-  "record_style_preference",
-  "get_style_profile",
 
   // Video understanding (a multimodal chat model reads a whole clip)
   "understand_video",

@@ -8,7 +8,7 @@
  * behind both halves.
  *
  * Wire names, descriptions and schemas are the ones the three `Tool`
- * subclasses in `../tools/memory-tools.ts` carried, unchanged.
+ * subclasses in `../tools/shared-tools.ts` carried, unchanged.
  */
 
 import type { CapabilitySpec } from "./types.js";
@@ -101,7 +101,7 @@ export const shareResultSpec: CapabilitySpec = {
     "fetch it via `read_shared`. Use this to broadcast facts, intermediate " +
     "findings, or coordination signals to the rest of the team. Shared memory " +
     "lives only for the current run — to keep something past it, use " +
-    "`thread_memory_save` instead.",
+    "`memory_save` instead.",
   inputSchema: {
     type: "object",
     properties: {

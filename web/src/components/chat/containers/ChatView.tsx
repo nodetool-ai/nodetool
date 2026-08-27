@@ -29,10 +29,10 @@ import {
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
-import { ThreadMemorySidebar } from "../sidebar/ThreadMemorySidebar";
+import { MemorySidebar } from "../sidebar/MemorySidebar";
 import { TaskUpdateSidebar } from "../sidebar/TaskUpdateSidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import { useThreadMemoryPanelStore } from "../../../stores/ThreadMemoryPanelStore";
+import { useMemoryPanelStore } from "../../../stores/MemoryPanelStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import {
@@ -132,8 +132,6 @@ type ChatViewProps = {
   onModelChange?: (model: LanguageModel) => void;
   onStop?: () => void;
   onNewChat?: () => void;
-  memoryEnabled?: boolean;
-  onMemoryToggle?: (enabled: boolean) => void;
   workflowAssistant?: boolean;
   /** Context-specific system-prompt addendum appended to the base chat prompt. */
   systemPrompt?: string;
@@ -212,8 +210,6 @@ const ChatView = ({
   onModelChange,
   onStop,
   onNewChat,
-  memoryEnabled,
-  onMemoryToggle,
   systemPrompt,
   uiContext,
   chatSource,
@@ -298,9 +294,9 @@ const ChatView = ({
     Boolean(currentTaskUpdate) &&
     !hasAgentExecutionMessages;
   const showTodoSidebar = railsFit && !showTaskSidebar && todos.length > 0;
-  const memoryPanelOpen = useThreadMemoryPanelStore((state) => state.isOpen);
-  const toggleMemoryPanel = useThreadMemoryPanelStore((state) => state.toggle);
-  const closeMemoryPanel = useThreadMemoryPanelStore((state) => state.setOpen);
+  const memoryPanelOpen = useMemoryPanelStore((state) => state.isOpen);
+  const toggleMemoryPanel = useMemoryPanelStore((state) => state.toggle);
+  const closeMemoryPanel = useMemoryPanelStore((state) => state.setOpen);
   const canShowMemorySidebar =
     railsFit && !showTaskSidebar && Boolean(effectiveThreadId);
 
@@ -385,8 +381,6 @@ const ChatView = ({
           onNewChat={onNewChat}
           selectedModel={model}
           onModelChange={onModelChange}
-          memoryEnabled={memoryEnabled}
-          onMemoryToggle={onMemoryToggle}
           allowedProviders={allowedProviders}
           requireToolSupport={requireToolSupport}
           variant={composerVariant}
@@ -402,7 +396,7 @@ const ChatView = ({
       )}
       {showTodoSidebar && <TodoSidebar todos={todos} />}
       {canShowMemorySidebar && memoryPanelOpen && effectiveThreadId && (
-        <ThreadMemorySidebar
+        <MemorySidebar
           threadId={effectiveThreadId}
           onClose={() => closeMemoryPanel(false)}
         />

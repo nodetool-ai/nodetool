@@ -555,7 +555,7 @@ argument is now `run.examples`, built by the same host code that builds it today
 | `/assets`, `/jobs` | `mcp-tools.ts` asset/job tools, `asset-library-tools.ts`, `view-image-tool.ts` | storage interfaces on `context` |
 | `/web` | `search-tools.ts`, `browser-tools.ts`, `http-tools.ts` | — |
 | `/documents` | `pdf-tools.ts` | — |
-| `/memory`, `/email`, `/style` | `thread-memory-tools.ts`, `email-tools.ts`, critique-style pair | — |
+| `/memory`, `/email`, `/style` | `memory-tools.ts`, `email-tools.ts`, critique-style pair | — |
 | `/collections` | `collection-tools.ts`, `vector-tools.ts` | vector provider / collection |
 | `/apps` | `build_app`, `debug_app` (`mcp-tools.ts`) | `nodeRegistry` |
 | `/timelines`, `/sketches`, `/scripts`, `/storyboards` | version/edit/voice/render tool files | `loaders` |
@@ -990,7 +990,7 @@ unchanged, `shared.ts` attaches each to an implementation reading
 `DECLARED_CAPABILITY_MODULES` and the spec table, so `eagerSpecDrift` and the
 category snapshot cover them like every other namespace.
 
-Not folded into `memory`. That module is thread memory — a database row that
+Not folded into `memory`. That module is the durable store — a database row that
 outlives the run — and these are the run's own `AgentMemory`, discarded with it.
 The naming now shows the lifetimes: `nodetool.shared` run-scoped beside
 `nodetool.memory` thread-scoped.

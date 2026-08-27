@@ -68,10 +68,6 @@ import {
   type AgentOutputFormat,
   outputFormatDirective
 } from "./output-format.js";
-import {
-  formatMemoryForPrompt,
-  type LongTermMemory
-} from "./long-term-memory.js";
 import { isFunction, isString } from "./utils/type-guards.js";
 
 // ---------------------------------------------------------------------------
@@ -198,34 +194,6 @@ export interface AgentOptions {
    */
   sandboxPackages?: readonly string[];
   /**
-   * Optional long-term memory. When provided, items relevant to the agent's
-   * objective are recalled before planning and folded into the system prompt
-   * so the planner and every step inherit the same context.
-   *
-   * **Writes are opt-in.** Agent runs do NOT auto-mine the objective +
-   * final result for memories by default — agent results are generated
-   * output, not user-confirmed facts, and persisting them across sessions
-   * pollutes the store with hallucinations or run-specific artefacts.
-   * To re-enable automatic mining for a specific agent, set
-   * {@link AgentOptions.autoPersistMemory} to `true`.
-   */
-  longTermMemory?: LongTermMemory | null;
-  /**
-   * If `true`, mine the objective + final result for memories on a
-   * best-effort basis when the run finishes. Defaults to `false`.
-   */
-  autoPersistMemory?: boolean;
-  /**
-   * Run an LLM synthesis pass over recalled memory before folding it into the
-   * prompt. Returns <=7 cited, query-relevant facts instead of raw items.
-   * Default ON: pass `false` to use the raw recall path. The synthesis
-   * provider/model live on the {@link LongTermMemory} instance (typically the
-   * chat/extraction provider); when the LTM has none, this silently degrades to
-   * raw recall regardless of the flag. Note that long-term memory itself is
-   * opt-in, so this only has any effect once memory is enabled.
-   */
-  synthesizeRecall?: boolean;
-  /**
    * Use the graph-native planner: build a DAG of nodes directly instead of a
    * TaskPlan. Requires {@link registry}. When set, planning emits a workflow
    * graph executed by {@link executeAgentGraph}.
@@ -339,9 +307,6 @@ export class Agent {
   private readonly skillDirs: string[];
   private readonly sandboxPackages: string[];
   private readonly initialTask?: Task;
-  private readonly longTermMemory: LongTermMemory | null;
-  private readonly autoPersistMemory: boolean;
-  private readonly synthesizeRecall: boolean;
   private readonly useGraphPlanner: boolean;
   private readonly graphSource?: AgentGraphSource;
   private readonly supervise: boolean;
@@ -382,9 +347,6 @@ export class Agent {
     this.skillDirs = opts.skillDirs ?? [];
     this.sandboxPackages = sessionAllowedPackages(opts.sandboxPackages);
     this.initialTask = opts.task;
-    this.longTermMemory = opts.longTermMemory ?? null;
-    this.autoPersistMemory = opts.autoPersistMemory === true;
-    this.synthesizeRecall = opts.synthesizeRecall ?? true;
     this.useGraphPlanner = opts.useGraphPlanner === true;
     this.graphSource = opts.graph;
     this.supervise = opts.supervise === true;
@@ -444,13 +406,29 @@ export class Agent {
 
   /**
    * Discover all valid skills for the current user from the database.
-   * Database failures propagate so agent startup does not silently omit skills.
+   *
+   * A query failure propagates, so agent startup does not silently omit skills
+   * the user has. A process with no database at all is the one exception: an
+   * embedded run (a node, a test, a headless harness) never opened one, and
+   * refusing to run because a table nobody wrote to is unreachable would be a
+   * new failure mode rather than a preserved skill.
    */
   private async discoverSkills(
     context: ProcessingContext
   ): Promise<Map<string, AgentSkill>> {
     const discovered = new Map<string, AgentSkill>();
-    const skills = await loadSkillsFromDatabase(context.userId);
+    const skills = await loadSkillsFromDatabase(context.userId).catch(
+      (err: unknown) => {
+        if (
+          err instanceof Error &&
+          err.message.startsWith("Database not initialized")
+        ) {
+          log.debug("No database in this process; skipping user skills");
+          return [] as AgentSkill[];
+        }
+        throw err;
+      }
+    );
     for (const skill of skills) {
       if (!discovered.has(skill.name)) {
         discovered.set(skill.name, skill);
@@ -529,17 +507,11 @@ export class Agent {
     return `${this.objective}\n\nRelevant Skills:\n${summaries}`;
   }
 
-  /**
-   * Merge user system prompt, skills and recalled long-term memory.
-   */
-  private mergeSystemPrompt(
-    skillPrompt: string | null,
-    memoryPrompt: string | null = null
-  ): string | undefined {
+  /** Merge the user system prompt with the active skills. */
+  private mergeSystemPrompt(skillPrompt: string | null): string | undefined {
     const parts: string[] = [];
     if (this.systemPrompt) parts.push(this.systemPrompt);
     if (skillPrompt) parts.push(skillPrompt);
-    if (memoryPrompt) parts.push(memoryPrompt);
     const formatDirective = outputFormatDirective(this.outputFormat);
     if (formatDirective) parts.push(formatDirective);
     if (parts.length === 0) return undefined;
@@ -590,34 +562,7 @@ export class Agent {
     const skillSystemPrompt = this.buildSkillSystemPrompt(activeSkills);
     const effectiveObjective = this.buildEffectiveObjective(activeSkills);
 
-    // Recall long-term memory and fold it into the system prompt so the
-    // planner and every step share the same background context. Best-effort:
-    // if the LTM backend is misconfigured we just continue without it.
-    let memoryPrompt: string | null = null;
-    if (this.longTermMemory && this.longTermMemory.isReady()) {
-      try {
-        let block: string;
-        if (this.synthesizeRecall && this.longTermMemory.synthesisEnabled) {
-          const { items, facts } = await this.longTermMemory.recallSynthesized(
-            this.objective
-          );
-          block = formatMemoryForPrompt(items, facts);
-        } else {
-          const recalled = await this.longTermMemory.recall(this.objective);
-          block = formatMemoryForPrompt(recalled);
-        }
-        if (block) memoryPrompt = block;
-      } catch (err) {
-        log.warn("Long-term memory recall failed", {
-          name: this.name,
-          error: err instanceof Error ? err.message : String(err)
-        });
-      }
-    }
-    const mergedSystemPrompt = this.mergeSystemPrompt(
-      skillSystemPrompt,
-      memoryPrompt
-    );
+    const mergedSystemPrompt = this.mergeSystemPrompt(skillSystemPrompt);
 
     const workspacePath =
       this.workspace ??
@@ -826,7 +771,6 @@ export class Agent {
     }
 
     log.info("Agent completed", { name: this.name });
-    this.persistAgentRunMemory();
   }
 
   /**
@@ -1193,7 +1137,6 @@ export class Agent {
       status: result.status,
       interventions: result.interventions?.length ?? 0
     });
-    this.persistAgentRunMemory();
   }
 
   /**
@@ -1261,39 +1204,6 @@ export class Agent {
     }
 
     log.info("Agent completed", { name: this.name });
-    this.persistAgentRunMemory();
-  }
-
-  /**
-   * Mine the completed run for new long-term memories. Fire-and-forget so a
-   * slow extraction call never blocks the caller, and any backend error is
-   * swallowed (already logged inside the LTM module).
-   */
-  private persistAgentRunMemory(): void {
-    if (!this.autoPersistMemory) return;
-    if (!this.longTermMemory || !this.longTermMemory.isReady()) return;
-    const resultText =
-      this.results === null || this.results === undefined
-        ? ""
-        : isString(this.results)
-          ? this.results
-          : (() => {
-              try {
-                return JSON.stringify(this.results);
-              } catch {
-                return String(this.results);
-              }
-            })();
-    if (!resultText.trim()) return;
-    const synthetic: Message[] = [
-      { role: "user", content: this.objective },
-      { role: "assistant", content: resultText }
-    ];
-    void this.longTermMemory
-      .rememberConversation(synthetic, { source: `agent:${this.name}` })
-      .catch(() => {
-        // already logged inside rememberConversation
-      });
   }
 
   getResults(): unknown {

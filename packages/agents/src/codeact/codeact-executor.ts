@@ -7,7 +7,7 @@
  * as imported capability modules, and `finish(result)` completes the step
  * (host-validated against the step's output schema). The program's outcome —
  * return value, logs, error — is the observation for the next turn. Results a
- * later action or turn needs go through thread memory (`nodetool.memory.*`).
+ * later action or turn needs go through memory (`nodetool.memory.*`).
  *
  * The message contract (`task_update`, `step_result`, `tool_call_update`,
  * `chunk`), memory writes, and failure semantics are byte-compatible with
@@ -40,7 +40,7 @@ import {
 } from "@nodetool-ai/protocol";
 import type { Step, Task } from "../types.js";
 import { Tool } from "../tools/base-tool.js";
-import { getMemoryTools } from "../tools/memory-tools.js";
+import { getSharedTools } from "../tools/shared-tools.js";
 import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
 import type { CapabilityRun } from "../capabilities/types.js";
 import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
@@ -402,7 +402,7 @@ export class CodeActExecutor {
   /**
    * Uncommitted graph-model op queues, carried across actions of the step.
    * Internal plumbing for `openWorkflow()` — not a guest-facing contract;
-   * durable results belong in thread memory (`nodetool.memory.*`).
+   * durable results belong in memory (`nodetool.memory.*`).
    */
   private readonly graphQueues: Record<string, unknown> = {};
   private result: unknown = null;
@@ -430,8 +430,8 @@ export class CodeActExecutor {
 
     // Memory tools ride in the toolbelt as functions like everything else.
     const existing = new Set(this.tools.map((t) => t.name));
-    for (const memoryTool of getMemoryTools()) {
-      if (!existing.has(memoryTool.name)) this.tools.push(memoryTool);
+    for (const sharedTool of getSharedTools()) {
+      if (!existing.has(sharedTool.name)) this.tools.push(sharedTool);
     }
 
     // Authoring a graph is a package, not a builder: a belt that can save,

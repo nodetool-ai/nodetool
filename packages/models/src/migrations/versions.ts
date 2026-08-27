@@ -1968,6 +1968,10 @@ export const migrations: MigrationDef[] = [
   // Durable, per-conversation memory. Rows are scoped to a chat thread and
   // can reference assets (generated images/videos) so an agent can record
   // and reuse the media it produces across a creative project.
+  //
+  // Superseded by 20260827_000001, which drops the thread boundary and
+  // renames the table. This one keeps writing the shape it was written
+  // against — a migration is history, not a description of today's schema.
   {
     version: "20260722_000000",
     name: "create_thread_memories",
@@ -2927,6 +2931,71 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_skills_user_name");
       await db.execute("DROP INDEX IF EXISTS idx_skills_user");
       await db.execute("DROP TABLE IF EXISTS skills");
+    }
+  },
+
+  // ── Rename thread_memories → memories ────────────────────────────────
+  // Memory stops being per-conversation. The rows are user-scoped now and
+  // every thread reads all of them, so `thread_id` becomes provenance and
+  // the hot index moves to (user_id, created_at). A fresh install already
+  // has the new table from the create-schema DDL, so the rename is skipped.
+  {
+    version: "20260827_000001",
+    name: "rename_thread_memories_to_memories",
+    createsTables: [],
+    modifiesTables: ["nodetool_memories"],
+    async up(db) {
+      if (await db.tableExists("nodetool_thread_memories")) {
+        if (await db.tableExists("nodetool_memories")) {
+          // Both present: the new table came from the create-schema DDL on a
+          // database that also carries the old one. Move the rows over rather
+          // than failing the rename, then retire the old table.
+          await db.execute(`
+            INSERT INTO nodetool_memories (
+              id, user_id, thread_id, kind, title, content,
+              resources, metadata, created_at, updated_at
+            )
+            SELECT id, user_id, thread_id, kind, title, content,
+                   resources, metadata, created_at, updated_at
+              FROM nodetool_thread_memories
+             WHERE id NOT IN (SELECT id FROM nodetool_memories)
+          `);
+          await db.execute("DROP TABLE nodetool_thread_memories");
+        } else {
+          await db.execute(
+            "ALTER TABLE nodetool_thread_memories RENAME TO nodetool_memories"
+          );
+        }
+      }
+      await db.execute("DROP INDEX IF EXISTS idx_thread_memory_thread_created");
+      await db.execute("DROP INDEX IF EXISTS idx_thread_memory_user");
+      // Neither table is present when a `down()` sequence has torn the schema
+      // back past the create step; there is nothing to index.
+      if (!(await db.tableExists("nodetool_memories"))) return;
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_memory_user_created
+        ON nodetool_memories (user_id, created_at)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_memory_thread_created
+        ON nodetool_memories (thread_id, created_at)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_memory_user_created");
+      await db.execute("DROP INDEX IF EXISTS idx_memory_thread_created");
+      if (!(await db.tableExists("nodetool_memories"))) return;
+      await db.execute(
+        "ALTER TABLE nodetool_memories RENAME TO nodetool_thread_memories"
+      );
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_thread_memory_thread_created
+        ON nodetool_thread_memories (thread_id, created_at)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_thread_memory_user
+        ON nodetool_thread_memories (user_id)
+      `);
     }
   }
 ];

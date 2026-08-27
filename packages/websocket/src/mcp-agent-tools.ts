@@ -313,7 +313,7 @@ function collectBridgedTools(
 ): Tool[] {
   return [
     // The chat agent's built-ins: files, search, browser, PDF, vision,
-    // critique, thread memory, asset library, todo. `getAgentToolbelt()`, not
+    // critique, memory, asset library, todo. `getAgentToolbelt()`, not
     // `getBuiltinTools()`: the provider-specific media and search duplicates
     // are dropped because `nodetool.media` / `web_search` route across
     // backends, and this surface now has the object model that does it.

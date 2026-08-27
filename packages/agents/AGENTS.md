@@ -6,7 +6,7 @@ Every `ProcessingContext` carries an `AgentMemory` instance at `context.memory`.
 
 ### Access pattern: progressive disclosure via tools
 
-Memory contents are NOT auto-injected into prompts. Agents access memory through three capabilities that are auto-attached to every step (and to every team iteration). They are the `shared` capability module (`src/capabilities/shared.ts`) — kept apart from `memory`, which is thread memory and a different lifetime — and `getMemoryTools()` (`src/tools/memory-tools.ts`) is the belt the executors mount them from:
+Memory contents are NOT auto-injected into prompts. Agents access memory through three capabilities that are auto-attached to every step (and to every team iteration). They are the `shared` capability module (`src/capabilities/shared.ts`) — kept apart from `memory`, which is the user's durable store and a different lifetime — and `getSharedTools()` (`src/tools/shared-tools.ts`) is the belt the executors mount them from:
 
 | Tool | Object model | Purpose |
 |---|---|---|
@@ -1023,7 +1023,7 @@ every task failed throws instead of compiling a deliverable out of nothing.
 The action space of the step loop, and the only one. Each step acts by writing
 JavaScript that runs in the QuickJS sandbox with the toolbelt exposed as
 imports from `@nodetool-ai/sandbox-nodetool/<namespace>`, `finish(result)` for
-host-validated completion, and thread memory (`nodetool.memory.*`) for results
+host-validated completion, and memory (`nodetool.memory.*`) for results
 a later action or turn needs — there is no cross-action variable bag. The
 prompt tells the model to record each generate/speak result (an `asset://` uri)
 with `nodetool.memory.save` and reuse it; local variables die with the action,
@@ -1145,7 +1145,7 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   backend host-side; `provider` pins one: `"default"`, `"serpapi"`,
   `"dataforseo"`, `"brave"`, `"apify"`, `"openai"`, `"google"` — plus
   `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
-  (`save/list/update/remove` over `thread_memory_*`), `nodetool.shared`
+  (`save/list/search/update/remove` over `memory_*`), `nodetool.shared`
   (`list/read/publish` over `list_shared`/`read_shared`/`share_result` — the
   run's own scratchpad, beside thread-scoped `nodetool.memory`),
   `nodetool.threads` (`list/get/last/message` over `list_threads`/`get_thread`/
@@ -1589,7 +1589,7 @@ Eleven suites are registered:
 | `storyboard-tools` | `ui_storyboard_*` | `surfaces/storyboard.ts` |
 | `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
 | `app-tools` | `ui_app_*` App Builder | `surfaces/app.ts` |
-| `thread-memory-tools` | `thread_memory_*` / `asset_*` | `surfaces/thread-memory.ts` |
+| `memory-tools` | `memory_*` / `asset_*` | `surfaces/memory.ts` |
 | `creative-pipeline` | the three creative surfaces, composed, plus `ui_brief_*` / `ui_review_*` | `surfaces/creative-pipeline.ts` |
 
 `creative-pipeline` is the long-horizon suite: one commission carried through
@@ -1724,12 +1724,14 @@ case is the one models fail here.
 Harness tests, including a golden transcript per case so no case can be
 unsatisfiable: `tests/escalation-tool-loop.test.ts`.
 
-`thread-memory-tools` is the odd one out: instead of reimplementing a browser
-surface, its bridge executes the **real backend tools** (`thread_memory_save`/
-`list`, `asset_search`) plus a stub `generate_image` against an in-memory DB
-(`initTestDb`), so it exercises the actual persistence + resource validation a
-chat turn does. It scores the creative loop: generate media → remember it with
-an asset reference → recall it.
+`memory-tools` is the odd one out: instead of reimplementing a browser
+surface, its bridge executes the **real backend tools** (`memory_save`,
+`memory_list`, `memory_search`, `asset_search`) plus a stub `generate_image`
+against an in-memory DB (`initTestDb`), so it exercises the actual persistence
++ resource validation a chat turn does. It scores the creative loop: generate
+media → remember it with an asset reference → recall it — and one case seeds a
+memory in a *different* thread, which only a cross-thread `memory_search`
+finds.
 
 Bridges reuse the pure packages where the real logic already lives —
 `@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
@@ -1777,7 +1779,7 @@ npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-succe
 ```
 
 Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
-plus one per surface (`tests/{script,js-script,sketch,timeline,storyboard,model3d,app,thread-memory,creative-pipeline}-tool-loop.test.ts`).
+plus one per surface (`tests/{script,js-script,sketch,timeline,storyboard,model3d,app,memory,creative-pipeline}-tool-loop.test.ts`).
 For a live check against a real model, run the eval command above — a suite
 whose verdict depends on what a model chose belongs behind an explicit
 invocation, not in the unit suite, where a weak local model fails the run for
@@ -2050,6 +2052,34 @@ names, skills are auto-selected when words in their descriptions match words
 in the objective. Filesystem `SKILL.md` discovery and the old
 `NODETOOL_AGENT_SKILL_DIRS`, `NODETOOL_AGENT_SKILLS`, and
 `NODETOOL_AGENT_AUTO_SKILLS` environment variables are deprecated and ignored.
+
+A chat turn discovers skills the way it discovers sandbox packs — a catalog in
+context, a body behind a call. `buildSkillBlock` in the websocket runner renders
+`formatSkillCatalogForPrompt` (`src/skill-prompt.ts`) into every turn: one line
+per skill, name and description, plus the instruction to call `load_skill`
+before acting on one. The block is ephemeral — it reaches the provider and is
+never persisted, so it reflects the table as it is right now.
+
+`/<name>` skips that round trip. A message naming a skill with a leading slash
+is asking for it, so `findInvokedSkillNames` matches the text against the user's
+own names and `formatInvokedSkillsForPrompt` puts those bodies in the same
+block. The match needs a word boundary, so `src/utils` is a path and not an
+invocation. The composer's `/` autocomplete
+(`web/src/components/chat/composer/useTextareaSkillMention.tsx`) only types the
+text; the expansion is server-side, so a headless client gets it too.
+
+The `skills` capability module (`src/capabilities/skills.ts`) is the rest:
+
+| Capability | Does |
+|---|---|
+| `list_skills` | Names and descriptions, optionally filtered by `query` |
+| `load_skill` | One skill's full instructions by name |
+| `create_skill` | Author a new skill (names are unique per user) |
+| `update_skill` | Change name, description or body |
+| `delete_skill` | Remove one |
+
+Every one is scoped to `context.userId` and refuses a run that carries none.
+Tests: `tests/capabilities-skills.test.ts`.
 
 ### Tuning Checklist
 

@@ -26,14 +26,6 @@ import {
   stripImagePayload,
   truncateToolResult
 } from "@nodetool-ai/agents";
-// Pull `formatMemoryForPrompt` from the narrow `./memory` subpath so chat
-// consumers don't end up loading the full agents bundle (planners, graph
-// builder, sandbox, every tool class) just to render a memory block.
-// `LongTermMemory` is a type-only import and has no runtime cost.
-import {
-  formatMemoryForPrompt,
-  type LongTermMemory
-} from "@nodetool-ai/agents/memory";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -166,14 +158,6 @@ export async function processChat(opts: {
    * invalid tool calls and gets the same error back. Defaults to 25.
    */
   maxIterations?: number;
-  /**
-   * Optional long-term memory. When provided, relevant memories are recalled
-   * for `userInput` and injected as a system message into the provider call
-   * (without mutating `messages`, so they don't leak into persisted history).
-   * After the turn finishes, the conversation is mined for new memories on a
-   * best-effort basis — failures don't surface to the caller.
-   */
-  longTermMemory?: LongTermMemory | null;
 }): Promise<Message[]> {
   const {
     userInput,
@@ -186,8 +170,7 @@ export async function processChat(opts: {
     threadId,
     providerSession,
     signal,
-    maxIterations = 25,
-    longTermMemory
+    maxIterations = 25
   } = opts;
 
   // Stamp the turn's own selection so a tool that launches another harness
@@ -197,40 +180,11 @@ export async function processChat(opts: {
     model
   } satisfies ActiveModelSelection);
 
-  // Recall memory before pushing the user message — keep the recall fresh
-  // (relevant to the new query) and avoid leaking the system block into the
-  // persisted `messages` array. The recall result is held as a separate
-  // `memoryPrefix` that gets spliced into `messagesToSend` each iteration.
-  let memoryPrefix: Message[] = [];
-  if (longTermMemory && longTermMemory.isReady()) {
-    try {
-      const recalled = await longTermMemory.recall(userInput);
-      const block = formatMemoryForPrompt(recalled);
-      if (block) {
-        memoryPrefix = [{ role: "system", content: block }];
-      }
-    } catch {
-      // Memory recall is best-effort. A vector backend hiccup must not
-      // break the chat turn.
-    }
-  }
-
   // 1. Add user message
   messages.push({ role: "user", content: userInput });
 
   const providerTools =
     tools.length > 0 ? tools.map((t) => t.toProviderTool()) : undefined;
-
-  // Splice the memory block in right after any existing leading system
-  // messages so the persona/system contract still comes first.
-  const buildMessagesToSend = (): Message[] => {
-    if (memoryPrefix.length === 0) return messages;
-    let i = 0;
-    while (i < messages.length && messages[i].role === "system") i++;
-    return [...messages.slice(0, i), ...memoryPrefix, ...messages.slice(i)];
-  };
-
-  const messagesToSend: Message[] = buildMessagesToSend();
 
   // Run one tool call and return the result text to feed back to the model.
   // Owns tool resolution + the onToolResult callback; the provider's loop
@@ -256,12 +210,12 @@ export async function processChat(opts: {
     return injected ? [{ type: "text", text }, ...injected.images] : text;
   };
 
-  // The provider owns the agent loop now. `messagesToSend` (which may carry the
-  // ephemeral memory prefix) is the loop's input; it runs on its own copy, so
-  // we collect the finalized assistant/tool messages it emits into `messages`
+  // The provider owns the agent loop now. It runs on its own copy of the
+  // messages, so we collect the finalized assistant/tool messages it emits
+  // into `messages`
   // — keeping the memory prefix out of the returned, persisted history.
   for await (const item of provider.generateLoop({
-    messages: messagesToSend,
+    messages: messages,
     model,
     tools: providerTools,
     threadId,
@@ -297,23 +251,5 @@ export async function processChat(opts: {
 
   // Mine the completed turn for new long-term memories.
   //
-  // The shallow copy here only protects against the array itself being
-  // mutated (push / splice / reassignment) after we return — it does NOT
-  // deep-clone the message objects, so a caller that later mutates an
-  // existing message's `content` in place could in principle still race
-  // with extraction. In practice nothing in this repo mutates persisted
-  // message content post-hoc, so a deep clone would be wasted allocation
-  // on every turn; we accept the trade-off.
-  if (longTermMemory && longTermMemory.isReady()) {
-    const snapshot = messages.slice();
-    void longTermMemory
-      .rememberConversation(snapshot, {
-        source: threadId ? `chat:${threadId}` : "chat"
-      })
-      .catch(() => {
-        // Already logged inside rememberConversation.
-      });
-  }
-
   return messages;
 }

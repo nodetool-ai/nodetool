@@ -1331,7 +1331,7 @@ Exactly two tools land on `/mcp` and on `nodetool mcp serve`:
   graph editing tools), media generation (`generate_image`, `generate_video`, `generate_speech`,
   `transcribe_audio`, …), files (`read_file`, `write_file`, `edit_file`, `glob`, `grep`), web
   (`web_search`, `browser`, `http_request`), collections, documents, code execution, image
-  critique, and thread memory — as `nodetool.<namespace>.<method>()`, by importing them, or
+  critique, and memory — as `nodetool.<namespace>.<method>()`, by importing them, or
   found with `await nodetool.searchTools("query")`. Google Workspace tools appear only on
   deployments with a Google login.
 - **`view_image`** — direct, because image content cannot ride a sandbox action's JSON
@@ -1899,7 +1899,7 @@ its metrics — success rate, expectation score, tool calls, duration, and cost.
 **Suites:** `graph-planner`, `graph-e2e`, `code-gen`, `task-planner`, `subtask`,
 `codeact`, `app-build`, `tool-loop`, `workflow-escalation`, `script-tools`,
 `jsscript-tools`, `sketch-tools`, `timeline-tools`, `storyboard-tools`,
-`model3d-tools`, `app-tools`, `thread-memory-tools`, `creative-pipeline`.
+`model3d-tools`, `app-tools`, `memory-tools`, `creative-pipeline`.
 
 **Options** (the same on every suite):
 

@@ -68,10 +68,10 @@ describe("memory capability module", () => {
 
 describe("wire compatibility: a Tool built from the spec", () => {
   const pairs: Array<[Tool, string]> = [
-    [toolForCapabilityName("thread_memory_save"), "thread_memory_save"],
-    [toolForCapabilityName("thread_memory_list"), "thread_memory_list"],
-    [toolForCapabilityName("thread_memory_update"), "thread_memory_update"],
-    [toolForCapabilityName("thread_memory_delete"), "thread_memory_delete"]
+    [toolForCapabilityName("memory_save"), "memory_save"],
+    [toolForCapabilityName("memory_list"), "memory_list"],
+    [toolForCapabilityName("memory_update"), "memory_update"],
+    [toolForCapabilityName("memory_delete"), "memory_delete"]
   ];
 
   it.each(pairs)("%o keeps its name, description and schema", (tool, name) => {
@@ -83,13 +83,16 @@ describe("wire compatibility: a Tool built from the spec", () => {
 
   it("keeps the userMessage templates", () => {
     expect(
-      toolForCapabilityName("thread_memory_save").userMessage({
+      toolForCapabilityName("memory_save").userMessage({
         title: "palette"
       })
     ).toBe("Remembering: palette");
-    expect(toolForCapabilityName("thread_memory_list").userMessage({})).toBe(
-      "Recalling conversation memory"
+    expect(toolForCapabilityName("memory_list").userMessage({})).toBe(
+      "Recalling memory"
     );
+    expect(
+      toolForCapabilityName("memory_search").userMessage({ query: "fox" })
+    ).toBe('Searching memory for "fox"');
   });
 });
 
@@ -105,7 +108,7 @@ describe("behaviour through toolFromCapability", () => {
       content_type: "image/png"
     });
 
-    const saved = (await asTool(byName("thread_memory_save")).process(context, {
+    const saved = (await asTool(byName("memory_save")).process(context, {
       content: "User approved a teal palette.",
       title: "palette",
       kind: "decision",
@@ -113,7 +116,7 @@ describe("behaviour through toolFromCapability", () => {
     })) as { success: boolean; memory_id: string };
     expect(saved.success).toBe(true);
 
-    const listed = (await asTool(byName("thread_memory_list")).process(
+    const listed = (await asTool(byName("memory_list")).process(
       context,
       {}
     )) as {
@@ -128,32 +131,56 @@ describe("behaviour through toolFromCapability", () => {
     expect(listed.memories[0].kind).toBe("decision");
     expect(listed.memories[0].resources[0].uri).toBe(`asset://${asset.id}.png`);
 
-    const updated = (await asTool(byName("thread_memory_update")).process(
+    const updated = (await asTool(byName("memory_update")).process(
       context,
       { memory_id: saved.memory_id, content: "Teal, not turquoise." }
     )) as { success: boolean };
     expect(updated.success).toBe(true);
 
-    const deleted = (await asTool(byName("thread_memory_delete")).process(
+    const deleted = (await asTool(byName("memory_delete")).process(
       context,
       { memory_id: saved.memory_id }
     )) as { success: boolean };
     expect(deleted.success).toBe(true);
 
-    const empty = (await asTool(byName("thread_memory_list")).process(
+    const empty = (await asTool(byName("memory_list")).process(
       context,
       {}
     )) as { count: number };
     expect(empty.count).toBe(0);
   });
 
-  it("refuses to touch memory outside a thread", async () => {
+  it("saves outside a thread, and the memory has no origin thread", async () => {
     const noThread = { userId: "u1" } as unknown as ProcessingContext;
-    const result = (await asTool(byName("thread_memory_save")).process(
+    const result = (await asTool(byName("memory_save")).process(
       noThread,
       { content: "orphan" }
-    )) as { success: boolean; error: string };
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("No active thread");
+    )) as { success: boolean; memory_id: string };
+    expect(result.success).toBe(true);
+    const listed = (await asTool(byName("memory_list")).process(
+      noThread,
+      {}
+    )) as { memories: Array<{ content: string; from_current_thread: boolean }> };
+    expect(listed.memories.map((m) => m.content)).toContain("orphan");
+    expect(listed.memories[0].from_current_thread).toBe(false);
+  });
+
+  it("refuses every capability with no user", async () => {
+    const noUser = {} as unknown as ProcessingContext;
+    for (const name of [
+      "memory_save",
+      "memory_list",
+      "memory_search",
+      "memory_update",
+      "memory_delete"
+    ]) {
+      const result = (await asTool(byName(name)).process(noUser, {
+        content: "x",
+        query: "x",
+        memory_id: "x"
+      })) as { success: boolean; error: string };
+      expect(result.success, name).toBe(false);
+      expect(result.error, name).toContain("No user context");
+    }
   });
 });

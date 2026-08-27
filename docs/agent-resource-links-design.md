@@ -158,7 +158,7 @@ New component in `web/src/components/chat/message/`, built from
   `useAssets`/document queries) can replace a stale label with the current
   name and mark deleted resources (struck-through chip, no navigation).
   Failure of the lookup never breaks the chip.
-- Same treatment everywhere markdown renders: chat thread, thread memory
+- Same treatment everywhere markdown renders: chat thread, memory
   sidebar, agent-panel chats — they all go through `ChatMarkdown`.
 
 `urlTransform` is extended to pass resource-URI schemes through untouched; everything else keeps react-markdown's default sanitization.
@@ -223,7 +223,7 @@ One helper (`web/src/lib/chat/openResource.ts`):
 3. **Phase 3 — inbound references.** Composer chips, insert-reference
    action, `UiContext.referenced`.
 4. **Phase 4 (optional).** Label freshness via query lookup; deep-link
-   route; links in thread memory summaries.
+   route; links in memory summaries.
 
 ## 8. Testing
 

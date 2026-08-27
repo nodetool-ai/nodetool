@@ -293,7 +293,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
         cases: ["api-generate-then-critique", "api-pick-model-and-batch-images"],
       },
       {
-        file: "packages/agents/src/evals/surfaces/thread-memory.ts",
+        file: "packages/agents/src/evals/surfaces/memory.ts",
         cases: ["generate-and-remember"],
       },
     ],
@@ -383,7 +383,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "critique_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "4be751db1617",
+    contract: "d46bd53f7dfd",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -400,7 +400,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "compare_images",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "87dd644c8b7b",
+    contract: "426279b0dd84",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -456,38 +456,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-    ],
-  },
-  {
-    name: "record_style_preference",
-    module: "style",
-    impl: "packages/agents/src/capabilities/style.ts",
-    contract: "578f09e863ab",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-media.test.ts",
-    ],
-    evals: [
-      {
-        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["style-aware-app-check"],
-      },
-    ],
-  },
-  {
-    name: "get_style_profile",
-    module: "style",
-    impl: "packages/agents/src/capabilities/style.ts",
-    contract: "005473ebce1e",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-media.test.ts",
-    ],
-    evals: [
-      {
-        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["style-aware-app-check"],
-      },
     ],
   },
   {
@@ -764,6 +732,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-assets.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
     ],
   },
   {
@@ -774,6 +743,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-assets.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
     ],
   },
   {
@@ -821,7 +791,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["style-aware-app-check"],
+        cases: ["app-wiring-check"],
       },
     ],
   },
@@ -997,13 +967,14 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
-    name: "thread_memory_save",
+    name: "memory_save",
     module: "memory",
     impl: "packages/agents/src/capabilities/memory.ts",
-    contract: "4b15723cd1dd",
+    contract: "3ce3bc95c763",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
     ],
     evals: [
       {
@@ -1011,19 +982,20 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
         cases: ["memory-lifecycle"],
       },
       {
-        file: "packages/agents/src/evals/surfaces/thread-memory.ts",
+        file: "packages/agents/src/evals/surfaces/memory.ts",
         cases: ["generate-and-remember"],
       },
     ],
   },
   {
-    name: "thread_memory_list",
+    name: "memory_list",
     module: "memory",
     impl: "packages/agents/src/capabilities/memory.ts",
-    contract: "320683945cea",
+    contract: "3f0c7dee6c36",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
     ],
     evals: [
       {
@@ -1031,19 +1003,37 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
         cases: ["memory-lifecycle"],
       },
       {
-        file: "packages/agents/src/evals/surfaces/thread-memory.ts",
+        file: "packages/agents/src/evals/surfaces/memory.ts",
         cases: ["recall-existing"],
       },
     ],
   },
   {
-    name: "thread_memory_update",
+    name: "memory_search",
     module: "memory",
     impl: "packages/agents/src/capabilities/memory.ts",
-    contract: "ebd81673ecf4",
+    contract: "611215d2c382",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/surfaces/memory.ts",
+        cases: ["search-across-threads"],
+      },
+    ],
+  },
+  {
+    name: "memory_update",
+    module: "memory",
+    impl: "packages/agents/src/capabilities/memory.ts",
+    contract: "1366d2d42ae6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
     ],
     evals: [
       {
@@ -1053,13 +1043,14 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
-    name: "thread_memory_delete",
+    name: "memory_delete",
     module: "memory",
     impl: "packages/agents/src/capabilities/memory.ts",
-    contract: "ed70fa91a557",
+    contract: "b5a1bfc659ec",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
     ],
   },
   {
@@ -1067,10 +1058,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "shared",
     impl: "packages/agents/src/capabilities/shared.ts",
     contract: "2ce5956cae84",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/memory-tools.test.ts",
-    ],
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
@@ -1083,10 +1070,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "shared",
     impl: "packages/agents/src/capabilities/shared.ts",
     contract: "8df73f7ba674",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/memory-tools.test.ts",
-    ],
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
@@ -1098,11 +1081,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "share_result",
     module: "shared",
     impl: "packages/agents/src/capabilities/shared.ts",
-    contract: "5eabeac4b376",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/memory-tools.test.ts",
-    ],
+    contract: "51e593b67d6a",
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
@@ -1983,7 +1962,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_stills",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "ec217da520e7",
+    contract: "ad4811893137",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -1999,7 +1978,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_clips",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "19771422c136",
+    contract: "7cfc44e9c9d6",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -2041,7 +2020,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "14c59598a296",
+    contract: "f4d8b3cedbae",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -2641,6 +2620,56 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
         cases: ["settings-and-credentials"],
       },
+    ],
+  },
+  {
+    name: "list_skills",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "2963789253ad",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
+    ],
+  },
+  {
+    name: "load_skill",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "33b2c6e9e7e4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
+    ],
+  },
+  {
+    name: "create_skill",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "6404db74f39b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
+    ],
+  },
+  {
+    name: "update_skill",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "29a0aa33a2aa",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
+    ],
+  },
+  {
+    name: "delete_skill",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "29ca02ca69cc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
     ],
   },
 ];

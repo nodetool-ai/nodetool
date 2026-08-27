@@ -11,6 +11,9 @@ import {
   ScrollArea,
   CloseButton,
   DeleteButton,
+  SearchInput,
+  ToggleGroup,
+  ToggleOption,
   MOTION,
   BORDER_RADIUS,
   SPACING,
@@ -23,14 +26,17 @@ import { useNotificationStore } from "../../../stores/NotificationStore";
 import ConfirmDialog from "../../dialogs/ConfirmDialog";
 import { isString } from "../../../utils/typePredicates";
 
-const THREAD_MEMORY_SIDEBAR_WIDTH = 300;
+const MEMORY_SIDEBAR_WIDTH = 300;
 /** Asset thumbnail edge (px), on the 4px grid — a fixed component dimension. */
 const THUMB_SIZE = 48;
 
-type Memory = RouterOutputs["threadMemories"]["list"]["memories"][number];
+type Memory = RouterOutputs["memories"]["list"]["memories"][number];
 type Resource = Memory["resources"][number];
 
-interface ThreadMemorySidebarProps {
+/** Which memories the rail shows. Memory itself spans every conversation. */
+type Scope = "thread" | "all";
+
+interface MemorySidebarProps {
   threadId: string;
   /** Hides the rail. Omit when the surface has no way to reopen it. */
   onClose?: () => void;
@@ -38,7 +44,7 @@ interface ThreadMemorySidebarProps {
 
 const styles = (theme: Theme) =>
   css({
-    width: THREAD_MEMORY_SIDEBAR_WIDTH,
+    width: MEMORY_SIDEBAR_WIDTH,
     flexShrink: 0,
     height: "100%",
     borderLeft: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
@@ -53,6 +59,10 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "space-between",
       gap: getSpacingPx(SPACING.md)
+    },
+    ".memory-tools": {
+      padding: theme.spacing(0, 4, 3),
+      borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
     },
     ".memory-list": {
       flex: 1,
@@ -90,6 +100,10 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.sm,
       border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.10)`,
       display: "block"
+    },
+    ".memory-origin": {
+      opacity: 0.5,
+      marginTop: getSpacingPx(SPACING.xs)
     },
     ".empty-state": {
       padding: theme.spacing(8, 6),
@@ -133,7 +147,9 @@ const MemoryCard: React.FC<{
   memory: Memory;
   onDelete: (id: string) => void;
   deleteDisabled: boolean;
-}> = memo(({ memory, onDelete, deleteDisabled }) => {
+  /** The open thread, so a memory from elsewhere can say so. */
+  threadId: string;
+}> = memo(({ memory, onDelete, deleteDisabled, threadId }) => {
     const imageAssets = memory.resources.filter(isImageAsset);
     const otherResources = memory.resources.filter((r) => !isImageAsset(r));
     return (
@@ -160,6 +176,11 @@ const MemoryCard: React.FC<{
             {memory.content}
           </Text>
         )}
+        {memory.thread_id !== threadId && (
+          <Text size="smaller" className="memory-origin">
+            From another conversation
+          </Text>
+        )}
         {(imageAssets.length > 0 || otherResources.length > 0) && (
           <div className="memory-resources">
             {imageAssets.map((r) => (
@@ -181,11 +202,15 @@ const MemoryCard: React.FC<{
 MemoryCard.displayName = "MemoryCard";
 
 /**
- * Right rail showing the durable memories an agent recorded for the open
- * thread (via the `thread_memory_*` tools) — a live "what was worked on"
- * view of project notes and the assets/workflows/resources referenced.
+ * Right rail showing the durable memories an agent recorded via the `memory_*`
+ * tools — a live "what was worked on" view of project notes and the
+ * assets/workflows/resources referenced.
+ *
+ * Memory is user-scoped, so the rail opens on this conversation and the scope
+ * toggle widens it to every one. The search box runs the same keyword match
+ * the agent's `memory_search` runs: every word must appear.
  */
-export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
+export const MemorySidebar: React.FC<MemorySidebarProps> = memo(
   ({ threadId, onClose }) => {
     const theme = useTheme();
     const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -194,19 +219,32 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
       (state) => state.addNotification
     );
     const [memoryToDelete, setMemoryToDelete] = useState<string | null>(null);
+    const [scope, setScope] = useState<Scope>("thread");
+    const [query, setQuery] = useState("");
 
-    const { data } = trpc.threadMemories.list.useQuery(
-      { thread_id: threadId },
+    // Undefined widens the query to every conversation.
+    const threadFilter = scope === "thread" ? threadId : undefined;
+    const searching = query.trim().length > 0;
+
+    const listQuery = trpc.memories.list.useQuery(
+      { thread_id: threadFilter },
       {
-        enabled: Boolean(threadId),
+        enabled: Boolean(threadId) && !searching,
         // The agent writes memories mid-conversation; poll modestly so the
         // rail stays current without a websocket push.
         refetchInterval: 15_000
       }
     );
-    const deleteMemory = trpc.threadMemories.delete.useMutation({
-      onSuccess: () =>
-        utils.threadMemories.list.invalidate({ thread_id: threadId }),
+    const searchQuery = trpc.memories.search.useQuery(
+      { query: query.trim(), thread_id: threadFilter },
+      { enabled: Boolean(threadId) && searching }
+    );
+    const invalidate = () => {
+      utils.memories.list.invalidate();
+      utils.memories.search.invalidate();
+    };
+    const deleteMemory = trpc.memories.delete.useMutation({
+      onSuccess: invalidate,
       onError: (error) => {
         addNotification({
           type: "error",
@@ -216,10 +254,11 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
       }
     });
 
-    const memories = data?.memories ?? [];
+    const memories =
+      (searching ? searchQuery.data?.memories : listQuery.data?.memories) ?? [];
 
     return (
-      <aside className="thread-memory-sidebar" css={cssStyles}>
+      <aside className="memory-sidebar" css={cssStyles}>
         <FlexRow className="memory-header" align="center" justify="space-between">
           <Text
             size="small"
@@ -237,12 +276,37 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
             {onClose && <CloseButton onClick={onClose} tooltip="Hide memory" />}
           </FlexRow>
         </FlexRow>
+        <FlexColumn className="memory-tools" gap={2}>
+          <ToggleGroup
+            value={scope}
+            exclusive
+            segmented
+            fullWidth
+            onChange={(_, next) => {
+              if (next === "thread" || next === "all") setScope(next);
+            }}
+            aria-label="Memory scope"
+          >
+            <ToggleOption value="thread">This chat</ToggleOption>
+            <ToggleOption value="all">All</ToggleOption>
+          </ToggleGroup>
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search memories"
+            ariaLabel="Search memories by keyword"
+            size="small"
+            fullWidth
+            debounceMs={250}
+          />
+        </FlexColumn>
         <ScrollArea className="memory-list">
           {memories.length === 0 ? (
             <div className="empty-state">
               <Text size="small">
-                Nothing saved yet. The agent records project notes and the
-                assets it creates here as it works.
+                {searching
+                  ? "No memory contains all of those words."
+                  : "Nothing saved yet. The agent records project notes and the assets it creates here as it works."}
               </Text>
             </div>
           ) : (
@@ -251,6 +315,7 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
                 <MemoryCard
                   key={memory.id}
                   memory={memory}
+                  threadId={threadId}
                   onDelete={setMemoryToDelete}
                   deleteDisabled={deleteMemory.isPending}
                 />
@@ -276,4 +341,4 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
   }
 );
 
-ThreadMemorySidebar.displayName = "ThreadMemorySidebar";
+MemorySidebar.displayName = "MemorySidebar";

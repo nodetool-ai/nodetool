@@ -240,8 +240,8 @@ export const CRITIQUE_IMAGE_SCHEMA: JsonSchema = {
     taste_profile: {
       type: "string" as const,
       description:
-        "Optional style profile from get_style_profile to judge against " +
-        "the user's aesthetic, not generic taste."
+        "Optional description of the user's aesthetic, so the judge weighs " +
+        "that rather than generic taste."
     }
   },
   required: ["provider", "model", "image", "brief"]
@@ -270,8 +270,8 @@ export const COMPARE_IMAGES_SCHEMA: JsonSchema = {
     taste_profile: {
       type: "string" as const,
       description:
-        "Optional style profile from get_style_profile so the judge weighs " +
-        "the user's aesthetic."
+        "Optional description of the user's aesthetic, so the judge weighs " +
+        "that rather than generic taste."
     }
   },
   required: ["provider", "model", "images", "brief"]

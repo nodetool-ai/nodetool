@@ -29,7 +29,6 @@ const gcState = {
   stopGeneration: jest.fn(),
   selectedModel: { id: "m1", provider: "openai" },
   setSelectedModel: jest.fn(),
-  memoryEnabled: false,
   setMemoryEnabled: jest.fn(),
   connect
 };

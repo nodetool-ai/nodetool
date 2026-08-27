@@ -59,7 +59,7 @@ export const READ_ONLY_TOOL_NAMES: ReadonlySet<string> = new Set([
   "read_shared",
   // Read-only discovery over the thread's memory and the asset library, so a
   // fan-out search sub-agent can find prior notes and generated media.
-  "thread_memory_list",
+  "memory_list",
   "asset_search",
   "asset_list"
 ]);

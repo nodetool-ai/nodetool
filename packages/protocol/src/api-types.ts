@@ -659,14 +659,6 @@ export interface Message {
    */
   enable_read_only_search?: boolean | null;
   /**
-   * Per-message opt-in for long-term memory recall + extraction. When
-   * `true`, the websocket session resolves a per-user, per-thread
-   * `LongTermMemory` instance and folds recalled items into the system
-   * prompt. When `false` or omitted, memory stays inert for this
-   * message even if the global env flag is set.
-   */
-  memory_enabled?: boolean | null;
-  /**
    * Context-specific system-prompt addendum supplied by the originating surface
    * (e.g. the App Builder's build-an-app-UI guidance, an editor's assistant
    * instructions). The server layers it after the base chat system prompt — it

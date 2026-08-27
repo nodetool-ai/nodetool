@@ -52,7 +52,7 @@ nodetool agent run -p openai -m gpt-5.4-mini \
 ### Tools
 
 The agent gets the default toolbelt: files, search, browser, PDF, vision,
-critique, thread memory, assets, todo, plus the platform tools — workflows,
+critique, memory, assets, todo, plus the platform tools — workflows,
 nodes, jobs, apps, models, and media generation. This is the same belt the chat
 agent and the MCP bridge assemble, so the surfaces cannot drift. The belt is not
 narrowable from the command line — `nodetool agent run` has no `--tools` flag.

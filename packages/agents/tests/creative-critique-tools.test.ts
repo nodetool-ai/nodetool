@@ -1,31 +1,20 @@
 /**
  * Tests for the VLM-judge creative critique tools: critique_image,
- * compare_images, score_image_adherence, record_style_preference,
- * get_style_profile.
+ * compare_images, score_image_adherence.
  *
  * All judging goes through `ProcessingContext.runProviderPrediction` with the
  * `generate_message` capability; that surface is mocked here — no providers,
- * network, or database. The taste tools are exercised against a stubbed
- * LongTermMemory bound via the constructor.
+ * network, or database.
  */
 
 import { describe, it, expect, vi } from "vitest";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
-import type { LongTermMemory } from "../src/long-term-memory.js";
 
 const critiqueImageTool = () => toolForCapabilityName("critique_image");
 const compareImagesTool = () => toolForCapabilityName("compare_images");
 const scoreImageAdherenceTool = () =>
   toolForCapabilityName("score_image_adherence");
-
-/** The bound memory was a constructor argument; it now rides on the run. */
-function styleTool(name: string, memory?: LongTermMemory) {
-  return toolForCapabilityName(name, (context) =>
-    createCapabilityRun({ context, gate: UNGATED, memory })
-  );
-}
 
 function makeContext(runProviderPrediction?: ReturnType<typeof vi.fn>): any {
   return { runProviderPrediction, userId: "user-1" };
@@ -296,77 +285,3 @@ describe("score_image_adherence", () => {
 });
 
 /* ---------------- taste tools ---------------- */
-
-function makeMemory(overrides: Partial<Record<"remember" | "recall", any>> = {}) {
-  return {
-    remember:
-      overrides.remember ??
-      vi.fn().mockResolvedValue({ id: "mem-1", kind: "preference", importance: 0.6 }),
-    recall: overrides.recall ?? vi.fn().mockResolvedValue([])
-  } as unknown as LongTermMemory;
-}
-
-describe("record_style_preference", () => {
-  it("stores the takeaway with choice context appended", async () => {
-    const remember = vi
-      .fn()
-      .mockResolvedValue({ id: "mem-1", kind: "preference", importance: 0.6 });
-    const tool = styleTool("record_style_preference", makeMemory({ remember }));
-    const r = (await tool.process(makeContext(), {
-      takeaway: "User prefers muted palettes.",
-      chosen: "variant B",
-      rejected: "variant A",
-      brief: "poster"
-    })) as any;
-
-    expect(r.stored).toBe(true);
-    expect(r.text).toBe(
-      "User prefers muted palettes. (chose: variant B; over: variant A; brief: poster)"
-    );
-    expect(remember).toHaveBeenCalledWith(r.text, {
-      kind: "preference",
-      importance: 0.6,
-      source: "style_preference"
-    });
-  });
-
-  it("reports duplicates and missing configuration", async () => {
-    const dupTool = styleTool("record_style_preference",
-      makeMemory({ remember: vi.fn().mockResolvedValue(null) })
-    );
-    const dup = (await dupTool.process(makeContext(), { takeaway: "t" })) as any;
-    expect(dup.stored).toBe(false);
-    expect(dup.note).toContain("duplicate");
-
-    const unbound = styleTool("record_style_preference");
-    const r = (await unbound.process(makeContext(), { takeaway: "t" })) as any;
-    expect(r.stored).toBe(false);
-    expect(r.note).toContain("not configured");
-  });
-});
-
-describe("get_style_profile", () => {
-  it("returns only preference memories formatted as a profile block", async () => {
-    const recall = vi.fn().mockResolvedValue([
-      { id: "1", text: "Prefers muted palettes.", kind: "preference", importance: 0.8 },
-      { id: "2", text: "Works at a design studio.", kind: "fact", importance: 0.5 },
-      { id: "3", text: "Dislikes drop shadows.", kind: "preference", importance: 0.6 }
-    ]);
-    const tool = styleTool("get_style_profile", makeMemory({ recall }));
-    const r = (await tool.process(makeContext(), {})) as any;
-
-    expect(r.profile).toBe("- Prefers muted palettes.\n- Dislikes drop shadows.");
-    expect(r.items).toHaveLength(2);
-    expect(recall).toHaveBeenCalledWith(
-      "visual style aesthetic preference taste",
-      { k: 10 }
-    );
-  });
-
-  it("passes a custom query and k through to recall", async () => {
-    const recall = vi.fn().mockResolvedValue([]);
-    const tool = styleTool("get_style_profile", makeMemory({ recall }));
-    await tool.process(makeContext(), { query: "typography", k: 3 });
-    expect(recall).toHaveBeenCalledWith("typography", { k: 3 });
-  });
-});

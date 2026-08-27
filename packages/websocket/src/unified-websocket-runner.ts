@@ -80,12 +80,13 @@ import {
   ModelObserver,
   Prediction,
   Script,
+  Skill,
   Thread,
-  ThreadMemory,
+  Memory,
   TimelineSequence,
   Workflow,
   type DBModel,
-  type ThreadMemoryResource
+  type MemoryResource
 } from "@nodetool-ai/models";
 import { getInstanceId } from "./lib/instance-id.js";
 import { requestRemoteJobCancel } from "./job-control.js";
@@ -208,10 +209,10 @@ import {
 } from "@nodetool-ai/agents";
 import { mcpToolHostDeps } from "./mcp-tool-deps.js";
 import {
-  createDefaultLongTermMemory,
-  formatMemoryForPrompt,
-  formatThreadMemoriesForPrompt,
-  type LongTermMemory
+  findInvokedSkillNames,
+  formatInvokedSkillsForPrompt,
+  formatSkillCatalogForPrompt,
+  formatMemoriesForPrompt
 } from "@nodetool-ai/agents";
 import { RunNodeTool } from "./agent/run-node-tool.js";
 import {
@@ -234,6 +235,14 @@ import type {
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]{1,100})?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
+/**
+ * How many of a user's newest memories the turn reads to build its block. The
+ * read doubles as the "how many live in other threads" count, so it is capped:
+ * the number is a nudge toward `memory_search`, not an audit.
+ */
+const MEMORY_SCAN_LIMIT = 400;
+/** How many of this thread's memories are pasted into the block. */
+const MEMORY_BLOCK_LIMIT = 100;
 const TERMINAL_JOB_STATUSES = [
   "completed",
   "failed",
@@ -1367,8 +1376,8 @@ References to documents, images, videos, or audio files have the shape:
 - \`uri\`: \`file:///path/to/file\` or \`http(s)://...\`
 
 # Memory and resources (creative projects)
-This conversation has durable, per-thread memory. Any memories you saved are
-shown at the top of each turn inside a \`<thread-memory>\` block. Use the memory
+This conversation has durable, per-memory. Any memories you saved are
+shown at the top of each turn inside a \`<memory>\` block. Use the memory
 and asset tools to carry a creative project forward across turns:
 - \`nodetool.memory.save(content, {title, kind, resources})\` — record project
   facts, the user's approved style/decisions, and the resources you produce or
@@ -5048,11 +5057,26 @@ export class UnifiedWebSocketRunner {
     return text || "[image result]";
   }
 
-  private addCollectionContext(
+  /**
+   * Append ephemeral context to the last user message.
+   *
+   * Every turn-scoped block (RAG context, memory, an invoked skill's
+   * body) rides here, and the position is the point. Providers cache the
+   * longest stable prefix on their own, and Anthropic and the OpenAI Responses
+   * API hoist *every* system-role message into one system string — so a block
+   * that changes per turn, injected as a system message, rewrote the tail of
+   * that string and invalidated the whole prefix ahead of the conversation,
+   * tool catalog included. Folded into the last user message instead, the
+   * volatile bytes sit after everything a later turn will reuse.
+   *
+   * Call it after media resolution: the text is appended as-is, so an
+   * `asset://` uri a memory carries stays a reference instead of being
+   * inlined as a data URI.
+   */
+  private appendContextToLastUser(
     messages: ProviderMessage[],
-    collectionContext: string
+    context: string
   ): ProviderMessage[] {
-    // Find the last user message index
     let lastUserIndex = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "user") {
@@ -5060,54 +5084,107 @@ export class UnifiedWebSocketRunner {
         break;
       }
     }
-
-    if (lastUserIndex >= 0) {
-      const contextMessage: ProviderMessage = {
-        role: "system",
-        content: `Context from knowledge base:\n${collectionContext}`,
-        toolCallId: null,
-        toolCalls: null,
-        threadId: null
-      };
-      return [
-        ...messages.slice(0, lastUserIndex),
-        contextMessage,
-        ...messages.slice(lastUserIndex)
-      ];
-    }
-    return messages;
+    if (lastUserIndex < 0) return messages;
+    const target = messages[lastUserIndex];
+    const appended: ProviderMessage = Array.isArray(target.content)
+      ? {
+          ...target,
+          content: [...target.content, { type: "text", text: context }]
+        }
+      : {
+          ...target,
+          content: `${isString(target.content) ? target.content : ""}\n\n${context}`
+        };
+    return [
+      ...messages.slice(0, lastUserIndex),
+      appended,
+      ...messages.slice(lastUserIndex + 1)
+    ];
   }
 
   /**
-   * Load the thread's durable memories and render them as a system block for
-   * injection at the start of a turn. Resource refs are used as stored (asset
-   * refs already carry the `asset://` uri captured at save time) — a single
-   * indexed query, no per-asset lookups on the hot path. Best-effort: a DB
-   * hiccup returns an empty block rather than breaking the turn.
+   * Render the turn's memory block.
+   *
+   * Memory is user-scoped, but only **this thread's** memories are pasted in:
+   * the store grows for the life of the account, and a block that grew with it
+   * would eventually cost more than the turn. What the agent gets instead is
+   * this thread's notes in full plus a count of the ones saved elsewhere, so
+   * it knows to reach them with `memory_search` rather than assume the block
+   * is everything.
+   *
+   * Resource refs are used as stored (asset refs already carry the `asset://`
+   * uri captured at save time) — one indexed query, no per-asset lookups on
+   * the hot path. Best-effort: a DB hiccup returns an empty block rather than
+   * breaking the turn.
    */
-  private async buildThreadMemoryBlock(
+  private async buildMemoryBlock(
     userId: string,
     threadId: string
   ): Promise<string> {
     try {
-      const memories = await ThreadMemory.listByThread(userId, threadId, 100);
-      if (memories.length === 0) return "";
-      const rendered = memories.map((memory) => ({
+      // One read over the user's newest memories, split by thread here rather
+      // than issuing a second count query.
+      const recent = await Memory.list(userId, { limit: MEMORY_SCAN_LIMIT });
+      const mine = recent.filter((memory) => memory.thread_id === threadId);
+      const elsewhere = recent.length - mine.length;
+      if (mine.length === 0 && elsewhere === 0) return "";
+      const rendered = mine.slice(0, MEMORY_BLOCK_LIMIT).map((memory) => ({
         kind: memory.kind,
         title: memory.title,
         content: memory.content,
         resources: (Array.isArray(memory.resources)
           ? memory.resources
-          : []) as ThreadMemoryResource[]
+          : []) as MemoryResource[]
       }));
-      return formatThreadMemoriesForPrompt(rendered);
+      return formatMemoriesForPrompt(rendered, elsewhere);
     } catch (err) {
-      log.warn("Failed to build thread memory block", {
+      log.warn("Failed to build memory block", {
         threadId,
         error: err instanceof Error ? err.message : String(err)
       });
       return "";
     }
+  }
+
+  /**
+   * The user's skills, read once per turn.
+   *
+   * Two halves with different lifetimes, which is why the caller splits them.
+   * The catalog (name + description) changes only when the skills table does,
+   * so it belongs in the system prompt where a provider's automatic prefix
+   * cache can keep it. The body of a skill the message invoked with `/<name>`
+   * changes per turn, so it rides at the tail with the other volatile context.
+   *
+   * Best-effort like the memory block: a DB hiccup costs the skills, not the
+   * turn.
+   */
+  private async loadUserSkills(userId: string): Promise<Skill[]> {
+    try {
+      return await Skill.listByUser(userId);
+    } catch (err) {
+      log.warn("Failed to load user skills", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+      return [];
+    }
+  }
+
+  /** The bodies of the skills this turn's message named with `/<name>`. */
+  private invokedSkillsSection(skills: readonly Skill[], userText: string): string {
+    const invoked = findInvokedSkillNames(
+      userText,
+      skills.map((skill) => skill.name)
+    );
+    if (invoked.length === 0) return "";
+    return formatInvokedSkillsForPrompt(
+      skills
+        .filter((skill) => invoked.includes(skill.name.toLowerCase()))
+        .map((skill) => ({
+          name: skill.name,
+          description: skill.description,
+          content: skill.content
+        }))
+    );
   }
 
   /**
@@ -5531,11 +5608,6 @@ export class UnifiedWebSocketRunner {
       ? (data.ui_context as UiContext)
       : null;
 
-    // Long-term memory mines the whole conversation, so it needs the full
-    // history; the resume fast path below is skipped when it is enabled.
-    const memoryEnabled =
-      data.memory_enabled === true || data.memory_enabled === "true";
-
     // History load. Session-based providers (e.g. claude_agent) keep the
     // conversation upstream, so when a resumable session exists for this
     // provider+model we do NOT reload the whole thread: we probe a bounded
@@ -5549,6 +5621,12 @@ export class UnifiedWebSocketRunner {
     // here because the resume `loadFullHistory` thunk and the prepend both run
     // after tool resolution.
     let codeactPromptSection = "";
+    // The user's skills, read once. The catalog goes into the system prompt
+    // below because it is stable — it changes only when the skills table does,
+    // so a provider's prefix cache keeps it across turns. The body of an
+    // invoked skill is volatile and rides at the tail instead.
+    const userSkills = await this.loadUserSkills(userId);
+    const skillCatalogSection = formatSkillCatalogForPrompt(userSkills);
     const buildSystemContent = (): string => {
       const base = buildChatAgentSystemPrompt(
         permissionMode,
@@ -5556,7 +5634,10 @@ export class UnifiedWebSocketRunner {
         uiContext,
         workflowId
       );
-      return codeactPromptSection ? `${base}\n\n${codeactPromptSection}` : base;
+      const sections = [base];
+      if (codeactPromptSection) sections.push(codeactPromptSection);
+      if (skillCatalogSection) sections.push(skillCatalogSection);
+      return sections.join("\n\n");
     };
     const systemChatMessage = (): ProviderMessage => ({
       role: "system",
@@ -5606,7 +5687,7 @@ export class UnifiedWebSocketRunner {
         sinceSessionNewestFirst.push(m);
       }
 
-      if (probeSession && !memoryEnabled) {
+      if (probeSession) {
         // RESUME fast path: the SDK already holds the prior turns, so send only
         // the messages since the session — no full-thread load.
         const newTurns = convertDbMessages(sinceSessionNewestFirst.reverse());
@@ -5995,45 +6076,8 @@ export class UnifiedWebSocketRunner {
     // RAG pre-query here.
     const userContent = this.extractTextContent(data.content);
 
-    // Resolve long-term memory if the renderer opted in for this turn. The
-    // helper is default-off; we only build it when the wire flag is true so
-    // a missing/false flag matches the legacy behaviour exactly. Failures
-    // are logged and swallowed — a memory hiccup must not break the turn.
-    // (`memoryEnabled` is computed earlier, before the history load.)
-    let longTermMemory: LongTermMemory | null = null;
-    if (memoryEnabled) {
-      try {
-        longTermMemory = await createDefaultLongTermMemory({
-          userId,
-          namespace: "chat",
-          workspaceId: threadId || undefined,
-          extractionProvider: provider,
-          extractionModel: model,
-          enabled: true
-        });
-      } catch (err) {
-        log.warn("Long-term memory init failed for chat turn", {
-          threadId,
-          error: err instanceof Error ? err.message : String(err)
-        });
-        longTermMemory = null;
-      }
-    }
-    let memoryContext = "";
-    if (longTermMemory && longTermMemory.isReady() && userContent) {
-      try {
-        const recalled = await longTermMemory.recall(userContent);
-        memoryContext = formatMemoryForPrompt(recalled);
-      } catch (err) {
-        log.warn("Long-term memory recall failed", {
-          threadId,
-          error: err instanceof Error ? err.message : String(err)
-        });
-      }
-    }
-
-    // Final assistant text, for the memory snapshot below. Updated as the
-    // provider emits assistant messages; the last one wins.
+    // Final assistant text. Updated as the provider emits assistant
+    // messages; the last one wins.
     let content = "";
     // The session token to persist onto the assistant message. Seeds from the
     // prior turn's token (so a session-based provider resumes) and is refreshed
@@ -6056,32 +6100,32 @@ export class UnifiedWebSocketRunner {
     const MAX_SUPERSEDED_DRAIN_ITEMS = 200;
     const useTools = providerToolSchemas.length > 0;
 
-    // The wire messages: chat history + the ephemeral memory block (which goes
-    // to the provider but is never persisted). The provider's generateLoop owns
-    // the tool-calling rounds and message assembly from here.
+    // The wire messages. The provider's generateLoop owns the tool-calling
+    // rounds and message assembly from here.
     let messagesToSend = [...chatHistory];
-    if (memoryContext) {
-      messagesToSend = this.addCollectionContext(messagesToSend, memoryContext);
-      memoryContext = "";
-    }
 
-    // Inject the thread's durable memories (thread_memory_* tools) so the agent
-    // starts each turn aware of what it recorded — project facts, decisions,
-    // and the assets it generated for reuse. Deterministic and always-on (not
-    // gated behind the vector-memory opt-in). Ephemeral: goes to the provider,
-    // never persisted into history.
+    // Everything turn-scoped, gathered in one place and appended once, after
+    // media resolution, to the last user message. None of it is persisted, so
+    // whatever is injected here is absent from the history a later turn sends
+    // — which is exactly why it must sit behind every byte a later turn will
+    // reuse. See `appendContextToLastUser`.
+    const volatileContext: string[] = [];
+    // Durable memories (memory_* tools), so the agent starts each turn aware
+    // of what it recorded — project facts, decisions, and the assets it
+    // generated for reuse. This thread's in full, the rest as a count it can
+    // search. Deterministic and always-on.
     if (threadId) {
-      const threadMemoryBlock = await this.buildThreadMemoryBlock(
+      const memoryBlock = await this.buildMemoryBlock(
         userId,
         threadId
       );
-      if (threadMemoryBlock) {
-        messagesToSend = this.addCollectionContext(
-          messagesToSend,
-          threadMemoryBlock
-        );
-      }
+      if (memoryBlock) volatileContext.push(memoryBlock);
     }
+
+    // The bodies of any skills the message invoked with `/<name>`. The catalog
+    // half is stable and already sits in the system prompt.
+    const invokedSkills = this.invokedSkillsSection(userSkills, userContent);
+    if (invokedSkills) volatileContext.push(invokedSkills);
 
     // Expand any `asset://<id>.<ext>` references the composer or a prior turn
     // attached and dereference the URIs to data the provider can consume.
@@ -6092,6 +6136,15 @@ export class UnifiedWebSocketRunner {
     // decoded contents. Without this step the provider would see literal
     // `asset://…` text and never look at the referenced media.
     messagesToSend = await ctx.resolveMessageMediaUris(messagesToSend);
+
+    // After resolution, so a memory's `asset://` reference stays a reference
+    // instead of being inlined as a data URI.
+    if (volatileContext.length > 0) {
+      messagesToSend = this.appendContextToLastUser(
+        messagesToSend,
+        volatileContext.join("\n\n")
+      );
+    }
 
     // Run one tool call and return the result to feed back to the model. Owns
     // server/client tool routing, side effects (client round-trips via the
@@ -6398,27 +6451,6 @@ export class UnifiedWebSocketRunner {
         done: true,
         thread_id: threadId
       });
-
-      // Mine the completed turn for new long-term memories. Fire-and-forget
-      // so a slow extraction call never blocks the renderer; failures are
-      // already logged inside rememberConversation.
-      if (longTermMemory && longTermMemory.isReady() && content) {
-        const snapshot: ProviderMessage[] = [
-          ...chatHistory,
-          {
-            role: "assistant",
-            content,
-            toolCalls: null,
-            toolCallId: null,
-            threadId
-          }
-        ];
-        void longTermMemory
-          .rememberConversation(snapshot, { source: "chat" })
-          .catch(() => {
-            /* already logged inside rememberConversation */
-          });
-      }
 
       log.debug("Chat complete", { threadId, chars: content.length });
     } catch (err) {

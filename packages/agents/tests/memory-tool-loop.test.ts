@@ -1,9 +1,9 @@
 /**
  * Unit tests for the thread-memory tool-loop eval
- * (`src/evals/surfaces/thread-memory.ts`):
- *   - `createThreadMemoryToolBridge`: headless execution of the real
+ * (`src/evals/surfaces/memory.ts`):
+ *   - `createMemoryToolBridge`: headless execution of the real
  *     thread-memory and asset tools against an in-memory DB.
- *   - `THREAD_MEMORY_TOOL_LOOP_CASES`: each case is solvable by a hand-written
+ *   - `MEMORY_TOOL_LOOP_CASES`: each case is solvable by a hand-written
  *     scripted tool-call sequence, driven through `runToolLoopEval` exactly
  *     like a real model's tool loop — no network.
  */
@@ -11,9 +11,9 @@ import { describe, it, expect, afterEach } from "vitest";
 import { ModelObserver } from "@nodetool-ai/models";
 import { runToolLoopEval } from "../src/evals/tool-loop-eval.js";
 import {
-  createThreadMemoryToolBridge,
-  THREAD_MEMORY_TOOL_LOOP_CASES
-} from "../src/evals/surfaces/thread-memory.js";
+  createMemoryToolBridge,
+  MEMORY_TOOL_LOOP_CASES
+} from "../src/evals/surfaces/memory.js";
 import type { BaseProvider, ProviderStreamItem, ProviderTool } from "@nodetool-ai/runtime";
 
 interface ScriptedCall {
@@ -57,11 +57,11 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
 
 afterEach(() => ModelObserver.clear());
 
-describe("createThreadMemoryToolBridge", () => {
-  it("generate_image persists an asset that thread_memory_save can reference", async () => {
-    const bridge = createThreadMemoryToolBridge();
+describe("createMemoryToolBridge", () => {
+  it("generate_image persists an asset that memory_save can reference", async () => {
+    const bridge = createMemoryToolBridge();
     const gen = bridge.tools.find((t) => t.name === "generate_image")!;
-    const save = bridge.tools.find((t) => t.name === "thread_memory_save")!;
+    const save = bridge.tools.find((t) => t.name === "memory_save")!;
 
     const generated = (await gen.execute({ prompt: "red fox logo" })) as {
       asset_id: string;
@@ -82,8 +82,8 @@ describe("createThreadMemoryToolBridge", () => {
   });
 
   it("drops a reference to an asset that doesn't exist", async () => {
-    const bridge = createThreadMemoryToolBridge();
-    const save = bridge.tools.find((t) => t.name === "thread_memory_save")!;
+    const bridge = createMemoryToolBridge();
+    const save = bridge.tools.find((t) => t.name === "memory_save")!;
     const saved = (await save.execute({
       content: "bogus",
       resources: [{ type: "asset", id: "nope" }]
@@ -92,9 +92,9 @@ describe("createThreadMemoryToolBridge", () => {
   });
 });
 
-describe("THREAD_MEMORY_TOOL_LOOP_CASES (scripted provider)", () => {
+describe("MEMORY_TOOL_LOOP_CASES (scripted provider)", () => {
   it("generate-and-remember passes with a correct tool sequence", async () => {
-    const evalCase = THREAD_MEMORY_TOOL_LOOP_CASES.find(
+    const evalCase = MEMORY_TOOL_LOOP_CASES.find(
       (c) => c.id === "generate-and-remember"
     )!;
     let assetId = "";
@@ -107,7 +107,7 @@ describe("THREAD_MEMORY_TOOL_LOOP_CASES (scripted provider)", () => {
         }
       },
       {
-        name: "thread_memory_save",
+        name: "memory_save",
         args: {},
         lazyArgs: () => ({
           content: "Approved project logo: red fox mascot.",
@@ -128,13 +128,13 @@ describe("THREAD_MEMORY_TOOL_LOOP_CASES (scripted provider)", () => {
   });
 
   it("generate-and-remember fails when the memory omits the asset ref", async () => {
-    const evalCase = THREAD_MEMORY_TOOL_LOOP_CASES.find(
+    const evalCase = MEMORY_TOOL_LOOP_CASES.find(
       (c) => c.id === "generate-and-remember"
     )!;
     const provider = createScriptedProvider([
       { name: "generate_image", args: { prompt: "logo" } },
       {
-        name: "thread_memory_save",
+        name: "memory_save",
         args: { content: "A logo, but I forgot to reference the asset." }
       }
     ]);
@@ -154,11 +154,11 @@ describe("THREAD_MEMORY_TOOL_LOOP_CASES (scripted provider)", () => {
   });
 
   it("recall-existing passes by listing the seeded memory", async () => {
-    const evalCase = THREAD_MEMORY_TOOL_LOOP_CASES.find(
+    const evalCase = MEMORY_TOOL_LOOP_CASES.find(
       (c) => c.id === "recall-existing"
     )!;
     const provider = createScriptedProvider([
-      { name: "thread_memory_list", args: {} }
+      { name: "memory_list", args: {} }
     ]);
     const report = await runToolLoopEval({
       provider,

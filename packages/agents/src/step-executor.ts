@@ -44,7 +44,7 @@ import {
 } from "./tools/image-injection.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
-import { getMemoryTools } from "./tools/memory-tools.js";
+import { getSharedTools } from "./tools/shared-tools.js";
 import { truncateToolResult } from "./constants.js";
 import {
   formatViolations,
@@ -427,9 +427,9 @@ export class StepExecutor {
     // Auto-attach memory tools so the step can list / read / write
     // shared agent memory on demand. Skip any caller-supplied duplicates.
     const existingNames = new Set(this.tools.map((t) => t.name));
-    for (const memoryTool of getMemoryTools()) {
-      if (!existingNames.has(memoryTool.name)) {
-        this.tools.push(memoryTool);
+    for (const sharedTool of getSharedTools()) {
+      if (!existingNames.has(sharedTool.name)) {
+        this.tools.push(sharedTool);
       }
     }
 

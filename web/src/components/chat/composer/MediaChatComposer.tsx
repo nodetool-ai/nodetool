@@ -21,7 +21,6 @@ import MovieFilterIcon from "@mui/icons-material/MovieFilter";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import SpeedIcon from "@mui/icons-material/Speed";
@@ -77,6 +76,7 @@ import { isModelSelected, type ModelSelection } from "@nodetool-ai/protocol";
 import type { MediaGenerationRequest } from "../types/media.types";
 import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
 import { useTextareaAssetMention } from "./useTextareaAssetMention";
+import { useTextareaSkillMention } from "./useTextareaSkillMention";
 import { MentionedEntities } from "./MentionedEntities";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
@@ -121,8 +121,6 @@ interface MediaChatComposerProps {
   onStop?: () => void;
   onNewChat?: () => void;
   disabled?: boolean;
-  memoryEnabled?: boolean;
-  onMemoryToggle?: (enabled: boolean) => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
   allowedProviders?: string[];
@@ -176,8 +174,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   onSendMessage,
   onStop,
   disabled = false,
-  memoryEnabled,
-  onMemoryToggle,
   selectedModel,
   onModelChange,
   allowedProviders,
@@ -284,6 +280,16 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       onSelectAsset: handleSelectAsset,
       includeEntities: true
     });
+  const {
+    skillMenu,
+    handleKeyDown: handleSkillKeyDown,
+    isOpen: isSkillMenuOpen,
+    menuId: skillMenuId
+  } = useTextareaSkillMention({
+    textareaRef,
+    value: prompt,
+    setValue: setPrompt
+  });
 
   const {
     record: recordHistory,
@@ -647,6 +653,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       if (handleMentionKeyDown(e)) {
         return;
       }
+      // Then let the skill picker consume its navigation and selection keys.
+      if (handleSkillKeyDown(e)) {
+        return;
+      }
       // Then history navigation (ArrowUp/ArrowDown) when the picker is closed.
       if (handleHistoryKeyDown(e)) {
         return;
@@ -663,7 +673,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         }
       }
     },
-    [handleMentionKeyDown, handleHistoryKeyDown, handleSend]
+    [
+      handleMentionKeyDown,
+      handleSkillKeyDown,
+      handleHistoryKeyDown,
+      handleSend
+    ]
   );
 
   const modeIcon = useMemo(() => {
@@ -904,6 +919,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           ref={textareaRef}
           className="media-compose-input"
           aria-label="Message prompt"
+          aria-expanded={isSkillMenuOpen}
+          aria-controls={isSkillMenuOpen ? skillMenuId : undefined}
           value={prompt}
           onChange={(e) => {
             resetHistoryNavigation();
@@ -918,6 +935,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           autoComplete="off"
         />
         {mentionMenu}
+        {skillMenu}
 
         {providerSetup.needsSetup && providerSetup.reason && (
           <ModeProviderSetupBanner
@@ -1029,16 +1047,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 maxWidth={isMobile ? 108 : 140}
               />
               <PermissionSelector threadId={threadId} />
-              {onMemoryToggle && (
-                <MediaControlChip
-                  icon={<PsychologyOutlinedIcon fontSize="small" />}
-                  title={memoryEnabled ? "Memory: on" : "Memory: off"}
-                  active={!!memoryEnabled}
-                  showChevron={false}
-                  onClick={() => onMemoryToggle(!memoryEnabled)}
-                  emphasis={memoryEnabled ? "primary" : "default"}
-                />
-              )}
               <LanguageModelMenuDialog
                 open={languageModelOpen}
                 anchorEl={languageModelAnchorRef.current}

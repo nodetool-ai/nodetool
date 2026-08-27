@@ -1,6 +1,6 @@
 /**
  * CodeAct eval cases for the `nodetool.*` object model — data and creative
- * namespaces: collections, memory, shared, web, documents, email, style, apps,
+ * namespaces: collections, memory, shared, web, documents, email, apps,
  * timelines, sketches, scripts, storyboards.
  *
  * The fakes here are named EXACTLY like the belt tools those namespaces wrap
@@ -262,10 +262,6 @@ const PDF_TEXT =
   "Q3 revenue reached 4.2 million euro across 1,280 accounts. " +
   "Churn held at 1.1 percent.";
 
-const STYLE_PROFILE =
-  "Terse copy. High-contrast dark surfaces. No exclamation marks. " +
-  "Prefers one accent colour over a palette.";
-
 /** Fresh, isolated world state — one per `createSurfaceApiTools` call. */
 function createWorld() {
   return {
@@ -382,10 +378,6 @@ function createWorld() {
         archived: false
       }
     ] as EmailMessage[],
-    preferences: [
-      "Chose the terse headline over the playful one.",
-      "Rejected the pastel palette."
-    ] as string[],
     apps: new Set<string>(["app_notes"]),
     timelines: new Map<string, TimelineDoc>([
       [
@@ -1112,12 +1104,12 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
 
     // -- memory -----------------------------------------------------------
     tool(
-      "thread_memory_save",
+      "memory_save",
       "Remember something durably in this conversation.",
       obj({ content: S, title: S, kind: S, resources: ANY_ARRAY }, ["content"]),
       (params) => {
         const content = str(params["content"]);
-        if (!content) throw new Error("thread_memory_save needs content");
+        if (!content) throw new Error("memory_save needs content");
         const entry: MemoryEntry = {
           memory_id: `mem_${++world.memorySeq}`,
           title: str(params["title"], content.slice(0, 40)),
@@ -1132,7 +1124,7 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
-      "thread_memory_list",
+      "memory_list",
       "List this conversation's memories.",
       obj({ limit: N }),
       (params) => ({
@@ -1140,7 +1132,7 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       })
     ),
     tool(
-      "thread_memory_update",
+      "memory_update",
       "Update a memory by id.",
       obj({ memory_id: S, content: S, title: S, resources: ANY_ARRAY }, [
         "memory_id"
@@ -1159,7 +1151,7 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
-      "thread_memory_delete",
+      "memory_delete",
       "Delete a memory by id.",
       obj({ memory_id: S }, ["memory_id"]),
       (params) => {
@@ -1617,36 +1609,6 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           }
         }
         return { archived, message_ids: ids };
-      }
-    ),
-
-    // -- style ------------------------------------------------------------
-    tool(
-      "get_style_profile",
-      "The user's accumulated taste as a prompt-ready block.",
-      obj({ query: S, k: N }),
-      () => ({
-        profile: STYLE_PROFILE,
-        items: world.preferences.map((takeaway, i) => ({
-          id: `pref_${i + 1}`,
-          takeaway
-        }))
-      })
-    ),
-    tool(
-      "record_style_preference",
-      "Record one preference learned from a choice or a correction.",
-      obj({ takeaway: S, chosen: S, rejected: S, brief: S }, ["takeaway"]),
-      (params) => {
-        const takeaway = str(params["takeaway"]);
-        if (!takeaway)
-          throw new Error("record_style_preference needs a takeaway");
-        world.preferences.push(takeaway);
-        return {
-          recorded: true,
-          id: `pref_${world.preferences.length}`,
-          total: world.preferences.length
-        };
       }
     ),
 
@@ -2448,9 +2410,9 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
     ]),
     expect: {
       requiredTools: [
-        "thread_memory_save",
-        "thread_memory_update",
-        "thread_memory_list"
+        "memory_save",
+        "memory_update",
+        "memory_list"
       ],
       maxActions: 4,
       resultCheck: (r: unknown) => {
@@ -2783,38 +2745,27 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
     }
   },
   {
-    id: "style-aware-app-check",
-    description:
-      "Check a saved app's wiring for free, and record the user's taste",
-    namespaces: ["style", "apps"],
+    id: "app-wiring-check",
+    description: "Check a saved app's wiring for free",
+    namespaces: ["apps"],
     objective:
-      'The app "app_notes" drafts a short note from a prompt. Read the ' +
-      "user's recorded style first, then run the FREE wiring check on that " +
-      "app — no run, it costs nothing and spends nothing. Record that the " +
-      "user liked the dark, high-contrast variant with the style recorder. " +
-      "Finish with {verdictOk, ran, widgets, preferences} — the check's " +
-      "verdict, whether it executed the app, how many widgets it reported, " +
-      "and the preference count the style profile's details report after " +
-      "your recording.",
-    outputSchema: obj({ verdictOk: B, ran: B, widgets: N, preferences: N }, [
+      'The app "app_notes" drafts a short note from a prompt. Run the FREE ' +
+      "wiring check on that app — no run, it costs nothing and spends " +
+      "nothing. Finish with {verdictOk, ran, widgets} — the check's verdict, " +
+      "whether it executed the app, and how many widgets it reported.",
+    outputSchema: obj({ verdictOk: B, ran: B, widgets: N }, [
       "verdictOk",
       "ran",
-      "widgets",
-      "preferences"
+      "widgets"
     ]),
     expect: {
-      requiredTools: [
-        "get_style_profile",
-        "debug_app",
-        "record_style_preference"
-      ],
+      requiredTools: ["debug_app"],
       maxActions: 5,
       resultCheck: (r: unknown) =>
         field(r, "verdictOk") === true &&
         field(r, "ran") === false &&
-        asNumber(field(r, "widgets")) === 3 &&
-        asNumber(field(r, "preferences")) === 3,
-      resultCheckLabel: "free check ran, 3 widgets, 3 preferences"
+        asNumber(field(r, "widgets")) === 3,
+      resultCheckLabel: "free check ran, 3 widgets"
     }
   }
 ].map((entry) => ({ ...entry, createTools: createSurfaceApiTools }));

@@ -22,7 +22,6 @@ import {
 } from "../tools/tool-permissions.js";
 import { withSnakeCaseAliases } from "./args.js";
 import { findCapability } from "./registry.js";
-import type { LongTermMemory } from "../long-term-memory.js";
 import type {
   AvailableSecretsResolver,
   CapabilityExport,
@@ -115,7 +114,6 @@ export interface CreateCapabilityRunOptions {
   /** The collection the `vector_*` capabilities act on; see {@link CapabilityRun}. */
   vectorCollection?: VectorCollection;
   workflowEnvironment?: WorkflowEnvironmentProvider;
-  memory?: LongTermMemory;
   loaders?: CapabilityLoaders;
   /**
    * Capabilities this run serves beyond the registry — the subsystem-dependent
@@ -150,7 +148,6 @@ export function createCapabilityRun(
     listPackageAssets: options.listPackageAssets,
     vectorCollection: options.vectorCollection,
     workflowEnvironment: options.workflowEnvironment,
-    memory: options.memory,
     loaders: options.loaders,
     invoke: async (name, args) => {
       const entry = local.get(name) ?? (await findCapability(name));

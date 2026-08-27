@@ -56,8 +56,6 @@ type ChatInputSectionProps = {
   onNewChat?: () => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
-  memoryEnabled?: boolean;
-  onMemoryToggle?: (enabled: boolean) => void;
   allowedProviders?: string[];
   requireToolSupport?: boolean;
   variant?: ChatComposerVariant;
@@ -82,8 +80,6 @@ const ChatInputSection = ({
   onNewChat,
   selectedModel,
   onModelChange,
-  memoryEnabled,
-  onMemoryToggle,
   allowedProviders,
   requireToolSupport,
   variant = "media",
@@ -118,8 +114,6 @@ const ChatInputSection = ({
             onNewChat={onNewChat}
             selectedModel={selectedModel}
             onModelChange={onModelChange}
-            memoryEnabled={memoryEnabled}
-            onMemoryToggle={onMemoryToggle}
             allowedProviders={allowedProviders}
             requireToolSupport={requireToolSupport}
             placeholder={placeholder}

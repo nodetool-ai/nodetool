@@ -89,19 +89,19 @@ Rules:
   genuinely depends on a previous result.
 - Nothing carries over between actions except what a tool saved. Generation
   calls already store their result as an asset and return its \`asset://\` uri.
-  Put any result a later action or turn needs into thread memory:
+  Put any result a later action or turn needs into memory:
   \`await nodetool.memory.save("clip: <asset_uri>", {title: "The clip"})\` — it
   is shown back to you at the start of later turns.
   Never re-run generate, speak, or fetch for
-  something an earlier action already produced; check thread memory, reuse the
+  something an earlier action already produced; check memory, reuse the
   recorded uri, and re-derive only what is genuinely missing instead of
-  throwing on it. Write a large literal into thread memory or a workspace file
+  throwing on it. Write a large literal into memory or a workspace file
   in the action that builds it; if that action fails, update the saved copy
   and retry — do not emit the literal a second time.
   Local variables die with the action and \`return\` is the observation only;
   saved results do not persist that way.
 - Keep observations small. \`return\` a compact summary (counts, ids, the few
-  fields you need); large payloads belong in saved assets or thread memory —
+  fields you need); large payloads belong in saved assets or memory —
   not in the transcript.
 - Extract fields you have verified exist. Coercing an unread object to a
   string yields "[object Object]", and a plausible-looking wrong field passes

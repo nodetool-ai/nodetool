@@ -675,6 +675,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "reads only names the run declared."
   },
   "settings.update": { capability: "set_setting" },
+  "skills.create": { capability: "create_skill" },
+  "skills.delete": { capability: "delete_skill" },
+  "skills.get": { capability: "load_skill" },
+  "skills.list": { capability: "list_skills" },
+  "skills.update": { capability: "update_skill" },
   "sketch.create": { capability: "create_sketch" },
   "sketch.delete": { capability: "delete_sketch" },
   "sketch.documentVersions.create": { capability: "create_sketch_version" },
@@ -738,8 +743,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "storyboards.list": { capability: "list_storyboards" },
   "storyboards.update": { capability: "edit_storyboard" },
-  "threadMemories.delete": { capability: "thread_memory_delete" },
-  "threadMemories.list": { capability: "thread_memory_list" },
+  "memories.delete": { capability: "memory_delete" },
+  "memories.list": { capability: "memory_list" },
+  "memories.search": { capability: "memory_search" },
   "threads.delete": {
     withheld:
       "Chat history is the record of what a run was asked to do and " +

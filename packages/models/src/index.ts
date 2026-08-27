@@ -27,7 +27,7 @@ export {
   jobs,
   messages,
   threads,
-  threadMemories,
+  memories,
   assets,
   secrets,
   workspaces,
@@ -105,11 +105,12 @@ export { Message } from "./message.js";
 
 export { Thread } from "./thread.js";
 
-export { ThreadMemory } from "./thread-memory.js";
+export { Memory, memorySearchTerms } from "./memory.js";
 export type {
-  ThreadMemoryKind,
-  ThreadMemoryResource
-} from "./thread-memory.js";
+  MemoryKind,
+  MemoryResource,
+  MemoryListOptions
+} from "./memory.js";
 
 export { Secret } from "./secret.js";
 export {

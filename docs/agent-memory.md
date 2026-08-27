@@ -5,9 +5,9 @@ permalink: /agent-memory
 description: "Unified, structured memory shared by every agent, task, and step in NodeTool — accessed via tool calls with progressive disclosure."
 ---
 
-**Navigation**: [Chat & Agents](global-chat-agents.md) → **Agent Memory** | [Long-Term Memory](long-term-memory.md)
+**Navigation**: [Chat & Agents](global-chat-agents.md) → **Agent Memory**
 
-> **Not the same as long-term memory.** This page describes per-run scratch space (`context.memory`) shared between steps inside one workflow. For durable, cross-session user memory injected into chat prompts, see [Long-Term Memory](long-term-memory.md).
+> **Not the same as the `memory_*` capabilities.** This page describes per-run scratch space (`context.memory`) shared between the steps of one workflow. For the notes an agent saves durably, across every conversation, see the `memory_*` capabilities.
 
 The **agent memory system** is the single source of truth for everything that flows between agents, tasks, steps, sub-agents, and tools during a workflow run. One `AgentMemory` instance lives on every `ProcessingContext` as `context.memory`. All executors read from and write to it through a single namespaced API, and every agent accesses it through three auto-attached tools:
 

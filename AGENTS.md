@@ -1763,7 +1763,7 @@ suites that drive a real provider through the frontend `ui_*` tool contract agai
 headless bridge — no browser — and score the multi-turn tool-calling flow
 structurally: `tool-loop` (graph editor), `workflow-escalation`, `script-tools`,
 `jsscript-tools`, `sketch-tools`, `timeline-tools`, `storyboard-tools`,
-`model3d-tools`, `app-tools`, `thread-memory-tools`, and `creative-pipeline`.
+`model3d-tools`, `app-tools`, `memory-tools`, and `creative-pipeline`.
 Same flags, metrics, and `--min-success` CI gate as `graph-planner`. Details:
 [packages/agents/AGENTS.md](packages/agents/AGENTS.md).
 

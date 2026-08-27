@@ -3,18 +3,13 @@ import { resolve } from "path";
 
 export default defineConfig({
   resolve: {
-    // The agents package exposes both a root export and a `./memory`
-    // subpath. Vite's alias map is prefix-based, so the most specific
-    // entry must come first — otherwise `@nodetool-ai/agents/memory` gets
-    // rewritten to `../agents/src/index.ts/memory` and fails to resolve.
+    // Vite's alias map is prefix-based, so a subpath entry must come before
+    // the bare package name — otherwise `@nodetool-ai/agents/js-sandbox` gets
+    // rewritten to `../agents/src/index.ts/js-sandbox` and fails to resolve.
     alias: [
       {
         find: "@nodetool-ai/agents/js-sandbox",
         replacement: resolve(__dirname, "../agents/src/js-sandbox.ts")
-      },
-      {
-        find: "@nodetool-ai/agents/memory",
-        replacement: resolve(__dirname, "../agents/src/long-term-memory.ts")
       },
       {
         find: "@nodetool-ai/agents",

@@ -2,16 +2,16 @@
  * The `shared` capability module — run-scoped agent memory.
  *
  * Three capabilities that used to be three `Tool` subclasses in
- * `../tools/memory-tools.ts`, which now assembles them from these specs.
+ * `../tools/shared-tools.ts`, which now assembles them from these specs.
  * Wire names, descriptions, schemas and behaviour are unchanged.
  *
- * Separate from `memory` on purpose: that module is thread memory, which
+ * Separate from `memory` on purpose: that module is memory, which
  * outlives the run and lives in the database. These read and write
  * `run.context.memory` — the `AgentMemory` a run carries and discards. The
  * naming says the lifetimes: `nodetool.shared` run-scoped beside
  * `nodetool.memory` thread-scoped.
  *
- * Mount policy stays with the executors. `getMemoryTools()` builds a belt from
+ * Mount policy stays with the executors. `getSharedTools()` builds a belt from
  * these specs, and every step executor pushes that belt onto its own toolset —
  * the host never mounts these.
  *
@@ -187,7 +187,7 @@ const shareResult: CapabilityExport = {
   }
 };
 
-/** Every shared-memory capability, in the order memory-tools.ts declared them. */
+/** Every shared-memory capability, in the order shared-tools.ts declared them. */
 export const SHARED_CAPABILITIES: readonly CapabilityExport[] = [
   listShared,
   readShared,

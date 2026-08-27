@@ -254,16 +254,12 @@ const SOLUTIONS: Record<string, string[]> = {
        remaining: again.messages.length
      });`
   ],
-  "style-aware-app-check": [
-    `const profile = await nodetool.style.profile();
-     const dbg = await nodetool.apps.debug("app_notes", {run: false});
-     const pref = await nodetool.style.record(
-       "Likes the dark, high-contrast variant of the note app", {chosen: "dark"});
+  "app-wiring-check": [
+    `const dbg = await nodetool.apps.debug("app_notes", {run: false});
      await finish({
        verdictOk: dbg.verdict.ok,
        ran: dbg.ran,
-       widgets: dbg.widgets.length,
-       preferences: pref.total
+       widgets: dbg.widgets.length
      });`
   ]
 };
