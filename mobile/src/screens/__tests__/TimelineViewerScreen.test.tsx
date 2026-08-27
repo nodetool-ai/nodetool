@@ -133,49 +133,23 @@ const widthOf = (label: string): number | undefined => {
 };
 
 /**
- * The header lives in navigation options rather than in the screen's own tree,
- * so the Save button is read off the last `setOptions` call. The element is
- * walked instead of rendered: a second `render()` would unmount the screen the
- * assertions are about.
+ * The header lives in navigation options, not in the screen's tree, so it is
+ * rendered off the last `setOptions` call. That render repoints the global
+ * `screen`, so a test asserting on both reads the screen through the result
+ * `renderScreen()` returns.
  */
-const findByLabel = (
-  node: React.ReactNode,
-  label: string
-): React.ReactElement<Record<string, unknown>> | null => {
-  if (!React.isValidElement(node)) {
-    if (Array.isArray(node)) {
-      for (const child of node) {
-        const hit = findByLabel(child as React.ReactNode, label);
-        if (hit) {
-          return hit;
-        }
-      }
-    }
-    return null;
-  }
-  const props = node.props as Record<string, unknown>;
-  if (props.accessibilityLabel === label) {
-    return node as React.ReactElement<Record<string, unknown>>;
-  }
-  return findByLabel(props.children as React.ReactNode, label);
-};
-
-const headerButton = (label: string): Record<string, unknown> => {
+const renderHeaderRight = () => {
   const calls = jest.mocked(navigation.setOptions).mock.calls as [
     { headerRight?: () => React.ReactElement },
   ][];
-  const headerRight = calls[calls.length - 1][0].headerRight;
-  if (headerRight === undefined) {
+  const HeaderRight = calls[calls.length - 1][0].headerRight;
+  if (HeaderRight === undefined) {
     throw new Error('the screen set no headerRight');
   }
-  const found = findByLabel(headerRight(), label);
-  if (found === null) {
-    throw new Error(`no header button labelled "${label}"`);
-  }
-  return found.props;
+  return render(<HeaderRight />);
 };
 
-const saveButton = () => headerButton('Save timeline');
+const saveButton = () => renderHeaderRight().getByLabelText('Save timeline').props;
 
 describe('TimelineViewerScreen', () => {
   beforeEach(() => {
@@ -292,8 +266,8 @@ describe('TimelineViewerScreen', () => {
   // ── Agent edits and saving ───────────────────────────────────────────────
 
   it('starts clean with Save disabled, and enables it after an agent edit', async () => {
-    renderScreen();
-    await screen.findByLabelText(/^Clip Opening shot/);
+    const view = renderScreen();
+    await view.findByLabelText(/^Clip Opening shot/);
 
     expect(saveButton().accessibilityState).toEqual({ disabled: true });
 
@@ -303,24 +277,25 @@ describe('TimelineViewerScreen', () => {
     });
 
     // The edit repaints the screen the user is holding.
-    expect(screen.getByLabelText(/^Clip Opening shot, video, 0:03/)).toBeTruthy();
-    expect(screen.getByLabelText('Unsaved changes')).toBeTruthy();
+    expect(view.getByLabelText(/^Clip Opening shot, video, 0:03/)).toBeTruthy();
+    expect(view.getByLabelText('Unsaved changes')).toBeTruthy();
     expect(saveButton().accessibilityState).toEqual({ disabled: false });
     expect(handler.getSnapshot().dirty).toBe(true);
   });
 
   it('saves through the same path as the Save button', async () => {
     mockUpdate.mockResolvedValue(detail(sequence));
-    renderScreen();
-    await screen.findByLabelText(/^Clip Opening shot/);
+    const view = renderScreen();
+    await view.findByLabelText(/^Clip Opening shot/);
 
     const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
     act(() => {
       handler.addMarker({ timeMs: 5000, label: 'Beat' });
     });
 
+    const button = renderHeaderRight().getByLabelText('Save timeline');
     await act(async () => {
-      (saveButton().onPress as () => void)();
+      fireEvent.press(button);
     });
 
     // The revision read on load is echoed back so a stale write is rejected.
@@ -331,7 +306,7 @@ describe('TimelineViewerScreen', () => {
       document: TimelineDocument;
     };
     expect(written.document.markers).toHaveLength(2);
-    expect(screen.queryByLabelText('Unsaved changes')).toBeNull();
+    expect(view.queryByLabelText('Unsaved changes')).toBeNull();
   });
 
   it('ui_timeline_save rethrows when the write is rejected', async () => {
