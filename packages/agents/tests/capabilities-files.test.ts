@@ -178,6 +178,74 @@ describe("files capabilities over a real workspace", () => {
     );
   });
 
+  it("takes a read under any spelling of the same path", async () => {
+    const run = runFor(workspace);
+    await run.invoke("write_file", { file_path: "notes.txt", content: "one" });
+
+    // Same file, three spellings the model mixes freely. Keying the read
+    // tracker on the string made the second and third read as unread files.
+    expect(await run.invoke("read_file", { file_path: "./notes.txt" })).toBe(
+      "1\tone"
+    );
+    for (const spelling of [
+      "notes.txt",
+      "./notes.txt",
+      "/workspace/notes.txt"
+    ]) {
+      expect(
+        await run.invoke("write_file", {
+          file_path: spelling,
+          content: `written as ${spelling}`
+        })
+      ).toBe(`Updated ${spelling}`);
+    }
+  });
+
+  it("lets write_file follow edit_file without a re-read", async () => {
+    await writeFile(join(workspace, "code.ts"), "const a = 1;\n");
+    const run = runFor(workspace);
+
+    await run.invoke("edit_file", {
+      path: "code.ts",
+      old_string: "const a = 1;",
+      new_string: "const a = 2;"
+    });
+    expect(
+      await run.invoke("write_file", {
+        file_path: "code.ts",
+        content: "const a = 3;\n"
+      })
+    ).toBe("Updated code.ts");
+  });
+
+  it("says a directory is a directory instead of contradicting itself", async () => {
+    await mkdir(join(workspace, "prompts"));
+    await writeFile(join(workspace, "prompts/one.md"), "hi");
+    const run = runFor(workspace);
+
+    // `exists` answers true for a directory and `read` answers null for one, so
+    // these two used to report the folder as a file that is there with no
+    // contents — the "ghost" an agent then hunted for.
+    expect(await run.invoke("read_file", { file_path: "prompts" })).toContain(
+      "is a directory"
+    );
+    expect(
+      await run.invoke("write_file", { file_path: "prompts", content: "x" })
+    ).toContain("is a directory");
+    const edited = (await run.invoke("edit_file", {
+      path: "prompts",
+      old_string: "a",
+      new_string: "b"
+    })) as { success: boolean; error: string };
+    expect(edited.success).toBe(false);
+    expect(edited.error).toContain("is a directory");
+
+    // The folder is untouched and still lists its file.
+    expect(await run.invoke("list_directory", { path: "prompts" })).toContain(
+      "one.md"
+    );
+  });
+
   it("edits an existing file by exact replacement", async () => {
     await writeFile(join(workspace, "code.ts"), "const a = 1;\n");
     const result = (await runFor(workspace).invoke("edit_file", {

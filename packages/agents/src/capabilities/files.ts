@@ -92,13 +92,78 @@ const DEFAULT_READ_LIMIT = 2000;
 /** Context variable holding the set of file paths read in this session. */
 const READ_TRACKER_KEY = "__nt_read_files";
 
-function readSet(context: ProcessingContext): Set<string> {
+/**
+ * The session's read set, or null on a context with no variable store.
+ *
+ * The tracker is a guard rail, not a guarantee: a host that wires a context
+ * without variables (a node running one tool, a test double) still gets to
+ * edit files. It loses only the "read it before you overwrite it" memory, and
+ * `wasRead` then answers false — the conservative side of that guard.
+ */
+function readSet(context: ProcessingContext): Set<string> | null {
+  if (typeof context.get !== "function" || typeof context.set !== "function") {
+    return null;
+  }
   let set = context.get<Set<string>>(READ_TRACKER_KEY);
   if (!set) {
     set = new Set<string>();
     context.set(READ_TRACKER_KEY, set);
   }
   return set;
+}
+
+/**
+ * The tracker's key for a path: the workspace's own normalized key, never the
+ * string the model typed.
+ *
+ * `notes.md`, `./notes.md` and `/workspace/notes.md` are one file, and keying
+ * on the spelling made `write_file` refuse a file the model had just read under
+ * a different one — "exists but has not been read in this session", about a
+ * file it was looking at. Falls back to the raw path only when the workspace
+ * rejects it, where the caller is about to report that anyway.
+ */
+function trackerKey(workspace: Workspace, path: string): string {
+  try {
+    return workspace.key(path);
+  } catch {
+    return path;
+  }
+}
+
+function markRead(
+  context: ProcessingContext,
+  workspace: Workspace,
+  path: string
+): void {
+  readSet(context)?.add(trackerKey(workspace, path));
+}
+
+function wasRead(
+  context: ProcessingContext,
+  workspace: Workspace,
+  path: string
+): boolean {
+  return readSet(context)?.has(trackerKey(workspace, path)) === true;
+}
+
+/**
+ * Whether a path is a directory, for the tools that must not treat one as a
+ * file.
+ *
+ * `exists` answers true for a directory and `read` answers null for one, so a
+ * tool that asks only those two reports a state that cannot happen: the file is
+ * there and its contents are missing. That is what sent an agent hunting for a
+ * "ghost" file — it was the folder it had just created.
+ */
+async function isDirectory(
+  workspace: Workspace,
+  path: string
+): Promise<boolean> {
+  try {
+    return (await workspace.stat(path))?.isDirectory === true;
+  } catch {
+    return false;
+  }
 }
 
 function formatNumberedLines(content: string, startLine: number): string {
@@ -198,6 +263,9 @@ const readFileCapability: CapabilityExport = {
       return `Error: Path '${filePath}' is outside the workspace: ${msg}`;
     }
     if (!bytes) {
+      if (await isDirectory(workspace, filePath)) {
+        return `Error: ${filePath} is a directory, not a file. Use list_directory to see what is in it.`;
+      }
       return `Error: ${filePath} does not exist`;
     }
 
@@ -237,7 +305,7 @@ const readFileCapability: CapabilityExport = {
       );
     }
 
-    readSet(context).add(filePath);
+    markRead(context, workspace, filePath);
     const numbered = formatNumberedLines(content, offset);
     if (truncated) {
       return (
@@ -273,15 +341,22 @@ const writeFileCapability: CapabilityExport = {
 
     // Classify the path before writing: `exists` answers false for a path that
     // escapes, so without this the refusal would surface as a write failure.
-    let exists: boolean;
+    let existing;
     try {
       workspace.key(filePath);
-      exists = await workspace.exists(filePath);
+      existing = await workspace.stat(filePath);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return `Error: Path '${filePath}' is outside the workspace: ${msg}`;
     }
-    if (exists && !readSet(context).has(filePath)) {
+    // A directory is not an overwritable file. Answering "read it first" here
+    // sent the model to read_file, which answers "does not exist" for the same
+    // path — a contradiction it cannot act on.
+    if (existing?.isDirectory) {
+      return `Error: ${filePath} is a directory, not a file. Write to a path inside it instead.`;
+    }
+    const exists = existing !== null;
+    if (exists && !wasRead(context, workspace, filePath)) {
       return (
         `Error: ${filePath} exists but has not been read in this session. ` +
         `Call read_file on it first so you know what you're overwriting.`
@@ -293,7 +368,7 @@ const writeFileCapability: CapabilityExport = {
       // After a successful write, treat the file as "read" — the model knows
       // its current contents (it just wrote them) and shouldn't have to re-read
       // before the next overwrite.
-      readSet(context).add(filePath);
+      markRead(context, workspace, filePath);
       return exists ? `Updated ${filePath}` : `Created ${filePath}`;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -703,6 +778,7 @@ const editFile: CapabilityExport = {
       }
       try {
         await workspace.write(rawPath, newString, mimeForPath(rawPath));
+        markRead(context, workspace, rawPath);
         return { success: true, path: rawPath, created: true };
       } catch (e) {
         return {
@@ -713,6 +789,12 @@ const editFile: CapabilityExport = {
     }
 
     if (existing === null) {
+      if (await isDirectory(workspace, rawPath)) {
+        return {
+          success: false,
+          error: `${rawPath} is a directory, not a file. Edit a file inside it instead.`
+        };
+      }
       return { success: false, error: `File not found: ${rawPath}` };
     }
 
@@ -784,6 +866,9 @@ const editFile: CapabilityExport = {
       }
 
       await workspace.write(rawPath, newContent, mimeForPath(rawPath));
+      // An edit is a read plus a write: `write_file` must not go on to demand a
+      // read of the file this call just showed the model and rewrote.
+      markRead(context, workspace, rawPath);
 
       return {
         success: true,

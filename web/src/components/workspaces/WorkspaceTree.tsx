@@ -265,6 +265,9 @@ const updateTreeWithChildren = (
   });
 };
 
+/** How deep a workspace path sits, so parents can be merged before children. */
+const depthOf = (path: string): number => path.split("/").length;
+
 const shouldLoadChildren = (item: TreeViewItem | undefined): boolean => {
   return Boolean(
     item?.children?.length === 1 && item.children[0].label === "loading..."
@@ -284,6 +287,9 @@ const WorkspaceTree: React.FC = () => {
   const filesRef = useRef<TreeViewItem[]>([]);
   filesRef.current = files;
   const [selectedFilePath, setSelectedFilePath] = useState<string>("");
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const expandedItemsRef = useRef<string[]>([]);
+  expandedItemsRef.current = expandedItems;
 
   const {
     workspaceId,
@@ -295,6 +301,7 @@ const WorkspaceTree: React.FC = () => {
 
   const {
     data: initialFiles,
+    dataUpdatedAt,
     isLoading: isLoadingFiles,
     refetch: refetchFiles
   } = useQuery({
@@ -305,12 +312,54 @@ const WorkspaceTree: React.FC = () => {
 
   // The query answers with the root listing; lazily-loaded children are merged
   // into this copy as folders expand.
+  //
+  // A refetch replaces the whole tree, which puts a `loading...` placeholder
+  // back under every folder that was open — and nothing would ever replace it,
+  // because MUI keeps its expansion state and so fires no expand event. The
+  // open folders are therefore re-listed here, which is also what makes a file
+  // written into a subfolder appear without collapsing the tree by hand.
   useEffect(() => {
     setFiles(initialFiles ?? []);
-  }, [initialFiles]);
+
+    const wsId = workspaceId;
+    const expanded = expandedItemsRef.current;
+    if (!wsId || !initialFiles || expanded.length === 0) return;
+
+    let cancelled = false;
+    void (async () => {
+      const loaded = await Promise.all(
+        expanded.map(async (itemId) => ({
+          itemId,
+          children: await fetchWorkspaceFiles(wsId, itemId).catch(() => [
+            createErrorItem(itemId)
+          ])
+        }))
+      );
+      if (cancelled) return;
+      // Shallowest first: a child's listing is merged into a parent that has
+      // already been replaced, not into the placeholder it is about to lose.
+      loaded.sort((a, b) => depthOf(a.itemId) - depthOf(b.itemId));
+      setFiles((prev) =>
+        loaded.reduce(
+          (tree, { itemId, children }) =>
+            updateTreeWithChildren(tree, itemId, children),
+          prev
+        )
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // `dataUpdatedAt`, not just `initialFiles`: TanStack's structural sharing
+    // hands back the identical array when a refetch finds the root unchanged,
+    // and a file written into an open subfolder changes nothing at the root.
+    // Keying on the data alone made that refresh a no-op.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFiles, dataUpdatedAt, workspaceId]);
 
   useEffect(() => {
     setSelectedFilePath("");
+    setExpandedItems([]);
   }, [workspaceId]);
 
   const loadItemChildren = useCallback(
@@ -476,7 +525,9 @@ const WorkspaceTree: React.FC = () => {
           <div onDoubleClick={handleTreeDoubleClick}>
             <RichTreeView
               onItemClick={handleItemClick}
+              expandedItems={expandedItems}
               onExpandedItemsChange={(_event: React.SyntheticEvent, itemIds: string[]) => {
+                setExpandedItems(itemIds);
                 for (const itemId of itemIds) {
                   loadItemChildren(itemId);
                 }

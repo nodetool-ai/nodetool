@@ -32,7 +32,9 @@ export {
 export {
   WorkspacePathError,
   WorkspaceNotLocalError,
+  observeWorkspace,
   type Workspace,
+  type WorkspaceChange,
   type WorkspaceEntry,
   type WorkspaceStat
 } from "./workspace.js";

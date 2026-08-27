@@ -34,6 +34,32 @@ describe("handleResourceChange", () => {
     setWorkflowResourceReloader(null);
   });
 
+  it("refetches the workspace explorer when a run writes a file", () => {
+    handleResourceChange({
+      type: "resource_change",
+      event: "updated",
+      resource_type: "workspacefile",
+      resource: { id: "ws-1" }
+    } as ResourceChangeUpdate);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["workspace-files", "ws-1"]
+    });
+  });
+
+  it("refetches every workspace listing when the change names none", () => {
+    handleResourceChange({
+      type: "resource_change",
+      event: "updated",
+      resource_type: "workspacefile",
+      resource: {}
+    } as unknown as ResourceChangeUpdate);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["workspace-files"]
+    });
+  });
+
   it("invalidates workflow queries on workflow update", () => {
     const update: ResourceChangeUpdate = {
       type: "resource_change",

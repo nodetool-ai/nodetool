@@ -118,3 +118,84 @@ export class WorkspaceNotLocalError extends Error {
     this.name = "WorkspaceNotLocalError";
   }
 }
+
+/** What a mutation did, for a host that wants to react to it. */
+export interface WorkspaceChange {
+  kind: "write" | "delete" | "mkdir" | "copy" | "move";
+  /** The path written, created or removed. Workspace-relative. */
+  path: string;
+}
+
+/**
+ * A workspace that reports its own mutations.
+ *
+ * The Workspace Explorer lists files over tRPC and has no way to learn that a
+ * chat turn just wrote one — workspace files are not database rows, so the
+ * `resource_change` broadcast that keeps every other panel live never fires for
+ * them. Wrapping the workspace a run resolves is the one place every writer
+ * passes through: the file capabilities, the save nodes, and anything else that
+ * goes through the interface rather than `node:fs`.
+ *
+ * `onChange` fires only after the underlying call resolves, so a rejected write
+ * never announces a file that is not there. It is called synchronously and must
+ * not throw — a notifier is a side channel, and a run must not fail because a
+ * listener did.
+ */
+export function observeWorkspace(
+  inner: Workspace,
+  onChange: (change: WorkspaceChange) => void
+): Workspace {
+  const notify = (kind: WorkspaceChange["kind"], path: string): void => {
+    try {
+      onChange({ kind, path });
+    } catch {
+      // A listener must never break the write it is reporting.
+    }
+  };
+
+  return {
+    get localDir() {
+      return inner.localDir;
+    },
+    key: (path) => inner.key(path),
+    uri: (path) => inner.uri(path),
+    read: (path) => inner.read(path),
+    readText: (path) => inner.readText(path),
+    exists: (path) => inner.exists(path),
+    stat: (path) => inner.stat(path),
+    list: (path, opts) => inner.list(path, opts),
+    materialize: (path) => inner.materialize(path),
+    scratchDir: () => inner.scratchDir(),
+
+    async write(path, data, contentType) {
+      await inner.write(path, data, contentType);
+      notify("write", path);
+    },
+    async delete(path) {
+      const removed = await inner.delete(path);
+      if (removed) notify("delete", path);
+      return removed;
+    },
+    async deleteAll(path) {
+      const count = await inner.deleteAll(path);
+      if (count > 0) notify("delete", path);
+      return count;
+    },
+    async mkdir(path) {
+      await inner.mkdir(path);
+      notify("mkdir", path);
+    },
+    async copy(from, to) {
+      await inner.copy(from, to);
+      notify("copy", to);
+    },
+    async move(from, to) {
+      await inner.move(from, to);
+      notify("move", to);
+    },
+    async absorb(localPath, path) {
+      await inner.absorb(localPath, path);
+      notify("write", path);
+    }
+  };
+}

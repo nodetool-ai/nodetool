@@ -84,4 +84,39 @@ describe("WorkspaceTree", () => {
       "ws-renders"
     );
   });
+
+  it("re-lists open folders on refresh, so a file written into one appears", async () => {
+    // Root holds a folder; the folder holds one file until the refresh, two
+    // after — the shape of an agent writing into a subfolder while the tree is
+    // open on it.
+    let promptsHasSecondFile = false;
+    listFiles.mockImplementation((input: { path: string }) => {
+      if (input.path === ".") {
+        return Promise.resolve([
+          { name: "prompts", path: "prompts", is_dir: true, size: 0 }
+        ]);
+      }
+      return Promise.resolve(
+        promptsHasSecondFile
+          ? [
+              { name: "one.md", path: "prompts/one.md", is_dir: false, size: 1 },
+              { name: "two.md", path: "prompts/two.md", is_dir: false, size: 1 }
+            ]
+          : [{ name: "one.md", path: "prompts/one.md", is_dir: false, size: 1 }]
+      );
+    });
+
+    renderTree();
+    await userEvent.click(await screen.findByText("prompts"));
+    expect(await screen.findByText("one.md")).toBeInTheDocument();
+
+    promptsHasSecondFile = true;
+    await userEvent.click(screen.getByRole("button", { name: /refresh/i }));
+
+    expect(await screen.findByText("two.md")).toBeInTheDocument();
+    // The open folder keeps its contents rather than falling back to the
+    // placeholder the refetched root carries.
+    expect(screen.getByText("one.md")).toBeInTheDocument();
+    expect(screen.queryByText("loading...")).not.toBeInTheDocument();
+  });
 });

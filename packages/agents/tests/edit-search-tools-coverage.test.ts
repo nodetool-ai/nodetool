@@ -164,7 +164,10 @@ describe("EditFileTool — validation and error paths", () => {
     expect(res).toMatchObject({ success: true, created: true });
   });
 
-  it("reports a directory targeted as a file as not found", async () => {
+  it("names a directory a directory instead of calling it a missing file", async () => {
+    // "File not found" about a folder that is plainly there is the answer that
+    // sent an agent hunting for a ghost: write_file said the path existed,
+    // read_file and edit_file said it did not.
     await mkdir(join(workspace, "adir"));
     const res: any = await tool.process(ctxFor(workspace), {
       path: "adir",
@@ -172,7 +175,7 @@ describe("EditFileTool — validation and error paths", () => {
       new_string: "y"
     });
     expect(res.success).toBe(false);
-    expect(res.error).toMatch(/File not found/);
+    expect(res.error).toMatch(/is a directory/);
   });
 
   it("only replaces the first occurrence when replace_all is false and unique context differs", async () => {

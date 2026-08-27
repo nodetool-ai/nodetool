@@ -4686,6 +4686,34 @@ export class UnifiedWebSocketRunner {
     };
   }
 
+  /**
+   * Which workflow decides where this conversation's files go.
+   *
+   * The workspace must not move between turns of one conversation: a file
+   * written in the previous message has to still be there in the next. The
+   * message's own `workflow_id` is not stable enough to key it on — the client
+   * attaches the id it has when it sends, so a turn sent before the thread list
+   * loaded carries none, resolves the default workspace instead of the
+   * workflow's, and the files the agent wrote a moment ago read as wiped. The
+   * thread's binding is the durable one, so it fills in whenever the message
+   * omits it.
+   */
+  private async threadWorkspaceWorkflowId(
+    userId: string,
+    threadId: string,
+    messageWorkflowId: string | null
+  ): Promise<string | null> {
+    if (messageWorkflowId) return messageWorkflowId;
+    if (!threadId) return null;
+    try {
+      const thread = await Thread.find(userId, threadId);
+      return isNonEmptyString(thread?.workflow_id) ? thread.workflow_id : null;
+    } catch (err) {
+      this.logError("thread workspace lookup failed", err);
+      return null;
+    }
+  }
+
   private async ensureThreadExists(
     threadId?: string,
     workflowId?: string | null
@@ -5828,7 +5856,10 @@ export class UnifiedWebSocketRunner {
     // default one. It used to fall back to the whole OS temp dir, which is
     // neither bounded nor anywhere the user would look for what an agent wrote.
     const chatWorkspace = this.workspaceResolver
-      ? await this.workspaceResolver(workflowId ?? null, userId)
+      ? await this.workspaceResolver(
+          await this.threadWorkspaceWorkflowId(userId, threadId, workflowId),
+          userId
+        )
       : null;
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
