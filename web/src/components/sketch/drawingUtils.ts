@@ -1,26 +1,18 @@
 /**
  * drawingUtils.ts
  *
- * Barrel re-export for all drawing algorithm functions. Domain-specific
- * implementations live in focused modules under `painting/`, `rendering/`,
- * and `tools/`. This file re-exports everything so that existing
- * consumers continue to work without changes.
+ * Barrel re-export for the drawing algorithms consumers reach through this
+ * path. Implementations live in focused modules under `painting/`,
+ * `rendering/`, and `tools/`. Everything not listed here is imported from
+ * its own module.
  */
 
 // ─── Re-exports from painting modules ────────────────────────────────────────
 
 export {
-  MIN_PRESSURE_FACTOR,
   strokePressureMultiplier,
   paintPressureForEngine,
-  SKETCH_FULL_OPACITY_THRESHOLD,
-  snapStrokeDabCenterDoc,
-  stampAlongStroke,
-  expandDirtyRect,
-  expandDirtyRectFromPoints,
   drawBrushStroke,
-  brushSettingsForEraserStroke,
-  pencilSettingsForEraserStroke,
   drawEraserStroke,
   drawPencilStroke
 } from "./painting/strokeRendering";
@@ -42,13 +34,6 @@ export {
   drawPixelGrid
 } from "./rendering/canvasUtils";
 export type {
-  DirtyRectBox,
   DirtyRectTracker,
   BlurTempCanvases
 } from "./rendering/canvasUtils";
-
-// ─── Re-exports from tool modules ────────────────────────────────────────────
-
-export { drawGradient } from "./tools/GradientTool";
-export { constrainEnd, applyAltCenterDraw, drawShapeOnCtx } from "./tools/ShapeTool";
-export { floodFill } from "./tools/FillTool";

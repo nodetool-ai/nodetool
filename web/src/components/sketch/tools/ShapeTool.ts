@@ -21,7 +21,7 @@ import {
 // ─── Shape Drawing Helpers (moved from drawingUtils.ts) ──────────────────────
 
 /** Apply shift-constraint to shape end point */
-export function constrainEnd(
+function constrainEnd(
   start: Point,
   end: Point,
   tool: ShapeToolType,
@@ -59,7 +59,7 @@ export function constrainEnd(
  * When Alt is held for rectangle/ellipse, the start point is treated as
  * the center of the shape. Returns adjusted {start, end} pair.
  */
-export function applyAltCenterDraw(
+function applyAltCenterDraw(
   start: Point,
   end: Point,
   tool: ShapeToolType,
