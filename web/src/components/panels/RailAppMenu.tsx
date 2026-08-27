@@ -16,7 +16,6 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
-import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 
 import { isProduction } from "../../lib/env";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -136,7 +135,6 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
   const goPackages = useCallback(() => openPage("packages"), [openPage]);
   const goCollections = useCallback(() => openPage("collections"), [openPage]);
   const goAssets = useCallback(() => openPage("assets"), [openPage]);
-  const goEntities = useCallback(() => openPage("entities"), [openPage]);
   const goWorkspaces = useCallback(() => openPage("workspaces"), [openPage]);
   const goSettings = useCallback(() => openPage("settings"), [openPage]);
 
@@ -240,11 +238,6 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
             label="Collections"
             icon={<LibraryBooksOutlinedIcon />}
             onClick={goCollections}
-          />
-          <MenuItemPrimitive
-            label="Entities"
-            icon={<PersonOutlineOutlinedIcon />}
-            onClick={goEntities}
           />
           <MenuItemPrimitive
             label="Workspaces"

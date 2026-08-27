@@ -38,6 +38,9 @@ import SketchListPanel, { CreateSketchButton } from "../sketch/SketchListPanel";
 import StoryboardListPanel, {
   CreateStoryboardButton
 } from "../storyboard/StoryboardListPanel";
+import EntityListPanel, {
+  CreateEntityButton
+} from "../entities/EntityListPanel";
 import ScriptListPanel, { CreateScriptButton } from "../script/ScriptListPanel";
 import JsScriptListPanel, {
   CreateJsScriptButton
@@ -336,6 +339,17 @@ const PanelContent = memo(function PanelContent({
     handlePanelToggle("assets");
   }, [openTab, navigate, handlePanelToggle]);
 
+  const handleEntitiesFullscreenClick = useCallback(() => {
+    openTab({
+      type: "page",
+      ref: "entities",
+      mode: "view",
+      title: PAGE_TAB_TITLES.entities
+    });
+    navigate("/workspace");
+    handlePanelToggle("entities");
+  }, [openTab, navigate, handlePanelToggle]);
+
   if (activeView === "nodes") {
     return (
       <NodeLibrary
@@ -557,6 +571,38 @@ const PanelContent = memo(function PanelContent({
           <StoryboardListPanel />
         </FlexColumn>
       )}
+      {activeView === "entities" && (
+        <FlexColumn
+          className="entity-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Entities"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
+              actions={
+                <>
+                  <Tooltip title="Open in full page" placement="right-start">
+                    <ToolbarIconButton
+                      onClick={handleEntitiesFullscreenClick}
+                      tabIndex={-1}
+                      icon={<Fullscreen />}
+                      ariaLabel="Open entities in full page"
+                    />
+                  </Tooltip>
+                  <CreateEntityButton />
+                </>
+              }
+            />
+          )}
+          <EntityListPanel />
+        </FlexColumn>
+      )}
       {activeView === "scripts" && (
         <FlexColumn
           className="script-list-container"
@@ -740,6 +786,7 @@ const MOBILE_CREATE_ACTIONS: Partial<Record<LeftPanelView, React.FC>> = {
   sketches: CreateSketchButton,
   timelines: CreateTimelineButton,
   storyboards: CreateStoryboardButton,
+  entities: CreateEntityButton,
   scripts: CreateScriptButton,
   jsscripts: CreateJsScriptButton,
   apps: CreateApplicationButton
@@ -1028,6 +1075,7 @@ const PanelLeft: React.FC = () => {
                   displayActiveView === "sketches" ||
                   displayActiveView === "timelines" ||
                   displayActiveView === "storyboards" ||
+                  displayActiveView === "entities" ||
                   displayActiveView === "scripts" ||
                   displayActiveView === "jsscripts")
               ) {

@@ -43,6 +43,7 @@ describe("QuickAccessSidebar", () => {
       "Sketches",
       "Scripts",
       "Storyboards",
+      "Entities",
       "Timelines",
       "JS Scripts"
     ]);
