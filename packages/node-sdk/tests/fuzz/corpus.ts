@@ -272,11 +272,29 @@ export function codeCorpus(seed: number, perSeed: number): CodeMutant[] {
  * its handles are whatever the seeds connect. Mutants therefore hit the
  * validator's "known type, wrong shape" paths rather than bailing out at
  * `unknown_node`, which is where the crashes live.
+ *
+ * A dynamic slot is deliberately *not* a declared property here. Deriving both
+ * from the same bag made every node's slots look statically declared, which
+ * left the whole dynamic-slot half of the validator — `untyped_dynamic_slot`,
+ * the typed-slot type check, the dynamic-output handle check — unreachable.
  */
 export function seedRegistry(): GraphValidationRegistry {
   const inputs = new Map<string, Set<string>>();
   const outputs = new Map<string, Set<string>>();
+  const dynamicInputs = new Map<string, Set<string>>();
+  const dynamicOutputs = new Map<string, Set<string>>();
   const typeOfNode = new Map<string, string>();
+
+  const namesOf = (
+    map: Map<string, Set<string>>,
+    type: string
+  ): Set<string> => {
+    const existing = map.get(type);
+    if (existing) return existing;
+    const created = new Set<string>();
+    map.set(type, created);
+    return created;
+  };
 
   for (const { graph } of SEED_GRAPHS) {
     for (const raw of graph.nodes) {
@@ -284,12 +302,28 @@ export function seedRegistry(): GraphValidationRegistry {
       const type = String(node.type);
       typeOfNode.set(String(node.id), type);
       const bag = (node.properties ?? node.data ?? {}) as JsonObject;
-      const declared = inputs.get(type) ?? new Set<string>();
+      const declared = namesOf(inputs, type);
       for (const key of Object.keys(bag)) {
         declared.add(key);
       }
-      inputs.set(type, declared);
-      outputs.set(type, outputs.get(type) ?? new Set(["output"]));
+      const slots = namesOf(dynamicInputs, type);
+      for (const key of Object.keys(
+        (node.dynamic_inputs ?? {}) as JsonObject
+      )) {
+        slots.add(key);
+      }
+      for (const key of Object.keys(
+        (node.dynamic_properties ?? {}) as JsonObject
+      )) {
+        slots.add(key);
+      }
+      const emitted = namesOf(dynamicOutputs, type);
+      for (const key of Object.keys(
+        (node.dynamic_outputs ?? {}) as JsonObject
+      )) {
+        emitted.add(key);
+      }
+      namesOf(outputs, type).add("output");
     }
     for (const raw of graph.edges) {
       const edge = raw as JsonObject;
@@ -326,20 +360,25 @@ export function seedRegistry(): GraphValidationRegistry {
   const metas = new Map<string, NodeMetadata>();
   const declaredOf = new Map<string, DeclaredPropertyMetadata[]>();
   for (const type of inputs.keys()) {
-    const names = [...(inputs.get(type) ?? []), "image"];
+    const slots = dynamicInputs.get(type) ?? new Set<string>();
+    const emitted = dynamicOutputs.get(type) ?? new Set<string>();
+    const names = [...(inputs.get(type) ?? []), "image"].filter(
+      (name) => !slots.has(name)
+    );
     metas.set(type, {
       title: type,
       description: "",
       namespace: type.split(".").slice(0, -1).join("."),
       node_type: type,
+      supports_dynamic_inputs: slots.size > 0,
+      supports_dynamic_outputs: emitted.size > 0,
       properties: names.map((name) => ({
         name,
         type: { type: typeOfProperty(name) }
       })),
-      outputs: [...(outputs.get(type) ?? [])].map((name) => ({
-        name,
-        type: { type: "str" }
-      }))
+      outputs: [...(outputs.get(type) ?? [])]
+        .filter((name) => !emitted.has(name))
+        .map((name) => ({ name, type: { type: "str" } }))
     } as unknown as NodeMetadata);
     declaredOf.set(
       type,
