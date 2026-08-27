@@ -102,7 +102,12 @@ export const SEED_GRAPHS: readonly SeedGraph[] = [
           type: "nodetool.code.Code",
           properties: {
             code: "const words = inputs.text.split(' ');\nawait output('count', words.length);",
-            packages: []
+            packages: [],
+            // A credential the oracle's `availableSecrets` does not hold, and a
+            // pinned script link its `jsScriptLookup` resolves — the two
+            // sources of `missing_secret` and the whole linked-script branch.
+            secrets: ["FUZZ_CODE_KEY"],
+            script: { id: "fuzz-script", version: 2 }
           },
           dynamic_inputs: { text: { type: { type: "str" } } },
           dynamic_outputs: { count: { type: "int" } }

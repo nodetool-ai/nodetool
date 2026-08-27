@@ -5,8 +5,11 @@
  * and Stryker's mutation score over the parser files is stable between runs.
  */
 
+import { emptyJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+
 import type { NodeMetadata } from "../../src/metadata.js";
 import type { GraphValidationRegistry } from "../../src/graph-validation.js";
+import type { JsScriptLinkLookup } from "../../src/js-script-link.js";
 import { validateNodeProperties } from "../../src/validation.js";
 import type { DeclaredPropertyMetadata } from "../../src/decorators.js";
 import { SEED_CODE_BODIES, SEED_GRAPHS } from "./seeds.js";
@@ -268,6 +271,41 @@ export function codeCorpus(seed: number, perSeed: number): CodeMutant[] {
 }
 
 /**
+ * Credentials the registry says a node type needs. One resolvable against
+ * {@link AVAILABLE_SECRETS} and one not, so both sides of the availability
+ * check run.
+ */
+const REQUIRED_SETTINGS: ReadonlyMap<string, readonly string[]> = new Map([
+  ["nodetool.agents.Agent", ["OPENAI_API_KEY", "FUZZ_MISSING_KEY"]]
+]);
+
+/** The secret names the oracle tells `validateGraph` this install holds. */
+export const AVAILABLE_SECRETS: ReadonlySet<string> = new Set([
+  "OPENAI_API_KEY"
+]);
+
+/**
+ * Resolves the one pinned script link the seeds carry. Its ports disagree with
+ * the node's slots in both directions, which is all of `js_script_ports`; a
+ * link a mutation moved resolves to nothing, which is the other branch.
+ */
+export function seedJsScriptLookup(): JsScriptLinkLookup {
+  return (link) =>
+    link.id === "fuzz-script" && link.version === 2
+      ? {
+          id: link.id,
+          name: "fuzz-script",
+          version: link.version,
+          document: {
+            ...emptyJsScriptDocument(),
+            inputs: [{ name: "absent", type: "str" }],
+            outputs: [{ name: "unwired", type: "str" }]
+          }
+        }
+      : undefined;
+}
+
+/**
  * A registry built from the seed graphs: every seed node type is known, and
  * its handles are whatever the seeds connect. Mutants therefore hit the
  * validator's "known type, wrong shape" paths rather than bailing out at
@@ -372,6 +410,7 @@ export function seedRegistry(): GraphValidationRegistry {
       node_type: type,
       supports_dynamic_inputs: slots.size > 0,
       supports_dynamic_outputs: emitted.size > 0,
+      required_settings: REQUIRED_SETTINGS.get(type) ?? [],
       properties: names.map((name) => ({
         name,
         type: { type: typeOfProperty(name) }
@@ -411,6 +450,14 @@ export function seedRegistry(): GraphValidationRegistry {
         }
       ),
     listProviderIds: () => ["openai", "anthropic"],
-    listModelIds: (provider) => (provider === "openai" ? ["gpt-5"] : undefined)
+    // Anthropic enumerates nothing: the "catalog only knowable online" branch
+    // has to be reachable too, or a mutant that reports every id as unknown
+    // looks the same as the real thing.
+    listModelIds: (provider) =>
+      provider === "openai" ? ["gpt-5", "gpt-5-mini", "o4"] : undefined,
+    listRequiredTextInputs: (provider, _modelType, modelId) =>
+      provider === "openai" && modelId.startsWith("gpt-")
+        ? ["prompt"]
+        : undefined
   };
 }

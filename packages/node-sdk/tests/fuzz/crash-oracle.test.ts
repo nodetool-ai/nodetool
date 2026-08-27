@@ -20,8 +20,12 @@
 import { describe, expect, it } from "vitest";
 import {
   validateGraph,
+  validationHeadline,
+  type GraphValidationNode,
+  type GraphValidationOptions,
   type GraphValidationReport
 } from "../../src/graph-validation.js";
+import { formatValidationIssues } from "../../src/validation.js";
 import {
   analyzeCodeBody,
   freeIdentifiers,
@@ -30,7 +34,13 @@ import {
   parseCodeBody
 } from "../../src/code-analysis.js";
 import { validateCodeNodeBody } from "../../src/code-node-validation.js";
-import { codeCorpus, graphCorpus, seedRegistry } from "./corpus.js";
+import {
+  AVAILABLE_SECRETS,
+  codeCorpus,
+  graphCorpus,
+  seedJsScriptLookup,
+  seedRegistry
+} from "./corpus.js";
 
 /** The corpus Stryker scores against, and the one the snapshots pin. */
 const PINNED_SEED = 20260817;
@@ -53,6 +63,17 @@ const SEVERITIES = new Set(["error", "warning", "info"]);
 const registry = seedRegistry();
 const graphMutants = graphCorpus(SEED, COUNT);
 const codeMutants = codeCorpus(SEED, COUNT);
+
+/**
+ * The optional catalogs, all switched on. Left off, `missing_secret`,
+ * `missing_required_model_input` and the whole linked-script branch are not
+ * merely unreported — they never run, so no mutant of them is observable.
+ */
+const OPTIONS: GraphValidationOptions = {
+  sandboxModuleCatalog: null,
+  availableSecrets: AVAILABLE_SECRETS,
+  jsScriptLookup: seedJsScriptLookup()
+};
 
 function assertWellFormed(report: GraphValidationReport): void {
   expect(Number.isInteger(report.nodeCount)).toBe(true);
@@ -77,6 +98,9 @@ function assertWellFormed(report: GraphValidationReport): void {
   }
   expect(report.counts).toEqual(counted);
   expect(report.ok).toBe(counted.errors === 0);
+  // What the CLI prints instead of the issue list, so it has to read whatever
+  // the report holds.
+  expect(validationHeadline(report).length).toBeGreaterThan(0);
 }
 
 function codesOf(issues: readonly { code: string }[]): string[] {
@@ -92,9 +116,7 @@ describe(`crash oracle: validateGraph (seed ${SEED})`, () => {
     "%s (%s) is rejected, not thrown on",
     (_id, _mutation, mutant) => {
       const started = performance.now();
-      const report = validateGraph(mutant.graph, registry, {
-        sandboxModuleCatalog: null
-      });
+      const report = validateGraph(mutant.graph, registry, OPTIONS);
       expect(performance.now() - started).toBeLessThan(BUDGET_MS);
       assertWellFormed(report);
     }
@@ -102,9 +124,8 @@ describe(`crash oracle: validateGraph (seed ${SEED})`, () => {
 
   it("is deterministic for a given document", () => {
     for (const mutant of graphMutants) {
-      const options = { sandboxModuleCatalog: null } as const;
-      const first = validateGraph(mutant.graph, registry, options);
-      const second = validateGraph(mutant.graph, registry, options);
+      const first = validateGraph(mutant.graph, registry, OPTIONS);
+      const second = validateGraph(mutant.graph, registry, OPTIONS);
       expect(second).toEqual(first);
     }
   });
@@ -113,20 +134,52 @@ describe(`crash oracle: validateGraph (seed ${SEED})`, () => {
     "reports a stable set of issue codes across the corpus",
     () => {
       const signature = graphMutants.map((mutant) => {
-        const report = validateGraph(mutant.graph, registry, {
-          sandboxModuleCatalog: null
-        });
+        const report = validateGraph(mutant.graph, registry, OPTIONS);
         return `${mutant.id} ${mutant.mutation} ok=${report.ok} ${codesOf(report.issues).join(",")}`;
       });
       expect(signature).toMatchSnapshot();
     }
   );
 
+  it("is well-formed with every optional catalog absent", () => {
+    // The catalogs fail toward silence, and a host with none — a browser
+    // client — is the common case. It is also the only way to reach
+    // `js_script_unverified`: with a lookup, an unresolvable link is
+    // `js_script_missing` instead.
+    for (const mutant of graphMutants) {
+      assertWellFormed(
+        validateGraph(mutant.graph, registry, { sandboxModuleCatalog: null })
+      );
+    }
+  });
+
+  it("formats every mutant's property issues", () => {
+    // `formatValidationIssues` is what GraphValidationError puts in front of a
+    // user, and nothing else in this suite reaches it — `validateGraph` keeps
+    // the property issues and re-codes them.
+    for (const mutant of graphMutants) {
+      const nodes = Array.isArray(mutant.graph.nodes) ? mutant.graph.nodes : [];
+      for (const raw of nodes) {
+        if (raw === null || typeof raw !== "object") continue;
+        const node = raw as GraphValidationNode;
+        const issues = registry.validateNode({
+          id: String(node.id ?? ""),
+          type: String(node.type ?? ""),
+          properties: node.properties ?? node.data ?? {},
+          dynamic_inputs: node.dynamic_inputs,
+          dynamic_properties: node.dynamic_properties
+        });
+        const formatted = formatValidationIssues(issues);
+        expect(formatted === "").toBe(issues.length === 0);
+      }
+    }
+  });
+
   it("survives a graph whose halves are not arrays", () => {
     const report = validateGraph(
       { nodes: "nope", edges: 7 } as never,
       registry,
-      { sandboxModuleCatalog: null }
+      OPTIONS
     );
     assertWellFormed(report);
     expect(codesOf(report.issues)).toContain("invalid_graph");
@@ -148,9 +201,7 @@ describe(`crash oracle: validateGraph (seed ${SEED})`, () => {
       targetHandle: "a"
     }));
     const started = performance.now();
-    const report = validateGraph({ nodes, edges }, registry, {
-      sandboxModuleCatalog: null
-    });
+    const report = validateGraph({ nodes, edges }, registry, OPTIONS);
     expect(performance.now() - started).toBeLessThan(10_000);
     assertWellFormed(report);
   });
