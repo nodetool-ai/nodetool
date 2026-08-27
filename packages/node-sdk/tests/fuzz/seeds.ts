@@ -9,9 +9,9 @@
  * The first four graphs are well-formed workflows covering the shapes a
  * validator has to read: kernel-shape and ReactFlow-shape nodes, declared and
  * dynamic slots, a Code node body, a model reference, and a control edge. The
- * ones after them are deliberately broken, because a check only runs on a
- * document that trips it — a mutation of a valid graph reaches a handle or a
- * model reference by luck, and mostly does not.
+ * last two are deliberately broken, because a check only runs on a document
+ * that trips it — a mutation of a valid graph reaches a handle or a model
+ * reference by luck, and mostly does not.
  */
 
 export interface SeedGraph {
@@ -471,5 +471,69 @@ export const SEED_CODE_BODIES: readonly { id: string; code: string }[] = [
       "  rows.push(row);\n" +
       "}\n" +
       "return { n: rows.length };"
+  },
+
+  // ── Module declarations ──────────────────────────────────────────────────
+  // All four `code_module` shapes at once: a top-level export, a Node builtin,
+  // a private host bridge, and both dynamic resolutions.
+  {
+    id: "module-defects",
+    code:
+      "import fs from 'fs';\n" +
+      "import bridge from 'nodetool:host';\n" +
+      "export const shared = 1;\n" +
+      "const lazy = await import('./other.js');\n" +
+      "const legacy = require('util');\n" +
+      "await output('n', fs && bridge && lazy && legacy ? 1 : 0);"
+  },
+
+  // ── Return shapes the legacy contract branches on ────────────────────────
+  {
+    id: "return-shapes",
+    code:
+      "if (inputs.flag) {\n" +
+      "  return 42;\n" +
+      "}\n" +
+      "switch (inputs.a) {\n" +
+      "  case 1:\n" +
+      "    break;\n" +
+      "  default:\n" +
+      "    return { n: 1, extra: 2 };\n" +
+      "}\n" +
+      "try {\n" +
+      "  return { ...inputs, n: 3 };\n" +
+      "} catch (err) {\n" +
+      "  return [err];\n" +
+      "} finally {\n" +
+      "  console.log('done');\n" +
+      "}"
+  },
+  {
+    id: "return-ternary",
+    code:
+      "const key = 'n';\n" +
+      "return inputs.flag ? { [key]: 1 } : { n: 2, doc: inputs.text };"
+  },
+
+  // ── The emit contract's own edge cases ───────────────────────────────────
+  {
+    id: "emit-extras",
+    code:
+      "const handle = 'out';\n" +
+      "await output(handle, 1);\n" +
+      "await emit('not-a-handle', 2);\n" +
+      "return { ignored: true };"
+  },
+
+  // Names other runtimes have and this sandbox does not, one of them behind
+  // the `typeof` guard that makes reading it legal.
+  {
+    id: "absent-globals",
+    code:
+      "if (typeof structuredClone === 'undefined') {\n" +
+      "  await output('n', btoa(inputs.text));\n" +
+      "} else {\n" +
+      "  await output('n', inputs.a);\n" +
+      "}"
   }
 ];

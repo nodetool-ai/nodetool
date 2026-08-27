@@ -312,9 +312,9 @@ export function seedJsScriptLookup(): JsScriptLinkLookup {
 /**
  * A registry built from the seed graphs: every seed node type is known (bar
  * {@link UNREGISTERED_NODE_TYPES}), and its handles are whatever the
- * well-formed seeds connect. Mutants therefore hit the
- * validator's "known type, wrong shape" paths rather than bailing out at
- * `unknown_node`, which is where the crashes live.
+ * well-formed seeds connect. Mutants therefore hit the validator's "known
+ * type, wrong shape" paths rather than bailing out at `unknown_node`, which is
+ * where the crashes live.
  *
  * A dynamic slot is deliberately *not* a declared property here. Deriving both
  * from the same bag made every node's slots look statically declared, which
