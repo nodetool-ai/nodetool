@@ -11,7 +11,7 @@
 
 NodeTool is an open-source, agent-first AI production studio that runs on your local machine. Describe your concept, and an autonomous agent writes the script, storyboards the scenes, generates the footage, and cuts the timeline. Instead of a flattened video file, it hands you a fully editable multi-track project.
 
-Every interface—the node canvas, timeline, sketch pad, and script editor—is exposed to the agent. It can wire a graph, paint a layer, or cut a clip on the exact same surfaces you use, then run the result and repair what fails.
+Every interface—the node canvas, timeline, sketch pad, and script editor—is exposed to the agent. 
 
 * **01 / Pitch** — tell the agent your concept, style, and tone. It drafts the script, casts the voices, and sets the visual direction.
 * **02 / Automate** — it storyboards scenes, generates footage, syncs audio, and cuts it together on a multi-track timeline.
