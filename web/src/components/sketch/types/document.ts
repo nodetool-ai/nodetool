@@ -166,18 +166,7 @@ export interface LayerImageReference {
 export type LayerEffectType =
   | "brightness_contrast"
   | "hue_saturation"
-  | "exposure"
-  | "curves"
-  | "tonemap"
-  | "bloom";
-
-/**
- * A control point on a curves spline. Both axes range [0, 1].
- */
-interface CurvePoint {
-  x: number;
-  y: number;
-}
+  | "exposure";
 
 // ─── Per-effect typed interfaces ──────────────────────────────────────────────
 
@@ -214,44 +203,6 @@ interface ExposureEffect {
   };
 }
 
-interface CurvesEffect {
-  type: "curves";
-  enabled: boolean;
-  params: {
-    /** Master RGB curve control points */
-    rgb: CurvePoint[];
-    /** Optional per-channel curves */
-    red?: CurvePoint[];
-    green?: CurvePoint[];
-    blue?: CurvePoint[];
-  };
-}
-
-interface TonemapEffect {
-  type: "tonemap";
-  enabled: boolean;
-  params: {
-    operator: "aces" | "reinhard" | "filmic";
-    /** EV stops applied before tonemapping */
-    exposureStops: number;
-    /** White point luminance (operator-dependent); defaults to 1.0 */
-    whitePoint?: number;
-  };
-}
-
-interface BloomEffect {
-  type: "bloom";
-  enabled: boolean;
-  params: {
-    /** Luminance threshold above which bloom is applied (0–1) */
-    threshold: number;
-    /** Blur radius in pixels for the bloom kernel */
-    radius: number;
-    /** Bloom intensity multiplier */
-    intensity: number;
-  };
-}
-
 /**
  * Discriminated union of all non-destructive layer effects.
  * Effects are evaluated in order before the layer is blended into its parent.
@@ -264,10 +215,7 @@ interface BloomEffect {
 export type LayerEffect =
   | BrightnessContrastEffect
   | HueSaturationEffect
-  | ExposureEffect
-  | CurvesEffect
-  | TonemapEffect
-  | BloomEffect;
+  | ExposureEffect;
 
 // ─── Layer ────────────────────────────────────────────────────────────────────
 
@@ -561,41 +509,6 @@ function normalizeLayerEffects(raw: unknown): LayerEffect[] {
             exposureStops: isNumber(params.exposureStops)
               ? params.exposureStops
               : isNumber(params.exposure) ? params.exposure : 0
-          }
-        });
-        break;
-      case "curves":
-        result.push({
-          type: "curves",
-          enabled,
-          params: {
-            rgb: Array.isArray(params.rgb) ? params.rgb : [],
-            red: Array.isArray(params.red) ? params.red : undefined,
-            green: Array.isArray(params.green) ? params.green : undefined,
-            blue: Array.isArray(params.blue) ? params.blue : undefined
-          }
-        });
-        break;
-      case "tonemap":
-        result.push({
-          type: "tonemap",
-          enabled,
-          params: {
-            operator: params.operator === "aces" || params.operator === "reinhard" || params.operator === "filmic"
-              ? params.operator : "aces",
-            exposureStops: isNumber(params.exposureStops) ? params.exposureStops : 0,
-            whitePoint: isNumber(params.whitePoint) ? params.whitePoint : undefined
-          }
-        });
-        break;
-      case "bloom":
-        result.push({
-          type: "bloom",
-          enabled,
-          params: {
-            threshold: isNumber(params.threshold) ? params.threshold : 0.8,
-            radius: isNumber(params.radius) ? params.radius : 10,
-            intensity: isNumber(params.intensity) ? params.intensity : 0.5
           }
         });
         break;

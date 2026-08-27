@@ -154,9 +154,7 @@ Start a new workflow execution.
       "nodes": [],
       "edges": []
     },
-    "explicit_types": false,
-    "execution_strategy": "threaded",
-    "resource_limits": null
+    "explicit_types": false
   }
 }
 ```
@@ -173,8 +171,8 @@ Start a new workflow execution.
 | `user_id` | `string` | User identifier |
 | `graph` | `object \| null` | Optional graph override (`{ nodes, edges }`) |
 | `explicit_types` | `boolean` | When `false`, let the server infer types |
-| `execution_strategy` | `string` | `"threaded"` (default) or `"subprocess"` |
-| `resource_limits` | `object \| null` | Optional resource constraints |
+| `execution_strategy` | `string \| null` | Recorded on the `jobs` row and otherwise unused. Nothing on the run path reads it — there is no threaded/subprocess/docker execution mode. See [Execution Strategies](execution-strategies.md) |
+| `resource_limits` | `object \| null` | Declared on `RunJobRequest`, but no runtime enforces it today |
 
 ### `cancel_job`
 
@@ -183,20 +181,6 @@ Cancel a running job.
 ```json
 {
   "command": "cancel_job",
-  "data": {
-    "job_id": "<uuid>",
-    "workflow_id": "<uuid>"
-  }
-}
-```
-
-### `resume_job`
-
-Resume a paused or suspended job.
-
-```json
-{
-  "command": "resume_job",
   "data": {
     "job_id": "<uuid>",
     "workflow_id": "<uuid>"
@@ -306,7 +290,7 @@ Reports overall job status changes.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `status` | `string` | `"queued"`, `"running"`, `"completed"`, `"failed"`, `"timed_out"`, `"cancelled"`, `"suspended"`, or `"paused"` |
+| `status` | `string` | `"queued"`, `"running"`, `"completed"`, `"failed"`, or `"cancelled"` |
 | `job_id` | `string \| null` | Job UUID |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
 | `message` | `string \| null` | Human-readable status message |

@@ -169,7 +169,7 @@ When you drag a connection and release on **empty space**, the **Connection Menu
 
 | Method | How |
 |--------|-----|
-| Button | Click **Stop** (enabled when running, paused, or suspended) |
+| Button | Click **Stop** (shown only while the run state is `running`) |
 | Keyboard | `Esc` |
 
 ---

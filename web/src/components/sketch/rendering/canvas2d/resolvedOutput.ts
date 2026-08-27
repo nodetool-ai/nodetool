@@ -83,18 +83,6 @@ export function evaluateLayerEffectsCPU(
         }
         break;
       }
-      case "curves":
-      case "tonemap":
-      case "bloom":
-        // These effect types require shader-backed implementation.
-        if (process.env.NODE_ENV !== "production") {
-          throw new Error(
-            `[Canvas2DRuntime] Effect type "${effect.type}" is not yet implemented ` +
-            `in the Canvas2D path. A shader-backed implementation is required. ` +
-            `Remove this effect from the layer or implement the evaluation path.`
-          );
-        }
-        break;
       default: {
         // Exhaustive check: every LayerEffectType must have a case above.
         const _exhaustive: never = effect;

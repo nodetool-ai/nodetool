@@ -110103,5 +110103,1130 @@
     ],
     "outputFields": [],
     "enums": []
+  },
+  {
+    "endpointId": "alibaba/qwen-image-3",
+    "className": "Qwen_Image_3",
+    "moduleName": "image-generate",
+    "docstring": "Qwen-Image-3.0 generates and edits images with accurate text rendering, complex layouts, and photographic detail.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1:1",
+        "description": "Aspect ratio of the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "2:1",
+          "1:2"
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Automatically expand and optimize the prompt for better results",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional reference image for image editing, style transfer, or image-to-image generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "match_input_image",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "When true and an image is provided, use the input image's aspect ratio and resolution instead of the aspect_ratio parameter",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Negative prompt to specify elements to avoid in the generated image",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for image generation or editing",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed for reproducible generation. Range: 0-2147483647",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_1_2",
+            "1:2"
+          ]
+        ],
+        "description": "Aspect ratio of the generated image"
+      }
+    ]
+  },
+  {
+    "endpointId": "alibaba/qwen-image-3-pro",
+    "className": "Qwen_Image_3_Pro",
+    "moduleName": "image-generate",
+    "docstring": "Qwen-Image-3.0-Pro generates and edits images with dense, accurate text rendering, complex multi-element layouts, and photographic detail.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1:1",
+        "description": "Aspect ratio of the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "2:1",
+          "1:2"
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Automatically expand and optimize the prompt for better results",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional reference image for image editing, style transfer, or image-to-image generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "match_input_image",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "When true and an image is provided, use the input image's aspect ratio and resolution instead of the aspect_ratio parameter",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Negative prompt to specify elements to avoid in the generated image",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for image generation or editing",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed for reproducible generation. Range: 0-2147483647",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_1_2",
+            "1:2"
+          ]
+        ],
+        "description": "Aspect ratio of the generated image"
+      }
+    ]
+  },
+  {
+    "endpointId": "bytedance/seedance-2.5",
+    "className": "Seedance_2_5",
+    "moduleName": "video-generate",
+    "docstring": "ByteDance's flagship multimodal video model with native audio, native 30-second generation, and large multimodal reference sets.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Video aspect ratio. Set to 'adaptive' to let the model choose the best ratio based on inputs. First/last-frame, editing, and extension modes require 'adaptive'.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "Video duration in seconds. Set to -1 for intelligent duration (the model picks the best length). Editing mode requires -1.",
+        "fieldType": "input",
+        "required": false,
+        "min": -1,
+        "max": 30
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Generate synchronized audio with the video, including dialogue (use double quotes in prompt), sound effects, and background music.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "First-frame image for image-to-video or first/last-frame generation. Cannot be combined with reference images, videos, or audios.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "last_frame_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Last-frame image. Requires a first-frame image. Cannot be combined with reference images, videos, or audios.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "mp4",
+        "description": "Output video container format.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "mp4",
+          "mov"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation. Optional when a media input (image, reference images/videos/audios) is supplied. Seedance 2.5 works best with detailed, structured 'production brief' style prompts.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "reference_audios",
+        "tsType": "audio[]",
+        "propType": "list[audio]",
+        "default": [],
+        "description": "Reference audio files (up to 10, combined duration max 30s) for audio-driven generation and lip-sync. Requires at least one reference image or video. Reference them in your prompt as [Audio1], [Audio2], etc.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Reference images (up to 30) for character consistency, style guidance, and scene composition. Cannot be combined with first/last frame images. Reference them in your prompt as [Image1], [Image2], etc.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "reference_videos",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "Reference videos (up to 10, combined duration max 30s) for motion transfer, style reference, editing, and extension. Reference them in your prompt as [Video1], [Video2], etc.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Set for reproducible generation. Reproducibility is not guaranteed.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "watermark",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Add a watermark to the generated video.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "ADAPTIVE",
+            "adaptive"
+          ]
+        ],
+        "description": "Video aspect ratio. Set to 'adaptive' to let the model choose the best ratio based on inputs. First/last-frame, editing, and extension modes require 'adaptive'."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "MP4",
+            "mp4"
+          ],
+          [
+            "MOV",
+            "mov"
+          ]
+        ],
+        "description": "Output video container format."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_480P",
+            "480p"
+          ],
+          [
+            "_720P",
+            "720p"
+          ]
+        ],
+        "description": "Video resolution."
+      }
+    ]
+  },
+  {
+    "endpointId": "alibaba/wan-3",
+    "className": "Wan_3",
+    "moduleName": "video-generate",
+    "docstring": "Wan 3.0 generates video from a text prompt, with cinematic motion and support for 480p, 720p, and 1080p output.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "adaptive",
+        "description": "Aspect ratio of the generated video. 'adaptive' lets the model choose the best ratio for the prompt.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "adaptive",
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "Duration of the generated video in seconds",
+        "fieldType": "input",
+        "required": false,
+        "min": 2,
+        "max": 15
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Automatically expand and optimize the prompt for better results. Improves quality for short prompts but increases latency.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Negative prompt — describes content that should not appear in the video",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1080p",
+        "description": "Output video resolution",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed for reproducible generation. Range: 0-2147483647",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "ADAPTIVE",
+            "adaptive"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video. 'adaptive' lets the model choose the best ratio for the prompt."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_480P",
+            "480p"
+          ],
+          [
+            "_720P",
+            "720p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Output video resolution"
+      }
+    ]
+  },
+  {
+    "endpointId": "alibaba/wan-3-prime",
+    "className": "Wan_3_Prime",
+    "moduleName": "video-generate",
+    "docstring": "Generate videos from text prompts using Alibaba's Wan 3.0 Prime model. Up to 1080p and 30 seconds, with 480p, 720p, and 1080p output.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "adaptive",
+        "description": "Aspect ratio of the generated video. 'adaptive' lets the model choose the best ratio for the prompt.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "adaptive",
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "Duration of the generated video in seconds",
+        "fieldType": "input",
+        "required": false,
+        "min": 2,
+        "max": 30
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Automatically expand and optimize the prompt for better results. Improves quality for short prompts but increases latency.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Negative prompt — describes content that should not appear in the video",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1080p",
+        "description": "Output video resolution",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed for reproducible generation. Range: 0-2147483647",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "ADAPTIVE",
+            "adaptive"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video. 'adaptive' lets the model choose the best ratio for the prompt."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_480P",
+            "480p"
+          ],
+          [
+            "_720P",
+            "720p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Output video resolution"
+      }
+    ]
+  },
+  {
+    "endpointId": "black-forest-labs/flux-video-upscale",
+    "className": "Flux_Video_Upscale",
+    "moduleName": "video-enhance",
+    "docstring": "Upscale videos to higher resolution with FLUX super-resolution. Precise mode sharpens and stays faithful to the source; creative mode restores and invents fine detail.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "creativity",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 1,
+        "description": "How the upscaler treats your footage. 0 (precise) preserves the source exactly and sharpens it — use it for faces, products, and real people. 1 (creative) restores and invents fine detail more aggressively — use it for generated footage, textures, and scenery, but it doesn't preserve identity as strictly.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Creativity",
+        "enumValues": [
+          "0",
+          "1"
+        ]
+      },
+      {
+        "name": "input_video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The video to upscale. Must be an mp4, at most 50MB, 20 seconds, and 2560x1440 (2K) of source footage.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Optional description of the clip's content to steer the enhanced detail. Leave empty for a neutral upscale.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "Moderation strictness for the prompt and the delivered frames, 0 (strictest) to 4 (most permissive).",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "upscale_factor",
+        "tsType": "number",
+        "propType": "float",
+        "default": 2,
+        "description": "How much to scale the output relative to the source resolution. The output keeps the source aspect ratio. Output frames are capped at about 14.4 megapixels (4K), so very large sources are upscaled by less than the requested factor.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1.5,
+        "max": 3
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "Creativity",
+        "values": [
+          [
+            "VALUE_0",
+            "0"
+          ],
+          [
+            "VALUE_1",
+            "1"
+          ]
+        ],
+        "description": "How the upscaler treats your footage. 0 (precise) preserves the source exactly and sharpens it — use it for faces, products, and real people. 1 (creative) restores and invents fine detail more aggressively — use it for generated footage, textures, and scenery, but it doesn't preserve identity as strictly."
+      }
+    ]
+  },
+  {
+    "endpointId": "ibm-granite/granite-4.2-8b",
+    "className": "Granite_4_2_8B",
+    "moduleName": "text-generate",
+    "docstring": "Granite-4.2-8B is the mid-size reasoning model in the Granite 4.2 family. It delivers strong performance on reasoning-intensive tasks by leveraging built-in <think>...</think> chain-of-thought.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "str",
+    "inputFields": [
+      {
+        "name": "add_generation_prompt",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Add generation prompt. Passed to the chat template. Defaults to True.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "chat_template",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "A template to format the prompt with. If not specified, the chat template provided by the model will be used.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "chat_template_kwargs",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": null,
+        "description": "Additional arguments to be passed to the chat template.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "documents",
+        "tsType": "object[]",
+        "propType": "list[dict[str, any]]",
+        "default": [],
+        "description": "Documents for request. Passed to the chat template.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "frequency_penalty",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Frequency penalty",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "include_reasoning",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Include reasoning content in the response.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "max_completion_tokens",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "An upper bound for the number of tokens that can be generated for a completion, including visible output tokens and reasoning tokens.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "max_tokens",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "max_tokens is deprecated in favor of the max_completion_tokens field.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "messages",
+        "tsType": "object[]",
+        "propType": "list[dict[str, any]]",
+        "default": [],
+        "description": "Chat completion API messages.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "min_tokens",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "The minimum number of tokens the model should generate as output.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "presence_penalty",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Presence penalty",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Completion API user prompt.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "reasoning_effort",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "Constrains effort on reasoning.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ReasoningEffort",
+        "enumValues": [
+          "none",
+          "minimal",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "repetition_penalty",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Repetition penalty",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "response_format",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": null,
+        "description": "An object specifying the format that the model must output.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Leave unspecified to randomize the seed.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "stop",
+        "tsType": "string[]",
+        "propType": "list[str]",
+        "default": [],
+        "description": "A list of sequences to stop generation at. For example, [\"<end>\",\"<stop>\"] will stop generation at the first instance of \"<end>\" or \"<stop>\".",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "stream",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Request streaming response.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "system_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Completion API system prompt. The chat template provides a good default.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "temperature",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "The value used to modulate the next token probabilities.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "tool_choice",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Tool choice for request. If the choice is a specific function, this should be specified as a JSON string.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "tools",
+        "tsType": "object[]",
+        "propType": "list[dict[str, any]]",
+        "default": [],
+        "description": "Tools for request. Passed to the chat template.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "top_k",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "The number of highest probability tokens to consider for generating \"\n            \"the output. If > 0, only keep the top k tokens with highest probability \"\n            \"(top-k filtering).",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "top_p",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "A probability threshold for generating the output. If < 1.0, only keep \"\n            \"the top tokens with cumulative probability >= top_p (nucleus filtering). \"\n            \"Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751).",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "ReasoningEffort",
+        "values": [
+          [
+            "NONE",
+            "none"
+          ],
+          [
+            "MINIMAL",
+            "minimal"
+          ],
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ],
+          [
+            "XHIGH",
+            "xhigh"
+          ],
+          [
+            "MAX",
+            "max"
+          ]
+        ],
+        "description": "Constrains effort on reasoning."
+      }
+    ]
   }
 ]

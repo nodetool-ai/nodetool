@@ -546,6 +546,24 @@ describe("Backward Compatibility", () => {
     const normalized = useSketchStore.getState().document;
     expect(normalized.layers[0].collapsed).toBe(false);
   });
+
+  it("normalizeSketchDocument drops retired effect types", () => {
+    const doc = createDefaultDocument(512, 512);
+    // curves/tonemap/bloom were declared but never implemented or authored.
+    // A document that somehow carries one must still load.
+    doc.layers[0].effects = [
+      { type: "brightness_contrast", enabled: true, params: { brightness: 0.2, contrast: 0 } },
+      { type: "tonemap", enabled: true, params: { operator: "aces" } },
+      { type: "bloom", enabled: true, params: { threshold: 0.8 } }
+    ] as unknown as Layer["effects"];
+
+    act(() => {
+      useSketchStore.getState().setDocument(doc);
+    });
+
+    const effects = useSketchStore.getState().document.layers[0].effects;
+    expect(effects.map((e) => e.type)).toEqual(["brightness_contrast"]);
+  });
 });
 
 describe("Tree-aware drag-and-drop", () => {

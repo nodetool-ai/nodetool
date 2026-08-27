@@ -150,6 +150,10 @@ export const textGenerateConfig: ModuleConfig = {
       className: "Granite_4_1_8B",
       returnType: "str"
     },
+    "ibm-granite/granite-4.2-8b": {
+      className: "Granite_4_2_8B",
+      returnType: "str"
+    },
     "ibm-granite/granite-speech-4.1-2b": {
       className: "Granite_Speech_4_1_2B",
       returnType: "str",

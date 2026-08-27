@@ -1640,7 +1640,7 @@ harness in the repo, every product surface with the code paths it owns, and
 which harnesses cover which surface. Shipping a new surface means adding it to
 the registry with its harness — or with its debt written down.
 
-**Subcommands:** `list`, `audit`, `gate`
+**Subcommands:** `list`, `audit`, `capabilities`, `gate`
 
 #### `nodetool harness list`
 
@@ -1685,6 +1685,42 @@ Documented gaps:
   packaged shell headlessly (Playwright's Electron driver), assert the IPC
   surface, and reuse backend-smoke for the server half.
 ```
+
+#### `nodetool harness capabilities`
+
+The same invariant one rung down, over the agent capabilities rather than the
+product surfaces: every exported capability must name the checked-in suites that
+exercise it, the eval cases that drive a model through it, or a written gap note.
+Reach for it after adding a capability — a new one with neither a check nor a
+note fails here, and in `npm run capabilities:check`.
+
+**Options:** `--json`, and `--strict` to exit non-zero while any gap remains.
+
+```bash
+nodetool harness capabilities
+nodetool harness capabilities --strict
+```
+
+The header counts covered capabilities, then each gap prints the note that
+justifies it:
+
+```
+Capability coverage: 216/224 covered, 8 gap(s)
+
+  GAP  ui_get_graph                     ui
+  GAP  get_apify_actor                  apify
+
+Documented gaps:
+
+  get_apify_actor: The Apify suites cover search, schema, run, abort, and the
+  dataset reader; fetching one actor's record has no case. A read-only case
+  against the recorded actor fixture would close it.
+```
+
+A trailing `Contract drift:` line means a capability's declared description,
+schema, category, or `needsToolCallId` moved without its coverage mapping being
+touched. Refresh the table with `npm run capabilities:sync` and say which case
+covers the new contract.
 
 #### `nodetool harness gate [files...]`
 

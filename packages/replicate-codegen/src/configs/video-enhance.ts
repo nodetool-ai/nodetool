@@ -23,6 +23,11 @@ export const videoEnhanceConfig: ModuleConfig = {
       className: "Video_Upscaler",
       returnType: "video",
       fieldOverrides: { video: { propType: "video" } }
+    },
+    "black-forest-labs/flux-video-upscale": {
+      className: "Flux_Video_Upscale",
+      returnType: "video",
+      fieldOverrides: { input_video: { propType: "video" } }
     }
   }
 };

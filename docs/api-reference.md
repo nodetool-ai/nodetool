@@ -10,7 +10,7 @@ description: "REST, WebSocket, and OpenAI-compatible API endpoints for NodeTool 
 
 NodeTool runs a single Fastify HTTP + WebSocket server (`@nodetool-ai/websocket` — `packages/websocket/src/server.ts`). The same process serves:
 
-- REST routes under `/api/*` (workflows, jobs, assets, models, settings, storage).
+- REST routes under `/api/*` (workflows, assets, storage, and the surfaces in the matrix below). Jobs, models, and settings are tRPC procedures, not REST.
 - OpenAI-compatible `/v1/chat/completions` and `/v1/models`.
 - WebSocket endpoints for workflow execution, chat, the browser extension, and downloads.
 - Health and liveness probes.
