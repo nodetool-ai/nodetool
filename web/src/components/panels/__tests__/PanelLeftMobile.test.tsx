@@ -153,7 +153,7 @@ it("keeps the visible desktop groups in the mobile tab row", () => {
     ["Workflows", "Apps", "Chats"],
     ["Sketches", "Scripts", "Storyboards", "Entities", "Timelines"],
     ["JS Scripts"],
-    ["Assets", "Library"]
+    ["Workspace", "Assets", "Library"]
   ]);
 });
 

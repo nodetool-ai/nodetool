@@ -12,7 +12,7 @@ The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surro
 
 ## Left Panel
 
-Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Chats**, **Sketches**, **Timelines**, **Storyboards**, **Scripts**, **Apps**, **Settings**, **History**, **Favorites**, **Assets**, and **Library**.
+Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Chats**, **Sketches**, **Timelines**, **Storyboards**, **Scripts**, **Apps**, **Settings**, **History**, **Favorites**, **Workspace**, **Assets**, and **Library**.
 
 ![Left Panel](assets/screenshots/editor-left-panel.png)
 
@@ -58,6 +58,12 @@ Your starred nodes for quick access.
 
 ![Left Panel — Favorites](assets/screenshots/editor-left-panel-favorites.png)
 
+### Workspace Tab
+
+File hierarchy of the backing workspace (on local installs) or the assigned
+workspace (on server installs). Pick the workspace from the dropdown;
+double-click a file to open it as a workspace tab.
+
 ### Assets Tab
 
 Folder tree plus file grid. Drag a file onto the canvas to instantly create the matching input node.
@@ -74,7 +80,7 @@ Your Mini Apps. Click one to open it as a workspace tab; the two header icons cr
 
 ## Right Panel (Inspector)
 
-Press `i` or click the icon in the top right to toggle. The right panel hosts only the **Inspector** — its contents switch based on what's selected on the canvas. (Logs, Queue, Trace, Version History, and Workspace are not here — they live in the [Bottom Panel](#bottom-panel).)
+Press `i` or click the icon in the top right to toggle. The right panel hosts only the **Inspector** — its contents switch based on what's selected on the canvas. (Logs, Queue, Trace, and Version History are not here — they live in the [Bottom Panel](#bottom-panel).)
 
 ![Right Panel](assets/screenshots/editor-right-panel.png)
 
@@ -97,7 +103,7 @@ When no node is selected, the Inspector shows workflow-level metadata: title, de
 The bottom panel docks runtime diagnostics and secondary workflow tools. Drag its top edge to resize. Its views are grouped:
 
 - **Run** — Logs, Queue, Sandboxes, Workers
-- **Workflow** — Versions, Workspace
+- **Workflow** — Versions
 - **Debug** — Trace
 
 ![Bottom Panel](assets/screenshots/editor-bottom-panel.png)
@@ -132,12 +138,6 @@ The code-runner sandboxes and worker processes backing the current run.
 Every save is versioned. Review past versions and roll back.
 
 ![Version History](assets/screenshots/editor-bottom-panel-versions.png)
-
-### Workspace
-
-File hierarchy of the backing workspace (on local installs) or the assigned workspace (on server installs).
-
-![Workspace Tree](assets/screenshots/editor-bottom-panel-workspace.png)
 
 ### Trace
 

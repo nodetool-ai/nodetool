@@ -33,7 +33,7 @@ const idsIn = (category: NodeCategoryId, all: NodeMetadata[]): string[] =>
   );
 
 describe("quickAccessCategories", () => {
-  it("ships fifteen top-level views in order", () => {
+  it("ships sixteen top-level views in order", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
     expect(ids).toEqual([
       "nodes",
@@ -49,6 +49,7 @@ describe("quickAccessCategories", () => {
       "timelines",
       "jsscripts",
       "settings",
+      "workspace-files",
       "assets",
       "library"
     ]);
@@ -91,7 +92,7 @@ describe("quickAccessCategories", () => {
       {
         id: "workflow-context",
         placement: "bottom",
-        views: ["settings", "assets", "library"]
+        views: ["settings", "workspace-files", "assets", "library"]
       }
     ]);
   });

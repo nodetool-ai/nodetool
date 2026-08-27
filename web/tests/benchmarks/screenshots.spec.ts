@@ -1075,7 +1075,6 @@ if (process.env.JEST_WORKER_ID) {
       { view: "queue", filename: "editor-bottom-panel-queue.png" },
       { view: "sandboxes", filename: "editor-bottom-panel-sandboxes.png" },
       { view: "versions", filename: "editor-bottom-panel-versions.png" },
-      { view: "workspace", filename: "editor-bottom-panel-workspace.png" },
       { view: "trace", filename: "editor-bottom-panel-trace.png" }
     ];
 

@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
 import WorkspaceTree from "../WorkspaceTree";
 import { useWorkspaceExplorerStore } from "../../../stores/WorkspaceExplorerStore";
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 
 const defaultWorkspace = {
   id: "ws-default",
@@ -62,6 +63,7 @@ describe("WorkspaceTree", () => {
       { name: "notes.md", path: "notes.md", is_dir: false, size: 12 }
     ]);
     useWorkspaceExplorerStore.getState().setBrowsedWorkspaceId(null);
+    useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
   });
 
   it("lists the default workspace's files with no workflow open", async () => {
@@ -83,6 +85,21 @@ describe("WorkspaceTree", () => {
     expect(useWorkspaceExplorerStore.getState().browsedWorkspaceId).toBe(
       "ws-renders"
     );
+  });
+
+  it("opens a double-clicked file as a workspace-file tab", async () => {
+    renderTree();
+    await userEvent.dblClick(await screen.findByText("notes.md"));
+
+    const tab = useWorkspaceTabsStore
+      .getState()
+      .tabs.find((t) => t.type === "workspace-file");
+    expect(tab).toMatchObject({
+      type: "workspace-file",
+      ref: "ws-default::notes.md",
+      mode: "view",
+      title: "notes.md"
+    });
   });
 
   it("re-lists open folders on refresh, so a file written into one appears", async () => {
