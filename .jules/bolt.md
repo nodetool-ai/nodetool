@@ -105,3 +105,6 @@
 ## 2026-05-25 - N+1 query optimization in pruneOldAutosaves
 **Learning:** Found an N+1 query bottleneck in `packages/models/src/workflow-version.ts` where `v.delete()` was called inside a loop over the oldest autosave versions. For workflows with many excess autosaves (e.g. 1500), doing 1500 sequential `DELETE` queries took ~392ms.
 **Action:** Replaced the sequential deletes with batched `DELETE WHERE id IN (...)` queries (using `inArray` from Drizzle) grouped in chunks of 500 to satisfy SQLite query limits. This reduced the time to prune 1500 versions to ~18ms, a significant speedup.
+## 2026-08-26 - Concurrent workflow bundle export
+**Learning:** `handleWorkflowsExportBundle` in `packages/websocket/src/http-api.ts` awaited `loadBundledWorkflow` sequentially for each requested workflow ID, making export latency scale O(N) with the number of workflows even though each load is an independent IO read.
+**Action:** Replaced the sequential loop with `Promise.all(ids.map(...))` to resolve all loads concurrently, then iterate the results to check for per-workflow errors and build the bundle.
