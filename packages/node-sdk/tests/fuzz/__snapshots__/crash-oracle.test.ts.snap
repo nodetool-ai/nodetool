@@ -115,5 +115,17 @@ exports[`crash oracle: validateGraph (seed 20260817) > reports a stable set of i
   "model-reference#9 selfCycle ok=false cycle,missing_secret",
   "model-reference#10 retypeKey ok=true missing_secret",
   "model-reference#11 deepNest ok=true missing_secret,unknown_property",
+  "edge-defects#0 hostileValue ok=false dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,untyped_dynamic_slot",
+  "edge-defects#1 duplicateId ok=false dangling_edge,duplicate_id,dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node",
+  "edge-defects#2 duplicateId ok=false dangling_edge,duplicate_id,dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node",
+  "edge-defects#3 retypeKey ok=false dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,untyped_dynamic_slot",
+  "edge-defects#4 duplicateId ok=false dangling_edge,duplicate_id,dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node",
+  "edge-defects#5 retypeKey ok=false dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,unknown_handle,unknown_node,untyped_dynamic_slot",
+  "edge-defects#6 retypeKey ok=false dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,untyped_dynamic_slot",
+  "edge-defects#7 danglingEdge ok=false dangling_edge,dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node",
+  "edge-defects#8 hostileValue ok=false fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,untyped_dynamic_slot",
+  "edge-defects#9 deepNest ok=false dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,unknown_property,untyped_dynamic_slot",
+  "edge-defects#10 hostileValue ok=false dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,untyped_dynamic_slot",
+  "edge-defects#11 selfCycle ok=false cycle,dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,untyped_dynamic_slot",
 ]
 `;

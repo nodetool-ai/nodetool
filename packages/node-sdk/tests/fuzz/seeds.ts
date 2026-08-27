@@ -6,15 +6,34 @@
  * a seed that changes when another package ships a workflow would move the
  * mutation score for reasons that have nothing to do with the validator.
  *
- * Between them the four graphs reach every branch class the validator has:
- * kernel-shape and ReactFlow-shape nodes, declared and dynamic slots, a Code
- * node body, a model reference, and a control edge.
+ * The first four graphs are well-formed workflows covering the shapes a
+ * validator has to read: kernel-shape and ReactFlow-shape nodes, declared and
+ * dynamic slots, a Code node body, a model reference, and a control edge. The
+ * ones after them are deliberately broken, because a check only runs on a
+ * document that trips it — a mutation of a valid graph reaches a handle or a
+ * model reference by luck, and mostly does not.
  */
 
 export interface SeedGraph {
   id: string;
+  /**
+   * False for a document whose defects are the point. `seedRegistry` learns
+   * each type's handles from the seeds that use them, so a graph carrying an
+   * unknown handle would otherwise teach the registry that handle and validate
+   * clean. Node types are still registered either way — an unregistered type
+   * stops the validator at `unknown_node` before it reads a single handle.
+   */
+  teachesHandles?: boolean;
   graph: { nodes: unknown[]; edges: unknown[] };
 }
+
+/**
+ * Seed node types `seedRegistry` deliberately leaves out, so `unknown_node` is
+ * reachable. Every other type a seed names is registered.
+ */
+export const UNREGISTERED_NODE_TYPES: ReadonlySet<string> = new Set([
+  "fuzz.seed.NotInRegistry"
+]);
 
 export const SEED_GRAPHS: readonly SeedGraph[] = [
   {
@@ -165,6 +184,113 @@ export const SEED_GRAPHS: readonly SeedGraph[] = [
           sourceHandle: "output",
           target: "answer",
           targetHandle: "value"
+        }
+      ]
+    }
+  },
+  {
+    // Every edge-level defect the validator reports, in one document: the four
+    // well-formed graphs above only reach these branches when a mutation
+    // happens to land on a handle, which at any given seed it mostly does not.
+    id: "edge-defects",
+    teachesHandles: false,
+    graph: {
+      nodes: [
+        { id: "es1", type: "fuzz.seed.Source", properties: { seed: "one" } },
+        { id: "es2", type: "fuzz.seed.Source", properties: { seed: "two" } },
+        {
+          id: "strict",
+          type: "fuzz.seed.Strict",
+          properties: {
+            text: "",
+            // A DSL wiring handle that outlived its edge.
+            wired: { __handle: true, source: "es1", sourceHandle: "output" }
+          }
+        },
+        {
+          id: "loose",
+          type: "fuzz.seed.Loose",
+          properties: { label: "hi" },
+          dynamic_inputs: {
+            // A JSON-Schema spelling of `int`: passes the transport schema,
+            // then refuses to connect.
+            alias: { type: { type: "integer" } },
+            count: { type: { type: "int" } },
+            size: { type: { type: "int" } },
+            need: { type: { type: "str" }, required: true }
+          },
+          dynamic_properties: { alias: 1, size: "seven" },
+          dynamic_outputs: { flagged: { type: "boolean" } }
+        },
+        { id: "ghost", type: "fuzz.seed.NotInRegistry", properties: {} },
+        {
+          // A link no lookup can answer for — the other arm of the check the
+          // `code-node` seed's resolvable link covers.
+          id: "unlinked",
+          type: "nodetool.code.Code",
+          properties: {
+            code: "await output('n', 1);",
+            script: { id: "gone", version: 1 }
+          },
+          dynamic_outputs: { n: { type: "int" } }
+        }
+      ],
+      edges: [
+        {
+          id: "ee1",
+          source: "es1",
+          sourceHandle: "output",
+          target: "strict",
+          targetHandle: "text"
+        },
+        {
+          id: "ee2",
+          source: "es2",
+          sourceHandle: "output",
+          target: "strict",
+          targetHandle: "text"
+        },
+        {
+          id: "ee3",
+          source: "es1",
+          sourceHandle: "output",
+          target: "strict",
+          targetHandle: "absent"
+        },
+        {
+          id: "ee4",
+          source: "es1",
+          sourceHandle: "absent",
+          target: "strict",
+          targetHandle: "text"
+        },
+        {
+          id: "ee5",
+          source: "es2",
+          sourceHandle: "output",
+          target: "loose",
+          targetHandle: "untyped"
+        },
+        {
+          id: "ee6",
+          source: "es2",
+          sourceHandle: "output",
+          target: "strict",
+          targetHandle: ""
+        },
+        {
+          id: "ee7",
+          source: "es1",
+          sourceHandle: "",
+          target: "strict",
+          targetHandle: "text"
+        },
+        {
+          id: "ee8",
+          source: "es1",
+          sourceHandle: "output",
+          target: "loose",
+          targetHandle: "count"
         }
       ]
     }
