@@ -232,10 +232,36 @@ export interface Shot {
    * user's own value and keeps audio from touching it.
    */
   duration_source?: ShotDurationSource;
+  /**
+   * How this shot's clip is produced. Defaults to {@link ShotRenderMode}
+   * `"keyframe"`.
+   */
+  render_mode?: ShotRenderMode;
 }
 
 /** Whether a shot's length follows its linked audio or a pinned user value. */
 export type ShotDurationSource = "audio" | "manual";
+
+/**
+ * Where a shot's clip comes from.
+ *
+ * `"keyframe"` (the default) renders a still first and animates it with
+ * image_to_video. The still is the cheap iteration unit and the anchor that
+ * holds a character, a palette and a lighting setup steady from shot to shot.
+ *
+ * `"direct"` skips the still and generates the clip from the prompt with
+ * text_to_video. Worth it where first-frame conditioning is the wrong trade:
+ * first-frame latents bias the sampler toward the reference appearance, so
+ * heavy-motion shots come out stiffer than the same model's text_to_video, and
+ * the native-audio models (dialogue, synced sound) are weakest on their
+ * image path.
+ */
+export type ShotRenderMode = "keyframe" | "direct";
+
+/** A shot's render mode, with the default applied. */
+export const shotRenderMode = (
+  shot: Pick<Shot, "render_mode">
+): ShotRenderMode => (shot.render_mode === "direct" ? "direct" : "keyframe");
 
 /**
  * The direction artifact: a full screenplay a Director agent produces from a

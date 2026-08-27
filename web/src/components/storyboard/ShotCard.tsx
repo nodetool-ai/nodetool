@@ -44,7 +44,10 @@ import ImageRefPreview from "../node/ImageRefPreview";
 import ShotMediaViewer from "./ShotMediaViewer";
 import ShotTakesGallery from "./ShotTakesGallery";
 import ShotScriptPanel from "./ShotScriptPanel";
-import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import {
+  sameMediaRef,
+  useStoryboardStore
+} from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
@@ -170,6 +173,12 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const updateShot = useStoryboardStore((state) => state.updateShot);
   const moveShot = useStoryboardStore((state) => state.moveShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
+  const removeKeyframeVersion = useStoryboardStore(
+    (state) => state.removeKeyframeVersion
+  );
+  const removeClipVersion = useStoryboardStore(
+    (state) => state.removeClipVersion
+  );
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
   );
@@ -270,6 +279,37 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     removeShot(boardId, shot.id);
     setConfirmDelete(false);
   }, [removeShot, boardId, shot.id]);
+
+  const handleRemoveStill = useCallback(() => {
+    const versions =
+      shot.keyframe_versions ?? (shot.keyframe ? [shot.keyframe] : []);
+    if (versions.length === 0 || !shot.keyframe) {
+      return;
+    }
+    const selected = versions.findIndex((v) =>
+      sameMediaRef(v, shot.keyframe as ImageRef)
+    );
+    const index = selected >= 0 ? selected : 0;
+    removeKeyframeVersion(boardId, shot.id, index);
+  }, [
+    shot.keyframe,
+    shot.keyframe_versions,
+    removeKeyframeVersion,
+    boardId,
+    shot.id
+  ]);
+
+  const handleRemoveClip = useCallback(() => {
+    const versions = shot.clip_versions ?? (shot.clip ? [shot.clip] : []);
+    if (versions.length === 0 || !shot.clip) {
+      return;
+    }
+    const selected = versions.findIndex((v) =>
+      sameMediaRef(v, shot.clip as VideoRef)
+    );
+    const index = selected >= 0 ? selected : 0;
+    removeClipVersion(boardId, shot.id, index);
+  }, [shot.clip, shot.clip_versions, removeClipVersion, boardId, shot.id]);
 
   return (
     <Card
@@ -505,6 +545,24 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                 disabled={isGenerating}
               >
                 Revise clip
+              </EditorButton>
+            )}
+            {shot.keyframe && (
+              <EditorButton
+                onClick={handleRemoveStill}
+                disabled={isGenerating}
+                title="Remove the selected still from this shot"
+              >
+                Remove still
+              </EditorButton>
+            )}
+            {shot.clip && (
+              <EditorButton
+                onClick={handleRemoveClip}
+                disabled={isGenerating}
+                title="Remove the selected clip from this shot"
+              >
+                Remove clip
               </EditorButton>
             )}
           </FlexRow>

@@ -252,6 +252,83 @@ describe("storyboard render tools", () => {
     expect(result.note).toContain("render_storyboard_stills");
   });
 
+  it("renders a direct-mode shot straight from text, with no still", async () => {
+    const board = await makeBoard([
+      shot({
+        id: "s1",
+        index: 0,
+        motion: "handheld sprint",
+        camera: { framing: "wide" },
+        render_mode: "direct"
+      })
+    ]);
+    const context = ctx();
+
+    const stills = (await toolForCapabilityName("render_storyboard_stills").process(context, {
+      storyboard_id: board.id
+    })) as { rendered: number; note: string };
+    expect(stills.rendered).toBe(0);
+    expect(stills.note).toContain("directly");
+
+    const result = (await toolForCapabilityName("render_storyboard_clips").process(context, {
+      storyboard_id: board.id
+    })) as { rendered: number; results: Array<{ render_mode?: string }> };
+    expect(result.rendered).toBe(1);
+    expect(result.results[0].render_mode).toBe("direct");
+
+    const call = context.runProviderPrediction.mock.calls.at(-1)![0] as {
+      capability: string;
+      params: { images?: Uint8Array[]; prompt: string };
+    };
+    expect(call.capability).toBe("text_to_video");
+    expect(call.params.images).toBeUndefined();
+    // No still carries the look, so framing and board style ride the prompt.
+    expect(call.params.prompt).toBe(
+      "action 0, wide shot, handheld sprint, moody neon"
+    );
+
+    const saved = (await Storyboard.findById(board.id))!.toDocument();
+    expect(saved.shots[0].status).toBe("rendered");
+    expect(saved.shots[0].keyframe).toBeUndefined();
+  });
+
+  it("mode: direct overrides a keyframe shot for one call only", async () => {
+    const board = await makeBoard([shot({ id: "s1", index: 0 })]);
+    const context = ctx();
+
+    const result = (await toolForCapabilityName("render_storyboard_clips").process(context, {
+      storyboard_id: board.id,
+      mode: "direct"
+    })) as { rendered: number };
+    expect(result.rendered).toBe(1);
+    expect(
+      (context.runProviderPrediction.mock.calls.at(-1)![0] as { capability: string })
+        .capability
+    ).toBe("text_to_video");
+
+    // The shot itself is untouched: it still says keyframe.
+    const saved = (await Storyboard.findById(board.id))!.toDocument();
+    expect(saved.shots[0].render_mode).toBeUndefined();
+  });
+
+  it("sets a shot's render_mode through edit_storyboard", async () => {
+    const board = await makeBoard([shot({ id: "s1", index: 0 })]);
+    await toolForCapabilityName("edit_storyboard").process(ctx(), {
+      storyboard_id: board.id,
+      ops: [{ op: "update_shot", target: "s1", render_mode: "direct" }]
+    });
+    expect(
+      (await Storyboard.findById(board.id))!.toDocument().shots[0].render_mode
+    ).toBe("direct");
+
+    const rejected = (await toolForCapabilityName("edit_storyboard").process(ctx(), {
+      storyboard_id: board.id,
+      ops: [{ op: "update_shot", target: "s1", render_mode: "sideways" }]
+    })) as { failed: number; ops: Array<{ error?: string }> };
+    expect(rejected.failed).toBe(1);
+    expect(rejected.ops[0].error).toContain('"keyframe" or "direct"');
+  });
+
   it("revises a clip in place, keeping the previous take as a version", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const context = ctx();

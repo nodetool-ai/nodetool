@@ -12,6 +12,7 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 
 import {
@@ -87,6 +88,17 @@ const viewButtonSx = {
   "@media (pointer: coarse)": { opacity: 1 }
 } as const;
 
+const removeButtonSx = {
+  position: "absolute",
+  top: SPACING.micro,
+  left: SPACING.micro,
+  bgcolor: "c_scrim_soft",
+  opacity: 0,
+  ".takes:hover &": { opacity: 1 },
+  "&:focus-visible": { opacity: 1 },
+  "@media (pointer: coarse)": { opacity: 1 }
+} as const;
+
 const versionKey = (ref: ImageRef | VideoRef, index: number): string =>
   ref.asset_id ?? ref.uri ?? String(index);
 
@@ -103,9 +115,18 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
   const selectKeyframeVersion = useStoryboardStore(
     (state) => state.selectKeyframeVersion
   );
+  const removeKeyframeVersion = useStoryboardStore(
+    (state) => state.removeKeyframeVersion
+  );
+  const removeClipVersion = useStoryboardStore(
+    (state) => state.removeClipVersion
+  );
   const selectClipVersion = useStoryboardStore(
     (state) => state.selectClipVersion
   );
+
+  const isGenerating =
+    shot.status === "keyframe_generating" || shot.status === "clip_generating";
 
   const stills = useMemo(
     () => shot.keyframe_versions ?? (shot.keyframe ? [shot.keyframe] : []),
@@ -143,6 +164,20 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
       }
     },
     [selectClipVersion, boardId, shot.id, clips]
+  );
+
+  const handleRemoveStill = useCallback(
+    (index: number) => {
+      removeKeyframeVersion(boardId, shot.id, index);
+    },
+    [removeKeyframeVersion, boardId, shot.id]
+  );
+
+  const handleRemoveClip = useCallback(
+    (index: number) => {
+      removeClipVersion(boardId, shot.id, index);
+    },
+    [removeClipVersion, boardId, shot.id]
   );
 
   const handleCloseViewer = useCallback(() => setViewerMedia(null), []);
@@ -197,6 +232,17 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   <span>{i + 1}</span>
                 )}
               </Box>
+              {!readOnly && (
+                <ToolbarIconButton
+                  icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
+                  tooltip="Remove still"
+                  ariaLabel={`Remove still ${i + 1}`}
+                  onClick={() => handleRemoveStill(i)}
+                  disabled={isGenerating}
+                  sx={removeButtonSx}
+                  variant="error"
+                />
+              )}
               <ToolbarIconButton
                 icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
                 tooltip="View fullscreen"
@@ -221,6 +267,16 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                 label={`Take ${i + 1}`}
                 onClick={readOnly ? undefined : () => handleSelectClip(i)}
               />
+              {!readOnly && (
+                <ToolbarIconButton
+                  icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
+                  tooltip="Remove clip"
+                  ariaLabel={`Remove clip ${i + 1}`}
+                  onClick={() => handleRemoveClip(i)}
+                  disabled={isGenerating}
+                  variant="error"
+                />
+              )}
               <ToolbarIconButton
                 icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
                 tooltip="View fullscreen"

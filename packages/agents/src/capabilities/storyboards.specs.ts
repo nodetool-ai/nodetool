@@ -118,6 +118,16 @@ export const RENDER_CLIPS_SCHEMA: JsonSchema = {
       type: "string",
       description: "Provider resolution hint, e.g. '720p'."
     },
+    mode: {
+      type: "string",
+      enum: ["keyframe", "direct"],
+      description:
+        "Override how the selected shots render, for this call only. " +
+        "'keyframe' animates each shot's still (image_to_video); 'direct' " +
+        "generates from the prompt with no still (text_to_video). Defaults " +
+        "to each shot's own render_mode, which defaults to 'keyframe'. Set " +
+        "the shot's render_mode with edit_storyboard to make it stick."
+    },
     concurrency: {
       type: "number",
       description: `Shots rendered in parallel (default ${DEFAULT_CONCURRENCY}, max ${MAX_CONCURRENCY}).`
@@ -166,8 +176,8 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
       description:
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
         "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
-        "duration_seconds?, duration_source?, entity_ids?, location_id?, "+
-        "notes?, index?}, " +
+        "duration_seconds?, duration_source?, render_mode?, entity_ids?, " +
+        "location_id?, notes?, index?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
         "reorder_shot {target, index}, set_board {brief?, style?, " +
         "aspect_ratio?, entity_ids?}. `target` is a shot id, its 0-based " +
@@ -246,9 +256,9 @@ export const renderStoryboardStillsSpec: CapabilitySpec = {
     "Render keyframe stills for a storyboard's shots by calling the image " +
     "model directly — no workflow is created or run. Each still is saved as an " +
     "asset and becomes the shot's selected keyframe (previous stills are kept " +
-    "as versions). Omit `targets` to render every shot that has no still yet, " +
-    "so a whole board is one call. Stills are the cheap step: render them, " +
-    "look at them, then spend on clips.",
+    "as versions). Omit `targets` to render every shot that has no still yet " +
+    "and is not set to render directly, so a whole board is one call. Stills " +
+    "are the cheap step: render them, look at them, then spend on clips.",
   inputSchema: RENDER_STILLS_SCHEMA,
   category: "write",
   userMessage: (params) => {
@@ -261,13 +271,17 @@ export const renderStoryboardStillsSpec: CapabilitySpec = {
 export const renderStoryboardClipsSpec: CapabilitySpec = {
   name: "render_storyboard_clips",
   description:
-    "Render video clips for a storyboard's shots by animating each shot's " +
-    "selected still with the video model directly — no workflow is created or " +
-    "run. Each clip is saved as an asset and attached to its shot (previous " +
+    "Render video clips for a storyboard's shots with the video model " +
+    "directly — no workflow is created or run. A shot renders the way its " +
+    "render_mode says: 'keyframe' (the default) animates its selected still " +
+    "with image_to_video, 'direct' generates from the prompt with " +
+    "text_to_video and needs no still. Pass `mode` to override both for this " +
+    "call. Each clip is saved as an asset and attached to its shot (previous " +
     "takes are kept as versions), leaving the shot 'rendered' and ready for " +
     "assemble_storyboard_timeline. Omit `targets` to render every shot that " +
-    "has a still but no clip. Shots without a still are reported, not rendered " +
-    "— run render_storyboard_stills first. This is the expensive step.",
+    "still needs a clip and can render one. A keyframe-mode shot with no " +
+    "still is reported, not rendered — run render_storyboard_stills first, or " +
+    "set its render_mode to 'direct'. This is the expensive step.",
   inputSchema: RENDER_CLIPS_SCHEMA,
   category: "write",
   userMessage: (params) => {

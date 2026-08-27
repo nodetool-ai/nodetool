@@ -35,7 +35,9 @@ export const storyboardShot = z
     script_line_ids: z.array(z.string()).optional(),
     /** Linked line texts as last projected, joined "\n" — drift only. */
     script_text_snapshot: z.string().optional(),
-    duration_source: z.enum(["audio", "manual"]).optional()
+    duration_source: z.enum(["audio", "manual"]).optional(),
+    /** Animate the shot's still, or generate the clip straight from text. */
+    render_mode: z.enum(["keyframe", "direct"]).optional()
   })
   .passthrough();
 export type StoryboardShot = z.infer<typeof storyboardShot>;
@@ -70,7 +72,8 @@ const SHOT_KEY_ALIASES: Readonly<Record<string, string>> = {
   costEstimate: "cost_estimate",
   scriptLineIds: "script_line_ids",
   scriptTextSnapshot: "script_text_snapshot",
-  durationSource: "duration_source"
+  durationSource: "duration_source",
+  renderMode: "render_mode"
 };
 
 /** Tool-surface screenplay key → wire key. `style` is the Director's alias. */

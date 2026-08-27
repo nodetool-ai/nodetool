@@ -176,8 +176,31 @@ interface StoryboardStoreState {
     shotId: string,
     versionIndex: number
   ) => void;
+  /**
+   * Remove one preserved still from a shot. When the removed still is the
+   * selected keyframe, the next still at the same index becomes selected (or
+   * the last one when the removed still was at the end). Removing the last
+   * still clears the selection and reverts a `keyframe_ready` shot to `planned`.
+   */
+  removeKeyframeVersion: (
+    boardId: string,
+    shotId: string,
+    versionIndex: number
+  ) => void;
   /** Make one of the shot's preserved takes the selected/export clip. */
   selectClipVersion: (
+    boardId: string,
+    shotId: string,
+    versionIndex: number
+  ) => void;
+  /**
+   * Remove one preserved clip from a shot. When the removed clip is the
+   * selected clip, the next clip at the same index becomes selected (or the
+   * last one when the removed clip was at the end). Removing the last clip
+   * clears the selection and reverts a `rendered` shot to `keyframe_ready`
+   * (or `planned` when no still remains).
+   */
+  removeClipVersion: (
     boardId: string,
     shotId: string,
     versionIndex: number
@@ -707,6 +730,59 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       })
     ),
 
+  removeKeyframeVersion: (boardId, shotId, versionIndex) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        if (!target) {
+          return null;
+        }
+        const versions =
+          target.keyframe_versions ??
+          (target.keyframe ? [target.keyframe] : []);
+        if (
+          versionIndex < 0 ||
+          versionIndex >= versions.length ||
+          versions.length === 0
+        ) {
+          return null;
+        }
+        const remaining = versions.filter((_, i) => i !== versionIndex);
+        const selectedIndex = target.keyframe
+          ? versions.findIndex((v) =>
+              sameMediaRef(v, target.keyframe as ImageRef)
+            )
+          : -1;
+        const removedSelected = selectedIndex === versionIndex;
+        let nextKeyframe: ImageRef | null | undefined;
+        if (remaining.length === 0) {
+          nextKeyframe = null;
+        } else if (removedSelected) {
+          const nextIndex = Math.min(versionIndex, remaining.length - 1);
+          nextKeyframe = remaining[nextIndex];
+        } else {
+          nextKeyframe = target.keyframe;
+        }
+        const patch: Partial<Shot> = {
+          keyframe: nextKeyframe ?? null,
+          keyframe_versions: remaining
+        };
+        if (
+          remaining.length === 0 &&
+          (target.status === "keyframe_ready" || target.status === "approved")
+        ) {
+          patch.status = "planned";
+        } else if (
+          remaining.length === 0 &&
+          target.status === "failed" &&
+          !target.clip
+        ) {
+          patch.status = "planned";
+        }
+        return patchShot(b, shotId, patch);
+      })
+    ),
+
   selectClipVersion: (boardId, shotId, versionIndex) =>
     set((state) =>
       withBoard(state, boardId, (b) => {
@@ -718,6 +794,55 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
           return null;
         }
         return patchShot(b, shotId, { clip });
+      })
+    ),
+
+  removeClipVersion: (boardId, shotId, versionIndex) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        if (!target) {
+          return null;
+        }
+        const versions =
+          target.clip_versions ?? (target.clip ? [target.clip] : []);
+        if (
+          versionIndex < 0 ||
+          versionIndex >= versions.length ||
+          versions.length === 0
+        ) {
+          return null;
+        }
+        const remaining = versions.filter((_, i) => i !== versionIndex);
+        const selectedIndex = target.clip
+          ? versions.findIndex((v) =>
+              sameMediaRef(v, target.clip as VideoRef)
+            )
+          : -1;
+        const removedSelected = selectedIndex === versionIndex;
+        let nextClip: VideoRef | null | undefined;
+        if (remaining.length === 0) {
+          nextClip = null;
+        } else if (removedSelected) {
+          const nextIndex = Math.min(versionIndex, remaining.length - 1);
+          nextClip = remaining[nextIndex];
+        } else {
+          nextClip = target.clip;
+        }
+        const patch: Partial<Shot> = {
+          clip: nextClip ?? null,
+          clip_versions: remaining
+        };
+        if (remaining.length === 0) {
+          if (target.status === "rendered") {
+            patch.status = target.keyframe ? "keyframe_ready" : "planned";
+          } else if (target.status === "failed") {
+            patch.status = target.keyframe ? "keyframe_ready" : "planned";
+          } else if (target.status === "clip_generating") {
+            patch.status = target.keyframe ? "keyframe_ready" : "planned";
+          }
+        }
+        return patchShot(b, shotId, patch);
       })
     ),
 

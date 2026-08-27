@@ -1527,7 +1527,26 @@ sequence — which `validate_timeline` then checks. **`list_storyboards`** and
 Both render tools default to "every shot that still needs this step", so a whole
 board is one call; provider and model come from the call or the board's own
 selection, and an unset model is an error naming `find_model` rather than spend
-on a model nobody chose. The prompts, entity seasoning, and shot → timeline
+on a model nobody chose.
+
+**The still is optional, per shot.** A shot's `render_mode` decides where its
+clip comes from: `"keyframe"` (the default) animates the selected still with
+`image_to_video`, `"direct"` skips the still and generates from the prompt with
+`text_to_video`. Set it with `edit_storyboard`, or pass `mode` to
+`render_storyboard_clips` to override every selected shot for one call.
+`render_storyboard_stills` skips direct shots unless they are named in
+`targets`.
+
+Keyframe stays the default because it is what makes a board affordable and
+coherent: a still is the cheap unit to iterate on and the anchor that holds a
+character, a palette and a lighting setup steady across shots. Direct earns its
+place on two shapes. First-frame conditioning biases the sampler toward the
+reference appearance, so a heavy-motion shot comes out stiffer than the same
+model's `text_to_video`. And the native-audio models (synced dialogue, diegetic
+sound) are weakest on their image path. A direct shot's prompt therefore carries
+the framing and the board style too, since no still carries them in.
+
+The prompts, entity seasoning, and shot → timeline
 mapping are the editor's own (`entitiesForShot` in `@nodetool-ai/protocol`,
 `buildStoryboardTimeline` in `@nodetool-ai/timeline`), so a headless render
 matches one done in the UI. Code:

@@ -359,6 +359,20 @@ const clipPrompt = (shot: Shot): string =>
     .filter((p): p is string => !!p && p.trim().length > 0)
     .join(", ");
 
+/**
+ * Direct-mode clip prompt. No still carries the look into the render, so the
+ * prompt has to: framing and board style ride along with the action and the
+ * motion.
+ */
+function directClipPrompt(shot: Shot, style: string): string {
+  const parts = [shot.action, shot.motion, style];
+  if (shot.camera?.framing) parts.splice(1, 0, `${shot.camera.framing} shot`);
+  return parts
+    .filter((p): p is string => !!p && p.trim().length > 0)
+    .map((p) => p.trim())
+    .join(", ");
+}
+
 interface ModelChoice {
   provider: string;
   model: string;
@@ -372,7 +386,8 @@ interface ModelChoice {
 function resolveModel(
   params: Record<string, unknown>,
   boardModel: Record<string, unknown> | null,
-  kind: string
+  kind: string,
+  capability: string
 ): ModelChoice | ToolError {
   const provider =
     isString(params["provider"]) && params["provider"]
@@ -388,7 +403,7 @@ function resolveModel(
         : "";
   if (!provider || !model) {
     return {
-      error: `No ${kind} model is set on this storyboard. Pass provider + model (use find_model with capability=${kind === "still" ? "text_to_image" : "image_to_video"}), or set one on the board.`
+      error: `No ${kind} model is set on this storyboard. Pass provider + model (use find_model with capability=${capability}), or set one on the board.`
     };
   }
   return { provider, model };
@@ -420,6 +435,8 @@ interface ShotOutcome {
   shot_id: string;
   index: number;
   slug?: string;
+  /** How the clip was rendered. Absent on a stills outcome. */
+  render_mode?: "keyframe" | "direct";
   ok: boolean;
   asset_id?: string;
   asset_uri?: string;
@@ -559,6 +576,7 @@ const getStoryboard: CapabilityExport = {
           status: shot.status,
           has_keyframe: !!shot.keyframe,
           has_clip: !!shot.clip,
+          render_mode: shot.render_mode ?? "keyframe",
           script_line_ids: shot.script_line_ids ?? [],
           duration_source: shot.duration_source,
           script_drifted: drifted.has(shot.id)
@@ -575,20 +593,24 @@ const renderStoryboardStills: CapabilityExport = {
     if (isError(board)) return board;
     const { row, doc } = board;
 
-    const model = resolveModel(params, doc.imageModel, "still");
+    const model = resolveModel(params, doc.imageModel, "still", "text_to_image");
     if (isError(model)) return model;
 
+    const { shotRenderMode } = await import("@nodetool-ai/protocol");
+    // A direct shot renders its clip from the prompt, so it needs no still.
+    // Naming it in `targets` still renders one — a board frame to look at is
+    // worth having even when the clip does not come from it.
     const selected = selectShots(
       doc.shots,
       params["targets"],
-      (s) => !s.keyframe
+      (s) => !s.keyframe && shotRenderMode(s) !== "direct"
     );
     if (isError(selected)) return selected;
     if (selected.length === 0) {
       return {
         rendered: 0,
         results: [],
-        note: "Every shot already has a still."
+        note: "No shot needs a still: each already has one, or renders its clip directly."
       };
     }
     if (selected.length > MAX_SHOTS_PER_CALL) {
@@ -688,20 +710,40 @@ const renderStoryboardClips: CapabilityExport = {
     if (isError(board)) return board;
     const { row, doc } = board;
 
-    const model = resolveModel(params, doc.videoModel, "clip");
+    const override = params["mode"];
+    if (override !== undefined && override !== "keyframe" && override !== "direct") {
+      return { error: 'mode must be "keyframe" or "direct".' };
+    }
+    // The call's override wins over the shot's own setting, for this call only.
+    const { shotRenderMode } = await import("@nodetool-ai/protocol");
+    const modeOf = (shot: Shot): "keyframe" | "direct" =>
+      override === "keyframe" || override === "direct"
+        ? override
+        : shotRenderMode(shot);
+
+    const model = resolveModel(
+      params,
+      doc.videoModel,
+      "clip",
+      // A board renders one way or the other far more often than both, so name
+      // the capability the selection actually needs.
+      doc.shots.every((s) => modeOf(s) === "direct")
+        ? "text_to_video"
+        : "image_to_video"
+    );
     if (isError(model)) return model;
 
     const selected = selectShots(
       doc.shots,
       params["targets"],
-      (s) => !!s.keyframe && !s.clip
+      (s) => !s.clip && (modeOf(s) === "direct" || !!s.keyframe)
     );
     if (isError(selected)) return selected;
     if (selected.length === 0) {
       return {
         rendered: 0,
         results: [],
-        note: "No shot has a still waiting to be animated. Run render_storyboard_stills first, or name shots explicitly with `targets`."
+        note: "No shot is ready for a clip. A keyframe-mode shot needs a still first (render_storyboard_stills), or set its render_mode to \"direct\" — or pass mode: \"direct\" here — to render straight from the prompt. Name shots explicitly with `targets` to override the selection."
       };
     }
     if (selected.length > MAX_SHOTS_PER_CALL) {
@@ -726,6 +768,7 @@ const renderStoryboardClips: CapabilityExport = {
     );
     const linesById = scriptLinesById(scriptDoc?.sections ?? []);
     const aspectRatio = doc.aspectRatio || "16:9";
+    const style = isString(params["style"]) ? params["style"] : doc.style || "";
     const resolution =
       isString(params["resolution"])
         ? params["resolution"]
@@ -735,39 +778,51 @@ const renderStoryboardClips: CapabilityExport = {
       selected,
       clampConcurrency(params["concurrency"]),
       async (shot): Promise<ShotOutcome> => {
+        const mode = modeOf(shot);
         const base: ShotOutcome = {
           shot_id: shot.id,
           index: shot.index,
           slug: shot.slug,
+          render_mode: mode,
           ok: false
         };
-        if (!shot.keyframe) {
+        if (mode === "keyframe" && !shot.keyframe) {
           return {
             ...base,
             error:
-              "Shot has no still to animate. Run render_storyboard_stills first."
+              'Shot has no still to animate. Run render_storyboard_stills first, or set its render_mode to "direct".'
           };
         }
         try {
-          const seed = await loadMediaRefBytes(shot.keyframe, context);
-          if (!seed || seed.length === 0) {
-            return {
-              ...base,
-              error: "The shot's still could not be read back from storage."
-            };
+          // Direct mode skips the still: the prompt carries the whole shot.
+          let seed: Uint8Array | null = null;
+          if (mode === "keyframe" && shot.keyframe) {
+            seed = await loadMediaRefBytes(shot.keyframe, context);
+            if (!seed || seed.length === 0) {
+              return {
+                ...base,
+                error: "The shot's still could not be read back from storage."
+              };
+            }
+          }
+          const predictionParams: Record<string, unknown> = {
+            prompt:
+              mode === "direct"
+                ? directClipPrompt(shot, style)
+                : clipPrompt(shot),
+            entities: entitiesForShot(shot, entities).map(wireEntity),
+            aspect_ratio: aspectRatio,
+            resolution,
+            duration_seconds: effectiveShotDuration(shot, linesById).seconds
+          };
+          if (seed) {
+            predictionParams["images"] = [seed];
           }
           const bytes = (await context.runProviderPrediction({
             provider: model.provider,
-            capability: "image_to_video",
+            capability: mode === "direct" ? "text_to_video" : "image_to_video",
             model: model.model,
-            params: {
-              images: [seed],
-              prompt: clipPrompt(shot),
-              entities: entitiesForShot(shot, entities).map(wireEntity),
-              aspect_ratio: aspectRatio,
-              resolution,
-              duration_seconds: effectiveShotDuration(shot, linesById).seconds
-            }
+            params: predictionParams
           })) as Uint8Array;
           const saved = await saveMedia(
             context,
@@ -807,7 +862,7 @@ const renderStoryboardClips: CapabilityExport = {
           }));
           return {
             ...base,
-            error: `image_to_video failed: ${errorMessage(e)}`
+            error: `${mode === "direct" ? "text_to_video" : "image_to_video"} failed: ${errorMessage(e)}`
           };
         }
       }
@@ -847,7 +902,7 @@ const reviseStoryboardClip: CapabilityExport = {
       };
     }
 
-    const model = resolveModel(params, doc.videoModel, "clip");
+    const model = resolveModel(params, doc.videoModel, "clip", "video_to_video");
     if (isError(model)) return model;
 
     const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
@@ -1207,6 +1262,7 @@ const SHOT_EDIT_FIELDS = new Set([
   "notes",
   "duration_seconds",
   "duration_source",
+  "render_mode",
   "entity_ids",
   "location_id"
 ]);
@@ -1272,6 +1328,13 @@ function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
       throw new Error('duration_source must be "audio" or "manual".');
     }
     next.duration_source = source;
+  }
+  if (args["render_mode"] !== undefined) {
+    const mode = String(args["render_mode"]);
+    if (mode !== "keyframe" && mode !== "direct") {
+      throw new Error('render_mode must be "keyframe" or "direct".');
+    }
+    next.render_mode = mode;
   }
   if (Array.isArray(args["entity_ids"])) {
     next.entity_ids = args["entity_ids"].map(String);

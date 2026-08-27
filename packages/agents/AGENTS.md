@@ -824,7 +824,7 @@ result as an asset, and write it back onto the persisted board.
 | `create_storyboard` | Blank board (then `edit_storyboard` adds shots) |
 | `get_storyboard` | Shots with ids, status, and whether each has a still/clip |
 | `render_storyboard_stills` | `text_to_image` per shot → the shot's keyframe |
-| `render_storyboard_clips` | `image_to_video` seeded by the keyframe → the shot's clip |
+| `render_storyboard_clips` | the shot's clip: `image_to_video` seeded by the keyframe, or `text_to_video` from the prompt |
 | `revise_storyboard_clip` | `video_to_video` revision of one shot's clip |
 | `assemble_storyboard_timeline` | Rendered clips → a saved `timeline_sequences` row |
 
@@ -838,6 +838,15 @@ clobbering.
 The provider and model come from the call, else from the board's own
 `imageModel` / `videoModel`. There is no fallback default — an unset model is an
 error naming `find_model`, not silent spend on a model nobody chose.
+
+`Shot.render_mode` decides whether a clip needs a still. `"keyframe"` (the
+default) animates the selected still; `"direct"` renders from the prompt and
+skips the stills step entirely, for shots where first-frame conditioning is the
+wrong trade — heavy motion, which I2V renders stiffer than the same model's
+T2V, and native-audio models, which are weakest on their image path. A direct
+shot's prompt carries framing and board style, since no still carries them.
+`render_storyboard_clips` takes `mode` to override every selected shot for one
+call without editing the board.
 
 Prompt composition, entity seasoning (`entitiesForShot`, `@nodetool-ai/protocol`)
 and the shot → timeline mapping (`buildStoryboardTimeline`,
