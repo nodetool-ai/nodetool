@@ -190,6 +190,13 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
     docsTopic: "scripts",
     icon: <DataObjectOutlinedIcon />
   },
+  skills: {
+    id: "skills",
+    label: "Skills",
+    description: "Agent skills — markdown instructions matched to the objective.",
+    docsTopic: "agents",
+    icon: <AutoAwesomeIcon />
+  },
   assets: {
     id: "assets",
     label: "Assets",
@@ -250,7 +257,8 @@ export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
     id: "developer-tools",
     placement: "top",
     categories: [
-      LEFT_PANEL_CATEGORY_BY_ID.jsscripts
+      LEFT_PANEL_CATEGORY_BY_ID.jsscripts,
+      LEFT_PANEL_CATEGORY_BY_ID.skills
     ]
   },
   {

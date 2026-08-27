@@ -223,6 +223,8 @@ export {
 } from "./script.js";
 export { JsScript, JsScriptConflictError } from "./js-script.js";
 export type { JsScriptResponse } from "./js-script.js";
+export { Skill, SkillConflictError } from "./skill.js";
+export type { SkillResponse, SkillListItem } from "./skill.js";
 export { JsScriptVersion } from "./js-script-version.js";
 export type { JsScriptSaveType } from "./js-script-version.js";
 export { createJsScriptResolver } from "./js-script-resolver.js";

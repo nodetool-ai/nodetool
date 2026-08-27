@@ -5,7 +5,7 @@
  *
  * The Agent class takes a complex objective, decomposes it into a step-by-step
  * plan using TaskPlanner, then executes that plan via TaskExecutor.
- * Supports loading skills from the filesystem.
+ * Skills are loaded from the user-scoped database.
  */
 
 import * as fs from "node:fs/promises";
@@ -24,7 +24,7 @@ import type {
   TaskUpdate,
   Chunk
 } from "@nodetool-ai/protocol";
-import { parseSkillDocument, TaskUpdateEvent } from "@nodetool-ai/protocol";
+import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { BoundedHandle, type SupervisorBounds } from "@nodetool-ai/kernel";
 import { TaskPlanner } from "./task-planner.js";
 import { sessionAllowedPackages } from "./codeact/sandbox-packages.js";
@@ -95,59 +95,44 @@ const SKILL_WORD_RE = /[a-z0-9]+/g;
  */
 export { parseFrontmatter } from "@nodetool-ai/protocol";
 
-/**
- * Load a single skill from a SKILL.md file.
- * Returns null if the file is invalid or cannot be read.
- */
+/** @deprecated Filesystem skill loading is removed. */
 async function loadSkillFromFile(
-  skillFile: string
+  _skillFile: string
 ): Promise<AgentSkill | null> {
-  let content: string;
-  try {
-    content = await fs.readFile(skillFile, "utf-8");
-  } catch {
-    return null;
-  }
-  const document = parseSkillDocument(content);
-  if (document === null) return null;
-  return { ...document, path: skillFile };
+  return null;
+}
+
+/** @deprecated Filesystem skill discovery is removed. */
+async function findSkillFiles(_dir: string): Promise<string[]> {
+  return [];
 }
 
 /**
- * Recursively find all SKILL.md files under a directory.
- */
-async function findSkillFiles(dir: string): Promise<string[]> {
-  const results: string[] = [];
-  let entries: import("node:fs").Dirent[];
-  try {
-    entries = await fs.readdir(dir, { withFileTypes: true });
-  } catch {
-    return results;
-  }
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...(await findSkillFiles(fullPath)));
-    } else if (entry.name === "SKILL.md") {
-      results.push(fullPath);
-    }
-  }
-  return results;
-}
-
-/**
- * Load all valid skills from a directory (recursively searches for SKILL.md files).
+ * @deprecated Filesystem skill loading is removed. Skills are loaded from the
+ * database via `discoverSkills(context)`.
  */
 export async function loadSkillsFromDirectory(
-  dir: string
+  _dir: string
 ): Promise<AgentSkill[]> {
-  const skillFiles = await findSkillFiles(dir);
-  const skills: AgentSkill[] = [];
-  for (const file of skillFiles) {
-    const skill = await loadSkillFromFile(file);
-    if (skill) skills.push(skill);
-  }
-  return skills;
+  return [];
+}
+
+/**
+ * Load skills for a user from the database. This is the new source of truth;
+ * filesystem directories are no longer consulted. The table stores `name` and
+ * `description` as columns and `content` as markdown (no frontmatter).
+ */
+async function loadSkillsFromDatabase(
+  userId: string
+): Promise<AgentSkill[]> {
+  const { Skill } = await import("@nodetool-ai/models");
+  const rows = await Skill.listByUser(userId);
+  return rows.map((row) => ({
+    name: row.name,
+    description: row.description,
+    instructions: row.content,
+    path: `skill:${row.id}`
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -450,59 +435,25 @@ export class Agent {
   }
 
   /**
-   * Resolve skill directories from constructor args + environment + defaults.
+   * @deprecated Filesystem skill dirs are no longer used. DB is the source of
+   * truth. Kept to avoid breaking callers that pass `skillDirs`.
    */
   private resolveSkillDirs(): string[] {
-    const resolved: string[] = [];
-
-    // Explicit dirs from constructor
-    for (const d of this.skillDirs) {
-      resolved.push(d.startsWith("~") ? d.replace("~", os.homedir()) : d);
-    }
-
-    // Environment variable
-    const envDirs = process.env["NODETOOL_AGENT_SKILL_DIRS"];
-    if (envDirs) {
-      for (const d of envDirs.split(path.delimiter)) {
-        const trimmed = d.trim();
-        if (trimmed) {
-          resolved.push(
-            trimmed.startsWith("~")
-              ? trimmed.replace("~", os.homedir())
-              : trimmed
-          );
-        }
-      }
-    }
-
-    // Default locations
-    resolved.push(
-      path.join(process.cwd(), ".claude", "skills"),
-      path.join(os.homedir(), ".claude", "skills"),
-      path.join(os.homedir(), ".codex", "skills")
-    );
-
-    return dedupePreserveOrder(resolved);
+    return [];
   }
 
   /**
-   * Discover all valid skills from resolved directories.
+   * Discover all valid skills for the current user from the database.
+   * Database failures propagate so agent startup does not silently omit skills.
    */
-  private async discoverSkills(): Promise<Map<string, AgentSkill>> {
+  private async discoverSkills(
+    context: ProcessingContext
+  ): Promise<Map<string, AgentSkill>> {
     const discovered = new Map<string, AgentSkill>();
-    const dirs = this.resolveSkillDirs();
-
-    for (const dir of dirs) {
-      try {
-        await fs.access(dir);
-      } catch {
-        continue; // directory doesn't exist
-      }
-      const skills = await loadSkillsFromDirectory(dir);
-      for (const skill of skills) {
-        if (!discovered.has(skill.name)) {
-          discovered.set(skill.name, skill);
-        }
+    const skills = await loadSkillsFromDatabase(context.userId);
+    for (const skill of skills) {
+      if (!discovered.has(skill.name)) {
+        discovered.set(skill.name, skill);
       }
     }
     return discovered;
@@ -515,16 +466,9 @@ export class Agent {
     available: Map<string, AgentSkill>,
     requested: string[] | undefined
   ): AgentSkill[] {
-    // Merge explicit names from constructor + environment
-    const envRequested = process.env["NODETOOL_AGENT_SKILLS"] ?? "";
-    const envNames = envRequested
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const explicitNames = dedupePreserveOrder([
-      ...(requested ?? []),
-      ...envNames
-    ]);
+    // Explicit names are supplied by the agent options. Environment variables
+    // are intentionally not consulted by the database-backed skill system.
+    const explicitNames = dedupePreserveOrder([...(requested ?? [])]);
 
     if (explicitNames.length > 0) {
       const active: AgentSkill[] = [];
@@ -534,12 +478,6 @@ export class Agent {
       }
       return active;
     }
-
-    // Auto-select: check if disabled
-    const autoEnabled = !["0", "false", "no", "off"].includes(
-      (process.env["NODETOOL_AGENT_AUTO_SKILLS"] ?? "1").toLowerCase()
-    );
-    if (!autoEnabled) return [];
 
     // Match objective words against skill description words
     const objectiveWords = new Set(
@@ -634,7 +572,7 @@ export class Agent {
       objective: this.objective.slice(0, 80)
     });
 
-    const availableSkills = await this.discoverSkills();
+    const availableSkills = await this.discoverSkills(context);
     // A trusted pack the session allows contributes its SKILL.md like any other
     // skill. An untrusted pack contributes nothing here — its body reaches the
     // model only through `get_sandbox_package_docs`, wrapped as untrusted.

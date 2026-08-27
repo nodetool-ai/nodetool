@@ -2040,32 +2040,16 @@ Steps can enforce structured output via JSON schema:
 
 ### Skills System
 
-Skills inject domain-specific instructions into the agent system prompt:
+Skills are user-scoped records in the `skills` database table. Each record has
+`name`, `description`, and markdown `content` columns. Agent discovery reads
+the current user's records through the models layer and merges trusted
+sandbox-pack skills supplied for the session.
 
-```
-.claude/skills/my-skill/SKILL.md
-~/.claude/skills/shared-skill/SKILL.md
-```
-
-Skill format:
-```markdown
----
-name: data-analysis
-description: Analyze CSV datasets and produce summary statistics
----
-
-When analyzing data:
-1. Load the dataset using read_file
-2. Identify column types
-3. Compute summary statistics
-```
-
-Control via environment variables:
-```bash
-NODETOOL_AGENT_SKILL_DIRS=/path/to/skills   # Additional skill directories
-NODETOOL_AGENT_SKILLS=skill-a,skill-b       # Explicitly enable skills
-NODETOOL_AGENT_AUTO_SKILLS=0                # Disable auto-matching (default: enabled)
-```
+The agent options `skills` field explicitly selects names. Without explicit
+names, skills are auto-selected when words in their descriptions match words
+in the objective. Filesystem `SKILL.md` discovery and the old
+`NODETOOL_AGENT_SKILL_DIRS`, `NODETOOL_AGENT_SKILLS`, and
+`NODETOOL_AGENT_AUTO_SKILLS` environment variables are deprecated and ignored.
 
 ### Tuning Checklist
 
@@ -2076,7 +2060,8 @@ NODETOOL_AGENT_AUTO_SKILLS=0                # Disable auto-matching (default: en
 5. **Validate output**: Use `outputSchema` to enforce structured results
 6. **Restrict tools**: Per-step `tools` arrays limit which tools a step can call
 7. **Observe**: Enable tracing (`OTEL_TRACES_EXPORTER=console`) to see every LLM call
-8. **Iterate on skills**: Add domain-specific SKILL.md files to improve agent behavior
+8. **Iterate on skills**: Add domain-specific records in the Skills panel to
+   improve agent behavior
 
 ## Authoring Agent Nodes — Pitfalls
 

@@ -3,11 +3,12 @@ import {
   createTRPCClient,
   type TRPCClient
 } from "@trpc/client";
-import type { inferRouterOutputs } from "@trpc/server";
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { createTrpcLinks } from "./links";
 
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
+export type RouterInputs = inferRouterInputs<AppRouter>;
 
 export const trpc = createTRPCReact<AppRouter>();
 

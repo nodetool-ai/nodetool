@@ -21,7 +21,7 @@ Objective (user goal)
     ▼
 ┌── Agent ──────────────────────────────────────────────┐
 │                                                        │
-│  1. Skill resolution    (load SKILL.md files)          │
+│  1. Skill resolution    (load user skills from DB)     │
 │  2. Planning phase      (TaskPlanner → Task with Steps)│
 │  3. Execution phase     (TaskExecutor → CodeActExecutor)│
 │                                                        │
@@ -385,39 +385,22 @@ class WeatherTool extends Tool {
 
 ## Skills
 
-Skills are markdown files (`SKILL.md`) that inject domain-specific instructions into the agent's system prompt.
-
-### Skill Format
-
-```markdown
----
-name: data-analysis
-description: Analyze CSV datasets and produce summary statistics
----
-
-When working with data analysis tasks:
-1. Load the dataset with the file read tool
-2. Examine column types and null counts
-3. Compute summary statistics
-...
-```
-
-### Skill Discovery
-
-The agent searches these directories (in order):
-
-1. Directories passed to the constructor (`skillDirs`)
-2. Paths in the `NODETOOL_AGENT_SKILL_DIRS` environment variable
-3. `./.claude/skills`
-4. `~/.claude/skills`
-5. `~/.codex/skills`
+Skills are user-scoped database records with `name`, `description`, and
+markdown `content` columns. The agent loads records for `context.userId` and
+injects selected content into the system prompt under an `# Agent Skills`
+header. Trusted sandbox-pack skills are merged into the same available-skill
+set for the session.
 
 ### Skill Resolution
 
-- **Explicit** — set `NODETOOL_AGENT_SKILLS=skill-a,skill-b` or pass `skills: ["skill-a"]` in the constructor
-- **Auto-select** — the agent matches words in the objective against skill descriptions (disable with `NODETOOL_AGENT_AUTO_SKILLS=0`)
+- **Explicit** — pass `skills: ["skill-a"]` in the agent constructor.
+- **Auto-select** — when no names are supplied, the agent matches words in the
+  objective against skill descriptions.
 
-Matched skill instructions are prepended to the system prompt under an `# Agent Skills` header.
+The deprecated `skillDirs` option and the
+`NODETOOL_AGENT_SKILL_DIRS`, `NODETOOL_AGENT_SKILLS`, and
+`NODETOOL_AGENT_AUTO_SKILLS` environment variables are ignored. Filesystem
+`SKILL.md` discovery is no longer part of agent execution.
 
 ---
 
@@ -521,7 +504,7 @@ const { emails } = agent.getResults() as { emails: string[] };
 | `outputSchema` | — | JSON schema for the final result |
 | `workspace` | auto-generated | Directory for file artifacts |
 | `skills` | — | Explicit skill names to load |
-| `skillDirs` | — | Additional directories to search for skills |
+| `skillDirs` | — | Deprecated compatibility option, ignored |
 | `task` | — | Pre-planned task (skips planning phase) |
 
 ---

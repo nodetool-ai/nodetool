@@ -9,6 +9,7 @@ import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { createMockContext } from "./_helpers/mock-context.js";
 import { LongTermMemory } from "../src/long-term-memory.js";
 import { BaseProvider } from "@nodetool-ai/runtime";
+import { Skill, initTestDb } from "@nodetool-ai/models";
 import {
   SqliteVecProvider,
   type EmbeddingFunction,
@@ -144,148 +145,11 @@ describe("parseFrontmatter", () => {
 // ---------------------------------------------------------------------------
 
 describe("loadSkillsFromDirectory", () => {
-  let tmpDir: string;
-
-  beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agent-test-skills-"));
-  });
-
-  afterEach(async () => {
-    await fs.rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it("loads valid skills from a directory", async () => {
-    const skillDir = path.join(tmpDir, "my-skill");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "---\nname: my-skill\ndescription: A test skill\n---\nDo something useful."
+  it("returns no skills without reading the supplied directory", async () => {
+    const skills = await loadSkillsFromDirectory(
+      "/path/that/must/not/be/read"
     );
-
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(1);
-    expect(skills[0].name).toBe("my-skill");
-    expect(skills[0].description).toBe("A test skill");
-    expect(skills[0].instructions).toBe("Do something useful.");
-  });
-
-  it("skips skills with invalid names", async () => {
-    const skillDir = path.join(tmpDir, "bad-skill");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "---\nname: INVALID_NAME!\ndescription: Bad name\n---\nInstructions."
-    );
-
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(0);
-  });
-
-  it("skips skills with reserved terms in name", async () => {
-    const skillDir = path.join(tmpDir, "reserved-skill");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "---\nname: my-anthropic-skill\ndescription: Uses reserved term\n---\nInstructions."
-    );
-
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(0);
-  });
-
-  it("skips skills with name containing claude", async () => {
-    const skillDir = path.join(tmpDir, "claude-skill");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "---\nname: claude-helper\ndescription: Claude skill\n---\nInstructions."
-    );
-
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(0);
-  });
-
-  it("skips skills with names longer than 64 chars", async () => {
-    const longName = "a".repeat(65);
-    const skillDir = path.join(tmpDir, "long-name-skill");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      `---\nname: ${longName}\ndescription: Too long\n---\nInstructions.`
-    );
-
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(0);
-  });
-
-  it("skips skills with XML tags in description", async () => {
-    const skillDir = path.join(tmpDir, "xml-skill");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "---\nname: xml-skill\ndescription: Has <script>tags</script>\n---\nInstructions."
-    );
-
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(0);
-  });
-
-  it("skips files without frontmatter", async () => {
-    const skillDir = path.join(tmpDir, "no-fm-skill");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "Just some content without frontmatter."
-    );
-
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(0);
-  });
-
-  it("skips skills with empty instructions", async () => {
-    const skillDir = path.join(tmpDir, "empty-instructions");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "---\nname: empty-instructions\ndescription: No body\n---\n"
-    );
-
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(0);
-  });
-
-  it("returns empty array for non-existent directory", async () => {
-    const skills = await loadSkillsFromDirectory("/nonexistent/path/to/skills");
-    expect(skills).toHaveLength(0);
-  });
-
-  it("skips SKILL.md that is a directory (unreadable as file)", async () => {
-    // Create a directory named SKILL.md — findSkillFiles will find it but readFile will fail
-    const skillDir = path.join(tmpDir, "weird-dir");
-    const skillMdAsDir = path.join(skillDir, "SKILL.md");
-    await fs.mkdir(skillMdAsDir, { recursive: true });
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(0);
-  });
-
-  it("loads multiple skills from nested directories", async () => {
-    const skill1Dir = path.join(tmpDir, "skill-one");
-    const skill2Dir = path.join(tmpDir, "nested", "skill-two");
-    await fs.mkdir(skill1Dir, { recursive: true });
-    await fs.mkdir(skill2Dir, { recursive: true });
-    await fs.writeFile(
-      path.join(skill1Dir, "SKILL.md"),
-      "---\nname: skill-one\ndescription: First skill\n---\nFirst instructions."
-    );
-    await fs.writeFile(
-      path.join(skill2Dir, "SKILL.md"),
-      "---\nname: skill-two\ndescription: Second skill\n---\nSecond instructions."
-    );
-
-    const skills = await loadSkillsFromDirectory(tmpDir);
-    expect(skills).toHaveLength(2);
-    const names = skills.map((s) => s.name).sort();
-    expect(names).toEqual(["skill-one", "skill-two"]);
+    expect(skills).toEqual([]);
   });
 });
 
@@ -297,6 +161,7 @@ describe("Agent", () => {
   let tmpDir: string;
 
   beforeEach(async () => {
+    initTestDb();
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agent-test-workspace-"));
   });
 
@@ -383,13 +248,18 @@ describe("Agent", () => {
   });
 
   it("loads skills and includes them in the objective", async () => {
-    // Create a skill directory
-    const skillDir = path.join(tmpDir, "skills", "data-analysis");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "---\nname: data-analysis\ndescription: Analyze data carefully\n---\nWhen analyzing data, use statistics."
-    );
+    await Skill.create({
+      user_id: "test-user",
+      name: "data-analysis",
+      description: "Analyze data carefully",
+      content: "When analyzing data, use statistics."
+    });
+    await Skill.create({
+      user_id: "other-user",
+      name: "other-analysis",
+      description: "Analyze data carefully",
+      content: "This skill belongs to another user."
+    });
 
     const planPayload = {
       title: "Analysis Plan",
@@ -411,7 +281,7 @@ describe("Agent", () => {
       ]
     };
 
-    const provider = createMockProvider([
+    const baseProvider = createMockProvider([
       ...planCalls(planPayload, [{ type: "chunk", content: "Planning..." }]),
       [
         { type: "chunk", content: "Analyzing..." },
@@ -420,6 +290,14 @@ describe("Agent", () => {
       // CompilerAgent prose-mode response — text without a tool call ends the loop.
       [{ type: "chunk", content: "Analysis complete." }]
     ]);
+    const sentToModel: string[] = [];
+    const provider = {
+      ...baseProvider,
+      generateMessages: async function* (...args: unknown[]) {
+        sentToModel.push(JSON.stringify(args));
+        yield* baseProvider.generateMessages(...args);
+      }
+    };
 
     const agent = new Agent({
       name: "skill-agent",
@@ -427,7 +305,7 @@ describe("Agent", () => {
       provider,
       model: "test-model",
       workspace: tmpDir,
-      skillDirs: [path.join(tmpDir, "skills")]
+      skillDirs: []
     });
 
     const context = createMockContext();
@@ -437,6 +315,9 @@ describe("Agent", () => {
 
     // Compiler returns the prose text it produced in its final turn.
     expect(agent.getResults()).toBe("Analysis complete.");
+    const prompts = sentToModel.join("\n");
+    expect(prompts).toContain("When analyzing data, use statistics.");
+    expect(prompts).not.toContain("This skill belongs to another user.");
   });
 
   it("does not graft the agent output schema onto plan steps (the CompilerAgent owns it)", async () => {
@@ -655,12 +536,12 @@ describe("Agent", () => {
   });
 
   it("uses explicit skill names when skills option is provided", async () => {
-    const skillDir = path.join(tmpDir, "skills", "named-skill");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "---\nname: named-skill\ndescription: A named skill\n---\nNamed skill instructions."
-    );
+    await Skill.create({
+      user_id: "test-user",
+      name: "named-skill",
+      description: "A named skill",
+      content: "Named skill instructions."
+    });
 
     const planPayload = {
       title: "Named Skill Plan",
@@ -695,7 +576,7 @@ describe("Agent", () => {
       model: "test-model",
       workspace: tmpDir,
       skills: ["named-skill"],
-      skillDirs: [path.join(tmpDir, "skills")]
+      skillDirs: []
     });
 
     const context = createMockContext();
@@ -707,14 +588,13 @@ describe("Agent", () => {
     expect(agent.getResults()).toBe("Done.");
   });
 
-  it("resolves skill dirs from NODETOOL_AGENT_SKILL_DIRS environment variable", async () => {
-    const envSkillDir = path.join(tmpDir, "env-skills", "env-skill");
-    await fs.mkdir(envSkillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(envSkillDir, "SKILL.md"),
-      "---\nname: env-skill\ndescription: Env-loaded skill for testing\n---\nEnv skill instructions."
-    );
-
+  it("ignores deprecated skill environment variables", async () => {
+    await Skill.create({
+      user_id: "test-user",
+      name: "database-skill",
+      description: "Test env skill loading for testing",
+      content: "Database-backed skill content."
+    });
     const planPayload = {
       title: "Env Skill Plan",
       tasks: [
@@ -748,8 +628,12 @@ describe("Agent", () => {
       yield* generateMessages(...args);
     };
 
-    const savedEnv = process.env["NODETOOL_AGENT_SKILL_DIRS"];
-    process.env["NODETOOL_AGENT_SKILL_DIRS"] = path.join(tmpDir, "env-skills");
+    const savedDirs = process.env["NODETOOL_AGENT_SKILL_DIRS"];
+    const savedNames = process.env["NODETOOL_AGENT_SKILLS"];
+    const savedAuto = process.env["NODETOOL_AGENT_AUTO_SKILLS"];
+    process.env["NODETOOL_AGENT_SKILL_DIRS"] = "/tmp/ignored-skills";
+    process.env["NODETOOL_AGENT_SKILLS"] = "env-skill";
+    process.env["NODETOOL_AGENT_AUTO_SKILLS"] = "0";
     try {
       const agent = new Agent({
         name: "env-skill-agent",
@@ -757,7 +641,7 @@ describe("Agent", () => {
         provider,
         model: "test-model",
         workspace: tmpDir,
-        skillDirs: [] // No explicit dirs — should pick up env var
+        skillDirs: []
       });
 
       const context = createMockContext();
@@ -768,14 +652,15 @@ describe("Agent", () => {
       expect(agent.taskPlan).not.toBeNull();
 
       const prompts = sentToModel.join("\n");
-      expect(prompts).toContain("env-skill");
-      expect(prompts).toContain("Env skill instructions.");
+      expect(prompts).toContain("Database-backed skill content.");
+      expect(prompts).not.toContain("Env skill instructions.");
     } finally {
-      if (savedEnv !== undefined) {
-        process.env["NODETOOL_AGENT_SKILL_DIRS"] = savedEnv;
-      } else {
-        delete process.env["NODETOOL_AGENT_SKILL_DIRS"];
-      }
+      if (savedDirs !== undefined) process.env["NODETOOL_AGENT_SKILL_DIRS"] = savedDirs;
+      else delete process.env["NODETOOL_AGENT_SKILL_DIRS"];
+      if (savedNames !== undefined) process.env["NODETOOL_AGENT_SKILLS"] = savedNames;
+      else delete process.env["NODETOOL_AGENT_SKILLS"];
+      if (savedAuto !== undefined) process.env["NODETOOL_AGENT_AUTO_SKILLS"] = savedAuto;
+      else delete process.env["NODETOOL_AGENT_AUTO_SKILLS"];
     }
   });
 
@@ -831,13 +716,12 @@ describe("Agent", () => {
   });
 
   it("merges systemPrompt with skill system prompt when both are present", async () => {
-    // Create a skill directory with a matching skill
-    const skillDir = path.join(tmpDir, "skills", "merge-skill");
-    await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillDir, "SKILL.md"),
-      "---\nname: merge-skill\ndescription: Merging test skill for objective\n---\nMerge skill instructions."
-    );
+    await Skill.create({
+      user_id: "test-user",
+      name: "merge-skill",
+      description: "Merging test skill for objective",
+      content: "Merge skill instructions."
+    });
 
     const capturedPrompts: string[] = [];
     const mergePlan = {
@@ -880,7 +764,7 @@ describe("Agent", () => {
       model: "test-model",
       workspace: tmpDir,
       systemPrompt: "Custom system prompt.",
-      skillDirs: [path.join(tmpDir, "skills")]
+      skillDirs: []
     });
 
     const context = createMockContext();

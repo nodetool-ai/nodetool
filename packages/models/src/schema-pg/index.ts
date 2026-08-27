@@ -25,6 +25,7 @@ export {
 } from "./application-budgets.js";
 export { scripts } from "./scripts.js";
 export { jsScripts } from "./js-scripts.js";
+export { skills } from "./skills.js";
 export { jsScriptVersions } from "./js-script-versions.js";
 export { triggerInputs } from "./trigger-inputs.js";
 export { runInboxMessages } from "./run-inbox-messages.js";

@@ -20,7 +20,7 @@ import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/Work
 import { useAssetStore } from "../../stores/AssetStore";
 import { useJsScriptStore } from "../../stores/jsScript/JsScriptStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { trpcClient } from "../../trpc/client";
+import { trpc, trpcClient } from "../../trpc/client";
 import { getActiveSketchInstance } from "../../stores/sketch/SketchInstance";
 import { renameSketchDocument } from "../../stores/sketch/SketchSessionStore";
 import { readSketchDocumentId } from "../../hooks/sketch/ensureSketchDocumentForAsset";
@@ -44,6 +44,7 @@ const SUPPORTS_BOTH_MODES = {
   storyboard: false,
   script: false,
   jsscript: false,
+  skill: true,
   model3d: true,
   text: true,
   audio: true,
@@ -61,6 +62,7 @@ const TYPE_GLYPH = {
   storyboard: "▥",
   script: "🎙",
   jsscript: "{ }",
+  skill: "✦",
   model3d: "◈",
   audio: "♪",
   text: "¶",
@@ -79,6 +81,7 @@ const TYPE_COLOR = {
   storyboard: colorForType("video"),
   script: colorForType("audio"),
   jsscript: colorForType("str"),
+  skill: colorForType("str"),
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),
   text: colorForType("text"),
@@ -299,6 +302,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
   const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
   const updateApplication = useUpdateApplication();
+  const trpcUtils = trpc.useUtils();
 
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
   const workflowManagerStore = useWorkflowManagerStore();
@@ -480,6 +484,20 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             }
             break;
           }
+          case "skill": {
+            const currentSkill = trpcUtils.skills.get.getData({ id: tab.ref });
+            if (!currentSkill) {
+              throw new Error("Skill must finish loading before it can be renamed");
+            }
+            const updated = await trpcClient.skills.update.mutate({
+              id: tab.ref,
+              name: trimmed,
+              baseUpdatedAt: currentSkill.updatedAt
+            });
+            trpcUtils.skills.get.setData({ id: tab.ref }, updated);
+            void trpcUtils.skills.list.invalidate();
+            break;
+          }
           case "chat":
             await useGlobalChatStore
               .getState()
@@ -498,7 +516,15 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         setTitle(tab.ref, tab.type, previousTitle);
       }
     },
-    [getWorkflow, updateWorkflow, saveWorkflow, setTitle, updateApplication]
+    [
+      getWorkflow,
+      updateWorkflow,
+      saveWorkflow,
+      setTitle,
+      updateApplication,
+      trpcUtils.skills.get,
+      trpcUtils.skills.list
+    ]
   );
 
   const handleClose = useCallback(

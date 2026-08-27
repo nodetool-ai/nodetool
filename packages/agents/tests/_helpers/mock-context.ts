@@ -10,13 +10,18 @@ import { vi } from "vitest";
 import { AgentMemory } from "@nodetool-ai/runtime";
 
 export function createMockContext(
-  shared: { memory?: AgentMemory; variables?: Map<string, unknown> } = {}
+  shared: {
+    memory?: AgentMemory;
+    variables?: Map<string, unknown>;
+    userId?: string;
+  } = {}
 ) {
   const variables = shared.variables ?? new Map<string, unknown>();
   let injectedTools: Array<{ name: string }> = [];
   const listeners = new Set<(msg: unknown) => void>();
   const memory = shared.memory ?? new AgentMemory();
   const ctx: Record<string, unknown> = {
+    userId: shared.userId ?? "test-user",
     memory,
     signal: new AbortController().signal,
     addMessageListener: vi.fn((listener: (msg: unknown) => void) => {
@@ -27,7 +32,8 @@ export function createMockContext(
     copy: vi.fn((opts?: { shareMemory?: boolean }) =>
       createMockContext({
         memory: opts?.shareMemory ? memory : undefined,
-        variables
+        variables,
+        userId: shared.userId
       })
     ),
     setInjectedTools: vi.fn((tools: Array<{ name: string }>) => {

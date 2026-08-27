@@ -23,6 +23,7 @@ export type WorkspaceTabType =
   | "script"
   // JS script documents. `ref` is a js_scripts id (trpc.jsScripts.*).
   | "jsscript"
+  | "skill"
   | "model3d"
   | "audio"
   | "text"

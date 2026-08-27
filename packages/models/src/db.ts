@@ -652,6 +652,15 @@ const TABLE_COLUMNS = {
     status: "text",
     created_at: "text",
     settled_at: "text"
+  },
+  skills: {
+    id: "text",
+    user_id: "text",
+    name: "text",
+    description: "text",
+    content: "text",
+    created_at: "text",
+    updated_at: "text"
   }
 } satisfies Record<string, Record<string, string>>;
 
@@ -1255,6 +1264,20 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_jsv_user" ON "js_script_versions" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_jsv_script_save_type_created" ON "js_script_versions" ("js_script_id", "save_type", "created_at");
     CREATE UNIQUE INDEX IF NOT EXISTS "idx_jsv_script_version" ON "js_script_versions" ("js_script_id", "version");
+
+    CREATE TABLE IF NOT EXISTS "skills" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "name" text NOT NULL,
+      "description" text NOT NULL DEFAULT '',
+      "content" text NOT NULL DEFAULT '',
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_skills_user" ON "skills" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_skills_user_name" ON "skills" ("user_id", "name");
+    CREATE INDEX IF NOT EXISTS "idx_skills_updated" ON "skills" ("updated_at");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_skills_user_name_unique" ON "skills" ("user_id", "name");
 
     CREATE TABLE IF NOT EXISTS "nodetool_thread_memories" (
       "id" text PRIMARY KEY NOT NULL,

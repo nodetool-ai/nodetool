@@ -31,6 +31,8 @@ export interface DocumentListPanelProps<T extends DocumentListPanelDocument> {
   isLoading: boolean;
   isError: boolean;
   errorMessage?: string;
+  /** Optional action shown alongside an error, such as bug reporting. */
+  errorAction?: ReactNode;
   /** Shown under "No <plural> yet" when the user has not created any. */
   emptyDescription: string;
   /** The document awaiting delete confirmation; `null` keeps the dialog closed. */
@@ -47,6 +49,7 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
   isLoading,
   isError,
   errorMessage,
+  errorAction,
   emptyDescription,
   deleteTarget,
   onCancelDelete,
@@ -121,6 +124,7 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
             title={`Could not load ${plural}`}
             description={errorMessage ?? "Try again later."}
           />
+          {errorAction}
         </FlexColumn>
       ) : rows.length === 0 ? (
         <FlexColumn

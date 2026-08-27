@@ -26,6 +26,7 @@ export * as threads from "./threads.js";
 export * as threadMemories from "./thread-memories.js";
 export * as users from "./users.js";
 export * as sketch from "./sketch.js";
+export * as skills from "./skills.js";
 export * as storyboards from "./storyboards.js";
 export * as applications from "./applications.js";
 export * as resources from "./resources.js";

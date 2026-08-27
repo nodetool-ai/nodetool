@@ -13,6 +13,7 @@ const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
   "storyboard",
   "script",
   "jsscript",
+  "skill",
   "model3d",
   "chat",
   "application",

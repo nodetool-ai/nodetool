@@ -2882,6 +2882,52 @@ export const migrations: MigrationDef[] = [
     async down() {
       // One-way: the tables held no data any code ever wrote.
     }
+  },
+
+  // ── Create skills ────────────────────────────────────────────────────
+  // DB-backed agent skills, replacing filesystem SKILL.md files. Name and
+  // description are columns (no frontmatter), content is markdown.
+  {
+    version: "20260827_000000",
+    name: "create_skills",
+    createsTables: ["skills"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS skills (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          content TEXT NOT NULL DEFAULT '',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_skills_user
+        ON skills (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_skills_user_name
+        ON skills (user_id, name)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_skills_updated
+        ON skills (updated_at)
+      `);
+      await db.execute(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_skills_user_name_unique
+        ON skills (user_id, name)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_skills_user_name_unique");
+      await db.execute("DROP INDEX IF EXISTS idx_skills_updated");
+      await db.execute("DROP INDEX IF EXISTS idx_skills_user_name");
+      await db.execute("DROP INDEX IF EXISTS idx_skills_user");
+      await db.execute("DROP TABLE IF EXISTS skills");
+    }
   }
 ];
 

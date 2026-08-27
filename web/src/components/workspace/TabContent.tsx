@@ -18,6 +18,7 @@ const TimelineSurface = React.lazy(() => import("./TimelineSurface"));
 const StoryboardSurface = React.lazy(() => import("./StoryboardSurface"));
 const ScriptSurface = React.lazy(() => import("./ScriptSurface"));
 const JsScriptSurface = React.lazy(() => import("./JsScriptSurface"));
+const SkillSurface = React.lazy(() => import("./SkillSurface"));
 const ApplicationSurface = React.lazy(() => import("./ApplicationSurface"));
 const ChatSurface = React.lazy(() => import("./ChatSurface"));
 const PageSurface = React.lazy(() => import("./PageSurface"));
@@ -56,6 +57,8 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       return (
         <JsScriptSurface refId={tab.ref} mode={tab.mode} active={active} />
       );
+    case "skill":
+      return <SkillSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "workspace-file":
       return (
         <WorkspaceFileSurface
