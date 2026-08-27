@@ -20,6 +20,33 @@ describe("BottomPanelStore", () => {
     });
   });
 
+  describe("persist migration", () => {
+    const getMigrate = () => {
+      const { migrate } = useBottomPanelStore.persist.getOptions();
+      if (!migrate) {
+        throw new Error("BottomPanelStore declares no migrate function");
+      }
+      return migrate;
+    };
+
+    it("falls back to logs when the removed workspace view was stored", () => {
+      const migrated = getMigrate()(
+        { panel: { activeView: "workspace", panelSize: 300, isVisible: true } },
+        2
+      ) as { panel: { activeView: string; panelSize: number } };
+      expect(migrated.panel.activeView).toBe("logs");
+      expect(migrated.panel.panelSize).toBe(300);
+    });
+
+    it("leaves a still-valid view alone", () => {
+      const migrated = getMigrate()(
+        { panel: { activeView: "trace" } },
+        2
+      ) as { panel: { activeView: string } };
+      expect(migrated.panel.activeView).toBe("trace");
+    });
+  });
+
   describe("setSize", () => {
     it("should set size within valid range", () => {
       useBottomPanelStore.getState().setSize(400);

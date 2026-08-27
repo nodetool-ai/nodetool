@@ -36,6 +36,7 @@ import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
 import {
@@ -196,6 +197,13 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
     docsTopic: "assets",
     icon: <PermMediaOutlinedIcon />
   },
+  "workspace-files": {
+    id: "workspace-files",
+    label: "Workspace",
+    description: "Browse the files in the selected workspace folder.",
+    docsTopic: "workspaces",
+    icon: <FolderOutlinedIcon />
+  },
   library: {
     id: "library",
     label: "Library",
@@ -250,6 +258,7 @@ export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
     placement: "bottom",
     categories: [
       LEFT_PANEL_CATEGORY_BY_ID.settings,
+      LEFT_PANEL_CATEGORY_BY_ID["workspace-files"],
       LEFT_PANEL_CATEGORY_BY_ID.assets,
       LEFT_PANEL_CATEGORY_BY_ID.library
     ]

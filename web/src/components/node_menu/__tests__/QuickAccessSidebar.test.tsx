@@ -51,7 +51,7 @@ describe("QuickAccessSidebar", () => {
       within(bottom)
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label"))
-    ).toEqual(["Workflow Settings", "Assets", "Library"]);
+    ).toEqual(["Workflow Settings", "Workspace", "Assets", "Library"]);
     expect(within(top).getAllByRole("separator")).toHaveLength(3);
   });
 
@@ -80,7 +80,7 @@ describe("QuickAccessSidebar", () => {
       within(bottom)
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label"))
-    ).toEqual(["Assets", "Library"]);
+    ).toEqual(["Workspace", "Assets", "Library"]);
   });
 
   it("selects a view from any group", async () => {

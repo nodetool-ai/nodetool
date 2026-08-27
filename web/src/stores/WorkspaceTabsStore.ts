@@ -30,6 +30,9 @@ export type WorkspaceTabType =
   | "application"
   // Chat conversations. `ref` is a chat thread id (GlobalChatStore).
   | "chat"
+  // Files inside a run workspace. `ref` is `${workspaceId}::${path}` — see
+  // components/workspace/workspaceFileRef.ts.
+  | "workspace-file"
   // App pages (Settings, Costs, Model Manager, …) opened from the logo menu.
   // `ref` is a PageTabKey; these have no edit mode.
   | "page";

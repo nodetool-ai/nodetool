@@ -55,6 +55,7 @@ import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import NodeLibrary from "../node_menu/NodeLibrary";
 import RailAppMenu from "./RailAppMenu";
+import WorkspaceTree from "../workspaces/WorkspaceTree";
 
 import {
   LeftPanelView,
@@ -467,6 +468,18 @@ const PanelContent = memo(function PanelContent({
           <AssetGridStoreProvider persistKey={LIBRARY_ASSET_GRID_STORE_KEY}>
             <AssetGrid maxItemSize={5} isMobile={isMobile} forceGlobalAssets />
           </AssetGridStoreProvider>
+        </FlexColumn>
+      )}
+      {activeView === "workspace-files" && (
+        <FlexColumn
+          className="workspace-files-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          <WorkspaceTree />
         </FlexColumn>
       )}
       {activeView === "workflows" && (

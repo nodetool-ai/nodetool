@@ -47,6 +47,7 @@ const SUPPORTS_BOTH_MODES = {
   model3d: true,
   text: true,
   audio: true,
+  "workspace-file": true,
   chat: false,
   application: false,
   page: false
@@ -63,6 +64,7 @@ const TYPE_GLYPH = {
   model3d: "◈",
   audio: "♪",
   text: "¶",
+  "workspace-file": "🗎",
   chat: "❝",
   application: "◧",
   page: "☰"
@@ -80,6 +82,7 @@ const TYPE_COLOR = {
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),
   text: colorForType("text"),
+  "workspace-file": colorForType("file"),
   chat: colorForType("str"),
   application: colorForType("any"),
   page: colorForType("any")

@@ -26,6 +26,7 @@ export type LeftPanelView =
   | "favorites"
   | "assets"
   | "library"
+  | "workspace-files"
   | "nodes";
 export type PanelView = LeftPanelView;
 
@@ -87,6 +88,7 @@ const VALID_VIEWS: LeftPanelView[] = [
   "favorites",
   "assets",
   "library",
+  "workspace-files",
   "nodes"
 ];
 

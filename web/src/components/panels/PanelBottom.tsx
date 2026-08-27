@@ -5,7 +5,6 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   Tooltip,
-  Box,
   FlexColumn,
   MOTION,
   BORDER_RADIUS,
@@ -27,7 +26,6 @@ import LogPanel from "./LogPanel";
 import QueuePanel from "./jobs/QueuePanel";
 import WorkersPanel from "../workers/WorkersPanel";
 import WorkerStatusIndicator from "../workers/WorkerStatusIndicator";
-import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import PanelHeadline from "../ui/PanelHeadline";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -46,7 +44,6 @@ import type { NodeStoreState } from "../../stores/NodeStore";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import ArticleIcon from "@mui/icons-material/Article";
 import HistoryIcon from "@mui/icons-material/History";
-import FolderIcon from "@mui/icons-material/Folder";
 import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
 import MemoryIcon from "@mui/icons-material/Memory";
 
@@ -122,7 +119,6 @@ const VIEW_SPECS = {
   queue: { id: "queue", label: "Queue", icon: <PlaylistPlayIcon /> },
   workers: { id: "workers", label: "Workers", icon: <MemoryIcon /> },
   versions: { id: "versions", label: "Versions", icon: <HistoryIcon /> },
-  workspace: { id: "workspace", label: "Workspace", icon: <FolderIcon /> },
   trace: { id: "trace", label: "Trace", icon: <TimelineIcon /> }
 } satisfies Record<BottomPanelView, ViewSpec>;
 
@@ -433,15 +429,6 @@ const PanelBodyContent = memo(function PanelBodyContent({
           onClose={closeView}
         />
       ) : null;
-    case "workspace":
-      return (
-        <Box
-          className="workspace-panel"
-          sx={{ width: "100%", height: "100%", overflow: "hidden" }}
-        >
-          <WorkspaceTree />
-        </Box>
-      );
     case "trace":
       return <TracePanel />;
     default:
