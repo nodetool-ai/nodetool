@@ -127,5 +127,17 @@ exports[`crash oracle: validateGraph (seed 20260817) > reports a stable set of i
   "edge-defects#9 deepNest ok=false dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,unknown_property,untyped_dynamic_slot",
   "edge-defects#10 hostileValue ok=false dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,untyped_dynamic_slot",
   "edge-defects#11 selfCycle ok=false cycle,dynamic_type_mismatch,fan_in,js_script_missing,leftover_wiring_handle,missing_handle,property,slot_type_alias,type_mismatch,unknown_handle,unknown_node,untyped_dynamic_slot",
+  "property-shapes#0 dropKey ok=false missing_provider,missing_required_model_input,property,unknown_model,unknown_provider",
+  "property-shapes#1 emptyHalf ok=false invalid_graph",
+  "property-shapes#2 duplicateId ok=false duplicate_id,missing_required_model_input,property,unknown_model,unknown_provider",
+  "property-shapes#3 deepNest ok=false missing_provider,missing_required_model_input,property,unknown_model,unknown_property,unknown_provider",
+  "property-shapes#4 emptyHalf ok=false invalid_graph,missing_provider,missing_required_model_input,property,unknown_model,unknown_provider",
+  "property-shapes#5 retypeKey ok=false missing_provider,missing_required_model_input,property,unknown_model,unknown_provider",
+  "property-shapes#6 danglingEdge ok=false missing_provider,missing_required_model_input,property,unknown_model,unknown_provider",
+  "property-shapes#7 deepNest ok=false missing_provider,missing_required_model_input,property,unknown_model,unknown_property,unknown_provider",
+  "property-shapes#8 selfCycle ok=false cycle,missing_provider,missing_required_model_input,property,unknown_handle,unknown_model,unknown_provider",
+  "property-shapes#9 selfCycle ok=false cycle,missing_provider,missing_required_model_input,property,unknown_handle,unknown_model,unknown_provider",
+  "property-shapes#10 hostileValue ok=false missing_provider,missing_required_model_input,property,unknown_model,unknown_provider",
+  "property-shapes#11 deepNest ok=false missing_provider,missing_required_model_input,property,unknown_model,unknown_property,unknown_provider",
 ]
 `;

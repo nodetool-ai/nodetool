@@ -400,14 +400,16 @@ export function seedRegistry(): GraphValidationRegistry {
     }
     return "str";
   };
-  const REQUIRED = new Set(["value", "prompt", "code", "a", "model"]);
+  // `image` is here so the required-asset branch runs: it is the one asset
+  // type any seed carries, and only the `fuzz.seed.Asset` nodes declare it.
+  const REQUIRED = new Set(["value", "prompt", "code", "a", "model", "image"]);
 
   const metas = new Map<string, NodeMetadata>();
   const declaredOf = new Map<string, DeclaredPropertyMetadata[]>();
   for (const type of inputs.keys()) {
     const slots = dynamicInputs.get(type) ?? new Set<string>();
     const emitted = dynamicOutputs.get(type) ?? new Set<string>();
-    const names = [...(inputs.get(type) ?? []), "image"].filter(
+    const names = [...(inputs.get(type) ?? [])].filter(
       (name) => !slots.has(name)
     );
     metas.set(type, {

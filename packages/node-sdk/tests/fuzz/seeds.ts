@@ -294,6 +294,127 @@ export const SEED_GRAPHS: readonly SeedGraph[] = [
         }
       ]
     }
+  },
+  {
+    // Property *values*: the model-reference and asset shapes
+    // `validateNodeProperties` branches on, and the three ways a model
+    // selection can name something the runtime cannot route to.
+    id: "property-shapes",
+    teachesHandles: false,
+    graph: {
+      nodes: [
+        {
+          id: "mp1",
+          type: "fuzz.seed.Model",
+          properties: {
+            model: {
+              type: "language_model",
+              provider: "nope-provider",
+              id: "gpt-5"
+            },
+            prompt: ""
+          }
+        },
+        {
+          id: "mp2",
+          type: "fuzz.seed.Model",
+          properties: {
+            model: { type: "language_model", id: "gpt-5" },
+            prompt: "ask"
+          }
+        },
+        {
+          id: "mp3",
+          type: "fuzz.seed.Model",
+          properties: {
+            model: {
+              type: "language_model",
+              provider: "openai",
+              id: "gpt-4o-mini"
+            },
+            prompt: ""
+          }
+        },
+        {
+          id: "mp4",
+          type: "fuzz.seed.Model",
+          properties: {
+            model: { type: "language_model", provider: "empty", id: "gpt-5" },
+            prompt: "ask"
+          }
+        },
+        {
+          id: "mp5",
+          type: "fuzz.seed.Model",
+          properties: {
+            model: { type: "language_model", provider: "openai", id: "" },
+            prompt: "ask"
+          }
+        },
+        {
+          id: "mp6",
+          type: "fuzz.seed.Model",
+          properties: {
+            model: {
+              type: "language_model",
+              provider: "anthropic",
+              id: "claude-x"
+            },
+            // Nested in a list: it configures something other than this node's
+            // own inputs, so its requirements say nothing about them.
+            fallbacks: [
+              { type: "language_model", provider: "openai", id: "gpt-5" }
+            ],
+            prompt: ""
+          }
+        },
+        {
+          id: "as1",
+          type: "fuzz.seed.Asset",
+          properties: {
+            image: { type: "image", uri: "", asset_id: null, data: null }
+          }
+        },
+        {
+          id: "as2",
+          type: "fuzz.seed.Asset",
+          properties: { image: { type: "image", uri: "asset://one" } }
+        },
+        {
+          id: "as3",
+          type: "fuzz.seed.Asset",
+          properties: { image: { type: "image", asset_id: "a1" } }
+        },
+        {
+          id: "as4",
+          type: "fuzz.seed.Asset",
+          properties: { image: { type: "image", temp_id: "t1" } }
+        },
+        {
+          id: "as5",
+          type: "fuzz.seed.Asset",
+          properties: { image: { type: "image", data: "" } }
+        },
+        {
+          id: "as6",
+          type: "fuzz.seed.Asset",
+          properties: { image: { type: "image", data: [] } }
+        },
+        {
+          id: "as7",
+          type: "fuzz.seed.Asset",
+          properties: { image: { type: "image", data: [1, 2] } }
+        },
+        {
+          id: "as8",
+          type: "fuzz.seed.Asset",
+          properties: { image: "not-an-object" }
+        },
+        { id: "as9", type: "fuzz.seed.Asset", properties: { image: null } },
+        { id: "as10", type: "fuzz.seed.Asset", properties: {} }
+      ],
+      edges: []
+    }
   }
 ];
 
