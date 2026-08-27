@@ -31,9 +31,11 @@ export {
   resolveWorkflowWorkspaceDir,
   workspaceFromRow,
   setWorkspaceCloudStorage,
+  setWorkspaceChangeNotifier,
   usesCloudWorkspaces,
   buildWorkspaceExecutionContext
 } from "./workflow-workspace.js";
+export type { WorkspaceFileChange } from "./workflow-workspace.js";
 
 export { createAppServerRunner } from "./app-run-server.js";
 export type { AppServerRunnerOptions } from "./app-run-server.js";

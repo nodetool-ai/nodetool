@@ -150,7 +150,10 @@ import { createSdkV1TemporaryAssetService } from "./sdk/sdk-temporary-asset-serv
 import { getTempAdapter } from "./lib/storage.js";
 import { FrontendRendererRegistry } from "./frontend-renderer-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
-import { initWorkspaceStorage } from "./lib/workflow-workspace.js";
+import {
+  initWorkspaceChangeEvents,
+  initWorkspaceStorage
+} from "./lib/workflow-workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import applicationsRoutes from "./routes/applications.js";
@@ -1470,6 +1473,9 @@ await app.register(workspaceRoutes, routeOpts);
 // A cloud deployment keeps workspaces in the asset bucket rather than on the
 // machine's disk, which it would lose on every replacement. No-op locally.
 initWorkspaceStorage();
+// The Workspace Explorer has no other way to hear about a file a run wrote:
+// workspace files are not database rows.
+initWorkspaceChangeEvents();
 await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(applicationsRoutes, routeOpts);

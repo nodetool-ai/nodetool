@@ -6,10 +6,13 @@
  * which object store backs a virtual workspace.
  */
 import {
+  setWorkspaceChangeNotifier,
   setWorkspaceCloudStorage,
-  usesCloudWorkspaces
+  usesCloudWorkspaces,
+  type WorkspaceFileChange
 } from "@nodetool-ai/execution/service";
 import { getAssetAdapter } from "./storage.js";
+import { notifyResourceChange } from "../resource-events.js";
 
 export {
   resolveWorkflowWorkspace,
@@ -29,4 +32,49 @@ export {
 export function initWorkspaceStorage(): void {
   if (!usesCloudWorkspaces()) return;
   setWorkspaceCloudStorage(getAssetAdapter());
+}
+
+/**
+ * How long writes are pooled before the browser is told, in ms.
+ *
+ * An agent that unpacks an archive writes hundreds of files in a burst, and
+ * every one of them would otherwise be a websocket frame and a full re-listing.
+ * The explorer only ever refetches, so one message per workspace per window
+ * says everything a hundred would.
+ */
+const WORKSPACE_CHANGE_COALESCE_MS = 400;
+
+const pendingWorkspaceChanges = new Map<
+  string,
+  { userId: string; timer: NodeJS.Timeout }
+>();
+
+/**
+ * Push workspace file writes to the clients browsing that workspace.
+ *
+ * Workspace files are not database rows, so `ModelObserver` never sees them and
+ * the Workspace Explorer had no way to learn that a chat turn had written one —
+ * it showed whatever the panel happened to fetch when it mounted. This closes
+ * that gap with the emitter the other non-DBModel resources already use.
+ */
+export function initWorkspaceChangeEvents(): void {
+  setWorkspaceChangeNotifier((change: WorkspaceFileChange) => {
+    const pending = pendingWorkspaceChanges.get(change.workspaceId);
+    if (pending) return;
+    const timer = setTimeout(() => {
+      pendingWorkspaceChanges.delete(change.workspaceId);
+      notifyResourceChange({
+        event: "updated",
+        resource_type: "workspacefile",
+        resource: { id: change.workspaceId },
+        userId: change.userId
+      });
+    }, WORKSPACE_CHANGE_COALESCE_MS);
+    // A pending flush must not hold the process open at shutdown.
+    timer.unref?.();
+    pendingWorkspaceChanges.set(change.workspaceId, {
+      userId: change.userId,
+      timer
+    });
+  });
 }

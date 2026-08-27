@@ -144,6 +144,22 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     return;
   }
 
+  // Workspace *files* are not rows, so this arrives from the server's own
+  // emitter rather than ModelObserver. `resource.id` is the workspace the write
+  // landed in; without one, refetch every cached listing.
+  if (resource_type === "workspacefile") {
+    const workspaceId = isString(resource.id) ? resource.id : null;
+    console.info(
+      `[ResourceChange] Invalidating workspace files for ${workspaceId ?? "all workspaces"}`
+    );
+    queryClient.invalidateQueries({
+      queryKey: workspaceId
+        ? ["workspace-files", workspaceId]
+        : ["workspace-files"]
+    });
+    return;
+  }
+
   if (resource_type === "model") {
     console.info("[ResourceChange] Invalidating model queries");
     invalidateQueryKeys(MODEL_QUERY_KEYS);

@@ -4,8 +4,10 @@ import {
   ProcessingContext,
   createLocalWorkspace,
   createWorkspace,
+  observeWorkspace,
   type StorageAdapter,
-  type Workspace
+  type Workspace,
+  type WorkspaceChange
 } from "@nodetool-ai/runtime";
 
 const log = createLogger("nodetool.execution.workspace");
@@ -24,17 +26,49 @@ export function setWorkspaceCloudStorage(storage: StorageAdapter | null): void {
   cloudStorage = storage;
 }
 
+/** What a host is told when a run writes in a workspace. */
+export interface WorkspaceFileChange extends WorkspaceChange {
+  workspaceId: string;
+  userId: string;
+}
+
+/**
+ * Told about every file a run writes, so a host can push the change to a
+ * client watching that workspace.
+ *
+ * Injected the way {@link setWorkspaceCloudStorage} is: `@nodetool-ai/execution`
+ * has no websocket to broadcast on, and the workspace row id — which the
+ * {@link Workspace} interface deliberately does not carry — is known only here,
+ * where the row is read.
+ */
+let changeNotifier: ((change: WorkspaceFileChange) => void) | null = null;
+
+/** Called once at startup by a host that pushes workspace changes to clients. */
+export function setWorkspaceChangeNotifier(
+  notify: ((change: WorkspaceFileChange) => void) | null
+): void {
+  changeNotifier = notify;
+}
+
 /** Build the {@link Workspace} a workspace row describes. */
 export function workspaceFromRow(row: WorkspaceRow): Workspace | null {
-  if (!row.isVirtual()) return createLocalWorkspace(row.path);
-  if (!cloudStorage) {
+  const workspace = !row.isVirtual()
+    ? createLocalWorkspace(row.path)
+    : cloudStorage
+      ? createWorkspace(cloudStorage, { prefix: row.path })
+      : null;
+  if (!workspace) {
     log.warn(
       "A virtual workspace was requested but no cloud storage is configured",
       { workspaceId: row.id }
     );
     return null;
   }
-  return createWorkspace(cloudStorage, { prefix: row.path });
+  const notify = changeNotifier;
+  if (!notify) return workspace;
+  return observeWorkspace(workspace, (change) =>
+    notify({ ...change, workspaceId: row.id, userId: row.user_id })
+  );
 }
 
 /**
