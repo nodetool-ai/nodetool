@@ -42,6 +42,12 @@
       "import": "./dist/blend-modes.js",
       "default": "./dist/blend-modes.js"
     },
+    "./triggers": {
+      "nodetool-dev": "./src/triggers.ts",
+      "types": "./dist/triggers.d.ts",
+      "import": "./dist/triggers.js",
+      "default": "./dist/triggers.js"
+    },
     "./builtin-packs": {
       "nodetool-dev": "./src/builtin-packs.ts",
       "types": "./dist/builtin-packs.d.ts",
