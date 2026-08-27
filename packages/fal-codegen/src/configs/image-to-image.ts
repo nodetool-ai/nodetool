@@ -16,6 +16,39 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "meta/muse-image/edit": {
+      className: "MuseImageEdit",
+      docstring:
+        "Meta Muse Image Edit makes precise edits to one or more reference images from a text instruction, keeping changes coherent with the rest of the image.",
+      tags: ["editing", "image-to-image", "img2img", "meta", "muse"],
+      useCases: [
+        "Edit an image from a written instruction",
+        "Compose a new image from multiple reference images",
+        "Replace or remove objects in a photo",
+        "Restyle an image without redrawing it",
+        "Iterate on a generated image across turns"
+      ],
+      fieldOverrides: {
+        prompt: {
+          description: "The text prompt describing the desired edit"
+        },
+        image_urls: {
+          description:
+            "Reference images used for the edit. Provide between 1 and 10 images"
+        },
+        num_images: {
+          description: "The number of edited images to generate"
+        },
+        aspect_ratio: {
+          description:
+            "The output aspect ratio. If omitted, Muse chooses the dimensions automatically"
+        },
+        output_format: {
+          description: "The format of the generated image"
+        }
+      }
+    },
+
     "fal-ai/flux-2/edit": {
       className: "Flux2Edit",
       docstring:

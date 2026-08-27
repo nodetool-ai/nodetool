@@ -350079,5 +350079,341 @@
       }
     ],
     "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "meta/muse-image/edit",
+    "className": "MuseImageEdit",
+    "docstring": "Meta Muse Image Edit makes precise edits to one or more reference images from a text instruction, keeping changes coherent with the rest of the image.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "meta",
+      "muse"
+    ],
+    "useCases": [
+      "Edit an image from a written instruction",
+      "Compose a new image from multiple reference images",
+      "Replace or remove objects in a photo",
+      "Restyle an image without redrawing it",
+      "Iterate on a generated image across turns"
+    ],
+    "inputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the desired edit",
+        "fieldType": "input",
+        "required": true,
+        "min": 1
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Reference images used for the edit. Provide between 1 and 10 HTTP(S) or data URLs.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 10,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of edited images to generate",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "The output aspect ratio. If omitted, Muse chooses the dimensions automatically",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "3:2",
+          "1:1",
+          "2:3",
+          "3:4",
+          "9:16",
+          "9:21"
+        ]
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the image is returned as a data URI and is not persisted in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "webp",
+        "description": "The format of the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "Image[]",
+        "propType": "list[Image]",
+        "default": [],
+        "description": "The generated or edited images.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_9_21",
+            "9:21"
+          ]
+        ],
+        "description": "The output aspect ratio. Supported values are \"21:9\", \"16:9\", \"4:3\", \"3:2\", \"1:1\", \"2:3\", \"3:4\", \"9:16\", and \"9:21\". If omitted, Muse chooses the output dimensions automatically based on the request."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "meta/muse-image/text-to-image",
+    "className": "MuseImageTextToImage",
+    "docstring": "Meta Muse Image generates images from text, reasoning about the request before rendering to compose scenes with strong prompt adherence.",
+    "tags": [
+      "generation",
+      "text-to-image",
+      "txt2img",
+      "meta",
+      "muse"
+    ],
+    "useCases": [
+      "Generate photorealistic images from prompts",
+      "Create editorial and marketing visuals",
+      "Produce illustrations with fine detail",
+      "Generate multiple variations from one prompt",
+      "Render images at a chosen aspect ratio"
+    ],
+    "inputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt used to generate the image",
+        "fieldType": "input",
+        "required": true,
+        "min": 1
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "The output aspect ratio. If omitted, Muse chooses the dimensions automatically",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "3:2",
+          "1:1",
+          "2:3",
+          "3:4",
+          "9:16",
+          "9:21"
+        ]
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the image is returned as a data URI and is not persisted in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "webp",
+        "description": "The format of the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "Image[]",
+        "propType": "list[Image]",
+        "default": [],
+        "description": "The generated or edited images.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_9_21",
+            "9:21"
+          ]
+        ],
+        "description": "The output aspect ratio. Supported values are \"21:9\", \"16:9\", \"4:3\", \"3:2\", \"1:1\", \"2:3\", \"3:4\", \"9:16\", and \"9:21\". If omitted, Muse chooses the output dimensions automatically based on the request."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      }
+    ],
+    "moduleName": "text_to_image"
   }
 ]
