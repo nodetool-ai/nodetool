@@ -63,23 +63,35 @@ export const ModelSelectModal: React.FC<ModelSelectModalProps> = ({
   const [search, setSearch] = useState("");
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
 
+  // Lowercased once per model list. A provider catalog runs to several hundred
+  // models, each costing three string allocations per keystroke before this.
+  const searchable = useMemo(
+    () =>
+      models.map((model) => ({
+        model,
+        fields: [
+          model.name?.toLowerCase() ?? "",
+          model.id?.toLowerCase() ?? "",
+          model.provider?.toLowerCase() ?? "",
+        ],
+      })),
+    [models]
+  );
+
   // Filter models by search and provider
   const filtered = useMemo(() => {
-    let result = models;
-    if (selectedProvider) {
-      result = result.filter((m) => m.provider === selectedProvider);
+    const q = search.toLowerCase().trim();
+    if (!selectedProvider && !q) {
+      return models;
     }
-    if (search.trim()) {
-      const q = search.toLowerCase().trim();
-      result = result.filter(
-        (m) =>
-          m.name?.toLowerCase().includes(q) ||
-          m.id?.toLowerCase().includes(q) ||
-          m.provider?.toLowerCase().includes(q)
-      );
+    const result: ModelItem[] = [];
+    for (const { model, fields } of searchable) {
+      if (selectedProvider && model.provider !== selectedProvider) {continue;}
+      if (q && !fields.some((f) => f.includes(q))) {continue;}
+      result.push(model);
     }
     return result;
-  }, [models, search, selectedProvider]);
+  }, [models, search, selectedProvider, searchable]);
 
   // Group models by provider for section headers
   const grouped = useMemo(() => {

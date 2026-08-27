@@ -65,7 +65,7 @@ export const useGraphVariableTypes = (): Map<string, TypeMetadata> => {
         lastNodes = state.nodes;
         lastEdges = state.edges;
         const resolveOutputType = (sourceId: string, handle: string) => {
-          const source = state.nodes.find((n) => n.id === sourceId);
+          const source = state.findNode(sourceId);
           if (!source?.type) {
             return undefined;
           }

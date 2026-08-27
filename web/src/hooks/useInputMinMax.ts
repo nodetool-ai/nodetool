@@ -35,7 +35,7 @@ export const useInputMinMax = ({
         return lastResult;
       }
       lastNodes = state.nodes;
-      const node = state.nodes.find((n) => n.id === nodeId);
+      const node = state.findNode(nodeId);
       const props = node?.data?.properties;
       const nodeMin = isNumber(props?.min) ? props.min : undefined;
       const nodeMax = isNumber(props?.max) ? props.max : undefined;

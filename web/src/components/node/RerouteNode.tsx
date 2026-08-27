@@ -20,6 +20,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { DATA_TYPES } from "../../config/data_types";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
+import { edgesTargeting } from "../../hooks/nodes/edgeIndex";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { hexToRgba } from "../../utils/ColorUtils";
 
@@ -136,8 +137,8 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
     let lastSourceHandle: string | null | undefined;
     let lastResult: { sourceType: string | undefined; sourceData: NodeData; sourceHandle: string | null | undefined } | null = null;
     return (state: NodeStoreState) => {
-      const incoming = state.edges.find(
-        (e) => e.target === id && e.targetHandle === "input_value"
+      const incoming = edgesTargeting(state.edges, id).find(
+        (e) => e.targetHandle === "input_value"
       );
       if (!incoming) {
         if (lastResult === null) return lastResult;
