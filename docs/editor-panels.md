@@ -157,15 +157,15 @@ An overlay on the canvas with the most-used runtime controls.
 |--------|------------|--------|
 | ➕ Add node | Graph view | Open the node menu |
 | 💬 Conversation | When a conversation exists | Toggle the in-canvas conversation overlay |
-| ⏹ Stop | While running/paused/suspended | Cancel the run |
+| ⏹ Stop | While the run state is `running` | Cancel the run |
 | ▶ Run | Always | Run the workflow (shows elapsed time while running) |
 | ⇄ Auto Layout | Graph view | Auto-arrange the graph |
 | 💾 Save | Always | Save the workflow |
 | ⋮ More | Always | Overflow menu (see below) |
 
-The **⋮** overflow menu contains: **Chain View / Graph View** (toggle), **Instant Update** (on/off), **Resume** (when paused or suspended), **Stop** (while running), **Mini Map** (show/hide), **Download JSON**, and **Panels…** (on mobile).
+The **⋮** overflow menu contains: **Chain View / Graph View** (toggle), **Instant Update** (on/off), **Stop** (while running), **Auto Layout** and **Save** (on mobile), **Mini Map** (show/hide), **Download JSON**, and **Panels…** (on mobile).
 
-There is no separate Pause or Fit button in the toolbar.
+There is no Pause, Resume, or Fit button in the toolbar — a run cannot be paused or resumed.
 
 ---
 
