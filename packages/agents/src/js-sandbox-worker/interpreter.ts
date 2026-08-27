@@ -616,7 +616,8 @@ export function createGuestModuleHost(
   const resolve = (baseName: string, requested: string): string => {
     if (locked) {
       return deny(
-        `dynamic import() is not allowed in the sandbox (requested "${requested}")`
+        `dynamic import() is not allowed in the sandbox (requested "${requested}")` +
+          ` — declare it as a static \`import\` at the top of the code instead`
       );
     }
     if (requested === SANDBOX_HOST_BRIDGE_SPECIFIER) {

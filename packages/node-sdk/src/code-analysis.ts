@@ -118,6 +118,49 @@ export function staticImportSpecifiers(
   return specifiers;
 }
 
+/** One static import declaration's specifier and the names it pulls off it. */
+export interface StaticImportBinding {
+  readonly specifier: string;
+  /**
+   * Names in `import { a, b as c }` — the exported names, not the local
+   * aliases, so they can be checked against what the module declares.
+   * A default or namespace import contributes nothing: it names no export.
+   */
+  readonly named: readonly string[];
+}
+
+/**
+ * Specifier plus imported names for every top-level static `import`, in source
+ * order.
+ *
+ * {@link staticImportSpecifiers} answers which modules a body wants;
+ * this answers which of their exports it wants, so a loader can refuse a
+ * misspelled name with the module's own export list instead of leaving the
+ * guest to report "Could not find export".
+ */
+export function staticImportBindings(
+  statements: readonly CodeBodyStatement[]
+): StaticImportBinding[] {
+  const bindings: StaticImportBinding[] = [];
+  for (const statement of statements) {
+    if (statement.type !== "ImportDeclaration") continue;
+    const source = statement.source;
+    if (!isString(source.value)) continue;
+    const named: string[] = [];
+    for (const specifier of statement.specifiers) {
+      if (specifier.type !== "ImportSpecifier") continue;
+      const imported = specifier.imported;
+      if (imported.type === "Identifier") {
+        named.push(imported.name);
+      } else if (isString(imported.value)) {
+        named.push(imported.value);
+      }
+    }
+    bindings.push({ specifier: source.value, named });
+  }
+  return bindings;
+}
+
 /** Module access the loader refuses outright, anywhere in the body. */
 export interface DynamicModuleAccess {
   /** `import(...)` — the loader denies every dynamic resolution. */
