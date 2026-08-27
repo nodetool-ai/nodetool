@@ -148,31 +148,31 @@ export const NodePickerModal: React.FC<NodePickerModalProps> = ({
     return map;
   }, [metadata]);
 
+  // Lowercased once per metadata list. Lowercasing the four fields inside the
+  // filter cost four string allocations per node on every keystroke.
+  const searchable = useMemo(
+    () =>
+      metadata.map((node) => ({
+        node,
+        haystack: [node.title, node.description, node.node_type, node.namespace]
+          .join(" ")
+          .toLowerCase(),
+      })),
+    [metadata]
+  );
+
   // Filtered + grouped sections for search results
   const sections = useMemo((): Section[] => {
     if (!hasSearch) {return [];}
     const query = searchQuery.toLowerCase().trim();
     const tokens = query.split(/\s+/).filter((t) => t.length > 0);
 
-    const filtered = metadata.filter((m) => {
-      const title = m.title.toLowerCase();
-      const desc = m.description.toLowerCase();
-      const type = m.node_type.toLowerCase();
-      const ns = m.namespace.toLowerCase();
-      return tokens.every(
-        (t) =>
-          title.includes(t) ||
-          desc.includes(t) ||
-          type.includes(t) ||
-          ns.includes(t)
-      );
-    });
-
     const groups = new Map<string, NodeMetadata[]>();
-    for (const m of filtered) {
-      const ns = m.namespace;
+    for (const { node, haystack } of searchable) {
+      if (!tokens.every((t) => haystack.includes(t))) {continue;}
+      const ns = node.namespace;
       if (!groups.has(ns)) {groups.set(ns, []);}
-      groups.get(ns)!.push(m);
+      groups.get(ns)!.push(node);
     }
 
     return Array.from(groups.entries())
@@ -181,7 +181,7 @@ export const NodePickerModal: React.FC<NodePickerModalProps> = ({
         title: ns,
         data: items.sort((a, b) => a.title.localeCompare(b.title)),
       }));
-  }, [metadata, searchQuery, hasSearch]);
+  }, [searchable, searchQuery, hasSearch]);
 
   const totalResults = useMemo(
     () => sections.reduce((sum, s) => sum + s.data.length, 0),

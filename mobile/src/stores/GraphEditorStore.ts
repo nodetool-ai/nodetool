@@ -395,6 +395,17 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       edgesByTarget.set(e.target, existing);
     }
 
+    // Build edge lookup: source → list of edges
+    const edgesBySource = new Map<string, typeof workflow.graph.edges>();
+    for (const e of workflow.graph.edges) {
+      const existing = edgesBySource.get(e.source);
+      if (existing) {
+        existing.push(e);
+      } else {
+        edgesBySource.set(e.source, [e]);
+      }
+    }
+
     // Topological sort
     const nodeMap = new Map(workflow.graph.nodes.map((n) => [n.id, n]));
     const visited = new Set<string>();
@@ -407,8 +418,8 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       visited.add(nodeId);
       const node = nodeMap.get(nodeId);
       if (node) {ordered.push(node);}
-      for (const e of workflow.graph.edges) {
-        if (e.source === nodeId) {visit(e.target);}
+      for (const e of edgesBySource.get(nodeId) ?? []) {
+        visit(e.target);
       }
     }
     for (const r of roots) {visit(r.id);}
@@ -432,9 +443,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
         }
 
         // Determine selected output from outgoing edges
-        const outgoingEdge = workflow.graph.edges.find(
-          (e) => e.source === node.id
-        );
+        const outgoingEdge = edgesBySource.get(node.id)?.[0];
         const selectedOutput =
           outgoingEdge?.sourceHandle ?? (meta.outputs[0]?.name ?? "");
 
