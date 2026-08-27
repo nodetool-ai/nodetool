@@ -238,14 +238,16 @@ describe('Window Module', () => {
   
   describe('handleActivation', () => {
     it('should create a new window if no visible windows exist', () => {
-      // Mock no visible windows
       (BrowserWindow.getAllWindows as any).mockReturnValue([]);
-      
+      (getMainWindow as jest.Mock).mockReturnValue(null);
+      (BrowserWindow as any).mockClear();
+
       handleActivation();
-      
-      // Should have tried to create a window
-      // We're testing that createWindow is called, but we don't need to check if getMainWindow is called
-      // since the implementation might have changed
+
+      // With nothing visible, activation must construct a window regardless of
+      // platform — the darwin-only show/restore branch is not reached.
+      expect(BrowserWindow).toHaveBeenCalled();
+      expect(setMainWindow).toHaveBeenCalledWith(mockWindow);
     });
     
     it('should show, restore and focus existing main window on macOS if minimized', () => {

@@ -571,7 +571,12 @@ describe('initializeIpcHandlers', () => {
       const closeHandler = listenerFor(Channels.WINDOW_CLOSE);
 
       closeHandler({});
-      // Should not throw or call window methods
+      // No focused window is a normal no-op, not an error: the handler must
+      // guard rather than let a TypeError fall into its own catch block.
+      expect(loggerMock).not.toHaveBeenCalledWith(
+        expect.stringContaining('Error in window close'),
+        'error'
+      );
     });
   });
 
