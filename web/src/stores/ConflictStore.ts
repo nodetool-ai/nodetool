@@ -13,8 +13,6 @@ import { create } from "zustand";
 import type { MergeConflict } from "./documentMerge";
 import { setDocumentConflictReporter } from "./documentConflictReporter";
 
-export type DocumentConflictKey = string;
-
 interface RegisteredConflicts {
   conflicts: MergeConflict[];
   /** Take the external value into the draft through the surface's own mutation. */
@@ -90,14 +88,6 @@ export const useConflictStore = create<ConflictState>((set, get) => ({
     });
   }
 }));
-
-/** Read the conflicts registered for one document key. */
-export function selectConflicts(
-  state: ConflictState,
-  key: string
-): MergeConflict[] {
-  return state.byKey[key]?.conflicts ?? [];
-}
 
 /** Test seam and unmount cleanup: drop every registration. */
 export function clearAllConflicts(): void {

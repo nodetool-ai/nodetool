@@ -103,9 +103,6 @@ export type { StatusIndicatorProps, StatusType } from "./StatusIndicator";
 
 export { HighlightText } from "./HighlightText";
 
-export { TagButton } from "./TagButton";
-export type { TagButtonProps } from "./TagButton";
-
 export { TagInput } from "./TagInput";
 export type { TagInputProps, TagValidationResult } from "./TagInput";
 
