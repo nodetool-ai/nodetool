@@ -93,3 +93,48 @@ export type ListFilesInput = z.infer<typeof listFilesInput>;
 
 export const listFilesOutput = z.array(fileEntry);
 export type ListFilesOutput = z.infer<typeof listFilesOutput>;
+
+// ── readFile / writeFile (text view + editor) ────────────────────
+/**
+ * Largest text payload the read/write procedures carry, in bytes.
+ *
+ * These are for viewing and editing a file as text in the editor, not for
+ * moving data: a read past this cap returns the first 2 MiB with
+ * `truncated: true`, and a write past it is refused. Binary transfer stays on
+ * `GET /api/workspaces/:id/download/:path`.
+ */
+export const MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
+
+export const readFileInput = z.object({
+  id: z.string().min(1),
+  /** Workspace-relative. Absolute paths and traversal are refused. */
+  path: z.string().min(1)
+});
+export type ReadFileInput = z.infer<typeof readFileInput>;
+
+export const readFileOutput = z.object({
+  /**
+   * The file decoded as UTF-8. When `truncated` is true this is only the first
+   * {@link MAX_TEXT_FILE_BYTES} bytes, so a multi-byte character straddling the
+   * cut decodes to U+FFFD.
+   */
+  content: z.string(),
+  /** Full size of the file on disk, not the length of `content`. */
+  size: z.number(),
+  modified_at: z.string(),
+  truncated: z.boolean()
+});
+export type ReadFileOutput = z.infer<typeof readFileOutput>;
+
+export const writeFileInput = z.object({
+  id: z.string().min(1),
+  /** Workspace-relative. Absolute paths and traversal are refused. */
+  path: z.string().min(1),
+  /** UTF-8 text. Refused when it encodes to more than {@link MAX_TEXT_FILE_BYTES}. */
+  content: z.string()
+});
+export type WriteFileInput = z.infer<typeof writeFileInput>;
+
+/** The entry as it stands after the write. */
+export const writeFileOutput = fileEntry;
+export type WriteFileOutput = z.infer<typeof writeFileOutput>;

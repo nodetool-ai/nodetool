@@ -15,7 +15,7 @@
 
 import { stat, access } from "node:fs/promises";
 import { existsSync, constants } from "node:fs";
-import { isAbsolute } from "node:path";
+import { isAbsolute, basename } from "node:path";
 import { Workspace } from "@nodetool-ai/models";
 import type { WorkspaceEntry } from "@nodetool-ai/runtime";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
@@ -33,9 +33,15 @@ import {
   deleteOutput,
   listFilesInput,
   listFilesOutput,
+  readFileInput,
+  readFileOutput,
+  writeFileInput,
+  writeFileOutput,
+  MAX_TEXT_FILE_BYTES,
   type WorkspaceResponse,
   type FileEntry
 } from "@nodetool-ai/protocol/api-schemas/workspace.js";
+import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
 import { isObjectLike } from "../../lib/wire-values.js";
 
 function toWorkspaceResponse(ws: Workspace): WorkspaceResponse {
@@ -113,6 +119,54 @@ async function validateWorkspacePath(candidate: string): Promise<void> {
   } catch {
     throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not writable");
   }
+}
+
+/**
+ * Ceiling on what `readFile` will pull into memory to slice a text preview
+ * from. The workspace interface has no ranged read, so a file past this is
+ * refused rather than loaded and cut.
+ */
+const MAX_READABLE_BYTES = 32 * 1024 * 1024;
+
+/**
+ * Resolve the row a file procedure addresses, applying the same guards
+ * `listFiles` applies: the row must exist, be readable in this deployment, and
+ * the path must be workspace-relative.
+ */
+async function resolveFileTarget(
+  userId: string,
+  id: string,
+  path: string
+): Promise<{ row: Workspace; workspace: RunWorkspace }> {
+  const row = await Workspace.find(userId, id);
+  if (!row) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Workspace not found");
+  }
+  requireReadable(row);
+
+  if (path.startsWith("/")) {
+    throwApiError(
+      ApiErrorCode.INVALID_INPUT,
+      "Absolute paths not allowed, use relative paths"
+    );
+  }
+
+  const workspace = workspaceFromRow(row);
+  if (!workspace) {
+    throwApiError(
+      ApiErrorCode.INTERNAL_ERROR,
+      "Workspace storage is not configured"
+    );
+  }
+  return { row, workspace };
+}
+
+/** Containment is the workspace's own rule; surface its refusal as a 403. */
+function rethrowTraversal(err: unknown): never {
+  if (err instanceof Error && err.name === "WorkspacePathError") {
+    throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+  }
+  throw err;
 }
 
 export const workspaceRouter = router({
@@ -273,5 +327,99 @@ export const workspaceRouter = router({
         modified_at: new Date(entry.modifiedAt).toISOString()
       }));
       return files;
+    }),
+
+  /**
+   * Read one workspace file as UTF-8 text, for the editor's file viewer.
+   *
+   * Files larger than `MAX_TEXT_FILE_BYTES` come back cut to that many bytes
+   * with `truncated: true`; `size` always reports the whole file. Past
+   * `MAX_READABLE_BYTES` nothing is read at all — slicing 2 MiB off a
+   * multi-gigabyte file would still load the whole thing into memory first.
+   */
+  readFile: protectedProcedure
+    .input(readFileInput)
+    .output(readFileOutput)
+    .query(async ({ ctx, input }) => {
+      const { workspace } = await resolveFileTarget(
+        ctx.userId,
+        input.id,
+        input.path
+      );
+
+      const info = await workspace.stat(input.path).catch(rethrowTraversal);
+      if (!info) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "File not found");
+      }
+      if (info.isDirectory) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Path is a directory");
+      }
+      if (info.size > MAX_READABLE_BYTES) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "File is too large to open as text"
+        );
+      }
+
+      const bytes = await workspace.read(input.path).catch(rethrowTraversal);
+      if (!bytes) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "File not found");
+      }
+
+      const truncated = bytes.byteLength > MAX_TEXT_FILE_BYTES;
+      const slice = truncated
+        ? bytes.subarray(0, MAX_TEXT_FILE_BYTES)
+        : bytes;
+      return {
+        content: new TextDecoder().decode(slice),
+        size: info.size,
+        modified_at: new Date(info.modifiedAt).toISOString(),
+        truncated
+      };
+    }),
+
+  /**
+   * Write UTF-8 text to a workspace file, creating it when absent.
+   *
+   * Guarded exactly like the read paths — a workspace this deployment refuses
+   * to list is a workspace it refuses to write — plus the accessibility check,
+   * since a row whose folder has gone missing would otherwise recreate it.
+   */
+  writeFile: protectedProcedure
+    .input(writeFileInput)
+    .output(writeFileOutput)
+    .mutation(async ({ ctx, input }) => {
+      const { row, workspace } = await resolveFileTarget(
+        ctx.userId,
+        input.id,
+        input.path
+      );
+      if (!row.isAccessible()) {
+        throwApiError(ApiErrorCode.FORBIDDEN, "Workspace is not accessible");
+      }
+
+      if (Buffer.byteLength(input.content, "utf8") > MAX_TEXT_FILE_BYTES) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "File content is too large");
+      }
+
+      const existing = await workspace.stat(input.path).catch(rethrowTraversal);
+      if (existing?.isDirectory) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Path is a directory");
+      }
+
+      await workspace
+        .write(input.path, input.content, "text/plain; charset=utf-8")
+        .catch(rethrowTraversal);
+
+      const info = await workspace.stat(input.path);
+      const size = info?.size ?? Buffer.byteLength(input.content, "utf8");
+      const modifiedAt = info?.modifiedAt ?? Date.now();
+      return {
+        name: basename(input.path),
+        path: input.path,
+        size,
+        is_dir: false,
+        modified_at: new Date(modifiedAt).toISOString()
+      };
     })
 });

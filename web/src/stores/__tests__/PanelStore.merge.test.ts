@@ -56,6 +56,12 @@ describe("PanelStore merge (legacy migration)", () => {
     expect(result.panel.activeView).toBe("assets");
   });
 
+  it("keeps the workspace file browser view", () => {
+    const cs = currentState();
+    const result = merge({ panel: { activeView: "workspace-files" } }, cs);
+    expect(result.panel.activeView).toBe("workspace-files");
+  });
+
   it("clamps panelSize to min 60", () => {
     const cs = currentState();
     const result = merge({ panel: { panelSize: 10, activeView: "workflows" } }, cs);

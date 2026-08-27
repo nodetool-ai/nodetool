@@ -6,8 +6,11 @@ import { isBoolean, isNumber } from "../utils/typePredicates";
  * Bottom panel hosts secondary workflow tools that used to live in PanelRight.
  * Grouped into:
  *  - "run":      logs, jobs
- *  - "workflow": versions, workspace
+ *  - "workflow": versions
  *  - "debug":    trace
+ *
+ * The workspace file browser moved to the left panel (LeftPanelView
+ * "workspace-files"); a stored activeView of "workspace" falls back to "logs".
  *
  * Workflow settings live in the left panel (LeftPanelView "settings"). Chat
  * now lives in the draggable canvas dock (FloatingToolBar), not a left-panel
@@ -18,7 +21,6 @@ export type BottomPanelView =
   | "queue"
   | "workers"
   | "versions"
-  | "workspace"
   | "trace";
 
 type BottomPanelGroup = "run" | "workflow" | "debug";
@@ -32,7 +34,7 @@ export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
   {
     id: "workflow",
     label: "Workflow",
-    views: ["versions", "workspace"]
+    views: ["versions"]
   },
   { id: "debug", label: "Debug", views: ["trace"] }
 ];
@@ -40,6 +42,12 @@ export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
 const ALL_BOTTOM_VIEWS: BottomPanelView[] = BOTTOM_PANEL_GROUPS.flatMap(
   (g) => [...g.views]
 );
+
+function isPersistedShape(
+  value: unknown
+): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 function isBottomPanelView(value: unknown): value is BottomPanelView {
   return typeof value === "string" && (ALL_BOTTOM_VIEWS as readonly string[]).includes(value);
@@ -160,7 +168,23 @@ export const useBottomPanelStore = create<ResizePanelState>()(
     }),
     {
       name: "bottom-panel-storage",
-      version: 2,
+      version: 3,
+      // v3 removed the "workspace" view — the file browser lives in the left
+      // panel now. A persisted selection of it would leave the panel showing
+      // nothing, so it falls back to the default view.
+      migrate: (persistedState, _version) => {
+        if (!isPersistedShape(persistedState)) {
+          return persistedState;
+        }
+        const panel = persistedState.panel;
+        if (!isPersistedShape(panel) || panel.activeView !== "workspace") {
+          return persistedState;
+        }
+        return {
+          ...persistedState,
+          panel: { ...panel, activeView: "logs" }
+        };
+      },
       partialize: (state: ResizePanelState) => ({
         panel: {
           panelSize: state.panel.panelSize,

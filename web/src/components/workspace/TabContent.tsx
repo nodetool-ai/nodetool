@@ -21,6 +21,9 @@ const JsScriptSurface = React.lazy(() => import("./JsScriptSurface"));
 const ApplicationSurface = React.lazy(() => import("./ApplicationSurface"));
 const ChatSurface = React.lazy(() => import("./ChatSurface"));
 const PageSurface = React.lazy(() => import("./PageSurface"));
+const WorkspaceFileSurface = React.lazy(
+  () => import("./WorkspaceFileSurface")
+);
 
 interface TabContentProps {
   tab: WorkspaceTab;
@@ -52,6 +55,14 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
     case "jsscript":
       return (
         <JsScriptSurface refId={tab.ref} mode={tab.mode} active={active} />
+      );
+    case "workspace-file":
+      return (
+        <WorkspaceFileSurface
+          refId={tab.ref}
+          mode={tab.mode}
+          active={active}
+        />
       );
     case "application":
       return <ApplicationSurface refId={tab.ref} />;

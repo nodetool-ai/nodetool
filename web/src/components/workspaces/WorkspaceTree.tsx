@@ -12,8 +12,10 @@ import type { Theme } from "@mui/material/styles";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import AddIcon from "@mui/icons-material/Add";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
 import { openPageTab } from "../workspace/openPageTab";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useWorkspaceExplorer } from "../../hooks/useWorkspaceExplorer";
 import WorkspaceSelect from "./WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
@@ -291,6 +293,8 @@ const WorkspaceTree: React.FC = () => {
   const expandedItemsRef = useRef<string[]>([]);
   expandedItemsRef.current = expandedItems;
 
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+
   const {
     workspaceId,
     setWorkspaceId,
@@ -390,14 +394,35 @@ const WorkspaceTree: React.FC = () => {
     [loadItemChildren]
   );
 
+  // Double-click opens the file as a workspace tab. Handing it to the OS is a
+  // secondary action on the selected file ("Open Externally"), Electron only.
   const handleItemDoubleClick = useCallback(
-    async (event: React.MouseEvent, itemId: string) => {
-      if (window.api?.shell?.openPath) {
-        await window.api.shell.openPath(itemId);
+    async (_event: React.MouseEvent, itemId: string) => {
+      const wsId = workspaceIdRef.current;
+      if (!wsId || itemId.endsWith("/loading") || itemId.endsWith("/error")) {
+        return;
       }
+      const item = findItemInTree(filesRef.current, itemId);
+      if (item?.treeItemProps?.className === "folder-item") {
+        await loadItemChildren(itemId);
+        return;
+      }
+      openTab({
+        type: "workspace-file",
+        ref: `${wsId}::${itemId}`,
+        mode: "view",
+        title: item?.label ?? itemId.split("/").pop() ?? itemId
+      });
     },
-    []
+    [loadItemChildren, openTab]
   );
+
+  const handleOpenExternally = useCallback(async () => {
+    if (!selectedFilePath) { return; }
+    if (window.api?.shell?.openPath) {
+      await window.api.shell.openPath(selectedFilePath);
+    }
+  }, [selectedFilePath]);
 
   const handleOpenInFolder = useCallback(async () => {
     if (!selectedFilePath) { return; }
@@ -489,6 +514,16 @@ const WorkspaceTree: React.FC = () => {
           >
             Open in Folder
           </EditorButton>
+          {Boolean(window.api?.shell?.openPath) && (
+            <EditorButton
+              className="open-folder-button"
+              variant="outlined"
+              startIcon={<OpenInNewIcon />}
+              onClick={handleOpenExternally}
+            >
+              Open Externally
+            </EditorButton>
+          )}
         </div>
       )}
 
