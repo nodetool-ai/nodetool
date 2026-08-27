@@ -681,6 +681,16 @@ export const imageGenerateConfig: ModuleConfig = {
       returnType: "image",
       fieldOverrides: { image: { propType: "image" } }
     },
+    "alibaba/qwen-image-3": {
+      className: "Qwen_Image_3",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "alibaba/qwen-image-3-pro": {
+      className: "Qwen_Image_3_Pro",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } }
+    },
     "recraft-ai/recraft-v4.1": {
       className: "Recraft_V4_1",
       returnType: "image"

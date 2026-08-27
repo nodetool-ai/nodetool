@@ -286,6 +286,17 @@ export const videoGenerateConfig: ModuleConfig = {
         reference_videos: { propType: "list[video]" }
       }
     },
+    "bytedance/seedance-2.5": {
+      className: "Seedance_2_5",
+      returnType: "video",
+      fieldOverrides: {
+        image: { propType: "image" },
+        last_frame_image: { propType: "image" },
+        reference_audios: { propType: "list[audio]" },
+        reference_images: { propType: "list[image]" },
+        reference_videos: { propType: "list[video]" }
+      }
+    },
     "decart/lucy-edit-2": {
       className: "Lucy_Edit_2",
       returnType: "video",
@@ -450,6 +461,14 @@ export const videoGenerateConfig: ModuleConfig = {
         video: { propType: "video" },
         reference_image: { propType: "image" }
       }
+    },
+    "alibaba/wan-3": {
+      className: "Wan_3",
+      returnType: "video"
+    },
+    "alibaba/wan-3-prime": {
+      className: "Wan_3_Prime",
+      returnType: "video"
     },
     "xai/grok-imagine-r2v": {
       className: "Grok_Imagine_R2v",
