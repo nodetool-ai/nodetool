@@ -60,6 +60,21 @@ const EXTENSION_KIND: Record<string, WorkspaceFileKind> = {
   usdz: "model3d"
 };
 
+/** Extensionless filenames that are conventionally text. */
+const TEXT_BASENAMES = new Set([
+  "license",
+  "licence",
+  "readme",
+  "changelog",
+  "authors",
+  "contributing",
+  "notice",
+  "copying",
+  "makefile",
+  "dockerfile",
+  "procfile"
+]);
+
 const extensionOf = (filename: string): string => {
   const base = filename.split("/").pop() ?? filename;
   const dot = base.lastIndexOf(".");
@@ -88,9 +103,13 @@ export const workspaceFileKind = (filename: string): WorkspaceFileKind => {
   }
   const ext = extensionOf(filename);
   const base = filename.split("/").pop()?.toLowerCase() ?? "";
-  // Plain text only when the name says so: ".txt"/".log", or a dotfile
-  // (".gitignore", ".env") which carries no extension at all.
-  return ext === "txt" || ext === "log" || base.startsWith(".")
+  // Plain text only when the name says so: ".txt"/".log", a dotfile
+  // (".gitignore", ".env") which carries no extension at all, or a
+  // conventional extensionless name (LICENSE, README, Makefile).
+  return ext === "txt" ||
+    ext === "log" ||
+    base.startsWith(".") ||
+    TEXT_BASENAMES.has(base)
     ? "text"
     : "binary";
 };

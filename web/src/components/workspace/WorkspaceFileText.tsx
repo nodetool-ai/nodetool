@@ -46,13 +46,13 @@ const styles = (theme: Theme) =>
   css({
     width: "100%",
     height: "100%",
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.background.default,
     ".file-header": {
       flex: "0 0 auto",
       height: "2.5em",
       padding: "0 0.5em 0 0.75em",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.background.paper
     },
     ".filename": {
       color: theme.vars.palette.text.primary,

@@ -25,10 +25,18 @@ describe("workspaceFileKind", () => {
     expect(workspaceFileKind(".gitignore")).toBe("text");
   });
 
+  it("treats conventional extension-less names as text", () => {
+    expect(workspaceFileKind("LICENSE")).toBe("text");
+    expect(workspaceFileKind("docs/README")).toBe("text");
+    expect(workspaceFileKind("Makefile")).toBe("text");
+    // Dockerfile already resolves to a Monaco language upstream.
+    expect(workspaceFileKind("Dockerfile")).toBe("code");
+  });
+
   it("falls back to binary for unknown and extension-less files", () => {
     expect(workspaceFileKind("model.bin")).toBe("binary");
     expect(workspaceFileKind("archive.zip")).toBe("binary");
-    expect(workspaceFileKind("LICENSE")).toBe("binary");
+    expect(workspaceFileKind("somebinary")).toBe("binary");
   });
 
   it("marks exactly the text-rendered kinds as text", () => {
