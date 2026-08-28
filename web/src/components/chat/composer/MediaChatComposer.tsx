@@ -77,6 +77,7 @@ import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens
 import { useTextareaAssetMention } from "./useTextareaAssetMention";
 import { useTextareaSkillMention } from "./useTextareaSkillMention";
 import { MentionedEntities } from "./MentionedEntities";
+import { VoiceInputControl } from "./voice/VoiceInputControl";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
@@ -184,6 +185,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composeCardRef = useRef<HTMLDivElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
   const [prompt, setPrompt] = useState("");
 
@@ -571,46 +573,68 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const canGenerate = prompt.trim().length > 0 || droppedFiles.length > 0;
 
+  const submitPrompt = useCallback(
+    (text: string) => {
+      if (text.trim().length === 0 && droppedFiles.length === 0) {
+        return;
+      }
+      // No configured provider can serve this mode — sending would only fail on
+      // the server. Keep the prompt and guide the user through provider setup.
+      if (providerSetup.needsSetup) {
+        providerSetup.openSetup();
+        return;
+      }
+      // Nothing is picked for this mode. The server rejects such a turn, so keep
+      // the prompt and open the picker instead of sending.
+      if (needsModel) {
+        modelGate?.open();
+        return;
+      }
+      const content: MessageContent[] = [];
+      if (text.trim().length > 0) {
+        content.push({ type: "text", text });
+      }
+      const fileContents = getFileContents();
+      const fullContent = [...content, ...fileContents];
+      // Only clear the input when the message was actually sent or queued; a
+      // dropped message (one already queued) keeps its text and attachments.
+      if (sendMessage(fullContent, text)) {
+        recordHistory(text);
+        setPrompt("");
+        clearFiles();
+      }
+    },
+    [
+      droppedFiles,
+      getFileContents,
+      sendMessage,
+      clearFiles,
+      recordHistory,
+      providerSetup,
+      needsModel,
+      modelGate
+    ]
+  );
+
   const handleSend = useCallback(() => {
-    if (!canGenerate) {
-      return;
-    }
-    // No configured provider can serve this mode — sending would only fail on
-    // the server. Keep the prompt and guide the user through provider setup.
-    if (providerSetup.needsSetup) {
-      providerSetup.openSetup();
-      return;
-    }
-    // Nothing is picked for this mode. The server rejects such a turn, so keep
-    // the prompt and open the picker instead of sending.
-    if (needsModel) {
-      modelGate?.open();
-      return;
-    }
-    const content: MessageContent[] = [];
-    if (prompt.trim().length > 0) {
-      content.push({ type: "text", text: prompt });
-    }
-    const fileContents = getFileContents();
-    const fullContent = [...content, ...fileContents];
-    // Only clear the input when the message was actually sent or queued; a
-    // dropped message (one already queued) keeps its text and attachments.
-    if (sendMessage(fullContent, prompt)) {
-      recordHistory(prompt);
-      setPrompt("");
-      clearFiles();
-    }
-  }, [
-    prompt,
-    canGenerate,
-    getFileContents,
-    sendMessage,
-    clearFiles,
-    recordHistory,
-    providerSetup,
-    needsModel,
-    modelGate
-  ]);
+    submitPrompt(prompt);
+  }, [prompt, submitPrompt]);
+
+  const handleVoiceTranscript = useCallback(
+    (transcript: string) => {
+      const typed = prompt.trim();
+      const text = typed.length > 0 ? `${typed} ${transcript}` : transcript;
+      // A chat turn sends straight away. A media mode bills for the run it
+      // would start, so a dictated prompt lands in the box for review instead.
+      if (isMediaMode) {
+        setPrompt(text);
+        textareaRef.current?.focus();
+        return;
+      }
+      submitPrompt(text);
+    },
+    [prompt, submitPrompt, isMediaMode]
+  );
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -889,6 +913,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   return (
     <div css={styles} className="media-chat-composer">
       <div
+        ref={composeCardRef}
         className={`media-compose-card${isDragging ? " dragging" : ""}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -1493,6 +1518,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               the chips, so it joins the workflow action buttons on one line
               when the row wraps. */}
           <div className="media-primary-action">
+            <VoiceInputControl
+              onTranscript={handleVoiceTranscript}
+              overlayHost={composeCardRef}
+              disabled={disabled}
+            />
             {isBusy ? (
               onStop && <StopGenerationButton onClick={onStop} />
             ) : isMediaMode ? (
