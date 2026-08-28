@@ -30,6 +30,7 @@ import {
   type OAuthTokens,
   type PendingClaudeCodeLogin
 } from "@nodetool-ai/runtime/oauth";
+import { clearProviderCache } from "@nodetool-ai/runtime";
 import {
   isFiniteNumber,
   isNonEmptyString,
@@ -1097,6 +1098,11 @@ async function persistCodexTokens(
     expires_at:
       tokens.expiresAt != null ? new Date(tokens.expiresAt).toISOString() : null
   });
+  // The chat agent holds a per-user provider set built from the credentials it
+  // could resolve at the time. Without this the sign-in lands in the database
+  // and the agent goes on without Codex until the process restarts — which a
+  // production server does not do.
+  clearProviderCache();
   return accountId;
 }
 
@@ -1182,6 +1188,7 @@ async function handleOpenAIDisconnect(
   for (const credential of credentials) {
     await credential.delete();
   }
+  clearProviderCache();
   return jsonResponse({ success: true, removed: credentials.length });
 }
 

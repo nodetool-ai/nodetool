@@ -212,6 +212,52 @@ describe("ProviderCard registry availability", () => {
     expect(screen.getByText("Connected")).toBeInTheDocument();
   });
 
+  it("counts an OAuth sign-in as connected on a card that also takes a key", () => {
+    mockUseOAuthConnection.mockReturnValue(
+      oauthState({ label: "OpenAI", isConnected: true, canDisconnect: true })
+    );
+    mockUseProviders.mockReturnValue(registryWith("codex", "groq"));
+
+    // Signing in to OpenAI credentials `codex`, not `openai` — the card used
+    // to read the key alone and call this "Not connected".
+    renderCard({ ...oauthMeta, oauthProviderId: "codex" });
+
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.queryByText("Not connected")).not.toBeInTheDocument();
+    expect(screen.queryByText("Unavailable")).not.toBeInTheDocument();
+    // No key is stored, so the key actions stay out of the way.
+    expect(
+      screen.getByRole("button", { name: /^connect$/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /manage/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("says Unavailable when the server lacks the provider the sign-in credentials", () => {
+    mockUseOAuthConnection.mockReturnValue(
+      oauthState({ label: "OpenAI", isConnected: true })
+    );
+    mockUseProviders.mockReturnValue(registryWith("openai", "groq"));
+
+    renderCard({ ...oauthMeta, oauthProviderId: "codex" });
+
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.getByText(/Signed in, but this server/i)).toBeInTheDocument();
+  });
+
+  it("stays available when either credential reaches an offered provider", () => {
+    mockUseOAuthConnection.mockReturnValue(
+      oauthState({ label: "OpenAI", isConnected: true })
+    );
+    mockUseProviders.mockReturnValue(registryWith("openai"));
+
+    renderCard({ ...oauthMeta, oauthProviderId: "codex" }, true);
+
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.queryByText("Unavailable")).not.toBeInTheDocument();
+  });
+
   it("stays quiet for a card with no registry provider behind it", () => {
     mockUseProviders.mockReturnValue(registryWith("openai"));
 

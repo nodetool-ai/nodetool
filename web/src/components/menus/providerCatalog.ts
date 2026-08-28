@@ -78,6 +78,14 @@ export interface ProviderMeta {
    * provider behind them (web search, GPU rental, tracing) leave this unset.
    */
   providerId?: ProviderId;
+  /**
+   * The registry provider the OAuth sign-in credentials, when it differs from
+   * the one the API key credentials. Signing in to OpenAI stores a ChatGPT
+   * Codex token, which the `codex` provider consumes — `openai` stays
+   * unconfigured until a key is pasted. Left unset when both paths lead to
+   * `providerId`.
+   */
+  oauthProviderId?: ProviderId;
 }
 
 /** Hosted deployments can't finish a same-machine sign-in — hide those cards. */
@@ -87,6 +95,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   {
     key: "OPENAI_API_KEY",
     providerId: PROVIDER_IDS.OPENAI,
+    oauthProviderId: PROVIDER_IDS.CODEX,
     name: "OpenAI",
     description: "GPT models, images, embeddings, and more.",
     section: "popular",
