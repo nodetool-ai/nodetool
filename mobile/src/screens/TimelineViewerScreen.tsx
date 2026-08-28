@@ -23,7 +23,6 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -40,6 +39,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import type { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
+import EditorHeaderActions from '../components/EditorHeaderActions';
 import { documentStore } from '../documents/documentStore';
 import {
   registerDocumentHandler,
@@ -472,44 +472,18 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         </Text>
       ),
       headerRight: () => (
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={openChat}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Ask the assistant to change this sequence"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleSave}
-            activeOpacity={0.7}
-            disabled={!dirty || saving}
-            accessibilityRole="button"
-            accessibilityLabel="Save timeline"
-            accessibilityState={{ disabled: !dirty || saving }}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Text
-                style={[
-                  styles.saveText,
-                  { color: dirty ? colors.primary : colors.textTertiary },
-                ]}
-              >
-                Save
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        <EditorHeaderActions
+          onChat={openChat}
+          chatLabel="Ask the assistant to change this sequence"
+          onSave={handleSave}
+          saveLabel="Save timeline"
+          dirty={dirty}
+          saving={saving}
+        />
       ),
     });
   }, [
-    colors.primary,
     colors.text,
-    colors.textTertiary,
     dirty,
     handleSave,
     navigation,
@@ -907,17 +881,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    // Native headers inset their own items; the web header does not.
-    paddingRight: Platform.OS === 'web' ? 12 : 0,
-  },
-  saveText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
   banner: {
     flexDirection: 'row',
