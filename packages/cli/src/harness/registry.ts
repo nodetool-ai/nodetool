@@ -424,7 +424,7 @@ export const HARNESSES: HarnessEntry[] = [
     command:
       "nodetool jtbd <list|run|optimize> [-p <provider> -m <model>]",
     kind: "eval",
-    capabilities: ["json", "no-db"],
+    capabilities: ["json"],
     docs: "AGENTS.md § nodetool jtbd",
     selfcheck: {
       // Keyless: the catalogue's own invariants (every job states a purpose,

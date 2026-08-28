@@ -51,6 +51,8 @@ interface JtbdOptimizeOptions {
   all?: boolean;
 }
 
+type InitializeSecrets = () => Promise<void>;
+
 const slug = (text: string): string =>
   text.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-|-$/g, "");
 
@@ -104,12 +106,16 @@ async function writeRunBundle(
   return runDir;
 }
 
-async function runJobs(opts: JtbdRunOptions): Promise<void> {
+async function runJobs(
+  opts: JtbdRunOptions,
+  initializeSecrets: InitializeSecrets
+): Promise<void> {
   if (!opts.provider || !opts.model) {
     console.error("--provider and --model are required");
     process.exitCode = 1;
     return;
   }
+  await initializeSecrets();
   const [agents, providersMod] = await Promise.all([
     import("@nodetool-ai/agents"),
     import("../providers.js")
@@ -234,12 +240,16 @@ async function loadRunReports(dir: string): Promise<JobRunReport[]> {
   return reports;
 }
 
-async function optimizeRuns(opts: JtbdOptimizeOptions): Promise<void> {
+async function optimizeRuns(
+  opts: JtbdOptimizeOptions,
+  initializeSecrets: InitializeSecrets
+): Promise<void> {
   if (!opts.provider || !opts.model) {
     console.error("--provider and --model are required");
     process.exitCode = 1;
     return;
   }
+  await initializeSecrets();
   const dir = resolve(opts.bundle ?? DEFAULT_OUT);
   const reports = await loadRunReports(dir);
   if (reports.length === 0) {
@@ -295,7 +305,10 @@ async function optimizeRuns(opts: JtbdOptimizeOptions): Promise<void> {
   else console.log(`\nproposals written under ${dir}`);
 }
 
-export function registerJtbdCommand(program: Command): void {
+export function registerJtbdCommand(
+  program: Command,
+  initializeSecrets: InitializeSecrets
+): void {
   const cmd = program
     .command("jtbd")
     .description(
@@ -322,7 +335,7 @@ export function registerJtbdCommand(program: Command): void {
     )
     .option("--no-find-model", "Run without configured model providers")
     .option("--json", "Print the full report as JSON")
-    .action((opts: JtbdRunOptions) => runJobs(opts));
+    .action((opts: JtbdRunOptions) => runJobs(opts, initializeSecrets));
 
   cmd
     .command("optimize")
@@ -334,5 +347,5 @@ export function registerJtbdCommand(program: Command): void {
     .option("--bundle <dir>", `Bundle directory to review (default ${DEFAULT_OUT})`)
     .option("--all", "Review clean runs too, not just failures and friction")
     .option("--json", "Print the proposals as JSON")
-    .action((opts: JtbdOptimizeOptions) => optimizeRuns(opts));
+    .action((opts: JtbdOptimizeOptions) => optimizeRuns(opts, initializeSecrets));
 }

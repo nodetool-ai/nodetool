@@ -2439,7 +2439,7 @@ registerReliabilityCommands(program);
 registerNodeCommands(program);
 registerGenerateCommand(program);
 registerEvalCommand(program);
-registerJtbdCommand(program);
+registerJtbdCommand(program, setupDb);
 registerAffectedCommand(program);
 registerHarnessCommands(program);
 registerCollectionCommands(program);
