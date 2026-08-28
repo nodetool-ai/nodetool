@@ -196,7 +196,7 @@ If the model id is wrong or the model is private/unavailable, the generator exit
 
 ## How past PRs did it
 
-The Replicate codegen and manifest have been in place since the initial commit. The three commits on record for this branch (`ca742050`, `f900e7a6`, `d1491abf`) are version bumps. To see how a specific model was added, look for commits that touch `packages/replicate-codegen/src/configs/` and `packages/replicate-nodes/src/replicate-manifest.json` together:
+The Replicate codegen and node packages were scaffolded on 2026-03-15, in `58c561d6` ("feat: scaffold replicate-codegen with types, fetcher, parser, generator") and `3de4d89f` ("feat: scaffold replicate-nodes package with base runtime"). To see how a specific model was added, look for commits that touch `packages/replicate-codegen/src/configs/` and `packages/replicate-nodes/src/replicate-manifest.json` together:
 
 ```bash
 git log --oneline -- packages/replicate-codegen/src/configs packages/replicate-nodes/src/replicate-manifest.json

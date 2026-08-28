@@ -307,17 +307,14 @@ npm run check
 
 ## How past PRs did it
 
-**Commit `25b0623f`** (merged as PR #3377) introduced the five OpenAI-subclass providers in one shot. It added:
+The seven OpenAI-subclass providers arrived across four commits, not one:
 
-- `packages/runtime/src/providers/cerebras-provider.ts` (85 lines)
-- `packages/runtime/src/providers/cohere-provider.ts` (162 lines)
-- `packages/runtime/src/providers/deepseek-provider.ts` (92 lines)
-- `packages/runtime/src/providers/groq-provider.ts` (85 lines)
-- `packages/runtime/src/providers/mistral-provider.ts` (115 lines)
-- `packages/runtime/src/providers/moonshot-provider.ts` (65 lines)
-- `packages/runtime/src/providers/openrouter-provider.ts` (225 lines, with image-gen extras)
+- `4469fd80` ("Add TypeScript backend packages from nodetool-core/ts") — `cerebras-provider.ts`, `groq-provider.ts`, `mistral-provider.ts`, `openrouter-provider.ts`
+- `377d2304` ("feat: add Moonshot AI (Kimi) provider via Anthropic-compatible endpoint") — `moonshot-provider.ts`
+- `e2118f8e` ("feat(runtime): add DeepSeek and xAI (Grok) providers") — `deepseek-provider.ts`
+- `a21a5131` ("feat(runtime): add Cohere, Voyage AI, and Jina AI embedding providers") — `cohere-provider.ts`
 
-All seven were wired into `index.ts` in that same commit. To see the full diff: `git show 25b0623f`.
+Each wired its provider into `index.ts` in the same commit — that pairing, not the batch, is the pattern to copy.
 
 **Commit `34599547`** ("refactor(providers): centralize provider IDs in protocol") moved provider id strings out of scattered literals and into `PROVIDER_IDS` in `@nodetool-ai/protocol`. Any new provider follows the post-refactor convention: constant in protocol, `PROVIDER_IDS.X` everywhere else.
 

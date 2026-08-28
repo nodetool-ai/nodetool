@@ -170,17 +170,17 @@ Step 5 will hit a missing-API-key error in `--no-secrets` mode, which is expecte
 
 ## How past PRs did it
 
-The Topaz package was introduced in commit `b0bb9b0b` (branch `react-doctor safe sweep`) which added all 11 manifest entries, the factory, base utilities, and the runtime provider together. The full file set is visible in `git show --stat b0bb9b0b | grep topaz`:
+The Topaz package was introduced in commit `96d0a9f5` ("Add Topaz Labs image and video enhancement nodes", PR #3266), which added the manifest (3 entries then, 11 today), the factory, base utilities, and the runtime provider together. The full file set is visible in `git show --stat 96d0a9f5 | grep topaz`:
 
 ```
-packages/runtime/src/providers/topaz-provider.ts         |  345 +
+packages/runtime/src/providers/topaz-provider.ts         |  331 +
 packages/runtime/tests/providers/topaz-provider.test.ts  |  225 +
 packages/topaz-nodes/package.json                        |   46 +
 packages/topaz-nodes/src/index.ts                        |   45 +
-packages/topaz-nodes/src/topaz-base.ts                   |  652 +
-packages/topaz-nodes/src/topaz-factory.ts                |  270 +
-packages/topaz-nodes/src/topaz-manifest.json             | 1084 +
-packages/topaz-nodes/tests/topaz-base.test.ts            |  411 +
+packages/topaz-nodes/src/topaz-base.ts                   |  532 +
+packages/topaz-nodes/src/topaz-factory.ts                |  252 +
+packages/topaz-nodes/src/topaz-manifest.json             |  359 +
+packages/topaz-nodes/tests/topaz-base.test.ts            |  386 +
 ```
 
 The pattern for adding a single new endpoint is smaller: one manifest entry, no other files.

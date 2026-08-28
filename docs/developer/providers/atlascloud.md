@@ -218,18 +218,18 @@ None of these make live API calls. Tests use vitest with mocked HTTP.
 
 ## How past PRs did it
 
-The `atlascloud-nodes` package and `atlascloud-provider.ts` were introduced together in commit **`d1491abf`** ("add claude agent package"), which also added the entire file set:
+The `atlascloud-nodes` package and `atlascloud-provider.ts` were introduced together in commit **`00d9284e`** ("feat: add AtlasCloud provider and 14 image/video nodes"), which added the entire file set:
 
 ```
-packages/atlascloud-nodes/src/atlascloud-manifest.json   +1248 lines
-packages/atlascloud-nodes/src/atlascloud-factory.ts       +637 lines
-packages/atlascloud-nodes/src/atlascloud-base.ts          +220 lines
-packages/atlascloud-nodes/src/index.ts                    +47 lines
-packages/atlascloud-nodes/tests/...                       +1120 lines
-packages/runtime/src/providers/atlascloud-provider.ts     +492 lines
+packages/atlascloud-nodes/src/atlascloud-manifest.json   +1292 lines
+packages/atlascloud-nodes/src/atlascloud-factory.ts       +419 lines
+packages/atlascloud-nodes/src/atlascloud-base.ts          +178 lines
+packages/atlascloud-nodes/src/index.ts                     +46 lines
+packages/atlascloud-nodes/tests/...                       +668 lines
+packages/runtime/src/providers/atlascloud-provider.ts      +90 lines
 ```
 
-The initial manifest shipped with 12 entries covering Seedance 2.0, Seedance 2.0 Fast, GPT Image 2, Nano Banana 2, and Nano Banana Pro. Each subsequent model addition follows the same pattern: one new JSON object in `atlascloud-manifest.json`, then `npm run build:packages`.
+The initial manifest shipped with 14 entries covering Seedance 2.0, Seedance 2.0 Fast, GPT Image 2, Nano Banana 2, and Nano Banana Pro. Each subsequent model addition follows the same pattern: one new JSON object in `atlascloud-manifest.json`, then `npm run build:packages`.
 
 ---
 

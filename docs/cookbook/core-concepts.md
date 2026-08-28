@@ -30,11 +30,10 @@ Input → Process → Transform → Output
 | Type                 | Purpose           | Examples                                  |
 | -------------------- | ----------------- | ----------------------------------------- |
 | **Input Nodes**      | Accept parameters | `StringInput`, `ImageInput`, `AudioInput` |
-| **Processing Nodes** | Transform data    | `Resize`, `Filter`, `ExtractText`         |
+| **Processing Nodes** | Transform data    | `Resize`, `FilterString`, `ExtractText`   |
 | **Agent Nodes**      | LLM-powered logic | `Agent`, `Summarizer`, `ListGenerator`    |
 | **Output Nodes**     | Return results    | `Output`, `Preview`                       |
 | **Control Nodes**    | Flow control      | `Collect`, `FormatText`                   |
-| **Storage Nodes**    | Persistence       | `CreateTable`, `Insert`, `Query`          |
 
 ---
 
