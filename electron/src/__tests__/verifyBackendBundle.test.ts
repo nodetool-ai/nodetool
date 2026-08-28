@@ -67,6 +67,7 @@ function writeValidBundle(dir: string): void {
     "x"
   );
   writeShippedSandboxPacks(dir);
+  writeShippedSystemSkills(dir);
   fs.mkdirSync(path.join(dir, "js-sandbox-worker"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "js-sandbox-worker", "worker-entry.js"),
@@ -95,6 +96,15 @@ const SANDBOX_PACKS_DIR = path.join(
   "..",
   "packages",
   "sandbox-packs"
+);
+
+const SYSTEM_SKILLS_DIR = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "packages",
+  "system-skills"
 );
 
 /**
@@ -127,6 +137,22 @@ function writeShippedSandboxPacks(dir: string): void {
       })
     );
     fs.writeFileSync(path.join(packDir, "sandbox", "index.js"), "export default 1;");
+  }
+}
+
+/**
+ * Stage every system skill the repo ships.
+ *
+ * Same reason as the packs above: the script cross-checks the staged set
+ * against `packages/system-skills/` whenever it runs inside a checkout, so a
+ * fixture staging none of them is an incomplete bundle, not a minimal one.
+ */
+function writeShippedSystemSkills(dir: string): void {
+  for (const entry of fs.readdirSync(SYSTEM_SKILLS_DIR)) {
+    if (!fs.existsSync(path.join(SYSTEM_SKILLS_DIR, entry, "SKILL.md"))) continue;
+    const skillDir = path.join(dir, "_skills", entry);
+    fs.mkdirSync(skillDir, { recursive: true });
+    fs.writeFileSync(path.join(skillDir, "SKILL.md"), "---\nname: x\n---\n");
   }
 }
 
@@ -329,6 +355,32 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(status).toBe(1);
     expect(output).toContain("nodetool.sandboxModules");
+  });
+
+  it("fails when a shipped system skill is not staged", () => {
+    // The failing branch is what the docker leg would have hit: it referenced
+    // an accumulator that does not exist, so a missing skill crashed the
+    // verifier instead of being reported. Only inverting the check found it.
+    const skills = fs
+      .readdirSync(path.join(tempDir, "_skills"))
+      .sort();
+    expect(skills.length).toBeGreaterThan(0);
+    fs.rmSync(path.join(tempDir, "_skills", skills[0]), {
+      recursive: true,
+      force: true,
+    });
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("System skill(s) not staged under _skills/");
+    expect(output).toContain(skills[0]);
+  });
+
+  it("reports the shipped system skills it found", () => {
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(0);
+    // Asserting a count, so the check cannot pass by having matched nothing.
+    const staged = fs.readdirSync(path.join(tempDir, "_skills")).length;
+    expect(output).toContain(`system skills staged: ${staged}`);
   });
 
   it("fails when server.mjs itself is missing", () => {
