@@ -133,6 +133,8 @@ const styles = (
 
     ".drawer-content": {
       pointerEvents: drawerVisible ? "auto" : "none",
+      position: "relative",
+      zIndex: Z_INDEX.base,
       marginTop: getSpacingPx(10), // 40px
       height: "calc(100% - 40px)",
       backgroundColor: theme.vars.palette.background.default,
@@ -182,6 +184,10 @@ const styles = (
       display: "flex",
       flexDirection: "column",
       gap: getSpacingPx(SPACING.md),
+      // Transform on `.drawer-content` creates a stacking context that paints
+      // above in-flow siblings. Position the rail so the drawer slides behind it.
+      position: "relative",
+      zIndex: Z_INDEX.raised,
       backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       paddingTop: getSpacingPx(SPACING.micro),
