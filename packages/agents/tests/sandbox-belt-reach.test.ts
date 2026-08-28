@@ -51,6 +51,28 @@ async function run(
   });
 }
 
+/** The same, plus the arguments every call carried, in order. */
+async function runRecording(code: string, names: readonly string[] = []) {
+  const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
+  const result = await runInSandbox({
+    code: `${PRELUDE}\n${code}`,
+    context: {} as never,
+    globals: {
+      __toolNames: [...names],
+      __toolModules: {},
+      __callTool: async (name: unknown, args: unknown) => {
+        calls.push({
+          name: String(name),
+          args: JSON.parse(String(args)) as Record<string, unknown>
+        });
+        return { ok: true, result: { called: name } };
+      }
+    },
+    timeoutMs: 20000
+  });
+  return { result, calls };
+}
+
 describe("the sandbox toolbelt", () => {
   it("carries the Apify and SerpAPI capabilities", () => {
     const names = new Set(assembleSandboxToolbelt().map((tool) => tool.name));
@@ -217,5 +239,99 @@ describe("the retired tools.<name> global", () => {
       ["list_workflows", "run_workflow"]
     );
     expect(result.result).toEqual({ keys: [], then: "undefined" });
+  }, 60_000);
+});
+
+/**
+ * Two dead ends the object model used to leave a caller in, both of them a
+ * message that described something other than the call that produced it.
+ */
+describe("the nodetool object model's own errors", () => {
+  /**
+   * `create({name})` used to reach the tool as `name: {name: "..."}` and come
+   * back as "name is required and must be a non-empty string" — a sentence
+   * about the argument, true of a call that had passed one. A chat retried the
+   * same object three times, then found the positional form by accident.
+   */
+  it("takes a create name positionally or in the options object", async () => {
+    const { calls } = await runRecording(
+      `await nodetool.scripts.create("Positional", { project_id: "p1" });
+       await nodetool.scripts.create({ name: "In options", project_id: "p2" });
+       await nodetool.storyboards.create({ name: "A board", style: "noir" });
+       return "ok";`,
+      ["create_script", "create_storyboard"]
+    );
+    expect(calls.map((c) => c.args["name"])).toEqual([
+      "Positional",
+      "In options",
+      "A board"
+    ]);
+    expect(calls[1].args["project_id"]).toBe("p2");
+    expect(calls[2].args["style"]).toBe("noir");
+  });
+
+  it("names the call when a create really has no name", async () => {
+    const result = await run(
+      `try {
+         await nodetool.scripts.create({ project_id: "p1" });
+         return "no throw";
+       } catch (e) {
+         return String(e.message);
+       }`,
+      ["create_script"]
+    );
+    expect(result.result).toContain("nodetool.scripts.create");
+    expect(result.result).toContain("{name:");
+  }, 60_000);
+
+  /**
+   * The belt spelling is not the object model's spelling — `find_model` is
+   * `nodetool.models.find`. Reaching for the belt name answered with QuickJS's
+   * `TypeError: not a function`, which names neither the call nor the method
+   * that would have worked, and reads like the sandbox is broken rather than
+   * like a typo.
+   */
+  it("names the nearest method instead of TypeError: not a function", async () => {
+    const result = await run(
+      `try {
+         await nodetool.models.find_model({ capability: "text_to_speech" });
+         return "no throw";
+       } catch (e) {
+         return String(e.message);
+       }`,
+      ["find_model"]
+    );
+    expect(result.result).toContain("nodetool.models.find_model does not exist");
+    expect(result.result).toContain("Did you mean nodetool.models.find?");
+    expect(result.result).toContain("forProvider");
+    expect(result.result).not.toContain("not a function");
+  }, 60_000);
+
+  it("names the namespaces when the namespace itself is the typo", async () => {
+    const result = await run(
+      `try {
+         await nodetool.script.list();
+         return "no throw";
+       } catch (e) {
+         return String(e.message);
+       }`,
+      ["list_scripts"]
+    );
+    expect(result.result).toContain("Did you mean nodetool.scripts?");
+    expect(result.result).not.toContain("not a function");
+  }, 60_000);
+
+  it("leaves what is really there, awaiting, and logging a namespace alone", async () => {
+    const result = await run(
+      `const ns = await nodetool.scripts;
+       return typeof ns.list + "," + typeof ns.voice + "," +
+         Object.keys(nodetool.models).sort().join("/") + "," +
+         JSON.stringify(nodetool.scripts);`,
+      ["list_scripts"]
+    );
+    expect(result.error).toBeUndefined();
+    expect(result.result).toBe(
+      "function,function,find/forProvider/list/pick,{}"
+    );
   }, 60_000);
 });

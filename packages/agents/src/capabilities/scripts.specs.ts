@@ -122,7 +122,10 @@ export const EDIT_SCRIPT_SCHEMA: JsonSchema = {
         "library (list_entities) — when set the speaker is that character/entity " +
         "and storyboard renders can season prompts with it. A line `target` is " +
         "its id, its 0-based index across the script, or its exact text; a " +
-        "speaker `target` is its id or name.",
+        "speaker `target` is its id or name. `set_speaker` renames a cast " +
+      "member; the op that gives a LINE its speaker is `set_line_speaker`. An " +
+      "argument an op does not take is refused rather than ignored, so a " +
+      "misspelled key is reported instead of silently dropping its value.",
       items: { type: "object" }
     }
   },

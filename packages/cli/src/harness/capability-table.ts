@@ -1895,7 +1895,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_script",
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",
-    contract: "62385ab44f70",
+    contract: "0d3075938411",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-scripts.test.ts",
