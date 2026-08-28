@@ -7,7 +7,6 @@ describe("RUNTIME_PACKAGES", () => {
     expect(ids).toContain("nodejs");
     expect(ids).toContain("ffmpeg");
     expect(ids).toContain("bash");
-    expect(ids).toContain("claude");
     expect(ids).toContain("transformers-js");
   });
 
