@@ -179,6 +179,66 @@ describe("nodetool.workflows escalations", () => {
   });
 });
 
+/**
+ * `validate` throws a refusal, and the refusal has to be readable. It used to
+ * list the first eight issues of *any* severity, so one real error arrived
+ * under seven "untyped dynamic slot" info notes — which are not problems, and
+ * which a model reading eight bullets tries to fix.
+ */
+describe("nodetool.workflows.validate", () => {
+  const issues = [
+    {
+      severity: "error",
+      code: "unset_model",
+      message: 'Property "model" requires a language_model'
+    },
+    {
+      severity: "info",
+      code: "untyped_dynamic_slot",
+      message: 'Edge "e1" targets dynamic input "a"'
+    },
+    {
+      severity: "warning",
+      code: "code_unused_input",
+      message: 'Input "b" is never read by the code'
+    }
+  ];
+
+  const session = () =>
+    makeSession([toolDef("validate_workflow")], async () =>
+      JSON.stringify({ ok: false, issues })
+    );
+
+  it("lists the errors and counts the rest", async () => {
+    const run = await runAction(
+      session(),
+      `try {
+         await nodetool.workflows.validate({ nodes: [], edges: [] });
+         return "no throw";
+       } catch (error) { return error.message; }`
+    );
+    const message = run.result as string;
+    expect(message).toContain("requires a language_model");
+    expect(message).not.toContain("untyped dynamic slot");
+    expect(message).not.toContain("never read by the code");
+    expect(message).toContain("2 warning/info issue(s) not blocking");
+  });
+
+  it("falls back to every issue when none is an error", async () => {
+    const warningsOnly = makeSession([toolDef("validate_workflow")], async () =>
+      JSON.stringify({ ok: false, issues: [issues[1]] })
+    );
+    const run = await runAction(
+      warningsOnly,
+      `try {
+         await nodetool.workflows.validate({ nodes: [], edges: [] });
+         return "no throw";
+       } catch (error) { return error.message; }`
+    );
+    expect(run.result as string).toContain('Edge "e1" targets dynamic input');
+  });
+});
+
 describe("nodetool.workflows examples", () => {
   it("lists examples through list({workflow_type: \"example\"})", async () => {
     const { executeTool, calls } = createFakeRouter();

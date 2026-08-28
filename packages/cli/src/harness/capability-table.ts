@@ -186,8 +186,8 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "7af3e305f546",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/nodetool-api-workflows.test.ts",
       "packages/agents/tests/capability-run-secrets-audit.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
       {
@@ -237,7 +237,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "find_model",
     module: "models",
     impl: "packages/agents/src/capabilities/models.ts",
-    contract: "035763b68b4a",
+    contract: "e7361c656213",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-models.test.ts",
@@ -584,7 +584,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_nodes",
     module: "nodes",
     impl: "packages/agents/src/capabilities/nodes.ts",
-    contract: "f1a26849254d",
+    contract: "6f70c870b22f",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-nodes.test.ts",
@@ -595,7 +595,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "search_nodes",
     module: "nodes",
     impl: "packages/agents/src/capabilities/nodes.ts",
-    contract: "5f9da9d6e916",
+    contract: "600f8b51d0d0",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-nodes.test.ts",

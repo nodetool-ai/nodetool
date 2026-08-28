@@ -1044,6 +1044,50 @@ globalThis.fromBase64 = (s) => {
   }
   return out;
 };
+// Format console arguments guest-side, so only strings cross the boundary.
+// The wrapper's marshaler walks an argument property by property, and a
+// function has a prototype chain that leads back to itself: logging one — or
+// a module namespace holding one, which is what \`import * as ns\` gives —
+// recursed until the host stack blew, leaving handles alive and aborting the
+// runtime on free with "list_empty(&rt->gc_obj_list)". That killed the whole
+// run, after its real work was done, for a debug print.
+{
+  const __hostConsole = globalThis.console;
+  const __fnLabel = (v) => "[Function: " + (v.name || "anonymous") + "]";
+  const __fmtConsoleArg = (value) => {
+    if (value === null) return "null";
+    if (value === undefined) return "undefined";
+    if (typeof value === "string") return value;
+    if (typeof value === "function") return __fnLabel(value);
+    if (typeof value === "symbol" || typeof value === "bigint") {
+      return String(value);
+    }
+    try {
+      const seen = new WeakSet();
+      const text = JSON.stringify(value, function (key, v) {
+        if (typeof v === "function") return __fnLabel(v);
+        if (typeof v === "bigint" || typeof v === "symbol") return String(v);
+        if (v !== null && typeof v === "object") {
+          if (seen.has(v)) return "[Circular]";
+          seen.add(v);
+        }
+        return v;
+      }, 2);
+      return text === undefined ? String(value) : text;
+    } catch {
+      try { return String(value); } catch { return "[unprintable]"; }
+    }
+  };
+  const __level = (name) => (...args) => {
+    __hostConsole[name](...args.map(__fmtConsoleArg));
+  };
+  globalThis.console = {
+    log: __level("log"),
+    warn: __level("warn"),
+    error: __level("error"),
+    info: __level("info")
+  };
+}
 globalThis.toHex = (input) => {
   const b = __asBytes(input, "toHex");
   let s = "";

@@ -5,7 +5,10 @@
  */
 import { describe, it, expect } from "vitest";
 import { entryBodyLineOffset } from "../src/js-sandbox-worker/interpreter.js";
-import { annotateActionStack } from "../src/codeact/action-diagnostics.js";
+import {
+  annotateActionStack,
+  annotateFailure
+} from "../src/codeact/action-diagnostics.js";
 
 describe("entryBodyLineOffset", () => {
   it("is 2 for import-free code (the plain wrapper)", () => {
@@ -91,5 +94,59 @@ describe("annotateActionStack", () => {
   it("keeps the stack unchanged when no user-code frame appears", () => {
     const stack = "Error: host\n    at somewhere-else:1:1";
     expect(annotateActionStack(stack, prelude, code)).toEqual({ stack });
+  });
+});
+
+/**
+ * QuickJS compiles the whole entry module and reports a position that need not
+ * be the offending one. `import { integerInput } = "…"` on line 3 arrived as
+ * "expecting '(' at action:1:26" with an excerpt showing a good line, and the
+ * model rewrote line 1 twice before giving up.
+ */
+describe("annotateFailure re-diagnoses a syntax error", () => {
+  const prelude = "const p = 1;\nconst q = 2;";
+
+  it("reports acorn's position, not QuickJS's", () => {
+    const code = [
+      'import { workflow } from "@nodetool-ai/sandbox-dsl";',
+      'import { stringInput } from "@nodetool-ai/sandbox-dsl/nodetool.input";',
+      'import { integerInput } = "@nodetool-ai/sandbox-dsl/nodetool.input";',
+      "return 1;"
+    ].join("\n");
+    const result = annotateFailure(
+      "SyntaxError: expecting '('",
+      "SyntaxError: expecting '('\n    at user-code:3:26",
+      prelude,
+      code
+    );
+    expect(result.error).toContain("SyntaxError");
+    expect(result.stack).toContain("at action:3");
+    expect(result.stack).toContain("your code, line 3");
+    expect(result.stack).not.toContain("line 1:");
+  });
+
+  it("leaves a syntax error the parser accepts alone", () => {
+    // Module linking raises SyntaxError too, on a body that parses fine.
+    const code = 'import { websearch } from "pack";\nreturn 1;';
+    const stack = "SyntaxError: Could not find export\n    at user-code:6:1";
+    const result = annotateFailure(
+      "SyntaxError: Could not find export 'websearch' in module 'pack'",
+      stack,
+      prelude,
+      code
+    );
+    expect(result.error).toContain("Could not find export");
+    expect(result.stack).toContain("action:");
+  });
+
+  it("leaves a non-syntax failure alone", () => {
+    const code = "throw new Error('boom');";
+    const result = annotateFailure(
+      "Error: boom",
+      "Error: boom\n    at user-code:3:1",
+      prelude,
+      code
+    );
+    expect(result.error).toBe("Error: boom");
   });
 });

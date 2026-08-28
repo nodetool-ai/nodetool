@@ -181,8 +181,69 @@ describe("the node capabilities read the run's registry", () => {
 
     expect(await capability("search_nodes").impl(run, { query: [] })).toEqual({
       status: "error",
-      errors: ["query must be a non-empty array"]
+      errors: [
+        "query must be a search string or a non-empty array of them, " +
+          'e.g. ["web search"] or "web search".'
+      ]
     });
+  });
+
+  /**
+   * The schema says `string[]`, so a model that sent the bare string
+   * `"serpapi"` used to have it accepted and scored one **character** at a
+   * time: a string is iterable, and every node whose text held an "s", an "e"
+   * or an "r" matched. The live registry answered that query with 322 results
+   * led by `CompareImages` at score 133 — noise the caller could not tell
+   * from a ranked answer.
+   */
+  it("reads a lone string query as one term, not as its characters", async () => {
+    const run = runWith(mockRegistry(NODES));
+    const chars = (await capability("search_nodes").impl(run, {
+      query: "serpapi"
+    })) as { total: number; note?: string };
+    expect(chars.total).toBe(0);
+    expect(chars.note).toContain("No node matched 'serpapi'");
+
+    const phrase = (await capability("search_nodes").impl(run, {
+      query: "concat"
+    })) as { total: number; results: Array<{ type: string }> };
+    expect(phrase.results[0].type).toBe("nodetool.text.Concat");
+  });
+
+  it("refuses a query that is neither a string nor an array", async () => {
+    const run = runWith(mockRegistry(NODES));
+    const answer = (await capability("search_nodes").impl(run, {
+      query: { term: "concat" }
+    })) as { status: string };
+    expect(answer.status).toBe("error");
+  });
+
+  it("says why a search found nothing", async () => {
+    const run = runWith(mockRegistry(NODES));
+    const answer = (await capability("search_nodes").impl(run, {
+      query: ["serpapi"]
+    })) as { total: number; results: unknown[]; note?: string };
+    expect(answer.total).toBe(0);
+    expect(answer.results).toEqual([]);
+    expect(answer.note).toContain("include_provider_nodes");
+  });
+
+  /**
+   * `{total: 0, namespaces: {}, nodes: []}` reads the same whether the
+   * namespace is empty or does not exist, and leaves the caller nowhere to go
+   * — the transcript this came from asked for `nodetool.web`, got that, and
+   * never recovered.
+   */
+  it("names the real namespaces when the filter matches nothing", async () => {
+    const answer = (await capability("list_nodes").impl(
+      runWith(mockRegistry(NODES)),
+      { namespace: "nodetool.web" }
+    )) as { total: number; note?: string; available_namespaces?: string[] };
+    expect(answer.total).toBe(0);
+    expect(answer.note).toContain(
+      "No node type is registered under namespace 'nodetool.web'"
+    );
+    expect(answer.available_namespaces).toContain("nodetool.text");
   });
 
   it("returns full metadata, and an error for an unknown type", async () => {

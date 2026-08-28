@@ -222,7 +222,11 @@ export function registerHarnessCommands(program: Command): void {
 
         const mappingViolations = opts.all
           ? []
-          : await capabilityMappingViolations(repoRoot, opts.base ?? "HEAD");
+          : await capabilityMappingViolations(
+              repoRoot,
+              opts.base ?? "HEAD",
+              changedFiles
+            );
         if (!opts.json && mappingViolations.length > 0) {
           console.log(
             "\nCapability mapping violations (harness capabilities):"
@@ -387,7 +391,8 @@ function printGatePlan(
  */
 async function capabilityMappingViolations(
   repoRoot: string,
-  baseRef: string
+  baseRef: string,
+  changedFiles: readonly string[]
 ): Promise<string[]> {
   const { execSync } = await import("node:child_process");
   const { readFileSync } = await import("node:fs");
@@ -413,7 +418,9 @@ async function capabilityMappingViolations(
     // Running from a package without the source tree; nothing to compare.
     return [];
   }
-  return planCapabilityMappingGate(atRef(baseRef), working).violations.map(
-    (v) => v.detail
-  );
+  return planCapabilityMappingGate(
+    atRef(baseRef),
+    working,
+    changedFiles
+  ).violations.map((v) => v.detail);
 }

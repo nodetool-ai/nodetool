@@ -205,7 +205,8 @@ export function validateNodeProperties(
         message:
           `Property "${name}" requires a ${typeStr} to be selected — assign ` +
           `{type: "${typeStr}", provider, id, name} (the field is \`id\`, ` +
-          `not \`model_id\`; a find_model result's \`ref\` is this shape)`
+          `not \`model_id\`). \`find_model\` answers this shape on its ` +
+          `top-level \`ref\` — assign that verbatim.`
       });
     }
   }

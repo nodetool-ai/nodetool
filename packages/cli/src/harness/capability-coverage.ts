@@ -277,6 +277,23 @@ function coverageSignature(block: string): string {
   return block.replace(/contract:\s*"[^"]*",?\s*/g, "");
 }
 
+/** Repo-relative, forward-slashed, with no leading `./`. */
+function normalizeRepoPath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+/** Whether one of the entry's listed suite files is in the diff. */
+function coversAChangedSuite(
+  block: string,
+  changed: ReadonlySet<string>
+): boolean {
+  if (changed.size === 0) return false;
+  const suites = block.match(/"([^"]*\.test\.[cm]?tsx?)"/g) ?? [];
+  return suites.some((quoted) =>
+    changed.has(normalizeRepoPath(quoted.slice(1, -1)))
+  );
+}
+
 export interface CapabilityMappingViolation {
   name: string;
   /** What moved without the mapping moving with it. */
@@ -302,10 +319,19 @@ export interface CapabilityMappingGateResult {
  *
  * `baseSource` is null when the file does not exist at the base ref — every
  * entry is then new, and nothing is a violation.
+ *
+ * `changedFiles` answers the rule the other way round. The mapping's `suites`
+ * are file paths, and they do not move when a case is *added* to a file
+ * already listed — which is what covering a new contract usually looks like.
+ * Reading the diff, a contract change whose own covering suite also changed
+ * has been answered: the suite is named, and it is in the diff. Without this a
+ * one-word description edit demanded a contrived change to a generated field,
+ * and the honest fix — write the test — could not satisfy the gate.
  */
 export function planCapabilityMappingGate(
   baseSource: string | null,
-  headSource: string
+  headSource: string,
+  changedFiles: readonly string[] = []
 ): CapabilityMappingGateResult {
   const base = baseSource === null ? new Map() : extractCoverageBlocks(baseSource);
   const head = extractCoverageBlocks(headSource);
@@ -313,6 +339,7 @@ export function planCapabilityMappingGate(
   const added: string[] = [];
   const contractChanged: string[] = [];
   const violations: CapabilityMappingViolation[] = [];
+  const changed = new Set(changedFiles.map(normalizeRepoPath));
 
   for (const [name, block] of head) {
     const before = base.get(name);
@@ -325,7 +352,10 @@ export function planCapabilityMappingGate(
       /contract:\s*"([^"]*)"/.exec(block)?.[1];
     if (!contractMoved) continue;
     contractChanged.push(name);
-    if (coverageSignature(before) === coverageSignature(block)) {
+    if (
+      coverageSignature(before) === coverageSignature(block) &&
+      !coversAChangedSuite(block, changed)
+    ) {
       violations.push({
         name,
         reason: "contract-changed",

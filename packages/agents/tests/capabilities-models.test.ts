@@ -143,6 +143,34 @@ describe("wire identity: a Tool built from the spec", () => {
 });
 
 describe("find_model through the adapter", () => {
+  /**
+   * `results[0].ref` reads as if `results` and `ref` were alternatives, and
+   * agents wrote `find_model(...).ref`. `undefined` is not an error, so it
+   * went into a node's model property and surfaced much later as "Property
+   * model requires a language_model to be selected" — on a graph whose model
+   * line looked right. The obvious read is the correct one now.
+   */
+  it("answers the best model's ref at the top level", async () => {
+    const openai = new FakeImageProvider("openai" as ProviderId, [
+      { id: "dall-e-3", name: "DALL·E 3", provider: "openai" } as ImageModel
+    ]);
+    const tool = asTool(findModel, { openai });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image"
+    })) as { ref?: unknown; results: { ref: unknown }[] };
+    expect(result.ref).toBeDefined();
+    expect(result.ref).toEqual(result.results[0].ref);
+  });
+
+  it("omits the top-level ref when nothing matched", async () => {
+    const tool = asTool(findModel, {});
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image"
+    })) as { ref?: unknown; results: unknown[] };
+    expect(result.results).toEqual([]);
+    expect(result.ref).toBeUndefined();
+  });
+
   it("ranks a model hint above a recommended default", async () => {
     const openai = new FakeImageProvider("openai" as ProviderId, [
       { id: "dall-e-3", name: "DALL·E 3", provider: "openai" } as ImageModel,

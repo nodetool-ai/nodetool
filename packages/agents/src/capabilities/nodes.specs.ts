@@ -35,7 +35,7 @@ export const SEARCH_NODES_INPUT_SCHEMA: JsonSchema = {
       type: "array",
       items: { type: "string" },
       description:
-        "Search terms matched against title, node_type, namespace, and description."
+        "Search terms matched against title, node_type, namespace, and description. Pass an array; a single string is read as one term."
     },
     n_results: {
       type: "number",
@@ -80,7 +80,9 @@ export const listNodesSpec: CapabilitySpec = {
   name: "list_nodes",
   description:
     "List available node types, optionally filtered by namespace. " +
-    "Use this to browse what deterministic nodes are available.",
+    "Use this to browse what deterministic nodes are available. A namespace " +
+    "no node uses answers with the namespaces that do exist — not an empty " +
+    "list.",
   inputSchema: LIST_NODES_INPUT_SCHEMA,
   category: "read",
   userMessage: (params) => {
@@ -96,8 +98,9 @@ export const searchNodesSpec: CapabilitySpec = {
   inputSchema: SEARCH_NODES_INPUT_SCHEMA,
   category: "read",
   userMessage: (params) => {
-    const query = (params["query"] as string[]) ?? [];
-    return `Searching for nodes: ${query.join(", ")}`;
+    const query = params["query"];
+    const terms = Array.isArray(query) ? query.join(", ") : String(query ?? "");
+    return `Searching for nodes: ${terms}`;
   }
 };
 

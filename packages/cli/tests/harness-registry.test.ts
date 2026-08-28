@@ -327,6 +327,38 @@ describe("capability mapping gate", () => {
     expect(result.violations).toEqual([]);
   });
 
+  /**
+   * `suites` are file paths, and they do not move when a case is *added* to a
+   * file already listed — which is what covering a new contract usually looks
+   * like. Without reading the diff, improving a description demanded a
+   * contrived change to a generated field, and writing the test could not
+   * satisfy the gate.
+   */
+  it("passes a contract change whose own covering suite is in the diff", () => {
+    const suite = "packages/agents/tests/capabilities-nodes.test.ts";
+    const coverage = `    suites: ["${suite}"],`;
+    const base = table([block("a", "1111", coverage)]);
+    const head = table([block("a", "2222", coverage)]);
+
+    expect(planCapabilityMappingGate(base, head, []).violations).toHaveLength(
+      1
+    );
+    expect(
+      planCapabilityMappingGate(base, head, [suite]).violations
+    ).toEqual([]);
+    // A path spelled the way `git status --porcelain` and Windows spell it.
+    expect(
+      planCapabilityMappingGate(base, head, [
+        "./packages\\agents\\tests\\capabilities-nodes.test.ts"
+      ]).violations
+    ).toEqual([]);
+    // Some other file changing is not an answer.
+    expect(
+      planCapabilityMappingGate(base, head, ["packages/agents/src/x.ts"])
+        .violations
+    ).toHaveLength(1);
+  });
+
   it("passes a new capability — its mapping is new by construction", () => {
     const result = planCapabilityMappingGate(
       table([block("a", "1111")]),

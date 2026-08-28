@@ -436,6 +436,43 @@ describe("runInSandbox", () => {
     expect(result.logs).toContain("[warn] warning");
   });
 
+  /**
+   * The wrapper's marshaler walks a console argument property by property, and
+   * a function's prototype chain leads back to itself. Logging one — or a
+   * module namespace holding one, which is what `import * as ns` gives — blew
+   * the host stack, left QuickJS handles alive, and aborted the runtime on
+   * free with `list_empty(&rt->gc_obj_list)`: the whole run lost, after its
+   * real work was done, for a debug print. Arguments are formatted guest-side
+   * now, so only strings cross.
+   */
+  it("logs a function without killing the runtime", async () => {
+    const result = await runInSandbox({
+      code: `
+        function named() {}
+        const ns = { a() {}, b() {} };
+        console.log("fn:", named);
+        console.log("ns:", ns);
+        return "done";
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.logs[0]).toBe("fn: [Function: named]");
+    expect(result.logs[1]).toContain('"a": "[Function: a]"');
+  });
+
+  it("logs a value that refers back to itself", async () => {
+    const result = await runInSandbox({
+      code: `
+        const loop = { name: "x" };
+        loop.self = loop;
+        console.log(loop);
+        return "done";
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.logs[0]).toContain("[Circular]");
+  });
+
   it("forwards console output to onLog as it happens", async () => {
     const seen: Array<[string, string]> = [];
     const result = await runInSandbox({

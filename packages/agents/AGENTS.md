@@ -461,6 +461,16 @@ around every tool- and plan-approval round trip.
   the guest had computed its answer, so the result was produced and then
   thrown away. Fixed; pinned by "guest→host binary volume" in
   `tests/js-sandbox.test.ts`.
+- The wrapper's marshaler recurses on a **function**: a function's prototype
+  chain leads back to itself, so `console.log(fn)` — or logging a module
+  namespace, which is what `import * as ns` gives — blew the host stack, left
+  handles alive, and aborted the runtime on free with the same
+  `list_empty(&rt->gc_obj_list)`. The whole run died, after its work was done,
+  for a debug print. `console.*` arguments are formatted **guest-side** now
+  (the init prelude wraps the host console), so only strings cross: a function
+  prints as `[Function: name]`, a cycle as `[Circular]`, and everything else
+  exactly as before. Pinned by "logs a function without killing the runtime"
+  in `tests/js-sandbox.test.ts`.
 - An engine failure never reaches `runInSandbox`'s own `await`: an Emscripten
   `abort()` arrives as a WASM `RuntimeError`, and a marshaling failure (guest
   OOM while a host return value is written into the guest) throws inside a
