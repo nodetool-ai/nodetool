@@ -13,7 +13,7 @@
  */
 
 import type { BaseProvider, Message, TurnBudget } from "@nodetool-ai/runtime";
-import { zodToJsonSchema } from "@nodetool-ai/runtime";
+import { isProviderMessageEvent, zodToJsonSchema } from "@nodetool-ai/runtime";
 import type { HeadlessTool } from "../evals/tool-loop-bridge.js";
 import { isString } from "../utils/type-guards.js";
 
@@ -26,6 +26,10 @@ export interface ToolLoopCallRecord {
   args: Record<string, unknown>;
   result: unknown;
   isError: boolean;
+  /** 0-based position in the run, so a transcript reader can order calls. */
+  index: number;
+  /** Wall clock the tool itself took, in ms. */
+  durationMs: number;
 }
 
 export interface RunToolLoopOptions {
@@ -56,6 +60,18 @@ export interface RunToolLoopOptions {
 export interface ToolLoopRun {
   /** Every tool call in order. */
   calls: ToolLoopCallRecord[];
+  /**
+   * The whole conversation: the system prompt and opening user message the
+   * loop was given, then every message the provider finalized — assistant
+   * turns (including the text the model wrote between calls) and tool results.
+   *
+   * `generateLoop` emits a `ProviderMessageEvent` per finalized message and
+   * this loop used to drop them on the floor, which left every caller able to
+   * see *which* tools ran but never what the model was told or what it said
+   * about them. Scoring never needed that; diagnosing a bad run is impossible
+   * without it.
+   */
+  transcript: Message[];
   /** Call counts by tool name. */
   countsByName: Record<string, number>;
   totalCalls: number;
@@ -95,6 +111,7 @@ export async function runToolLoop(
     inputSchema: zodToJsonSchema(tool.parameters),
     execute: async (args: Record<string, unknown>): Promise<string> => {
       countsByName[tool.name] = (countsByName[tool.name] ?? 0) + 1;
+      const calledAt = Date.now();
       let result: unknown;
       let isError = false;
       try {
@@ -107,7 +124,9 @@ export async function runToolLoop(
         name: tool.name,
         args: args ?? {},
         result,
-        isError
+        isError,
+        index: calls.length,
+        durationMs: Date.now() - calledAt
       };
       calls.push(record);
       opts.onToolCall?.(record);
@@ -120,6 +139,9 @@ export async function runToolLoop(
     { role: "system", content: opts.systemPrompt },
     { role: "user", content: opts.userPrompt }
   ];
+  // Seeded with the prompt pair `generateLoop` never re-emits, then appended to
+  // from the stream below.
+  const transcript: Message[] = [...messages];
 
   let error: string | undefined;
   try {
@@ -134,9 +156,11 @@ export async function runToolLoop(
     };
     if (opts.turnBudget) loopArgs.turnBudget = opts.turnBudget;
     const stream = opts.provider.generateLoop(loopArgs);
-    // Drain the stream; side effects (tool execution, result feedback) happen
-    // inside `generateLoop`.
-    for await (const _item of stream) {
+    // Tool execution and result feedback happen inside `generateLoop`; what we
+    // take off the stream is the transcript. Every finalized message arrives as
+    // a `ProviderMessageEvent`, so the assistant's own words survive the run.
+    for await (const item of stream) {
+      if (isProviderMessageEvent(item)) transcript.push(item.message);
       if (signal?.aborted) break;
     }
   } catch (e) {
@@ -148,6 +172,7 @@ export async function runToolLoop(
 
   return {
     calls,
+    transcript,
     countsByName,
     totalCalls: calls.length,
     durationMs: Date.now() - startedAt,

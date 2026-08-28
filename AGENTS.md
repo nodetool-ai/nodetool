@@ -756,6 +756,7 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 | Run a workflow (id, JSON, or DSL `.ts`) | `nodetool run <file>` / `nodetool workflows run <id> [--params …]` | `run_workflow`, `start_background_job` | varies |
 | Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
 | Run only the suites that depend on changed code (the pre-commit test pass) | `npm run test:affected [-- --dry-run]` | — | seconds–minutes |
+| Ask whether the product let an agent finish a real job, and keep the transcript | `nodetool jtbd run` / `jtbd optimize` | — | minutes |
 | Check that every agent capability names a check | `nodetool harness capabilities`; `npm run capabilities:check` | — | seconds |
 | Check a provider's live response against the decoder that reads it | `npm run probe:providers` (nightly; offline half runs on every provider diff) | — | seconds |
 | Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |
@@ -1799,6 +1800,69 @@ npm run dev:nodetool -- eval app-build -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish \
   -p ollama -m none --no-find-model --min-success 1
 ```
+
+### nodetool jtbd (Jobs To Be Done — the optimization loop)
+
+An eval suite scores a model. A job asks whether the **product** let the agent
+get something done, and keeps enough of the run that an outer agent can say what
+to change.
+
+A job is one objective taken end to end across whatever surfaces it needs,
+stated the way a user would state it ("when I have a scene to shoot, I want it
+broken into shots, so I can see the coverage before I spend on renders"), handed
+to the agent in the user's own words, and graded on the world it left behind.
+No job names a tool: which tool to reach for, in what order, is what is under
+test. The worlds are the same headless bridges the `tool-loop` suites drive, so
+a job cannot drift from the tool contract those suites pin.
+
+```bash
+npm run dev:nodetool -- jtbd list [--json]
+npm run dev:nodetool -- jtbd run -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- jtbd run --jobs workflow-from-prompt,timeline-assemble-cut -p openai -m gpt-5.4-mini
+npm run dev:nodetool -- jtbd run -p anthropic -m claude-sonnet-5 --min-achieved 0.8
+npm run dev:nodetool -- jtbd optimize -p openai -m gpt-5.4-mini   # review the recorded runs
+```
+
+`run` writes one bundle per job under `nodetool-debug/jtbd/<job>/`:
+`report.json` (transcript, tool calls, outcomes, friction) and `review.md`, the
+same thing rendered for a person to read. **The transcript is the point.**
+`runToolLoop` used to drain the provider stream and discard every
+`ProviderMessageEvent`, so a run recorded which tools fired but never what the
+model was told or what it said between calls — enough to score a run, not enough
+to diagnose one. It now keeps the whole conversation.
+
+Before any model reviews a run, the pure pass in
+`packages/agents/src/jtbd/friction.ts` derives what a transcript decides on its
+own, and each signal names an owner. A tool that errored repeatedly, or answered
+the same call identically three times, is a **harness** finding — the fix is a
+schema or an error string in our code. A run that called no tool at all is a
+**prompt** finding. A run that took twice the turns it should have is
+**unattributed**, because whether that is a prompt failing to describe the short
+path or a tool surface forcing the long one is exactly the judgement a pure pass
+cannot make. A rule that guesses confidently sends the fix to the wrong file.
+
+`optimize` is the outer half: it hands one run — the system prompt verbatim,
+every assistant turn, every call with its arguments and result — to a *different*
+model and asks what one change would make the next run go better. It must name a
+target and a change; "improve the prompt" is rejected by the parser. Proposals
+land in `proposals.json` next to the run.
+
+**It proposes; it never applies.** Nothing in the loop edits a prompt or a tool.
+That is the anti-slop ratchet's posture — it opens a PR, it merges nothing —
+and for the same reason: a loop that rewrote its own prompts on a model's say-so
+would have no reviewable step between a bad diagnosis and a shipped regression.
+
+Run and review are separate commands because the bundle is the handoff. A run
+costs model time; reviewing it is a different model, a different prompt, often a
+different day. Splitting them means a bundle can be re-reviewed with a better
+optimizer without paying for the runs again, and that a person can read the
+transcript before any model proposes anything.
+
+The catalogue's own invariants are tested rather than trusted
+(`packages/agents/tests/jtbd-friction.test.ts`): every job states a purpose,
+grades at least one outcome, names no tool in its objective, and **fails its own
+checks on an untouched world** — a job whose outcomes pass before the agent does
+anything is measuring nothing.
 
 ### nodetool packs compile (Sandbox npm Modules)
 
