@@ -44,6 +44,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
+import DocumentStatusBanner from '../components/DocumentStatusBanner';
 import EditorHeaderActions from '../components/EditorHeaderActions';
 import { apiService } from '../services/api';
 import { documentStore } from '../documents/documentStore';
@@ -548,34 +549,14 @@ export default function JsScriptEditorScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      {status === 'conflict' && (
-        <View
-          style={[styles.banner, { backgroundColor: colors.warning + '22' }]}
-          accessibilityLabel="JS script changed elsewhere"
-        >
-          <Ionicons name="git-compare-outline" size={16} color={colors.warning} />
-          <Text style={[styles.bannerText, { color: colors.text }]}>
-            Someone else saved this script. Reload to get their version — your
-            unsaved edits here will be lost.
-          </Text>
-          <TouchableOpacity
-            onPress={runRevert}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Reload JS script"
-            style={[styles.bannerButton, { backgroundColor: colors.warning }]}
-          >
-            <Text style={styles.bannerButtonText}>Reload</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {status === 'error' && error !== null && (
-        <View style={[styles.banner, { backgroundColor: colors.error + '18' }]}>
-          <Ionicons name="warning-outline" size={16} color={colors.error} />
-          <Text style={[styles.bannerText, { color: colors.error }]}>{error}</Text>
-        </View>
-      )}
+      <DocumentStatusBanner
+        status={status}
+        error={error}
+        documentLabel="JS script"
+        reloadNoun="JS script"
+        conflictNoun="script"
+        onReload={runRevert}
+      />
 
       <ScrollView
         contentContainerStyle={[
@@ -941,16 +922,6 @@ const styles = StyleSheet.create({
   },
   centerText: { fontSize: 14, textAlign: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700' },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  bannerText: { flex: 1, fontSize: 13 },
-  bannerButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  bannerButtonText: { fontSize: 13, fontWeight: '600', color: '#fff' },
   scroll: { padding: 16 },
   metaRow: {
     flexDirection: 'row',
