@@ -32,7 +32,15 @@ interface MediaControlChipProps {
   emphasis?: "default" | "primary";
   /** Allow this chip to shrink and truncate its label. */
   truncate?: boolean;
-  /** Max width in px when truncating. Defaults to 200. */
+  /**
+   * Let the chip claim the row's leftover width (up to `maxWidth`) instead of
+   * hugging its label. A grown chip also takes a field surface and pins its
+   * caret to the right edge, so the extra width reads as a select rather than
+   * a label with a gap after it. For the one chip in a row that deserves the
+   * space — the model select.
+   */
+  grow?: boolean;
+  /** Max width in px when truncating or growing. Defaults to 200. */
   maxWidth?: number;
   ref?: React.Ref<HTMLButtonElement>;
 }
@@ -43,6 +51,7 @@ const createStyles = (
   emphasis: "default" | "primary",
   active: boolean,
   truncate: boolean,
+  grow: boolean,
   iconOnly: boolean,
   maxWidth: number
 ) =>
@@ -62,7 +71,7 @@ const createStyles = (
     border: "1px solid transparent",
     backgroundColor: active
       ? theme.vars.palette.c_overlay_strong
-      : emphasis === "primary"
+      : emphasis === "primary" || grow
         ? theme.vars.palette.c_overlay
         : "transparent",
     color: theme.vars.palette.grey[100],
@@ -73,10 +82,12 @@ const createStyles = (
     outline: "none",
     transition: `background-color ${MOTION.normal}, border-color ${MOTION.normal}, color ${MOTION.normal}`,
     whiteSpace: "nowrap",
-    flexShrink: truncate ? 1 : 0,
-    minWidth: truncate ? 0 : undefined,
-    maxWidth: truncate ? maxWidth : undefined,
-    overflow: truncate ? "hidden" : undefined,
+    justifyContent: "flex-start",
+    flex: grow ? "1 1 auto" : undefined,
+    flexShrink: grow || truncate ? 1 : 0,
+    minWidth: grow || truncate ? 0 : undefined,
+    maxWidth: grow || truncate ? maxWidth : undefined,
+    overflow: grow || truncate ? "hidden" : undefined,
     "&:hover:not(:disabled)": {
       backgroundColor: theme.vars.palette.c_overlay
     },
@@ -90,14 +101,18 @@ const createStyles = (
     ".media-chip-icon": {
       display: "inline-flex",
       alignItems: "center",
+      flexShrink: 0,
       color: theme.vars.palette.grey[300],
       "& svg": { fontSize: size === "sm" ? 16 : 18 }
     },
     ".media-chip-chevron": {
       display: "inline-flex",
       alignItems: "center",
+      flexShrink: 0,
       opacity: 0.6,
-      marginLeft: 2,
+      // A grown chip pins its caret to the far edge, so the widened pill
+      // reads as a select rather than a label with a gap after it.
+      marginLeft: grow ? "auto" : 2,
       "& svg": { fontSize: 16 }
     }
   });
@@ -119,6 +134,7 @@ const MediaControlChip = memo(function MediaControlChip({
   className,
   emphasis = "default",
   truncate = false,
+  grow = false,
   maxWidth = 200,
   ref
 }: MediaControlChipProps) {
@@ -137,6 +153,7 @@ const MediaControlChip = memo(function MediaControlChip({
         emphasis,
         active,
         truncate,
+        grow,
         !hasLabel,
         maxWidth
       )}
@@ -144,7 +161,11 @@ const MediaControlChip = memo(function MediaControlChip({
       disabled={disabled}
       aria-pressed={active || undefined}
     >
-      <FlexRow align="center" gap={hasLabel ? 1 : 0}>
+      <FlexRow
+        align="center"
+        gap={hasLabel ? 1 : 0}
+        sx={grow || truncate ? { flex: 1, minWidth: 0 } : undefined}
+      >
         {icon && <span className="media-chip-icon">{icon}</span>}
         {hasLabel && (
           <Text
@@ -154,7 +175,8 @@ const MediaControlChip = memo(function MediaControlChip({
             sx={{
               color: "inherit",
               lineHeight: 1.2,
-              ...(truncate && {
+              ...((grow || truncate) && {
+                minWidth: 0,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap"

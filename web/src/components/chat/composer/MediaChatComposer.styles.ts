@@ -54,9 +54,10 @@ export const createMediaComposerStyles = (theme: Theme) =>
       minHeight: 36,
       maxHeight: 220,
       margin: 0,
-      // Align the text with the chip row below (card padding + row padding)
-      // instead of floating it in its own 24px inset.
-      padding: `${theme.spacing(1)} ${theme.spacing(2)}`,
+      // The prompt shares one text column with the chip row below: a chip's
+      // own 12px padding insets its icon, so the textarea carries that inset
+      // itself (row padding 4 + chip padding 12 = spacing(4)).
+      padding: `${theme.spacing(2)} ${theme.spacing(4)}`,
       resize: "none",
       background: "transparent",
       color: theme.vars.palette.grey[50],
@@ -80,7 +81,9 @@ export const createMediaComposerStyles = (theme: Theme) =>
       alignItems: "center",
       gap: theme.spacing(1),
       width: "100%",
-      padding: `0 ${theme.spacing(2)}`,
+      // Chips carry their own 12px padding, so the row adds only the
+      // remainder of the shared text column inset.
+      padding: `0 ${theme.spacing(1)}`,
       boxSizing: "border-box",
       // Trailing run actions stay pinned to the right, so the row itself does
       // not wrap. The chip cluster wraps internally instead.
@@ -174,12 +177,14 @@ export const createMediaComposerStyles = (theme: Theme) =>
       }
     },
 
-    ".media-file-preview-row": {
+    // Attachments and entity mentions sit in the same text column as the
+    // prompt, so the card reads as one left edge top to bottom.
+    ".media-file-preview-row, .mentioned-entities": {
       display: "flex",
       flexWrap: "wrap",
       alignItems: "center",
       gap: theme.spacing(1),
-      padding: `0 ${theme.spacing(2)}`,
+      padding: `0 ${theme.spacing(4)}`,
       boxSizing: "border-box"
     },
 
@@ -206,7 +211,9 @@ export const createMediaComposerStyles = (theme: Theme) =>
         gap: theme.spacing(1)
       },
       ".media-compose-card textarea.media-compose-input": {
-        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+        // The chip row loses its padding here, so the column is the chip's
+        // own 12px inset.
+        padding: `${theme.spacing(1)} ${theme.spacing(3)}`,
         // The keyboard takes most of the screen — cap the growth well below
         // the desktop 220 (matches MOBILE_TEXTAREA_MAX_HEIGHT).
         maxHeight: 140
@@ -215,6 +222,9 @@ export const createMediaComposerStyles = (theme: Theme) =>
         flexWrap: "wrap",
         rowGap: theme.spacing(1),
         padding: 0
+      },
+      ".media-file-preview-row, .mentioned-entities": {
+        padding: `0 ${theme.spacing(3)}`
       },
       // One scrolling strip, never a wrapped block: chips keep their touch
       // size and the row keeps its height whatever the mode puts in it.
