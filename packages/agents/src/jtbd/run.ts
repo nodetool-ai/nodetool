@@ -104,7 +104,11 @@ export const DEFAULT_JOB_SYSTEM_PROMPT = `You are an agent operating NodeTool th
 
 Get the user's job done end to end. Discover what a tool does before guessing at
 its arguments, read each result before the next call, and stop calling tools once
-the job is done — then say in one line what you produced.`;
+the job is done — then say in one line what you produced.
+
+For a workflow-authoring job, end to end requires a \`nodetool.output.*\` node
+wired to the final value. Do not call the workflow done until it surfaces the
+requested result.`;
 
 export interface RunJobOptions {
   provider: BaseProvider;

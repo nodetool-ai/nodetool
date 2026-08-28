@@ -119,6 +119,10 @@ describe("deriveFriction", () => {
 });
 
 describe("the job registry", () => {
+  it("defines a surfaced output as workflow completion in the default prompt", () => {
+    expect(DEFAULT_JOB_SYSTEM_PROMPT).toContain("nodetool.output.*");
+  });
+
   it("gives every job a JTBD statement with a stated purpose", () => {
     for (const job of JOBS_TO_BE_DONE) {
       // "so I can ..." is what the optimizer judges achievement against; a job
