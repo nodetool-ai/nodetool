@@ -419,6 +419,23 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "jtbd",
+    title: "Jobs to be done (end-to-end agent jobs, recorded for review)",
+    command:
+      "nodetool jtbd <list|run|optimize> [-p <provider> -m <model>]",
+    kind: "eval",
+    capabilities: ["json", "no-db"],
+    docs: "AGENTS.md § nodetool jtbd",
+    selfcheck: {
+      // Keyless: the catalogue's own invariants (every job states a purpose,
+      // grades an outcome, and fails its checks on an untouched world) plus
+      // the transcript capture the review step reads. No model is called.
+      command:
+        "npm run test --workspace=packages/agents -- jtbd-friction jtbd-transcript",
+      cost: "cheap"
+    }
+  },
+  {
     id: "provider-codegen",
     title: "Generated provider metadata drift (FAL and KIE fixture mode)",
     command:
@@ -481,10 +498,11 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "agent-capabilities",
     title: "Agent capabilities (the wire names a guest or a model calls)",
-    harnesses: ["capability-suites", "eval"],
+    harnesses: ["capability-suites", "eval", "jtbd"],
     paths: [
       "packages/agents/src/capabilities/",
       "packages/agents/src/evals/",
+      "packages/agents/src/jtbd/",
       "packages/cli/src/harness/capability-table.ts",
       "packages/cli/src/harness/capability-coverage.ts",
       "scripts/sync-capability-coverage.mjs"

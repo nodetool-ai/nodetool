@@ -942,3 +942,36 @@ export type {
 export { runCodeBody } from "./capabilities/code.js";
 export { createJsScriptAppRunner } from "./js-script-app-runner.js";
 export type { HarnessRunResult } from "./capabilities/code.js";
+
+// Jobs to be done — the agent-intent layer. Each job is one objective taken end
+// to end across whatever surfaces it needs, recorded in full (transcript, tool
+// calls, outcome, friction) so an outer agent can diagnose the run and propose
+// a fix to the harness or the prompt. See `src/jtbd/types.ts`.
+export {
+  JOBS_TO_BE_DONE,
+  findJob,
+  defineJob,
+  runJob,
+  runJobSuite,
+  deriveFriction,
+  optimizeFromRun,
+  renderRunForReview,
+  parseProposals,
+  DEFAULT_JOB_SYSTEM_PROMPT
+} from "./jtbd/index.js";
+export type {
+  ErasedJob,
+  FixProposal,
+  FrictionOwner,
+  FrictionSeverity,
+  FrictionSignal,
+  JobOutcomeCheck,
+  JobRunReport,
+  JobSuiteReport,
+  JobToBeDone,
+  OptimizationReport,
+  OptimizeOptions,
+  OutcomeResult,
+  RunJobOptions,
+  RunJobSuiteOptions
+} from "./jtbd/index.js";
