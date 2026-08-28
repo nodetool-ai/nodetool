@@ -63,9 +63,8 @@ export const designTokenIgnores = [
   "src/components/node/output/JSONRenderer.tsx",
   "src/components/node/output/ToolCallRenderer.tsx",
   "src/components/chat/message/markdown_elements/codeBlockColors.ts",
-  // Canvas / WebGL / xterm surfaces consume *literal* colors (a CSS var() can't
-  // be read by a 2D/GL/terminal renderer), so their color config stays literal.
-  "src/components/node/NodeTerminal.tsx",
+  // Canvas / WebGL surfaces consume *literal* colors (a CSS var() can't be read
+  // by a 2D/GL renderer), so their color config stays literal.
   "src/components/timeline/preview/PreviewCompositor.tsx",
   // Provider brand-identity colors in an onboarding data array.
   "src/components/portal/PortalSetupFlow.tsx",

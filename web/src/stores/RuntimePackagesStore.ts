@@ -28,9 +28,7 @@ const SERVER_RUNTIME_LABELS: Record<string, string> = {
   pandoc: "Pandoc",
   pdftotext: "PDF Tools (pdftotext)",
   pdftoppm: "PDF Tools (pdftoppm)",
-  "yt-dlp": "yt-dlp",
-  tmux: "tmux",
-  claude: "Claude Code CLI"
+  "yt-dlp": "yt-dlp"
 };
 
 interface RuntimePackageStatus {

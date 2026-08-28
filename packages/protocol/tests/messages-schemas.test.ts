@@ -23,7 +23,6 @@ import {
   saveUpdateSchema,
   binaryUpdateSchema,
   logUpdateSchema,
-  terminalUpdateSchema,
   notificationSchema,
   errorMessageSchema,
   toolCallUpdateSchema,
@@ -47,7 +46,6 @@ import {
   isSaveUpdate,
   isBinaryUpdate,
   isLogUpdate,
-  isTerminalUpdate,
   isNotification,
   isErrorMessage,
   isToolCallUpdate,
@@ -136,13 +134,6 @@ const samples: Record<MessageType, unknown> = {
     content: "hello",
     severity: "info"
   },
-  terminal_update: {
-    type: "terminal_update",
-    node_id: "n1",
-    content: "\x1b[32mhi\x1b[0m",
-    cols: 80,
-    rows: 24
-  },
   notification: {
     type: "notification",
     node_id: "n1",
@@ -207,7 +198,6 @@ const schemasByType: Record<MessageType, (typeof processingMessageSchemas)[Messa
   save_update: saveUpdateSchema,
   binary_update: binaryUpdateSchema,
   log_update: logUpdateSchema,
-  terminal_update: terminalUpdateSchema,
   notification: notificationSchema,
   error: errorMessageSchema,
   tool_call_update: toolCallUpdateSchema,
@@ -369,7 +359,6 @@ const guards: Record<MessageType, (value: unknown) => boolean> = {
   save_update: isSaveUpdate,
   binary_update: isBinaryUpdate,
   log_update: isLogUpdate,
-  terminal_update: isTerminalUpdate,
   notification: isNotification,
   error: isErrorMessage,
   tool_call_update: isToolCallUpdate,

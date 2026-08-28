@@ -17,7 +17,7 @@ import path from "node:path";
 
 /**
  * Runtime ids whose executable is named differently from the id. Ids not
- * listed here are probed under their own name (`ffmpeg`, `pandoc`, `tmux`, …).
+ * listed here are probed under their own name (`ffmpeg`, `pandoc`, `yt-dlp`, …).
  */
 const RUNTIME_COMMANDS: Record<string, string> = {
   nodejs: "node",
@@ -37,9 +37,7 @@ export const KNOWN_RUNTIMES = [
   "pandoc",
   "pdftotext",
   "pdftoppm",
-  "yt-dlp",
-  "tmux",
-  "claude"
+  "yt-dlp"
 ] as const;
 
 /** Ids that are safe to probe: a bare command name, nothing path-like. */

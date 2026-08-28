@@ -19,9 +19,7 @@ import { useShallow } from "zustand/react/shallow";
 import useStatusStore, { type StatusValue } from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
 import type { NodeError } from "../../stores/ErrorStore";
-import useResultsStore, {
-  type TerminalBuffer
-} from "../../stores/ResultsStore";
+import useResultsStore from "../../stores/ResultsStore";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 import useWorkflowRunsStore, {
   type RunState
@@ -205,12 +203,11 @@ export function useNodeActiveRunCount(
  * single stable object, resolved against the workflow's focused run.  Uses
  * `useShallow` so that the returned object reference only changes when one of
  * the individual values changes — mirroring exactly the `useShallow` selector
- * that BaseNode.tsx uses to subscribe to these six maps in one subscription.
+ * that BaseNode.tsx uses to subscribe to these maps in one subscription.
  *
  * Fields:
  *  - `result`         — the current generation's resolved value (same as `useNodeResultValue`)
  *  - `output`         — the current generation's full `outputs` record
- *  - `terminal`       — accumulated raw terminal stream (for xterm node bodies)
  *  - `task`           — latest Task object from the agent planner
  *  - `toolCall`       — latest ToolCallUpdate
  *  - `planningUpdate` — latest PlanningUpdate
@@ -221,7 +218,6 @@ export function useNodeArtifacts(
 ): {
   result: unknown;
   output: unknown;
-  terminal: TerminalBuffer | undefined;
   task: Task | undefined;
   toolCall: ToolCallUpdate | undefined;
   planningUpdate: PlanningUpdate | undefined;
@@ -237,7 +233,6 @@ export function useNodeArtifacts(
     useShallow((s) => {
       const key = jobId ? nodeKey(workflowId, jobId, nodeId) : undefined;
       return {
-        terminal: key ? s.terminals[key] : undefined,
         task: key ? s.tasks[key] : undefined,
         toolCall: key ? s.toolCalls[key] : undefined,
         planningUpdate: key ? s.planningUpdates[key] : undefined

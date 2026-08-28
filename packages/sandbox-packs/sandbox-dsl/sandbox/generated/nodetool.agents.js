@@ -18,13 +18,9 @@ function classifier(inputs) {
 function agent(inputs) {
   return createNode("nodetool.agents.Agent", inputs, { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true });
 }
-function claudeCodeAgent(inputs) {
-  return createNode("nodetool.agents.ClaudeCodeAgent", inputs, { outputNames: ["text", "chunk", "transcript", "session_id"], streaming: true });
-}
 export {
   agent,
   classifier,
-  claudeCodeAgent,
   createThread,
   enhancePrompt,
   extractor,

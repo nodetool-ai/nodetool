@@ -231,13 +231,6 @@ export function collectExecutionSummary(
         });
         break;
       }
-      case "terminal_update": {
-        const content = str(msg.content);
-        if (content) {
-          logs.push({ nodeId: str(msg.node_id), severity: "info", content });
-        }
-        break;
-      }
       case "error": {
         const message = str(msg.message) ?? "unknown error";
         if (!error) error = message;

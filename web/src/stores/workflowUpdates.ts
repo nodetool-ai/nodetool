@@ -12,7 +12,6 @@ import {
   GenerationComplete,
   EdgeUpdate,
   LogUpdate,
-  TerminalUpdate,
   LLMCallUpdate,
   StepResult,
   TodoUpdate,
@@ -573,7 +572,6 @@ export type MsgpackData =
   | TodoUpdate
   | EdgeUpdate
   | LLMCallUpdate
-  | TerminalUpdate
   | Notification;
 
 function extractJobId(data: MsgpackData): string | undefined {
@@ -1004,7 +1002,6 @@ export const handleUpdate = (
   const appendLog = useLogsStore.getState().appendLog;
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
-  const addTerminal = useResultsStore.getState().addTerminal;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
   const appendToolResult = useResultsStore.getState().appendToolResult;
@@ -1271,13 +1268,6 @@ export const handleUpdate = (
       messageJobId
     ) {
       queueTextChunk(workflow.id, messageJobId, data.node_id, data.content);
-    }
-  }
-  if (data.type === "terminal_update") {
-    // Raw ANSI pane stream for the node-body terminal emulator. Routed to its
-    // own buffer (never the chunk buffer) so text consumers don't see escapes.
-    if (data.node_id && messageJobId) {
-      addTerminal(workflow.id, messageJobId, data.node_id, data);
     }
   }
   if (data.type === "job_update") {

@@ -384,31 +384,6 @@ export const logUpdateSchema = z.object({
 });
 export type LogUpdate = z.infer<typeof logUpdateSchema>;
 
-/**
- * Raw terminal output streamed from a node that drives an interactive
- * terminal program (e.g. Claude Code in tmux). `content` carries the verbatim
- * byte stream including ANSI escape sequences, intended for a client-side
- * terminal emulator (xterm.js) — NOT for plain-text rendering. Kept separate
- * from `Chunk` so text-chunk consumers never see escape sequences.
- */
-export const terminalUpdateSchema = z.object({
-  type: z.literal("terminal_update"),
-  node_id: z.string(),
-  workflow_id: z.string().nullable().optional(),
-  /** Raw terminal output, including ANSI escape sequences. */
-  content: z.string(),
-  /** Terminal grid size, for sizing the client-side emulator. */
-  cols: z.number().optional(),
-  rows: z.number().optional(),
-  /**
-   * When true, `content` is a full-screen snapshot: the client should reset
-   * its terminal state before writing (used on attach and to compact the
-   * stream after large bursts).
-   */
-  reset: z.boolean().optional()
-});
-export type TerminalUpdate = z.infer<typeof terminalUpdateSchema>;
-
 export const notificationSchema = z.object({
   type: z.literal("notification"),
   node_id: z.string(),
@@ -948,7 +923,6 @@ export const processingMessageSchema = z.discriminatedUnion("type", [
   saveUpdateSchema,
   binaryUpdateSchema,
   logUpdateSchema,
-  terminalUpdateSchema,
   notificationSchema,
   errorMessageSchema,
   toolCallUpdateSchema,
@@ -997,7 +971,6 @@ export const processingMessageSchemas = {
   save_update: saveUpdateSchema,
   binary_update: binaryUpdateSchema,
   log_update: logUpdateSchema,
-  terminal_update: terminalUpdateSchema,
   notification: notificationSchema,
   error: errorMessageSchema,
   tool_call_update: toolCallUpdateSchema,
@@ -1059,9 +1032,6 @@ export function isBinaryUpdate(value: unknown): value is BinaryUpdate {
 }
 export function isLogUpdate(value: unknown): value is LogUpdate {
   return hasType(value, "log_update");
-}
-export function isTerminalUpdate(value: unknown): value is TerminalUpdate {
-  return hasType(value, "terminal_update");
 }
 export function isNotification(value: unknown): value is Notification {
   return hasType(value, "notification");

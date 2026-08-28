@@ -76,8 +76,6 @@ export default {
     "^(\\.{1,2}/.+)\\.js$": "$1",
     "^canvas$": "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas/.*$": "<rootDir>/src/__mocks__/canvas.ts",
-    // xterm measures fonts / renders to canvas — not viable under jsdom
-    "^@xterm/xterm$": "<rootDir>/src/__mocks__/xterm.ts",
     "\\.(css|less|scss|sass)$": "<rootDir>/src/__mocks__/styleMock.ts",
     "\\.(jpg|jpeg|png|gif|webp|svg)$": "<rootDir>/src/__mocks__/fileMock.ts",
     "\\.svg\\?react$": "<rootDir>/src/__mocks__/svgReactMock.ts",

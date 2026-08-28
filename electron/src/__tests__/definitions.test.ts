@@ -41,8 +41,8 @@ describe("RUNTIME_PACKAGES", () => {
       }
     });
 
-    it("classifies ffmpeg, pandoc, pdftotext, yt-dlp, tmux, claude as tools", () => {
-      for (const id of ["ffmpeg", "pandoc", "pdftotext", "yt-dlp", "tmux", "claude"]) {
+    it("classifies ffmpeg, pandoc, pdftotext, yt-dlp as tools", () => {
+      for (const id of ["ffmpeg", "pandoc", "pdftotext", "yt-dlp"]) {
         expect(RUNTIME_PACKAGES[id as keyof typeof RUNTIME_PACKAGES].category).toBe("tool");
       }
     });
