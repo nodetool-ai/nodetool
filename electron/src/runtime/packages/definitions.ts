@@ -39,36 +39,6 @@ export const RUNTIME_PACKAGES = {
     },
   }),
 
-  bash: new CondaRuntimePackage({
-    id: "bash",
-    name: "Bash",
-    description: "Bash shell for script execution nodes.",
-    category: "language",
-    versionRange: "*",
-    condaPackages: ["bash"],
-    verifyBinary: "bash",
-  }),
-
-  ruby: new CondaRuntimePackage({
-    id: "ruby",
-    name: "Ruby",
-    description: "Ruby interpreter for Ruby-based nodes.",
-    category: "language",
-    versionRange: "*",
-    condaPackages: ["ruby"],
-    verifyBinary: "ruby",
-  }),
-
-  lua: new CondaRuntimePackage({
-    id: "lua",
-    name: "Lua",
-    description: "Lua interpreter for Lua-based nodes.",
-    category: "language",
-    versionRange: "*",
-    condaPackages: ["lua"],
-    verifyBinary: "lua",
-  }),
-
   ffmpeg: new CondaRuntimePackage({
     id: "ffmpeg",
     name: "FFmpeg & Codecs",

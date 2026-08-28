@@ -25,9 +25,6 @@ export type PMTab = "software" | "packs";
 const RUNTIME_GROUP: Record<string, "language" | "media" | "ai"> = {
   python: "language",
   nodejs: "language",
-  bash: "language",
-  ruby: "language",
-  lua: "language",
   ffmpeg: "media",
   pandoc: "media",
   pdftotext: "media",

@@ -6,7 +6,6 @@ describe("RUNTIME_PACKAGES", () => {
     expect(ids).toContain("python");
     expect(ids).toContain("nodejs");
     expect(ids).toContain("ffmpeg");
-    expect(ids).toContain("bash");
     expect(ids).toContain("transformers-js");
   });
 
@@ -34,8 +33,8 @@ describe("RUNTIME_PACKAGES", () => {
   });
 
   describe("categories", () => {
-    it("classifies python, nodejs, bash, ruby, lua as languages", () => {
-      for (const id of ["python", "nodejs", "bash", "ruby", "lua"]) {
+    it("classifies python, nodejs as languages", () => {
+      for (const id of ["python", "nodejs"]) {
         expect(RUNTIME_PACKAGES[id as keyof typeof RUNTIME_PACKAGES].category).toBe("language");
       }
     });
