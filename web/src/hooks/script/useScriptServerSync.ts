@@ -95,7 +95,6 @@ const sectionHoldingLine = (
 function acceptLine(
   scriptId: string,
   draft: ScriptDraft,
-  unitId: string,
   incoming: ScriptDraft["sections"][number]["lines"][number] | null,
   serverScript: ScriptDraft,
   actions: LineTakeStoreActions
@@ -527,7 +526,6 @@ export const useScriptServerSync = (
         acceptLine(
           scriptId,
           draft,
-          conflict.unit.id,
           conflict.external as ScriptDraft["sections"][number]["lines"][number] | null,
           serverScript,
           s
