@@ -43,7 +43,7 @@ export class ScreenshotLibNode extends BaseNode {
     const timeout = Number(this.timeout ?? 30000);
     if (!url) throw new Error("URL is required");
 
-    return withPage({ headless: true }, async (page) => {
+    return withPage({}, async (page) => {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout });
 
       let buffer: Buffer;

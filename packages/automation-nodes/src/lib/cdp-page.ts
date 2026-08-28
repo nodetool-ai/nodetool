@@ -24,7 +24,6 @@ const DEFAULT_FLAGS = [
 ];
 
 interface LaunchOptions {
-  headless?: boolean;
   /** Existing CDP endpoint port. If set, a Chrome instance is not launched. */
   port?: number;
   extraFlags?: string[];
@@ -498,12 +497,7 @@ export async function launchBrowser(opts: LaunchOptions = {}): Promise<{
 
   if (!port) {
     const { launch } = await import("chrome-launcher");
-    const headless = opts.headless !== false;
     const flags = [...DEFAULT_FLAGS];
-    if (!headless) {
-      const idx = flags.indexOf("--headless=new");
-      if (idx >= 0) flags.splice(idx, 1);
-    }
     if (opts.extraFlags) flags.push(...opts.extraFlags);
     chrome = await launch({
       chromeFlags: flags,
