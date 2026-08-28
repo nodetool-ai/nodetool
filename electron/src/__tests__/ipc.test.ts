@@ -571,7 +571,12 @@ describe('initializeIpcHandlers', () => {
       const closeHandler = listenerFor(Channels.WINDOW_CLOSE);
 
       closeHandler({});
-      // Should not throw or call window methods
+      // The handler catches everything, so a dropped null guard is only
+      // visible as the error it would then log.
+      expect(loggerMock).not.toHaveBeenCalledWith(
+        expect.stringContaining('Error in window close'),
+        'error'
+      );
     });
   });
 
