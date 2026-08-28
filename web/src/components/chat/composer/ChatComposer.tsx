@@ -16,6 +16,7 @@ import { MessageContent } from "../../../stores/ApiTypes";
 import { FilePreview } from "./FilePreview";
 import { MessageInput } from "./MessageInput";
 import { ActionButtons } from "./ActionButtons";
+import { VoiceInputControl } from "./voice/VoiceInputControl";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { usePromptHistory } from "../hooks/usePromptHistory";
@@ -45,6 +46,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   const styles = useMemo(() => createStyles(theme), [theme]);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composeCardRef = useRef<HTMLDivElement>(null);
   const [prompt, setPrompt] = useState("");
 
   const { droppedFiles, addFiles, removeFile, clearFiles, getFileContents, addDroppedFiles } =
@@ -76,28 +78,44 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
     [resetHistoryNavigation]
   );
 
+  const submitPrompt = useCallback(
+    (text: string) => {
+      // Allow attachment-only sends; a whitespace-only prompt with no files
+      // is not a message. Trim so a spaces-only prompt never sends a text part.
+      if (text.trim().length === 0 && droppedFiles.length === 0) {
+        return;
+      }
+
+      const content: MessageContent[] = [];
+      if (text.trim().length > 0) {
+        content.push({ type: "text", text });
+      }
+      const fileContents = getFileContents();
+      const fullContent = [...content, ...fileContents];
+
+      // Only clear the input when the message was actually sent or queued;
+      // a dropped message (one already queued) keeps its text and attachments.
+      if (sendMessage(fullContent, text)) {
+        recordHistory(text);
+        setPrompt("");
+        clearFiles();
+      }
+    },
+    [droppedFiles, getFileContents, sendMessage, clearFiles, recordHistory]
+  );
+
   const handleSend = useCallback(() => {
-    // Allow attachment-only sends; a whitespace-only prompt with no files
-    // is not a message. Trim so a spaces-only prompt never sends a text part.
-    if (prompt.trim().length === 0 && droppedFiles.length === 0) {
-      return;
-    }
+    submitPrompt(prompt);
+  }, [prompt, submitPrompt]);
 
-    const content: MessageContent[] = [];
-    if (prompt.trim().length > 0) {
-      content.push({ type: "text", text: prompt });
-    }
-    const fileContents = getFileContents();
-    const fullContent = [...content, ...fileContents];
-
-    // Only clear the input when the message was actually sent or queued;
-    // a dropped message (one already queued) keeps its text and attachments.
-    if (sendMessage(fullContent, prompt)) {
-      recordHistory(prompt);
-      setPrompt("");
-      clearFiles();
-    }
-  }, [prompt, droppedFiles, getFileContents, sendMessage, clearFiles, recordHistory]);
+  // An accepted recording sends straight away, appended to whatever was typed.
+  const handleVoiceTranscript = useCallback(
+    (transcript: string) => {
+      const typed = prompt.trim();
+      submitPrompt(typed.length > 0 ? `${typed} ${transcript}` : transcript);
+    },
+    [prompt, submitPrompt]
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -198,6 +216,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
       </Collapse>
 
       <div
+        ref={composeCardRef}
         className={`compose-message ${isDragging ? "dragging" : ""}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -229,6 +248,13 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
           <div className="composer-footer">
             {toolbarNode}
             <ActionButtons
+              leadingAction={
+                <VoiceInputControl
+                  onTranscript={handleVoiceTranscript}
+                  overlayHost={composeCardRef}
+                  disabled={disabled}
+                />
+              }
               isLoading={isLoading}
               isStreaming={isStreaming}
               onSend={handleSend}

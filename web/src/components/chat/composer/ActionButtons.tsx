@@ -16,6 +16,8 @@ interface ActionButtonsProps {
   onNewChat?: () => void;
   isDisabled: boolean;
   hasContent: boolean;
+  /** Rendered before the send/stop button (e.g. the voice input mic). */
+  leadingAction?: React.ReactNode;
 }
 
 const styles = (_theme: Theme) =>
@@ -38,7 +40,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = memo(({
   onSend,
   onStop,
   isDisabled,
-  hasContent
+  hasContent,
+  leadingAction
 }) => {
   const showStopButton = (isLoading || isStreaming) && onStop;
   const theme = useTheme();
@@ -50,6 +53,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = memo(({
 
   return (
     <div className="chat-action-buttons" css={cssStyles}>
+      {leadingAction}
       {showStopButton && (
         <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span className="button-wrapper">
