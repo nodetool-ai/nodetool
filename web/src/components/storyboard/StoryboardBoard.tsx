@@ -7,6 +7,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { shotRenderMode } from "@nodetool-ai/protocol";
 
 import {
   Box,
@@ -216,7 +217,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     () =>
       shots.filter(
         (s) =>
-          !!s.keyframe &&
+          (!!s.keyframe || shotRenderMode(s) === "direct") &&
           !s.clip &&
           s.status !== "keyframe_generating" &&
           s.status !== "clip_generating"

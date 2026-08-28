@@ -22,7 +22,7 @@
 
 import { useCallback } from "react";
 import type { Entity, Shot } from "@nodetool-ai/protocol";
-import { injectEntities } from "@nodetool-ai/protocol";
+import { injectEntities, shotRenderMode } from "@nodetool-ai/protocol";
 import {
   globalWebSocketManager
 } from "../../lib/websocket/GlobalWebSocketManager";
@@ -101,6 +101,23 @@ const clipPrompt = (shot: Shot): string =>
   [shot.motion, shot.action]
     .filter((p) => !!p && p.trim().length > 0)
     .join(", ");
+
+/**
+ * Direct-mode clip prompt. No still carries the look into the render, so the
+ * prompt has to: framing and board style ride along with the action and the
+ * motion (mirrors the headless `render_storyboard_clips` tool).
+ */
+const directClipPrompt = (shot: Shot, style: string): string => {
+  const parts: (string | undefined)[] = [shot.action];
+  if (shot.camera?.framing) {
+    parts.push(`${shot.camera.framing} shot`);
+  }
+  parts.push(shot.motion, style);
+  return parts
+    .filter((p): p is string => !!p && p.trim().length > 0)
+    .map((p) => p.trim())
+    .join(", ");
+};
 
 /** Entity mentions on their own line; the server seasons the prompt with them. */
 const entityTokenSuffix = (entities: Entity[]): string =>
@@ -252,18 +269,22 @@ export const useGenerateShot = (): UseGenerateShotResult => {
 
   const generateClip = useCallback(
     async (boardId: string, shot: Shot): Promise<void> => {
-      if (!shot.keyframe) {
-        throw new Error(
-          "Shot has no keyframe to animate. Generate a still first."
-        );
-      }
-      const sourceAssetId = assetIdFromRef(shot.keyframe);
-      if (!sourceAssetId) {
-        throw new Error(
-          "The shot's still has no stored asset to animate. Generate a still first."
-        );
-      }
       const board = useStoryboardStore.getState().getBoard(boardId);
+      const isDirect = shotRenderMode(shot) === "direct";
+      let sourceAssetId: string | undefined;
+      if (!isDirect) {
+        if (!shot.keyframe) {
+          throw new Error(
+            "Shot has no keyframe to animate. Generate a still first, or set its render mode to direct."
+          );
+        }
+        sourceAssetId = assetIdFromRef(shot.keyframe);
+        if (!sourceAssetId) {
+          throw new Error(
+            "The shot's still has no stored asset to animate. Generate a still first."
+          );
+        }
+      }
       const aspectRatio = board?.aspectRatio ?? "16:9";
       // A board linked to a script renders each shot as long as the takes it
       // covers, so the clip holds its voiceover (design §2.3).
@@ -271,16 +292,21 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         board?.screenplay?.script_id,
         shot
       );
+      const prompt = isDirect
+        ? directClipPrompt(shot, board?.style ?? "")
+        : clipPrompt(shot);
       const data: Record<string, unknown> = {
         mode: "video",
-        prompt: `${clipPrompt(shot)}${entityTokenSuffix(
+        prompt: `${prompt}${entityTokenSuffix(
           entitiesForShot(shot, boardEntities(board?.entityIds))
         )}`,
-        source_asset_id: sourceAssetId,
         aspect_ratio: aspectRatio,
         resolution: CLIP_RESOLUTION,
         variations: 1
       };
+      if (sourceAssetId) {
+        data.source_asset_id = sourceAssetId;
+      }
       if (durationSeconds !== undefined) {
         data.duration = durationSeconds;
       }

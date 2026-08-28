@@ -14,6 +14,7 @@ import { keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import type { ImageRef, Shot, ShotStatus, VideoRef } from "@nodetool-ai/protocol";
+import { shotRenderMode } from "@nodetool-ai/protocol";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -571,12 +572,17 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             </EditorButton>
             <EditorButton
               onClick={handleGenerateClip}
-              disabled={isGenerating || !shot.keyframe}
+              disabled={
+                isGenerating ||
+                (!shot.keyframe && shotRenderMode(shot) !== "direct")
+              }
               sx={shot.clip ? quietActionSx : undefined}
               title={
                 shot.keyframe
                   ? "Animate the selected still into a clip"
-                  : "Generate a still first"
+                  : shotRenderMode(shot) === "direct"
+                    ? "Render a clip straight from the prompt"
+                    : "Generate a still first, or set render mode to direct"
               }
             >
               {shot.clip ? "New clip" : "Generate clip"}
