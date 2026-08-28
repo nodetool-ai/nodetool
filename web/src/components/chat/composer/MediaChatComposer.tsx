@@ -100,6 +100,10 @@ import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
 const TEXTAREA_MAX_HEIGHT = 220;
 const MOBILE_TEXTAREA_MAX_HEIGHT = 140;
 
+/** The model chip takes the width the other chips in the row leave, up to
+ *  this, rather than truncating at a fixed width while the row runs empty. */
+const MODEL_CHIP_MAX_WIDTH = 320;
+
 interface MediaChatComposerProps {
   isLoading: boolean;
   isStreaming: boolean;
@@ -1031,9 +1035,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 title={chatProviderLabel}
                 active={languageModelOpen}
                 onClick={() => setLanguageModelOpen(true)}
-                showChevron={false}
+                showChevron={!isMobile}
                 truncate
-                maxWidth={isMobile ? 108 : 140}
+                grow={!isMobile}
+                maxWidth={isMobile ? 108 : MODEL_CHIP_MAX_WIDTH}
               />
               <PermissionSelector threadId={threadId} />
               <LanguageModelMenuDialog
@@ -1058,8 +1063,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 label={imageParams.model?.name || "Select Model"}
                 active={imageModelOpen}
                 onClick={() => setImageModelOpen(true)}
-                showChevron={false}
+                showChevron={!isMobile}
                 truncate
+                grow={!isMobile}
+                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
               />
               <ImageModelMenuDialog
                 open={imageModelOpen}
@@ -1130,7 +1137,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 active={videoModelOpen}
                 onClick={() => setVideoModelOpen(true)}
                 truncate
-                showChevron={false}
+                grow={!isMobile}
+                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
+                showChevron={!isMobile}
               />
               <VideoModelMenuDialog
                 open={videoModelOpen}
@@ -1199,8 +1208,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 label={imageEditParams.model?.name || "Select Edit Model"}
                 active={imageModelOpen}
                 truncate
+                grow={!isMobile}
+                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
                 onClick={() => setImageModelOpen(true)}
-                showChevron={false}
+                showChevron={!isMobile}
               />
               <ImageModelMenuDialog
                 open={imageModelOpen}
@@ -1308,8 +1319,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 }
                 active={videoModelOpen}
                 onClick={() => setVideoModelOpen(true)}
-                showChevron={false}
+                showChevron={!isMobile}
                 truncate
+                grow={!isMobile}
+                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
               />
               <VideoModelMenuDialog
                 open={videoModelOpen}
@@ -1398,8 +1411,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 label={audioParams.model?.name || "Select TTS Model"}
                 active={ttsModelOpen}
                 onClick={() => setTtsModelOpen(true)}
-                showChevron={false}
+                showChevron={!isMobile}
                 truncate
+                grow={!isMobile}
+                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
               />
               <TTSModelMenuDialog
                 open={ttsModelOpen}
