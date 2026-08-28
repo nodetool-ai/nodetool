@@ -1975,6 +1975,95 @@ branch-both-paths        Conditional with both If branches wired
 deterministic-over-llm   Pure string mechanics must not be solved with an LLM step
 ```
 
+### `nodetool jtbd`
+
+An eval suite scores a model. A job asks whether the *product* let the agent
+finish something, and keeps the transcript so you can say what to change.
+
+A job is one objective taken end to end across whatever surfaces it needs,
+stated the way a user would state it, handed to the agent in the user's own
+words, and graded on the world it left behind. No job names a tool — which tool
+the agent reaches for, and in what order, is what is under test. The worlds are
+the same headless bridges the `tool-loop` eval suites drive.
+
+**Subcommands:** `list`, `run`, `optimize`.
+
+```bash
+# What the jobs are, before spending anything — needs no provider
+nodetool jtbd list
+nodetool jtbd list --json
+```
+
+Each entry prints the job id, its difficulty tier, the surfaces it crosses, the
+statement, and the outcomes it grades:
+
+```
+storyboard-a-scene  [standard]  storyboard
+  When I have a scene to shoot, I want it broken into shots with the action
+  described, so I can see the coverage before I spend on renders.
+  outcomes: five-shots, action-written, savable
+```
+
+#### `nodetool jtbd run`
+
+Drives a model through the jobs and writes one bundle per job.
+
+- `-p, --provider <id>` — provider id (`anthropic`, `openai`, `ollama`, …). Required.
+- `-m, --model <id>` — model id for that provider. Required.
+- `--jobs <ids>` — comma-separated job ids (default: all; see `list`).
+- `--out <dir>` — bundle directory (default `nodetool-debug/jtbd`).
+- `--max-iterations <n>` — turn cap per job, for jobs that declare none.
+- `--min-achieved <rate>` — exit non-zero when the achievement rate falls below this threshold (0..1).
+- `--no-find-model` — run without configured model providers.
+- `--json` — print the full report as JSON.
+
+```bash
+nodetool jtbd run -p anthropic -m claude-sonnet-5
+nodetool jtbd run --jobs workflow-from-prompt,timeline-assemble-cut -p openai -m gpt-5.4-mini
+
+# Gate a run in CI
+nodetool jtbd run -p anthropic -m claude-sonnet-5 --min-achieved 0.8
+```
+
+`run` writes `nodetool-debug/jtbd/<job>/` holding `report.json` (transcript,
+tool calls, outcomes, friction) and `review.md`, the same run rendered for a
+person to read. The transcript is the point: it records what the model was told
+and what it said between calls, not only which tools fired.
+
+Before any model reviews a run, a pure pass derives what the transcript decides
+on its own, and each finding names an owner. A tool that errored repeatedly, or
+answered the same call identically three times, is a `harness` finding — the
+fix is a schema or an error string in NodeTool's own code. A run that called no
+tool at all is a `prompt` finding. A run that took far more calls than the job
+needs is `unattributed`, because whether that is a prompt failing to describe
+the short path or a tool surface forcing the long one is the judgement a pure
+pass cannot make.
+
+#### `nodetool jtbd optimize`
+
+Hands one recorded run — the system prompt verbatim, every assistant turn,
+every call with its arguments and result — to a *different* model and asks what
+one change would make the next run go better.
+
+- `-p, --provider <id>` — reviewing provider; use a different one than ran the jobs.
+- `-m, --model <id>` — reviewing model id.
+- `--bundle <dir>` — bundle directory to review (default `nodetool-debug/jtbd`).
+- `--all` — review clean runs too, not just failures and friction.
+- `--json` — print the proposals as JSON.
+
+```bash
+nodetool jtbd optimize -p openai -m gpt-5.4-mini
+nodetool jtbd optimize -p openai -m gpt-5.4-mini --all --bundle ./my-runs
+```
+
+A proposal must name a target and a change; "improve the prompt" is rejected by
+the parser. Proposals land in `proposals.json` next to the run.
+
+**It proposes; it never applies.** Nothing in the loop edits a prompt or a
+tool. Run and review are separate commands because the bundle is the handoff: a
+bundle can be re-reviewed with a better optimizer without paying for the runs
+again, and a person can read the transcript before any model proposes anything.
+
 ## Tips
 
 - Use `--json` flags for machine-readable output suitable for scripting.
