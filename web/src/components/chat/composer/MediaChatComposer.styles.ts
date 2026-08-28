@@ -174,26 +174,6 @@ export const createMediaComposerStyles = (theme: Theme) =>
       }
     },
 
-    // Send is the composer's primary action — give it the accent color when
-    // enabled (the shared `:disabled` rule keeps it grey until there's input).
-    ".media-generate-btn.chat-send": {
-      width: 40,
-      height: 40,
-      padding: 0,
-      borderRadius: BORDER_RADIUS.circle,
-      background: theme.vars.palette.primary.main,
-      color: theme.vars.palette.primary.contrastText,
-      boxShadow: "none",
-      "& svg": {
-        fontSize: 24
-      },
-      "&:hover:not(:disabled)": {
-        background: theme.vars.palette.primary.light,
-        transform: "none",
-        boxShadow: "none"
-      }
-    },
-
     ".media-file-preview-row": {
       display: "flex",
       flexWrap: "wrap",

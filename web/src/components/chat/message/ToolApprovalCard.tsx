@@ -12,7 +12,6 @@ import {
   Text,
   BORDER_RADIUS
 } from "../../ui_primitives";
-import { formatToolName } from "../../../utils/formatUtils";
 import { isString } from "../../../utils/typePredicates";
 import type { ApprovalDecision } from "../../../stores/GlobalChatStore";
 
@@ -46,14 +45,16 @@ const styles = (theme: Theme) =>
     ".approval-question": {
       color: theme.vars.palette.grey[0]
     },
-    ".approval-tool": {
-      fontFamily: theme.fontFamily2,
-      color: theme.vars.palette.grey[0]
-    },
-    ".approval-risk": {
-      color: theme.vars.palette.warning.main,
-      textTransform: "uppercase",
-      letterSpacing: "0.06em"
+    ".approval-actions": {
+      marginTop: theme.spacing(1),
+      button: {
+        borderRadius: BORDER_RADIUS.pill,
+        textTransform: "none",
+        letterSpacing: 0
+      },
+      ".approval-deny": {
+        marginLeft: "auto"
+      }
     },
     ".approval-detail": {
       margin: 0,
@@ -83,7 +84,6 @@ const styles = (theme: Theme) =>
  */
 const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
   approvalId,
-  toolName,
   category,
   message,
   description,
@@ -95,7 +95,6 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
 
   const question = QUESTIONS[category] ?? "Allow this action?";
   const summary = description?.trim() || message;
-  const isHighRisk = args?.["risk"] === "high";
 
   const code = useMemo(() => {
     const raw = args?.["code"];
@@ -139,19 +138,6 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
           {question}
         </Text>
         {summary && <Text size="normal">{summary}</Text>}
-        <FlexRow gap={0.5} align="center">
-          <Text size="small" weight={600} className="approval-tool">
-            {formatToolName(toolName)}
-          </Text>
-          <Caption size="smaller" color="secondary">
-            {category}
-          </Caption>
-          {isHighRisk && (
-            <Caption size="smaller" className="approval-risk">
-              high risk
-            </Caption>
-          )}
-        </FlexRow>
         {code && (
           <CollapsibleSection
             compact
@@ -180,7 +166,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
             <pre className="approval-detail approval-args">{argsText}</pre>
           </CollapsibleSection>
         )}
-        <FlexRow gap={1} align="center">
+        <FlexRow gap={1} align="center" className="approval-actions">
           <EditorButton
             variant="contained"
             color="primary"
@@ -190,7 +176,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
             Allow
           </EditorButton>
           <EditorButton
-            variant="outlined"
+            variant="text"
             color="primary"
             density="normal"
             onClick={handleAllowForChat}
@@ -198,9 +184,10 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
             Allow for this chat
           </EditorButton>
           <EditorButton
-            variant="outlined"
+            variant="text"
             color="error"
             density="normal"
+            className="approval-deny"
             onClick={handleDeny}
           >
             Deny

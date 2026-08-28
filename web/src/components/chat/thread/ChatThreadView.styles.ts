@@ -514,9 +514,11 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.text.disabled
     },
 
+    // Keeps the assistant's horizontal padding so a tool-only turn lines up
+    // with the prose turns above and below it.
     ".chat-message.tool-calls-only": {
       marginBottom: "0.15em",
-      padding: "0.1em 0"
+      padding: theme.spacing(0.5, 4)
     },
 
     ".chat-message.has-tool-calls:not(.tool-calls-only)": {
@@ -525,10 +527,14 @@ export const createStyles = (theme: Theme) => ({
       paddingBottom: "0.2em"
     },
 
+    // The message column aligns its children to the start, which would size
+    // the tool rows to their own text. They are rows, not chips: stretch.
     ".chat-message.has-tool-calls .message-content": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.1em"
+      gap: "0.1em",
+      alignSelf: "stretch",
+      width: "100%"
     },
 
     ".chat-message.has-tool-calls .markdown": {

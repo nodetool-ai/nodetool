@@ -64,9 +64,10 @@ describe("ToolApprovalCard", () => {
     expect(screen.getByText("Deleting the old workflows")).toBeInTheDocument();
   });
 
-  it("marks a high-risk call", () => {
+  it("keeps the tool identity out of the question it asks", () => {
     renderCard();
-    expect(screen.getByText("high risk")).toBeInTheDocument();
+    expect(screen.queryByText("high risk")).not.toBeInTheDocument();
+    expect(screen.queryByText("execute")).not.toBeInTheDocument();
   });
 
   it("asks a write call about the change it makes", () => {

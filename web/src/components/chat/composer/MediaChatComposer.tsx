@@ -27,7 +27,6 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
 import { FlexRow, Text } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -94,21 +93,12 @@ import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { useChatDraftStore } from "../../../stores/ChatDraftStore";
 import { StopGenerationButton } from "./StopGenerationButton";
 import PermissionSelector from "./PermissionSelector";
-import { useElapsedTime } from "../../../hooks/useElapsedTime";
 import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
 
 /** Textarea growth caps. The mobile one matches the composer stylesheet — on a
  *  phone the keyboard already owns most of the screen. */
 const TEXTAREA_MAX_HEIGHT = 220;
 const MOBILE_TEXTAREA_MAX_HEIGHT = 140;
-
-function formatElapsed(seconds: number): string {
-  if (seconds < 5) return "Starting…";
-  if (seconds < 60) return `${seconds}s`;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}m ${s}s`;
-}
 
 interface MediaChatComposerProps {
   isLoading: boolean;
@@ -886,7 +876,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const isBusy = isLoading || isStreaming;
   const isDisabled = disabled || isBusy;
-  const elapsed = useElapsedTime(isBusy);
 
   const removeCallbacks = useMemo(
     () => new Map(droppedFiles.map((f) => [f.id, () => removeFile(f.id)])),
@@ -1483,38 +1472,25 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           <WorkspaceChip />
           </div>
 
-          {/* Primary Generate/Send button, or timer + stop when busy. Sits
+          {/* The Generate button for media modes, or Stop while a run is in
+              flight. Chat mode has no button of its own — Enter sends. Sits
               between the chip cluster and the host actions rather than inside
-              the chips: on mobile the row wraps, and this lets the send button
-              join the workflow action buttons on one line instead of being
-              stranded on the chip line. */}
+              the chips, so it joins the workflow action buttons on one line
+              when the row wraps. */}
           <div className="media-primary-action">
             {isBusy ? (
-              <FlexRow gap={1} alignItems="center">
-                <Text
-                  size="small"
-                  sx={{
-                    color: theme.vars.palette.grey[400],
-                    fontVariantNumeric: "tabular-nums",
-                    minWidth: 48,
-                    textAlign: "right"
-                  }}
-                >
-                  {formatElapsed(elapsed)}
-                </Text>
-                {onStop && <StopGenerationButton onClick={onStop} />}
-              </FlexRow>
-            ) : (
+              onStop && <StopGenerationButton onClick={onStop} />
+            ) : isMediaMode ? (
               <button
                 type="button"
-                className={`media-generate-btn${isMediaMode ? "" : " chat-send"}`}
+                className="media-generate-btn"
                 onClick={handleSend}
                 disabled={isDisabled || !canGenerate}
-                aria-label={isMediaMode ? "Generate" : "Send"}
+                aria-label="Generate"
               >
-                {isMediaMode ? "Generate" : <ArrowUpwardIcon fontSize="small" />}
+                Generate
               </button>
-            )}
+            ) : null}
           </div>
 
           {/* Host-supplied actions at the end of the footer (e.g. the canvas
