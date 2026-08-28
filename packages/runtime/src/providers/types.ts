@@ -212,6 +212,27 @@ export interface ProviderTool {
   terminal?: boolean;
 }
 
+/**
+ * A user-defined skill handed to a provider that drives its own agent loop.
+ *
+ * The Claude Agent SDK has a native skill mechanism (a `Skill` tool with
+ * progressive disclosure), but it only discovers skills from the filesystem
+ * via `settingSources` — which {@link ClaudeAgentProvider} deliberately locks
+ * to `[]`. This shape lets the harness hand the user's DB-backed skills to the
+ * provider, which materializes them as an isolated local plugin so the native
+ * loop can list and load them on demand. Providers that don't own their loop
+ * (the base `generateLoop`) ignore it; those receive skills baked into the
+ * system prompt instead.
+ */
+export interface ProviderSkill {
+  /** Filesystem-safe skill name (matches the SKILL.md `name` frontmatter). */
+  name: string;
+  /** One-line "when to use this" summary shown in the skill listing. */
+  description: string;
+  /** The full skill instructions (the SKILL.md body). */
+  content: string;
+}
+
 export interface MessageTextContent {
   type: "text";
   text: string;

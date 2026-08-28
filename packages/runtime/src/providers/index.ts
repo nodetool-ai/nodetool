@@ -268,6 +268,7 @@ export type {
   EmbeddingModel,
   ToolCall,
   ProviderTool,
+  ProviderSkill,
   ProviderToolResult,
   ProviderToolErrorResult,
   ProviderThinkingConfig,

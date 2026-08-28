@@ -30,6 +30,9 @@
  * below is only a within-process cache (the DB column is authoritative).
  */
 
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
 import { createLogger, importOptionalModule } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import type {
@@ -54,6 +57,7 @@ import {
   type MessageTextContent,
   type ProviderSession,
   type ProviderStreamItem,
+  type ProviderSkill,
   type ProviderTool,
   type ToolCall
 } from "./types.js";
@@ -132,6 +136,9 @@ const GUEST_TOOL_PREFIX = "tools.";
 /** Default cap on internal agent turns when tools are in play. */
 const DEFAULT_TOOL_TURNS = 16;
 
+/** Name of the local plugin the user's DB skills are materialized into. */
+const SKILLS_PLUGIN_NAME = "nodetool-user-skills";
+
 /** Per-turn behaviour selected by {@link ClaudeAgentProvider}'s two entry points. */
 interface TurnConfig {
   /**
@@ -156,6 +163,13 @@ interface TurnConfig {
    * the NodeTool tools they replace would have.
    */
   cwd?: string;
+  /**
+   * A materialized local skills plugin: the temp directory it was written to
+   * plus the skill names it contributes. Present only on the loop path, when
+   * the caller handed the provider user skills — the SDK's native `Skill` tool
+   * needs the agent loop to be usable. Null / absent otherwise.
+   */
+  skillsPlugin?: { dir: string; names: string[] } | null;
 }
 
 interface ClaudeAgentProviderOptions {
@@ -250,6 +264,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     const provider = PROVIDER_IDS.CLAUDE_AGENT_SDK;
     return [
+      { id: "fable", name: "Claude Fable (subscription)", provider },
       { id: "opus", name: "Claude Opus (subscription)", provider },
       { id: "sonnet", name: "Claude Sonnet (subscription)", provider },
       { id: "haiku", name: "Claude Haiku (subscription)", provider }
@@ -285,6 +300,14 @@ export class ClaudeAgentProvider extends BaseProvider {
       maxIterations?: number;
       turnBudget?: TurnBudget;
       workspaceDir?: string;
+      /**
+       * The user's DB skills. Materialized into an isolated local plugin so the
+       * SDK's native `Skill` tool can list and load them on demand, keeping
+       * `settingSources: []` intact (no `~/.claude` / `CLAUDE.md` leakage). The
+       * caller hands these in instead of baking a skill catalog into the system
+       * prompt — this provider owns skill resolution.
+       */
+      skills?: ProviderSkill[];
     }
   ): AsyncGenerator<ProviderStreamItem> {
     // The SDK owns the loop, so honoring the budget is this override's job:
@@ -361,6 +384,20 @@ export class ClaudeAgentProvider extends BaseProvider {
         allowedTools: tools.map((t) => `${TOOL_PREFIX}${t.name}`)
       };
     }
+    // Materialize the user's skills into a throwaway local plugin the SDK's
+    // native skill loader discovers. Best-effort: a disk failure drops skills
+    // for the turn, it does not sink it. Cleaned up in the `finally` below.
+    let skillsPlugin: { dir: string; names: string[] } | null = null;
+    if ((args.skills?.length ?? 0) > 0) {
+      try {
+        skillsPlugin = await materializeSkillsPlugin(args.skills ?? []);
+      } catch (err) {
+        log.warn("Failed to materialize user skills for the SDK", {
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+
     const costBefore = turnBudget ? this.getTotalCost() : 0;
     try {
       const stream = this.runWithSession(
@@ -373,7 +410,8 @@ export class ClaudeAgentProvider extends BaseProvider {
             offered.length > 0 ? (args.maxIterations ?? DEFAULT_TOOL_TURNS) : 1,
           mcp,
           toolsOffered: offered.length > 0,
-          cwd: args.workspaceDir
+          cwd: args.workspaceDir,
+          skillsPlugin
         }
       );
       // The SDK grows the conversation internally, so reserving against the
@@ -414,6 +452,14 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
       if (args.signal)
         args.signal.removeEventListener("abort", onExternalAbort);
+      // Remove the throwaway skills plugin. The SDK's subprocess has finished
+      // reading it by now (the stream is drained), so best-effort cleanup is
+      // safe; a leftover temp dir is not worth failing the turn over.
+      if (skillsPlugin) {
+        await fs
+          .rm(skillsPlugin.dir, { recursive: true, force: true })
+          .catch(() => {});
+      }
     }
   }
 
@@ -618,6 +664,22 @@ export class ClaudeAgentProvider extends BaseProvider {
     }
     if (plan.config.mcp) {
       options.mcpServers = plan.config.mcp.mcpServers;
+    }
+    // Enable the SDK's native skill loop over the user's DB skills, which were
+    // materialized into an isolated local plugin. This rides `plugins`, NOT
+    // `settingSources` (kept `[]`), so no `~/.claude` / `.claude` settings or
+    // `CLAUDE.md` are read; `skipMcpDiscovery` blocks any `.mcp.json` the dir
+    // might carry. `skills` names the exact user skills to enable, so any
+    // bundled skill is hidden from the listing and the `Skill` tool.
+    if (plan.config.skillsPlugin) {
+      options.plugins = [
+        {
+          type: "local",
+          path: plan.config.skillsPlugin.dir,
+          skipMcpDiscovery: true
+        }
+      ];
+      options.skills = plan.config.skillsPlugin.names;
     }
     if (plan.resume) {
       options.resume = plan.resume;
@@ -855,6 +917,70 @@ function buildChildEnv() {
     env[key] = value;
   }
   return env;
+}
+
+/**
+ * A DB skill name that is safe to use as a filesystem directory. The DB
+ * validates names (lowercase `a-z0-9-`), but path safety is enforced here too:
+ * a name with a separator or `.`-segment could otherwise escape the plugin
+ * dir. Defense in depth — an unsafe name is skipped, not written.
+ */
+function isFilesystemSafeSkillName(name: string): boolean {
+  return /^[a-z0-9][a-z0-9-]{0,63}$/.test(name);
+}
+
+/**
+ * Write the user's DB skills to a throwaway local plugin the SDK's native skill
+ * loader can discover, and return `{ dir, names }` (or null when nothing was
+ * written). The layout is the Claude Code plugin format:
+ *
+ *   <dir>/.claude-plugin/plugin.json
+ *   <dir>/skills/<name>/SKILL.md   (name/description frontmatter + body)
+ *
+ * This is deliberately separate from `settingSources`: a `plugins` entry loads
+ * skills without enabling `~/.claude` / `.claude` settings or `CLAUDE.md`, and
+ * `skipMcpDiscovery` blocks any `.mcp.json` the dir might contain. The caller
+ * owns cleanup (see {@link ClaudeAgentProvider.generateLoop}'s `finally`).
+ */
+async function materializeSkillsPlugin(
+  skills: readonly ProviderSkill[]
+): Promise<{ dir: string; names: string[] } | null> {
+  const usable = skills.filter(
+    (s) => isFilesystemSafeSkillName(s.name) && s.content.trim().length > 0
+  );
+  if (usable.length === 0) return null;
+
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-skills-"));
+  await fs.mkdir(path.join(dir, ".claude-plugin"), { recursive: true });
+  await fs.writeFile(
+    path.join(dir, ".claude-plugin", "plugin.json"),
+    JSON.stringify({
+      name: SKILLS_PLUGIN_NAME,
+      version: "1.0.0",
+      description: "User-defined skills from NodeTool."
+    }),
+    "utf8"
+  );
+
+  const names: string[] = [];
+  for (const skill of usable) {
+    const skillDir = path.join(dir, "skills", skill.name);
+    await fs.mkdir(skillDir, { recursive: true });
+    // JSON-stringify the description: a JSON string is a valid YAML double-
+    // quoted scalar, so colons / quotes / newlines can't break the frontmatter.
+    const md = [
+      "---",
+      `name: ${skill.name}`,
+      `description: ${JSON.stringify(skill.description)}`,
+      "---",
+      "",
+      skill.content.trim(),
+      ""
+    ].join("\n");
+    await fs.writeFile(path.join(skillDir, "SKILL.md"), md, "utf8");
+    names.push(skill.name);
+  }
+  return { dir, names };
 }
 
 /** Pull a text/thinking delta out of a partial `stream_event`, if any. */

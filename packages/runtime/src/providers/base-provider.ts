@@ -18,6 +18,7 @@ import type {
   ProviderThinkingConfig,
   ProviderEffort,
   ProviderTool,
+  ProviderSkill,
   ProviderToolResult,
   EncodedAudioResult,
   TextToMusicParams,
@@ -951,6 +952,15 @@ export abstract class BaseProvider {
        * NodeTool tools they replace would have. Ignored here.
        */
       workspaceDir?: string;
+      /**
+       * User-defined skills to expose to a provider that drives its own agent
+       * loop with a native skill mechanism (the Claude Agent SDK). That
+       * override materializes them as an isolated local plugin so its `Skill`
+       * tool can load them on demand. Ignored by this base loop and every
+       * provider that doesn't own its loop — those receive skills baked into
+       * the system prompt by the caller instead.
+       */
+      skills?: ProviderSkill[];
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const maxIterations = args.maxIterations ?? 25;
@@ -960,6 +970,7 @@ export abstract class BaseProvider {
       sequentialTools,
       turnBudget,
       workspaceDir: _omitWorkspaceDir,
+      skills: _omitSkills,
       ...turnArgs
     } = args;
     const messages = [...args.messages];

@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import {
   ClaudeAgentProvider,
   toolResultToMcpContent,
@@ -210,7 +212,12 @@ describe("ClaudeAgentProvider", () => {
 
   it("lists subscription model aliases", async () => {
     const models = await new ClaudeAgentProvider().getAvailableLanguageModels();
-    expect(models.map((m) => m.id)).toEqual(["opus", "sonnet", "haiku"]);
+    expect(models.map((m) => m.id)).toEqual([
+      "fable",
+      "opus",
+      "sonnet",
+      "haiku"
+    ]);
     expect(models.every((m) => m.provider === "claude_agent_sdk")).toBe(true);
   });
 
@@ -725,11 +732,72 @@ describe("ClaudeAgentProvider", () => {
     );
     expect((calls[0].options as Options).maxTurns).toBe(1);
     expect((calls[0].options as Options).mcpServers).toBeUndefined();
+    // No skills handed in: the native skill loop stays off (identical to before).
+    expect((calls[0].options as Options).plugins).toBeUndefined();
+    expect((calls[0].options as Options).skills).toBeUndefined();
     const msgs = messagesOf(items);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({ role: "assistant", content: "hello" });
     // Live text still streams as a chunk.
     expect(chunksOf(items).find((c) => c.content === "hello")).toBeTruthy();
+  });
+
+  it("materializes user skills into an isolated local plugin for the SDK", async () => {
+    let pluginDir: string | undefined;
+    let skillMd: string | undefined;
+    const optionsSeen: Options[] = [];
+    // A bespoke queryFn (not fakeQuery) so it can read the SKILL.md off disk
+    // while the plugin dir still exists — cleanup runs in generateLoop's finally,
+    // after the stream is drained.
+    const fn: ClaudeQueryFn = (params) => {
+      optionsSeen.push(params.options as Options);
+      return (async function* () {
+        const p = (
+          params.options?.plugins?.[0] as { path: string } | undefined
+        )?.path;
+        if (p) {
+          pluginDir = p;
+          skillMd = await fs.readFile(
+            path.join(p, "skills", "release-notes", "SKILL.md"),
+            "utf8"
+          );
+        }
+        yield sysInit("sess-skills");
+        yield assistantTextMsg("done");
+        yield successResult();
+      })();
+    };
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+    await collect(
+      provider.generateLoop({
+        messages: [sysMsg("Be terse."), userMsg("cut a release")],
+        model: "sonnet",
+        threadId: "t-skills",
+        skills: [
+          {
+            name: "release-notes",
+            // Colons and quotes must not break the YAML frontmatter.
+            description: 'Release notes: with a colon and "quotes"',
+            content: "Step 1. Summarize.\nStep 2. Ship."
+          }
+        ]
+      })
+    );
+    const opts = optionsSeen[0];
+    // Native skills ride `plugins`, never `settingSources` (kept []).
+    expect(opts.settingSources).toEqual([]);
+    expect(opts.skills).toEqual(["release-notes"]);
+    expect(opts.plugins).toEqual([
+      { type: "local", path: pluginDir, skipMcpDiscovery: true }
+    ]);
+    // Frontmatter is valid YAML (description JSON-quoted) and body is the content.
+    expect(skillMd).toContain("name: release-notes");
+    expect(skillMd).toContain(
+      'description: "Release notes: with a colon and \\"quotes\\""'
+    );
+    expect(skillMd).toContain("Step 1. Summarize.");
+    // The throwaway plugin dir is removed once the turn ends.
+    await expect(fs.access(pluginDir as string)).rejects.toBeTruthy();
   });
 
   it("generateLoop runs tools through the SDK loop, bridging to executeTool", async () => {

@@ -133,6 +133,7 @@ import {
 import {
   isRawRgbaImage,
   isModelSelection,
+  PROVIDER_IDS,
   NO_MODEL_SELECTED_MESSAGE,
   noMediaModelSelectedMessage
 } from "@nodetool-ai/protocol";
@@ -6357,6 +6358,22 @@ export class UnifiedWebSocketRunner {
       if (echo) await this.sendMessage(toolMsgData);
     };
 
+    // The Claude Agent provider runs the SDK's own loop, which resolves skills
+    // through its native `Skill` tool (progressive disclosure) rather than the
+    // always-on catalog every other provider reads from the system prompt. Hand
+    // it the user's DB skills so that loop can list and load them; it
+    // materializes them into an isolated local plugin (no `settingSources`
+    // leakage). Other providers get skills via the system-prompt catalog above
+    // and ignore this field.
+    const skillsForProvider =
+      provider.provider === PROVIDER_IDS.CLAUDE_AGENT_SDK
+        ? userSkills.map((skill) => ({
+            name: skill.name,
+            description: skill.description,
+            content: skill.content
+          }))
+        : undefined;
+
     try {
       for await (const item of provider.generateLoop({
         messages: messagesToSend,
@@ -6369,6 +6386,7 @@ export class UnifiedWebSocketRunner {
         maxIterations: MAX_TOOL_ROUNDS,
         sequentialTools: session ? true : undefined,
         workspaceDir: chatWorkspace?.localDir ?? undefined,
+        skills: skillsForProvider,
         signal
       })) {
         // A newer turn has taken over. Stop driving the client, but do NOT
