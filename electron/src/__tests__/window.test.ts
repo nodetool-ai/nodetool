@@ -240,12 +240,11 @@ describe('Window Module', () => {
     it('should create a new window if no visible windows exist', () => {
       // Mock no visible windows
       (BrowserWindow.getAllWindows as any).mockReturnValue([]);
-      
+      (BrowserWindow as any).mockClear();
+
       handleActivation();
-      
-      // Should have tried to create a window
-      // We're testing that createWindow is called, but we don't need to check if getMainWindow is called
-      // since the implementation might have changed
+
+      expect(BrowserWindow).toHaveBeenCalled();
     });
     
     it('should show, restore and focus existing main window on macOS if minimized', () => {
