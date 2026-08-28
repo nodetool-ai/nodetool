@@ -17,6 +17,7 @@ import useSecretsStore from "../../stores/SecretsStore";
 import type { SecretValidation } from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
+import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialog";
 import { useProviders } from "../../hooks/useProviders";
 import type { SecretResponse } from "../../stores/ApiTypes";
 import {
@@ -449,6 +450,13 @@ export const ProviderCard = memo(function ProviderCard({
           )}
         </FlexRow>
       </FlexRow>
+      <OAuthManualCompletionDialog
+        prompt={oauth.manualPrompt}
+        label={oauth.label}
+        isSubmitting={oauth.isSubmittingManual}
+        onSubmit={oauth.submitManualCode}
+        onCancel={oauth.cancelManual}
+      />
     </Card>
   );
 });

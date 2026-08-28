@@ -23,6 +23,7 @@ import {
   SPACING
 } from "../ui_primitives";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
+import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialog";
 import useSecretsStore from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import type { OnboardingProvider } from "./providerOnboardingCatalog";
@@ -350,6 +351,13 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
           </FlexColumn>
         )}
       </FlexColumn>
+      <OAuthManualCompletionDialog
+        prompt={oauth.manualPrompt}
+        label={oauth.label}
+        isSubmitting={oauth.isSubmittingManual}
+        onSubmit={oauth.submitManualCode}
+        onCancel={oauth.cancelManual}
+      />
     </Card>
   );
 };

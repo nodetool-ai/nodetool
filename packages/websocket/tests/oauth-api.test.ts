@@ -1,7 +1,8 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { initTestDb, OAuthCredential } from "@nodetool-ai/models";
 import {
   generatePkcePair,
@@ -9,7 +10,9 @@ import {
   oauthStateStore,
   handleOAuthRequest,
   closeActiveCodexCallbackServer,
-  closeActiveClaudeLogin
+  closeActiveClaudeLogin,
+  parseCodexRedirect,
+  pendingCodexLogins
 } from "../src/oauth-api.js";
 
 function getUserId(): string {
@@ -284,14 +287,49 @@ describe("OAuth API: GitHub endpoints", () => {
   });
 });
 
+describe("parseCodexRedirect", () => {
+  it("reads code and state from the whole redirect address", () => {
+    expect(
+      parseCodexRedirect(
+        "http://localhost:1455/auth/callback?code=ac_abc&scope=openid+profile&state=st_xyz"
+      )
+    ).toEqual({ code: "ac_abc", state: "st_xyz" });
+  });
+
+  it("accepts a bare query string and ignores a fragment", () => {
+    expect(parseCodexRedirect("  ?code=ac_abc&state=st_xyz#done  ")).toEqual({
+      code: "ac_abc",
+      state: "st_xyz"
+    });
+  });
+
+  it("surfaces the provider's own refusal", () => {
+    expect(() =>
+      parseCodexRedirect(
+        "http://localhost:1455/auth/callback?error=access_denied&error_description=User+said+no"
+      )
+    ).toThrow("User said no");
+  });
+
+  it("refuses a code with no state to check it against", () => {
+    expect(() =>
+      parseCodexRedirect("http://localhost:1455/auth/callback?code=ac_abc")
+    ).toThrow(/whole address/);
+    expect(() => parseCodexRedirect("ac_abc")).toThrow(/whole address/);
+  });
+});
+
 describe("OAuth API: OpenAI (Codex) endpoints", () => {
   beforeEach(() => {
     initTestDb();
     oauthStateStore.clear();
+    pendingCodexLogins.clear();
   });
 
   afterEach(async () => {
     await closeActiveCodexCallbackServer();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it("GET /api/oauth/openai/start returns a Codex PKCE auth_url", async () => {
@@ -321,6 +359,170 @@ describe("OAuth API: OpenAI (Codex) endpoints", () => {
     // Codex-specific authorization params.
     expect(body.auth_url).toContain("codex_cli_simplified_flow=true");
     expect(body.auth_url).toContain("id_token_add_organizations=true");
+  });
+
+  it("GET /api/oauth/openai/start binds no listener on a shared server", async () => {
+    // A shared server's users browse from elsewhere, so localhost:1455 is
+    // theirs, not ours — binding it here would only swallow the port.
+    vi.stubEnv("SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("SUPABASE_KEY", "service-key");
+
+    const response = await handleOAuthRequest(
+      new Request("http://api.example.com/api/oauth/openai/start"),
+      "/api/oauth/openai/start",
+      getUserId
+    );
+
+    expect(response!.status).toBe(200);
+    const body = (await jsonBody(response!)) as {
+      auth_url: string;
+      manual: boolean;
+      redirect_uri: string;
+    };
+    expect(body.manual).toBe(true);
+    expect(body.redirect_uri).toBe("http://localhost:1455/auth/callback");
+    expect(pendingCodexLogins.size).toBe(1);
+
+    // Nothing is listening, so the port is free to bind.
+    const probe = createServer();
+    await new Promise<void>((resolve, reject) => {
+      probe.once("error", reject);
+      probe.listen(1455, "localhost", resolve);
+    });
+    await new Promise<void>((resolve) => probe.close(() => resolve()));
+  });
+
+  it("GET /api/oauth/openai/start?manual=true skips the listener too", async () => {
+    const response = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/start?manual=true"),
+      "/api/oauth/openai/start",
+      getUserId
+    );
+
+    const body = (await jsonBody(response!)) as { manual: boolean };
+    expect(body.manual).toBe(true);
+  });
+
+  it("POST /api/oauth/openai/complete exchanges a pasted redirect address", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("SUPABASE_KEY", "service-key");
+
+    await handleOAuthRequest(
+      new Request("http://api.example.com/api/oauth/openai/start"),
+      "/api/oauth/openai/start",
+      getUserId
+    );
+    const [state] = [...pendingCodexLogins.keys()];
+
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/oauth/token")) {
+        return new Response(
+          JSON.stringify({
+            access_token: "codex-access",
+            refresh_token: "codex-refresh",
+            token_type: "Bearer",
+            expires_in: 3600
+          }),
+          { headers: { "content-type": "application/json" } }
+        );
+      }
+      // userinfo is best-effort; refusing it must not fail the login.
+      return new Response("nope", { status: 500 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await handleOAuthRequest(
+      new Request("http://api.example.com/api/oauth/openai/complete", {
+        method: "POST",
+        body: JSON.stringify({
+          code: `http://localhost:1455/auth/callback?code=ac_test&state=${state}`
+        })
+      }),
+      "/api/oauth/openai/complete",
+      getUserId
+    );
+
+    expect(response!.status).toBe(200);
+    expect(await jsonBody(response!)).toEqual({ success: true });
+    // The code is single-use; the pending login must not survive it.
+    expect(pendingCodexLogins.size).toBe(0);
+
+    const stored = await OAuthCredential.listForUserAndProvider(
+      "test-user-1",
+      "openai"
+    );
+    expect(stored).toHaveLength(1);
+    expect(await stored[0].getDecryptedAccessToken()).toBe("codex-access");
+
+    const tokenCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/oauth/token")
+    );
+    const sentBody = String(
+      (tokenCall?.[1] as { body?: unknown } | undefined)?.body ?? ""
+    );
+    expect(sentBody).toContain("code=ac_test");
+    expect(sentBody).toContain(
+      "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+    );
+  });
+
+  it("POST /api/oauth/openai/complete rejects an unknown state", async () => {
+    const response = await handleOAuthRequest(
+      new Request("http://api.example.com/api/oauth/openai/complete", {
+        method: "POST",
+        body: JSON.stringify({
+          code: "http://localhost:1455/auth/callback?code=ac_test&state=nope"
+        })
+      }),
+      "/api/oauth/openai/complete",
+      getUserId
+    );
+
+    expect(response!.status).toBe(400);
+    expect((await jsonBody(response!)) as { detail: string }).toMatchObject({
+      detail: expect.stringContaining("expired or was never started")
+    });
+  });
+
+  it("POST /api/oauth/openai/complete rejects another user's state", async () => {
+    await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/start?manual=true"),
+      "/api/oauth/openai/start",
+      getUserId
+    );
+    const [state] = [...pendingCodexLogins.keys()];
+
+    const response = await handleOAuthRequest(
+      new Request("http://api.example.com/api/oauth/openai/complete", {
+        method: "POST",
+        body: JSON.stringify({
+          code: `http://localhost:1455/auth/callback?code=ac_test&state=${state}`
+        })
+      }),
+      "/api/oauth/openai/complete",
+      () => "someone-else"
+    );
+
+    expect(response!.status).toBe(400);
+    // The other user's login is still theirs to finish.
+    expect(pendingCodexLogins.has(state)).toBe(true);
+  });
+
+  it("POST /api/oauth/openai/complete rejects a code with no state", async () => {
+    const response = await handleOAuthRequest(
+      new Request("http://api.example.com/api/oauth/openai/complete", {
+        method: "POST",
+        body: JSON.stringify({ code: "ac_just_the_code" })
+      }),
+      "/api/oauth/openai/complete",
+      getUserId
+    );
+
+    expect(response!.status).toBe(400);
+    expect((await jsonBody(response!)) as { detail: string }).toMatchObject({
+      detail: expect.stringContaining("whole address")
+    });
   });
 
   it("GET /api/oauth/openai/tokens returns empty list initially", async () => {

@@ -135,6 +135,128 @@ describe("useOAuthConnection", () => {
     expect(open).toHaveBeenCalledWith("https://example.com/auth", "_self");
   });
 
+  it("asks for the redirect address when /start answers manual", async () => {
+    mockRestFetch.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/tokens")) return jsonResponse({ tokens: [] });
+      if (url.endsWith("/start"))
+        return jsonResponse({
+          auth_url: "https://example.com/auth",
+          manual: true,
+          redirect_uri: "http://localhost:1455/auth/callback"
+        });
+      return jsonResponse({});
+    });
+
+    const { result } = renderHook(() => useOAuthConnection("openai"), {
+      wrapper: createWrapper()
+    });
+
+    await act(async () => {
+      await result.current.connect();
+    });
+
+    expect(result.current.manualPrompt).toEqual({
+      authUrl: "https://example.com/auth",
+      redirectUri: "http://localhost:1455/auth/callback"
+    });
+  });
+
+  it("posts a pasted address to /complete and clears the prompt", async () => {
+    let connected = false;
+    mockRestFetch.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/tokens"))
+        return jsonResponse({ tokens: connected ? ["token-1"] : [] });
+      if (url.endsWith("/start"))
+        return jsonResponse({
+          auth_url: "https://example.com/auth",
+          manual: true,
+          redirect_uri: "http://localhost:1455/auth/callback"
+        });
+      if (url.endsWith("/complete")) {
+        connected = true;
+        return jsonResponse({ success: true });
+      }
+      return jsonResponse({});
+    });
+
+    const { result } = renderHook(() => useOAuthConnection("openai"), {
+      wrapper: createWrapper()
+    });
+
+    await act(async () => {
+      await result.current.connect();
+    });
+    await act(async () => {
+      await result.current.submitManualCode(
+        "http://localhost:1455/auth/callback?code=ac_abc&state=st"
+      );
+    });
+
+    expect(mockRestFetch).toHaveBeenCalledWith("/api/oauth/openai/complete", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        code: "http://localhost:1455/auth/callback?code=ac_abc&state=st"
+      })
+    });
+    expect(result.current.manualPrompt).toBeNull();
+    await waitFor(() => expect(result.current.isConnected).toBe(true));
+  });
+
+  it("keeps the prompt open when /complete refuses the address", async () => {
+    mockRestFetch.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/tokens")) return jsonResponse({ tokens: [] });
+      if (url.endsWith("/start"))
+        return jsonResponse({
+          auth_url: "https://example.com/auth",
+          manual: true,
+          redirect_uri: "http://localhost:1455/auth/callback"
+        });
+      if (url.endsWith("/complete"))
+        return jsonResponse({ detail: "That sign-in expired" }, false);
+      return jsonResponse({});
+    });
+
+    const { result } = renderHook(() => useOAuthConnection("openai"), {
+      wrapper: createWrapper()
+    });
+
+    await act(async () => {
+      await result.current.connect();
+    });
+    await act(async () => {
+      await result.current.submitManualCode("garbage");
+    });
+
+    expect(result.current.manualPrompt).not.toBeNull();
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ content: "That sign-in expired", type: "error" })
+    );
+  });
+
+  it("never prompts for a paste on a provider without a /complete route", async () => {
+    mockRestFetch.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/tokens")) return jsonResponse({ tokens: [] });
+      if (url.endsWith("/start"))
+        return jsonResponse({ auth_url: "https://example.com/auth", manual: true });
+      return jsonResponse({});
+    });
+
+    const { result } = renderHook(() => useOAuthConnection("hf"), {
+      wrapper: createWrapper()
+    });
+
+    await act(async () => {
+      await result.current.connect();
+    });
+
+    expect(result.current.manualPrompt).toBeNull();
+  });
+
   it("calls the disconnect endpoint for a provider that supports it", async () => {
     mockRestFetch.mockImplementation(async (input) => {
       const url = String(input);

@@ -236,22 +236,26 @@ The **web app** drives the same Codex flow from the API server, sharing this
 module's protocol layer (`OAuthClient` + PKCE + `LocalCallbackServer`). Because
 the public Codex client only permits the loopback redirect
 `http://localhost:1455/auth/callback`, the redirect cannot bounce through a
-server route — the API process binds the Codex loopback listener itself:
+server route. `localhost` resolves in the *browser's* machine, so the server
+finishes the login one of two ways:
 
 - Backend: `packages/websocket/src/oauth-api.ts` exposes
-  `/api/oauth/openai/{start,tokens,disconnect}`. `start` builds the Codex
-  authorization URL (`createCodexOAuthProvider`'s config — public client id, no
-  secret, Codex scopes/params), binds a one-shot `LocalCallbackServer` on port
-  1455, and returns the auth URL; the code exchange completes in the background
-  and persists tokens through the encrypted `OAuthCredential` model. The
-  published client id is overridable via `CODEX_OAUTH_CLIENT_ID`. Because it
-  binds loopback and relies on the same machine's browser, it is a same-machine
-  flow (desktop / local server).
-- Frontend: the **Settings → Integrations** panel
-  (`web/src/components/menus/RemoteSettingsMenu.tsx`) renders an
-  "OpenAI Authentication" section with **Connect with OpenAI** / **Disconnect**
-  buttons that open the auth URL and poll `/api/oauth/openai/tokens` for
-  completion.
+  `/api/oauth/openai/{start,complete,tokens,disconnect}`. `start` builds the
+  Codex authorization URL (`createCodexOAuthProvider`'s config — public client
+  id, no secret, Codex scopes/params) and records the pending login under its
+  CSRF state for 10 minutes. On a same-machine host it also binds a one-shot
+  `LocalCallbackServer` on port 1455 and completes the exchange in the
+  background. On a shared server — `isAuthEnforced()`, or `?manual=true` — it
+  binds nothing and answers `manual: true`: the browser lands on its own
+  localhost with the code in the address bar, and the user pastes that address
+  to `complete`, which checks the state against the requesting user and
+  exchanges the code server-side. Both paths persist tokens through the
+  encrypted `OAuthCredential` model. The published client id is overridable via
+  `CODEX_OAUTH_CLIENT_ID`.
+- Frontend: the provider cards in **Settings → API Keys** and the onboarding
+  dialog call `useOAuthConnection("openai")`, which opens the auth URL and polls
+  `/api/oauth/openai/tokens`. When `start` answers `manual: true` the card also
+  raises `OAuthManualCompletionDialog` to take the pasted address.
 
 ## Claude Code login (Claude subscription)
 
