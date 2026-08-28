@@ -12,7 +12,6 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
-import RailAppMenu from "./RailAppMenu";
 
 const styles = (theme: Theme) =>
   css({
@@ -24,12 +23,6 @@ const styles = (theme: Theme) =>
     padding: `0 ${getSpacingPx(SPACING.xs)}`,
     borderRight: `1px solid ${theme.vars.palette.divider}`,
 
-    "& .rail-app-logo": {
-      width: "40px",
-      height: "40px",
-      margin: 0,
-      opacity: 1
-    },
     "& .panel-left-mobile-launcher": {
       width: "40px",
       height: "40px",
@@ -49,25 +42,21 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface MobileRailLauncherProps {
-  /** Renders the logo/app menu alongside the panel toggle. */
-  showAppMenu?: boolean;
-}
-
 /**
- * The app menu (logo) and left-panel toggle as the leading cell of the mobile
- * top row. On desktop these live in the vertical rail, which mobile doesn't
- * render — the top row carries them instead so they share the app chrome rather
- * than floating over the content.
+ * The left-panel toggle as the leading cell of the mobile top row. On desktop
+ * it lives in the vertical rail, which mobile doesn't render — the top row
+ * carries it instead so it shares the app chrome rather than floating over the
+ * content.
+ *
+ * The sheet it opens is mobile's single navigation surface: document
+ * categories plus the app pages the desktop logo menu holds, so there is no
+ * second menu button beside it.
  */
-const MobileRailLauncher: React.FC<MobileRailLauncherProps> = ({
-  showAppMenu = false
-}) => {
+const MobileRailLauncher: React.FC = () => {
   const theme = useTheme();
   const isVisible = usePanelStore((state) => state.panel.isVisible);
   const setVisibility = usePanelStore((state) => state.setVisibility);
 
-  const close = useCallback(() => setVisibility(false), [setVisibility]);
   const toggle = useCallback(
     () => setVisibility(!isVisible),
     [setVisibility, isVisible]
@@ -75,7 +64,6 @@ const MobileRailLauncher: React.FC<MobileRailLauncherProps> = ({
 
   return (
     <div css={styles(theme)} className="mobile-rail-launcher">
-      {showAppMenu && <RailAppMenu onAction={close} />}
       <ToolbarIconButton
         className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
         onClick={toggle}

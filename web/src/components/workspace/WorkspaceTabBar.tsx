@@ -574,9 +574,11 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
   return (
     <div css={tabBarStyles} className="workspace-tabbar">
-      {/* Mobile has no vertical rail, so the app menu and panel toggle ride
-        along in the top row instead of floating over the content. */}
-      {isMobile && <MobileRailLauncher showAppMenu />}
+      {/* Mobile has no vertical rail, so the panel toggle rides along in the
+        top row instead of floating over the content. The sheet it opens is
+        mobile's one navigation surface — document categories plus the app
+        pages the desktop logo menu holds. */}
+      {isMobile && <MobileRailLauncher />}
       <button
         ref={newTabButtonRef}
         type="button"

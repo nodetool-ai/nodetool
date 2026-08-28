@@ -70,6 +70,7 @@ jest.mock("../../node_menu/FavoritesTiles", () => () => (
   <div data-testid="favorites-tiles" />
 ));
 jest.mock("../RailAppMenu", () => () => <div data-testid="rail-app-menu" />);
+jest.mock("../../content/Help/Help", () => () => null);
 jest.mock("../../ui/ThemeToggle", () => () => (
   <div data-testid="theme-toggle" />
 ));
@@ -142,7 +143,7 @@ it("keeps the visible desktop groups in the mobile tab row", () => {
   renderPanel();
 
   const groups = Array.from(document.querySelectorAll(".mobile-tab-group"));
-  expect(groups).toHaveLength(4);
+  expect(groups).toHaveLength(5);
   expect(
     groups.map((group) =>
       Array.from(group.querySelectorAll("button")).map((button) =>
@@ -153,8 +154,28 @@ it("keeps the visible desktop groups in the mobile tab row", () => {
     ["Workflows", "Apps", "Chats"],
     ["Sketches", "Scripts", "Storyboards", "Entities", "Timelines"],
     ["JS Scripts", "Skills"],
-    ["Workspace", "Assets", "Library"]
+    ["Workspace", "Assets", "Library"],
+    ["More"]
   ]);
+});
+
+it("reaches the app pages through More, not a second menu button", async () => {
+  const user = userEvent.setup();
+  renderPanel();
+
+  await user.click(screen.getByLabelText("More"));
+
+  // The destinations the desktop logo menu carries.
+  expect(screen.getByText("Settings")).toBeInTheDocument();
+  expect(screen.getByText("Dashboard")).toBeInTheDocument();
+  expect(screen.getByText("Downloads")).toBeInTheDocument();
+  expect(screen.queryByTestId("workflow-list")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("create-workflow")).not.toBeInTheDocument();
+
+  // A category tab takes the sheet back to browsing documents.
+  await user.click(screen.getByLabelText("Chats"));
+  expect(screen.getByTestId("chat-list")).toBeInTheDocument();
+  expect(screen.queryByText("Downloads")).not.toBeInTheDocument();
 });
 
 it("switches the sheet to the view whose tab was tapped", async () => {
