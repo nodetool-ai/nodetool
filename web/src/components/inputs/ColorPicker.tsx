@@ -14,7 +14,7 @@ import {
 } from "../ui_primitives";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { ColorPickerModal } from "../color_picker";
+import ColorPickerModal from "../color_picker/ColorPickerModal";
 
 const PALETTE_BUTTON_SIZE = 28;
 
