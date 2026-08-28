@@ -1,12 +1,4 @@
-import {
-  parse,
-  alpha,
-  darken,
-  brighten,
-  setHslSaturationMultiplier,
-  rgba,
-  toHex
-} from "./colorMath";
+import { parse, alpha, darken, rgba, toHex } from "./colorMath";
 import { GROUP_NODE_TYPE, COMMENT_NODE_TYPE } from "../constants/nodeTypes";
 
 // Utility to detect CSS variable references (e.g. "var(--palette-primary-main)")
@@ -42,57 +34,6 @@ export function darkenHexColor(hex: string, amount: number): string {
   if (isCssVar(hex)) {return hex;}
 
   return toHex(darken(parse(hex), amount / 100));
-}
-
-function lightenHexColor(hex: string, amount: number): string {
-  if (isCssVar(hex)) {return hex;}
-
-  return toHex(brighten(parse(hex), amount / 100));
-}
-
-export function adjustSaturation(hex: string, amount: number): string {
-  if (isCssVar(hex)) {return hex;}
-
-  return toHex(setHslSaturationMultiplier(parse(hex), 1 + amount / 100));
-}
-
-type GradientDirection =
-  | "to top"
-  | "to bottom"
-  | "to left"
-  | "to right"
-  | "to top left"
-  | "to top right"
-  | "to bottom left"
-  | "to bottom right";
-
-type GradientMode = "darken" | "lighten" | "saturate";
-
-export function createLinearGradient(
-  hexColor: string,
-  amount: number,
-  direction: GradientDirection = "to bottom",
-  mode: GradientMode = "darken"
-): string {
-  const rgbaColor = hexToRgba(hexColor, 1);
-  let modifiedHexColor;
-
-  switch (mode) {
-    case "darken":
-      modifiedHexColor = darkenHexColor(hexColor, amount);
-      break;
-    case "lighten":
-      modifiedHexColor = lightenHexColor(hexColor, amount);
-      break;
-    case "saturate":
-      modifiedHexColor = adjustSaturation(hexColor, amount);
-      break;
-    default:
-      modifiedHexColor = hexColor;
-  }
-
-  const rgbaModifiedColor = hexToRgba(modifiedHexColor, 1);
-  return `linear-gradient(${direction}, ${rgbaColor}, ${rgbaModifiedColor})`;
 }
 
 /** Node categories for color coding in the minimap. */

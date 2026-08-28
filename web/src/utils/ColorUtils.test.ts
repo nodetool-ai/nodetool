@@ -1,9 +1,4 @@
-import {
-  hexToRgba,
-  darkenHexColor,
-  adjustSaturation,
-  createLinearGradient
-} from "./ColorUtils";
+import { hexToRgba, darkenHexColor } from "./ColorUtils";
 
 describe("ColorUtils", () => {
   describe("hexToRgba", () => {
@@ -40,34 +35,4 @@ describe("ColorUtils", () => {
       expect(darkenHexColor("var(--color)", 10)).toBe("var(--color)");
     });
   });
-
-  describe("adjustSaturation", () => {
-    it("adjusts saturation", () => {
-      const result = adjustSaturation("#ff0000", 10);
-      expect(result).toBeTruthy();
-    });
-
-    it("returns CSS variable unchanged", () => {
-      expect(adjustSaturation("var(--color)", 10)).toBe("var(--color)");
-    });
-  });
-
-  describe("createLinearGradient", () => {
-    it("creates linear gradient", () => {
-      const result = createLinearGradient("#ff0000", 10, "to bottom", "darken");
-      expect(result).toContain("linear-gradient");
-      expect(result).toContain("to bottom");
-    });
-
-    it("uses custom direction", () => {
-      const result = createLinearGradient("#ff0000", 10, "to right", "lighten");
-      expect(result).toContain("to right");
-    });
-
-    it("uses custom mode", () => {
-      const result = createLinearGradient("#ff0000", 10, "to bottom", "saturate");
-      expect(result).toContain("linear-gradient");
-    });
-  });
-
 });

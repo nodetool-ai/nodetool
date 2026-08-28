@@ -1,5 +1,5 @@
 import type { Job } from "../../../stores/ApiTypes";
-import { lastRunByWorkflow, shortAgo, toneFor } from "../runStatus";
+import { shortAgo, toneFor } from "../runStatus";
 
 const job = (overrides: Partial<Job>): Job => ({
   id: "job-1",
@@ -50,67 +50,5 @@ describe("shortAgo", () => {
     expect(shortAgo(ago(12))).toBe("12m");
     expect(shortAgo(ago(180))).toBe("3h");
     expect(shortAgo(ago(60 * 24 * 5))).toBe("5d");
-  });
-});
-
-describe("lastRunByWorkflow", () => {
-  it("returns an empty map when there are no jobs", () => {
-    expect(lastRunByWorkflow(undefined).size).toBe(0);
-    expect(lastRunByWorkflow([]).size).toBe(0);
-  });
-
-  it("keeps the most recent run per workflow", () => {
-    const runs = lastRunByWorkflow([
-      job({ id: "a", workflow_id: "wf-1", started_at: ago(300), finished_at: ago(300) }),
-      job({ id: "b", workflow_id: "wf-1", started_at: ago(12), finished_at: ago(12) }),
-      job({ id: "c", workflow_id: "wf-2", started_at: ago(60), finished_at: ago(60) })
-    ]);
-    expect(runs.get("wf-1")).toEqual({ tone: "done", label: "ran 12m ago" });
-    expect(runs.get("wf-2")).toEqual({ tone: "done", label: "ran 1h ago" });
-  });
-
-  // Both orderings, because the running job winning is handled by a different
-  // branch depending on whether it is seen before or after the settled one.
-  it.each([
-    ["running job first", ["running", "completed"]],
-    ["running job second", ["completed", "running"]]
-  ])("prefers a running job over a newer settled one (%s)", (_label, order) => {
-    const [first, second] = order;
-    const runs = lastRunByWorkflow([
-      job({
-        id: "a",
-        status: first,
-        started_at: first === "running" ? ago(30) : ago(2),
-        finished_at: first === "running" ? null : ago(1)
-      }),
-      job({
-        id: "b",
-        status: second,
-        started_at: second === "running" ? ago(30) : ago(2),
-        finished_at: second === "running" ? null : ago(1)
-      })
-    ]);
-    expect(runs.get("wf-1")).toEqual({ tone: "running", label: "running" });
-  });
-
-  it("labels a failure as failed", () => {
-    const runs = lastRunByWorkflow([
-      job({ status: "failed", started_at: ago(120), finished_at: ago(119) })
-    ]);
-    expect(runs.get("wf-1")).toEqual({ tone: "failed", label: "failed 1h ago" });
-  });
-
-  it("says 'just now' rather than 'now ago' for a fresh run", () => {
-    const runs = lastRunByWorkflow([
-      job({ status: "completed", started_at: ago(0), finished_at: ago(0) })
-    ]);
-    expect(runs.get("wf-1")).toEqual({ tone: "done", label: "ran just now" });
-  });
-
-  it("still labels a run whose timestamps are missing", () => {
-    const runs = lastRunByWorkflow([
-      job({ status: "completed", started_at: null, finished_at: null })
-    ]);
-    expect(runs.get("wf-1")).toEqual({ tone: "done", label: "ran" });
   });
 });

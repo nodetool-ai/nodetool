@@ -4,8 +4,6 @@
 import {
   hexToRgba,
   darkenHexColor,
-  adjustSaturation,
-  createLinearGradient,
   NodeTypeCategory,
   getNodeCategoryColor,
   createMinimapNodeColorFn
@@ -72,94 +70,6 @@ describe("ColorUtils", () => {
     it("should handle edge cases", () => {
       expect(darkenHexColor("#000000", 50)).toBe("#000000"); // Can't darken black
       expect(darkenHexColor("#ffffff", 100)).toBe("#cccccc"); // Max darkening
-    });
-  });
-
-  describe("adjustSaturation", () => {
-    it("should adjust saturation of hex colors", () => {
-      // Red with 50% more saturation stays red (already fully saturated)
-      expect(adjustSaturation("#ff0000", 50)).toBe("#ff0000");
-
-      // A partially saturated color becomes more colorful when saturation is
-      // increased (HSL saturation multiplier on a non-gray hue).
-      const result = adjustSaturation("#bf4040", 100);
-      expect(result).not.toBe("#bf4040");
-
-      // Gray has zero HSL saturation, so scaling it leaves it gray.
-      expect(adjustSaturation("#808080", 100)).toBe("#808080");
-    });
-
-    it("should preserve CSS variables", () => {
-      expect(adjustSaturation("var(--color-primary)", 50)).toBe(
-        "var(--color-primary)"
-      );
-    });
-
-    it("should handle desaturation", () => {
-      // Negative values should desaturate
-      const result = adjustSaturation("#ff0000", -50);
-      expect(result).not.toBe("#ff0000");
-    });
-  });
-
-  describe("createLinearGradient", () => {
-    it("should create linear gradient with darken mode", () => {
-      const gradient = createLinearGradient("#ff0000", 50, "to bottom", "darken");
-      expect(gradient).toContain("linear-gradient");
-      expect(gradient).toContain("to bottom");
-      expect(gradient).toContain("rgba(255, 0, 0, 1)");
-      expect(gradient).toContain("rgba(224, 0, 0, 1)");
-    });
-
-    it("should create linear gradient with lighten mode", () => {
-      const gradient = createLinearGradient("#000000", 100, "to right", "lighten");
-      expect(gradient).toContain("linear-gradient");
-      expect(gradient).toContain("to right");
-      expect(gradient).toContain("rgba(0, 0, 0, 1)");
-      expect(gradient).toContain("rgba(44, 44, 44, 1)");
-    });
-
-    it("should create linear gradient with saturate mode", () => {
-      const gradient = createLinearGradient("#808080", 50, "to top", "saturate");
-      expect(gradient).toContain("linear-gradient");
-      expect(gradient).toContain("to top");
-    });
-
-    it("should handle invalid mode and use default", () => {
-      const gradient = createLinearGradient("#ff0000", 50, "to bottom", "invalid" as any);
-      expect(gradient).toContain("linear-gradient");
-      expect(gradient).toContain("to bottom");
-      // Should fall back to using original color
-      expect(gradient).toContain("rgba(255, 0, 0, 1)");
-    });
-
-    it("should use default values", () => {
-      const gradient = createLinearGradient("#ff0000", 50);
-      expect(gradient).toContain("to bottom");
-      expect(gradient).toContain("linear-gradient");
-    });
-
-    it("should handle all directions", () => {
-      const directions = [
-        "to top",
-        "to bottom",
-        "to left",
-        "to right",
-        "to top left",
-        "to top right",
-        "to bottom left",
-        "to bottom right"
-      ] as const;
-
-      directions.forEach(direction => {
-        const gradient = createLinearGradient("#ff0000", 50, direction);
-        expect(gradient).toContain(direction);
-      });
-    });
-
-    it("should handle CSS variables", () => {
-      const gradient = createLinearGradient("var(--color-primary)", 50);
-      expect(gradient).toContain("var(--color-primary)");
     });
   });
 
