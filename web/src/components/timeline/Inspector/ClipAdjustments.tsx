@@ -108,6 +108,13 @@ const TRANSITION_MODES = [
   { value: "none", label: "None" }
 ] as const;
 
+// Hoisted so InspectorPillInput's memo holds: an inline literal would be a
+// fresh reference every render, re-rendering every pill whenever one changed.
+const SCRUB_SECONDS = { step: 0.02, min: 0 };
+const SCRUB_PIXELS = { step: 1 };
+const SCRUB_SCALE = { step: 0.01 };
+const SCRUB_DEGREES = { step: 0.5 };
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 interface ClipAdjustmentsProps {
@@ -483,7 +490,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={((clip.fadeInMs ?? 0) / 1000).toFixed(2)}
                     unit="s"
-                    scrub={{ step: 0.02, min: 0 }}
+                    scrub={SCRUB_SECONDS}
                     onCommit={handleFadeInCommit}
                     ariaLabel="Fade in (seconds)"
                   />
@@ -492,7 +499,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={((clip.fadeOutMs ?? 0) / 1000).toFixed(2)}
                     unit="s"
-                    scrub={{ step: 0.02, min: 0 }}
+                    scrub={SCRUB_SECONDS}
                     onCommit={handleFadeOutCommit}
                     ariaLabel="Fade out (seconds)"
                   />
@@ -527,7 +534,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                     value={transform.position.x.toFixed(0)}
                     unit="px"
                     minWidth={64}
-                    scrub={{ step: 1 }}
+                    scrub={SCRUB_PIXELS}
                     onCommit={handlePositionXCommit}
                     ariaLabel="Position X"
                   />
@@ -535,7 +542,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                     value={transform.position.y.toFixed(0)}
                     unit="px"
                     minWidth={64}
-                    scrub={{ step: 1 }}
+                    scrub={SCRUB_PIXELS}
                     onCommit={handlePositionYCommit}
                     ariaLabel="Position Y"
                   />
@@ -545,7 +552,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                     value={transform.scale.x.toFixed(2)}
                     unit="×"
                     minWidth={64}
-                    scrub={{ step: 0.01 }}
+                    scrub={SCRUB_SCALE}
                     onCommit={handleScaleXCommit}
                     ariaLabel="Scale X"
                   />
@@ -553,7 +560,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                     value={transform.scale.y.toFixed(2)}
                     unit="×"
                     minWidth={64}
-                    scrub={{ step: 0.01 }}
+                    scrub={SCRUB_SCALE}
                     onCommit={handleScaleYCommit}
                     ariaLabel="Scale Y"
                   />
@@ -562,7 +569,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={((transform.rotation * 180) / Math.PI).toFixed(1)}
                     unit="°"
-                    scrub={{ step: 0.5 }}
+                    scrub={SCRUB_DEGREES}
                     onCommit={handleRotationCommit}
                     ariaLabel="Rotation in degrees"
                   />
@@ -783,7 +790,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                     <InspectorPillInput
                       value={(transitionDuration / 1000).toFixed(2)}
                       unit="s"
-                      scrub={{ step: 0.02, min: 0 }}
+                      scrub={SCRUB_SECONDS}
                       onCommit={handleTransitionDurationCommit}
                       ariaLabel="Transition duration"
                     />

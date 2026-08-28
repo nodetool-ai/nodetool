@@ -194,17 +194,18 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
 }) => {
   const theme = useTheme();
 
+  // Keyed on the graph, not the workflow: a list re-fetch hands every row a
+  // new workflow object with the same graph, and the layering below is O(n).
   const graph = useMemo(() => {
-    if (!workflow.graph) {
+    const graphObj = workflow.graph;
+    if (!graphObj) {
       return { nodes: [], edges: [] };
     }
-
-    const graphObj = workflow.graph;
     return {
       nodes: graphObj.nodes || [],
       edges: graphObj.edges || []
     };
-  }, [workflow]);
+  }, [workflow.graph]);
 
   const { nodes: previewNodes, edges: previewEdges } = useMemo(
     () => calculateNodePositions(graph),

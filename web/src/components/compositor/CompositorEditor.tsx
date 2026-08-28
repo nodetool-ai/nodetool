@@ -244,8 +244,20 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
   ]);
 
   // Render the stack top-first (lowest index on top of the composite).
+  // `state` and `image` are built here, not in JSX, so LayerRow's memo can
+  // bail — otherwise dragging one opacity slider re-rendered every row.
   const stack = useMemo(
-    () => layers.map((l, i) => ({ layer: l, index: i })),
+    () =>
+      layers.map((layer, index) => ({
+        layer,
+        index,
+        state: {
+          opacity: layer.opacity,
+          blend_mode: layer.blendMode,
+          visible: layer.visible
+        },
+        image: layer.url ? { uri: layer.url } : undefined
+      })),
     [layers]
   );
 
@@ -346,7 +358,7 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
             <div className="empty">No layers yet - add one below.</div>
           ) : (
             <div className="layer-stack">
-              {stack.map(({ layer, index }) => (
+              {stack.map(({ layer, index, state, image }) => (
                 <div
                   key={layer.id}
                   className={`layer-slot ${
@@ -357,12 +369,8 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
                   <LayerRow
                     index={index}
                     propertyKey={layer.id}
-                    state={{
-                      opacity: layer.opacity,
-                      blend_mode: layer.blendMode,
-                      visible: layer.visible
-                    }}
-                    image={layer.url ? { uri: layer.url } : undefined}
+                    state={state}
+                    image={image}
                     onOpacityChange={onOpacityChange}
                     onOpacityComplete={onOpacityComplete}
                     onBlendChange={onBlendChange}

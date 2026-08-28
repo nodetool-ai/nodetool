@@ -28,6 +28,9 @@ import {
   SectionLink
 } from "./dashboardChrome";
 
+/** The dashboard never selects rows; a fresh `[]` would defeat the list's memo. */
+const EMPTY_SELECTION: string[] = [];
+
 /** Cap on the scrolling list; the rows inside it are virtualized. */
 const MAX_LIST_HEIGHT = 420;
 /** WorkflowListView's row height, and room for a date header plus padding. */
@@ -215,7 +218,7 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
                 onEdit={noop}
                 onRename={handleRename}
                 onSelect={noop}
-                selectedWorkflows={[]}
+                selectedWorkflows={EMPTY_SELECTION}
                 workflowCategory="user"
                 showCheckboxes={false}
               />

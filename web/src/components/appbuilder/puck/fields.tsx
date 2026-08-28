@@ -120,12 +120,14 @@ const Picker: React.FC<{
 }> = ({ label, value, options, emptyHint, hintVisible, readOnly, onChange }) => {
   const hasOptions = options.length > 0;
   const showHint = hintVisible ?? !hasOptions;
+  // Rebuilt inline, this array would defeat SelectField's memo.
+  const withNone = useMemo(() => [NONE, ...options], [options]);
   return (
     <FlexColumn gap={0.5}>
       <SelectField
         label={label}
         value={value}
-        options={[NONE, ...options]}
+        options={withNone}
         disabled={readOnly || !hasOptions}
         onChange={onChange}
       />
