@@ -112,11 +112,11 @@ ENV NODE_ENV=production \
 #                     hands back a null adapter. 25.0 satisfies it.
 #
 # chromium (+ fonts/libs) backs the browser_* agent tools, which drive it
-# over CDP from the host process. tmux/wget are shell tool conveniences.
+# over CDP from the host process. wget is a shell tool convenience.
 RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
       > /etc/apt/sources.list.d/backports.list \
     && apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl wget tmux \
+    ca-certificates curl wget \
     ffmpeg git jq zip unzip \
     poppler-utils qpdf pandoc \
     postgresql-client \

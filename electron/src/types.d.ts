@@ -1039,8 +1039,6 @@ export type RuntimePackageId =
   | "transformers-js"
   | "tensorflow-js"
   | "node-llama-cpp"
-  | "tmux"
-  | "claude"
   | "claude-agent-sdk";
 
 export interface RuntimePackageStatus {

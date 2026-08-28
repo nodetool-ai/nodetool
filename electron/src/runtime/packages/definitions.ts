@@ -139,29 +139,6 @@ export const RUNTIME_PACKAGES = {
     packageNames: ["@huggingface/transformers", "kokoro-js"],
   }),
 
-  tmux: new CondaRuntimePackage({
-    id: "tmux",
-    name: "tmux",
-    description:
-      "Terminal multiplexer required by the Claude Code agent node to run sessions.",
-    category: "tool",
-    versionRange: "*",
-    condaPackages: ["tmux"],
-    verifyBinary: "tmux",
-  }),
-
-  claude: new NpmRuntimePackage({
-    id: "claude",
-    name: "Claude Code CLI",
-    description:
-      "Anthropic's Claude Code CLI for autonomous AI coding tasks. Required by the Claude Code agent node.",
-    category: "tool",
-    versionRange: "*",
-    npmPackages: ["@anthropic-ai/claude-code"],
-    packageNames: ["@anthropic-ai/claude-code"],
-    approxSizeMB: 230,
-  }),
-
   "claude-agent-sdk": new NpmRuntimePackage({
     id: "claude-agent-sdk",
     name: "Claude Agent SDK",

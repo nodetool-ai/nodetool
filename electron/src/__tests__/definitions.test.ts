@@ -7,7 +7,6 @@ describe("RUNTIME_PACKAGES", () => {
     expect(ids).toContain("nodejs");
     expect(ids).toContain("ffmpeg");
     expect(ids).toContain("bash");
-    expect(ids).toContain("claude");
     expect(ids).toContain("transformers-js");
   });
 
@@ -41,8 +40,8 @@ describe("RUNTIME_PACKAGES", () => {
       }
     });
 
-    it("classifies ffmpeg, pandoc, pdftotext, yt-dlp, tmux, claude as tools", () => {
-      for (const id of ["ffmpeg", "pandoc", "pdftotext", "yt-dlp", "tmux", "claude"]) {
+    it("classifies ffmpeg, pandoc, pdftotext, yt-dlp as tools", () => {
+      for (const id of ["ffmpeg", "pandoc", "pdftotext", "yt-dlp"]) {
         expect(RUNTIME_PACKAGES[id as keyof typeof RUNTIME_PACKAGES].category).toBe("tool");
       }
     });

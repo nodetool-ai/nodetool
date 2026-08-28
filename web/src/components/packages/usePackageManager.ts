@@ -22,7 +22,7 @@ import { getRequiredKeyForBuiltinPack } from "../../utils/providerPacks";
 export type PMTab = "software" | "packs";
 
 /** Curated display group for each runtime id (the store has no group field). */
-const RUNTIME_GROUP: Record<string, "language" | "media" | "ai" | "agent"> = {
+const RUNTIME_GROUP: Record<string, "language" | "media" | "ai"> = {
   python: "language",
   nodejs: "language",
   bash: "language",
@@ -34,9 +34,7 @@ const RUNTIME_GROUP: Record<string, "language" | "media" | "ai" | "agent"> = {
   "yt-dlp": "media",
   "transformers-js": "ai",
   "tensorflow-js": "ai",
-  "node-llama-cpp": "ai",
-  tmux: "agent",
-  claude: "agent"
+  "node-llama-cpp": "ai"
 };
 const runtimeGroup = (id: string) => RUNTIME_GROUP[id] ?? "media";
 
@@ -49,7 +47,6 @@ const TITLES: Record<string, string> = {
   language: "Languages",
   media: "Media & docs",
   ai: "AI runtimes",
-  agent: "Agent tools",
   included: "Included packs",
   python: "Registry packs",
   thirdparty: "Third-party packs"
@@ -342,11 +339,6 @@ export function usePackageManager(params: {
             id: "ai",
             label: "AI runtimes",
             count: statuses.filter((p) => runtimeGroup(p.id) === "ai").length
-          },
-          {
-            id: "agent",
-            label: "Agent tools",
-            count: statuses.filter((p) => runtimeGroup(p.id) === "agent").length
           }
         ]
       : [

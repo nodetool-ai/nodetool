@@ -55,7 +55,6 @@ import { NodeMetadata, Property, OutputSlot } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import NodeChunkDisplay from "./NodeChunkDisplay";
-import NodeTerminal from "./NodeTerminal";
 import NodeResizeHandle from "./NodeResizeHandle";
 
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
@@ -519,8 +518,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
-  const { result, terminal, toolCall, planningUpdate, task } =
-    useNodeArtifacts(workflow_id, id);
+  const { result, toolCall, planningUpdate, task } = useNodeArtifacts(
+    workflow_id,
+    id
+  );
 
   // Both selectors return a primitive, so an unrelated edge change never
   // re-renders this node.
@@ -754,7 +755,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     <NodeSelectionContext.Provider value={selected || isNodeHovered}>
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
-      className={`${styleProps.className}${terminal ? " has-terminal" : ""}`}
+      className={styleProps.className}
       sx={containerSx}
       onMouseEnter={handleNodeMouseEnter}
       onMouseLeave={handleNodeMouseLeave}
@@ -831,19 +832,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {selected && !hasToggleableResult && (
         <ResizeOverlay minHeight={styleProps.minHeight} />
       )}
-      {!terminal && toolCall?.message && status === "running" && (
+      {toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
-      {!terminal && planningUpdate && !task && (
+      {planningUpdate && !task && (
         <PlanningUpdateDisplay planningUpdate={planningUpdate} />
       )}
-      {!terminal && (
-        <NodeChunkDisplay workflowId={workflow_id} nodeId={id} />
-      )}
-      {/* Terminal-driving nodes (e.g. Claude Code) stream their raw pane via
-          terminal_update. It renders below the input/output handles so the
-          emulator never displaces them from their natural edge positions. */}
-      {terminal && <NodeTerminal terminal={terminal} />}
+      <NodeChunkDisplay workflowId={workflow_id} nodeId={id} />
       {task && <TaskView task={task} />}
 
       {/* Agent control output handle - positioned at the bottom of Agent nodes */}

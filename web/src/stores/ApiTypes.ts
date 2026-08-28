@@ -71,7 +71,6 @@ import {
   Task,
   TaskPlan,
   TaskUpdate,
-  TerminalUpdate,
   TodoItem,
   TodoUpdate,
   Thread,
@@ -172,7 +171,6 @@ export type { SystemStats };
 export type { Task };
 export type { TaskPlan };
 export type { TaskUpdate };
-export type { TerminalUpdate };
 export type { TodoItem };
 export type { TodoUpdate };
 export type { Thread };

@@ -10,8 +10,6 @@ export const RUNTIME_LABELS: Record<string, string> = {
   "yt-dlp": "yt-dlp",
   pandoc: "Pandoc",
   pdftotext: "PDF Tools (Poppler)",
-  tmux: "tmux",
-  claude: "Claude Code CLI",
 };
 
 /** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
@@ -25,8 +23,6 @@ export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   pandoc: "pandoc",
   pdftotext: "pdftotext",
   "yt-dlp": "yt-dlp",
-  tmux: "tmux",
-  claude: "claude",
 };
 
 /**

@@ -115,28 +115,3 @@ export interface AgentOutputs {
 export function agent(inputs: AgentInputs): DslNode<AgentOutputs> {
   return createNode("nodetool.agents.Agent", inputs, { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true });
 }
-
-// Claude Code Agent — nodetool.agents.ClaudeCodeAgent
-export type ClaudeCodeAgentInputs = {
-  prompt?: Connectable<string>;
-  input?: Connectable<string>;
-  session_name?: Connectable<string>;
-  keep_session?: Connectable<boolean>;
-  model?: Connectable<string>;
-  system_prompt?: Connectable<string>;
-  extra_args?: Connectable<string>;
-  command?: Connectable<string>;
-  timeout_seconds?: Connectable<number>;
-  quiet_period_seconds?: Connectable<number>;
-};
-
-export interface ClaudeCodeAgentOutputs {
-  text: string;
-  chunk: unknown;
-  transcript: string;
-  session_id: string;
-}
-
-export function claudeCodeAgent(inputs: ClaudeCodeAgentInputs): DslNode<ClaudeCodeAgentOutputs> {
-  return createNode("nodetool.agents.ClaudeCodeAgent", inputs, { outputNames: ["text", "chunk", "transcript", "session_id"], streaming: true });
-}

@@ -27,16 +27,9 @@ function agent(inputs) {
 agent.stream = function(inputs) {
   return streamNode("nodetool.agents.Agent", inputs);
 };
-function claudeCodeAgent(inputs) {
-  return callNode("nodetool.agents.ClaudeCodeAgent", inputs);
-}
-claudeCodeAgent.stream = function(inputs) {
-  return streamNode("nodetool.agents.ClaudeCodeAgent", inputs);
-};
 export {
   agent,
   classifier,
-  claudeCodeAgent,
   createThread,
   enhancePrompt,
   extractor,

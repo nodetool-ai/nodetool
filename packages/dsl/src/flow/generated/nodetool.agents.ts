@@ -129,32 +129,3 @@ export function agent(inputs: AgentInputs): Promise<AgentOutputs> {
 agent.stream = function (inputs: AgentInputs): AsyncIterable<Partial<AgentOutputs>> {
   return streamNode<Partial<AgentOutputs>>("nodetool.agents.Agent", inputs);
 };
-
-// Claude Code Agent — nodetool.agents.ClaudeCodeAgent
-export type ClaudeCodeAgentInputs = {
-  prompt?: string;
-  input?: string;
-  session_name?: string;
-  keep_session?: boolean;
-  model?: string;
-  system_prompt?: string;
-  extra_args?: string;
-  command?: string;
-  timeout_seconds?: number;
-  quiet_period_seconds?: number;
-};
-
-export interface ClaudeCodeAgentOutputs {
-  text: string;
-  chunk: unknown;
-  transcript: string;
-  session_id: string;
-}
-
-export function claudeCodeAgent(inputs: ClaudeCodeAgentInputs): Promise<ClaudeCodeAgentOutputs> {
-  return callNode<ClaudeCodeAgentOutputs>("nodetool.agents.ClaudeCodeAgent", inputs);
-}
-
-claudeCodeAgent.stream = function (inputs: ClaudeCodeAgentInputs): AsyncIterable<Partial<ClaudeCodeAgentOutputs>> {
-  return streamNode<Partial<ClaudeCodeAgentOutputs>>("nodetool.agents.ClaudeCodeAgent", inputs);
-};
