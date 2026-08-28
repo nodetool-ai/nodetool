@@ -5,9 +5,11 @@ permalink: /writing-style
 description: "How to write docs, READMEs, and AGENTS.md files for NodeTool — concise, direct, no AI slop."
 ---
 
-**Navigation**: [Root AGENTS.md](../AGENTS.md) | [DEVELOPMENT_STANDARDS §19](DEVELOPMENT_STANDARDS.md#19-documentation--comments) → **Writing Style**
+**Navigation**: [Root AGENTS.md](../AGENTS.md) | [DEVELOPMENT_STANDARDS §19](DEVELOPMENT_STANDARDS.md#19-documentation--comments) | [Brand & Verbal Guidelines](BRAND.md) → **Writing Style**
 
 How to write prose in this repo: docs, READMEs, AGENTS.md files, PR descriptions, comments. The goal is text a reader trusts — concrete, short, free of the filler that marks machine-generated copy.
+
+This file covers mechanics: which words are banned and which sentences get cut. [BRAND.md](BRAND.md) covers the message — positioning, voice, pillars, and the product lexicon. Anything user-facing follows both.
 
 This applies to humans and agents alike. When an agent edits a Markdown file, it follows these rules and fixes violations it passes.
 
@@ -43,6 +45,12 @@ Don't open sentences with these out of habit: `Furthermore` · `Moreover` · `Ad
 
 `gone are the days` · `say goodbye to` · `look no further` · `the possibilities are endless` · `whether you're a beginner or an expert` · `unlock the power of` · `take it to the next level` · `at your fingertips` · `with just a few clicks` · `out of the box` (prefer "by default") · `and much more` / `and more!` · `wide range of` / `rich set of` (say the number or the list)
 
+### Off-brand product terms
+
+These are wrong about NodeTool, not just inflated. Full table with replacements in [BRAND.md § Lexicon](BRAND.md#5-lexicon).
+
+`credits` / `gems` / `coins` / `tokens` (as billing — say `provider rates`, `at cost`, `list price`) · `chatbot` (for the agent — say `agent`) · `powered by AI` (name the models) · `prompt engineering` (say `brief`, `context`, `direction`) · `magic` / `magic box` / `black box` (name the mechanism) · `users` in creator-facing copy (say `creators`, `directors`, `developers`)
+
 ### Banned patterns
 
 - **The "it's not just X, it's Y" frame.** "NodeTool isn't just a tool, it's a workspace." Cut it. State what it is.
@@ -75,11 +83,11 @@ Before committing prose, scan for:
 - [ ] Claims are concrete: numbers, names, file paths — not "powerful" or "wide range".
 - [ ] At most one em-dash per paragraph.
 - [ ] No opening throat-clear and no closing summary that repeats the body.
+- [ ] For user-facing copy: no off-brand product term, and the lead is an outcome (see [BRAND.md](BRAND.md)).
 
 ## Related
 
+- [BRAND.md](BRAND.md) — brand and verbal guidelines: positioning, voice, messaging pillars, lexicon
 - [DEVELOPMENT_STANDARDS §19 Documentation & Comments](DEVELOPMENT_STANDARDS.md#19-documentation--comments) — comment and README rules
 - [Root AGENTS.md](../AGENTS.md) — repo rules for agents and contributors
 - The `unslop` skill (`.claude/skills/`) — the equivalent pass for code
-</content>
-</invoke>

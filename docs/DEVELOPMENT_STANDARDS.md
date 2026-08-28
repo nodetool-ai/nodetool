@@ -512,6 +512,8 @@ We use **OpenTelemetry** for tracing across agents and workflows (`workflow.run`
 
 All prose — docs, READMEs, AGENTS.md files, PR descriptions, comments — follows [WRITING_STYLE.md](WRITING_STYLE.md): concise, concrete, no AI filler. It carries the forbidden-expressions list (no `leverage`, `seamless`, `robust`, `comprehensive`, `it's worth noting`, rule-of-three padding, etc.). Agents editing a Markdown file fix violations they pass.
 
+User-facing copy — the marketing site, product strings, release notes, node and workflow descriptions — also follows [BRAND.md](BRAND.md), which covers positioning, voice, the four messaging pillars, and the product lexicon (no `credits` for billing, no `chatbot` for the agent, no `powered by AI` where a model name fits).
+
 ### target
 
 - Every exported function in `@nodetool-ai/agents`, `@nodetool-ai/kernel`, `@nodetool-ai/runtime`, `@nodetool-ai/node-sdk` has JSDoc.

@@ -182,6 +182,7 @@ exclude:
   # but NOT published to docs.nodetool.ai. These are not user-facing.
   - README.md
   - AGENTS.md
+  - BRAND.md
   - DESIGN.md
   - DEVELOPMENT_STANDARDS.md
   - WRITING_STYLE.md

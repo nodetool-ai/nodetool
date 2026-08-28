@@ -185,6 +185,7 @@ Everything else in the document is downstream of these.
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
 - **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
+- **[Brand & Verbal Guidelines](docs/BRAND.md)** — Positioning, voice, messaging pillars, and product lexicon for anything user-facing
 
 ---
 
@@ -2727,11 +2728,12 @@ These three areas have full sections in the central standards doc:
 
 ## Writing & Docs
 
-> Full guide: [docs/WRITING_STYLE.md](docs/WRITING_STYLE.md). Comment/README rules: [DEVELOPMENT_STANDARDS §19](docs/DEVELOPMENT_STANDARDS.md#19-documentation--comments).
+> Full guide: [docs/WRITING_STYLE.md](docs/WRITING_STYLE.md). Brand voice and messaging: [docs/BRAND.md](docs/BRAND.md). Comment/README rules: [DEVELOPMENT_STANDARDS §19](docs/DEVELOPMENT_STANDARDS.md#19-documentation--comments).
 
 - Write prose — docs, READMEs, this file, PR descriptions, comments — concise and concrete. Cut any sentence that survives deletion without losing meaning.
 - **No AI slop.** Forbidden: `leverage`, `utilize`, `seamless`, `robust`, `powerful`, `comprehensive`, `cutting-edge`, `unlock`, `empower`, `streamline`, `it's worth noting`, `dive into`, rule-of-three padding, "it's not just X, it's Y", emoji decoration, and the rest of the [forbidden list](docs/WRITING_STYLE.md#forbidden-expressions).
 - Bold-label bullets must add information beyond the label. Claims are concrete: numbers, names, paths — not adjectives.
+- **User-facing copy also follows [docs/BRAND.md](docs/BRAND.md).** Lead with the outcome, not the node graph. Never `credits`/`tokens` for billing (say `provider rates`, `at cost`), never `chatbot` for the agent, never `powered by AI` where a model name fits. Full lexicon: [BRAND.md § Lexicon](docs/BRAND.md#5-lexicon).
 - When you edit a Markdown file, fix slop you pass in the same change. For code, use the `unslop` skill.
 
 ## Technologies

@@ -4,12 +4,13 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 Copy and positioning decisions live next to the site code:
 
+- [docs/BRAND.md](../docs/BRAND.md) — brand and verbal guidelines: mission, voice, the four messaging pillars, lexicon, feature-to-benefit table. Applies to every surface, not just this site
 - [NARRATIVE.md](NARRATIVE.md) — what the site says, in what order, and why; holds the current hero line
 - [PRODUCT.md](PRODUCT.md) — brand, users, and design principles
 - [POSITIONING_PLAN.md](POSITIONING_PLAN.md) — competitive positioning, landing-page blueprint, asset checklist, and launch plan
 - [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md) — the product video script
 
-When homepage copy and these docs disagree, fix both in the same change.
+When homepage copy and these docs disagree, fix both in the same change. `BRAND.md` is the wider standard; where it and `NARRATIVE.md` differ on the homepage hero, `NARRATIVE.md` wins for nodetool.ai.
 
 ## Getting Started
 

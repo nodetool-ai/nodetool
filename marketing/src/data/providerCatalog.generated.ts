@@ -31,13 +31,13 @@ export interface ProviderCatalog {
 export const providerCatalog: Record<string, ProviderCatalog> = {
   "fal_ai": {
     "id": "fal_ai",
-    "total": 1554,
+    "total": 1560,
     "counts": {
       "3d": 60,
-      "image": 734,
+      "image": 736,
       "audio": 127,
       "text": 18,
-      "video": 615
+      "video": 619
     },
     "topTags": [
       "generation",
@@ -48,8 +48,8 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
       "transformation",
       "video to video",
       "text to image",
-      "vid2vid",
       "image to video",
+      "vid2vid",
       "txt2img",
       "lora"
     ],
@@ -1466,11 +1466,11 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "replicate": {
     "id": "replicate",
-    "total": 655,
+    "total": 662,
     "counts": {
-      "image": 310,
-      "text": 127,
-      "video": 156,
+      "image": 312,
+      "text": 128,
+      "video": 160,
       "audio": 62
     },
     "topTags": [],
@@ -1508,6 +1508,20 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Alexgenovese Upscaler",
         "kind": "image",
         "desc": "GFPGAN aims at developing Practical Algorithms for Real-world Face and Object Restoration",
+        "tags": []
+      },
+      {
+        "id": "alibaba/qwen-image-3",
+        "name": "Qwen Image 3",
+        "kind": "image",
+        "desc": "Qwen-Image-3.0 generates and edits images with accurate text rendering, complex layouts, and photographic detail.",
+        "tags": []
+      },
+      {
+        "id": "alibaba/qwen-image-3-pro",
+        "name": "Qwen Image 3 Pro",
+        "kind": "image",
+        "desc": "Qwen-Image-3.0-Pro generates and edits images with dense, accurate text rendering, complex multi-element layouts, and photographic detail.",
         "tags": []
       },
       {
@@ -1742,20 +1756,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
-        "id": "black-forest-labs/flux-schnell-lora",
-        "name": "Flux Schnell Lora",
-        "kind": "image",
-        "desc": "The fastest image generation model tailored for fine-tuned use",
-        "tags": []
-      },
-      {
-        "id": "bria/eraser",
-        "name": "Bria Eraser",
-        "kind": "image",
-        "desc": "SOTA Object removal, enables precise removal of unwanted objects from images while maintaining high-quality outputs.",
-        "tags": []
-      },
-      {
         "id": "alibaba/happyhorse-1.0",
         "name": "Happy Horse 1",
         "kind": "video",
@@ -1767,6 +1767,20 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Happyhorse 1 1",
         "kind": "video",
         "desc": "Alibaba's Happy Horse 1.1 generates videos from text, animates a single image, or builds a video from multiple reference images.",
+        "tags": []
+      },
+      {
+        "id": "alibaba/wan-3",
+        "name": "Wan 3",
+        "kind": "video",
+        "desc": "Wan 3.0 generates video from a text prompt, with cinematic motion and support for 480p, 720p, and 1080p output.",
+        "tags": []
+      },
+      {
+        "id": "alibaba/wan-3-prime",
+        "name": "Wan 3 Prime",
+        "kind": "video",
+        "desc": "Generate videos from text prompts using Alibaba's Wan 3.0 Prime model.",
         "tags": []
       },
       {
@@ -1795,6 +1809,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Robust Video Matting",
         "kind": "video",
         "desc": "extract foreground of a video",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-video-upscale",
+        "name": "Flux Video Upscale",
+        "kind": "video",
+        "desc": "Upscale videos to higher resolution with FLUX super-resolution.",
         "tags": []
       },
       {
@@ -1893,6 +1914,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Seedance 2 0 Mini",
         "kind": "video",
         "desc": "A lower-cost variant of Seedance 2.0 for high-volume video generation with multimodal inputs and native audio.",
+        "tags": []
+      },
+      {
+        "id": "bytedance/seedance-2.5",
+        "name": "Seedance 2 5",
+        "kind": "video",
+        "desc": "ByteDance's flagship multimodal video model with native audio, native 30-second generation, and large multimodal reference sets.",
         "tags": []
       },
       {
@@ -2005,34 +2033,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Veo 3 1 Fast",
         "kind": "video",
         "desc": "New and improved version of Veo 3 Fast, with higher-fidelity video, context-aware audio and last frame support",
-        "tags": []
-      },
-      {
-        "id": "google/veo-3.1-lite",
-        "name": "Veo 3 1 Lite",
-        "kind": "video",
-        "desc": "Google's cost-efficient video generation model with native audio, optimized for high-volume applications",
-        "tags": []
-      },
-      {
-        "id": "heygen/avatar-iv",
-        "name": "Avatar Iv",
-        "kind": "video",
-        "desc": "Create realistic talking avatar videos from text with HeyGen's Avatar IV engine",
-        "tags": []
-      },
-      {
-        "id": "heygen/avatar-v",
-        "name": "Avatar V",
-        "kind": "video",
-        "desc": "Create realistic talking avatar videos from text with HeyGen's Avatar V engine — the newest, highest-quality avatar engine with cross-reference-driven animat…",
-        "tags": []
-      },
-      {
-        "id": "heygen/lipsync-precision",
-        "name": "Hey Gen Lipsync Precision",
-        "kind": "video",
-        "desc": "High-accuracy lip-sync: replace or dub audio on any video with avatar-inference lip sync",
         "tags": []
       },
       {
