@@ -153,7 +153,18 @@ export class ChartRendererLibNode extends BaseNode {
     if (!records.length) {
       throw new Error("Data is required for rendering the chart.");
     }
-    const colNames = [...new Set(records.flatMap((r) => Object.keys(r)))];
+    const keys = new Set<string>();
+    for (let i = 0; i < records.length; i++) {
+      const row = records[i];
+      if (row) {
+        for (const key in row) {
+          if (Object.prototype.hasOwnProperty.call(row, key)) {
+            keys.add(key);
+          }
+        }
+      }
+    }
+    const colNames = [...keys];
     const rows = records.map((r) => colNames.map((name) => r[name] ?? null));
 
     let createCanvas: typeof import("@napi-rs/canvas").createCanvas;
