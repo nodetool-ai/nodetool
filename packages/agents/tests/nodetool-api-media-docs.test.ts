@@ -286,17 +286,22 @@ describe("generate → image.adjust → nodetool.media.toImage", () => {
          "a clockmaker", { provider: "fal_ai", model_id: "fal-ai/flux/schnell" });
        const grey = await image.adjust(img, { grayscale: true });
        const saved = await nodetool.media.toImage(grey);
-       return {
-         uri: saved.asset_uri,
-         handle: grey.uri,
-         hasBytes: typeof nodetool.media.bytes
-       };`
+       let bytes = "none";
+       try {
+         await nodetool.media.bytes(grey);
+         bytes = "returned";
+       } catch (e) { bytes = e.message; }
+       return { uri: saved.asset_uri, handle: grey.uri, bytes: bytes };`
     );
     expect(obs.ok).toBe(true);
-    expect(obs.result).toMatchObject({
-      uri: "asset://grey1.png",
-      hasBytes: "undefined"
-    });
+    // There is no way to pull the bytes into the guest: they stay host-side
+    // and the guest only ever sees the handle. The namespace guard answers for
+    // the method that is not there, so the refusal names `nodetool.media`
+    // rather than arriving as `TypeError: not a function`.
+    expect(obs.result).toMatchObject({ uri: "asset://grey1.png" });
+    const bytes = String((obs.result as { bytes?: string }).bytes);
+    expect(bytes).toContain("nodetool.media.bytes does not exist");
+    expect(bytes).not.toContain("not a function");
     expect(String((obs.result as { handle?: string }).handle)).toMatch(
       /^sandbox:\/\/media\//
     );

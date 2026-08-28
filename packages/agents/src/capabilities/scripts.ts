@@ -646,10 +646,39 @@ const voiceScriptLines: CapabilityExport = {
     });
     if (isError(selected)) return selected;
     if (selected.length === 0) {
+      // "Every line with a voice is already up to date" was true of a script
+      // whose lines have no voice at all — vacuously, since there were none to
+      // be out of date. Read as written it says the work is done, and a chat
+      // that had just written eight unvoiced lines took it that way. The reason
+      // nothing was selected is the useful half, so it is the half reported.
+      const withText = lines.filter((line) => line.text.trim().length > 0);
+      const voiceless = withText.filter(
+        (line) => !(override ?? effectiveVoice(line, doc.cast))
+      );
+      if (withText.length === 0) {
+        return {
+          voiced: 0,
+          results: [],
+          note: "This script has no line with text in it yet. Write lines with edit_script, then voice them."
+        };
+      }
+      if (voiceless.length > 0) {
+        return {
+          voiced: 0,
+          results: [],
+          skipped_without_voice: voiceless.length,
+          note:
+            `${voiceless.length} of ${withText.length} lines have no voice, so nothing could be voiced` +
+            (voiceless.length < withText.length
+              ? "; the rest are already up to date. "
+              : ". ") +
+            'Give each speaker a voice with edit_script {"op": "set_speaker_voice", "target": "<speaker>", provider, model, voice} — find_model with capability=text_to_speech resolves one — or pass provider, model and voice to this call to override them all.'
+        };
+      }
       return {
         voiced: 0,
         results: [],
-        note: "No line needs voicing. Every line with a voice is already up to date; name lines explicitly with `targets` to re-voice them."
+        note: `All ${withText.length} lines are voiced and up to date. Name lines explicitly with \`targets\` to re-voice them.`
       };
     }
     if (selected.length > MAX_LINES_PER_CALL) {
@@ -950,11 +979,115 @@ interface ParsedScriptOp {
   args: Record<string, unknown>;
 }
 
+/**
+ * Every argument each op reads. An op used to take whatever object it was
+ * handed and read the keys it knew, so a key it did not know was dropped in
+ * silence: `add_line {text, speaker_id}` — the field name `get_script`
+ * *reports* a line's speaker under — added the line with no speaker at all and
+ * reported `ok`. A chat wrote eight lines that way, read them back unattributed,
+ * and spent the rest of the session rebuilding the script twice trying to
+ * work out which call had not taken. A key no op reads is now refused, by name.
+ */
+const OP_KEYS: Record<ScriptOpName, readonly string[]> = {
+  add_speaker: [
+    "name",
+    "color",
+    "provider",
+    "model",
+    "voice",
+    "settings",
+    "entityId",
+    "entity_id"
+  ],
+  set_speaker: ["target", "name", "color", "entityId", "entity_id"],
+  set_speaker_voice: ["target", "provider", "model", "voice", "settings"],
+  remove_speaker: ["target"],
+  add_section: ["title"],
+  add_line: [
+    "text",
+    "speaker",
+    "section",
+    "direction",
+    "pause_after_ms",
+    "index"
+  ],
+  set_line_text: ["target", "text"],
+  set_line_speaker: ["target", "speaker"],
+  remove_line: ["target"]
+};
+
+/**
+ * Spellings that mean one of an op's own keys. These are the names the rest of
+ * the surface already uses for the same thing: `get_script` answers with `id`,
+ * `speaker_id` and `line_id`, and reading a script then editing it by the
+ * field names it just reported is consistency, not a mistake. Translating them
+ * costs nothing; a spelling that would collide with a key already present is
+ * refused rather than guessed at.
+ */
+const OP_ALIASES: Record<ScriptOpName, Readonly<Record<string, string>>> = {
+  add_speaker: { speaker: "name", speaker_name: "name" },
+  set_speaker: { id: "target", speaker: "target", speaker_id: "target" },
+  set_speaker_voice: {
+    id: "target",
+    speaker: "target",
+    speaker_id: "target"
+  },
+  remove_speaker: { id: "target", speaker: "target", speaker_id: "target" },
+  add_section: { name: "title" },
+  add_line: { speaker_id: "speaker", section_id: "section" },
+  set_line_text: { id: "target", line: "target", line_id: "target" },
+  set_line_speaker: {
+    id: "target",
+    line: "target",
+    line_id: "target",
+    speaker_id: "speaker"
+  },
+  remove_line: { id: "target", line: "target", line_id: "target" }
+};
+
+/**
+ * One op's arguments, with the known aliases translated, or the reason it
+ * cannot be applied as written.
+ */
+function normalizeOpArgs(
+  op: ScriptOpName,
+  index: number,
+  raw: Record<string, unknown>
+): Record<string, unknown> | ToolError {
+  const known = OP_KEYS[op];
+  const aliases = OP_ALIASES[op];
+  const args: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (known.includes(key)) {
+      args[key] = value;
+      continue;
+    }
+    const alias = aliases[key];
+    if (alias === undefined) {
+      return {
+        error: `ops[${index}] (${op}) has no argument "${key}"; it takes ${known.join(", ")}.`
+      };
+    }
+    if (raw[alias] !== undefined) {
+      return {
+        error: `ops[${index}] (${op}) passes both "${key}" and "${alias}", which mean the same argument. Pass one.`
+      };
+    }
+    args[alias] = value;
+  }
+  return args;
+}
+
 function parseScriptOps(raw: unknown): ParsedScriptOp[] | ToolError {
   if (!Array.isArray(raw) || raw.length === 0) {
     return {
+      // The ops are listed here as well as in the spec: a caller that reached
+      // this message was already guessing, and one that has to guess again
+      // spends a turn calling edit_script with a made-up op just to read the
+      // list off the rejection.
       error:
-        'ops must be a non-empty array, e.g. [{"op": "add_line", "text": "Hello."}].'
+        'ops must be a non-empty array, e.g. [{"op": "add_line", "text": "Hello."}]. ' +
+        `The ops are: ${SCRIPT_OPS.join(", ")}.`
     };
   }
   if (raw.length > MAX_SCRIPT_OPS) {
@@ -967,13 +1100,16 @@ function parseScriptOps(raw: unknown): ParsedScriptOp[] | ToolError {
     if (!isRecord(entry)) {
       return { error: `ops[${index}] must be an object.` };
     }
-    const { op, ...args } = entry;
+    const { op, ...rest } = entry;
     if (!isString(op) || !isScriptOpName(op.trim())) {
       return {
         error: `ops[${index}] names "${String(op)}"; expected one of ${SCRIPT_OPS.join(", ")}.`
       };
     }
-    parsed.push({ op: op.trim() as ScriptOpName, args });
+    const name = op.trim() as ScriptOpName;
+    const args = normalizeOpArgs(name, index, rest);
+    if (isError(args)) return args;
+    parsed.push({ op: name, args });
   }
   return parsed;
 }
@@ -986,6 +1122,27 @@ function findSpeakerIndex(doc: ScriptDocument, target: unknown): number {
   const name = raw.toLowerCase();
   return doc.cast.findIndex(
     (speaker) => speaker.name.trim().toLowerCase() === name
+  );
+}
+
+/**
+ * Why a speaker op found no speaker. A speaker op whose `target` is a line id
+ * is the same confusion twice over — the cast and the lines both answer to
+ * `target`, and `set_speaker` reads as "set this line's speaker" — so the one
+ * mistake worth naming is named.
+ */
+function noSpeaker(doc: ScriptDocument, target: unknown): Error {
+  const raw = isString(target) ? target.trim() : String(target);
+  const cast = doc.cast.map((speaker) => `${speaker.id} (${speaker.name})`);
+  const looksLikeLine = /^line[_-]?\d+$/i.test(raw);
+  return new Error(
+    `No speaker matches "${raw}".` +
+      (looksLikeLine
+        ? ' That is a line id — to give a line a speaker use {"op": "set_line_speaker", "target": "<line>", "speaker": "<speaker>"}.'
+        : "") +
+      (cast.length > 0
+        ? ` The cast is: ${cast.join(", ")}.`
+        : " This script has no cast yet; add one with add_speaker.")
   );
 }
 
@@ -1100,8 +1257,7 @@ function applyScriptOp(
 
     case "set_speaker": {
       const index = findSpeakerIndex(doc, args["target"]);
-      if (index < 0)
-        throw new Error(`No speaker matches "${String(args["target"])}".`);
+      if (index < 0) throw noSpeaker(doc, args["target"]);
       const speaker = { ...doc.cast[index] };
       if (args["name"] !== undefined) speaker.name = String(args["name"]);
       if (args["color"] !== undefined) speaker.color = String(args["color"]);
@@ -1113,8 +1269,7 @@ function applyScriptOp(
 
     case "set_speaker_voice": {
       const index = findSpeakerIndex(doc, args["target"]);
-      if (index < 0)
-        throw new Error(`No speaker matches "${String(args["target"])}".`);
+      if (index < 0) throw noSpeaker(doc, args["target"]);
       const voice = parseVoiceBinding(args);
       if (!voice) {
         throw new Error(
@@ -1129,8 +1284,7 @@ function applyScriptOp(
 
     case "remove_speaker": {
       const index = findSpeakerIndex(doc, args["target"]);
-      if (index < 0)
-        throw new Error(`No speaker matches "${String(args["target"])}".`);
+      if (index < 0) throw noSpeaker(doc, args["target"]);
       const [removed] = doc.cast.splice(index, 1);
       for (const section of doc.sections) {
         section.lines = section.lines.map((line) =>
@@ -1159,9 +1313,7 @@ function applyScriptOp(
       let speakerId: string | null = null;
       if (args["speaker"] !== undefined) {
         const index = findSpeakerIndex(doc, args["speaker"]);
-        if (index < 0) {
-          throw new Error(`No speaker matches "${String(args["speaker"])}".`);
-        }
+        if (index < 0) throw noSpeaker(doc, args["speaker"]);
         speakerId = doc.cast[index].id;
       }
       const used = new Set(scriptLines(doc.sections).map((line) => line.id));
@@ -1204,9 +1356,7 @@ function applyScriptOp(
       const line = findLine(scriptLines(doc.sections), target);
       if (!line) throw new Error(`No line matches "${target}".`);
       const index = findSpeakerIndex(doc, args["speaker"]);
-      if (index < 0) {
-        throw new Error(`No speaker matches "${String(args["speaker"])}".`);
-      }
+      if (index < 0) throw noSpeaker(doc, args["speaker"]);
       line.speakerId = doc.cast[index].id;
       return { id: line.id, speaker_id: line.speakerId };
     }

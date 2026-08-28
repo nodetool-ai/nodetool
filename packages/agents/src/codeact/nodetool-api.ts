@@ -207,6 +207,32 @@ const nodetool = (() => {
   const __merge = (a, b) => Object.assign({}, a || {}, b || {});
 
   /**
+   * A \`create(name, opts)\` call's arguments, however the caller spelled them.
+   * The documented form passes the name first, but a caller holding an options
+   * bag reaches for \`create({name, ...})\` — and that used to arrive at the tool
+   * as \`name: {name: "..."}\`, refused as "name is required and must be a
+   * non-empty string". The message described the argument, not the call, so
+   * there was nothing to correct against: a chat retried the same object shape
+   * three times before falling back to the positional form by accident. Both
+   * spellings are the same call, so both are accepted, and a name that is
+   * genuinely missing is named as the caller's own argument.
+   */
+  const __named = (nameOrOpts, opts, method) => {
+    const args =
+      nameOrOpts && typeof nameOrOpts === "object"
+        ? __merge(nameOrOpts, opts)
+        : __merge(opts, { name: nameOrOpts });
+    if (typeof args.name !== "string" || args.name.trim() === "") {
+      throw new Error(
+        "nodetool." + method + ": a name is required. Pass it first — " +
+        'nodetool.' + method + '("My name", {...}) — or in the options ' +
+        'object as {name: "My name"}.'
+      );
+    }
+    return args;
+  };
+
+  /**
    * A job id from either an id or a job/receipt object. \`start()\` answers with
    * a record, and reaching for the wrong field on it used to reach the tool as
    * \`job_id: undefined\`, which came back as "Job undefined was not found" —
@@ -603,7 +629,13 @@ const nodetool = (() => {
       get: (id) => __need("get_workflow")({ workflow_id: id }),
       create: (name, graph, opts) =>
         __need("create_workflow")(
-          __merge(opts, { name: name, graph: __graphJson(graph) })
+          __merge(__named(name, opts, "workflows.create"), {
+            graph: __graphJson(
+              graph === undefined && name && typeof name === "object"
+                ? name.graph
+                : graph
+            )
+          })
         ),
       versions: (id, opts) =>
         __need("list_workflow_versions")(__merge(opts, { workflow_id: id })),
@@ -1059,7 +1091,8 @@ const nodetool = (() => {
       list: (opts) => __need("list_apps")(__merge(opts)),
       get: (id) => __need("get_app")({ application_id: id }),
       /** Create an empty app and get its id back. */
-      create: (name, opts) => __need("create_app")(__merge(opts, { name: name })),
+      create: (name, opts) =>
+        __need("create_app")(__named(name, opts, "apps.create")),
       /** Apply App Builder steps to a saved app, then save it. */
       edit: (id, steps, opts) =>
         __need("edit_app")(
@@ -1073,7 +1106,7 @@ const nodetool = (() => {
     timelines: {
       list: (opts) => __need("list_timelines")(__merge(opts)),
       create: (name, opts) =>
-        __need("create_timeline")(__merge(opts, { name: name })),
+        __need("create_timeline")(__named(name, opts, "timelines.create")),
       get: (id) => __need("get_timeline")({ timeline_id: id }),
       versions: (id, opts) =>
         __need("list_timeline_versions")(__merge(opts, { timeline_id: id })),
@@ -1103,7 +1136,7 @@ const nodetool = (() => {
       list: (opts) => __need("list_sketches")(__merge(opts)),
       /** Create a blank sketch. Pass {width, height} for the canvas size. */
       create: (name, opts) =>
-        __need("create_sketch")(__merge(opts, { name: name })),
+        __need("create_sketch")(__named(name, opts, "sketches.create")),
       get: (id) => __need("get_sketch")({ image_document_id: id }),
       versions: (id, opts) =>
         __need("list_sketch_versions")(
@@ -1141,7 +1174,7 @@ const nodetool = (() => {
       list: (opts) => __need("list_scripts")(__merge(opts)),
       /** Create an empty script. Pass {project_id} to place it. */
       create: (name, opts) =>
-        __need("create_script")(__merge(opts, { name: name })),
+        __need("create_script")(__named(name, opts, "scripts.create")),
       get: (id) => __need("get_script")({ script_id: id }),
       voice: (id, opts) =>
         __need("voice_script_lines")(__merge(opts, { script_id: id })),
@@ -1155,7 +1188,7 @@ const nodetool = (() => {
       list: (opts) => __need("list_storyboards")(__merge(opts)),
       /** Create a blank storyboard. Pass {brief, style, aspect_ratio} for board settings. */
       create: (name, opts) =>
-        __need("create_storyboard")(__merge(opts, { name: name })),
+        __need("create_storyboard")(__named(name, opts, "storyboards.create")),
       get: (id) => __need("get_storyboard")({ storyboard_id: id }),
       renderStills: (id, opts) =>
         __need("render_storyboard_stills")(
@@ -1179,7 +1212,98 @@ const nodetool = (() => {
       edit: (id, ops) => __need("edit_storyboard")({ storyboard_id: id, ops: ops })
     }
   };
-  return api;
+
+  /**
+   * What a member that does not exist answers with: callable, and a namespace
+   * all the way down, so \`nodetool.script.list()\` reports the typo in
+   * \`script\` rather than bottoming out one hop later as
+   * \`TypeError: not a function\` — the message the whole guard exists to
+   * replace.
+   */
+  const __missing = (message) =>
+    new Proxy(function () {}, {
+      apply() {
+        throw new Error(message);
+      },
+      get(target, prop) {
+        if (typeof prop !== "string" || prop === "then") return target[prop];
+        return __missing(message);
+      }
+    });
+
+  /**
+   * The nearest member name to one that does not exist, comparing on letters
+   * and digits alone: \`find_model\` finds \`find\`, \`assemble_timeline\` finds
+   * \`assembleTimeline\`, \`create_script\` finds \`create\`.
+   */
+  const __nearest = (prop, names) => {
+    const flatten = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const want = flatten(prop);
+    let best = null;
+    for (const name of names) {
+      const have = flatten(name);
+      if (have === want) return name;
+      if (have.length === 0) continue;
+      const near = want.indexOf(have) === 0 || have.indexOf(want) === 0;
+      if (near && (best === null || have.length > flatten(best).length)) {
+        best = name;
+      }
+    }
+    return best;
+  };
+
+  /**
+   * Every namespace is guarded, so a member that does not exist answers with
+   * its own name instead of QuickJS's \`TypeError: not a function\`.
+   *
+   * The name a capability has on the belt is not the name it has here — the
+   * object model curates: \`find_model\` is \`nodetool.models.find\`,
+   * \`create_script\` is \`nodetool.scripts.create\`. A caller reaching for the
+   * belt spelling got a message that named neither the call it made nor the
+   * one it meant, and a bare \`TypeError\` reads like the sandbox is broken
+   * rather than like a typo: one chat took it as "models are unavailable here"
+   * and abandoned the namespace. An unknown member answers with a thrower
+   * rather than \`undefined\` — the shape \`tools.<name>\` already uses — so the
+   * report lands at the call, where the mistake is, and reads the same whether
+   * the missing half is the method or the namespace.
+   */
+  const __guard = (path, obj) =>
+    new Proxy(obj, {
+      get(target, prop) {
+        // Symbols, everything that really is there, and the handful of names
+        // the language itself reaches for pass straight through: \`then\` so
+        // awaiting a namespace cannot mistake it for a thenable, \`toJSON\` and
+        // \`inspect\` so logging one still prints it instead of throwing.
+        if (
+          typeof prop !== "string" ||
+          prop === "then" ||
+          prop === "toJSON" ||
+          prop === "inspect" ||
+          prop in target
+        ) {
+          return target[prop];
+        }
+        const names = Object.keys(target).sort();
+        const nearest = __nearest(prop, names);
+        return __missing(
+          path + "." + prop + " does not exist" +
+            (nearest ? ". Did you mean " + path + "." + nearest + "?" : ".") +
+            " " + path + " has: " + names.join(", ") + "." +
+            (path === "nodetool"
+              ? ""
+              : ' nodetool.searchTools("' + prop + '") finds the tool ' +
+                "behind a name if it is one.")
+        );
+      }
+    });
+
+  for (const key of Object.keys(api)) {
+    const value = api[key];
+    if (value && typeof value === "object") {
+      api[key] = __guard("nodetool." + key, value);
+    }
+  }
+  return __guard("nodetool", api);
 })();
 `;
 

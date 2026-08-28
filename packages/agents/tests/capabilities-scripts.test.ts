@@ -290,7 +290,11 @@ describe("scripts capability behaviour", () => {
       script_id: row.id
     })) as { voiced: number; note?: string };
     expect(again).toMatchObject({ voiced: 0 });
-    expect(again.note).toContain("No line needs voicing");
+    // Both lines really are up to date, so the note says so — and counts them,
+    // because the wording that used to cover this case ("every line with a
+    // voice is already up to date") was also what a script with no voices at
+    // all got back.
+    expect(again.note).toContain("All 2 lines are voiced and up to date");
   });
 
   it("refuses a half-specified voice override", async () => {
@@ -401,5 +405,76 @@ describe("scripts capability behaviour", () => {
     })) as { failed: number; ops: Array<{ error?: string }> };
     expect(result.failed).toBe(1);
     expect(result.ops[0].error).toContain('No line matches "nope"');
+  });
+
+  // A chat wrote eight lines with `add_line {text, speaker_id}` — the key
+  // `get_script` reports a line's speaker under. Every op returned ok and every
+  // line came back unattributed, because an argument no op reads was dropped
+  // rather than refused. These pin both halves of the fix: the spelling that
+  // means something is translated, and the one that means nothing is reported.
+  it("reads a line's speaker from speaker_id as well as speaker", async () => {
+    const row = await makeScript([]);
+    const result = (await run(ctx().context).invoke("edit_script", {
+      script_id: row.id,
+      ops: [
+        { op: "add_line", text: "First", speaker_id: "sp1" },
+        { op: "add_line", text: "Second", speaker: "Narrator" }
+      ]
+    })) as {
+      applied: number;
+      failed: number;
+      lines: Array<{ speaker_id: string | null }>;
+    };
+    expect(result).toMatchObject({ applied: 2, failed: 0 });
+    expect(result.lines.map((l) => l.speaker_id)).toEqual(["sp1", "sp1"]);
+  });
+
+  it("refuses an argument the op does not take, naming the ones it does", async () => {
+    const row = await makeScript([line({ id: "l1", speakerId: "sp1" })]);
+    const result = (await run(ctx().context).invoke("edit_script", {
+      script_id: row.id,
+      ops: [{ op: "add_line", text: "First", speeker: "sp1" }]
+    })) as { error?: string };
+    expect(result.error).toContain('has no argument "speeker"');
+    expect(result.error).toContain("text, speaker, section");
+  });
+
+  it("refuses an op that spells the same argument twice", async () => {
+    const row = await makeScript([line({ id: "l1", speakerId: "sp1" })]);
+    const result = (await run(ctx().context).invoke("edit_script", {
+      script_id: row.id,
+      ops: [
+        { op: "set_line_speaker", target: "l1", line_id: "l1", speaker: "sp1" }
+      ]
+    })) as { error?: string };
+    expect(result.error).toContain('both "line_id" and "target"');
+  });
+
+  it("points a speaker op aimed at a line id at set_line_speaker", async () => {
+    const row = await makeScript([line({ id: "line_1", speakerId: null })]);
+    const result = (await run(ctx().context).invoke("edit_script", {
+      script_id: row.id,
+      ops: [{ op: "set_speaker", target: "line_1", name: "Host" }]
+    })) as { failed: number; ops: Array<{ error?: string }> };
+    expect(result.failed).toBe(1);
+    expect(result.ops[0].error).toContain("set_line_speaker");
+    expect(result.ops[0].error).toContain("sp1 (Narrator)");
+  });
+
+  // "Every line with a voice is already up to date" was also what a script
+  // with no voice anywhere got back — true only because there was nothing to
+  // be out of date, and read by a chat as "the voicing worked".
+  it("says why nothing was voiced when no line has a voice", async () => {
+    const row = await makeScript(
+      [line({ id: "l1", speakerId: "sp1" }), line({ id: "l2", speakerId: "sp1" })],
+      [{ id: "sp1", name: "Narrator", voice: null }] as never
+    );
+    const result = (await run(ctx().context).invoke("voice_script_lines", {
+      script_id: row.id
+    })) as { voiced: number; skipped_without_voice?: number; note?: string };
+    expect(result).toMatchObject({ voiced: 0, skipped_without_voice: 2 });
+    expect(result.note).toContain("2 of 2 lines have no voice");
+    expect(result.note).toContain("set_speaker_voice");
+    expect(result.note).not.toContain("already up to date");
   });
 });
