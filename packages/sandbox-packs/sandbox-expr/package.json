@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-expr",
-  "version": "0.7.0-rc.35",
+  "version": "0.7.0-rc.38",
   "description": "Evaluate a math expression without eval, inside the NodeTool sandbox, from expr-eval",
   "license": "MIT",
   "nodetool": {

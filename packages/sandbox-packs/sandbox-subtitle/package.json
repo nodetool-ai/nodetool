@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-subtitle",
-  "version": "0.7.0-rc.35",
+  "version": "0.7.0-rc.38",
   "description": "Parse and write SRT and WebVTT captions inside the NodeTool sandbox",
   "license": "MIT",
   "nodetool": {

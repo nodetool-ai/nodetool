@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-jmespath",
-  "version": "0.7.0-rc.35",
+  "version": "0.7.0-rc.38",
   "description": "Query JSON with JMESPath inside the NodeTool sandbox",
   "license": "MIT",
   "dependencies": {

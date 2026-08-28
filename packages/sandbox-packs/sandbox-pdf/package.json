@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-pdf",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.38",
   "description": "Extract text from PDF files inside the NodeTool sandbox, from pdf-parse running on the host",
   "license": "MIT",
   "nodetool": {

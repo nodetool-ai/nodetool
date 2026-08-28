@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-supabase",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.38",
   "description": "Build Supabase REST and RPC requests inside the NodeTool sandbox, from NodeTool's PostgREST helper running on the host",
   "license": "MIT",
   "nodetool": {

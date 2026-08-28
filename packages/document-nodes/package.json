@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/document-nodes",
-  "version": "0.7.0-rc.36",
+  "version": "0.7.0-rc.38",
   "description": "NodeTool document nodes — PDF text extraction, rasterization, generic document I/O",
   "type": "module",
   "engines": {

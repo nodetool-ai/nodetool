@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-flow",
-  "version": "0.7.0-rc.36",
+  "version": "0.7.0-rc.38",
   "description": "Call NodeTool nodes as typed async functions inside the sandbox, one importable module per node namespace",
   "license": "MIT",
   "nodetool": {

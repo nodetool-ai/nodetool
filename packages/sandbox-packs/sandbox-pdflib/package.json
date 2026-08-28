@@ -1,13 +1,17 @@
 {
   "name": "@nodetool-ai/sandbox-pdflib",
-  "version": "0.7.0-rc.35",
+  "version": "0.7.0-rc.38",
   "description": "Build and merge PDF files inside the NodeTool sandbox, with pdf-lib running on the host",
   "license": "MIT",
   "nodetool": {
     "apiVersion": 1,
     "recommended": true,
     "sandboxModules": [
-      { "name": ".", "kind": "host", "host": "pdflib" }
+      {
+        "name": ".",
+        "kind": "host",
+        "host": "pdflib"
+      }
     ]
   },
   "repository": {

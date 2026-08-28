@@ -1,13 +1,17 @@
 {
   "name": "@nodetool-ai/sandbox-pptxgen",
-  "version": "0.7.0-rc.35",
+  "version": "0.7.0-rc.38",
   "description": "Build PowerPoint files inside the NodeTool sandbox, with PptxGenJS running on the host",
   "license": "MIT",
   "nodetool": {
     "apiVersion": 1,
     "recommended": true,
     "sandboxModules": [
-      { "name": ".", "kind": "host", "host": "pptxgen" }
+      {
+        "name": ".",
+        "kind": "host",
+        "host": "pptxgen"
+      }
     ]
   },
   "repository": {

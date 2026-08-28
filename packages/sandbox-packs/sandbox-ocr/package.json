@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-ocr",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.38",
   "description": "Read text out of images inside the NodeTool sandbox, from tesseract.js running on the host",
   "license": "MIT",
   "nodetool": {

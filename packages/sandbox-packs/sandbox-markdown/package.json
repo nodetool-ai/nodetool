@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-markdown",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.38",
   "description": "Markdown parsing inside the NodeTool sandbox, from marked's lexer running in the guest",
   "license": "MIT",
   "dependencies": {
@@ -10,7 +10,11 @@
     "apiVersion": 1,
     "recommended": true,
     "sandboxModules": [
-      { "name": ".", "kind": "js", "npm": "marked" }
+      {
+        "name": ".",
+        "kind": "js",
+        "npm": "marked"
+      }
     ]
   },
   "repository": {

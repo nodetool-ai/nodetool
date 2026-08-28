@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-tfjs",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.38",
   "description": "Classify images, detect objects and answer questions inside the NodeTool sandbox, from TensorFlow.js running on the host",
   "license": "MIT",
   "nodetool": {

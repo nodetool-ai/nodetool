@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-yaml",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.38",
   "description": "YAML parsing and dumping inside the NodeTool sandbox, from js-yaml",
   "license": "MIT",
   "dependencies": {
@@ -10,7 +10,11 @@
     "apiVersion": 1,
     "recommended": true,
     "sandboxModules": [
-      { "name": ".", "kind": "js", "npm": "js-yaml" }
+      {
+        "name": ".",
+        "kind": "js",
+        "npm": "js-yaml"
+      }
     ]
   },
   "repository": {

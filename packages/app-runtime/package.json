@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/app-runtime",
-  "version": "0.7.0-rc.36",
+  "version": "0.7.0-rc.38",
   "description": "Framework-independent runtime core for NodeTool mini apps: application document, typed bindings, namespaced instance state, and the streaming message fold",
   "type": "module",
   "engines": {

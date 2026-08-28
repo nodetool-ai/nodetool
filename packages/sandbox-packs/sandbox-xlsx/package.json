@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-xlsx",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.38",
   "description": "Read Excel workbooks inside the NodeTool sandbox, from exceljs running on the host",
   "license": "MIT",
   "nodetool": {
