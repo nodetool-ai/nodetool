@@ -108,3 +108,7 @@
 ## 2026-08-26 - Concurrent workflow bundle export
 **Learning:** `handleWorkflowsExportBundle` in `packages/websocket/src/http-api.ts` awaited `loadBundledWorkflow` sequentially for each requested workflow ID, making export latency scale O(N) with the number of workflows even though each load is an independent IO read.
 **Action:** Replaced the sequential loop with `Promise.all(ids.map(...))` to resolve all loads concurrently, then iterate the results to check for per-workflow errors and build the bundle.
+
+## 2026-08-28 - O(N*C) Intermediate Array Allocation Bottleneck
+**Learning:** Found an $O(N 	imes C)$ performance bottleneck in `packages/data-nodes/src/nodes/lib-charts.ts` where `[...new Set(records.flatMap(r => Object.keys(r)))]` was used to collect all unique column names across rows. This creates a massive intermediate array per row, flattens them, and passes the entire giant array to `Set`, causing extreme GC pressure and slow execution times.
+**Action:** Replaced the `flatMap` pattern with a manual `for...in` loop that populates a single `Set` directly. This change reduces processing time and eliminated thousands of temporary array allocations.
