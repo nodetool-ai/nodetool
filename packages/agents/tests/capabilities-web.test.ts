@@ -179,13 +179,19 @@ describe("behaviour through toolFromCapability", () => {
     );
   });
 
-  it("says what take_screenshot needs when no browser service is set", async () => {
+  it("refuses a take_screenshot URL no browser should be pointed at", async () => {
     const context = makeContext();
     const tool = asTool(byName("take_screenshot"));
-    const result = (await tool.process(context, {
-      url: "https://a.example"
+    // Both refusals happen before a browser is launched, so this stays
+    // hermetic — the local path is exercised in browser-tools.test.ts.
+    const scheme = (await tool.process(context, {
+      url: "file:///etc/passwd"
     })) as Record<string, unknown>;
-    expect(String(result.error)).toContain("BROWSER_URL");
+    expect(String(scheme.error)).toContain("Only http and https");
+    const bad = (await tool.process(context, {
+      url: "not-a-url"
+    })) as Record<string, unknown>;
+    expect(String(bad.error)).toContain("Invalid URL");
   });
 
   it("names every unconfigured backend when a news search has none", async () => {

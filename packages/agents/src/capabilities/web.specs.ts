@@ -124,7 +124,9 @@ export const browserSpec: CapabilitySpec = {
 export const takeScreenshotSpec: CapabilitySpec = {
   name: "take_screenshot",
   description:
-    "Take a screenshot of a web page. Requires a remote browser service (BROWSER_URL).",
+    "Take a screenshot of a web page and save it to the workspace. Renders " +
+    "the page in headless Chrome on this machine, or through the remote " +
+    "browser service when BROWSER_URL is configured.",
   inputSchema: {
     type: "object",
     properties: {
@@ -136,6 +138,12 @@ export const takeScreenshotSpec: CapabilitySpec = {
         type: "string",
         description: "Workspace relative path to save the screenshot",
         default: "screenshot.png"
+      },
+      full_page: {
+        type: "boolean",
+        description:
+          "Capture the whole scrollable page instead of the viewport.",
+        default: false
       }
     },
     // `output_file` carries a default and the implementation applies it, so

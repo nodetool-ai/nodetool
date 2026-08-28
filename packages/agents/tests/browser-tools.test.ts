@@ -226,12 +226,30 @@ describe("ScreenshotTool", () => {
     expect(result.error).toMatch(/URL is required/);
   });
 
-  it("returns error when BROWSER_URL is not set", async () => {
+  it("refuses a non-http scheme without launching a browser", async () => {
     const result = (await tool.process(mockContext, {
-      url: "https://example.com",
-      output_file: "shot.png"
+      url: "file:///etc/passwd"
     })) as any;
-    expect(result.error).toMatch(/BROWSER_URL/);
+    expect(result.error).toMatch(/Only http and https/);
+  });
+
+  it("refuses an unparseable URL", async () => {
+    const result = (await tool.process(mockContext, { url: "not a url" })) as any;
+    expect(result.error).toMatch(/Invalid URL/);
+  });
+
+  it("refuses a private host on an auth-enforced deployment", async () => {
+    process.env.SUPABASE_URL = "https://project.supabase.co";
+    process.env.SUPABASE_KEY = "key";
+    try {
+      const result = (await tool.process(mockContext, {
+        url: "http://169.254.169.254/latest/meta-data/"
+      })) as any;
+      expect(result.error).toMatch(/Refusing to screenshot an unsafe URL/);
+    } finally {
+      delete process.env.SUPABASE_URL;
+      delete process.env.SUPABASE_KEY;
+    }
   });
 
   it("calls browser service when BROWSER_URL is set", async () => {

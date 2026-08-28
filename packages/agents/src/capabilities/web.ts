@@ -23,9 +23,11 @@ import {
   WEB_SEARCH_TOOL_NAME,
   loadMediaRefBytes,
   safeFetch,
+  isSafePublicHttpsUrl,
   type JsonSchema,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
+import { isAuthEnforced } from "@nodetool-ai/config";
 import { mimeForPath } from "../sandbox-media-ref.js";
 import type {
   SerpProvider,
@@ -729,40 +731,78 @@ const takeScreenshot: CapabilityExport = {
     if (!url) {
       return { error: "URL is required for taking a screenshot" };
     }
+    const outputFile = (params.output_file as string) ?? "screenshot.png";
 
     const browserUrl = process.env.BROWSER_URL;
-    if (!browserUrl) {
+    if (browserUrl) {
+      try {
+        // BROWSER_URL is operator-configured, not model-controlled, so it stays
+        // a plain fetch (it is usually an internal service safeFetch would
+        // block) — but it still has to observe the run's cancellation.
+        const response = await fetch(browserUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, output_file: outputFile }),
+          signal: requestSignal(context, 30_000)
+        });
+
+        if (!response.ok) {
+          return {
+            error: `Browser service returned HTTP ${response.status}: ${response.statusText}`,
+            url
+          };
+        }
+
+        const result = (await response.json()) as Record<string, unknown>;
+        return { success: true, ...result };
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        return { error: `Error taking screenshot: ${message}` };
+      }
+    }
+
+    let scheme: string;
+    try {
+      scheme = new URL(url).protocol;
+    } catch {
+      return { error: `Invalid URL: ${url}`, url };
+    }
+    if (scheme !== "http:" && scheme !== "https:") {
+      return { error: `Only http and https URLs can be screenshotted: ${url}`, url };
+    }
+    // The URL comes from the model, so on a shared deployment it gets the same
+    // SSRF policy safeFetch applies — a real browser would otherwise render the
+    // host's metadata service and hand the picture back. A local install
+    // trusts loopback already, and screenshotting the app on localhost is the
+    // main reason to take one.
+    if (isAuthEnforced() && !isSafePublicHttpsUrl(url)) {
       return {
-        error:
-          "Screenshots require a remote browser service. Set the BROWSER_URL environment variable to the browser service endpoint.",
+        error: `Refusing to screenshot an unsafe URL (must be https to a public host): ${url}`,
         url
       };
     }
 
     try {
-      const outputFile = (params.output_file as string) ?? "screenshot.png";
-      // BROWSER_URL is operator-configured, not model-controlled, so it stays a
-      // plain fetch (it is usually an internal service safeFetch would block) —
-      // but it still has to observe the run's cancellation.
-      const response = await fetch(browserUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, output_file: outputFile }),
-        signal: requestSignal(context, 30_000)
+      const { captureScreenshot } = await import("./local-browser.js");
+      const bytes = await captureScreenshot(url, {
+        fullPage: params.full_page === true,
+        timeoutMs: 30_000
       });
-
-      if (!response.ok) {
-        return {
-          error: `Browser service returned HTTP ${response.status}: ${response.statusText}`,
-          url
-        };
-      }
-
-      const result = (await response.json()) as Record<string, unknown>;
-      return { success: true, ...result };
+      const { persistBinaryOutput } = await import("../tools/binary-output.js");
+      const persisted = await persistBinaryOutput(context, bytes, {
+        outputFile,
+        contentType: "image/png",
+        uiPrefix: "screenshots"
+      });
+      return { success: true, url, file_size_bytes: bytes.byteLength, ...persisted };
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      return { error: `Error taking screenshot: ${message}` };
+      // chrome-launcher says "No Chrome installations found" — on its own that
+      // reads like a NodeTool bug rather than a missing browser.
+      const hint = /chrome installation/i.test(message)
+        ? " Install Chrome, set CHROME_PATH to a Chromium binary, or set BROWSER_URL to a remote browser service."
+        : "";
+      return { error: `Error taking screenshot: ${message}${hint}`, url };
     }
   }
 };

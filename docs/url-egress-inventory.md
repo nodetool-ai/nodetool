@@ -141,8 +141,17 @@ in the data module with its auth scope.
   it, and `lib.comfy.RunWorkflow` / `lib.comfy.RunWorkflowOnWorker` are
   allowlisted on the cloud profile.
 - `packages/agents/src/capabilities/web.ts` — `BROWSER_URL`, the operator's
-  screenshot service. Every model-named URL in that file goes through
+  screenshot service. Every model-named URL that file *fetches* goes through
   `safeFetch`; this one is the operator's own.
+
+  With no `BROWSER_URL`, `take_screenshot` renders the page in a local headless
+  Chrome instead (`packages/agents/src/capabilities/local-browser.ts`), which is
+  egress no `fetch` wrapper can screen — the browser resolves and follows on its
+  own. The URL is model-named, so the capability applies the policy before
+  launching: non-http(s) schemes are always refused, and on an auth-enforced
+  deployment (`isAuthEnforced`) the URL must pass `isSafePublicHttpsUrl`. A
+  local install allows loopback and private addresses, because screenshotting
+  the app on `localhost` is the reason to take one there.
 - `packages/cli/src/nodetool.ts` — runs on the operator's machine against their
   own API URL, loopback by default.
 - `packages/deploy/src/admin-client.ts` — the server being deployed.

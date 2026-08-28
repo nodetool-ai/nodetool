@@ -43,6 +43,8 @@
     "@types/mailparser": "^3.4.6",
     "acorn": "^8.16.0",
     "cheerio": "^1.2.0",
+    "chrome-launcher": "^1.2.0",
+    "chrome-remote-interface": "^0.34.0",
     "chrono-node": "^2.10.1",
     "diff": "^5.2.0",
     "docx": "^9.6.0",
@@ -72,6 +74,7 @@
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@types/chrome-remote-interface": "^0.33.0",
     "@types/diff": "^5.2.3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
