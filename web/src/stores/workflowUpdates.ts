@@ -22,11 +22,12 @@ import useTraceStore, { traceEventId } from "./TraceStore";
 import type { TraceEvent, TraceEventType } from "./TraceStore";
 import useWorkflowRunsStore, { RunState } from "./WorkflowRunsStore";
 import useResultsStore from "./ResultsStore";
-import useStatusStore from "./StatusStore";
+import useStatusStore, { type StatusValue } from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore, {
   normalizeNodeError,
-  nodeErrorToDisplayString
+  nodeErrorToDisplayString,
+  type NodeError
 } from "./ErrorStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
 import type { WorkflowRunner, WorkflowRunnerStore } from "./WorkflowRunner";
@@ -706,6 +707,23 @@ const QUEUE_PANEL_JOB_STATUSES: ReadonlySet<string> = new Set([
   "failed"
 ]);
 
+/** Node statuses that mean the node is executing. */
+const ACTIVE_NODE_STATUSES: ReadonlySet<string> = new Set([
+  "running",
+  "starting",
+  "booting"
+]);
+
+/** Node statuses that stop the execution clock. */
+const TERMINAL_NODE_STATUSES: ReadonlySet<string> = new Set([
+  "completed",
+  "error"
+]);
+
+/** A StatusStore value is not always a string, so narrow before matching. */
+const isActiveNodeStatus = (status: StatusValue): boolean =>
+  isString(status) && ACTIVE_NODE_STATUSES.has(status);
+
 /**
  * Map a JobUpdate status to the state of the per-workflow runner. Returns
  * undefined for statuses that leave the runner where it is.
@@ -987,6 +1005,281 @@ const handleJobUpdate = (
   }
 };
 
+/**
+ * A node failed: toast it, fail the run, and record the per-job
+ * status/error/live generation for the run that produced it.
+ */
+const reportNodeError = (
+  workflow: WorkflowAttributes,
+  update: NodeUpdate,
+  jobId: string | undefined,
+  nodeError: NodeError,
+  errorDisplay: string,
+  runnerStore: WorkflowRunnerStore,
+  runner: WorkflowRunner
+): void => {
+  console.error("WorkflowRunner update error", nodeError);
+  if (update.error_detail) {
+    promptForProviderAuth(update.error_detail, jobId ?? workflow.id);
+  }
+  runner.addNotification({
+    type: "error",
+    alert: true,
+    content: errorDisplay
+  });
+  runnerStore.setState({ state: "error" });
+
+  if (jobId) {
+    useExecutionTimeStore
+      .getState()
+      .endExecution(workflow.id, jobId, update.node_id);
+    useStatusStore
+      .getState()
+      .setStatus(workflow.id, jobId, update.node_id, update.status);
+    useErrorStore
+      .getState()
+      .setError(workflow.id, jobId, update.node_id, nodeError);
+    useResultsStore
+      .getState()
+      .upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+        status: "error",
+        error: isString(update.error) ? update.error : errorDisplay
+      });
+  }
+
+  useLogsStore.getState().appendLog({
+    workflowId: workflow.id,
+    workflowName: workflow.name,
+    nodeId: update.node_id,
+    nodeName: update.node_name || update.node_id,
+    content: `${update.node_name || update.node_id} error: ${errorDisplay}`,
+    severity: "error",
+    timestamp: Date.now()
+  });
+  appendTrace(
+    "node_error",
+    `${update.node_name || update.node_id} error`,
+    update,
+    {
+      nodeId: update.node_id,
+      nodeName: update.node_name,
+      nodeType: update.node_type
+    }
+  );
+};
+
+/**
+ * Execution timing, per-job status, provider cost, and the live generation the
+ * canvas renders.
+ *
+ * Intentionally no per-node status text: a "<node> running/completed" line on
+ * every node_update is pure churn (and a constant flicker during live slider
+ * scrubs). Job-level statusMessages (starting / queued) still drive the canvas
+ * StatusMessage.
+ */
+const recordNodeProgress = (
+  workflow: WorkflowAttributes,
+  update: NodeUpdate,
+  jobId: string | undefined,
+  getNodeStore: (workflowId: string) => NodeStore | undefined
+): void => {
+  if (!jobId) return;
+
+  // Silent live-preview jobs (slider scrubs) only refresh the picture —
+  // recording per-node status / timing / cost would flash the running ring,
+  // "Completed in …" badge and ambient-liveness ring on every frame. The
+  // live-generation upsert below still runs, so the image updates.
+  const silent = isSilentJob(jobId);
+  const active = ACTIVE_NODE_STATUSES.has(update.status);
+
+  if (!silent) {
+    const statusStore = useStatusStore.getState();
+    const wasActive = isActiveNodeStatus(
+      statusStore.getStatus(workflow.id, jobId, update.node_id)
+    );
+    const timeStore = useExecutionTimeStore.getState();
+    if (active && !wasActive) {
+      timeStore.startExecution(workflow.id, jobId, update.node_id);
+      appendTrace(
+        "node_start",
+        `${update.node_name || update.node_id}`,
+        update,
+        {
+          nodeId: update.node_id,
+          nodeName: update.node_name,
+          nodeType: update.node_type
+        }
+      );
+    } else if (TERMINAL_NODE_STATUSES.has(update.status)) {
+      timeStore.endExecution(workflow.id, jobId, update.node_id);
+    }
+    statusStore.setStatus(workflow.id, jobId, update.node_id, update.status);
+
+    if (update.provider_cost) {
+      useResultsStore
+        .getState()
+        .setProviderCost(
+          workflow.id,
+          jobId,
+          update.node_id,
+          update.provider_cost
+        );
+    }
+  }
+
+  const upsertLiveGeneration = useResultsStore.getState().upsertLiveGeneration;
+
+  if (active) {
+    // Placeholder so a node shows a spinner before its first artifact
+    // (generation_complete only fires at commit). A silent scrub reuses one
+    // jobId per frame → pin slot 0 (replace), else go index-less so the first
+    // generation_complete{index:0} settles this slot in place.
+    upsertLiveGeneration(
+      workflow.id,
+      update.node_id,
+      jobId,
+      silent
+        ? { index: 0, createdAt: Date.now(), status: "running" }
+        : { createdAt: Date.now(), status: "running" }
+    );
+    return;
+  }
+
+  if (update.status !== "completed") return;
+
+  // Fallback only: non-generator nodes never emit generation_complete, and an
+  // old server (§12 version skew) emits none either. Synthesize ONE live
+  // generation from node_update.result ONLY if no generation_complete landed
+  // for this (jobId, node_id) this run. Index-less → settles the running
+  // placeholder in place (newest slot).
+  if (!sawGenerationCompleteKeys.has(genKey(jobId, update.node_id))) {
+    const raw = update.result;
+    const outputs: Record<string, unknown> = isRecord(raw)
+      ? raw
+      : raw !== undefined && raw !== null
+        ? { output: raw }
+        : {};
+    upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+      status: "completed",
+      outputs,
+      cost: update.provider_cost ?? undefined,
+      // Stamp the signature so this synthesized output can serve a later
+      // Computed cache hit (spec §3.4). Recomputed at completion so a
+      // descendant of a generative that ran this job is keyed to the
+      // generation it consumed. Undefined when the run didn't record one →
+      // not cached, which is fine.
+      inputSignature: stampSignatureForCompletion(
+        getNodeStore,
+        workflow.id,
+        jobId,
+        update.node_id
+      )
+    });
+  }
+  appendTrace(
+    "node_complete",
+    `${update.node_name || update.node_id}`,
+    update,
+    {
+      nodeId: update.node_id,
+      nodeName: update.node_name,
+      nodeType: update.node_type
+    }
+  );
+};
+
+/**
+ * Runtime property values echoed back by the node. Dynamic-node runtime values
+ * (e.g. FalAI prompt) must be stored under `dynamic_properties`; writing them
+ * into `properties` can desync editor state.
+ */
+const applyNodeUpdateProperties = (
+  workflowId: string,
+  update: NodeUpdate,
+  getNodeStore: (workflowId: string) => NodeStore | undefined
+): void => {
+  if (!update.properties || Object.keys(update.properties).length === 0) return;
+  const nodeStore = getNodeStore(workflowId);
+  if (!nodeStore) return;
+
+  const state = nodeStore.getState();
+  const node = state.findNode(update.node_id);
+  const { staticProperties, dynamicProperties } = mergeNodeUpdateProperties({
+    updateProperties: update.properties,
+    existingStatic: node?.data?.properties || {},
+    existingDynamic: node?.data?.dynamic_properties || {},
+    isDynamicSchemaNode:
+      update.node_type === "fal.DynamicFal" ||
+      update.node_type === DYNAMIC_KIE_NODE_TYPE ||
+      update.node_type === "kie.DynamicKie"
+  });
+
+  // This runs while undo tracking is active, so writing here would push an undo
+  // entry and mark the workflow dirty for a runtime echo the user never
+  // authored. Pause history around the write and mark it quiet. The wasTracking
+  // guard avoids un-pausing history that something else (e.g. an active drag)
+  // already paused.
+  const temporal = nodeStore.temporal.getState();
+  const wasTracking = temporal.isTracking;
+  if (wasTracking) {
+    temporal.pause();
+  }
+  try {
+    state.updateNodeData(
+      update.node_id,
+      { properties: staticProperties, dynamic_properties: dynamicProperties },
+      { quiet: true }
+    );
+  } finally {
+    if (wasTracking) {
+      nodeStore.temporal.getState().resume();
+    }
+  }
+};
+
+/**
+ * A node's lifecycle frame. Either it failed or it moved along, and both paths
+ * end by writing back the runtime property values the node echoed.
+ */
+const handleNodeUpdate = (
+  workflow: WorkflowAttributes,
+  update: NodeUpdate,
+  runnerStore: WorkflowRunnerStore,
+  runner: WorkflowRunner,
+  getNodeStore: (workflowId: string) => NodeStore | undefined
+): void => {
+  // Don't update node status if workflow is cancelled
+  if (runnerStore.getState().state === "cancelled") return;
+
+  // Per-node status/error/timing are scoped by the run that produced them so
+  // concurrent same-workflow runs stay isolated. The backend stamps job_id on
+  // every data message; if it's somehow absent, skip the per-job writes rather
+  // than writing a malformed key.
+  const jobId = extractJobId(update);
+
+  const nodeError = normalizeNodeError(update.error);
+  const errorDisplay = nodeErrorToDisplayString(nodeError);
+  // An object-shaped error with no meaningful message (e.g. `{ message: null }`
+  // or `{}`) normalizes to a truthy value but yields no display text. Firing an
+  // error toast for it shows a bare "null"/"[object Object]" with nothing to act
+  // on and wrongly marks the run as errored — treat it as no error.
+  if (nodeError && errorDisplay) {
+    reportNodeError(
+      workflow,
+      update,
+      jobId,
+      nodeError,
+      errorDisplay,
+      runnerStore,
+      runner
+    );
+  } else {
+    recordNodeProgress(workflow, update, jobId, getNodeStore);
+  }
+
+  applyNodeUpdateProperties(workflow.id, update, getNodeStore);
+};
+
 export const handleUpdate = (
   workflow: WorkflowAttributes,
   data: MsgpackData,
@@ -994,13 +1287,10 @@ export const handleUpdate = (
   getNodeStore: (workflowId: string) => NodeStore | undefined
 ): void => {
   const runner = runnerStore.getState();
-  const setProviderCost = useResultsStore.getState().setProviderCost;
   const upsertLiveGeneration = useResultsStore.getState().upsertLiveGeneration;
   const setOutputResult = useResultsStore.getState().setOutputResult;
   const setStatus = useStatusStore.getState().setStatus;
-  const getStatus = useStatusStore.getState().getStatus;
   const appendLog = useLogsStore.getState().appendLog;
-  const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
@@ -1008,8 +1298,6 @@ export const handleUpdate = (
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
   const setEdge = useResultsStore.getState().setEdge;
   const addNotification = useNotificationStore.getState().addNotification;
-  const startExecution = useExecutionTimeStore.getState().startExecution;
-  const endExecution = useExecutionTimeStore.getState().endExecution;
 
   if (data.type === "log_update") {
     appendLog({
@@ -1205,12 +1493,11 @@ export const handleUpdate = (
         ("data" in normalizedValue ||
           "uri" in normalizedValue ||
           "asset_id" in normalizedValue);
-      const logValue =
-        isString(normalizedValue)
-          ? normalizedValue
-          : isMediaRef
-            ? `<${String((normalizedValue as { type: unknown }).type)}>`
-            : JSON.stringify(normalizedValue);
+      const logValue = isString(normalizedValue)
+        ? normalizedValue
+        : isMediaRef
+          ? `<${String((normalizedValue as { type: unknown }).type)}>`
+          : JSON.stringify(normalizedValue);
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
@@ -1306,233 +1593,6 @@ export const handleUpdate = (
   }
 
   if (data.type === "node_update") {
-    const update = data;
-    const currentState = runnerStore.getState().state;
-
-    // Don't update node status if workflow is cancelled
-    if (currentState === "cancelled") {
-      return;
-    }
-
-    // Per-node status/error/timing are scoped by the run that produced them so
-    // concurrent same-workflow runs stay isolated. The backend stamps job_id on
-    // every data message; if it's somehow absent, skip the per-job writes rather
-    // than writing a malformed key.
-    const jobId = extractJobId(data);
-
-    const normalizedNodeError = normalizeNodeError(update.error);
-    const nodeErrorDisplay = nodeErrorToDisplayString(normalizedNodeError);
-    // An object-shaped error with no meaningful message (e.g. `{ message: null }`
-    // or `{}`) normalizes to a truthy value but yields no display text. Firing an
-    // error toast for it shows a bare "null"/"[object Object]" with nothing to act
-    // on and wrongly marks the run as errored — treat it as no error.
-    if (normalizedNodeError && nodeErrorDisplay) {
-      console.error("WorkflowRunner update error", normalizedNodeError);
-      if (update.error_detail) {
-        promptForProviderAuth(update.error_detail, jobId ?? workflow.id);
-      }
-      runner.addNotification({
-        type: "error",
-        alert: true,
-        content: nodeErrorDisplay
-      });
-      runnerStore.setState({ state: "error" });
-      if (jobId) {
-        endExecution(workflow.id, jobId, update.node_id);
-        setStatus(workflow.id, jobId, update.node_id, update.status);
-        setError(workflow.id, jobId, update.node_id, normalizedNodeError);
-        upsertLiveGeneration(workflow.id, update.node_id, jobId, {
-          status: "error",
-          error:
-            isString(update.error) ? update.error : nodeErrorDisplay
-        });
-      }
-      appendLog({
-        workflowId: workflow.id,
-        workflowName: workflow.name,
-        nodeId: update.node_id,
-        nodeName: update.node_name || update.node_id,
-        content: `${update.node_name || update.node_id} error: ${nodeErrorDisplay}`,
-        severity: "error",
-        timestamp: Date.now()
-      });
-      appendTrace(
-        "node_error",
-        `${update.node_name || update.node_id} error`,
-        update,
-        {
-          nodeId: update.node_id,
-          nodeName: update.node_name,
-          nodeType: update.node_type
-        }
-      );
-    } else {
-      // Intentionally no per-node status text: a "<node> running/completed"
-      // line on every node_update is pure churn (and a constant flicker during
-      // live slider scrubs). Job-level statusMessages (starting / queued)
-      // still drive the canvas StatusMessage.
-
-      // Silent live-preview jobs (slider scrubs) only refresh the picture —
-      // recording per-node status / timing / cost would flash the running
-      // ring, "Completed in …" badge and ambient-liveness ring on every frame.
-      // The live-generation upsert below still runs, so the image updates.
-      const silent = isSilentJob(jobId);
-
-      // Track execution timing (per job)
-      if (jobId && !silent) {
-        const previousStatus = getStatus(workflow.id, jobId, update.node_id);
-        const isStarting =
-          update.status === "running" ||
-          update.status === "starting" ||
-          update.status === "booting";
-        const isFinishing =
-          update.status === "completed" || update.status === "error";
-
-        if (
-          isStarting &&
-          previousStatus !== "running" &&
-          previousStatus !== "starting" &&
-          previousStatus !== "booting"
-        ) {
-          startExecution(workflow.id, jobId, update.node_id);
-          appendTrace(
-            "node_start",
-            `${update.node_name || update.node_id}`,
-            update,
-            {
-              nodeId: update.node_id,
-              nodeName: update.node_name,
-              nodeType: update.node_type
-            }
-          );
-        } else if (isFinishing) {
-          endExecution(workflow.id, jobId, update.node_id);
-        }
-
-        setStatus(workflow.id, jobId, update.node_id, update.status);
-      }
-
-      if (update.provider_cost && jobId && !silent) {
-        setProviderCost(
-          workflow.id,
-          jobId,
-          update.node_id,
-          update.provider_cost
-        );
-      }
-
-      if (jobId) {
-        if (
-          update.status === "running" ||
-          update.status === "starting" ||
-          update.status === "booting"
-        ) {
-          // Placeholder so a node shows a spinner before its first artifact
-          // (generation_complete only fires at commit). A silent scrub reuses
-          // one jobId per frame → pin slot 0 (replace), else go index-less so
-          // the first generation_complete{index:0} settles this slot in place.
-          upsertLiveGeneration(
-            workflow.id,
-            update.node_id,
-            jobId,
-            silent
-              ? { index: 0, createdAt: Date.now(), status: "running" }
-              : { createdAt: Date.now(), status: "running" }
-          );
-        } else if (update.status === "completed") {
-          // Fallback only: non-generator nodes never emit generation_complete,
-          // and an old server (§12 version skew) emits none either. Synthesize
-          // ONE live generation from node_update.result ONLY if no
-          // generation_complete landed for this (jobId, node_id) this run.
-          // Index-less → settles the running placeholder in place (newest slot).
-          if (!sawGenerationCompleteKeys.has(genKey(jobId, update.node_id))) {
-            const raw = update.result;
-            const outputs: Record<string, unknown> =
-              isRecord(raw)
-                ? raw
-                : raw !== undefined && raw !== null
-                  ? { output: raw }
-                  : {};
-            upsertLiveGeneration(workflow.id, update.node_id, jobId, {
-              status: "completed",
-              outputs,
-              cost: update.provider_cost ?? undefined,
-              // Stamp the signature so this synthesized output can serve a later
-              // Computed cache hit (spec §3.4). Recomputed at completion so a
-              // descendant of a generative that ran this job is keyed to the
-              // generation it consumed. Undefined when the run didn't record one
-              // → not cached, which is fine.
-              inputSignature: stampSignatureForCompletion(
-                getNodeStore,
-                workflow.id,
-                jobId,
-                update.node_id
-              )
-            });
-          }
-          appendTrace(
-            "node_complete",
-            `${update.node_name || update.node_id}`,
-            update,
-            {
-              nodeId: update.node_id,
-              nodeName: update.node_name,
-              nodeType: update.node_type
-            }
-          );
-        }
-      }
-    }
-
-    // Update node properties if provided in the NodeUpdate.
-    // Dynamic-node runtime values (e.g. FalAI prompt) must be stored under
-    // `dynamic_properties`; writing them into `properties` can desync editor state.
-    if (update.properties && Object.keys(update.properties).length > 0) {
-      const nodeStore = getNodeStore(workflow.id);
-      if (nodeStore) {
-        const state = nodeStore.getState();
-        const node = state.findNode(update.node_id);
-        const existingStatic = node?.data?.properties || {};
-        const existingDynamic = node?.data?.dynamic_properties || {};
-
-        const isDynamicSchemaNode =
-          update.node_type === "fal.DynamicFal" ||
-          update.node_type === DYNAMIC_KIE_NODE_TYPE ||
-          update.node_type === "kie.DynamicKie";
-
-        const { staticProperties, dynamicProperties } =
-          mergeNodeUpdateProperties({
-            updateProperties: update.properties,
-            existingStatic,
-            existingDynamic,
-            isDynamicSchemaNode
-          });
-
-        // This runs while undo tracking is active, so writing here would push
-        // an undo entry and mark the workflow dirty for a runtime echo the
-        // user never authored. Pause history around the write and mark it
-        // quiet. The wasTracking guard avoids un-pausing history that
-        // something else (e.g. an active drag) already paused.
-        const temporal = nodeStore.temporal.getState();
-        const wasTracking = temporal.isTracking;
-        if (wasTracking) {
-          temporal.pause();
-        }
-        try {
-          state.updateNodeData(
-            update.node_id,
-            {
-              properties: staticProperties,
-              dynamic_properties: dynamicProperties
-            },
-            { quiet: true }
-          );
-        } finally {
-          if (wasTracking) {
-            nodeStore.temporal.getState().resume();
-          }
-        }
-      }
-    }
+    handleNodeUpdate(workflow, data, runnerStore, runner, getNodeStore);
   }
 };
