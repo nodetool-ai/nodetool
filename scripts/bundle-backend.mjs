@@ -480,6 +480,44 @@ async function dirSize(dir) {
  * change here. These packages are not workspaces (no host code may import
  * them), which is why the directory is read by path instead of resolved.
  */
+/**
+ * Stage the system skills under `_skills/<name>/SKILL.md`, next to `server.mjs`.
+ *
+ * Same shape and same reason as the sandbox packs above: nothing imports them,
+ * so they are not workspaces and must be copied by path. The directory listing
+ * is the manifest — a skill added to the source tree ships with no change here
+ * — and an empty source directory fails the build, because a bundle that
+ * silently ships no skills is exactly what this staging prevents.
+ */
+async function stageSystemSkills(sourceDirRel) {
+  console.log("\nStaging the system skills NodeTool ships...");
+  const sourceDir = path.join(ROOT_DIR, sourceDirRel);
+  let entries;
+  try {
+    entries = await fsp.readdir(sourceDir, { withFileTypes: true });
+  } catch {
+    throw new Error(`System skills directory not found: ${sourceDir}`);
+  }
+
+  let staged = 0;
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const src = path.join(sourceDir, entry.name, "SKILL.md");
+    if (!fs.existsSync(src)) continue;
+    const destDir = path.join(BUNDLE_DIR, "_skills", entry.name);
+    await fsp.mkdir(destDir, { recursive: true });
+    await fsp.copyFile(src, path.join(destDir, "SKILL.md"));
+    staged += 1;
+    console.log(`  Staged skill ${entry.name}`);
+  }
+  if (staged === 0) {
+    throw new Error(
+      `No system skills staged from ${sourceDir} — every directory must hold a SKILL.md.`
+    );
+  }
+  return staged;
+}
+
 async function stageShippedSandboxPacks(sourceDirRel) {
   console.log("\nStaging the sandbox packs NodeTool ships...");
   const sourceDir = path.join(ROOT_DIR, sourceDirRel);
@@ -1036,7 +1074,11 @@ async function main() {
     "dist",
     "package-asset-registry.js"
   );
-  const { PACKAGE_RUNTIME_ASSETS, SHIPPED_SANDBOX_PACKS_SOURCE_DIR } = await import(
+  const {
+    PACKAGE_RUNTIME_ASSETS,
+    SHIPPED_SANDBOX_PACKS_SOURCE_DIR,
+    SHIPPED_SYSTEM_SKILLS_SOURCE_DIR
+  } = await import(
     pathToFileURL(registryPath).href
   );
 
@@ -1080,6 +1122,7 @@ async function main() {
   // unaffected: they resolve through the optional-node root at runtime, and
   // shadow the shipped copy when they carry the same name.
   await stageShippedSandboxPacks(SHIPPED_SANDBOX_PACKS_SOURCE_DIR);
+  await stageSystemSkills(SHIPPED_SYSTEM_SKILLS_SOURCE_DIR);
 
   // Cross-check: any *-manifest.json in a package's dist/ that is NOT in the
   // registry is almost certainly a new provider manifest someone forgot to

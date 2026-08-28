@@ -437,6 +437,19 @@ export {
   formatSkillCatalogForPrompt,
   formatInvokedSkillsForPrompt
 } from "./skill-prompt.js";
+
+// The skills that ship with the build, and the merge that puts them in the
+// same catalog as the user's own rows.
+export {
+  loadSystemSkills,
+  findSystemSkill,
+  isSystemSkillName,
+  mergeSystemSkills,
+  systemSkillsDir,
+  parseSkillMarkdown,
+  clearSystemSkillCache,
+  type SystemSkill
+} from "./system-skills.js";
 export type {
   SkillCatalogEntry,
   SkillInstructions

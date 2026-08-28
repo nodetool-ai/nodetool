@@ -214,6 +214,7 @@ import {
   findInvokedSkillNames,
   formatInvokedSkillsForPrompt,
   formatSkillCatalogForPrompt,
+  mergeSystemSkills,
   formatMemoriesForPrompt
 } from "@nodetool-ai/agents";
 import { RunNodeTool } from "./agent/run-node-tool.js";
@@ -2107,6 +2108,13 @@ type RawGraphData = {
   nodes: Array<Record<string, unknown>>;
   edges: Array<Record<string, unknown>>;
 };
+
+/** What the prompt needs from a skill, whichever tier it came from. */
+interface SkillEntry {
+  name: string;
+  description: string;
+  content: string;
+}
 
 export class UnifiedWebSocketRunner {
   websocket: WebSocketConnection | null = null;
@@ -5161,19 +5169,31 @@ export class UnifiedWebSocketRunner {
    * Best-effort like the memory block: a DB hiccup costs the skills, not the
    * turn.
    */
-  private async loadUserSkills(userId: string): Promise<Skill[]> {
+  private async loadUserSkills(userId: string): Promise<SkillEntry[]> {
+    let rows: Skill[] = [];
     try {
-      return await Skill.listByUser(userId);
+      rows = await Skill.listByUser(userId);
     } catch (err) {
       log.warn("Failed to load user skills", {
         error: err instanceof Error ? err.message : String(err)
       });
-      return [];
     }
+    // The shipped skills ride in the same catalog. They come off disk rather
+    // than the table, so a DB hiccup costs the user's own rows and not these.
+    return mergeSystemSkills(
+      rows.map((row) => ({
+        name: row.name,
+        description: row.description,
+        content: row.content
+      }))
+    );
   }
 
   /** The bodies of the skills this turn's message named with `/<name>`. */
-  private invokedSkillsSection(skills: readonly Skill[], userText: string): string {
+  private invokedSkillsSection(
+    skills: readonly SkillEntry[],
+    userText: string
+  ): string {
     const invoked = findInvokedSkillNames(
       userText,
       skills.map((skill) => skill.name)

@@ -180,8 +180,11 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         "location_id?, notes?, index?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
         "reorder_shot {target, index}, set_board {brief?, style?, " +
-        "aspect_ratio?, entity_ids?}. `target` is a shot id, its 0-based " +
-        "index, or its slug.",
+        "aspect_ratio?, entity_ids?, image_model?, video_model?}. " +
+        "`target` is a shot id, its 0-based index, or its slug. " +
+        "image_model/video_model take a model object from find_model and " +
+        "become the board's defaults for render_storyboard_stills and " +
+        "render_storyboard_clips.",
       items: { type: "object" }
     }
   },

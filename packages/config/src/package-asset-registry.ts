@@ -64,6 +64,20 @@ export const SHIPPED_SANDBOX_PACKS_SOURCE_DIR = "packages/sandbox-packs";
 /** The staged copy's directory name, relative to the bundled `server.mjs`. */
 export const SHIPPED_SANDBOX_PACKS_BUNDLE_DIR = "_sandbox";
 
+/**
+ * The system skills that ship with NodeTool.
+ *
+ * A system skill is a `SKILL.md` — frontmatter naming it, Markdown body — under
+ * a directory of its own, read-only at runtime. Same two-root shape as the
+ * sandbox packs above and for the same reason: nothing imports them, so npm
+ * links nothing, and each host reads them from where its own build put them.
+ * `NODETOOL_SYSTEM_SKILLS_DIR` overrides both.
+ */
+export const SHIPPED_SYSTEM_SKILLS_SOURCE_DIR = "packages/system-skills";
+
+/** The staged copy's directory name, relative to the bundled `server.mjs`. */
+export const SHIPPED_SYSTEM_SKILLS_BUNDLE_DIR = "_skills";
+
 /** Registry lookup by exact pkg + path. */
 export function findPackageAsset(
   pkg: string,

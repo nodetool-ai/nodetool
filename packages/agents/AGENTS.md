@@ -2052,8 +2052,33 @@ Steps can enforce structured output via JSON schema:
 
 ### Skills System
 
-Skills are user-scoped records in the `skills` database table. Each record has
-`name`, `description`, and markdown `content` columns. Agent discovery reads
+Skills come in two tiers.
+
+A **user skill** is a row in the `skills` table — `name`, `description`, and
+markdown `content` — that someone wrote and can rewrite.
+
+A **system skill** ships with the build: a `SKILL.md` under
+`packages/system-skills/<name>/`, frontmatter naming it, and it is **read-only
+at runtime**. The tier exists because the two properties a user row cannot have
+both matter: every install has the skill on day one with no seeding migration to
+drift per machine, and nothing — including an agent acting on its own
+mis-read instructions — can edit or delete the document it is working from.
+`system-skills.ts` reads them (cached per process) from `_skills/` beside the
+bundled `server.mjs`, else `packages/system-skills` on the way up from the
+module, else `NODETOOL_SYSTEM_SKILLS_DIR` — the same two-root shape as the
+sandbox packs, and for the same reason: nothing imports them, so they are not
+workspaces and npm links nothing. `bundle-backend.mjs` stages them and
+`verify-backend-bundle.mjs` fails a build that ships none.
+
+Both tiers share one catalog. `list_skills` and `load_skill` serve either, each
+answer carrying `system: true|false`; `create_skill`, `update_skill` and
+`delete_skill` refuse a shipped name, including a rename onto one. A user row
+that *already* held the name predates the reservation, so it wins and the
+shipped skill is not listed twice — reserving names stops new collisions, not
+old ones. A malformed `SKILL.md` is skipped rather than fatal: one bad shipped
+file must not cost a user every other skill.
+
+Each record has `name`, `description`, and markdown `content` columns. Agent discovery reads
 the current user's records through the models layer and merges trusted
 sandbox-pack skills supplied for the session.
 

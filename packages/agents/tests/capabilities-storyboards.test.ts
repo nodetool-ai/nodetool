@@ -246,6 +246,85 @@ describe("storyboards capability behaviour", () => {
   beforeEach(() => initTestDb());
   afterEach(() => ModelObserver.clear());
 
+  it("returns the new board id under `id` as well as `storyboard_id`", async () => {
+    const created = (await run(ctx()).invoke("create_storyboard", {
+      name: "Ids"
+    })) as { storyboard_id: string; id: string };
+    // Reading `.id` off this result and passing the undefined onward is what a
+    // create/edit pair actually did; the edit then blamed a missing argument.
+    expect(created.id).toBe(created.storyboard_id);
+    expect(typeof created.id).toBe("string");
+  });
+
+  it("set_board stores the board's image and video models", async () => {
+    const context = ctx();
+    const created = (await run(context).invoke("create_storyboard", {
+      name: "Models"
+    })) as { storyboard_id: string };
+
+    const imageModel = {
+      type: "image_model",
+      provider: "atlascloud",
+      id: "openai/gpt-image-2/text-to-image"
+    };
+    const edited = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [{ op: "set_board", image_model: imageModel }]
+    })) as { applied: number };
+    expect(edited.applied).toBe(1);
+
+    const read = (await run(context).invoke("get_storyboard", {
+      storyboard_id: created.storyboard_id
+    })) as { image_model: Record<string, unknown> | null };
+    // Before this the keys were dropped silently: the op reported success and
+    // the render then refused for want of a model.
+    expect(read.image_model).toMatchObject({
+      provider: "atlascloud",
+      id: "openai/gpt-image-2/text-to-image"
+    });
+  });
+
+  it("set_board clears a model when passed null", async () => {
+    const context = ctx();
+    const created = (await run(context).invoke("create_storyboard", {
+      name: "Clear"
+    })) as { storyboard_id: string };
+    await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [{ op: "set_board", video_model: { provider: "fal_ai", id: "x" } }]
+    });
+    await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      ops: [{ op: "set_board", video_model: null }]
+    });
+    const read = (await run(context).invoke("get_storyboard", {
+      storyboard_id: created.storyboard_id
+    })) as { video_model: unknown };
+    expect(read.video_model).toBeNull();
+  });
+
+  it("refuses an op key it does not know instead of dropping it", async () => {
+    const context = ctx();
+    const created = (await run(context).invoke("create_storyboard", {
+      name: "Unknown keys"
+    })) as { storyboard_id: string };
+
+    const refused = (await run(context).invoke("edit_storyboard", {
+      storyboard_id: created.storyboard_id,
+      // `set_entities` is the op name a caller reached for; it does not exist,
+      // and passing its argument to set_board used to succeed and change nothing.
+      ops: [{ op: "set_board", entities: ["a", "b"] }]
+    })) as {
+      applied: number;
+      failed: number;
+      ops: Array<{ error?: string }>;
+    };
+    expect(refused.applied).toBe(0);
+    expect(refused.failed).toBe(1);
+    expect(refused.ops[0].error).toContain("`entities`");
+    expect(refused.ops[0].error).toContain("entity_ids");
+  });
+
   it("sets a shot's duration source, and refuses an unknown one", async () => {
     const context = ctx();
     const created = (await run(context).invoke("create_storyboard", {

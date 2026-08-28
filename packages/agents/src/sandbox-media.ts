@@ -440,11 +440,59 @@ export function sniffImageFormat(bytes: Uint8Array): string {
   return "unknown";
 }
 
+/**
+ * Structural check before the native decoder sees the bytes.
+ *
+ * `@napi-rs/canvas` does not merely fail on a truncated image — on linux-x64 it
+ * **segfaults the process**, and on other builds it reports "Invalid SVG image"
+ * for bytes whose own magic number says PNG, which sends the reader hunting for
+ * an SVG that was never involved. Both are reachable from guest code with
+ * nothing but a short read, so the check belongs here rather than in whichever
+ * caller happened to produce a partial buffer.
+ *
+ * This is a terminator check, not a validation: it proves the byte stream ends
+ * where its container says it should. A corrupt middle still reaches the
+ * decoder, which is the decoder's job.
+ */
+function assertDecodable(bytes: Uint8Array, label: string): void {
+  const format = sniffImageFormat(bytes);
+  const fail = (why: string): never => {
+    throw new Error(
+      `${label}: the ${format} data is incomplete (${why}). ` +
+        `Got ${bytes.length} bytes — the source was likely truncated.`
+    );
+  };
+  if (format === "png") {
+    // 8-byte signature + at least one chunk, ending in IEND.
+    if (bytes.length < 57) fail("shorter than the smallest possible PNG");
+    const end = bytes.subarray(bytes.length - 8);
+    const iend = [0x49, 0x45, 0x4e, 0x44];
+    if (!iend.every((b, i) => end[i] === b)) fail("no IEND chunk at the end");
+    return;
+  }
+  if (format === "jpeg") {
+    if (bytes.length < 4) fail("shorter than the smallest possible JPEG");
+    const last = bytes.length - 1;
+    // EOI marker FFD9. Some encoders pad after it, so scan the tail.
+    let found = false;
+    for (let i = last; i >= Math.max(0, last - 32) && !found; i--) {
+      if (bytes[i - 1] === 0xff && bytes[i] === 0xd9) found = true;
+    }
+    if (!found) fail("no EOI marker at the end");
+    return;
+  }
+  if (format === "gif") {
+    if (bytes.length < 14) fail("shorter than the smallest possible GIF");
+    if (bytes[bytes.length - 1] !== 0x3b) fail("no trailer byte at the end");
+  }
+}
+
 async function decodeImage(
   bytes: Uint8Array,
   label: string
 ): Promise<{ backend: MediaBackend; image: MediaImage }> {
   assertInputSize(bytes, label);
+  assertDecodable(bytes, label);
   const backend = await getMediaBackend();
   let image: MediaImage;
   try {
