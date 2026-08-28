@@ -1029,9 +1029,6 @@ export interface BuiltinPackStatus {
 export type RuntimePackageId =
   | "python"
   | "nodejs"
-  | "bash"
-  | "ruby"
-  | "lua"
   | "ffmpeg"
   | "pandoc"
   | "pdftotext"

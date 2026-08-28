@@ -29,9 +29,6 @@ const RUNTIME_COMMANDS: Record<string, string> = {
 export const KNOWN_RUNTIMES = [
   "python",
   "nodejs",
-  "bash",
-  "ruby",
-  "lua",
   "ffmpeg",
   "ffprobe",
   "pandoc",

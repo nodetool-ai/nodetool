@@ -20,9 +20,6 @@ import { trpcClient } from "../trpc/client";
 const SERVER_RUNTIME_LABELS: Record<string, string> = {
   python: "Python",
   nodejs: "Node.js",
-  bash: "Bash",
-  ruby: "Ruby",
-  lua: "Lua",
   ffmpeg: "FFmpeg",
   ffprobe: "ffprobe",
   pandoc: "Pandoc",
