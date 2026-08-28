@@ -69,6 +69,10 @@ const inspectorPanelSx = {
   boxSizing: "border-box"
 };
 
+// Hoisted so InspectorPillInput's memo holds — see ClipAdjustments.
+const SCRUB_DURATION = { step: 0.02, min: 0.01 };
+const SCRUB_SPEED = { step: 0.01, min: 0.1, max: 8 };
+
 const TEXT_ALIGNMENTS = [
   { value: "left", label: "Left" },
   { value: "center", label: "Center" },
@@ -112,6 +116,41 @@ export const TimelineInspector: React.FC = memo(() => {
       const value =
         min != null && max != null ? clamp(parsed, min, max) : parsed;
       patchClip(clipId, { [field]: value });
+    },
+    [clipId, patchClip]
+  );
+
+  // The timing rows feed memoized pills, so these handlers need a stable
+  // identity — otherwise editing one re-renders the other two.
+  const handleStartCommit = useCallback(
+    (raw: string) => {
+      if (!clipId) return;
+      const ms = parseTimecode(raw, fps);
+      if (ms == null) return;
+      patchClip(clipId, { startMs: Math.max(0, ms) });
+    },
+    [clipId, fps, patchClip]
+  );
+
+  const handleDurationCommit = useCallback(
+    (raw: string) => {
+      if (!clipId) return;
+      const ms = parseSeconds(raw);
+      if (ms == null || ms < 1) return;
+      patchClip(clipId, { durationMs: ms });
+    },
+    [clipId, patchClip]
+  );
+
+  const handleSpeedCommit = useCallback(
+    (raw: string) => onPatchNumber("speedMultiplier", raw, 0.1, 8),
+    [onPatchNumber]
+  );
+
+  const handleHiddenChange = useCallback(
+    (next: boolean) => {
+      if (!clipId) return;
+      patchClip(clipId, { hidden: next });
     },
     [clipId, patchClip]
   );
@@ -335,11 +374,7 @@ export const TimelineInspector: React.FC = memo(() => {
           <InspectorRow label="Start">
             <InspectorPillInput
               value={formatTimecode(clip.startMs, fps)}
-              onCommit={(raw) => {
-                const ms = parseTimecode(raw, fps);
-                if (ms == null) return;
-                patchClip(clip.id, { startMs: Math.max(0, ms) });
-              }}
+              onCommit={handleStartCommit}
               minWidth={112}
               ariaLabel="Start timecode"
             />
@@ -348,12 +383,8 @@ export const TimelineInspector: React.FC = memo(() => {
             <InspectorPillInput
               value={(clip.durationMs / 1000).toFixed(2)}
               unit="s"
-              scrub={{ step: 0.02, min: 0.01 }}
-              onCommit={(raw) => {
-                const ms = parseSeconds(raw);
-                if (ms == null || ms < 1) return;
-                patchClip(clip.id, { durationMs: ms });
-              }}
+              scrub={SCRUB_DURATION}
+              onCommit={handleDurationCommit}
               ariaLabel="Duration in seconds"
             />
           </InspectorRow>
@@ -361,15 +392,15 @@ export const TimelineInspector: React.FC = memo(() => {
             <InspectorPillInput
               value={(clip.speedMultiplier ?? 1).toFixed(2)}
               unit="×"
-              scrub={{ step: 0.01, min: 0.1, max: 8 }}
-              onCommit={(raw) => onPatchNumber("speedMultiplier", raw, 0.1, 8)}
+              scrub={SCRUB_SPEED}
+              onCommit={handleSpeedCommit}
               ariaLabel="Playback speed"
             />
           </InspectorRow>
           <InspectorToggleRow
             label="Hidden"
             checked={!!clip.hidden}
-            onChange={(next) => patchClip(clip.id, { hidden: next })}
+            onChange={handleHiddenChange}
           />
         </FlexColumn>
       </CollapsibleSection>

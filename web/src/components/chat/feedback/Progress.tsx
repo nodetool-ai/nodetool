@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { memo, useMemo, useRef } from "react";
 import { ProgressBar } from "../../ui_primitives";
 
 interface ProgressProps {
@@ -6,7 +6,12 @@ interface ProgressProps {
   total: number;
 }
 
-export const Progress: React.FC<ProgressProps> = ({ progress, total }) => {
+// Memoized because the chat status footer re-renders once a second off its
+// elapsed timer, far more often than progress actually moves.
+export const Progress = memo(function Progress({
+  progress,
+  total
+}: ProgressProps) {
   const startTimeRef = useRef<number>(Date.now());
 
   const eta = useMemo(() => {
@@ -29,4 +34,4 @@ export const Progress: React.FC<ProgressProps> = ({ progress, total }) => {
       />
     </div>
   );
-};
+});

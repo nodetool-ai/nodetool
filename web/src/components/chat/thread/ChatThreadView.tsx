@@ -25,6 +25,7 @@ import {
 } from "../../ui_primitives";
 import {
   Message,
+  MessageContent,
   PlanningUpdate,
   TaskUpdate,
   LogUpdate
@@ -82,6 +83,10 @@ interface ChatThreadViewProps {
   /** Render task updates inline. Full chat surfaces move them to a right rail. */
   showTaskUpdate?: boolean;
 }
+
+// StatusFooter re-renders once a second while a reply streams; a fresh `[]`
+// would carry MediaOutputGroup along with it.
+const EMPTY_MEDIA_CONTENTS: MessageContent[] = [];
 
 const SCROLL_THRESHOLD = 50;
 const ESTIMATED_MESSAGE_HEIGHT = 200;
@@ -220,7 +225,7 @@ const StatusFooter = memo<StatusFooterProps>(
           <div className="chat-message-list-item">
             <MediaOutputGroup
               message={pendingMediaMessage}
-              mediaContents={[]}
+              mediaContents={EMPTY_MEDIA_CONTENTS}
               isPending
             />
           </div>
