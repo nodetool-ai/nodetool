@@ -33,6 +33,8 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
 const moveShotMock = jest.fn();
 const removeShotMock = jest.fn();
 const updateShotMock = jest.fn();
+const removeKeyframeVersionMock = jest.fn();
+const removeClipVersionMock = jest.fn();
 /** Script the board links, if any — set per test before rendering. */
 let linkedScriptId: string | null = null;
 jest.mock("../../../stores/storyboard/StoryboardStore", () => {
@@ -51,6 +53,8 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => {
         updateShot: updateShotMock,
         selectKeyframeVersion: jest.fn(),
         selectClipVersion: jest.fn(),
+        removeKeyframeVersion: removeKeyframeVersionMock,
+        removeClipVersion: removeClipVersionMock,
         boards: {
           "board-1": {
             screenplay: linkedScriptId ? { script_id: linkedScriptId } : null
@@ -146,6 +150,8 @@ describe("ShotCard", () => {
     moveShotMock.mockClear();
     removeShotMock.mockClear();
     updateShotMock.mockClear();
+    removeKeyframeVersionMock.mockClear();
+    removeClipVersionMock.mockClear();
     linkedScriptId = null;
     lineIsVoiced = true;
   });
@@ -320,6 +326,48 @@ describe("ShotCard", () => {
     renderCard(makeShot());
     expect(
       screen.queryByRole("button", { name: /fullscreen/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the destructive take actions in the overflow menu", async () => {
+    renderCard(
+      makeShot({
+        status: "rendered",
+        keyframe: { type: "image", uri: "http://example.com/still.png" },
+        clip: { type: "video", uri: "http://example.com/clip.mp4" }
+      })
+    );
+
+    // The action row stays short: removals live behind the overflow.
+    expect(
+      screen.queryByRole("menuitem", { name: "Remove still" })
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "More shot actions" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Remove still" })
+    );
+    expect(removeKeyframeVersionMock).toHaveBeenCalledWith(
+      "board-1",
+      "shot-1",
+      0
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "More shot actions" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Remove clip" })
+    );
+    expect(removeClipVersionMock).toHaveBeenCalledWith("board-1", "shot-1", 0);
+  });
+
+  it("offers no overflow menu before a shot has any media", () => {
+    renderCard(makeShot());
+    expect(
+      screen.queryByRole("button", { name: "More shot actions" })
     ).not.toBeInTheDocument();
   });
 

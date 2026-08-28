@@ -18,6 +18,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 import {
   Box,
@@ -26,6 +27,8 @@ import {
   Chip,
   Dialog,
   EditorButton,
+  EditorMenu,
+  EditorMenuItem,
   FlexColumn,
   FlexRow,
   HoverActionGroup,
@@ -53,7 +56,10 @@ import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useShotDuration } from "../../hooks/storyboard/useShotDuration";
 import { useEntities } from "../../serverState/useEntities";
-import { getEntityKindChipSx } from "../entities/entityKind";
+import {
+  getEntityChipSx,
+  getEntityKindDotSx
+} from "../entities/entityKind";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
 interface ShotCardProps {
@@ -100,11 +106,27 @@ const previewSx = {
 const cardGridSx = {
   display: "grid",
   gridTemplateColumns: "minmax(220px, 300px) minmax(0, 1fr)",
-  gap: SPACING.md,
+  gap: SPACING.lg,
   alignItems: "start",
   "@media (max-width: 720px)": {
     gridTemplateColumns: "minmax(0, 1fr)"
   }
+} as const;
+
+/**
+ * Secondary actions read as text rather than as a row of equal accent links;
+ * only the step the shot has not taken yet keeps the accent.
+ */
+const quietActionSx = {
+  color: "text.secondary",
+  "&:hover": { color: "text.primary", bgcolor: "c_overlay_subtle" }
+} as const;
+
+/** Metadata chips carry no status color — the label is the whole signal. */
+const quietChipSx = {
+  borderRadius: BORDER_RADIUS.pill,
+  color: "text.secondary",
+  borderColor: "divider"
 } as const;
 
 /** The glow that travels around the frame while a still or clip renders. */
@@ -196,6 +218,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   }, [allEntities, boardEntityIds, shot]);
 
   const [reviseOpen, setReviseOpen] = useState(false);
+  // Anchor for the overflow menu holding the destructive take actions; null
+  // when it is closed.
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [reviseText, setReviseText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   // The still or clip the fullscreen viewer shows; null when it is closed.
@@ -269,11 +294,26 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     duration.seconds != null
       ? `${duration.seconds}s · ${duration.source === "audio" ? "from takes" : "manual"}`
       : "model default";
+  // Camera and cost share one quiet line under the action text; neither is
+  // worth a chip of its own.
+  const metaLine = [
+    camera.length > 0 ? camera : null,
+    shot.cost_estimate != null ? `~$${shot.cost_estimate.toFixed(2)}` : null
+  ]
+    .filter((p): p is string => p !== null)
+    .join(" · ");
+
   const handleToggleDurationSource = useCallback(() => {
     updateShot(boardId, shot.id, {
       duration_source: shot.duration_source === "manual" ? "audio" : "manual"
     });
   }, [updateShot, boardId, shot.id, shot.duration_source]);
+
+  const handleOpenMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => setMenuAnchor(event.currentTarget),
+    []
+  );
+  const handleCloseMenu = useCallback(() => setMenuAnchor(null), []);
 
   const handleDelete = useCallback(() => {
     removeShot(boardId, shot.id);
@@ -281,6 +321,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   }, [removeShot, boardId, shot.id]);
 
   const handleRemoveStill = useCallback(() => {
+    setMenuAnchor(null);
     const versions =
       shot.keyframe_versions ?? (shot.keyframe ? [shot.keyframe] : []);
     if (versions.length === 0 || !shot.keyframe) {
@@ -300,6 +341,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   ]);
 
   const handleRemoveClip = useCallback(() => {
+    setMenuAnchor(null);
     const versions = shot.clip_versions ?? (shot.clip ? [shot.clip] : []);
     if (versions.length === 0 || !shot.clip) {
       return;
@@ -396,37 +438,16 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       </Box>
 
       <FlexColumn gap={SPACING.sm} sx={{ minWidth: 0 }}>
-        <FlexRow align="center" justify="space-between" gap={SPACING.xs} wrap>
-          <Text size="small" truncate>
+        <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
+          <Text size="small" truncate sx={{ minWidth: 0 }}>
             {shotName}
           </Text>
-          <FlexRow align="center" gap={SPACING.xs}>
-            {shot.cost_estimate != null && (
-              <Chip
-                compact
-                color="info"
-                label={`~$${shot.cost_estimate.toFixed(2)}`}
-              />
-            )}
-            {linksLines && (
-              <Chip
-                compact
-                color={duration.source === "audio" ? "info" : "default"}
-                variant={duration.source === "audio" ? "filled" : "outlined"}
-                label={durationLabel}
-                sx={{ borderRadius: BORDER_RADIUS.pill }}
-                title={
-                  duration.source === "audio"
-                    ? "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own duration."
-                    : "Length is pinned to the shot's own duration. Click to take it from the lines this shot covers."
-                }
-                onClick={readOnly ? undefined : handleToggleDurationSource}
-              />
-            )}
+          <FlexRow align="center" gap={SPACING.xs} sx={{ flexShrink: 0 }}>
             <StatusIndicator
               status={meta.status}
               label={meta.label}
               pulse={meta.pulse}
+              labelTone={failed ? "status" : "muted"}
             />
             {!readOnly && (
               <HoverActionGroup
@@ -473,12 +494,32 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           </Caption>
         )}
 
-        <Text lineClamp={3}>{shot.action}</Text>
+        <Text lineClamp={3} sx={{ lineHeight: 1.6 }}>
+          {shot.action}
+        </Text>
 
-        {camera.length > 0 && (
-          <Caption color="secondary" noWrap>
-            {camera}
-          </Caption>
+        {(metaLine.length > 0 || linksLines) && (
+          <FlexRow align="center" gap={SPACING.sm} wrap>
+            {metaLine.length > 0 && (
+              <Caption color="secondary" noWrap>
+                {metaLine}
+              </Caption>
+            )}
+            {linksLines && (
+              <Chip
+                compact
+                variant="outlined"
+                label={durationLabel}
+                sx={quietChipSx}
+                title={
+                  duration.source === "audio"
+                    ? "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own duration."
+                    : "Length is pinned to the shot's own duration. Click to take it from the lines this shot covers."
+                }
+                onClick={readOnly ? undefined : handleToggleDurationSource}
+              />
+            )}
+          </FlexRow>
         )}
 
         {boardEntities.length > 0 && (
@@ -491,14 +532,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                   compact
                   label={entity.name || "Untitled"}
                   variant="outlined"
-                  sx={
-                    applied
-                      ? getEntityKindChipSx(entity.kind)
-                      : {
-                          borderRadius: BORDER_RADIUS.pill,
-                          opacity: 0.55
-                        }
-                  }
+                  icon={<Box sx={getEntityKindDotSx(entity.kind, applied)} />}
+                  sx={getEntityChipSx(applied)}
                   title={
                     applied
                       ? `${entity.descriptor || entity.name}: click to exclude from this shot`
@@ -521,16 +556,23 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         <ShotScriptPanel boardId={boardId} shot={shot} readOnly={readOnly} />
 
         {!readOnly && (
-          <FlexRow gap={SPACING.micro} wrap>
+          <FlexRow
+            gap={SPACING.xs}
+            align="center"
+            wrap
+            sx={{ mt: SPACING.xs }}
+          >
             <EditorButton
               onClick={handleGenerateStill}
               disabled={isGenerating}
+              sx={shot.keyframe ? quietActionSx : undefined}
             >
               {shot.keyframe ? "New still" : "Generate still"}
             </EditorButton>
             <EditorButton
               onClick={handleGenerateClip}
               disabled={isGenerating || !shot.keyframe}
+              sx={shot.clip ? quietActionSx : undefined}
               title={
                 shot.keyframe
                   ? "Animate the selected still into a clip"
@@ -543,31 +585,40 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
               <EditorButton
                 onClick={() => setReviseOpen(true)}
                 disabled={isGenerating}
+                sx={quietActionSx}
               >
                 Revise clip
               </EditorButton>
             )}
-            {shot.keyframe && (
-              <EditorButton
-                onClick={handleRemoveStill}
+            {(shot.keyframe || shot.clip) && (
+              <ToolbarIconButton
+                icon={<MoreHorizIcon sx={{ fontSize: "1em" }} />}
+                tooltip="More actions"
+                ariaLabel="More shot actions"
+                onClick={handleOpenMenu}
                 disabled={isGenerating}
-                title="Remove the selected still from this shot"
-              >
-                Remove still
-              </EditorButton>
-            )}
-            {shot.clip && (
-              <EditorButton
-                onClick={handleRemoveClip}
-                disabled={isGenerating}
-                title="Remove the selected clip from this shot"
-              >
-                Remove clip
-              </EditorButton>
+              />
             )}
           </FlexRow>
         )}
       </FlexColumn>
+
+      <EditorMenu
+        open={menuAnchor !== null}
+        anchorEl={menuAnchor}
+        onClose={handleCloseMenu}
+      >
+        {shot.keyframe && (
+          <EditorMenuItem onClick={handleRemoveStill}>
+            Remove still
+          </EditorMenuItem>
+        )}
+        {shot.clip && (
+          <EditorMenuItem onClick={handleRemoveClip}>
+            Remove clip
+          </EditorMenuItem>
+        )}
+      </EditorMenu>
 
       <Dialog
         open={reviseOpen}

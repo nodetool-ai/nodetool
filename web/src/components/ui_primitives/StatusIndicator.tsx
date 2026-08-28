@@ -47,6 +47,12 @@ export interface StatusIndicatorProps {
   filledIcon?: boolean;
   /** Pulse animation for pending/active states */
   pulse?: boolean;
+  /**
+   * Label color. "status" tints the label like the dot; "muted" keeps the
+   * label in secondary text so a wall of indicators stays quiet and only the
+   * dot carries the color.
+   */
+  labelTone?: "status" | "muted";
   /** Optional tooltip */
   tooltip?: string;
   /** Size */
@@ -70,6 +76,7 @@ const StatusIndicatorInternal: React.FC<StatusIndicatorProps> = ({
   showIcon = true,
   filledIcon = false,
   pulse = false,
+  labelTone = "status",
   tooltip,
   size = "small",
   className
@@ -108,7 +115,7 @@ const StatusIndicatorInternal: React.FC<StatusIndicatorProps> = ({
           color: statusColors[status]
         },
         ".status-label": {
-          color: statusColors[status],
+          color: labelTone === "muted" ? "text.secondary" : statusColors[status],
           fontSize: size === "small" ? 12 : 14
         }
       }}
