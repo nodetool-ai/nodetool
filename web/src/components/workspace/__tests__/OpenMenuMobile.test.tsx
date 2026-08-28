@@ -1,18 +1,10 @@
 /**
- * The `[+]` menu at phone width creates only. The browse sheet behind the
- * hamburger already lists every document by category, so "Open workflow… /
- * asset… / chat…" here put the same lists behind a second button in a top row
- * that has room for neither.
+ * The `[+]` menu creates documents. Open-existing entries live in the
+ * left panel, not here.
  */
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-
-let matchesMobile = true;
-jest.mock("@mui/material/useMediaQuery", () => ({
-  __esModule: true,
-  default: () => matchesMobile
-}));
 
 jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
   useCreateStoryboard: () => ({ mutateAsync: jest.fn() }),
@@ -41,13 +33,6 @@ jest.mock("../../../stores/GlobalChatStore", () => ({
   default: <T,>(selector: (s: { createNewThread: jest.Mock }) => T) =>
     selector({ createNewThread: jest.fn() })
 }));
-jest.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({ data: undefined, isLoading: false, isFetching: false })
-}));
-jest.mock("../../../trpc/client", () => ({ trpcClient: {} }));
-jest.mock("../../../serverState/useAssetSearch", () => ({
-  useAssetSearch: () => ({ searchAssets: jest.fn() })
-}));
 jest.mock("../../../hooks/useTimelineSequence", () => ({
   useCreateTimeline: () => ({ mutateAsync: jest.fn() })
 }));
@@ -60,8 +45,8 @@ jest.mock("../../../hooks/script/useScripts", () => ({
 jest.mock("../../../hooks/jsScript/useJsScripts", () => ({
   useCreateJsScript: () => ({ mutateAsync: jest.fn() })
 }));
-jest.mock("../../../hooks/useAutoFocusEnabled", () => ({
-  useAutoFocusEnabled: () => false
+jest.mock("../../../hooks/skills/useSkills", () => ({
+  useCreateSkill: () => ({ mutateAsync: jest.fn() })
 }));
 
 import OpenMenu from "../OpenMenu";
@@ -75,24 +60,15 @@ const renderMenu = () =>
 
 const OPEN_ITEMS = ["Open workflow…", "Open asset…", "Open chat…"];
 
-describe("OpenMenu at phone width", () => {
-  it("keeps the creators and drops the open-existing entries", () => {
-    matchesMobile = true;
+describe("OpenMenu", () => {
+  it("offers creators and no open-existing entries", () => {
     renderMenu();
 
     expect(screen.getByText("New workflow")).toBeInTheDocument();
     expect(screen.getByText("New chat")).toBeInTheDocument();
+    expect(screen.getByText("New skill")).toBeInTheDocument();
     for (const label of OPEN_ITEMS) {
       expect(screen.queryByText(label)).not.toBeInTheDocument();
-    }
-  });
-
-  it("still offers them on desktop", () => {
-    matchesMobile = false;
-    renderMenu();
-
-    for (const label of OPEN_ITEMS) {
-      expect(screen.getByText(label)).toBeInTheDocument();
     }
   });
 });

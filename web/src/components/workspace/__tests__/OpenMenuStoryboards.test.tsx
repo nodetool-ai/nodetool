@@ -69,14 +69,6 @@ jest.mock("../../../stores/GlobalChatStore", () => ({
     selector({ createNewThread: jest.fn() })
 }));
 
-jest.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({ data: undefined, isLoading: false, isFetching: false })
-}));
-
-jest.mock("../../../trpc/client", () => ({ trpcClient: {} }));
-jest.mock("../../../serverState/useAssetSearch", () => ({
-  useAssetSearch: () => ({ searchAssets: jest.fn() })
-}));
 jest.mock("../../../hooks/useTimelineSequence", () => ({
   useCreateTimeline: () => ({ mutateAsync: jest.fn() })
 }));
@@ -89,8 +81,8 @@ jest.mock("../../../hooks/script/useScripts", () => ({
 jest.mock("../../../hooks/jsScript/useJsScripts", () => ({
   useCreateJsScript: () => ({ mutateAsync: jest.fn() })
 }));
-jest.mock("../../../hooks/useAutoFocusEnabled", () => ({
-  useAutoFocusEnabled: () => false
+jest.mock("../../../hooks/skills/useSkills", () => ({
+  useCreateSkill: () => ({ mutateAsync: jest.fn() })
 }));
 
 import OpenMenu from "../OpenMenu";

@@ -1,7 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useMediaQuery } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
@@ -12,19 +9,17 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
 import {
   Popover,
   MenuItemPrimitive,
-  TextInput,
   FlexColumn,
   FlexRow,
   Caption,
   LoadingSpinner
 } from "../ui_primitives";
-import { trpcClient } from "../../trpc/client";
-import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
 import {
   useCreateStoryboard,
@@ -34,21 +29,13 @@ import {
 import { useCreateApplication } from "../../hooks/useApplications";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useCreateJsScript } from "../../hooks/jsScript/useJsScripts";
+import { useCreateSkill } from "../../hooks/skills/useSkills";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import {
-  useWorkspaceTabsStore,
-  type WorkspaceTabType
-} from "../../stores/WorkspaceTabsStore";
-import { assetTabType } from "./assetTabType";
-import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
-import type {
-  WorkflowList,
-  AssetWithPath,
-  Thread
-} from "../../stores/ApiTypes";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 /** Render a blank white PNG to seed a "New image" canvas asset. */
 const createBlankImageFile = (): Promise<File> =>
@@ -97,13 +84,7 @@ interface OpenMenuProps {
   onClose: () => void;
 }
 
-type MenuView =
-  | "root"
-  | "texts"
-  | "storyboards"
-  | "workflows"
-  | "assets"
-  | "chats";
+type MenuView = "root" | "texts" | "storyboards";
 
 interface TextFileTemplate {
   label: string;
@@ -152,22 +133,10 @@ const TEXT_FILE_TEMPLATES: readonly TextFileTemplate[] = [
 ];
 
 /**
- * The `[+]` menu for the workspace tab bar: create a new workflow, or open an
- * existing workflow or asset as a tab. A lightweight stand-in for the deferred
- * home/launcher screen.
- *
- * On mobile it creates only — the browse sheet behind the hamburger lists
- * every document by category, so the "Open …" entries put the same lists
- * behind a second button in a top row with room for neither.
+ * The `[+]` menu for the workspace tab bar: create a new document as a tab.
  */
 const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [view, setView] = useState<MenuView>("root");
-  const autoFocusEnabled = useAutoFocusEnabled();
-  const [assetQuery, setAssetQuery] = useState("");
-  const [wfFilter, setWfFilter] = useState("");
-  const [chatFilter, setChatFilter] = useState("");
   /** Label of the "New X" creator currently in flight, if any. */
   const [creating, setCreating] = useState<string | null>(null);
 
@@ -184,13 +153,10 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const createApplication = useCreateApplication();
   const createScript = useCreateScript();
   const createJsScript = useCreateJsScript();
-  const { searchAssets } = useAssetSearch();
+  const createSkill = useCreateSkill();
 
   const close = useCallback(() => {
     setView("root");
-    setAssetQuery("");
-    setWfFilter("");
-    setChatFilter("");
     onClose();
   }, [onClose]);
 
@@ -369,6 +335,26 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     [runCreate, createJsScript, openTab]
   );
 
+  const handleNewSkill = useCallback(
+    () =>
+      runCreate("skill", async () => {
+        const created = await createSkill.mutateAsync({
+          id: newDocumentId(),
+          name: `skill-${Date.now().toString(36)}`,
+          description: "A reusable skill for the NodeTool agent.",
+          content:
+            "# New skill\n\nDescribe what this skill does and when the agent should use it."
+        });
+        openTab({
+          type: "skill",
+          ref: created.id,
+          mode: "edit",
+          title: created.name || "Untitled skill"
+        });
+      }),
+    [runCreate, createSkill, openTab]
+  );
+
   const handleNewChat = useCallback(
     () =>
       runCreate("chat", async () => {
@@ -400,95 +386,6 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const { data: exampleData, isLoading: examplesLoading } =
     useExampleStoryboards(open && view === "storyboards");
   const exampleStoryboards = useMemo(() => exampleData ?? [], [exampleData]);
-
-  const { data: workflowList, isLoading: workflowsLoading } =
-    useQuery<WorkflowList>({
-      queryKey: ["open-menu", "workflows"],
-      queryFn: () =>
-        trpcClient.workflows.list.query({
-          cursor: "",
-          limit: 200
-        }) as Promise<WorkflowList>,
-      enabled: open && view === "workflows",
-      staleTime: 30_000
-    });
-
-  const workflows = useMemo(() => {
-    const all = workflowList?.workflows ?? [];
-    const needle = wfFilter.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter((w) => w.name.toLowerCase().includes(needle));
-  }, [workflowList, wfFilter]);
-
-  const { data: threadList, isLoading: threadsLoading } = useQuery({
-    queryKey: ["open-menu", "threads"],
-    queryFn: () => trpcClient.threads.list.query({ limit: 100 }),
-    enabled: open && view === "chats",
-    staleTime: 30_000
-  });
-
-  const chatThreads = useMemo(() => {
-    const all: Thread[] = threadList?.threads ?? [];
-    const needle = chatFilter.trim().toLowerCase();
-    const filtered = needle
-      ? all.filter((t) => (t.title ?? "").toLowerCase().includes(needle))
-      : all;
-    return [...filtered].sort((a, b) =>
-      (b.updated_at ?? "").localeCompare(a.updated_at ?? "")
-    );
-  }, [threadList, chatFilter]);
-
-  const openChat = useCallback(
-    (thread: Thread) => {
-      openTab({
-        type: "chat",
-        ref: thread.id,
-        mode: "view",
-        title: thread.title || "Untitled chat"
-      });
-      close();
-    },
-    [openTab, close]
-  );
-
-  const trimmedAssetQuery = assetQuery.trim();
-  const { data: assetResult, isFetching: assetsFetching } = useQuery({
-    queryKey: ["open-menu", "assets", trimmedAssetQuery],
-    queryFn: () => searchAssets(trimmedAssetQuery, undefined, 100),
-    enabled: open && view === "assets" && trimmedAssetQuery.length >= 2,
-    staleTime: 15_000
-  });
-
-  const openableAssets = useMemo(() => {
-    const assets = assetResult?.assets ?? [];
-    return assets
-      .map((asset) => ({ asset, type: assetTabType(asset) }))
-      .filter(
-        (entry): entry is { asset: AssetWithPath; type: WorkspaceTabType } =>
-          entry.type !== null
-      );
-  }, [assetResult]);
-
-  const openWorkflow = useCallback(
-    (id: string, name: string) => {
-      openTab({ type: "workflow", ref: id, mode: "edit", title: name });
-      close();
-    },
-    [openTab, close]
-  );
-
-  const openAsset = useCallback(
-    (asset: AssetWithPath, type: WorkspaceTabType) => {
-      openTab({
-        type,
-        ref: asset.id,
-        mode: "view",
-        title: asset.name || "Untitled"
-      });
-      close();
-    },
-    [openTab, close]
-  );
 
   return (
     <Popover
@@ -559,31 +456,17 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               disabled={creating !== null}
             />
             <MenuItemPrimitive
+              label="New skill"
+              icon={<AutoAwesomeOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewSkill()}
+              disabled={creating !== null}
+            />
+            <MenuItemPrimitive
               label="New 3D model"
               icon={<ViewInArOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewModel()}
               disabled={creating !== null}
-              dividerAfter={!isMobile}
             />
-            {!isMobile && (
-              <>
-                <MenuItemPrimitive
-                  label="Open workflow…"
-                  hasSubmenu
-                  onClick={() => setView("workflows")}
-                />
-                <MenuItemPrimitive
-                  label="Open asset…"
-                  hasSubmenu
-                  onClick={() => setView("assets")}
-                />
-                <MenuItemPrimitive
-                  label="Open chat…"
-                  hasSubmenu
-                  onClick={() => setView("chats")}
-                />
-              </>
-            )}
           </>
         )}
 
@@ -642,128 +525,6 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                   void handleStoryboardExample(example.slug, example.name)
                 }
                 disabled={creating !== null}
-              />
-            ))}
-          </>
-        )}
-
-        {view === "workflows" && (
-          <>
-            <MenuItemPrimitive
-              label="Back"
-              icon={<ArrowBackRoundedIcon fontSize="small" />}
-              onClick={() => setView("root")}
-              dividerAfter
-            />
-            <FlexRow sx={{ px: 1, py: 0.5 }}>
-              <TextInput
-                autoFocus={autoFocusEnabled}
-                fullWidth
-                placeholder="Filter workflows"
-                slotProps={{ htmlInput: { "aria-label": "Filter workflows" } }}
-                value={wfFilter}
-                onChange={(e) => setWfFilter(e.target.value)}
-              />
-            </FlexRow>
-            {workflowsLoading && (
-              <FlexRow justify="center" sx={{ py: 2 }}>
-                <LoadingSpinner />
-              </FlexRow>
-            )}
-            {!workflowsLoading && workflows.length === 0 && (
-              <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
-                No workflows found.
-              </Caption>
-            )}
-            {workflows.map((w) => (
-              <MenuItemPrimitive
-                key={w.id}
-                label={w.name || "Untitled"}
-                onClick={() => openWorkflow(w.id, w.name || "Untitled")}
-              />
-            ))}
-          </>
-        )}
-
-        {view === "chats" && (
-          <>
-            <MenuItemPrimitive
-              label="Back"
-              icon={<ArrowBackRoundedIcon fontSize="small" />}
-              onClick={() => setView("root")}
-              dividerAfter
-            />
-            <FlexRow sx={{ px: 1, py: 0.5 }}>
-              <TextInput
-                autoFocus={autoFocusEnabled}
-                fullWidth
-                placeholder="Filter chats"
-                slotProps={{ htmlInput: { "aria-label": "Filter chats" } }}
-                value={chatFilter}
-                onChange={(e) => setChatFilter(e.target.value)}
-              />
-            </FlexRow>
-            {threadsLoading && (
-              <FlexRow justify="center" sx={{ py: 2 }}>
-                <LoadingSpinner />
-              </FlexRow>
-            )}
-            {!threadsLoading && chatThreads.length === 0 && (
-              <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
-                No chats found.
-              </Caption>
-            )}
-            {chatThreads.map((thread) => (
-              <MenuItemPrimitive
-                key={thread.id}
-                label={thread.title || "Untitled chat"}
-                onClick={() => openChat(thread)}
-              />
-            ))}
-          </>
-        )}
-
-        {view === "assets" && (
-          <>
-            <MenuItemPrimitive
-              label="Back"
-              icon={<ArrowBackRoundedIcon fontSize="small" />}
-              onClick={() => setView("root")}
-              dividerAfter
-            />
-            <FlexRow sx={{ px: 1, py: 0.5 }}>
-              <TextInput
-                autoFocus={autoFocusEnabled}
-                fullWidth
-                placeholder="Search assets (2+ chars)"
-                slotProps={{ htmlInput: { "aria-label": "Search assets" } }}
-                value={assetQuery}
-                onChange={(e) => setAssetQuery(e.target.value)}
-              />
-            </FlexRow>
-            {trimmedAssetQuery.length < 2 && (
-              <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
-                Type at least 2 characters to search.
-              </Caption>
-            )}
-            {trimmedAssetQuery.length >= 2 && assetsFetching && (
-              <FlexRow justify="center" sx={{ py: 2 }}>
-                <LoadingSpinner />
-              </FlexRow>
-            )}
-            {trimmedAssetQuery.length >= 2 &&
-              !assetsFetching &&
-              openableAssets.length === 0 && (
-                <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
-                  No openable assets match.
-                </Caption>
-              )}
-            {openableAssets.map(({ asset, type }) => (
-              <MenuItemPrimitive
-                key={asset.id}
-                label={asset.name || "Untitled"}
-                secondary={type}
-                onClick={() => openAsset(asset, type)}
               />
             ))}
           </>
