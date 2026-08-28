@@ -22,7 +22,7 @@ import {
 } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import isEqual from "../../utils/isEqual";
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import AssetGrid from "../assets/AssetGrid";
 import {
@@ -57,6 +57,7 @@ import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import NodeLibrary from "../node_menu/NodeLibrary";
 import RailAppMenu from "./RailAppMenu";
+import AppPagesList from "./AppPagesList";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 
 import {
@@ -86,6 +87,7 @@ import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 import Fullscreen from "@mui/icons-material/Fullscreen";
 
@@ -285,9 +287,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
   return (
     <div className="vertical-toolbar">
-      {showAppMenu && (
-        <RailAppMenu />
-      )}
+      {showAppMenu && <RailAppMenu />}
       <QuickAccessSidebar
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
@@ -868,13 +868,27 @@ const MobilePanelLeft: React.FC<{
   hideLauncher = false
 }) => {
   const theme = useTheme();
+  // The app pages (Settings, Help, Downloads, …) are a section of this sheet
+  // rather than a second menu in the top row, so the sheet has two modes:
+  // browse a document category, or pick an app page.
+  const [appPagesOpen, setAppPagesOpen] = useState(false);
 
   const handleSheetViewChange = useCallback(
     (view: LeftPanelView) => {
+      setAppPagesOpen(false);
       onViewChange(view);
     },
     [onViewChange]
   );
+
+  const showAppPages = useCallback(() => setAppPagesOpen(true), []);
+
+  // Reopening the sheet lands on the documents it was browsing, not on More.
+  useEffect(() => {
+    if (!isVisible) {
+      setAppPagesOpen(false);
+    }
+  }, [isVisible]);
 
   const categoryGroups = useMemo(
     () =>
@@ -887,9 +901,13 @@ const MobilePanelLeft: React.FC<{
     [hiddenViews]
   );
 
-  const CreateAction = MOBILE_CREATE_ACTIONS[activeView];
+  const CreateAction = appPagesOpen
+    ? undefined
+    : MOBILE_CREATE_ACTIONS[activeView];
 
-  const launcherTitle = getTopLevelCategory(activeView).label;
+  const launcherTitle = appPagesOpen
+    ? "More"
+    : getTopLevelCategory(activeView).label;
 
   return (
     <>
@@ -941,6 +959,22 @@ const MobilePanelLeft: React.FC<{
               </FlexRow>
             ))}
 
+            <FlexRow className="mobile-tab-group" gap={SPACING.xs}>
+              <Tooltip
+                title="More"
+                placement="bottom"
+                delay={TOOLTIP_ENTER_DELAY}
+              >
+                <ToolbarIconButton
+                  className={`tab-button ${appPagesOpen ? "active" : ""}`}
+                  onClick={showAppPages}
+                  ariaLabel="More"
+                  tabIndex={-1}
+                  icon={<MoreHorizIcon />}
+                />
+              </Tooltip>
+            </FlexRow>
+
             <Box sx={{ flex: 1 }} />
             {CreateAction && <CreateAction />}
           </div>
@@ -952,16 +986,22 @@ const MobilePanelLeft: React.FC<{
             overflow: "hidden"
           }}
         >
-          <ContextMenuProvider>
-            <ContextMenus />
-            <PanelContent
-              activeView={activeView}
-              activeNodeCategory={activeNodeCategory}
-              setActiveNodeCategory={setActiveNodeCategory}
-              handlePanelToggle={handlePanelToggle}
-              isMobile
-            />
-          </ContextMenuProvider>
+          {appPagesOpen ? (
+            <ScrollArea>
+              <AppPagesList onAction={onClose} />
+            </ScrollArea>
+          ) : (
+            <ContextMenuProvider>
+              <ContextMenus />
+              <PanelContent
+                activeView={activeView}
+                activeNodeCategory={activeNodeCategory}
+                setActiveNodeCategory={setActiveNodeCategory}
+                handlePanelToggle={handlePanelToggle}
+                isMobile
+              />
+            </ContextMenuProvider>
+          )}
         </FlexColumn>
       </MobileBottomSheet>
     </>

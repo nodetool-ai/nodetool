@@ -1,9 +1,10 @@
 /**
  * MobileRailLauncher tests
  *
- * On mobile the vertical rail isn't rendered, so the app menu (logo) and the
- * left-panel toggle ride in the workspace top row. These tests assert both
- * buttons are present and that the toggle flips the shared panel visibility.
+ * On mobile the vertical rail isn't rendered, so the left-panel toggle rides in
+ * the workspace top row. The sheet it opens is the one navigation surface
+ * mobile has — the logo/app menu is a section inside it, not a second button
+ * here.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -14,34 +15,10 @@ import MobileRailLauncher from "../MobileRailLauncher";
 import mockTheme from "../../../__mocks__/themeMock";
 import { usePanelStore } from "../../../stores/PanelStore";
 
-jest.mock("react-router-dom", () => ({
-  useNavigate: () => jest.fn()
-}));
-
-jest.mock("../../content/Help/Help", () => () => null);
-jest.mock("../../Logo", () => () => <span data-testid="logo" />);
-
-jest.mock("../../../stores/KeyPressedStore", () => ({
-  useCombo: jest.fn()
-}));
-
-jest.mock("../../../stores/AppHeaderStore", () => ({
-  useAppHeaderStore: () => ({
-    helpOpen: false,
-    handleCloseHelp: jest.fn(),
-    handleOpenHelp: jest.fn(),
-    setHelpIndex: jest.fn()
-  })
-}));
-
-jest.mock("../../../stores/ModelDownloadStore", () => ({
-  useModelDownloadStore: () => ({ downloads: {}, openDialog: jest.fn() })
-}));
-
-const renderLauncher = (showAppMenu = true) =>
+const renderLauncher = () =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <MobileRailLauncher showAppMenu={showAppMenu} />
+      <MobileRailLauncher />
     </ThemeProvider>
   );
 
@@ -49,18 +26,11 @@ beforeEach(() => {
   usePanelStore.getState().setVisibility(false);
 });
 
-it("renders the app menu next to the panel toggle", () => {
+it("renders the panel toggle and no app menu", () => {
   renderLauncher();
 
-  expect(screen.getByLabelText("Open app menu")).toBeInTheDocument();
   expect(screen.getByLabelText("Open left panel")).toBeInTheDocument();
-});
-
-it("omits the app menu when showAppMenu is false", () => {
-  renderLauncher(false);
-
   expect(screen.queryByLabelText("Open app menu")).not.toBeInTheDocument();
-  expect(screen.getByLabelText("Open left panel")).toBeInTheDocument();
 });
 
 it("toggles panel visibility", async () => {

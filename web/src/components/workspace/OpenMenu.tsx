@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
@@ -152,9 +154,15 @@ const TEXT_FILE_TEMPLATES: readonly TextFileTemplate[] = [
 /**
  * The `[+]` menu for the workspace tab bar: create a new workflow, or open an
  * existing workflow or asset as a tab. A lightweight stand-in for the deferred
- * home/launcher screen — the only way to open existing documents until then.
+ * home/launcher screen.
+ *
+ * On mobile it creates only — the browse sheet behind the hamburger lists
+ * every document by category, so the "Open …" entries put the same lists
+ * behind a second button in a top row with room for neither.
  */
 const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [view, setView] = useState<MenuView>("root");
   const autoFocusEnabled = useAutoFocusEnabled();
   const [assetQuery, setAssetQuery] = useState("");
@@ -555,23 +563,27 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               icon={<ViewInArOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewModel()}
               disabled={creating !== null}
-              dividerAfter
+              dividerAfter={!isMobile}
             />
-            <MenuItemPrimitive
-              label="Open workflow…"
-              hasSubmenu
-              onClick={() => setView("workflows")}
-            />
-            <MenuItemPrimitive
-              label="Open asset…"
-              hasSubmenu
-              onClick={() => setView("assets")}
-            />
-            <MenuItemPrimitive
-              label="Open chat…"
-              hasSubmenu
-              onClick={() => setView("chats")}
-            />
+            {!isMobile && (
+              <>
+                <MenuItemPrimitive
+                  label="Open workflow…"
+                  hasSubmenu
+                  onClick={() => setView("workflows")}
+                />
+                <MenuItemPrimitive
+                  label="Open asset…"
+                  hasSubmenu
+                  onClick={() => setView("assets")}
+                />
+                <MenuItemPrimitive
+                  label="Open chat…"
+                  hasSubmenu
+                  onClick={() => setView("chats")}
+                />
+              </>
+            )}
           </>
         )}
 
