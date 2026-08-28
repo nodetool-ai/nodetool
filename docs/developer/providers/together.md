@@ -234,16 +234,15 @@ npm run check
 
 ## How past PRs did it
 
-The entire `packages/together-nodes` package — generator script, manifest (56 entries), factory, base helpers, provider arrays, and tests — was introduced in commit **`d1491abf`** ("add claude agent package"). That single commit is the reference for how the package was structured from the start. It adds:
+The entire `packages/together-nodes` package — generator script, manifest (56 entries), factory, base helpers, provider arrays, and tests — was introduced in commit **`4ded3bc3`** ("feat(together): add Together node pack"). That single commit is the reference for how the package was structured from the start. It adds:
 
 - `packages/together-nodes/scripts/generate-manifest.mjs` (214 lines, the generator)
 - `packages/together-nodes/src/together-manifest.json` (4274 lines, 56 entries)
 - `packages/together-nodes/src/together-factory.ts` (405 lines)
-- `packages/together-nodes/src/together-base.ts` (553 lines)
-- `packages/runtime/src/providers/together-provider.ts` (780 lines)
-- Full test coverage: `tests/together-base.test.ts` and `tests/providers/together-provider.test.ts`
+- `packages/together-nodes/src/together-base.ts` (534 lines)
+- Tests: `packages/together-nodes/tests/together-base.test.ts`, `together-factory.test.ts`, `together-manifest.test.ts`
 
-To see the full diff: `git show d1491abf`.
+The same commit reworked the already-existing `packages/runtime/src/providers/together-provider.ts`. To see the full diff: `git show 4ded3bc3`.
 
 ---
 

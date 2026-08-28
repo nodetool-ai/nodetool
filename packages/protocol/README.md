@@ -11,8 +11,8 @@ the kernel, runtime, websocket server, and clients all agree on.
 - Graph transport types (`NodeDescriptor`, `Edge`) and correlation/lineage signals.
 - Processing message union (`output_update`, `edge_update`, `job_update`, …),
   Zod-first: every `ProcessingMessage` variant in `src/messages.ts` is a Zod
-  schema, with its TypeScript type derived via `z.infer` (a few shapes Zod
-  can't infer exactly — recursive `TaskRef`/`StepRef`, `RunStateInfo` — keep a
+  schema, with its TypeScript type derived via `z.infer` (the two shapes Zod
+  can't infer exactly — the recursive `TaskRef`/`StepRef` pair — keep a
   hand-written interface with a `z.ZodType<...>`-annotated schema instead).
   `processingMessageSchema` is the single `z.discriminatedUnion("type", ...)`
   validator for the whole union; `processingMessageSchemas` indexes the

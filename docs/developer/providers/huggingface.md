@@ -226,7 +226,7 @@ If the smoke-test hits a real HF endpoint (i.e., `HF_TOKEN` is set), it calls th
 
 ## How past commits did it
 
-The `huggingface-nodes` package and `HuggingFaceProvider` were both introduced in commit **`d1491abf`** (the same commit that added the Claude Agent package). The package started with the full node set for all Inference Providers pipeline tasks and the live Hub discovery mechanism. The only subsequent changes have been version bumps (e.g. `ca742050` rc.26, `f900e7a6` rc.25) and the broader provider registry work.
+The `huggingface-nodes` package was introduced in commit **`ae5470cf`** ("Add Hugging Face Inference Providers nodes package", PR #3503), which also reworked the already-existing `HuggingFaceProvider` (first tracked in `4469fd80`, "Add TypeScript backend packages from nodetool-core/ts"). The package started with the full node set for all Inference Providers pipeline tasks and the live Hub discovery mechanism.
 
 ---
 

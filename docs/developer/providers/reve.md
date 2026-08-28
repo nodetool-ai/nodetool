@@ -242,7 +242,7 @@ A `REVE_API_KEY is not configured` error from step 5 means the node registered c
 
 ## How past commits did it
 
-The Reve node package and runtime provider were introduced together in commit `d1491abf` ("add claude agent package"). That commit added:
+The Reve node package and runtime provider were introduced together in commit `115c352c` ("Add Reve image provider and nodes"). That commit added:
 
 ```
 packages/runtime/src/providers/reve-provider.ts
@@ -253,6 +253,7 @@ packages/reve-nodes/src/nodes/remix-image.ts
 packages/reve-nodes/src/index.ts
 packages/reve-nodes/tests/nodes.test.ts
 packages/reve-nodes/tests/registration.test.ts
+packages/reve-nodes/tests/reve-base.test.ts
 ```
 
 The three endpoints (`create`, `edit`, `remix`) map to three node classes with no factory or manifest layer. For reference, XAI image/video support was added in PR #3951 (commit `69dd6f88`) by extending `getAvailableImageModels` and `getAvailableVideoModels` in the existing provider — that pattern applies when the provider's generic image picker (not a standalone node pack) is the target.

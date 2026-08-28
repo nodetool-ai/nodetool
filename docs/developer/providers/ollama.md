@@ -170,9 +170,9 @@ If the daemon is not running, `getAvailableLanguageModels()` returns `[]` silent
 
 ## How past commits did it
 
-The provider file was first tracked in commit **`d1491abf`** ("add claude agent package"), which established the provider registration pattern, the `optionalKwargs` mechanic for `OLLAMA_API_URL`, and the `NODETOOL_ENV !== "production"` guard for local-only providers.
+The provider file was first tracked in commit **`4469fd80`** ("Add TypeScript backend packages from nodetool-core/ts"), which established the provider registration pattern. The two mechanics the Ollama registration leans on arrived later: the gate for local-only providers in **`b0e0b8bc`** ("feat: gate local-only features behind `NODETOOL_ENV=production`"), and the `optionalKwargs` slot that resolves `OLLAMA_API_URL` on every `getProvider()` call in **`532a53b5`**.
 
-Commit **`364620b4`** (PR #3969, "Add failure diagnosis, cassette recording, and plan caching") is the most recent change touching `packages/runtime/src/providers/index.ts`; the Ollama registration block was unchanged, confirming the zero-required-kwarg pattern is stable.
+The registration block in `packages/runtime/src/providers/index.ts` still passes `{}` for required kwargs, putting `OLLAMA_API_URL` in the optional slot with `OLLAMA_DEFAULT_URL` as its fallback — the zero-required-kwarg pattern this page describes.
 
 ---
 

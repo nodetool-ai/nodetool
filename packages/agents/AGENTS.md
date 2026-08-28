@@ -2064,10 +2064,10 @@ in the objective. Filesystem `SKILL.md` discovery and the old
 `NODETOOL_AGENT_AUTO_SKILLS` environment variables are deprecated and ignored.
 
 A chat turn discovers skills the way it discovers sandbox packs — a catalog in
-context, a body behind a call. `buildSkillBlock` in the websocket runner renders
-`formatSkillCatalogForPrompt` (`src/skill-prompt.ts`) into every turn: one line
-per skill, name and description, plus the instruction to call `load_skill`
-before acting on one. The block is ephemeral — it reaches the provider and is
+context, a body behind a call. The websocket runner's `buildSystemContent` folds
+`formatSkillCatalogForPrompt` (`src/skill-prompt.ts`) into every turn's system
+prompt: one line per skill, name and description, plus the instruction to call
+`load_skill` before acting on one. The block is ephemeral — it reaches the provider and is
 never persisted, so it reflects the table as it is right now.
 
 `/<name>` skips that round trip. A message naming a skill with a leading slash

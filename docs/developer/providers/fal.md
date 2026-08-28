@@ -215,7 +215,7 @@ Confirm the new entry appears with the expected `className`, `inputFields`, and 
 
 ## How past commits did it
 
-The entire FAL codegen and node system was introduced in commit **`d1491abf`** ("add claude agent package"), which added all `src/configs/` files, the codegen pipeline, and the factory. That commit is the canonical reference for the shape of every config file and the runtime loading path.
+The FAL codegen and node system was built over a run of commits on 2026-03-12, starting with `09bb4d60` ("feat(fal-codegen): add SchemaFetcher with SHA-256 caching and tests") and `2e0df019` ("feat(fal-codegen): add SchemaParser and tests"); `54ee1cce` scaffolded `src/configs/`, and the Python configs were ported over in batches (`7b6a609f`, `8af2c275`). The manifest-driven factory came later, in `85787419` ("feat(fal): replace codegen with manifest-driven dynamic registry") — that commit is the reference for the runtime loading path.
 
 Subsequent behavioral fixes follow a clear split:
 
