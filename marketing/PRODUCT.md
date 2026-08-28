@@ -18,21 +18,23 @@ Success looks like a creator downloading it, wiring their first multi-model work
 
 ## Brand Personality
 
-**Powerful creative studio.** Confident, vivid, capable. Three words: *capable, open, vivid.*
+**A creative studio that behaves like a pro tool.** Three words: *capable, open, vivid.*
 
-The voice is a pro tool that respects the user's intelligence — it shows the canvas and the work rather than over-explaining. Underneath the studio confidence runs a current of honesty: BYOK, no markup, you own it. That transparency is substance, not a slogan, so it should read as quiet fact, not as a pitch. Aspirational but never breathless.
+The voice is a senior technical director: it shows the canvas and the work rather than over-explaining, and it respects the reader's intelligence. Underneath the studio confidence runs a current of honesty: BYOK, no markup, you own it. That transparency is substance, not a slogan, so it should read as quiet fact, not as a pitch. Aspirational but never breathless.
+
+Voice rules, messaging pillars, and the product lexicon live in [docs/BRAND.md](../docs/BRAND.md). This section covers how the brand feels; that file covers what it says.
 
 ## Anti-references
 
 - **Generic SaaS / template.** No cream backgrounds, no identical icon-heading-text card grids repeated down the page, no hero-metric template (big number + small label + gradient), no AI-slop landing aesthetic.
 - **Enterprise / corporate.** No stiff navy-and-gray, no stock photography, no jargon, no IBM/Salesforce stiffness.
-- **Crypto / hype.** No neon-on-black, no gradient overload, no breathless "revolutionary" copy. The product is genuinely powerful; let the work say so.
+- **Crypto / hype.** No neon-on-black, no gradient overload, no breathless "revolutionary" copy. The product does the work; let the output say so.
 
 ## Design Principles
 
 1. **Show the work.** The canvas, the nodes, real product screenshots carry the message. Lead with what the tool makes possible, not adjectives about it.
 2. **Honesty as a feature.** "Your keys, your canvas, pay providers directly" is a differentiator. State it plainly and let it land without overselling.
-3. **Studio confidence.** Vivid, committed, capable. Match the visual ambition to a pro creative tool, not a generic SaaS funnel.
+3. **Studio confidence.** Vivid, committed, capable. Match the visual ambition to a pro creative tool, not a generic SaaS funnel. Pragmatic, never hyperbolic: the efficiency is the story, not the adjectives.
 4. **Creators first.** The homepage speaks to makers. Technical depth and business framing live on their own tracks, reachable but not crowding the front door.
 5. **Earn every section.** No filler, no repeated card grids, no restated headings. Each section advances a distinct reason to download.
 

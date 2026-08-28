@@ -1,10 +1,16 @@
 # Narrative
 
-What the site says, in what order, and why. `PRODUCT.md` covers brand, users, and
-design principles; this file covers the message; `POSITIONING_PLAN.md` covers
-the competitive positioning, landing-page blueprint, and launch plan. When
-homepage copy and this file disagree, one of them is wrong — fix both in the
-same change.
+What the site says, in what order, and why. [docs/BRAND.md](../docs/BRAND.md)
+carries the repo-wide brand and verbal guidelines (mission, voice, the four
+messaging pillars, lexicon); `PRODUCT.md` covers brand, users, and design
+principles; this file covers the message; `POSITIONING_PLAN.md` covers the
+competitive positioning, landing-page blueprint, and launch plan. When homepage
+copy and this file disagree, one of them is wrong — fix both in the same change.
+
+This file is the homepage's narrower cut of `BRAND.md`, not a second standard.
+The positioning line below wins on nodetool.ai; `BRAND.md`'s elevator pitch
+covers everywhere else (README, docs, listings). Both say the same thing: the
+creator directs and keeps the project file.
 
 ## Positioning line
 
@@ -86,7 +92,8 @@ better than a manufactured superlative.
 
 ## Phrasing rules
 
-Beyond [docs/WRITING_STYLE.md](../docs/WRITING_STYLE.md), which applies here too:
+Beyond [docs/WRITING_STYLE.md](../docs/WRITING_STYLE.md) and
+[docs/BRAND.md § Lexicon](../docs/BRAND.md#5-lexicon), which apply here too:
 
 - "Studio" or "canvas", not "workflow builder" — the latter undersells the
   editors and puts us in the n8n bracket.
@@ -99,5 +106,7 @@ Beyond [docs/WRITING_STYLE.md](../docs/WRITING_STYLE.md), which applies here too
   providers where a reader is checking for a specific one (pricing, model pages).
 - Concrete over categorical: "a Seedance run that costs $0.18 on KIE costs $0.18
   here" beats "no markup".
+- Never "credits", "gems", or "tokens" as billing units, and never "chatbot" for
+  the agent. See the avoid table in `BRAND.md`.
 - No "magic", "revolutionary", "seamless", "powerful", "unlock", "empower". If a
   sentence survives its own deletion, delete it.

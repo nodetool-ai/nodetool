@@ -3,8 +3,13 @@
 Consolidated from the positioning, use-case, landing-page, asset, and rollout
 work sessions (August 2026). This is the single reference for how NodeTool is
 positioned, who it is for, what the website says, and what ships in the next
-two weeks. Companion docs: [NARRATIVE.md](NARRATIVE.md) (brand voice),
-[PRODUCT.md](PRODUCT.md) (product facts), [docs/SEO_STRATEGY.md](../docs/SEO_STRATEGY.md).
+two weeks. Companion docs: [docs/BRAND.md](../docs/BRAND.md) (brand and verbal
+guidelines — voice, messaging pillars, lexicon), [NARRATIVE.md](NARRATIVE.md)
+(site message and hero), [PRODUCT.md](PRODUCT.md) (product facts),
+[docs/SEO_STRATEGY.md](../docs/SEO_STRATEGY.md).
+
+Every headline, tagline, and matrix row below is subject to `BRAND.md`: lead
+with the outcome, name the models, and never price the product in credits.
 
 > Every dollar figure in this document (SaaS stack totals, per-asset costs,
 > savings percentages) is illustrative and must be re-verified against current

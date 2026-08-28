@@ -124,6 +124,7 @@ Non-negotiable ([electron/src/AGENTS.md](../../../electron/src/AGENTS.md) § Sec
 - `package.json` script or dependency changes: check the lockfile moved with it, and that the sandboxed-install caveats (AGENTS.md § Common Pitfalls) still hold.
 - Changes to commands, architecture, or rules documented in `AGENTS.md`: the doc must move in the same PR — that's a written rule, cite it.
 - Prose follows [docs/WRITING_STYLE.md](../../../docs/WRITING_STYLE.md); flag slop words but leave the full prose pass to `unslop`.
+- User-facing copy (marketing site, product strings, release notes, node and workflow descriptions) also follows [docs/BRAND.md](../../../docs/BRAND.md): outcome before mechanism, no `credits`/`tokens` as billing, no `chatbot` for the agent, no `powered by AI` where a model name fits.
 
 ## Smell baseline
 
