@@ -4,6 +4,7 @@ import {
   applyOperations,
   createModel3DFile,
   deleteObject,
+  ensureObjectIds,
   eulerDegreesToQuaternion,
   hexToLinearRgb,
   linearRgbToHex,
@@ -11,12 +12,14 @@ import {
   Model3DOperationError,
   parseModel3D,
   quaternionToEulerDegrees,
+  renameObject,
   sceneBounds,
   selectedId,
   serializeModel3D,
   setMaterialColor,
   validateModel3D
 } from "../src/index.js";
+import type { GltfJson } from "../src/index.js";
 
 const build = (kinds: string[]) => {
   const file = createModel3DFile();
@@ -175,6 +178,86 @@ describe("addressing and selection", () => {
     const after = listScene(file.json);
     expect(after.map((o) => o.name)).toEqual(["Sphere", "Torus"]);
     expect(after.find((o) => o.uuid === torusId)?.name).toBe("Torus");
+  });
+});
+
+describe("ensureObjectIds", () => {
+  const doc = (extrasList: unknown[]): GltfJson =>
+    ({
+      asset: { version: "2.0" },
+      scene: 0,
+      scenes: [{ nodes: extrasList.map((_, i) => i) }],
+      nodes: extrasList.map((extras, i) => ({ name: `n${i}`, extras }))
+    }) as GltfJson;
+
+  const idsOf = (json: GltfJson) =>
+    (json.nodes ?? []).map((node) => node.extras?.["nodetool_id"]);
+
+  it("re-mints a repeated id so one id never addresses two objects", () => {
+    // A .glb that left NodeTool and came back with an object duplicated
+    // carries the same nodetool_id twice.
+    const json = doc([{ nodetool_id: "obj_1" }, { nodetool_id: "obj_1" }]);
+    ensureObjectIds(json);
+    expect(idsOf(json)).toEqual(["obj_1", "obj_2"]);
+  });
+
+  it("leaves the second of a duplicate pair addressable", () => {
+    const json = doc([{ nodetool_id: "obj_1" }, { nodetool_id: "obj_1" }]);
+    // Every mutation calls ensureObjectIds first; renameObject is one.
+    renameObject(json, "obj_1", "First");
+    const listing = listScene(json);
+    expect(new Set(listing.map((o) => o.uuid)).size).toBe(2);
+
+    // While both nodes answered to "obj_1" the second was unreachable: every
+    // edit landed on the first, and deleting it twice emptied the scene.
+    renameObject(json, listing[1].uuid, "Second");
+    expect((json.nodes ?? []).map((n) => n.name)).toEqual(["First", "Second"]);
+  });
+
+  it("keeps an id a caller already holds, and mints past the ones in use", () => {
+    const json = doc([
+      { nodetool_id: "obj_2" },
+      {},
+      { nodetool_id: "hero" },
+      undefined
+    ]);
+    ensureObjectIds(json);
+    expect(idsOf(json)).toEqual(["obj_2", "obj_1", "hero", "obj_3"]);
+  });
+
+  it("mints an id wherever the document carries no usable one", () => {
+    const json = doc([
+      { nodetool_id: "" },
+      { nodetool_id: 5 },
+      "not-a-record",
+      undefined
+    ]);
+    ensureObjectIds(json);
+    expect(idsOf(json)).toEqual(["obj_1", "obj_2", "obj_3", "obj_4"]);
+  });
+
+  it("assigns distinct non-empty ids and is idempotent", () => {
+    const json = doc([
+      { nodetool_id: "obj_1" },
+      { nodetool_id: "obj_1" },
+      { nodetool_id: "" },
+      undefined,
+      { nodetool_id: "x" }
+    ]);
+    ensureObjectIds(json);
+    const first = idsOf(json);
+    expect(first.every((id) => typeof id === "string" && id.length > 0)).toBe(
+      true
+    );
+    expect(new Set(first).size).toBe(first.length);
+    ensureObjectIds(json);
+    expect(idsOf(json)).toEqual(first);
+  });
+
+  it("does nothing to a document with no nodes", () => {
+    const json = { asset: { version: "2.0" } } as GltfJson;
+    ensureObjectIds(json);
+    expect(json.nodes).toEqual([]);
   });
 });
 

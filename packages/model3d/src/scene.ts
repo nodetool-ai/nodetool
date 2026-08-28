@@ -108,25 +108,29 @@ const extrasOf = (node: GltfNode): Record<string, unknown> => {
 export function ensureObjectIds(json: GltfJson): void {
   const nodes = nodesOf(json);
   const used = new Set<string>();
-  for (const node of nodes) {
+  // Claim first, mint second, so a minted id cannot collide with one a later
+  // node already holds. A repeated id (a .glb whose objects were duplicated in
+  // another tool carries the same extras twice) is kept by the first node —
+  // the one `resolveTarget` resolves it to — and the rest are re-minted.
+  const keepsItsId = nodes.map((node) => {
     const id = isRecord(node.extras) ? node.extras[ID_KEY] : undefined;
-    if (typeof id === "string" && id.length > 0 && !used.has(id)) {
-      used.add(id);
+    if (typeof id !== "string" || id.length === 0 || used.has(id)) {
+      return false;
     }
-  }
+    used.add(id);
+    return true;
+  });
   let seq = 1;
-  for (const node of nodes) {
-    const extras = extrasOf(node);
-    const id = extras[ID_KEY];
-    if (typeof id === "string" && id.length > 0 && used.has(id)) {
-      continue;
+  nodes.forEach((node, index) => {
+    if (keepsItsId[index]) {
+      return;
     }
     while (used.has(`obj_${seq}`)) {
       seq += 1;
     }
-    extras[ID_KEY] = `obj_${seq}`;
+    extrasOf(node)[ID_KEY] = `obj_${seq}`;
     used.add(`obj_${seq}`);
-  }
+  });
 }
 
 const idOf = (node: GltfNode, index: number): string => {
