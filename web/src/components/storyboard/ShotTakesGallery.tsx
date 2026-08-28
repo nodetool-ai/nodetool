@@ -44,7 +44,7 @@ interface ShotTakesGalleryProps {
 }
 
 const takeThumbSx = {
-  width: getSpacingPx(24),
+  width: getSpacingPx(20),
   aspectRatio: "16 / 9",
   p: 0,
   overflow: "hidden",
@@ -62,9 +62,13 @@ const takeThumbSx = {
     objectFit: "cover",
     display: "block"
   },
+  // Unselected takes sit back; the selected one is the only lit thumbnail,
+  // marked by a border rather than a glow.
+  opacity: 0.6,
+  "&:hover": { opacity: 1 },
   "&[aria-pressed='true']": {
-    borderColor: "primary.main",
-    boxShadow: "0 0 0 1px var(--palette-primary-main)"
+    opacity: 1,
+    borderColor: "primary.main"
   },
   "&:disabled": {
     cursor: "default"
@@ -200,9 +204,15 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
 
   return (
     <FlexColumn gap={SPACING.xs} className="takes">
-      <FlexRow align="center" justify="space-between" gap={SPACING.xs}>
+      <FlexRow align="center" gap={SPACING.xs}>
         <Caption color="secondary">{`Takes: ${countLabel}`}</Caption>
-        <EditorButton onClick={handleToggle}>
+        <EditorButton
+          onClick={handleToggle}
+          sx={{
+            color: "text.secondary",
+            "&:hover": { color: "text.primary", bgcolor: "c_overlay_subtle" }
+          }}
+        >
           {expanded ? "Hide takes" : "View takes"}
         </EditorButton>
       </FlexRow>
@@ -263,8 +273,13 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
               <Chip
                 compact
                 clickable={!readOnly}
-                color={i === selectedClip ? "primary" : "default"}
+                variant="outlined"
                 label={`Take ${i + 1}`}
+                sx={{
+                  borderRadius: BORDER_RADIUS.pill,
+                  color: i === selectedClip ? "text.primary" : "text.secondary",
+                  borderColor: i === selectedClip ? "primary.main" : "divider"
+                }}
                 onClick={readOnly ? undefined : () => handleSelectClip(i)}
               />
               {!readOnly && (
