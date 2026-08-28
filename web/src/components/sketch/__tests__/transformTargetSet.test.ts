@@ -2,6 +2,7 @@
  * Tests for transformTargetSet and opaquePixelBounds modules.
  *
  * Covers:
+ *   - resolveTransformTargetLayerIds: seeds, group expansion, eligibility
  *   - TransformTargetSet: single-target replace/clear/has semantics
  *   - pickTopmostTransformableLayer: visibility, lock, hit-test
  *   - computeOpaquePixelBounds: empty, full, partial canvas
@@ -11,14 +12,22 @@
 import {
   TransformTargetSet,
   pickTopmostTransformableLayer,
-  resolveTargetEntry
+  resolveTargetEntry,
+  resolveTransformTargetLayerIds
 } from "../tools/transformTargetSet";
 import {
   computeOpaquePixelBounds,
   computeLayerOpaquePixelBounds
 } from "../painting/opaquePixelBounds";
 import { getVisualBounds } from "../transform/geometry/layerGeometry";
-import type { Layer, LayerContentBounds, LayerTransform } from "../types";
+import type {
+  Layer,
+  LayerContentBounds,
+  LayerTransform,
+  LayerType,
+  SketchDocument
+} from "../types";
+import { createDefaultDocument } from "../types";
 import { setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 
 // ─── Test helpers ────────────────────────────────────────────────────────────
@@ -78,6 +87,221 @@ function makeCanvasWithPixels(
   }
   return canvas;
 }
+
+// ─── resolveTransformTargetLayerIds ──────────────────────────────────────────
+
+interface LayerSpec {
+  id: string;
+  type?: LayerType;
+  parentId?: string | null;
+  locked?: boolean;
+  /** Locked-but-transformable: an external image ref keeps move/scale legal. */
+  imageRef?: boolean;
+  /** A quad transform — single-target only, never part of a union. */
+  quad?: boolean;
+}
+
+const QUAD_CORNERS = [
+  { x: 0, y: 0 },
+  { x: 10, y: 0 },
+  { x: 10, y: 10 },
+  { x: 0, y: 10 }
+] as const;
+
+function makeDocument(specs: LayerSpec[]): SketchDocument {
+  const doc = createDefaultDocument(64, 64);
+  doc.layers = specs.map((spec) =>
+    makeLayer({
+      id: spec.id,
+      type: spec.type ?? "raster",
+      parentId: spec.parentId ?? null,
+      locked: spec.locked ?? false,
+      imageReference: spec.imageRef
+        ? {
+            uri: "asset://ref",
+            naturalWidth: 10,
+            naturalHeight: 10,
+            objectFit: "contain"
+          }
+        : null,
+      transform: spec.quad
+        ? { kind: "quad", mode: "distort", quad: QUAD_CORNERS }
+        : makeTransform()
+    })
+  );
+  return doc;
+}
+
+interface TargetCase {
+  name: string;
+  layers: LayerSpec[];
+  selected: string[];
+  active: string | null;
+  expected: string[];
+}
+
+const TARGET_CASES: TargetCase[] = [
+  {
+    name: "no selection and no active layer targets nothing",
+    layers: [{ id: "a" }],
+    selected: [],
+    active: null,
+    expected: []
+  },
+  {
+    name: "the active layer seeds the target when nothing is selected",
+    layers: [{ id: "a" }, { id: "b" }],
+    selected: [],
+    active: "b",
+    expected: ["b"]
+  },
+  {
+    name: "an active id that names no layer targets nothing",
+    layers: [{ id: "a" }],
+    selected: [],
+    active: "gone",
+    expected: []
+  },
+  {
+    name: "the panel selection wins over the active layer",
+    layers: [{ id: "a" }, { id: "b" }, { id: "c" }],
+    selected: ["a", "c"],
+    active: "b",
+    expected: ["a", "c"]
+  },
+  {
+    name: "a mask layer is transformable like a raster",
+    layers: [{ id: "a", type: "mask" }],
+    selected: [],
+    active: "a",
+    expected: ["a"]
+  },
+  {
+    name: "a locked layer is dropped",
+    layers: [{ id: "a", locked: true }, { id: "b" }],
+    selected: ["a", "b"],
+    active: null,
+    expected: ["b"]
+  },
+  {
+    name: "a locked layer with an image reference is kept",
+    layers: [{ id: "a", locked: true, imageRef: true }, { id: "b" }],
+    selected: ["a", "b"],
+    active: null,
+    expected: ["a", "b"]
+  },
+  {
+    name: "a quad transform is targetable on its own",
+    layers: [{ id: "a", quad: true }],
+    selected: ["a"],
+    active: null,
+    expected: ["a"]
+  },
+  {
+    name: "a quad transform is excluded from a multi-layer union",
+    layers: [{ id: "a", quad: true }, { id: "b" }],
+    selected: ["a", "b"],
+    active: null,
+    expected: ["b"]
+  },
+  {
+    name: "a group seed expands to its eligible children, group excluded",
+    layers: [
+      { id: "g", type: "group" },
+      { id: "a", parentId: "g" },
+      { id: "b", parentId: "g" },
+      { id: "outside" }
+    ],
+    selected: ["g"],
+    active: null,
+    expected: ["a", "b"]
+  },
+  {
+    name: "group expansion is transitive through nested groups",
+    layers: [
+      { id: "g", type: "group" },
+      { id: "inner", type: "group", parentId: "g" },
+      { id: "deep", parentId: "inner" }
+    ],
+    selected: ["g"],
+    active: null,
+    expected: ["deep"]
+  },
+  {
+    name: "group expansion drops quad-transformed children",
+    layers: [
+      { id: "g", type: "group" },
+      { id: "a", parentId: "g", quad: true },
+      { id: "b", parentId: "g" }
+    ],
+    selected: ["g"],
+    active: null,
+    expected: ["b"]
+  },
+  {
+    name: "a group whose only child is quad-transformed targets nothing",
+    layers: [
+      { id: "g", type: "group" },
+      { id: "a", parentId: "g", quad: true }
+    ],
+    selected: ["g"],
+    active: null,
+    expected: []
+  },
+  {
+    name: "a locked group still expands — lock is per layer",
+    layers: [
+      { id: "g", type: "group", locked: true },
+      { id: "a", parentId: "g" }
+    ],
+    selected: ["g"],
+    active: null,
+    expected: ["a"]
+  },
+  {
+    name: "a group seeded as the active layer expands the same way",
+    layers: [
+      { id: "g", type: "group" },
+      { id: "a", parentId: "g" }
+    ],
+    selected: [],
+    active: "g",
+    expected: ["a"]
+  },
+  {
+    name: "selecting a group and its child yields the child once",
+    layers: [
+      { id: "g", type: "group" },
+      { id: "a", parentId: "g" }
+    ],
+    selected: ["g", "a"],
+    active: null,
+    expected: ["a"]
+  },
+  {
+    name: "a seed that names no layer is skipped",
+    layers: [{ id: "a" }, { id: "b" }],
+    selected: ["a", "gone", "b"],
+    active: null,
+    expected: ["a", "b"]
+  },
+  {
+    name: "results follow document stack order, not selection order",
+    layers: [{ id: "a" }, { id: "b" }, { id: "c" }],
+    selected: ["c", "a", "b"],
+    active: null,
+    expected: ["a", "b", "c"]
+  }
+];
+
+describe("resolveTransformTargetLayerIds", () => {
+  it.each(TARGET_CASES)("$name", ({ layers, selected, active, expected }) => {
+    const doc = makeDocument(layers);
+    expect(resolveTransformTargetLayerIds(doc, selected, active)).toEqual(
+      expected
+    );
+  });
+});
 
 // ─── TransformTargetSet ──────────────────────────────────────────────────────
 
