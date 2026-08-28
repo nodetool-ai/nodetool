@@ -66,7 +66,11 @@ describe("APIKeysTabContent on a hosted deployment", () => {
         isConnecting: false,
         canDisconnect: false,
         connect: jest.fn(),
-        disconnect: jest.fn()
+        disconnect: jest.fn(),
+        manualPrompt: null,
+        isSubmittingManual: false,
+        submitManualCode: jest.fn(),
+        cancelManual: jest.fn()
       });
   });
 

@@ -7,7 +7,11 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { createLogger, isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
+import {
+  createLogger,
+  isAuthEnforced,
+  isGoogleWorkspaceEnabled
+} from "@nodetool-ai/config";
 import {
   OAuthCredential,
   storeGoogleCredential,
@@ -23,6 +27,7 @@ import {
   CODEX_CALLBACK_PORT,
   CODEX_CALLBACK_PATH,
   DEFAULT_CODEX_OAUTH_CONFIG,
+  type OAuthTokens,
   type PendingClaudeCodeLogin
 } from "@nodetool-ai/runtime/oauth";
 import {
@@ -49,9 +54,12 @@ const GITHUB_SCOPES = ["user:email", "read:user"];
 // OpenAI OAuth uses the public Codex CLI client (no client secret, no
 // per-deployment registration). The authorization server only accepts the
 // Codex-registered loopback redirect (http://localhost:1455/auth/callback), so
-// the browser is redirected to a local single-shot listener this process binds
-// rather than back to a server route. This is inherently a same-machine flow —
-// the listener must be reachable from the browser that completes the login.
+// the browser is redirected to a local single-shot listener rather than back to
+// a server route. `localhost` resolves in the *browser's* machine, so binding
+// that port here only receives the code when the browser runs on this machine
+// too. On a shared server it does not, and the browser lands on its own
+// localhost with the code sitting in the address bar — so that host skips the
+// listener and the user pastes the address back instead.
 const OPENAI_USERINFO_URL =
   process.env.OPENAI_OAUTH_USERINFO_URL ?? "https://auth.openai.com/userinfo";
 
@@ -856,10 +864,69 @@ async function handleGithubUser(
 //
 // The login uses the public Codex CLI OAuth client. Because the Codex client's
 // only registered redirect is the loopback http://localhost:1455/auth/callback,
-// the flow can't bounce back through a server route: `start` binds a one-shot
-// loopback listener on that port, returns the authorization URL for the UI to
-// open, and finishes the code exchange in the background. The UI reflects
-// success by polling `/api/oauth/openai/tokens`.
+// the flow can't bounce back through a server route. Two ways to finish, both
+// from the one authorization request `start` creates:
+//
+//  - **Loopback** — `start` binds a one-shot listener on port 1455 and finishes
+//    the exchange in the background. Only works when the browser runs on this
+//    machine (desktop, local dev).
+//  - **Manual** — the browser is redirected to its own localhost, where nothing
+//    answers, and the user pastes the address back to `/complete`. The only
+//    option on a shared server, which is what `start` offers there.
+//
+// The UI reflects success by polling `/api/oauth/openai/tokens`.
+
+/** How long a started login stays completable from a pasted address. */
+const CODEX_LOGIN_TTL_MS = 10 * 60 * 1000;
+
+/** Logins awaiting a pasted redirect address, keyed by their CSRF state. */
+export const pendingCodexLogins = new Map<
+  string,
+  { userId: string; codeVerifier: string; createdAt: number }
+>();
+
+function pruneExpiredCodexLogins(): void {
+  const now = Date.now();
+  for (const [state, pending] of pendingCodexLogins) {
+    if (now - pending.createdAt > CODEX_LOGIN_TTL_MS) {
+      pendingCodexLogins.delete(state);
+    }
+  }
+}
+
+/**
+ * Read `code` and `state` out of what the user pastes back — the whole address
+ * the browser was sent to, or just its query string. The state is required: it
+ * is the CSRF check, and a bare code cannot be tied to the login it belongs to.
+ */
+export function parseCodexRedirect(input: string): {
+  code: string;
+  state: string;
+} {
+  let query = input.trim();
+  const questionMark = query.indexOf("?");
+  if (questionMark >= 0) {
+    query = query.slice(questionMark + 1);
+    const hash = query.indexOf("#");
+    if (hash >= 0) query = query.slice(0, hash);
+  }
+  const params = new URLSearchParams(query);
+
+  const error = params.get("error");
+  if (error) {
+    throw new Error(
+      params.get("error_description") || `Sign-in was refused: ${error}`
+    );
+  }
+  const code = params.get("code");
+  const state = params.get("state");
+  if (!code || !state) {
+    throw new Error(
+      "Paste the whole address the browser was sent to — it carries both the code and the state."
+    );
+  }
+  return { code, state };
+}
 
 /** Build the Codex OAuth client (public client id, no secret). */
 function codexOAuthClient(): OAuthClient {
@@ -891,30 +958,51 @@ async function handleOpenAIStart(
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
 
   const userId = getUserId();
+  const url = new URL(request.url);
   const client = codexOAuthClient();
   const { codeVerifier, codeChallenge } = generatePkcePair();
   const state = generateState();
 
+  // A shared server's users browse from their own machines, where the loopback
+  // redirect lands — so binding it here would receive nothing. The caller can
+  // also ask for the paste flow outright.
+  const manual = url.searchParams.get("manual") === "true" || isAuthEnforced();
+
+  pruneExpiredCodexLogins();
+  pendingCodexLogins.set(state, { userId, codeVerifier, createdAt: Date.now() });
+
   // A new attempt supersedes any listener left over from an abandoned one.
   await closeActiveCodexCallbackServer();
 
-  const server = new LocalCallbackServer({
-    host: "localhost",
-    port: CODEX_CALLBACK_PORT,
-    path: CODEX_CALLBACK_PATH
-  });
-  try {
-    await server.listen();
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return errorResponse(
-      500,
-      `Could not start the OAuth callback listener on port ${CODEX_CALLBACK_PORT}: ${message}`
-    );
-  }
+  if (!manual) {
+    const server = new LocalCallbackServer({
+      host: "localhost",
+      port: CODEX_CALLBACK_PORT,
+      path: CODEX_CALLBACK_PATH
+    });
+    try {
+      await server.listen();
+    } catch (err) {
+      pendingCodexLogins.delete(state);
+      const message = err instanceof Error ? err.message : String(err);
+      return errorResponse(
+        500,
+        `Could not start the OAuth callback listener on port ${CODEX_CALLBACK_PORT}: ${message}`
+      );
+    }
 
-  const abort = new AbortController();
-  activeCodexLogin = { server, abort };
+    const abort = new AbortController();
+    activeCodexLogin = { server, abort };
+    // Finish the exchange off the request path; the UI polls /tokens.
+    void completeCodexLogin({
+      server,
+      client,
+      state,
+      codeVerifier,
+      userId,
+      abort
+    });
+  }
 
   const authUrl = client.buildAuthorizationUrl({
     redirectUri: CODEX_REDIRECT_URI,
@@ -923,10 +1011,11 @@ async function handleOpenAIStart(
     codeChallengeMethod: "S256"
   });
 
-  // Finish the exchange off the request path; the UI polls /tokens for success.
-  void completeCodexLogin({ server, client, state, codeVerifier, userId, abort });
-
-  return jsonResponse({ auth_url: authUrl });
+  return jsonResponse({
+    auth_url: authUrl,
+    manual,
+    redirect_uri: CODEX_REDIRECT_URI
+  });
 }
 
 /** Await the loopback redirect, exchange the code, and persist credentials. */
@@ -953,51 +1042,119 @@ async function completeCodexLogin(args: {
       signal: abort.signal
     });
 
-    // Prefer the ChatGPT account id embedded in the Codex access-token JWT — it
-    // is the stable identity the ChatGPT backend addresses accounts by. Falls
-    // back to the OIDC `sub`, then to an opaque token-derived id.
-    const chatgptAccountId = extractChatGptAccountId(tokens.accessToken);
-    let accountId =
-      chatgptAccountId ?? String(Math.abs(hashCode(tokens.accessToken.slice(0, 24))));
-    // Best-effort OIDC userinfo for a friendly account label.
-    let username: string | null = null;
-    try {
-      const infoRes = await fetch(OPENAI_USERINFO_URL, {
-        headers: { Authorization: `${tokens.tokenType} ${tokens.accessToken}` }
-      });
-      if (infoRes.ok) {
-        const info = (await infoRes.json()) as Record<string, unknown>;
-        username =
-          (info.email as string) ?? (info.name as string) ?? (info.sub as string) ?? null;
-        if (!chatgptAccountId && isNonEmptyString(info.sub)) {
-          accountId = info.sub;
-        }
-      }
-    } catch {
-      // userinfo is optional — keep the fallback account id.
-    }
-
-    await OAuthCredential.upsert({
-      user_id: userId,
-      provider: "openai",
-      account_id: accountId,
-      access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken,
-      username,
-      token_type: tokens.tokenType,
-      scope: tokens.scope,
-      received_at: new Date(tokens.receivedAt).toISOString(),
-      expires_at:
-        tokens.expiresAt != null ? new Date(tokens.expiresAt).toISOString() : null
-    });
+    const accountId = await persistCodexTokens(tokens, userId);
     logger.info("Codex OAuth login completed", { accountId });
   } catch (err) {
     logger.warn("Codex OAuth login did not complete", {
       error: err instanceof Error ? err.message : String(err)
     });
   } finally {
+    pendingCodexLogins.delete(state);
     await server.close().catch(() => {});
     if (activeCodexLogin?.server === server) activeCodexLogin = null;
+  }
+}
+
+/** Store exchanged Codex tokens against a user; returns the account id used. */
+async function persistCodexTokens(
+  tokens: OAuthTokens,
+  userId: string
+): Promise<string> {
+  // Prefer the ChatGPT account id embedded in the Codex access-token JWT — it
+  // is the stable identity the ChatGPT backend addresses accounts by. Falls
+  // back to the OIDC `sub`, then to an opaque token-derived id.
+  const chatgptAccountId = extractChatGptAccountId(tokens.accessToken);
+  let accountId =
+    chatgptAccountId ?? String(Math.abs(hashCode(tokens.accessToken.slice(0, 24))));
+  // Best-effort OIDC userinfo for a friendly account label.
+  let username: string | null = null;
+  try {
+    const infoRes = await fetch(OPENAI_USERINFO_URL, {
+      headers: { Authorization: `${tokens.tokenType} ${tokens.accessToken}` }
+    });
+    if (infoRes.ok) {
+      const info = (await infoRes.json()) as Record<string, unknown>;
+      username =
+        (info.email as string) ?? (info.name as string) ?? (info.sub as string) ?? null;
+      if (!chatgptAccountId && isNonEmptyString(info.sub)) {
+        accountId = info.sub;
+      }
+    }
+  } catch {
+    // userinfo is optional — keep the fallback account id.
+  }
+
+  await OAuthCredential.upsert({
+    user_id: userId,
+    provider: "openai",
+    account_id: accountId,
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken,
+    username,
+    token_type: tokens.tokenType,
+    scope: tokens.scope,
+    received_at: new Date(tokens.receivedAt).toISOString(),
+    expires_at:
+      tokens.expiresAt != null ? new Date(tokens.expiresAt).toISOString() : null
+  });
+  return accountId;
+}
+
+/** Complete a started login from the address the browser was redirected to. */
+async function handleOpenAIComplete(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+
+  let body: { code?: unknown };
+  try {
+    body = (await request.json()) as { code?: unknown };
+  } catch {
+    return errorResponse(400, "Invalid JSON body");
+  }
+  const raw = isString(body.code) ? body.code : "";
+  if (!raw.trim()) return errorResponse(400, "code is required");
+
+  let redirect: { code: string; state: string };
+  try {
+    redirect = parseCodexRedirect(raw);
+  } catch (err) {
+    return errorResponse(400, err instanceof Error ? err.message : String(err));
+  }
+
+  pruneExpiredCodexLogins();
+  const pending = pendingCodexLogins.get(redirect.state);
+  const userId = getUserId();
+  // An unknown state and another user's state are the same answer: this login
+  // is not one we can finish, and saying which it was leaks the difference.
+  if (!pending || pending.userId !== userId) {
+    return errorResponse(
+      400,
+      "That sign-in expired or was never started here. Start it again and paste the new address."
+    );
+  }
+  pendingCodexLogins.delete(redirect.state);
+
+  // The code is spent; any loopback listener still up is waiting for nothing.
+  await closeActiveCodexCallbackServer();
+
+  try {
+    const tokens = await codexOAuthClient().exchangeAuthorizationCode({
+      code: redirect.code,
+      codeVerifier: pending.codeVerifier,
+      redirectUri: CODEX_REDIRECT_URI
+    });
+    const accountId = await persistCodexTokens(tokens, userId);
+    logger.info("Codex OAuth login completed from a pasted address", {
+      accountId
+    });
+    return jsonResponse({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.warn("Codex OAuth code exchange failed", { error: message });
+    return errorResponse(400, message);
   }
 }
 
@@ -1330,6 +1487,8 @@ export async function handleOAuthRequest(
     // OpenAI (Codex)
     case "/api/oauth/openai/start":
       return handleOpenAIStart(request, getUserId);
+    case "/api/oauth/openai/complete":
+      return handleOpenAIComplete(request, getUserId);
     case "/api/oauth/openai/tokens":
       return handleOpenAITokens(getUserId);
     case "/api/oauth/openai/disconnect":

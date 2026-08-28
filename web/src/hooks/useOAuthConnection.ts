@@ -11,16 +11,39 @@ interface OAuthProviderConfig {
   label: string;
   /** Whether the backend exposes a disconnect endpoint for this provider. */
   canDisconnect: boolean;
+  /**
+   * Whether `/start` may answer `manual: true`, meaning the provider redirects
+   * somewhere this server cannot receive and the user finishes the login by
+   * pasting the address back to `/complete`.
+   */
+  canCompleteManually: boolean;
 }
 
 const PROVIDER_CONFIG = {
-  openai: { label: "OpenAI", canDisconnect: true },
-  hf: { label: "HuggingFace", canDisconnect: false },
-  claude: { label: "Claude", canDisconnect: true }
+  openai: { label: "OpenAI", canDisconnect: true, canCompleteManually: true },
+  hf: { label: "HuggingFace", canDisconnect: false, canCompleteManually: false },
+  claude: { label: "Claude", canDisconnect: true, canCompleteManually: false }
 } satisfies Record<OAuthProvider, OAuthProviderConfig>;
 
 interface TokensResponse {
   tokens: unknown[];
+}
+
+interface StartResponse {
+  auth_url?: string;
+  /** The redirect can't reach this server — finish with a pasted address. */
+  manual?: boolean;
+  /** The address the provider redirects to, shown so the user recognizes it. */
+  redirect_uri?: string;
+  detail?: string;
+}
+
+/** A login waiting for the user to paste back where the browser was sent. */
+export interface OAuthManualPrompt {
+  /** Authorization URL, in case the pop-up was blocked or closed. */
+  authUrl: string;
+  /** The redirect address to look for in the browser's address bar. */
+  redirectUri: string | null;
 }
 
 /**
@@ -63,6 +86,14 @@ export interface OAuthConnection {
   connect: () => Promise<void>;
   /** Revoke stored tokens (no-op when unsupported). */
   disconnect: () => Promise<void>;
+  /** Set when the login can only be finished by pasting the redirect address. */
+  manualPrompt: OAuthManualPrompt | null;
+  /** True while a pasted address is being exchanged. */
+  isSubmittingManual: boolean;
+  /** Finish the pending login from the pasted address. */
+  submitManualCode: (input: string) => Promise<void>;
+  /** Abandon the pending login. */
+  cancelManual: () => void;
 }
 
 /**
@@ -76,6 +107,10 @@ export const useOAuthConnection = (
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore((state) => state.addNotification);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [manualPrompt, setManualPrompt] = useState<OAuthManualPrompt | null>(
+    null
+  );
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
 
   const config = provider ? PROVIDER_CONFIG[provider] : null;
   const tokenQueryKey = useMemo(() => ["oauth-token", provider], [provider]);
@@ -109,6 +144,7 @@ export const useOAuthConnection = (
     }
     if (isConnected) {
       setIsConnecting(false);
+      setManualPrompt(null);
       addNotification({
         content: `Successfully connected to ${config.label}`,
         type: "success",
@@ -142,7 +178,7 @@ export const useOAuthConnection = (
     try {
       const response = await restFetch(`/api/oauth/${provider}/start`);
       const body = (await response.json().catch(() => null)) as
-        | { auth_url?: string; detail?: string }
+        | StartResponse
         | null;
 
       if (!response.ok || !body?.auth_url) {
@@ -150,6 +186,12 @@ export const useOAuthConnection = (
       }
 
       const authUrl = body.auth_url;
+      // The provider will redirect somewhere this server never sees. Ask for
+      // the address the browser lands on instead of waiting for a callback
+      // that cannot arrive.
+      if (body.manual && config.canCompleteManually) {
+        setManualPrompt({ authUrl, redirectUri: body.redirect_uri ?? null });
+      }
       if (useNativeBrowser) {
         await window.api?.shell?.openExternal(authUrl);
       } else if (authWindow) {
@@ -162,6 +204,7 @@ export const useOAuthConnection = (
     } catch (error) {
       authWindow?.close();
       setIsConnecting(false);
+      setManualPrompt(null);
       addNotification({
         content:
           error instanceof Error
@@ -172,6 +215,47 @@ export const useOAuthConnection = (
       });
     }
   }, [provider, config, addNotification]);
+
+  const submitManualCode = useCallback(
+    async (input: string) => {
+      if (!provider || !config) {
+        return;
+      }
+      setIsSubmittingManual(true);
+      try {
+        const response = await restFetch(`/api/oauth/${provider}/complete`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ code: input })
+        });
+        const body = (await response.json().catch(() => null)) as
+          | { detail?: string }
+          | null;
+        if (!response.ok) {
+          throw new Error(body?.detail || "Could not complete the sign-in");
+        }
+        setManualPrompt(null);
+        await queryClient.invalidateQueries({ queryKey: tokenQueryKey });
+      } catch (error) {
+        addNotification({
+          content:
+            error instanceof Error
+              ? error.message
+              : `Could not complete the ${config.label} sign-in`,
+          type: "error",
+          alert: true
+        });
+      } finally {
+        setIsSubmittingManual(false);
+      }
+    },
+    [provider, config, addNotification, queryClient, tokenQueryKey]
+  );
+
+  const cancelManual = useCallback(() => {
+    setManualPrompt(null);
+    setIsConnecting(false);
+  }, []);
 
   const disconnect = useCallback(async () => {
     if (!provider || !config?.canDisconnect) {
@@ -205,6 +289,10 @@ export const useOAuthConnection = (
     isConnecting,
     canDisconnect: config?.canDisconnect ?? false,
     connect,
-    disconnect
+    disconnect,
+    manualPrompt,
+    isSubmittingManual,
+    submitManualCode,
+    cancelManual
   };
 };

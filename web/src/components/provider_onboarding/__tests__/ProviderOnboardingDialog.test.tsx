@@ -59,7 +59,11 @@ beforeEach(() => {
     isConnecting: false,
     canDisconnect: false,
     connect: jest.fn(),
-    disconnect: jest.fn()
+    disconnect: jest.fn(),
+    manualPrompt: null,
+    isSubmittingManual: false,
+    submitManualCode: jest.fn(),
+    cancelManual: jest.fn()
   });
   mockUseSecretsStore.mockImplementation(
     <T,>(selector: (s: { updateSecret: jest.Mock }) => T) =>
