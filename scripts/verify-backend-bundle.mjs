@@ -97,9 +97,11 @@ function listShippedSystemSkillNames() {
   if (entries === null) return null;
   const names = [];
   for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    if (!fs.existsSync(path.join(sourceDir, entry.name, "SKILL.md"))) continue;
-    names.push(entry.name);
+    // `listFiles` is a bare `readdirSync`, so an entry is a name, not a
+    // Dirent. Holding a SKILL.md is also the directory test: `existsSync`
+    // under a plain file is false.
+    if (!existsSync(path.join(sourceDir, entry, "SKILL.md"))) continue;
+    names.push(entry);
   }
   return names;
 }
@@ -350,11 +352,12 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
   const shippedSkills = listShippedSystemSkillNames();
   if (shippedSkills !== null && shippedSkills.length > 0) {
     const missingSkills = shippedSkills.filter(
-      (name) => !fs.existsSync(path.join(bundleDir, "_skills", name, "SKILL.md"))
+      (name) => !existsSync(path.join(bundleDir, "_skills", name, "SKILL.md"))
     );
     if (missingSkills.length > 0) {
-      problems.push(
-        `System skill(s) not staged under _skills/: ${missingSkills.join(", ")}.`
+      errors.push(
+        `System skill(s) not staged under _skills/: ${missingSkills.join(", ")}. ` +
+          "Check stageSystemSkills in bundle-backend.mjs."
       );
     } else {
       summary.push(`system skills staged: ${shippedSkills.length}`);
