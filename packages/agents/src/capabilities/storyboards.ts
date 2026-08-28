@@ -475,6 +475,10 @@ function createdBoardSummary(row: Storyboard) {
   return {
     ok: true as const,
     storyboard_id: row.id,
+    // The same value under the key a caller reaches for first. Reading `.id`
+    // off this result and passing the `undefined` onward is what a create/edit
+    // pair actually did, and the edit blamed a missing argument two calls later.
+    id: row.id,
     name: row.name,
     project_id: row.project_id,
     shots: doc.shots.length,
@@ -1303,6 +1307,33 @@ function assertKnownShotFields(op: string, args: Record<string, unknown>): void 
   );
 }
 
+/** The board fields `set_board` may set. */
+const BOARD_EDIT_FIELDS = new Set([
+  "brief",
+  "style",
+  "aspect_ratio",
+  "entity_ids",
+  "image_model",
+  "video_model"
+]);
+
+/**
+ * The board-level twin of {@link assertKnownShotFields}.
+ *
+ * `set_board` used to keep whatever it was handed and act on the keys it knew,
+ * so `{op: "set_board", image_model: …}` reported success and left the board's
+ * model null — and the render then refused for want of a model the caller had
+ * just set.
+ */
+function assertKnownBoardFields(args: Record<string, unknown>): void {
+  const unknown = Object.keys(args).filter((key) => !BOARD_EDIT_FIELDS.has(key));
+  if (unknown.length === 0) return;
+  throw new Error(
+    `set_board does not take ${unknown.map((k) => `\`${k}\``).join(", ")}. ` +
+      `Accepted: ${[...BOARD_EDIT_FIELDS].join(", ")}.`
+  );
+}
+
 /** The shot fields an edit may set. Media and status stay the render tools'. */
 function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
   const next: Shot = { ...shot };
@@ -1422,6 +1453,7 @@ function applyBoardOp(
     }
 
     case "set_board": {
+      assertKnownBoardFields(args);
       if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
       if (args["style"] !== undefined) doc.style = String(args["style"]);
       if (args["aspect_ratio"] !== undefined) {
@@ -1430,11 +1462,40 @@ function applyBoardOp(
       if (Array.isArray(args["entity_ids"])) {
         doc.entityIds = args["entity_ids"].map(String);
       }
+      // The board's default models. Without these the only way to set one was
+      // the editor, so a headless caller passed them here, saw the op succeed,
+      // and then had `render_storyboard_stills` refuse for want of a model —
+      // the keys were being dropped silently.
+      const model = (key: "image_model" | "video_model") => {
+        const value = args[key];
+        if (value === null) return null;
+        return isRecord(value) ? (value as Record<string, unknown>) : undefined;
+      };
+      const imageModel = model("image_model");
+      if (args["image_model"] !== undefined) {
+        if (imageModel === undefined) {
+          throw new Error(
+            "set_board: image_model must be a model object (use find_model) or null"
+          );
+        }
+        doc.imageModel = imageModel;
+      }
+      const videoModel = model("video_model");
+      if (args["video_model"] !== undefined) {
+        if (videoModel === undefined) {
+          throw new Error(
+            "set_board: video_model must be a model object (use find_model) or null"
+          );
+        }
+        doc.videoModel = videoModel;
+      }
       return {
         brief: doc.brief,
         style: doc.style,
         aspect_ratio: doc.aspectRatio,
-        entity_ids: doc.entityIds
+        entity_ids: doc.entityIds,
+        image_model: doc.imageModel,
+        video_model: doc.videoModel
       };
     }
   }

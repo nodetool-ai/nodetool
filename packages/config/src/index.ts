@@ -57,6 +57,8 @@ export {
   PACKAGE_RUNTIME_ASSETS,
   SHIPPED_SANDBOX_PACKS_SOURCE_DIR,
   SHIPPED_SANDBOX_PACKS_BUNDLE_DIR,
+  SHIPPED_SYSTEM_SKILLS_SOURCE_DIR,
+  SHIPPED_SYSTEM_SKILLS_BUNDLE_DIR,
   findPackageAsset,
   type PackageAssetRef
 } from "./package-asset-registry.js";

@@ -6,6 +6,12 @@
  * turn's prompt (`skill-prompt.ts`), so discovery costs nothing; `load_skill`
  * is how the body reaches the model, and the other three are authoring.
  *
+ * Two tiers share these names. A **user skill** is a row someone wrote and can
+ * rewrite. A **system skill** ships with the build (`system-skills.ts`) and is
+ * read-only: `list_skills` and `load_skill` serve both, and the three authoring
+ * calls refuse a shipped name so nothing can edit or delete one. A user row that
+ * already held the name predates the reservation and still wins.
+ *
  * `@nodetool-ai/models` is imported inside each implementation, so loading this
  * module never opens a database.
  */
@@ -21,6 +27,11 @@ import {
   deleteSkillSpec
 } from "./skills.specs.js";
 import { isString } from "../utils/type-guards.js";
+import {
+  findSystemSkill,
+  isSystemSkillName,
+  loadSystemSkills
+} from "../system-skills.js";
 
 function requireUser(
   context: ProcessingContext
@@ -37,6 +48,18 @@ function errorMessage(e: unknown): string {
 /** Normalize a name the model may have typed with its leading slash. */
 function skillName(value: unknown): string {
   return isString(value) ? value.trim().replace(/^\//, "").toLowerCase() : "";
+}
+
+/**
+ * The refusal a shipped name earns. Immutability is the point of the tier: an
+ * agent that mis-reads its own instructions must not be able to edit the
+ * document those instructions came from.
+ */
+function reservedNameError(name: string, verb: string): string {
+  return (
+    `"${name}" is a system skill that ships with NodeTool and cannot be ` +
+    `${verb}. Pick another name; load_skill still reads it.`
+  );
 }
 
 async function findSkill(userId: string, name: string) {
@@ -59,17 +82,30 @@ const listSkills: CapabilityExport = {
       const query = isString(params.query)
         ? params.query.trim().toLowerCase()
         : "";
-      const skills = rows
-        .filter(
-          (row) =>
-            !query ||
-            `${row.name} ${row.description}`.toLowerCase().includes(query)
-        )
-        .map((row) => ({
+      const taken = new Set(rows.map((row) => row.name.toLowerCase()));
+      const merged = [
+        ...rows.map((row) => ({
           name: row.name,
           description: row.description,
-          updated_at: row.updated_at
-        }));
+          updated_at: row.updated_at,
+          system: false
+        })),
+        // A shipped skill whose name a user row already holds is shadowed by
+        // that row and is not listed twice.
+        ...loadSystemSkills()
+          .filter((skill) => !taken.has(skill.name))
+          .map((skill) => ({
+            name: skill.name,
+            description: skill.description,
+            updated_at: null,
+            system: true
+          }))
+      ];
+      const skills = merged.filter(
+        (skill) =>
+          !query ||
+          `${skill.name} ${skill.description}`.toLowerCase().includes(query)
+      );
       return { success: true, count: skills.length, skills };
     } catch (e) {
       return { success: false, error: errorMessage(e) };
@@ -90,17 +126,28 @@ const loadSkill: CapabilityExport = {
     if (!name) return { success: false, error: "name is required" };
     try {
       const skill = await findSkill(scope.userId, name);
-      if (!skill) {
+      if (skill) {
         return {
-          success: false,
-          error: `No skill named "${name}". Call list_skills to see what exists.`
+          success: true,
+          name: skill.name,
+          description: skill.description,
+          instructions: skill.content,
+          system: false
+        };
+      }
+      const shipped = findSystemSkill(name);
+      if (shipped) {
+        return {
+          success: true,
+          name: shipped.name,
+          description: shipped.description,
+          instructions: shipped.content,
+          system: true
         };
       }
       return {
-        success: true,
-        name: skill.name,
-        description: skill.description,
-        instructions: skill.content
+        success: false,
+        error: `No skill named "${name}". Call list_skills to see what exists.`
       };
     } catch (e) {
       return { success: false, error: errorMessage(e) };
@@ -127,6 +174,9 @@ const createSkill: CapabilityExport = {
         success: false,
         error: "name, description and content are all required"
       };
+    }
+    if (isSystemSkillName(name)) {
+      return { success: false, error: reservedNameError(name, "overwritten") };
     }
     try {
       if (await findSkill(scope.userId, name)) {
@@ -162,10 +212,23 @@ const updateSkill: CapabilityExport = {
     if (!name) return { success: false, error: "name is required" };
     try {
       const skill = await findSkill(scope.userId, name);
-      if (!skill) return { success: false, error: `No skill named "${name}"` };
+      if (!skill) {
+        // A shipped name with no user row behind it is the immutable tier, and
+        // says so — rather than the "no such skill" a plain lookup would give.
+        if (isSystemSkillName(name)) {
+          return { success: false, error: reservedNameError(name, "edited") };
+        }
+        return { success: false, error: `No skill named "${name}"` };
+      }
 
       const newName = skillName(params.new_name);
       if (newName && newName !== name) {
+        if (isSystemSkillName(newName)) {
+          return {
+            success: false,
+            error: reservedNameError(newName, "renamed over")
+          };
+        }
         if (await findSkill(scope.userId, newName)) {
           return {
             success: false,
@@ -199,7 +262,12 @@ const deleteSkill: CapabilityExport = {
     if (!name) return { success: false, error: "name is required" };
     try {
       const skill = await findSkill(scope.userId, name);
-      if (!skill) return { success: false, error: `No skill named "${name}"` };
+      if (!skill) {
+        if (isSystemSkillName(name)) {
+          return { success: false, error: reservedNameError(name, "deleted") };
+        }
+        return { success: false, error: `No skill named "${name}"` };
+      }
       await skill.delete();
       return { success: true, name };
     } catch (e) {

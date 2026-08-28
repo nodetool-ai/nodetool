@@ -81,6 +81,30 @@ function listStagedSandboxPacks(bundleDir) {
 }
 
 /**
+ * Skill names this repo ships, or null when the source directory is absent —
+ * the artifact can be verified outside a checkout.
+ *
+ * The path repeats SHIPPED_SYSTEM_SKILLS_SOURCE_DIR for the same reason the
+ * pack list above does: no build tree is required beside the bundle.
+ */
+function listShippedSystemSkillNames() {
+  const sourceDir = path.join(
+    path.dirname(path.dirname(fileURLToPath(import.meta.url))),
+    "packages",
+    "system-skills"
+  );
+  const entries = listFiles(sourceDir);
+  if (entries === null) return null;
+  const names = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (!fs.existsSync(path.join(sourceDir, entry.name, "SKILL.md"))) continue;
+    names.push(entry.name);
+  }
+  return names;
+}
+
+/**
  * Package names of the sandbox packs this repo ships, or null when the source
  * directory is absent — the artifact can be verified outside a checkout.
  *
@@ -318,6 +342,22 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
         `sandbox pack ${pack} staged: ${declared.length} module(s), ` +
           `${new Set(files).size} declared file(s)`
       );
+    }
+  }
+
+  // 3c. System skills staged under _skills/. A build that ships none leaves
+  //     every install with an empty skill catalog, which is invisible at boot.
+  const shippedSkills = listShippedSystemSkillNames();
+  if (shippedSkills !== null && shippedSkills.length > 0) {
+    const missingSkills = shippedSkills.filter(
+      (name) => !fs.existsSync(path.join(bundleDir, "_skills", name, "SKILL.md"))
+    );
+    if (missingSkills.length > 0) {
+      problems.push(
+        `System skill(s) not staged under _skills/: ${missingSkills.join(", ")}.`
+      );
+    } else {
+      summary.push(`system skills staged: ${shippedSkills.length}`);
     }
   }
 

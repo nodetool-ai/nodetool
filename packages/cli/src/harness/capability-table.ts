@@ -2020,7 +2020,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "f4d8b3cedbae",
+    contract: "9b3c1f3f93a1",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",

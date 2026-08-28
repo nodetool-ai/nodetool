@@ -352,8 +352,11 @@ const saveEntityAsset = async (
   };
   await asset.save();
   const entity = entityFromAsset(asset);
+  // `entity_id` and `id` alongside the record: an entity IS its asset, so the
+  // id was always the `asset_id` the caller passed in — but the result carried
+  // it only nested, and a caller reading `.id` got `undefined` and passed it on.
   return entity
-    ? { entity }
+    ? { entity, entity_id: asset.id, id: asset.id }
     : { error: "The entity marker was not readable after saving." };
 };
 
