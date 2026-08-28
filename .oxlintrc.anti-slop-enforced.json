@@ -206,6 +206,7 @@
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/cli/src/**",
+        "packages/code-nodes/src/**",
         "packages/config/src/**",
         "packages/data-nodes/src/**",
         "packages/document-nodes/src/**",

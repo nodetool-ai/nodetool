@@ -6,6 +6,13 @@ import { deriveCodeIOUpdates } from "../../../utils/codeOutputInference";
 import { isCodeNodeType } from "../../../utils/codeNodeHandles";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
 
+/** The overlay merged into a node's `data`. The schema declares its values
+ * `any`, so this is the only place the shape is written down. */
+interface NodeDataOverlay {
+  properties?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 const TYPED_MODEL_FIELDS = new Set([
   "language_model",
   "image_model",
@@ -35,9 +42,9 @@ FrontendToolRegistry.register({
     // Narrowly catch the common LLM mistake: passing a bare string id for a
     // typed-model field. Everything else falls through to the store, which
     // tolerates loose shapes.
+    const overlay: NodeDataOverlay = data;
     const metadata = state.nodeMetadata[node.type ?? ""];
-    const incomingProperties = (data as { properties?: Record<string, unknown> })
-      ?.properties;
+    const incomingProperties = overlay.properties;
     if (metadata && incomingProperties && isObjectLike(incomingProperties)) {
       for (const property of metadata.properties) {
         const fieldType = property.type?.type;
@@ -56,10 +63,7 @@ FrontendToolRegistry.register({
     // Split `properties` from the rest so we can merge property updates
     // instead of replacing the whole dict (the bare `updateNodeData` shallow-
     // merges into `data`, which would wipe untouched properties).
-    const { properties: propsUpdate, ...restData } = data as {
-      properties?: Record<string, unknown>;
-      [key: string]: unknown;
-    };
+    const { properties: propsUpdate, ...restData } = overlay;
     if (Object.keys(restData).length > 0) {
       nodeStore.updateNodeData(node_id, restData);
     }

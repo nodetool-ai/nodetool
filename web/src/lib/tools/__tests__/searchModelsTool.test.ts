@@ -2,7 +2,13 @@
  * @jest-environment node
  */
 import { FrontendToolRegistry } from "../frontendTools";
+import type { FrontendToolState } from "../frontendTools";
+import { stub } from "../../../test-utils/doubles";
+import { toolResult } from "../../../test-utils/toolResult";
 import "../builtin/searchModels";
+
+/** `ui_search_models` reads the trpc client, never the editor state. */
+const ctx = { getState: () => stub<FrontendToolState>({}) };
 
 const mockQuery = jest.fn();
 
@@ -31,10 +37,15 @@ describe("ui_search_models tool", () => {
       "ui_search_models",
       { kind: "text_generation" },
       "tc-1",
-      { getState: () => ({}) as never }
+      ctx
     );
 
-    const typed = result as { ok: boolean; kind: string; count: number; models: unknown[] };
+    const typed = toolResult<{
+      ok: boolean;
+      kind: string;
+      count: number;
+      models: unknown[];
+    }>(result, "ok", "kind", "count", "models");
     expect(typed.ok).toBe(true);
     expect(typed.kind).toBe("text_generation");
     expect(typed.count).toBe(2);
@@ -54,10 +65,14 @@ describe("ui_search_models tool", () => {
       "ui_search_models",
       { kind: "text_generation", limit: 5 },
       "tc-2",
-      { getState: () => ({}) as never }
+      ctx
     );
 
-    const typed = result as { count: number; models: unknown[] };
+    const typed = toolResult<{ count: number; models: unknown[] }>(
+      result,
+      "count",
+      "models"
+    );
     expect(typed.count).toBe(5);
     expect(typed.models).toHaveLength(5);
   });
@@ -69,10 +84,14 @@ describe("ui_search_models tool", () => {
       "ui_search_models",
       { kind: "text_to_video" },
       "tc-3",
-      { getState: () => ({}) as never }
+      ctx
     );
 
-    const typed = result as { ok: boolean; count: number; models: unknown[] };
+    const typed = toolResult<{
+      ok: boolean;
+      count: number;
+      models: unknown[];
+    }>(result, "ok", "count", "models");
     expect(typed.ok).toBe(true);
     expect(typed.count).toBe(0);
     expect(typed.models).toHaveLength(0);
@@ -85,10 +104,14 @@ describe("ui_search_models tool", () => {
       "ui_search_models",
       { kind: "text_to_speech" },
       "tc-4",
-      { getState: () => ({}) as never }
+      ctx
     );
 
-    const typed = result as { ok: boolean; count: number; models: unknown[] };
+    const typed = toolResult<{
+      ok: boolean;
+      count: number;
+      models: unknown[];
+    }>(result, "ok", "count", "models");
     expect(typed.ok).toBe(true);
     expect(typed.count).toBe(0);
   });
@@ -102,10 +125,13 @@ describe("ui_search_models tool", () => {
       "ui_search_models",
       { kind: "text_generation" },
       "tc-5",
-      { getState: () => ({}) as never }
+      ctx
     );
 
-    const typed = result as { models: Array<Record<string, unknown>> };
+    const typed = toolResult<{ models: Array<Record<string, unknown>> }>(
+      result,
+      "models"
+    );
     const model = typed.models[0];
     expect(model.id).toBe("org/model");
     expect(model.name).toBe("org/model");
@@ -122,10 +148,10 @@ describe("ui_search_models tool", () => {
       "ui_search_models",
       { kind: "text_to_image" },
       "tc-6",
-      { getState: () => ({}) as never }
+      ctx
     );
 
-    const typed = result as { usage: string };
+    const typed = toolResult<{ usage: string }>(result, "usage");
     expect(typed.usage).toContain("ui_update_node_data");
   });
 
@@ -141,10 +167,10 @@ describe("ui_search_models tool", () => {
       "ui_search_models",
       { kind: "text_generation" },
       "tc-7",
-      { getState: () => ({}) as never }
+      ctx
     );
 
-    const typed = result as { count: number };
+    const typed = toolResult<{ count: number }>(result, "count");
     expect(typed.count).toBe(20);
   });
 
@@ -157,10 +183,14 @@ describe("ui_search_models tool", () => {
       "ui_search_models",
       { kind: "text_to_image", limit: 10 },
       "tc-8",
-      { getState: () => ({}) as never }
+      ctx
     );
 
-    const typed = result as { ok: boolean; kind: string; models: Array<Record<string, unknown>> };
+    const typed = toolResult<{
+      ok: boolean;
+      kind: string;
+      models: Array<Record<string, unknown>>;
+    }>(result, "ok", "kind", "models");
     expect(typed.ok).toBe(true);
     expect(typed.kind).toBe("text_to_image");
     expect(typed.models[0].id).toBe("flux-pro");

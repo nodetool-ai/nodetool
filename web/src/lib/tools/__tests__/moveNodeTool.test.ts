@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/moveNode";
+import { toolResult } from "../../../test-utils/toolResult";
 
 function createMockNodeStore(
   nodes: Array<{ id: string; position?: { x: number; y: number } }> = []
@@ -60,7 +61,11 @@ describe("ui_move_node tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean; node_id: string; position: { x: number; y: number } };
+    const typed = toolResult<{
+      ok: boolean;
+      node_id: string;
+      position: { x: number; y: number };
+    }>(result, "ok", "node_id", "position");
     expect(typed.ok).toBe(true);
     expect(typed.node_id).toBe("node-1");
     expect(typed.position).toEqual({ x: 300, y: 400 });
@@ -82,7 +87,7 @@ describe("ui_move_node tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
+    expect(toolResult<{ ok: boolean }>(result, "ok").ok).toBe(true);
     expect(store.updates[0].patch).toEqual({
       position: { x: -50, y: -100 },
     });

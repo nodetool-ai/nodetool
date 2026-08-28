@@ -12,6 +12,8 @@ import {
   type ScriptSpeakerNode
 } from "../../../components/script/scriptAgentBridge";
 import "../builtin/script";
+import { toolResult, toolSchema } from "../../../test-utils/toolResult";
+import { stub } from "../../../test-utils/doubles";
 
 const lineNode = (overrides: Partial<ScriptLineNode> = {}): ScriptLineNode => ({
   id: "line-1",
@@ -60,7 +62,7 @@ const createMockHandler = (): jest.Mocked<ScriptAgentHandler> => ({
 });
 
 // The script tools never touch the workflow state, so a bare stub satisfies ctx.
-const ctx = { getState: () => ({}) as FrontendToolState };
+const ctx = { getState: () => stub<FrontendToolState>({}) };
 
 const SCRIPT_ID = "script-1";
 
@@ -90,15 +92,10 @@ describe("ui_script_* tools", () => {
   });
 
   it("exposes add_line's parameter schema with text required", () => {
-    const tool = FrontendToolRegistry.getManifest().find(
-      (t) => t.name === "ui_script_add_line"
+    const schema = toolSchema(
+      FrontendToolRegistry.getManifest(),
+      "ui_script_add_line"
     );
-    expect(tool).toBeDefined();
-    const schema = tool?.parameters as {
-      type?: string;
-      properties?: Record<string, unknown>;
-      required?: string[];
-    };
     expect(schema.type).toBe("object");
     expect(schema.properties).toHaveProperty("text");
     expect(schema.properties).toHaveProperty("script_id");
@@ -124,12 +121,15 @@ describe("ui_script_* tools", () => {
     handler.getSnapshot.mockReturnValue(snapshot());
     setScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_script_get_state",
-      { script_id: SCRIPT_ID },
-      "tc-2",
-      ctx
-    )) as { ok: boolean } & ScriptSnapshot;
+    const result = toolResult<{ ok: boolean } & ScriptSnapshot>(
+      await FrontendToolRegistry.call(
+        "ui_script_get_state",
+        { script_id: SCRIPT_ID },
+        "tc-2",
+        ctx
+      ),
+      "ok"
+    );
 
     expect(handler.getSnapshot).toHaveBeenCalled();
     expect(result.ok).toBe(true);
@@ -142,12 +142,16 @@ describe("ui_script_* tools", () => {
     handler.addLine.mockReturnValue(lineNode({ text: "A new line." }));
     setScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_script_add_line",
-      { script_id: SCRIPT_ID, text: "A new line.", speakerId: "spk-1" },
-      "tc-3",
-      ctx
-    )) as { ok: boolean; line: ScriptLineNode };
+    const result = toolResult<{ ok: boolean; line: ScriptLineNode }>(
+      await FrontendToolRegistry.call(
+        "ui_script_add_line",
+        { script_id: SCRIPT_ID, text: "A new line.", speakerId: "spk-1" },
+        "tc-3",
+        ctx
+      ),
+      "ok",
+      "line"
+    );
 
     expect(handler.addLine).toHaveBeenCalledWith(
       expect.objectContaining({ text: "A new line.", speakerId: "spk-1" })
@@ -166,16 +170,20 @@ describe("ui_script_* tools", () => {
     );
     setScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_script_add_speaker",
-      {
-        script_id: SCRIPT_ID,
-        name: "Host",
-        voice: { provider: "elevenlabs", model: "eleven_v3", voice: "rachel" }
-      },
-      "tc-spk",
-      ctx
-    )) as { ok: boolean; speaker: ScriptSpeakerNode };
+    const result = toolResult<{ ok: boolean; speaker: ScriptSpeakerNode }>(
+      await FrontendToolRegistry.call(
+        "ui_script_add_speaker",
+        {
+          script_id: SCRIPT_ID,
+          name: "Host",
+          voice: { provider: "elevenlabs", model: "eleven_v3", voice: "rachel" }
+        },
+        "tc-spk",
+        ctx
+      ),
+      "ok",
+      "speaker"
+    );
 
     expect(handler.addSpeaker).toHaveBeenCalledWith(
       "Host",
@@ -196,12 +204,16 @@ describe("ui_script_* tools", () => {
     );
     setScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_script_voice_line",
-      { script_id: SCRIPT_ID, target: "0" },
-      "tc-4",
-      ctx
-    )) as { ok: boolean; line: ScriptLineNode };
+    const result = toolResult<{ ok: boolean; line: ScriptLineNode }>(
+      await FrontendToolRegistry.call(
+        "ui_script_voice_line",
+        { script_id: SCRIPT_ID, target: "0" },
+        "tc-4",
+        ctx
+      ),
+      "ok",
+      "line"
+    );
 
     expect(handler.voiceLine).toHaveBeenCalledWith("0");
     expect(result.line.status).toBe("voiced");
@@ -212,12 +224,16 @@ describe("ui_script_* tools", () => {
     handler.voiceAll.mockResolvedValue({ voiced: 4 });
     setScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_script_voice_all",
-      { script_id: SCRIPT_ID },
-      "tc-all",
-      ctx
-    )) as { ok: boolean; voiced: number };
+    const result = toolResult<{ ok: boolean; voiced: number }>(
+      await FrontendToolRegistry.call(
+        "ui_script_voice_all",
+        { script_id: SCRIPT_ID },
+        "tc-all",
+        ctx
+      ),
+      "ok",
+      "voiced"
+    );
 
     expect(handler.voiceAll).toHaveBeenCalled();
     expect(result.voiced).toBe(4);
@@ -234,18 +250,25 @@ describe("ui_script_* tools", () => {
     });
     setScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_script_send_to_timeline",
-      { script_id: SCRIPT_ID },
-      "tc-send",
-      ctx
-    )) as {
+    const result = toolResult<{
       ok: boolean;
       sequenceId: string;
       clipCount: number;
       skippedLineIds: string[];
       reassembled: boolean;
-    };
+    }>(
+      await FrontendToolRegistry.call(
+        "ui_script_send_to_timeline",
+        { script_id: SCRIPT_ID },
+        "tc-send",
+        ctx
+      ),
+      "ok",
+      "sequenceId",
+      "clipCount",
+      "skippedLineIds",
+      "reassembled"
+    );
 
     expect(handler.sendToTimeline).toHaveBeenCalled();
     expect(result.ok).toBe(true);
@@ -263,12 +286,23 @@ describe("ui_script_* tools", () => {
     });
     setScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_script_export_subtitles",
-      { script_id: SCRIPT_ID, format: "vtt", granularity: "word" },
-      "tc-subs",
-      ctx
-    )) as { ok: boolean; text: string; format: string; cueCount: number };
+    const result = toolResult<{
+      ok: boolean;
+      text: string;
+      format: string;
+      cueCount: number;
+    }>(
+      await FrontendToolRegistry.call(
+        "ui_script_export_subtitles",
+        { script_id: SCRIPT_ID, format: "vtt", granularity: "word" },
+        "tc-subs",
+        ctx
+      ),
+      "ok",
+      "text",
+      "format",
+      "cueCount"
+    );
 
     expect(handler.exportSubtitles).toHaveBeenCalledWith({
       format: "vtt",
@@ -303,12 +337,23 @@ describe("ui_script_* tools", () => {
       });
       setScriptAgentHandler(SCRIPT_ID, handler);
 
-      const result = (await FrontendToolRegistry.call(
-        "ui_script_derive_storyboard",
-        { script_id: SCRIPT_ID },
-        "tc-derive",
-        ctx
-      )) as { ok: boolean; boardId: string; shotCount: number; url: string };
+      const result = toolResult<{
+        ok: boolean;
+        boardId: string;
+        shotCount: number;
+        url: string;
+      }>(
+        await FrontendToolRegistry.call(
+          "ui_script_derive_storyboard",
+          { script_id: SCRIPT_ID },
+          "tc-derive",
+          ctx
+        ),
+        "ok",
+        "boardId",
+        "shotCount",
+        "url"
+      );
 
       expect(handler.deriveStoryboard).toHaveBeenCalled();
       expect(result.ok).toBe(true);

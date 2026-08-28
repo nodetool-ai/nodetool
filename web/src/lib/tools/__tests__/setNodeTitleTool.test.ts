@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/setNodeTitle";
+import { toolResult } from "../../../test-utils/toolResult";
 
 function createMockNodeStore(
   nodes: Array<{ id: string; data?: Record<string, unknown> }> = []
@@ -58,7 +59,12 @@ describe("ui_set_node_title tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean; node_id: string; title: string };
+    const typed = toolResult<{ ok: boolean; node_id: string; title: string }>(
+      result,
+      "ok",
+      "node_id",
+      "title"
+    );
     expect(typed.ok).toBe(true);
     expect(typed.node_id).toBe("node-1");
     expect(typed.title).toBe("My Custom Title");
@@ -81,7 +87,7 @@ describe("ui_set_node_title tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
+    expect(toolResult<{ ok: boolean }>(result, "ok").ok).toBe(true);
     expect(store.dataUpdates[0].data).toEqual({ title: "" });
   });
 

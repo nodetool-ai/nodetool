@@ -1,6 +1,8 @@
 import { FrontendToolRegistry } from "../../frontendTools";
 import type { FrontendToolState } from "../../frontendTools";
 import type { Workflow, WorkflowList, NodeMetadata } from "../../../../stores/ApiTypes";
+import { stub, type PartialMembers } from "../../../../test-utils/doubles";
+import { toolResult } from "../../../../test-utils/toolResult";
 
 jest.mock("@nodetool-ai/protocol", () => ({
   uiSearchNodesParams: {
@@ -41,12 +43,13 @@ function makeMockState(
     getCurrentWorkflow: jest.fn(() => undefined),
     setCurrentWorkflowId: jest.fn(),
     fetchWorkflow: jest.fn(async () => {}),
-    newWorkflow: jest.fn(() => ({}) as Workflow),
-    createNew: jest.fn(async () => ({}) as Workflow),
-    searchTemplates: jest.fn(
-      async () => ({ workflows: [], next: null }) as WorkflowList
-    ),
-    copy: jest.fn(async () => ({}) as Workflow),
+    newWorkflow: jest.fn(() => stub<Workflow>({})),
+    createNew: jest.fn(async () => stub<Workflow>({})),
+    searchTemplates: jest.fn(async (): Promise<WorkflowList> => ({
+      workflows: [],
+      next: null
+    })),
+    copy: jest.fn(async () => stub<Workflow>({})),
     ...overrides
   };
 }
@@ -55,15 +58,38 @@ function makeCtx(state: FrontendToolState) {
   return { getState: () => state };
 }
 
-function makeNode(overrides: Partial<NodeMetadata>): NodeMetadata {
-  return {
+function makeNode(overrides: PartialMembers<NodeMetadata>): NodeMetadata {
+  return stub<NodeMetadata>({
     node_type: "nodetool.test.Node",
     title: "Test Node",
     namespace: "nodetool.test",
     properties: [],
     outputs: [],
     ...overrides
-  } as NodeMetadata;
+  });
+}
+
+/** The args `ui_search_nodes` accepts, as this suite exercises them. */
+interface SearchNodesArgs {
+  query: string;
+  include_properties?: boolean;
+  include_outputs?: boolean;
+  limit?: number;
+}
+
+async function searchNodes(
+  args: SearchNodesArgs,
+  callId: string,
+  ctx: { getState: () => FrontendToolState }
+): Promise<SearchResult> {
+  return toolResult<SearchResult>(
+    await FrontendToolRegistry.call("ui_search_nodes", args, callId, ctx),
+    "ok",
+    "query",
+    "count",
+    "total_matches",
+    "results"
+  );
 }
 
 describe("ui_search_nodes", () => {
@@ -82,12 +108,7 @@ describe("ui_search_nodes", () => {
     const state = makeMockState();
     const ctx = makeCtx(state);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_search_nodes",
-      { query: "concat" },
-      "call-1",
-      ctx
-    )) as SearchResult;
+    const result = await searchNodes({ query: "concat" }, "call-1", ctx);
 
     expect(result).toMatchObject({
       ok: true,
@@ -109,19 +130,18 @@ describe("ui_search_nodes", () => {
       namespace: "nodetool.text",
       properties: [
         { name: "template", type: { type: "str" }, required: true }
-      ] as NodeMetadata["properties"]
+      ]
     });
     mockSearchResults.mockReturnValueOnce({ sortedResults: [node] });
 
     const state = makeMockState();
     const ctx = makeCtx(state);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_search_nodes",
+    const result = await searchNodes(
       { query: "format", include_properties: true },
       "call-2",
       ctx
-    )) as SearchResult;
+    );
 
     expect(result.results[0].properties).toEqual([
       { name: "template", type: { type: "str" }, required: true }
@@ -138,19 +158,18 @@ describe("ui_search_nodes", () => {
       namespace: "nodetool.text",
       outputs: [
         { name: "result", type: { type: "str" }, stream: false }
-      ] as NodeMetadata["outputs"]
+      ]
     });
     mockSearchResults.mockReturnValueOnce({ sortedResults: [node] });
 
     const state = makeMockState();
     const ctx = makeCtx(state);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_search_nodes",
+    const result = await searchNodes(
       { query: "concat", include_outputs: true },
       "call-3",
       ctx
-    )) as SearchResult;
+    );
 
     expect(result.results[0].outputs).toEqual([
       { name: "result", type: { type: "str" }, stream: false }
@@ -173,12 +192,7 @@ describe("ui_search_nodes", () => {
     const state = makeMockState();
     const ctx = makeCtx(state);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_search_nodes",
-      { query: "node", limit: 3 },
-      "call-4",
-      ctx
-    )) as SearchResult;
+    const result = await searchNodes({ query: "node", limit: 3 }, "call-4", ctx);
 
     expect(result.count).toBe(3);
     expect(result.total_matches).toBe(10);
@@ -208,12 +222,7 @@ describe("ui_search_nodes", () => {
     const state = makeMockState();
     const ctx = makeCtx(state);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_search_nodes",
-      { query: "generate" },
-      "call-5",
-      ctx
-    )) as SearchResult;
+    const result = await searchNodes({ query: "generate" }, "call-5", ctx);
 
     expect(result.results[0].node_type).toBe("nodetool.image.Generate");
     expect(result.results[1].node_type).toBe("fal.image.Generate");
@@ -226,12 +235,7 @@ describe("ui_search_nodes", () => {
     const state = makeMockState();
     const ctx = makeCtx(state);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_search_nodes",
-      { query: "nonexistent" },
-      "call-6",
-      ctx
-    )) as SearchResult;
+    const result = await searchNodes({ query: "nonexistent" }, "call-6", ctx);
 
     expect(result).toMatchObject({
       ok: true,
@@ -254,12 +258,7 @@ describe("ui_search_nodes", () => {
     const state = makeMockState();
     const ctx = makeCtx(state);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_search_nodes",
-      { query: "node", limit: 0 },
-      "call-7",
-      ctx
-    )) as SearchResult;
+    const result = await searchNodes({ query: "node", limit: 0 }, "call-7", ctx);
 
     expect(result.count).toBe(1);
   });

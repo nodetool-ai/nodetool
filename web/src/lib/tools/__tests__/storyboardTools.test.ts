@@ -13,6 +13,8 @@ import {
 } from "../../../components/storyboard/storyboardAgentBridge";
 import { registerStoryboardSaver } from "../../../hooks/storyboard/storyboardSaveRegistry";
 import "../builtin/storyboard";
+import { toolResult, toolSchema } from "../../../test-utils/toolResult";
+import { stub } from "../../../test-utils/doubles";
 
 const shotNode = (
   overrides: Partial<StoryboardShotNode> = {}
@@ -54,7 +56,7 @@ const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
 });
 
 // The storyboard tools never touch the workflow state, so a bare stub satisfies ctx.
-const ctx = { getState: () => ({}) as FrontendToolState };
+const ctx = { getState: () => stub<FrontendToolState>({}) };
 
 const BOARD_ID = "board-1";
 
@@ -88,15 +90,10 @@ describe("ui_storyboard_* tools", () => {
   });
 
   it("exposes add_shot's parameter schema with action required", () => {
-    const tool = FrontendToolRegistry.getManifest().find(
-      (t) => t.name === "ui_storyboard_add_shot"
+    const schema = toolSchema(
+      FrontendToolRegistry.getManifest(),
+      "ui_storyboard_add_shot"
     );
-    expect(tool).toBeDefined();
-    const schema = tool?.parameters as {
-      type?: string;
-      properties?: Record<string, unknown>;
-      required?: string[];
-    };
     expect(schema.type).toBe("object");
     expect(schema.properties).toHaveProperty("action");
     expect(schema.properties).toHaveProperty("storyboard_id");
@@ -122,12 +119,15 @@ describe("ui_storyboard_* tools", () => {
     handler.getSnapshot.mockReturnValue(snapshot());
     setStoryboardAgentHandler(BOARD_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_storyboard_get_state",
-      { storyboard_id: BOARD_ID },
-      "tc-2",
-      ctx
-    )) as { ok: boolean } & StoryboardSnapshot;
+    const result = toolResult<{ ok: boolean } & StoryboardSnapshot>(
+      await FrontendToolRegistry.call(
+        "ui_storyboard_get_state",
+        { storyboard_id: BOARD_ID },
+        "tc-2",
+        ctx
+      ),
+      "ok"
+    );
 
     expect(handler.getSnapshot).toHaveBeenCalled();
     expect(result.ok).toBe(true);
@@ -140,16 +140,20 @@ describe("ui_storyboard_* tools", () => {
     handler.addShot.mockReturnValue(shotNode({ action: "wide desert" }));
     setStoryboardAgentHandler(BOARD_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_storyboard_add_shot",
-      {
-        storyboard_id: BOARD_ID,
-        action: "wide desert",
-        camera: { framing: "wide" }
-      },
-      "tc-3",
-      ctx
-    )) as { ok: boolean; shot: StoryboardShotNode };
+    const result = toolResult<{ ok: boolean; shot: StoryboardShotNode }>(
+      await FrontendToolRegistry.call(
+        "ui_storyboard_add_shot",
+        {
+          storyboard_id: BOARD_ID,
+          action: "wide desert",
+          camera: { framing: "wide" }
+        },
+        "tc-3",
+        ctx
+      ),
+      "ok",
+      "shot"
+    );
 
     expect(handler.addShot).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -168,12 +172,16 @@ describe("ui_storyboard_* tools", () => {
     );
     setStoryboardAgentHandler(BOARD_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_storyboard_generate_keyframe",
-      { storyboard_id: BOARD_ID, target: "selected" },
-      "tc-4",
-      ctx
-    )) as { ok: boolean; shot: StoryboardShotNode };
+    const result = toolResult<{ ok: boolean; shot: StoryboardShotNode }>(
+      await FrontendToolRegistry.call(
+        "ui_storyboard_generate_keyframe",
+        { storyboard_id: BOARD_ID, target: "selected" },
+        "tc-4",
+        ctx
+      ),
+      "ok",
+      "shot"
+    );
 
     expect(handler.generateKeyframe).toHaveBeenCalledWith("selected");
     expect(result.shot.status).toBe("keyframe_generating");
@@ -186,16 +194,20 @@ describe("ui_storyboard_* tools", () => {
     );
     setStoryboardAgentHandler(BOARD_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_storyboard_revise_shot",
-      {
-        storyboard_id: BOARD_ID,
-        target: "0",
-        instruction: "make it darker, add rain"
-      },
-      "tc-revise",
-      ctx
-    )) as { ok: boolean; shot: StoryboardShotNode };
+    const result = toolResult<{ ok: boolean; shot: StoryboardShotNode }>(
+      await FrontendToolRegistry.call(
+        "ui_storyboard_revise_shot",
+        {
+          storyboard_id: BOARD_ID,
+          target: "0",
+          instruction: "make it darker, add rain"
+        },
+        "tc-revise",
+        ctx
+      ),
+      "ok",
+      "shot"
+    );
 
     expect(handler.reviseShot).toHaveBeenCalledWith(
       "0",
@@ -216,17 +228,23 @@ describe("ui_storyboard_* tools", () => {
     });
     setStoryboardAgentHandler(BOARD_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_storyboard_assemble_timeline",
-      { storyboard_id: BOARD_ID },
-      "tc-assemble",
-      ctx
-    )) as {
+    const result = toolResult<{
       ok: boolean;
       sequenceId: string;
       clipCount: number;
       skippedShotIds: string[];
-    };
+    }>(
+      await FrontendToolRegistry.call(
+        "ui_storyboard_assemble_timeline",
+        { storyboard_id: BOARD_ID },
+        "tc-assemble",
+        ctx
+      ),
+      "ok",
+      "sequenceId",
+      "clipCount",
+      "skippedShotIds"
+    );
 
     expect(handler.assembleTimeline).toHaveBeenCalled();
     expect(result.ok).toBe(true);
@@ -335,12 +353,16 @@ describe("ui_storyboard_* tools", () => {
         updatedAt: "2026-08-13T00:00:00.000Z"
       }));
 
-      const result = (await FrontendToolRegistry.call(
-        "ui_storyboard_set_screenplay",
-        { storyboard_id: BOARD_ID, screenplay: agentScreenplay },
-        "tc-sp-4",
-        ctx
-      )) as { saved: boolean | null; updatedAt?: string };
+      const result = toolResult<{ saved: boolean | null; updatedAt?: string }>(
+        await FrontendToolRegistry.call(
+          "ui_storyboard_set_screenplay",
+          { storyboard_id: BOARD_ID, screenplay: agentScreenplay },
+          "tc-sp-4",
+          ctx
+        ),
+        "saved",
+        "updatedAt"
+      );
 
       expect(result.saved).toBe(true);
       expect(result.updatedAt).toBe("2026-08-13T00:00:00.000Z");
@@ -351,12 +373,15 @@ describe("ui_storyboard_* tools", () => {
       handler.setScreenplay.mockReturnValue(snapshot());
       setStoryboardAgentHandler(BOARD_ID, handler);
 
-      const result = (await FrontendToolRegistry.call(
-        "ui_storyboard_set_screenplay",
-        { storyboard_id: BOARD_ID, screenplay: agentScreenplay },
-        "tc-sp-5",
-        ctx
-      )) as { saved: boolean | null };
+      const result = toolResult<{ saved: boolean | null }>(
+        await FrontendToolRegistry.call(
+          "ui_storyboard_set_screenplay",
+          { storyboard_id: BOARD_ID, screenplay: agentScreenplay },
+          "tc-sp-5",
+          ctx
+        ),
+        "saved"
+      );
 
       expect(result.saved).toBeNull();
     });
@@ -381,17 +406,10 @@ describe("ui_storyboard_* tools", () => {
     });
 
     it("names the required screenplay keys in its parameter schema", () => {
-      const tool = FrontendToolRegistry.getManifest().find(
-        (t) => t.name === "ui_storyboard_set_screenplay"
+      const schema = toolSchema(
+        FrontendToolRegistry.getManifest(),
+        "ui_storyboard_set_screenplay"
       );
-      const schema = tool?.parameters as {
-        properties?: {
-          screenplay?: {
-            properties?: Record<string, unknown>;
-            required?: string[];
-          };
-        };
-      };
       const screenplay = schema.properties?.screenplay;
       expect(screenplay?.properties).toHaveProperty("type");
       expect(screenplay?.properties).toHaveProperty("shots");
@@ -439,12 +457,23 @@ describe("ui_storyboard_* tools", () => {
       });
       setStoryboardAgentHandler(BOARD_ID, handler);
 
-      const result = (await FrontendToolRegistry.call(
-        "ui_storyboard_extract_script",
-        { storyboard_id: BOARD_ID },
-        "tc-extract",
-        ctx
-      )) as { ok: boolean; scriptId: string; created: boolean; url: string };
+      const result = toolResult<{
+        ok: boolean;
+        scriptId: string;
+        created: boolean;
+        url: string;
+      }>(
+        await FrontendToolRegistry.call(
+          "ui_storyboard_extract_script",
+          { storyboard_id: BOARD_ID },
+          "tc-extract",
+          ctx
+        ),
+        "ok",
+        "scriptId",
+        "created",
+        "url"
+      );
 
       expect(handler.extractScript).toHaveBeenCalledWith();
       expect(result.ok).toBe(true);
@@ -488,12 +517,16 @@ describe("ui_storyboard_* tools", () => {
       });
       setStoryboardAgentHandler(BOARD_ID, handler);
 
-      const result = (await FrontendToolRegistry.call(
-        "ui_storyboard_relink_script",
-        { storyboard_id: BOARD_ID },
-        "tc-relink",
-        ctx
-      )) as { ok: boolean; created: boolean };
+      const result = toolResult<{ ok: boolean; created: boolean }>(
+        await FrontendToolRegistry.call(
+          "ui_storyboard_relink_script",
+          { storyboard_id: BOARD_ID },
+          "tc-relink",
+          ctx
+        ),
+        "ok",
+        "created"
+      );
 
       expect(handler.extractScript).toHaveBeenCalledWith({ relink: true });
       expect(result.created).toBe(false);
@@ -506,12 +539,16 @@ describe("ui_storyboard_* tools", () => {
       );
       setStoryboardAgentHandler(BOARD_ID, handler);
 
-      const result = (await FrontendToolRegistry.call(
-        "ui_storyboard_set_duration_source",
-        { storyboard_id: BOARD_ID, targets: ["shot-1", "1"], source: "audio" },
-        "tc-dur",
-        ctx
-      )) as { ok: boolean; shots: StoryboardShotNode[] };
+      const result = toolResult<{ ok: boolean; shots: StoryboardShotNode[] }>(
+        await FrontendToolRegistry.call(
+          "ui_storyboard_set_duration_source",
+          { storyboard_id: BOARD_ID, targets: ["shot-1", "1"], source: "audio" },
+          "tc-dur",
+          ctx
+        ),
+        "ok",
+        "shots"
+      );
 
       expect(handler.updateShot.mock.calls).toEqual([
         ["shot-1", { durationSource: "audio" }],
@@ -564,12 +601,16 @@ describe("ui_storyboard_* tools", () => {
       });
       setStoryboardAgentHandler(BOARD_ID, handler);
 
-      const result = (await FrontendToolRegistry.call(
-        "ui_storyboard_reproject_shots",
-        { storyboard_id: BOARD_ID },
-        "tc-reproject",
-        ctx
-      )) as { ok: boolean; reprojectedShotIds: string[] };
+      const result = toolResult<{ ok: boolean; reprojectedShotIds: string[] }>(
+        await FrontendToolRegistry.call(
+          "ui_storyboard_reproject_shots",
+          { storyboard_id: BOARD_ID },
+          "tc-reproject",
+          ctx
+        ),
+        "ok",
+        "reprojectedShotIds"
+      );
 
       expect(handler.reprojectShots).toHaveBeenCalledWith(undefined);
       expect(result.reprojectedShotIds).toEqual(["shot-1"]);

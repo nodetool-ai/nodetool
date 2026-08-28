@@ -9,7 +9,7 @@ jest.mock("../../rest-fetch", () => ({
 }));
 
 import type { FrontendToolState } from "../frontendTools";
-import { stub } from "../../../test-utils/doubles";
+import { stub, type PartialMembers } from "../../../test-utils/doubles";
 import { restFetch } from "../../rest-fetch";
 import { FrontendToolRegistry } from "../frontendTools";
 import "../builtin/puck";
@@ -19,6 +19,7 @@ import {
   PuckAgentHandler,
   PuckSnapshot
 } from "../../../components/appbuilder/puck/puckAgentBridge";
+import { toolResult } from "../../../test-utils/toolResult";
 
 const APP_ID = "app-1";
 
@@ -30,8 +31,8 @@ const emptySnapshot: PuckSnapshot = {
   components: []
 };
 
-const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler =>
-  ({
+const stubHandler = (over: PartialMembers<PuckAgentHandler>): PuckAgentHandler =>
+  stub<PuckAgentHandler>({
   getSnapshot: () => emptySnapshot,
   listComponentTypes: () => [],
   addComponent: () => ({
@@ -98,9 +99,9 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler =>
     variables: []
   }),
   ...over
-  }) as PuckAgentHandler;
+  });
 
-const restFetchMock = restFetch as jest.MockedFunction<typeof restFetch>;
+const restFetchMock = jest.mocked(restFetch);
 
 const jsonResponse = (body: unknown): Response =>
   stub<Response>({ ok: true, status: 200, json: async () => body });
@@ -140,17 +141,24 @@ describe("ui_app_add_component identifies what it created", () => {
       })
     );
 
-    const result = (await call("ui_app_add_component", {
-      application_id: APP_ID,
-      type: "Heading",
-      props: { text: "Hi" }
-    })) as {
+    const result = toolResult<{
       ok: boolean;
       id: string;
       type: string;
       parent_id: string | null;
       slot: string | null;
-    };
+    }>(
+      await call("ui_app_add_component", {
+        application_id: APP_ID,
+        type: "Heading",
+        props: { text: "Hi" }
+      }),
+      "ok",
+      "id",
+      "type",
+      "parent_id",
+      "slot"
+    );
 
     expect(result.ok).toBe(true);
     expect(result.id).toBe("Heading-7");
@@ -163,6 +171,9 @@ describe("ui_app_add_component identifies what it created", () => {
     setPuckAgentHandler(
       APP_ID,
       stubHandler({
+        // SAFETY: the invalid return this test exists to prove the tool
+        // survives — an editor that answers with no widget at all, which
+        // `AddComponentArgs => ComponentSummary` cannot express.
         addComponent: () => null as never
       })
     );

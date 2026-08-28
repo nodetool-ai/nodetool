@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/deleteEdge";
+import { toolResult } from "../../../test-utils/toolResult";
 
 function createMockNodeStore(edges: Array<{ id: string }> = []) {
   const deletedIds: string[] = [];
@@ -54,8 +55,10 @@ describe("ui_delete_edge tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
-    expect((result as { edge_id: string }).edge_id).toBe("edge-1");
+    expect(toolResult<{ ok: boolean }>(result, "ok").ok).toBe(true);
+    expect(toolResult<{ edge_id: string }>(result, "edge_id").edge_id).toBe(
+      "edge-1"
+    );
     expect(store.deletedIds).toContain("edge-1");
   });
 

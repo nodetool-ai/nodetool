@@ -71,7 +71,7 @@ type RegisteredTool = Omit<FrontendToolDefinition, "parameters" | "execute"> & {
   execute: (args: never, ctx: FrontendToolContext) => Promise<unknown>;
 };
 
-interface FrontendToolManifestEntry {
+export interface FrontendToolManifestEntry {
   name: string;
   description: string;
   parameters: JsonSchema;
@@ -119,6 +119,9 @@ export const FrontendToolRegistry = {
         ? parseWithTypeCoercion(tool.parameters, args)
         : args;
 
+      // SAFETY: `validatedArgs` was just parsed against `tool.parameters`,
+      // the schema this same tool declared, so it is that tool's own arg
+      // type. `never` is the erased signature the registry stores it behind.
       const result = await tool.execute(validatedArgs as never, {
         abortSignal: controller.signal,
         getState: ctx.getState

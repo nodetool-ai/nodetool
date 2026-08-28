@@ -9,6 +9,7 @@ import {
   type CodeAssistantHandler,
   type CodeAssistantState
 } from "../../../../components/node_types/code_assistant/codeAssistantBridge";
+import { stub } from "../../../../test-utils/doubles";
 
 const mockState: FrontendToolState = {
   nodeMetadata: {},
@@ -22,10 +23,13 @@ const mockState: FrontendToolState = {
   getCurrentWorkflow: () => undefined,
   setCurrentWorkflowId: () => {},
   fetchWorkflow: async () => {},
-  newWorkflow: () => ({}) as Workflow,
-  createNew: async () => ({}) as Workflow,
-  searchTemplates: async () => ({ workflows: [], next: null }) as WorkflowList,
-  copy: async () => ({}) as Workflow
+  newWorkflow: () => stub<Workflow>({}),
+  createNew: async () => stub<Workflow>({}),
+  searchTemplates: async (): Promise<WorkflowList> => ({
+    workflows: [],
+    next: null
+  }),
+  copy: async () => stub<Workflow>({})
 };
 
 const ctx = { getState: () => mockState };

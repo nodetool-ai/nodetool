@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/deleteNode";
+import { toolResult } from "../../../test-utils/toolResult";
 
 function createMockNodeStore(nodes: Array<{ id: string }> = []) {
   const deletedIds: string[] = [];
@@ -54,8 +55,10 @@ describe("ui_delete_node tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
-    expect((result as { node_id: string }).node_id).toBe("node-1");
+    expect(toolResult<{ ok: boolean }>(result, "ok").ok).toBe(true);
+    expect(toolResult<{ node_id: string }>(result, "node_id").node_id).toBe(
+      "node-1"
+    );
     expect(store.deletedIds).toContain("node-1");
   });
 

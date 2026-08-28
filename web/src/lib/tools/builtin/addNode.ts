@@ -41,7 +41,7 @@ FrontendToolRegistry.register({
 
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
           try {
-            const parsed = JSON.parse(trimmed) as unknown;
+            const parsed: unknown = JSON.parse(trimmed);
             return normalizePosition(parsed, fallbackIndex);
           } catch {
             // fall through

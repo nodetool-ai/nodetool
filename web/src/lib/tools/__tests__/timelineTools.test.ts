@@ -13,6 +13,8 @@ import {
   type TimelineTrackNode
 } from "../../../components/timeline/timelineAgentBridge";
 import "../builtin/timeline";
+import { toolResult, toolSchema } from "../../../test-utils/toolResult";
+import { stub } from "../../../test-utils/doubles";
 
 const clipNode = (
   overrides: Partial<TimelineClipNode> = {}
@@ -84,7 +86,7 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
 });
 
 // The timeline tools never touch the workflow state, so a bare stub satisfies ctx.
-const ctx = { getState: () => ({}) as FrontendToolState };
+const ctx = { getState: () => stub<FrontendToolState>({}) };
 
 /** Sequence id every test registers its handler under. */
 const SEQ_ID = "seq-1";
@@ -126,15 +128,10 @@ describe("ui_timeline_* tools", () => {
     // The model only learns `target` is required from this schema. If the
     // manifest ships an empty schema (or the server reads the wrong field), the
     // model calls split with no target and the tool rejects with a Zod error.
-    const splitTool = FrontendToolRegistry.getManifest().find(
-      (t) => t.name === "ui_timeline_split_clip"
+    const schema = toolSchema(
+      FrontendToolRegistry.getManifest(),
+      "ui_timeline_split_clip"
     );
-    expect(splitTool).toBeDefined();
-    const schema = splitTool?.parameters as {
-      type?: string;
-      properties?: Record<string, unknown>;
-      required?: string[];
-    };
     expect(schema.type).toBe("object");
     expect(schema.properties).toHaveProperty("target");
     expect(schema.required).toContain("target");
@@ -158,12 +155,15 @@ describe("ui_timeline_* tools", () => {
     handler.getSnapshot.mockReturnValue(snapshot());
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_timeline_get_state",
-      { timeline_id: SEQ_ID },
-      "tc-2",
-      ctx
-    )) as { ok: boolean } & TimelineSnapshot;
+    const result = toolResult<{ ok: boolean } & TimelineSnapshot>(
+      await FrontendToolRegistry.call(
+        "ui_timeline_get_state",
+        { timeline_id: SEQ_ID },
+        "tc-2",
+        ctx
+      ),
+      "ok"
+    );
 
     expect(handler.getSnapshot).toHaveBeenCalled();
     expect(result.ok).toBe(true);
@@ -179,18 +179,27 @@ describe("ui_timeline_* tools", () => {
     });
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_timeline_generate_clip",
-      {
-        timeline_id: SEQ_ID,
-        kind: "text-to-video",
-        prompt: "city at night",
-        provider: "fal",
-        model: "some-video-model"
-      },
-      "tc-3",
-      ctx
-    )) as { ok: boolean; clip: TimelineClipNode; generationStarted: boolean };
+    const result = toolResult<{
+      ok: boolean;
+      clip: TimelineClipNode;
+      generationStarted: boolean;
+    }>(
+      await FrontendToolRegistry.call(
+        "ui_timeline_generate_clip",
+        {
+          timeline_id: SEQ_ID,
+          kind: "text-to-video",
+          prompt: "city at night",
+          provider: "fal",
+          model: "some-video-model"
+        },
+        "tc-3",
+        ctx
+      ),
+      "ok",
+      "clip",
+      "generationStarted"
+    );
 
     expect(handler.generateClip).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -212,12 +221,16 @@ describe("ui_timeline_* tools", () => {
     );
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_timeline_add_media_clip",
-      { timeline_id: SEQ_ID, asset: "asset://abc123.mp4" },
-      "tc-media",
-      ctx
-    )) as { ok: boolean; clip: { name: string } };
+    const result = toolResult<{ ok: boolean; clip: { name: string } }>(
+      await FrontendToolRegistry.call(
+        "ui_timeline_add_media_clip",
+        { timeline_id: SEQ_ID, asset: "asset://abc123.mp4" },
+        "tc-media",
+        ctx
+      ),
+      "ok",
+      "clip"
+    );
 
     expect(handler.addMediaClip).toHaveBeenCalledWith({
       asset: "asset://abc123.mp4"
@@ -312,12 +325,16 @@ describe("ui_timeline_* tools", () => {
     ]);
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_timeline_split_clip",
-      { timeline_id: SEQ_ID, target: "Clip 1", atMs: 1000 },
-      "tc-5",
-      ctx
-    )) as { ok: boolean; clips: TimelineClipNode[] };
+    const result = toolResult<{ ok: boolean; clips: TimelineClipNode[] }>(
+      await FrontendToolRegistry.call(
+        "ui_timeline_split_clip",
+        { timeline_id: SEQ_ID, target: "Clip 1", atMs: 1000 },
+        "tc-5",
+        ctx
+      ),
+      "ok",
+      "clips"
+    );
 
     expect(handler.splitClip).toHaveBeenCalledWith("Clip 1", 1000);
     expect(result.clips.map((c) => c.id)).toEqual(["left", "right"]);
@@ -381,12 +398,16 @@ describe("ui_timeline_* tools", () => {
     });
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_timeline_get_clip_frames",
-      { timeline_id: SEQ_ID, target: "Clip 1", timesMs: [1000], width: 512 },
-      "tc-frames",
-      ctx
-    )) as { ok: boolean; frames: TimelineClipFrameNode[] };
+    const result = toolResult<{ ok: boolean; frames: TimelineClipFrameNode[] }>(
+      await FrontendToolRegistry.call(
+        "ui_timeline_get_clip_frames",
+        { timeline_id: SEQ_ID, target: "Clip 1", timesMs: [1000], width: 512 },
+        "tc-frames",
+        ctx
+      ),
+      "ok",
+      "frames"
+    );
 
     expect(handler.getClipFrames).toHaveBeenCalledWith("Clip 1", {
       timesMs: [1000],
@@ -427,12 +448,16 @@ describe("ui_timeline_* tools", () => {
     handler.seek.mockReturnValue(1500);
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_timeline_seek",
-      { timeline_id: SEQ_ID, timeMs: 1500 },
-      "tc-8",
-      ctx
-    )) as { ok: boolean; playheadMs: number };
+    const result = toolResult<{ ok: boolean; playheadMs: number }>(
+      await FrontendToolRegistry.call(
+        "ui_timeline_seek",
+        { timeline_id: SEQ_ID, timeMs: 1500 },
+        "tc-8",
+        ctx
+      ),
+      "ok",
+      "playheadMs"
+    );
 
     expect(handler.seek).toHaveBeenCalledWith(1500);
     expect(result.playheadMs).toBe(1500);
@@ -517,15 +542,19 @@ describe("ui_timeline_* tools", () => {
   });
 
   it("lists the animation preset catalog without needing an editor", async () => {
-    const result = (await FrontendToolRegistry.call(
-      "ui_timeline_list_animation_presets",
-      {},
-      "tc-presets",
-      ctx
-    )) as {
+    const result = toolResult<{
       ok: boolean;
       presets: Array<{ id: string; roles: string[]; describe: string }>;
-    };
+    }>(
+      await FrontendToolRegistry.call(
+        "ui_timeline_list_animation_presets",
+        {},
+        "tc-presets",
+        ctx
+      ),
+      "ok",
+      "presets"
+    );
 
     expect(result.ok).toBe(true);
     const ids = result.presets.map((p) => p.id);

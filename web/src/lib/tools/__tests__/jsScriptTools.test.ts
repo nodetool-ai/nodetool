@@ -11,6 +11,8 @@ import {
 } from "../../../components/jsScript/jsScriptAgentBridge";
 import { emptyJsScriptDocument } from "../../../stores/jsScript/JsScriptStore";
 import "../builtin/jsscript";
+import { toolResult } from "../../../test-utils/toolResult";
+import { stub } from "../../../test-utils/doubles";
 
 const SCRIPT_ID = "js-1";
 
@@ -43,7 +45,7 @@ const createMockHandler = (): jest.Mocked<JsScriptAgentHandler> => ({
 });
 
 // The JS script tools never touch the workflow state, so a bare stub satisfies ctx.
-const ctx = { getState: () => ({}) as FrontendToolState };
+const ctx = { getState: () => stub<FrontendToolState>({}) };
 
 afterEach(() => {
   for (const id of listOpenJsScriptIds()) {
@@ -105,12 +107,15 @@ describe("ui_jsscript_* tools", () => {
     handler.getSnapshot.mockReturnValue(snapshot());
     setJsScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_jsscript_get_state",
-      { script_id: SCRIPT_ID },
-      "tc-2",
-      ctx
-    )) as { ok: boolean } & JsScriptSnapshot;
+    const result = toolResult<{ ok: boolean } & JsScriptSnapshot>(
+      await FrontendToolRegistry.call(
+        "ui_jsscript_get_state",
+        { script_id: SCRIPT_ID },
+        "tc-2",
+        ctx
+      ),
+      "ok"
+    );
 
     expect(handler.getSnapshot).toHaveBeenCalled();
     expect(result.ok).toBe(true);
@@ -128,12 +133,21 @@ describe("ui_jsscript_* tools", () => {
     );
     setJsScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_jsscript_set_code",
-      { script_id: SCRIPT_ID, code: "emit('out', 1)" },
-      "tc-3",
-      ctx
-    )) as { ok: boolean; chars: number; issues: { code: string }[] };
+    const result = toolResult<{
+      ok: boolean;
+      chars: number;
+      issues: { code: string }[];
+    }>(
+      await FrontendToolRegistry.call(
+        "ui_jsscript_set_code",
+        { script_id: SCRIPT_ID, code: "emit('out', 1)" },
+        "tc-3",
+        ctx
+      ),
+      "ok",
+      "chars",
+      "issues"
+    );
 
     expect(handler.setCode).toHaveBeenCalledWith("emit('out', 1)");
     expect(result.chars).toBe("emit('out', 1)".length);
@@ -188,12 +202,19 @@ describe("ui_jsscript_* tools", () => {
     });
     setJsScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_jsscript_run",
-      { script_id: SCRIPT_ID, inputs: { a: "x" } },
-      "tc-6",
-      ctx
-    )) as { ok: boolean; run: { outputs?: Record<string, unknown> } };
+    const result = toolResult<{
+      ok: boolean;
+      run: { outputs?: Record<string, unknown> };
+    }>(
+      await FrontendToolRegistry.call(
+        "ui_jsscript_run",
+        { script_id: SCRIPT_ID, inputs: { a: "x" } },
+        "tc-6",
+        ctx
+      ),
+      "ok",
+      "run"
+    );
 
     expect(handler.run).toHaveBeenCalledWith({ a: "x" }, undefined);
     expect(result.ok).toBe(true);
@@ -210,12 +231,16 @@ describe("ui_jsscript_* tools", () => {
     });
     setJsScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_jsscript_run",
-      { script_id: SCRIPT_ID },
-      "tc-6c",
-      ctx
-    )) as { ok: boolean; run: { ok: boolean; error?: string } };
+    const result = toolResult<{ ok: boolean; run: { ok: boolean; error?: string } }>(
+      await FrontendToolRegistry.call(
+        "ui_jsscript_run",
+        { script_id: SCRIPT_ID },
+        "tc-6c",
+        ctx
+      ),
+      "ok",
+      "run"
+    );
 
     expect(result.ok).toBe(false);
     expect(result.run.ok).toBe(false);
@@ -280,12 +305,17 @@ describe("ui_jsscript_* tools", () => {
     });
     setJsScriptAgentHandler(SCRIPT_ID, handler);
 
-    const result = (await FrontendToolRegistry.call(
-      "ui_jsscript_test",
-      { script_id: SCRIPT_ID },
-      "tc-8",
-      ctx
-    )) as { ok: boolean; passed: number; failed: number };
+    const result = toolResult<{ ok: boolean; passed: number; failed: number }>(
+      await FrontendToolRegistry.call(
+        "ui_jsscript_test",
+        { script_id: SCRIPT_ID },
+        "tc-8",
+        ctx
+      ),
+      "ok",
+      "passed",
+      "failed"
+    );
 
     expect(result.passed).toBe(1);
     expect(result.failed).toBe(1);

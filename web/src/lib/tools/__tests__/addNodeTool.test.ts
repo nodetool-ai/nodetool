@@ -1,8 +1,13 @@
 /**
  * @jest-environment node
  */
+import type { Node } from "@xyflow/react";
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
+import type { NodeMetadata } from "../../../stores/ApiTypes";
+import type { NodeData } from "../../../stores/NodeData";
+import { stub } from "../../../test-utils/doubles";
+import { toolResult } from "../../../test-utils/toolResult";
 import "../builtin/addNode";
 
 jest.mock("../../../utils/TypeHandler", () => ({
@@ -10,11 +15,11 @@ jest.mock("../../../utils/TypeHandler", () => ({
 }));
 
 function createMockNodeStore() {
-  const nodes: unknown[] = [];
+  const nodes: Node<NodeData>[] = [];
   return {
     getState: () => ({
       nodes,
-      addNode: jest.fn((node: unknown) => nodes.push(node)),
+      addNode: jest.fn((node: Node<NodeData>) => nodes.push(node)),
     }),
   };
 }
@@ -45,7 +50,7 @@ function createMockState(
 describe("ui_add_node tool", () => {
   it("adds a node with object position", async () => {
     const store = createMockNodeStore();
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "test.MyNode": {
         node_type: "test.MyNode",
         properties: [
@@ -53,9 +58,9 @@ describe("ui_add_node tool", () => {
         ],
         outputs: [],
       },
-    };
+    });
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -66,23 +71,23 @@ describe("ui_add_node tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean };
+    const typed = toolResult<{ ok: boolean }>(result, "ok");
     expect(typed.ok).toBe(true);
-    const addedNode = store.getState().nodes[0] as { position: { x: number; y: number } };
+    const addedNode = store.getState().nodes[0];
     expect(addedNode.position).toEqual({ x: 100, y: 200 });
   });
 
   it("normalizes JSON string position", async () => {
     const store = createMockNodeStore();
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "test.MyNode": {
         node_type: "test.MyNode",
         properties: [],
         outputs: [],
       },
-    };
+    });
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -93,22 +98,22 @@ describe("ui_add_node tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
-    const addedNode = store.getState().nodes[0] as { position: { x: number; y: number } };
+    expect(toolResult<{ ok: boolean }>(result, "ok").ok).toBe(true);
+    const addedNode = store.getState().nodes[0];
     expect(addedNode.position).toEqual({ x: 300, y: 400 });
   });
 
   it("normalizes comma-separated string position", async () => {
     const store = createMockNodeStore();
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "test.MyNode": {
         node_type: "test.MyNode",
         properties: [],
         outputs: [],
       },
-    };
+    });
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -119,22 +124,22 @@ describe("ui_add_node tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
-    const addedNode = store.getState().nodes[0] as { position: { x: number; y: number } };
+    expect(toolResult<{ ok: boolean }>(result, "ok").ok).toBe(true);
+    const addedNode = store.getState().nodes[0];
     expect(addedNode.position).toEqual({ x: 150, y: 250 });
   });
 
   it("falls back to grid position for unparseable position", async () => {
     const store = createMockNodeStore();
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "test.MyNode": {
         node_type: "test.MyNode",
         properties: [],
         outputs: [],
       },
-    };
+    });
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -145,20 +150,20 @@ describe("ui_add_node tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
-    const addedNode = store.getState().nodes[0] as { position: { x: number; y: number } };
+    expect(toolResult<{ ok: boolean }>(result, "ok").ok).toBe(true);
+    const addedNode = store.getState().nodes[0];
     expect(addedNode.position.x).toBeGreaterThanOrEqual(0);
     expect(addedNode.position.y).toBeGreaterThanOrEqual(0);
   });
 
   it("throws for unknown node type with suggestions", async () => {
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "nodetool.text.Join": { node_type: "nodetool.text.Join", properties: [], outputs: [] },
       "nodetool.text.Template": { node_type: "nodetool.text.Template", properties: [], outputs: [] },
-    };
+    });
     const store = createMockNodeStore();
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -173,12 +178,12 @@ describe("ui_add_node tool", () => {
   });
 
   it("throws for unknown node type without suggestions when no match", async () => {
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "nodetool.text.Join": { node_type: "nodetool.text.Join", properties: [], outputs: [] },
-    };
+    });
     const store = createMockNodeStore();
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -193,11 +198,11 @@ describe("ui_add_node tool", () => {
   });
 
   it("throws when no node store found", async () => {
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "test.MyNode": { node_type: "test.MyNode", properties: [], outputs: [] },
-    };
+    });
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(undefined),
     });
 
@@ -213,7 +218,7 @@ describe("ui_add_node tool", () => {
 
   it("returns warnings for required properties not explicitly set", async () => {
     const store = createMockNodeStore();
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "test.MyNode": {
         node_type: "test.MyNode",
         properties: [
@@ -221,9 +226,9 @@ describe("ui_add_node tool", () => {
         ],
         outputs: [],
       },
-    };
+    });
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -234,7 +239,11 @@ describe("ui_add_node tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean; warnings: string[] };
+    const typed = toolResult<{ ok: boolean; warnings: string[] }>(
+      result,
+      "ok",
+      "warnings"
+    );
     expect(typed.ok).toBe(true);
     expect(typed.warnings).toBeDefined();
     expect(typed.warnings.length).toBeGreaterThan(0);
@@ -243,7 +252,7 @@ describe("ui_add_node tool", () => {
 
   it("does not warn when required property is explicitly provided", async () => {
     const store = createMockNodeStore();
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "test.MyNode": {
         node_type: "test.MyNode",
         properties: [
@@ -251,9 +260,9 @@ describe("ui_add_node tool", () => {
         ],
         outputs: [],
       },
-    };
+    });
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -269,22 +278,22 @@ describe("ui_add_node tool", () => {
       { getState: () => state }
     );
 
-    const typed = result as { ok: boolean; warnings?: string[] };
+    const typed = toolResult<{ ok: boolean; warnings?: string[] }>(result, "ok");
     expect(typed.ok).toBe(true);
     expect(typed.warnings).toBeUndefined();
   });
 
   it("handles negative coordinates in string position", async () => {
     const store = createMockNodeStore();
-    const metadata = {
+    const metadata = stub<Record<string, NodeMetadata>>({
       "test.MyNode": {
         node_type: "test.MyNode",
         properties: [],
         outputs: [],
       },
-    };
+    });
     const state = createMockState({
-      nodeMetadata: metadata as never,
+      nodeMetadata: metadata,
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -295,15 +304,15 @@ describe("ui_add_node tool", () => {
       { getState: () => state }
     );
 
-    expect((result as { ok: boolean }).ok).toBe(true);
-    const addedNode = store.getState().nodes[0] as { position: { x: number; y: number } };
+    expect(toolResult<{ ok: boolean }>(result, "ok").ok).toBe(true);
+    const addedNode = store.getState().nodes[0];
     expect(addedNode.position).toEqual({ x: -100, y: -200 });
   });
 
   it("stamps inferred Code handles from the body", async () => {
     const store = createMockNodeStore();
     const state = createMockState({
-      nodeMetadata: {
+      nodeMetadata: stub<Record<string, NodeMetadata>>({
         "nodetool.code.Code": {
           node_type: "nodetool.code.Code",
           properties: [
@@ -311,7 +320,7 @@ describe("ui_add_node tool", () => {
           ],
           outputs: [],
         },
-      } as never,
+      }),
       getNodeStore: jest.fn().mockReturnValue(store),
     });
 
@@ -327,12 +336,7 @@ describe("ui_add_node tool", () => {
       { getState: () => state }
     );
 
-    const added = store.getState().nodes[0] as {
-      data: {
-        dynamic_properties: Record<string, unknown>;
-        dynamic_outputs: Record<string, unknown>;
-      };
-    };
+    const added = store.getState().nodes[0];
     expect(added.data.dynamic_properties).toEqual({ a: "", b: "" });
     expect(added.data.dynamic_outputs).toEqual({
       sum: { type: "any", type_args: [], optional: false },

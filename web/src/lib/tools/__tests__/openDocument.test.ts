@@ -12,6 +12,8 @@ import {
   type TimelineSnapshot
 } from "../../../components/timeline/timelineAgentBridge";
 import "../builtin/openDocument";
+import { toolSchema } from "../../../test-utils/toolResult";
+import { makeNodeStore } from "../../../test-utils/nodeStore";
 
 const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
   sequenceId,
@@ -34,7 +36,7 @@ const ctx = {
   getState: () =>
     stub<FrontendToolState>({
       getNodeStore: (workflowId: string) =>
-        workflowId === "wf-open" ? ({} as never) : undefined
+        workflowId === "wf-open" ? makeNodeStore() : undefined
     })
 };
 
@@ -56,14 +58,10 @@ afterEach(() => {
 
 describe("ui_open_document", () => {
   it("is in the manifest with the openable document types", () => {
-    const tool = FrontendToolRegistry.getManifest().find(
-      (t) => t.name === "ui_open_document"
+    const schema = toolSchema(
+      FrontendToolRegistry.getManifest(),
+      "ui_open_document"
     );
-    expect(tool).toBeDefined();
-    const schema = tool?.parameters as {
-      properties?: { type?: { enum?: string[] } };
-      required?: string[];
-    };
     expect(schema.properties?.type?.enum).toEqual([
       "workflow",
       "timeline",

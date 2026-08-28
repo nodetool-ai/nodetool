@@ -3,6 +3,16 @@ import { stub } from "../../../test-utils/doubles";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/searchNodes";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
+import { toolResult } from "../../../test-utils/toolResult";
+
+/**
+ * One entry of `ui_search_nodes`' `results`, as this suite reads it: the two
+ * lists it asks the tool to include, and nothing it asserts is absent.
+ */
+interface SearchNodeEntry {
+  properties: Array<Record<string, unknown>>;
+  outputs: unknown[];
+}
 
 describe("ui_search_nodes tool", () => {
   it("accepts boolean-like string flags", async () => {
@@ -43,11 +53,11 @@ describe("ui_search_nodes tool", () => {
       },
     );
 
-    const typed = result as {
+    const typed = toolResult<{
       ok: boolean;
       query: string;
-      results: Array<Record<string, unknown>>;
-    };
+      results: SearchNodeEntry[];
+    }>(result, "ok", "query", "results");
     expect(typed.ok).toBe(true);
     expect(typed.query).toBe("string");
     expect(typed.results.length).toBeGreaterThan(0);
@@ -55,7 +65,7 @@ describe("ui_search_nodes tool", () => {
     expect(first).not.toHaveProperty("description");
     expect(first).toHaveProperty("properties");
     expect(first).toHaveProperty("outputs");
-    const firstProperty = (first.properties as Array<Record<string, unknown>>)[0];
+    const firstProperty = first.properties[0];
     expect(firstProperty).toEqual(
       expect.objectContaining({
         name: "value",

@@ -65,7 +65,7 @@ FrontendToolRegistry.register({
     entity_id: z.string().nullable().optional().describe("Alias for entityId.")
   }),
   async execute({ script_id, name, voice, entityId, entity_id }) {
-    const eid = (entityId ?? entity_id ?? null) as string | null;
+    const eid = entityId ?? entity_id ?? null;
     const speaker = getScriptAgentHandler(script_id).addSpeaker(name, voice, eid);
     return { ok: true, speaker, url: docUrl("script", script_id) };
   }
