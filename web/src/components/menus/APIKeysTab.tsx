@@ -112,9 +112,28 @@ export const ProviderCard = memo(function ProviderCard({
   const validateSecret = useSecretsStore((s) => s.validateSecret);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<SecretValidation | null>(null);
-  // OAuth-only providers have no stored secret — the sign-in itself is the
-  // connection.
-  const isConnected = meta.oauthOnly ? oauth.isConnected : secret.is_configured;
+  // A card has two ways to be connected and they are independent: a stored
+  // API key, and an OAuth sign-in. Only the key can be tested, managed or
+  // deleted, so the two stay separate rather than collapsing into one flag.
+  const hasKey = secret.is_configured;
+  const isConnected = meta.oauthOnly
+    ? oauth.isConnected
+    : hasKey || oauth.isConnected;
+
+  // The registry providers this card currently holds a credential for. The
+  // sign-in can credential a different provider than the key does — signing in
+  // to OpenAI stores a Codex token, and `codex` is what serves the models — so
+  // asking about `providerId` alone reports an OAuth-connected card as
+  // unconfigured.
+  const credentialedProviderIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (hasKey && meta.providerId) ids.add(meta.providerId);
+    if (oauth.isConnected) {
+      const viaOAuth = meta.oauthProviderId ?? meta.providerId;
+      if (viaOAuth) ids.add(viaOAuth);
+    }
+    return ids;
+  }, [hasKey, oauth.isConnected, meta.providerId, meta.oauthProviderId]);
 
   // A credential says nothing about whether the server offers the provider.
   // A cloud profile prunes the local and OAuth-backed providers, and a build
@@ -122,11 +141,11 @@ export const ProviderCard = memo(function ProviderCard({
   // stays empty. `models.providers` is what the model menu itself reads.
   const { providers, isLoading: providersLoading } = useProviders();
   const isUnavailable = useMemo(() => {
-    if (!isConnected || !meta.providerId) return false;
+    if (credentialedProviderIds.size === 0) return false;
     // Unknown is not absent: while the query is in flight, say nothing.
     if (providersLoading || providers.length === 0) return false;
-    return !providers.some((p) => p.provider === meta.providerId);
-  }, [isConnected, meta.providerId, providers, providersLoading]);
+    return !providers.some((p) => credentialedProviderIds.has(p.provider));
+  }, [credentialedProviderIds, providers, providersLoading]);
 
   const statusTone = isUnavailable ? "warning" : isConnected ? "success" : "error";
   const statusLabel = isUnavailable
@@ -331,12 +350,11 @@ export const ProviderCard = memo(function ProviderCard({
                 textAlign: { xs: "left", sm: "right" }
               }}
             >
-              {meta.oauthOnly ? "Signed in" : "Key stored"}, but this server
-              does not offer {meta.name}. Its models stay out of the model
-              menu.
+              {hasKey ? "Key stored" : "Signed in"}, but this server does not
+              offer {meta.name}. Its models stay out of the model menu.
             </Caption>
           )}
-          {isConnected && !isUnavailable && secret.updated_at && (
+          {hasKey && !isUnavailable && secret.updated_at && (
             <Caption size="smaller" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
               Last used{" "}
               {new Date(secret.updated_at).toLocaleDateString()}
@@ -409,7 +427,7 @@ export const ProviderCard = memo(function ProviderCard({
                   </EditorButton>
                 ))}
 
-          {meta.oauthOnly ? null : isConnected ? (
+          {meta.oauthOnly ? null : hasKey ? (
             <>
               <EditorButton
                 density="compact"

@@ -7,6 +7,7 @@ import {
 } from "./chat-tool-call-repair.js";
 import { attachChatPredictionForwarder } from "./chat-prediction-forwarder.js";
 import { ApiErrorCode } from "./error-codes.js";
+import { ConfiguredProviderCache } from "./configured-providers.js";
 import { admitSpend, releaseSpend, reserveSpend } from "./credit-gate.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
 import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
@@ -2130,8 +2131,9 @@ export class UnifiedWebSocketRunner {
   private apiOptions?: HttpApiOptions;
   private frontendRendererRegistry?: FrontendRendererRegistry;
   private frontendRendererId: string | null = null;
-  private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
-    new Map();
+  private configuredProvidersCache = new ConfiguredProviderCache({
+    load: (userId) => this.buildConfiguredProviders(userId)
+  });
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
@@ -5738,7 +5740,7 @@ export class UnifiedWebSocketRunner {
     // only exists on deployments that have a login. Local mode never sees it.
     const googleWorkspace = isGoogleWorkspaceEnabled();
     if (googleWorkspace) registerGoogleWorkspaceTools();
-    const chatProviders = await this.getConfiguredProviders(userId);
+    const chatProviders = await this.configuredProvidersCache.get(userId);
     // The single-node runner is a closure only this package can build, so
     // `run_node` reaches a capability run as a host-supplied capability rather
     // than out of the registry.
@@ -8011,16 +8013,13 @@ export class UnifiedWebSocketRunner {
 
   /**
    * Build the map of configured BaseProvider instances for the given user.
-   * Cached per user — invalidate by clearing `configuredProvidersCache`.
    * Used by MCP tools (`find_model`, media generation) that need provider
-   * access.
+   * access. Called through {@link configuredProvidersCache}, which decides
+   * when a credential connected mid-session forces a rebuild.
    */
-  private async getConfiguredProviders(
+  private async buildConfiguredProviders(
     userId: string
   ): Promise<Record<string, BaseProvider>> {
-    const cached = this.configuredProvidersCache.get(userId);
-    if (cached) return cached;
-
     const providersMod = await import("@nodetool-ai/runtime");
     const { getSecret: getStoredSecret } = await import("@nodetool-ai/models");
     const getSecret = (key: string) =>
@@ -8041,7 +8040,6 @@ export class UnifiedWebSocketRunner {
         }
       })
     );
-    this.configuredProvidersCache.set(userId, result);
     return result;
   }
 
