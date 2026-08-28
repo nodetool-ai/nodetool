@@ -13,6 +13,7 @@
  * `at action:<line>:<col>` and the excerpt sits under it.
  */
 
+import { parseCodeBody } from "@nodetool-ai/node-sdk";
 import { entryBodyLineOffset } from "../js-sandbox-worker/interpreter.js";
 
 /**
@@ -98,6 +99,41 @@ export function annotateFailure(
   prelude: string,
   code: string
 ): { readonly error?: string; readonly stack?: string } {
+  const reparsed = reparseSyntaxError(error, code);
+  if (reparsed !== undefined) return reparsed;
   if (!stack) return { error };
   return { error, stack: annotateActionStack(stack, prelude, code).stack };
+}
+
+/**
+ * Re-diagnose a guest syntax error with acorn, which knows where it is.
+ *
+ * QuickJS compiles the whole entry module and reports a position that need not
+ * be the offending one: `import { integerInput } = "…"` on line 3 arrived as
+ * `SyntaxError: expecting '(' at action:1:26`, with the excerpt showing a line
+ * that was perfectly good. A model reading that rewrites line 1 and hits the
+ * same error again — which is what happened, twice, in the session this comes
+ * from.
+ *
+ * Only a body acorn *also* rejects is re-reported, so this can never override
+ * a genuine failure the parser is happy with. The other SyntaxError a guest
+ * raises — module linking, "Could not find export 'x'" — parses fine here and
+ * passes through untouched.
+ */
+function reparseSyntaxError(
+  error: string | undefined,
+  code: string
+): { readonly error: string; readonly stack?: string } | undefined {
+  if (error === undefined || !error.includes("SyntaxError")) return undefined;
+  const parsed = parseCodeBody(code);
+  if (!("error" in parsed)) return undefined;
+  const line = parsed.line;
+  const message = `SyntaxError: ${parsed.error}`;
+  if (line === undefined) return { error: message };
+  const excerpt = excerptFor(code, line, 1);
+  const stack =
+    excerpt === ""
+      ? `    at action:${line}`
+      : `    at action:${line}\n    >> your code, line ${line}: ${excerpt}`;
+  return { error: message, stack };
 }

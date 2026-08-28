@@ -36,7 +36,12 @@ import {
   SEARCH_NODES_INPUT_SCHEMA,
   GET_NODE_INFO_INPUT_SCHEMA
 } from "./nodes.specs.js";
-import { isFunction, isNumber } from "../utils/type-guards.js";
+import {
+  isFunction,
+  isNonBlankString,
+  isNumber,
+  isString
+} from "../utils/type-guards.js";
 
 export {
   LIST_NODES_INPUT_SCHEMA,
@@ -83,24 +88,94 @@ function toCompact(meta: NodeMetadata, score: number): CompactSearchResult {
   };
 }
 
+/**
+ * The search terms a `query` argument names.
+ *
+ * The schema says `string[]`, and a model that sends the bare string
+ * `"serpapi"` used to have it accepted: a string is iterable, so the scorer
+ * walked it one **character** at a time and every node containing an "s", an
+ * "e" or an "r" scored. `search_nodes({query: "serpapi"})` answered with 322
+ * matches led by `CompareImages` at 133 — noise indistinguishable from a
+ * ranked answer, and no way for the caller to tell it had passed the wrong
+ * shape. A lone string is one term now, and anything else is refused by name.
+ *
+ * Returns `null` when the argument names no usable term.
+ */
+function searchTerms(raw: unknown): string[] | null {
+  const values = isString(raw) ? [raw] : Array.isArray(raw) ? raw : null;
+  if (values === null) return null;
+  const terms = values.filter(isNonBlankString).map((term) => term.trim());
+  return terms.length > 0 ? terms : null;
+}
+
+/** Namespaces nearest to one the registry does not have, best first. */
+function nearestNamespaces(
+  wanted: string,
+  available: readonly string[]
+): string[] {
+  const target = wanted.toLowerCase();
+  const head = target.split(".")[0] ?? target;
+  const scored = available
+    .map((namespace) => {
+      const lower = namespace.toLowerCase();
+      let score = 0;
+      if (lower.startsWith(target) || target.startsWith(lower)) score += 3;
+      if (lower.includes(head) || head.includes(lower.split(".")[0] ?? "")) {
+        score += 1;
+      }
+      return { namespace, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) =>
+      b.score !== a.score
+        ? b.score - a.score
+        : a.namespace.localeCompare(b.namespace)
+    );
+  return scored.slice(0, 12).map((entry) => entry.namespace);
+}
+
 const listNodes: CapabilityExport = {
   spec: listNodesSpec,
   impl: async (run: CapabilityRun, params) => {
     const registry = run.nodeRegistry;
     if (!registry) return noRegistryError("list node types");
 
-    const namespace = params["namespace"] as string | undefined;
+    const namespace = isNonBlankString(params["namespace"])
+      ? params["namespace"].trim()
+      : undefined;
     const limit = isNumber(params["limit"]) ? params["limit"] : 50;
 
-    let allMetadata = registry.listMetadata();
+    const everything = registry.listMetadata();
+    const allMetadata =
+      namespace === undefined
+        ? everything
+        : everything.filter(
+            (m: NodeMetadata) =>
+              m.namespace === namespace ||
+              m.namespace.startsWith(namespace + ".") ||
+              m.node_type.startsWith(namespace + ".")
+          );
 
-    if (namespace) {
-      allMetadata = allMetadata.filter(
-        (m: NodeMetadata) =>
-          m.namespace === namespace ||
-          m.namespace.startsWith(namespace + ".") ||
-          m.node_type.startsWith(namespace + ".")
-      );
+    // A namespace the registry does not have used to answer `{total: 0,
+    // namespaces: {}, nodes: []}` — indistinguishable from a namespace that
+    // exists and is empty, and a dead end either way. Name the miss and hand
+    // back the namespaces that do exist.
+    if (namespace !== undefined && allMetadata.length === 0) {
+      const known = [...new Set(everything.map((m) => m.namespace))].sort();
+      const near = nearestNamespaces(namespace, known);
+      return {
+        total: 0,
+        namespaces: {},
+        nodes: [],
+        note:
+          `No node type is registered under namespace '${namespace}'. ` +
+          (near.length > 0
+            ? `Closest namespaces: ${near.join(", ")}. `
+            : "") +
+          `Call list_nodes with no namespace to see all ${known.length}, or ` +
+          `search_nodes to find a node by keyword.`,
+        available_namespaces: near.length > 0 ? near : known.slice(0, 40)
+      };
     }
 
     const namespaces = new Map<string, number>();
@@ -127,7 +202,7 @@ const searchNodes: CapabilityExport = {
     const registry = run.nodeRegistry;
     if (!registry) return noRegistryError("search node types");
 
-    const queryArr = (params["query"] as string[]) ?? [];
+    const queryArr = searchTerms(params["query"]);
     const maxResults =
       isNumber(params["n_results"]) ? params["n_results"] : 10;
     const inputType = params["input_type"] as string | undefined;
@@ -135,8 +210,14 @@ const searchNodes: CapabilityExport = {
     const namespace = params["namespace"] as string | undefined;
     const includeProviderNodes = params["include_provider_nodes"] === true;
 
-    if (queryArr.length === 0) {
-      return { status: "error", errors: ["query must be a non-empty array"] };
+    if (queryArr === null) {
+      return {
+        status: "error",
+        errors: [
+          "query must be a search string or a non-empty array of them, " +
+            'e.g. ["web search"] or "web search".'
+        ]
+      };
     }
 
     const scoreOptions: ScoreOptions = {
@@ -176,10 +257,30 @@ const searchNodes: CapabilityExport = {
       );
     }
 
-    const limited = ranked.slice(0, maxResults);
+    if (ranked.length === 0) {
+      return {
+        total: 0,
+        results: [],
+        // A bare empty list reads as "NodeTool cannot do this", and the model
+        // goes on guessing node types. Say which of the two filters that are
+        // on by default could be hiding the answer, and where else to look.
+        note:
+          `No node matched ${queryArr.map((t) => `'${t}'`).join(", ")}. ` +
+          (includeProviderNodes
+            ? ""
+            : "Provider nodes (openai.*, fal.*, kie.*, xai.*, …) are hidden " +
+              "unless include_provider_nodes is true. ") +
+          "Try fewer or broader terms, or list_nodes to browse namespaces. " +
+          "Some surfaces are capability modules rather than nodes — a Code " +
+          "node importing @nodetool-ai/sandbox-nodetool/<module> reaches " +
+          "those."
+      };
+    }
     return {
       total: ranked.length,
-      results: limited.map(({ meta, score }) => toCompact(meta, score))
+      results: ranked
+        .slice(0, maxResults)
+        .map(({ meta, score }) => toCompact(meta, score))
     };
   }
 };

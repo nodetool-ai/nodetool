@@ -679,14 +679,28 @@ const nodetool = (() => {
         // that forgets to check report.ok cannot carry a broken graph into a
         // paid run.
         if (report && report.ok === false && Array.isArray(report.issues)) {
-          const messages = report.issues
+          // report.ok is decided by the errors alone, so the throw lists the
+          // errors alone. Mixing in warnings and the "untyped dynamic slot"
+          // info notes buried one real problem under seven non-problems, and
+          // a model reading eight bullets rewrites eight things.
+          const errors = report.issues.filter(function (i) {
+            return i && i.severity === "error" && i.message;
+          });
+          const other = report.issues.length - errors.length;
+          const messages = (errors.length > 0 ? errors : report.issues)
             .map(function (i) {
               return i && i.message;
             })
             .filter(Boolean);
           throw new Error(
             "Graph validation failed:\\n- " +
-              messages.slice(0, 8).join("\\n- ")
+              messages.slice(0, 8).join("\\n- ") +
+              (errors.length > 0 && other > 0
+                ? "\\n(" +
+                  other +
+                  " warning/info issue(s) not blocking; read report.issues" +
+                  " for them.)"
+                : "")
           );
         }
         return report;

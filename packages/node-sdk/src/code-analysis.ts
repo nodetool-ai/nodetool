@@ -161,6 +161,66 @@ export function staticImportBindings(
   return bindings;
 }
 
+/**
+ * The names a module's source exports, or `null` when they cannot be decided.
+ *
+ * `null` means "do not check": the source did not parse, or it carries an
+ * `export * from …` whose names live in another file. A caller that refuses an
+ * import on this list must treat `null` as permission, never as an empty
+ * module.
+ *
+ * Used to turn QuickJS's "Could not find export 'websearch'" — which names
+ * neither the module's exports nor the near miss — into a refusal made before
+ * the guest starts, with both.
+ */
+export function exportedNames(source: string): string[] | null {
+  let program: acorn.Program;
+  try {
+    program = acorn.parse(source, PARSE_OPTIONS);
+  } catch {
+    return null;
+  }
+  const names = new Set<string>();
+  for (const statement of program.body) {
+    if (statement.type === "ExportAllDeclaration") {
+      // `export * as ns from …` names one export; a bare `export * from …`
+      // forwards an unknowable set.
+      if (statement.exported === null || statement.exported === undefined) {
+        return null;
+      }
+      const exported = statement.exported;
+      if (exported.type === "Identifier") names.add(exported.name);
+      else if (isString(exported.value)) names.add(exported.value);
+      continue;
+    }
+    if (statement.type === "ExportDefaultDeclaration") {
+      names.add("default");
+      continue;
+    }
+    if (statement.type !== "ExportNamedDeclaration") continue;
+    for (const specifier of statement.specifiers) {
+      const exported = specifier.exported;
+      if (exported.type === "Identifier") names.add(exported.name);
+      else if (isString(exported.value)) names.add(exported.value);
+    }
+    const declaration = statement.declaration;
+    if (declaration === null || declaration === undefined) continue;
+    if (
+      declaration.type === "FunctionDeclaration" ||
+      declaration.type === "ClassDeclaration"
+    ) {
+      if (declaration.id) names.add(declaration.id.name);
+      continue;
+    }
+    if (declaration.type === "VariableDeclaration") {
+      for (const declarator of declaration.declarations) {
+        patternNames(declarator.id, names);
+      }
+    }
+  }
+  return [...names];
+}
+
 /** Module access the loader refuses outright, anywhere in the body. */
 export interface DynamicModuleAccess {
   /** `import(...)` — the loader denies every dynamic resolution. */

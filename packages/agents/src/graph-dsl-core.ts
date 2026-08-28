@@ -145,7 +145,11 @@ function __graphDslBuilder() {
           "Pass it as the property value itself — { prompt: " +
           nodeId +
           ".output() } — and put any fixed instructions in a separate " +
-          "property (an Agent node's system property)."
+          "property (an Agent node's system property). To build one string " +
+          "out of several handles plus fixed text, wire them into a " +
+          'nodetool.text.Template node: { string: "Hi {{name}}, about ' +
+          '{{topic}}", name: a.output(), topic: b.output() } — each extra ' +
+          "property is a dynamic input replacing its {{key}} placeholder."
       );
     };
     return handle;

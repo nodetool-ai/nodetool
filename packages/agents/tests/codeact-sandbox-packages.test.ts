@@ -170,6 +170,29 @@ describe("mounting an action's imports", () => {
     expect(!mount.ok && mount.error).toContain('"@acme/gone"');
   });
 
+  /**
+   * `require` is not a guest global, so a CommonJS body died on
+   * `ReferenceError: require is not defined` — true, and no help.
+   */
+  it("refuses require() and dynamic import(), naming the static form", () => {
+    const cjs = mountActionModules(
+      'const { twice } = require("@acme/geo");\nreturn twice(2);',
+      ["@acme/geo"],
+      fakeCatalog()
+    );
+    expect(cjs.ok).toBe(false);
+    expect(!cjs.ok && cjs.error).toContain("`require()`");
+    expect(!cjs.ok && cjs.error).toContain("static `import`");
+
+    const dynamic = mountActionModules(
+      'const m = await import("@acme/geo");\nreturn 1;',
+      ["@acme/geo"],
+      fakeCatalog()
+    );
+    expect(dynamic.ok).toBe(false);
+    expect(!dynamic.ok && dynamic.error).toContain("`import()`");
+  });
+
   it("leaves unparseable code to the sandbox", () => {
     expect(mountActionModules("return (((", ["@acme/geo"], fakeCatalog())).toEqual(
       { ok: true }
@@ -197,7 +220,7 @@ describe("mounting an action's imports", () => {
       })
     };
     const mount = mountActionModules(
-      'import { fill } from "@nodetool-ai/sandbox-dsl/lib.image";\nreturn 1;',
+      'import { twice } from "@nodetool-ai/sandbox-dsl/lib.image";\nreturn 1;',
       ["@nodetool-ai/sandbox-dsl"],
       catalog
     );
@@ -205,6 +228,83 @@ describe("mounting an action's imports", () => {
     expect(mount.ok && mount.modules?.modules[0]?.specifier).toBe(
       "@nodetool-ai/sandbox-dsl/lib.image"
     );
+  });
+
+  /**
+   * Left to the guest, a misspelled export is QuickJS's "Could not find
+   * export 'websearch' in module 'nodetool-sandbox:@nodetool-ai/sandbox-dsl|
+   * sandbox/generated/xai.text.js'" — which names neither the module's
+   * exports nor the near miss, so the model guesses again.
+   */
+  it("refuses an export the pack module does not have, with the list", () => {
+    const xai: ResolvedSandboxModule = {
+      ...GEO,
+      specifier: "@nodetool-ai/sandbox-dsl/xai.text",
+      packName: "@nodetool-ai/sandbox-dsl",
+      source:
+        "function chatComplete(i) { return i; }\n" +
+        "function webSearch(i) { return i; }\n" +
+        "export { chatComplete, webSearch };",
+      graph: []
+    };
+    const catalog: SandboxModuleCatalog = {
+      summaries: () => [],
+      diagnostics: () => [],
+      authorizeDelivery: (moduleId) =>
+        Promise.resolve(refuseSandboxDelivery(moduleId)),
+      resolveForExecution: (
+        declarations: readonly SandboxModuleDeclaration[]
+      ): SandboxModuleResolution => ({
+        modules: declarations
+          .filter((d) => d.specifier === xai.specifier)
+          .map(() => xai),
+        statuses: []
+      })
+    };
+    const mount = mountActionModules(
+      'import { websearch } from "@nodetool-ai/sandbox-dsl/xai.text";\nreturn 1;',
+      ["@nodetool-ai/sandbox-dsl"],
+      catalog
+    );
+    expect(mount.ok).toBe(false);
+    expect(!mount.ok && mount.error).toContain('"websearch"');
+    expect(!mount.ok && mount.error).toContain(
+      'Did you mean "webSearch" for "websearch"?'
+    );
+    expect(!mount.ok && mount.error).toContain("chatComplete, webSearch");
+
+    const spelled = mountActionModules(
+      'import { webSearch } from "@nodetool-ai/sandbox-dsl/xai.text";\nreturn 1;',
+      ["@nodetool-ai/sandbox-dsl"],
+      catalog
+    );
+    expect(spelled.ok).toBe(true);
+  });
+
+  /** An unknowable export list must read as permission, never as an empty one. */
+  it("leaves a module whose exports cannot be read alone", () => {
+    const opaque: ResolvedSandboxModule = {
+      ...GEO,
+      source: 'export * from "./other.js";',
+      graph: []
+    };
+    const catalog: SandboxModuleCatalog = {
+      summaries: () => [],
+      diagnostics: () => [],
+      authorizeDelivery: (moduleId) =>
+        Promise.resolve(refuseSandboxDelivery(moduleId)),
+      resolveForExecution: (): SandboxModuleResolution => ({
+        modules: [opaque],
+        statuses: []
+      })
+    };
+    expect(
+      mountActionModules(
+        'import { anything } from "@acme/geo";\nreturn 1;',
+        ["@acme/geo"],
+        catalog
+      ).ok
+    ).toBe(true);
   });
 });
 

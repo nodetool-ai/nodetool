@@ -28,6 +28,25 @@ describe("graph DSL — handles are not text", () => {
     expect(error).toMatch(/Cannot use .*\.output\(\) inside a string/);
   });
 
+  /**
+   * "Pass it as the property value itself" answers the one-handle case and
+   * nothing else. A model that wants one prompt built from four upstream
+   * values has nowhere to go, and in the transcript this came from it rewrote
+   * the same template eight times before giving up. The refusal has to name
+   * the node that does the job.
+   */
+  it("names the template node as the way to build a string from handles", async () => {
+    const { error } = await evaluateGraphDsl(`
+      const a = node("nodetool.input.StringInput", { name: "a" });
+      const b = node("nodetool.input.StringInput", { name: "b" });
+      node("nodetool.agents.Agent", { prompt: a.output() + " and " + b.output() });
+      return graph();
+    `);
+
+    expect(error).toContain("nodetool.text.Template");
+    expect(error).toContain("{{name}}");
+  });
+
   it("still accepts a handle passed as the property value", async () => {
     const { graph, error } = await evaluateGraphDsl(`
       const input = node("nodetool.input.StringInput", { name: "text" });

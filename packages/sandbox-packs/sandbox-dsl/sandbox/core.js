@@ -135,6 +135,11 @@ function createHandle(nodeId, slot) {
   // Interpolating a handle into a string silently yields "[object Object]":
   // no edge is created and the node gets that literal text. Refuse the
   // conversion so the mistake surfaces where it was made.
+  //
+  // The refusal names both ways out. Told only "pass it as the property
+  // value", a model that wants one prompt built from four upstream values has
+  // nowhere to go and rewrites the same template eight times; the node that
+  // does this is `nodetool.text.Template`, and the message has to say so.
   handle[Symbol.toPrimitive] = function () {
     throw new Error(
       "Cannot use " +
@@ -142,7 +147,15 @@ function createHandle(nodeId, slot) {
         "." +
         slot +
         " inside a string. A handle wires an edge; it is not text. Pass it " +
-        "as the property value itself."
+        "as the property value itself — { prompt: " +
+        nodeId +
+        ".output() }. To build one string out of several handles plus fixed " +
+        'text, wire them into a template node: template({ string: "Hi ' +
+        '{{name}}, about {{topic}}", name: a.output(), topic: b.output() }) ' +
+        'from "@nodetool-ai/sandbox-dsl/nodetool.text" — each extra key is a ' +
+        "dynamic input, and its {{key}} placeholder is replaced at run time. " +
+        "An Agent node's fixed instructions belong in its `system` property, " +
+        "not in the interpolated prompt."
     );
   };
   return Object.freeze(handle);

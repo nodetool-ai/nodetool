@@ -718,11 +718,14 @@ const findModel: CapabilityExport = {
       return a.model_id.localeCompare(b.model_id);
     });
 
+    const results = bestRoutePerModel(collected).slice(0, limit);
     const answer: FindModelAnswer = {
       capability,
       total: collected.length,
-      results: bestRoutePerModel(collected).slice(0, limit)
+      results
     };
+    const best = results[0];
+    if (best !== undefined) answer.ref = best.ref;
     if (queryMatched !== undefined) answer.query_matched = queryMatched;
     if (notes.length > 0) answer.note = notes.join(" ");
     return answer;
@@ -766,6 +769,20 @@ interface RankedModel extends CandidateRankingFields {
 interface FindModelAnswer {
   capability: string;
   total: number;
+  /**
+   * The top result's `ref`, lifted to the top level.
+   *
+   * Every caller wants one model, and the shape that used to make them dig for
+   * it — `results[0].ref` — reads as `results` and `ref` being alternatives.
+   * Agents wrote `find_model(...).ref`, got `undefined`, and assigned it to a
+   * node's model property: `undefined` is not an error, so the mistake
+   * surfaced much later as "Property model requires a language_model to be
+   * selected" on a graph whose model line looked right. Answering `ref`
+   * directly makes the obvious read the correct one.
+   *
+   * Absent only when nothing matched.
+   */
+  ref?: ReturnType<typeof modelRef>;
   results: RankedModel[];
   query_matched?: boolean;
   note?: string;

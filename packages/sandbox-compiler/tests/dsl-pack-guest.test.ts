@@ -468,6 +468,12 @@ describe("a handle", () => {
     expect(run.success).toBe(false);
     expect(run.error).toContain("string_input.output");
     expect(run.error).toContain("Pass it as the property value itself");
+    // "Pass it as the property value" answers the one-handle case only. A
+    // prompt built from several upstream values needs a node, and the message
+    // has to name it — without that, a model rewrites the same template until
+    // it gives up.
+    expect(run.error).toContain("template({");
+    expect(run.error).toContain("{{name}}");
   });
 
   it("refuses String() and template interpolation the same way", async () => {
