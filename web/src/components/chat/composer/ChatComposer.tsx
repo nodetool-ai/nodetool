@@ -31,6 +31,8 @@ interface ChatComposerProps {
   onNewChat?: () => void;
   disabled?: boolean;
   toolbarNode?: React.ReactNode;
+  /** Override the textarea placeholder. */
+  placeholder?: string;
 }
 
 const ChatComposer: React.FC<ChatComposerProps> = memo(({
@@ -40,7 +42,8 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   onStop,
   onNewChat,
   disabled = false,
-  toolbarNode
+  toolbarNode,
+  placeholder
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -240,9 +243,10 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
             onChange={handleOnChange}
             onKeyDown={handleKeyDown}
             placeholder={
-              isMobile
+              placeholder ??
+              (isMobile
                 ? "Type a message..."
-                : "Type a message... (Shift+Enter for new line)"
+                : "Type a message... (Shift+Enter for new line)")
             }
           />
           <div className="composer-footer">

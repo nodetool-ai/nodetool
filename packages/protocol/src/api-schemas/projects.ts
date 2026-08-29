@@ -9,6 +9,8 @@ export const projectResponse = z.object({
   id: z.string(),
   name: z.string(),
   kind: z.string(),
+  /** The conversation that builds it, or null while nobody has asked for one. */
+  threadId: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string()
 });
@@ -89,12 +91,49 @@ export const projectThumbnail = z.object({
 });
 export type ProjectThumbnail = z.infer<typeof projectThumbnail>;
 
+/**
+ * What a document card draws above its name, for the kinds whose glance is not
+ * a picture: a script's opening lines with their voicing state, and a cut's
+ * tracks reduced to bars. Both are already-stored facts sliced down to what a
+ * 120px card can show, so the card renders without fetching the document.
+ */
+export const projectDocumentPreview = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("script"),
+    lines: z.array(
+      z.object({
+        speaker: z.string(),
+        text: z.string(),
+        /** `voiced` matches its take; `stale` drifted from it; `draft` has none. */
+        state: z.enum(["voiced", "stale", "draft"])
+      })
+    )
+  }),
+  z.object({
+    kind: z.literal("timeline"),
+    /** Total span the bars are laid out against, in milliseconds. */
+    durationMs: z.number(),
+    tracks: z.array(
+      z.object({
+        type: z.enum(["video", "audio", "overlay", "subtitle"]),
+        name: z.string(),
+        clips: z.array(
+          z.object({ startMs: z.number(), durationMs: z.number() })
+        )
+      })
+    )
+  })
+]);
+export type ProjectDocumentPreview = z.infer<typeof projectDocumentPreview>;
+
 export const projectDocumentSummary = projectDocumentRef.extend({
   status: projectDocumentStatus.nullable(),
   spendUsd: z.number(),
   unpricedCount: z.number(),
   /** Stills the card montages. Empty for the kinds that render none. */
-  thumbnails: z.array(projectThumbnail)
+  thumbnails: z.array(projectThumbnail),
+  /** What the card draws when it has no stills. Null when there is nothing. */
+  preview: projectDocumentPreview.nullable()
 });
 export type ProjectDocumentSummary = z.infer<typeof projectDocumentSummary>;
 

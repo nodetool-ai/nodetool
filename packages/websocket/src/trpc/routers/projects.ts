@@ -12,6 +12,7 @@
  *   get            (query)    — ProjectDetail (project + documents + spend)
  *   documents      (query)    — ProjectDocumentRef[]
  *   unassigned     (query)    — ProjectDocumentRef[] in the loose bucket
+ *   thread         (mutation) — { threadId } (the project's agent thread)
  *   create         (mutation) — ProjectResponse
  *   update         (mutation) — ProjectResponse
  *   delete         (mutation) — { ok: true }
@@ -111,6 +112,21 @@ export const projectsRouter = router({
     .input(listInput)
     .output(z.array(projectDocumentRef))
     .query(({ ctx }) => listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID)),
+
+  /**
+   * The project's agent thread, created on first ask. A mutation rather than a
+   * query because the first call writes: the overview needs an id to render a
+   * composer against before anyone has said anything.
+   */
+  thread: protectedProcedure
+    .input(idInput)
+    .output(z.object({ threadId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await loadOwned(ctx.userId, input.id);
+      const threadId = await Project.ensureThread(ctx.userId, input.id);
+      if (!threadId) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      return { threadId };
+    }),
 
   create: protectedProcedure
     .input(createProjectInput)
