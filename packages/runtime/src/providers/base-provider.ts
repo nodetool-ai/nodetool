@@ -291,6 +291,17 @@ export abstract class BaseProvider {
     return false;
   }
 
+  /**
+   * Whether this provider's chat API accepts a `video` content part. Only
+   * providers that read a whole clip natively answer `true` — an
+   * OpenAI-compatible endpoint re-hosting a video-capable model (AtlasCloud
+   * serving `google/gemini-2.5-flash`, say) does not, because the wire format
+   * has nowhere to put the bytes. Default `false`.
+   */
+  get supportsVideoInput(): boolean {
+    return false;
+  }
+
   setMessageEmitter(fn: (msg: unknown) => void): void {
     this._emitMessage = fn;
   }

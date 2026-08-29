@@ -1254,6 +1254,23 @@ const scoreImageAdherence: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 /**
+ * Why a provider cannot read a clip, and what to do instead.
+ *
+ * The trap this names: a model search surfaces a video-capable model family
+ * (Gemini) served by an aggregator over an OpenAI-compatible chat API, which
+ * has no video content part. The model reads video; that route does not.
+ */
+function videoInputRefusal(provider: string): string {
+  return (
+    `${provider} does not accept video input. A model catalog can list a ` +
+    `video-capable model family behind an OpenAI-compatible endpoint, which ` +
+    `has no video content part — reading the clip needs a provider that takes ` +
+    `video natively (gemini), not just a model that can. Otherwise sample ` +
+    `frames with ffmpeg and read them with critique_image.`
+  );
+}
+
+/**
  * Read a video with a multimodal chat model.
  *
  * The video rides as a `video` content part next to the instruction; the
@@ -1280,6 +1297,9 @@ const understandVideo: CapabilityExport = {
         : DEFAULT_UNDERSTAND_VIDEO_TOKENS;
 
     try {
+      if (!(await run.context.providerSupportsVideoInput(m.provider))) {
+        return { error: videoInputRefusal(m.provider) };
+      }
       const text = await judgeCall(
         run.context,
         m,
