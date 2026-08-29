@@ -41,7 +41,8 @@ export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
         type: "storyboard",
         ref: created.id,
         mode: "edit",
-        title: created.name || "Untitled storyboard"
+        title: created.name || "Untitled storyboard",
+        projectId: created.projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");

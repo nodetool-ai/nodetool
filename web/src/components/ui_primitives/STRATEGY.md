@@ -71,7 +71,7 @@ These primitives exist but are barely adopted:
 `CopyButton` | `CloseButton` | `DeleteButton` | `DownloadButton` | `UploadButton` | `EditButton` | `SettingsButton` | `FavoriteButton` | `HelpButton` | `DocsHelpLink` | `UndoRedoButtons`
 
 ### Feedback & Status (replace raw CircularProgress/Alert)
-`LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `EmptyState` | `AlertBanner` | `WarningBanner` | `Toast` | `NotificationBadge` | `ConflictBanner`
+`LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `StatusPill` | `EmptyState` | `AlertBanner` | `WarningBanner` | `Toast` | `NotificationBadge` | `ConflictBanner`
 
 ### Document merge (external-change offers)
 `ConflictBanner` — the one document-level notice listing the external values a dirty draft refused, with per-value Accept/Discard and an optional viewer. A string `detail` shows the external value; with `draftDetail` too, the viewer is a two-pane Your-edit / External view (JS script `code`). Mounted by every document editor shell; fed by `useDocumentConflicts`.
@@ -169,7 +169,8 @@ Need feedback?
 ├── Nothing to show → EmptyState
 ├── Warning/error → AlertBanner / WarningBanner
 ├── Temporary message → Toast
-└── Status dot/badge → StatusIndicator / NotificationBadge
+├── Status dot/badge → StatusIndicator / NotificationBadge
+└── Render state on a thumbnail or card → StatusPill
 
 Need a menu/nav?
 ├── Context menu → ContextMenu / EditorMenu

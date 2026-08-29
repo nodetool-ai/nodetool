@@ -588,6 +588,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "rather than as untrusted text. A run that could grant itself " +
       "trust could escalate a prompt injection into executed code."
   },
+  "projects.assignDocument": {
+    gap:
+      "Same grouping surface as `projects.create`. Moves one document " +
+      "between projects; both the document and the project are the " +
+      "caller's own rows."
+  },
   "projects.create": {
     gap:
       "A project groups documents that already carry its id, and a run " +
@@ -615,6 +621,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "projects.list": {
     gap: "Same grouping surface as `projects.create`."
+  },
+  "projects.summaries": {
+    gap:
+      "Same grouping surface as `projects.create`. The whole list of " +
+      "rollups `projects.get` returns one at a time."
+  },
+  "projects.unassigned": {
+    gap:
+      "Lists the documents in no project. Same grouping surface as " +
+      "`projects.documents`, other side of the same column."
   },
   "projects.update": {
     gap: "Same grouping surface as `projects.create`. Renames a project."

@@ -79,10 +79,22 @@ export const projectDocumentStatus = z.discriminatedUnion("kind", [
 ]);
 export type ProjectDocumentStatus = z.infer<typeof projectDocumentStatus>;
 
+/**
+ * A stored media locator a card renders through `ResponsiveImage`. `asset://`
+ * is an identifier, not a URL — the client resolves it.
+ */
+export const projectThumbnail = z.object({
+  uri: z.string().optional(),
+  asset_id: z.string().nullable().optional()
+});
+export type ProjectThumbnail = z.infer<typeof projectThumbnail>;
+
 export const projectDocumentSummary = projectDocumentRef.extend({
   status: projectDocumentStatus.nullable(),
   spendUsd: z.number(),
-  unpricedCount: z.number()
+  unpricedCount: z.number(),
+  /** Stills the card montages. Empty for the kinds that render none. */
+  thumbnails: z.array(projectThumbnail)
 });
 export type ProjectDocumentSummary = z.infer<typeof projectDocumentSummary>;
 
@@ -113,3 +125,14 @@ export const projectDetail = z.object({
   spend: projectSpend
 });
 export type ProjectDetail = z.infer<typeof projectDetail>;
+
+/**
+ * Move one document into a project, or — with {@link LOOSE_PROJECT_ID} — back
+ * out of every project.
+ */
+export const assignDocumentInput = z.object({
+  projectId: z.string(),
+  type: projectDocumentType,
+  ref: z.string()
+});
+export type AssignDocumentInput = z.infer<typeof assignDocumentInput>;
