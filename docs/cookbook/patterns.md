@@ -1,571 +1,330 @@
 ---
 layout: page
-title: Workflow Patterns
+title: Creative Workflow Patterns
 parent: NodeTool Workflow Cookbook
 nav_order: 2
 ---
 
-To build any example:
-– press Space to add nodes
-– drag connections
-– press Ctrl/⌘+Enter to run
-– add Preview nodes to inspect intermediate results
+Eight patterns for creative work worth running more than once. Each one names
+the graph, the nodes, and the shipped template closest to it.
 
-<span id="pattern-1-simple-pipeline"></span>
+To build any of them: press Space to add a node, drag an output handle to an
+input handle, press Ctrl/⌘+Enter to run, and drop `Preview` nodes wherever you
+want to see an intermediate value.
 
-### Pattern 1: Simple Pipeline
+<span id="pattern-1-brief-to-cut"></span>
 
-**Use Case**: Transform input → process → output
+### Pattern 1 · Brief to cut, unattended
 
-**Example**: Image Enhancement
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/image-enhancement.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/image-enhancement.mp4' | relative_url }}" type="video/mp4">
-</video>
+A line of brief becomes a rendered film: the Director writes the screenplay,
+`ShotChain` films the shots in order, and the clips land on a timeline that gets
+rendered.
 
 {% mermaid %}
-graph TD
-  output["Output"]
-  image_input["ImageInput"]
-  sharpen["UnsharpMask"]
-  auto_contrast["AutoContrast"]
-  image_input --> sharpen
-  sharpen --> auto_contrast
-  auto_contrast --> output
+graph LR
+  brief["StringInput (Brief)"]
+  dir["Director"]
+  batch["ShotBatch"]
+  chain["ShotChain"]
+  cut["AddClips"]
+  render["RenderTimeline"]
+  out["Output (Film)"]
+  brief --> dir --> batch --> chain --> cut --> render --> out
 {% endmermaid %}
 
-**When to Use**:
+`ShotChain` seeds each shot from the previous clip's last frame, which is what
+holds continuity across a cut nobody is watching. Shot 1 has nothing to seed
+from, so it runs text-to-video while the rest run image-to-video — on providers
+that publish those as separate model ids, fill in **Continuation Model** too.
 
-- Simple data transformations
-- Single input, single output
-- No conditional logic needed
+**Nodes**: `nodetool.creative.Director`, `nodetool.creative.ShotBatch`,
+`nodetool.creative.ShotChain`, `nodetool.timeline.AddClips`,
+`nodetool.timeline.RenderTimeline`
+
+**Automate it when** you have many briefs, or one brief that gets re-cut on a
+schedule. **Use the storyboard surface instead** when you want to approve each
+still before paying for its clip.
+
+**Template**: *Direct a Short Film*
 
 ______________________________________________________________________
 
-<span id="pattern-2-agent-driven-generation"></span>
+<span id="pattern-2-shot-fan-out"></span>
 
-### Pattern 2: Agent-Driven Generation
+### Pattern 2 · Shot fan-out through stills
 
-**Use Case**: LLM generates content based on input
-
-**Example**: Image to Story
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/image-to-story.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/image-to-story.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  image_input["Image"]
-  agent_story["Agent (Story Generator)"]
-  preview_audio["Preview (Audio)"]
-  text_to_speech["TextToSpeech"]
-  image_input --> agent_story
-  agent_story --> text_to_speech
-  text_to_speech --> preview_audio
-{% endmermaid %}
-
-**When to Use**:
-
-- Creative generation tasks
-- Multimodal transformations (image→text→audio)
-- Need semantic understanding
-
-**Key Nodes**:
-
-- `Agent`: General-purpose LLM agent with streaming
-- `Summarizer`: Specialized for text summarization
-- `ListGenerator`: Streams list of items
-
-______________________________________________________________________
-
-<span id="pattern-3-streaming-with-multiple-previews"></span>
-
-### Pattern 3: Streaming with Multiple Previews
-
-**Use Case**: Show intermediate results during generation
-
-**Example**: Movie Poster Generator
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/movie-poster.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/movie-poster.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  strategy_llm["Agent (Strategy)"]
-  strategy_template_prompt["String (Strategy Template)"]
-  strategy_preview["Preview (Strategy)"]
-  strategy_prompt_formatter["FormatText (Strategy)"]
-  movie_title_input["StringInput (Title)"]
-  genre_input["StringInput (Genre)"]
-  audience_input["StringInput (Audience)"]
-  image_preview["Preview (Image)"]
-  prompt_list_generator["ListGenerator"]
-  designer_instructions_prompt["String (Designer Instructions)"]
-  preview_prompts["Preview (Prompts)"]
-  text_to_image["TextToImage"]
-  strategy_llm --> strategy_preview
-  strategy_template_prompt --> strategy_prompt_formatter
-  strategy_prompt_formatter --> strategy_llm
-  strategy_llm --> prompt_list_generator
-  designer_instructions_prompt --> prompt_list_generator
-  audience_input --> strategy_prompt_formatter
-  movie_title_input --> strategy_prompt_formatter
-  genre_input --> strategy_prompt_formatter
-  prompt_list_generator --> preview_prompts
-  prompt_list_generator --> text_to_image
-  text_to_image --> image_preview
-{% endmermaid %}
-
-**When to Use**:
-
-- Complex multi-stage generation
-- User needs to see progress
-- Agent planning + execution workflow
-
-**Key Concepts**:
-
-- **Strategy Phase**: Agent plans approach
-- **Preview Nodes**: Show intermediate results
-- **ListGenerator**: Streams generated prompts
-- **Image Generation**: Final output
-
-______________________________________________________________________
-
-<span id="pattern-4-rag-retrieval-augmented-generation"></span>
-
-### Pattern 4: RAG (Retrieval-Augmented Generation)
-
-**Use Case**: Answer questions using documents as context
-
-**Example**: Chat with Docs
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/chat-with-docs.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/chat-with-docs.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  chat_input["StringInput"]
-  output["Output (Answer)"]
-  format_text["FormatText"]
-  hybrid_search["HybridSearch"]
-  agent["Agent"]
-  chat_input --> format_text
-  chat_input --> hybrid_search
-  hybrid_search --> format_text
-  format_text --> agent
-  agent --> output
-{% endmermaid %}
-
-**When to Use**:
-
-- Question-answering over documents
-- Need factual accuracy from specific sources
-- Reduce LLM hallucinations
-
-**Key Components**:
-
-1. **Search**: Query vector database for relevant documents
-1. **Format**: Inject retrieved context into prompt
-1. **Generate**: Stream LLM response with context
-
-______________________________________________________________________
-
-<span id="pattern-5-database-persistence"></span>
-
-### Pattern 5: Structured Records
-
-**Use Case**: Have a model produce rows you can compute on, not prose you have to re-parse
-
-**Example**: AI Flashcard Generator
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/flashcards-sqlite.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/flashcards-sqlite.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  topic_input["StringInput (Topic)"]
-  format_prompt["FormatText"]
-  generate_flashcards["DataGenerator"]
-  plan_study["Code (dedupe & order)"]
-  display_result["Preview"]
-  topic_input --> format_prompt
-  format_prompt --> generate_flashcards
-  generate_flashcards --> plan_study
-  plan_study --> display_result
-{% endmermaid %}
-
-**When to Use**:
-
-- The model's answer is a list of things, each with the same fields
-- Something downstream has to sort, filter, group, or count them
-- You would otherwise be parsing a markdown list back into data
-
-**Key Nodes**:
-
-- `DataGenerator`: ask for named columns and get rows, not a blob
-- `Code` (`nodetool.code.Code`): one script that computes on those rows — here
-  it drops repeated questions and deals one card from each category in turn
-
-**Structured Flow**:
-
-1. Name the columns you want
-1. Generate rows against them
-1. Compute on the rows in one script
-
-______________________________________________________________________
-
-<span id="pattern-6-email--web-integration"></span>
-
-### Pattern 6: Email & Web Integration
-
-**Use Case**: Process emails or web content
-
-**Example**: Summarize Newsletters
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/summarize-newsletters.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/summarize-newsletters.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  gmail_search["GmailSearch"]
-  email_fields["Template"]
-  summarizer_streaming["Summarizer"]
-  preview_summary["Preview (Summary)"]
-  preview_body["Preview (Body)"]
-  gmail_search --> email_fields
-  email_fields --> summarizer_streaming
-  summarizer_streaming --> preview_summary
-  email_fields --> preview_body
-{% endmermaid %}
-
-**When to Use**:
-
-- Automate email processing
-- Monitor RSS feeds
-- Extract web content
-
-**Key Nodes**:
-
-- `Code` (`nodetool.code.Code`): Search Gmail and apply labels with `gmail_search` / `gmail_modify_labels` from `@nodetool-ai/sandbox-nodetool/google` — the `Gmail Search`, `Gmail Add Label` and `Gmail Archive` snippets prefill each one
-- `Template`: Format email fields into text
-- `Code` (`nodetool.code.Code`): Fetch web content with `fetch` and turn it into markdown with `@nodetool-ai/sandbox-html`, or parse an RSS feed with `@nodetool-ai/sandbox-xml` — there is no RSS node
-
-______________________________________________________________________
-
-<span id="pattern-7-multi-modal-workflows"></span>
-
-### Pattern 7: Multi-Modal Workflows
-
-**Use Case**: Convert between different media types
-
-**Example**: Audio to Image
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/audio-to-image.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/audio-to-image.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  stable_diffusion["StableDiffusion"]
-  whisper["Whisper"]
-  audio_input["AudioInput"]
-  output["Output"]
-  whisper --> stable_diffusion
-  audio_input --> whisper
-  stable_diffusion --> output
-{% endmermaid %}
-
-**When to Use**:
-
-- Converting between media types
-- Creating rich multimedia experiences
-- Accessibility applications
-
-**Common Chains**:
-
-- Audio → Text → Image
-- Image → Text → Audio
-- Video → Audio → Text → Summary
-
-______________________________________________________________________
-
-<span id="pattern-8-advanced-image-processing"></span>
-
-### Pattern 8: Advanced Image Processing
-
-**Use Case**: AI-powered image transformations
-
-**Example**: Style Transfer
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/style-transfer.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/style-transfer.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  sd_img2img["StableDiffusionV3MediumImageToImage"]
-  image_input_1["ImageInput"]
-  image_input_2["ImageInput"]
-  output["Output"]
-  image_to_text["ImageToText"]
-  fit_1["Fit"]
-  fit_2["Fit"]
-  sd_img2img --> output
-  image_to_text --> sd_img2img
-  image_input_2 --> fit_1
-  image_input_1 --> fit_2
-  fit_2 --> image_to_text
-  image_input_2 --> sd_img2img
-  fit_2 --> sd_img2img
-{% endmermaid %}
-
-**When to Use**:
-
-- Style transfer between images
-- Controlled image generation
-- Preserving structure while changing style
-
-**Key Techniques**:
-
-- **Img2Img**: Transform while maintaining composition (`StableDiffusionV3MediumImageToImage`, or `StableDiffusion` / `StableDiffusionXL` for text-to-image)
-- **Image-to-Text**: Generate descriptions (`ImageToText`)
-- **Canny**: Edge detection preprocessing
-
-______________________________________________________________________
-
-<span id="pattern-9-text-to-video"></span>
-
-### Pattern 9: Text-to-Video Generation
-
-**Use Case**: Generate videos from text descriptions
-
-**Example**: Cinematic Video from Prompt
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/text-to-video.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/text-to-video.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  string_input["StringInput (Prompt)"]
-  output["Output"]
-  kling_text_to_video["KlingVideoV16ProTextToVideo"]
-  string_input --> kling_text_to_video
-  kling_text_to_video --> output
-{% endmermaid %}
-
-**When to Use**:
-
-- Create videos from text descriptions
-- Generate concept videos and storyboards
-- Produce cinematic content from prompts
-- Rapid video prototyping
-
-**Key Nodes**:
-
-- `KlingVideoV16ProTextToVideo`: High-quality text-to-video (Kling 1.6 Pro)
-- `MinimaxHailuo23ProTextToVideo`: Professional quality (Hailuo 2.3)
-- `Sora2TextToVideo`: OpenAI Sora 2 model
-- `WanProTextToVideo`: Alibaba Wan
-
-**Configuration Tips**:
-
-- Duration: 5-10 seconds for most models
-- Resolution: 768P for faster generation, 1080P for quality
-- Aspect ratios: 16:9 (landscape), 9:16 (portrait), 1:1 (square)
-
-______________________________________________________________________
-
-<span id="pattern-10-image-to-video"></span>
-
-### Pattern 10: Image-to-Video Generation
-
-**Use Case**: Animate images into videos
-
-**Example**: Bring Images to Life
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/image-to-video.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/image-to-video.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  image_input["ImageInput"]
-  string_input["StringInput (Motion Guide)"]
-  output["Output"]
-  kling_image_to_video["KlingVideoV16StandardImageToVideo"]
-  image_input --> kling_image_to_video
-  string_input --> kling_image_to_video
-  kling_image_to_video --> output
-{% endmermaid %}
-
-**When to Use**:
-
-- Animate static images
-- Create motion from photographs
-- Multi-image video generation
-- Product showcases from images
-
-**Key Nodes**:
-
-- `KlingVideoV16StandardImageToVideo`: Kling 1.6 Standard image-to-video
-- `MinimaxHailuo02ProImageToVideo`: High-quality animation (Hailuo 02 Pro)
-- `SeeDanceV15ProImageToVideo`: ByteDance SeeDance 1.5 Pro
-- `WanV225bImageToVideo`: Alibaba Wan 2.2
-
-**Advanced Pattern**: Multi-Image Animation
-
-{% mermaid %}
-graph TD
-  image1["ImageInput (Frame 1)"]
-  image2["ImageInput (Frame 2)"]
-  image3["ImageInput (Frame 3)"]
-  motion_prompt["StringInput (Motion)"]
-  output["Output"]
-  kling_i2v["KlingVideoV16StandardImageToVideo"]
-  kling_i2v --> output
-  image1 --> kling_i2v
-  image2 --> kling_i2v
-  image3 --> kling_i2v
-  motion_prompt --> kling_i2v
-{% endmermaid %}
-
-______________________________________________________________________
-
-<span id="pattern-11-talking-avatar"></span>
-
-### Pattern 11: Talking Avatar Generation
-
-**Use Case**: Create lip-synced avatar videos
-
-**Example**: Virtual Presenter
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/talking-avatar.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/talking-avatar.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  image_input["ImageInput (Face Photo)"]
-  audio_input["AudioInput (Speech)"]
-  output["Output"]
-  kling_avatar["KlingVideoAiAvatarV2Pro"]
-  image_input --> kling_avatar
-  audio_input --> kling_avatar
-  kling_avatar --> output
-{% endmermaid %}
-
-**When to Use**:
-
-- Create virtual presenters
-- Generate lip-synced avatar videos
-- Educational content with AI speakers
-- Virtual influencers and spokespersons
-
-**Key Nodes**:
-
-- `KlingVideoAiAvatarV2Pro`: Pro-quality avatar generation
-- `KlingVideoAiAvatarV2Standard`: Standard mode for faster generation
-- `Infinitalk`: Audio-driven video generation
-
-**Workflow**: Audio + Image → Talking Avatar
-
-1. **Photo Input**: Front-facing portrait image
-2. **Audio Track**: Speech recording or TTS output
-3. **Optional Prompt**: Guide emotions and expressions
-4. **Mode Selection**: Standard (faster) or Pro (higher quality)
-
-______________________________________________________________________
-
-<span id="pattern-12-video-enhancement"></span>
-
-### Pattern 12: Image Enhancement & Upscaling
-
-**Use Case**: Improve image quality and resolution
-
-**Example**: HD Image Upscaling
-
-<video controls preload="metadata" poster="{{ '/assets/cookbook/image-upscaling.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/image-upscaling.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-{% mermaid %}
-graph TD
-  image_input["ImageInput (Low Res)"]
-  output["Output (High Res)"]
-  topaz_upscale["TopazUpscaleImage"]
-  image_input --> topaz_upscale
-  topaz_upscale --> output
-{% endmermaid %}
-
-**When to Use**:
-
-- Upscale low-resolution images
-- Remove noise and artifacts
-- Enhance image quality
-- Prepare images for high-resolution displays
-
-**Key Nodes**:
-
-- `TopazUpscaleImage`: AI-powered upscaling to higher resolutions
-- Denoise option: Reduces artifacts during upscaling
-
-**Configuration**:
-
-- Higher target resolutions for crisp output
-- Denoise: Enable for noisy input images
-- Best for: Enhancing old photos, smartphone images, web graphics
-
-______________________________________________________________________
-
-<span id="pattern-13-storyboard-to-video"></span>
-
-### Pattern 13: Storyboard to Video
-
-**Use Case**: Convert image sequences to coherent videos
-
-**Example**: Visual Story Generation
+The same trip from brief to cut, but with a keyframe in the middle:
+`ScreenplayShots` streams one prompt per shot, each prompt becomes a still, and
+each still is animated.
 
 <video controls preload="metadata" poster="{{ '/assets/cookbook/storyboard-to-video.jpg' | relative_url }}">
   <source src="{{ '/assets/cookbook/storyboard-to-video.mp4' | relative_url }}" type="video/mp4">
 </video>
 
 {% mermaid %}
-graph TD
-  story_prompt["StringInput (Story)"]
-  image1["ImageInput (Scene 1)"]
-  image2["ImageInput (Scene 2)"]
-  image3["ImageInput (Scene 3)"]
-  output["Output"]
-  sora_storyboard["Sora2ImageToVideoPro"]
-  sora_storyboard --> output
-  story_prompt --> sora_storyboard
-  image1 --> sora_storyboard
-  image2 --> sora_storyboard
-  image3 --> sora_storyboard
+graph LR
+  brief["StringInput (Brief)"]
+  dir["Director"]
+  shots["ScreenplayShots (streams)"]
+  still["TextToImage"]
+  clip["ImageToVideo"]
+  collect["Collect"]
+  cut["AddClips"]
+  render["RenderTimeline"]
+  brief --> dir --> shots --> still --> clip --> collect --> cut --> render
 {% endmermaid %}
 
-**When to Use**:
+A still costs cents and a clip costs dollars, so the keyframe is both a control
+point and a cheap thing to inspect after an unattended run. Anchoring every
+keyframe to one style frame — generate it first, then run the shot stills
+through `ImageToImage` against it — is what keeps thirty shots looking like one
+film.
 
-- Create narrative videos from storyboards
-- Combine multiple scenes into one video
-- Professional video pre-visualization
-- Animated story creation
+**Nodes**: `nodetool.creative.ScreenplayShots`, `nodetool.image.TextToImage`,
+`nodetool.image.ImageToImage`, `nodetool.video.ImageToVideo`,
+`nodetool.control.Collect`
 
-**Key Nodes**:
+**Automate it when** the shot count is large enough that clicking through the
+board is the slow part.
 
-- `Sora2ImageToVideoPro`: OpenAI Sora 2 Pro keyframe-driven generation
-- Supports: 1-3 keyframe images
-- Output: Smooth transitions between scenes
+**Templates**: *Directed Film to Timeline*, *Script to Screen*,
+*Movie Trailer Generator*
 
-**Workflow**:
+______________________________________________________________________
 
-1. **Story Prompt**: Describe the narrative arc
-2. **Keyframes**: Provide 1-3 scene images
-3. **Generation**: Sora creates smooth transitions
-4. **Duration**: 1-60 frames configurable
+<span id="pattern-3-entities"></span>
+
+### Pattern 3 · One cast across many assets
+
+Entities are named characters, locations, styles, and props whose canonical
+descriptor is pasted verbatim into every prompt that uses them. That verbatim
+text is what holds a face or a palette steady across a batch.
+
+{% mermaid %}
+graph LR
+  brief["StringInput (Brief)"]
+  prompts["ListGenerator (one prompt per asset)"]
+  apply["ApplyEntities"]
+  image["TextToImage"]
+  collect["Collect"]
+  out["Output"]
+  brief --> prompts --> apply
+  apply -->|prompt| image
+  apply -->|reference_images| image
+  image --> collect --> out
+{% endmermaid %}
+
+`TextToImage`, `ImageToImage`, and `ImageToVideo` take an **entities** property
+directly — reach for `nodetool.creative.ApplyEntities` when something else needs
+the seasoned text, since it returns the composed prompt and the reference images
+as separate outputs.
+
+**Nodes**: `nodetool.creative.ApplyEntities`, `nodetool.generators.ListGenerator`,
+`nodetool.image.TextToImage`
+
+**Automate it when** a campaign needs the same cast in thirty frames.
+**Do it by hand** for a single hero image — the picker in the Prompt node is one
+`@` away.
+
+______________________________________________________________________
+
+<span id="pattern-4-script-to-voiced-cut"></span>
+
+### Pattern 4 · Script to voiced cut and captions
+
+A script is a document with cast voices attached to its lines. `VoiceScript`
+synthesizes every line that is draft or stale, using each line's own voice, and
+saves the takes back onto the script.
+
+{% mermaid %}
+graph LR
+  script["Script (constant)"]
+  voice["VoiceScript"]
+  tl["ScriptToTimeline"]
+  render["RenderTimeline"]
+  subs["ScriptToSubtitles"]
+  out["Output (Cut)"]
+  srt["Output (SRT)"]
+  script --> voice --> tl --> render --> out
+  voice --> subs --> srt
+{% endmermaid %}
+
+Lines already up to date are skipped, so a re-run after a copy edit pays for the
+changed lines only. That is what makes the whole chain worth wiring: the script
+is the source of truth, and the cut plus the subtitle file are both derived from
+it.
+
+**Nodes**: `nodetool.constant.Script`, `nodetool.script.VoiceScript`,
+`nodetool.script.ScriptToTimeline`, `nodetool.script.ScriptToSubtitles`,
+`nodetool.timeline.RenderTimeline`
+
+**Automate it when** copy changes often, or when the same script ships in
+several languages — put an `Agent` translation step in front of the voicing and
+you have a localised master per language.
+
+**Templates**: *Narrate a Script*, *Localise a Script and Revoice It*
+
+______________________________________________________________________
+
+<span id="pattern-5-sketch-as-control"></span>
+
+### Pattern 5 · Sketch as the control input
+
+A sketch document carries layers and a mask. `RenderSketch` flattens it to an
+image plus that mask, which is exactly the pair an image-to-image model wants.
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/style-transfer.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/style-transfer.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+{% mermaid %}
+graph LR
+  sketch["Sketch (constant)"]
+  render["RenderSketch"]
+  styles["StringListInput (Styles)"]
+  each["ForEach"]
+  img["ImageToImage"]
+  collect["Collect"]
+  out["Output (Variants)"]
+  sketch --> render --> img
+  styles --> each --> img --> collect --> out
+{% endmermaid %}
+
+`SketchLayers` is the other half: it hands you each visible layer as its own
+image with its name, so foreground and background can go through different
+pipelines and be composited back together.
+
+**Nodes**: `nodetool.constant.Sketch`, `nodetool.sketch.RenderSketch`,
+`nodetool.sketch.SketchLayers`, `nodetool.image.ImageToImage`,
+`nodetool.image.Compositor`
+
+**Automate it when** the composition is settled and you want it in twelve
+styles or six aspect ratios. **Paint in the sketch editor** while the
+composition itself is still the question.
+
+______________________________________________________________________
+
+<span id="pattern-6-variant-fan-out"></span>
+
+### Pattern 6 · Variant fan-out from one brief
+
+An agent turns a brief into a direction, a list generator writes N distinct
+prompts against it, and each prompt renders. The fan-out is the point: one input,
+a gallery out.
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/movie-poster.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/movie-poster.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+{% mermaid %}
+graph LR
+  brief["StringInput (Brief)"]
+  count["IntegerInput (Count)"]
+  direction["Agent (Art Director)"]
+  prompts["ListGenerator"]
+  image["TextToImage"]
+  preview["Preview"]
+  collect["Collect"]
+  out["Output"]
+  brief --> direction --> prompts --> image --> collect --> out
+  count --> prompts
+  prompts --> preview
+{% endmermaid %}
+
+`ListGenerator` streams, so the first prompts render while the last are still
+being written, and a `Preview` on the prompt stream shows you what is coming
+before the images arrive.
+
+**Nodes**: `nodetool.agents.Agent`, `nodetool.generators.ListGenerator`,
+`nodetool.image.TextToImage`, `nodetool.control.Collect`
+
+**Automate it when** you want variety to pick from — concepts, thumbnails,
+poster directions, a social kit.
+
+**Templates**: *Concept Art Iteration Board*, *Hook & Thumbnail Factory*,
+*Movie Posters*, *Brand Asset Generator*
+
+______________________________________________________________________
+
+<span id="pattern-7-derivatives"></span>
+
+### Pattern 7 · Derivatives from a finished cut
+
+One master, many deliverables. `Transcript` reads the timeline's own text, so
+titles, show notes, and social copy come from the cut rather than from a second
+transcription pass.
+
+{% mermaid %}
+graph LR
+  tl["Timeline (constant)"]
+  transcript["Transcript"]
+  agent["Agent (titles, notes, posts)"]
+  render["RenderTimeline"]
+  vertical["Resize (9:16)"]
+  subs["AddSubtitles"]
+  copy["Output (Copy)"]
+  post["Output (Vertical cut)"]
+  tl --> transcript --> agent --> copy
+  tl --> render --> vertical --> subs --> post
+{% endmermaid %}
+
+**Nodes**: `nodetool.constant.Timeline`, `nodetool.timeline.Transcript`,
+`nodetool.timeline.RenderTimeline`, `nodetool.video.Resize`,
+`nodetool.video.AddSubtitles`, `nodetool.agents.Agent`
+
+**Automate it when** every cut ships in more than one shape. Re-running the
+graph after an edit rebuilds every derivative from the same master.
+
+**Templates**: *Cut a Landscape Clip for Vertical*,
+*Podcast Repurposing Studio*, *Subtitle Text from a Recording*
+
+______________________________________________________________________
+
+<span id="pattern-8-code-glue"></span>
+
+### Pattern 8 · Code node for the parts a model should not do
+
+Naming, ordering, deduping, packaging: deterministic work that a model does
+expensively and inconsistently. One `Code` node does it in JavaScript.
+
+{% mermaid %}
+graph LR
+  clip["VideoInput"]
+  audio["ExtractAudio"]
+  asr["AutomaticSpeechRecognition"]
+  code["Code (slugify)"]
+  out["Output (Filename)"]
+  clip --> audio --> asr --> code --> out
+{% endmermaid %}
+
+The body runs in the QuickJS sandbox and imports what it declares. Sandbox packs
+cover the file formats a delivery step usually needs —
+`@nodetool-ai/sandbox-subtitle` for SRT and VTT, `-csv`, `-zip`, `-yaml`,
+`-xlsx`. Validate a body before running the graph with
+`nodetool validate <file>`, or author it against `validate_code` / `run_code` /
+`test_code`.
+
+**Nodes**: `nodetool.code.Code`
+
+**Automate it when** the step has one right answer: a slug, a manifest, a
+per-shot cost table, a subtitle file assembled from timings.
+
+**Template**: *Name a File from Its Narration*
+
+______________________________________________________________________
+
+### Leave it on the surface
+
+A graph earns its place by repeating. These do not repeat, and the surface is
+faster:
+
+| Job | Where it belongs |
+|---|---|
+| Judging a film shot by shot, re-rolling the weak ones | Storyboard |
+| Trimming, mixing, and captioning one cut | Timeline editor |
+| Painting a mask or composing a frame | Sketch editor |
+| Rewriting a line and hearing it back | Script editor |
+| One hero image, one question about a document | Chat |
+
+Each surface is also drivable by the chat agent through its `ui_*` tools, and
+from outside over MCP — so "do it on the surface" does not mean "do it by hand".
