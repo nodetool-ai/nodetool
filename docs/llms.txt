@@ -62,9 +62,9 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 
 ## Examples
 
-- [Cookbook]({{ site.url }}/cookbook): End-to-end patterns and recipes.
-- [Core Patterns]({{ site.url }}/cookbook/core-concepts): Foundational workflow patterns.
-- [Pipeline Patterns]({{ site.url }}/cookbook/patterns): Composition patterns.
+- [Cookbook]({{ site.url }}/cookbook): Creative workflow patterns worth automating.
+- [Core Concepts]({{ site.url }}/cookbook/core-concepts): Typed edges, documents as values, fan-out versus chain.
+- [Creative Patterns]({{ site.url }}/cookbook/patterns): Eight patterns from brief to delivered cut.
 - [Workflow Examples]({{ site.url }}/workflows/): Ready-to-run sample workflows.
 
 ## Configuration

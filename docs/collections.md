@@ -60,7 +60,7 @@ Collections shine in RAG pipelines:
 2. Connect the collection to its `collection` input — the node menu will suggest the selector.
 3. Run the workflow. Index nodes write into the collection; query nodes read from it.
 
-See the full pattern in the [Cookbook → RAG]({{ '/cookbook/patterns#pattern-4-rag-retrieval-augmented-generation' | relative_url }}).
+See the [Chat with Docs example]({{ '/workflows/chat-with-docs' | relative_url }}) for the full query → format → answer wiring.
 
 ---
 
@@ -88,5 +88,4 @@ For multi-user deployments, Supabase-backed collections are an option — see [S
 
 - [Indexing]({{ '/indexing' | relative_url }}) — advanced chunking, hybrid search, maintenance
 - [Asset Management]({{ '/asset-management' | relative_url }}) — add documents to the underlying asset library
-- [Cookbook → RAG]({{ '/cookbook/patterns#pattern-4-rag-retrieval-augmented-generation' | relative_url }}) — wire a collection into a workflow
 - [Chat with Docs example]({{ '/workflows/chat-with-docs' | relative_url }}) — end-to-end RAG workflow
