@@ -163,6 +163,7 @@ export interface StoryboardBridgeFinalState {
   shots: {
     id: string;
     index: number;
+    slug?: string;
     action: string;
     durationSeconds?: number;
     status: ShotStatus;
@@ -179,6 +180,66 @@ export interface StoryboardBridgeFinalState {
   scriptLineCount: number;
   /** Shots carrying the ids of the script lines they cover. */
   linkedShotIds: string[];
+}
+
+export interface ExplainerStoryboardBridgeFinalState {
+  created: boolean;
+  entityIds: string[];
+  shots: { slug: string; action: string; durationSeconds: number }[];
+  savable: boolean;
+}
+
+const EXPLAINER_ENTITIES = [
+  { id: "lumen-style", name: "Lumen Style", kind: "style" },
+  { id: "support-lead", name: "Support Lead", kind: "character" },
+  { id: "lumen-dashboard-mock", name: "Lumen Dashboard Mock", kind: "prop" },
+  { id: "glass-funnel", name: "Glass Funnel", kind: "prop" }
+] as const;
+
+/** Direct storyboard/entity capability bridge for explainer planning jobs. */
+export function createExplainerStoryboardToolBridge(
+  entities: readonly { id: string; name: string; kind: string }[] = EXPLAINER_ENTITIES
+): HeadlessSurfaceBridge<ExplainerStoryboardBridgeFinalState> {
+  let created = false;
+  let entityIds: string[] = [];
+  const shots: { slug: string; action: string; durationSeconds: number }[] = [];
+  const tools: HeadlessTool[] = [
+    tool("list_entities", "List reusable production entities before making a storyboard.", z.object({}), async () => ({ entities })),
+    tool("create_storyboard", "Create a blank persisted storyboard. Returns storyboard_id.", z.object({ name: z.string(), brief: z.string(), style: z.string(), aspect_ratio: z.string() }), async () => {
+      created = true;
+      return { ok: true, storyboard_id: "board_1" };
+    }),
+    tool("edit_storyboard", "Edit a storyboard. Use set_board with entity_ids to attach its entity roster, then add_shot with action, duration_seconds, and slug.", z.object({ storyboard_id: z.literal("board_1"), ops: z.array(z.object({ op: z.string() }).passthrough()).min(1) }), async ({ ops }) => {
+      for (const op of ops as Array<Record<string, unknown>>) {
+        if (op.op === "set_board") {
+          const supplied = op.entity_ids;
+          const values = Array.isArray(supplied)
+            ? supplied
+            : typeof supplied === "object" && supplied !== null && Array.isArray((supplied as { item?: unknown }).item)
+              ? (supplied as { item: unknown[] }).item
+              : [];
+          entityIds = values.filter(isString);
+          continue;
+        }
+        const duration = typeof op.duration_seconds === "string" ? Number(op.duration_seconds) : op.duration_seconds;
+        if (op.op === "add_shot" && isString(op.slug) && isString(op.action) && isNumber(duration)) {
+          shots.push({ slug: op.slug, action: op.action, durationSeconds: duration });
+          continue;
+        }
+        throw new Error("edit_storyboard requires set_board.entity_ids or add_shot with slug, action, and duration_seconds.");
+      }
+      return { ok: true, entity_ids: entityIds, shots: shots.length };
+    })
+  ];
+  return {
+    tools,
+    finalState: () => ({
+      created,
+      entityIds,
+      shots,
+      savable: created && entityIds.length > 0 && shots.length > 0 && shots.every((shot) => shot.action.trim() !== "" && shot.durationSeconds > 0)
+    })
+  };
 }
 
 function tool<TResult>(
@@ -568,6 +629,7 @@ export function createStoryboardToolBridge(
       shots: shots.map((s) => ({
         id: s.id,
         index: s.index,
+        slug: s.slug,
         action: s.action,
         durationSeconds: s.duration_seconds,
         status: s.status,

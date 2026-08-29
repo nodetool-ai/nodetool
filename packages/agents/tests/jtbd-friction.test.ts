@@ -123,6 +123,19 @@ describe("the job registry", () => {
     expect(DEFAULT_JOB_SYSTEM_PROMPT).toContain("nodetool.output.*");
   });
 
+  it("includes the explainer storyboard job", () => {
+    const job = findJob("explainer-storyboard-from-brief");
+    expect(job?.surfaces).toEqual(["storyboard"]);
+    expect(job?.systemPrompt).toContain("[Lumen Style]");
+    expect(job?.outcomeNames).toEqual([
+      "teaching-arc",
+      "runtime-budget",
+      "entity-consistency",
+      "truthful-proof",
+      "savable"
+    ]);
+  });
+
   it("gives every job a JTBD statement with a stated purpose", () => {
     for (const job of JOBS_TO_BE_DONE) {
       // "so I can ..." is what the optimizer judges achievement against; a job

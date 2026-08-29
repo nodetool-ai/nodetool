@@ -193,6 +193,30 @@ describe("runJob", () => {
     expect(report.friction).toEqual([]);
   });
 
+  it("uses a job-specific system prompt when one is declared", async () => {
+    const prompted = defineJob({
+      id: "prompted-echo-job",
+      statement: "When I say a thing, I want it echoed, so I can prove the loop runs.",
+      surfaces: [],
+      difficulty: "smoke",
+      objective: "echo the word hello",
+      systemPrompt: "JOB PROMPT UNDER TEST",
+      createBridge: () => ({
+        tools: [],
+        finalState: () => ({ echoed: [] })
+      }),
+      outcomes: [{ name: "done", describe: "done", test: () => true }]
+    });
+    const report = await runJob(prompted, {
+      provider: scriptedProvider([]),
+      model: "m"
+    });
+    expect(report.transcript[0]).toEqual({
+      role: "system",
+      content: "JOB PROMPT UNDER TEST"
+    });
+  });
+
   it("reports a missed job and blames the prompt when nothing was called", async () => {
     const report = await runJob(job, {
       provider: scriptedProvider([]),

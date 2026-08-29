@@ -29,12 +29,44 @@ import { createJsScriptToolBridge } from "../evals/surfaces/js-script.js";
 import { createModel3DToolBridge } from "../evals/surfaces/model3d.js";
 import { createScriptToolBridge } from "../evals/surfaces/script.js";
 import { createSketchToolBridge } from "../evals/surfaces/sketch.js";
-import { createStoryboardToolBridge } from "../evals/surfaces/storyboard.js";
+import { createExplainerStoryboardToolBridge, createStoryboardToolBridge } from "../evals/surfaces/storyboard.js";
 import { createTimelineToolBridge } from "../evals/surfaces/timeline.js";
+import { findSystemSkill } from "../system-skills.js";
 import { defineJob, type ErasedJob } from "./run.js";
 
 const graphWorld = () =>
   createToolLoopBridge({ nodeMetadata: TOOL_LOOP_NODE_CATALOG });
+
+const EXPLAINER_STORYBOARD_PROMPT = `${findSystemSkill("explainer-storyboard")?.content ?? ""}
+
+Evaluation adapter: these entities already exist. Call list_entities and reuse
+their ids: Lumen Style, Support Lead, Lumen Dashboard Mock, Glass Funnel. Make
+a 60-second planned board only. Persist it with create_storyboard, set_board
+entity_ids, and one add_shot op per beat. Use exact ordered slugs: problem,
+stakes, shift, mechanism-1, mechanism-2, outcome-proof, cta, sign-off. Every
+action names [Lumen Style]; dashboard mechanism actions say mock; proof includes
+[CLIENT INPUT NEEDED]. Do not render or assemble a timeline.`;
+
+const EXPLAINER_ENTITY_IDS = [
+  "lumen-style",
+  "support-lead",
+  "lumen-dashboard-mock",
+  "glass-funnel"
+];
+
+const MUSIC_VIDEO_ENTITIES = [
+  { id: "neon-style", name: "Neon Style", kind: "style" },
+  { id: "nova", name: "Nova", kind: "character" },
+  { id: "pool", name: "Drained Pool", kind: "location" },
+  { id: "phone", name: "Red Phone", kind: "prop" }
+] as const;
+
+const COMMERCIAL_ENTITIES = [
+  { id: "warp-style", name: "WARP Style", kind: "style" },
+  { id: "runner", name: "Runner", kind: "character" },
+  { id: "warp-can", name: "WARP Can", kind: "prop" },
+  { id: "studio", name: "Night Studio", kind: "location" }
+] as const;
 
 /** Nodes reachable from some input by following edges — the connected core. */
 function wiredNodeCount(state: {
@@ -50,6 +82,46 @@ function wiredNodeCount(state: {
 }
 
 export const JOBS_TO_BE_DONE: readonly ErasedJob[] = [
+  defineJob({
+    id: "caption-titles-picture-locked",
+    statement: "When my picture is locked, I want one readable, consistent text layer, so I can help the audience follow the cut without missing the action.",
+    surfaces: ["timeline"], difficulty: "long-horizon", maxIterations: 16, expectedToolCalls: 14,
+    objective: "The open vertical 1080x1920 timeline has three picture clips: Host at 0-5000ms, Demo at 5000-10000ms, and End at 10000-15000ms. Add a consistent text layer: title 'WORK LESS. KNOW MORE.' for at least 2000ms, lower-third 'Maya Chen' for 3000ms after the host appears, caption 'Everything you need, in one place.' with readable duration, and a single CTA 'Try Lumen' at the end. Put scrims behind live-picture text and animate every text clip in and out. Do not render.",
+    createBridge: () => createTimelineToolBridge({ width: 1080, height: 1920, tracks: [{ type: "video", name: "Picture" }], clips: [{ name: "Host", trackIndex: 0, startMs: 0, durationMs: 5000 }, { name: "Demo", trackIndex: 0, startMs: 5000, durationMs: 5000 }, { name: "End", trackIndex: 0, startMs: 10000, durationMs: 5000 }] }),
+    outcomes: [
+      { name: "text-layer", describe: "Titles and captions are on overlay or subtitle tracks.", test: (s) => s.tracks.some((t) => t.type === "overlay") && s.clips.filter((c) => c.mediaType === "text").length >= 4 },
+      { name: "readable-animated", describe: "Every text clip stays readable and has entry and exit motion.", test: (s) => s.clips.filter((c) => c.mediaType === "text").every((c) => c.durationMs >= 1200 && c.animations.some((a) => a.role === "in") && c.animations.some((a) => a.role === "out")) }
+    ]
+  }),
+
+  defineJob({
+    id: "commercial-beat-sheet-from-brief",
+    statement: "When I have a product brief, I want a timed commercial board with consistent product references, so I can approve the spot before production.",
+    surfaces: ["storyboard"], difficulty: "long-horizon", maxIterations: 16, expectedToolCalls: 10,
+    objective: "Create a 30-second vertical commercial for WARP energy drink. Brand: electric, direct, nocturnal. Audience: late-night creators. Core pain: fading focus at midnight. USP: [CLIENT INPUT NEEDED]. CTA: Try WARP. Use Runner, WARP Can, Night Studio, and WARP Style. Plan hook, brand landing, problem, solution, proof, CTA, reiteration, closing. No rendering.",
+    systemPrompt: `${findSystemSkill("commercial-beat-sheet")?.content ?? ""}\nEvaluation adapter: the roster is already approved. Do not stop after list_entities: in this same turn create a board, attach all ids with set_board, and add exact ordered 8 beats: hook, brand-landing, problem, solution, proof, cta, reiteration, closing. Total 30 seconds. Every action names [WARP Style], proof uses [CLIENT INPUT NEEDED], and hook does not name WARP Can.`,
+    createBridge: () => createExplainerStoryboardToolBridge(COMMERCIAL_ENTITIES),
+    outcomes: [
+      { name: "timed-arc", describe: "Eight ordered beats total 30 seconds.", test: (s) => s.shots.map((x) => x.slug).join(",") === "hook,brand-landing,problem,solution,proof,cta,reiteration,closing" && s.shots.reduce((n, x) => n + x.durationSeconds, 0) === 30 },
+      { name: "truthful-consistent", describe: "The product roster is persisted, style holds, and unknown proof is marked.", test: (s) => s.entityIds.length === 4 && s.shots.every((x) => x.action.includes("[WARP Style]")) && s.shots.some((x) => x.action.includes("[CLIENT INPUT NEEDED]")) && !s.shots[0]?.action.includes("[WARP Can]") && s.savable }
+    ]
+  }),
+
+  defineJob({
+    id: "music-video-treatment-from-track",
+    statement: "When I have a mapped track, I want a beat-synced treatment with consistent artist references, so I can plan a shoot that cuts to the music.",
+    surfaces: ["storyboard"], difficulty: "long-horizon",
+    objective: "Create a planned music-video board for Nova's synthpop track Neon Tide. BPM 120, 4/4, 0:32. Section map: intro 0:00-0:08, verse 0:08-0:16, chorus 0:16-0:24, outro 0:24-0:32. Performance/narrative ratio 60/40. Use the artist Nova, Drained Pool, Red Phone, and Neon Style. The chorus downbeat is the biggest event. There are no confirmed release facts or lyrics, so use [ARTIST INPUT NEEDED] where needed. Do not render.",
+    maxIterations: 14, expectedToolCalls: 8,
+    systemPrompt: `${findSystemSkill("music-video-treatment")?.content ?? ""}\nEvaluation adapter: list and reuse existing entities, create a board, attach all entity ids with set_board, then add exactly intro, verse, chorus, outro in order. Each is 8 seconds (four bars at 120 BPM in 4/4); every action names [Neon Style], chorus names [Nova] and its downbeat event, and outro echoes intro.`,
+    createBridge: () => createExplainerStoryboardToolBridge(MUSIC_VIDEO_ENTITIES),
+    outcomes: [
+      { name: "bar-grid", describe: "Four four-bar sections total 32 seconds.", test: (s) => s.shots.map((x) => x.slug).join(",") === "intro,verse,chorus,outro" && s.shots.every((x) => x.durationSeconds === 8) },
+      { name: "artist-and-hook", describe: "The artist sells the chorus hook on its downbeat.", test: (s) => Boolean(s.shots.find((x) => x.slug === "chorus")?.action.includes("[Nova]") && s.shots.find((x) => x.slug === "chorus")?.action.toLowerCase().includes("downbeat")) },
+      { name: "consistent-roster", describe: "The board persists all production entities and applies the style to every section.", test: (s) => s.entityIds.length === 4 && s.shots.every((x) => x.action.includes("[Neon Style]")) && s.savable }
+    ]
+  }),
+
   defineJob({
     id: "workflow-from-prompt",
     statement:
@@ -167,6 +239,68 @@ export const JOBS_TO_BE_DONE: readonly ErasedJob[] = [
         name: "savable",
         describe: "The board would survive a save — it is a real document.",
         test: (s) => s.savable
+      }
+    ]
+  }),
+
+  defineJob({
+    id: "explainer-storyboard-from-brief",
+    statement:
+      "When I have a confirmed product brief, I want a truthful, shootable explainer board with consistent visual references, so I can teach the product before spending on renders.",
+    surfaces: ["storyboard"],
+    difficulty: "long-horizon",
+    objective:
+      "Create a 60-second shootable explainer storyboard for Lumen, a SaaS product for support leads. Brand traits: calm, precise, practical. Audience: non-technical support leads. Core problem: agents hunt through scattered customer context before answering. The shift: every case arrives with its relevant history in one place. How it works: connect the helpdesk, retrieve the customer's prior conversations, then draft a reply for human review. CTA: Start a Lumen trial. Platform: landing page. Tone: confident and plain. Use a clean soft-3D style, a Lumen dashboard mock, and one translucent glass funnel as the single metaphor. There are no confirmed metrics, integrations beyond the helpdesk, customer claims, or real screenshots. Plan the problem, stakes, shift, two mechanism beats, outcome/proof, CTA, and sign-off. Make every shot's action name the visible entities in brackets, include the style entity in every shot, make UI mechanism shots explicitly labelled mock, and use [CLIENT INPUT NEEDED] for proof. Do not render or assemble a timeline.",
+    expectedToolCalls: 14,
+    maxIterations: 18,
+    systemPrompt: EXPLAINER_STORYBOARD_PROMPT,
+    createBridge: () => createExplainerStoryboardToolBridge(),
+    outcomes: [
+      {
+        name: "teaching-arc",
+        describe: "The board covers the problem, shift, two mechanism steps, proof, CTA, and sign-off.",
+        test: (s) => {
+          return s.shots.length === 8 && s.shots.map((shot) => shot.slug).join(",") === [
+            "problem",
+            "stakes",
+            "shift",
+            "mechanism-1",
+            "mechanism-2",
+            "outcome-proof",
+            "cta",
+            "sign-off"
+          ].join(",");
+        }
+      },
+      {
+        name: "runtime-budget",
+        describe: "The planned beats total exactly 60 seconds.",
+        test: (s) =>
+          s.shots.length >= 7 &&
+          s.shots.every((shot) => typeof shot.durationSeconds === "number") &&
+          s.shots.reduce((total, shot) => total + (shot.durationSeconds ?? 0), 0) === 60
+      },
+      {
+        name: "entity-consistency",
+        describe: "Every shot names its visual references, including the shared style.",
+        test: (s) =>
+          s.entityIds.length === 4 &&
+          EXPLAINER_ENTITY_IDS.every((id) => s.entityIds.includes(id)) &&
+          s.shots.every((shot) => shot.action.includes("[Lumen Style]")) &&
+          ["Support Lead", "Lumen Dashboard Mock", "Glass Funnel"].every((name) =>
+            s.shots.some((shot) => shot.action.includes(`[${name}]`))
+          ) &&
+          s.shots.filter((shot) => shot.slug.startsWith("mechanism-")).every((shot) => shot.action.toLowerCase().includes("mock"))
+      },
+      {
+        name: "truthful-proof",
+        describe: "Unconfirmed proof remains marked for client input.",
+        test: (s) => s.shots.some((shot) => shot.action.includes("[CLIENT INPUT NEEDED]"))
+      },
+      {
+        name: "savable",
+        describe: "The board would survive a save as a real document.",
+        test: (s) => s.created && s.savable
       }
     ]
   }),
