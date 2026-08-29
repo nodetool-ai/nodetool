@@ -1,5 +1,5 @@
 /**
- * Starter tracks for the dashboard welcome flow. Each track maps a creative
+ * Starter tracks for first-run onboarding. Each track maps a creative
  * modality to a chat tab: picking one opens a new conversation in that
  * modality's composer mode with the example prompt already typed, so the
  * user's first action is pressing send.

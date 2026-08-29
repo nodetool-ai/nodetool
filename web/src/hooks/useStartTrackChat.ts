@@ -9,7 +9,7 @@ import { useNotificationStore } from "../stores/NotificationStore";
 import {
   WELCOME_TRACKS,
   type WelcomeTrackId
-} from "../components/portal/welcomeTracks";
+} from "../components/onboarding/welcomeTracks";
 
 /**
  * Opens a welcome-flow track as a chat tab: a fresh thread in the track's
@@ -17,7 +17,7 @@ import {
  * reads the prompt, edits it if they like, and presses send.
  *
  * With no `prompt` the track's own example is used, which is what the starter
- * cards want. The dashboard command bar passes what the user typed instead,
+ * cards want. A caller can pass what the user typed instead,
  * so the track only decides the composer mode.
  */
 export const useStartTrackChat = (): ((
@@ -40,7 +40,7 @@ export const useStartTrackChat = (): ((
       try {
         const threadId = await useGlobalChatStore
           .getState()
-          // Explicit null: a dashboard starter is a plain conversation, not
+          // Explicit null: a starter chat is a plain conversation, not
           // one bound to whatever workflow happens to be open.
           .createNewThread(track.threadTitle, null);
         useChatDraftStore

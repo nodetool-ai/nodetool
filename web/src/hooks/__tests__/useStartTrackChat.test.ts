@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { useStartTrackChat } from "../useStartTrackChat";
-import { WELCOME_TRACKS } from "../../components/portal/welcomeTracks";
+import { WELCOME_TRACKS } from "../../components/onboarding/welcomeTracks";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import useOnboardingStore from "../../stores/OnboardingStore";
