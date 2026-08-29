@@ -1,6 +1,7 @@
 # KIE Nodes
 
-Dynamic node factory generating ~151 nodes from `kie-manifest.json` at runtime.
+Dynamic node factory generating one node per `kie-manifest.json` entry at
+runtime (163 today).
 Node definitions are generated from KIE docs through `packages/kie-codegen`.
 
 ## Generated Files

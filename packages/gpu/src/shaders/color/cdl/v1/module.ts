@@ -11,6 +11,7 @@
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
+import { WGSL_LUMA709 } from "../../../../shared/lumaWgsl.js";
 
 export const CdlParams = d.struct({
   slopeR: d.f32,
@@ -62,9 +63,7 @@ export const colorCdlV1 = defineModule({
   layout,
   samplers: { samp: samplerDescriptor },
   wgsl: /* wgsl */ `
-fn luma709(c: vec3f) -> f32 {
-  return dot(c, vec3f(0.2126, 0.7152, 0.0722));
-}
+${WGSL_LUMA709}
 
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {

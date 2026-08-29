@@ -226,6 +226,7 @@ export {
   scriptStatus,
   spendCategory,
   storyboardStatus,
+  storyboardThumbnails,
   summarizeProject,
   summarizeSpend,
   timelineStatus
@@ -238,12 +239,14 @@ export type {
   ProjectDocumentType,
   ProjectSpend,
   ProjectSummary,
+  ProjectThumbnail,
   ScriptStatus,
   SpendCategory,
   SpendRow,
   StoryboardStatus,
   TimelineStatus
 } from "./project-summary.js";
+export { moveDocumentToProject } from "./project-membership.js";
 export {
   Script,
   ScriptConflictError,

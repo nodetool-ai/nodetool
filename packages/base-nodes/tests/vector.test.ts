@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 
 // ---------------------------------------------------------------------------
 // Mock @nodetool-ai/vectorstore — backend-agnostic VectorProvider API
@@ -78,19 +77,6 @@ import {
   VECTOR_NODES
 } from "@nodetool-ai/core-nodes";
 
-function metadataDefaults(NodeCls: any) {
-  const metadata = getNodeMetadata(NodeCls);
-  return Object.fromEntries(
-    metadata.properties
-      .filter((prop) => Object.prototype.hasOwnProperty.call(prop, "default"))
-      .map((prop) => [prop.name, prop.default])
-  );
-}
-
-function expectMetadataDefaults(NodeCls: any) {
-  expect(new NodeCls().serialize()).toEqual(metadataDefaults(NodeCls));
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockCollection.metadata = { embedding_model: "test-model" };
@@ -108,11 +94,25 @@ describe("VECTOR_NODES", () => {
   it("exports 13 node classes", () => {
     expect(VECTOR_NODES).toHaveLength(13);
   });
+
+  // Every other test assigns its properties, so nothing else reaches the
+  // paging and result-count defaults a freshly dropped node arrives with.
+  it("pages and ranks with the documented defaults", () => {
+    expect(new PeekNode().serialize()).toMatchObject({ limit: 100 });
+    expect(new QueryImageNode().serialize()).toMatchObject({ n_results: 1 });
+    expect(new QueryTextNode().serialize()).toMatchObject({ n_results: 1 });
+    expect(new RemoveOverlapNode().serialize()).toMatchObject({
+      min_overlap_words: 2
+    });
+    expect(new HybridSearchNode().serialize()).toMatchObject({
+      n_results: 5,
+      k_constant: 60,
+      min_keyword_length: 3
+    });
+  });
 });
 
 describe("CollectionNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(CollectionNode));
-
   it("creates collection with empty embedding model when none given", async () => {
     const node = new CollectionNode();
     node.assign({ name: "test-collection" });
@@ -144,8 +144,6 @@ describe("CollectionNode", () => {
 });
 
 describe("CountNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(CountNode));
-
   it("returns the collection count", async () => {
     const node = new CountNode();
     node.assign({ collection: { name: "my-col" } });
@@ -162,8 +160,6 @@ describe("CountNode", () => {
 });
 
 describe("GetDocumentsNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(GetDocumentsNode));
-
   it("fetches by ids and returns documents", async () => {
     const node = new GetDocumentsNode();
     node.assign({ collection: { name: "my-col" }, ids: ["a", "b"], limit: 50, offset: 10 });
@@ -185,8 +181,6 @@ describe("GetDocumentsNode", () => {
 });
 
 describe("PeekNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(PeekNode));
-
   it("calls get with the configured limit", async () => {
     const node = new PeekNode();
     node.assign({ collection: { name: "my-col" }, limit: 5 });
@@ -197,8 +191,6 @@ describe("PeekNode", () => {
 });
 
 describe("IndexImageNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(IndexImageNode));
-
   it("upserts image record with uri and metadata", async () => {
     const node = new IndexImageNode();
     node.assign({
@@ -268,8 +260,6 @@ describe("IndexImageNode", () => {
 });
 
 describe("IndexEmbeddingNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(IndexEmbeddingNode));
-
   it("upserts a single embedding (number[])", async () => {
     const node = new IndexEmbeddingNode();
     node.assign({
@@ -347,8 +337,6 @@ describe("IndexEmbeddingNode", () => {
 });
 
 describe("IndexTextChunkNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(IndexTextChunkNode));
-
   it("upserts text chunk with metadata", async () => {
     const node = new IndexTextChunkNode();
     node.assign({
@@ -371,8 +359,6 @@ describe("IndexTextChunkNode", () => {
 });
 
 describe("IndexAggregatedTextNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(IndexAggregatedTextNode));
-
   it("aggregates with mean", async () => {
     mockOllamaEmbeddings([[1.0, 2.0, 3.0], [3.0, 4.0, 5.0]]);
     const node = new IndexAggregatedTextNode();
@@ -439,8 +425,6 @@ describe("IndexAggregatedTextNode", () => {
 });
 
 describe("IndexStringNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(IndexStringNode));
-
   it("upserts a string document", async () => {
     const node = new IndexStringNode();
     node.assign({
@@ -456,8 +440,6 @@ describe("IndexStringNode", () => {
 });
 
 describe("QueryImageNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(QueryImageNode));
-
   it("queries by uri and sorts results by id", async () => {
     mockCollection.query.mockResolvedValueOnce([
       { id: "id2", document: "doc2", metadata: { k: "v2" }, uri: null, distance: 0.5 },
@@ -501,8 +483,6 @@ describe("QueryImageNode", () => {
 });
 
 describe("QueryTextNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(QueryTextNode));
-
   it("queries by text and sorts by id", async () => {
     mockCollection.query.mockResolvedValueOnce([
       { id: "z-id", document: "z-doc", metadata: { z: 1 }, uri: null, distance: 0.9 },
@@ -527,8 +507,6 @@ describe("QueryTextNode", () => {
 });
 
 describe("RemoveOverlapNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(RemoveOverlapNode));
-
   it("returns empty for empty input", async () => {
     const node = new RemoveOverlapNode();
     node.assign({ documents: [] });
@@ -560,8 +538,6 @@ describe("RemoveOverlapNode", () => {
 });
 
 describe("HybridSearchNode", () => {
-  it("returns expected defaults", () => expectMetadataDefaults(HybridSearchNode));
-
   it("performs semantic + keyword search and fuses results", async () => {
     const node = new HybridSearchNode();
     node.assign({

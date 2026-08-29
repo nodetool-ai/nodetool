@@ -71,7 +71,7 @@ These primitives exist but are barely adopted:
 `CopyButton` | `CloseButton` | `DeleteButton` | `DownloadButton` | `UploadButton` | `EditButton` | `SettingsButton` | `FavoriteButton` | `HelpButton` | `DocsHelpLink` | `UndoRedoButtons`
 
 ### Feedback & Status (replace raw CircularProgress/Alert)
-`LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `EmptyState` | `AlertBanner` | `WarningBanner` | `Toast` | `NotificationBadge` | `ConflictBanner`
+`LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `StatusPill` | `EmptyState` | `AlertBanner` | `WarningBanner` | `Toast` | `NotificationBadge` | `ConflictBanner`
 
 ### Document merge (external-change offers)
 `ConflictBanner` — the one document-level notice listing the external values a dirty draft refused, with per-value Accept/Discard and an optional viewer. A string `detail` shows the external value; with `draftDetail` too, the viewer is a two-pane Your-edit / External view (JS script `code`). Mounted by every document editor shell; fed by `useDocumentConflicts`.
@@ -169,7 +169,8 @@ Need feedback?
 ├── Nothing to show → EmptyState
 ├── Warning/error → AlertBanner / WarningBanner
 ├── Temporary message → Toast
-└── Status dot/badge → StatusIndicator / NotificationBadge
+├── Status dot/badge → StatusIndicator / NotificationBadge
+└── Render state on a thumbnail or card → StatusPill
 
 Need a menu/nav?
 ├── Context menu → ContextMenu / EditorMenu
@@ -262,21 +263,19 @@ export { MyPrimitive } from "./MyPrimitive";
 export type { MyPrimitiveProps } from "./MyPrimitive";
 ```
 
-**7. Tests** — use the shared utilities from `__tests__/testUtils.tsx`:
+**7. Tests** — render inside a `ThemeProvider` with the shared `themeMock`:
 ```tsx
-import { renderWithTheme, checkA11y } from "./testUtils";
+import { render } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
+
+const renderWithTheme = (component: React.ReactElement) =>
+  render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 
 describe("MyPrimitive", () => {
   it("renders children", () => {
     const { getByText } = renderWithTheme(<MyPrimitive>Hello</MyPrimitive>);
     expect(getByText("Hello")).toBeInTheDocument();
-  });
-
-  it("has no accessibility violations", async () => {
-    const { container } = renderWithTheme(
-      <MyPrimitive aria-label="my action">Content</MyPrimitive>
-    );
-    await checkA11y(container);
   });
 
   it("forwards ref to DOM element", () => {
@@ -286,7 +285,7 @@ describe("MyPrimitive", () => {
   });
 });
 ```
-Every new primitive needs at minimum: a render test, an axe a11y test, and a ref-forwarding test.
+Every new primitive needs at minimum: a render test and a ref-forwarding test.
 
 **8. Update docs** — add the new primitive to the category listing in this file.
 

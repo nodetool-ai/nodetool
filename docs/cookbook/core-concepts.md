@@ -1,143 +1,111 @@
 ---
 layout: page
-title: Core Concepts & Architecture
+title: Core Concepts
 parent: NodeTool Workflow Cookbook
 nav_order: 1
 ---
-## Core Concepts
 
-### What is a NodeTool Workflow?
+## What a workflow is
 
-A NodeTool workflow is a **Graph** where:
-
-- **Nodes** represent operations (processing, generation, transformation)
-- **Edges** represent data flow between nodes
-- **Execution** follows dependency order automatically
+A workflow is a graph. Nodes are operations, edges carry typed values, and a
+node runs as soon as its inputs are ready — you never order the steps yourself.
 
 ```
-Input → Process → Transform → Output
+Brief → Direct → Still → Clip → Cut
 ```
 
-### Key Principles
+Four rules follow from that:
 
-1. **Data flows through typed edges** — connections enforce type compatibility (image → image, text → text). You cannot connect an image output to a text input.
-2. **Dependency-driven execution** — nodes execute automatically when all their inputs are ready. You never need to specify execution order manually.
-3. **Streaming by default** — many nodes produce output incrementally (token by token, frame by frame), enabling real-time feedback.
-4. **Parallel when possible** — independent branches of a workflow execute concurrently. NodeTool analyzes the graph to maximize parallelism.
-
-### Node Types
-
-| Type                 | Purpose           | Examples                                  |
-| -------------------- | ----------------- | ----------------------------------------- |
-| **Input Nodes**      | Accept parameters | `StringInput`, `ImageInput`, `AudioInput` |
-| **Processing Nodes** | Transform data    | `Resize`, `FilterString`, `ExtractText`   |
-| **Agent Nodes**      | LLM-powered logic | `Agent`, `Summarizer`, `ListGenerator`    |
-| **Output Nodes**     | Return results    | `Output`, `Preview`                       |
-| **Control Nodes**    | Flow control      | `Collect`, `FormatText`                   |
+1. **Edges are typed.** An image output does not connect to a text input. The
+   editor refuses the connection instead of failing at run time.
+2. **Execution follows the data.** Independent branches run at the same time;
+   a `Collect` node is how you wait for a stream to finish.
+3. **Streaming is normal.** `ListGenerator` emits prompts one at a time, and a
+   downstream image node starts on the first one while the last is still being
+   written.
+4. **Failures are local.** A red node stops its own branch. Other branches
+   finish.
 
 ---
 
-## Data Types
+## Documents are values
 
-NodeTool enforces type safety on all connections. Here are the common data types:
+The creative surfaces are documents, and a document travels through a
+graph as one typed value. This is what connects the surface you work in to the
+graph that repeats the work.
 
-| Type | Description | Example Nodes |
-|------|------------|---------------|
-| **String** | Text data | `StringInput`, `Template`, `Agent` |
-| **Image** | Image data (PNG, JPEG, etc.) | `TextToImage`, `Resize`, `ImageInput` |
-| **Audio** | Audio data (WAV, MP3, etc.) | `AudioInput` |
-| **Video** | Video data | `Sora2TextToVideo`, `KlingVideoV16StandardImageToVideo` |
-| **List[T]** | A list of items of type T | `ListGenerator`, `Split`, `Collect` |
-| **Dict** | Key-value pairs | `ParseJSON`, `ExtractJSON` |
-| **Number** | Integer or float | `IntegerInput`, `FloatInput` |
-| **Boolean** | True/false | `BooleanInput` |
+| Document | Into a graph | What reads it | What writes it |
+|---|---|---|---|
+| **Sketch** | `nodetool.constant.Sketch` | `RenderSketch` (image + mask), `SketchLayers` | `CreateSketch` |
+| **Script** | `nodetool.constant.Script` | `LoadScript`, `ScriptToSubtitles` | `VoiceScript`, `ScriptToTimeline` |
+| **Timeline** | `nodetool.constant.Timeline` | `Transcript`, `RenderTimeline` | `AddClips` |
 
-When connecting nodes, NodeTool validates types automatically. Some conversions happen implicitly (e.g., Image formats), while others require explicit conversion nodes.
-
----
-
-## Streaming Architecture
-
-### Why Streaming?
-
-NodeTool workflows support **streaming execution** for:
-
-- **Real-time feedback** — see results as they're generated
-- **Lower latency** — start processing before all data arrives
-- **Better UX** — progress indicators and incremental results
-- **Efficient memory** — process large data in chunks
-
-### Streaming Nodes
-
-Nodes that support streaming output:
-
-| Node | What It Streams |
-|------|----------------|
-| **`Agent`** | LLM responses token by token |
-| **`ListGenerator`** | List items as they're generated |
-| **`RealtimeAgent`** (`openai.agents.RealtimeAgent`) | Audio + text responses simultaneously |
-| **`RealtimeTranscription`** (`openai.agents.RealtimeTranscription`) | Transcription as audio arrives |
-| **`RealtimeAudioInput`** | Audio from an input source |
-
-### Data Flow Patterns
-
-#### Pattern 1: Sequential Pipeline
-
-{% mermaid %}
-graph LR
-    A[Input] --> B[Process] --> C[Transform] --> D[Output]
-{% endmermaid %}
-
-Each node waits for the previous node to complete before starting.
-
-#### Pattern 2: Parallel Branches
-
-{% mermaid %}
-graph LR
-    A[Input] --> B[Process A]
-    A --> C[Process B]
-    B --> D[Output A]
-    C --> E[Output B]
-{% endmermaid %}
-
-Independent branches execute in parallel, improving throughput.
-
-#### Pattern 3: Streaming Pipeline
-
-{% mermaid %}
-graph LR
-    A[Input] --> B[Streaming Agent]
-    B -->|yields chunks| C[Collect]
-    C --> D[Output]
-{% endmermaid %}
-
-Data flows in chunks, enabling real-time updates. The `Collect` node gathers all chunks into a single output.
-
-#### Pattern 4: Fan-In Pattern
-
-{% mermaid %}
-graph LR
-    A[Source A] --> C[Combine]
-    B[Source B] --> C
-    C --> D[Process] --> E[Output]
-{% endmermaid %}
-
-Multiple inputs combine before processing. The Combine node waits for all sources.
+A storyboard is the exception: it has no node of its own, because what a graph
+consumes from it is the screenplay and the timeline it produces.
+`nodetool.creative.Director` writes that same screenplay shape headlessly, so a
+graph can start where the board would have.
 
 ---
 
-## Error Handling
+## Data types
 
-When a node fails during execution:
+| Type | Carries | Typical nodes |
+|---|---|---|
+| `str` | Text | `StringInput`, `Prompt`, `Agent` |
+| `image` | One image | `TextToImage`, `ImageToImage`, `RenderSketch` |
+| `video` | One clip | `TextToVideo`, `ImageToVideo`, `RenderTimeline` |
+| `audio` | One track | `TextToSpeech`, `TextToMusic` |
+| `list[T]` | Many of T | `ListGenerator`, `Collect`, `SketchLayers` |
+| `dict` | A record | `Director` (screenplay), `ScreenplayShots` (shot) |
+| `sketch` `script` `timeline` | A document | the constants above |
+| `image_model` `video_model` `tts_model` | A model choice | `ImageModelInput`, `VideoModelInput` |
 
-1. **The node turns red** — indicating an error occurred
-2. **Downstream nodes are skipped** — they won't receive data from the failed node
-3. **Other branches continue** — independent parts of the workflow still execute
-4. **Error details are available** — click the failed node to see the full error message
+Models are values too. Wire a `VideoModelInput` into several nodes and one
+selection changes the whole graph — which is how a cheap draft run and an
+expensive final run stay the same graph.
 
-**Common strategies for handling errors in workflows:**
+---
 
-- **Add Preview nodes** before and after suspect nodes to inspect data
-- **Use default values** on inputs to handle missing data gracefully
-- **Check model availability** before running — ensure required models are installed
-- **Test incrementally** — build and test workflows one node at a time
+## Fan-out and collection
+
+Most creative graphs are one of these two shapes.
+
+**Stream, then gather.** A generator emits N items, each one runs the same
+pipeline, `Collect` turns the results back into a list.
+
+{% mermaid %}
+graph LR
+  brief["Brief"] --> gen["ListGenerator"] --> img["TextToImage"] --> collect["Collect"] --> out["Output"]
+{% endmermaid %}
+
+**Sequence with carry-over.** Each step depends on the last — a shot seeded by
+the previous shot's final frame. `ShotChain` does this internally; `ForEach`
+plus a `Code` node does it when the rule is your own.
+
+{% mermaid %}
+graph LR
+  shots["ShotBatch"] --> chain["ShotChain (frame → next shot)"] --> cut["AddClips"]
+{% endmermaid %}
+
+The difference matters for cost. Fan-out spends N times in parallel and fails
+independently; a chain spends in order and a failure halfway leaves the tail
+unrendered.
+
+---
+
+## Check before you spend
+
+A video run costs real money, so check the graph statically first:
+
+```bash
+npm run dev:nodetool -- validate workflow.json
+```
+
+It reports unknown node types, missing properties, unselected models, models
+naming a provider you have no key for, and `Code` bodies that will not run —
+in under a second, before any node executes. The workflow editor's estimate
+panel prices the graph from per-node unit pricing in the same spirit.
+
+When a run does fail, `nodetool debug <id>` runs it and hands back every
+message, log, output, and error in one bundle. Details in
+[Workflow Debugging]({{ '/workflow-debugging' | relative_url }}).

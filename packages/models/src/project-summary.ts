@@ -86,6 +86,15 @@ export type ProjectDocumentStatus =
   | ScriptStatus
   | TimelineStatus;
 
+/**
+ * A media locator a card can render — the stored `*Ref` shape, passed through
+ * untouched. `asset://` is an identifier, not a URL, so the client resolves it.
+ */
+export interface ProjectThumbnail {
+  uri?: string;
+  asset_id?: string | null;
+}
+
 /** A document card: the tab-open ref, what it shows, and what it cost. */
 export interface ProjectDocumentSummary extends ProjectDocumentRef {
   status: ProjectDocumentStatus | null;
@@ -93,6 +102,8 @@ export interface ProjectDocumentSummary extends ProjectDocumentRef {
   spendUsd: number;
   /** Calls attributed to it that no catalog priced. */
   unpricedCount: number;
+  /** Stills the card montages, oldest shot first. Empty when there are none. */
+  thumbnails: ProjectThumbnail[];
 }
 
 /** What a run paid for, in the categories the spend bar is split by. */
@@ -118,6 +129,9 @@ export interface ProjectSummary {
 
 // ── Status ───────────────────────────────────────────────────────────────────
 
+/** How many stills a card's montage shows. The mockup's grid holds three. */
+const MONTAGE_LIMIT = 3;
+
 export function storyboardStatus(doc: StoryboardDocument): StoryboardStatus {
   return {
     kind: "storyboard",
@@ -125,6 +139,24 @@ export function storyboardStatus(doc: StoryboardDocument): StoryboardStatus {
     stills: doc.shots.filter((shot) => shot.keyframe != null).length,
     clips: doc.shots.filter((shot) => shot.clip != null).length
   };
+}
+
+/** The first stills a board has rendered, for the card montage. */
+export function storyboardThumbnails(
+  doc: StoryboardDocument,
+  limit = MONTAGE_LIMIT
+): ProjectThumbnail[] {
+  const stills: ProjectThumbnail[] = [];
+  for (const shot of doc.shots) {
+    if (stills.length >= limit) break;
+    const keyframe = shot.keyframe;
+    if (!keyframe) continue;
+    stills.push({
+      uri: keyframe.uri,
+      asset_id: keyframe.asset_id ?? null
+    });
+  }
+  return stills;
 }
 
 export function scriptStatus(doc: ScriptDocument): ScriptStatus {
@@ -337,21 +369,28 @@ export async function summarizeProject(
 
   const summarize = (
     ref: ProjectDocumentRef,
-    status: ProjectDocumentStatus | null
+    status: ProjectDocumentStatus | null,
+    thumbnails: ProjectThumbnail[] = []
   ): ProjectDocumentSummary => {
     const spend = perDocument.get(ref.ref);
     return {
       ...ref,
       status,
       spendUsd: spend?.usd ?? 0,
-      unpricedCount: spend?.unpriced ?? 0
+      unpricedCount: spend?.unpriced ?? 0,
+      thumbnails
     };
   };
 
   const documents = newestFirst<ProjectDocumentSummary>([
-    ...rows.storyboards.map((row) =>
-      summarize(toRef("storyboard", row), storyboardStatus(row.toDocument()))
-    ),
+    ...rows.storyboards.map((row) => {
+      const doc = row.toDocument();
+      return summarize(
+        toRef("storyboard", row),
+        storyboardStatus(doc),
+        storyboardThumbnails(doc)
+      );
+    }),
     ...rows.scripts.map((row) =>
       summarize(toRef("script", row), scriptStatus(row.toDocument()))
     ),

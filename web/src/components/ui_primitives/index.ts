@@ -98,6 +98,9 @@ export type { ProgressBarProps } from "./ProgressBar";
 export { ExternalLink } from "./ExternalLink";
 export type { ExternalLinkProps } from "./ExternalLink";
 
+export { StatusPill, statusPillColors } from "./StatusPill";
+export type { StatusPillProps, StatusPillTone } from "./StatusPill";
+
 export { StatusIndicator } from "./StatusIndicator";
 export type { StatusIndicatorProps, StatusType } from "./StatusIndicator";
 

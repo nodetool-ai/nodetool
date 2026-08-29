@@ -68,16 +68,32 @@ export function parseSkillMarkdown(text: string): {
   description: string;
   content: string;
 } | null {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text);
-  if (!match) return null;
-  const [, front, body] = match;
+  // A fence is a whole line. Matching it as a substring ended the frontmatter
+  // on any line merely starting with "---", spilling the fields below it into
+  // the body the model reads as instructions.
+  const lines = text.split(/\r?\n/);
+  if (lines[0] !== "---") return null;
+  const close = lines.indexOf("---", 1);
+  if (close === -1) return null;
+  const front = lines.slice(1, close).join("\n");
+  const body = lines.slice(close + 1).join("\n");
   const field = (key: string): string => {
-    const line = new RegExp(`^${key}:\\s*(.*)$`, "m").exec(front ?? "");
-    return (line?.[1] ?? "").trim().replace(/^["']|["']$/g, "");
+    // `\s` matches newlines, so a `\s*` here let an empty field take the next
+    // line as its value.
+    const line = new RegExp(`^${key}:(.*)$`, "m").exec(front);
+    const value = (line?.[1] ?? "").trim();
+    // Only a matching pair wraps the value: stripping a leading and a trailing
+    // quote independently ate the closing quote off a quoted trigger phrase.
+    const quote = value[0];
+    const quoted =
+      (quote === '"' || quote === "'") &&
+      value.length >= 2 &&
+      value.endsWith(quote);
+    return quoted ? value.slice(1, -1) : value;
   };
   const name = field("name").toLowerCase();
   const description = field("description");
-  const content = (body ?? "").trim();
+  const content = body.trim();
   if (!name || !description || !content) return null;
   if (!isValidSkillName(name) || !isValidSkillDescription(description)) {
     return null;
