@@ -1,6 +1,5 @@
 import {
   normalizeLayerTransform,
-  cloneAndValidateTransform,
   assertCanonicalTransform
 } from "../normalize";
 import { IDENTITY_AFFINE } from "../types";
@@ -152,31 +151,6 @@ describe("normalizeLayerTransform", () => {
         expect(result.mode).toBe("skew");
       }
     });
-  });
-});
-
-describe("cloneAndValidateTransform", () => {
-  it("clones an affine transform", () => {
-    const original = { ...IDENTITY_AFFINE, x: 50 };
-    const cloned = cloneAndValidateTransform(original);
-    expect(cloned).toEqual(original);
-    expect(cloned).not.toBe(original);
-  });
-
-  it("clones a quad transform", () => {
-    const original = normalizeLayerTransform({
-      kind: "quad",
-      mode: "distort",
-      quad: [
-        { x: 0, y: 0 },
-        { x: 10, y: 0 },
-        { x: 10, y: 10 },
-        { x: 0, y: 10 }
-      ]
-    });
-    const cloned = cloneAndValidateTransform(original);
-    expect(cloned).toEqual(original);
-    expect(cloned).not.toBe(original);
   });
 });
 

@@ -10,10 +10,7 @@ import { useSketchStore } from "../state/useSketchStore";
 import {
   createDefaultDocument,
   createDefaultGroupLayer,
-  getChildLayers,
-  getLayerDepth,
   getDescendantIds,
-  buildVisibleLayerTree,
   buildLayersPanelRows,
   isLayerCompositeVisible,
   getAncestorGroupOpacityProduct,
@@ -90,30 +87,6 @@ describe("Layer Tree Helpers", () => {
     }
   ];
 
-  it("getChildLayers returns root-level layers for null parentId", () => {
-    const layers = makeLayers();
-    const roots = getChildLayers(layers, null);
-    expect(roots.map((l) => l.id)).toEqual(["root1", "group1", "root2"]);
-  });
-
-  it("getChildLayers returns children of a group", () => {
-    const layers = makeLayers();
-    const children = getChildLayers(layers, "group1");
-    expect(children.map((l) => l.id)).toEqual(["child1", "child2"]);
-  });
-
-  it("getLayerDepth returns 0 for root layers", () => {
-    const layers = makeLayers();
-    expect(getLayerDepth(layers, "root1")).toBe(0);
-    expect(getLayerDepth(layers, "group1")).toBe(0);
-  });
-
-  it("getLayerDepth returns 1 for children of a group", () => {
-    const layers = makeLayers();
-    expect(getLayerDepth(layers, "child1")).toBe(1);
-    expect(getLayerDepth(layers, "child2")).toBe(1);
-  });
-
   it("getDescendantIds returns all descendants of a group", () => {
     const layers = makeLayers();
     const descendants = getDescendantIds(layers, "group1");
@@ -141,31 +114,6 @@ describe("Layer Tree Helpers", () => {
     expect(descendants).toContain("child2");
     expect(descendants).toContain("subgroup");
     expect(descendants).toContain("grandchild");
-  });
-
-  it("buildVisibleLayerTree returns all layers when no groups are collapsed", () => {
-    const layers = makeLayers();
-    const tree = buildVisibleLayerTree(layers);
-    expect(tree).toHaveLength(5);
-    expect(tree.map((t) => t.layer.id)).toEqual(["root1", "group1", "child1", "child2", "root2"]);
-  });
-
-  it("buildVisibleLayerTree includes correct depths", () => {
-    const layers = makeLayers();
-    const tree = buildVisibleLayerTree(layers);
-    expect(tree[0].depth).toBe(0); // root1
-    expect(tree[1].depth).toBe(0); // group1
-    expect(tree[2].depth).toBe(1); // child1
-    expect(tree[3].depth).toBe(1); // child2
-    expect(tree[4].depth).toBe(0); // root2
-  });
-
-  it("buildVisibleLayerTree hides children of collapsed groups", () => {
-    const layers = makeLayers();
-    layers[1].collapsed = true; // Collapse group1
-    const tree = buildVisibleLayerTree(layers);
-    expect(tree).toHaveLength(3);
-    expect(tree.map((t) => t.layer.id)).toEqual(["root1", "group1", "root2"]);
   });
 
   it("buildLayersPanelRows orders composite top first with group above its children", () => {
@@ -567,41 +515,6 @@ describe("Backward Compatibility", () => {
 });
 
 describe("Tree-aware drag-and-drop", () => {
-  it("buildVisibleLayerTree shows nested groups with correct depths", () => {
-    const layers: Layer[] = [
-      {
-        id: "root", name: "Root", type: "raster", visible: true, opacity: 1,
-        locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
-        effects: []
-      },
-      {
-        id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
-        locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-        collapsed: false, effects: []
-      },
-      {
-        id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
-        locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
-        parentId: "g1", collapsed: false, effects: []
-      },
-      {
-        id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
-        locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
-        parentId: "g2", effects: []
-      }
-    ];
-    const tree = buildVisibleLayerTree(layers);
-    expect(tree).toHaveLength(4);
-    expect(tree[0].depth).toBe(0); // root
-    expect(tree[1].depth).toBe(0); // g1
-    expect(tree[2].depth).toBe(1); // g2 inside g1
-    expect(tree[3].depth).toBe(2); // deep inside g2
-  });
-
   it("collapsing a parent group hides all nested descendants", () => {
     const layers: Layer[] = [
       {
@@ -623,10 +536,10 @@ describe("Tree-aware drag-and-drop", () => {
         parentId: "g2", effects: []
       }
     ];
-    const tree = buildVisibleLayerTree(layers);
+    const rows = buildLayersPanelRows(layers);
     // Only g1 should be visible; children and grandchildren hidden
-    expect(tree).toHaveLength(1);
-    expect(tree[0].layer.id).toBe("g1");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].layer.id).toBe("g1");
   });
 
   it("moveLayerToGroup moves layer between groups", () => {

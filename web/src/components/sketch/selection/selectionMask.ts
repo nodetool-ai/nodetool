@@ -600,33 +600,6 @@ export function invertMaskInPlace(mask: Selection): void {
 }
 
 /**
- * Shift mask pixels inside a fixed buffer; anything that falls outside is lost.
- * For moving the user’s selection, prefer {@link offsetSelectionByDocumentDelta}.
- */
-export function translateMask(
-  src: Selection,
-  dx: number,
-  dy: number
-): Selection {
-  const out = createEmptyMask(src.width, src.height);
-  const { width: w, height: h, data: s } = src;
-  for (let y = 0; y < h; y++) {
-    const sy = y - dy;
-    if (sy < 0 || sy >= h) {
-      continue;
-    }
-    for (let x = 0; x < w; x++) {
-      const sx = x - dx;
-      if (sx < 0 || sx >= w) {
-        continue;
-      }
-      out.data[y * w + x] = s[sy * w + sx];
-    }
-  }
-  return out;
-}
-
-/**
  * Move the selection in document space without rewriting `data` (preserves
  * regions that extend past the canvas edges).
  */
@@ -782,34 +755,6 @@ export function magicWandNonContiguousFromRgba(
     }
   }
   return out;
-}
-
-export function writeBinaryIntoMask(
-  mask: Selection,
-  binary: Uint8ClampedArray,
-  op: SelectionCombineOp
-): void {
-  if (binary.length !== mask.data.length) {
-    return;
-  }
-  if (op === "replace") {
-    mask.data.set(binary);
-    return;
-  }
-  const n = mask.data.length;
-  for (let i = 0; i < n; i++) {
-    const b = mask.data[i] >= THRESH ? 255 : 0;
-    const o = binary[i] >= THRESH ? 255 : 0;
-    let v = 0;
-    if (op === "add") {
-      v = Math.min(255, b | o);
-    } else if (op === "subtract") {
-      v = o >= THRESH ? 0 : b;
-    } else {
-      v = Math.min(b, o);
-    }
-    mask.data[i] = v;
-  }
 }
 
 /** Rasterize closed polygon into a scratch mask (canvas fill), then returns binary buffer. */

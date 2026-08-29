@@ -7,8 +7,7 @@ import {
   marqueeRectFromDocPoints,
   offsetSelectionByDocumentDelta,
   rectSelectionMask,
-  sampleMask,
-  translateMask
+  sampleMask
 } from "../selection";
 
 describe("marqueeRectFromDocPoints", () => {
@@ -74,14 +73,12 @@ describe("ellipseSelectionMask", () => {
 });
 
 describe("offsetSelectionByDocumentDelta", () => {
-  it("keeps buffer pixels when shifting document position (translateMask drops them)", () => {
+  it("keeps buffer pixels when shifting document position", () => {
     const m = createEmptyMask(4, 4);
     m.data[0] = 255;
     const shifted = offsetSelectionByDocumentDelta(m, -2, 0);
     expect(sampleMask(shifted, -2, 0)).toBe(255);
     expect(sampleMask(shifted, 0, 0)).toBe(0);
-    const clipped = translateMask(m, -2, 0);
-    expect(sampleMask(clipped, 0, 0)).toBe(0);
   });
 });
 

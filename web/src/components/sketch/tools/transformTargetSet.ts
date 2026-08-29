@@ -26,10 +26,7 @@ import {
   layerAllowsTransformWhilePixelLocked
 } from "../types";
 import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
-import {
-  getVisualBounds,
-  computeTransformedExtents
-} from "../transform/geometry/layerGeometry";
+import { computeTransformedExtents } from "../transform/geometry/layerGeometry";
 
 // ─── Target set ──────────────────────────────────────────────────────────────
 
@@ -296,16 +293,4 @@ export function countTransformTargetsHitAtDocPoint(
     }
   }
   return count;
-}
-
-/**
- * Resolve the gizmo bounds for a layer and create a target entry.
- */
-export function resolveTargetEntry(
-  layer: Layer,
-  layerCanvas: HTMLCanvasElement | undefined | null,
-  fallbackSize: { width: number; height: number }
-): TransformTargetEntry {
-  const bounds = getVisualBounds(layer, layerCanvas, fallbackSize);
-  return { layerId: layer.id, bounds };
 }

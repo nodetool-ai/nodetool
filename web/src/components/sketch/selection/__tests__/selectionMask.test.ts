@@ -18,7 +18,6 @@ import {
   fillRectMask,
   marqueeRectFromDocPoints,
   invertMaskInPlace,
-  translateMask,
   trimSelectionMask,
   MAX_SELECTION_FEATHER_RADIUS
 } from "../selectionMask";
@@ -470,64 +469,6 @@ describe("invertMaskInPlace", () => {
     const dataRef = sel.data;
     invertMaskInPlace(sel);
     expect(sel.data).toBe(dataRef);
-  });
-});
-
-// ─── translateMask ───────────────────────────────────────────────────────────
-
-describe("translateMask", () => {
-  it("returns a mask with the same dimensions", () => {
-    const sel = makeSel(4, 4, 128);
-    const result = translateMask(sel, 1, 1);
-    expect(result.width).toBe(4);
-    expect(result.height).toBe(4);
-  });
-
-  it("shifts pixel data by (dx, dy) within the fixed buffer", () => {
-    // 4x4 mask with a single pixel at (0, 0)
-    const sel = makeSel(4, 4, 0);
-    sel.data[0] = 200;
-    const result = translateMask(sel, 2, 1);
-    // Pixel should now be at (2, 1)
-    expect(result.data[1 * 4 + 2]).toBe(200);
-    // Original position should be empty
-    expect(result.data[0]).toBe(0);
-  });
-
-  it("clips pixels that move out of bounds", () => {
-    const sel = makeSel(3, 3, 255);
-    const result = translateMask(sel, 2, 0);
-    // Only column 2 should have values (shifted from column 0)
-    expect(result.data[0]).toBe(0);
-    expect(result.data[1]).toBe(0);
-    expect(result.data[2]).toBe(255);
-  });
-
-  it("handles negative translation", () => {
-    // 3x3 with pixel at (2, 2) = 100
-    const sel = makeSel(3, 3, 0);
-    sel.data[2 * 3 + 2] = 100;
-    const result = translateMask(sel, -1, -1);
-    // Should appear at (1, 1)
-    expect(result.data[1 * 3 + 1]).toBe(100);
-    expect(result.data[2 * 3 + 2]).toBe(0);
-  });
-
-  it("returns all zeros when shifted entirely out of bounds", () => {
-    const sel = makeSel(3, 3, 255);
-    const result = translateMask(sel, 10, 0);
-    for (let i = 0; i < result.data.length; i++) {
-      expect(result.data[i]).toBe(0);
-    }
-  });
-
-  it("does not modify the source mask", () => {
-    const sel = makeSel(3, 3, 128);
-    const originalData = new Uint8ClampedArray(sel.data);
-    translateMask(sel, 1, 1);
-    for (let i = 0; i < sel.data.length; i++) {
-      expect(sel.data[i]).toBe(originalData[i]);
-    }
   });
 });
 

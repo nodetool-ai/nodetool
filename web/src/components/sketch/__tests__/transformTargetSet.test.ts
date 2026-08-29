@@ -12,7 +12,6 @@
 import {
   TransformTargetSet,
   pickTopmostTransformableLayer,
-  resolveTargetEntry,
   resolveTransformTargetLayerIds
 } from "../tools/transformTargetSet";
 import {
@@ -580,20 +579,5 @@ describe("pickTopmostTransformableLayer", () => {
       null
     );
     expect(result?.id).toBe("raster");
-  });
-});
-
-// ─── resolveTargetEntry ──────────────────────────────────────────────────────
-
-describe("resolveTargetEntry", () => {
-  it("creates an entry with resolved gizmo bounds", () => {
-    const layer = makeLayer({ id: "test-layer" });
-    const canvas = makeCanvasWithPixels(100, 100, [
-      { x: 0, y: 0, w: 100, h: 100 }
-    ]);
-    const entry = resolveTargetEntry(layer, canvas, { width: 512, height: 512 });
-    expect(entry.layerId).toBe("test-layer");
-    expect(entry.bounds.width).toBeGreaterThan(0);
-    expect(entry.bounds.height).toBeGreaterThan(0);
   });
 });
