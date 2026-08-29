@@ -1,9 +1,9 @@
 ---
-name: nodetool-video-workflow
-description: Build a reusable NodeTool workflow graph that produces video, so the same pipeline can be re-run on new inputs — a UGC factory, a batch shot renderer, a per-SKU ad generator. Use when the user asks for a template, a pipeline, a factory, a batch job, or something they will run again with different inputs, rather than one finished video. Not for directing a single piece, which needs no graph (use nodetool-ugc-video, nodetool-product-commercial or nodetool-short-film).
+name: video-workflow
+description: Build a reusable NodeTool workflow graph that produces video, so the same pipeline can be re-run on new inputs — a UGC factory, a batch shot renderer, a per-SKU ad generator. Use when the user asks for a template, a pipeline, a factory, a batch job, or something they will run again with different inputs, rather than one finished video. Not for directing a single piece, which needs no graph (use ugc-video, product-commercial or short-film).
 ---
 
-**Load `/nodetool-storyboard-core` for what a shot is and how entities season a prompt,
+**Load `/storyboard-core` for what a shot is and how entities season a prompt,
 and `/nodetool-workflow-builder` for how to author a graph at all** — node search,
 handles, validation, the tools. This skill is the seam between them: the nodes that
 turn a brief into shots, and when a graph is the wrong answer.

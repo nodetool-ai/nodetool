@@ -1,5 +1,5 @@
 ---
-name: nodetool-storyboard-core
+name: storyboard-core
 description: Shared reference for directing video in NodeTool — the storyboard-to-timeline loop, the exact tool contract, entity casting, how a shot becomes a prompt, permission gating and memory. Load this before acting on any storyboard, script, entity or timeline work, and whenever another NodeTool video skill (ugc-video, product-commercial, video-clone, script-video, short-film, launch-kit, video-workflow) tells you to. Consult it directly when the question is which tool, which argument, or why a render came out wrong.
 ---
 
@@ -7,7 +7,7 @@ The shared half of every NodeTool video job. The use-case skills carry the style
 the shot pattern and the briefs; this carries the machinery they all assume.
 
 Direct video on the **storyboard** surface, then finish in the **timeline**. Do not
-author a node graph for a one-off piece — `/nodetool-video-workflow` covers the case
+author a node graph for a one-off piece — `/video-workflow` covers the case
 where a reusable template is actually wanted.
 
 Read `references/tool-contract.md` before the first tool call. It carries the exact
@@ -17,13 +17,13 @@ tool names, argument shapes, and the fields each one refuses.
 
 | Job | Skill |
 |---|---|
-| Phone-shot video with a person: UGC ad, testimonial, comedy, day-in-the-life, vlog | `/nodetool-ugc-video` |
-| Product film: pack shot, hero, brand spot, with or without talent | `/nodetool-product-commercial` |
-| Rebuild an existing ad or clip you were given | `/nodetool-video-clone` |
-| Voiceover drives the picture: explainer, faceless video, narrated piece | `/nodetool-script-video` |
-| Narrative with dialogue, score and a title: short film, trailer, scene | `/nodetool-short-film` |
-| A campaign, not one video: entity sheets, still set, several cuts | `/nodetool-launch-kit` |
-| A template to re-run on new inputs | `/nodetool-video-workflow` |
+| Phone-shot video with a person: UGC ad, testimonial, comedy, day-in-the-life, vlog | `/ugc-video` |
+| Product film: pack shot, hero, brand spot, with or without talent | `/product-commercial` |
+| Rebuild an existing ad or clip you were given | `/video-clone` |
+| Voiceover drives the picture: explainer, faceless video, narrated piece | `/script-video` |
+| Narrative with dialogue, score and a title: short film, trailer, scene | `/short-film` |
+| A campaign, not one video: entity sheets, still set, several cuts | `/launch-kit` |
+| A template to re-run on new inputs | `/video-workflow` |
 
 If none fits, run the loop below directly.
 

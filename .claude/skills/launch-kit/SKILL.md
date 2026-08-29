@@ -1,9 +1,9 @@
 ---
-name: nodetool-launch-kit
-description: Produce a whole campaign in NodeTool rather than one video — entity sheets for a product and model, a set of still campaign frames, several short social cuts and a long film, all on one locked grade. Use when the user asks for a launch kit, a campaign, an asset pack, a content set, "a bunch of assets", or names several deliverables in different aspect ratios from one product. Not for a single video (use nodetool-product-commercial or nodetool-ugc-video).
+name: launch-kit
+description: Produce a whole campaign in NodeTool rather than one video — entity sheets for a product and model, a set of still campaign frames, several short social cuts and a long film, all on one locked grade. Use when the user asks for a launch kit, a campaign, an asset pack, a content set, "a bunch of assets", or names several deliverables in different aspect ratios from one product. Not for a single video (use product-commercial or ugc-video).
 ---
 
-**Load `/nodetool-storyboard-core` first.** It carries the loop, the tool contract and
+**Load `/storyboard-core` first.** It carries the loop, the tool contract and
 the gating this skill assumes. Everything below is what changes when the deliverable is
 a set rather than a cut.
 

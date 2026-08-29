@@ -1,9 +1,9 @@
 ---
-name: nodetool-short-film
-description: Direct narrative video in NodeTool — short films, trailers, teasers, single dramatic scenes, music-video segments with a story. Use when the user gives a logline, a genre, characters with dialogue, or asks for a short, a trailer, a scene, or a cinematic piece with a title and a score. Not for ads or product films (use nodetool-product-commercial) and not for narrated explainers (use nodetool-script-video).
+name: short-film
+description: Direct narrative video in NodeTool — short films, trailers, teasers, single dramatic scenes, music-video segments with a story. Use when the user gives a logline, a genre, characters with dialogue, or asks for a short, a trailer, a scene, or a cinematic piece with a title and a score. Not for ads or product films (use product-commercial) and not for narrated explainers (use script-video).
 ---
 
-**Load `/nodetool-storyboard-core` first.** It carries the loop, the tool contract and
+**Load `/storyboard-core` first.** It carries the loop, the tool contract and
 the gating this skill assumes. Everything below is what narrative work adds on top.
 
 ## What makes this job type its own
@@ -69,7 +69,7 @@ audience leaves with.
   not a motion; a held stillness is.
 - Dialogue goes in the shot's `dialogue` field, not in `action`. That keeps the option
   open to lift the words into a real script with
-  `extract_script_from_storyboard` and voice them per `/nodetool-script-video`.
+  `extract_script_from_storyboard` and voice them per `/script-video`.
 - The style bible carries the grade. Do not restate it per shot — it is appended to
   every still prompt already.
 

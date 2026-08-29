@@ -1,9 +1,9 @@
 ---
-name: nodetool-script-video
-description: Direct video where a written voiceover drives the picture — faceless explainers, narrated b-roll, documentary segments, tutorials, corporate and educational video with no on-camera talent. Use when the user asks for an explainer, a voiceover video, a narrated piece, a faceless video, or says the script comes first. Also use when spoken words must time the cut. Not for talking-head or creator video (use nodetool-ugc-video).
+name: script-video
+description: Direct video where a written voiceover drives the picture — faceless explainers, narrated b-roll, documentary segments, tutorials, corporate and educational video with no on-camera talent. Use when the user asks for an explainer, a voiceover video, a narrated piece, a faceless video, or says the script comes first. Also use when spoken words must time the cut. Not for talking-head or creator video (use ugc-video).
 ---
 
-**Load `/nodetool-storyboard-core` first.** It carries the loop, the tool contract and
+**Load `/storyboard-core` first.** It carries the loop, the tool contract and
 the gating this skill assumes. This job type inverts the order of that loop, so read
 the sequence below before creating a board.
 

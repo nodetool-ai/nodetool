@@ -1,9 +1,9 @@
 # Standing orders
 
 Paste as message 1 of a Chat thread, then the job brief as message 2. The brief
-comes from the use-case skill — `/nodetool-ugc-video`, `/nodetool-product-commercial`,
-`/nodetool-video-clone`, `/nodetool-script-video`, `/nodetool-short-film`,
-`/nodetool-launch-kit` — each of which carries briefs already written to these orders.
+comes from the use-case skill — `/ugc-video`, `/product-commercial`,
+`/video-clone`, `/script-video`, `/short-film`,
+`/launch-kit` — each of which carries briefs already written to these orders.
 
 Set the thread's permission mode to **Default** — not Plan. Plan blocks every write,
 including writing the board itself; Default asks before each write, which is the gate

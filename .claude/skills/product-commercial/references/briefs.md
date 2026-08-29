@@ -1,6 +1,6 @@
 # Briefs — product film
 
-One per message, after the standing orders from `/nodetool-storyboard-core`. Replace
+One per message, after the standing orders from `/storyboard-core`. Replace
 `[PRODUCT]` and `[CITY]`. `Nova` stands for the character entity's **plain name**.
 
 ---

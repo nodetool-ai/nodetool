@@ -1,9 +1,9 @@
 ---
-name: nodetool-video-clone
-description: Rebuild an existing video for a new product or cast in NodeTool — break a reference ad down shot by shot, then reproduce its structure with different content. Use when the user attaches or links a video and asks to copy, clone, remake, reverse-engineer, match, or "do it like this one", or wants to know why a reference ad works. Not for directing an original piece from a brief (use nodetool-ugc-video or nodetool-product-commercial).
+name: video-clone
+description: Rebuild an existing video for a new product or cast in NodeTool — break a reference ad down shot by shot, then reproduce its structure with different content. Use when the user attaches or links a video and asks to copy, clone, remake, reverse-engineer, match, or "do it like this one", or wants to know why a reference ad works. Not for directing an original piece from a brief (use ugc-video or product-commercial).
 ---
 
-**Load `/nodetool-storyboard-core` first.** It carries the loop, the tool contract and
+**Load `/storyboard-core` first.** It carries the loop, the tool contract and
 the gating this skill assumes. Everything below is the breakdown pass that comes
 before that loop, and the rules for what may and may not be carried over.
 

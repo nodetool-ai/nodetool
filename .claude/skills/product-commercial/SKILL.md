@@ -1,9 +1,9 @@
 ---
-name: nodetool-product-commercial
-description: Direct a polished product film in NodeTool — pack shots, macro hero spots, luxury commercials, brand films on location, with or without talent. Use when the user wants an ad that looks shot on a camera rather than a phone, mentions a pack shot, hero shot, product film, brand spot, cyclorama or studio lighting, or names a product as the subject of a multi-shot video. Not for self-filmed or creator-style pieces (use nodetool-ugc-video).
+name: product-commercial
+description: Direct a polished product film in NodeTool — pack shots, macro hero spots, luxury commercials, brand films on location, with or without talent. Use when the user wants an ad that looks shot on a camera rather than a phone, mentions a pack shot, hero shot, product film, brand spot, cyclorama or studio lighting, or names a product as the subject of a multi-shot video. Not for self-filmed or creator-style pieces (use ugc-video).
 ---
 
-**Load `/nodetool-storyboard-core` first.** It carries the loop, the tool contract,
+**Load `/storyboard-core` first.** It carries the loop, the tool contract,
 the entity rules and the gating this skill assumes. Everything below is what is
 different about a camera-grade product film.
 
@@ -56,7 +56,7 @@ when the **light** moves and the pack does not — write that literally:
   a hold is what makes an end card usable.
 - Count the physical events: `two condensation beads run`, `one ripple, then still`.
 - On a location spot with talent, cast the person as a character entity per
-  `/nodetool-ugc-video`'s casting pass, but keep the pack's shots free of them with an
+  `/ugc-video`'s casting pass, but keep the pack's shots free of them with an
   explicit `entity_ids`.
 
 ## Where a still is the wrong unit

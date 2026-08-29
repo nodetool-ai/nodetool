@@ -1,9 +1,9 @@
 ---
-name: nodetool-ugc-video
-description: Direct phone-shot video with a person in it — UGC ads, creator testimonials, review-to-hero spots, comedy sketches, day-in-the-life and ritual pieces, first-person travel vlogs. Use when the user wants a video that looks self-filmed or friend-filmed, mentions UGC, TikTok, Reels, a creator, a testimonial, a talking-head ad, or names a person as the subject of a multi-shot video. Not for polished product films (use nodetool-product-commercial) or narrated b-roll with no talent (use nodetool-script-video).
+name: ugc-video
+description: Direct phone-shot video with a person in it — UGC ads, creator testimonials, review-to-hero spots, comedy sketches, day-in-the-life and ritual pieces, first-person travel vlogs. Use when the user wants a video that looks self-filmed or friend-filmed, mentions UGC, TikTok, Reels, a creator, a testimonial, a talking-head ad, or names a person as the subject of a multi-shot video. Not for polished product films (use product-commercial) or narrated b-roll with no talent (use script-video).
 ---
 
-**Load `/nodetool-storyboard-core` first.** It carries the loop, the tool contract,
+**Load `/storyboard-core` first.** It carries the loop, the tool contract,
 the entity rules and the gating this skill assumes. Everything below is what is
 different about a phone-shot piece with a person in it.
 
