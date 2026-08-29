@@ -252,24 +252,71 @@ function outputTypeForNode(
     : null;
 }
 
-export function deriveWorkflowInterfaceV1(args: {
-  workflowId: string;
-  etag?: string | null;
-  graph: WorkflowInterfaceGraph;
-  registry: WorkflowInterfaceRegistry;
-}): WorkflowInterfaceV1 {
-  const diagnostics: WorkflowInterfaceDiagnostic[] = [];
-  const inputs: WorkflowInterfaceInput[] = [];
-  const outputs: WorkflowInterfaceOutput[] = [];
-  const nodes = Array.isArray(args.graph.nodes) ? args.graph.nodes : [];
-  const edges = Array.isArray(args.graph.edges) ? args.graph.edges : [];
-  const nodesById = new Map<string, WorkflowInterfaceGraphNode>();
-  const inputNames = new Set<string>();
-  const outputNames = new Set<string>();
-
-  for (const node of nodes) {
-    if (isString(node.id)) nodesById.set(node.id, node);
+/**
+ * The type behind a generic `Output` node: what its single incoming `value`
+ * edge carries. Every failure path pushes a diagnostic before returning null.
+ */
+function resolveOutputSourceType(
+  edge: WorkflowInterfaceGraphEdge,
+  nodesById: ReadonlyMap<string, WorkflowInterfaceGraphNode>,
+  registry: WorkflowInterfaceRegistry,
+  outputNodeId: string,
+  outputName: string,
+  diagnostics: WorkflowInterfaceDiagnostic[]
+): { type: TypeMetadata; stream: boolean } | null {
+  const source = isString(edge.source)
+    ? nodesById.get(edge.source)
+    : undefined;
+  if (!source) {
+    diagnostics.push({
+      severity: "error",
+      code: "missing_source_node",
+      message: `Workflow output '${outputName}' references a source node that is not present in the graph.`,
+      node_id: outputNodeId,
+      pin_name: outputName
+    });
+    return null;
   }
+
+  const handle = String(edge.sourceHandle ?? edge.source_handle ?? "");
+  if (!handle) {
+    diagnostics.push({
+      severity: "error",
+      code: "missing_source_handle",
+      message: `Workflow output '${outputName}' has an incoming edge without a source handle.`,
+      node_id: outputNodeId,
+      pin_name: outputName
+    });
+    return null;
+  }
+
+  const resolved = outputTypeForNode(source, handle, registry);
+  if (resolved) return resolved;
+
+  const sourceType = isString(source.type) ? source.type : "";
+  const hasDynamicHandle =
+    record(record(source.dynamic_outputs)?.[handle]) !== null;
+  const sourceMetadata = registry.resolveMetadata(sourceType);
+  const packUnavailable = !hasDynamicHandle && !sourceMetadata;
+  diagnostics.push({
+    severity: "error",
+    code: packUnavailable ? "missing_node_metadata" : "missing_output_handle",
+    message: packUnavailable
+      ? `Node metadata for workflow output source '${sourceType}' is unavailable. The node pack may be disabled or not loaded.`
+      : `Source handle '${handle}' is not declared by node '${sourceType}'.`,
+    node_id: isString(source.id) ? source.id : outputNodeId,
+    pin_name: handle
+  });
+  return null;
+}
+
+function collectInputs(
+  nodes: readonly WorkflowInterfaceGraphNode[],
+  registry: WorkflowInterfaceRegistry,
+  diagnostics: WorkflowInterfaceDiagnostic[]
+): WorkflowInterfaceInput[] {
+  const inputs: WorkflowInterfaceInput[] = [];
+  const seenNames = new Set<string>();
 
   for (const node of nodes) {
     const nodeId = isString(node.id) ? node.id : "";
@@ -286,7 +333,7 @@ export function deriveWorkflowInterfaceV1(args: {
       });
       continue;
     }
-    if (inputNames.has(name)) {
+    if (seenNames.has(name)) {
       diagnostics.push({
         severity: "error",
         code: "duplicate_input_name",
@@ -296,9 +343,9 @@ export function deriveWorkflowInterfaceV1(args: {
       });
       continue;
     }
-    inputNames.add(name);
+    seenNames.add(name);
 
-    const resolved = outputTypeForNode(node, "output", args.registry);
+    const resolved = outputTypeForNode(node, "output", registry);
     if (!resolved) {
       diagnostics.push({
         severity: "error",
@@ -334,6 +381,19 @@ export function deriveWorkflowInterfaceV1(args: {
     inputs.push(input);
   }
 
+  return inputs;
+}
+
+function collectOutputs(
+  nodes: readonly WorkflowInterfaceGraphNode[],
+  edges: readonly WorkflowInterfaceGraphEdge[],
+  nodesById: ReadonlyMap<string, WorkflowInterfaceGraphNode>,
+  registry: WorkflowInterfaceRegistry,
+  diagnostics: WorkflowInterfaceDiagnostic[]
+): WorkflowInterfaceOutput[] {
+  const outputs: WorkflowInterfaceOutput[] = [];
+  const seenNames = new Set<string>();
+
   for (const node of nodes) {
     const nodeId = isString(node.id) ? node.id : "";
     const nodeType = isString(node.type) ? node.type : "";
@@ -350,7 +410,7 @@ export function deriveWorkflowInterfaceV1(args: {
       });
       continue;
     }
-    if (outputNames.has(name)) {
+    if (seenNames.has(name)) {
       diagnostics.push({
         severity: "error",
         code: "duplicate_output_name",
@@ -360,66 +420,30 @@ export function deriveWorkflowInterfaceV1(args: {
       });
       continue;
     }
-    outputNames.add(name);
+    seenNames.add(name);
 
-    let resolved: { type: TypeMetadata; stream: boolean } | null = dedicatedType
+    // A dedicated media output carries its own type, so its edges are never
+    // inspected — and a bad one is never reported.
+    const incoming = dedicatedType
+      ? []
+      : edges.filter(
+          (edge) =>
+            edge.target === nodeId &&
+            String(edge.targetHandle ?? edge.target_handle ?? "") === "value"
+        );
+    const resolved = dedicatedType
       ? { type: dedicatedType, stream: false }
-      : null;
-    let incoming: WorkflowInterfaceGraphEdge[] = [];
-    if (!dedicatedType) {
-      incoming = edges.filter(
-        (edge) =>
-          edge.target === nodeId &&
-          String(edge.targetHandle ?? edge.target_handle ?? "") === "value"
-      );
-      if (incoming.length === 1) {
-        const edge = incoming[0]!;
-        const source =
-          isString(edge.source)
-            ? nodesById.get(edge.source)
-            : undefined;
-        const handle = String(edge.sourceHandle ?? edge.source_handle ?? "");
-        if (!source) {
-          diagnostics.push({
-            severity: "error",
-            code: "missing_source_node",
-            message: `Workflow output '${name}' references a source node that is not present in the graph.`,
-            node_id: nodeId,
-            pin_name: name
-          });
-        } else if (!handle) {
-          diagnostics.push({
-            severity: "error",
-            code: "missing_source_handle",
-            message: `Workflow output '${name}' has an incoming edge without a source handle.`,
-            node_id: nodeId,
-            pin_name: name
-          });
-        } else {
-          resolved = outputTypeForNode(source, handle, args.registry);
-          if (!resolved) {
-            const dynamic = record(source.dynamic_outputs);
-            const hasDynamicHandle = record(dynamic?.[handle]) !== null;
-            const sourceType =
-              isString(source.type) ? source.type : "";
-            const sourceMetadata = args.registry.resolveMetadata(sourceType);
-            diagnostics.push({
-              severity: "error",
-              code:
-                !hasDynamicHandle && !sourceMetadata
-                  ? "missing_node_metadata"
-                  : "missing_output_handle",
-              message:
-                !hasDynamicHandle && !sourceMetadata
-                  ? `Node metadata for workflow output source '${sourceType}' is unavailable. The node pack may be disabled or not loaded.`
-                  : `Source handle '${handle}' is not declared by node '${sourceType}'.`,
-              node_id: isString(source.id) ? source.id : nodeId,
-              pin_name: handle
-            });
-          }
-        }
-      }
-    }
+      : incoming.length === 1
+        ? resolveOutputSourceType(
+            incoming[0]!,
+            nodesById,
+            registry,
+            nodeId,
+            name,
+            diagnostics
+          )
+        : null;
+
     if (!resolved) {
       diagnostics.push({
         severity: "error",
@@ -440,6 +464,32 @@ export function deriveWorkflowInterfaceV1(args: {
       stream: resolved?.stream ?? false
     });
   }
+
+  return outputs;
+}
+
+export function deriveWorkflowInterfaceV1(args: {
+  workflowId: string;
+  etag?: string | null;
+  graph: WorkflowInterfaceGraph;
+  registry: WorkflowInterfaceRegistry;
+}): WorkflowInterfaceV1 {
+  const diagnostics: WorkflowInterfaceDiagnostic[] = [];
+  const nodes = Array.isArray(args.graph.nodes) ? args.graph.nodes : [];
+  const edges = Array.isArray(args.graph.edges) ? args.graph.edges : [];
+  const nodesById = new Map<string, WorkflowInterfaceGraphNode>();
+  for (const node of nodes) {
+    if (isString(node.id)) nodesById.set(node.id, node);
+  }
+
+  const inputs = collectInputs(nodes, args.registry, diagnostics);
+  const outputs = collectOutputs(
+    nodes,
+    edges,
+    nodesById,
+    args.registry,
+    diagnostics
+  );
 
   return {
     version: 1,
