@@ -440,7 +440,7 @@ We follow the **OWASP Top 10** as the baseline. See [OWASP Top 10:2021](https://
 - **Rate limiting** on every public-facing endpoint (`@fastify/rate-limit`).
 - **CSRF**: SameSite=Lax (or Strict) cookies + double-submit token for state-changing endpoints from browsers.
 - **Auth checks** run in middleware, not in handlers. Forgetting to add one in a new handler must not be possible.
-- **SSRF**: `BrowserTool`, `HttpRequestTool`, `DownloadFileTool` validate URLs against an allowlist of schemes and a blocklist of internal addresses (RFC1918, link-local, `localhost`).
+- **SSRF**: every outbound fetch of a caller-supplied URL goes through `safeFetch` (or `fetchExternalMedia` for media refs) from `@nodetool-ai/runtime` — https only, internal address literals refused (loopback, link-local, RFC1918, CGNAT), every redirect hop revalidated. The surfaces are inventoried in [url-egress-inventory.md](url-egress-inventory.md) and audited by `packages/runtime/tests/url-egress-audit.test.ts`.
 
 ### Supply-chain security
 
