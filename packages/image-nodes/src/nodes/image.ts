@@ -32,6 +32,7 @@ import {
   tagAsBrowserGpu,
   tagAsServer,
   tagAsContentCard,
+  saveFilename,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -191,6 +192,22 @@ function inferImageMime(uri: string | undefined, bytes: Uint8Array): string {
     return "image/png";
   }
   return "image/unknown";
+}
+
+/** The extension the bytes themselves say this image should carry. */
+function imageExtension(bytes: Uint8Array): string {
+  switch (inferImageMime(undefined, bytes)) {
+    case "image/jpeg":
+      return ".jpg";
+    case "image/webp":
+      return ".webp";
+    case "image/gif":
+      return ".gif";
+    case "image/bmp":
+      return ".bmp";
+    default:
+      return ".png";
+  }
 }
 
 function getModelConfig(props: Record<string, unknown>) {
@@ -524,9 +541,15 @@ export class SaveImageFileImageNode extends BaseNode {
   declare overwrite: any;
 
   async process(context?: ProcessingContext): Promise<SaveImageFileImageNodeOutputs> {
-    const fs = await loadNodeFsPromises();
-    const filename = dateName(String(this.filename ?? "image.png"));
     const bytes = await imageBytesAsync(this.image, context);
+    // An empty name used to resolve to the destination folder itself, so the
+    // image landed one level up named after the folder; a name typed without
+    // an extension produced a file nothing would open.
+    const filename = saveFilename({
+      filename: dateName(String(this.filename ?? "")),
+      fallback: dateName("image_%Y-%m-%d_%H-%M-%S"),
+      extension: imageExtension(bytes)
+    });
     const p = await writeSavedFile({
       folder: this.folder,
       filename,

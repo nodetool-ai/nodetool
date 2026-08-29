@@ -71,6 +71,32 @@ describe("save_to_workspace", () => {
     expect(path.dirname(result.path)).toBe(workspace);
   });
 
+  it("keeps a default-named image inside the workspace, with its extension", async () => {
+    // The filename property defaults to empty. That used to resolve to the
+    // workspace folder itself, so the image landed one level up, named after
+    // the folder and with no extension at all.
+    const node = new SaveImageFileImageNode();
+    node.assign({
+      image: { type: "image", data: PNG.toString("base64") },
+      save_to_workspace: true
+    });
+    const result = await node.process(context);
+    expect(path.dirname(result.path)).toBe(workspace);
+    expect(path.extname(result.path)).toBe(".png");
+    expect(await readdir(workspace)).toEqual([path.basename(result.path)]);
+  });
+
+  it("appends the image's own extension to a name typed without one", async () => {
+    const node = new SaveImageFileImageNode();
+    node.assign({
+      image: { type: "image", data: PNG.toString("base64") },
+      save_to_workspace: true,
+      filename: "render"
+    });
+    const result = await node.process(context);
+    expect(result.path).toBe(path.join(workspace, "render.png"));
+  });
+
   it("writes a document into the workspace", async () => {
     const node = new SaveDocumentFileNode();
     node.assign({

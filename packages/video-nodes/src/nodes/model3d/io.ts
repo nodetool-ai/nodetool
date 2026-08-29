@@ -5,8 +5,16 @@ import { pathToFileURL } from "node:url";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import { DEFAULT_FOLDER, DEFAULT_MODEL_3D } from "./defaults.js";
-import { dateName, extFormat, filePath, modelRef, modelRefToBytes } from "./utils.js";
 import {
+  dateName,
+  extFormat,
+  filePath,
+  modelFormat,
+  modelRef,
+  modelRefToBytes
+} from "./utils.js";
+import {
+  saveFilename,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -109,7 +117,11 @@ export class SaveModel3DFileNode extends BaseNode {
     const bytes = await modelRefToBytes(this.model, context);
     const targetPath = await writeSavedFile({
       folder: this.folder,
-      filename: dateName(String(this.filename ?? "model.glb")),
+      filename: saveFilename({
+        filename: dateName(String(this.filename ?? "")),
+        fallback: dateName("model_%Y-%m-%d_%H-%M-%S"),
+        extension: `.${modelFormat(this.model ?? {})}`
+      }),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,

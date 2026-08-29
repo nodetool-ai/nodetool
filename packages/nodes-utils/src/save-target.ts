@@ -117,6 +117,33 @@ export function resolveSaveFolder(opts: SaveFolderOptions): string {
   return folder || workspaceDir || ".";
 }
 
+/** What a save node calls its file when the user leaves the name empty. */
+export interface SaveFilenameOptions {
+  /** The node's filename property, with date tokens already expanded. */
+  filename: string;
+  /** The name to use when `filename` is blank. Carries its own extension. */
+  fallback: string;
+  /** Extension (with the dot) to append when the name carries none. */
+  extension?: string;
+}
+
+/**
+ * The name a save node writes under.
+ *
+ * A blank name used to reach `path.resolve(folder, "")`, which is the folder
+ * itself: the file landed *beside* the workspace, named after it, with no
+ * extension. And a name typed without one ("render") produced a file no image
+ * viewer would open. Both are answered here rather than in each node.
+ */
+export function saveFilename(opts: SaveFilenameOptions): string {
+  const name = opts.filename.trim() || opts.fallback.trim();
+  const ext = opts.extension;
+  if (!ext) return name;
+  const dot = name.lastIndexOf(".");
+  const hasExtension = dot > 0 && dot < name.length - 1;
+  return hasExtension ? name : `${name}${ext}`;
+}
+
 /**
  * Return a path nothing occupies: `target` itself when free, otherwise
  * `name_1.ext`, `name_2.ext`, … in the same directory.
@@ -142,6 +169,24 @@ export async function uniqueFilePath(target: string): Promise<string> {
   }
 }
 
+/**
+ * Refuse a blank name instead of resolving it to the destination folder.
+ *
+ * Every save node supplies a fallback via {@link saveFilename}; one that
+ * forgets must fail loudly rather than write a file over the folder's own
+ * name, one level up from where the user asked for it.
+ */
+function requireFilename(filename: string): string {
+  const name = filename.trim();
+  if (!name) {
+    throw new Error(
+      "This save node resolved to an empty filename. Set a filename on the " +
+        "node."
+    );
+  }
+  return name;
+}
+
 export interface SaveTargetOptions extends SaveFolderOptions {
   /** The node's filename property, with date tokens already expanded. */
   filename: string;
@@ -160,7 +205,7 @@ export async function resolveSaveTarget(
   const fs = await loadNodeFsPromises();
   const path = await loadNodePath();
   const folder = resolveSaveFolder(opts);
-  const target = path.resolve(folder, opts.filename);
+  const target = path.resolve(folder, requireFilename(opts.filename));
   await fs.mkdir(path.dirname(target), { recursive: true });
   return opts.overwrite === true ? target : uniqueFilePath(target);
 }
@@ -187,10 +232,11 @@ export async function writeSavedFile(
 
   if (opts.saveToWorkspace === true && workspace) {
     if (isVirtual) {
+      const filename = requireFilename(opts.filename);
       const target =
         opts.overwrite === true
-          ? opts.filename
-          : await uniqueWorkspacePath(workspace, opts.filename);
+          ? filename
+          : await uniqueWorkspacePath(workspace, filename);
       await workspace.write(target, opts.bytes);
       return target;
     }
