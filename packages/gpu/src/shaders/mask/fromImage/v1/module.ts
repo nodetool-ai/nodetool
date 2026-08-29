@@ -10,6 +10,7 @@
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
+import { WGSL_LUMA709 } from "../../../../shared/lumaWgsl.js";
 
 export const MaskFromImageParams = d.struct({
   mode: d.f32,
@@ -51,6 +52,8 @@ export const maskFromImageV1 = defineModule({
   layout,
   samplers: { samp: samplerDescriptor },
   wgsl: /* wgsl */ `
+${WGSL_LUMA709}
+
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
@@ -65,8 +68,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   if (mode == 0) {
     value = src.a;
   } else if (mode == 1) {
-    // Rec. 709 luma coefficients for the declared linear color space.
-    value = dot(straight, vec3f(0.2126, 0.7152, 0.0722));
+    value = luma709(straight);
   } else if (mode == 2) {
     value = straight.r;
   } else if (mode == 3) {
