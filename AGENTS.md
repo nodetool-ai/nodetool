@@ -392,7 +392,7 @@ exactly one of them:
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-60 trees is 540 pairs, and 269 of them are already at zero — so a rule still
+60 trees is 540 pairs, and 273 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
 fifty-seven packages, and those fifty-seven are ratcheted today rather than
 after the last one lands. Seven rules are at zero everywhere and sit in the
@@ -462,16 +462,17 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 | `no-chained-type-assertions` | 111 | 47 / 60 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,575 findings but zero in 57 of 60 trees: it is
+`no-module-mocking` is 1,581 findings but zero in 57 of 60 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Thirteen trees are at zero on all nine rules:
-`packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/config`,
-`packages/document-nodes`, `packages/kie-codegen`, `packages/model-pricing`,
-`packages/nodes-utils`, `packages/reve-nodes`, `packages/sdk`,
-`packages/security`, `packages/storage`, `packages/workflow-runner`.
+a boundary get named. Fourteen trees are at zero on all nine rules:
+`packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/code-nodes`,
+`packages/config`, `packages/document-nodes`, `packages/kie-codegen`,
+`packages/model-pricing`, `packages/nodes-utils`, `packages/reve-nodes`,
+`packages/sdk`, `packages/security`, `packages/storage`,
+`packages/workflow-runner`.
 
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps

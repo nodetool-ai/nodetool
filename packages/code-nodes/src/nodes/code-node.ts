@@ -50,7 +50,8 @@ import {
   normalizeCodeOutput,
   usesEmitOutputContract,
   usesStreamInputContract,
-  type CodeBodyStatement
+  type CodeBodyStatement,
+  type JsScriptLink
 } from "@nodetool-ai/node-sdk";
 import type {
   ProcessingContext,
@@ -75,6 +76,18 @@ import {
   SANDBOX_CAPABILITY_PACK,
   type SandboxModuleResolution
 } from "@nodetool-ai/protocol";
+
+/** The bag three functions here assemble for `runInSandbox` to inject. */
+type SandboxGlobals = NonNullable<RunSandboxOptions["globals"]>;
+
+/** This node's output bag is the sandbox's: handle name → the guest's value. */
+type CodeOutputs = NonNullable<RunSandboxResult["outputs"]>;
+
+/** A node's property bag as `BaseNode.serialize` produces it: name → value. */
+type NodeProperties = ReturnType<BaseNode["serialize"]>;
+
+/** One value on a node handle: a property, a dynamic input, or a stream item. */
+type NodeValue = NodeProperties[string];
 
 /** JS keywords that cannot be used as variable names. */
 const JS_RESERVED = new Set([
@@ -172,7 +185,7 @@ const NO_TOOLS_GLOBALS = {
     ok: false as const,
     error: "no tools in this environment"
   })
-} satisfies Record<string, unknown>;
+} satisfies SandboxGlobals;
 
 let agentsModulePromise: Promise<AgentsModule | null> | null = null;
 let injectedAgentsModule: AgentsModule | null = null;
@@ -245,7 +258,7 @@ function assembleToolbelt(mod: AgentsModule): AgentTool[] {
  */
 async function toolBridgeGlobals(
   context: ProcessingContext | undefined
-): Promise<Record<string, unknown>> {
+): Promise<SandboxGlobals> {
   if (!context) return NO_TOOLS_GLOBALS;
   const mod = await loadAgentsModule();
   if (!mod) return NO_TOOLS_GLOBALS;
@@ -286,6 +299,9 @@ class BoundedChannel<T> {
   async take(): Promise<T | null> {
     for (;;) {
       if (this.items.length > 0) {
+        // SAFETY: the queue is non-empty here and nothing awaits before the
+        // shift. `T` may itself include `undefined`, so no runtime check can
+        // tell "empty" from "the item was undefined".
         const item = this.items.shift() as T;
         this.pushers.shift()?.();
         return item;
@@ -307,6 +323,16 @@ class BoundedChannel<T> {
 const END_OF_STREAM: SandboxInputTake = { done: true };
 
 /**
+ * What the cancellation promise resolves to. Shaped as an exhausted iterator
+ * result rather than as a take, so racing it against `iterator.next()` yields
+ * one `IteratorResult` union that `done` narrows on its own.
+ */
+const CANCELLED_RESULT: IteratorReturnResult<undefined> = {
+  done: true,
+  value: undefined
+};
+
+/**
  * The host side of the guest's `stream` global: one inbox iterator per handle
  * (plus one `any()` iterator), created on first use and driven one take at a
  * time.
@@ -324,19 +350,19 @@ class InputStreamBridge {
     string | null,
     Promise<SandboxInputTake>
   >();
-  private readonly cancelled: Promise<SandboxInputTake>;
+  private readonly cancelled: Promise<IteratorReturnResult<undefined>>;
 
   constructor(private readonly inputs: StreamingInputs) {
     // A cancelled run must not leave the guest parked on a take that can no
     // longer be answered: every pending and future take resolves as EOS, the
     // body unwinds, and the sandbox's own abort ends the run.
-    this.cancelled = new Promise<SandboxInputTake>((resolve) => {
+    this.cancelled = new Promise<IteratorReturnResult<undefined>>((resolve) => {
       const signal = inputs.signal;
       if (signal.aborted) {
-        resolve(END_OF_STREAM);
+        resolve(CANCELLED_RESULT);
         return;
       }
-      signal.addEventListener("abort", () => resolve(END_OF_STREAM), {
+      signal.addEventListener("abort", () => resolve(CANCELLED_RESULT), {
         once: true
       });
     });
@@ -367,10 +393,8 @@ class InputStreamBridge {
     if (handle === null) {
       const iterator = (this.anyIterator ??= this.inputs.any());
       const result = await Promise.race([iterator.next(), this.cancelled]);
-      if ("done" in result && result.done === true) return END_OF_STREAM;
-      const [source, value] = (result as IteratorYieldResult<
-        [string, unknown]
-      >).value;
+      if (result.done === true) return END_OF_STREAM;
+      const [source, value] = result.value;
       return { done: false, handle: source, value: jsonSafe(value) };
     }
     let iterator = this.perHandle.get(handle);
@@ -379,7 +403,7 @@ class InputStreamBridge {
       this.perHandle.set(handle, iterator);
     }
     const result = await Promise.race([iterator.next(), this.cancelled]);
-    if ("done" in result && result.done === true) return END_OF_STREAM;
+    if (result.done === true) return END_OF_STREAM;
     return {
       done: false,
       handle,
@@ -432,12 +456,16 @@ export class CodeNode extends BaseNode {
    * paths re-read the body through this hook, so editing the last `stream`
    * call out flips the mode back with no saved flag involved.
    */
-  static readonly resolveStreamingInput = (node: {
-    properties?: Record<string, unknown>;
-  }): boolean => usesStreamInputContract(String(node?.properties?.code ?? ""));
+  static readonly resolveStreamingInput: NonNullable<
+    typeof BaseNode.resolveStreamingInput
+  > = (node) => usesStreamInputContract(String(node?.properties?.code ?? ""));
 
-  /** Persistent state across streaming invocations; reset each workflow run. */
-  private _state: Record<string, unknown> = {};
+  /**
+   * Persistent state across streaming invocations; reset each workflow run.
+   * The guest owns the contents and the sandbox syncs them back marshalled, so
+   * what survives a call is what survives a JSON round trip.
+   */
+  private _state: JsonSafeObject = {};
 
   @prop({
     type: "str",
@@ -514,7 +542,7 @@ export class CodeNode extends BaseNode {
       "needs no script storage. \"Update to latest\" re-copies and re-pins. " +
       "Empty means the node was never linked."
   })
-  declare script: Record<string, unknown>;
+  declare script: JsScriptLink | Record<string, never>;
 
   @prop({
     type: "int",
@@ -717,7 +745,7 @@ export class CodeNode extends BaseNode {
    */
   private async sandboxGlobals(
     context: ProcessingContext | undefined
-  ): Promise<Record<string, unknown>> {
+  ): Promise<SandboxGlobals> {
     const allInputs = {
       ...this.serialize(),
       ...Object.fromEntries(this.dynamicProps)
@@ -807,7 +835,7 @@ export class CodeNode extends BaseNode {
     return mounted.mount;
   }
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<CodeOutputs> {
     const envelope = this.envelope();
     const code = envelope.code;
     if (!usesEmitOutputContract(code)) {
@@ -828,7 +856,7 @@ export class CodeNode extends BaseNode {
     // Single-shot callers see no stream, so an emitted value would be lost.
     // Precedence: a handle's final `output` value wins; where there is none,
     // the LAST value emitted for that handle stands in.
-    const merged: Record<string, unknown> = {};
+    const merged: CodeOutputs = {};
     for (const { name, value } of result.emitted ?? []) {
       merged[name] = value;
     }
@@ -882,7 +910,7 @@ export class CodeNode extends BaseNode {
         // Awaited, so a downstream inbox at its bound blocks the guest's
         // `emit` — the same backpressure the buffered pump gets from its
         // channel, one link earlier.
-        onEmit: async (name: string, value: unknown) => {
+        onEmit: async (name, value) => {
           await outputs.emit(name, value);
         },
         onTakeInput: (handle) => bridge.take(handle),
@@ -911,7 +939,7 @@ export class CodeNode extends BaseNode {
   private async runLegacySingleShot(
     envelope: CodeEnvelope,
     context: ProcessingContext | undefined
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CodeOutputs> {
     const code = envelope.code;
     const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
     const result = await runInSandbox(
@@ -925,7 +953,7 @@ export class CodeNode extends BaseNode {
 
   async *genProcess(
     context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
+  ): AsyncGenerator<CodeOutputs> {
     const envelope = this.envelope();
 
     if (usesEmitOutputContract(envelope.code)) {
@@ -951,10 +979,8 @@ export class CodeNode extends BaseNode {
   private async *pumpEmitContract(
     envelope: CodeEnvelope,
     context: ProcessingContext | undefined
-  ): AsyncGenerator<Record<string, unknown>> {
-    const channel = new BoundedChannel<Record<string, unknown>>(
-      EMIT_CHANNEL_CAPACITY
-    );
+  ): AsyncGenerator<CodeOutputs> {
+    const channel = new BoundedChannel<CodeOutputs>(EMIT_CHANNEL_CAPACITY);
     const abort = new AbortController();
 
     let result: RunSandboxResult | undefined;
@@ -966,8 +992,7 @@ export class CodeNode extends BaseNode {
         result = await runInSandbox({
           ...(await this.sandboxOptions(envelope.code, envelope, context)),
           signal: abort.signal,
-          onEmit: (name: string, value: unknown) =>
-            channel.push({ [name]: value })
+          onEmit: (name, value) => channel.push({ [name]: value })
         });
       } catch (err) {
         failure = err;
@@ -1010,7 +1035,7 @@ export class CodeNode extends BaseNode {
   private async *runLegacyStream(
     envelope: CodeEnvelope,
     context: ProcessingContext | undefined
-  ): AsyncGenerator<Record<string, unknown>> {
+  ): AsyncGenerator<CodeOutputs> {
     const code = envelope.code;
     // The prelude sits outside the yield_ rewrite: only user code streams.
     const wrappedBody = `${NODETOOL_PRELUDE}
@@ -1032,12 +1057,14 @@ export class CodeNode extends BaseNode {
       throw new Error(result.error ?? "Code execution failed");
     }
 
-    const items = result.result as unknown[];
-    if (Array.isArray(items)) {
-      for (const item of items) {
-        if (item !== null && item !== undefined) {
-          yield normalizeCodeOutput(item);
-        }
+    // The guest returns the array `yield_` collected. A body that replaced the
+    // return value with something else streams nothing.
+    const items: readonly unknown[] = Array.isArray(result.result)
+      ? result.result
+      : [];
+    for (const item of items) {
+      if (item !== null && item !== undefined) {
+        yield normalizeCodeOutput(item);
       }
     }
   }
@@ -1073,9 +1100,7 @@ function consoleSeverity(
 }
 
 /** Extract dynamic inputs, filtering reserved/invalid keys. */
-function extractDynamicInputs(
-  inputs: Record<string, unknown>
-) {
+function extractDynamicInputs(inputs: NodeProperties): NodeProperties {
   const reserved = new Set([
     "code",
     "script",
@@ -1089,7 +1114,7 @@ function extractDynamicInputs(
     "allow_local_network",
     "allow_host_filesystem"
   ]);
-  const result: Record<string, unknown> = {};
+  const result: NodeProperties = {};
   for (const [key, value] of Object.entries(inputs)) {
     if (reserved.has(key) || key.startsWith("_")) continue;
     if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) continue;
@@ -1107,7 +1132,10 @@ type JsonSafeValue =
   | null
   | undefined
   | JsonSafeValue[]
-  | { [key: string]: JsonSafeValue };
+  | JsonSafeObject;
+
+/** An object of JSON-safe values, keyed by whatever the guest named them. */
+type JsonSafeObject = { [key: string]: JsonSafeValue };
 
 /**
  * One value, deep-copied into JSON-safe form for the guest. The marshal rule
@@ -1115,7 +1143,7 @@ type JsonSafeValue =
  * cannot be serialized becomes `null`. Media inputs are refs — plain objects —
  * so they survive and stay readable through `media.*`.
  */
-function jsonSafe(value: unknown): JsonSafeValue {
+function jsonSafe(value: NodeValue): JsonSafeValue {
   if (value === null || value === undefined) return value;
   try {
     return JSON.parse(JSON.stringify(value));
@@ -1128,10 +1156,8 @@ function jsonSafe(value: unknown): JsonSafeValue {
  * Deep-copy all input values to make them safe for the sandbox.
  * Strips functions, symbols, and other non-serializable types.
  */
-function deepCopyInputs(
-  inputs: Record<string, unknown>
-) {
-  const result: Record<string, unknown> = {};
+function deepCopyInputs(inputs: NodeProperties) {
+  const result: JsonSafeObject = {};
   for (const [key, value] of Object.entries(inputs)) {
     result[key] = jsonSafe(value);
   }
