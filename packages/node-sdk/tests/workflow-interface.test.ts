@@ -405,7 +405,7 @@ describe("deriveWorkflowInterfaceV1", () => {
     ]));
   });
 
-  it("reports a source handle the source node does declare metadata for but not the handle", () => {
+  it("reports an undeclared source handle on a node whose metadata is loaded", () => {
     const sourceType = "test.Source";
     const result = deriveWorkflowInterfaceV1({
       workflowId: "wf-unknown-handle",
