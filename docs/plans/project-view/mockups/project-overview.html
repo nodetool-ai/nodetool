@@ -1,0 +1,284 @@
+<!doctype html>
+<!-- Mockup for docs/plans/project-view/PLAN.md — Phase 3 (C1-C4). 1440x900; chrome matches the shipped WorkspaceShell. Editable canvas: https://claude.ai/code/artifact/9fde1641-9965-4f71-bb23-2543ef4bc4db -->
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #08090A; }
+    a { color: #6690d4; } a:hover { color: #7aa0e2; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; background: #08090A; color: #F7F8F8; font-family: 'Inter', Arial, sans-serif; overflow: hidden;">
+
+  <!-- ===== Workspace tab bar with the project group ===== -->
+  <div style="position: absolute; top: 0; left: 0; right: 0; height: 40px; padding-left: 50px; background: #0A0B0D; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: stretch;">
+    <div style="display: flex; align-items: center; gap: 6px; padding: 0 16px; border-right: 1px solid rgba(255,255,255,0.08); color: #6690d4; font-size: 13px; font-weight: 500;">
+      <span style="font-size: 15px; line-height: 1;">+</span><span>New</span><span style="font-size: 11px; opacity: 0.75; margin-left: 2px;">▾</span>
+    </div>
+    <!-- Project scope chip: collapses the group, carries the project everywhere -->
+    <div style="display: flex; align-items: center; gap: 8px; padding: 0 14px; background: rgba(103,232,249,0.06); border-right: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 -2px 0 #67E8F9; font-size: 13px; color: #F7F8F8;">
+      <span style="color: #67E8F9;">◆</span><span style="font-weight: 500;">Aurora Launch Spot</span>
+      <span style="font-size: 11px; opacity: 0.6;">▾</span>
+    </div>
+    <!-- Grouped tabs: the project's documents, cyan-tinted underline -->
+    <div style="display: flex; align-items: center; gap: 8px; min-width: 120px; padding: 0 12px 0 16px; background: #08090A; color: #F7F8F8; border-right: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 -2px 0 rgba(103,232,249,0.35); font-size: 13px;">
+      <span style="color: #67E8F9;">◆</span><span>Overview</span>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="rgba(247,248,248,0.38)" stroke-width="1.4"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7"/></svg>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; min-width: 110px; padding: 0 12px 0 16px; color: #8A8F98; border-right: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 -2px 0 rgba(103,232,249,0.35); font-size: 13px;">
+      <span style="color: #9460FF;">▥</span><span>Board</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; min-width: 110px; padding: 0 12px 0 16px; color: #8A8F98; border-right: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 -2px 0 rgba(103,232,249,0.35); font-size: 13px;">
+      <span style="color: #08B8FF;">🎙</span><span>Script</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; min-width: 110px; padding: 0 12px 0 16px; color: #8A8F98; border-right: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 -2px 0 rgba(103,232,249,0.35); font-size: 13px;">
+      <span style="color: #9460FF;">▤</span><span>Cut v2</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; min-width: 140px; padding: 0 12px 0 16px; color: #8A8F98; border-right: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 -2px 0 rgba(103,232,249,0.35); font-size: 13px;">
+      <span style="color: #A7B1BF;">⬡</span><span>Render pipeline</span>
+    </div>
+    <div style="flex: 1;"></div>
+    <div style="display: flex; align-items: center; padding-right: 8px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#8A8F98" stroke-width="1.3"><path d="M8 2a4 4 0 0 1 4 4v3l1.2 2H2.8L4 9V6a4 4 0 0 1 4-4z"/><path d="M6.7 13.4a1.5 1.5 0 0 0 2.6 0"/></svg>
+    </div>
+  </div>
+
+  <!-- ===== Left rail ===== -->
+  <div style="position: absolute; top: 0; left: 0; bottom: 0; width: 50px; background: #0A0B0D; border-right: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; align-items: center; padding: 10px 0 12px 0; gap: 4px; z-index: 3;">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" style="margin-bottom: 10px;"><path d="M11 2l7.8 4.5v9L11 20l-7.8-4.5v-9z" stroke="#F7F8F8" stroke-width="1.5"/><circle cx="11" cy="11" r="2.4" fill="#6690d4"/></svg>
+    <div style="width: 34px; height: 34px; border-radius: 6px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#67E8F9" stroke-width="1.5"><path d="M9 2.2l6.8 6.8L9 15.8 2.2 9z"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><rect x="2.5" y="2.5" width="5.4" height="5.4" rx="1"/><rect x="10.1" y="2.5" width="5.4" height="5.4" rx="1"/><rect x="2.5" y="10.1" width="5.4" height="5.4" rx="1"/><rect x="10.1" y="10.1" width="5.4" height="5.4" rx="1"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><path d="M9 2.5l5.6 3.2v6.6L9 15.5l-5.6-3.2V5.7z"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><path d="M3 4.5h12v7.5H8.5L5.5 15v-3H3z"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><path d="M11.5 3.2l3.3 3.3L6.3 15H3v-3.3z"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><path d="M3 5h12M3 9h8M3 13h10"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><rect x="2.5" y="3.5" width="13" height="11" rx="1.5"/><path d="M6.8 3.5v11M11.2 3.5v11"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><circle cx="9" cy="6.4" r="3"/><path d="M3.4 15c.9-2.8 3-4.2 5.6-4.2s4.7 1.4 5.6 4.2"/></svg>
+    </div>
+    <div style="flex: 1;"></div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><circle cx="9" cy="9" r="2.4"/><path d="M9 2.5v2M9 13.5v2M2.5 9h2M13.5 9h2M4.4 4.4l1.4 1.4M12.2 12.2l1.4 1.4M13.6 4.4l-1.4 1.4M5.8 12.2l-1.4 1.4"/></svg>
+    </div>
+  </div>
+
+  <!-- ===== Bottom strip ===== -->
+  <div style="position: absolute; bottom: 0; left: 50px; right: 0; height: 32px; background: #101113; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 12px; gap: 16px; font-size: 11px; color: #8A8F98;">
+    <span>Logs</span><span>Queue</span><span>Workers</span><span>Versions</span><span>Trace</span>
+    <div style="flex: 1;"></div>
+    <div style="display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #9460FF; display: inline-block;"></span><span>1 job running · shot 7 clip · 0:41</span></div>
+  </div>
+
+  <!-- ===== Center: project overview tab ===== -->
+  <div style="position: absolute; top: 40px; left: 50px; right: 0; bottom: 32px; overflow: hidden; display: flex; flex-direction: column;">
+
+    <!-- Header strip -->
+    <div style="display: flex; align-items: center; gap: 16px; padding: 22px 28px 18px 28px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+      <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="color: #67E8F9; font-size: 18px;">◆</span>
+          <span style="font-size: 22px; font-weight: 600; letter-spacing: -0.01em;">Aurora Launch Spot</span>
+          <span style="height: 20px; padding: 0 8px; border-radius: 9999px; background: rgba(148,96,255,0.16); border: 1px solid #9460FF; color: #c9adff; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #9460FF;"></span>rendering shot 7</span>
+        </div>
+        <div style="font-size: 13px; color: #8A8F98;">30-second product launch spot · 8 shots · stills 8/8 · clips 6/8 · script 5/6 voiced · cut assembled, not rendered</div>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; padding-right: 18px; border-right: 1px solid rgba(255,255,255,0.08);">
+        <div style="font-size: 18px; font-family: 'JetBrains Mono', monospace;">$4.12</div>
+        <div style="font-size: 11px; color: #5C606A;">so far · provider rates, no markup</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; background: #6690d4; border-radius: 6px; color: #fff; font-size: 13px; font-weight: 500;">
+        Render master
+      </div>
+    </div>
+
+    <div style="flex: 1; display: flex; min-height: 0;">
+
+      <!-- Left: the conversation that built it -->
+      <div style="width: 460px; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.08); min-height: 0;">
+        <div style="padding: 14px 20px 10px 20px; font-size: 11px; color: #5C606A; text-transform: uppercase; letter-spacing: 0.08em;">Project agent</div>
+        <div style="flex: 1; overflow: hidden; padding: 0 20px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="align-self: flex-end; max-width: 340px; background: #1B1D21; border-radius: 12px 12px 2px 12px; padding: 10px 14px; font-size: 13px; line-height: 1.5; color: #F7F8F8;">Make a 30-second launch spot for the Aurora desk lamp. Warm, minimal, night-time mood. End on the wordmark.</div>
+          <div style="align-self: flex-start; max-width: 400px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 13px; line-height: 1.55; color: #D4D6DB;">Broke the spot into 8 shots — macro to lifestyle, ending on the card. Wrote and voiced the 6-line script, rendered stills for every shot, and assembled a first cut with the VO and a music bed.</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <span style="height: 20px; padding: 0 8px; border-radius: 4px; background: #17181B; border: 1px solid rgba(255,255,255,0.08); color: #8A8F98; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">create_storyboard</span>
+              <span style="height: 20px; padding: 0 8px; border-radius: 4px; background: #17181B; border: 1px solid rgba(255,255,255,0.08); color: #8A8F98; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">voice_script_lines</span>
+              <span style="height: 20px; padding: 0 8px; border-radius: 4px; background: #17181B; border: 1px solid rgba(255,255,255,0.08); color: #8A8F98; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">render_storyboard_stills</span>
+              <span style="height: 20px; padding: 0 8px; border-radius: 4px; background: #17181B; border: 1px solid rgba(255,255,255,0.08); color: #8A8F98; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">assemble_storyboard_timeline</span>
+            </div>
+          </div>
+          <div style="align-self: flex-end; max-width: 340px; background: #1B1D21; border-radius: 12px 12px 2px 12px; padding: 10px 14px; font-size: 13px; line-height: 1.5; color: #F7F8F8;">Shot 5 feels static — make the light-on moment punchier.</div>
+          <div style="align-self: flex-start; max-width: 400px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 13px; line-height: 1.55; color: #D4D6DB;">Re-directed shot 5 as a fast push-in with a bloom on the switch-on, and queued shots 7–8 clips. Shot 7 is rendering now; the cut picks the new take up automatically.</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="height: 20px; padding: 0 8px; border-radius: 9999px; background: rgba(80,250,123,0.12); border: 1px solid rgba(80,250,123,0.5); color: #50FA7B; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">shot 5 · completed in 41s</span>
+              <span style="height: 20px; padding: 0 8px; border-radius: 9999px; background: rgba(148,96,255,0.16); border: 1px solid #9460FF; color: #c9adff; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">shot 7 · rendering</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 14px 20px 18px 20px;">
+          <div style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; background: #101113; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: #5C606A; font-size: 13px;">
+            Ask for a change to this project…
+            <div style="flex: 1;"></div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6690d4" stroke-width="1.5"><path d="M2.5 8h10M9 4.5L12.5 8 9 11.5"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: documents + cost -->
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden;">
+        <div style="padding: 14px 24px 10px 24px; display: flex; align-items: baseline;">
+          <div style="font-size: 11px; color: #5C606A; text-transform: uppercase; letter-spacing: 0.08em;">Documents</div>
+          <div style="flex: 1;"></div>
+          <div style="font-size: 11px; color: #5C606A;">everything below opens as a tab in this group</div>
+        </div>
+        <div style="padding: 0 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+
+          <!-- Storyboard card -->
+          <div style="background: #101113; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="height: 120px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; background: #1B1D21;">
+              <svg viewBox="0 0 120 120" preserveAspectRatio="xMidYMid slice" style="width: 100%; height: 100%; display: block;"><rect width="120" height="120" fill="#0c0c14"/><circle cx="60" cy="64" r="9" fill="#8f7bff"/><rect x="42" y="92" width="36" height="4" rx="2" fill="#232038"/></svg>
+              <svg viewBox="0 0 120 120" preserveAspectRatio="xMidYMid slice" style="width: 100%; height: 100%; display: block;"><rect width="120" height="120" fill="#151329"/><rect x="52" y="48" width="10" height="46" rx="4" fill="#2A2740"/><circle cx="57" cy="42" r="14" fill="#8f7bff"/></svg>
+              <svg viewBox="0 0 120 120" preserveAspectRatio="xMidYMid slice" style="width: 100%; height: 100%; display: block;"><rect width="120" height="120" fill="#241a10"/><path d="M12 96 L52 62 L76 78 L112 50 L112 120 L12 120 Z" fill="#3a2a17"/><circle cx="88" cy="34" r="11" fill="#FFB86C"/></svg>
+              <svg viewBox="0 0 120 120" preserveAspectRatio="xMidYMid slice" style="width: 100%; height: 100%; display: block;"><rect width="120" height="120" fill="#101d2e"/><circle cx="60" cy="56" r="16" fill="#67E8F9" opacity="0.85"/><rect x="36" y="88" width="48" height="5" rx="2.5" fill="#1c3049"/></svg>
+            </div>
+            <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: #9460FF;">▥</span><span style="font-size: 13px; font-weight: 500; flex: 1;">Board</span>
+                <span style="height: 18px; padding: 0 7px; border-radius: 9999px; background: rgba(148,96,255,0.16); border: 1px solid #9460FF; color: #c9adff; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">clips 6/8</span>
+              </div>
+              <div style="display: flex; align-items: baseline; gap: 8px; font-size: 11px; color: #8A8F98;">
+                <span>8 shots · stills 8/8</span><div style="flex: 1;"></div><span style="font-family: 'JetBrains Mono', monospace; color: #9CA0A8;">$3.88</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Script card -->
+          <div style="background: #101113; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="height: 120px; background: #17181B; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #50FA7B;"></span><span style="font-size: 11px; color: #9CA0A8; font-family: 'JetBrains Mono', monospace;">VO 1</span><span style="font-size: 11px; color: #D4D6DB; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Late is when ideas show up.</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #50FA7B;"></span><span style="font-size: 11px; color: #9CA0A8; font-family: 'JetBrains Mono', monospace;">VO 2</span><span style="font-size: 11px; color: #D4D6DB; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Aurora keeps the room out of the way.</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #FFB86C;"></span><span style="font-size: 11px; color: #9CA0A8; font-family: 'JetBrains Mono', monospace;">VO 3</span><span style="font-size: 11px; color: #D4D6DB; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">One touch. The right light.</span><span style="font-size: 11px; color: #FFB86C; font-family: 'JetBrains Mono', monospace;">stale</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #50FA7B;"></span><span style="font-size: 11px; color: #9CA0A8; font-family: 'JetBrains Mono', monospace;">VO 4</span><span style="font-size: 11px; color: #D4D6DB; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Aurora. Work late, gently.</span></div>
+            </div>
+            <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: #08B8FF;">🎙</span><span style="font-size: 13px; font-weight: 500; flex: 1;">Script</span>
+                <span style="height: 18px; padding: 0 7px; border-radius: 9999px; background: rgba(255,184,108,0.1); border: 1px solid rgba(255,184,108,0.5); color: #FFB86C; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">1 line stale</span>
+              </div>
+              <div style="display: flex; align-items: baseline; gap: 8px; font-size: 11px; color: #8A8F98;">
+                <span>6 lines · 5 voiced</span><div style="flex: 1;"></div><span style="font-family: 'JetBrains Mono', monospace; color: #9CA0A8;">$0.19</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline card -->
+          <div style="background: #101113; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="height: 120px; background: #0c0d10; padding: 14px; display: flex; flex-direction: column; gap: 6px; justify-content: center;">
+              <div style="display: flex; gap: 3px; align-items: center;">
+                <span style="font-size: 11px; color: #5C606A; width: 30px; font-family: 'JetBrains Mono', monospace;">V1</span>
+                <div style="height: 22px; flex: 1.4; background: #221c38; border: 1px solid #3b3160; border-radius: 4px;"></div>
+                <div style="height: 22px; flex: 1; background: #221c38; border: 1px solid #3b3160; border-radius: 4px;"></div>
+                <div style="height: 22px; flex: 1.8; background: #221c38; border: 1px solid #3b3160; border-radius: 4px;"></div>
+                <div style="height: 22px; flex: 1.1; background: #221c38; border: 1px solid #9460FF; border-radius: 4px;"></div>
+                <div style="height: 22px; flex: 1.3; background: #17131f; border: 1px dashed #3b3160; border-radius: 4px;"></div>
+              </div>
+              <div style="display: flex; gap: 3px; align-items: center;">
+                <span style="font-size: 11px; color: #5C606A; width: 30px; font-family: 'JetBrains Mono', monospace;">A1</span>
+                <div style="height: 16px; flex: 2.2; background: #0e2233; border: 1px solid #1d4258; border-radius: 4px;"></div>
+                <div style="height: 16px; flex: 1.6; background: #0e2233; border: 1px solid #1d4258; border-radius: 4px;"></div>
+                <div style="height: 16px; flex: 1.4; background: #0e2233; border: 1px solid #1d4258; border-radius: 4px;"></div>
+              </div>
+              <div style="display: flex; gap: 3px; align-items: center;">
+                <span style="font-size: 11px; color: #5C606A; width: 30px; font-family: 'JetBrains Mono', monospace;">A2</span>
+                <div style="height: 16px; flex: 5.2; background: #0f2418; border: 1px solid #1e4a2f; border-radius: 4px;"></div>
+              </div>
+            </div>
+            <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: #9460FF;">▤</span><span style="font-size: 13px; font-weight: 500; flex: 1;">Cut v2</span>
+                <span style="height: 18px; padding: 0 7px; border-radius: 9999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #9CA0A8; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">not rendered</span>
+              </div>
+              <div style="display: flex; align-items: baseline; gap: 8px; font-size: 11px; color: #8A8F98;">
+                <span>9 clips · VO + music · 0:30</span><div style="flex: 1;"></div><span style="font-family: 'JetBrains Mono', monospace; color: #9CA0A8;">$0.00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Workflow card -->
+          <div style="background: #101113; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="height: 120px; background: #0c0d10; position: relative;">
+              <svg viewBox="0 0 340 120" preserveAspectRatio="xMidYMid slice" style="width: 100%; height: 100%; display: block;">
+                <path d="M78 46 C110 46 110 34 142 34" stroke="#3A3D44" stroke-width="1" fill="none"/>
+                <path d="M78 46 C110 46 110 74 142 74" stroke="#3A3D44" stroke-width="1" fill="none"/>
+                <path d="M206 34 C232 34 232 54 258 54" stroke="#3A3D44" stroke-width="1" fill="none"/>
+                <path d="M206 74 C232 74 232 54 258 54" stroke="#3A3D44" stroke-width="1" fill="none"/>
+                <rect x="22" y="32" width="56" height="28" rx="6" fill="#1B1D21" stroke="#27292E"/>
+                <rect x="142" y="20" width="64" height="28" rx="6" fill="#1B1D21" stroke="#27292E"/>
+                <rect x="142" y="60" width="64" height="28" rx="6" fill="#1B1D21" stroke="#27292E"/>
+                <rect x="258" y="40" width="60" height="28" rx="6" fill="#1B1D21" stroke="#27292E"/>
+                <text x="32" y="49" fill="#808590" font-size="9" font-family="JetBrains Mono, monospace">shots</text>
+                <text x="150" y="37" fill="#808590" font-size="9" font-family="JetBrains Mono, monospace">upscale</text>
+                <text x="150" y="77" fill="#808590" font-size="9" font-family="JetBrains Mono, monospace">grade</text>
+                <text x="266" y="57" fill="#808590" font-size="9" font-family="JetBrains Mono, monospace">encode</text>
+              </svg>
+            </div>
+            <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: #A7B1BF;">⬡</span><span style="font-size: 13px; font-weight: 500; flex: 1;">Render pipeline</span>
+                <span style="height: 18px; padding: 0 7px; border-radius: 9999px; background: rgba(80,250,123,0.12); border: 1px solid rgba(80,250,123,0.5); color: #50FA7B; font-size: 11px; font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center;">last run 2.1s</span>
+              </div>
+              <div style="display: flex; align-items: baseline; gap: 8px; font-size: 11px; color: #8A8F98;">
+                <span>4 nodes · reusable</span><div style="flex: 1;"></div><span style="font-family: 'JetBrains Mono', monospace; color: #9CA0A8;">$0.05</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cost breakdown row -->
+        <div style="margin-top: auto; padding: 14px 24px 18px 24px;">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #101113; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+            <div style="font-size: 11px; color: #5C606A; text-transform: uppercase; letter-spacing: 0.08em;">Spend</div>
+            <div style="flex: 1; height: 6px; border-radius: 3px; overflow: hidden; display: flex; background: #1B1D21;">
+              <div style="width: 31.1%; background: #E838FF;"></div>
+              <div style="width: 63.1%; background: #9460FF;"></div>
+              <div style="width: 4.6%; background: #08B8FF;"></div>
+              <div style="width: 1.2%; background: #6690d4;"></div>
+            </div>
+            <div style="display: flex; gap: 14px; font-size: 11px; color: #8A8F98; font-family: 'JetBrains Mono', monospace;">
+              <span><span style="color: #E838FF;">●</span> stills $1.28</span>
+              <span><span style="color: #9460FF;">●</span> clips $2.60</span>
+              <span><span style="color: #08B8FF;">●</span> voice $0.19</span>
+              <span><span style="color: #6690d4;">●</span> pipeline $0.05</span>
+              <span style="color: #F7F8F8;">$4.12</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

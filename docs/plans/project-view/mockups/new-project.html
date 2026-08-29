@@ -1,0 +1,149 @@
+<!doctype html>
+<!-- Mockup for docs/plans/project-view/PLAN.md — Phase 4 (D1-D3). 1440x900; chrome matches the shipped WorkspaceShell. Editable canvas: https://claude.ai/code/artifact/9fde1641-9965-4f71-bb23-2543ef4bc4db -->
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #08090A; }
+    a { color: #6690d4; } a:hover { color: #7aa0e2; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; background: #08090A; color: #F7F8F8; font-family: 'Inter', Arial, sans-serif; overflow: hidden;">
+
+  <!-- ===== Tab bar ===== -->
+  <div style="position: absolute; top: 0; left: 0; right: 0; height: 40px; padding-left: 50px; background: #0A0B0D; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: stretch;">
+    <div style="display: flex; align-items: center; gap: 6px; padding: 0 16px; border-right: 1px solid rgba(255,255,255,0.08); color: #6690d4; font-size: 13px; font-weight: 500;">
+      <span style="font-size: 15px; line-height: 1;">+</span><span>New</span><span style="font-size: 11px; opacity: 0.75; margin-left: 2px;">▾</span>
+    </div>
+    <!-- The new-project surface is itself a tab, so it can sit beside open work -->
+    <div style="display: flex; align-items: center; gap: 8px; min-width: 150px; max-width: 240px; padding: 0 12px 0 16px; background: #08090A; color: #F7F8F8; border-right: 1px solid rgba(255,255,255,0.08); font-size: 13px;">
+      <span style="color: #67E8F9; font-size: 13px;">◆</span>
+      <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">New project</span>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="rgba(247,248,248,0.38)" stroke-width="1.4"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7"/></svg>
+    </div>
+    <div style="flex: 1;"></div>
+    <div style="display: flex; align-items: center; padding-right: 8px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#8A8F98" stroke-width="1.3"><path d="M8 2a4 4 0 0 1 4 4v3l1.2 2H2.8L4 9V6a4 4 0 0 1 4-4z"/><path d="M6.7 13.4a1.5 1.5 0 0 0 2.6 0"/></svg>
+    </div>
+  </div>
+
+  <!-- ===== Left rail ===== -->
+  <div style="position: absolute; top: 0; left: 0; bottom: 0; width: 50px; background: #0A0B0D; border-right: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; align-items: center; padding: 10px 0 12px 0; gap: 4px; z-index: 3;">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" style="margin-bottom: 10px;"><path d="M11 2l7.8 4.5v9L11 20l-7.8-4.5v-9z" stroke="#F7F8F8" stroke-width="1.5"/><circle cx="11" cy="11" r="2.4" fill="#6690d4"/></svg>
+    <div style="width: 34px; height: 34px; border-radius: 6px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#67E8F9" stroke-width="1.5"><path d="M9 2.2l6.8 6.8L9 15.8 2.2 9z"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><rect x="2.5" y="2.5" width="5.4" height="5.4" rx="1"/><rect x="10.1" y="2.5" width="5.4" height="5.4" rx="1"/><rect x="2.5" y="10.1" width="5.4" height="5.4" rx="1"/><rect x="10.1" y="10.1" width="5.4" height="5.4" rx="1"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><path d="M9 2.5l5.6 3.2v6.6L9 15.5l-5.6-3.2V5.7z"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><path d="M3 4.5h12v7.5H8.5L5.5 15v-3H3z"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><path d="M11.5 3.2l3.3 3.3L6.3 15H3v-3.3z"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><path d="M3 5h12M3 9h8M3 13h10"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><rect x="2.5" y="3.5" width="13" height="11" rx="1.5"/><path d="M6.8 3.5v11M11.2 3.5v11"/></svg>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><circle cx="9" cy="6.4" r="3"/><path d="M3.4 15c.9-2.8 3-4.2 5.6-4.2s4.7 1.4 5.6 4.2"/></svg>
+    </div>
+    <div style="flex: 1;"></div>
+    <div style="width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8A8F98" stroke-width="1.4"><circle cx="9" cy="9" r="2.4"/><path d="M9 2.5v2M9 13.5v2M2.5 9h2M13.5 9h2M4.4 4.4l1.4 1.4M12.2 12.2l1.4 1.4M13.6 4.4l-1.4 1.4M5.8 12.2l-1.4 1.4"/></svg>
+    </div>
+  </div>
+
+  <!-- ===== Bottom strip ===== -->
+  <div style="position: absolute; bottom: 0; left: 50px; right: 0; height: 32px; background: #101113; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 12px; gap: 16px; font-size: 11px; color: #8A8F98;">
+    <span>Logs</span><span>Queue</span><span>Workers</span><span>Versions</span><span>Trace</span>
+    <div style="flex: 1;"></div>
+    <div style="display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #50FA7B; display: inline-block;"></span><span>worker · local</span></div>
+  </div>
+
+  <!-- ===== Center: full-view new-project surface ===== -->
+  <div style="position: absolute; top: 40px; left: 50px; right: 0; bottom: 32px; overflow: hidden; display: flex; flex-direction: column; align-items: center;">
+
+    <div style="width: 860px; display: flex; flex-direction: column; gap: 20px; padding-top: 96px;">
+      <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center;">
+        <div style="font-size: 22px; font-weight: 600; letter-spacing: -0.01em;">What do you want to make?</div>
+        <div style="font-size: 13px; color: #8A8F98; max-width: 560px; line-height: 1.5;">An agent plans the documents — a board, a script, a cut — and builds them while you watch. Everything it makes stays editable.</div>
+      </div>
+
+      <!-- Prompt card -->
+      <div style="background: #101113; border: 1px solid #6690d4; border-radius: 12px; padding: 18px 20px 14px 20px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="font-size: 15px; line-height: 1.55; color: #F7F8F8; min-height: 70px;">A 30-second launch spot for our desk lamp — warm, minimal, night-time mood<span style="display: inline-block; width: 1px; height: 16px; background: #6690d4; vertical-align: text-bottom; margin-left: 1px;"></span></div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="height: 26px; padding: 0 10px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.15); color: #9CA0A8; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;"><span style="color: #E838FF;">▦</span> ref images · 0</span>
+          <span style="height: 26px; padding: 0 10px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.15); color: #9CA0A8; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;"><span style="color: #08B8FF;">♪</span> voice · Ines</span>
+          <span style="height: 26px; padding: 0 10px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.15); color: #9CA0A8; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;"><span style="color: #B0F030;">◈</span> entities · none</span>
+          <div style="flex: 1;"></div>
+          <span style="font-size: 11px; color: #5C606A; font-family: 'JetBrains Mono', monospace;">est. $3–6 · provider rates, no markup</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 18px; background: #6690d4; border-radius: 6px; color: #fff; font-size: 13px; font-weight: 500;">Start</span>
+        </div>
+      </div>
+
+      <!-- Shape shortcuts -->
+      <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 8px;">
+        <span style="height: 28px; padding: 0 12px; border-radius: 9999px; background: rgba(103,232,249,0.06); border: 1px solid rgba(103,232,249,0.4); color: #67E8F9; font-size: 13px; display: inline-flex; align-items: center;">30s spot</span>
+        <span style="height: 28px; padding: 0 12px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.15); color: #9CA0A8; font-size: 13px; display: inline-flex; align-items: center;">Trailer</span>
+        <span style="height: 28px; padding: 0 12px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.15); color: #9CA0A8; font-size: 13px; display: inline-flex; align-items: center;">Music video</span>
+        <span style="height: 28px; padding: 0 12px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.15); color: #9CA0A8; font-size: 13px; display: inline-flex; align-items: center;">Research report</span>
+        <span style="height: 28px; padding: 0 12px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.15); color: #9CA0A8; font-size: 13px; display: inline-flex; align-items: center;">Mini app</span>
+        <span style="height: 28px; padding: 0 12px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.15); color: #9CA0A8; font-size: 13px; display: inline-flex; align-items: center;">Empty project</span>
+      </div>
+
+      <!-- What a project shape sets up, shown for the selected shortcut -->
+      <div style="display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 11px; color: #5C606A;">
+        <span>30s spot sets up</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #8A8F98;"><span style="color: #9460FF;">▥</span> Board</span>
+        <span style="color: #3A3D44;">→</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #8A8F98;"><span style="color: #08B8FF;">🎙</span> Script</span>
+        <span style="color: #3A3D44;">→</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #8A8F98;"><span style="color: #9460FF;">▤</span> Cut</span>
+        <span style="color: #3A3D44;">→</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #8A8F98;"><span style="color: #A7B1BF;">⬡</span> Render pipeline</span>
+      </div>
+    </div>
+
+    <div style="flex: 1;"></div>
+
+    <!-- Blank documents, demoted to the foot of the view -->
+    <div style="width: 860px; padding-bottom: 28px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: baseline; gap: 8px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
+        <div style="font-size: 11px; color: #5C606A; text-transform: uppercase; letter-spacing: 0.08em;">Blank document</div>
+        <div style="font-size: 11px; color: #5C606A;">— opens as a loose tab, outside any project</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #A7B1BF;">⬡</span> Workflow</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #FFA808;">❝</span> Chat</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #9460FF;">▥</span> Storyboard</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #9460FF;">▤</span> Timeline</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #08B8FF;">🎙</span> Script</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #E838FF;">✎</span> Sketch</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #E838FF;">▦</span> Image</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #08B8FF;">♪</span> Audio</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #B0F030;">◈</span> 3D model</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #FFA808;">{ }</span> JS script</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #A7B1BF;">◧</span> App</div>
+        <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: #D4D6DB;"><span style="color: #FFA808;">¶</span> Text ▸</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
