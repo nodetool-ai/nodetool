@@ -105,6 +105,7 @@ describe("web capability module", () => {
 describe("wire compatibility: a Tool built from the spec", () => {
   const pairs: Array<[Tool, string]> = [
     [toolForCapabilityName("web_search"), "web_search"],
+    [toolForCapabilityName("image_search"), "image_search"],
     [toolForCapabilityName("browser"), "browser"],
     [toolForCapabilityName("take_screenshot"), "take_screenshot"],
     [toolForCapabilityName("http_request"), "http_request"],
@@ -224,5 +225,16 @@ describe("behaviour through toolFromCapability", () => {
       search_type: "videos"
     });
     expect(String(result)).toContain('unknown search_type "videos"');
+  });
+
+  it("image_search always searches images regardless of caller input", async () => {
+    const context = makeContext();
+    const tool = asTool(byName("image_search"));
+    // No search_type argument exists on this capability's schema at all —
+    // even a caller that smuggles one in cannot override it, because the
+    // impl overwrites it before delegating to the same routing as web_search.
+    await expect(
+      tool.process(context, { query: "otters", search_type: "web" })
+    ).rejects.toThrow(/no search backend is configured for search_type "images"/);
   });
 });

@@ -142,8 +142,16 @@ describe("mountCapabilityModules — the registry's own modules", () => {
     expect(result.error).toContain(name);
   });
 
-  it.each(["images", "image_search", "search_images", "google_images"])(
-    "points a guessed image-search import (%s) at web_search's search_type",
+  it("serves the dedicated image_search export", async () => {
+    const result = await mountCapabilityModules(
+      'import { image_search } from "@nodetool-ai/sandbox-nodetool/web";',
+      run
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it.each(["images", "search_images", "google_images"])(
+    "points a guessed image-search import (%s) at the real image_search export",
     async (guess) => {
       const result = await mountCapabilityModules(
         `import { ${guess} } from "@nodetool-ai/sandbox-nodetool/web";`,
@@ -151,9 +159,7 @@ describe("mountCapabilityModules — the registry's own modules", () => {
       );
       expect(result.ok).toBe(false);
       if (result.ok) return;
-      expect(result.error).toContain(
-        'call "web_search" with {search_type: "images"} instead'
-      );
+      expect(result.error).toContain(`Did you mean "image_search" for "${guess}"?`);
     }
   );
 

@@ -1195,7 +1195,15 @@ research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   (`backend` still pins one). `google_news` and `google_images` later folded
   into it too, as `search_type: "news" | "images"` — three wire names and three
   routing tables for one question with a parameter on it, which also left
-  Brave and Apify reachable from no tool at all. `getAgentToolbelt()`
+  Brave and Apify reachable from no tool at all. Image search split back out
+  into its own `image_search` capability (`web.ts`'s `imageSearchImpl` is
+  `webSearchImpl` with `search_type` pinned to `"images"` — one routing table,
+  a second name): a model reaching for an image search reliably guesses a name
+  like `images` before it guesses a parameter on a text-search call, and a
+  guess against the "web" module's export list is exactly what
+  `synonymHintSentence` in `codeact/capability-modules.ts` corrects. News
+  stayed a `search_type`, since nothing observed a model reaching for a
+  `news_search` import the same way. `getAgentToolbelt()`
   (`src/tools/builtin-tools.ts`) therefore returns what `getBuiltinTools()`
   returns; a saved AgentNode naming a retired tool resolves to its replacement
   through `RETIRED_TOOL_NAMES` in `@nodetool-ai/llm-nodes`.

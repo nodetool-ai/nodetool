@@ -192,31 +192,56 @@ export async function mountCapabilityModules(
 }
 
 /**
- * `web_search` absorbed the news and image searches as a `search_type`
- * argument rather than a name of their own (`google_news`/`google_images`
- * are retired — see `RETIRED_TOOL_NAMES` in
- * `packages/llm-nodes/src/nodes/agent-tool-hydration.ts`). Nothing in the
- * "web" module's export list says so, so a model reaching for an image or
- * news search guesses a name like `images` or `search_images`, is told only
- * that "web" exports `web_search, browser, take_screenshot, http_request,
- * download_file", and calls plain `web_search` next — which silently returns
- * page results instead of the images it was asked for. Naming the parameter
- * here, at the point the guess failed, is cheaper than hoping the model
- * infers it from a bare export list.
+ * A guessed import that names neither a real export nor a casing/underscore
+ * variant of one — a synonym the model reached for by habit. `images` is the
+ * "web" module's own case: it is now the real `image_search` export's name,
+ * but a model still guesses `images`, `image`, `search_images`, or the
+ * retired `google_images` (see `RETIRED_TOOL_NAMES` in
+ * `packages/llm-nodes/src/nodes/agent-tool-hydration.ts`) for it.
  */
-const WEB_SEARCH_TYPE_HINTS: Readonly<Record<string, "images" | "news">> = {
-  images: "images",
-  image: "images",
-  image_search: "images",
-  search_images: "images",
-  google_images: "images",
+const MODULE_EXPORT_SYNONYMS: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  web: {
+    images: "image_search",
+    image: "image_search",
+    search_images: "image_search",
+    google_images: "image_search",
+    dataforseo_images: "image_search"
+  }
+};
+
+/** "Did you mean …" for a known synonym of a real export in this module. */
+function synonymHintSentence(
+  module: string,
+  missingName: string,
+  available: readonly string[]
+): string {
+  const target = MODULE_EXPORT_SYNONYMS[module]?.[missingName.toLowerCase()];
+  if (target === undefined || !available.includes(target)) return "";
+  return `Did you mean "${target}" for "${missingName}"? `;
+}
+
+/**
+ * `web_search` absorbed news search as a `search_type` argument rather than a
+ * name of its own (`google_news` is retired — see `RETIRED_TOOL_NAMES` in
+ * `packages/llm-nodes/src/nodes/agent-tool-hydration.ts`). Nothing in the
+ * "web" module's export list says so, so a model reaching for a news search
+ * guesses a name like `news_search`, is told only that "web" exports
+ * `web_search, image_search, browser, take_screenshot, http_request,
+ * download_file", and calls plain `web_search` next — which silently returns
+ * page results instead of the dated articles it was asked for. Naming the
+ * parameter here, at the point the guess failed, is cheaper than hoping the
+ * model infers it from a bare export list.
+ */
+const WEB_SEARCH_TYPE_HINTS: Readonly<Record<string, "news">> = {
   news: "news",
   news_search: "news",
   search_news: "news",
   google_news: "news"
 };
 
-/** A sentence pointing a guessed image/news-search import at `web_search`. */
+/** A sentence pointing a guessed news-search import at `web_search`. */
 function searchTypeHintSentence(module: string, missingName: string): string {
   if (module !== "web") return "";
   const searchType = WEB_SEARCH_TYPE_HINTS[missingName.toLowerCase()];
@@ -252,8 +277,9 @@ function unknownImportedExports(
     const suggestions = missing
       .map(
         (name) =>
-          searchTypeHintSentence(module ?? "", name) ||
-          nearMatchSentence(name, available)
+          synonymHintSentence(module ?? "", name, available) ||
+          nearMatchSentence(name, available) ||
+          searchTypeHintSentence(module ?? "", name)
       )
       .filter((sentence) => sentence.length > 0)
       .join(" ");

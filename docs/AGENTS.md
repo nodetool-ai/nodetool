@@ -181,7 +181,7 @@ lazy implementation table disagree.
 | `nodes` | `list_nodes`, `search_nodes`, `get_node_info` |
 | `models` | `find_model`, `list_models`, `list_provider_models` |
 | `files` | `read_file`, `write_file`, `list_directory`, `edit_file`, `glob`, `grep`, `todo_write` |
-| `web` | `web_search`, `browser`, `take_screenshot`, `download_file`, `http_request` |
+| `web` | `web_search`, `image_search`, `browser`, `take_screenshot`, `download_file`, `http_request` |
 | `serpapi` | `list_serpapi_engines`, `get_serpapi_engine_schema`, `serpapi_search`, `get_serpapi_account`, `get_serpapi_locations` |
 | `apify` | `search_apify_actors`, `get_apify_actor`, `get_apify_actor_schema`, `run_apify_actor`, `get_apify_run`, `abort_apify_run`, `get_apify_dataset_items`, `get_apify_key_value_record` |
 | `collections` | `list_collections`, `query_collection`, `vector_text_search`, `vector_index`, `vector_hybrid_search`, `vector_recursive_split_and_index`, `vector_markdown_split_and_index`, `vector_batch_index`, `create_collection`, `delete_collection` |
