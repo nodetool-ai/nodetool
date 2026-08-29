@@ -38,6 +38,7 @@ import {
   parseTimecode
 } from "./InspectorPrimitives.helpers";
 import { ClipAdjustments } from "./ClipAdjustments";
+import { ClipStoryboardLink } from "./ClipStoryboardLink";
 import { ClipAnimations } from "./ClipAnimations";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";
@@ -249,6 +250,10 @@ export const TimelineInspector: React.FC = memo(() => {
         metadata={identityMeta}
         accentColor={accentColor}
       />
+
+      {/* Shot clips are assembled as imported media, so this branch is the
+          only one a board link can reach. */}
+      <ClipStoryboardLink clip={clip} />
 
       {textStyle && (
         <>

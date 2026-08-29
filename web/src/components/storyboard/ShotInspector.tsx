@@ -55,6 +55,8 @@ import {
 import { useEntities } from "../../serverState/useEntities";
 import { getEntityChipSx, getEntityKindDotSx } from "../entities/entityKind";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
+import { useShotTimelineLink } from "../../hooks/storyboard/useShotTimelineLink";
 import { isShotGenerating } from "./ShotStatusPill";
 import { colorForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -92,6 +94,9 @@ const STATUS_META: Record<
 /** Sky — the app's colour for anything script- or voice-shaped. */
 const SCRIPT_COLOR = colorForType("audio");
 
+/** Violet — the app's colour for anything picture-shaped. */
+const TIMELINE_COLOR = colorForType("video");
+
 /**
  * Secondary actions read as text rather than as a row of equal accent links;
  * only the step the shot has not taken yet keeps the accent.
@@ -109,12 +114,16 @@ const quietChipSx = {
 } as const;
 
 /** A cross-document link chip, tinted by the document type it points at. */
-const linkChipSx = {
-  height: `${CONTROL.height.xs}px`,
-  borderRadius: BORDER_RADIUS.md,
-  borderColor: hexToRgba(SCRIPT_COLOR, 0.35),
-  color: SCRIPT_COLOR
-} as const;
+const linkChipSx = (color: string) =>
+  ({
+    height: `${CONTROL.height.xs}px`,
+    borderRadius: BORDER_RADIUS.md,
+    borderColor: hexToRgba(color, 0.35),
+    color
+  }) as const;
+
+const scriptChipSx = linkChipSx(SCRIPT_COLOR);
+const timelineChipSx = linkChipSx(TIMELINE_COLOR);
 
 const cameraLine = (shot: Shot): string =>
   [
@@ -226,27 +235,41 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
     .filter((p): p is string => p !== null)
     .join(" · ");
 
-  // Where this shot lands in the project's other documents. Only the script
-  // link exists today; the timeline chip arrives with the timeline mapping.
+  // Where this shot lands in the project's other documents: the script line it
+  // covers, and the clip it owns in the assembled cut.
   const scriptLines = useBoardScriptLines(boardId);
-  const scriptLinkLabel = useMemo(() => {
+  const scriptLink = useMemo(() => {
     const ids = shot.script_line_ids ?? [];
     if (!scriptId || ids.length === 0) {
       return null;
     }
     const order = [...scriptLines.keys()];
-    const position = ids
-      .map((id) => order.indexOf(id))
-      .filter((i) => i >= 0)
-      .sort((a, b) => a - b)[0];
-    return position == null ? "Script" : `Script · line ${position + 1}`;
+    const first = ids
+      .map((id) => ({ id, position: order.indexOf(id) }))
+      .filter((entry) => entry.position >= 0)
+      .sort((a, b) => a.position - b.position)[0];
+    return {
+      lineId: first?.id ?? null,
+      label: first ? `Script · line ${first.position + 1}` : "Script"
+    };
   }, [scriptId, scriptLines, shot.script_line_ids]);
+  const timelineLink = useShotTimelineLink(boardId, shot.id);
 
   const handleOpenScript = useCallback(() => {
-    if (scriptId) {
-      openTab({ type: "script", ref: scriptId, mode: "edit", title: "Script" });
+    if (!scriptId) {
+      return;
     }
-  }, [openTab, scriptId]);
+    // Park the line before the tab opens: the script pane reads the request as
+    // it renders, and scrolls to the line rather than to the top.
+    if (scriptLink?.lineId) {
+      requestDocumentFocus({
+        type: "script",
+        ref: scriptId,
+        lineId: scriptLink.lineId
+      });
+    }
+    openTab({ type: "script", ref: scriptId, mode: "edit", title: "Script" });
+  }, [openTab, scriptId, scriptLink]);
 
   const handleToggleDurationSource = useCallback(() => {
     updateShot(boardId, shot.id, {
@@ -315,16 +338,27 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         </Box>
         <Divider orientation="vertical" flexItem />
         <Caption color="secondary">Appears in</Caption>
-        {scriptLinkLabel ? (
+        {timelineLink && (
           <Chip
             compact
             variant="outlined"
-            label={scriptLinkLabel}
-            sx={linkChipSx}
+            label={timelineLink.label}
+            sx={timelineChipSx}
+            onClick={timelineLink.open}
+            title="Open the cut with this shot's clip selected"
+          />
+        )}
+        {scriptLink && (
+          <Chip
+            compact
+            variant="outlined"
+            label={scriptLink.label}
+            sx={scriptChipSx}
             onClick={handleOpenScript}
             title="Open the script this shot's lines come from"
           />
-        ) : (
+        )}
+        {!timelineLink && !scriptLink && (
           <Caption color="muted">nothing yet</Caption>
         )}
         <Box sx={{ flex: 1 }} />

@@ -16,6 +16,7 @@ import { trpc } from "../../trpc/client";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useScriptStoryboardLink } from "../../stores/script/ScriptStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
 
 /** The shot covering one line, and how to go look at it. */
 export interface ScriptLineShotLink {
@@ -75,10 +76,16 @@ export const useScriptLineShotLink = (
     if (!boardId || !shot) {
       return;
     }
+    // Park the shot before the tab opens: a board that is not already open has
+    // no store entry to select in yet, so selecting here would land on nothing.
+    requestDocumentFocus({
+      type: "storyboard",
+      ref: boardId,
+      shotId: shot.id
+    });
     useWorkspaceTabsStore
       .getState()
       .openTab({ type: "storyboard", ref: boardId, mode: "edit" });
-    useStoryboardStore.getState().selectShot(boardId, shot.id);
   }, [boardId, shots, lineId]);
 
   return useMemo(() => {

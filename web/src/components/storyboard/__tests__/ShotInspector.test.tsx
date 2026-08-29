@@ -23,6 +23,8 @@ const removeKeyframeVersionMock = jest.fn();
 const removeClipVersionMock = jest.fn();
 /** Script the board links, if any — set per test before rendering. */
 let linkedScriptId: string | null = null;
+/** Assembled cut the board links, if any — set per test before rendering. */
+let linkedTimelineId: string | null = null;
 jest.mock("../../../stores/storyboard/StoryboardStore", () => {
   const actual = jest.requireActual(
     "../../../stores/storyboard/StoryboardStore"
@@ -42,6 +44,7 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => {
         boards: {
           "board-1": {
             entityIds: [],
+            timelineId: linkedTimelineId,
             screenplay: linkedScriptId ? { script_id: linkedScriptId } : null
           }
         }
@@ -92,6 +95,45 @@ jest.mock("../../../trpc/client", () => ({
               }
             : { data: undefined }
       }
+    },
+    timeline: {
+      get: {
+        useQuery: (_input: { id: string }, options?: { enabled?: boolean }) =>
+          options?.enabled
+            ? {
+                data: {
+                  id: "timeline-1",
+                  name: "Aurora cut",
+                  clips: [
+                    {
+                      id: "clip-shot-1",
+                      mediaType: "video",
+                      startMs: 12_000,
+                      storyboardBoardId: "board-1",
+                      storyboardShotId: "shot-1"
+                    },
+                    // The shot's audio twin and the voiceover clip covering it
+                    // carry the same shot keys; neither is the shot's clip.
+                    {
+                      id: "clip-shot-1-audio",
+                      mediaType: "audio",
+                      startMs: 12_000,
+                      storyboardBoardId: "board-1",
+                      storyboardShotId: "shot-1"
+                    },
+                    {
+                      id: "clip-vo-1",
+                      mediaType: "video",
+                      startMs: 12_500,
+                      storyboardBoardId: "board-1",
+                      storyboardShotId: "shot-1",
+                      scriptLineId: "line-1"
+                    }
+                  ]
+                }
+              }
+            : { data: undefined }
+      }
     }
   },
   trpcClient: {}
@@ -114,6 +156,7 @@ jest.mock("../ShotScriptPanel", () => stub("script-panel"));
 
 import ShotInspector from "../ShotInspector";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import { useDocumentFocusStore } from "../../../stores/DocumentFocusStore";
 
 const makeShot = (overrides: Partial<Shot> = {}): Shot => ({
   type: "shot",
@@ -325,8 +368,10 @@ describe("ShotInspector", () => {
 describe("ShotInspector cross-document links", () => {
   beforeEach(() => {
     linkedScriptId = null;
+    linkedTimelineId = null;
     lineIsVoiced = true;
     useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
+    useDocumentFocusStore.setState({ pending: null });
   });
 
   it("says nothing appears elsewhere for an unlinked shot", () => {
@@ -334,7 +379,7 @@ describe("ShotInspector cross-document links", () => {
     expect(screen.getByText("nothing yet")).toBeInTheDocument();
   });
 
-  it("links to the script line the shot covers", async () => {
+  it("links to the script line the shot covers, and opens it there", async () => {
     linkedScriptId = "script-1";
     renderInspector(makeShot({ script_line_ids: ["line-1"] }));
 
@@ -345,6 +390,37 @@ describe("ShotInspector cross-document links", () => {
     expect(tabs.some((t) => t.type === "script" && t.ref === "script-1")).toBe(
       true
     );
+    expect(useDocumentFocusStore.getState().pending).toEqual({
+      type: "script",
+      ref: "script-1",
+      lineId: "line-1"
+    });
+  });
+
+  it("links to the clip the shot owns in the cut, at its timecode", async () => {
+    linkedTimelineId = "timeline-1";
+    renderInspector(makeShot());
+
+    await userEvent.click(screen.getByText("Aurora cut at 00:12"));
+
+    const tabs = useWorkspaceTabsStore.getState().tabs;
+    expect(
+      tabs.some((t) => t.type === "timeline" && t.ref === "timeline-1")
+    ).toBe(true);
+    // The shot's own clip — not its audio twin, not a voiceover clip covering
+    // it — is the one the cut is opened on.
+    expect(useDocumentFocusStore.getState().pending).toEqual({
+      type: "timeline",
+      ref: "timeline-1",
+      clipId: "clip-shot-1"
+    });
+  });
+
+  it("omits the cut chip while the board carries no shot clip there", () => {
+    linkedTimelineId = "timeline-1";
+    renderInspector(makeShot({ id: "shot-2" }));
+    expect(screen.queryByText(/Aurora cut at/)).not.toBeInTheDocument();
+    expect(screen.getByText("nothing yet")).toBeInTheDocument();
   });
 });
 

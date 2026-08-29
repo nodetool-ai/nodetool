@@ -46,6 +46,7 @@ import {
   useStoryboardCanRedo
 } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
+import { useStoryboardShotFocus } from "../../hooks/storyboard/useStoryboardShotFocus";
 import {
   useImageModelsByProvider,
   type ImageModelTask
@@ -155,6 +156,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     shots,
     activeShotId
   } = useBoard(boardId);
+
+  // Land on the shot a script line or a cut clip linked to, once it has loaded.
+  useStoryboardShotFocus(boardId);
 
   const inStudio = useInStudio();
   const setTitle = useStoryboardStore((state) => state.setTitle);
