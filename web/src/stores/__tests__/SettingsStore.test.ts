@@ -26,7 +26,6 @@ describe("SettingsStore", () => {
       expect(settings.timeFormat).toBe("12h");
       expect(settings.alertBeforeTabClose).toBe(true);
       expect(settings.selectNodesOnDrag).toBe(false);
-      expect(settings.showWelcomeOnStartup).toBe(true);
       expect(settings.soundNotifications).toBe(true);
       expect(settings.instantUpdate).toBe(false);
     });
@@ -152,17 +151,6 @@ describe("SettingsStore", () => {
       useSettingsStore.getState().setSelectNodesOnDrag(false);
       expect(useSettingsStore.getState().settings.selectNodesOnDrag).toBe(
         false
-      );
-    });
-
-    test("setShowWelcomeOnStartup toggles value", () => {
-      useSettingsStore.getState().setShowWelcomeOnStartup(false);
-      expect(useSettingsStore.getState().settings.showWelcomeOnStartup).toBe(
-        false
-      );
-      useSettingsStore.getState().setShowWelcomeOnStartup(true);
-      expect(useSettingsStore.getState().settings.showWelcomeOnStartup).toBe(
-        true
       );
     });
 
@@ -310,7 +298,6 @@ describe("SettingsStore", () => {
       expect(defaultSettings.timeFormat).toBeDefined();
       expect(defaultSettings.alertBeforeTabClose).toBeDefined();
       expect(defaultSettings.selectNodesOnDrag).toBeDefined();
-      expect(defaultSettings.showWelcomeOnStartup).toBeDefined();
       expect(defaultSettings.soundNotifications).toBeDefined();
       expect(defaultSettings.instantUpdate).toBeDefined();
       expect(defaultSettings.snapToGrid).toBeDefined();

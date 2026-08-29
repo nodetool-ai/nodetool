@@ -1,13 +1,14 @@
 /**
  * Every document the user owns, in one ordered feed.
  *
- * The sidebar lists each document type in its own panel; the dashboard needs
- * them together, so this hook reads the same queries those panels use — the
- * caches are shared, not duplicated — and folds them into one shape alongside
- * the assets that open as documents (images, audio, 3D models, text files).
+ * The sidebar lists each document type in its own panel; a surface that needs
+ * them together reads this hook instead, which reads the same queries those
+ * panels use — the caches are shared, not duplicated — and folds them into one
+ * shape alongside the assets that open as documents (images, audio, 3D
+ * models, text files).
  *
- * Workflows and chats are deliberately absent: the dashboard already gives
- * each of them a section of its own.
+ * Workflows and chats are deliberately absent: they already get a section of
+ * their own elsewhere.
  */
 
 import { useMemo } from "react";
@@ -22,8 +23,8 @@ import { useJsScripts } from "./jsScript/useJsScripts";
 import { assetTabType } from "../components/workspace/assetTabType";
 import type { WorkspaceTabType } from "../stores/WorkspaceTabsStore";
 
-/** How many assets the dashboard reads from the user's home folder. */
-const DASHBOARD_ASSET_PAGE_SIZE = 200;
+/** How many assets this hook reads from the user's home folder. */
+const RECENT_DOCUMENTS_ASSET_PAGE_SIZE = 200;
 
 const STALE_TIME = 30_000;
 
@@ -121,7 +122,7 @@ const toDocument = (
 });
 
 const listAssets = () =>
-  trpcClient.assets.list.query({ page_size: DASHBOARD_ASSET_PAGE_SIZE });
+  trpcClient.assets.list.query({ page_size: RECENT_DOCUMENTS_ASSET_PAGE_SIZE });
 
 interface UseRecentDocumentsResult {
   documents: RecentDocument[];
@@ -136,7 +137,7 @@ export const useRecentDocuments = (): UseRecentDocumentsResult => {
   const scripts = useScripts();
   const jsScripts = useJsScripts();
   const assets = useQuery({
-    queryKey: ["dashboard", "assets", DASHBOARD_ASSET_PAGE_SIZE],
+    queryKey: ["recent-documents", "assets", RECENT_DOCUMENTS_ASSET_PAGE_SIZE],
     queryFn: listAssets,
     staleTime: STALE_TIME
   });

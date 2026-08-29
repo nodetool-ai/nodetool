@@ -2,9 +2,10 @@
  * OnboardingStore
  *
  * Tracks first-run getting-started progress (open a template, run a
- * workflow, build your own) for the dashboard checklist. Persists to
- * localStorage so progress survives reloads. The "connect a provider"
- * step is derived live from configured secrets and is not stored here.
+ * workflow, build your own) for the checklist on the new-project surface.
+ * Persists to localStorage so progress survives reloads. The "connect a
+ * provider" step is derived live from configured secrets and is not stored
+ * here.
  */
 
 import { create } from "zustand";
@@ -33,19 +34,6 @@ export const isOnboardingFinished = ({
   dismissed
 }: OnboardingProgress): boolean =>
   dismissed || ONBOARDING_STEP_IDS.every((id) => completedSteps.includes(id));
-
-/**
- * Where a fresh app launch should land. New users go to the dashboard, which
- * carries the welcome hero, templates and tutorials; everyone else goes
- * straight to the tabbed workspace.
- */
-export const startRouteFor = (
-  progress: OnboardingProgress,
-  showWelcomeOnStartup: boolean
-): "/dashboard" | "/workspace" =>
-  showWelcomeOnStartup && !isOnboardingFinished(progress)
-    ? "/dashboard"
-    : "/workspace";
 
 interface OnboardingStore {
   completedSteps: OnboardingStepId[];

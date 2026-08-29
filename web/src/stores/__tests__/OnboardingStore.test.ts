@@ -1,7 +1,6 @@
 import useOnboardingStore, {
   ONBOARDING_STEP_IDS,
-  isOnboardingFinished,
-  startRouteFor
+  isOnboardingFinished
 } from "../OnboardingStore";
 
 describe("OnboardingStore", () => {
@@ -56,35 +55,6 @@ describe("OnboardingStore", () => {
       expect(isOnboardingFinished({ completedSteps: [], dismissed: true })).toBe(
         true
       );
-    });
-  });
-
-  describe("startRouteFor", () => {
-    it("sends a new user to the dashboard", () => {
-      expect(startRouteFor({ completedSteps: [], dismissed: false }, true)).toBe(
-        "/dashboard"
-      );
-    });
-
-    it("sends a user who finished onboarding to the workspace", () => {
-      expect(
-        startRouteFor(
-          { completedSteps: [...ONBOARDING_STEP_IDS], dismissed: false },
-          true
-        )
-      ).toBe("/workspace");
-    });
-
-    it("sends a user who dismissed onboarding to the workspace", () => {
-      expect(startRouteFor({ completedSteps: [], dismissed: true }, true)).toBe(
-        "/workspace"
-      );
-    });
-
-    it("honours showWelcomeOnStartup being off", () => {
-      expect(
-        startRouteFor({ completedSteps: [], dismissed: false }, false)
-      ).toBe("/workspace");
     });
   });
 });

@@ -1,14 +1,14 @@
 /**
- * Tutorials shown on the Tutorials page, the dashboard section, and the logo
- * menu. Each is a pre-rendered MP4 + poster produced by the Remotion harness
- * in `demo/`, and the pair is split by weight: the 55 MB of video streams from
- * the documentation site, which serves the same files to
+ * Tutorials shown on the Tutorials page and the logo menu. Each is a
+ * pre-rendered MP4 + poster produced by the Remotion harness in `demo/`, and
+ * the pair is split by weight: the 55 MB of video streams from the
+ * documentation site, which serves the same files to
  * [its own Tutorials page](https://docs.nodetool.ai/tutorials), while the
  * 1.8 MB of posters ships with the app.
  *
  * The split is not only about size. Posters render on every card the moment a
- * page opens, so a poster that depends on a deploy of another site is a broken
- * dashboard; a video is requested only when someone presses play.
+ * page opens, so a poster that depends on a deploy of another site is broken;
+ * a video is requested only when someone presses play.
  */
 import { DOCS_BASE_URL } from "../../config/docsLinks";
 

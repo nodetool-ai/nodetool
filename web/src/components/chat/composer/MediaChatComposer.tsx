@@ -141,8 +141,8 @@ interface MediaChatComposerProps {
    */
   hideModelPicker?: boolean;
   /** Thread this composer writes to. A surface that opened the thread with a
-   *  prompt in mind (the dashboard quick starters) seeds it through
-   *  ChatDraftStore; the seed lands in the textarea once, unsent. */
+   *  prompt in mind (the new-project surface's quick starters) seeds it
+   *  through ChatDraftStore; the seed lands in the textarea once, unsent. */
   threadId?: string | null;
 }
 
