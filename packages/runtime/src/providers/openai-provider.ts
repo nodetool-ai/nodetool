@@ -923,7 +923,14 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     if (content.type === "video") {
-      throw new Error("video input is not supported by openai");
+      // Named for the configured provider, not the wire format: every
+      // OpenAI-compatible re-host lands here, and reporting "openai" sent a
+      // diagnosis after the wrong provider.
+      throw new Error(
+        `video input is not supported by ${this.provider} — its chat API is ` +
+          `OpenAI-compatible, which has no video content part. Use a provider ` +
+          `whose chat models read video natively (gemini).`
+      );
     }
 
     const c = content as MessageImageContent;

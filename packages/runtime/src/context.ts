@@ -3464,6 +3464,17 @@ export class ProcessingContext {
   }
 
   /**
+   * Whether a provider's chat API accepts a `video` content part. Lets a
+   * caller refuse before paying for a prediction that the provider would
+   * reject while resolving the message, which is where the video bytes have
+   * already been fetched and inlined.
+   */
+  async providerSupportsVideoInput(providerId: string): Promise<boolean> {
+    const provider = await this.getProvider(providerId);
+    return provider.supportsVideoInput;
+  }
+
+  /**
    * Generate speech as an encoded audio file (mp3/wav/…). Returns null when the
    * provider doesn't implement the encoded path. Used for providers (FAL, KIE,
    * ElevenLabs) that return audio files instead of streaming PCM.

@@ -696,6 +696,11 @@ export class GeminiProvider extends BaseProvider {
     return true;
   }
 
+  /** Gemini reads a whole clip: see {@link videoContentToGeminiPart}. */
+  override get supportsVideoInput(): boolean {
+    return true;
+  }
+
   // ---------------------------------------------------------------------------
   // Model listing
   // ---------------------------------------------------------------------------
