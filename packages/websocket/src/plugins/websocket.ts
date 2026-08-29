@@ -114,6 +114,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     const runner = new UnifiedWebSocketRunner({
       userId: req.userId ?? "1",
       authToken: req.authToken ?? undefined,
+      // Set only for a visitor to a deployed app's hidden URL. `userId` above
+      // is the app's owner in that case, so this is the only thing telling
+      // the runner it is not talking to them.
+      appSession: req.appSession,
       beforeRunJob: async (graph) => {
         if (getPythonBridgeReady()) return;
         const hasPythonNode = graph.nodes.some((n) => {

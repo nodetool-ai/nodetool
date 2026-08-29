@@ -9,6 +9,7 @@ import {
   listInvocations,
   periodStart,
   recordInvocation,
+  reserveInvocation,
   setApplicationBudget,
   settleInvocation
 } from "../src/application-budget.js";
@@ -135,6 +136,40 @@ describe("application budgets", () => {
       status: "running",
       actualUsd: null
     });
+  });
+
+  it("keeps one invocation id per application", async () => {
+    await run("job-unique", 0);
+
+    await expect(run("job-unique", 0)).rejects.toThrow();
+    expect(await listInvocations(APP)).toHaveLength(1);
+  });
+
+  it("fails a public reservation closed without a finite limit", async () => {
+    const missing = await reserveInvocation({
+      applicationId: APP,
+      invocationId: "job-public-missing",
+      requireFiniteBudget: true
+    });
+    expect(missing).toMatchObject({
+      allowed: false,
+      reason: /finite invocation or USD budget/
+    });
+
+    await setApplicationBudget(APP, {
+      maxUsd: null,
+      maxInvocations: null
+    });
+    const unbounded = await reserveInvocation({
+      applicationId: APP,
+      invocationId: "job-public-unbounded",
+      requireFiniteBudget: true
+    });
+    expect(unbounded).toMatchObject({
+      allowed: false,
+      reason: /finite invocation or USD budget/
+    });
+    expect(await listInvocations(APP)).toEqual([]);
   });
 });
 

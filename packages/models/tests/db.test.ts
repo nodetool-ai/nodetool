@@ -103,6 +103,65 @@ describe("db", () => {
     expect(jobCols).toContain("metadata_json");
   });
 
+  it("repairs legacy application duplicates before creating unique indexes", () => {
+    tempDir = mkdtempSync(join(tmpdir(), "nodetool-models-db-"));
+    const dbPath = join(tempDir, "application-duplicates.sqlite");
+    const legacyDb = new Database(dbPath);
+    legacyDb.exec(`
+      CREATE TABLE application_deployments (
+        id TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        token TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        revoked_at TEXT
+      );
+      CREATE TABLE application_invocations (
+        id TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL,
+        user_id TEXT,
+        version INTEGER,
+        invocation_id TEXT NOT NULL,
+        operation_id TEXT NOT NULL DEFAULT '',
+        estimated_usd REAL NOT NULL DEFAULT 0,
+        actual_usd REAL,
+        status TEXT NOT NULL DEFAULT 'running',
+        created_at TEXT NOT NULL,
+        settled_at TEXT
+      );
+      INSERT INTO application_deployments VALUES
+        ('deployment-old', 'app-1', 'owner-1', 'token-old', '2026-01-01', NULL),
+        ('deployment-new', 'app-1', 'owner-1', 'token-new', '2026-01-02', NULL);
+      INSERT INTO application_invocations VALUES
+        ('invocation-old', 'app-1', NULL, NULL, 'run-1', '', 0, NULL, 'running', '2026-01-01', NULL),
+        ('invocation-new', 'app-1', NULL, NULL, 'run-1', '', 0, NULL, 'running', '2026-01-02', NULL);
+    `);
+    legacyDb.close();
+
+    expect(() => initDb(dbPath)).not.toThrow();
+
+    const sqlite = getRawDb();
+    expect(
+      sqlite
+        .prepare(
+          "SELECT id FROM application_deployments WHERE application_id = ? AND revoked_at IS NULL"
+        )
+        .all("app-1")
+    ).toEqual([{ id: "deployment-new" }]);
+    expect(
+      sqlite
+        .prepare(
+          "SELECT invocation_id FROM application_invocations WHERE id = ?"
+        )
+        .get("invocation-old")
+    ).toEqual({ invocation_id: "legacy:invocation-old" });
+    expect(() =>
+      sqlite.exec(
+        "INSERT INTO application_invocations (id, application_id, invocation_id, operation_id, estimated_usd, status, created_at) VALUES ('invocation-again', 'app-1', 'run-1', '', 0, 'running', '2026-01-03')"
+      )
+    ).toThrow();
+  });
+
   it("migrateSqliteDb applies SQLite migrations without initializing the global DB", async () => {
     tempDir = mkdtempSync(join(tmpdir(), "nodetool-models-db-"));
     const dbPath = join(tempDir, "migrations.sqlite");

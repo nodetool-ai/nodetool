@@ -201,6 +201,9 @@ export {
   applicationUsage,
   checkApplicationBudget,
   getApplicationBudget,
+  hasFiniteBudgetLimit,
+  invocationBelongsToApplication,
+  invocationIdInUse,
   listInvocations,
   periodStart,
   recordInvocation,
@@ -217,6 +220,7 @@ export type {
   Reservation,
   ReserveInput
 } from "./application-budget.js";
+export { ApplicationDeployment } from "./application-deployment.js";
 export { Project, LOOSE_PROJECT_ID } from "./project.js";
 export type { ProjectResponse } from "./project.js";
 export {

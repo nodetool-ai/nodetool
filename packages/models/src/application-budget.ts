@@ -9,7 +9,7 @@
  * silently spends.
  *
  * The ledger doubles as release telemetry: one row per
- * `(applicationId, version, invocationId)`.
+ * `(applicationId, invocationId)`.
  */
 import { and, eq, gte, sql } from "drizzle-orm";
 
@@ -41,6 +41,14 @@ export interface ApplicationUsage {
   spentUsd: number;
   invocations: number;
 }
+
+/** A public app must have at least one finite limit before it can spend. */
+export const hasFiniteBudgetLimit = (
+  budget: ApplicationBudget | null
+): boolean =>
+  budget !== null &&
+  ((budget.maxUsd != null && Number.isFinite(budget.maxUsd)) ||
+    (budget.maxInvocations != null && Number.isFinite(budget.maxInvocations)));
 
 export type BudgetDecision =
   | { allowed: true; usage: ApplicationUsage }
@@ -314,8 +322,23 @@ export type Reservation =
       allowed: false;
       reason: string;
       usage: ApplicationUsage;
-      budget: ApplicationBudget;
+      budget: ApplicationBudget | null;
     };
+
+const emptyUsage = (): ApplicationUsage => ({
+  period: "total",
+  since: null,
+  spentUsd: 0,
+  invocations: 0
+});
+
+const missingPublicBudget = (): Extract<Reservation, { allowed: false }> => ({
+  allowed: false,
+  reason:
+    "Public app runs require a finite invocation or USD budget. Configure one before deploying.",
+  usage: emptyUsage(),
+  budget: null
+});
 
 /** Values every reserved row carries, independent of which driver writes it. */
 const invocationRow = (input: ReserveInput, userId: string | null) => ({
@@ -355,6 +378,8 @@ export interface ReserveInput {
   invocationId: string;
   operationId?: string;
   estimatedUsd?: number;
+  /** Public links fail closed unless the app has a finite spend or run cap. */
+  requireFiniteBudget?: boolean;
 }
 
 /**
@@ -382,12 +407,17 @@ export async function reserveInvocation(
   // No budget row means unmetered, so there is nothing to serialize on.
   const configured = await getApplicationBudget(input.applicationId);
   if (!configured) {
+    if (input.requireFiniteBudget) return missingPublicBudget();
     const record = await recordInvocation({ ...input, userId });
     return {
       allowed: true,
       record,
       usage: await applicationUsage(input.applicationId, "total", now)
     };
+  }
+
+  if (input.requireFiniteBudget && !hasFiniteBudgetLimit(configured)) {
+    return missingPublicBudget();
   }
 
   const decide = (budget: ApplicationBudget, usage: ApplicationUsage) => {
@@ -399,7 +429,7 @@ export async function reserveInvocation(
   const unmetered = (record: InvocationRecord): Reservation => ({
     allowed: true,
     record,
-    usage: { period: "total", since: null, spentUsd: 0, invocations: 0 }
+    usage: emptyUsage()
   });
 
   if (getDbType() === "sqlite") {
@@ -415,6 +445,7 @@ export async function reserveInvocation(
       // The row was there a moment ago and is the thing being locked; if it
       // went away, the app is unmetered and the run is simply recorded.
       if (!budgetRow) {
+        if (input.requireFiniteBudget) return missingPublicBudget();
         const orphan = tx
           .insert(applicationInvocations)
           .values(invocationRow(input, userId))
@@ -423,6 +454,9 @@ export async function reserveInvocation(
         return unmetered(toRecord(orphan as Record<string, unknown>));
       }
       const budget = toBudget(budgetRow as Record<string, unknown>);
+      if (input.requireFiniteBudget && !hasFiniteBudgetLimit(budget)) {
+        return missingPublicBudget();
+      }
       const since = periodStart(budget.period, now);
       const conditions = [
         eq(applicationInvocations.application_id, input.applicationId)
@@ -468,6 +502,7 @@ export async function reserveInvocation(
         .limit(1)
     );
     if (!budgetRow) {
+      if (input.requireFiniteBudget) return missingPublicBudget();
       const [orphan] = await tx
         .insert(applicationInvocations)
         .values(invocationRow(input, userId))
@@ -475,6 +510,9 @@ export async function reserveInvocation(
       return unmetered(toRecord(orphan as Record<string, unknown>));
     }
     const budget = toBudget(budgetRow as Record<string, unknown>);
+    if (input.requireFiniteBudget && !hasFiniteBudgetLimit(budget)) {
+      return missingPublicBudget();
+    }
     const since = periodStart(budget.period, now);
     const conditions = [
       eq(applicationInvocations.application_id, input.applicationId)
@@ -511,6 +549,54 @@ export async function reserveInvocation(
  * Recent runs of an application, newest first. `userId` scopes the read to the
  * owner the rows were written for; rows predating the column stay visible.
  */
+/**
+ * Whether this run was started by this application.
+ *
+ * Every app run reserves a ledger row keyed on its job id before the job
+ * exists, so the ledger is the record of which runs belong to an app — which
+ * is what a caller holding an app-scoped credential must be checked against
+ * before it is allowed to read a run back.
+ */
+export async function invocationBelongsToApplication(
+  applicationId: string,
+  invocationId: string
+): Promise<boolean> {
+  if (!applicationId || !invocationId) return false;
+  const db = getDb();
+  const rows = await db
+    .select({ id: applicationInvocations.id })
+    .from(applicationInvocations)
+    .where(
+      and(
+        eq(applicationInvocations.application_id, applicationId),
+        eq(applicationInvocations.invocation_id, invocationId)
+      )
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
+/**
+ * Whether any application's ledger already holds this invocation id.
+ *
+ * A public visitor names the id its run is filed under, and a job command is
+ * authorized by looking that id up in the app's ledger. Refusing an id that is
+ * already taken is what stops a visitor from filing a row under another run's
+ * id and then commanding that run.
+ */
+export async function invocationIdInUse(
+  invocationId: string
+): Promise<boolean> {
+  if (!invocationId) return false;
+  const db = getDb();
+  const rows = await db
+    .select({ id: applicationInvocations.id })
+    .from(applicationInvocations)
+    .where(eq(applicationInvocations.invocation_id, invocationId))
+    .limit(1);
+  return rows.length > 0;
+}
+
 export async function listInvocations(
   applicationId: string,
   limit = 50,

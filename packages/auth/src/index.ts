@@ -12,6 +12,16 @@ export {
   type MintedDelegatedToken
 } from "./providers/delegated-token-provider.js";
 export {
+  AppSessionTokenProvider,
+  mintAppSessionToken,
+  isAppSessionToken,
+  APP_SESSION_TOKEN_PREFIX,
+  type AppSessionTokenProviderOptions,
+  type AppSessionScope,
+  type AppSessionSigningKey,
+  type MintedAppSessionToken
+} from "./providers/app-session-token-provider.js";
+export {
   MultiUserAuthProvider,
   type MultiUserAuthProviderOptions
 } from "./providers/multi-user-provider.js";

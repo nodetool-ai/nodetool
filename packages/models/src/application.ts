@@ -26,7 +26,11 @@ import {
   createTimeOrderedUuid
 } from "./base-model.js";
 import { getDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
-import { applications, applicationVersions } from "./schema/applications.js";
+import {
+  applications,
+  applicationVersions
+} from "./schema/applications.js";
+import { applicationDeployments } from "./schema/application-deployments.js";
 import {
   applicationBudgets,
   applicationInvocations
@@ -294,6 +298,9 @@ export class Application extends DBModel {
       tx
         .delete(applicationBudgets)
         .where(eq(applicationBudgets.application_id, id)),
+      tx
+        .delete(applicationDeployments)
+        .where(eq(applicationDeployments.application_id, id)),
       tx.delete(applications).where(eq(applications.id, id))
     ];
 
