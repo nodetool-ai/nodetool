@@ -78,7 +78,7 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
           height: `${MEDIA_HEIGHT}px`,
           bgcolor: "background.paper",
           display: "grid",
-          gap: "2px",
+          gap: SPACING.micro,
           gridTemplateColumns: stills.length > 1 ? "2fr 1fr" : "1fr",
           gridTemplateRows: stills.length > 2 ? "1fr 1fr" : "1fr"
         }}

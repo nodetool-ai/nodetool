@@ -276,9 +276,11 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           type,
           ref,
           mode: mode ?? "edit",
-          title: title ?? "Untitled",
-          ...(project ? { projectId: project } : {})
+          title: title ?? "Untitled"
         };
+        if (project) {
+          tab.projectId = project;
+        }
         set((state) => ({
           tabs: [...state.tabs, tab],
           activeTabId: id
