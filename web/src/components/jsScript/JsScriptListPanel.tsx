@@ -45,7 +45,8 @@ export const CreateJsScriptButton = memo(function CreateJsScriptButton() {
         type: "jsscript",
         ref: created.id,
         mode: "edit",
-        title: created.name || DEFAULT_NAME
+        title: created.name || DEFAULT_NAME,
+        projectId: created.projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");

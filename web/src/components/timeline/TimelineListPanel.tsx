@@ -180,7 +180,8 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
           type: "timeline",
           ref: timeline.id,
           mode: "edit",
-          title: timeline.name || "Untitled video"
+          title: timeline.name || "Untitled video",
+          projectId: timeline.projectId
         });
       } else {
         navigate(`/timeline/${timeline.id}`);

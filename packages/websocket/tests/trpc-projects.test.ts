@@ -8,8 +8,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   initTestDb,
+  LOOSE_PROJECT_ID,
   ModelObserver,
   Prediction,
+  Script,
   Storyboard
 } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
@@ -118,7 +120,8 @@ describe("projects router", () => {
         updatedAt: board.updated_at,
         status: { kind: "storyboard", shots: 2, stills: 1, clips: 0 },
         spendUsd: 0.5,
-        unpricedCount: 0
+        unpricedCount: 0,
+        thumbnails: [{ uri: "asset://1", asset_id: null }]
       }
     ]);
     expect(detail.spend.totalUsd).toBeCloseTo(0.5, 6);
@@ -137,5 +140,85 @@ describe("projects router", () => {
         updatedAt: board.updated_at
       }
     ]);
+  });
+
+  it("returns one rollup per project in summaries", async () => {
+    const aurora = await caller().projects.create({ name: "Aurora", kind: "" });
+    await caller().projects.create({ name: "Meridian", kind: "" });
+    await Storyboard.create<Storyboard>({
+      user_id: "user-1",
+      project_id: aurora.id,
+      name: "Board"
+    });
+    // Another user's project must not appear in this user's list.
+    await caller("user-2").projects.create({ name: "Theirs", kind: "" });
+
+    const summaries = await caller().projects.summaries({});
+    expect(summaries.map((s) => s.project.name).sort()).toEqual([
+      "Aurora",
+      "Meridian"
+    ]);
+    const auroraSummary = summaries.find((s) => s.project.id === aurora.id);
+    expect(auroraSummary?.documents.map((d) => d.name)).toEqual(["Board"]);
+  });
+
+  it("lists the documents in no project, and moves one in and back out", async () => {
+    const project = await caller().projects.create({ name: "Aurora", kind: "" });
+    const loose = await Script.create<Script>({
+      user_id: "user-1",
+      name: "Scratch VO"
+    });
+    await Script.create<Script>({ user_id: "user-2", name: "Theirs" });
+
+    expect((await caller().projects.unassigned({})).map((d) => d.ref)).toEqual([
+      loose.id
+    ]);
+
+    await caller().projects.assignDocument({
+      projectId: project.id,
+      type: "script",
+      ref: loose.id
+    });
+    expect(await caller().projects.unassigned({})).toEqual([]);
+    expect(
+      (await caller().projects.documents({ id: project.id })).map((d) => d.ref)
+    ).toEqual([loose.id]);
+
+    await caller().projects.assignDocument({
+      projectId: LOOSE_PROJECT_ID,
+      type: "script",
+      ref: loose.id
+    });
+    expect((await caller().projects.unassigned({})).map((d) => d.ref)).toEqual([
+      loose.id
+    ]);
+  });
+
+  it("refuses a move into a project the caller does not own, and of a document they do not own", async () => {
+    const theirs = await caller("user-2").projects.create({
+      name: "Theirs",
+      kind: ""
+    });
+    const mine = await Script.create<Script>({ user_id: "user-1", name: "Mine" });
+    await expect(
+      caller().projects.assignDocument({
+        projectId: theirs.id,
+        type: "script",
+        ref: mine.id
+      })
+    ).rejects.toThrow(/not found/i);
+
+    const project = await caller().projects.create({ name: "Aurora", kind: "" });
+    const notMine = await Script.create<Script>({
+      user_id: "user-2",
+      name: "Theirs"
+    });
+    await expect(
+      caller().projects.assignDocument({
+        projectId: project.id,
+        type: "script",
+        ref: notMine.id
+      })
+    ).rejects.toThrow(/not found/i);
   });
 });

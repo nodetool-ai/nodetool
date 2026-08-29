@@ -246,7 +246,8 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           type: "timeline",
           ref: sequence.id,
           mode: "edit",
-          title: sequence.name || "Untitled video"
+          title: sequence.name || "Untitled video",
+          projectId: sequence.projectId
         });
       }),
     [runCreate, createTimeline, openTab]
@@ -263,7 +264,8 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           type: "storyboard",
           ref: created.id,
           mode: "edit",
-          title: created.name
+          title: created.name,
+          projectId: created.projectId
         });
       }),
     [runCreate, createStoryboard, openTab]
@@ -280,7 +282,8 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           type: "storyboard",
           ref: created.id,
           mode: "edit",
-          title: created.name
+          title: created.name,
+          projectId: created.projectId
         });
       }),
     [runCreate, installExampleStoryboard, openTab]
@@ -298,7 +301,8 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           type: "application",
           ref: created.id,
           mode: "edit",
-          title: created.name
+          title: created.name,
+          projectId: created.projectId
         });
       }),
     [runCreate, createApplication, openTab]
@@ -315,7 +319,8 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           type: "script",
           ref: created.id,
           mode: "edit",
-          title: created.name
+          title: created.name,
+          projectId: created.projectId
         });
       }),
     [runCreate, createScript, openTab]
@@ -332,7 +337,8 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           type: "jsscript",
           ref: created.id,
           mode: "edit",
-          title: created.name
+          title: created.name,
+          projectId: created.projectId
         });
       }),
     [runCreate, createJsScript, openTab]

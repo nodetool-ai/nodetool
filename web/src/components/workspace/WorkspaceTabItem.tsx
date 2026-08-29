@@ -22,6 +22,8 @@ import {
 interface WorkspaceTabItemProps {
   tab: WorkspaceTab;
   isActive: boolean;
+  /** Part of the open project's tab group — carries the group's underline. */
+  inProject?: boolean;
   isEditing: boolean;
   canRename: boolean;
   dropPosition: "left" | "right" | null;
@@ -43,6 +45,7 @@ interface WorkspaceTabItemProps {
 const WorkspaceTabItem = ({
   tab,
   isActive,
+  inProject = false,
   isEditing,
   canRename,
   dropPosition,
@@ -133,7 +136,9 @@ const WorkspaceTabItem = ({
   return (
     <>
       <div
-        className={`tab${isActive ? " active" : ""}${dropClass}`}
+        className={`tab${isActive ? " active" : ""}${
+          inProject ? " in-project" : ""
+        }${dropClass}`}
         role="tab"
         aria-selected={isActive}
         tabIndex={0}

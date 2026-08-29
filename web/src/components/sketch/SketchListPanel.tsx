@@ -184,7 +184,8 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
           type: "sketch",
           ref: sketch.id,
           mode: "edit",
-          title: sketch.name || "Untitled sketch"
+          title: sketch.name || "Untitled sketch",
+          projectId: sketch.projectId
         });
       } else {
         navigate(`/sketch/${sketch.id}`);

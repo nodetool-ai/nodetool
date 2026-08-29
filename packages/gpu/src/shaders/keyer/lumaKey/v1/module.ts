@@ -10,6 +10,7 @@
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
+import { WGSL_LUMA709 } from "../../../../shared/lumaWgsl.js";
 
 export const LumaKeyParams = d.struct({
   low: d.f32,
@@ -51,16 +52,17 @@ export const keyerLumaKeyV1 = defineModule({
   layout,
   samplers: { samp: samplerDescriptor },
   wgsl: /* wgsl */ `
+${WGSL_LUMA709}
+
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let p = layout.$.params;
   // Input is premultiplied; compute luma on the underlying straight color so
-  // the band thresholds don't drift with a. Rec. 709 weights match the
-  // declared linear color space (Rec. 601 is the gamma-space coefficient set).
+  // the band thresholds don't drift with a.
   let safeA = max(src.a, 1.0 / 255.0);
   let straight = src.rgb / safeA;
-  let luma = dot(straight, vec3f(0.2126, 0.7152, 0.0722));
+  let luma = luma709(straight);
   let soft = max(p.softness, 0.0001);
   let lowEdge = smoothstep(p.low - soft, p.low + soft, luma);
   let highEdge = 1.0 - smoothstep(p.high - soft, p.high + soft, luma);

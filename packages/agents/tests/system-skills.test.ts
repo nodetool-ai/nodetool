@@ -57,6 +57,115 @@ describe("parseSkillMarkdown", () => {
       parseSkillMarkdown("---\nname: Not A Name\ndescription: d\n---\n\nbody")
     ).toBeNull();
   });
+
+  // A quote is only a quote when it wraps the whole value. Stripping a leading
+  // and a trailing one independently ate the closing quote off a description
+  // that quotes a trigger phrase — the text a model reads to pick the skill.
+  it.each([
+    ['description: Use when the user says "go"', 'Use when the user says "go"'],
+    ['description: "go" is the trigger', '"go" is the trigger'],
+    ["description: for the users'", "for the users'"],
+    ["description: \"d'", "\"d'"],
+    ['description: "', '"'],
+    ['description: "d"', "d"],
+    ["description: 'd'", "d"]
+  ])("takes %j as a value", (line, description) => {
+    expect(parseSkillMarkdown(`---\nname: alpha\n${line}\n---\nbody`)).toEqual({
+      name: "alpha",
+      description,
+      content: "body"
+    });
+  });
+
+  it("strips a matched quote pair from a name", () => {
+    expect(
+      parseSkillMarkdown('---\nname: "alpha"\ndescription: d\n---\nbody')?.name
+    ).toBe("alpha");
+    // Unmatched, so the quote is part of the name — which is not a valid one.
+    expect(
+      parseSkillMarkdown('---\nname: "alpha\ndescription: d\n---\nbody')
+    ).toBeNull();
+  });
+
+  // A value is the rest of its own line. `\s*` matches newlines, so an empty
+  // field used to read the next line as its value — a skill described by
+  // whatever key happened to follow it.
+  it("does not read the next line as the value of an empty field", () => {
+    expect(
+      parseSkillMarkdown(
+        "---\nname: alpha\ndescription:\nlicense: MIT\n---\nbody"
+      )
+    ).toBeNull();
+  });
+
+  // A fence is a whole line. A frontmatter line that merely starts with "---"
+  // used to end the frontmatter, spilling the rest of it into the body the
+  // model reads as instructions — or dropping the fields below it entirely.
+  it("does not end the frontmatter on a line that only starts with ---", () => {
+    expect(
+      parseSkillMarkdown(
+        "---\nname: alpha\ndescription: d\n--- and more\n---\nbody"
+      )
+    ).toEqual({ name: "alpha", description: "d", content: "body" });
+    expect(
+      parseSkillMarkdown(
+        "---\nname: alpha\n--- and more\ndescription: d\n---\nbody"
+      )
+    ).toEqual({ name: "alpha", description: "d", content: "body" });
+  });
+
+  // Pinned by enumeration rather than chosen: these are the readings the
+  // parser already had, and nothing here adjudicates them as wrong.
+  it.each([
+    ["lowercases the name", "---\nname: ALPHA\ndescription: d\n---\nbody", {
+      name: "alpha",
+      description: "d",
+      content: "body"
+    }],
+    ["keeps a body horizontal rule", "---\nname: alpha\ndescription: d\n---\na\n\n---\n\nb", {
+      name: "alpha",
+      description: "d",
+      content: "a\n\n---\n\nb"
+    }],
+    ["reads CRLF", "---\r\nname: alpha\r\ndescription: d\r\n---\r\nbody\r\n", {
+      name: "alpha",
+      description: "d",
+      content: "body"
+    }],
+    ["takes the first of a repeated key", "---\nname: alpha\ndescription: one\ndescription: two\n---\nbody", {
+      name: "alpha",
+      description: "one",
+      content: "body"
+    }],
+    ["ignores a comment line", "---\n#name: fake\nname: alpha\ndescription: d\n---\nbody", {
+      name: "alpha",
+      description: "d",
+      content: "body"
+    }],
+    ["keeps a colon inside a value", "---\nname: alpha\ndescription: Use when: it matters\n---\nbody", {
+      name: "alpha",
+      description: "Use when: it matters",
+      content: "body"
+    }],
+    ["keeps dashes inside a value", "---\nname: alpha\ndescription: a --- b\n---\nbody", {
+      name: "alpha",
+      description: "a --- b",
+      content: "body"
+    }]
+  ])("%s", (_label, source, expected) => {
+    expect(parseSkillMarkdown(source)).toEqual(expected);
+  });
+
+  it.each([
+    ["an indented key", "---\n  name: alpha\n  description: d\n---\nbody"],
+    ["a space before the colon", "---\nname : alpha\ndescription : d\n---\nbody"],
+    ["an indented closing fence", "---\nname: alpha\ndescription: d\n  ---\nbody"],
+    ["a four-dash closing fence", "---\nname: alpha\ndescription: d\n----\nbody"],
+    ["no closing fence", "---\nname: alpha\ndescription: d\nbody"],
+    ["markup in the description", "---\nname: alpha\ndescription: use <b>this</b>\n---\nbody"]
+  ])("rejects %s", (_label, source) => {
+    expect(parseSkillMarkdown(source)).toBeNull();
+  });
 });
 
 describe("loadSystemSkills", () => {

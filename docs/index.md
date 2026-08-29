@@ -150,7 +150,7 @@ Same code, same workflows. Both AGPL-3.0.
   </article>
 </div>
 
-More patterns — pipelines, data, RAG, email — in the [Cookbook]({{ '/cookbook' | relative_url }}).
+More creative patterns — directed films, entity-consistent batches, script-driven cuts — in the [Cookbook]({{ '/cookbook' | relative_url }}).
 
 ## Get started
 
