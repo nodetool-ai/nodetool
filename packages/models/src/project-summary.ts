@@ -95,6 +95,44 @@ export interface ProjectThumbnail {
   asset_id?: string | null;
 }
 
+/** One line of a script card's opening excerpt. */
+export interface ScriptPreviewLine {
+  speaker: string;
+  text: string;
+  /** `voiced` matches its take; `stale` drifted from it; `draft` has none. */
+  state: "voiced" | "stale" | "draft";
+}
+
+export interface ScriptPreview {
+  kind: "script";
+  lines: ScriptPreviewLine[];
+}
+
+export interface TimelinePreviewClip {
+  startMs: number;
+  durationMs: number;
+}
+
+export interface TimelinePreviewTrack {
+  type: "video" | "audio" | "overlay" | "subtitle";
+  name: string;
+  clips: TimelinePreviewClip[];
+}
+
+export interface TimelinePreview {
+  kind: "timeline";
+  /** Total span the bars are laid out against. */
+  durationMs: number;
+  tracks: TimelinePreviewTrack[];
+}
+
+/**
+ * What a document card draws when it has no stills: a script's opening lines,
+ * a cut's tracks as bars. Sliced down to what a 120px card shows, so a card
+ * renders from the summary without fetching the document.
+ */
+export type ProjectDocumentPreview = ScriptPreview | TimelinePreview;
+
 /** A document card: the tab-open ref, what it shows, and what it cost. */
 export interface ProjectDocumentSummary extends ProjectDocumentRef {
   status: ProjectDocumentStatus | null;
@@ -104,6 +142,8 @@ export interface ProjectDocumentSummary extends ProjectDocumentRef {
   unpricedCount: number;
   /** Stills the card montages, oldest shot first. Empty when there are none. */
   thumbnails: ProjectThumbnail[];
+  /** What the card draws in place of stills. Null when there is nothing. */
+  preview: ProjectDocumentPreview | null;
 }
 
 /** What a run paid for, in the categories the spend bar is split by. */
@@ -129,8 +169,15 @@ export interface ProjectSummary {
 
 // ── Status ───────────────────────────────────────────────────────────────────
 
-/** How many stills a card's montage shows. The mockup's grid holds three. */
-const MONTAGE_LIMIT = 3;
+/** How many stills a card's montage shows — the overview's four-still strip. */
+const MONTAGE_LIMIT = 4;
+
+/** Opening lines a script card excerpts. */
+const SCRIPT_PREVIEW_LINES = 4;
+
+/** Tracks a cut's miniature draws, and clips per track. */
+const TIMELINE_PREVIEW_TRACKS = 3;
+const TIMELINE_PREVIEW_CLIPS = 16;
 
 export function storyboardStatus(doc: StoryboardDocument): StoryboardStatus {
   return {
@@ -172,6 +219,67 @@ export function scriptStatus(doc: ScriptDocument): ScriptStatus {
     }
   }
   return { kind: "script", lines: lines.length, voiced, stale };
+}
+
+/**
+ * The script card's excerpt: its opening lines, each with the voicing state
+ * the card's dot reads. Uses the same `needsVoicing` rule the status counts
+ * do, so a line cannot be green in one place and amber in the other.
+ */
+export function scriptPreview(doc: ScriptDocument): ScriptPreview {
+  const cast = doc.cast as ProtocolSpeaker[];
+  const nameOf = new Map(cast.map((speaker) => [speaker.id, speaker.name]));
+  const lines = (
+    scriptLines(doc.sections as ProtocolScriptSection[]) as ProtocolScriptLine[]
+  ).slice(0, SCRIPT_PREVIEW_LINES);
+  return {
+    kind: "script",
+    lines: lines.map((line) => ({
+      speaker: (line.speakerId && nameOf.get(line.speakerId)) || "",
+      text: line.text,
+      state: !needsVoicing(line, effectiveVoice(line, cast))
+        ? "voiced"
+        : currentTake(line)
+          ? "stale"
+          : "draft"
+    }))
+  };
+}
+
+/**
+ * The cut's miniature: its first tracks with each clip reduced to where it
+ * starts and how long it runs. Everything else a clip carries — media,
+ * effects, bindings — is not what a 120px card draws.
+ */
+export function timelinePreview(
+  tracks: readonly {
+    id: string;
+    name: string;
+    type: "video" | "audio" | "overlay" | "subtitle";
+    index: number;
+  }[],
+  clips: readonly { trackId: string; startMs: number; durationMs: number }[],
+  durationMs: number
+): TimelinePreview {
+  const ordered = [...tracks]
+    .sort((a, b) => a.index - b.index)
+    .slice(0, TIMELINE_PREVIEW_TRACKS);
+  return {
+    kind: "timeline",
+    durationMs,
+    tracks: ordered.map((track) => ({
+      type: track.type,
+      name: track.name,
+      clips: clips
+        .filter((clip) => clip.trackId === track.id)
+        .sort((a, b) => a.startMs - b.startMs)
+        .slice(0, TIMELINE_PREVIEW_CLIPS)
+        .map((clip) => ({
+          startMs: clip.startMs,
+          durationMs: clip.durationMs
+        }))
+    }))
+  };
 }
 
 export function timelineStatus(
@@ -370,7 +478,8 @@ export async function summarizeProject(
   const summarize = (
     ref: ProjectDocumentRef,
     status: ProjectDocumentStatus | null,
-    thumbnails: ProjectThumbnail[] = []
+    thumbnails: ProjectThumbnail[] = [],
+    preview: ProjectDocumentPreview | null = null
   ): ProjectDocumentSummary => {
     const spend = perDocument.get(ref.ref);
     return {
@@ -378,7 +487,8 @@ export async function summarizeProject(
       status,
       spendUsd: spend?.usd ?? 0,
       unpricedCount: spend?.unpriced ?? 0,
-      thumbnails
+      thumbnails,
+      preview
     };
   };
 
@@ -391,16 +501,32 @@ export async function summarizeProject(
         storyboardThumbnails(doc)
       );
     }),
-    ...rows.scripts.map((row) =>
-      summarize(toRef("script", row), scriptStatus(row.toDocument()))
-    ),
-    ...rows.timelines.map((row) =>
-      summarize(
+    ...rows.scripts.map((row) => {
+      const doc = row.toDocument();
+      return summarize(
+        toRef("script", row),
+        scriptStatus(doc),
+        [],
+        scriptPreview(doc)
+      );
+    }),
+    ...rows.timelines.map((row) => {
+      const doc = row.toDocument();
+      return summarize(
         toRef("timeline", row),
-        timelineStatus(row.toDocument().clips.length, row.duration_ms)
+        timelineStatus(doc.clips.length, row.duration_ms),
+        [],
+        timelinePreview(doc.tracks, doc.clips, row.duration_ms)
+      );
+    }),
+    // A sketch keeps a rendered thumbnail on its row; nothing else does.
+    ...rows.sketches.map((row) =>
+      summarize(
+        toRef("sketch", row),
+        null,
+        row.thumbnail_asset_id ? [{ asset_id: row.thumbnail_asset_id }] : []
       )
     ),
-    ...rows.sketches.map((row) => summarize(toRef("sketch", row), null)),
     ...rows.applications.map((row) => summarize(toRef("application", row), null)),
     ...rows.jsScripts.map((row) => summarize(toRef("jsscript", row), null))
   ]);

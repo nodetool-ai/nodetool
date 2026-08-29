@@ -36,6 +36,25 @@ describe("projects router", () => {
   beforeEach(() => initTestDb());
   afterEach(() => ModelObserver.clear());
 
+  it("names one agent thread per project, and refuses another user's", async () => {
+    const project = await caller().projects.create({ name: "Aurora" });
+
+    const { threadId } = await caller().projects.thread({ id: project.id });
+    expect(threadId).toBeTruthy();
+    expect((await caller().projects.thread({ id: project.id })).threadId).toBe(
+      threadId
+    );
+    // The project carries it, so the overview can open the thread without
+    // asking for it again.
+    expect((await caller().projects.get({ id: project.id })).project.threadId).toBe(
+      threadId
+    );
+
+    await expect(
+      caller("user-2").projects.thread({ id: project.id })
+    ).rejects.toThrow();
+  });
+
   it("creates, lists, updates and deletes", async () => {
     const created = await caller().projects.create({
       name: "Aurora Launch Spot",
@@ -121,7 +140,8 @@ describe("projects router", () => {
         status: { kind: "storyboard", shots: 2, stills: 1, clips: 0 },
         spendUsd: 0.5,
         unpricedCount: 0,
-        thumbnails: [{ uri: "asset://1", asset_id: null }]
+        thumbnails: [{ uri: "asset://1", asset_id: null }],
+        preview: null
       }
     ]);
     expect(detail.spend.totalUsd).toBeCloseTo(0.5, 6);

@@ -1,25 +1,39 @@
+/**
+ * A project's overview tab: the conversation that builds it on the left, what
+ * it is made of on the right, and what it has cost across the bottom.
+ *
+ * Everything here is derived from the documents the project holds — there is
+ * no project content of its own to show. The header's next step names what the
+ * documents are waiting on and opens the one that performs it; the render's own
+ * controls live there, not here.
+ */
+
 import { useCallback } from "react";
 
 import {
-  BORDER_RADIUS,
   Box,
   Caption,
-  Card,
+  Divider,
+  EditorButton,
   FlexColumn,
   FlexRow,
-  Label,
   LoadingSpinner,
   SPACING,
   ScrollArea,
+  StatusPill,
   Text,
   TYPOGRAPHY
 } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
-import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
+import ProjectAgentPanel from "./ProjectAgentPanel";
+import ProjectDocumentCard from "./ProjectDocumentCard";
+import ProjectSpendBar from "./ProjectSpendBar";
 import {
   formatSpend,
+  projectNextStep,
+  projectProgress,
   projectStatusLine,
   type ProjectDocument
 } from "./projectStatus";
@@ -29,20 +43,9 @@ interface ProjectOverviewSurfaceProps {
   refId: string;
 }
 
-const documentMeta = (document: ProjectDocument): string => {
-  const spend = `$${document.spendUsd.toFixed(2)}`;
-  return document.unpricedCount > 0
-    ? `${spend} · ${document.unpricedCount} unpriced`
-    : spend;
-};
+/** Width of the agent column, per the overview mockup. */
+const AGENT_COLUMN_WIDTH = 460;
 
-/**
- * A project's overview tab: what it is made of, and what it has cost.
- *
- * Phase 2 of the project view. The agent thread, the per-type thumbnails and
- * the spend bar are Phase 3 (`docs/plans/project-view/PLAN.md`, C1–C4); what
- * is here is the header and the document list they will be arranged around.
- */
 const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
   const { data, isPending, error } = trpc.projects.get.useQuery(
     { id: refId },
@@ -73,77 +76,128 @@ const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
     );
   }
 
+  const { project, documents, spend } = data;
+  const progress = projectProgress(documents);
+  const nextStep = projectNextStep(documents);
+
   return (
-    <ScrollArea fullHeight sx={{ px: SPACING.xxl, py: SPACING.xxl }}>
-      <FlexColumn gap={SPACING.xxl}>
-        <FlexColumn gap={SPACING.md}>
+    <FlexColumn fullHeight sx={{ minHeight: 0 }}>
+      <FlexRow
+        align="center"
+        gap={SPACING.xl}
+        sx={{
+          px: SPACING.xxl,
+          py: SPACING.xl,
+          borderBottom: "1px solid",
+          borderColor: "divider"
+        }}
+      >
+        <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0 }}>
           <FlexRow align="center" gap={SPACING.md}>
             <Box component="span" aria-hidden sx={{ color: PROJECT_COLOR }}>
               {PROJECT_GLYPH}
             </Box>
-            <Text size="big">{data.project.name}</Text>
+            <Text size="big">{project.name}</Text>
+            {progress && (
+              <StatusPill tone={progress.done ? "done" : "neutral"}>
+                {progress.label}
+              </StatusPill>
+            )}
           </FlexRow>
-          <Caption color="secondary">
-            {projectStatusLine(data.documents)}
-          </Caption>
-          <FlexRow align="baseline" gap={SPACING.md}>
-            <Box component="span" sx={{ ...TYPOGRAPHY.mono.strong }}>
-              {formatSpend(data.spend)}
-            </Box>
-            <Caption color="muted">so far · provider rates, no markup</Caption>
-          </FlexRow>
+          <Caption color="secondary">{projectStatusLine(documents)}</Caption>
         </FlexColumn>
-
-        {data.documents.length === 0 ? (
-          <Caption color="muted">
-            Nothing in this project yet. Anything you create while it is open
-            lands here.
-          </Caption>
-        ) : (
-          <Box
-            sx={{
-              display: "grid",
-              gap: SPACING.xl,
-              gridTemplateColumns: {
-                xs: "1fr",
-                md: "repeat(2, minmax(0, 1fr))"
-              }
-            }}
-          >
-            {data.documents.map((document) => (
-              <Card
-                key={`${document.type}:${document.ref}`}
-                variant="outlined"
-                padding="normal"
-                clickable
-                onClick={() => openDocument(document)}
-                aria-label={document.name}
-                sx={{ borderRadius: BORDER_RADIUS.md }}
-              >
-                <FlexColumn gap={SPACING.sm}>
-                  <FlexRow align="center" gap={SPACING.md}>
-                    <Box
-                      component="span"
-                      aria-hidden
-                      sx={{ color: TYPE_COLOR[document.type] }}
-                    >
-                      {TYPE_GLYPH[document.type]}
-                    </Box>
-                    <Label sx={{ flex: 1 }}>{document.name}</Label>
-                  </FlexRow>
-                  <Caption color="secondary">
-                    {projectStatusLine([document])}
-                  </Caption>
-                  <Caption color="muted" sx={{ ...TYPOGRAPHY.mono.caption }}>
-                    {documentMeta(document)}
-                  </Caption>
-                </FlexColumn>
-              </Card>
-            ))}
+        <FlexColumn
+          align="flex-end"
+          gap={SPACING.xs}
+          sx={{
+            pr: SPACING.xl,
+            borderRight: "1px solid",
+            borderColor: "divider"
+          }}
+        >
+          <Box component="span" sx={{ ...TYPOGRAPHY.mono.strong }}>
+            {formatSpend(spend)}
           </Box>
+          <Caption color="muted">so far · provider rates, no markup</Caption>
+        </FlexColumn>
+        {nextStep && (
+          <EditorButton
+            variant="contained"
+            density="normal"
+            onClick={() => openDocument(nextStep.document)}
+            title={`Opens ${nextStep.document.name}`}
+          >
+            {nextStep.label}
+          </EditorButton>
         )}
-      </FlexColumn>
-    </ScrollArea>
+      </FlexRow>
+
+      <FlexRow sx={{ flex: 1, minHeight: 0 }}>
+        <Box
+          sx={{
+            width: `${AGENT_COLUMN_WIDTH}px`,
+            flexShrink: 0,
+            minHeight: 0,
+            display: { xs: "none", md: "block" },
+            borderRight: "1px solid",
+            borderColor: "divider"
+          }}
+        >
+          <ProjectAgentPanel
+            projectId={project.id}
+            projectName={project.name}
+            threadId={project.threadId}
+          />
+        </Box>
+
+        <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+          <ScrollArea sx={{ flex: 1, minHeight: 0, px: SPACING.xxl }}>
+            <FlexRow
+              align="baseline"
+              gap={SPACING.md}
+              sx={{ pt: SPACING.lg, pb: SPACING.md }}
+            >
+              <Caption color="muted" sx={{ textTransform: "uppercase" }}>
+                Documents
+              </Caption>
+              <Box sx={{ flex: 1 }} />
+              <Caption color="muted">
+                everything below opens as a tab in this group
+              </Caption>
+            </FlexRow>
+            {documents.length === 0 ? (
+              <Caption color="muted">
+                Nothing in this project yet. Anything you create while it is
+                open lands here.
+              </Caption>
+            ) : (
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: SPACING.lg,
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    lg: "repeat(2, minmax(0, 1fr))"
+                  }
+                }}
+              >
+                {documents.map((document) => (
+                  <ProjectDocumentCard
+                    key={`${document.type}:${document.ref}`}
+                    document={document}
+                    onOpen={openDocument}
+                  />
+                ))}
+              </Box>
+            )}
+          </ScrollArea>
+          <Divider />
+          <Box sx={{ px: SPACING.xxl, py: SPACING.lg }}>
+            <ProjectSpendBar spend={spend} />
+          </Box>
+        </FlexColumn>
+      </FlexRow>
+    </FlexColumn>
   );
 };
 

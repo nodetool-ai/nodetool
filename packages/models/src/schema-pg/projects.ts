@@ -8,6 +8,12 @@ export const projects = pgTable(
     name: text("name").notNull(),
     /** Free text — "spot", "trailer", "report", whatever the user calls it. */
     kind: text("kind").notNull().default(""),
+    /**
+     * The conversation that builds this project. Null until someone talks to
+     * the project agent — a project made by hand never has one, and an empty
+     * thread row would be indistinguishable from a conversation nobody read.
+     */
+    thread_id: text("thread_id"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

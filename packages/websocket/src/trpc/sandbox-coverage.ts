@@ -627,6 +627,13 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Same grouping surface as `projects.create`. The whole list of " +
       "rollups `projects.get` returns one at a time."
   },
+  "projects.thread": {
+    gap:
+      "Names — creating on first ask — the conversation that builds a " +
+      "project, so its overview can render the thread the user already " +
+      "has. It returns an id, never a message; reading the conversation " +
+      "still goes through the threads and messages surfaces."
+  },
   "projects.unassigned": {
     gap:
       "Lists the documents in no project. Same grouping surface as " +
