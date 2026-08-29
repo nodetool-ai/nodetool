@@ -1,14 +1,14 @@
 /**
  * `color.grayscale@1` — collapse RGB to luminance.
  *
- * `output.rgb = vec3(luma)` with the standard Rec.709 coefficients
- * `(0.2126, 0.7152, 0.0722)`. Alpha preserved. Honours the canonical mask
- * slot so workflows can grayscale a region while the rest stays colored.
+ * `output.rgb = vec3(luma709(rgb))`. Alpha preserved. Honours the canonical
+ * mask slot so workflows can grayscale a region while the rest stays colored.
  */
 
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
+import { WGSL_LUMA709 } from "../../../../shared/lumaWgsl.js";
 
 export const GrayscaleParams = d.struct({
   amount: d.f32
@@ -46,11 +46,13 @@ export const colorGrayscaleV1 = defineModule({
   layout,
   samplers: { samp: samplerDescriptor },
   wgsl: /* wgsl */ `
+${WGSL_LUMA709}
+
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
-  let luma = dot(src.rgb, vec3f(0.2126, 0.7152, 0.0722));
+  let luma = luma709(src.rgb);
   let gray = vec3f(luma);
   let mixed = mix(src.rgb, gray, coverage * layout.$.params.amount);
   return vec4f(mixed, src.a);
