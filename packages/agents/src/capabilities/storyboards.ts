@@ -82,6 +82,7 @@ export {
   EDIT_STORYBOARD_SCHEMA,
   EXTRACT_SCRIPT_SCHEMA
 } from "./storyboards.specs.js";
+import { resolveProjectId } from "./project-scope.js";
 /** Shots one call may render, so a stray `targets: "all"` cannot bankrupt a run. */
 const MAX_SHOTS_PER_CALL = 24;
 /** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
@@ -495,9 +496,7 @@ const createStoryboard: CapabilityExport = {
     if (!isNonBlankString(name)) {
       return { error: "name is required and must be a non-empty string." };
     }
-    const projectId = isNonBlankString(params["project_id"])
-      ? params["project_id"].trim()
-      : "default";
+    const projectId = resolveProjectId(run, params);
     const requestedId = isNonBlankString(params["id"])
       ? params["id"].trim()
       : undefined;
