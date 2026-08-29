@@ -6,7 +6,7 @@
  * mounted, and it renders the release it was handed without fetching anything
  * else.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
@@ -80,17 +80,20 @@ const renderPage = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } }
   });
-  return render(
-    <ThemeProvider theme={mockTheme}>
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/a/tok3n"]}>
-          <Routes>
-            <Route path="/a/:token" element={<PublicAppPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>
-  );
+  return {
+    queryClient,
+    ...render(
+      <ThemeProvider theme={mockTheme}>
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={["/a/tok3n"]}>
+            <Routes>
+              <Route path="/a/:token" element={<PublicAppPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>
+      </ThemeProvider>
+    )
+  };
 };
 
 describe("PublicAppPage", () => {
@@ -145,6 +148,56 @@ describe("PublicAppPage", () => {
       await screen.findByText("This app is not available")
     ).toBeInTheDocument();
     expect(createSession).not.toHaveBeenCalled();
+    expect(getAppSessionToken()).toBeNull();
+  });
+
+  it("shows the unavailable state when session minting fails", async () => {
+    createSession.mockRejectedValueOnce(new Error("This app is not available"));
+    renderPage();
+
+    expect(
+      await screen.findByText("This app is not available")
+    ).toBeInTheDocument();
+    expect(createSession).toHaveBeenCalledWith("tok3n");
+    expect(getAppSessionToken()).toBeNull();
+  });
+
+  it("recovers when a later session mint succeeds", async () => {
+    createSession
+      .mockRejectedValueOnce(new Error("This app is not available"))
+      .mockResolvedValueOnce({
+        token: "nda_recovered",
+        expiresAt: "2026-01-01T01:00:00.000Z",
+        applicationId: "app-1",
+        version: 4
+      });
+
+    const { queryClient } = renderPage();
+    await screen.findByText("This app is not available");
+
+    await act(async () => {
+      await queryClient.refetchQueries({
+        queryKey: ["public-application", "tok3n", "session", 4]
+      });
+    });
+
+    expect(await screen.findByTestId("runtime")).toBeInTheDocument();
+    expect(getAppSessionToken()).toBe("nda_recovered");
+  });
+
+  it("tells the visitor to reload when the release moved under them", async () => {
+    createSession.mockResolvedValueOnce({
+      token: "nda_newer_release",
+      expiresAt: "2026-01-01T01:00:00.000Z",
+      applicationId: "app-1",
+      version: 5
+    });
+    renderPage();
+
+    expect(
+      await screen.findByText("This app has been updated")
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("runtime")).not.toBeInTheDocument();
     expect(getAppSessionToken()).toBeNull();
   });
 });

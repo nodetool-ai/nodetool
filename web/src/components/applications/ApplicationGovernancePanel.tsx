@@ -9,6 +9,7 @@ import {
   useApplicationDeployment,
   useDeployApplication,
   useUndeployApplication,
+  isProductionOnlyDeploymentError,
   useApplicationInvocations,
   useApplicationUsage,
   useApplicationVersions,
@@ -34,6 +35,7 @@ import {
   TextInput,
   SPACING
 } from "../ui_primitives";
+import ReportBugButton from "../support/ReportBugButton";
 
 type Version = RouterOutputs["applications"]["versions"][number];
 type BudgetPeriod = RouterOutputs["applications"]["setBudget"]["period"];
@@ -93,9 +95,14 @@ const VersionRow = memo(function VersionRow({
     [onRelease, version.version]
   );
   return (
-    <FlexRow align="center" justify="space-between" gap={2} fullWidth>
-      <FlexColumn gap={0.5} sx={{ minWidth: 0 }}>
-        <FlexRow align="center" gap={1}>
+    <FlexRow
+      align="center"
+      justify="space-between"
+      gap={SPACING.md}
+      fullWidth
+    >
+      <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
+        <FlexRow align="center" gap={SPACING.xs}>
           <Text weight={600}>{`Version ${version.version}`}</Text>
           {version.released && <Chip label="Released" size="small" />}
         </FlexRow>
@@ -206,7 +213,7 @@ const BudgetSection = memo(function BudgetSection({
         errorMessage={parsedInvocations.ok ? undefined : LIMIT_HINT}
         onChange={(event) => setMaxInvocations(event.target.value)}
       />
-      <FlexRow gap={2} align="center">
+      <FlexRow gap={SPACING.md} align="center">
         <Button
           variant="contained"
           size="small"
@@ -247,7 +254,7 @@ interface DeploySectionProps {
 const DeploySection = memo(function DeploySection({
   applicationId
 }: DeploySectionProps) {
-  const { data: deployment, isLoading, isError } =
+  const { data: deployment, isLoading, isError, error } =
     useApplicationDeployment(applicationId);
   const deploy = useDeployApplication();
   const undeploy = useUndeployApplication();
@@ -270,11 +277,26 @@ const DeploySection = memo(function DeploySection({
   return (
     <FlexColumn gap={SPACING.md} fullWidth>
       <SectionHeader title="Public link" />
-      {isError ? (
+      {isError && isProductionOnlyDeploymentError(error) ? (
         <Caption>
           Public links are available on nodetool.ai. This server does not serve
           them.
         </Caption>
+      ) : isError ? (
+        <FlexColumn gap={SPACING.xs}>
+          <AlertBanner severity="error">
+            {`Could not load the public link: ${error?.message ?? "try again later."}`}
+          </AlertBanner>
+          <ReportBugButton
+            label="Report deployment issue"
+            context={{
+              source: "panel-crash",
+              summary: "Public link status failed to load",
+              errorText: error?.message,
+              stackTrace: error instanceof Error ? error.stack : undefined
+            }}
+          />
+        </FlexColumn>
       ) : (
         <>
           <Caption>
@@ -283,7 +305,7 @@ const DeploySection = memo(function DeploySection({
             spend budget below.
           </Caption>
           {url && (
-            <FlexRow align="center" gap={2} fullWidth>
+            <FlexRow align="center" gap={SPACING.md} fullWidth>
               <TextInput
                 label="Link"
                 size="small"
@@ -299,7 +321,7 @@ const DeploySection = memo(function DeploySection({
               {`The link is not serving this app. ${deployment.blockedReason}`}
             </AlertBanner>
           )}
-          <FlexRow gap={2} align="center">
+          <FlexRow gap={SPACING.md} align="center">
             {deployment ? (
               <Button
                 variant="outlined"
@@ -321,14 +343,40 @@ const DeploySection = memo(function DeploySection({
             )}
           </FlexRow>
           {deploy.isError && (
-            <AlertBanner severity="error">
-              {`Could not create the link: ${deploy.error.message}`}
-            </AlertBanner>
+            <FlexColumn gap={SPACING.xs}>
+              <AlertBanner severity="error">
+                {`Could not create the link: ${deploy.error.message}`}
+              </AlertBanner>
+              <ReportBugButton
+                label="Report deployment issue"
+                context={{
+                  source: "panel-crash",
+                  summary: "Public link creation failed",
+                  errorText: deploy.error.message,
+                  stackTrace:
+                    deploy.error instanceof Error ? deploy.error.stack : undefined
+                }}
+              />
+            </FlexColumn>
           )}
           {undeploy.isError && (
-            <AlertBanner severity="error">
-              {`Could not withdraw the link: ${undeploy.error.message}`}
-            </AlertBanner>
+            <FlexColumn gap={SPACING.xs}>
+              <AlertBanner severity="error">
+                {`Could not withdraw the link: ${undeploy.error.message}`}
+              </AlertBanner>
+              <ReportBugButton
+                label="Report deployment issue"
+                context={{
+                  source: "panel-crash",
+                  summary: "Public link withdrawal failed",
+                  errorText: undeploy.error.message,
+                  stackTrace:
+                    undeploy.error instanceof Error
+                      ? undeploy.error.stack
+                      : undefined
+                }}
+              />
+            </FlexColumn>
           )}
         </>
       )}
@@ -373,10 +421,10 @@ const InvocationsSection = memo(function InvocationsSection({
               key={record.id}
               align="center"
               justify="space-between"
-              gap={2}
+              gap={SPACING.md}
               fullWidth
             >
-              <FlexColumn gap={0.5} sx={{ minWidth: 0 }}>
+              <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
                 <Text weight={600}>{record.operationId}</Text>
                 <Caption>
                   {`${formatDate(record.createdAt)} · ${record.status}${
@@ -436,8 +484,13 @@ const ApplicationGovernancePanel = ({
 
   return (
     <FlexColumn gap={SPACING.lg} fullWidth>
-      <FlexRow align="center" justify="space-between" gap={2} fullWidth>
-        <FlexColumn gap={0.5}>
+      <FlexRow
+        align="center"
+        justify="space-between"
+        gap={SPACING.md}
+        fullWidth
+      >
+        <FlexColumn gap={SPACING.micro}>
           <SectionHeader title="Release" />
           <Caption>
             {released

@@ -20,9 +20,9 @@ export { imageDocumentVersions } from "./image-document-versions.js";
 export { storyboards } from "./storyboards.js";
 export {
   applications,
-  applicationVersions,
-  applicationDeployments
+  applicationVersions
 } from "./applications.js";
+export { applicationDeployments } from "./application-deployments.js";
 export {
   applicationBudgets,
   applicationInvocations

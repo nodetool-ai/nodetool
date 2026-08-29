@@ -36,6 +36,14 @@ export interface AppSessionScope {
  */
 export interface RunnableRelease {
   version: number;
+  document: {
+    operations: ReadonlyArray<{
+      id: string;
+      name: string;
+      workflowId: string;
+      target?: { kind: "workflow" | "script" };
+    }>;
+  };
   workflows: ReadonlyArray<{
     workflowId: string;
     graph: {
@@ -87,14 +95,12 @@ export function isRunRefusal(
  * file. What a visitor gets to say is what an app *is* — which operation to
  * run, and what to run it on:
  *
- *   `workflow_id`   which of the app's operations. Checked against the
- *                   release's own pinned set, not trusted.
  *   `params`        the inputs. Supplying them is the whole point.
- *   `job_id`        so the client can correlate its own run.
- *   `job_name`      what the run is called in the owner's job list.
- *   `operation_id`  ledger attribution within the app.
+ *   `operation_id`  which published workflow operation to run.
  *
- * Everything else the wire carries is the server's. `application_id` comes
+ * Everything else the wire carries is the server's. `job_id` names the run so
+ * the client can follow it, and the runner refuses one that is already taken.
+ * `workflow_id`, `job_name`, and `application_id` come
  * from the signed session and `application_version` from the release, so a
  * visitor cannot bill a run to another app or file it under a version that
  * never shipped. `graph` comes from the release, so what runs is what the
@@ -109,22 +115,30 @@ export function confineRunRequest(
   scope: AppSessionScope,
   release: RunnableRelease
 ): RunJobRequest | AppSessionRunRefusal {
-  const workflowId = req.workflow_id;
-  if (!workflowId) {
-    return { refused: "This app run did not name a workflow" };
+  const operationId = req.operation_id;
+  if (!operationId) {
+    return { refused: "This app run did not name an operation" };
+  }
+  const operation = release.document.operations.find(
+    (entry) => entry.id === operationId
+  );
+  if (!operation) {
+    return { refused: "This app does not publish that operation" };
+  }
+  if (operation.target?.kind === "script" || !operation.workflowId) {
+    return { refused: "This app operation is not a workflow" };
   }
   const pinned = release.workflows.find(
-    (entry) => entry.workflowId === workflowId
+    (entry) => entry.workflowId === operation.workflowId
   );
   if (!pinned?.graph) {
     return { refused: "This app does not publish that workflow" };
   }
   return {
-    workflow_id: workflowId,
-    job_id: req.job_id,
-    job_name: req.job_name,
+    workflow_id: operation.workflowId,
+    job_name: operation.name,
     params: req.params,
-    operation_id: req.operation_id ?? null,
+    operation_id: operation.id,
     application_id: scope.applicationId,
     application_version: release.version,
     graph: pinned.graph

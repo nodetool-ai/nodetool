@@ -19,7 +19,7 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
-import { applicationDeployments } from "./schema/applications.js";
+import { applicationDeployments } from "./schema/application-deployments.js";
 
 export class ApplicationDeployment extends DBModel {
   static override table = applicationDeployments;
@@ -103,16 +103,48 @@ export class ApplicationDeployment extends DBModel {
   }): Promise<ApplicationDeployment> {
     const live = await ApplicationDeployment.findLive(opts.applicationId);
     if (live) return live;
-    return await ApplicationDeployment.create<ApplicationDeployment>({
-      application_id: opts.applicationId,
-      user_id: opts.userId
-    });
+
+    const db = getDb();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const now = new Date().toISOString();
+      const [created] = await db
+        .insert(applicationDeployments)
+        .values({
+          id: createTimeOrderedUuid(),
+          application_id: opts.applicationId,
+          user_id: opts.userId,
+          token: ApplicationDeployment.generateToken(),
+          created_at: now,
+          revoked_at: null
+        })
+        .onConflictDoNothing()
+        .returning();
+      if (created) return new ApplicationDeployment(created);
+
+      const winner = await ApplicationDeployment.findLive(opts.applicationId);
+      if (winner) return winner;
+    }
+    throw new Error("Could not create an application deployment");
   }
 
   async revoke(): Promise<void> {
     if (this.revoked_at != null) return;
     this.revoked_at = new Date().toISOString();
     await this.save();
+  }
+
+  /** Revoke every live row so legacy duplicate links cannot remain usable. */
+  static async revokeAllLive(applicationId: string): Promise<void> {
+    const db = getDb();
+    await db
+      .update(applicationDeployments)
+      .set({ revoked_at: new Date().toISOString() })
+      .where(
+        and(
+          eq(applicationDeployments.application_id, applicationId),
+          isNull(applicationDeployments.revoked_at)
+        )
+      );
   }
 
   /** Every deployment of an app, live and revoked. */

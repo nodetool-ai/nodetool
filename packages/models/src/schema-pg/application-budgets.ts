@@ -1,4 +1,12 @@
-import { pgTable, text, integer, real, index } from "drizzle-orm/pg-core";
+import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import {
+  pgTable,
+  text,
+  integer,
+  real,
+  index,
+  uniqueIndex
+} from "drizzle-orm/pg-core";
 
 import { applications } from "./applications.js";
 
@@ -34,6 +42,19 @@ export const applicationInvocations = pgTable(
   (table) => [
     index("idx_application_invocation_app").on(table.application_id),
     index("idx_application_invocation_created").on(table.created_at),
-    index("idx_application_invocation_invocation").on(table.invocation_id)
+    index("idx_application_invocation_invocation").on(table.invocation_id),
+    uniqueIndex("idx_application_invocation_app_invocation").on(
+      table.application_id,
+      table.invocation_id
+    )
   ]
 );
+
+export type ApplicationBudgetRow = InferSelectModel<typeof applicationBudgets>;
+export type NewApplicationBudget = InferInsertModel<typeof applicationBudgets>;
+export type ApplicationInvocationRow = InferSelectModel<
+  typeof applicationInvocations
+>;
+export type NewApplicationInvocation = InferInsertModel<
+  typeof applicationInvocations
+>;

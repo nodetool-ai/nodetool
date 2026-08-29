@@ -72,6 +72,7 @@ export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
 
   sqlite.exec(getCreateTableStatementsSql());
   addMissingColumns(sqlite);
+  repairApplicationConstraintDuplicates(sqlite);
   sqlite.exec(getCreateIndexStatementsSql());
 
   return _db;
@@ -690,6 +691,73 @@ function addMissingColumns(sqlite: Database.Database): void {
   }
 }
 
+/**
+ * The schema bootstrap runs before the migration runner. Repair rows that
+ * predate the application identity constraints before adding their indexes,
+ * otherwise a legacy database with duplicates cannot even open far enough for
+ * migration 20260829_000004 to repair it.
+ */
+function repairApplicationConstraintDuplicates(sqlite: Database.Database): void {
+  // The indexes are what the repair exists for, so their presence is the
+  // record that it already ran. Without this the two scans below run on every
+  // start, forever, over a table that grows with every app run.
+  const existing = sqlite
+    .prepare(
+      `SELECT name FROM sqlite_master
+        WHERE type = 'index'
+          AND name IN (
+            'idx_application_deployment_one_live',
+            'idx_application_invocation_app_invocation'
+          )`
+    )
+    .all() as { name: string }[];
+  if (existing.length === 2) return;
+
+  const revokedAt = new Date().toISOString();
+  const repair = sqlite.transaction(() => {
+    sqlite
+      .prepare(
+        `UPDATE application_deployments AS deployment
+            SET revoked_at = ?
+          WHERE deployment.revoked_at IS NULL
+            AND EXISTS (
+              SELECT 1
+                FROM application_deployments AS newer
+               WHERE newer.application_id = deployment.application_id
+                 AND newer.revoked_at IS NULL
+                 AND (
+                   newer.created_at > deployment.created_at
+                   OR (
+                     newer.created_at = deployment.created_at
+                     AND newer.id > deployment.id
+                   )
+                 )
+            )`
+      )
+      .run(revokedAt);
+    sqlite
+      .prepare(
+        `UPDATE application_invocations AS invocation
+            SET invocation_id = 'legacy:' || invocation.id
+          WHERE EXISTS (
+            SELECT 1
+              FROM application_invocations AS newer
+             WHERE newer.application_id = invocation.application_id
+               AND newer.invocation_id = invocation.invocation_id
+               AND (
+                 newer.created_at > invocation.created_at
+                 OR (
+                   newer.created_at = invocation.created_at
+                   AND newer.id > invocation.id
+                 )
+               )
+          )`
+      )
+      .run();
+  });
+  repair();
+}
+
 function getCreateSchemaSql(): string {
   return `
     CREATE TABLE IF NOT EXISTS "nodetool_workflows" (
@@ -1198,6 +1266,7 @@ function getCreateSchemaSql(): string {
     );
     CREATE INDEX IF NOT EXISTS "idx_application_deployment_app" ON "application_deployments" ("application_id");
     CREATE UNIQUE INDEX IF NOT EXISTS "idx_application_deployment_token" ON "application_deployments" ("token");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_application_deployment_one_live" ON "application_deployments" ("application_id") WHERE "revoked_at" IS NULL;
 
     CREATE TABLE IF NOT EXISTS "application_budgets" (
       "application_id" text PRIMARY KEY NOT NULL REFERENCES "applications" ("id") ON DELETE CASCADE,
@@ -1224,6 +1293,7 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_application_invocation_app" ON "application_invocations" ("application_id");
     CREATE INDEX IF NOT EXISTS "idx_application_invocation_created" ON "application_invocations" ("created_at");
     CREATE INDEX IF NOT EXISTS "idx_application_invocation_invocation" ON "application_invocations" ("invocation_id");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_application_invocation_app_invocation" ON "application_invocations" ("application_id", "invocation_id");
 
     CREATE TABLE IF NOT EXISTS "nodetool_credit_ledger" (
       "id" text PRIMARY KEY NOT NULL,

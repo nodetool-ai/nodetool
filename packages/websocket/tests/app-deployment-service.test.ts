@@ -8,9 +8,11 @@ import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import {
   Application,
   ApplicationDeployment,
+  Asset,
   Workflow,
   initTestDb,
-  publishApplication
+  publishApplication,
+  setApplicationBudget
 } from "@nodetool-ai/models";
 import { AppSessionTokenProvider, TokenType } from "@nodetool-ai/auth";
 
@@ -43,20 +45,25 @@ const appDocument = (workflowId = "wf1") => {
   return doc;
 };
 
-const seedApp = async (userId = USER): Promise<Application> => {
+const seedApp = async (
+  userId = USER,
+  document = appDocument()
+): Promise<Application> => {
   await Workflow.create<Workflow>({
     id: "wf1",
     user_id: userId,
     name: "Graph",
     graph: { nodes: [{ id: "n1", type: "nodetool.text.Concat" }], edges: [] }
   });
-  return await Application.create<Application>({
+  const app = await Application.create<Application>({
     user_id: userId,
     project_id: "default",
     name: "Demo app",
     description: "A demo",
-    document: JSON.stringify(appDocument())
+    document: JSON.stringify(document)
   });
+  await setApplicationBudget(app.id, { maxInvocations: 100 });
+  return app;
 };
 
 /** Whatever the caller did wrong, this is the answer they get. */
@@ -118,6 +125,19 @@ describe("public app deployments", () => {
     expect(await ApplicationDeployment.findLive(app.id)).toBeNull();
   });
 
+  it("requires a finite budget before deploying", async () => {
+    const app = await seedApp();
+    await publishApplication(app);
+    await setApplicationBudget(app.id, {
+      maxUsd: null,
+      maxInvocations: null
+    });
+
+    await expect(deployApplication(USER, app.id)).rejects.toMatchObject({
+      message: /finite invocation or USD budget/
+    });
+  });
+
   it("keeps the link stable across repeated deploys", async () => {
     const app = await seedApp();
     await publishApplication(app);
@@ -163,6 +183,62 @@ describe("public app deployments", () => {
 
     await publishApplication((await Application.findById(app.id))!);
     expect((await getPublicApplication(token)).release.version).toBe(2);
+  });
+
+  it("replaces static asset locators with a URL the visitor can fetch", async () => {
+    const document = appDocument();
+    document.ui.content = [
+      { type: "Image", props: { src: "asset://cover.png" } }
+    ];
+    const app = await seedApp(USER, document);
+    await Asset.create<Asset>({
+      id: "cover",
+      user_id: USER,
+      name: "cover.png",
+      content_type: "image/png"
+    });
+    await publishApplication(app);
+    const { token } = await deployApplication(USER, app.id);
+
+    const served = await getPublicApplication(token);
+    expect(served).toMatchObject({
+      release: {
+        document: {
+          ui: {
+            content: [
+              {
+                props: { src: expect.stringContaining("cover.png") }
+              }
+            ]
+          }
+        }
+      }
+    });
+    expect(JSON.stringify(served.release.document.ui)).not.toContain(
+      "asset://cover.png"
+    );
+  });
+
+  it("serves the app when one static asset is gone", async () => {
+    const document = appDocument();
+    document.ui.content = [
+      { type: "Image", props: { src: "asset://missing.png" } }
+    ];
+    const app = await seedApp(USER, document);
+    await publishApplication(app);
+    const { token } = await deployApplication(USER, app.id);
+
+    // The widget has nothing to show, but the app is still the owner's app.
+    const served = await getPublicApplication(token);
+    expect(served).toMatchObject({
+      release: {
+        document: {
+          ui: {
+            content: [{ props: { src: "asset://missing.png" } }]
+          }
+        }
+      }
+    });
   });
 
   it("mints a session confined to the app and its owner", async () => {
@@ -298,11 +374,15 @@ describe("releaseBlockedReason", () => {
 });
 
 /** A second app over the same workflow, for the deleted-app case. */
-const seedApp2 = (): Promise<Application> =>
-  Application.create<Application>({
+const seedApp2 = async (): Promise<Application> => {
+  const app = await Application.create<Application>({
     user_id: USER,
     project_id: "default",
     name: "Another app",
     description: "",
     document: JSON.stringify(appDocument())
   });
+  // A public link needs a finite budget behind it, like every other app here.
+  await setApplicationBudget(app.id, { maxInvocations: 100 });
+  return app;
+};
