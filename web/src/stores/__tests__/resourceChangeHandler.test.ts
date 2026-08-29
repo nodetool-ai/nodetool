@@ -429,6 +429,40 @@ describe("handleResourceChange", () => {
     expect(predicate({ queryKey: ["workflows"] })).toBe(false);
   });
 
+  it("refetches the project views when a document is created", () => {
+    handleResourceChange({
+      type: "resource_change",
+      event: "created",
+      resource_type: "storyboard",
+      resource: { id: "b1" }
+    } as ResourceChangeUpdate);
+
+    const predicates = (queryClient.invalidateQueries as jest.Mock).mock.calls
+      .map((call) => call[0]?.predicate)
+      .filter(isFunction) as Array<
+      (q: { queryKey: readonly unknown[] }) => boolean
+    >;
+    const matchesProjects = predicates.some((predicate) =>
+      predicate({ queryKey: [["projects", "get"], { input: { id: "p1" } }] })
+    );
+    expect(matchesProjects).toBe(true);
+  });
+
+  it("refetches the project views when a project row changes", () => {
+    handleResourceChange({
+      type: "resource_change",
+      event: "updated",
+      resource_type: "project",
+      resource: { id: "p1" }
+    } as ResourceChangeUpdate);
+
+    const predicate = (queryClient.invalidateQueries as jest.Mock).mock.calls
+      .map((call) => call[0]?.predicate)
+      .find(isFunction) as (q: { queryKey: readonly unknown[] }) => boolean;
+    expect(predicate({ queryKey: [["projects", "summaries"], {}] })).toBe(true);
+    expect(predicate({ queryKey: [["workflows", "list"], {}] })).toBe(false);
+  });
+
   it("refetches both the js script list and the node menu's palette", () => {
     handleResourceChange({
       type: "resource_change",

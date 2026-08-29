@@ -94,6 +94,8 @@ export interface CreateCapabilityRunOptions {
   context: ProcessingContext;
   gate: CapabilityGate;
   client?: ClientToolRouter;
+  /** The project this run works in; see {@link CapabilityRun.projectId}. */
+  projectId?: string;
   /** Opens the bespoke secret dialog; see {@link CapabilityRun.secretPrompt}. */
   secretPrompt?: SecretPrompt;
   subAgent?: SubAgentRuntime;
@@ -137,6 +139,7 @@ export function createCapabilityRun(
     context: options.context,
     gate: options.gate,
     client: options.client,
+    projectId: options.projectId,
     secretPrompt: options.secretPrompt,
     subAgent: options.subAgent,
     availableSecrets: options.availableSecrets,

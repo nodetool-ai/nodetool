@@ -83,6 +83,7 @@ import {
   ModelChangeMeta,
   ModelObserver,
   Prediction,
+  Project,
   Script,
   Skill,
   Thread,
@@ -5941,10 +5942,16 @@ export class UnifiedWebSocketRunner {
         this.requestToolApproval(threadId, request),
       clock: codeactClock
     };
+    // The project this conversation belongs to, when it is a project's own
+    // agent thread. Documents the turn creates land in it rather than in the
+    // loose bucket, without the model having to pass `project_id` every time.
+    const chatProjectId =
+      (await Project.findByThread(userId, threadId))?.id ?? undefined;
     const gatedRun = (context: ProcessingContext): CapabilityRun =>
       createCapabilityRun({
         context,
         gate: chatGate,
+        projectId: chatProjectId,
         availableSecrets: contextSecretAvailability(context)
       });
     const rawToolbelt: Tool[] = [
@@ -6152,6 +6159,7 @@ export class UnifiedWebSocketRunner {
     this.chatCapabilityRun = createCapabilityRun({
       context: ctx,
       gate: chatGate,
+      projectId: chatProjectId,
       availableSecrets: contextSecretAvailability(ctx),
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,

@@ -88,6 +88,7 @@ export {
   EDIT_SCRIPT_SCHEMA,
   DERIVE_STORYBOARD_SCHEMA
 } from "./scripts.specs.js";
+import { resolveProjectId } from "./project-scope.js";
 /** Lines one call may voice, so a whole-script call cannot run away. */
 const MAX_LINES_PER_CALL = 60;
 /** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
@@ -482,9 +483,7 @@ const createScript: CapabilityExport = {
 
     const fields: ConstructorParameters<typeof Script>[0] = {
       user_id: userId,
-      project_id: isNonBlankString(params["project_id"])
-        ? params["project_id"].trim()
-        : "default",
+      project_id: resolveProjectId(run, params),
       name: name.trim(),
       document: JSON.stringify(emptyScriptDocument())
     };
