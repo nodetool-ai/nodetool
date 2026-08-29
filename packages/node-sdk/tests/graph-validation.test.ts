@@ -100,17 +100,17 @@ describe("validateGraph", () => {
     // stored graph means the connection was never created and the node
     // producing the value may be missing entirely.
     const registry = fakeRegistry({
-      "lib.grid.CombineImageGrid": meta("lib.grid.CombineImageGrid", { tiles: "list[image]" }, {})
+      "lib.svg.Document": meta("lib.svg.Document", { elements: "list[image]" }, {})
     });
     const report = validateGraph(
       {
         nodes: [
           {
             id: "grid",
-            type: "lib.grid.CombineImageGrid",
+            type: "lib.svg.Document",
             properties: {
-              tiles: [{ __handle: true, source: "img", sourceHandle: "output" }],
-              columns: 3
+              elements: [{ __handle: true, source: "img", sourceHandle: "output" }],
+              width: 3
             }
           }
         ],
@@ -124,7 +124,7 @@ describe("validateGraph", () => {
     );
     expect(leftover).toHaveLength(1);
     expect(leftover[0].severity).toBe("error");
-    expect(leftover[0].message).toContain("tiles[0]");
+    expect(leftover[0].message).toContain("elements[0]");
     expect(leftover[0].message).toContain("never created");
   });
 

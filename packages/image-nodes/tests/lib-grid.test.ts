@@ -1,7 +1,8 @@
 /**
- * Round-trip tests for the grid nodes: SliceImageGrid must emit placement
- * metadata that CombineImageGrid uses to reassemble the original image exactly,
- * even when the dimensions are not evenly divisible by the column/row count.
+ * SliceImageGrid must emit placement metadata that tiles the source canvas
+ * exactly — no gaps, no overlaps — even when the dimensions are not evenly
+ * divisible by the column/row count. That metadata is what lets a caller
+ * reassemble the original image (`image.grid` in a Code node).
  *
  * These nodes run on the CPU `sharp` codec (no GPU/WebGPU), so no ICD shim is
  * needed. The helper shape follows tests/lib-image-processing.test.ts.
@@ -89,7 +90,7 @@ function placementOf(tile: Record<string, unknown>): Placement {
   return md.grid;
 }
 
-describe("lib-grid round trip", () => {
+describe("lib-grid slicing", () => {
   it("SliceImageGrid tile sizes tile exactly, no gaps or overlaps (10x10 into 3x3)", async () => {
     const img = await makeGradientImage(10, 10);
     const result = await runNode(".SliceImageGrid", {
@@ -135,41 +136,5 @@ describe("lib-grid round trip", () => {
       }
       expect(cursor).toBe(10);
     }
-  });
-
-  it("Slice -> Combine reproduces original dimensions and pixels exactly", async () => {
-    const img = await makeGradientImage(10, 10);
-    const original = await refToRgba(img);
-
-    const sliced = await runNode(".SliceImageGrid", {
-      image: img,
-      columns: 3,
-      rows: 3
-    });
-    const tiles = sliced.output as Array<Record<string, unknown>>;
-
-    const combined = await runNode(".CombineImageGrid", { tiles });
-    const out = await refToRgba(combined.output as Record<string, unknown>);
-
-    expect(out.width).toBe(original.width);
-    expect(out.height).toBe(original.height);
-    expect(out.width).toBe(10);
-    expect(out.height).toBe(10);
-    expect(Buffer.compare(out.rgba, original.rgba)).toBe(0);
-  });
-
-  it("Combine falls back to uniform grid when tiles lack placement metadata", async () => {
-    // Two equal 4x4 tiles, no metadata → uniform 2-column grid → 8x4 canvas.
-    const tileImg = await makeGradientImage(4, 4);
-    const tileBuf = Buffer.from(tileImg.data as string, "base64");
-    const plainTile = { type: "image", data: new Uint8Array(tileBuf) };
-
-    const combined = await runNode(".CombineImageGrid", {
-      tiles: [plainTile, plainTile],
-      columns: 2
-    });
-    const out = await refToRgba(combined.output as Record<string, unknown>);
-    expect(out.width).toBe(8);
-    expect(out.height).toBe(4);
   });
 });

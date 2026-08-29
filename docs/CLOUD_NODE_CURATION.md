@@ -148,7 +148,7 @@ that egress policy is written down in the ComfyUI row of
 | ----------- | ----------------------------------------------------- |
 | `lib.image` | Photoshop-style ops: warp, color, draw, effects, …    |
 | `lib.svg`   | SVG / vector graphics                                  |
-| `lib.grid`  | Image grid combine/slice                               |
+| `lib.grid`  | Image grid slicing                                     |
 | `lib.audio` | Audio DSP/effects (reverb, delay, EQ, …)               |
 
 ### Provider node namespaces
@@ -161,12 +161,11 @@ that egress policy is written down in the ComfyUI row of
   `lib.markdown`, `lib.html`, `lib.charts`
 - **System/automation:** `lib.os`, `nodetool.workspace`,
   `nodetool.triggers`, `lib.browser`, `lib.video.download`
-- **Databases/cloud/integrations:** `lib.sqlite`, `lib.http`, `lib.graphql`,
-  `lib.mail`, `lib.secret` (`lib.comfy` is dropped as a namespace, but its two
+- **Databases/cloud/integrations:** `lib.sqlite`, `lib.http`, `lib.graphql`
+  (`lib.comfy` is dropped as a namespace, but its two
   runners are allowlisted by name — see above)
 - **Messaging:** `messaging.discord`, `messaging.telegram`
-- **NLP/ML utility:** `lib.nlp`, `vector` (RAG),
-  `lib.validate`, `lib.datetime`
+- **NLP/ML utility:** `vector` (RAG), `lib.validate`, `lib.datetime`
 - **Out-of-scope providers:** `huggingface`, `transformers`, `minimax`, `reve`,
   `elevenlabs`, `replicate`, `together`, `topaz`, `atlascloud`
 

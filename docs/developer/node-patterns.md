@@ -257,23 +257,23 @@ The same approach applies to audio refs (see `audioBytesAsync` in `audio.ts`). T
 
 Use `@prop` with `type: "enum"` and a **`values`** array to present a dropdown in the UI.
 
-This pattern is taken from `TokenizeLibNode` in `packages/text-nodes/src/nodes/lib-nlp.ts`:
+This pattern is taken from `FilterStringNode` in `packages/text-nodes/src/nodes/text-extra.ts`:
 
 ```ts
 @prop({
   type: "enum",
-  default: "word",
-  title: "Mode",
-  description: "Tokenization mode: split into words or sentences",
-  values: ["word", "sentence"],
+  default: "contains",
+  title: "Filter Type",
+  description: "The type of filter to apply",
+  values: ["contains", "starts_with", "ends_with"],
 })
-declare mode: any;
+declare filter_type: any;
 ```
 
 In your `process()` method, read and cast the value from `this`:
 
 ```ts
-const mode = String(this.mode ?? "word");
+const filterType = String(this.filter_type ?? "contains");
 ```
 
 ---

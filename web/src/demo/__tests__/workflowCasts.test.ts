@@ -32,8 +32,6 @@ const ALLOWED_NODE_TYPES = new Set([
   "nodetool.agents.Classifier",
   "nodetool.generators.DataGenerator",
   "nodetool.generators.ListGenerator",
-  "lib.mail.GmailSearch",
-  "lib.mail.AddLabel",
   "nodetool.constant.Video",
   "nodetool.video.ForEachFrame",
   "nodetool.video.FrameToVideo",

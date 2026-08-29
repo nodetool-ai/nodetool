@@ -154,7 +154,6 @@ const EXTERNAL_PREFIXES = [
   "search.",
   "vector.chroma",
   "lib.http",
-  "lib.mail",
   "lib.pymupdf",
   "lib.sqlite",
   "lib.browser",

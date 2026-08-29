@@ -251,8 +251,8 @@ graph TD
 
 **Key Nodes**:
 
-- `GmailSearch` (`lib.mail.GmailSearch`): Search Gmail with queries
-- `Template`: Format email fields into text (lib.mail also provides `AddLabel` and `MoveToArchive`)
+- `Code` (`nodetool.code.Code`): Search Gmail and apply labels with `gmail_search` / `gmail_modify_labels` from `@nodetool-ai/sandbox-nodetool/google` — the `Gmail Search`, `Gmail Add Label` and `Gmail Archive` snippets prefill each one
+- `Template`: Format email fields into text
 - `Code` (`nodetool.code.Code`): Fetch web content with `fetch` and turn it into markdown with `@nodetool-ai/sandbox-html`, or parse an RSS feed with `@nodetool-ai/sandbox-xml` — there is no RSS node
 
 ______________________________________________________________________

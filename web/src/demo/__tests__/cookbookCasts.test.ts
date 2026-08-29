@@ -38,7 +38,6 @@ const ALLOWED_NODE_TYPES = new Set([
   "nodetool.generators.ChartGenerator",
   "lib.image.filter.UnsharpMask",
   "lib.image.enhance.AutoContrast",
-  "lib.mail.GmailSearch",
   "nodetool.code.Code",
   "vector.HybridSearch",
   "openai.agents.RealtimeAgent",

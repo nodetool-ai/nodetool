@@ -66,7 +66,7 @@ describe("isCloudNodeType", () => {
     for (const nodeType of [
       "lib.sqlite.GetDatabasePath",
       "lib.pdf.Screenshot",
-      "lib.nlp.Tokenize",
+      "lib.charts.ChartRenderer",
       "nodetool.data.Filter",
       "nodetool.document.LoadDocumentFile",
       "nodetool.workspace.ReadTextFile",

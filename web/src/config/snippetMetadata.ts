@@ -53,7 +53,11 @@ const CATEGORY_TYPE: Record<SnippetCategory, string> = {
   HTTP: "str",
   Markdown: "list",
   HTML: "list",
-  Validation: "bool"
+  Validation: "bool",
+  // A Gmail snippet returns messages or an id, not one scalar kind; `any`
+  // keeps those handles connectable instead of falsely gating them to `str`.
+  Email: "any",
+  Image: "any"
 };
 
 /**

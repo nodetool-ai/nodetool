@@ -23,7 +23,9 @@ export type SnippetCategory =
   | "HTTP"
   | "Markdown"
   | "HTML"
-  | "Validation";
+  | "Validation"
+  | "Email"
+  | "Image";
 
 /**
  * Type declaration for one snippet input slot.
@@ -77,6 +79,8 @@ export const SNIPPET_CATEGORIES: SnippetCategory[] = [
   "Markdown",
   "HTML",
   "Validation",
+  "Email",
+  "Image",
 ];
 
 export const CODE_SNIPPETS: CodeSnippet[] = [
@@ -2755,4 +2759,89 @@ return {
 };`,
     tags: ["sanitize", "escape", "html", "xss", "clean", "trim", "normalize", "email"],
   },
+  // ---------------------------------------------------------------------------
+  // Email — the replacement for the retired `lib.mail.*` nodes.
+  //
+  // These call the `google` capability module, so the OAuth session stays on
+  // the host and the guest never holds a token. The retired nodes spoke IMAP
+  // with a Gmail app password; this path needs only the user's Google sign-in.
+  // ---------------------------------------------------------------------------
+  {
+    id: "gmail-search",
+    title: "Gmail Search",
+    description:
+      "Search Gmail and return the matching messages (id, subject, from, date, snippet, body)",
+    category: "Email",
+    code: `import { gmail_search } from "@nodetool-ai/sandbox-nodetool/google";
+
+const { messages } = await gmail_search({
+  query: inputs.query,
+  max_results: inputs.max_results
+});
+return { messages };`,
+    tags: ["gmail", "mail", "email", "search", "inbox", "google", "fetch"],
+    inputs: {
+      query: { type: "str", default: "newer_than:2d" },
+      max_results: { type: "int", default: 10, min: 1, max: 50 }
+    },
+    outputs: { messages: "list" }
+  },
+  {
+    id: "gmail-add-label",
+    title: "Gmail Add Label",
+    description: "Apply a Gmail label to one message by id",
+    category: "Email",
+    code: `import { gmail_modify_labels } from "@nodetool-ai/sandbox-nodetool/google";
+
+await gmail_modify_labels({
+  message_id: inputs.message_id,
+  add_label_ids: [inputs.label]
+});
+return { message_id: inputs.message_id };`,
+    tags: ["gmail", "mail", "email", "label", "tag", "google", "categorize"],
+    inputs: {
+      message_id: { type: "str", default: "" },
+      label: { type: "str", default: "" }
+    },
+    outputs: { message_id: "str" }
+  },
+  {
+    id: "gmail-archive",
+    title: "Gmail Archive",
+    description: "Archive a Gmail message by removing it from the inbox",
+    category: "Email",
+    code: `import { gmail_modify_labels } from "@nodetool-ai/sandbox-nodetool/google";
+
+// Archiving in Gmail is removing the INBOX label — there is no archive call.
+await gmail_modify_labels({
+  message_id: inputs.message_id,
+  remove_label_ids: ["INBOX"]
+});
+return { message_id: inputs.message_id };`,
+    tags: ["gmail", "mail", "email", "archive", "inbox", "google"],
+    inputs: { message_id: { type: "str", default: "" } },
+    outputs: { message_id: "str" }
+  },
+
+  // ---------------------------------------------------------------------------
+  // Image — the replacement for the retired `lib.grid.CombineImageGrid` node.
+  // ---------------------------------------------------------------------------
+  {
+    id: "image-grid",
+    title: "Combine Image Grid",
+    description:
+      "Lay a list of images out in a grid and return the combined image",
+    category: "Image",
+    code: `// image.grid sizes every cell to the largest input, so the grid stays
+// aligned when the tiles differ in size.
+const bytes = await image.grid(inputs.tiles, { columns: inputs.columns });
+return { output: await media.toImage(bytes) };`,
+    tags: ["image", "grid", "combine", "montage", "tile", "collage", "merge"],
+    inputs: {
+      tiles: { type: "list", default: [] },
+      columns: { type: "int", default: 2, min: 1 }
+    },
+    outputs: { output: "any" }
+  }
+
 ];

@@ -67,20 +67,20 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   {
     id: "data_stores",
     label: "Files, Cloud & Databases",
-    description: "Local filesystem, secrets, and SQLite.",
-    namespaces: ["lib.os", "lib.secret", "lib.sqlite"]
+    description: "Local filesystem and SQLite.",
+    namespaces: ["lib.os", "lib.sqlite"]
   },
   {
     id: "integrations",
     label: "Integrations & Messaging",
-    description: "Email and Discord / Telegram message triggers.",
-    namespaces: ["lib.mail", "messaging"]
+    description: "Discord / Telegram message triggers.",
+    namespaces: ["messaging"]
   },
   {
     id: "text_data",
     label: "Text & Data Utilities",
-    description: "NLP and grids.",
-    namespaces: ["lib.nlp", "lib.grid"]
+    description: "Image grid slicing.",
+    namespaces: ["lib.grid"]
   },
   {
     id: "developer",

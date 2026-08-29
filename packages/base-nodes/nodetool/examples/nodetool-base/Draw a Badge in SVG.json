@@ -1,174 +1,107 @@
 {
-  "id": "",
-  "access": "private",
-  "created_at": "2026-07-30T12:00:00.000Z",
-  "updated_at": "2026-07-30T12:00:00.000Z",
-  "name": "Draw a Badge in SVG",
-  "tool_name": null,
-  "description": "Compose a badge from primitives rather than generating one. Every shape is an element you can reposition or recolour later \u2014 no regeneration, no resampling.",
-  "tags": [
-    "image",
-    "example"
+ "id": "",
+ "access": "private",
+ "created_at": "2026-07-30T12:00:00.000Z",
+ "updated_at": "2026-07-30T12:00:00.000Z",
+ "name": "Draw a Badge in SVG",
+ "tool_name": null,
+ "description": "Compose a badge from SVG elements rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+ "tags": [
+  "image",
+  "example"
+ ],
+ "thumbnail": null,
+ "thumbnail_url": null,
+ "graph": {
+  "nodes": [
+   {
+    "id": "elements",
+    "type": "nodetool.code.Code",
+    "data": {
+     "code": "// One Code node replaces the retired lib.svg element builders. The array\n// order is the paint order: the plate first, the label on top of it.\nreturn {\n  output: [\n    {\n      name: \"rect\",\n      attributes: {\n        x: 20, y: 20, width: 260, height: 120,\n        fill: \"#1d4ed8\", stroke: \"none\", \"stroke-width\": 1\n      }\n    },\n    {\n      name: \"text\",\n      attributes: {\n        x: 150, y: 95,\n        \"font-family\": \"Arial\", \"font-size\": 42,\n        fill: \"#ffffff\", \"text-anchor\": \"middle\"\n      },\n      content: \"SHIPPED\"\n    }\n  ]\n};"
+    },
+    "ui_properties": {
+     "position": {
+      "x": 0,
+      "y": 120
+     },
+     "zIndex": 0,
+     "width": 380,
+     "selectable": true,
+     "title": "1  Elements"
+    },
+    "dynamic_properties": {},
+    "dynamic_outputs": {
+     "output": {
+      "type": "any",
+      "type_args": [],
+      "optional": false
+     }
+    }
+   },
+   {
+    "id": "doc",
+    "type": "lib.svg.Document",
+    "data": {
+     "elements": [],
+     "width": 300,
+     "height": 160,
+     "viewBox": "0 0 300 160"
+    },
+    "ui_properties": {
+     "position": {
+      "x": 640,
+      "y": 120
+     },
+     "zIndex": 0,
+     "width": 280,
+     "selectable": true,
+     "title": "4  Document"
+    },
+    "dynamic_properties": {},
+    "dynamic_outputs": {}
+   },
+   {
+    "id": "out",
+    "type": "nodetool.output.Output",
+    "data": {
+     "name": "badge"
+    },
+    "ui_properties": {
+     "position": {
+      "x": 0,
+      "y": 340
+     },
+     "zIndex": 0,
+     "width": 280,
+     "selectable": true,
+     "title": "5  SVG"
+    },
+    "dynamic_properties": {},
+    "dynamic_outputs": {}
+   }
   ],
-  "thumbnail": null,
-  "thumbnail_url": null,
-  "graph": {
-    "nodes": [
-      {
-        "id": "r",
-        "type": "lib.svg.Rect",
-        "data": {
-          "x": 20,
-          "y": 20,
-          "width": 260,
-          "height": 120,
-          "fill": {
-            "type": "color",
-            "value": "#1d4ed8"
-          },
-          "stroke": {
-            "type": "color",
-            "value": "none"
-          },
-          "stroke_width": 1
-        },
-        "ui_properties": {
-          "position": {
-            "x": 0,
-            "y": 120
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "1  Plate"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "t",
-        "type": "lib.svg.Text",
-        "data": {
-          "text": "SHIPPED",
-          "x": 150,
-          "y": 95,
-          "font_family": "Arial",
-          "font_size": 42,
-          "fill": {
-            "type": "color",
-            "value": "#ffffff"
-          },
-          "text_anchor": "middle"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 320,
-            "y": 120
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "2  Label"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "l",
-        "type": "nodetool.constant.List",
-        "data": {
-          "value": []
-        },
-        "ui_properties": {
-          "position": {
-            "x": 640,
-            "y": 120
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "3  Collect"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "doc",
-        "type": "lib.svg.Document",
-        "data": {
-          "elements": [],
-          "width": 300,
-          "height": 160,
-          "viewBox": "0 0 300 160"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 960,
-            "y": 120
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "4  Document"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "badge"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 0,
-            "y": 340
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "5  SVG"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      }
-    ],
-    "edges": [
-      {
-        "id": "e1",
-        "source": "r",
-        "sourceHandle": "output",
-        "target": "l",
-        "targetHandle": "value"
-      },
-      {
-        "id": "e2",
-        "source": "t",
-        "sourceHandle": "output",
-        "target": "l",
-        "targetHandle": "value"
-      },
-      {
-        "id": "e3",
-        "source": "l",
-        "sourceHandle": "output",
-        "target": "doc",
-        "targetHandle": "elements"
-      },
-      {
-        "id": "e4",
-        "source": "doc",
-        "sourceHandle": "output",
-        "target": "out",
-        "targetHandle": "value"
-      }
-    ]
-  },
-  "input_schema": null,
-  "output_schema": null,
-  "settings": null,
-  "package_name": "nodetool-base",
-  "path": null,
-  "run_mode": null
+  "edges": [
+   {
+    "id": "e1",
+    "source": "elements",
+    "sourceHandle": "output",
+    "target": "doc",
+    "targetHandle": "elements"
+   },
+   {
+    "id": "e2",
+    "source": "doc",
+    "sourceHandle": "output",
+    "target": "out",
+    "targetHandle": "value"
+   }
+  ]
+ },
+ "input_schema": null,
+ "output_schema": null,
+ "settings": null,
+ "package_name": "nodetool-base",
+ "path": null,
+ "run_mode": null
 }

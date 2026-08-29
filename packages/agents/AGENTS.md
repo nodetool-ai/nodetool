@@ -221,7 +221,7 @@ Three ops cover what it was reached for, all host-side with nothing crossing:
 `blank(width, height, {color})` for a surface, `pad(image, {all|top|right|
 bottom|left, color})` to grow the canvas without scaling (what
 `nodetool.image.CanvasResize` does in a graph), and `grid([image, …],
-{columns, gap})` to lay images out (what `lib.grid.CombineImageGrid` does) —
+{columns, gap})` to lay images out (which retired `lib.grid.CombineImageGrid`) —
 which is the whole of "generate two images and combine them", the task that
 started this. Host code that genuinely holds pixels keeps the direct path
 through `encodePixels`, which is not on the guest bridge.

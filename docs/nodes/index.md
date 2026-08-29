@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 487 NodeTool nodes across 73 namespaces.
+Complete reference documentation for all 463 NodeTool nodes across 70 namespaces.
 
 ## Namespaces
 
@@ -37,7 +37,7 @@ Complete reference documentation for all 487 NodeTool nodes across 73 namespaces
 - **[lib.browser](lib/browser/)** - 1 node(s)
 - **[lib.charts](lib/charts/)** - 1 node(s)
 - **[lib.comfy](lib/comfy/)** - 2 node(s)
-- **[lib.grid](lib/grid/)** - 2 node(s)
+- **[lib.grid](lib/grid/)** - 1 node(s)
 - **[lib.image.channel](lib/image/channel/)** - 2 node(s)
 - **[lib.image.color](lib/image/color/)** - 7 node(s)
 - **[lib.image.draw](lib/image/draw/)** - 5 node(s)
@@ -46,12 +46,9 @@ Complete reference documentation for all 487 NodeTool nodes across 73 namespaces
 - **[lib.image.keyer](lib/image/keyer/)** - 2 node(s)
 - **[lib.image.mask](lib/image/mask/)** - 3 node(s)
 - **[lib.image.warp](lib/image/warp/)** - 8 node(s)
-- **[lib.mail](lib/mail/)** - 3 node(s)
-- **[lib.nlp](lib/nlp/)** - 7 node(s)
 - **[lib.pdf](lib/pdf/)** - 7 node(s)
-- **[lib.secret](lib/secret/)** - 1 node(s)
 - **[lib.sqlite](lib/sqlite/)** - 1 node(s)
-- **[lib.svg](lib/svg/)** - 14 node(s)
+- **[lib.svg](lib/svg/)** - 2 node(s)
 - **[lib.video.download](lib/video/download/)** - 1 node(s)
 
 ### messaging

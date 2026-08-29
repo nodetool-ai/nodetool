@@ -118,24 +118,9 @@
         "file": "sandbox/generated/lib.image.warp.js"
       },
       {
-        "name": "lib.mail",
-        "kind": "js",
-        "file": "sandbox/generated/lib.mail.js"
-      },
-      {
-        "name": "lib.nlp",
-        "kind": "js",
-        "file": "sandbox/generated/lib.nlp.js"
-      },
-      {
         "name": "lib.pdf",
         "kind": "js",
         "file": "sandbox/generated/lib.pdf.js"
-      },
-      {
-        "name": "lib.secret",
-        "kind": "js",
-        "file": "sandbox/generated/lib.secret.js"
       },
       {
         "name": "lib.sqlite",

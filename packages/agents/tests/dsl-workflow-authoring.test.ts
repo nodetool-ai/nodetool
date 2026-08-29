@@ -126,26 +126,26 @@ class CodeNode extends BaseNode {
 }
 
 /**
- * Stand-in for `lib.grid.CombineImageGrid` so an authored program can exercise
- * list fan-in against a real registry and kernel run without importing
- * base-nodes. Its `process()` joins the tiles, so the accumulated list is
- * observable in the workflow output.
+ * Stand-in for `lib.svg.Document` so an authored program can exercise list
+ * fan-in against a real registry and kernel run without importing base-nodes.
+ * Its `process()` joins the elements, so the accumulated list is observable in
+ * the workflow output.
  */
-class FakeCombineImageGrid extends BaseNode {
-  static readonly nodeType = "lib.grid.CombineImageGrid";
-  static readonly title = "Combine Image Grid";
-  static readonly description = "Combine image tiles into one image.";
+class FakeSvgDocument extends BaseNode {
+  static readonly nodeType = "lib.svg.Document";
+  static readonly title = "SVG Document";
+  static readonly description = "Combine SVG elements into one document.";
   static readonly metadataOutputTypes = { output: "str" };
 
   @prop({ type: "list[str]", default: [] })
-  declare tiles: unknown[];
+  declare elements: unknown[];
 
   @prop({ type: "int", default: 0 })
-  declare columns: number;
+  declare width: number;
 
   async process(): Promise<Record<string, unknown>> {
-    const tiles = Array.isArray(this.tiles) ? this.tiles : [];
-    return { output: tiles.map((t) => String(t)).join("|") };
+    const elements = Array.isArray(this.elements) ? this.elements : [];
+    return { output: elements.map((e) => String(e)).join("|") };
   }
 }
 
@@ -154,7 +154,7 @@ function buildRegistry(): NodeRegistry {
   registry.register(StringConstant);
   registry.register(OutputNode);
   registry.register(CodeNode);
-  registry.register(FakeCombineImageGrid);
+  registry.register(FakeSvgDocument);
   return registry;
 }
 
@@ -681,19 +681,19 @@ describe("a Code node's dynamic output handle", () => {
 const GRID_PACKAGES = [
   DSL,
   `${DSL}/nodetool.constant`,
-  `${DSL}/lib.grid`,
+  `${DSL}/lib.svg`,
   `${DSL}/nodetool.output`
 ];
 
 const GRID_PROGRAM = `
   import { workflow } from "${DSL}";
   import { string } from "${DSL}/nodetool.constant";
-  import { combineImageGrid } from "${DSL}/lib.grid";
+  import { document } from "${DSL}/lib.svg";
   import { output } from "${DSL}/nodetool.output";
 
   const a = string({ value: "hello" });
   const b = string({ value: "world" });
-  const grid = combineImageGrid({ tiles: [a.output(), b.output()], columns: 2 });
+  const grid = document({ elements: [a.output(), b.output()], width: 2 });
   return workflow(output({ name: "strip", value: grid.output() }));
 `;
 
@@ -710,15 +710,15 @@ describe("a list input wired from an array of handles", () => {
     expect(outcome.error).toBeUndefined();
     const graph = outcome.result as GraphShape;
     expect(graph.nodes.map((n) => n.type).sort()).toEqual([
-      "lib.grid.CombineImageGrid",
+      "lib.svg.Document",
       "nodetool.constant.String",
       "nodetool.constant.String",
       "nodetool.output.Output"
     ]);
-    const grid = graph.nodes.find((n) => n.type === "lib.grid.CombineImageGrid");
-    expect(grid?.properties).toEqual({ columns: 2 });
+    const grid = graph.nodes.find((n) => n.type === "lib.svg.Document");
+    expect(grid?.properties).toEqual({ width: 2 });
     const fanIn = graph.edges.filter(
-      (e) => e.target === "combine_image_grid" && e.targetHandle === "tiles"
+      (e) => e.target === "document" && e.targetHandle === "elements"
     );
     expect(fanIn.map((e) => e.source).sort()).toEqual(["string", "string_2"]);
     expect(fanIn.every((e) => e.sourceHandle === "output")).toBe(true);
@@ -757,14 +757,14 @@ describe("a list input wired from an array of handles", () => {
     const outcome = await action(
       `import { workflow } from "${DSL}";
        import { string } from "${DSL}/nodetool.constant";
-       import { combineImageGrid } from "${DSL}/lib.grid";
+       import { document } from "${DSL}/lib.svg";
        const a = string({ value: "hello" });
-       const grid = combineImageGrid({ tiles: [a.output(), "literal"], columns: 2 });
+       const grid = document({ elements: [a.output(), "literal"], width: 2 });
        return workflow(grid);`,
-      { packages: [DSL, `${DSL}/nodetool.constant`, `${DSL}/lib.grid`] }
+      { packages: [DSL, `${DSL}/nodetool.constant`, `${DSL}/lib.svg`] }
     );
     expect(outcome.ok).toBe(false);
-    expect(outcome.error).toContain('"tiles"');
+    expect(outcome.error).toContain('"elements"');
     expect(outcome.error).toContain("mixes wired outputs and literal values");
   });
 

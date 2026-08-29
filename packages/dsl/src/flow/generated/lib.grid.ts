@@ -19,17 +19,3 @@ export interface SliceImageGridOutputs {
 export function sliceImageGrid(inputs: SliceImageGridInputs): Promise<SliceImageGridOutputs> {
   return callNode<SliceImageGridOutputs>("lib.grid.SliceImageGrid", inputs);
 }
-
-// Combine Image Grid — lib.grid.CombineImageGrid
-export type CombineImageGridInputs = {
-  tiles?: ImageRef[];
-  columns?: number;
-};
-
-export interface CombineImageGridOutputs {
-  output: ImageRef;
-}
-
-export function combineImageGrid(inputs: CombineImageGridInputs): Promise<CombineImageGridOutputs> {
-  return callNode<CombineImageGridOutputs>("lib.grid.CombineImageGrid", inputs);
-}
