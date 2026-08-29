@@ -175,7 +175,6 @@ describe("useEditorSession", () => {
       })
     );
 
-    const first = result.current;
     rerender();
     const second = result.current;
 

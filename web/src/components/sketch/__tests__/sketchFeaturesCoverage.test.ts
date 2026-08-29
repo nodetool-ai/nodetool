@@ -20,8 +20,7 @@ import {
   polygonToBinaryMask,
   createEmptyMask,
   getSelectionBounds,
-  rectSelectionMask,
-  writeBinaryIntoMask
+  rectSelectionMask
 } from "../selection";
 import {
   serializeLayerData,
@@ -583,7 +582,7 @@ describe("lasso + magic-wand selection-mode coverage", () => {
       expect(allZero).toBe(true);
     });
 
-    it("can be written into a Selection via writeBinaryIntoMask", () => {
+    it("can be written into a Selection mask buffer", () => {
       const w = 32;
       const h = 32;
       const points = [
@@ -594,7 +593,7 @@ describe("lasso + magic-wand selection-mode coverage", () => {
       ];
       const binary = polygonToBinaryMask(w, h, points);
       const sel = createEmptyMask(w, h);
-      writeBinaryIntoMask(sel, binary, "replace");
+      sel.data.set(binary);
 
       const bounds = getSelectionBounds(sel);
       expect(bounds).not.toBeNull();
@@ -717,7 +716,7 @@ describe("lasso + magic-wand selection-mode coverage", () => {
       const img = makeImageData(32, 32, [255, 0, 0, 255]);
       const binary = magicWandFromRgba(img, 16, 16, 10);
       const sel = createEmptyMask(32, 32);
-      writeBinaryIntoMask(sel, binary, "replace");
+      sel.data.set(binary);
 
       const bounds = getSelectionBounds(sel);
       expect(bounds).not.toBeNull();

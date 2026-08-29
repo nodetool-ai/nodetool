@@ -112,10 +112,6 @@ export const IDLE: TransformToolState = { kind: "idle" };
 
 // ─── Type guards ──────────────────────────────────────────────────────────────
 
-export function isIdle(s: TransformToolState): s is { kind: "idle" } {
-  return s.kind === "idle";
-}
-
 export function hasTargets(
   s: TransformToolState
 ): s is Exclude<TransformToolState, { kind: "idle" }> {

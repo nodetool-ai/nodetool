@@ -3,7 +3,6 @@ import {
   hasTargets,
   isDragging,
   isDraggingHandle,
-  isIdle,
   type TransformToolState,
   type TransformTargets
 } from "../state";
@@ -40,13 +39,6 @@ const draggingHandle: TransformToolState = {
 describe("TransformToolState type guards", () => {
   it("IDLE has kind 'idle'", () => {
     expect(IDLE.kind).toBe("idle");
-  });
-
-  it("isIdle narrows only the idle state", () => {
-    expect(isIdle(IDLE)).toBe(true);
-    expect(isIdle(armed)).toBe(false);
-    expect(isIdle(draggingPivot)).toBe(false);
-    expect(isIdle(draggingHandle)).toBe(false);
   });
 
   it("hasTargets excludes idle, includes the rest", () => {

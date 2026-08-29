@@ -141,16 +141,6 @@ export function normalizeLayerTransform(raw: unknown): LayerTransform {
   });
 }
 
-/** Validate and clone an already-canonical transform (defence against mutation). */
-export function cloneAndValidateTransform(t: LayerTransform): LayerTransform {
-  switch (t.kind) {
-    case "affine":
-      return { ...t };
-    case "quad":
-      return makeSingleQuadTransform(t.mode, t.quad);
-  }
-}
-
 /** For tests / debugging — assert that a value is a canonical transform. */
 export function assertCanonicalTransform(t: unknown): asserts t is LayerTransform {
   if (!t || typeof t !== "object") {

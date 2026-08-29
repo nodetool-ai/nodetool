@@ -6,8 +6,6 @@ import {
   generateLayerId,
   createDefaultLayer,
   createDefaultDocument,
-  getChildLayers,
-  getLayerDepth,
   getDescendantIds,
   findMergeDownTargetIndex,
   findLayerMoveTargetIndex,
@@ -122,92 +120,6 @@ describe("createDefaultDocument", () => {
     const doc = createDefaultDocument();
     expect(doc.metadata.createdAt).toBeTruthy();
     expect(doc.metadata.updatedAt).toBeTruthy();
-  });
-});
-
-// ─── getChildLayers ──────────────────────────────────────────────────────────
-
-describe("getChildLayers", () => {
-  const layers: Layer[] = [
-    makeLayer({ id: "root1" }),
-    makeLayer({ id: "root2" }),
-    makeLayer({ id: "child1", parentId: "root1" }),
-    makeLayer({ id: "child2", parentId: "root1" }),
-    makeLayer({ id: "child3", parentId: "root2" }),
-  ];
-
-  it("returns root-level layers when parentId is null", () => {
-    const roots = getChildLayers(layers, null);
-    expect(roots.map((l) => l.id)).toEqual(["root1", "root2"]);
-  });
-
-  it("returns root-level layers when parentId is undefined", () => {
-    const roots = getChildLayers(layers, undefined);
-    expect(roots.map((l) => l.id)).toEqual(["root1", "root2"]);
-  });
-
-  it("returns children of a specific parent", () => {
-    const children = getChildLayers(layers, "root1");
-    expect(children.map((l) => l.id)).toEqual(["child1", "child2"]);
-  });
-
-  it("returns empty array when parent has no children", () => {
-    const children = getChildLayers(layers, "child1");
-    expect(children).toEqual([]);
-  });
-
-  it("returns empty array for non-existent parent", () => {
-    const children = getChildLayers(layers, "doesNotExist");
-    expect(children).toEqual([]);
-  });
-
-  it("handles empty layers array", () => {
-    expect(getChildLayers([], null)).toEqual([]);
-    expect(getChildLayers([], "any")).toEqual([]);
-  });
-});
-
-// ─── getLayerDepth ───────────────────────────────────────────────────────────
-
-describe("getLayerDepth", () => {
-  const layers: Layer[] = [
-    makeLayer({ id: "root", type: "group" }),
-    makeLayer({ id: "child", parentId: "root", type: "group" }),
-    makeLayer({ id: "grandchild", parentId: "child" }),
-  ];
-
-  it("returns 0 for root layers", () => {
-    expect(getLayerDepth(layers, "root")).toBe(0);
-  });
-
-  it("returns 1 for direct children", () => {
-    expect(getLayerDepth(layers, "child")).toBe(1);
-  });
-
-  it("returns 2 for grandchildren", () => {
-    expect(getLayerDepth(layers, "grandchild")).toBe(2);
-  });
-
-  it("returns 0 for non-existent layer", () => {
-    expect(getLayerDepth(layers, "doesNotExist")).toBe(0);
-  });
-
-  it("returns 0 for empty layers array", () => {
-    expect(getLayerDepth([], "any")).toBe(0);
-  });
-
-  it("handles deeply nested layers", () => {
-    const deep: Layer[] = [];
-    for (let i = 0; i < 10; i++) {
-      deep.push(
-        makeLayer({
-          id: `d${i}`,
-          type: "group",
-          parentId: i > 0 ? `d${i - 1}` : undefined,
-        })
-      );
-    }
-    expect(getLayerDepth(deep, "d9")).toBe(9);
   });
 });
 
