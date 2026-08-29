@@ -4,7 +4,7 @@ import { NodeResizer as ReactFlowNodeResizer } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, MOTION } from "../ui_primitives";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 interface NodeResizerProps {
   minWidth: number;
@@ -38,8 +38,9 @@ const styles = (theme: Theme) =>
 
 const NodeResizer: React.FC<NodeResizerProps> = memo(function NodeResizer({ minWidth, minHeight }) {
   const theme = useTheme();
+  const resizerStyles = useMemo(() => styles(theme), [theme]);
   return (
-    <Box className="node-resizer" css={styles(theme)}>
+    <Box className="node-resizer" css={resizerStyles}>
       <ReactFlowNodeResizer minWidth={minWidth} minHeight={minHeight} />
     </Box>
   );

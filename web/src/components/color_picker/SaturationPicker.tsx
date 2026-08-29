@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback, memo } from "react";
+import React, { useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { hsbToRgb, rgbToHex } from "../../utils/colorConversion";
@@ -48,6 +48,7 @@ const SaturationPicker = memo(function SaturationPicker({
   onChange
 }: SaturationPickerProps) {
   const theme = useTheme();
+  const pickerStyles = useMemo(() => styles(theme), [theme]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -189,7 +190,7 @@ const SaturationPicker = memo(function SaturationPicker({
   return (
     <div
       ref={containerRef}
-      css={styles(theme)}
+      css={pickerStyles}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

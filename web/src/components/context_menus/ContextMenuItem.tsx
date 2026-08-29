@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { ReactElement, ReactNode, memo } from "react";
+import React, { ReactElement, ReactNode, memo, useMemo } from "react";
 
 import {
   EditorButton,
@@ -102,11 +102,12 @@ const ContextMenuItem = memo(function ContextMenuItem({
   controlElement
 }: ContextMenuItemProps) {
   const theme = useTheme();
+  const itemStyles = useMemo(() => styles(theme), [theme]);
   return (
-    <div className="context-menu-item" css={styles(theme)}>
+    <div className="context-menu-item" css={itemStyles}>
       {tooltip && (
         <Tooltip
-          css={styles(theme)}
+          css={itemStyles}
           title={tooltip}
           delay={TOOLTIP_ENTER_DELAY}
           placement={"right"}

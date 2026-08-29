@@ -91,6 +91,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
   currentColor
 }) => {
   const theme = useTheme();
+  const builderStyles = useMemo(() => styles(theme), [theme]);
   const [selectedStopIndex, setSelectedStopIndex] = useState<number | null>(0);
   const [copied, setCopied] = useState(false);
   const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -284,7 +285,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
     selectedStopIndex !== null ? gradient.stops[selectedStopIndex] : null;
 
   return (
-    <FlexColumn css={styles(theme)} gap={1.5}>
+    <FlexColumn css={builderStyles} gap={1.5}>
       <div className="gradient-preview" style={{ background: cssOutput }} />
 
       <ToggleGroup
