@@ -10,9 +10,9 @@ center area untouched.
 
 ## Mockups
 
-Four 1440×900 screens in `mockups/` (open in any browser; the `support.js`
-script tag 404s harmlessly — everything is inline styles). Also published as an
-editable canvas: https://claude.ai/code/artifact/9fde1641-9965-4f71-bb23-2543ef4bc4db
+Four 1440×900 screens in `mockups/` (self-contained HTML, inline styles; open
+in any browser). Also published as an editable canvas:
+https://claude.ai/code/artifact/9fde1641-9965-4f71-bb23-2543ef4bc4db
 
 | File | Screen | Referenced by |
 |---|---|---|
