@@ -1665,6 +1665,13 @@ export class GeminiProvider extends BaseProvider {
   async getAvailableASRModels(): Promise<ASRModel[]> {
     return [
       {
+        // The transcription-specific model. It answers `generateContent`, so
+        // it runs through the same path as the general models below.
+        id: "gemini-3.5-transcribe",
+        name: "Gemini 3.5 Transcribe",
+        provider: "gemini"
+      },
+      {
         id: "gemini-3.5-flash",
         name: "Gemini 3.5 Flash",
         provider: "gemini"
