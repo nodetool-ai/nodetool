@@ -368,6 +368,24 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       }
     }, []);
 
+    // A deep link into the cut (a storyboard shot's clip) selects a clip that
+    // may sit off-screen. `revealRequest` carries the position it wants seen;
+    // bring it a quarter-viewport in, and leave the view alone when it is
+    // already comfortably inside. Zoom is read imperatively so a later zoom
+    // does not re-run this against a stale request.
+    const revealRequest = useTimelineUIStore((s) => s.revealRequest);
+    useEffect(() => {
+      const el = scrollableRef.current;
+      if (!el || !revealRequest) return;
+      const targetPx = revealRequest.timeMs / uiStoreApi.getState().msPerPx;
+      const margin = el.clientWidth * 0.25;
+      const tooFarLeft = targetPx < el.scrollLeft + margin;
+      const tooFarRight = targetPx > el.scrollLeft + el.clientWidth - margin;
+      if (tooFarLeft || tooFarRight) {
+        el.scrollLeft = Math.max(0, targetPx - margin);
+      }
+    }, [revealRequest, uiStoreApi]);
+
     const handleScroll = useCallback(
       (e: React.UIEvent<HTMLDivElement>) => {
         setScrollLeftPx(e.currentTarget.scrollLeft);

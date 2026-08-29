@@ -97,6 +97,15 @@ export interface TimelineUIState {
 
   setZoom: (msPerPx: number) => void;
   setScrollLeftPx: (px: number) => void;
+  /**
+   * A timeline position the lanes should bring into view. The lanes scroll
+   * themselves — `scrollLeftPx` is written *from* their scroll handler, so it
+   * is a readout, not a control. Each request is a fresh object so asking for
+   * the same position twice still moves the view.
+   */
+  revealRequest: { timeMs: number } | null;
+  /** Ask the lanes to scroll `timeMs` into view. */
+  revealAt: (timeMs: number) => void;
 
   // ── Fullscreen ───────────────────────────────────────────────────────────
 
@@ -142,6 +151,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   activeTool: "select",
   msPerPx: 10,
   scrollLeftPx: 0,
+  revealRequest: null,
   fullscreen: false,
   expandedFxTrackId: null,
   draggingTrackId: null,
@@ -193,6 +203,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     set({ msPerPx: Math.min(MAX_MS_PER_PX, Math.max(MIN_MS_PER_PX, msPerPx)) }),
 
   setScrollLeftPx: (px) => set({ scrollLeftPx: Math.max(0, px) }),
+
+  revealAt: (timeMs) => set({ revealRequest: { timeMs: Math.max(0, timeMs) } }),
 
   setFullscreen: (full) => set({ fullscreen: full }),
 

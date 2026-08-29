@@ -79,6 +79,7 @@ import {
   useGeneratingCount,
   useFailedCount
 } from "../../stores/timeline/TimelineGenerationStore";
+import { useTimelineClipFocus } from "../../hooks/timeline/useTimelineClipFocus";
 import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFreshnessCheck";
 import { useTimelineGenerationSubscriptions } from "../../hooks/timeline/useGenerateClip";
 import { useLoadTimelineIntoStore } from "../../hooks/timeline/useLoadTimelineIntoStore";
@@ -505,6 +506,9 @@ const TimelineEditorBody: React.FC<
 
   // Imperative save for the Save button (forces an immediate PATCH).
   const { save: handleSave, isSaving } = useTimelineSave();
+
+  // Land on the clip a cross-document link asked for, once it has loaded.
+  useTimelineClipFocus(sequenceId);
 
   // Reconcile clips against current workflow state on mount.
   useWorkflowFreshnessCheck(sequenceId ?? null);

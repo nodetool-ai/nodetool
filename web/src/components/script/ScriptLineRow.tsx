@@ -481,6 +481,7 @@ const ScriptLineRow = ({
       <FlexColumn
         gap={SPACING.xs}
         fullWidth
+        data-line-id={line.id}
         sx={{
           position: "relative",
           padding: SPACING.sm,
@@ -506,6 +507,7 @@ const ScriptLineRow = ({
       align="flex-start"
       gap={SPACING.md}
       fullWidth
+      data-line-id={line.id}
       onDragOver={onDragOver}
       onDrop={onDrop}
       sx={{

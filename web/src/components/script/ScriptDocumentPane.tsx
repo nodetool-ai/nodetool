@@ -45,6 +45,7 @@ import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
 import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
 import { useScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
+import { useScriptLineFocus } from "../../hooks/script/useScriptLineFocus";
 import StoryboardLinkControl from "./StoryboardLinkControl";
 import ScriptSaveIndicator from "./ScriptSaveIndicator";
 
@@ -258,7 +259,7 @@ const SectionLine = memo(function SectionLine({
 const SectionBlockInner = ({
   scriptId,
   section,
-  currentLineId,
+  highlightedLineId,
   readOnly,
   mobile,
   dnd,
@@ -266,7 +267,8 @@ const SectionBlockInner = ({
 }: {
   scriptId: string;
   section: ScriptSection;
-  currentLineId: string | null;
+  /** The line drawn as highlighted: the one playing, or one jumped to. */
+  highlightedLineId: string | null;
   readOnly: boolean;
   mobile: boolean;
   dnd: LineDnd;
@@ -373,7 +375,7 @@ const SectionBlockInner = ({
           index={index}
           nextLineId={section.lines[index + 1]?.id ?? null}
           cast={cast}
-          highlighted={line.id === currentLineId}
+          highlighted={line.id === highlightedLineId}
           readOnly={readOnly}
           mobile={mobile}
           inset={inset}
@@ -441,6 +443,10 @@ const ScriptDocumentPane = ({
   const onRedo = useCallback(() => redo(scriptId), [redo, scriptId]);
   const { playing, currentLineId, play, stop } =
     useScriptPlaythrough(scriptId);
+  // A shot's "Appears in" chip opens the script at one line; playback's own
+  // highlight wins while it runs.
+  const focusedLineId = useScriptLineFocus(scriptId, sections.length > 0);
+  const highlightedLineId = currentLineId ?? focusedLineId;
   const [voicingAll, setVoicingAll] = useState(false);
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
@@ -742,7 +748,7 @@ const ScriptDocumentPane = ({
             key={section.id}
             scriptId={scriptId}
             section={section}
-            currentLineId={currentLineId}
+            highlightedLineId={highlightedLineId}
             readOnly={readOnly}
             mobile={isMobile}
             dnd={dnd}
