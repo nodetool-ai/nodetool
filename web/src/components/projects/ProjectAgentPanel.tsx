@@ -18,7 +18,7 @@ import {
   SPACING,
   ScrollArea
 } from "../ui_primitives";
-import ChatComposer from "../chat/composer/ChatComposer";
+import MediaChatComposer from "../chat/composer/MediaChatComposer";
 import useGlobalChatStore, {
   useThreadRuntime
 } from "../../stores/GlobalChatStore";
@@ -63,6 +63,7 @@ const ProjectAgentPanel = ({
   );
   const runtime = useThreadRuntime(threadId);
   const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
 
   // The shared chat socket is a singleton; other mounted surfaces depend on
   // it, so this never disconnects on unmount.
@@ -168,12 +169,16 @@ const ProjectAgentPanel = ({
         )}
       </ScrollArea>
       <FlexColumn sx={{ p: SPACING.lg }}>
-        <ChatComposer
+        <MediaChatComposer
           isLoading={isLoading}
           isStreaming={isStreaming}
           onSendMessage={handleSend}
           onStop={handleStop}
           disabled={!threadId}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
+          threadId={threadId}
+          hideModePicker
           placeholder="Ask for a change to this project…"
         />
       </FlexColumn>

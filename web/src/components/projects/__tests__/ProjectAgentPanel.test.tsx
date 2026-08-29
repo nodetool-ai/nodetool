@@ -42,7 +42,7 @@ jest.mock("../ProjectAgentThread", () => ({
   default: () => <div data-testid="thread" />
 }));
 
-jest.mock("../../chat/composer/ChatComposer", () => ({
+jest.mock("../../chat/composer/MediaChatComposer", () => ({
   __esModule: true,
   default: () => <div data-testid="composer" />
 }));
