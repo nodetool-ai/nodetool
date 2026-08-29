@@ -63,12 +63,15 @@ descriptors for consistency (below).
 
 ## The storyboard: plan, pick a still, then spend
 
-<img src="{{ '/assets/creative-agent/storyboard-surface.png' | relative_url }}" alt="Storyboard surface with five shot cards across every status">
+<img src="{{ '/assets/creative-agent/storyboard-surface.png' | relative_url }}" alt="Storyboard surface: a grid of six shot cards, each with its still, shot number, length, and status, over the inspector for the selected shot">
 
-Each card walks one shot through its lifecycle (**Planned → Still ready →
-Rendering → Rendered**) with the actions that fit its state: generate stills
-until one looks right, click the one to use, generate the clip from it,
-revise the clip with a text instruction ("make it darker, add rain").
+The board is a grid of shot cards. A card carries what reads at a glance —
+the still or the clip, a `SH NN · Ns` label, a status pill, and the action
+line. Select one and the inspector docks under the grid with everything else
+about that shot, and the actions that fit its state: generate stills until one
+looks right, click the one to use, generate the clip from it, revise the clip
+with a text instruction ("make it darker, add rain"). A shot walks the same
+lifecycle it always did — **Planned → Still ready → Rendering → Rendered**.
 Revision runs video-to-video on the existing clip and swaps the result in
 place, so fixing shot 3 never means re-rolling shots 1–5.
 
@@ -108,13 +111,13 @@ live in the asset library (a metadata marker, no migration), appear under
 **Entities** in the app menu, and reach prompts through the `ApplyEntities`
 node or the `ui_entity_apply` tool.
 
-<img src="{{ '/assets/screenshots/storyboard-board.png' | relative_url }}" alt="Storyboard board with an Entities field and per-shot entity chips">
+<img src="{{ '/assets/screenshots/storyboard-board.png' | relative_url }}" alt="Storyboard board with Board settings open: the Entities field carrying four entity chips, over the shot grid">
 
-On a storyboard, the **Entities** field pins a cast to the board: styles and
-locations season every shot's still and clip prompt, while characters and
-props activate on the shots that mention them by name. Each shot card shows
-which entities its prompt will use as chips — click one to include or exclude
-it for that shot. The **Direct** run also hands the cast to the screenplay
+On a storyboard, the **Entities** field — under **Board settings** — pins a
+cast to the board: styles and locations season every shot's still and clip
+prompt, while characters and props activate on the shots that mention them by
+name. Select a shot and its inspector shows which entities that prompt will
+use as chips — click one to include or exclude it for that shot. The **Direct** run also hands the cast to the screenplay
 model so shots reference entities by their exact names.
 
 Entities are also one `@` away wherever prompts are written: the mention
