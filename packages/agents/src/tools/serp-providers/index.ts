@@ -67,7 +67,9 @@ export type SerpProviderType =
   | "serpapi"
   | "dataforseo"
   | "brave"
-  | "apify";
+  | "apify"
+  | "openai"
+  | "gemini";
 
 interface SecretResolver {
   getSecret?: (key: string) => Promise<string | null>;
@@ -94,7 +96,9 @@ export const SERP_PROVIDER_SECRETS: Readonly<
   serpapi: ["SERPAPI_API_KEY"],
   dataforseo: ["DATA_FOR_SEO_LOGIN", "DATA_FOR_SEO_PASSWORD"],
   brave: ["BRAVE_API_KEY"],
-  apify: ["APIFY_API_TOKEN", "APIFY_API_KEY"]
+  apify: ["APIFY_API_TOKEN", "APIFY_API_KEY"],
+  openai: ["OPENAI_API_KEY"],
+  gemini: ["GEMINI_API_KEY"]
 };
 
 /**
@@ -114,7 +118,12 @@ export const SERP_PROVIDER_SEARCH_TYPES: Readonly<
   serpapi: ["web"],
   dataforseo: ["web"],
   brave: ["web", "images"],
-  apify: ["web"]
+  apify: ["web"],
+  // OpenAI and Gemini answer in prose and cite the pages they read; the
+  // citations are the result list. Neither has an image or news endpoint, so
+  // routing skips them for those types instead of answering with pages.
+  openai: ["web"],
+  gemini: ["web"]
 };
 
 /**
@@ -195,9 +204,35 @@ export async function createSerpProvider(
       return new (await import("./apify-provider.js")).ApifyProvider(key);
     }
 
+    case "openai": {
+      const key = await getSecret("OPENAI_API_KEY", resolver);
+      if (!key) {
+        throw new Error(
+          "OPENAI_API_KEY is required for the OpenAI search provider. Set it as an environment variable or via settings."
+        );
+      }
+      return new (await import("./openai-provider.js")).OpenAiSearchProvider(
+        key
+      );
+    }
+
+    case "gemini": {
+      const key = await getSecret("GEMINI_API_KEY", resolver);
+      if (!key) {
+        throw new Error(
+          "GEMINI_API_KEY is required for the Gemini search provider. Set it as an environment variable or via settings."
+        );
+      }
+      return new (await import("./gemini-provider.js")).GeminiSearchProvider(
+        key
+      );
+    }
+
     default:
       throw new Error(
-        `Unknown SERP provider: ${providerType}. Supported: serpapi, dataforseo, brave, apify`
+        `Unknown SERP provider: ${providerType}. Supported: ${Object.keys(
+          SERP_PROVIDER_SECRETS
+        ).join(", ")}`
       );
   }
 }
@@ -206,3 +241,5 @@ export { SerpApiProvider } from "./serpapi-provider.js";
 export { DataForSeoProvider } from "./dataforseo-provider.js";
 export { BraveProvider } from "./brave-provider.js";
 export { ApifyProvider } from "./apify-provider.js";
+export { OpenAiSearchProvider, OPENAI_SEARCH_MODEL } from "./openai-provider.js";
+export { GeminiSearchProvider, GEMINI_SEARCH_MODEL } from "./gemini-provider.js";
