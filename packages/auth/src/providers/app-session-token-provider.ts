@@ -73,6 +73,27 @@ function base64url(value: Buffer): string {
   return value.toString("base64url");
 }
 
+/**
+ * The token's signature: HMAC-SHA256 over the encoded payload.
+ *
+ * CodeQL's `js/insufficient-password-hash` reports this line, having tracked
+ * the `?api_key=` query parameter that carries a presented token into
+ * `update()`. It is a false positive, and the premise it rests on is pinned by
+ * test rather than argued in review (see `app-session-token-provider.test.ts`
+ * § "what makes the fast hash safe here"):
+ *
+ * - Nothing here is a password and nothing is stored. `material` is the
+ *   token's *own* payload — base64url JSON that anyone holding the token can
+ *   already read — and the digest is recomputed and compared on the spot, in
+ *   constant time. There is no hash at rest for an attacker to crack.
+ * - Unforgeability rests on the key, not on the hash being slow. The server
+ *   passes a 32-byte PBKDF2-derived key (`deriveKey(getMasterKey(), …)`), so
+ *   forging a signature means guessing 256 bits; a slow KDF would add nothing
+ *   and would break verification, which must be keyed and deterministic.
+ *
+ * HMAC-SHA256 is the right primitive for a MAC — it is what JWT's HS256 is,
+ * and what this package's delegated tokens already use.
+ */
 function sign(key: Buffer | string, material: string): string {
   return base64url(createHmac("sha256", key).update(material).digest());
 }

@@ -119,3 +119,70 @@ describe("AppSessionTokenProvider.verifyToken", () => {
     expect(await lazy.verifyToken(token)).toMatchObject({ ok: true });
   });
 });
+
+/**
+ * CodeQL reports `js/insufficient-password-hash` against `sign()`, having
+ * tracked a presented token from `?api_key=` into the HMAC. Calling that a
+ * false positive rests on two premises, and these pin both — so if either
+ * stops holding, it fails here rather than going unnoticed because someone
+ * dismissed an alert once.
+ */
+describe("what makes the fast hash safe here", () => {
+  const payloadOf = (token: string): Record<string, unknown> => {
+    const material = token.slice(0, token.lastIndexOf("."));
+    const encoded = material.slice(APP_SESSION_TOKEN_PREFIX.length);
+    return JSON.parse(
+      Buffer.from(encoded, "base64url").toString("utf-8")
+    ) as Record<string, unknown>;
+  };
+
+  it("hashes a payload that is public, and holds nothing secret", () => {
+    // Premise one: the hashed material is not a credential. It is the token's
+    // own payload, readable by anyone holding the token — which is why there
+    // is nothing here for a fast hash to expose. Adding a secret to the
+    // payload (a key, a session id, anything not in this list) would break
+    // that, and breaks this test.
+    const { token } = mintAppSessionToken(KEY, SCOPE, 3600);
+    const payload = payloadOf(token);
+
+    expect(Object.keys(payload).sort()).toEqual(["a", "e", "r", "u", "v"]);
+    expect(payload).toEqual({
+      v: 1,
+      u: "owner-1",
+      a: "app-1",
+      r: 3,
+      e: expect.any(Number)
+    });
+    // The signature is over exactly that payload and nothing else: it is
+    // reproducible from what the token already discloses, plus the key.
+    const issuedAtMs = ((payload.e as number) - 3600) * 1000;
+    expect(
+      mintAppSessionToken(KEY, SCOPE, 3600, () => issuedAtMs).token
+    ).toBe(token);
+  });
+
+  it("rests on the key, so a near-miss key forges nothing", async () => {
+    // Premise two: unforgeability comes from the key's 256 bits, not from the
+    // hash being expensive. The server derives that key with PBKDF2; here the
+    // falsifiable half is that a different key — even one byte apart — cannot
+    // produce a signature this provider accepts.
+    const key = Buffer.alloc(32, 7);
+    const almost = Buffer.alloc(32, 7);
+    almost[31] ^= 0x01;
+
+    const forged = mintAppSessionToken(almost, SCOPE, 3600).token;
+    expect(
+      await new AppSessionTokenProvider(key).verifyToken(forged)
+    ).toMatchObject({
+      ok: false,
+      error: "Invalid app session token signature"
+    });
+
+    // And nothing is stored: verification is a recomputation, so two
+    // providers holding the same key agree without sharing any state.
+    const { token } = mintAppSessionToken(key, SCOPE, 3600);
+    expect(
+      await new AppSessionTokenProvider(key).verifyToken(token)
+    ).toMatchObject({ ok: true });
+  });
+});
