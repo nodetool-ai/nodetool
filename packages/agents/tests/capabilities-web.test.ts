@@ -194,6 +194,78 @@ describe("behaviour through toolFromCapability", () => {
     expect(String(bad.error)).toContain("Invalid URL");
   });
 
+  it("appends the pages the gemini backend grounded on, filtered", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        candidates: [
+          {
+            content: { parts: [{ text: "Otters are mustelids." }] },
+            groundingMetadata: {
+              groundingChunks: [
+                { web: { uri: "https://good.example/otters", title: "Otters" } },
+                { web: { uri: "https://bad.example/otters", title: "Spam" } }
+              ]
+            }
+          }
+        ]
+      })
+    } as unknown as Response);
+
+    const context = makeContext({ GEMINI_API_KEY: "key" });
+    const tool = asTool(byName("web_search"));
+    const result = String(
+      await tool.process(context, {
+        query: "otters",
+        backend: "gemini",
+        blocked_domains: ["bad.example"]
+      })
+    );
+
+    expect(result).toContain("Otters are mustelids.");
+    expect(result).toContain("1. Otters\n   https://good.example/otters");
+    expect(result).not.toContain("bad.example");
+  });
+
+  it("appends the pages the openai backend cited", async () => {
+    const create = vi.fn().mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: "Otters are mustelids.",
+            annotations: [
+              {
+                type: "url_citation",
+                url_citation: {
+                  url: "https://good.example/otters",
+                  title: "Otters",
+                  start_index: 0,
+                  end_index: 21
+                }
+              }
+            ]
+          }
+        }
+      ]
+    });
+    vi.doMock("openai", () => ({
+      OpenAI: function () {
+        return { chat: { completions: { create } } };
+      }
+    }));
+
+    const context = makeContext({ OPENAI_API_KEY: "key" });
+    const tool = asTool(byName("web_search"));
+    const result = String(
+      await tool.process(context, { query: "otters", backend: "openai" })
+    );
+
+    expect(result).toContain("Otters are mustelids.");
+    expect(result).toContain("1. Otters\n   https://good.example/otters");
+    vi.doUnmock("openai");
+  });
+
   it("names every unconfigured backend when a news search has none", async () => {
     const context = makeContext();
     const tool = asTool(byName("web_search"));

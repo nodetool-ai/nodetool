@@ -342,6 +342,25 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
     const keepRecords = (records: Array<Record<string, unknown>>) =>
       records.filter((r) => keep((r.link as string | null) ?? null));
 
+    /**
+     * Append a model-backed backend's citations to its prose answer.
+     *
+     * OpenAI and Gemini answer a search with an argument rather than a result
+     * list, and the pages behind it are the only way a reader can check one.
+     * Both are read into the same `{title, url}` shape by their provider, so
+     * one formatter serves them and the domain filters still apply.
+     */
+    const withSources = (text: string, raw: unknown): string => {
+      const sources = (
+        Array.isArray(raw) ? (raw as Array<{ title: string; url: string }>) : []
+      ).filter((s) => keep(s.url));
+      if (sources.length === 0) return text;
+      const lines = sources
+        .map((s, i) => `${i + 1}. ${s.title}\n   ${s.url}`)
+        .join("\n\n");
+      return `${text}\n\nSources:\n\n${lines}`;
+    };
+
     /** A SERP-factory backend: build the client, search, format. */
     const serpFactoryBackend = (
       name: SerpProviderType,
@@ -572,7 +591,7 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
           const result = unwrapBackendResult(
             await openAiWebSearch(ctx, { query: effectiveQuery })
           );
-          return String(result.results ?? "");
+          return withSources(String(result.results ?? ""), result.sources);
         }
       },
       {
@@ -593,14 +612,7 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
           const text = Array.isArray(result.results)
             ? result.results.join("\n\n")
             : String(result.results ?? "");
-          const sources = (
-            (result.sources ?? []) as Array<{ title: string; url: string }>
-          ).filter((s) => keep(s.url));
-          if (sources.length === 0) return text;
-          const sourceLines = sources
-            .map((s, i) => `${i + 1}. ${s.title}\n   ${s.url}`)
-            .join("\n\n");
-          return `${text}\n\nSources:\n\n${sourceLines}`;
+          return withSources(text, result.sources);
         }
       }
     ];

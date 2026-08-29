@@ -5,7 +5,13 @@
  * `packages/agents/src/tools/serp-tool-factory.ts`).
  */
 
-export type SerpProviderId = "brave" | "serpapi" | "dataforseo" | "apify";
+export type SerpProviderId =
+  | "brave"
+  | "serpapi"
+  | "dataforseo"
+  | "apify"
+  | "openai"
+  | "gemini";
 
 interface SearchProviderConfig {
   id: SerpProviderId;
@@ -58,6 +64,24 @@ export const SEARCH_PROVIDER_CONFIGS: Record<SerpProviderId, SearchProviderConfi
     credentialFields: ["APIFY_API_TOKEN"],
     getApiKeyUrl: "https://console.apify.com/account/integrations",
     getApiKeyLabel: "Get Apify API Token"
+  },
+  openai: {
+    id: "openai",
+    label: "OpenAI Web Search",
+    description:
+      "Reuses your OpenAI key. Answers in prose and cites the pages it read.",
+    credentialFields: ["OPENAI_API_KEY"],
+    getApiKeyUrl: "https://platform.openai.com/api-keys",
+    getApiKeyLabel: "Get OpenAI API Key"
+  },
+  gemini: {
+    id: "gemini",
+    label: "Gemini Grounded Search",
+    description:
+      "Reuses your Gemini key. Answers in prose and cites the pages it read.",
+    credentialFields: ["GEMINI_API_KEY"],
+    getApiKeyUrl: "https://aistudio.google.com/app/apikey",
+    getApiKeyLabel: "Get Gemini API Key"
   }
 };
 

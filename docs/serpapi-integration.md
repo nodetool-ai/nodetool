@@ -82,9 +82,11 @@ lists everything the engine returned, `omitted` names the keys left out, and
 ## `serpapi_search` or `web_search`?
 
 `web_search` is one query against whichever SERP provider this install
-configured (`SERP_PROVIDER`: SerpAPI, DataForSEO, Brave, or Apify), normalized
-to title/url/snippet. Reach for it for a plain web question — it is provider-
-agnostic and its results are already in the shape an agent wants.
+configured (`SERP_PROVIDER`: SerpAPI, DataForSEO, Brave, Apify, OpenAI, or
+Gemini), normalized to title/url/snippet — the two model-backed providers
+answer in prose and their citations are what gets normalized. Reach for it for
+a plain web question — it is provider-agnostic and its results are already in
+the shape an agent wants.
 
 `serpapi_search` is the layer under that, for the questions a plain web search
 cannot ask: a citation count, a maps listing's hours, a product's price history,

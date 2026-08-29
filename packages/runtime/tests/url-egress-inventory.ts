@@ -539,12 +539,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "api.dataforseo.com."
   ),
   fixedHost(
-    "packages/agents/src/tools/google-tools.ts",
-    "Google Workspace tools",
-    "the user's Google OAuth token",
-    "googleapis.com endpoints built from constants."
-  ),
-  fixedHost(
     "packages/agents/src/tools/serp-providers/apify-provider.ts",
     "Apify search backend",
     "APIFY_API_TOKEN",
@@ -561,6 +555,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "DataForSEO search backend",
     "DataForSEO basic auth",
     "api.dataforseo.com."
+  ),
+  fixedHost(
+    "packages/agents/src/tools/serp-providers/gemini-provider.ts",
+    "Gemini search backend",
+    "GEMINI_API_KEY",
+    "generativelanguage.googleapis.com, model id from a constant."
   ),
   fixedHost(
     "packages/atlascloud-nodes/src/atlascloud-base.ts",
