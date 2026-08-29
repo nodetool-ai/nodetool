@@ -47,6 +47,7 @@ import type {
 import { stripElement, stripTags, stripToFixpoint } from "./html-text.js";
 import {
   webSearchSpec,
+  imageSearchSpec,
   browserSpec,
   takeScreenshotSpec,
   downloadFileSpec,
@@ -633,6 +634,28 @@ const webSearch: CapabilityExport = {
 };
 
 // ---------------------------------------------------------------------------
+// image_search
+// ---------------------------------------------------------------------------
+
+/**
+ * Image search, split out from `web_search`'s `search_type` into its own
+ * function. The routing, backend list, and result shape are unchanged — this
+ * is `webSearchImpl` with `search_type` pinned to `"images"` — so a caller
+ * gets its own name and schema without a second routing table to keep in
+ * step with the first.
+ */
+export function imageSearchImpl(provider?: SerpProvider): CapabilityImpl {
+  const search = webSearchImpl(provider);
+  return (run: CapabilityRun, params: Record<string, unknown>) =>
+    search(run, { ...params, search_type: "images" });
+}
+
+const imageSearch: CapabilityExport = {
+  spec: imageSearchSpec,
+  impl: imageSearchImpl()
+};
+
+// ---------------------------------------------------------------------------
 // browser
 // ---------------------------------------------------------------------------
 
@@ -1056,6 +1079,7 @@ const httpRequest: CapabilityExport = {
 /** Every web capability, in the order the tool files declared them. */
 export const WEB_CAPABILITIES: readonly CapabilityExport[] = [
   webSearch,
+  imageSearch,
   browser,
   takeScreenshot,
   httpRequest,
@@ -1069,6 +1093,7 @@ export const module: CapabilityModule = {
 
 export {
   webSearch,
+  imageSearch,
   browser,
   takeScreenshot,
   httpRequest,

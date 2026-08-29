@@ -156,6 +156,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   google_sheets_update: "external",
   grep: "read",
   http_request: "external",
+  image_search: "read",
   invoke_node: "execute",
   list_apps: "read",
   list_assets: "read",

@@ -140,6 +140,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Search
   "web_search",
+  "image_search",
 
   // Creative critique (VLM judging + taste memory)
   "critique_image",

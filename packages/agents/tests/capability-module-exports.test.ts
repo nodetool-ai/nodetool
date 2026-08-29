@@ -141,4 +141,50 @@ describe("mountCapabilityModules — the registry's own modules", () => {
     if (result.ok) return;
     expect(result.error).toContain(name);
   });
+
+  it("serves the dedicated image_search export", async () => {
+    const result = await mountCapabilityModules(
+      'import { image_search } from "@nodetool-ai/sandbox-nodetool/web";',
+      run
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it.each(["images", "search_images", "google_images"])(
+    "points a guessed image-search import (%s) at the real image_search export",
+    async (guess) => {
+      const result = await mountCapabilityModules(
+        `import { ${guess} } from "@nodetool-ai/sandbox-nodetool/web";`,
+        run
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toContain(`Did you mean "image_search" for "${guess}"?`);
+    }
+  );
+
+  it.each(["news", "news_search", "google_news"])(
+    "points a guessed news-search import (%s) at web_search's search_type",
+    async (guess) => {
+      const result = await mountCapabilityModules(
+        `import { ${guess} } from "@nodetool-ai/sandbox-nodetool/web";`,
+        run
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toContain(
+        'call "web_search" with {search_type: "news"} instead'
+      );
+    }
+  );
+
+  it("still lists exports and skips the near-match note for an unrelated guess", async () => {
+    const result = await mountCapabilityModules(
+      'import { images } from "@nodetool-ai/sandbox-nodetool/media";',
+      run
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).not.toContain("search_type");
+  });
 });

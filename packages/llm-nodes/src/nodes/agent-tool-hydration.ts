@@ -29,24 +29,25 @@ type MaybeTool = {
  * Names a saved workflow may still carry, mapped to what replaced them.
  *
  * The provider-specific search and media tools were retired: one `web_search`
- * chooses a backend host-side and takes a `search_type`, and
- * `generate_image` / `generate_speech` are provider-agnostic. An AgentNode
- * saved before that stores the old name as a bare stub, and a stub that
- * resolves to nothing is silently uncallable — so resolve it to the tool that
- * took over instead.
+ * chooses a backend host-side and takes a `search_type` for news, image
+ * search is the dedicated `image_search`, and `generate_image` /
+ * `generate_speech` are provider-agnostic. An AgentNode saved before that
+ * stores the old name as a bare stub, and a stub that resolves to nothing is
+ * silently uncallable — so resolve it to the tool that took over instead.
  */
 const RETIRED_TOOL_NAMES: Readonly<Record<string, string>> = {
   openai_web_search: "web_search",
   google_grounded_search: "web_search",
   dataforseo_search: "web_search",
-  // The news and image searches folded into `web_search`'s `search_type`.
-  // A hydrated stub carries the name only, so it lands on a web search — the
-  // tool exists and answers, rather than resolving to nothing and being
-  // silently uncallable, which is what this map is for.
+  // The news search folded into `web_search`'s `search_type`; image search
+  // split out into its own `image_search` tool. A hydrated stub carries the
+  // name only, so it lands on a real tool — one that exists and answers,
+  // rather than resolving to nothing and being silently uncallable, which is
+  // what this map is for.
   dataforseo_news: "web_search",
-  dataforseo_images: "web_search",
   google_news: "web_search",
-  google_images: "web_search",
+  dataforseo_images: "image_search",
+  google_images: "image_search",
   image_generation: "generate_image",
   openai_image_generation: "generate_image",
   google_image_generation: "generate_image",
