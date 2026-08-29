@@ -89,8 +89,25 @@ jest.mock("../../../stores/NotificationStore", () => ({
   ) => selector({ addNotification: jest.fn() })
 }));
 
+let hasConfiguredProvider = true;
+jest.mock("../../../hooks/useHasConfiguredProvider", () => ({
+  useHasConfiguredProvider: () => hasConfiguredProvider
+}));
+
+const openPageTab = jest.fn();
+jest.mock("../../workspace/openPageTab", () => ({
+  openPageTab: (key: string) => openPageTab(key)
+}));
+
+const handleCreateNewWorkflow = jest.fn(async () => undefined);
+jest.mock("../../../hooks/useWorkflowActions", () => ({
+  useWorkflowActions: () => ({ handleCreateNewWorkflow })
+}));
+
 import NewProjectSurface from "../NewProjectSurface";
 import { takeProjectFirstTurn } from "../projectAgent";
+import useOnboardingStore from "../../../stores/OnboardingStore";
+import { useProviderOnboardingStore } from "../../../stores/ProviderOnboardingStore";
 
 const renderSurface = () =>
   render(
@@ -99,7 +116,12 @@ const renderSurface = () =>
     </ThemeProvider>
   );
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  hasConfiguredProvider = true;
+  useOnboardingStore.setState({ completedSteps: [], dismissed: false });
+  useProviderOnboardingStore.setState({ open: false });
+});
 
 describe("NewProjectSurface", () => {
   it("shows the selected shape's document chain", async () => {
@@ -166,4 +188,57 @@ describe("NewProjectSurface", () => {
     await userEvent.click(screen.getByRole("button", { name: "Workflow" }));
     expect(createWorkflow).toHaveBeenCalled();
   });
+
+  it("shows the checklist until onboarding is done", () => {
+    renderSurface();
+    expect(
+      screen.getByRole("region", { name: "Getting started checklist" })
+    ).toBeInTheDocument();
+  });
+
+  it("hides the checklist once dismissed", () => {
+    useOnboardingStore.setState({ dismissed: true });
+    renderSurface();
+    expect(
+      screen.queryByRole("region", { name: "Getting started checklist" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens examples and tutorials as page tabs, onboarding done or not", async () => {
+    useOnboardingStore.setState({ dismissed: true });
+    renderSurface();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Browse examples" })
+    );
+    expect(openPageTab).toHaveBeenCalledWith("examples");
+    await userEvent.click(screen.getByRole("button", { name: "Tutorials" }));
+    expect(openPageTab).toHaveBeenCalledWith("tutorials");
+  });
+
+  it("parks a start on provider onboarding and resumes once connected", async () => {
+    hasConfiguredProvider = false;
+    const { rerender } = renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    expect(createProject).not.toHaveBeenCalled();
+    expect(useProviderOnboardingStore.getState().open).toBe(true);
+
+    hasConfiguredProvider = true;
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <NewProjectSurface />
+      </ThemeProvider>
+    );
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledWith({
+        name: "A spot for our desk lamp",
+        kind: "spot"
+      })
+    );
+  });
+
 });

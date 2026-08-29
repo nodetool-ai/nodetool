@@ -127,10 +127,9 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   }, [nodeId, nodeData, addNotification, writeClipboard, closeContextMenu]);
 
   const handleFindTemplates = useCallback(() => {
-    const nodeType = node?.type || "";
-    navigate(`/dashboard?node=${encodeURIComponent(nodeType)}`);
+    navigate("/examples");
     closeContextMenu();
-  }, [navigate, closeContextMenu, node?.type]);
+  }, [navigate, closeContextMenu]);
 
   const handleSelectAllSameType = useCallback(() => {
     if (node?.type) {

@@ -102,17 +102,6 @@ it("opens Workspaces as a page tab", async () => {
   expect(activeTabId).toBe(expectedId);
 });
 
-it("keeps Dashboard on its route (not a tab)", async () => {
-  const user = userEvent.setup();
-  renderMenu();
-
-  await user.click(screen.getByRole("button", { name: /open app menu/i }));
-  await user.click(screen.getByRole("menuitem", { name: /dashboard/i }));
-
-  expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(0);
-  expect(mockNavigate).toHaveBeenCalledWith("/dashboard");
-});
-
 it("reports the pick to its host so the mobile sheet can dismiss", async () => {
   const user = userEvent.setup();
   const onAction = jest.fn();

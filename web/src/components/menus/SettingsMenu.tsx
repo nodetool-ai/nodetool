@@ -206,9 +206,6 @@ function SettingsPage() {
   const setSelectNodesOnDrag = useSettingsStore(
     (state) => state.setSelectNodesOnDrag
   );
-  const setShowWelcomeOnStartup = useSettingsStore(
-    (state) => state.setShowWelcomeOnStartup
-  );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -359,13 +356,6 @@ function SettingsPage() {
   );
 
   // Memoized handlers for settings controls to prevent re-renders
-  const handleShowWelcomeChange = useCallback(
-    (checked: boolean) => {
-      setShowWelcomeOnStartup(checked);
-    },
-    [setShowWelcomeOnStartup]
-  );
-
   const handleSelectNodesOnDragChange = useCallback(
     (checked: boolean) => {
       setSelectNodesOnDrag(checked);
@@ -645,18 +635,6 @@ function SettingsPage() {
                       <Text size="big" id="editor" className="settings-heading">
                         Editor
                       </Text>
-                      <SearchItem
-                        search={generalSearch}
-                        keywords="editor workspace show welcome screen startup"
-                      >
-                        <LabeledSwitch
-                          label="Show Welcome Screen"
-                          checked={!!settings.showWelcomeOnStartup}
-                          onChange={handleShowWelcomeChange}
-                          description="Start on the dashboard, with the welcome screen and templates, until getting started is finished. When off, the app opens straight into the workspace."
-                        />
-                      </SearchItem>
-
                       <SearchItem
                         search={generalSearch}
                         keywords="editor workspace select nodes on drag selection"

@@ -167,7 +167,6 @@ it("reaches the app pages through More, not a second menu button", async () => {
 
   // The destinations the desktop logo menu carries.
   expect(screen.getByText("Settings")).toBeInTheDocument();
-  expect(screen.getByText("Dashboard")).toBeInTheDocument();
   expect(screen.getByText("Downloads")).toBeInTheDocument();
   expect(screen.queryByTestId("workflow-list")).not.toBeInTheDocument();
   expect(screen.queryByTestId("create-workflow")).not.toBeInTheDocument();

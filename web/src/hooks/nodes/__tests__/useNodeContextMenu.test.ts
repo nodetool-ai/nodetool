@@ -373,16 +373,14 @@ describe("useNodeContextMenu", () => {
   });
 
   describe("handleFindTemplates", () => {
-    it("navigates to templates with node type", () => {
+    it("navigates to examples", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
       act(() => {
         result.current.handlers.handleFindTemplates();
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        "/dashboard?node=nodetool.constant.String"
-      );
+      expect(mockNavigate).toHaveBeenCalledWith("/examples");
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
   });

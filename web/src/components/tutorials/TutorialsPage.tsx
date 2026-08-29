@@ -277,9 +277,9 @@ const TutorialsPage: React.FC = () => {
           <span className="sub">Short, beginner-friendly walkthroughs of NodeTool</span>
         </div>
         <span className="spacer" />
-        <button type="button" className="back" onClick={() => navigate("/dashboard")}>
+        <button type="button" className="back" onClick={() => navigate("/workspace")}>
           <ArrowBackRoundedIcon />
-          Dashboard
+          Workspace
         </button>
       </header>
 
@@ -346,7 +346,7 @@ const TutorialsPage: React.FC = () => {
             </section>
 
             <div className="tut-cta">
-              <EditorButton variant="contained" onClick={() => navigate("/dashboard")}>
+              <EditorButton variant="contained" onClick={() => navigate("/workspace")}>
                 Start building
               </EditorButton>
               <EditorButton variant="outlined" onClick={() => navigate("/examples")}>

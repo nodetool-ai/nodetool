@@ -5,8 +5,8 @@ import { AI_PROVIDER_SECRET_KEYS } from "../components/menus/providerCatalog";
 
 /**
  * Whether at least one AI provider is connected. Drives the "connect a
- * provider" onboarding step wherever it is shown (dashboard checklist, empty
- * workspace, chat welcome), so every surface reads the same signal.
+ * provider" onboarding step wherever it is shown (the new-project surface's
+ * checklist, chat welcome), so every surface reads the same signal.
  *
  * A provider counts when its secret is configured — the key set comes from the
  * settings provider catalog, so a provider connected anywhere in the app ticks

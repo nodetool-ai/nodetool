@@ -1,10 +1,8 @@
 import React, { useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 import SettingsIcon from "@mui/icons-material/Settings";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import DownloadIcon from "@mui/icons-material/Download";
-import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
@@ -40,7 +38,6 @@ export interface AppMenuAction {
  * since the Downloads dialog and page tabs mount themselves but Help does not.
  */
 export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
-  const navigate = useNavigate();
   const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
   const { downloads, openDownloadsDialog } = useModelDownloadStore(
     useShallow((state) => ({
@@ -72,15 +69,6 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
 
   return useMemo(() => {
     const actions: AppMenuAction[] = [
-      {
-        key: "dashboard",
-        label: "Dashboard",
-        icon: <SpaceDashboardOutlinedIcon />,
-        onClick: () => {
-          navigate("/dashboard");
-          finish();
-        }
-      },
       {
         key: "tutorials",
         label: "Tutorials",
@@ -166,7 +154,6 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
 
     return actions;
   }, [
-    navigate,
     openPage,
     finish,
     handleOpenHelp,

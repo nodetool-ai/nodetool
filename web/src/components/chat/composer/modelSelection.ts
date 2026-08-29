@@ -4,9 +4,8 @@
  *
  * A model carries constraints (which resolutions, aspect ratios and durations
  * it supports), so picking one has to clamp the current settings to what the
- * new model allows. That rule belongs in one place: the chat composer and the
- * dashboard command bar both write these same stores, and a second copy of the
- * clamping would drift from the first.
+ * new model allows. That rule belongs in one place, so a second copy of the
+ * clamping cannot drift from the first.
  */
 import type { ImageModel, TTSModel, VideoModel } from "../../../stores/ApiTypes";
 import type {

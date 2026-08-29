@@ -7,7 +7,7 @@
  * loose tabs the way the `+ New` menu always did.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import {
@@ -51,6 +51,14 @@ import {
   type NewDocumentSubmenu
 } from "../workspace/newDocumentCatalog";
 import { useExampleStoryboards } from "../../hooks/storyboard/useStoryboards";
+import { useHasConfiguredProvider } from "../../hooks/useHasConfiguredProvider";
+import { useWorkflowActions } from "../../hooks/useWorkflowActions";
+import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
+import useOnboardingStore, {
+  isOnboardingFinished
+} from "../../stores/OnboardingStore";
+import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
+import { openPageTab } from "../workspace/openPageTab";
 import { stageProjectFirstTurn } from "./projectAgent";
 import { PROJECT_COLOR } from "./projectIdentity";
 import {
@@ -71,6 +79,7 @@ interface SubmenuAnchor {
   element: HTMLElement;
 }
 
+
 const NewProjectSurface = () => {
   const [prompt, setPrompt] = useState("");
   const [shapeId, setShapeId] = useState(DEFAULT_SHAPE_ID);
@@ -78,6 +87,8 @@ const NewProjectSurface = () => {
   const [entityAnchor, setEntityAnchor] = useState<HTMLElement | null>(null);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
   const [starting, setStarting] = useState(false);
+  // A start requested before a provider was configured, resumed once one is.
+  const [pendingStart, setPendingStart] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
 
   const shape = shapeById(shapeId);
@@ -90,6 +101,17 @@ const NewProjectSurface = () => {
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
+  );
+  const hasConfiguredProvider = useHasConfiguredProvider();
+  const { handleCreateNewWorkflow } = useWorkflowActions();
+  // Starter cards and the checklist retire together once the getting-started
+  // steps are done or dismissed; veterans get the plain project surface.
+  const showOnboarding = useOnboardingStore(
+    (state) =>
+      !isOnboardingFinished({
+        completedSteps: state.completedSteps,
+        dismissed: state.dismissed
+      })
   );
 
   // Blank documents opened from here are loose, as the strip promises — the
@@ -141,6 +163,16 @@ const NewProjectSurface = () => {
     if (text.length === 0 || starting) {
       return;
     }
+    // The project agent's first turn needs a model; route key-less users
+    // through provider onboarding first and resume the start once connected.
+    if (!hasConfiguredProvider) {
+      setPendingStart(true);
+      openProviderOnboarding({
+        capability: "generate_message",
+        reason: "Almost there — the project agent needs a model to run."
+      });
+      return;
+    }
     setStarting(true);
     try {
       const project = await createProject.mutateAsync({
@@ -177,12 +209,37 @@ const NewProjectSurface = () => {
     closeTab,
     createProject,
     getFileContents,
+    hasConfiguredProvider,
     openProject,
     prompt,
     selectedEntities,
     shape,
     starting
   ]);
+
+  // A start that was parked on provider onboarding resumes on its own once a
+  // provider is connected, so the user finishes the thing they asked for.
+  const resumeProject = useRef(handleStart);
+  resumeProject.current = handleStart;
+  useEffect(() => {
+    if (!pendingStart || !hasConfiguredProvider) {
+      return;
+    }
+    setPendingStart(false);
+    void resumeProject.current();
+  }, [pendingStart, hasConfiguredProvider]);
+
+  const handleConnectProvider = useCallback(() => {
+    openProviderOnboarding();
+  }, []);
+
+  const handleOpenTemplates = useCallback(() => {
+    openPageTab("examples");
+  }, []);
+
+  const handleOpenTutorials = useCallback(() => {
+    openPageTab("tutorials");
+  }, []);
 
   return (
     <ScrollArea fullHeight>
@@ -340,6 +397,35 @@ const NewProjectSurface = () => {
                 <Caption color="secondary">{step.label}</Caption>
               </FlexRow>
             ))}
+          </FlexRow>
+
+          {showOnboarding && (
+            <Box sx={{ pt: SPACING.lg }}>
+              <GettingStartedChecklist
+                hasConfiguredProvider={hasConfiguredProvider}
+                onConnectProvider={handleConnectProvider}
+                onOpenTemplates={handleOpenTemplates}
+                onCreateWorkflow={() => void handleCreateNewWorkflow()}
+              />
+            </Box>
+          )}
+
+          <FlexRow justify="center" align="center" gap={SPACING.md}>
+            <Caption color="muted">Not sure where to begin?</Caption>
+            <EditorButton
+              variant="outlined"
+              density="compact"
+              onClick={handleOpenTemplates}
+            >
+              Browse examples
+            </EditorButton>
+            <EditorButton
+              variant="outlined"
+              density="compact"
+              onClick={handleOpenTutorials}
+            >
+              Tutorials
+            </EditorButton>
           </FlexRow>
         </FlexColumn>
 
