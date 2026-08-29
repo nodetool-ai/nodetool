@@ -25,7 +25,8 @@ export const TYPE_GLYPH = {
   application: "◧",
   page: "☰",
   "project-list": PROJECT_GLYPH,
-  project: PROJECT_GLYPH
+  project: PROJECT_GLYPH,
+  "project-new": PROJECT_GLYPH
 } satisfies Record<WorkspaceTabType, string>;
 
 /** Pin color per tab type, reusing the app's canonical data-type palette. */
@@ -46,5 +47,6 @@ export const TYPE_COLOR = {
   application: colorForType("any"),
   page: colorForType("any"),
   "project-list": PROJECT_COLOR,
-  project: PROJECT_COLOR
+  project: PROJECT_COLOR,
+  "project-new": PROJECT_COLOR
 } satisfies Record<WorkspaceTabType, string>;

@@ -57,7 +57,8 @@ const SUPPORTS_BOTH_MODES = {
   application: false,
   page: false,
   "project-list": false,
-  project: false
+  project: false,
+  "project-new": false
 } satisfies Record<WorkspaceTabType, boolean>;
 
 

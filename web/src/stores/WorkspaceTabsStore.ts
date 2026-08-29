@@ -40,7 +40,10 @@ export type WorkspaceTabType =
   // The projects list. One per workspace — `ref` is the constant below.
   | "project-list"
   // A project's overview. `ref` is a project id (trpc.projects.*).
-  | "project";
+  | "project"
+  // The surface a project is started from. One per workspace — `ref` is the
+  // constant below, and the tab closes once the project it described exists.
+  | "project-new";
 
 export type WorkspaceTabMode = "view" | "edit";
 
@@ -130,6 +133,9 @@ export const LOOSE_PROJECT_ID = "default";
 
 /** The projects list is one tab, so its `ref` is a constant. */
 export const PROJECT_LIST_REF = "projects";
+
+/** The new-project surface is one tab, so its `ref` is a constant too. */
+export const PROJECT_NEW_REF = "new";
 
 export const tabId = (type: WorkspaceTabType, ref: string): string =>
   `${type}:${ref}`;

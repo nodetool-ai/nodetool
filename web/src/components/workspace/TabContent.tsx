@@ -31,6 +31,9 @@ const ProjectListSurface = React.lazy(
 const ProjectOverviewSurface = React.lazy(
   () => import("../projects/ProjectOverviewSurface")
 );
+const NewProjectSurface = React.lazy(
+  () => import("../projects/NewProjectSurface")
+);
 
 interface TabContentProps {
   tab: WorkspaceTab;
@@ -83,6 +86,8 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       return <ProjectListSurface />;
     case "project":
       return <ProjectOverviewSurface refId={tab.ref} />;
+    case "project-new":
+      return <NewProjectSurface />;
     default: {
       // Exhaustiveness guard — a new WorkspaceTabType must add a case here.
       const exhaustive: never = tab.type;
