@@ -1121,7 +1121,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "take_screenshot",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "fae5f5a3d1c0",
+    contract: "6990fdc0a93a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
