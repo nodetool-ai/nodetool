@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/integration-nodes",
   "version": "0.7.0-rc.38",
-  "description": "NodeTool external-API integration nodes — Google Workspace, mail, secrets, messaging triggers, ComfyUI, kie",
+  "description": "NodeTool external-API integration nodes \u2014 Google Workspace, mail, secrets, messaging triggers, ComfyUI, kie",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -20,7 +20,6 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "imapflow": "^1.7.1",
     "js-yaml": "^4.3.1"
   },
   "devDependencies": {
