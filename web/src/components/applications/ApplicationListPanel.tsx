@@ -68,12 +68,13 @@ const useOpenApplication = () => {
   const location = useLocation();
 
   return useCallback(
-    (id: string, name: string) => {
+    (id: string, name: string, projectId?: string) => {
       openTab({
         type: "application",
         ref: id,
         mode: "edit",
-        title: name || UNTITLED
+        title: name || UNTITLED,
+        projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");
@@ -95,7 +96,7 @@ export const CreateApplicationButton = memo(function CreateApplicationButton() {
         description: "",
         projectId: creationProjectId()
       });
-      openApplication(created.id, created.name);
+      openApplication(created.id, created.name, created.projectId);
     } catch (error) {
       console.error("Failed to create app", error);
     }
@@ -139,7 +140,7 @@ export const CreateApplicationFromWorkflowButton = memo(
             projectId: creationProjectId(),
             fromWorkflowId: workflowId
           });
-          openApplication(created.id, created.name);
+          openApplication(created.id, created.name, created.projectId);
         } catch (error) {
           console.error("Failed to create app from workflow", error);
         }

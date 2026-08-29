@@ -57,6 +57,7 @@ import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import NodeLibrary from "../node_menu/NodeLibrary";
 import RailAppMenu from "./RailAppMenu";
+import ProjectsRailButton from "../projects/ProjectsRailButton";
 import AppPagesList from "./AppPagesList";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 
@@ -263,12 +264,15 @@ const VerticalToolbar = memo(function VerticalToolbar({
   onViewChange,
   handlePanelToggle,
   showAppMenu = false,
+  showProjects = false,
   hiddenViews
 }: {
   activeView: LeftPanelView;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
   showAppMenu?: boolean;
+  /** Projects open as tabs, so the entry only exists in the workspace shell. */
+  showProjects?: boolean;
   hiddenViews?: readonly LeftPanelView[];
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
@@ -294,6 +298,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   return (
     <div className="vertical-toolbar">
       {showAppMenu && <RailAppMenu />}
+      {showProjects && <ProjectsRailButton />}
       <QuickAccessSidebar
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
@@ -1141,6 +1146,7 @@ const PanelLeft: React.FC = () => {
           onViewChange={onViewChange}
           handlePanelToggle={handlePanelToggleClick}
           showAppMenu={isWorkspace}
+          showProjects={isWorkspace}
           hiddenViews={hiddenViews}
         />
 

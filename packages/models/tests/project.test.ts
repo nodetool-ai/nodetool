@@ -15,11 +15,14 @@ import {
   scriptStatus,
   spendCategory,
   storyboardStatus,
+  storyboardThumbnails,
   summarizeProject,
   summarizeSpend,
   timelineStatus,
   type SpendRow
 } from "../src/project-summary.js";
+import { moveDocumentToProject } from "../src/project-membership.js";
+import { LOOSE_PROJECT_ID } from "../src/project.js";
 import { Prediction } from "../src/prediction.js";
 import { Script, type ScriptDocument } from "../src/script.js";
 import { Storyboard, type StoryboardDocument } from "../src/storyboard.js";
@@ -292,5 +295,69 @@ describe("summarizeProject", () => {
       status: { kind: "storyboard", shots: 2, stills: 1, clips: 0 }
     });
     expect(summary.spend.totalUsd).toBeCloseTo(0.75, 6);
+  });
+});
+
+describe("storyboardThumbnails", () => {
+  it("takes the rendered stills in shot order, skipping the shots without one", () => {
+    const thumbs = storyboardThumbnails(
+      storyboardDoc([
+        shot("a"),
+        shot("b", { keyframe: { type: "image", uri: "asset://b" } }),
+        shot("c", { keyframe: { type: "image", asset_id: "c" } })
+      ])
+    );
+    expect(thumbs).toEqual([
+      { uri: "asset://b", asset_id: null },
+      { uri: undefined, asset_id: "c" }
+    ]);
+  });
+
+  it("stops at the montage limit", () => {
+    const shots = ["a", "b", "c", "d"].map((id) =>
+      shot(id, { keyframe: { type: "image", uri: `asset://${id}` } })
+    );
+    expect(storyboardThumbnails(storyboardDoc(shots))).toHaveLength(3);
+  });
+});
+
+describe("moveDocumentToProject", () => {
+  beforeEach(() => initTestDb());
+
+  it("moves a document in and back out without touching updated_at", async () => {
+    const board = await Storyboard.create<Storyboard>({
+      user_id: "u1",
+      name: "Board"
+    });
+    expect(board.project_id).toBe(LOOSE_PROJECT_ID);
+
+    expect(await moveDocumentToProject("u1", "storyboard", board.id, "p1")).toBe(
+      true
+    );
+    const moved = await Storyboard.findById(board.id);
+    expect(moved?.project_id).toBe("p1");
+    // A move is not an edit: an open editor's compare-and-swap save must
+    // still apply afterwards.
+    expect(moved?.updated_at).toBe(board.updated_at);
+
+    expect(
+      await moveDocumentToProject("u1", "storyboard", board.id, LOOSE_PROJECT_ID)
+    ).toBe(true);
+    expect((await Storyboard.findById(board.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+  });
+
+  it("refuses another user's document and an id that does not exist", async () => {
+    const theirs = await Script.create<Script>({ user_id: "u2", name: "Theirs" });
+    expect(await moveDocumentToProject("u1", "script", theirs.id, "p1")).toBe(
+      false
+    );
+    expect((await Script.findById(theirs.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+    expect(await moveDocumentToProject("u1", "script", "no-such-id", "p1")).toBe(
+      false
+    );
   });
 });
