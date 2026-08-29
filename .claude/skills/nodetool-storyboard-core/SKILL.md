@@ -1,14 +1,31 @@
 ---
-name: nodetool-creative-direction
-description: Direct a NodeTool storyboard from a brief to a cut timeline — cast entities, shot list, stills, clips, revisions, assembly. Use when the user asks for an ad, UGC video, trailer, explainer, launch kit, product film, vlog, spec spot, or any multi-shot video, or mentions storyboards, shots, keyframes, stills, entities, screenplays, or "direct this". Also use when they ask to clone a reference video or build a repeatable video graph.
+name: nodetool-storyboard-core
+description: Shared reference for directing video in NodeTool — the storyboard-to-timeline loop, the exact tool contract, entity casting, how a shot becomes a prompt, permission gating and memory. Load this before acting on any storyboard, script, entity or timeline work, and whenever another NodeTool video skill (ugc-video, product-commercial, video-clone, script-video, short-film, launch-kit, video-workflow) tells you to. Consult it directly when the question is which tool, which argument, or why a render came out wrong.
 ---
 
-Direct video on the **storyboard** surface, then finish in the **timeline**. Do not
-author a node graph for a one-off piece; a graph is only worth it when the user
-wants a template they will re-run.
+The shared half of every NodeTool video job. The use-case skills carry the style,
+the shot pattern and the briefs; this carries the machinery they all assume.
 
-Read `references/tool-contract.md` before the first tool call — it carries the exact
-tool names, argument shapes, and the fields each one can and cannot set.
+Direct video on the **storyboard** surface, then finish in the **timeline**. Do not
+author a node graph for a one-off piece — `/nodetool-video-workflow` covers the case
+where a reusable template is actually wanted.
+
+Read `references/tool-contract.md` before the first tool call. It carries the exact
+tool names, argument shapes, and the fields each one refuses.
+
+## Pick the use-case skill
+
+| Job | Skill |
+|---|---|
+| Phone-shot video with a person: UGC ad, testimonial, comedy, day-in-the-life, vlog | `/nodetool-ugc-video` |
+| Product film: pack shot, hero, brand spot, with or without talent | `/nodetool-product-commercial` |
+| Rebuild an existing ad or clip you were given | `/nodetool-video-clone` |
+| Voiceover drives the picture: explainer, faceless video, narrated piece | `/nodetool-script-video` |
+| Narrative with dialogue, score and a title: short film, trailer, scene | `/nodetool-short-film` |
+| A campaign, not one video: entity sheets, still set, several cuts | `/nodetool-launch-kit` |
+| A template to re-run on new inputs | `/nodetool-video-workflow` |
+
+If none fits, run the loop below directly.
 
 ## Two tool families, one board
 
@@ -54,6 +71,11 @@ Bridge the two with `ui_open_document {type: "storyboard", id}`.
 10. **Cut.** `assemble_storyboard_timeline`, then `validate_timeline`. Re-running
     rebuilds the same sequence in place and keeps tracks the board does not own.
 11. **Finish** with `edit_timeline` ops (`references/tool-contract.md` § Timeline).
+
+**Stills-only mode.** When the user wants a board and frames but no motion — a spec
+ad, a pitch, a look test — run steps 1 to 7 and stop. Adding the motion later is
+`update_shot` on `motion` alone: action, wardrobe, set and cast stay put, so the
+approved stills still describe the finished piece.
 
 ## What actually reaches the model
 
@@ -117,10 +139,22 @@ cast and the grade, with the entity and board ids in `resources`. `share_result`
 `read_shared` are **run-scoped and discarded**; they are for passing values inside one
 turn, not for locking a look across sessions.
 
+## Follow-ups this loop already handles
+
+```
+Fix 3a only. Leave the rest.
+Drop the contre-jour across the whole board — soft even daylight. Update the
+  board style, do not rewrite the shots.
+New still on 2a. Keep the old take.
+revise_storyboard_clip 5a: darker, add rain, same blocking.
+Add a reaction shot after 3a and re-slug from there. Do not re-render 1a-3a.
+Collapse 8, 9 and 10 into one 8s shot, keeping the lean-in as the last second.
+The face drifted on 4a. I picked take 2 in the gallery — regenerate the clip.
+The label is unreadable on 2a. New macro still, then a clip from it.
+Cut it. Assemble, validate, narration on its own track, mute Shot Audio on 1-6.
+```
+
 ## Reference files
 
 - `references/tool-contract.md` — every tool, its arguments, and the fields it refuses.
-- `references/standing-orders.md` — the block to paste as message 1 of a thread.
-- `references/job-briefs.md` — twelve ready briefs (UGC, luxury pack shot, street CPG,
-  comedy, locker-room, night vlog, spec ad, short, reference-video clone, launch kit,
-  faceless explainer, reusable graph).
+- `references/standing-orders.md` — the block to paste as message 1 of a chat thread.
