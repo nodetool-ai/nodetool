@@ -5,6 +5,8 @@ import { isObjectLike, isString } from "../../../../utils/typePredicates";
  * three different forms:
  *
  *  - `web_search` with search_type news/images: `{ results: [{ title, link, snippet, ... }] }`
+ *    — image results additionally carry `original` (the image file) and
+ *      `thumbnail` (a preview), which become `imageUrl`
  *  - SERP-style providers: a bare array of result objects
  *  - `google_search`: a numbered plain-text block (`"1. Title\n   url\n   snippet"`)
  *
@@ -18,6 +20,12 @@ export interface SearchResultItem {
   snippet?: string;
   source?: string;
   date?: string;
+  /**
+   * A picture of the result, for image searches. The preview when the backend
+   * offers one, else the image itself — every image backend returns at least
+   * one of the two, so a result that has neither is not an image result.
+   */
+  imageUrl?: string;
 }
 
 function domainFromUrl(url: string): string | undefined {
@@ -61,7 +69,8 @@ function itemFromObject(obj: Record<string, unknown>): SearchResultItem | null {
     url,
     snippet,
     source: normalizeSource(obj, url),
-    date: pickString(obj, "date", "published", "published_at")
+    date: pickString(obj, "date", "published", "published_at"),
+    imageUrl: pickString(obj, "thumbnail", "original", "image_url")
   };
 }
 

@@ -34,6 +34,7 @@ import type {
   SerpProviderType
 } from "../tools/serp-providers/index.js";
 import {
+  SERP_PROVIDER_SEARCH_TYPES,
   createSerpProvider,
   serpProviderConfigured
 } from "../tools/serp-providers/index.js";
@@ -348,10 +349,36 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
     ): SearchBackend => ({
       name,
       requires,
-      supports: new Set<SearchType>(["web"]),
+      supports: new Set<SearchType>(SERP_PROVIDER_SEARCH_TYPES[name]),
       isConfigured: (ctx) => serpProviderConfigured(name, ctx),
       run: async (ctx) => {
         const client = await createSerpProvider(name, ctx);
+        if (searchType === "images") {
+          // Routing only offers this backend for images when the table says
+          // its client implements searchImages, so a missing method here is a
+          // table that drifted from the class — say which, rather than
+          // answering an image search with pages.
+          if (!client.searchImages) {
+            throw new Error(
+              `${WEB_SEARCH_TOOL_NAME}: backend "${name}" declares image ` +
+                "search but its client implements none."
+            );
+          }
+          const images = await client.searchImages(effectiveQuery, {
+            numResults
+          });
+          return {
+            success: true,
+            results: keepRecords(
+              images.map((r) => ({
+                title: r.title,
+                link: r.link,
+                original: r.original,
+                thumbnail: r.thumbnail
+              }))
+            )
+          };
+        }
         const results = await client.search(effectiveQuery, { numResults });
         return formatFiltered(
           results.map((r) => ({
@@ -368,8 +395,15 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
         name: "serpapi",
         requires: "SERPAPI_API_KEY",
         supports: new Set<SearchType>(["web", "news", "images"]),
+        // The injected client is only consulted on the web path below, and it
+        // is whatever SERP_PROVIDER names — possibly not SerpAPI at all. On
+        // news and images this backend calls serpapi.com directly, so only a
+        // real key makes it configured; otherwise a Brave-backed install
+        // answered an image search with "SERPAPI_API_KEY is not configured"
+        // instead of routing on to Brave.
         isConfigured: async (ctx) =>
-          provider !== undefined || serpApiConfigured(ctx),
+          (provider !== undefined && searchType === "web") ||
+          serpApiConfigured(ctx),
         run: async (ctx) => {
           if (searchType === "news") {
             const data = (await serpApiFetch({

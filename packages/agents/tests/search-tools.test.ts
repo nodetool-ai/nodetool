@@ -370,6 +370,64 @@ describe("web_search with search_type: images", () => {
     expect(result.results).toEqual([]);
   });
 
+  it("routes to Brave when it is the only configured backend", async () => {
+    const ctx = makeContext({ BRAVE_API_KEY: "brave-key" });
+    fetchSpy = stubFetch({
+      results: [
+        {
+          title: "A red fox",
+          url: "https://wildlife.example/fox",
+          thumbnail: { src: "https://cdn.example/fox-thumb.jpg" },
+          properties: { url: "https://cdn.example/fox.jpg" }
+        }
+      ]
+    });
+
+    const result = (await tool.process(ctx, {
+      query: "red fox",
+      search_type: "images"
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.results).toEqual([
+      {
+        title: "A red fox",
+        link: "https://wildlife.example/fox",
+        original: "https://cdn.example/fox.jpg",
+        thumbnail: "https://cdn.example/fox-thumb.jpg"
+      }
+    ]);
+    expect(String(fetchSpy.mock.calls[0][0])).toContain("/images/search");
+  });
+
+  it("applies blocked_domains to Brave image results", async () => {
+    const ctx = makeContext({ BRAVE_API_KEY: "brave-key" });
+    fetchSpy = stubFetch({
+      results: [
+        {
+          title: "Keep",
+          url: "https://good.example/a",
+          properties: { url: "https://good.example/a.jpg" }
+        },
+        {
+          title: "Drop",
+          url: "https://spam.com/b",
+          properties: { url: "https://spam.com/b.jpg" }
+        }
+      ]
+    });
+
+    const result = (await tool.process(ctx, {
+      query: "red fox",
+      search_type: "images",
+      blocked_domains: ["spam.com"]
+    })) as Record<string, unknown>;
+
+    const results = result.results as Array<Record<string, unknown>>;
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe("Keep");
+  });
+
   it("has correct provider tool shape", () => {
     const pt = tool.toProviderTool();
     expect(pt.name).toBe("web_search");

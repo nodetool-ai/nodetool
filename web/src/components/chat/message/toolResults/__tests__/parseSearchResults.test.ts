@@ -64,6 +64,46 @@ describe("normalizeSearchResults", () => {
     expect(items![0].title).toBe("T");
   });
 
+  test("carries an image search result's preview", () => {
+    const items = normalizeSearchResults({
+      success: true,
+      results: [
+        {
+          title: "A red fox",
+          link: "https://wildlife.example/fox",
+          original: "https://cdn.example/fox.jpg",
+          thumbnail: "https://cdn.example/fox-thumb.jpg"
+        }
+      ]
+    });
+    expect(items).toHaveLength(1);
+    expect(items![0]).toMatchObject({
+      title: "A red fox",
+      url: "https://wildlife.example/fox",
+      imageUrl: "https://cdn.example/fox-thumb.jpg"
+    });
+  });
+
+  test("falls back to the image itself when a backend sends no thumbnail", () => {
+    const items = normalizeSearchResults({
+      results: [
+        {
+          title: "Bare",
+          link: "https://wildlife.example/fox",
+          original: "https://cdn.example/fox.jpg"
+        }
+      ]
+    });
+    expect(items![0].imageUrl).toBe("https://cdn.example/fox.jpg");
+  });
+
+  test("leaves imageUrl unset on results with no picture", () => {
+    const items = normalizeSearchResults([
+      { title: "T", url: "https://e.com", snippet: "s" }
+    ]);
+    expect(items![0].imageUrl).toBeUndefined();
+  });
+
   test("returns null for non-search content", () => {
     expect(normalizeSearchResults(null)).toBeNull();
     expect(normalizeSearchResults("")).toBeNull();

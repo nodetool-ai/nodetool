@@ -205,13 +205,13 @@ describe("behaviour through toolFromCapability", () => {
   it("refuses a backend that cannot serve the requested search type", async () => {
     const context = makeContext();
     const tool = asTool(byName("web_search"));
-    // Brave answers web searches only, so pinning it for images must say so
-    // rather than quietly returning pages.
+    // Apify's actor scrapes web results only, so pinning it for images must
+    // say so rather than quietly returning pages.
     await expect(
       tool.process(context, {
         query: "otters",
         search_type: "images",
-        backend: "brave"
+        backend: "apify"
       })
     ).rejects.toThrow(/does not support search_type "images"/);
   });

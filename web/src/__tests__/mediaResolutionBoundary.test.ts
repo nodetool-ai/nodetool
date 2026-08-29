@@ -56,6 +56,7 @@ const INVENTORY: Surface[] = [
   { surface: "chat media", file: "components/chat/message/MessageContentRenderer.tsx", via: "resolver" },
   { surface: "chat media", file: "components/chat/message/ChatMarkdown.tsx", via: "resolver" },
   { surface: "chat media", file: "components/chat/composer/FilePreview.tsx", via: "locator" },
+  { surface: "chat media", file: "components/chat/message/toolResults/SearchResults.tsx", via: "locator" },
   // Storyboard cards
   { surface: "storyboard cards", file: "components/storyboard/ShotCard.tsx", via: "locator" },
   { surface: "storyboard cards", file: "components/storyboard/ShotTakesGallery.tsx", via: "locator" },
@@ -90,7 +91,7 @@ describe("media resolution boundary", () => {
         "app builder media"
       ])
     );
-    expect(INVENTORY.length).toBeGreaterThanOrEqual(13);
+    expect(INVENTORY.length).toBeGreaterThanOrEqual(14);
   });
 
   it.each(INVENTORY)("$file reaches the boundary via $via", ({ file, via }) => {

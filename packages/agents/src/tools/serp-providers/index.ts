@@ -22,6 +22,24 @@ export interface SearchOptions {
 }
 
 /**
+ * One image search hit, in the shape `web_search`'s `search_type: "images"`
+ * already returns: `link` is the page the image sits on, `original` the image
+ * file itself, `thumbnail` a small preview. Kept identical to the SerpAPI and
+ * DataForSEO image paths in `capabilities/web.ts` so a caller — the chat
+ * result renderer most of all — reads one shape whichever backend answered.
+ */
+export interface ImageSearchResult {
+  title: string | null;
+  link: string | null;
+  original: string | null;
+  thumbnail: string | null;
+  position: number;
+}
+
+/** What kind of search a backend is being asked for. */
+export type SerpSearchType = "web" | "news" | "images";
+
+/**
  * Abstract SERP provider interface.
  *
  * Implementations wrap a specific search API (SerpAPI, DataForSEO, etc.)
@@ -33,6 +51,16 @@ export interface SerpProvider {
 
   /** Perform a web search and return the raw API response. */
   searchRaw(query: string, options?: SearchOptions): Promise<unknown>;
+
+  /**
+   * Image search, on the providers whose API offers one. Absent here means
+   * the service has no image endpoint we call — routing skips the provider
+   * for `search_type: "images"` rather than answering with pages.
+   */
+  searchImages?(
+    query: string,
+    options?: SearchOptions
+  ): Promise<ImageSearchResult[]>;
 }
 
 export type SerpProviderType =
@@ -67,6 +95,26 @@ export const SERP_PROVIDER_SECRETS: Readonly<
   dataforseo: ["DATA_FOR_SEO_LOGIN", "DATA_FOR_SEO_PASSWORD"],
   brave: ["BRAVE_API_KEY"],
   apify: ["APIFY_API_TOKEN", "APIFY_API_KEY"]
+};
+
+/**
+ * The search types each provider's client can answer through
+ * `createSerpProvider`.
+ *
+ * Declared here rather than read off the instance because routing has to know
+ * before it builds a client (building one needs the key). A provider whose
+ * class implements `searchImages` must list `images` here and one that does
+ * not must not: `serp-providers-images.test.ts` instantiates every provider
+ * and checks the two against each other, so an image backend cannot be added
+ * and left invisible to routing.
+ */
+export const SERP_PROVIDER_SEARCH_TYPES: Readonly<
+  Record<SerpProviderType, readonly SerpSearchType[]>
+> = {
+  serpapi: ["web"],
+  dataforseo: ["web"],
+  brave: ["web", "images"],
+  apify: ["web"]
 };
 
 /**
