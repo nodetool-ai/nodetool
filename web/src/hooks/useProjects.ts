@@ -8,9 +8,29 @@ import { useCallback } from "react";
 
 import { trpc, trpcClient } from "../trpc/client";
 import {
+  PROJECT_NEW_REF,
   useWorkspaceTabsStore,
   type ProjectTabDocument
 } from "../stores/WorkspaceTabsStore";
+
+/**
+ * Open the surface a project is started from. One tab, so every entry point —
+ * the `+ New` menu, the list's ghost card, its header button — lands on the
+ * same one rather than stacking copies.
+ */
+export const useOpenNewProjectTab = () => {
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  return useCallback(
+    () =>
+      openTab({
+        type: "project-new",
+        ref: PROJECT_NEW_REF,
+        mode: "view",
+        title: "New project"
+      }),
+    [openTab]
+  );
+};
 
 export const useProjects = () =>
   trpc.projects.list.useQuery({}, { staleTime: 30_000 });

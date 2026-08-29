@@ -4,7 +4,6 @@ import {
   BORDER_RADIUS,
   Box,
   Caption,
-  Dialog,
   Divider,
   EditorButton,
   FlexColumn,
@@ -15,7 +14,6 @@ import {
   ScrollArea,
   SearchInput,
   Text,
-  TextInput,
   TYPOGRAPHY
 } from "../ui_primitives";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -25,7 +23,7 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import {
   useAssignDocument,
-  useCreateProject,
+  useOpenNewProjectTab,
   useOpenProject,
   useProjectSummaries,
   useUnassignedDocuments
@@ -82,14 +80,12 @@ const parseDragPayload = (payload: string): LooseDocument | null => {
  */
 const ProjectListSurface = () => {
   const [search, setSearch] = useState("");
-  const [newName, setNewName] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   const summaries = useProjectSummaries();
   const unassigned = useUnassignedDocuments();
-  const createProject = useCreateProject();
   const assignDocument = useAssignDocument();
   const openProject = useOpenProject();
+  const openNewProject = useOpenNewProjectTab();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -117,27 +113,6 @@ const ProjectListSurface = () => {
     },
     [openProject]
   );
-
-  const handleCreate = useCallback(async () => {
-    const name = newName.trim();
-    if (name.length === 0) {
-      return;
-    }
-    try {
-      const project = await createProject.mutateAsync({ name, kind: "" });
-      setDialogOpen(false);
-      setNewName("");
-      await openProject(project);
-    } catch (error) {
-      addNotification({
-        type: "error",
-        alert: true,
-        content: `Could not create the project: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      });
-    }
-  }, [addNotification, createProject, newName, openProject]);
 
   const handleDropDocument = useCallback(
     (projectId: string, payload: string) => {
@@ -189,7 +164,7 @@ const ProjectListSurface = () => {
         <EditorButton
           variant="contained"
           color="primary"
-          onClick={() => setDialogOpen(true)}
+          onClick={openNewProject}
         >
           + New project
         </EditorButton>
@@ -221,7 +196,7 @@ const ProjectListSurface = () => {
             <Box
               component="button"
               type="button"
-              onClick={() => setDialogOpen(true)}
+              onClick={openNewProject}
               sx={{
                 minHeight: "268px",
                 display: "flex",
@@ -241,7 +216,7 @@ const ProjectListSurface = () => {
               </Box>
               <Label>Start a project</Label>
               <Caption color="muted">
-                Name it, then let an agent build its documents
+                Say what you want made, and an agent builds its documents
               </Caption>
             </Box>
           </Box>
@@ -312,24 +287,6 @@ const ProjectListSurface = () => {
           </FlexRow>
         </Box>
       )}
-
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        title="Start a project"
-        showActions
-        confirmText="Create"
-        confirmDisabled={newName.trim().length === 0}
-        onConfirm={() => void handleCreate()}
-      >
-        <TextInput
-          value={newName}
-          autoFocus
-          label="Project name"
-          placeholder="Aurora launch spot"
-          onChange={(event) => setNewName(event.target.value)}
-        />
-      </Dialog>
     </FlexColumn>
   );
 };

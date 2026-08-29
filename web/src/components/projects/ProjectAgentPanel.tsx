@@ -8,7 +8,7 @@
  * second chat that happens to be next to it.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -26,6 +26,7 @@ import type { Message, MessageContent } from "../../stores/ApiTypes";
 import { resolveUiContext } from "../../lib/chat/uiContext";
 import { trpc } from "../../trpc/client";
 import ProjectAgentThread from "./ProjectAgentThread";
+import { projectSystemPrompt, takeProjectFirstTurn } from "./projectAgent";
 
 const NO_MESSAGES: Message[] = [];
 
@@ -36,23 +37,14 @@ interface ProjectAgentPanelProps {
   threadId: string | null;
 }
 
-/**
- * Tells the agent which project it is working in. The tab context already
- * lists the open documents; this names the group they belong to, so a request
- * to "add a shot" lands in this project's board rather than the last one
- * touched.
- */
-const projectSystemPrompt = (name: string, id: string): string =>
-  `You are working inside the project "${name}" (project id ${id}). ` +
-  `Documents you create belong to it, and the documents open in this ` +
-  `workspace are its own.`;
-
 const ProjectAgentPanel = ({
   projectId,
   projectName,
   threadId: boundThreadId
 }: ProjectAgentPanelProps) => {
   const [threadId, setThreadId] = useState<string | null>(boundThreadId);
+  /** True once this thread's persisted history is in the message cache. */
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const ensureThread = trpc.projects.thread.useMutation();
   const ensureThreadAsync = ensureThread.mutateAsync;
 
@@ -95,6 +87,8 @@ const ProjectAgentPanel = ({
       await fetchThread(id);
       if (cancelled) return;
       await loadMessages(id);
+      if (cancelled) return;
+      setHistoryLoaded(true);
     };
     bind().catch((error) => {
       console.error("Failed to open the project thread:", error);
@@ -130,6 +124,23 @@ const ProjectAgentPanel = ({
     },
     [threadId, sendMessage, selectedModel, systemPrompt]
   );
+
+  // A project started from the new-project surface arrives with its opening
+  // turn staged. It is sent from here rather than there, and only once the
+  // history has loaded: a full load replaces the message cache, so a turn sent
+  // before it lands would be wiped by it.
+  const firstTurnSent = useRef(false);
+  useEffect(() => {
+    if (!threadId || !historyLoaded || firstTurnSent.current) {
+      return;
+    }
+    const first = takeProjectFirstTurn(projectId);
+    if (!first) {
+      return;
+    }
+    firstTurnSent.current = true;
+    handleSend(first);
+  }, [threadId, historyLoaded, projectId, handleSend]);
 
   const handleStop = useCallback(() => {
     if (threadId) stopGeneration(threadId);

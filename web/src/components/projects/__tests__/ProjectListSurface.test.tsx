@@ -48,20 +48,14 @@ const unassigned = {
 
 const assignDocument = jest.fn();
 const openProject = jest.fn();
-const createProject = jest.fn(async () => ({
-  id: "p2",
-  name: "Meridian",
-  kind: "",
-  createdAt: "",
-  updatedAt: ""
-}));
+const openNewProject = jest.fn();
 
 jest.mock("../../../hooks/useProjects", () => ({
   useProjectSummaries: () => summaries,
   useUnassignedDocuments: () => unassigned,
-  useCreateProject: () => ({ mutateAsync: createProject }),
   useAssignDocument: () => ({ mutate: assignDocument }),
-  useOpenProject: () => openProject
+  useOpenProject: () => openProject,
+  useOpenNewProjectTab: () => openNewProject
 }));
 
 const openTab = jest.fn();
@@ -132,19 +126,12 @@ describe("ProjectListSurface", () => {
     expect(assignDocument).not.toHaveBeenCalled();
   });
 
-  it("creates a project from the dialog and opens it", async () => {
+  it("starts a project on the new-project surface", async () => {
     renderSurface();
     await userEvent.click(screen.getByRole("button", { name: "+ New project" }));
-    await userEvent.type(screen.getByLabelText("Project name"), "Meridian");
-    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(openNewProject).toHaveBeenCalled();
 
-    await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({ name: "Meridian", kind: "" })
-    );
-    await waitFor(() =>
-      expect(openProject).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "p2" })
-      )
-    );
+    await userEvent.click(screen.getByRole("button", { name: /Start a project/ }));
+    expect(openNewProject).toHaveBeenCalledTimes(2);
   });
 });
