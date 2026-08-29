@@ -43,6 +43,7 @@ import type {
   BindableWorkflow
 } from "@nodetool-ai/app-runtime";
 import type { AppBridgeDocument } from "../app-build/bridge.js";
+import { resolveProjectId } from "./project-scope.js";
 
 export { DEBUG_APP_SCHEMA } from "./apps.specs.js";
 
@@ -182,10 +183,10 @@ const createApp: CapabilityExport = {
     }
 
     const description = params["description"];
-    const projectId = params["project_id"];
+    const projectId = resolveProjectId(run, params);
     const app = await Application.createUnique({
       user_id: userId,
-      project_id: isString(projectId) && projectId ? projectId : "default",
+      project_id: projectId,
       name: name.trim(),
       description: isString(description) ? description : "",
       document: JSON.stringify(document)

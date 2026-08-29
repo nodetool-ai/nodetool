@@ -44,8 +44,8 @@ interface AppPagesListProps {
 }
 
 /**
- * The app-level destinations (Dashboard, Settings, Help, Downloads, …) as rows
- * in the mobile browse sheet. On desktop the same list is the logo popover
+ * The app-level destinations (Settings, Help, Downloads, …) as rows in the
+ * mobile browse sheet. On desktop the same list is the logo popover
  * (RailAppMenu); mobile folds it into the one sheet the hamburger opens rather
  * than carrying a second menu button in the top row.
  */

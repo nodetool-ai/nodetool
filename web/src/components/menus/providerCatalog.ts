@@ -3,8 +3,8 @@
  *
  * Kept apart from the tab component so anything that needs to know which
  * secret keys belong to an AI provider — the "has a provider configured"
- * signal the dashboard checklist and the empty workspace read — has one source
- * to read instead of its own hardcoded list.
+ * signal the new-project surface's checklist reads — has one source to read
+ * instead of its own hardcoded list.
  */
 import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
 import { isElectron, isLocalhost } from "../../lib/env";

@@ -282,6 +282,26 @@ const styles = (theme: Theme) =>
       outline: "3px solid",
       outlineColor: theme.vars.palette.primary.main
     },
+    // The caption a caller supplies for the current asset: text over the media
+    // rather than beside it, so the picture keeps the whole frame.
+    ".caption-overlay": {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      display: "flex",
+      justifyContent: "center",
+      padding: `${SPACING.lg}px ${SPACING.xxl}px`,
+      pointerEvents: "none",
+      zIndex: Z_INDEX.overlay,
+      background:
+        "linear-gradient(to top, rgb(0 0 0 / 0.72), rgb(0 0 0 / 0))"
+    },
+    ".caption-overlay .caption-text": {
+      maxWidth: "70ch",
+      textAlign: "center",
+      textShadow: "0 1px 3px rgb(0 0 0 / 0.9)",
+      color: theme.vars.palette.common.white
+    },
     ".info-panel-overlay": {
       position: "absolute",
       top: 0,
@@ -300,6 +320,12 @@ type AssetViewerProps = {
   url?: string;
   open: boolean;
   contentType?: string;
+  /**
+   * Text to lay over the media, keyed by asset id. A caller that knows what an
+   * asset means in its own surface — the shot a still belongs to, say — says so
+   * here; the viewer itself has only the asset record.
+   */
+  captions?: Record<string, string>;
   onClose: () => void;
 };
 
@@ -311,6 +337,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     url,
     open,
     contentType,
+    captions,
     onClose: handleClose
   } = props;
 
@@ -578,6 +605,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }, [changeAsset, open])
   );
 
+  const caption = currentAsset ? captions?.[currentAsset.id] : undefined;
+
   const { component: assetViewer } = useAssetDisplay({
     asset: currentAsset,
     url,
@@ -812,6 +841,18 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           assetViewer
         )}
         {navigation}
+
+        {caption && !compareMode && (
+          <div
+            className="caption-overlay"
+            // The filmstrip owns the bottom 120px whenever it is on screen.
+            style={{ bottom: navigation ? 120 : 0 }}
+          >
+            <Text size="small" className="caption-text">
+              {caption}
+            </Text>
+          </div>
+        )}
 
         {showInfo && currentAsset && !compareMode && (
           <div className="info-panel-overlay">

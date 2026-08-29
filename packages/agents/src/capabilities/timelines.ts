@@ -77,6 +77,7 @@ export {
   EDIT_TIMELINE_SCHEMA,
   VALIDATE_TIMELINE_SCHEMA
 } from "./timelines.specs.js";
+import { resolveProjectId } from "./project-scope.js";
 
 type ToolError = { error: string };
 
@@ -230,10 +231,7 @@ const createTimeline: CapabilityExport = {
     if (isError(width)) return width;
     const height = sequenceSetting(params["height"], 1080, "height");
     if (isError(height)) return height;
-    const projectId = isString(params["project_id"])
-      && params["project_id"].trim() !== ""
-      ? params["project_id"].trim()
-      : "default";
+    const projectId = resolveProjectId(run, params);
 
     const { TimelineSequence } = await import("@nodetool-ai/models");
     const sequence = new TimelineSequence({

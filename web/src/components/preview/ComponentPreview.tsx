@@ -44,7 +44,6 @@ const ModelListIndex = React.lazy(
   () => import("../hugging_face/model_list/ModelListIndex")
 );
 const AssetExplorer = React.lazy(() => import("../assets/AssetExplorer"));
-const Portal = React.lazy(() => import("../portal/Portal"));
 const ConfirmDialog = React.lazy(() => import("../dialogs/ConfirmDialog"));
 const ColorPickerModal = React.lazy(
   () => import("../color_picker/ColorPickerModal")
@@ -92,12 +91,6 @@ const PREVIEWS: PreviewEntry[] = [
     label: "App Header",
     description: "The global navigation header bar",
     viewport: { width: 1920, height: 80 }
-  },
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    description: "Main dashboard / portal page",
-    viewport: { width: 1920, height: 1080 }
   },
   {
     id: "costs",
@@ -363,12 +356,6 @@ const SAMPLE_IMAGE_B =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=900&q=80&auto=format&fit=crop";
 
 // ─── Individual preview renderers ─────────────────────────────────────────────
-
-const PreviewDashboard: React.FC = () => (
-  <FullscreenBox preview="dashboard">
-    <Portal />
-  </FullscreenBox>
-);
 
 const PreviewCosts: React.FC = () => (
   <Box data-preview="costs" sx={{ width: "100%", height: "100vh" }}>
@@ -769,7 +756,6 @@ const PreviewIndex: React.FC = () => {
 // ─── Router component ──────────────────────────────────────────────────────────
 
 const COMPONENT_MAP: Record<string, React.FC> = {
-  dashboard: PreviewDashboard,
   costs: PreviewCosts,
   models: PreviewModels,
   "model-onboarding": PreviewModelOnboarding,

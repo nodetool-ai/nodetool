@@ -77,6 +77,7 @@ export {
   EDIT_SKETCH_SCHEMA,
   VALIDATE_SKETCH_SCHEMA
 } from "./sketches.specs.js";
+import { resolveProjectId } from "./project-scope.js";
 
 type ToolError = { error: string };
 
@@ -227,9 +228,7 @@ const createSketch: CapabilityExport = {
     const backgroundColor = isNonBlankString(params["background_color"])
       ? params["background_color"].trim()
       : DEFAULT_BACKGROUND;
-    const projectId = isNonBlankString(params["project_id"])
-      ? params["project_id"].trim()
-      : "default";
+    const projectId = resolveProjectId(run, params);
     const requestedId = isNonBlankString(params["id"])
       ? params["id"].trim()
       : undefined;

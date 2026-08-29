@@ -234,7 +234,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         </Text>
       </FlexColumn>
 
-      <ShotMediaViewer media={viewerMedia} onClose={handleCloseViewer} />
+      <ShotMediaViewer
+        boardId={boardId}
+        media={viewerMedia}
+        onClose={handleCloseViewer}
+      />
     </Card>
   );
 };

@@ -107,6 +107,21 @@ function invalidateQueryKeys(keys: readonly string[]): void {
   });
 }
 
+/**
+ * Everything the projects router answers. A project owns no content of its
+ * own — its overview and its cards are derived from the document rows — so any
+ * document write can change what they show, and the change events carry no
+ * project id to narrow by.
+ */
+function invalidateProjectViews(): void {
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const head = query.queryKey[0];
+      return Array.isArray(head) && head[0] === "projects";
+    }
+  });
+}
+
 /** Invalidate one tRPC procedure's queries — key head is `[router, procedure]`. */
 function invalidateTrpcProcedure(router: string, procedure: string): void {
   queryClient.invalidateQueries({
@@ -190,9 +205,15 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     return;
   }
 
+  if (resource_type === "project") {
+    invalidateProjectViews();
+    return;
+  }
+
   if (isSyncedDocumentType(resource_type)) {
     const trpcRouter = DOCUMENT_TRPC_ROUTER[resource_type];
     invalidateTrpcProcedure(trpcRouter, "list");
+    invalidateProjectViews();
     for (const procedure of DOCUMENT_EXTRA_PROCEDURES[resource_type] ?? []) {
       invalidateTrpcProcedure(trpcRouter, procedure);
     }

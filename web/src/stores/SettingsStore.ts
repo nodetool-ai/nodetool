@@ -36,7 +36,6 @@ export interface Settings {
   timeFormat: "12h" | "24h";
   alertBeforeTabClose: boolean;
   selectNodesOnDrag: boolean;
-  showWelcomeOnStartup: boolean;
   soundNotifications: boolean;
   /**
    * When enabled, changing any node property will trigger execution of
@@ -84,7 +83,6 @@ interface SettingsStore {
   setTimeFormat: (value: "12h" | "24h") => void;
   setAlertBeforeTabClose: (value: boolean) => void;
   setSelectNodesOnDrag: (value: boolean) => void;
-  setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
   setEditorViewMode: (value: "graph" | "chain") => void;
@@ -109,7 +107,6 @@ export const defaultSettings: Settings = {
   timeFormat: "12h",
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
-  showWelcomeOnStartup: true,
   soundNotifications: true,
   instantUpdate: false,
   editorViewMode: "graph",
@@ -212,13 +209,6 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             selectNodesOnDrag: value ?? defaultSettings.selectNodesOnDrag
-          }
-        })),
-      setShowWelcomeOnStartup: (value: boolean) =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            showWelcomeOnStartup: value
           }
         })),
       setSoundNotifications: (value: boolean) =>

@@ -105,6 +105,11 @@ const MOBILE_TEXTAREA_MAX_HEIGHT = 140;
  *  this, rather than truncating at a fixed width while the row runs empty. */
 const MODEL_CHIP_MAX_WIDTH = 320;
 
+/** Below this card width the chip row goes icon-first and stops wrapping, so
+ *  the chips stay on one line in a narrow column (the project agent) as well
+ *  as on a phone. */
+const NARROW_CARD_WIDTH = 520;
+
 interface MediaChatComposerProps {
   isLoading: boolean;
   isStreaming: boolean;
@@ -141,8 +146,8 @@ interface MediaChatComposerProps {
    */
   hideModelPicker?: boolean;
   /** Thread this composer writes to. A surface that opened the thread with a
-   *  prompt in mind (the dashboard quick starters) seeds it through
-   *  ChatDraftStore; the seed lands in the textarea once, unsent. */
+   *  prompt in mind (the new-project surface's quick starters) seeds it
+   *  through ChatDraftStore; the seed lands in the textarea once, unsent. */
   threadId?: string | null;
 }
 
@@ -188,6 +193,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const composeCardRef = useRef<HTMLDivElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
   const [prompt, setPrompt] = useState("");
+  const [cardWidth, setCardWidth] = useState(0);
+
+  // The composer is hosted in columns of very different widths, so the chip
+  // layout follows the card rather than the viewport.
+  useLayoutEffect(() => {
+    const el = composeCardRef.current;
+    if (!el || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setCardWidth(entry.contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  /** Icon-first chips on one non-wrapping line. */
+  const isCompact = isMobile || (cardWidth > 0 && cardWidth < NARROW_CARD_WIDTH);
 
   // Mode + media params from persistent store
   const storeMode = useMediaGenerationStore((s) => s.mode);
@@ -1018,7 +1041,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         )}
 
         <div
-          className={`media-chip-row${trailingActions ? " has-trailing" : ""}`}
+          className={`media-chip-row${trailingActions ? " has-trailing" : ""}${
+            isCompact ? " narrow" : ""
+          }`}
         >
           {/* Leading actions (e.g. the canvas dock drag handle). */}
           {leadingActions}
@@ -1032,7 +1057,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 // Icon plus chevron on a phone: the mode is already legible
                 // from its icon, and the label costs room the model and
                 // workspace chips need on one line.
-                label={isMobile ? undefined : modeLabel}
+                label={isCompact ? undefined : modeLabel}
                 title={modeLabel}
                 active={!!modeAnchor}
                 onClick={(e) => setModeAnchor(e.currentTarget)}
@@ -1060,12 +1085,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 title={chatProviderLabel}
                 active={languageModelOpen}
                 onClick={() => setLanguageModelOpen(true)}
-                showChevron={!isMobile}
+                showChevron
                 truncate
-                grow={!isMobile}
-                maxWidth={isMobile ? 108 : MODEL_CHIP_MAX_WIDTH}
+                grow
+                maxWidth={MODEL_CHIP_MAX_WIDTH}
               />
-              <PermissionSelector threadId={threadId} />
+              <PermissionSelector threadId={threadId} compact={isCompact} />
               <LanguageModelMenuDialog
                 open={languageModelOpen}
                 anchorEl={languageModelAnchorRef.current}
@@ -1088,10 +1113,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 label={imageParams.model?.name || "Select Model"}
                 active={imageModelOpen}
                 onClick={() => setImageModelOpen(true)}
-                showChevron={!isMobile}
+                showChevron
                 truncate
-                grow={!isMobile}
-                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
+                grow
+                maxWidth={MODEL_CHIP_MAX_WIDTH}
               />
               <ImageModelMenuDialog
                 open={imageModelOpen}
@@ -1162,9 +1187,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 active={videoModelOpen}
                 onClick={() => setVideoModelOpen(true)}
                 truncate
-                grow={!isMobile}
-                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
-                showChevron={!isMobile}
+                grow
+                maxWidth={MODEL_CHIP_MAX_WIDTH}
+                showChevron
               />
               <VideoModelMenuDialog
                 open={videoModelOpen}
@@ -1233,10 +1258,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 label={imageEditParams.model?.name || "Select Edit Model"}
                 active={imageModelOpen}
                 truncate
-                grow={!isMobile}
-                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
+                grow
+                maxWidth={MODEL_CHIP_MAX_WIDTH}
                 onClick={() => setImageModelOpen(true)}
-                showChevron={!isMobile}
+                showChevron
               />
               <ImageModelMenuDialog
                 open={imageModelOpen}
@@ -1344,10 +1369,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 }
                 active={videoModelOpen}
                 onClick={() => setVideoModelOpen(true)}
-                showChevron={!isMobile}
+                showChevron
                 truncate
-                grow={!isMobile}
-                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
+                grow
+                maxWidth={MODEL_CHIP_MAX_WIDTH}
               />
               <VideoModelMenuDialog
                 open={videoModelOpen}
@@ -1436,10 +1461,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 label={audioParams.model?.name || "Select TTS Model"}
                 active={ttsModelOpen}
                 onClick={() => setTtsModelOpen(true)}
-                showChevron={!isMobile}
+                showChevron
                 truncate
-                grow={!isMobile}
-                maxWidth={isMobile ? undefined : MODEL_CHIP_MAX_WIDTH}
+                grow
+                maxWidth={MODEL_CHIP_MAX_WIDTH}
               />
               <TTSModelMenuDialog
                 open={ttsModelOpen}
@@ -1509,7 +1534,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           {/* The workspace every turn reads and writes in. Shown for chat as
               well as the canvas — a chat turn writes files too, and the user
               needs to know where they land before they send. */}
-          <WorkspaceChip />
+          <WorkspaceChip compact={isCompact} />
           </div>
 
           {/* The Generate button for media modes, or Stop while a run is in

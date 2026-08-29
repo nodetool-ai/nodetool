@@ -2,18 +2,12 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import {
-  createContext,
-  memo,
-  useContext,
-  type ReactNode,
-  type Ref
-} from "react";
+import { memo, type ReactNode, type Ref } from "react";
 import type { SerializedStyles } from "@emotion/react";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
-/** Shared horizontal rhythm for the dashboard: a centered column that the hero
- *  background and section borders bleed past, while content stays aligned. */
+/** Shared horizontal rhythm for the Examples page: a centered column that
+ *  section borders bleed past, while content stays aligned. */
 export const wrapStyles = (theme: Theme) =>
   css({
     maxWidth: 1240,
@@ -24,22 +18,10 @@ export const wrapStyles = (theme: Theme) =>
     }
   });
 
-/**
- * True inside the two-column layout, where the columns already carry the
- * centering and gutters. Sections keep their own `wrapStyles` everywhere else,
- * so each one still works as a full-bleed band.
- */
-const InColumnContext = createContext(false);
-
-export const DashboardColumn = ({ children }: { children: ReactNode }) => (
-  <InColumnContext.Provider value={true}>{children}</InColumnContext.Provider>
-);
-
-/** The wrap a section should apply, or nothing when a column owns it. */
-export const useSectionWrap = (): SerializedStyles | undefined => {
+/** The wrap a section should apply so it works as a full-bleed band. */
+export const useSectionWrap = (): SerializedStyles => {
   const theme = useTheme();
-  const inColumn = useContext(InColumnContext);
-  return inColumn ? undefined : wrapStyles(theme);
+  return wrapStyles(theme);
 };
 
 const headerStyles = (theme: Theme) =>

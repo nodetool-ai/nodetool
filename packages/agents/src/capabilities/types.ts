@@ -157,6 +157,12 @@ export interface CapabilityRun {
   /** Browser round trip for `ui_*` capabilities; absent on headless runs. */
   readonly client?: ClientToolRouter;
   /**
+   * The project this run works in — a chat in a project's agent panel is bound
+   * to it. A document created without a `project_id` of its own belongs here
+   * rather than in the loose bucket. Absent on a run bound to no project.
+   */
+  readonly projectId?: string;
+  /**
    * Opens the bespoke secret dialog. Absent on headless runs, which is what
    * makes `request_secret` fail closed there.
    */

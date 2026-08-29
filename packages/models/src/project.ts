@@ -76,6 +76,26 @@ export class Project extends DBModel {
     return row && row.user_id === userId ? row : null;
   }
 
+  /**
+   * The project whose agent thread this is. A chat turn knows its thread, so
+   * this is how a run learns which project the documents it creates belong to.
+   */
+  static async findByThread(
+    userId: string,
+    threadId: string
+  ): Promise<Project | null> {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(projects)
+      .where(
+        and(eq(projects.user_id, userId), eq(projects.thread_id, threadId))
+      )
+      .limit(1);
+    const row = rows[0];
+    return row ? new Project(row as Record<string, unknown>) : null;
+  }
+
   static async listByUser(userId: string, limit = 100): Promise<Project[]> {
     const db = getDb();
     const rows = await db

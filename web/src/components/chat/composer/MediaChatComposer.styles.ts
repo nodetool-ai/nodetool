@@ -102,6 +102,12 @@ export const createMediaComposerStyles = (theme: Theme) =>
       flexWrap: "wrap"
     },
 
+    // A narrow card keeps every chip on one line: the model chip shrinks and
+    // truncates instead of pushing the workspace chip onto a second row.
+    ".media-chip-row.narrow .media-chip-main": {
+      flexWrap: "nowrap"
+    },
+
     ".media-chip-row .divider-dot": {
       width: 4,
       height: 4,

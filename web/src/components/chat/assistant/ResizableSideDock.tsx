@@ -33,15 +33,17 @@ function writeStoredWidth(key: string, width: number): void {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, side: DockSide) =>
   css({
     display: "flex",
-    flexDirection: "row",
+    // A left dock puts its handle on the right edge, and vice versa.
+    flexDirection: side === "right" ? "row" : "row-reverse",
     height: "100%",
     minHeight: 0,
     flexShrink: 0,
     backgroundColor: theme.vars.palette.background.paper,
-    borderLeft: `1px solid ${theme.vars.palette.divider}`,
+    [side === "right" ? "borderLeft" : "borderRight"]:
+      `1px solid ${theme.vars.palette.divider}`,
     overflow: "hidden",
 
     ".assistant-dock__handle": {
@@ -71,9 +73,13 @@ const styles = (theme: Theme) =>
     }
   });
 
+type DockSide = "left" | "right";
+
 interface ResizableSideDockProps {
   /** Persist key. Widths stay independent per assistant location. */
   storageKey: string;
+  /** Which edge the dock sits on. Decides which way a drag grows it. */
+  side?: DockSide;
   defaultWidth?: number;
   minWidth?: number;
   maxWidth?: number;
@@ -93,6 +99,7 @@ interface ResizableSideDockProps {
  */
 const ResizableSideDock = ({
   storageKey,
+  side = "right",
   defaultWidth = DEFAULT_WIDTH,
   minWidth = MIN_WIDTH,
   maxWidth = MAX_WIDTH,
@@ -102,7 +109,7 @@ const ResizableSideDock = ({
   children
 }: ResizableSideDockProps) => {
   const theme = useTheme();
-  const cssStyles = useMemo(() => styles(theme), [theme]);
+  const cssStyles = useMemo(() => styles(theme, side), [theme, side]);
   const [width, setWidth] = useState(() =>
     clamp(readStoredWidth(storageKey, defaultWidth), minWidth, maxWidth)
   );
@@ -137,10 +144,16 @@ const ResizableSideDock = ({
       if (!isDragging) {
         return;
       }
-      // The handle sits on the left edge: drag left grows the panel.
-      persist(dragStart.current.width - (event.clientX - dragStart.current.pointer));
+      const delta = event.clientX - dragStart.current.pointer;
+      // A right dock's handle is on its left edge, so dragging left grows it;
+      // a left dock grows the other way.
+      persist(
+        side === "right"
+          ? dragStart.current.width - delta
+          : dragStart.current.width + delta
+      );
     },
-    [isDragging, persist]
+    [isDragging, persist, side]
   );
 
   const endDrag = useCallback(
@@ -158,10 +171,11 @@ const ResizableSideDock = ({
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const grow = side === "right" ? KEYBOARD_STEP : -KEYBOARD_STEP;
       if (event.key === "ArrowLeft") {
-        persist(width + KEYBOARD_STEP);
+        persist(width + grow);
       } else if (event.key === "ArrowRight") {
-        persist(width - KEYBOARD_STEP);
+        persist(width - grow);
       } else if (event.key === "Home") {
         persist(maxWidth);
       } else if (event.key === "End") {
@@ -171,7 +185,7 @@ const ResizableSideDock = ({
       }
       event.preventDefault();
     },
-    [persist, width, minWidth, maxWidth]
+    [persist, width, minWidth, maxWidth, side]
   );
 
   if (!enabled) {

@@ -29,22 +29,27 @@ const chatState = {
   sendMessage,
   stopGeneration: jest.fn(),
   messageCache: {} as Record<string, unknown[]>,
-  selectedModel: { provider: "anthropic", id: "claude-sonnet-5" }
+  selectedModel: { provider: "anthropic", id: "claude-sonnet-5" },
+  setSelectedModel: jest.fn()
 };
 jest.mock("../../../stores/GlobalChatStore", () => ({
   __esModule: true,
   default: <T,>(selector: (s: typeof chatState) => T) => selector(chatState),
-  useThreadRuntime: () => ({ status: "idle", toolMessage: null })
+  useThreadRuntime: () => ({
+    status: "idle",
+    statusMessage: null,
+    progress: { current: 0, total: 0 },
+    planningUpdate: null,
+    taskUpdate: null,
+    logUpdate: null,
+    runningToolCallId: null,
+    toolMessage: null
+  })
 }));
 
-jest.mock("../ProjectAgentThread", () => ({
+jest.mock("../../chat/containers/ChatView", () => ({
   __esModule: true,
-  default: () => <div data-testid="thread" />
-}));
-
-jest.mock("../../chat/composer/MediaChatComposer", () => ({
-  __esModule: true,
-  default: () => <div data-testid="composer" />
+  default: () => <div data-testid="chat-view" />
 }));
 
 import ProjectAgentPanel from "../ProjectAgentPanel";
@@ -64,7 +69,7 @@ describe("ProjectAgentPanel", () => {
     renderPanel();
     await waitFor(() => expect(ensureThread).toHaveBeenCalledWith({ id: "p1" }));
     await waitFor(() => expect(loadMessages).toHaveBeenCalledWith("t1"));
-    expect(await screen.findByTestId("thread")).toBeInTheDocument();
+    expect(await screen.findByTestId("chat-view")).toBeInTheDocument();
   });
 
   it("sends a staged opening turn once, into the project's thread", async () => {
