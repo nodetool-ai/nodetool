@@ -336,11 +336,13 @@ export const UNDERSTAND_VIDEO_SCHEMA: JsonSchema = {
 export const understandVideoSpec: CapabilitySpec = {
   name: "understand_video",
   description:
-    "Send a video plus an instruction to a multimodal chat model (Gemini " +
-    "reads video natively) and return the model's answer as text. Use it to " +
-    "describe or summarize a clip, answer questions about what happens in " +
-    "it, or extract on-screen text. Takes the whole video, not sampled " +
-    "frames — for a single still use critique_image instead.",
+    "Send a video plus an instruction to a multimodal chat model and return " +
+    "the model's answer as text. Use it to describe or summarize a clip, " +
+    "answer questions about what happens in it, or extract on-screen text. " +
+    "A provider that reads video natively (Gemini) gets the whole clip with " +
+    "its audio; every other vision model is sent stills sampled from it, " +
+    "which carry no audio and no motion between frames. For a single still " +
+    "use critique_image instead.",
   inputSchema: UNDERSTAND_VIDEO_SCHEMA,
   // Unlisted in `TOOL_PERMISSION_CATEGORIES`, so the gate classes it
   // `external` — the same category the vision judges carry.

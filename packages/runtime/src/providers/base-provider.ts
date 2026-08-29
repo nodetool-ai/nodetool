@@ -66,6 +66,10 @@ import {
 import { logProviderRequestFailure } from "./provider-request-log.js";
 import { annotateProviderError } from "./provider-error.js";
 import { applyEntityReferences } from "./entity-references.js";
+import {
+  expandVideoContentAsFrames,
+  videoFrameFallbackEnabled
+} from "./video-frame-fallback.js";
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
@@ -326,6 +330,7 @@ export abstract class BaseProvider {
   protected constructor(provider: ProviderId) {
     this.provider = provider;
     this.installModalityFailureLogging();
+    this.installVideoFrameFallback();
   }
 
   /**
@@ -388,6 +393,84 @@ export abstract class BaseProvider {
         wrapModalityGenerator(this, original, args)
       );
     }
+  }
+
+  /**
+   * Make a `video` content part readable by a provider whose chat API has no
+   * place to put one: sample the clip into stills and send those instead.
+   *
+   * Wrapping the instance's own methods (the pattern
+   * {@link installModalityFailureLogging} uses) is what makes it transparent.
+   * Not every caller goes through the traced wrappers — `packages/llm-nodes`
+   * and the jtbd optimizer call `generateMessages` straight — and a seam only
+   * some callers pass through is not a fallback, it is a coin flip.
+   *
+   * A provider that reads video natively is left alone, and so is one whose
+   * `generateMessage` delegates to its own `generateMessages`: by then the
+   * video parts are already frames, and the second pass is a no-op.
+   */
+  private installVideoFrameFallback(): void {
+    // An arrow, so the `async function*` below (which binds its own `this`)
+    // still reaches this instance.
+    const sample = (args: {
+      messages: Message[];
+      model: string;
+      signal?: AbortSignal;
+    }): Promise<Message[]> => this.sampleVideoAsFrames(args);
+
+    // `generateMessage` and `generateMessages` are abstract, so a subclass that
+    // implements only one leaves the other undefined at construction — wrap
+    // what is there, the way installModalityFailureLogging does.
+    const message = this.generateMessage;
+    if (isCallable(message)) {
+      const original = message.bind(this);
+      Reflect.set(
+        this,
+        "generateMessage",
+        async (
+          args: Parameters<BaseProvider["generateMessage"]>[0]
+        ): Promise<Message> =>
+          original({ ...args, messages: await sample(args) })
+      );
+    }
+
+    const messages = this.generateMessages;
+    if (isCallable(messages)) {
+      const original = messages.bind(this);
+      Reflect.set(
+        this,
+        "generateMessages",
+        async function* (
+          args: Parameters<BaseProvider["generateMessages"]>[0]
+        ): AsyncGenerator<ProviderStreamItem> {
+          yield* original({
+            ...args,
+            messages: await sample(args)
+          });
+        }
+      );
+    }
+  }
+
+  /**
+   * The messages to actually send: unchanged unless this provider cannot take
+   * video and the conversation carries some.
+   */
+  private async sampleVideoAsFrames(args: {
+    messages: Message[];
+    model: string;
+    signal?: AbortSignal;
+  }): Promise<Message[]> {
+    if (this.supportsVideoInput || !videoFrameFallbackEnabled()) {
+      return args.messages;
+    }
+    // Returns the same array when nothing carries video, which is every call
+    // but the rare one.
+    return await expandVideoContentAsFrames(args.messages, {
+      resolveUri: (uri) => this.resolveUri(uri),
+      signal: args.signal,
+      provider: this.provider
+    });
   }
 
   static requiredSecrets(): string[] {
