@@ -44,6 +44,11 @@ Package specifics from shipped fixes:
   the *set* of layers it returns — is deliberately not shipped. A model that
   returns N interchangeable variants (`n`, `num_images`) is fine; one whose
   outputs are not interchangeable is not.
+- **Suppress an option by name, not by upstream's `disabled` flag.** AtlasCloud
+  marks `enable_base64_output` / `enable_sync_mode` disabled on most models but
+  not on the FLUX.1 open-weight ones, and either switch breaks the
+  poll-then-download flow. `SUPPRESSED_FIELDS` in the sync script is the list;
+  `output_dir` (a server-side path on Tencent's upscaler) is there too.
 - **The manifest is generated, not hand-edited.** `node
   scripts/sync-atlascloud-manifest.mjs` reconciles every entry's fields against
   the `Input` schema AtlasCloud publishes for that model (reachable from the
@@ -51,6 +56,14 @@ Package specifics from shipped fixes:
   without writing. Hand-tuned enums, wrong separators (`1024x1024` vs
   `1024*1024`) and stale option lists are what the script exists to prevent. Add
   a *model* by hand — the script only maintains the fields of models we ship.
+  Two shapes the script cannot fill in for a new entry, so write them yourself:
+  asset fields (it never touches `image`/`video`/`audio`/`list[…]` props), and
+  a schema property typed `anyOf` rather than a scalar — Cosmos 3 Super's
+  `image_size` is one, and hand-declaring it as an `enum` is what keeps the
+  control, since the script preserves an option list the schema no longer
+  carries. After adding entries, `--check` must report the manifest up to date;
+  a drift line against a model you just added means the entry disagrees with
+  the schema it was written from.
 - **Chat is not a node concern.** AtlasCloud's LLMs are OpenAI-compatible at
   `https://api.atlascloud.ai/v1` and are served by `AtlasCloudProvider` in
   `packages/runtime`, which extends `OpenAICompatProvider`. Only the async

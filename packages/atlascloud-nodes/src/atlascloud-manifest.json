@@ -704,6 +704,31 @@
         "default": false,
         "title": "Image Search",
         "description": "Ground generation in real-time image search."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed. Does not guarantee determinism but may improve repeatability. -1 means a random seed will be used."
+      },
+      {
+        "name": "top_p",
+        "type": "float",
+        "default": 0.95,
+        "title": "Top P",
+        "description": "Probability threshold for top-p sampling",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "temperature",
+        "type": "float",
+        "default": 1,
+        "title": "Temperature",
+        "description": "Creativity allowed in the responses. Best results at default 1.0. Lower values may impact reasoning.",
+        "min": 0,
+        "max": 1
       }
     ]
   },
@@ -811,6 +836,31 @@
         "default": false,
         "title": "Image Search",
         "description": "Ground generation in real-time image search."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed. Does not guarantee determinism but may improve repeatability. -1 means a random seed will be used."
+      },
+      {
+        "name": "top_p",
+        "type": "float",
+        "default": 0.95,
+        "title": "Top P",
+        "description": "Probability threshold for top-p sampling",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "temperature",
+        "type": "float",
+        "default": 1,
+        "title": "Temperature",
+        "description": "Creativity allowed in the responses. Best results at default 1.0. Lower values may impact reasoning.",
+        "min": 0,
+        "max": 1
       }
     ]
   },
@@ -1139,6 +1189,31 @@
         "type": "bool",
         "default": false,
         "title": "Web Search"
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed. Does not guarantee determinism but may improve repeatability. -1 means a random seed will be used."
+      },
+      {
+        "name": "top_p",
+        "type": "float",
+        "default": 0.95,
+        "title": "Top P",
+        "description": "Probability threshold for top-p sampling",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "temperature",
+        "type": "float",
+        "default": 1,
+        "title": "Temperature",
+        "description": "Creativity allowed in the responses. Best results at default 1.0. Lower values may impact reasoning.",
+        "min": 0,
+        "max": 1
       }
     ]
   },
@@ -1225,6 +1300,31 @@
         "type": "bool",
         "default": false,
         "title": "Web Search"
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed. Does not guarantee determinism but may improve repeatability. -1 means a random seed will be used."
+      },
+      {
+        "name": "top_p",
+        "type": "float",
+        "default": 0.95,
+        "title": "Top P",
+        "description": "Probability threshold for top-p sampling",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "temperature",
+        "type": "float",
+        "default": 1,
+        "title": "Temperature",
+        "description": "Creativity allowed in the responses. Best results at default 1.0. Lower values may impact reasoning.",
+        "min": 0,
+        "max": 1
       }
     ]
   },
@@ -1414,6 +1514,17 @@
           "enabled",
           "disabled"
         ]
+      },
+      {
+        "name": "prompt_optimization_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Prompt Optimization Mode",
+        "description": "Prompt optimization mode. 'standard' (default) produces higher-quality prompt optimization but takes longer. 'fast' takes significantly less time with slightly lower quality.",
+        "values": [
+          "standard",
+          "fast"
+        ]
       }
     ]
   },
@@ -1487,6 +1598,28 @@
           "enabled",
           "disabled"
         ]
+      },
+      {
+        "name": "background",
+        "type": "enum",
+        "default": "opaque",
+        "title": "Background",
+        "description": "Controls whether the generated image carries an alpha channel.",
+        "values": [
+          "opaque",
+          "transparent"
+        ]
+      },
+      {
+        "name": "prompt_optimization_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Prompt Optimization Mode",
+        "description": "Prompt optimization mode. 'standard' (default) produces higher-quality prompt optimization but takes longer. 'fast' takes significantly less time with slightly lower quality.",
+        "values": [
+          "standard",
+          "fast"
+        ]
       }
     ]
   },
@@ -1554,6 +1687,31 @@
           "high",
           "minimal"
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed. Does not guarantee determinism but may improve repeatability. -1 means a random seed will be used."
+      },
+      {
+        "name": "top_p",
+        "type": "float",
+        "default": 0.95,
+        "title": "Top P",
+        "description": "Probability threshold for top-p sampling",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "temperature",
+        "type": "float",
+        "default": 1,
+        "title": "Temperature",
+        "description": "Creativity allowed in the responses. Best results at default 1.0. Lower values may impact reasoning.",
+        "min": 0,
+        "max": 1
       }
     ]
   },
@@ -1629,6 +1787,31 @@
           "high",
           "minimal"
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed. Does not guarantee determinism but may improve repeatability. -1 means a random seed will be used."
+      },
+      {
+        "name": "top_p",
+        "type": "float",
+        "default": 0.95,
+        "title": "Top P",
+        "description": "Probability threshold for top-p sampling",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "temperature",
+        "type": "float",
+        "default": 1,
+        "title": "Temperature",
+        "description": "Creativity allowed in the responses. Best results at default 1.0. Lower values may impact reasoning.",
+        "min": 0,
+        "max": 1
       }
     ]
   },
@@ -2446,12 +2629,13 @@
       {
         "name": "resolution",
         "type": "enum",
-        "default": "1080P",
+        "default": "1080p",
         "title": "Resolution",
         "description": "Output video resolution.",
         "values": [
-          "720P",
-          "1080P"
+          "480p",
+          "720p",
+          "1080p"
         ]
       },
       {
@@ -2521,12 +2705,13 @@
       {
         "name": "resolution",
         "type": "enum",
-        "default": "1080P",
+        "default": "1080p",
         "title": "Resolution",
         "description": "Output video resolution.",
         "values": [
-          "720P",
-          "1080P"
+          "480p",
+          "720p",
+          "1080p"
         ]
       },
       {
@@ -2579,12 +2764,13 @@
       {
         "name": "resolution",
         "type": "enum",
-        "default": "1080P",
+        "default": "1080p",
         "title": "Resolution",
         "description": "Output video resolution.",
         "values": [
-          "720P",
-          "1080P"
+          "480p",
+          "720p",
+          "1080p"
         ]
       },
       {
@@ -3349,9 +3535,7 @@
         "description": "Output video resolution. 720P and 1080P are native Wan 2.7 outputs. Choose 1080P-SR for sharper HD detail, cleaner edges, and better texture retention. For the same duration, 1080P…",
         "values": [
           "720P",
-          "1080P",
-          "1080P-SR",
-          "1440P-SR"
+          "1080P"
         ]
       },
       {
@@ -6905,6 +7089,13 @@
           "3:4",
           "9:16"
         ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
       }
     ]
   },
@@ -6985,6 +7176,13 @@
         "values": [
           "adaptive"
         ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
       }
     ]
   },
@@ -7083,6 +7281,13 @@
           "3:4",
           "9:16"
         ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
       }
     ]
   },
@@ -7732,6 +7937,4329 @@
           "low",
           "high"
         ]
+      }
+    ]
+  },
+  {
+    "className": "Flux2ProTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "black-forest-labs/flux-2-pro/text-to-image",
+    "outputType": "image",
+    "title": "FLUX.2 Pro — Text to Image",
+    "description": "AtlasCloud / Black Forest Labs FLUX.2 Pro — text to image with high prompt adherence and legible text.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt for image generation.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "1024*1024",
+        "title": "Size",
+        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720), If not specified, the model will determine the optimal dimension."
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "The format of the output image.",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "type": "int",
+        "default": 2,
+        "title": "Safety Tolerance",
+        "description": "Tolerance level for input and output moderation. Between 0 and 5, 0 being most strict, 5 being least strict.",
+        "min": 0,
+        "max": 5
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use -1 for a random seed."
+      }
+    ]
+  },
+  {
+    "className": "Flux2ProEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "black-forest-labs/flux-2-pro/edit",
+    "outputType": "image",
+    "title": "FLUX.2 Pro — Edit",
+    "description": "AtlasCloud / Black Forest Labs FLUX.2 Pro — edits up to 8 input images from a text instruction.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt for image editing.",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Up to 8. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "1024*1024",
+        "title": "Size",
+        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720), If not specified, the model will determine the optimal dimension."
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "The format of the output image.",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "type": "int",
+        "default": 2,
+        "title": "Safety Tolerance",
+        "description": "Tolerance level for input and output moderation. Between 0 and 5, 0 being most strict, 5 being least strict.",
+        "min": 0,
+        "max": 5
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use -1 for a random seed."
+      }
+    ]
+  },
+  {
+    "className": "Flux2FlexTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "black-forest-labs/flux-2-flex/text-to-image",
+    "outputType": "image",
+    "title": "FLUX.2 Flex — Text to Image",
+    "description": "AtlasCloud / Black Forest Labs FLUX.2 Flex — text to image with exposed guidance and step count.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt for image generation.",
+        "required": true
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "type": "bool",
+        "default": true,
+        "title": "Enable Prompt Expansion",
+        "description": "Whether to use prompt upsampling to enhance the prompt before generation."
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "1024*1024",
+        "title": "Size",
+        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720), If not specified, the model will determine the optimal dimension."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": 5,
+        "title": "Guidance Scale",
+        "description": "Guidance scale for image generation. High guidance scales improve prompt adherence at the cost of reduced realism.",
+        "min": 1.5,
+        "max": 10
+      },
+      {
+        "name": "num_inference_steps",
+        "type": "int",
+        "default": 50,
+        "title": "Num Inference Steps",
+        "description": "Number of steps for image generation. Higher steps lead to more detailed and realistic images.",
+        "min": 1,
+        "max": 50
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "The format of the output image.",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "type": "int",
+        "default": 2,
+        "title": "Safety Tolerance",
+        "description": "Tolerance level for input and output moderation. Between 0 and 5, 0 being most strict, 5 being least strict.",
+        "min": 0,
+        "max": 5
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use -1 for a random seed."
+      }
+    ]
+  },
+  {
+    "className": "Flux2FlexEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "black-forest-labs/flux-2-flex/edit",
+    "outputType": "image",
+    "title": "FLUX.2 Flex — Edit",
+    "description": "AtlasCloud / Black Forest Labs FLUX.2 Flex — image editing with exposed guidance and step count.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt for image editing.",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "type": "bool",
+        "default": true,
+        "title": "Enable Prompt Expansion",
+        "description": "Whether to use prompt upsampling to enhance the prompt before generation."
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "1024*1024",
+        "title": "Size",
+        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720), If not specified, the model will determine the optimal dimension."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": 5,
+        "title": "Guidance Scale",
+        "description": "Guidance scale for image generation. High guidance scales improve prompt adherence at the cost of reduced realism.",
+        "min": 1.5,
+        "max": 10
+      },
+      {
+        "name": "num_inference_steps",
+        "type": "int",
+        "default": 50,
+        "title": "Num Inference Steps",
+        "description": "Number of steps for image generation. Higher steps lead to more detailed and realistic images.",
+        "min": 1,
+        "max": 50
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "The format of the output image.",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "type": "int",
+        "default": 2,
+        "title": "Safety Tolerance",
+        "description": "Tolerance level for input and output moderation. Between 0 and 5, 0 being most strict, 5 being least strict.",
+        "min": 0,
+        "max": 5
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use -1 for a random seed."
+      }
+    ]
+  },
+  {
+    "className": "FluxDev",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "black-forest-labs/flux-dev",
+    "outputType": "image",
+    "title": "FLUX.1 Dev",
+    "description": "AtlasCloud / Black Forest Labs FLUX.1 Dev — text to image, or image to image when a source image is connected.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The same seed and the same prompt given to the same version of the model will output the same image every time."
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "1024*1024",
+        "title": "Size",
+        "description": "The size of the generated image."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Source Image (optional)",
+        "description": "Optional image to transform. Leave empty for pure text to image."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt to generate an image from.",
+        "required": true
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.8,
+        "title": "Strength",
+        "description": "Strength indicates extent to transform the reference image",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "mask_image",
+        "type": "image",
+        "default": null,
+        "title": "Mask (optional)",
+        "description": "Optional inpainting mask. White marks the region to regenerate."
+      },
+      {
+        "name": "num_images",
+        "type": "int",
+        "default": 1,
+        "title": "Num Images",
+        "description": "The number of images to generate.",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": 3.5,
+        "title": "Guidance Scale",
+        "description": "Flux embedded guidance strength. Higher values make the image follow the prompt more closely. This is not True CFG and does not require a negative prompt. Default 3.5.",
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "num_inference_steps",
+        "type": "int",
+        "default": 28,
+        "title": "Num Inference Steps",
+        "description": "The number of inference steps to perform.",
+        "min": 1,
+        "max": 50
+      }
+    ]
+  },
+  {
+    "className": "FluxSchnell",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "black-forest-labs/flux-schnell",
+    "outputType": "image",
+    "title": "FLUX.1 Schnell",
+    "description": "AtlasCloud / Black Forest Labs FLUX.1 Schnell — the fast distilled FLUX. Text to image, or image to image with a source image.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed (-1 for random)"
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "1024*1024",
+        "title": "Size",
+        "description": "Output image size"
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Source Image (optional)",
+        "description": "Optional image to transform. Leave empty for pure text to image."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Input prompt for image generation",
+        "required": true
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.8,
+        "title": "Strength",
+        "description": "Strength indicates extent to transform the reference image",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "mask_image",
+        "type": "image",
+        "default": null,
+        "title": "Mask (optional)",
+        "description": "Optional inpainting mask. White marks the region to regenerate."
+      },
+      {
+        "name": "num_images",
+        "type": "int",
+        "default": 1,
+        "title": "Num Images",
+        "description": "Number of images to generate",
+        "min": 1,
+        "max": 4
+      }
+    ]
+  },
+  {
+    "className": "FluxKontextDev",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "black-forest-labs/flux-kontext-dev",
+    "outputType": "image",
+    "title": "FLUX.1 Kontext Dev",
+    "description": "AtlasCloud / Black Forest Labs FLUX.1 Kontext Dev — instruction-driven image editing that keeps the rest of the frame.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The same seed and the same prompt given to the same version of the model will output the same image every time."
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": null,
+        "title": "Size",
+        "description": "The size of the generated image."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to edit. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt to generate an image from.",
+        "required": true
+      },
+      {
+        "name": "num_images",
+        "type": "int",
+        "default": 1,
+        "title": "Num Images",
+        "description": "The number of images to generate.",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": 2.5,
+        "title": "Guidance Scale",
+        "description": "Flux embedded guidance strength. Higher values make the image follow the prompt more closely. This is not True CFG and does not require a negative prompt. Default 2.5.",
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "num_inference_steps",
+        "type": "int",
+        "default": 28,
+        "title": "Num Inference Steps",
+        "description": "The number of inference steps to perform.",
+        "min": 1,
+        "max": 50
+      }
+    ]
+  },
+  {
+    "className": "IdeogramV4TurboTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "ideogram/v4/turbo/text-to-image",
+    "outputType": "image",
+    "title": "Ideogram v4 Turbo — Text to Image",
+    "description": "AtlasCloud / Ideogram v4 Turbo — fast text to image, strong at typography and logos.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description of the image to generate. Maximum 2,000 characters.",
+        "required": true
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "landscape_16_9",
+        "title": "Image Size",
+        "description": "Output image size preset.",
+        "values": [
+          "square_hd",
+          "square",
+          "portrait_3_4",
+          "portrait_9_16",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "File format of the generated image.",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use the same seed and prompt to reproduce results.",
+        "min": 0
+      }
+    ]
+  },
+  {
+    "className": "IdeogramV4QualityTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "ideogram/v4/quality/text-to-image",
+    "outputType": "image",
+    "title": "Ideogram v4 Quality — Text to Image",
+    "description": "AtlasCloud / Ideogram v4 Quality — the slower, higher-fidelity Ideogram v4 tier.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description of the image to generate. Maximum 2,000 characters.",
+        "required": true
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "landscape_16_9",
+        "title": "Image Size",
+        "description": "Output image size preset.",
+        "values": [
+          "square_hd",
+          "square",
+          "portrait_3_4",
+          "portrait_9_16",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "File format of the generated image.",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use the same seed and prompt to reproduce results.",
+        "min": 0
+      }
+    ]
+  },
+  {
+    "className": "HiDreamO115TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "hidream-o1-1.5/text-to-image",
+    "outputType": "image",
+    "title": "HiDream O1 1.5 — Text to Image",
+    "description": "AtlasCloud / HiDream O1 1.5 — text to image with optional reference images for style or subject.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate. Maximum 2,500 characters.",
+        "required": true
+      },
+      {
+        "name": "reference_image_urls",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images (optional)",
+        "description": "Optional images that anchor style or subject."
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "landscape_4_3",
+        "title": "Image Size",
+        "description": "Output image size. Choose a preset or specify custom dimensions.",
+        "values": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "num_inference_steps",
+        "type": "int",
+        "default": 50,
+        "title": "Num Inference Steps",
+        "description": "Number of denoising steps. Higher values improve quality but increase generation time.",
+        "min": 1,
+        "max": 50
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": 5,
+        "title": "Guidance Scale",
+        "description": "Classifier-free guidance scale. Higher values make the output follow the prompt more closely.",
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "HiDreamO115Edit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "hidream-o1-1.5/edit",
+    "outputType": "image",
+    "title": "HiDream O1 1.5 — Edit",
+    "description": "AtlasCloud / HiDream O1 1.5 — edits reference images from a text instruction.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate. Maximum 2,500 characters.",
+        "required": true
+      },
+      {
+        "name": "reference_image_urls",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "landscape_4_3",
+        "title": "Image Size",
+        "description": "Output image size. Choose a preset or specify custom dimensions.",
+        "values": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "num_inference_steps",
+        "type": "int",
+        "default": 50,
+        "title": "Num Inference Steps",
+        "description": "Number of denoising steps. Higher values improve quality but increase generation time.",
+        "min": 1,
+        "max": 50
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": 5,
+        "title": "Guidance Scale",
+        "description": "Classifier-free guidance scale. Higher values make the output follow the prompt more closely.",
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Krea2TurboTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "krea-2-turbo/text-to-image",
+    "outputType": "image",
+    "title": "Krea 2 Turbo — Text to Image",
+    "description": "AtlasCloud / Krea 2 Turbo — fast text to image tuned against the over-processed look.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate.",
+        "required": true
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "square_hd",
+        "title": "Image Size",
+        "description": "Output image size. Choose a preset or specify custom dimensions.",
+        "values": [
+          "square_hd",
+          "square",
+          "portrait_3_4",
+          "portrait_9_16",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "num_images",
+        "type": "int",
+        "default": 1,
+        "title": "Num Images",
+        "description": "Number of images to generate.",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Seed for reproducible generation. Omit for a random seed."
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Cosmos3SuperTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "nvidia/cosmos-3-super/text-to-image",
+    "outputType": "image",
+    "title": "Cosmos 3 Super — Text to Image",
+    "description": "AtlasCloud / NVIDIA Cosmos 3 Super — text to image with a negative prompt and exposed sampler settings.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate. Maximum 2,500 characters.",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Text describing content to exclude from the generated image."
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "landscape_16_9",
+        "title": "Resolution",
+        "description": "Output resolution preset.",
+        "values": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "num_inference_steps",
+        "type": "int",
+        "default": 28,
+        "title": "Num Inference Steps",
+        "description": "Number of denoising steps. Higher values improve quality but increase generation time.",
+        "min": 1,
+        "max": 50
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": 4,
+        "title": "Guidance Scale",
+        "description": "Classifier-free guidance scale. Higher values make the output follow the prompt more closely.",
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use the same seed and prompt to reproduce results.",
+        "min": 0
+      },
+      {
+        "name": "enable_safety_checker",
+        "type": "bool",
+        "default": false,
+        "title": "Enable Safety Checker",
+        "description": "Enable or disable the safety checker. Disabling the safety checker may result in NSFW content."
+      }
+    ]
+  },
+  {
+    "className": "Cosmos3SuperImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "nvidia/cosmos-3-super/image-to-video",
+    "outputType": "video",
+    "title": "Cosmos 3 Super — Image to Video",
+    "description": "AtlasCloud / NVIDIA Cosmos 3 Super — animates a still image for 1-7 seconds.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description of the motion and scene to generate. Maximum 2,500 characters.",
+        "required": true
+      },
+      {
+        "name": "image_url",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to animate. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Text describing content to exclude from the generated video."
+      },
+      {
+        "name": "image_size",
+        "type": "enum",
+        "default": "landscape_16_9",
+        "title": "Resolution",
+        "description": "Output resolution preset.",
+        "values": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (1-7).",
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "name": "num_inference_steps",
+        "type": "int",
+        "default": 28,
+        "title": "Num Inference Steps",
+        "description": "Number of denoising steps. Higher values improve quality but increase generation time.",
+        "min": 1,
+        "max": 50
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": 6,
+        "title": "Guidance Scale",
+        "description": "Classifier-free guidance scale. Higher values make the output follow the prompt more closely.",
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use the same seed and prompt to reproduce results.",
+        "min": 0
+      },
+      {
+        "name": "enable_safety_checker",
+        "type": "bool",
+        "default": false,
+        "title": "Enable Safety Checker",
+        "description": "Enable or disable the safety checker. Disabling the safety checker may result in NSFW content."
+      }
+    ]
+  },
+  {
+    "className": "SeedreamV45TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "bytedance/seedream-v4.5",
+    "outputType": "image",
+    "title": "Seedream v4.5 — Text to Image",
+    "description": "AtlasCloud / ByteDance Seedream v4.5 — text to image up to 4K.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "2048*2048",
+        "title": "Size",
+        "description": "Output image size in 'WIDTH*HEIGHT' pixels. 16 preset resolutions at 2K and 4K tiers.",
+        "values": [
+          "2048*2048",
+          "2304*1728",
+          "1728*2304",
+          "2848*1600",
+          "1600*2848",
+          "2496*1664",
+          "1664*2496",
+          "3136*1344",
+          "4096*4096",
+          "4704*3520",
+          "3520*4704",
+          "5504*3040",
+          "3040*5504",
+          "4992*3328",
+          "3328*4992",
+          "6240*2656"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "SeedreamV45Edit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "bytedance/seedream-v4.5/edit",
+    "outputType": "image",
+    "title": "Seedream v4.5 — Edit",
+    "description": "AtlasCloud / ByteDance Seedream v4.5 — edits input images from a text instruction.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "2048*2048",
+        "title": "Size",
+        "description": "Output image size in 'WIDTH*HEIGHT' pixels. 16 preset resolutions at 2K and 4K tiers.",
+        "values": [
+          "2048*2048",
+          "2304*1728",
+          "1728*2304",
+          "2848*1600",
+          "1600*2848",
+          "2496*1664",
+          "1664*2496",
+          "3136*1344",
+          "4096*4096",
+          "4704*3520",
+          "3520*4704",
+          "5504*3040",
+          "3040*5504",
+          "4992*3328",
+          "3328*4992",
+          "6240*2656"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GPTImage1TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-1/text-to-image",
+    "outputType": "image",
+    "title": "GPT Image 1 — Text to Image",
+    "description": "AtlasCloud / OpenAI GPT Image 1 — text to image with selectable quality tier.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "The quality of the generated image.",
+        "values": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "description": "The size of the generated media in pixels (widthxheight).",
+        "values": [
+          "1024x1024",
+          "1024x1536",
+          "1536x1024"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "output_compression",
+        "type": "int",
+        "default": 100,
+        "title": "Output Compression",
+        "description": "Compression level for output image.",
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "N",
+        "description": "Number of images to generate.",
+        "min": 1,
+        "max": 10
+      }
+    ]
+  },
+  {
+    "className": "GPTImage1Edit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-1/edit",
+    "outputType": "image",
+    "title": "GPT Image 1 — Edit",
+    "description": "AtlasCloud / OpenAI GPT Image 1 — edits input images, optionally masked.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "image",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "mask_image",
+        "type": "image",
+        "default": null,
+        "title": "Mask (optional)",
+        "description": "Optional mask. Transparent pixels mark the region to regenerate."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "The quality of the generated image.",
+        "values": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "description": "The size of the generated media in pixels (width*height).",
+        "values": [
+          "1024x1024",
+          "1024x1536",
+          "1536x1024"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GPTImage1MiniTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-1-mini/text-to-image",
+    "outputType": "image",
+    "title": "GPT Image 1 Mini — Text to Image",
+    "description": "AtlasCloud / OpenAI GPT Image 1 Mini — the cheaper GPT Image 1 tier for drafts and volume.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "The quality of the generated image.",
+        "values": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "description": "The size of the generated media in pixels (widthxheight).",
+        "values": [
+          "1024x1024",
+          "1024x1536",
+          "1536x1024"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "output_compression",
+        "type": "int",
+        "default": 100,
+        "title": "Output Compression",
+        "description": "Compression level for output image.",
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "N",
+        "description": "Number of images to generate.",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "GPTImage1MiniEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-1-mini/edit",
+    "outputType": "image",
+    "title": "GPT Image 1 Mini — Edit",
+    "description": "AtlasCloud / OpenAI GPT Image 1 Mini — the cheaper edit tier for drafts and volume.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "The quality of the generated image.",
+        "values": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "description": "The size of the generated media in pixels (width*height).",
+        "values": [
+          "1024x1024",
+          "1024x1536",
+          "1536x1024"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineImageTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "xai/grok-imagine-image/text-to-image",
+    "outputType": "image",
+    "title": "Grok Imagine Image — Text to Image",
+    "description": "AtlasCloud / xAI Grok Imagine Image — text to image, 1-4 variants per call.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Natural-language description of the image to generate.",
+        "required": true
+      },
+      {
+        "name": "num_images",
+        "type": "enum",
+        "default": 1,
+        "title": "Num Images",
+        "description": "Number of images to generate. Each image is billed separately.",
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "3:4",
+          "4:3",
+          "9:16",
+          "16:9",
+          "2:3",
+          "3:2",
+          "9:19.5",
+          "19.5:9",
+          "9:20",
+          "20:9",
+          "1:2",
+          "2:1"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "description": "Output resolution. 1k = 1024x1024, 2k = 2048x2048.",
+        "values": [
+          "1k",
+          "2k"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineImageEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "xai/grok-imagine-image/edit",
+    "outputType": "image",
+    "title": "Grok Imagine Image — Edit",
+    "description": "AtlasCloud / xAI Grok Imagine Image — edits source images from a text instruction.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Editing instruction. For multi-image references, cite each input as <IMAGE_0>, <IMAGE_1>, ...",
+        "required": true
+      },
+      {
+        "name": "image_urls",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Source images. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "num_images",
+        "type": "enum",
+        "default": 1,
+        "title": "Num Images",
+        "description": "Number of edited images to generate. Each output image is billed separately.",
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the edited image. With a single source image, the output respects the input's aspect ratio regardless of this value. `auto` lets the model pick.",
+        "values": [
+          "auto",
+          "1:1",
+          "3:4",
+          "4:3",
+          "9:16",
+          "16:9",
+          "2:3",
+          "3:2",
+          "9:19.5",
+          "19.5:9",
+          "9:20",
+          "20:9",
+          "1:2",
+          "2:1"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "description": "Output resolution. 1k = 1024x1024, 2k = 2048x2048.",
+        "values": [
+          "1k",
+          "2k"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "MaiImage25FlashEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "microsoft/mai-image-2.5-flash/edit",
+    "outputType": "image",
+    "title": "MAI Image 2.5 Flash — Edit",
+    "description": "AtlasCloud / Microsoft MAI-Image-2.5-Flash — fast single-image editing from a text instruction.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the edit to perform on the image. Maximum context length: 32,000 tokens.",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to edit. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "Wan26TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "alibaba/wan-2.6/text-to-image",
+    "outputType": "image",
+    "title": "Wan 2.6 — Text to Image",
+    "description": "AtlasCloud / Alibaba Wan 2.6 — text to image with a negative prompt and a wide size list.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "enable_prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Enable Prompt Expansion",
+        "description": "If set to true, the prompt optimizer will be enabled."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "Negative prompt for the generation."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt for generating the image.",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1280*1280",
+        "title": "Size",
+        "description": "The size of the generated image in pixels (width*height).",
+        "values": [
+          "576*1344",
+          "720*1280",
+          "720*1680",
+          "768*1024",
+          "800*1200",
+          "936*2184",
+          "960*1280",
+          "960*1440",
+          "1024*768",
+          "1024*1024",
+          "1080*1920",
+          "1168*1752",
+          "1200*800",
+          "1200*1600",
+          "1224*1632",
+          "1280*720",
+          "1280*960",
+          "1280*1280",
+          "1344*576",
+          "1440*960",
+          "1440*1440",
+          "1600*1200",
+          "1632*1224",
+          "1680*720",
+          "1752*1168",
+          "1920*1080",
+          "2184*936"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Wan26ImageEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "alibaba/wan-2.6/image-edit",
+    "outputType": "image",
+    "title": "Wan 2.6 — Image Edit",
+    "description": "AtlasCloud / Alibaba Wan 2.6 — edits input images from a text instruction.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "enable_prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Enable Prompt Expansion",
+        "description": "If set to true, the prompt optimizer will be enabled."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "Negative prompt for the generation."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1280*1280",
+        "title": "Size",
+        "description": "The size of the generated image in pixels (width*height).",
+        "values": [
+          "576*1344",
+          "720*1280",
+          "720*1680",
+          "768*1024",
+          "800*1200",
+          "816*1904",
+          "936*1664",
+          "960*1280",
+          "960*1440",
+          "1024*768",
+          "1024*1024",
+          "1040*1560",
+          "1104*1472",
+          "1200*800",
+          "1280*720",
+          "1280*960",
+          "1280*1280",
+          "1344*576",
+          "1440*960",
+          "1472*1104",
+          "1560*1040",
+          "1664*936",
+          "1680*720",
+          "1904*816"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "ImageUpscaler",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "atlascloud/image-upscaler",
+    "outputType": "image",
+    "title": "Image Upscaler",
+    "description": "AtlasCloud Image Upscaler — enlarges an image up to 4x without a prompt.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to upscale. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "outscale",
+        "type": "float",
+        "default": 1,
+        "title": "Outscale",
+        "description": "Output scale multiplier. Use 2.0 for standard upscaling and 4.0 for the maximum exposed scale.",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "jpeg",
+          "png",
+          "webp",
+          "jpg"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "TencentImageUpscaler",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "tencent/image/upscaler",
+    "outputType": "image",
+    "title": "Tencent Image Upscaler",
+    "description": "AtlasCloud / Tencent Image Upscaler — upscales by percentage, target side, or fixed size, in four fidelity tiers.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "image_url",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to upscale. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "type",
+        "type": "enum",
+        "default": "ultra",
+        "title": "Type",
+        "description": "Advanced super-resolution type. standard = generic upscale (fastest ~5s); super = AIGC scenes (~15s); ultra = more detail enhancement (~15s); fidelity = ultra high fidelity for e-c…",
+        "values": [
+          "standard",
+          "super",
+          "ultra",
+          "fidelity"
+        ]
+      },
+      {
+        "name": "mode",
+        "type": "enum",
+        "default": "percent",
+        "title": "Mode",
+        "description": "Super-resolution mode. percent = scale by a factor (use percent); aspect = keep aspect ratio, scale to fit given dimensions; fixed = force exact dimensions.",
+        "values": [
+          "percent",
+          "aspect",
+          "fixed"
+        ]
+      },
+      {
+        "name": "percent",
+        "type": "float",
+        "default": 2,
+        "title": "Percent",
+        "description": "Scale factor for mode=percent. 1.0 = keep resolution (enhance only), 2.0 = 2x. Range 1.0~10.0.",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": null,
+        "title": "Width",
+        "description": "Target width in pixels (for mode=aspect / fixed).",
+        "min": 1
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": null,
+        "title": "Height",
+        "description": "Target height in pixels (for mode=aspect / fixed).",
+        "min": 1
+      },
+      {
+        "name": "long_side",
+        "type": "int",
+        "default": null,
+        "title": "Long Side",
+        "description": "Target long-edge in pixels (for mode=aspect / fixed). Alternative to width/height.",
+        "min": 1
+      },
+      {
+        "name": "short_side",
+        "type": "int",
+        "default": null,
+        "title": "Short Side",
+        "description": "Target short-edge in pixels (for mode=aspect / fixed). Alternative to width/height.",
+        "min": 1
+      },
+      {
+        "name": "encode_format",
+        "type": "enum",
+        "default": "JPEG",
+        "title": "Encode Format",
+        "description": "Output image encode format.",
+        "values": [
+          "JPEG",
+          "PNG",
+          "WEBP",
+          "BMP"
+        ]
+      },
+      {
+        "name": "encode_quality",
+        "type": "int",
+        "default": 80,
+        "title": "Encode Quality",
+        "description": "Output image encode quality (1-100). Applies to lossy formats.",
+        "min": 1,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "className": "PhotoCleanup",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "atlascloud/photo-cleanup",
+    "outputType": "image",
+    "title": "Photo Cleanup",
+    "description": "AtlasCloud Photo Cleanup — removes compression artifacts and noise from a photo.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Photo to clean up. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp",
+          "jpg"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingVideoO3ProTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-video-o3-pro/text-to-video",
+    "outputType": "video",
+    "title": "Kling Video O3 Pro — Text to Video",
+    "description": "AtlasCloud / Kuaishou Kling Video O3 Pro — text to video up to 15 seconds with native sound.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether to generate audio for the video."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi Shot",
+        "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingVideoO3ProImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-video-o3-pro/image-to-video",
+    "outputType": "video",
+    "title": "Kling Video O3 Pro — Image to Video",
+    "description": "AtlasCloud / Kuaishou Kling Video O3 Pro — animates a first frame, with an optional last frame.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "end_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame (optional)",
+        "description": "Optional ending frame."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "First Frame",
+        "description": "Image used as the first frame. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether to automatically add audio to the generated video."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi Shot",
+        "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingVideoO3ProReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-video-o3-pro/reference-to-video",
+    "outputType": "video",
+    "title": "Kling Video O3 Pro — Reference to Video",
+    "description": "AtlasCloud / Kuaishou Kling Video O3 Pro — generates video from reference images or a reference video.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor subject and style."
+      },
+      {
+        "name": "keep_original_sound",
+        "type": "bool",
+        "default": true,
+        "title": "Keep Original Sound",
+        "description": "Whether to keep the original sound from the reference video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": false,
+        "title": "Sound",
+        "description": "Whether to generate audio for the video."
+      },
+      {
+        "name": "video",
+        "type": "video",
+        "default": null,
+        "title": "Reference Video",
+        "description": "Reference video whose motion or content anchors the generation."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi Shot",
+        "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingVideoO3StdTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-video-o3-std/text-to-video",
+    "outputType": "video",
+    "title": "Kling Video O3 Std — Text to Video",
+    "description": "AtlasCloud / Kuaishou Kling Video O3 Std — the cheaper Kling O3 tier for text to video.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether to generate audio for the video."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi Shot",
+        "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingVideoO3StdImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-video-o3-std/image-to-video",
+    "outputType": "video",
+    "title": "Kling Video O3 Std — Image to Video",
+    "description": "AtlasCloud / Kuaishou Kling Video O3 Std — animates a first frame, with an optional last frame.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "end_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame (optional)",
+        "description": "Optional ending frame."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "First Frame",
+        "description": "Image used as the first frame. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether to automatically add audio to the generated video."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi Shot",
+        "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingVideoO3StdReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-video-o3-std/reference-to-video",
+    "outputType": "video",
+    "title": "Kling Video O3 Std — Reference to Video",
+    "description": "AtlasCloud / Kuaishou Kling Video O3 Std — generates video from reference images or a reference video.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor subject and style."
+      },
+      {
+        "name": "keep_original_sound",
+        "type": "bool",
+        "default": true,
+        "title": "Keep Original Sound",
+        "description": "Whether to keep the original sound from the reference video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": false,
+        "title": "Sound",
+        "description": "Whether to generate audio for the video."
+      },
+      {
+        "name": "video",
+        "type": "video",
+        "default": null,
+        "title": "Reference Video",
+        "description": "Reference video whose motion or content anchors the generation."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi Shot",
+        "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingV34kTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v3.0-4k/text-to-video",
+    "outputType": "video",
+    "title": "Kling v3.0 4K — Text to Video",
+    "description": "AtlasCloud / Kuaishou Kling v3.0 4K — text to video at 4K with native sound.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "cfg_scale",
+        "type": "float",
+        "default": 0.5,
+        "title": "Cfg Scale",
+        "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "The negative prompt for the generation."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether sound is generated simultaneously when generating a video."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi Shot",
+        "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingV34kImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v3.0-4k/image-to-video",
+    "outputType": "video",
+    "title": "Kling v3.0 4K — Image to Video",
+    "description": "AtlasCloud / Kuaishou Kling v3.0 4K — animates a first frame at 4K, with an optional last frame.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "cfg_scale",
+        "type": "float",
+        "default": 0.5,
+        "title": "Cfg Scale",
+        "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "end_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame (optional)",
+        "description": "Optional ending frame."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "First Frame",
+        "description": "Image used as the first frame. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "The negative prompt for the generation."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether sound is generated simultaneously when generating a video."
+      },
+      {
+        "name": "resolution",
+        "type": "str",
+        "default": "1080P",
+        "title": "Resolution",
+        "description": "The resolution of the generated video."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi Shot",
+        "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingV26ProTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v2.6-pro/text-to-video",
+    "outputType": "video",
+    "title": "Kling v2.6 Pro — Text to Video",
+    "description": "AtlasCloud / Kuaishou Kling v2.6 Pro — 5 or 10 second text to video with native sound.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated media.",
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9"
+        ]
+      },
+      {
+        "name": "cfg_scale",
+        "type": "float",
+        "default": 0.5,
+        "title": "Cfg Scale",
+        "description": "Flexibility in video generation; The higher the value, the lower the model’s degree of flexibility, and the stronger the relevance to the user’s prompt.",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "values": [
+          5,
+          10
+        ]
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "The negative prompt for the generation."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether sound is generated simultaneously when generating a video"
+      }
+    ]
+  },
+  {
+    "className": "KlingV26ProImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v2.6-pro/image-to-video",
+    "outputType": "video",
+    "title": "Kling v2.6 Pro — Image to Video",
+    "description": "AtlasCloud / Kuaishou Kling v2.6 Pro — animates a still image for 5 or 10 seconds.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "cfg_scale",
+        "type": "float",
+        "default": 0.5,
+        "title": "Cfg Scale",
+        "description": "Flexibility in video generation; The higher the value, the lower the model’s degree of flexibility, and the stronger the relevance to the user’s prompt.",
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "values": [
+          5,
+          10
+        ]
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to animate. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "The negative prompt for the generation."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether sound is generated simultaneously when generating a video"
+      }
+    ]
+  },
+  {
+    "className": "SeedanceV15ProTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-v1.5-pro/text-to-video",
+    "outputType": "video",
+    "title": "Seedance v1.5 Pro — Text to Video",
+    "description": "AtlasCloud / ByteDance Seedance v1.5 Pro — text to video with native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated media.",
+        "values": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "camera_fixed",
+        "type": "bool",
+        "default": false,
+        "title": "Camera Fixed",
+        "description": "Whether to fix the camera position."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "min": 4,
+        "max": 12
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "720p",
+          "480p"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "SeedanceV15ProImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-v1.5-pro/image-to-video",
+    "outputType": "video",
+    "title": "Seedance v1.5 Pro — Image to Video",
+    "description": "AtlasCloud / ByteDance Seedance v1.5 Pro — animates a first frame (and optional last frame) with native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": null,
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated media.",
+        "values": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "camera_fixed",
+        "type": "bool",
+        "default": false,
+        "title": "Camera Fixed",
+        "description": "Whether to fix the camera position."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "min": 4,
+        "max": 12
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "First Frame",
+        "description": "Image used as the first frame. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame (optional)",
+        "description": "Optional ending frame."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "720p",
+          "480p"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "Wan26TextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-2.6/text-to-video",
+    "outputType": "video",
+    "title": "Wan 2.6 — Text to Video",
+    "description": "AtlasCloud / Alibaba Wan 2.6 — 5, 10 or 15 second text to video, optionally driven by an audio track.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": null,
+        "title": "Audio (optional)",
+        "description": "Optional audio track the generation is timed to."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "values": [
+          5,
+          10,
+          15
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "type": "bool",
+        "default": true,
+        "title": "Enable Prompt Expansion",
+        "description": "If set to true, the prompt optimizer will be enabled."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "Negative prompt for the generation."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt for generating the output.",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1280*720",
+        "title": "Size",
+        "description": "The size of the generated media in pixels (width*height).",
+        "values": [
+          "1280*720",
+          "720*1280",
+          "960*960",
+          "1088*832",
+          "832*1088",
+          "1920*1080",
+          "1080*1920",
+          "1440*1440",
+          "1632*1248",
+          "1248*1632"
+        ],
+        "required": true
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": "multi",
+        "title": "Shot Type",
+        "description": "Generate video in multi camera angles, only works when set enable_prompt_expansion to true.",
+        "values": [
+          "multi",
+          "single"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to automatically add audio to the generated video."
+      }
+    ]
+  },
+  {
+    "className": "Wan26ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-2.6/image-to-video",
+    "outputType": "video",
+    "title": "Wan 2.6 — Image to Video",
+    "description": "AtlasCloud / Alibaba Wan 2.6 — animates a still image, optionally driven by an audio track.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": null,
+        "title": "Audio (optional)",
+        "description": "Optional audio track the generation is timed to."
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "values": [
+          5,
+          10,
+          15
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "type": "bool",
+        "default": true,
+        "title": "Enable Prompt Expansion",
+        "description": "If set to true, the prompt optimizer will be enabled."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to animate. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "Negative prompt for the generation."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt for generating the output.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "720p",
+          "1080p"
+        ],
+        "required": true
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": "multi",
+        "title": "Shot Type",
+        "description": "Generate video in multi camera angles, only works when set enable_prompt_expansion to true.",
+        "values": [
+          "multi",
+          "single"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to automatically add audio to the generated video."
+      }
+    ]
+  },
+  {
+    "className": "Wan27ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-2.7/reference-to-video",
+    "outputType": "video",
+    "title": "Wan 2.7 — Reference to Video",
+    "description": "AtlasCloud / Alibaba Wan 2.7 — generates video from reference images, videos and an optional audio track.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video. Use labels like \"character1\" and \"character2\" to map reference materials to characters. Maximum length is 5000 characters.",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "Text describing elements to exclude from the video. Maximum length is 500 characters."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor subject and style."
+      },
+      {
+        "name": "videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference videos that anchor motion or content."
+      },
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": null,
+        "title": "Audio (optional)",
+        "description": "Optional audio track the generation is timed to."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080P",
+        "title": "Resolution",
+        "description": "Output video resolution. Higher resolution increases cost.",
+        "values": [
+          "720P",
+          "1080P"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Ratio",
+        "description": "Aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Video duration in seconds. Longer duration increases cost.",
+        "min": 2,
+        "max": 10
+      },
+      {
+        "name": "prompt_extend",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Extend",
+        "description": "Whether to use AI to enhance the prompt for better video quality. Increases generation time."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for video generation. Range: 0 to 2147483647. Use -1 for a random seed.",
+        "min": -1,
+        "max": 2147483647
+      }
+    ]
+  },
+  {
+    "className": "Wan27VideoEdit",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/wan-2.7/video-edit",
+    "outputType": "video",
+    "title": "Wan 2.7 — Video Edit",
+    "description": "AtlasCloud / Alibaba Wan 2.7 — edits an existing video from a text instruction, with optional reference images.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text instruction describing the desired edit. Maximum length is 5000 characters."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "Text describing elements to exclude from the video. Maximum length is 500 characters."
+      },
+      {
+        "name": "video",
+        "type": "video",
+        "default": null,
+        "title": "Video",
+        "description": "Video to edit. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images (optional)",
+        "description": "Optional images that anchor subject or style."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080P",
+        "title": "Resolution",
+        "description": "Output video resolution. Higher resolution increases cost.",
+        "values": [
+          "720P",
+          "1080P"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": null,
+        "title": "Ratio",
+        "description": "Aspect ratio of the output video. When omitted, the output follows the input video's aspect ratio.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": null,
+        "title": "Duration",
+        "description": "Output video duration in seconds. Set to 0 or omit to match the input video duration. When set to a positive value, the output is clipped from the start of the input video.",
+        "min": 0,
+        "max": 10
+      },
+      {
+        "name": "prompt_extend",
+        "type": "bool",
+        "default": true,
+        "title": "Prompt Extend",
+        "description": "Whether to use AI to enhance the prompt for better video quality. Increases generation time."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for video generation. Range: 0 to 2147483647. Use -1 for a random seed.",
+        "min": -1,
+        "max": 2147483647
+      }
+    ]
+  },
+  {
+    "className": "Veo31ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/veo3.1/reference-to-video",
+    "outputType": "video",
+    "title": "Veo 3.1 — Reference to Video",
+    "description": "AtlasCloud / Google Veo 3.1 — 8 second video from reference images, up to 4K.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": false,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor subject and style.",
+        "required": true
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": null,
+        "title": "Negative Prompt",
+        "description": "The negative prompt for the generation."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 8,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "values": [
+          8
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "The random seed to use for the generation."
+      }
+    ]
+  },
+  {
+    "className": "Veo31LiteStartEndFrameToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/veo3.1-lite/start-end-frame-to-video",
+    "outputType": "video",
+    "title": "Veo 3.1 Lite — Start and End Frame to Video",
+    "description": "AtlasCloud / Google Veo 3.1 Lite — interpolates between a first and a last frame.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description for the video between the first and last frames. Supports audio cues per Veo prompt guidance.",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "First Frame",
+        "description": "Image used as the first frame. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame",
+        "description": "Image used as the final frame.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 8,
+        "title": "Duration",
+        "description": "Length of the generated video in seconds (durationSeconds).",
+        "values": [
+          4,
+          6,
+          8
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Output resolution. 1080p only supports 8s duration. Veo 3.1 Lite does not support 4K.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed. Does not guarantee determinism but may improve repeatability. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "Hailuo23ProTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/hailuo-2.3/t2v-pro",
+    "outputType": "video",
+    "title": "Hailuo 2.3 Pro — Text to Video",
+    "description": "AtlasCloud / MiniMax Hailuo 2.3 Pro — text to video, prompt in and clip out.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "enable_prompt_expansion",
+        "type": "bool",
+        "default": true,
+        "title": "Enable Prompt Expansion",
+        "description": "The model automatically optimizes incoming prompts to enhance output quality."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "Hailuo23ProImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/hailuo-2.3/i2v-pro",
+    "outputType": "video",
+    "title": "Hailuo 2.3 Pro — Image to Video",
+    "description": "AtlasCloud / MiniMax Hailuo 2.3 Pro — animates a still image.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "enable_prompt_expansion",
+        "type": "bool",
+        "default": true,
+        "title": "Enable Prompt Expansion",
+        "description": "The model automatically optimizes incoming prompts to enhance output quality."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to animate. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      }
+    ]
+  },
+  {
+    "className": "ViduQ3ProTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "vidu/q3-pro/text-to-video",
+    "outputType": "video",
+    "title": "Vidu Q3 Pro — Text to Video",
+    "description": "AtlasCloud / Vidu Q3 Pro — text to video with generated audio and a general or anime style.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "4:3",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated media.",
+        "values": [
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "1:1"
+        ]
+      },
+      {
+        "name": "bgm",
+        "type": "bool",
+        "default": true,
+        "title": "Bgm",
+        "description": "The background music for generating the output."
+      },
+      {
+        "name": "duration",
+        "type": "float",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "min": 1,
+        "max": 16
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio."
+      },
+      {
+        "name": "movement_amplitude",
+        "type": "enum",
+        "default": "auto",
+        "title": "Movement Amplitude",
+        "description": "The movement amplitude of objects in the frame. Defaults to auto, accepted value: auto small medium large.",
+        "values": [
+          "auto",
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated media. Native 540p, 720p, and 1080p use the original Vidu route when available.",
+        "values": [
+          "540p",
+          "720p",
+          "1080p",
+          "1080p-sr",
+          "1440p-sr"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      },
+      {
+        "name": "style",
+        "type": "enum",
+        "default": "general",
+        "title": "Style",
+        "description": "The style of output video.",
+        "values": [
+          "general",
+          "anime"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "ViduQ3ProImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "vidu/q3-pro/image-to-video",
+    "outputType": "video",
+    "title": "Vidu Q3 Pro — Image to Video",
+    "description": "AtlasCloud / Vidu Q3 Pro — animates a still image with generated audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "bgm",
+        "type": "bool",
+        "default": true,
+        "title": "Bgm",
+        "description": "The background music for generating the output."
+      },
+      {
+        "name": "duration",
+        "type": "float",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "min": 1,
+        "max": 16
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to animate. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "movement_amplitude",
+        "type": "enum",
+        "default": "auto",
+        "title": "Movement Amplitude",
+        "description": "The movement amplitude of objects in the frame. Defaults to auto, accepted value: auto small medium large.",
+        "values": [
+          "auto",
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated media. Native 540p, 720p, and 1080p use the original Vidu route when available.",
+        "values": [
+          "540p",
+          "720p",
+          "1080p",
+          "1080p-sr",
+          "1440p-sr"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "ViduQ3ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "vidu/q3/reference-to-video",
+    "outputType": "video",
+    "title": "Vidu Q3 — Reference to Video",
+    "description": "AtlasCloud / Vidu Q3 — generates video from reference images that fix the subject across shots.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor subject and style.",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "A textual description for video generation.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "float",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "min": 3,
+        "max": 16
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated media. Native 540p, 720p, and 1080p use the original Vidu route when available.",
+        "values": [
+          "540p",
+          "720p",
+          "1080p",
+          "1080p-sr",
+          "1440p-sr"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio for the video."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the output video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "3:4",
+          "4:3",
+          "1:1"
+        ]
+      },
+      {
+        "name": "movement_amplitude",
+        "type": "enum",
+        "default": "auto",
+        "title": "Movement Amplitude",
+        "description": "The movement amplitude of objects in the frame.",
+        "values": [
+          "auto",
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. Set -1 for random."
+      }
+    ]
+  },
+  {
+    "className": "PixverseV6TextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "pixverse/v6/text-to-video",
+    "outputType": "video",
+    "title": "PixVerse v6 — Text to Video",
+    "description": "AtlasCloud / PixVerse v6 — 1 to 15 second text to video with sound.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (1-15).",
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether sound is generated simultaneously when generating a video."
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "720p",
+        "title": "Quality",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "360p",
+          "540p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "2:3",
+          "3:2",
+          "21:9"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility."
+      }
+    ]
+  },
+  {
+    "className": "PixverseV6ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "pixverse/v6/image-to-video",
+    "outputType": "video",
+    "title": "PixVerse v6 — Image to Video",
+    "description": "AtlasCloud / PixVerse v6 — animates a still image with sound.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (1-15).",
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to animate. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether to generate audio simultaneously when generating a video."
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "720p",
+        "title": "Quality",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "360p",
+          "540p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility."
+      }
+    ]
+  },
+  {
+    "className": "Ltx23QualityTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "ltx-2.3-quality/text-to-video",
+    "outputType": "video",
+    "title": "LTX 2.3 Quality — Text to Video",
+    "description": "AtlasCloud / Lightricks LTX 2.3 Quality — text to video with a frame-count control and optional audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description of the video to generate. Maximum 2,000 characters.",
+        "required": true
+      },
+      {
+        "name": "num_frames",
+        "type": "int",
+        "default": 121,
+        "title": "Num Frames",
+        "description": "Number of frames to generate. Must be a multiple of 8 plus 1 (e.g. 25, 41, 81, 121, 161, 201, 241, 257).",
+        "min": 25,
+        "max": 257
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "landscape_16_9",
+        "title": "Resolution",
+        "description": "Output video resolution preset.",
+        "values": [
+          "square_hd",
+          "square",
+          "portrait_3_4",
+          "portrait_9_16",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": false,
+        "title": "Generate Audio",
+        "description": "Whether to generate accompanying audio for the video."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use the same seed and prompt to reproduce results.",
+        "min": 0
+      }
+    ]
+  },
+  {
+    "className": "Ltx23QualityImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "ltx-2.3-quality/image-to-video",
+    "outputType": "video",
+    "title": "LTX 2.3 Quality — Image to Video",
+    "description": "AtlasCloud / Lightricks LTX 2.3 Quality — animates a still image with a frame-count control.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text description of the desired video motion and style. Maximum 2,000 characters.",
+        "required": true
+      },
+      {
+        "name": "image_url",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Image to animate. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "num_frames",
+        "type": "int",
+        "default": 121,
+        "title": "Num Frames",
+        "description": "Number of frames to generate. Must be a multiple of 8 plus 1 (e.g. 25, 41, 81, 121, 161, 201, 241, 257).",
+        "min": 25,
+        "max": 257
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "landscape_16_9",
+        "title": "Resolution",
+        "description": "Output video resolution preset.",
+        "values": [
+          "square_hd",
+          "square",
+          "portrait_3_4",
+          "portrait_9_16",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": false,
+        "title": "Generate Audio",
+        "description": "Whether to generate accompanying audio for the video."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Use the same seed and prompt to reproduce results.",
+        "min": 0
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineVideo15TextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "xai/grok-imagine-video-v1.5/text-to-video",
+    "outputType": "video",
+    "title": "Grok Imagine Video v1.5 — Text to Video",
+    "description": "AtlasCloud / xAI Grok Imagine Video v1.5 — text to video up to 1080p.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Natural-language description of the video to generate, including subject, motion, camera work, and audio direction. Native synchronized audio is generated in the same pass.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "Length of generated video in seconds. Range: 1–15.",
+        "min": 1,
+        "max": 15
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Output resolution.",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Output aspect ratio.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GrokImagineVideo15ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "xai/grok-imagine-video-v1.5/reference-to-video",
+    "outputType": "video",
+    "title": "Grok Imagine Video v1.5 — Reference to Video",
+    "description": "AtlasCloud / xAI Grok Imagine Video v1.5 — generates video from reference images.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Natural-language video description. Reference <IMAGE_N> tags to attach specific reference images to scene elements.",
+        "required": true
+      },
+      {
+        "name": "image_urls",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor subject and style.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "Length of generated video in seconds. Range: 1–15.",
+        "min": 1,
+        "max": 15
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Output resolution. Reference-to-video is capped at 720p.",
+        "values": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Output aspect ratio.",
+        "values": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "VideoUpscaler",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "atlascloud/video-upscaler",
+    "outputType": "video",
+    "title": "Video Upscaler",
+    "description": "AtlasCloud Video Upscaler — re-renders a clip at 1080p or 2K without a prompt.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "video",
+        "type": "video",
+        "default": null,
+        "title": "Video",
+        "description": "Video to upscale. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "target_resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Target Resolution",
+        "description": "Output resolution for video upscaling. 2k uses the 2560x1440 pixel tier. 4K is not currently exposed.",
+        "values": [
+          "1080p",
+          "2k"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "SyncLipsyncV3",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "sync/lipsync-v3",
+    "outputType": "video",
+    "title": "Sync Lipsync v3",
+    "description": "AtlasCloud / Sync.so Lipsync v3 — re-syncs a speaker's lips in a video to a separate audio track.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "video_url",
+        "type": "video",
+        "default": null,
+        "title": "Video",
+        "description": "Video whose lips are re-synced. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "type": "audio",
+        "default": null,
+        "title": "Audio",
+        "description": "Driving audio the lips are synced to.",
+        "required": true
+      },
+      {
+        "name": "sync_mode",
+        "type": "enum",
+        "default": "cut_off",
+        "title": "Sync Mode",
+        "description": "How to handle duration mismatch between video and audio. cut_off: trim to shorter; loop: repeat video; bounce: ping-pong; silence: pad audio; remap: time-remap.",
+        "values": [
+          "cut_off",
+          "loop",
+          "bounce",
+          "silence",
+          "remap"
+        ],
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "VeedLipsync",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "veed/lipsync",
+    "outputType": "video",
+    "title": "VEED Lipsync",
+    "description": "AtlasCloud / VEED Lipsync — re-syncs a speaker's lips in a video to a separate audio track.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "video_url",
+        "type": "video",
+        "default": null,
+        "title": "Video",
+        "description": "Video whose lips are re-synced. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "type": "audio",
+        "default": null,
+        "title": "Audio",
+        "description": "Driving audio the lips are synced to.",
+        "required": true
       }
     ]
   }
