@@ -179,14 +179,21 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
               // 1.4375em computes against the 16px root font and inherits as a
               // fixed ~23px into the 15px display; a unitless value tracks the
               // actual font so the content always fits under the floor.
+              // The display stays a block so a long value ellipsizes: MUI's
+              // own `text-overflow` needs a block container, and overflow
+              // clips at the padding box, so a flex display let the text run
+              // under the dropdown arrow. The InputBase root is already a
+              // centering flex row, so nothing here has to center it.
               "& .MuiSelect-select": {
                 fontSize: fieldFontSize,
                 lineHeight: 1.4375,
-                display: "flex",
-                alignItems: "center",
+                display: "block",
                 minHeight: "0px",
                 paddingTop: "0px",
-                paddingBottom: "0px"
+                paddingBottom: "0px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
               }
             }}
           >

@@ -85,14 +85,17 @@ describe("control token heights", () => {
         .getByRole("combobox")
         .closest(".MuiInputBase-root") as Element;
       expect(root).toHaveStyle({ minHeight: `${CONTROL.height.lg}px` });
-      // Zero vertical padding + flex centering keeps the display content
-      // under the minHeight floor in every variant.
+      // Zero vertical padding keeps the display content under the minHeight
+      // floor in every variant; the InputBase root's own flex row centers it.
       const rules = cssRulesFor(root);
-      expect(rules).toContain("display:flex");
       expect(rules).toContain("align-items:center");
       expect(rules).toContain("padding-top:0px");
       expect(rules).toContain("padding-bottom:0px");
       expect(rules).toContain("min-height:0px");
+      // A block display, so a value longer than the control ellipsizes
+      // instead of running under the dropdown arrow.
+      expect(rules).toContain("display:block");
+      expect(rules).toContain("text-overflow:ellipsis");
     }
   );
 
