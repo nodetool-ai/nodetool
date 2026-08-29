@@ -869,6 +869,53 @@ layer.
 Tests: `tests/storyboard-render-tools.test.ts` (in-memory DB, stubbed
 predictions — no provider calls).
 
+## Media Analysis (`src/capabilities/analysis.ts`, `src/analysis/`)
+
+Five read-only capabilities that measure media instead of describing it:
+`analyze_audio`, `analyze_audio_spectrum`, `detect_audio_events`,
+`analyze_video`, `detect_video_scenes`. `understand_video` hands a clip to a
+multimodal model and gets prose; these hand back numbers a model cannot derive
+from watching — loudness against a delivery target, which octave band the
+energy is in, where the silences and onsets fall, how much the picture moves,
+where the cuts are.
+
+The split is deliberate. `src/analysis/audio-dsp.ts` and `video-frames.ts` are
+pure functions over `Float32Array` samples and RGBA pixels — no decoder, no
+context, no I/O — so `tests/audio-dsp.test.ts` and `tests/video-frames.test.ts`
+check them against signals whose answers are known without running the code: a
+1 kHz sine's spectral centroid is 1 kHz, a solid grey frame has zero contrast,
+and the BS.1770 reference signal reads -20.0 LUFS. `media-decode.ts` is the
+Mediabunny seam (PCM out of an audio track, RGBA frames at chosen timestamps,
+container metadata), and the capability file resolves the reference, picks the
+analysis parameters, and shapes the answer.
+
+`src/analysis/mediabunny-runtime.ts` is where the Node codec adapter is
+registered, once per process. `sandbox-av-media.ts` imports it rather than
+keeping its own copy — two bootstraps racing to register the same adapter is
+the kind of thing that works until it does not.
+
+Three properties worth keeping when changing any of this:
+
+- **No ffmpeg.** Mediabunny decodes, so an install with no managed runtime
+  tools still answers. `nodetool.video.GetVideoInfo` returns a record of zeros
+  when `ffprobe` is missing; that is the failure mode this exists to avoid.
+- **Every answer is bounded, and says so.** Series are decimated to a point
+  budget (`decimated`), decoding stops at a duration cap (`truncated`), and
+  video frames are never all held at once — `forEachVideoFrame` closes each one
+  after the callback, because a few hundred 1080p RGBA frames is gigabytes.
+- **A measurement that means nothing says so.** `tempo.reliable` is false below
+  four onsets or below a confidence floor, and `integrated_lufs` is null rather
+  than `-Infinity` for audio shorter than one 400 ms gated block.
+
+That last one was earned. Spectral flux was raw rectified difference, and a
+held 1 kHz sine reported 48 onsets at a confident 87 BPM: at a hop that is not
+a whole number of cycles, a stationary tone's leakage pattern shifts between
+frames, so its bin magnitudes wobble forever. `spectralFlux` normalizes by the
+frame's own magnitude — the wobble is ~2%, a real onset is a large fraction of
+1 — and `detectOnsets` carries an absolute `minStrength` floor beside its
+adaptive one, because where the curve is flat the local deviation collapses and
+every ripple clears mean + 1.5σ.
+
 ## Google Workspace Tools (`src/tools/google-workspace-tools.ts`)
 
 Drive, Gmail, Docs, Sheets and Calendar tools that authenticate with the access

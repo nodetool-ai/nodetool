@@ -35,6 +35,9 @@ import {
 const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   abort_apify_run: "external",
   add_label_to_email: "external",
+  analyze_audio: "read",
+  analyze_audio_spectrum: "read",
+  analyze_video: "read",
   animate_image: "write",
   apply_entities: "read",
   archive_email: "external",
@@ -80,6 +83,8 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   delete_workflow: "write",
   delete_workflow_version: "write",
   derive_storyboard_from_script: "write",
+  detect_audio_events: "read",
+  detect_video_scenes: "read",
   download_file: "write",
   edit_app: "write",
   edit_file: "write",

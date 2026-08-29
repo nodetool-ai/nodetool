@@ -100,6 +100,12 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   validate_model3d: "read",
   list_model3ds: "read",
   get_model3d: "read",
+  // Measuring media decodes it in-process and writes nothing.
+  analyze_audio: "read",
+  analyze_audio_spectrum: "read",
+  detect_audio_events: "read",
+  analyze_video: "read",
+  detect_video_scenes: "read",
   // The ingredients library: reading entities and seasoning a prompt with
   // their descriptors touches nothing. Tagging or retagging one writes the
   // entity marker onto a local asset, so those are `write`.

@@ -2683,4 +2683,54 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       "packages/agents/tests/capabilities-skills.test.ts",
     ],
   },
+  {
+    name: "analyze_audio",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "328dadfe45f9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+    ],
+  },
+  {
+    name: "analyze_audio_spectrum",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "00830f0c748f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+    ],
+  },
+  {
+    name: "detect_audio_events",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "064835616149",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+    ],
+  },
+  {
+    name: "analyze_video",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "ff8fa9e395bd",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+    ],
+  },
+  {
+    name: "detect_video_scenes",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "9421a263a2f3",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+    ],
+  },
 ];

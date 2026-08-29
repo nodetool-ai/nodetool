@@ -765,6 +765,7 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 | Check a script↔storyboard link (extract, scaffold, joint assemble) | no command of its own — the pure-function suites the `script-storyboard-link` harness entry names, run by `harness gate` on diffs touching either surface | `get_storyboard`, `get_script` (link state, drift, orphans), `validate_timeline` on the assembled output | seconds |
 | Build or fix a 3D scene with no editor open | no command of its own — the `capability-suites` selfcheck the `model3d` harness entry names | `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d` | sub-second |
 | Season a prompt with the entity library | no command of its own — the `capability-suites` selfcheck the `entities` harness entry names | `list_entities`, `get_entity`, `apply_entities` | sub-second |
+| Measure a clip instead of watching it — duration, loudness, frequency content, motion, cuts | no command of its own — the `capability-suites` selfcheck the `agent-capabilities` harness entry names | `analyze_audio`, `analyze_audio_spectrum`, `detect_audio_events`, `analyze_video`, `detect_video_scenes` | seconds, no ffmpeg |
 | Jobs & assets | `nodetool jobs …` / `nodetool assets …` | `list_jobs`, `get_job`, `get_job_logs`, `list_assets`, `get_asset` | — |
 | Agent/chat REPL (one unified agent loop, no mode to select) | `nodetool-chat` (`npm run dev:chat`) | — | — |
 | Deploy + remote ops (Docker/SSH/RunPod/GCP/Supabase) | `nodetool deploy <init\|plan\|apply\|status\|logs\|destroy>`; `deploy workflows <sync\|run>`, `deploy database`, `deploy collections` | — | — |
@@ -1637,6 +1638,49 @@ the text (all of them when the text is empty). An id that resolves to nothing
 comes back in `missing_entity_ids` — otherwise the prompt returns unseasoned
 and looks fine. Implementations:
 `packages/agents/src/capabilities/entities.ts`.
+
+### Media analysis tools (no model, no ffmpeg)
+
+`understand_video` asks a model what a clip is about. These five measure what
+it **is**, and an agent could not get at any of it before without shelling out
+to `ffprobe` and parsing text.
+
+| Tool | Answers |
+|---|---|
+| `analyze_audio` | Duration, sample rate, channels, codec; EBU R128 integrated loudness and loudness range, peak/RMS dBFS, crest factor, clipped samples, DC offset; an RMS/peak envelope over time with the loudest and quietest moments |
+| `analyze_audio_spectrum` | Ten named octave bands (sub_bass → air) with each one's share of the energy, the dominant frequency, and spectral centroid/rolloff/flatness/bandwidth averaged and as a series |
+| `detect_audio_events` | Silence and sounding segments, onset times, tempo in BPM with a confidence |
+| `analyze_video` | Duration, resolution, frame rate, rotation, both codecs; brightness, contrast, saturation and motion per sampled frame; dominant palette; darkest, brightest and busiest moments |
+| `detect_video_scenes` | Cut times and per-shot start/end/duration/brightness/motion/palette, plus black-frame and frozen-frame runs |
+
+They take the same reference forms `read_media_bytes` takes — an asset id, an
+`asset://` URI, a `/api/storage/` key, a URL, a `data:` URI — and a video's
+soundtrack is a valid `analyze_audio` target, so a clip needs no demux first.
+
+**Decoding is Mediabunny's**, the library the sandbox's `audio.*`/`video.*`
+already use, so none of this depends on ffmpeg being installed.
+`nodetool.audio.GetAudioInfo` is the contrast: it sniffs magic bytes, and
+reports a duration only for WAV.
+
+Loudness follows ITU-R BS.1770-4 with EBU Tech 3342 for the range, K-weighted
+at the file's own sample rate rather than through 48 kHz coefficients — so
+`packages/agents/tests/audio-dsp.test.ts` can pin the scale's own anchor, a
+1 kHz sine at -20 dBFS on two channels reading -20.0 LUFS. Cuts are decided
+from the luma histogram, not from a pixel difference, so a whip pan inside one
+shot does not read as an edit.
+
+Two things the answers say about themselves rather than leaving to be assumed.
+Every series is decimated to a point budget and every decode stops at a
+duration cap, both reported (`decimated`, `truncated`). And `tempo.reliable`
+is false unless the novelty curve carried at least four onsets and the
+autocorrelation actually found a period — speech and room tone otherwise
+produce a confident-looking BPM from nothing.
+
+The math is pure and lives apart from the capability:
+`packages/agents/src/analysis/audio-dsp.ts` (FFT, spectral features, K-weighted
+gated loudness, silence, onsets, tempo) and `video-frames.ts` (per-frame
+statistics, histograms, motion, palettes, cuts), both tested on signals whose
+answers are known analytically. `media-decode.ts` is the Mediabunny seam.
 
 ### Code authoring tools (no workflow, no browser)
 
