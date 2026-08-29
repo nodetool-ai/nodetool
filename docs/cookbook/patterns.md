@@ -171,7 +171,8 @@ ______________________________________________________________________
 ### Pattern 5 · Sketch as the control input
 
 A sketch document carries layers and a mask. `RenderSketch` flattens it to an
-image plus that mask, which is exactly the pair an image-to-image model wants.
+image and returns that mask alongside — the composition and the region to
+change, in one node.
 
 <video controls preload="metadata" poster="{{ '/assets/cookbook/style-transfer.jpg' | relative_url }}">
   <source src="{{ '/assets/cookbook/style-transfer.mp4' | relative_url }}" type="video/mp4">
@@ -186,17 +187,22 @@ graph LR
   img["ImageToImage"]
   collect["Collect"]
   out["Output (Variants)"]
-  sketch --> render --> img
+  sketch --> render -->|image| img
   styles --> each --> img --> collect --> out
 {% endmermaid %}
 
+That is the whole-frame version. For a masked edit, send the same node's
+`mask` output alongside its `image` to `openai.image.EditImage`, which repaints
+the white areas and leaves the rest alone — the mask is painted once and every
+variant reuses it.
+
 `SketchLayers` is the other half: it hands you each visible layer as its own
 image with its name, so foreground and background can go through different
-pipelines and be composited back together.
+pipelines and be composited back together with `Compositor`.
 
 **Nodes**: `nodetool.constant.Sketch`, `nodetool.sketch.RenderSketch`,
 `nodetool.sketch.SketchLayers`, `nodetool.image.ImageToImage`,
-`nodetool.image.Compositor`
+`openai.image.EditImage`, `nodetool.image.Compositor`
 
 **Automate it when** the composition is settled and you want it in twelve
 styles or six aspect ratios. **Paint in the sketch editor** while the
@@ -261,15 +267,24 @@ graph LR
   agent["Agent (titles, notes, posts)"]
   render["RenderTimeline"]
   vertical["Resize (9:16)"]
+  audio["ExtractAudio"]
+  asr["Transcribe (segments)"]
   subs["AddSubtitles"]
   copy["Output (Copy)"]
   post["Output (Vertical cut)"]
   tl --> transcript --> agent --> copy
   tl --> render --> vertical --> subs --> post
+  render --> audio --> asr --> subs
 {% endmermaid %}
+
+Burned-in captions need timings, not prose: `AddSubtitles` takes
+`list[audio_chunk]`, which `openai.audio.Transcribe` returns as `segments` or
+`words`. `Transcript` is the text path — it feeds the copy, not the caption
+burn.
 
 **Nodes**: `nodetool.constant.Timeline`, `nodetool.timeline.Transcript`,
 `nodetool.timeline.RenderTimeline`, `nodetool.video.Resize`,
+`nodetool.video.ExtractAudio`, `openai.audio.Transcribe`,
 `nodetool.video.AddSubtitles`, `nodetool.agents.Agent`
 
 **Automate it when** every cut ships in more than one shape. Re-running the
