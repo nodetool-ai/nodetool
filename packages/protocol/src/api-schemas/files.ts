@@ -38,3 +38,17 @@ export const fileInfoOutput = fileEntrySchema;
 
 export type FileInfoInput = z.infer<typeof fileInfoInput>;
 export type FileInfoOutput = z.infer<typeof fileInfoOutput>;
+
+// ── files.createFolder ──────────────────────────────────────────────────────
+
+export const createFolderInput = z.object({
+  /** The directory the new folder goes in. */
+  path: z.string().min(1),
+  /** A single folder name — no path separators. */
+  name: z.string().min(1).max(255)
+});
+
+export const createFolderOutput = fileEntrySchema;
+
+export type CreateFolderInput = z.infer<typeof createFolderInput>;
+export type CreateFolderOutput = z.infer<typeof createFolderOutput>;
