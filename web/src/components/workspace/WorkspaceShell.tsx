@@ -17,9 +17,11 @@ import {
 import { MOTION, reducedMotion } from "../ui_primitives";
 import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
-import WorkspaceEmptyView from "./WorkspaceEmptyView";
 import WorkspaceTabLayer from "./WorkspaceTabLayer";
 
+const NewProjectSurface = React.lazy(
+  () => import("../projects/NewProjectSurface")
+);
 const PanelLeft = React.lazy(() => import("../panels/PanelLeft"));
 const PanelRight = React.lazy(() => import("../panels/PanelRight"));
 const PanelBottom = React.lazy(() => import("../panels/PanelBottom"));
@@ -74,7 +76,7 @@ const styles = (theme: Theme, isDragging: boolean) =>
         marginBottom: 0
       }
     },
-    "& .tab-layer": {
+    "& .tab-layer, & .workspace-empty": {
       position: "absolute",
       inset: 0,
       display: "flex",
@@ -167,7 +169,13 @@ const WorkspaceShell = () => {
             className="workspace-content"
             style={{ marginLeft: contentMarginLeft }}
           >
-            {tabs.length === 0 && <WorkspaceEmptyView />}
+            {tabs.length === 0 && (
+              <div className="workspace-empty">
+                <Suspense fallback={null}>
+                  <NewProjectSurface />
+                </Suspense>
+              </div>
+            )}
             {tabs.map((tab) => {
               const isActive = tab.id === activeTabId;
               return (
