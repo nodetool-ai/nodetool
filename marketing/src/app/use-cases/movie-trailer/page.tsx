@@ -261,9 +261,9 @@ export default function MovieTrailerUseCase() {
                 </div>
                 <Image
                   src="/trailer-storyboard.webp"
-                  alt="NodeTool's storyboard: six shot cards down the board — The blower, The chain, The rock bed, The chopper, The cut, The getaway — each with its still, its action line, its camera notes, and a Still ready status, next to the assistant that directed them"
+                  alt="NodeTool's storyboard: a grid of six shot cards — The blower, The chain, The rock bed, The chopper, The cut, The getaway — each with its still, its shot number and length, and its status, over the inspector for the selected shot, next to the assistant that directed them"
                   width={3200}
-                  height={2460}
+                  height={1400}
                   className="h-auto w-full"
                 />
               </div>

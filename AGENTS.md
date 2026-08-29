@@ -1107,12 +1107,21 @@ of each shot is measured from the rendered thread, not declared.
 
 The storyboard surface loop replays the same SCRAPHEART board through the real
 `StoryboardBoard` (`web/src/demo/doc/storyboardAssistantCast.ts`), with its
-keyframes inlined by `web/scripts/build-storyboard-cast-stills.mjs`. Six cards
-are taller than a 1080-line frame, so the loop scrolls the surface as the
-stills land (`panPx` in `demo/src/hero/SurfaceLoop.tsx`) rather than cropping
-the last shot. Re-render with `npm run render:surfaces` in `demo/`, then
-encode `marketing/public/surface-storyboard.{mp4,webm}` and its
-`-poster.webp`.
+keyframes inlined by `web/scripts/build-storyboard-cast-stills.mjs`. The board
+is a shot grid, so six cards are two rows and the surface is *shorter* than a
+1080-line frame: the loop lays it out in a frame 1.5× smaller and scales it
+back up (`zoom` in `demo/src/hero/SurfaceLoop.tsx`) rather than leaving a
+third of the frame empty. `panPx`, which scrolled the taller list the board
+used to be, is still there for a cast whose surface overflows. Re-render with
+`npm run render:surfaces` in `demo/`, then encode
+`marketing/public/surface-storyboard.{mp4,webm}` and its `-poster.webp`.
+
+The storyboard's still frames come from `web/scripts/screenshot-trailer-surfaces.mjs`,
+which replays the same cast through Playwright: `trailer-storyboard.webp` for
+the movie-trailer use-case page, and one hero written to two trees —
+`marketing/public/screen_storyboard.png` (landing page, /creatives, the Product
+Hunt slide) and `docs/assets/creative-agent/storyboard-surface.png`. Both are
+backend-free, so a re-run reproduces them with no server and no credits spent.
 
 ### nodetool app build (Mini-App Build Harness)
 
