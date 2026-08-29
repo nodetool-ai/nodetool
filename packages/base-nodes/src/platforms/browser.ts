@@ -3,7 +3,7 @@
  *
  * Re-exports the curated universal subset from the focused node
  * packages. Browser bundlers should prefer importing directly from
- * `@nodetool-ai/core-nodes`, `@nodetool-ai/text-nodes`, etc. — this
+ * `@nodetool-ai/core-nodes`, `@nodetool-ai/code-nodes`, etc. — this
  * subpath stays for the existing `@nodetool-ai/base-nodes/platforms/browser`
  * import surface used by the workflow-runner e2e harness.
  */
@@ -22,8 +22,6 @@ import {
   WORKFLOW_NODES
 } from "@nodetool-ai/core-nodes";
 
-import { LIB_NLP_NODES } from "@nodetool-ai/text-nodes";
-
 import { CodeNode } from "@nodetool-ai/code-nodes";
 
 export {
@@ -33,7 +31,6 @@ export {
   EXTENDED_PLACEHOLDER_NODES,
   FAKE_MEDIA_NODES,
   INPUT_NODES,
-  LIB_NLP_NODES,
   SUBGRAPH_NODES,
   VECTOR_NODES,
   WORKFLOW_NODES,
@@ -51,7 +48,6 @@ export const ALL_BROWSER_NODES: readonly NodeClass[] = [
   ...EXTENDED_PLACEHOLDER_NODES,
   ...FAKE_MEDIA_NODES,
   ...INPUT_NODES,
-  ...LIB_NLP_NODES,
   ...SUBGRAPH_NODES,
   ...VECTOR_NODES,
   ...WORKFLOW_NODES,

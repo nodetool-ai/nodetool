@@ -9,34 +9,18 @@
 import { describe, it, expect } from "vitest";
 import {
   AutomaticSpeechRecognitionNode,
-  CircleLibNode,
-  ClipPathLibNode,
-  DropShadowLibNode,
-  EllipseLibNode,
-  GaussianBlurLibNode,
-  GradientLibNode,
-  LineLibNode,
+  DocumentLibNode,
   LoadTextAssetsNode,
-  PolygonLibNode,
-  RectLibNode,
-  SVGToImageLibNode,
-  TransformLibNode
+  SliceImageGridLibNode,
+  SVGToImageLibNode
 } from "../src/index.js";
 
 const ALL_REFERENCED_NODES = [
   AutomaticSpeechRecognitionNode,
-  CircleLibNode,
-  ClipPathLibNode,
-  DropShadowLibNode,
-  EllipseLibNode,
-  GaussianBlurLibNode,
-  GradientLibNode,
-  LineLibNode,
+  DocumentLibNode,
   LoadTextAssetsNode,
-  PolygonLibNode,
-  RectLibNode,
-  SVGToImageLibNode,
-  TransformLibNode
+  SliceImageGridLibNode,
+  SVGToImageLibNode
 ];
 
 describe("node reference coverage", () => {

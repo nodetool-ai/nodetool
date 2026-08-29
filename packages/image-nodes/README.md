@@ -83,7 +83,10 @@ Basic color plus a full grading suite.
 
 ### Grid
 
-`lib.grid.SliceImageGrid`, `lib.grid.CombineImageGrid`.
+`lib.grid.SliceImageGrid`. Its tiles carry placement metadata under
+`metadata.grid`, so a caller can reassemble the source image exactly.
+`lib.grid.CombineImageGrid` was removed — `image.grid` in a Code node is the
+same sharp call.
 
 ## Links
 

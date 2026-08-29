@@ -308,31 +308,17 @@ export {
   RenderToImageNode,
   MODEL3D_NODES
 } from "@nodetool-ai/video-nodes/nodes/model3d";
-export { GetSecretLibNode, LIB_SECRET_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-secret";
 export {
   YtDlpDownloadLibNode,
   LIB_YTDLP_NODES
 } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
 export {
   SliceImageGridLibNode,
-  CombineImageGridLibNode,
   LIB_GRID_NODES
 } from "@nodetool-ai/image-nodes/nodes/lib-grid";
 export {
-  RectLibNode,
-  CircleLibNode,
-  EllipseLibNode,
-  LineLibNode,
-  PolygonLibNode,
-  PathLibNode,
-  TextLibNode,
-  GaussianBlurLibNode,
-  DropShadowLibNode,
   DocumentLibNode,
   SVGToImageLibNode,
-  GradientLibNode,
-  TransformLibNode,
-  ClipPathLibNode,
   LIB_SVG_NODES
 } from "@nodetool-ai/text-nodes/nodes/lib-svg";
 export { LIB_IMAGE_ENHANCE_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-enhance";
@@ -354,12 +340,6 @@ export {
   ScreenshotLibNode,
   LIB_BROWSER_NODES
 } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
-export {
-  GmailSearchLibNode,
-  AddLabelLibNode,
-  MoveToArchiveLibNode,
-  LIB_MAIL_NODES
-} from "@nodetool-ai/integration-nodes/nodes/lib-mail";
 export { ChartRendererLibNode, LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 export {
   GainNode_,
@@ -428,16 +408,6 @@ export { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging"
 export { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 export { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
-export {
-  SentimentAnalysisLibNode,
-  TokenizeLibNode,
-  StemLibNode,
-  TfIdfLibNode,
-  ClassifyTextLibNode,
-  ExtractEntitiesLibNode,
-  PhoneticMatchLibNode,
-  LIB_NLP_NODES
-} from "@nodetool-ai/text-nodes/nodes/lib-nlp";
 import { CONTROL_NODES } from "@nodetool-ai/core-nodes/nodes/control";
 import { VARIABLE_NODES } from "@nodetool-ai/core-nodes/nodes/variable";
 import { TEXT_EXTRA_NODES } from "@nodetool-ai/text-nodes/nodes/text-extra";
@@ -467,7 +437,6 @@ import { DIRECTOR_NODES } from "@nodetool-ai/llm-nodes/nodes/director";
 import { SHOTS_NODES } from "@nodetool-ai/llm-nodes/nodes/shots";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
 import { LIB_APPLE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-apple";
-import { LIB_SECRET_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-secret";
 import { LIB_YTDLP_NODES } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
 import { LIB_GRID_NODES } from "@nodetool-ai/image-nodes/nodes/lib-grid";
 import { LIB_SVG_NODES } from "@nodetool-ai/text-nodes/nodes/lib-svg";
@@ -478,7 +447,6 @@ import { LIB_IMAGE_COLOR_GRADING_NODES } from "@nodetool-ai/image-nodes/nodes/li
 import { LIB_AUDIO_DSP_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-dsp";
 import { LIB_SQLITE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
 import { LIB_BROWSER_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
-import { LIB_MAIL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
 import { LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 import { LIB_PDF_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
@@ -492,7 +460,6 @@ import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 import { registerBuiltinAgentToolFactory } from "@nodetool-ai/llm-nodes";
 import { buildBrowserAgentToolClasses } from "@nodetool-ai/automation-nodes";
-import { LIB_NLP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-nlp";
 import { LIB_IMAGE_EFFECTS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-effects";
 import { LIB_IMAGE_KEYER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-keyer";
 import { LIB_IMAGE_MASK_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-mask";
@@ -532,7 +499,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SHOTS_NODES,
   ...MODEL3D_NODES,
   ...(process.platform === "darwin" ? LIB_APPLE_NODES : []),
-  ...LIB_SECRET_NODES,
   ...LIB_YTDLP_NODES,
   ...LIB_GRID_NODES,
   ...LIB_SVG_NODES,
@@ -543,7 +509,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_AUDIO_DSP_NODES,
   ...LIB_SQLITE_NODES,
   ...LIB_BROWSER_NODES,
-  ...LIB_MAIL_NODES,
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
@@ -555,7 +520,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
   ...XAI_NODES,
-  ...LIB_NLP_NODES,
   ...LIB_IMAGE_EFFECTS_NODES,
   ...LIB_IMAGE_KEYER_NODES,
   ...LIB_IMAGE_MASK_NODES,

@@ -2,7 +2,6 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadSharp, SHARP_UNAVAILABLE_MESSAGE } from "./image-io.js";
 import { decodeImage } from "./lib-image-utils.js";
-import { isFiniteNumber, isObjectLike } from "../type-predicates.js";
 
 async function requireSharp() {
   const sharp = await loadSharp();
@@ -21,9 +20,9 @@ async function loadImageBuffer(
 
 /**
  * Placement of a tile within the original canvas. Emitted by SliceImageGrid on
- * each tile ref's `metadata.grid` so CombineImageGrid can reassemble the source
- * image exactly (lossless round trip), even when the dimensions are not evenly
- * divisible by the column/row count.
+ * each tile ref's `metadata.grid` so a reassembling step — `image.grid` in a
+ * Code node — can restore the source image exactly (lossless round trip), even
+ * when the dimensions are not evenly divisible by the column/row count.
  */
 type TilePlacement = {
   x: number;
@@ -50,45 +49,6 @@ function toImageRef(
   };
 }
 
-/**
- * Read tile placement from a ref's `metadata.grid`, or null when absent/malformed.
- * Refs are plain objects, so the placement payload survives transport.
- */
-function readPlacement(ref: unknown): TilePlacement | null {
-  if (!isObjectLike(ref)) return null;
-  const md = (ref as Record<string, unknown>).metadata;
-  if (!isObjectLike(md)) return null;
-  const grid = (md as Record<string, unknown>).grid;
-  if (!isObjectLike(grid)) return null;
-  const g = grid as Record<string, unknown>;
-  const keys: (keyof TilePlacement)[] = [
-    "x",
-    "y",
-    "width",
-    "height",
-    "canvasWidth",
-    "canvasHeight",
-    "row",
-    "column",
-    "columns",
-    "rows"
-  ];
-  for (const k of keys) {
-    if (!isFiniteNumber(g[k])) return null;
-  }
-  return {
-    x: g.x as number,
-    y: g.y as number,
-    width: g.width as number,
-    height: g.height as number,
-    canvasWidth: g.canvasWidth as number,
-    canvasHeight: g.canvasHeight as number,
-    row: g.row as number,
-    column: g.column as number,
-    columns: g.columns as number,
-    rows: g.rows as number
-  };
-}
 
 export class SliceImageGridLibNode extends BaseNode {
   static readonly nodeType = "lib.grid.SliceImageGrid";
@@ -202,115 +162,4 @@ export class SliceImageGridLibNode extends BaseNode {
   }
 }
 
-/** Output handles CombineImageGridLibNode.process() emits. */
-type CombineImageGridLibNodeOutputs = {
-  output: { type: string; data: Uint8Array<ArrayBuffer>; mimeType: string; metadata: { grid: TilePlacement } | null };
-};
-
-export class CombineImageGridLibNode extends BaseNode {
-  static readonly nodeType = "lib.grid.CombineImageGrid";
-  static readonly title = "Combine Image Grid";
-  static readonly description =
-    "Combine a grid of image tiles into a single image.\n    image, grid, combine, tiles\n\n    Use cases:\n    - Reassemble processed image chunks\n    - Create composite images from smaller parts\n    - Merge tiled image data from distributed processing";
-  static readonly metadataOutputTypes = {
-    output: "image"
-  };
-  static readonly inlineFields = ["columns"];
-  static readonly inputFields = ["tiles"];
-
-  @prop({
-    type: "list[image]",
-    default: [],
-    title: "Tiles",
-    description: "List of image tiles to combine."
-  })
-  declare tiles: any;
-
-  @prop({
-    type: "int",
-    default: 0,
-    title: "Columns",
-    description:
-      "Number of columns in the grid. 0 auto-derives from the tile count. Ignored when tiles carry grid placement metadata from SliceImageGrid.",
-    min: 0
-  })
-  declare columns: any;
-
-  async process(context?: ProcessingContext): Promise<CombineImageGridLibNodeOutputs> {
-    const sharp = await requireSharp();
-    const tileInputs = (this.tiles ?? []) as unknown[];
-    if (!Array.isArray(tileInputs) || tileInputs.length === 0) {
-      throw new Error("No tiles provided for combining.");
-    }
-
-    const tiles = await Promise.all(
-      tileInputs.map((tile) => loadImageBuffer(tile, context))
-    );
-
-    // Lossless path: when every tile carries placement metadata from
-    // SliceImageGrid, reassemble onto a canvas of the original dimensions at the
-    // exact recorded offsets. Tolerant of non-divisible slicing (varying tile
-    // sizes) — no uniform grid, no overlaps, no oversized canvas.
-    const placements = tileInputs.map(readPlacement);
-    if (placements.every((p): p is TilePlacement => p !== null)) {
-      const canvasWidth = placements[0].canvasWidth;
-      const canvasHeight = placements[0].canvasHeight;
-      const canvas = sharp({
-        create: {
-          width: Math.max(1, canvasWidth),
-          height: Math.max(1, canvasHeight),
-          channels: 4,
-          background: { r: 0, g: 0, b: 0, alpha: 0 }
-        }
-      });
-      const composite = tiles.map((tile, index) => ({
-        input: tile,
-        left: placements[index].x,
-        top: placements[index].y
-      }));
-      const out = await canvas.composite(composite).png().toBuffer();
-      return { output: toImageRef(out) };
-    }
-
-    const metas = await Promise.all(
-      tiles.map((tile) => sharp(tile, { failOn: "none" }).metadata())
-    );
-
-    let columns = Number(this.columns ?? 0);
-    if (columns <= 0) {
-      columns = Math.floor(Math.sqrt(tiles.length));
-    }
-    columns = Math.max(1, Math.trunc(columns));
-
-    const rows = Math.ceil(tiles.length / columns);
-    const maxWidth = Math.max(...metas.map((m) => m.width ?? 1));
-    const maxHeight = Math.max(...metas.map((m) => m.height ?? 1));
-
-    const canvas = sharp({
-      create: {
-        width: maxWidth * columns,
-        height: maxHeight * rows,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
-      }
-    });
-
-    const composite = tiles.map((tile, index) => {
-      const row = Math.floor(index / columns);
-      const col = index % columns;
-      return {
-        input: tile,
-        left: col * maxWidth,
-        top: row * maxHeight
-      };
-    });
-
-    const out = await canvas.composite(composite).png().toBuffer();
-    return { output: toImageRef(out) };
-  }
-}
-
-export const LIB_GRID_NODES = [
-  SliceImageGridLibNode,
-  CombineImageGridLibNode
-] as const;
+export const LIB_GRID_NODES = [SliceImageGridLibNode] as const;

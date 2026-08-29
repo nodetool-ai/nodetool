@@ -1,210 +1,107 @@
 {
-  "id": "",
-  "access": "private",
-  "created_at": "2026-07-30T12:00:00.000Z",
-  "updated_at": "2026-07-30T12:00:00.000Z",
-  "name": "Circles and Lines",
-  "tool_name": null,
-  "description": "The remaining SVG primitives in one document \u2014 circle, ellipse and line \u2014 so the shape vocabulary is visible in one place.",
-  "tags": [
-    "image",
-    "example"
+ "id": "",
+ "access": "private",
+ "created_at": "2026-07-30T12:00:00.000Z",
+ "updated_at": "2026-07-30T12:00:00.000Z",
+ "name": "Circles and Lines",
+ "tool_name": null,
+ "description": "Three SVG elements — circle, ellipse and line — written as one Code node, so the array order is the paint order.",
+ "tags": [
+  "image",
+  "example"
+ ],
+ "thumbnail": null,
+ "thumbnail_url": null,
+ "graph": {
+  "nodes": [
+   {
+    "id": "elements",
+    "type": "nodetool.code.Code",
+    "data": {
+     "code": "// One Code node replaces the retired lib.svg element builders. The array\n// order is the paint order: both discs first, then the rule across them.\nreturn {\n  output: [\n    {\n      name: \"circle\",\n      attributes: {\n        cx: 80, cy: 80, r: 50,\n        fill: \"#ef4444\", stroke: \"none\", \"stroke-width\": 1\n      }\n    },\n    {\n      name: \"ellipse\",\n      attributes: {\n        cx: 220, cy: 80, rx: 70, ry: 40,\n        fill: \"#22c55e\", stroke: \"none\", \"stroke-width\": 1\n      }\n    },\n    {\n      name: \"line\",\n      attributes: {\n        x1: 20, y1: 150, x2: 280, y2: 150,\n        stroke: \"#111827\", \"stroke-width\": 4\n      }\n    }\n  ]\n};"
+    },
+    "ui_properties": {
+     "position": {
+      "x": 0,
+      "y": 120
+     },
+     "zIndex": 0,
+     "width": 380,
+     "selectable": true,
+     "title": "1  Elements"
+    },
+    "dynamic_properties": {},
+    "dynamic_outputs": {
+     "output": {
+      "type": "any",
+      "type_args": [],
+      "optional": false
+     }
+    }
+   },
+   {
+    "id": "doc",
+    "type": "lib.svg.Document",
+    "data": {
+     "elements": [],
+     "width": 300,
+     "height": 180,
+     "viewBox": "0 0 300 180"
+    },
+    "ui_properties": {
+     "position": {
+      "x": 0,
+      "y": 340
+     },
+     "zIndex": 0,
+     "width": 280,
+     "selectable": true,
+     "title": "5  Document"
+    },
+    "dynamic_properties": {},
+    "dynamic_outputs": {}
+   },
+   {
+    "id": "out",
+    "type": "nodetool.output.Output",
+    "data": {
+     "name": "shapes"
+    },
+    "ui_properties": {
+     "position": {
+      "x": 320,
+      "y": 340
+     },
+     "zIndex": 0,
+     "width": 280,
+     "selectable": true,
+     "title": "6  SVG"
+    },
+    "dynamic_properties": {},
+    "dynamic_outputs": {}
+   }
   ],
-  "thumbnail": null,
-  "thumbnail_url": null,
-  "graph": {
-    "nodes": [
-      {
-        "id": "c",
-        "type": "lib.svg.Circle",
-        "data": {
-          "cx": 80,
-          "cy": 80,
-          "radius": 50,
-          "fill": {
-            "type": "color",
-            "value": "#ef4444"
-          },
-          "stroke": {
-            "type": "color",
-            "value": "none"
-          },
-          "stroke_width": 1
-        },
-        "ui_properties": {
-          "position": {
-            "x": 0,
-            "y": 120
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "1  Circle"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "e",
-        "type": "lib.svg.Ellipse",
-        "data": {
-          "cx": 220,
-          "cy": 80,
-          "rx": 70,
-          "ry": 40,
-          "fill": {
-            "type": "color",
-            "value": "#22c55e"
-          },
-          "stroke": {
-            "type": "color",
-            "value": "none"
-          },
-          "stroke_width": 1
-        },
-        "ui_properties": {
-          "position": {
-            "x": 320,
-            "y": 120
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "2  Ellipse"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "ln",
-        "type": "lib.svg.Line",
-        "data": {
-          "x1": 20,
-          "y1": 150,
-          "x2": 280,
-          "y2": 150,
-          "stroke": {
-            "type": "color",
-            "value": "#111827"
-          },
-          "stroke_width": 4
-        },
-        "ui_properties": {
-          "position": {
-            "x": 640,
-            "y": 120
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "3  Rule"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "l",
-        "type": "nodetool.constant.List",
-        "data": {
-          "value": []
-        },
-        "ui_properties": {
-          "position": {
-            "x": 960,
-            "y": 120
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "4  Collect"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "doc",
-        "type": "lib.svg.Document",
-        "data": {
-          "elements": [],
-          "width": 300,
-          "height": 180,
-          "viewBox": "0 0 300 180"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 0,
-            "y": 340
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "5  Document"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "shapes"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 320,
-            "y": 340
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "6  SVG"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      }
-    ],
-    "edges": [
-      {
-        "id": "e1",
-        "source": "c",
-        "sourceHandle": "output",
-        "target": "l",
-        "targetHandle": "value"
-      },
-      {
-        "id": "e2",
-        "source": "e",
-        "sourceHandle": "output",
-        "target": "l",
-        "targetHandle": "value"
-      },
-      {
-        "id": "e3",
-        "source": "ln",
-        "sourceHandle": "output",
-        "target": "l",
-        "targetHandle": "value"
-      },
-      {
-        "id": "e4",
-        "source": "l",
-        "sourceHandle": "output",
-        "target": "doc",
-        "targetHandle": "elements"
-      },
-      {
-        "id": "e5",
-        "source": "doc",
-        "sourceHandle": "output",
-        "target": "out",
-        "targetHandle": "value"
-      }
-    ]
-  },
-  "input_schema": null,
-  "output_schema": null,
-  "settings": null,
-  "package_name": "nodetool-base",
-  "path": null,
-  "run_mode": null
+  "edges": [
+   {
+    "id": "e1",
+    "source": "elements",
+    "sourceHandle": "output",
+    "target": "doc",
+    "targetHandle": "elements"
+   },
+   {
+    "id": "e2",
+    "source": "doc",
+    "sourceHandle": "output",
+    "target": "out",
+    "targetHandle": "value"
+   }
+  ]
+ },
+ "input_schema": null,
+ "output_schema": null,
+ "settings": null,
+ "package_name": "nodetool-base",
+ "path": null,
+ "run_mode": null
 }

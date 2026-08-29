@@ -22,7 +22,12 @@ import {
   textAgentMeta,
 } from "./builders";
 
-const GMAIL_SEARCH = "lib.mail.GmailSearch";
+const CODE = "nodetool.code.Code";
+
+const SEARCH_CODE = `import { gmail_search } from "@nodetool-ai/sandbox-nodetool/google";
+
+const { messages } = await gmail_search({ query: inputs.query, max_results: 20 });
+await output("messages", messages);`;
 const TEMPLATE = "nodetool.text.Template";
 const SUMMARIZER = "nodetool.agents.Summarizer";
 
@@ -44,7 +49,7 @@ const SUMMARY = SUMMARY_TOKENS.join("");
 const MESSAGES = [{ subject: "The AI Weekly", from: "news@aiweekly.dev", body: BODY }];
 
 const nodes = [
-  node("gmail", GMAIL_SEARCH, 0, 170, 280, "Gmail Search", { query: "label:newsletters newer_than:7d" }),
+  node("gmail", CODE, 0, 170, 280, "Gmail Search", { code: SEARCH_CODE }),
   node("fields", TEMPLATE, 400, 170, 300, "Email Fields", { template: "{{ subject }}\n\n{{ body }}" }),
   node("summarizer", SUMMARIZER, 800, 40, 320, "Summarizer", { text: "" }),
   node("summary", PREVIEW_NODE_TYPE, 1200, 40, 300, "Summary", {}),
@@ -60,9 +65,9 @@ const edges = [
 const events: CastEvent[] = [
   m.jobUpdate(0, "running"),
 
-  m.nodeUpdate(300, "gmail", "Gmail Search", GMAIL_SEARCH, "running"),
+  m.nodeUpdate(300, "gmail", "Gmail Search", CODE, "running"),
   ...m.progress("gmail", 6, 600, 1000),
-  m.nodeUpdate(1700, "gmail", "Gmail Search", GMAIL_SEARCH, "completed", { output: MESSAGES }),
+  m.nodeUpdate(1700, "gmail", "Gmail Search", CODE, "completed", { output: MESSAGES }),
   m.edgeUpdate(1900, "e1", "active"),
 
   m.nodeUpdate(2400, "fields", "Email Fields", TEMPLATE, "running"),
@@ -104,9 +109,9 @@ export const summarizeNewslettersCast: DemoCast = {
     edges
   ),
   metadata: {
-    [GMAIL_SEARCH]: simpleMeta(GMAIL_SEARCH, "Gmail Search", "list", {
-      inline: ["query"],
-      properties: [prop("query", "str")],
+    [CODE]: simpleMeta(CODE, "Code", "str", {
+      inline: ["code"],
+      properties: [prop("code", "str")],
     }),
     [TEMPLATE]: simpleMeta(TEMPLATE, "Template", "str", {
       inputs: ["messages"],

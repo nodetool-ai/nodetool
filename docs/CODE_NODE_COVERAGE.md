@@ -7,7 +7,10 @@ already have a snippet standing in for them?**
 
 **Status:** `nodetool.list` (`Range`, `Tile`, `RepeatEach`, `RepeatValue`),
 `lib.datetime` (all 5), and `lib.validate` (all 5) have been removed — their
-Tier 1/Tier 2 entries below are historical. `lib.rss` (`FetchRSSFeed`,
+Tier 1/Tier 2 entries below are historical. A later round removed the 12
+`lib.svg` element builders (step 2 of the order below), plus `lib.mail` (3),
+`lib.nlp` (7), `lib.secret.GetSecret`, and `lib.grid.CombineImageGrid` — see
+**Removed in the sandbox-coverage round** at the end. `lib.rss` (`FetchRSSFeed`,
 `ExtractFeedMetadata`) and the 27 `nodetool.data.*` dataframe verbs were also
 removed, on the same rationale but outside this audit's original scope: the
 sandbox's `@nodetool-ai/sandbox-xml` and `@nodetool-ai/sandbox-csv` packs
@@ -300,10 +303,11 @@ now covers this ground from inside a Code node. `ForEachRow` and
 | --- | --- |
 | `nodetool.constant.*` (except `Date`/`DateTime`), `nodetool.input.*`, `nodetool.output.*` | value editors, dropzones, pickers — pure UI |
 | `nodetool.control.*` (22) | actor-model stream semantics: fan-out, per-item emission, back-pressure. The sandbox runs once and returns once. The five Streaming snippets cover the generator patterns one node can express; the rest is kernel-level. |
-| `nodetool.image.*` `nodetool.audio.*` `nodetool.video.*` `nodetool.model3d.*` `lib.image.*` `lib.audio.*` `lib.grid.*` `nodetool.sketch/timeline/script` | content cards and bespoke editors; sharp/canvas/ffmpeg |
-| `lib.nlp.*` (7) | compromise, AFINN, stemmers, TF-IDF — real libraries |
+| `nodetool.image.*` `nodetool.audio.*` `nodetool.video.*` `nodetool.model3d.*` `lib.image.*` `lib.audio.*` `lib.grid.SliceImageGrid` `nodetool.sketch/timeline/script` | content cards and bespoke editors; sharp/canvas/ffmpeg. `lib.grid.CombineImageGrid` was **removed** — `image.grid` is the same sharp call, host-side. Snippet: `image-grid`. |
+| ~~`lib.nlp.*` (7)~~ | **Removed** without a replacement pack — the one open capability gap this round left. See below. |
 | `lib.pdf` `lib.charts` | PDF text extraction and page rasterization, and a chart renderer |
-| `lib.mail` `lib.apple` `messaging.*` | IMAP/SMTP, AppleScript, and long-lived bot connections — none of them a `fetch` call |
+| `lib.apple` `messaging.*` | AppleScript and long-lived bot connections — neither of them a `fetch` call |
+| ~~`lib.mail` (3)~~ | **Removed.** The argument below — "IMAP is not a `fetch` call" — was answered by something other than a guest script: `search_email` / `add_label_to_email` / `archive_email` already shipped as capabilities over the same `imapflow` client, and Gmail itself reaches a Code node through `@nodetool-ai/sandbox-nodetool/google`, where the OAuth token stays host-side. Snippets: `gmail-search`, `gmail-add-label`, `gmail-archive`. |
 | `lib.google` | **Removed.** Drive, Gmail, Docs, Sheets and Calendar are the `google` capability module: `import { drive_search } from "@nodetool-ai/sandbox-nodetool/google"`. The OAuth session stays host-side — the guest never holds the token. |
 | `lib.s3` `lib.supabase` `lib.notion` `lib.twilio` `messaging.*.SendMessage` `lib.mail.SendEmail` | **Removed.** Each was one authenticated HTTP call, so each is a Code node now: `fetch`, `nodetool.secrets.get(name)`, and the auth-helper packs (`@nodetool-ai/sandbox-aws` for SigV4, `-notion`, `-supabase`, `-twilio`). `lib.mail.SendEmail` went with them and has no guest path — SMTP is not HTTP; a script sends mail through an HTTP email API. |
 | `apify.*` `search.*` | **Removed.** Apify and SerpAPI are capability modules: `@nodetool-ai/sandbox-nodetool/apify` and `.../serpapi`. The token stays host-side — the guest never holds it. |
@@ -330,8 +334,9 @@ The six new categories are authored, so what remains is deletion and migration.
 1. **Tier 1 deletions** (39). No new snippets needed — the win is dropping the
    duplicate implementation, and `nodetool.text` is the namespace users hit
    first.
-2. **`lib.svg` deletion** (12). The cleanest of the new categories: one output
-   type, byte-identical markup, and the two rendering nodes stay.
+2. ~~**`lib.svg` deletion** (12).~~ **Done.** `Document` and `SVGToImage` stay;
+   the three shipped SVG examples now build their element list in one Code node,
+   where the array order is the paint order.
 3. **Tier 2 deletions** (39 more) — Path, Markdown, HTML, Validation and the
    singles, once each has a graph migration.
 4. **`workspace.copy`/`workspace.move`, then `lib.os` file ops** (16). Two
@@ -339,8 +344,10 @@ The six new categories are authored, so what remains is deletion and migration.
 5. **Per-snippet output typing, then `nodetool.data`** (20). The one that needs
    design, not just authoring.
 
-`lib.http`, `lib.graphql` and `lib.secret.GetSecret` are deliberately absent
-from this list — their snippets shipped, their nodes stay.
+`lib.http` and `lib.graphql` are deliberately absent from this list — their
+snippets shipped, their nodes stay. `lib.secret.GetSecret` was in that sentence
+too, on the "its value is the picker rather than the call" argument; it has
+since been removed anyway — see below.
 
 ## What a removal needs alongside it
 
@@ -369,3 +376,44 @@ and the change reads as a regression.
   other half: describing a result instead of picking a snippet.
 - [CLOUD_NODE_CURATION.md](CLOUD_NODE_CURATION.md) — the cloud profile trims by
   namespace and admits the Code node by name.
+
+## Removed in the sandbox-coverage round
+
+Twenty-four node classes, ~5,300 lines. Each was covered by something already
+shipped, not by something this round had to build — except `lib.nlp`, which is
+recorded as a gap rather than a win.
+
+| Removed | Count | What covers it now |
+| --- | ---: | --- |
+| `lib.svg` element builders | 12 | The 12 `svg-*` snippets. `Document` and `SVGToImage` stay — the guest has no `sharp`. |
+| `lib.nlp.*` | 7 | **Nothing yet.** See the gap below. |
+| `lib.mail.*` | 3 | `gmail-search` / `gmail-add-label` / `gmail-archive`, over `@nodetool-ai/sandbox-nodetool/google`. |
+| `lib.secret.GetSecret` | 1 | `getSecret(name)` / `nodetool.secrets.get`. |
+| `lib.grid.CombineImageGrid` | 1 | `image.grid`, via the `image-grid` snippet. |
+
+Two of these reversed a decision recorded above, and both reversals turned on
+the same thing: the earlier audit asked whether a *guest script* could do the
+work, when the replacement was a **host capability**.
+
+- **`lib.mail`** was kept because "IMAP is not a `fetch` call". True, and beside
+  the point: `packages/agents/src/capabilities/email.ts` was already a second
+  implementation of all three nodes against the same `imapflow` client, so the
+  choice was never node-or-nothing, it was one implementation or two.
+- **`lib.secret.GetSecret`** was kept for its name picker. What decided it
+  instead was the gap between the node and the sandbox: the node read any secret
+  and fell back to `process.env[name]`, while `nodetool.secrets.get` is bound by
+  the run's declared `secretScope`. Keeping the node kept a way around a
+  guarantee the sandbox enforces.
+
+### The `lib.nlp` gap
+
+`lib.nlp` was removed with **no replacement**, deliberately and with the cost
+known. It took 3,267 lines with it — 501 of node class and 2,766 of vendored
+Porter/Lancaster/Spanish/French stemmers, a naive Bayes classifier, TF-IDF,
+phonetics and a sentiment lexicon — and no shipped example used any of it.
+
+Until a pack lands, stemming, TF-IDF, sentiment and phonetic matching have no
+in-product answer. Closing it means shipping `@nodetool-ai/sandbox-nlp` around
+`natural`: a config-only guest pack if it clears the QuickJS admission probe and
+the 1 MB cap, a host module otherwise. That is the follow-up; this round did not
+do it.

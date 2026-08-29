@@ -17,17 +17,3 @@ export interface SliceImageGridOutputs {
 export function sliceImageGrid(inputs: SliceImageGridInputs): DslNode<SliceImageGridOutputs, "output"> {
   return createNode("lib.grid.SliceImageGrid", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
-
-// Combine Image Grid — lib.grid.CombineImageGrid
-export type CombineImageGridInputs = {
-  tiles?: Connectable<ImageRef[]>;
-  columns?: Connectable<number>;
-};
-
-export interface CombineImageGridOutputs {
-  output: ImageRef;
-}
-
-export function combineImageGrid(inputs: CombineImageGridInputs): DslNode<CombineImageGridOutputs, "output"> {
-  return createNode("lib.grid.CombineImageGrid", inputs, { outputNames: ["output"], defaultOutput: "output" });
-}

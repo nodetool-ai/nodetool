@@ -24,8 +24,6 @@ npm install @nodetool-ai/integration-nodes
 
 ## Nodes
 
-**Mail** (`lib.mail.*`) — `GmailSearch`, `AddLabel`, `MoveToArchive`.
-
 **Messaging** (`messaging.*`) — Discord and Telegram bot triggers:
 `discord.DiscordBotTrigger`, `telegram.TelegramBotTrigger`. A trigger holds a
 long-lived connection, which is what a script cannot do; sending a message is a
@@ -39,7 +37,14 @@ messages. Both derive typed inputs from `Load*` nodes and typed outputs from
 `Save*` nodes, keyed `<comfyNodeId>:<field>`. See
 [docs/comfyui.md](https://docs.nodetool.ai/comfyui).
 
-**Other** — `kie.dynamic_schema.KieAI`, `lib.secret.GetSecret`.
+**Other** — `kie.dynamic_schema.KieAI`.
+
+Mail is not a node package any more. `lib.mail.GmailSearch`, `AddLabel` and
+`MoveToArchive` were removed: the same three operations ship as the
+`search_email` / `add_label_to_email` / `archive_email` capabilities, and Gmail
+reaches a Code node through `@nodetool-ai/sandbox-nodetool/google` with the
+OAuth token held host-side. `lib.secret.GetSecret` went too — `getSecret(name)`
+in the sandbox does the same read, bound by the run's declared secret scope.
 
 ## Configuration
 

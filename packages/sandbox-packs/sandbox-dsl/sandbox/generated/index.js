@@ -21,10 +21,7 @@ import * as libImageFilter from "./lib.image.filter.js";
 import * as libImageKeyer from "./lib.image.keyer.js";
 import * as libImageMask from "./lib.image.mask.js";
 import * as libImageWarp from "./lib.image.warp.js";
-import * as libMail from "./lib.mail.js";
-import * as libNlp from "./lib.nlp.js";
 import * as libPdf from "./lib.pdf.js";
-import * as libSecret from "./lib.secret.js";
 import * as libSqlite from "./lib.sqlite.js";
 import * as libSvg from "./lib.svg.js";
 import * as libVideoDownload from "./lib.video.download.js";
@@ -106,10 +103,7 @@ export {
   libImageKeyer,
   libImageMask,
   libImageWarp,
-  libMail,
-  libNlp,
   libPdf,
-  libSecret,
   libSqlite,
   libSvg,
   libVideoDownload,

@@ -72,9 +72,9 @@ describe("graph DSL — handles are not text", () => {
     const { graph, error } = await evaluateGraphDsl(`
       const a = node("nodetool.constant.String", { value: "hello" }, "a");
       const b = node("nodetool.constant.String", { value: "world" }, "b");
-      node("lib.grid.CombineImageGrid", {
-        tiles: [a.output(), b.output()],
-        columns: 2
+      node("lib.svg.Document", {
+        elements: [a.output(), b.output()],
+        width: 2
       }, "grid");
       return graph();
     `);
@@ -82,27 +82,27 @@ describe("graph DSL — handles are not text", () => {
     expect(error).toBeUndefined();
     const grid = graph!.nodes.find((n) => n.id === "grid");
     // The wired list is carried by the edges, not stored as a property.
-    expect(grid!.properties).toEqual({ columns: 2 });
+    expect(grid!.properties).toEqual({ width: 2 });
     expect(
-      graph!.edges.filter((e) => e.target === "grid" && e.targetHandle === "tiles")
+      graph!.edges.filter((e) => e.target === "grid" && e.targetHandle === "elements")
     ).toEqual([
-      { source: "a", sourceHandle: "output", target: "grid", targetHandle: "tiles" },
-      { source: "b", sourceHandle: "output", target: "grid", targetHandle: "tiles" }
+      { source: "a", sourceHandle: "output", target: "grid", targetHandle: "elements" },
+      { source: "b", sourceHandle: "output", target: "grid", targetHandle: "elements" }
     ]);
   });
 
   it("rejects an array mixing wired outputs and literal values", async () => {
     const { graph, error } = await evaluateGraphDsl(`
       const a = node("nodetool.constant.String", { value: "hello" }, "a");
-      node("lib.grid.CombineImageGrid", {
-        tiles: [a.output(), "literal"],
-        columns: 2
+      node("lib.svg.Document", {
+        elements: [a.output(), "literal"],
+        width: 2
       }, "grid");
       return graph();
     `);
 
     expect(graph).toBeUndefined();
-    expect(error).toContain('"tiles"');
+    expect(error).toContain('"elements"');
     expect(error).toContain("mixes wired outputs and literal values");
   });
 

@@ -410,12 +410,12 @@ describe("create_workflow", () => {
       nodes: [
         {
           id: "grid",
-          type: "lib.grid.CombineImageGrid",
+          type: "lib.svg.Document",
           properties: {
-            tiles: [
+            elements: [
               { __handle: true, source: "img", sourceHandle: "output" }
             ],
-            columns: 3
+            width: 3
           }
         },
         { id: "out", type: "nodetool.output.Output", properties: {} }
@@ -432,7 +432,7 @@ describe("create_workflow", () => {
 
       expect(result.error).toContain("wiring handles");
       expect(result.issues[0]?.code).toBe("leftover_wiring_handle");
-      expect(result.issues[0]?.message).toContain("tiles[0]");
+      expect(result.issues[0]?.message).toContain("elements[0]");
       const [saved] = await Workflow.paginate(USER, {});
       expect(saved).toHaveLength(0);
     });
@@ -441,7 +441,7 @@ describe("create_workflow", () => {
       const result = (await checked.process(ctx, {
         name: "WF",
         graph: {
-          nodes: [{ id: "out", type: "x.Y", properties: { tiles: ["a"] } }],
+          nodes: [{ id: "out", type: "x.Y", properties: { elements: ["a"] } }],
           edges: []
         }
       })) as Record<string, unknown>;

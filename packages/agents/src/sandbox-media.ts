@@ -824,10 +824,10 @@ export function createImageBridge(): ImageBridge {
 
     /**
      * Lay images out in a grid — the shape a caller usually means by "combine
-     * these", and what `lib.grid.CombineImageGrid` does in a graph. Expressing
-     * it with `composite` meant sizing a backdrop, computing every offset, and
-     * getting the row wrap right; the failure that started all of this was a
-     * two-image version of exactly that.
+     * these", and the replacement for the retired `lib.grid.CombineImageGrid`
+     * node. Expressing it with `composite` meant sizing a backdrop, computing
+     * every offset, and getting the row wrap right; the failure that started
+     * all of this was a two-image version of exactly that.
      */
     async grid(images, options) {
       const opts = options ?? {};

@@ -1,20 +1,14 @@
 /**
- * Coverage tests for lib-browser and lib-mail.
+ * Coverage tests for lib-browser.
  *
  * Strategy:
  * - lib-browser: Real CDP against a local HTTP server for Screenshot.
- * - lib-mail: Gmail stubs throw without credentials.
  */
 
 import { describe, expect, it, vi } from "vitest";
 import http from "node:http";
 
-import {
-  ScreenshotLibNode,
-  GmailSearchLibNode,
-  AddLabelLibNode,
-  MoveToArchiveLibNode
-} from "../../src/index.js";
+import { ScreenshotLibNode } from "../../src/index.js";
 
 
 // ---------------------------------------------------------------------------
@@ -110,43 +104,6 @@ describe.skip("lib.browser.Screenshot (cdp)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// lib-mail
-// ---------------------------------------------------------------------------
-
-describe("lib.mail.GmailSearch (stub)", () => {
-  it("throws credentials error", async () => {
-    await expect(new GmailSearchLibNode().process()).rejects.toThrow(
-      "Google OAuth2/IMAP credentials"
-    );
-  });
-});
-
-describe("lib.mail.AddLabel (stub)", () => {
-  it("throws credentials error", async () => {
-    await expect(
-      (() => {
-        const _n = new AddLabelLibNode();
-        _n.assign({ message_id: "abc", label: "test" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Google OAuth2/IMAP credentials");
-  });
-});
-
-describe("lib.mail.MoveToArchive (stub)", () => {
-  it("throws credentials error", async () => {
-    await expect(
-      (() => {
-        const _n = new MoveToArchiveLibNode();
-        _n.assign({ message_id: "abc" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Google OAuth2/IMAP credentials");
-  });
-});
-
-
-// ---------------------------------------------------------------------------
 // defaults() coverage — exercise the defaults() method on each node class
 // ---------------------------------------------------------------------------
 
@@ -156,23 +113,6 @@ describe("defaults() methods", () => {
     expect(d).toHaveProperty("url");
     expect(d).toHaveProperty("selector");
     expect(d).toHaveProperty("timeout");
-  });
-
-  it("GmailSearchLibNode defaults", () => {
-    const d = new GmailSearchLibNode().serialize();
-    expect(d).toHaveProperty("folder");
-    expect(d).toHaveProperty("max_results");
-  });
-
-  it("AddLabelLibNode defaults", () => {
-    const d = new AddLabelLibNode().serialize();
-    expect(d).toHaveProperty("message_id");
-    expect(d).toHaveProperty("label");
-  });
-
-  it("MoveToArchiveLibNode defaults", () => {
-    const d = new MoveToArchiveLibNode().serialize();
-    expect(d).toHaveProperty("message_id");
   });
 
 });
