@@ -2,9 +2,10 @@
  * ShotStatusPill
  *
  * What the shot grid says about a shot, in the app's shared pill vocabulary
- * (`StatusPill`): a rendered clip and its length, a render in flight (video
- * violet, matching the card's border and the progress bar under the
- * thumbnail), a shot waiting on its next step, or a failed render.
+ * (`StatusPill`): a render in flight (video violet, matching the card's border
+ * and the progress bar under the thumbnail), a shot waiting on its next step,
+ * or a failed render. A finished clip says nothing — the card plays it, and
+ * its length is already in the shot label.
  */
 
 import { memo } from "react";
@@ -26,28 +27,20 @@ export interface ShotPill {
 export const isShotGenerating = (shot: Shot): boolean =>
   shot.status === "keyframe_generating" || shot.status === "clip_generating";
 
-/**
- * What the pill says about a shot: the step it is on, and — once there is a
- * clip — how long that clip runs.
- */
-export const shotPill = (
-  shot: Shot,
-  durationSeconds?: number | null
-): ShotPill => {
+/** What the pill says about a shot: the step it is on, or nothing once the clip is there. */
+export const shotPill = (shot: Shot): ShotPill | null => {
   if (isShotGenerating(shot)) {
     return {
       tone: "rendering",
-      label: shot.status === "clip_generating" ? "rendering clip" : "rendering still"
+      label:
+        shot.status === "clip_generating" ? "rendering clip" : "rendering still"
     };
   }
   if (shot.status === "failed") {
     return { tone: "failed", label: "failed" };
   }
   if (shot.clip) {
-    return {
-      tone: "done",
-      label: durationSeconds != null ? `clip · ${durationSeconds}s` : "clip"
-    };
+    return null;
   }
   if (shot.keyframe) {
     return { tone: "neutral", label: "still · clip queued" };
@@ -57,17 +50,14 @@ export const shotPill = (
 
 interface ShotStatusPillProps {
   shot: Shot;
-  /** The shot's effective length, shown once it has a clip. */
-  durationSeconds?: number | null;
   sx?: SxProps<Theme>;
 }
 
-const ShotStatusPillInner = ({
-  shot,
-  durationSeconds,
-  sx
-}: ShotStatusPillProps) => {
-  const pill = shotPill(shot, durationSeconds);
+const ShotStatusPillInner = ({ shot, sx }: ShotStatusPillProps) => {
+  const pill = shotPill(shot);
+  if (!pill) {
+    return null;
+  }
   return (
     <StatusPill
       tone={pill.tone}

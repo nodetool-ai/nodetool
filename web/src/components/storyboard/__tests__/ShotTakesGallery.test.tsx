@@ -81,11 +81,20 @@ afterEach(() => {
 });
 
 describe("ShotTakesGallery", () => {
-  it("renders nothing when the shot has at most one still and one clip", () => {
-    const { container } = renderGallery(
-      makeShot({ keyframe: image(1), clip: video(1) })
-    );
+  it("renders nothing for a shot that has generated nothing", () => {
+    const { container } = renderGallery(makeShot({ status: "planned" }));
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("shows the single still and clip of a one-take shot", () => {
+    renderGallery(makeShot({ keyframe: image(1), clip: video(1) }));
+
+    expect(screen.getByText("Stills")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Use still 1" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Clips")).toBeInTheDocument();
+    expect(screen.getByText("Take 1")).toBeInTheDocument();
   });
 
   it("shows counts and reveals both galleries via the node-results renderer", async () => {
@@ -97,7 +106,10 @@ describe("ShotTakesGallery", () => {
     });
     renderGallery(shot);
 
-    expect(screen.getByText("Takes: 2 stills · 3 clips")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /^Use still \d$/ })
+    ).toHaveLength(2);
+    expect(screen.getAllByText(/^Take \d$/)).toHaveLength(3);
     expect(screen.queryByTestId("output-renderer")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "View takes" }));

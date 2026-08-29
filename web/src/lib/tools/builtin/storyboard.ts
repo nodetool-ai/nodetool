@@ -156,10 +156,11 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_add_shot",
   description:
-    "Add a new shot to the specified storyboard. `action` is the concrete visual (required). Optionally set `camera`, `motion`, `durationSeconds`, and an `index` to insert at (appended when omitted). The shot starts in the 'planned' status.",
+    "Add a new shot to the specified storyboard. `action` is the concrete visual (required). `slug` is the shot's short title, e.g. 'Lighthouse at dusk' — give every shot one. Optionally set `camera`, `motion`, `durationSeconds`, and an `index` to insert at (appended when omitted). The shot starts in the 'planned' status.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     action: z.string().min(1),
+    slug: z.string().optional(),
     camera: cameraParam.optional(),
     motion: z.string().optional(),
     durationSeconds: z.number().optional(),
@@ -168,6 +169,7 @@ FrontendToolRegistry.register({
   async execute({
     storyboard_id,
     action,
+    slug,
     camera,
     motion,
     durationSeconds,
@@ -175,6 +177,7 @@ FrontendToolRegistry.register({
   }) {
     const shot = getStoryboardAgentHandler(storyboard_id).addShot({
       action,
+      slug,
       camera,
       motion,
       durationSeconds,
@@ -193,20 +196,33 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_update_shot",
   description:
-    "Edit an existing shot's `action`, `camera`, `motion`, or `status`. Omit a field to leave it unchanged.",
+    "Edit an existing shot's `slug` (its short title), `action`, `camera`, `motion`, `durationSeconds` (which pins the shot to that length), or `status`. Omit a field to leave it unchanged.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     target: targetParam,
     action: z.string().min(1).optional(),
+    slug: z.string().optional(),
     camera: cameraParam.optional(),
     motion: z.string().optional(),
+    durationSeconds: z.number().positive().optional(),
     status: shotStatusEnum.optional()
   }),
-  async execute({ storyboard_id, target, action, camera, motion, status }) {
+  async execute({
+    storyboard_id,
+    target,
+    action,
+    slug,
+    camera,
+    motion,
+    durationSeconds,
+    status
+  }) {
     const shot = getStoryboardAgentHandler(storyboard_id).updateShot(target, {
       action,
+      slug,
       camera,
       motion,
+      durationSeconds,
       status
     });
     const persisted = await persistBoard(storyboard_id, "The shot edit");

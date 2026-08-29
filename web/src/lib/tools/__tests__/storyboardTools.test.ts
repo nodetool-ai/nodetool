@@ -161,6 +161,50 @@ describe("ui_storyboard_* tools", () => {
     expect(result.shot.action).toBe("wide desert");
   });
 
+  it("passes the shot title through add_shot", async () => {
+    const handler = createMockHandler();
+    handler.addShot.mockReturnValue(shotNode({ slug: "Lighthouse" }));
+    setStoryboardAgentHandler(BOARD_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_storyboard_add_shot",
+      {
+        storyboard_id: BOARD_ID,
+        action: "wide desert",
+        slug: "Lighthouse"
+      },
+      "tc-slug-add",
+      ctx
+    );
+
+    expect(handler.addShot).toHaveBeenCalledWith(
+      expect.objectContaining({ slug: "Lighthouse" })
+    );
+  });
+
+  it("passes the shot title and length through update_shot", async () => {
+    const handler = createMockHandler();
+    handler.updateShot.mockReturnValue(shotNode({ slug: "Lighthouse" }));
+    setStoryboardAgentHandler(BOARD_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_storyboard_update_shot",
+      {
+        storyboard_id: BOARD_ID,
+        target: "0",
+        slug: "Lighthouse",
+        durationSeconds: 6
+      },
+      "tc-slug-update",
+      ctx
+    );
+
+    expect(handler.updateShot).toHaveBeenCalledWith(
+      "0",
+      expect.objectContaining({ slug: "Lighthouse", durationSeconds: 6 })
+    );
+  });
+
   it("generates a keyframe through the handler", async () => {
     const handler = createMockHandler();
     handler.generateKeyframe.mockResolvedValue(

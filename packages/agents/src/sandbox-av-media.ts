@@ -6,13 +6,9 @@
  * first use. The sandbox only sees byte arrays and media handles.
  */
 
-import { importHidden, IS_NODE } from "@nodetool-ai/config";
 import {
-  ALL_FORMATS,
-  BufferSource,
   Conversion,
   getFirstEncodableAudioCodec,
-  Input,
   Mp4OutputFormat,
   Output,
   StreamTarget,
@@ -25,36 +21,14 @@ import {
   type StreamTargetChunk
 } from "mediabunny";
 
+import { ensureCodecs, inputFrom } from "./analysis/mediabunny-runtime.js";
 import { encodePixels } from "./sandbox-media.js";
 import { isFiniteNumber, isNumber } from "./utils/type-guards.js";
-
-interface MediabunnyServerModule {
-  registerMediabunnyServer(): void;
-}
 
 interface WavData {
   readonly samples: Float32Array;
   readonly sampleRate: number;
   readonly channels: number;
-}
-
-let serverReady: Promise<void> | undefined;
-
-async function ensureCodecs(): Promise<void> {
-  if (!IS_NODE) return;
-  serverReady ??= (async () => {
-    const server =
-      await importHidden<MediabunnyServerModule>("@mediabunny/server");
-    if (!server) {
-      throw new Error("Mediabunny's server codec adapter is unavailable");
-    }
-    server.registerMediabunnyServer();
-  })();
-  await serverReady;
-}
-
-function inputFrom(bytes: Uint8Array): Input {
-  return new Input({ source: new BufferSource(bytes), formats: ALL_FORMATS });
 }
 
 async function validateVideoDimensions(

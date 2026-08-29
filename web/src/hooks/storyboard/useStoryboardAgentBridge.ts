@@ -123,6 +123,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
           type: "shot",
           id,
           index: board.shots.length,
+          slug: input.slug,
           action: input.action,
           camera: input.camera,
           motion: input.motion,
@@ -144,9 +145,15 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         const shot = requireShot(target);
         const next: Partial<Shot> = {};
         if (patch.action !== undefined) next.action = patch.action;
+        if (patch.slug !== undefined) next.slug = patch.slug;
         if (patch.camera !== undefined) next.camera = patch.camera;
         if (patch.motion !== undefined) next.motion = patch.motion;
         if (patch.status !== undefined) next.status = patch.status;
+        if (patch.durationSeconds !== undefined) {
+          next.duration_seconds = patch.durationSeconds;
+          // Typing a length pins the shot to it, matching the inspector field.
+          next.duration_source = "manual";
+        }
         if (patch.durationSource !== undefined) {
           next.duration_source = patch.durationSource;
         }
