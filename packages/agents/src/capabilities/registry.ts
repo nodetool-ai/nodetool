@@ -27,6 +27,7 @@ import {
   type PermissionCategory
 } from "./types.js";
 import { agentsSpecs } from "./agents.specs.js";
+import { analysisSpecs } from "./analysis.specs.js";
 import { apifySpecs } from "./apify.specs.js";
 import { appsSpecs } from "./apps.specs.js";
 import { assetsSpecs } from "./assets.specs.js";
@@ -97,7 +98,8 @@ const MODULES: Readonly<Record<string, Loader>> = {
   apify: () => import("./apify.js").then((m) => m.module),
   serpapi: () => import("./serpapi.js").then((m) => m.module),
   settings: () => import("./settings.js").then((m) => m.module),
-  skills: () => import("./skills.js").then((m) => m.module)
+  skills: () => import("./skills.js").then((m) => m.module),
+  analysis: () => import("./analysis.js").then((m) => m.module)
 };
 
 /**
@@ -140,7 +142,8 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "apify",
   "serpapi",
   "settings",
-  "skills"
+  "skills",
+  "analysis"
 ];
 
 /**
@@ -188,7 +191,8 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   apify: apifySpecs,
   serpapi: serpApiSpecs,
   settings: settingsSpecs,
-  skills: skillsSpecs
+  skills: skillsSpecs,
+  analysis: analysisSpecs
 };
 
 const SPEC_BY_NAME: ReadonlyMap<string, CapabilitySpec> = new Map(

@@ -150,6 +150,16 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Video understanding (a multimodal chat model reads a whole clip)
   "understand_video",
 
+  // Signal-level media analysis. Where `understand_video` asks a model what a
+  // clip is about, these measure what it is: duration and format, the loudness
+  // and frequency content of audio, and the motion, colour and cuts of video.
+  // Mediabunny decodes, so none of them needs ffmpeg on the host.
+  "analyze_audio",
+  "analyze_audio_spectrum",
+  "detect_audio_events",
+  "analyze_video",
+  "detect_video_scenes",
+
   // Media generation. Each reaches a provider through
   // `ProcessingContext.runProviderPrediction` and reads nothing off the run, so
   // a context is the whole dependency — the same one `critique_image` above and

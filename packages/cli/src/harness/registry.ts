@@ -501,6 +501,9 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: ["capability-suites", "eval", "jtbd"],
     paths: [
       "packages/agents/src/capabilities/",
+      // The signal analysis behind the `analyze_*` / `detect_*` capabilities.
+      // It exists only to serve them, so a change here is a change to them.
+      "packages/agents/src/analysis/",
       "packages/agents/src/evals/",
       "packages/agents/src/jtbd/",
       "packages/cli/src/harness/capability-table.ts",
