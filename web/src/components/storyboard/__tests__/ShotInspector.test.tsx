@@ -193,9 +193,12 @@ describe("ShotInspector", () => {
   it("names the selected shot and shows its status", () => {
     renderInspector(makeShot({ index: 4 }));
     expect(screen.getByText("SH 05 selected")).toBeInTheDocument();
-    expect(screen.getByText("5. Opening")).toBeInTheDocument();
+    expect(screen.getByText("5.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shot title")).toHaveValue("Opening");
     expect(screen.getByText("Planned")).toBeInTheDocument();
-    expect(screen.getByText("A lighthouse at dusk")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shot description")).toHaveValue(
+      "A lighthouse at dusk"
+    );
   });
 
   it("treats the legacy approved status as a ready still", () => {
@@ -426,7 +429,11 @@ describe("ShotInspector cross-document links", () => {
 
 describe("ShotInspector duration source", () => {
   const linkedShot = (overrides: Partial<Shot> = {}): Shot =>
-    makeShot({ duration_seconds: 8, script_line_ids: ["line-1"], ...overrides });
+    makeShot({
+      duration_seconds: 8,
+      script_line_ids: ["line-1"],
+      ...overrides
+    });
 
   beforeEach(() => {
     updateShotMock.mockClear();
@@ -436,38 +443,213 @@ describe("ShotInspector duration source", () => {
 
   it("shows the audio-derived length for a linked, voiced shot", () => {
     renderInspector(linkedShot());
+    expect(screen.getByText("from takes")).toBeInTheDocument();
     // 3400 ms + 250 ms of silence, rounded up to whole seconds.
-    expect(screen.getByText("4s · from takes")).toBeInTheDocument();
+    expect(screen.getByLabelText("Clip length in seconds")).toHaveAttribute(
+      "placeholder",
+      "4"
+    );
   });
 
   it("shows the shot's own length when it is pinned to manual", () => {
     renderInspector(linkedShot({ duration_source: "manual" }));
-    expect(screen.getByText("8s · manual")).toBeInTheDocument();
+    expect(screen.getByText("pinned")).toBeInTheDocument();
+    expect(screen.getByLabelText("Clip length in seconds")).toHaveValue(8);
   });
 
   it("falls back to the shot's own length while the line is unvoiced", () => {
     lineIsVoiced = false;
     renderInspector(linkedShot());
-    expect(screen.getByText("8s · manual")).toBeInTheDocument();
+    expect(screen.getByText("pinned")).toBeInTheDocument();
   });
 
   it("shows nothing for a shot that covers no script lines", () => {
     linkedScriptId = null;
     renderInspector(makeShot({ duration_seconds: 8 }));
-    expect(screen.queryByText(/from takes|manual/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/from takes|pinned/)).not.toBeInTheDocument();
   });
 
   it("toggles the source through the store", async () => {
     renderInspector(linkedShot());
-    await userEvent.click(screen.getByText("4s · from takes"));
+    await userEvent.click(screen.getByText("from takes"));
     expect(updateShotMock).toHaveBeenCalledWith("board-1", "shot-1", {
       duration_source: "manual"
     });
   });
 
-  it("does not toggle in read-only mode", async () => {
+  it("offers no toggle in read-only mode", () => {
     renderInspector(linkedShot(), { readOnly: true });
-    await userEvent.click(screen.getByText("4s · from takes"));
+    expect(screen.getByText("4s · from takes")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Clip length in seconds")
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("ShotInspector clip length", () => {
+  beforeEach(() => {
+    updateShotMock.mockClear();
+    linkedScriptId = null;
+    lineIsVoiced = true;
+  });
+
+  const lengthField = () => screen.getByLabelText("Clip length in seconds");
+
+  it("writes a typed length to the shot", async () => {
+    renderInspector(makeShot({ duration_seconds: 4 }));
+    const field = lengthField();
+    await userEvent.clear(field);
+    await userEvent.type(field, "9");
+    await userEvent.tab();
+
+    expect(updateShotMock).toHaveBeenLastCalledWith("board-1", "shot-1", {
+      duration_seconds: 9
+    });
+  });
+
+  it("clears the length back to the model default", async () => {
+    renderInspector(makeShot({ duration_seconds: 4 }));
+    await userEvent.clear(lengthField());
+    await userEvent.tab();
+
+    expect(updateShotMock).toHaveBeenLastCalledWith("board-1", "shot-1", {
+      duration_seconds: undefined
+    });
+  });
+
+  it("pins a linked shot to its own length when one is typed", async () => {
+    linkedScriptId = "script-1";
+    renderInspector(
+      makeShot({ duration_seconds: 4, script_line_ids: ["line-1"] })
+    );
+    const field = lengthField();
+    await userEvent.clear(field);
+    await userEvent.type(field, "6");
+    await userEvent.tab();
+
+    expect(updateShotMock).toHaveBeenLastCalledWith("board-1", "shot-1", {
+      duration_seconds: 6,
+      duration_source: "manual"
+    });
+  });
+
+  it("rejects a length that is not a positive number", async () => {
+    renderInspector(makeShot({ duration_seconds: 4 }));
+    const field = lengthField();
+    await userEvent.clear(field);
+    await userEvent.type(field, "-2");
+    await userEvent.tab();
+
     expect(updateShotMock).not.toHaveBeenCalled();
+  });
+
+  it("shows the length as text in read-only mode", () => {
+    renderInspector(makeShot({ duration_seconds: 4 }), { readOnly: true });
+    expect(
+      screen.queryByLabelText("Clip length in seconds")
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("4s · manual")).toBeInTheDocument();
+  });
+});
+
+describe("ShotInspector shot text", () => {
+  beforeEach(() => {
+    updateShotMock.mockClear();
+    linkedScriptId = null;
+  });
+
+  it("writes a renamed title on blur", async () => {
+    renderInspector(makeShot({ slug: "Opening" }));
+    const title = screen.getByLabelText("Shot title");
+    await userEvent.clear(title);
+    await userEvent.type(title, "Lighthouse at dusk");
+    await userEvent.tab();
+
+    expect(updateShotMock).toHaveBeenLastCalledWith("board-1", "shot-1", {
+      slug: "Lighthouse at dusk"
+    });
+  });
+
+  it("writes an edited description on blur", async () => {
+    renderInspector(makeShot());
+    const action = screen.getByLabelText("Shot description");
+    await userEvent.clear(action);
+    await userEvent.type(action, "Waves break on the rocks");
+    await userEvent.tab();
+
+    expect(updateShotMock).toHaveBeenLastCalledWith("board-1", "shot-1", {
+      action: "Waves break on the rocks"
+    });
+  });
+
+  it("keeps the stored description when it is emptied", async () => {
+    renderInspector(makeShot());
+    await userEvent.clear(screen.getByLabelText("Shot description"));
+    await userEvent.tab();
+
+    expect(updateShotMock).not.toHaveBeenCalled();
+  });
+
+  it("drops an edit on Escape", async () => {
+    renderInspector(makeShot({ slug: "Opening" }));
+    const title = screen.getByLabelText("Shot title");
+    await userEvent.type(title, " night");
+    await userEvent.keyboard("{Escape}");
+    await userEvent.tab();
+
+    expect(updateShotMock).not.toHaveBeenCalled();
+    expect(title).toHaveValue("Opening");
+  });
+
+  it("shows the title and description as text in read-only mode", () => {
+    renderInspector(makeShot({ index: 4 }), { readOnly: true });
+    expect(screen.getByText("5. Opening")).toBeInTheDocument();
+    expect(screen.getByText("A lighthouse at dusk")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Shot title")).not.toBeInTheDocument();
+  });
+});
+
+describe("ShotInspector camera selects", () => {
+  beforeEach(() => {
+    updateShotMock.mockClear();
+    linkedScriptId = null;
+  });
+
+  it("picks a framing and keeps the shot's other camera parts", async () => {
+    renderInspector(makeShot({ camera: { framing: "wide", lens: "28mm" } }));
+    await userEvent.click(screen.getByLabelText("Framing"));
+    await userEvent.click(screen.getByRole("option", { name: "close-up" }));
+
+    expect(updateShotMock).toHaveBeenCalledWith("board-1", "shot-1", {
+      camera: { framing: "close-up", lens: "28mm" }
+    });
+  });
+
+  it("clears one camera part without touching the rest", async () => {
+    renderInspector(
+      makeShot({ camera: { framing: "wide", movement: "static" } })
+    );
+    await userEvent.click(screen.getByLabelText("Movement"));
+    await userEvent.click(screen.getByRole("option", { name: "—" }));
+
+    expect(updateShotMock).toHaveBeenCalledWith("board-1", "shot-1", {
+      camera: { framing: "wide" }
+    });
+  });
+
+  it("keeps a value the vocabulary does not carry", async () => {
+    renderInspector(makeShot({ camera: { movement: "static then subtle" } }));
+    await userEvent.click(screen.getByLabelText("Movement"));
+    expect(
+      screen.getByRole("option", { name: "static then subtle" })
+    ).toBeInTheDocument();
+  });
+
+  it("reads the camera line as text in read-only mode", () => {
+    renderInspector(makeShot({ camera: { framing: "wide", lens: "28mm" } }), {
+      readOnly: true
+    });
+    expect(screen.getByText("wide · 28mm")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Framing")).not.toBeInTheDocument();
   });
 });

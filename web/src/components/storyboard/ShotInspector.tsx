@@ -10,7 +10,12 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import type { ImageRef, Shot, ShotStatus, VideoRef } from "@nodetool-ai/protocol";
+import type {
+  ImageRef,
+  Shot,
+  ShotStatus,
+  VideoRef
+} from "@nodetool-ai/protocol";
 import { shotRenderMode } from "@nodetool-ai/protocol";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -32,6 +37,7 @@ import {
   Panel,
   StatusIndicator,
   Text,
+  SelectField,
   TextInput,
   ToolbarIconButton,
   BORDER_RADIUS,
@@ -40,6 +46,13 @@ import {
   TYPOGRAPHY,
   type StatusType
 } from "../ui_primitives";
+import {
+  ANGLE_OPTIONS,
+  FRAMING_OPTIONS,
+  LENS_OPTIONS,
+  MOVEMENT_OPTIONS,
+  cameraOptions
+} from "./cameraOptions";
 import ShotTakesGallery from "./ShotTakesGallery";
 import ShotScriptPanel from "./ShotScriptPanel";
 import {
@@ -135,7 +148,70 @@ const cameraLine = (shot: Shot): string =>
     .filter((p): p is string => !!p && p.trim().length > 0)
     .join(" · ");
 
+const cameraFieldSx = { flex: "1 1 7rem", minWidth: "6.5rem" } as const;
+const movementFieldSx = { flex: "1.6 1 9rem", minWidth: "8rem" } as const;
+const durationFieldSx = { width: "6rem", flexShrink: 0 } as const;
+const shotIndexSx = {
+  ...TYPOGRAPHY.sans.title,
+  color: "text.secondary",
+  flexShrink: 0
+} as const;
+// The title reads as a title, not as a form field: the underline appears on
+// hover and focus so the row stays quiet until it is being edited.
+const shotTitleSx = {
+  minWidth: 0,
+  flex: 1,
+  "& .MuiInputBase-input": TYPOGRAPHY.sans.title,
+  "& .MuiInput-root:before": { borderBottomColor: "transparent" },
+  "&:hover .MuiInput-root:before": { borderBottomColor: "divider" }
+} as const;
+
 const EMPTY_IDS: string[] = [];
+
+/**
+ * A text field that edits one shot field: it holds a draft while the user
+ * types, writes on blur or Enter, and drops the draft on Escape. Committing on
+ * every keystroke would put one undo step per character on the board.
+ */
+const useShotTextField = (
+  stored: string,
+  commit: (next: string) => void,
+  multiline = false
+) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      setDraft(event.target.value),
+    []
+  );
+  const handleBlur = useCallback(() => {
+    if (draft === null) {
+      return;
+    }
+    const next = draft.trim();
+    setDraft(null);
+    if (next !== stored) {
+      commit(next);
+    }
+  }, [draft, stored, commit]);
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Enter" && !(multiline && event.shiftKey)) {
+        event.preventDefault();
+        (event.target as HTMLInputElement).blur();
+      } else if (event.key === "Escape") {
+        setDraft(null);
+      }
+    },
+    [multiline]
+  );
+  return {
+    value: draft ?? stored,
+    onChange: handleChange,
+    onBlur: handleBlur,
+    onKeyDown: handleKeyDown
+  };
+};
 
 const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   boardId,
@@ -145,7 +221,9 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   isLast,
   onClose
 }) => {
-  const toggleShotEntity = useStoryboardStore((state) => state.toggleShotEntity);
+  const toggleShotEntity = useStoryboardStore(
+    (state) => state.toggleShotEntity
+  );
   const updateShot = useStoryboardStore((state) => state.updateShot);
   const moveShot = useStoryboardStore((state) => state.moveShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
@@ -226,12 +304,11 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
     duration.seconds != null
       ? `${duration.seconds}s · ${duration.source === "audio" ? "from takes" : "manual"}`
       : "model default";
-  // Camera and cost share one quiet line under the action text; neither is
-  // worth a chip of its own.
-  const metaLine = [
-    camera.length > 0 ? camera : null,
-    shot.cost_estimate != null ? `~$${shot.cost_estimate.toFixed(2)}` : null
-  ]
+  // Cost sits in the same quiet line as the camera controls. A read-only
+  // inspector has no controls, so there the camera reads as text beside it.
+  const costLabel =
+    shot.cost_estimate != null ? `~$${shot.cost_estimate.toFixed(2)}` : "";
+  const metaLine = [camera.length > 0 ? camera : null, costLabel || null]
     .filter((p): p is string => p !== null)
     .join(" · ");
 
@@ -271,6 +348,120 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
     openTab({ type: "script", ref: scriptId, mode: "edit", title: "Script" });
   }, [openTab, scriptId, scriptLink]);
 
+  // Each camera part edits on its own; the shot keeps the other three.
+  const commitCamera = useCallback(
+    (key: keyof NonNullable<Shot["camera"]>, next: string) => {
+      const camera = { ...(shot.camera ?? {}), [key]: next };
+      if (next === "") {
+        delete camera[key];
+      }
+      updateShot(boardId, shot.id, {
+        camera: Object.keys(camera).length > 0 ? camera : undefined
+      });
+    },
+    [updateShot, boardId, shot.id, shot.camera]
+  );
+  const handleFramingChange = useCallback(
+    (value: string) => commitCamera("framing", value),
+    [commitCamera]
+  );
+  const handleLensChange = useCallback(
+    (value: string) => commitCamera("lens", value),
+    [commitCamera]
+  );
+  const handleAngleChange = useCallback(
+    (value: string) => commitCamera("angle", value),
+    [commitCamera]
+  );
+  const handleMovementChange = useCallback(
+    (value: string) => commitCamera("movement", value),
+    [commitCamera]
+  );
+  const framingOptions = useMemo(
+    () => cameraOptions(FRAMING_OPTIONS, shot.camera?.framing ?? ""),
+    [shot.camera?.framing]
+  );
+  const lensOptions = useMemo(
+    () => cameraOptions(LENS_OPTIONS, shot.camera?.lens ?? ""),
+    [shot.camera?.lens]
+  );
+  const angleOptions = useMemo(
+    () => cameraOptions(ANGLE_OPTIONS, shot.camera?.angle ?? ""),
+    [shot.camera?.angle]
+  );
+  const movementOptions = useMemo(
+    () => cameraOptions(MOVEMENT_OPTIONS, shot.camera?.movement ?? ""),
+    [shot.camera?.movement]
+  );
+
+  const titleField = useShotTextField(
+    shot.slug ?? "",
+    useCallback(
+      (slug: string) => updateShot(boardId, shot.id, { slug }),
+      [updateShot, boardId, shot.id]
+    )
+  );
+  const actionField = useShotTextField(
+    shot.action,
+    useCallback(
+      (action: string) => {
+        if (action !== "") {
+          updateShot(boardId, shot.id, { action });
+        }
+      },
+      [updateShot, boardId, shot.id]
+    ),
+    true
+  );
+
+  // The shot's own length. Typing one pins the shot to it, so a linked board
+  // stops timing this shot from the takes under it.
+  const [durationDraft, setDurationDraft] = useState<string | null>(null);
+  const durationValue =
+    durationDraft ??
+    (shot.duration_seconds != null ? String(shot.duration_seconds) : "");
+  const durationPlaceholder =
+    duration.source === "audio" && duration.seconds != null
+      ? String(duration.seconds)
+      : "auto";
+
+  const handleDurationChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      setDurationDraft(event.target.value),
+    []
+  );
+
+  const commitDuration = useCallback(() => {
+    if (durationDraft === null) {
+      return;
+    }
+    const raw = durationDraft.trim();
+    setDurationDraft(null);
+    if (raw === "") {
+      updateShot(boardId, shot.id, { duration_seconds: undefined });
+      return;
+    }
+    const seconds = Number(raw);
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      return;
+    }
+    updateShot(boardId, shot.id, {
+      duration_seconds: seconds,
+      ...(linksLines ? { duration_source: "manual" as const } : {})
+    });
+  }, [durationDraft, updateShot, boardId, shot.id, linksLines]);
+
+  const handleDurationKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Enter") {
+        (event.target as HTMLInputElement).blur();
+      } else if (event.key === "Escape") {
+        setDurationDraft(null);
+      }
+    },
+    []
+  );
+
   const handleToggleDurationSource = useCallback(() => {
     updateShot(boardId, shot.id, {
       duration_source: shot.duration_source === "manual" ? "audio" : "manual"
@@ -278,7 +469,8 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   }, [updateShot, boardId, shot.id, shot.duration_source]);
 
   const handleOpenMenu = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => setMenuAnchor(event.currentTarget),
+    (event: React.MouseEvent<HTMLElement>) =>
+      setMenuAnchor(event.currentTarget),
     []
   );
   const handleCloseMenu = useCallback(() => setMenuAnchor(null), []);
@@ -405,9 +597,29 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
 
       <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl, minWidth: 0 }}>
         <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
-          <Text size="small" truncate sx={{ minWidth: 0 }}>
-            {shotName}
-          </Text>
+          {readOnly ? (
+            <Text size="small" truncate sx={{ minWidth: 0 }}>
+              {shotName}
+            </Text>
+          ) : (
+            <FlexRow
+              align="center"
+              gap={SPACING.xs}
+              sx={{ minWidth: 0, flex: 1 }}
+            >
+              <Box sx={shotIndexSx}>{`${shot.index + 1}.`}</Box>
+              <TextInput
+                compact
+                size="small"
+                variant="standard"
+                label="Shot title"
+                hideLabel
+                placeholder="Untitled shot"
+                {...titleField}
+                sx={shotTitleSx}
+              />
+            </FlexRow>
+          )}
           <FlexRow align="center" gap={SPACING.xs} sx={{ flexShrink: 0 }}>
             <StatusIndicator
               status={meta.status}
@@ -444,30 +656,113 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
           </FlexRow>
         </FlexRow>
 
-        <Text lineClamp={3} sx={{ lineHeight: 1.6 }}>
-          {shot.action}
-        </Text>
+        {readOnly ? (
+          <Text lineClamp={3} sx={{ lineHeight: 1.6 }}>
+            {shot.action}
+          </Text>
+        ) : (
+          <TextInput
+            compact
+            size="small"
+            multiline
+            minRows={2}
+            label="Shot description"
+            hideLabel
+            placeholder="What the shot shows"
+            {...actionField}
+            sx={{ "& .MuiInputBase-input": { lineHeight: 1.6 } }}
+          />
+        )}
 
-        {(metaLine.length > 0 || linksLines) && (
-          <FlexRow align="center" gap={SPACING.sm} wrap>
-            {metaLine.length > 0 && (
-              <Caption color="secondary" noWrap>
-                {metaLine}
-              </Caption>
-            )}
+        {readOnly ? (
+          metaLine.length > 0 || duration.seconds != null ? (
+            <FlexRow align="center" gap={SPACING.sm} wrap>
+              {metaLine.length > 0 && (
+                <Caption color="secondary" noWrap>
+                  {metaLine}
+                </Caption>
+              )}
+              {duration.seconds != null && (
+                <Caption color="secondary" noWrap>
+                  {durationLabel}
+                </Caption>
+              )}
+            </FlexRow>
+          ) : null
+        ) : (
+          <FlexRow align="flex-end" gap={SPACING.sm} wrap>
+            <Box sx={cameraFieldSx}>
+              <SelectField
+                size="small"
+                label="Framing"
+                value={shot.camera?.framing ?? ""}
+                onChange={handleFramingChange}
+                options={framingOptions}
+              />
+            </Box>
+            <Box sx={cameraFieldSx}>
+              <SelectField
+                size="small"
+                label="Lens"
+                value={shot.camera?.lens ?? ""}
+                onChange={handleLensChange}
+                options={lensOptions}
+              />
+            </Box>
+            <Box sx={cameraFieldSx}>
+              <SelectField
+                size="small"
+                label="Angle"
+                value={shot.camera?.angle ?? ""}
+                onChange={handleAngleChange}
+                options={angleOptions}
+              />
+            </Box>
+            <Box sx={movementFieldSx}>
+              <SelectField
+                size="small"
+                label="Movement"
+                value={shot.camera?.movement ?? ""}
+                onChange={handleMovementChange}
+                options={movementOptions}
+              />
+            </Box>
+            <TextInput
+              compact
+              size="small"
+              fullWidth={false}
+              type="number"
+              label="Length (s)"
+              placeholder={durationPlaceholder}
+              value={durationValue}
+              onChange={handleDurationChange}
+              onBlur={commitDuration}
+              onKeyDown={handleDurationKeyDown}
+              inputProps={{
+                min: 1,
+                step: 1,
+                "aria-label": "Clip length in seconds"
+              }}
+              sx={durationFieldSx}
+            />
             {linksLines && (
               <Chip
                 compact
                 variant="outlined"
-                label={durationLabel}
-                sx={quietChipSx}
+                label={duration.source === "audio" ? "from takes" : "pinned"}
+                sx={{ ...quietChipSx, mb: SPACING.micro }}
                 title={
                   duration.source === "audio"
                     ? "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own duration."
                     : "Length is pinned to the shot's own duration. Click to take it from the lines this shot covers."
                 }
-                onClick={readOnly ? undefined : handleToggleDurationSource}
+                onClick={handleToggleDurationSource}
               />
+            )}
+            {costLabel !== "" && (
+              <Caption color="secondary" noWrap sx={{ mb: SPACING.micro }}>
+                {costLabel}
+              </Caption>
             )}
           </FlexRow>
         )}
@@ -493,7 +788,12 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
                     readOnly
                       ? undefined
                       : () =>
-                          toggleShotEntity(boardId, shot.id, entity.id, appliedIds)
+                          toggleShotEntity(
+                            boardId,
+                            shot.id,
+                            entity.id,
+                            appliedIds
+                          )
                   }
                 />
               );
@@ -538,7 +838,9 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
           </EditorMenuItem>
         )}
         {shot.clip && (
-          <EditorMenuItem onClick={handleRemoveClip}>Remove clip</EditorMenuItem>
+          <EditorMenuItem onClick={handleRemoveClip}>
+            Remove clip
+          </EditorMenuItem>
         )}
       </EditorMenu>
 
