@@ -73,6 +73,7 @@ import {
   Job,
   listApplicationVersions,
   invocationBelongsToApplication,
+  invocationIdInUse,
   releasedApplicationRelease,
   releasedApplicationVersion,
   reserveInvocation,
@@ -140,6 +141,7 @@ import {
   NO_MODEL_SELECTED_MESSAGE,
   noMediaModelSelectedMessage
 } from "@nodetool-ai/protocol";
+import { applicationReleaseResponse } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import type {
   Chunk,
   GraphData,
@@ -237,6 +239,7 @@ import {
   isRunRefusal,
   type AppSessionScope
 } from "./lib/app-session-scope.js";
+import { releaseBlockedReason } from "./lib/app-deployment-service.js";
 import type {
   FrontendRendererRegistry,
   FrontendRendererToolCall,
@@ -2129,6 +2132,10 @@ interface SkillEntry {
   content: string;
 }
 
+/** The shape `crypto.randomUUID()` produces, on either side of the wire. */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export class UnifiedWebSocketRunner {
   websocket: WebSocketConnection | null = null;
   mode: WebSocketMode = "binary";
@@ -3398,13 +3405,33 @@ export class UnifiedWebSocketRunner {
       // Reserving claims the run against the budget in the same transaction
       // that checks it, so concurrent runs of one app cannot each read a total
       // that excludes the others and all be admitted.
-      const decision = await reserveInvocation({
-        applicationId,
-        version,
-        invocationId: jobId,
-        operationId: req.operation_id ?? undefined,
-        estimatedUsd
-      });
+      // The ledger holds one row per (application, invocation), so two runs
+      // racing on one id lose the insert rather than double-spend. The loser
+      // is refused like any other rejected run instead of surfacing a driver
+      // error to the visitor.
+      let decision: Awaited<ReturnType<typeof reserveInvocation>>;
+      try {
+        decision = await reserveInvocation({
+          applicationId,
+          version,
+          invocationId: jobId,
+          operationId: req.operation_id ?? undefined,
+          estimatedUsd,
+          requireFiniteBudget: this.appSession !== null
+        });
+      } catch (error) {
+        log.warn("Application run ledger rejected the reservation", {
+          applicationId,
+          jobId,
+          error: String(error)
+        });
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.INVALID_INPUT,
+          "This app run named a run id that is already in use"
+        );
+      }
       if (!decision.allowed) {
         log.warn("Run refused by application budget", {
           applicationId,
@@ -3465,18 +3492,44 @@ export class UnifiedWebSocketRunner {
    * actually confines them, and it runs first: what comes out is built from
    * the signed session and the release, not from the request.
    *
-   * The run executes the release that is current *now*, not the one the page
-   * loaded. Publishing is how an owner updates a deployed app, and a session
-   * that kept running the version it opened with would keep serving the old
-   * app to whoever left the tab open. When the two differ the client is told
-   * to reload, the same way a stale editor session is.
+   * The run executes only the release version the signed session names. A
+   * later publish invalidates the session for execution, so the visitor must
+   * reload and mint a session for the new release rather than run its graphs.
    */
   private async confineAppSessionRun(
     req: RunJobRequest
   ): Promise<RunJobRequest | null> {
     const scope = this.appSession;
     if (!scope) return req;
-    const jobId = req.job_id ?? randomUUID();
+    // The client names the run so it can follow its own frames, but the id it
+    // names is also the ledger key a job command is authorized against. An id
+    // that is already a job or already in a ledger would let a visitor file a
+    // row under someone else's run and then command it, so a taken id — and a
+    // shape that is not a generated id at all — is refused rather than
+    // silently replaced with one the client would never recognize.
+    const requested = req.job_id ?? "";
+    const jobId = requested === "" ? randomUUID() : requested;
+    if (requested !== "" && !UUID_PATTERN.test(requested)) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.INVALID_INPUT,
+        "This app run named an invalid run id"
+      );
+      return null;
+    }
+    if (
+      requested !== "" &&
+      ((await Job.get(requested)) !== null || (await invocationIdInUse(requested)))
+    ) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.INVALID_INPUT,
+        "This app run named a run id that is already in use"
+      );
+      return null;
+    }
     const release = await releasedApplicationRelease(
       scope.applicationId,
       this.userId ?? ""
@@ -3490,21 +3543,40 @@ export class UnifiedWebSocketRunner {
       );
       return null;
     }
+    const parsedRelease = applicationReleaseResponse.safeParse(release);
+    if (!parsedRelease.success) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.NOT_FOUND,
+        "This app is not available"
+      );
+      return null;
+    }
+    if (releaseBlockedReason(parsedRelease.data)) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.NOT_FOUND,
+        "This app is not available"
+      );
+      return null;
+    }
+    if (release.version !== scope.version) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.INVALID_INPUT,
+        "This app has been updated. Reload the page before running it."
+      );
+      return null;
+    }
     const confined = confineRunRequest(req, scope, release);
     if (isRunRefusal(confined)) {
       this.refuseRun(req, jobId, ApiErrorCode.INVALID_INPUT, confined.refused);
       return null;
     }
     confined.job_id = jobId;
-    if (release.version !== scope.version) {
-      this.sendDetached({
-        type: "notification",
-        node_id: "",
-        severity: "warning",
-        workflow_id: confined.workflow_id ?? null,
-        content: `This app has been updated to version ${release.version}. Reload the page to get the latest.`
-      });
-    }
     return confined;
   }
 

@@ -143,6 +143,15 @@ describe("isPublicAppDeploymentRequest", () => {
     );
     expect(isPublicAppDeploymentRequest("/api/apps/", "GET")).toBe(false);
     expect(isPublicAppDeploymentRequest("/api/apps", "GET")).toBe(false);
+    expect(
+      isPublicAppDeploymentRequest("/api/apps/tok3n/runs/session", "POST")
+    ).toBe(false);
+    expect(
+      isPublicAppDeploymentRequest("/api/apps/tok3n/session/", "POST")
+    ).toBe(false);
+    expect(
+      isPublicAppDeploymentRequest("/api/apps//session", "POST")
+    ).toBe(false);
   });
 
   it("never reaches the owner-scoped application routes", () => {

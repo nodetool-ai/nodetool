@@ -13,7 +13,8 @@ import {
   initTestDb,
   invocationBelongsToApplication,
   publishApplication,
-  recordInvocation
+  recordInvocation,
+  setApplicationBudget
 } from "@nodetool-ai/models";
 
 import {
@@ -81,6 +82,7 @@ const seedPublishedApp = async (): Promise<{
     name: "Demo app",
     document: JSON.stringify(document)
   });
+  await setApplicationBudget(application.id, { maxInvocations: 100 });
   const release = await publishApplication(application);
   return { application, version: release.version };
 };
@@ -140,19 +142,13 @@ describe("a runner connected by a deployed app's visitor", () => {
     ).rejects.toThrow(/RPC commands require/);
   });
 
-  it("refuses a run naming a workflow the release does not publish", async () => {
+  it("refuses a run that does not name a published operation", async () => {
     const { application, version } = await seedPublishedApp();
-    await Workflow.create<Workflow>({
-      id: "wf-private",
-      user_id: USER,
-      name: "The owner's other workflow",
-      graph: { nodes: [], edges: [] }
-    });
     const runner = appRunner(application.id, version);
     const ws = new MockWS();
     await runner.connect(ws);
 
-    await runner.runJob({ job_id: "job-1", workflow_id: "wf-private" });
+    await runner.runJob({ workflow_id: "wf-published" });
 
     await vi.waitFor(() => {
       expect(
@@ -160,8 +156,7 @@ describe("a runner connected by a deployed app's visitor", () => {
           (m) =>
             m.type === "job_update" &&
             m.status === "failed" &&
-            m.job_id === "job-1" &&
-            m.error === "This app does not publish that workflow"
+            m.error === "This app run did not name an operation"
         )
       ).toBe(true);
     });
@@ -173,9 +168,12 @@ describe("a runner connected by a deployed app's visitor", () => {
     const ws = new MockWS();
     await runner.connect(ws);
 
+    const visitorJobId = "6f9619ff-8b86-4d11-b42d-00c04fc964ff";
     await runner.runJob({
-      job_id: "job-ok",
-      workflow_id: "wf-published",
+      job_id: visitorJobId,
+      workflow_id: "wf-the-owners-private-one",
+      job_name: "The visitor's label",
+      operation_id: "main",
       // A visitor who edits the payload runs the published graph regardless.
       graph: {
         nodes: [{ id: "smuggled", type: "nodetool.code.Code" }],
@@ -186,9 +184,7 @@ describe("a runner connected by a deployed app's visitor", () => {
 
     await vi.waitFor(() => {
       expect(
-        sentMsgs(ws).some(
-          (m) => m.type === "job_update" && m.job_id === "job-ok"
-        )
+        sentMsgs(ws).some((m) => m.type === "job_update" && m.status !== "failed")
       ).toBe(true);
     });
     // Nothing was refused, and the ledger filed the run under this app.
@@ -197,8 +193,137 @@ describe("a runner connected by a deployed app's visitor", () => {
         (m) => m.type === "job_update" && m.status === "failed"
       )
     ).toBe(false);
+    const update = sentMsgs(ws).find(
+      (m) => m.type === "job_update" && m.status !== "failed"
+    );
+    // The visitor's own id survives, so its frames reach the page that asked
+    // for the run, and the ledger files it under this app.
+    expect(update?.job_id).toBe(visitorJobId);
+    expect(
+      await invocationBelongsToApplication(application.id, visitorJobId)
+    ).toBe(true);
+  });
+
+  it("refuses a run id that is not a generated one", async () => {
+    const { application, version } = await seedPublishedApp();
+    const runner = appRunner(application.id, version);
+    const ws = new MockWS();
+    await runner.connect(ws);
+
+    await runner.runJob({
+      job_id: "job-ok",
+      workflow_id: "wf-published",
+      operation_id: "main"
+    });
+
+    expect(
+      sentMsgs(ws).some(
+        (m) =>
+          m.type === "job_update" &&
+          m.status === "failed" &&
+          m.job_id === "job-ok" &&
+          m.error === "This app run named an invalid run id"
+      )
+    ).toBe(true);
     expect(
       await invocationBelongsToApplication(application.id, "job-ok")
+    ).toBe(false);
+  });
+
+  it("refuses a run id another run already took", async () => {
+    const { application, version } = await seedPublishedApp();
+    const taken = "6f9619ff-8b86-4d11-b42d-00c04fc96400";
+    await recordInvocation({
+      applicationId: application.id,
+      invocationId: taken,
+      userId: USER
+    });
+    const runner = appRunner(application.id, version);
+    const ws = new MockWS();
+    await runner.connect(ws);
+
+    await runner.runJob({
+      job_id: taken,
+      workflow_id: "wf-published",
+      operation_id: "main"
+    });
+
+    expect(
+      sentMsgs(ws).some(
+        (m) =>
+          m.type === "job_update" &&
+          m.status === "failed" &&
+          m.job_id === taken &&
+          m.error === "This app run named a run id that is already in use"
+      )
+    ).toBe(true);
+  });
+
+  it("refuses a session after a newer compatible release is published", async () => {
+    const { application, version } = await seedPublishedApp();
+    await publishApplication(application);
+    const runner = appRunner(application.id, version);
+    const ws = new MockWS();
+    await runner.connect(ws);
+
+    await runner.runJob({
+      job_id: "6f9619ff-8b86-4d11-b42d-00c04fc96411",
+      workflow_id: "wf-published",
+      operation_id: "main"
+    });
+
+    expect(
+      sentMsgs(ws).some(
+        (m) =>
+          m.type === "job_update" &&
+          m.status === "failed" &&
+          m.error === "This app has been updated. Reload the page before running it."
+      )
+    ).toBe(true);
+    expect(
+      await invocationBelongsToApplication(
+        application.id,
+        "6f9619ff-8b86-4d11-b42d-00c04fc96411"
+      )
+    ).toBe(false);
+  });
+
+  it("stops an existing session after an incompatible publish", async () => {
+    const { application, version } = await seedPublishedApp();
+    const incompatible = createEmptyDocument("Demo");
+    incompatible.operations = [
+      {
+        id: "main",
+        name: "Run",
+        workflowId: "wf-published",
+        inputs: {},
+        outputs: {},
+        policy: "replace"
+      }
+    ];
+    incompatible.resources = [
+      { id: "library", name: "Library", kind: "asset", operations: ["read"] }
+    ];
+    const changed = await Application.updateFieldsIfUnchanged(
+      application.id,
+      application.updated_at,
+      { document: JSON.stringify(incompatible) }
+    );
+    if (!changed) throw new Error("Expected application update to succeed");
+    await publishApplication(changed);
+
+    const runner = appRunner(application.id, version);
+    const ws = new MockWS();
+    await runner.connect(ws);
+    await runner.runJob({ workflow_id: "wf-published", operation_id: "main" });
+
+    expect(
+      sentMsgs(ws).some(
+        (m) =>
+          m.type === "job_update" &&
+          m.status === "failed" &&
+          m.error === "This app is not available"
+      )
     ).toBe(true);
   });
 

@@ -80,31 +80,3 @@ export const applicationVersions = sqliteTable(
     )
   ]
 );
-
-/**
- * An app's hidden-URL deployment: the app is served to anyone holding `token`,
- * with no login. One row per application — the link is the app's, not one of
- * many — and revoking sets `revoked_at` rather than deleting, so a link that
- * was withdrawn stays withdrawn if the same token were ever minted again.
- */
-export const applicationDeployments = sqliteTable(
-  "application_deployments",
-  {
-    id: text("id").primaryKey(),
-    /** Cascades with the app, like `application_versions` and for the reason given there. */
-    application_id: text("application_id")
-      .notNull()
-      .references(() => applications.id, { onDelete: "cascade" }),
-    /** Owner at deploy time. Runs of the deployed app execute as this user. */
-    user_id: text("user_id").notNull(),
-    token: text("token").notNull(),
-    created_at: text("created_at").notNull(),
-    revoked_at: text("revoked_at")
-  },
-  (table) => [
-    index("idx_application_deployment_app").on(table.application_id),
-    // The token is looked up on every anonymous request and is the whole
-    // secret, so it is unique across apps as well as fast to find.
-    uniqueIndex("idx_application_deployment_token").on(table.token)
-  ]
-);

@@ -28,9 +28,9 @@ import {
 import { getDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
 import {
   applications,
-  applicationDeployments,
   applicationVersions
 } from "./schema/applications.js";
+import { applicationDeployments } from "./schema/application-deployments.js";
 import {
   applicationBudgets,
   applicationInvocations

@@ -78,6 +78,7 @@ const state = {
 /** Per-test overrides for the query and mutation results the panel reads. */
 interface Failure {
   message: string;
+  data?: { code: string };
 }
 
 const overrides: {
@@ -88,6 +89,8 @@ const overrides: {
   releaseError: Failure | null;
   setBudgetError: Failure | null;
   deploymentError: Failure | null;
+  deployError: Failure | null;
+  undeployError: Failure | null;
 } = {
   versionsError: null,
   budgetError: null,
@@ -95,7 +98,9 @@ const overrides: {
   publishError: null,
   releaseError: null,
   setBudgetError: null,
-  deploymentError: null
+  deploymentError: null,
+  deployError: null,
+  undeployError: null
 };
 
 const resetOverrides = () => {
@@ -106,6 +111,8 @@ const resetOverrides = () => {
   overrides.releaseError = null;
   overrides.setBudgetError = null;
   overrides.deploymentError = null;
+  overrides.deployError = null;
+  overrides.undeployError = null;
   state.deployment = {
     applicationId: "app-1",
     token: "tok3n",
@@ -113,6 +120,20 @@ const resetOverrides = () => {
     revokedAt: null,
     blockedReason: null
   };
+};
+
+const isProductionOnlyDeploymentErrorMock = (error: unknown): boolean => {
+  if (
+    error === null ||
+    typeof error !== "object" ||
+    !("data" in error) ||
+    error.data === null ||
+    typeof error.data !== "object" ||
+    !("code" in error.data)
+  ) {
+    return false;
+  }
+  return error.data.code === "FORBIDDEN";
 };
 
 jest.mock("../../../hooks/useApplications", () => ({
@@ -160,17 +181,18 @@ jest.mock("../../../hooks/useApplications", () => ({
     isError: overrides.deploymentError !== null,
     error: overrides.deploymentError
   }),
+  isProductionOnlyDeploymentError: isProductionOnlyDeploymentErrorMock,
   useDeployApplication: () => ({
     mutate: deployMutate,
     isPending: false,
-    isError: false,
-    error: null
+    isError: overrides.deployError !== null,
+    error: overrides.deployError
   }),
   useUndeployApplication: () => ({
     mutate: undeployMutate,
     isPending: false,
-    isError: false,
-    error: null
+    isError: overrides.undeployError !== null,
+    error: overrides.undeployError
   })
 }));
 
@@ -384,10 +406,13 @@ describe("ApplicationGovernancePanel public link", () => {
     ).toBeInTheDocument();
   });
 
-  it("says the server does not serve links rather than showing an error", () => {
+  it("says the server does not serve links for the production-only refusal", () => {
     // Outside production the procedure is refused, which is the ordinary case
     // on a dev machine — not a fault to report as one.
-    overrides.deploymentError = { message: "FORBIDDEN" };
+    overrides.deploymentError = {
+      message: "Public links are only available in production",
+      data: { code: "FORBIDDEN" }
+    };
     renderPanel();
 
     expect(
@@ -396,5 +421,48 @@ describe("ApplicationGovernancePanel public link", () => {
     expect(
       screen.queryByRole("button", { name: /create public link/i })
     ).not.toBeInTheDocument();
+  });
+
+  it("reports a deployment query failure that is not the production-only refusal", () => {
+    overrides.deploymentError = { message: "Gateway timed out" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not load the public link: Gateway timed out"
+    );
+    expect(
+      screen.getByRole("button", { name: "Report deployment issue" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a failed deployment actionable", () => {
+    state.deployment = null;
+    overrides.deployError = { message: "Release a version before deploying" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not create the link: Release a version before deploying"
+    );
+    expect(
+      screen.getByRole("button", { name: /create public link/i })
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Report deployment issue" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a failed withdrawal actionable", () => {
+    overrides.undeployError = { message: "Service unavailable" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not withdraw the link: Service unavailable"
+    );
+    expect(
+      screen.getByRole("button", { name: /withdraw link/i })
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Report deployment issue" })
+    ).toBeInTheDocument();
   });
 });

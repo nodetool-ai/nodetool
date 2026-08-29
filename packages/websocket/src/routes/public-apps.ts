@@ -15,11 +15,17 @@
  * rather than by boot order.
  */
 
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyReply } from "fastify";
+import { gzipSync } from "node:zlib";
 import { TRPCError } from "@trpc/server";
-import { getHTTPStatusCodeFromError } from "@trpc/server/http";
+import {
+  publicApplication,
+  publicApplicationSession
+} from "@nodetool-ai/protocol/api-schemas/applications.js";
+import { z, type ZodType } from "zod";
 
-import { bridge } from "../lib/bridge.js";
+import { GZIP_THRESHOLD } from "../lib/compression.js";
+
 import {
   createPublicApplicationSession,
   getPublicApplication
@@ -33,55 +39,103 @@ export interface PublicAppRouteOptions {
   appSessionSigningKey: () => Buffer | string;
 }
 
-function jsonResponse(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data ?? null), {
-    status,
-    // A deployment's release moves under the URL when the owner publishes, and
-    // a session token is single-use-ish and short-lived. Neither may sit in a
-    // shared cache.
-    headers: {
-      "content-type": "application/json",
-      "cache-control": "no-store"
-    }
+const publicAppParamsSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["token"],
+  properties: { token: { type: "string", minLength: 1 } }
+} as const;
+
+const unavailableSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["detail"],
+  properties: { detail: { type: "string" } }
+} as const;
+
+function responseSchema(schema: ZodType): Record<string, unknown> {
+  const { $schema: _dialect, ...json } = z.toJSONSchema(schema, {
+    target: "draft-2020-12",
+    io: "input",
+    unrepresentable: "any"
   });
+  return json;
 }
 
-/**
- * Shape a service call into a response. Everything a visitor can trip is
- * already a `TRPCError` carrying the one 404 the service uses for every
- * failure, so nothing here needs to decide what to disclose.
- */
-async function respond<T>(produce: () => Promise<T>): Promise<Response> {
-  try {
-    return jsonResponse(await produce());
-  } catch (error) {
-    if (error instanceof TRPCError) {
-      return jsonResponse(
-        { detail: error.message },
-        getHTTPStatusCodeFromError(error)
-      );
-    }
-    throw error;
+const publicAppSchema = {
+  params: publicAppParamsSchema,
+  response: {
+    200: responseSchema(publicApplication),
+    404: unavailableSchema
   }
+};
+
+const publicAppSessionSchema = {
+  params: publicAppParamsSchema,
+  response: {
+    200: responseSchema(publicApplicationSession),
+    404: unavailableSchema
+  }
+};
+
+function sendUnavailable(reply: FastifyReply): void {
+  reply
+    .header("cache-control", "no-store")
+    .code(404)
+    .send({ detail: "This app is not available" });
 }
 
 const publicAppRoutes: FastifyPluginAsync<PublicAppRouteOptions> = async (
   app,
   opts
 ) => {
-  app.get("/api/apps/:token", async (req, reply) => {
-    const { token } = req.params as { token: string };
-    await bridge(req, reply, () => respond(() => getPublicApplication(token)));
+  app.setErrorHandler((error, _request, reply) => {
+    if (error instanceof TRPCError && error.code === "NOT_FOUND") {
+      sendUnavailable(reply);
+      return;
+    }
+    // Hand anything else back to Fastify's own handler rather than deciding
+    // here what a visitor may learn about it.
+    reply.send(error);
   });
 
-  app.post("/api/apps/:token/session", async (req, reply) => {
-    const { token } = req.params as { token: string };
-    await bridge(req, reply, () =>
-      respond(() =>
-        createPublicApplicationSession(token, opts.appSessionSigningKey())
-      )
-    );
+  // A released app document carries every pinned graph, so the one response a
+  // visitor gets can be large. The plugin compresses it itself: these routes
+  // no longer go through the request bridge, which used to do this.
+  app.addHook("onSend", async (request, reply, payload) => {
+    if (typeof payload !== "string" || payload.length < GZIP_THRESHOLD) {
+      return payload;
+    }
+    const accepted = request.headers["accept-encoding"];
+    if (typeof accepted !== "string" || !accepted.includes("gzip")) {
+      return payload;
+    }
+    const compressed = gzipSync(Buffer.from(payload));
+    reply.header("content-encoding", "gzip");
+    reply.header("content-length", compressed.byteLength);
+    return compressed;
   });
+
+  app.get<{ Params: { token: string } }>(
+    "/api/apps/:token",
+    { schema: publicAppSchema },
+    async (req, reply) => {
+      const application = await getPublicApplication(req.params.token);
+      reply.header("cache-control", "no-store").send(application);
+    }
+  );
+
+  app.post<{ Params: { token: string } }>(
+    "/api/apps/:token/session",
+    { schema: publicAppSessionSchema },
+    async (req, reply) => {
+      const session = await createPublicApplicationSession(
+        req.params.token,
+        opts.appSessionSigningKey()
+      );
+      reply.header("cache-control", "no-store").send(session);
+    }
+  );
 };
 
 export default publicAppRoutes;

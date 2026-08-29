@@ -1,4 +1,12 @@
-import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  index,
+  uniqueIndex
+} from "drizzle-orm/sqlite-core";
 
 import { applications } from "./applications.js";
 
@@ -23,7 +31,7 @@ export const applicationBudgets = sqliteTable("application_budgets", {
 
 /**
  * One row per run of an application: the spend check's input and the release
- * telemetry, keyed by `(application_id, version, invocation_id)`.
+ * telemetry, keyed by `(application_id, invocation_id)`.
  *
  * `estimated_usd` is what the budget check reserved before the job started;
  * `actual_usd` is filled in from the run's recorded provider costs when it
@@ -53,6 +61,19 @@ export const applicationInvocations = sqliteTable(
   (table) => [
     index("idx_application_invocation_app").on(table.application_id),
     index("idx_application_invocation_created").on(table.created_at),
-    index("idx_application_invocation_invocation").on(table.invocation_id)
+    index("idx_application_invocation_invocation").on(table.invocation_id),
+    uniqueIndex("idx_application_invocation_app_invocation").on(
+      table.application_id,
+      table.invocation_id
+    )
   ]
 );
+
+export type ApplicationBudgetRow = InferSelectModel<typeof applicationBudgets>;
+export type NewApplicationBudget = InferInsertModel<typeof applicationBudgets>;
+export type ApplicationInvocationRow = InferSelectModel<
+  typeof applicationInvocations
+>;
+export type NewApplicationInvocation = InferInsertModel<
+  typeof applicationInvocations
+>;

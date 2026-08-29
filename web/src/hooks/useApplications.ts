@@ -16,10 +16,24 @@ import {
 
 import { trpc } from "../trpc/client";
 import { fetchWorkflowById, workflowQueryKey } from "../serverState/useWorkflow";
-import { isObjectLike } from "../utils/typePredicates";
+import { isObjectLike, isString } from "../utils/typePredicates";
 
 const LIST_STALE_TIME = 30_000;
 const WORKFLOW_STALE_TIME = 60_000;
+
+/** The deployment endpoint is deliberately unavailable outside production. */
+export const isProductionOnlyDeploymentError = (error: unknown): boolean => {
+  if (
+    !isObjectLike(error) ||
+    !("data" in error) ||
+    !isObjectLike(error.data)
+  ) {
+    return false;
+  }
+  return (
+    isString(error.data.code) && error.data.code === "FORBIDDEN"
+  );
+};
 
 /**
  * True when a mutation lost the `baseUpdatedAt` compare-and-set — the record
@@ -122,24 +136,23 @@ export const useReleaseApplicationVersion = () => {
 };
 
 /**
- * The app's hidden-URL deployment, or null when it has none. Only offered in
- * production, so the query is expected to error elsewhere — callers read
- * `isError` as "this server does not deploy apps" rather than as a fault.
+ * The app's hidden-URL deployment, or null when it has none. Outside
+ * production the server returns `FORBIDDEN`; callers identify that particular
+ * response with `isProductionOnlyDeploymentError`.
  */
 export const useApplicationDeployment = (id: string | null | undefined) =>
   trpc.applications.deployment.useQuery(
     { id: id ?? "" },
-    { enabled: !!id, retry: false }
+    { enabled: !!id, retry: false, staleTime: LIST_STALE_TIME }
   );
 
 export const useDeployApplication = () => {
   const utils = trpc.useUtils();
   return trpc.applications.deploy.useMutation({
     onSuccess: (deployment) => {
-      utils.applications.deployment.setData(
-        { id: deployment.applicationId },
-        deployment
-      );
+      void utils.applications.deployment.invalidate({
+        id: deployment.applicationId
+      });
     }
   });
 };
@@ -148,7 +161,7 @@ export const useUndeployApplication = () => {
   const utils = trpc.useUtils();
   return trpc.applications.undeploy.useMutation({
     onSuccess: (_result, variables) => {
-      utils.applications.deployment.setData({ id: variables.id }, null);
+      void utils.applications.deployment.invalidate({ id: variables.id });
     }
   });
 };

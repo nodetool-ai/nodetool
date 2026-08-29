@@ -2115,7 +2115,7 @@ export const migrations: MigrationDef[] = [
   // A published app runs on the creator's secrets, so runs are checked against
   // a hard budget before the job is created and settled from the run's actual
   // provider cost afterwards. The ledger doubles as release telemetry, keyed by
-  // (application_id, version, invocation_id).
+  // (application_id, invocation_id).
   {
     version: "20260725_000002",
     name: "create_application_budgets",
@@ -3100,6 +3100,79 @@ export const migrations: MigrationDef[] = [
       );
       await db.execute("DROP INDEX IF EXISTS idx_application_deployment_app");
       await db.execute("DROP TABLE IF EXISTS application_deployments");
+    }
+  },
+
+  // ── Constrain public deployment and invocation identities ───────────
+  {
+    version: "20260829_000003",
+    name: "constrain_application_deployments_and_invocations",
+    createsTables: [],
+    modifiesTables: ["application_deployments", "application_invocations"],
+    async up(db) {
+      const revokedAt = new Date().toISOString();
+      const duplicateDeployments = await db.fetchall(
+        `SELECT application_id
+           FROM application_deployments
+          WHERE revoked_at IS NULL
+          GROUP BY application_id
+         HAVING COUNT(*) > 1`
+      );
+      for (const duplicate of duplicateDeployments) {
+        const rows = await db.fetchall(
+          `SELECT id
+             FROM application_deployments
+            WHERE application_id = ? AND revoked_at IS NULL
+            ORDER BY created_at DESC, id DESC`,
+          [duplicate.application_id]
+        );
+        for (const row of rows.slice(1)) {
+          await db.execute(
+            "UPDATE application_deployments SET revoked_at = ? WHERE id = ?",
+            [revokedAt, row.id]
+          );
+        }
+      }
+
+      const duplicateInvocations = await db.fetchall(
+        `SELECT application_id, invocation_id
+           FROM application_invocations
+          GROUP BY application_id, invocation_id
+         HAVING COUNT(*) > 1`
+      );
+      for (const duplicate of duplicateInvocations) {
+        const rows = await db.fetchall(
+          `SELECT id
+             FROM application_invocations
+            WHERE application_id = ? AND invocation_id = ?
+            ORDER BY created_at DESC, id DESC`,
+          [duplicate.application_id, duplicate.invocation_id]
+        );
+        for (const row of rows.slice(1)) {
+          await db.execute(
+            "UPDATE application_invocations SET invocation_id = ? WHERE id = ?",
+            [`legacy:${row.id}`, row.id]
+          );
+        }
+      }
+
+      await db.execute(
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_application_deployment_one_live
+           ON application_deployments (application_id)
+         WHERE revoked_at IS NULL`
+      );
+      await db.execute(
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_application_invocation_app_invocation
+           ON application_invocations (application_id, invocation_id)`
+      );
+    },
+    async down(db) {
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_application_invocation_app_invocation"
+      );
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_application_deployment_one_live"
+      );
     }
   }
 ];

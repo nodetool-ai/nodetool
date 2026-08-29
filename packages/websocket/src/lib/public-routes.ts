@@ -104,10 +104,12 @@ export function isPublicAppDeploymentRequest(
   method: string
 ): boolean {
   if (!pathname.startsWith("/api/apps/")) return false;
-  const rest = pathname.slice("/api/apps/".length);
-  if (rest === "") return false;
-  if (method === "GET") return !rest.includes("/");
-  if (method === "POST") return rest.endsWith("/session");
+  const segments = pathname.slice("/api/apps/".length).split("/");
+  if (segments[0] === "") return false;
+  if (method === "GET") return segments.length === 1;
+  if (method === "POST") {
+    return segments.length === 2 && segments[1] === "session";
+  }
   return false;
 }
 

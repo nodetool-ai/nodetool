@@ -25,6 +25,8 @@ import { operationTarget } from "@nodetool-ai/app-runtime";
 import {
   Application,
   ApplicationDeployment,
+  getApplicationBudget,
+  hasFiniteBudgetLimit,
   releasedApplicationRelease
 } from "@nodetool-ai/models";
 import {
@@ -42,10 +44,12 @@ import {
   type PublicApplicationSession
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { mintAppSessionToken } from "@nodetool-ai/auth";
+import { ZodError } from "zod";
 
 import { ApiErrorCode } from "../error-codes.js";
 import { throwApiError } from "../trpc/error-formatter.js";
 import { loadOwnedApplication } from "./applications-service.js";
+import { resolvePublicAppStaticAssetLocators } from "./public-app-assets.js";
 
 /** Whether this server offers public app deployments at all. */
 export function appDeploymentsEnabled(
@@ -57,6 +61,18 @@ export function appDeploymentsEnabled(
 /** The one answer a visitor gets for every way a link can fail. */
 function notAvailable(): never {
   throwApiError(ApiErrorCode.NOT_FOUND, "This app is not available");
+}
+
+/** A corrupt release is unavailable to a visitor, not a validation oracle. */
+function parsePublicRelease(
+  release: NonNullable<Awaited<ReturnType<typeof releasedApplicationRelease>>>
+): ApplicationReleaseResponse {
+  try {
+    return applicationReleaseResponse.parse(release);
+  } catch (error) {
+    if (error instanceof ZodError) notAvailable();
+    throw error;
+  }
 }
 
 /**
@@ -72,6 +88,9 @@ function requireEnabled(): void {
     );
   }
 }
+
+const PUBLIC_BUDGET_REQUIRED =
+  "Public app runs require a finite invocation or USD budget. Configure one before deploying.";
 
 /**
  * Why a release cannot be served over a public link, or null when it can.
@@ -141,9 +160,13 @@ async function currentBlockedReason(
 ): Promise<string | null> {
   const release = await releasedApplicationRelease(applicationId, userId);
   if (!release) return "This app has no released version to serve.";
-  return releaseBlockedReason(
+  const releaseBlocked = releaseBlockedReason(
     applicationReleaseResponse.parse(release)
   );
+  if (releaseBlocked) return releaseBlocked;
+  return hasFiniteBudgetLimit(await getApplicationBudget(applicationId))
+    ? null
+    : PUBLIC_BUDGET_REQUIRED;
 }
 
 /** The app's live deployment, or null when it has none. Owner only. */
@@ -190,6 +213,9 @@ export async function deployApplication(
     applicationReleaseResponse.parse(release)
   );
   if (blocked) throwApiError(ApiErrorCode.INVALID_INPUT, blocked);
+  if (!hasFiniteBudgetLimit(await getApplicationBudget(applicationId))) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, PUBLIC_BUDGET_REQUIRED);
+  }
   const deployment = await ApplicationDeployment.ensure({
     applicationId: app.id,
     userId
@@ -208,8 +234,7 @@ export async function undeployApplication(
 ): Promise<{ ok: true }> {
   requireEnabled();
   await loadOwnedApplication(userId, applicationId);
-  const deployment = await ApplicationDeployment.findLive(applicationId);
-  if (deployment) await deployment.revoke();
+  await ApplicationDeployment.revokeAllLive(applicationId);
   return { ok: true };
 }
 
@@ -251,7 +276,12 @@ async function resolveDeployment(token: string): Promise<{
   // runtime cannot execute. The link stops serving rather than serving
   // something that half-works; the owner sees why in `blockedReason`, and the
   // visitor gets the same 404 every other failure gives them.
-  if (releaseBlockedReason(applicationReleaseResponse.parse(release))) {
+  if (
+    releaseBlockedReason(parsePublicRelease(release)) ||
+    !hasFiniteBudgetLimit(
+      await getApplicationBudget(deployment.application_id)
+    )
+  ) {
     notAvailable();
   }
   return { deployment, application, release };
@@ -262,12 +292,29 @@ export async function getPublicApplication(
   token: string
 ): Promise<PublicApplication> {
   const { application, release } = await resolveDeployment(token);
-  return publicApplication.parse({
-    id: application.id,
-    name: application.name,
-    description: application.description,
-    release: applicationReleaseResponse.parse(release)
-  });
+  try {
+    const publicRelease = parsePublicRelease(release);
+    const document = {
+      ...publicRelease.document,
+      ui: await resolvePublicAppStaticAssetLocators(
+        publicRelease.document.ui,
+        application.user_id
+      ),
+      variables: await resolvePublicAppStaticAssetLocators(
+        publicRelease.document.variables,
+        application.user_id
+      )
+    };
+    return publicApplication.parse({
+      id: application.id,
+      name: application.name,
+      description: application.description,
+      release: { ...publicRelease, document }
+    });
+  } catch (error) {
+    if (error instanceof ZodError) notAvailable();
+    throw error;
+  }
 }
 
 /**

@@ -16,6 +16,18 @@ const SCOPE = { applicationId: "app-1", version: 2 };
 
 const release: RunnableRelease = {
   version: 3,
+  document: {
+    operations: [
+      { id: "draft", name: "Draft a note", workflowId: "wf-published" },
+      { id: "unpinned", name: "Unpinned", workflowId: "wf-unpinned" },
+      {
+        id: "script",
+        name: "Script",
+        workflowId: "",
+        target: { kind: "script" }
+      }
+    ]
+  },
   workflows: [
     {
       workflowId: "wf-published",
@@ -77,7 +89,8 @@ describe("confineRunRequest", () => {
   it("substitutes the release's graph for whatever the client sent", () => {
     const result = confineRunRequest(
       {
-        workflow_id: "wf-published",
+        operation_id: "draft",
+        workflow_id: "wf-the-owners-private-one",
         graph: {
           nodes: [{ id: "evil", type: "nodetool.code.Code" }],
           edges: []
@@ -92,11 +105,13 @@ describe("confineRunRequest", () => {
     expect(result.graph?.nodes).toEqual([
       { id: "n1", type: "nodetool.text.Concat" }
     ]);
+    expect(result.workflow_id).toBe("wf-published");
   });
 
   it("takes the app from the session and the version from the release", () => {
     const result = confineRunRequest(
       {
+        operation_id: "draft",
         workflow_id: "wf-published",
         application_id: "somebody-elses-app",
         application_version: 99
@@ -113,6 +128,7 @@ describe("confineRunRequest", () => {
   it("drops every field a visitor has no business setting", () => {
     const result = confineRunRequest(
       {
+        operation_id: "draft",
         workflow_id: "wf-published",
         user_id: "someone-else",
         auth_token: "ntk_stolen",
@@ -136,14 +152,14 @@ describe("confineRunRequest", () => {
     expect(result.settings).toBeUndefined();
   });
 
-  it("keeps what using an app actually means", () => {
+  it("keeps app inputs while leaving job identity to the server", () => {
     const result = confineRunRequest(
       {
-        workflow_id: "wf-published",
+        operation_id: "draft",
+        workflow_id: "wf-the-owners-private-one",
         job_id: "job-7",
-        job_name: "Draft a note",
-        params: { prompt: "hello" },
-        operation_id: "draft"
+        job_name: "The visitor's label",
+        params: { prompt: "hello" }
       },
       SCOPE,
       release
@@ -151,27 +167,28 @@ describe("confineRunRequest", () => {
 
     if (isRunRefusal(result)) throw new Error("expected a confined run");
     expect(result).toMatchObject({
-      job_id: "job-7",
       job_name: "Draft a note",
       params: { prompt: "hello" },
-      operation_id: "draft"
+      operation_id: "draft",
+      workflow_id: "wf-published"
     });
+    expect(result.job_id).toBeUndefined();
   });
 
-  it("refuses a workflow the release does not publish", () => {
+  it("refuses an operation the release does not publish", () => {
     const result = confineRunRequest(
-      { workflow_id: "wf-the-owners-private-one" },
+      { operation_id: "the-owners-private-operation" },
       SCOPE,
       release
     );
     expect(result).toEqual({
-      refused: "This app does not publish that workflow"
+      refused: "This app does not publish that operation"
     });
   });
 
   it("refuses a workflow the release pinned no graph for", () => {
     const result = confineRunRequest(
-      { workflow_id: "wf-unpinned" },
+      { operation_id: "unpinned" },
       SCOPE,
       release
     );
@@ -182,9 +199,15 @@ describe("confineRunRequest", () => {
     });
   });
 
-  it("refuses a run that names no workflow", () => {
+  it("refuses a non-workflow operation", () => {
+    expect(confineRunRequest({ operation_id: "script" }, SCOPE, release)).toEqual({
+      refused: "This app operation is not a workflow"
+    });
+  });
+
+  it("refuses a run that names no operation", () => {
     expect(confineRunRequest({}, SCOPE, release)).toEqual({
-      refused: "This app run did not name a workflow"
+      refused: "This app run did not name an operation"
     });
   });
 });
