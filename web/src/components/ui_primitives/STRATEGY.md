@@ -262,21 +262,19 @@ export { MyPrimitive } from "./MyPrimitive";
 export type { MyPrimitiveProps } from "./MyPrimitive";
 ```
 
-**7. Tests** — use the shared utilities from `__tests__/testUtils.tsx`:
+**7. Tests** — render inside a `ThemeProvider` with the shared `themeMock`:
 ```tsx
-import { renderWithTheme, checkA11y } from "./testUtils";
+import { render } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
+
+const renderWithTheme = (component: React.ReactElement) =>
+  render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 
 describe("MyPrimitive", () => {
   it("renders children", () => {
     const { getByText } = renderWithTheme(<MyPrimitive>Hello</MyPrimitive>);
     expect(getByText("Hello")).toBeInTheDocument();
-  });
-
-  it("has no accessibility violations", async () => {
-    const { container } = renderWithTheme(
-      <MyPrimitive aria-label="my action">Content</MyPrimitive>
-    );
-    await checkA11y(container);
   });
 
   it("forwards ref to DOM element", () => {
@@ -286,7 +284,7 @@ describe("MyPrimitive", () => {
   });
 });
 ```
-Every new primitive needs at minimum: a render test, an axe a11y test, and a ref-forwarding test.
+Every new primitive needs at minimum: a render test and a ref-forwarding test.
 
 **8. Update docs** — add the new primitive to the category listing in this file.
 
