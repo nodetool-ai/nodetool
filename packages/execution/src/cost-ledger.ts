@@ -78,6 +78,10 @@ export interface GenerationSpend {
   nodeId?: string;
   nodeType?: string;
   workflowId?: string | null;
+  /** The project this run belongs to, when it has one. */
+  projectId?: string | null;
+  /** The project document this run is producing, when it names one. */
+  documentId?: string | null;
   durationMs?: number | null;
 }
 
@@ -161,6 +165,8 @@ export async function recordGenerationSpend(
       node_id: spend.nodeId ?? "",
       node_type: spend.nodeType ?? "",
       workflow_id: spend.workflowId ?? null,
+      project_id: spend.projectId ?? null,
+      document_id: spend.documentId ?? null,
       status: "completed",
       cost: priced ? priced.cost : null,
       billing_unit: priced ? priced.billing_unit : (spend.capability ?? null),
@@ -187,6 +193,10 @@ export interface NodeCostSpend {
   nodeId: string;
   nodeType: string;
   workflowId: string | null;
+  /** The project this run belongs to, when it has one. */
+  projectId?: string | null;
+  /** The project document this run is producing, when it names one. */
+  documentId?: string | null;
   /** Resolves the provider API key used to look the actual charge up, when one exists. */
   resolveSecret?: (key: string) => Promise<string | null | undefined>;
 }
@@ -211,6 +221,8 @@ export async function recordNodeProviderCost(
       node_type: spend.nodeType,
       node_id: spend.nodeId,
       workflow_id: spend.workflowId,
+      project_id: spend.projectId ?? null,
+      document_id: spend.documentId ?? null,
       status: "completed",
       cost: cost.amount,
       currency: cost.currency ?? cost.unit ?? null,
@@ -269,6 +281,14 @@ async function reconcileProviderCost(
 export interface RunCostLedgerOptions {
   userId: string;
   workflowId: string | null;
+  /**
+   * The project this run belongs to. Left unset outside a project, and the row
+   * then carries a null rather than being attributed to the loose bucket — a
+   * project's total counts only what named it.
+   */
+  projectId?: string | null;
+  /** The project document this run is producing, when the host names one. */
+  documentId?: string | null;
   /** Node type for a node id, so a row names the node that spent the money. */
   nodeType?: (nodeId: string) => string;
   resolveSecret?: (key: string) => Promise<string | null | undefined>;
@@ -324,6 +344,8 @@ export async function recordFromMessage(
       nodeId: msg.node_id,
       nodeType: msg.node_type || options.nodeType?.(msg.node_id) || "",
       workflowId: options.workflowId,
+      projectId: options.projectId,
+      documentId: options.documentId,
       resolveSecret: options.resolveSecret
     });
     return;
@@ -343,6 +365,8 @@ export async function recordFromMessage(
     nodeId: msg.node_id,
     nodeType: options.nodeType?.(msg.node_id) ?? "",
     workflowId: options.workflowId,
+    projectId: options.projectId,
+    documentId: options.documentId,
     durationMs: msg.duration ?? null
   });
 }

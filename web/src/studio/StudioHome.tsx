@@ -33,6 +33,7 @@ import type {
   StudioDocumentKind,
   StudioProject
 } from "./groupLinkedProjects";
+import { creationProjectId } from "../stores/WorkspaceTabsStore";
 
 const KIND_LABEL = {
   storyboard: "Storyboard",
@@ -159,7 +160,7 @@ const StudioHome = () => {
     creatingRef.current = true;
     setCreating("storyboard");
     createStoryboard
-      .mutateAsync({ name: "Untitled storyboard", projectId: "default" })
+      .mutateAsync({ name: "Untitled storyboard", projectId: creationProjectId() })
       .then((created) => navigate(`/studio/storyboard/${created.id}`))
       .finally(() => {
         creatingRef.current = false;
@@ -172,7 +173,7 @@ const StudioHome = () => {
     creatingRef.current = true;
     setCreating("script");
     createScript
-      .mutateAsync({ name: "Untitled script", projectId: "default" })
+      .mutateAsync({ name: "Untitled script", projectId: creationProjectId() })
       .then((created) => navigate(`/studio/script/${created.id}`))
       .finally(() => {
         creatingRef.current = false;

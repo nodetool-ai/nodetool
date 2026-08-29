@@ -17,6 +17,13 @@ export const predictions = sqliteTable(
     provider: text("provider").notNull().default(""),
     model: text("model").notNull().default(""),
     workflow_id: text("workflow_id"),
+    /**
+     * The project the spend belongs to, when the run knew one. Null on every
+     * row written before projects existed, and on any run outside a project.
+     */
+    project_id: text("project_id"),
+    /** The project document the spend belongs to, when the run named one. */
+    document_id: text("document_id"),
     error: text("error"),
     logs: text("logs"),
     status: text("status").notNull().default("pending"),
@@ -49,6 +56,7 @@ export const predictions = sqliteTable(
     index("idx_predictions_user_id").on(table.user_id),
     index("idx_predictions_user_provider").on(table.user_id, table.provider),
     index("idx_prediction_created_at").on(table.created_at),
-    index("idx_prediction_user_model").on(table.user_id, table.model)
+    index("idx_prediction_user_model").on(table.user_id, table.model),
+    index("idx_prediction_user_project").on(table.user_id, table.project_id)
   ]
 );

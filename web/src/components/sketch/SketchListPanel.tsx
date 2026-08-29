@@ -5,7 +5,10 @@ import type { DragEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { usePanelStore } from "../../stores/PanelStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  creationProjectId
+} from "../../stores/WorkspaceTabsStore";
 import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import {
@@ -174,7 +177,7 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
       const sketch = await createSketch.mutateAsync({
         id: newDocumentId(),
         name: "Untitled sketch",
-        projectId: "default"
+        projectId: creationProjectId()
       });
       if (location.pathname.startsWith("/workspace")) {
         openTab({

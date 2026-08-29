@@ -7,7 +7,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCreateJsScript, useJsScripts } from "../../hooks/jsScript/useJsScripts";
 import { usePanelStore } from "../../stores/PanelStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  creationProjectId
+} from "../../stores/WorkspaceTabsStore";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import {
@@ -36,7 +39,7 @@ export const CreateJsScriptButton = memo(function CreateJsScriptButton() {
     try {
       const created = await createJsScript.mutateAsync({
         name: DEFAULT_NAME,
-        projectId: "default"
+        projectId: creationProjectId()
       });
       openTab({
         type: "jsscript",
