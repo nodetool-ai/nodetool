@@ -53,11 +53,43 @@ interface JtbdOptimizeOptions {
 
 type InitializeSecrets = () => Promise<void>;
 
+/**
+ * The collaborators these subcommands reach for, behind loaders.
+ *
+ * `@nodetool-ai/agents` is heavy and `nodetool jtbd list` must not pay for it,
+ * so production still resolves both lazily through `import()`. Passing them in
+ * is what lets a test supply fakes without mocking modules: `typeof import(…)`
+ * is a type position, so naming the modules here loads nothing, and `Pick`
+ * keeps a double down to the members this file actually calls.
+ */
+export interface JtbdDeps {
+  loadAgents: () => Promise<
+    Pick<
+      typeof import("@nodetool-ai/agents"),
+      "JOBS_TO_BE_DONE" | "runJobSuite" | "optimizeFromRun" | "renderRunForReview"
+    >
+  >;
+  loadProviders: () => Promise<
+    Pick<
+      typeof import("../providers.js"),
+      "createProviderStrict" | "buildConfiguredProviders"
+    >
+  >;
+}
+
+const defaultDeps: JtbdDeps = {
+  loadAgents: () => import("@nodetool-ai/agents"),
+  loadProviders: () => import("../providers.js")
+};
+
 const slug = (text: string): string =>
   text.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-|-$/g, "");
 
-async function listJobs(opts: JtbdListOptions): Promise<void> {
-  const { JOBS_TO_BE_DONE } = await import("@nodetool-ai/agents");
+async function listJobs(
+  opts: JtbdListOptions,
+  deps: JtbdDeps
+): Promise<void> {
+  const { JOBS_TO_BE_DONE } = await deps.loadAgents();
   if (opts.json) {
     console.log(
       JSON.stringify(
@@ -92,7 +124,8 @@ async function listJobs(opts: JtbdListOptions): Promise<void> {
  */
 async function writeRunBundle(
   dir: string,
-  report: JobRunReport
+  report: JobRunReport,
+  deps: JtbdDeps
 ): Promise<string> {
   const runDir = join(dir, slug(report.jobId));
   await mkdir(runDir, { recursive: true });
@@ -101,14 +134,15 @@ async function writeRunBundle(
     JSON.stringify(report, null, 2),
     "utf-8"
   );
-  const { renderRunForReview } = await import("@nodetool-ai/agents");
+  const { renderRunForReview } = await deps.loadAgents();
   await writeFile(join(runDir, "review.md"), renderRunForReview(report), "utf-8");
   return runDir;
 }
 
 async function runJobs(
   opts: JtbdRunOptions,
-  initializeSecrets: InitializeSecrets
+  initializeSecrets: InitializeSecrets,
+  deps: JtbdDeps
 ): Promise<void> {
   if (!opts.provider || !opts.model) {
     console.error("--provider and --model are required");
@@ -117,8 +151,8 @@ async function runJobs(
   }
   await initializeSecrets();
   const [agents, providersMod] = await Promise.all([
-    import("@nodetool-ai/agents"),
-    import("../providers.js")
+    deps.loadAgents(),
+    deps.loadProviders()
   ]);
   const { JOBS_TO_BE_DONE, runJobSuite } = agents;
 
@@ -165,7 +199,7 @@ async function runJobs(
   await mkdir(outDir, { recursive: true });
   for (const run of report.jobs) {
     if (run.skipped) continue;
-    await writeRunBundle(outDir, run);
+    await writeRunBundle(outDir, run, deps);
   }
   await writeFile(
     join(outDir, "suite.json"),
@@ -242,7 +276,8 @@ async function loadRunReports(dir: string): Promise<JobRunReport[]> {
 
 async function optimizeRuns(
   opts: JtbdOptimizeOptions,
-  initializeSecrets: InitializeSecrets
+  initializeSecrets: InitializeSecrets,
+  deps: JtbdDeps
 ): Promise<void> {
   if (!opts.provider || !opts.model) {
     console.error("--provider and --model are required");
@@ -259,8 +294,8 @@ async function optimizeRuns(
   }
 
   const [{ optimizeFromRun }, providersMod] = await Promise.all([
-    import("@nodetool-ai/agents"),
-    import("../providers.js")
+    deps.loadAgents(),
+    deps.loadProviders()
   ]);
   const provider = await providersMod.createProviderStrict(opts.provider);
 
@@ -307,7 +342,8 @@ async function optimizeRuns(
 
 export function registerJtbdCommand(
   program: Command,
-  initializeSecrets: InitializeSecrets
+  initializeSecrets: InitializeSecrets,
+  deps: JtbdDeps = defaultDeps
 ): void {
   const cmd = program
     .command("jtbd")
@@ -319,7 +355,7 @@ export function registerJtbdCommand(
     .command("list")
     .description("List the jobs, the surfaces they cross, and their outcomes")
     .option("--json", "Print as JSON")
-    .action((opts: JtbdListOptions) => listJobs(opts));
+    .action((opts: JtbdListOptions) => listJobs(opts, deps));
 
   cmd
     .command("run")
@@ -335,7 +371,7 @@ export function registerJtbdCommand(
     )
     .option("--no-find-model", "Run without configured model providers")
     .option("--json", "Print the full report as JSON")
-    .action((opts: JtbdRunOptions) => runJobs(opts, initializeSecrets));
+    .action((opts: JtbdRunOptions) => runJobs(opts, initializeSecrets, deps));
 
   cmd
     .command("optimize")
@@ -347,5 +383,7 @@ export function registerJtbdCommand(
     .option("--bundle <dir>", `Bundle directory to review (default ${DEFAULT_OUT})`)
     .option("--all", "Review clean runs too, not just failures and friction")
     .option("--json", "Print the proposals as JSON")
-    .action((opts: JtbdOptimizeOptions) => optimizeRuns(opts, initializeSecrets));
+    .action((opts: JtbdOptimizeOptions) =>
+      optimizeRuns(opts, initializeSecrets, deps)
+    );
 }

@@ -1,36 +1,30 @@
+/**
+ * `nodetool jtbd` must load the user's saved credentials before it resolves a
+ * provider — otherwise a stored key is invisible and the command dies on a
+ * provider it could have built.
+ *
+ * The collaborators arrive through `registerJtbdCommand`'s `deps` parameter, so
+ * the fakes below are ordinary objects: nothing here mocks a module.
+ */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Command } from "commander";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { registerJtbdCommand } from "../jtbd.js";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { ErasedJob } from "@nodetool-ai/agents";
+import { registerJtbdCommand, type JtbdDeps } from "../jtbd.js";
 
-const mocks = vi.hoisted(() => ({
-  events: Array<string>(),
-  buildConfiguredProviders: vi.fn(),
-  createProviderStrict: vi.fn(),
-  optimizeFromRun: vi.fn(),
-  runJobSuite: vi.fn()
-}));
-
-vi.mock("@nodetool-ai/agents", () => ({
-  JOBS_TO_BE_DONE: [
-    {
-      id: "job",
-      difficulty: "smoke",
-      surfaces: [],
-      statement: "Test job",
-      outcomeNames: []
-    }
-  ],
-  optimizeFromRun: mocks.optimizeFromRun,
-  runJobSuite: mocks.runJobSuite
-}));
-
-vi.mock("../../providers.js", () => ({
-  buildConfiguredProviders: mocks.buildConfiguredProviders,
-  createProviderStrict: mocks.createProviderStrict
-}));
+/** A job the registry would accept, doing nothing. */
+const TEST_JOB: ErasedJob = {
+  id: "job",
+  statement: "Test job",
+  surfaces: [],
+  difficulty: "smoke",
+  objective: "Do the test job",
+  outcomeNames: [],
+  start: () => ({ tools: [], grade: () => [] })
+};
 
 const originalExitCode = process.exitCode;
 
@@ -38,30 +32,49 @@ afterEach(() => {
   process.exitCode = originalExitCode;
 });
 
+let events: string[];
+
 beforeEach(() => {
-  mocks.events.length = 0;
-  mocks.buildConfiguredProviders.mockResolvedValue({});
-  mocks.createProviderStrict.mockImplementation(async () => {
-    mocks.events.push("provider");
-    return {};
-  });
-  mocks.runJobSuite.mockImplementation(async () => {
-    mocks.events.push("run");
-    throw new Error("stop run");
-  });
-  mocks.optimizeFromRun.mockImplementation(async () => {
-    mocks.events.push("optimize");
-    throw new Error("stop optimize");
-  });
+  events = [];
 });
 
+/**
+ * The order the command touches its collaborators in is the whole assertion,
+ * so every fake records itself and the run-ending ones throw: the test is about
+ * what happened before the provider call, not about completing a suite.
+ */
 function createProgram() {
   const initializeSecrets = vi.fn(async (): Promise<void> => {
-    mocks.events.push("secrets");
+    events.push("secrets");
   });
+
+  const deps: JtbdDeps = {
+    loadAgents: async () => ({
+      JOBS_TO_BE_DONE: [TEST_JOB],
+      runJobSuite: async () => {
+        events.push("run");
+        throw new Error("stop run");
+      },
+      optimizeFromRun: async () => {
+        events.push("optimize");
+        throw new Error("stop optimize");
+      },
+      renderRunForReview: () => ""
+    }),
+    loadProviders: async () => ({
+      createProviderStrict: async () => {
+        events.push("provider");
+        // SAFETY: the command only hands this to `runJobSuite`, which the fake
+        // above throws out of before touching it.
+        return {} as BaseProvider;
+      },
+      buildConfiguredProviders: async () => ({})
+    })
+  };
+
   const program = new Command();
   program.exitOverride();
-  registerJtbdCommand(program, initializeSecrets);
+  registerJtbdCommand(program, initializeSecrets, deps);
   return { program, initializeSecrets };
 }
 
@@ -86,7 +99,7 @@ describe("registerJtbdCommand", () => {
     ).rejects.toThrow("stop run");
 
     expect(initializeSecrets).toHaveBeenCalledOnce();
-    expect(mocks.events).toEqual(["secrets", "provider", "run"]);
+    expect(events).toEqual(["secrets", "provider", "run"]);
   });
 
   it("initializes saved credentials before reviewing a JTBD bundle", async () => {
@@ -123,7 +136,7 @@ describe("registerJtbdCommand", () => {
     }
 
     expect(initializeSecrets).toHaveBeenCalledOnce();
-    expect(mocks.events).toEqual(["secrets", "provider", "optimize"]);
+    expect(events).toEqual(["secrets", "provider", "optimize"]);
   });
 
   it("does not initialize saved credentials when listing JTBD jobs", async () => {
