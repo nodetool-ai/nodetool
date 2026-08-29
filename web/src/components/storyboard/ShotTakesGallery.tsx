@@ -323,7 +323,11 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
         </FlexColumn>
       )}
 
-      <ShotMediaViewer media={viewerMedia} onClose={handleCloseViewer} />
+      <ShotMediaViewer
+        boardId={boardId}
+        media={viewerMedia}
+        onClose={handleCloseViewer}
+      />
     </FlexColumn>
   );
 };
