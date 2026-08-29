@@ -11,6 +11,9 @@ import mockTheme from "../../../__mocks__/themeMock";
 // by hooks/__tests__/useResolvedMediaUri.test.tsx).
 jest.mock("../../../hooks/useResolvedMediaUri");
 
+// The gallery resolves the board's asset records the same way; same reason.
+jest.mock("../../../hooks/assets/useAssetsForLocators");
+
 jest.mock("../../node/OutputRenderer", () => ({
   __esModule: true,
   default: ({ value }: { value: unknown[] }) => (

@@ -10,6 +10,9 @@ import mockTheme from "../../../__mocks__/themeMock";
 // by hooks/__tests__/useResolvedMediaUri.test.tsx).
 jest.mock("../../../hooks/useResolvedMediaUri");
 
+// The gallery resolves the board's asset records the same way; same reason.
+jest.mock("../../../hooks/assets/useAssetsForLocators");
+
 // The fullscreen viewer is the asset explorer's, which pulls in routing and
 // server state; stub it and assert what the card hands it.
 jest.mock("../../assets/AssetViewer", () => ({
