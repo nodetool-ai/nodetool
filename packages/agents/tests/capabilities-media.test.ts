@@ -247,7 +247,8 @@ describe("understand_video through the adapter", () => {
     expect(result).toEqual({
       text: "A fox crosses a snowfield.",
       provider: "gemini",
-      model: "gemini-3-pro"
+      model: "gemini-3-pro",
+      read_as: "video"
     });
     expect(partsOf(predict)).toEqual([
       { type: "text", text: "What happens?" },
@@ -325,12 +326,17 @@ describe("understand_video through the adapter", () => {
     );
   });
 
-  // The failure this capability actually hit: a model search offered
+  // The case this capability used to refuse outright: a model search offers
   // `google/gemini-2.5-flash` served by AtlasCloud, whose chat API is
-  // OpenAI-compatible, so the call died inside the provider with a message
-  // naming openai.
-  it("refuses a provider that cannot take video, before spending a call", async () => {
-    const predict = vi.fn();
+  // OpenAI-compatible and has no video content part. The runtime now samples
+  // the clip into frames for it, so the call goes through — and the answer
+  // says which of the two reads produced it, because a frame read has no audio
+  // and nothing between the samples.
+  it("calls a provider that cannot take video, and reports the frame read", async () => {
+    const predict = vi.fn(async () => ({
+      role: "assistant",
+      content: "A fox crosses a snowfield."
+    }));
     const result = (await asTool(understandVideo).process(
       makeContext(predict),
       {
@@ -340,11 +346,13 @@ describe("understand_video through the adapter", () => {
       }
     )) as Record<string, unknown>;
 
-    expect(String(result["error"])).toMatch(
-      /atlascloud does not accept video input/
-    );
-    expect(String(result["error"])).toMatch(/gemini/);
-    expect(predict).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      text: "A fox crosses a snowfield.",
+      provider: "atlascloud",
+      model: "google/gemini-2.5-flash",
+      read_as: "sampled_frames"
+    });
+    expect(predict).toHaveBeenCalledOnce();
   });
 });
 

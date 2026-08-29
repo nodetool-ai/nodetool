@@ -1387,8 +1387,12 @@ if (process.env.JEST_WORKER_ID) {
     // ── Storyboard ─────────────────────────────────────────────────────────
     // Backed by the seeded Storyboard "sb-demo-noir" (screenshot-server),
     // whose board carries the four seeded entities and shots that mention
-    // them by name — so the Entities field and per-shot entity chips are
-    // both populated.
+    // them by name.
+    //
+    // The board is a toolbar over a shot grid, and the Entities field the docs
+    // point at lives behind "Board settings" — open it. The per-shot entity
+    // chips are in the inspector, which docks below the grid and does not fit
+    // under an open settings panel at 1440×900, so no shot is selected here.
     test("Storyboard – board with entities", async ({ page }) => {
       test.skip(shouldSkip("storyboard-board.png"), "Already captured");
       await seedWorkspaceTabs(
@@ -1397,13 +1401,15 @@ if (process.env.JEST_WORKER_ID) {
         "storyboard:sb-demo-noir"
       );
       await gotoPage(page, "/workspace");
-      // The board header's Direct button and the seeded entity chips are the
-      // stable landmarks.
-      await page
-        .getByRole("button", { name: /^direct$/i })
+      const shotCards = page.locator(".shot-card");
+      await shotCards
         .first()
         .waitFor({ state: "visible", timeout: 20000 })
         .catch(() => {});
+      const settings = page.getByRole("button", { name: /board settings/i });
+      if ((await settings.getAttribute("aria-expanded")) === "false") {
+        await settings.click();
+      }
       await page
         .getByText("Neon Noir")
         .first()

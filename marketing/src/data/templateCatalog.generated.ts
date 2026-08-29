@@ -26,7 +26,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "a-gradient-card-as-png",
         "name": "A Gradient Card as PNG",
-        "description": "Build vector art, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+        "description": "Build vector art in a Code node, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
         "tags": [
           "image"
         ]
@@ -114,7 +114,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "circles-and-lines",
         "name": "Circles and Lines",
-        "description": "The remaining SVG primitives in one document — circle, ellipse and line — so the shape vocabulary is visible in one place.",
+        "description": "Three SVG elements — circle, ellipse and line — written as one Code node, so the array order is the paint order.",
         "tags": [
           "image"
         ]
@@ -174,7 +174,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "draw-a-badge-in-svg",
         "name": "Draw a Badge in SVG",
-        "description": "Compose a badge from primitives rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+        "description": "Compose a badge from SVG elements rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
         "tags": [
           "image"
         ]

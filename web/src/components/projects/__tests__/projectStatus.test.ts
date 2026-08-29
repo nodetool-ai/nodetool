@@ -5,8 +5,12 @@
  */
 
 import {
+  documentProgress,
+  documentStatusLine,
+  formatDocumentSpend,
   formatDuration,
   formatSpend,
+  projectNextStep,
   projectProgress,
   projectStatusLine,
   type ProjectDetail,
@@ -22,6 +26,7 @@ const document = (over: Partial<ProjectDocument>): ProjectDocument => ({
   spendUsd: 0,
   unpricedCount: 0,
   thumbnails: [],
+  preview: null,
   ...over
 });
 
@@ -112,5 +117,102 @@ describe("formatSpend", () => {
     expect(formatSpend(spend({ totalUsd: 4.12, unpricedCount: 2 }))).toBe(
       "$4.12 · 2 unpriced"
     );
+  });
+});
+
+const board = (stills: number, clips: number, shots = 8): ProjectDocument =>
+  document({ status: { kind: "storyboard", shots, stills, clips } });
+
+const script = (voiced: number, stale: number, lines = 6): ProjectDocument =>
+  document({
+    type: "script",
+    ref: "s1",
+    name: "Script",
+    status: { kind: "script", lines, voiced, stale }
+  });
+
+const cut = (durationMs: number, clips = 9): ProjectDocument =>
+  document({
+    type: "timeline",
+    ref: "t1",
+    name: "Cut",
+    status: { kind: "timeline", clips, durationMs }
+  });
+
+describe("documentStatusLine", () => {
+  it("speaks for one document rather than collapsing a kind", () => {
+    expect(documentStatusLine(board(8, 6))).toBe("8 shots · stills 8/8");
+    expect(documentStatusLine(script(5, 1))).toBe("6 lines · 5 voiced");
+    expect(documentStatusLine(cut(30_000))).toBe("9 clips · 0:30");
+  });
+
+  it("says nothing for a kind whose status is not derived", () => {
+    expect(documentStatusLine(document({ type: "sketch", ref: "k1" }))).toBe("");
+  });
+});
+
+describe("documentProgress", () => {
+  it("calls a board done only when every shot has a clip", () => {
+    expect(documentProgress(board(8, 6))).toEqual({
+      label: "clips 6/8",
+      tone: "neutral"
+    });
+    expect(documentProgress(board(8, 8))).toEqual({
+      label: "clips 8/8",
+      tone: "done"
+    });
+  });
+
+  it("leads with a script's drift, and calls it voiced only with none", () => {
+    expect(documentProgress(script(5, 1))).toEqual({
+      label: "1 line stale",
+      tone: "neutral"
+    });
+    expect(documentProgress(script(6, 0))).toEqual({
+      label: "voiced",
+      tone: "done"
+    });
+  });
+
+  it("reports a cut's length, never that it was rendered", () => {
+    expect(documentProgress(cut(102_000))).toEqual({
+      label: "1:42",
+      tone: "neutral"
+    });
+  });
+});
+
+describe("formatDocumentSpend", () => {
+  it("names a document's unpriced calls rather than summing them as zero", () => {
+    expect(formatDocumentSpend(document({ spendUsd: 3.884 }))).toBe("$3.88");
+    expect(
+      formatDocumentSpend(document({ spendUsd: 3.88, unpricedCount: 1 }))
+    ).toBe("$3.88 · 1 unpriced");
+  });
+});
+
+describe("projectNextStep", () => {
+  it("walks the order a spot is made", () => {
+    expect(projectNextStep([board(4, 0)])?.label).toBe("Render stills");
+    expect(projectNextStep([board(8, 6)])?.label).toBe("Render clips");
+    expect(projectNextStep([board(8, 8)])?.label).toBe("Assemble timeline");
+    expect(projectNextStep([board(8, 8), cut(30_000)])?.label).toBe(
+      "Render master"
+    );
+  });
+
+  it("puts a drifted script ahead of the cut it would be laid into", () => {
+    const step = projectNextStep([board(8, 8), script(5, 1), cut(30_000)]);
+    expect(step?.label).toBe("Re-voice 1 line");
+    expect(step?.document.ref).toBe("s1");
+  });
+
+  it("names the document that performs the step", () => {
+    expect(projectNextStep([board(8, 6)])?.document.ref).toBe("d1");
+  });
+
+  it("has no step for an empty project or an empty board", () => {
+    expect(projectNextStep([])).toBeNull();
+    expect(projectNextStep([board(0, 0, 0)])).toBeNull();
   });
 });

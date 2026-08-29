@@ -12,7 +12,7 @@ No account is required — you just need your own API keys.
 This page assumes you have never used a tool like this. Every term is explained
 the first time it appears, and the [Glossary](glossary.md) covers the rest.
 
-![Storyboard surface with five shot cards](assets/creative-agent/storyboard-surface.png)
+![Storyboard surface: a grid of six shot cards, each with its still and status, over the inspector for the selected shot](assets/creative-agent/storyboard-surface.png)
 
 The five steps below show the entire process. Each step costs a bit more than the last,
 which is why we do it in this order: an image costs cents, a short video costs dollars,
@@ -107,7 +107,7 @@ card per shot carrying its action, camera (framing, lens, angle, movement),
 motion, and duration. Nothing has rendered yet, so this step costs one language
 model call.
 
-![Storyboard board with entity chips](assets/screenshots/storyboard-board.png)
+![Storyboard board with Board settings open: the Entities field carrying four entity chips, over the shot grid](assets/screenshots/storyboard-board.png)
 
 ### Or just ask for it
 

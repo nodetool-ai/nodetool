@@ -3065,12 +3065,33 @@ export const migrations: MigrationDef[] = [
     }
   },
 
+  // ── Bind a project to its agent thread ───────────────────────────────
+  // The overview's left column is the conversation that built the project.
+  // Nullable: a project made by hand has never been talked to, and a null
+  // says so where a fabricated empty thread row would not.
+  {
+    version: "20260829_000002",
+    name: "add_project_thread",
+    createsTables: [],
+    modifiesTables: ["projects"],
+    async up(db) {
+      if (!(await db.columnExists("projects", "thread_id"))) {
+        await db.execute("ALTER TABLE projects ADD COLUMN thread_id TEXT");
+      }
+    },
+    async down(db) {
+      // SQLite before 3.35 cannot drop a column; the value is one id nothing
+      // else reads, so leaving it is the safe direction.
+      void db;
+    }
+  },
+
   // ── Create application_deployments ───────────────────────────────────
   // An app served from a hidden URL with no login. One live row per app; the
   // token is the whole secret, so it is unique across every app on the
   // server, and revoking sets `revoked_at` rather than deleting the row.
   {
-    version: "20260829_000002",
+    version: "20260829_000003",
     name: "create_application_deployments",
     createsTables: ["application_deployments"],
     modifiesTables: [],

@@ -94,6 +94,7 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
   "lib.svg",
   "lib.grid",
   "lib.audio", // DSP / effects (reverb, delay, EQ, …)
+  "lib.pdf", // text/table/markdown extraction, OCR, page rasterization
 
   // — Provider node namespaces: the big LLM/multimodal labs + Fal + Kie —
   "openai", // openai.text / .image / .audio / .agents

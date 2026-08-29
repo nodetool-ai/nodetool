@@ -51,6 +51,7 @@ describe("isCloudNodeType", () => {
       "lib.image.warp.Offset",
       "lib.audio.Reverb",
       "lib.svg.Document",
+      "lib.pdf.ExtractText",
       "openai.image.CreateImage",
       "gemini.video.TextToVideo",
       "mistral.text.ChatComplete",
@@ -65,7 +66,6 @@ describe("isCloudNodeType", () => {
   it("rejects the nerdy / out-of-scope namespaces", () => {
     for (const nodeType of [
       "lib.sqlite.GetDatabasePath",
-      "lib.pdf.Screenshot",
       "lib.charts.ChartRenderer",
       "nodetool.data.Filter",
       "nodetool.document.LoadDocumentFile",

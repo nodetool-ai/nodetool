@@ -82,9 +82,9 @@ export default function StoryboardSection() {
           <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-amber-900/20 ring-1 ring-white/5 backdrop-blur-sm">
             <Image
               src="/screen_storyboard.png"
-              alt="NodeTool's storyboard surface: title, brief, and visual style fields above a Direct button, and five shot cards for a lighthouse film — each with its still, its action line, camera notes, and a status of Rendered, Approved, Still ready, Rendering, or Planned"
+              alt="NodeTool's storyboard surface: a grid of six shot cards, each with its still, its shot number and length, its status, and its action line, over the inspector for the selected shot, next to the assistant that directed them"
               width={1680}
-              height={1000}
+              height={800}
               className="h-auto w-full"
               loading="lazy"
             />

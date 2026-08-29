@@ -337,6 +337,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "file_uri values reaching the provider, plus the Files API download."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/video-frame-fallback.ts",
+    "Video frame sampling for providers with no video content part",
+    "workflow",
+    "Reads a video content part's URI so ffmpeg can sample stills from it."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/anthropic-provider.ts",
     "Anthropic media input",
     "workflow",

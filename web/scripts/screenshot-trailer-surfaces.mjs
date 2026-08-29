@@ -1,10 +1,13 @@
-// Captures the storyboard and timeline shots the movie-trailer use-case page uses.
+// Captures the storyboard and timeline shots the marketing site and the docs
+// use: the two frames on the movie-trailer use-case page, and the storyboard
+// hero shared by the landing page's storyboard section, /creatives, the
+// Product Hunt slide, and the creative-agent doc.
 //
-//   node scripts/screenshot-trailer-surfaces.mjs [--only storyboard,timeline] [--headed]
+//   node scripts/screenshot-trailer-surfaces.mjs [--only storyboard,timeline,surface] [--headed]
 //
 // Set PLAYWRIGHT_CHROMIUM_PATH to use a Chromium already on the machine.
 //
-// Both frames come out of the real editor components, not a mockup: the
+// Every frame comes out of the real editor components, not a mockup: the
 // storyboard cast drives `StoryboardBoard` and the timeline cast drives the
 // timeline editor, replayed at a fixed millisecond through /demo.html. The
 // media in both is the SCRAPHEART trailer already shipped on the marketing
@@ -24,7 +27,7 @@ import sharp from "sharp";
 
 const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT = path.resolve(WEB, "..");
-const OUT = path.join(ROOT, "marketing/public");
+const MARKETING = path.join(ROOT, "marketing/public");
 const PORT = 5199;
 const BASE = `http://localhost:${PORT}`;
 
@@ -42,9 +45,10 @@ const SHOTS = [
     id: "storyboard",
     url: `${BASE}/demo.html?doc=storyboard-assistant&t=24000&bare=1`,
     file: "trailer-storyboard.webp",
-    // Tall enough for all six cards, with no dead space under them.
+    // The board is a 4-column grid: six cards are two rows, and the shot
+    // inspector docks under them. Tall enough for both, with no dead space.
     width: 1600,
-    height: 1230,
+    height: 700,
   },
   {
     id: "timeline",
@@ -52,6 +56,20 @@ const SHOTS = [
     file: "trailer-timeline.webp",
     width: 1600,
     height: 1000,
+  },
+  {
+    // The storyboard hero. One capture, two trees: the marketing site reads it
+    // as screen_storyboard.png, the docs as the creative-agent surface shot.
+    // PNG rather than WebP because generate-brand-assets.mjs rasterizes it into
+    // the Product Hunt slide.
+    id: "surface",
+    url: `${BASE}/demo.html?doc=storyboard-assistant&t=24000&bare=1`,
+    files: [
+      "marketing/public/screen_storyboard.png",
+      "docs/assets/creative-agent/storyboard-surface.png",
+    ],
+    width: 1680,
+    height: 800,
   },
 ];
 
@@ -149,11 +167,25 @@ try {
     }
     await page.waitForTimeout(1200);
 
-    const file = path.join(OUT, shot.file);
-    const info = await sharp(await page.locator("[data-demo-player]").screenshot())
-      .webp({ quality: 88 })
-      .toFile(file);
-    console.log(`✓ ${path.relative(ROOT, file)} (${info.width}×${info.height})`);
+    const shotBuffer = await page.locator("[data-demo-player]").screenshot();
+    // A `files` entry is repo-relative and written at 1x; `file` lands in
+    // marketing/public at the captured 2x.
+    const targets = shot.files
+      ? shot.files.map((f) => ({ path: path.join(ROOT, f), scale: 1 }))
+      : [{ path: path.join(MARKETING, shot.file), scale: 2 }];
+    for (const target of targets) {
+      const pipeline = sharp(shotBuffer);
+      if (target.scale === 1) {
+        pipeline.resize(shot.width, shot.height);
+      }
+      const info = await (target.path.endsWith(".png")
+        ? pipeline.png({ compressionLevel: 9 })
+        : pipeline.webp({ quality: 88 })
+      ).toFile(target.path);
+      console.log(
+        `✓ ${path.relative(ROOT, target.path)} (${info.width}×${info.height})`
+      );
+    }
     await page.close();
   }
 

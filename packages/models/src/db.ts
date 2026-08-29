@@ -1249,6 +1249,7 @@ function getCreateSchemaSql(): string {
       "user_id" text NOT NULL,
       "name" text NOT NULL,
       "kind" text NOT NULL DEFAULT '',
+      "thread_id" text,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );

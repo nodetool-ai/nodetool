@@ -12,18 +12,21 @@ import { initTestDb } from "../src/db.js";
 import { Project } from "../src/project.js";
 import {
   listProjectDocuments,
+  scriptPreview,
   scriptStatus,
   spendCategory,
   storyboardStatus,
   storyboardThumbnails,
   summarizeProject,
   summarizeSpend,
+  timelinePreview,
   timelineStatus,
   type SpendRow
 } from "../src/project-summary.js";
 import { moveDocumentToProject } from "../src/project-membership.js";
 import { LOOSE_PROJECT_ID } from "../src/project.js";
 import { Prediction } from "../src/prediction.js";
+import { Thread } from "../src/thread.js";
 import { Script, type ScriptDocument } from "../src/script.js";
 import { Storyboard, type StoryboardDocument } from "../src/storyboard.js";
 import { TimelineSequence } from "../src/timeline-sequence.js";
@@ -96,6 +99,35 @@ describe("Project model", () => {
     expect(await Project.deleteOwned("u1", project.id)).toBe(true);
     expect(await Project.findById(project.id)).toBeNull();
     expect((await Storyboard.findById(board.id))?.project_id).toBe(project.id);
+  });
+});
+
+describe("Project.ensureThread", () => {
+  beforeEach(() => initTestDb());
+
+  it("creates the thread once and answers with the same id after", async () => {
+    const project = await Project.create<Project>({
+      user_id: "u1",
+      name: "Aurora"
+    });
+    const first = await Project.ensureThread("u1", project.id);
+    expect(first).toBeTruthy();
+
+    const second = await Project.ensureThread("u1", project.id);
+    expect(second).toBe(first);
+
+    const thread = await Thread.find("u1", first!);
+    expect(thread?.title).toBe("Aurora");
+    const [threads] = await Thread.paginate("u1", { limit: 10 });
+    expect(threads).toHaveLength(1);
+  });
+
+  it("answers nothing for a project the caller does not own", async () => {
+    const project = await Project.create<Project>({
+      user_id: "u2",
+      name: "Someone else's"
+    });
+    expect(await Project.ensureThread("u1", project.id)).toBeNull();
   });
 });
 
@@ -314,10 +346,93 @@ describe("storyboardThumbnails", () => {
   });
 
   it("stops at the montage limit", () => {
-    const shots = ["a", "b", "c", "d"].map((id) =>
+    const shots = ["a", "b", "c", "d", "e"].map((id) =>
       shot(id, { keyframe: { type: "image", uri: `asset://${id}` } })
     );
-    expect(storyboardThumbnails(storyboardDoc(shots))).toHaveLength(3);
+    expect(storyboardThumbnails(storyboardDoc(shots))).toHaveLength(4);
+  });
+});
+
+describe("document previews", () => {
+  const voice = { provider: "p", model: "m", voice: "v" };
+  const take = (id: string, textSnapshot: string) => ({
+    id,
+    assetId: `a-${id}`,
+    durationMs: 1000,
+    words: [],
+    textSnapshot,
+    voiceSnapshot: voice,
+    createdAt: "2026-01-01T00:00:00.000Z"
+  });
+
+  it("excerpts a script's opening lines with the state its dots read", () => {
+    const doc: ScriptDocument = {
+      cast: [{ id: "s1", name: "Narrator", voice }],
+      sections: [
+        {
+          id: "sec",
+          lines: [
+            {
+              id: "l1",
+              speakerId: "s1",
+              text: "hello",
+              currentTakeId: "t1",
+              takes: [take("t1", "hello")]
+            },
+            {
+              id: "l2",
+              speakerId: "s1",
+              text: "rewritten",
+              currentTakeId: "t2",
+              takes: [take("t2", "the old words")]
+            },
+            { id: "l3", speakerId: "s1", text: "unvoiced", takes: [] }
+          ]
+        }
+      ]
+    };
+    expect(scriptPreview(doc).lines).toEqual([
+      { speaker: "Narrator", text: "hello", state: "voiced" },
+      { speaker: "Narrator", text: "rewritten", state: "stale" },
+      { speaker: "Narrator", text: "unvoiced", state: "draft" }
+    ]);
+  });
+
+  it("keeps a preview line's state in step with the status counts", () => {
+    const doc: ScriptDocument = {
+      cast: [],
+      sections: [{ id: "sec", lines: [{ id: "l1", text: "no voice", takes: [] }] }]
+    };
+    expect(scriptPreview(doc).lines[0].state).toBe("draft");
+    expect(scriptPreview(doc).lines[0].speaker).toBe("");
+    expect(scriptStatus(doc).voiced).toBe(0);
+  });
+
+  it("lays a cut's clips out per track, in start order", () => {
+    const tracks = [
+      { id: "t2", name: "A1", type: "audio" as const, index: 1 },
+      { id: "t1", name: "V1", type: "video" as const, index: 0 }
+    ];
+    const clips = [
+      { trackId: "t1", startMs: 5_000, durationMs: 3_000 },
+      { trackId: "t1", startMs: 0, durationMs: 5_000 },
+      { trackId: "t2", startMs: 0, durationMs: 8_000 }
+    ];
+    expect(timelinePreview(tracks, clips, 8_000)).toEqual({
+      kind: "timeline",
+      durationMs: 8_000,
+      tracks: [
+        {
+          type: "video",
+          name: "V1",
+          clips: [
+            { startMs: 0, durationMs: 5_000 },
+            { startMs: 5_000, durationMs: 3_000 }
+          ]
+        },
+        { type: "audio", name: "A1", clips: [{ startMs: 0, durationMs: 8_000 }] }
+      ]
+    });
   });
 });
 
