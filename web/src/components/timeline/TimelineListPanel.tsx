@@ -6,7 +6,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCreateTimeline, useTimelines } from "../../hooks/useTimelineSequence";
 import { usePanelStore } from "../../stores/PanelStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  creationProjectId
+} from "../../stores/WorkspaceTabsStore";
 import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import {
@@ -170,7 +173,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
       const timeline = await createTimeline.mutateAsync({
         id: newDocumentId(),
         name: "Untitled video",
-        projectId: "default"
+        projectId: creationProjectId()
       });
       if (location.pathname.startsWith("/workspace")) {
         openTab({

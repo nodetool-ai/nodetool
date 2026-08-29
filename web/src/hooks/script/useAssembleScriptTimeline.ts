@@ -14,7 +14,10 @@
 import { useCallback, useState } from "react";
 import { trpcClient } from "../../trpc/client";
 import { useScriptStore } from "../../stores/script/ScriptStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  creationProjectId
+} from "../../stores/WorkspaceTabsStore";
 import { buildScriptTimelineDocument } from "../../components/script/assembleScriptTimeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { loadLinkedBoard } from "../../lib/linkedAssembly";
@@ -111,7 +114,7 @@ export const useAssembleScriptTimeline =
           const sequence = await trpcClient.timeline.create.mutate({
             id: newDocumentId(),
             name,
-            projectId: "default"
+            projectId: creationProjectId()
           });
           await trpcClient.timeline.update.mutate({
             id: sequence.id,

@@ -878,6 +878,8 @@ function getCreateSchemaSql(): string {
       "provider" text NOT NULL DEFAULT '',
       "model" text NOT NULL DEFAULT '',
       "workflow_id" text,
+      "project_id" text,
+      "document_id" text,
       "error" text,
       "logs" text,
       "status" text NOT NULL DEFAULT 'pending',
@@ -906,6 +908,7 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_predictions_user_provider" ON "nodetool_predictions" ("user_id", "provider");
     CREATE INDEX IF NOT EXISTS "idx_prediction_created_at" ON "nodetool_predictions" ("created_at");
     CREATE INDEX IF NOT EXISTS "idx_prediction_user_model" ON "nodetool_predictions" ("user_id", "model");
+    CREATE INDEX IF NOT EXISTS "idx_prediction_user_project" ON "nodetool_predictions" ("user_id", "project_id");
 
     CREATE TABLE IF NOT EXISTS "run_events" (
       "id" text PRIMARY KEY NOT NULL,
@@ -1240,6 +1243,17 @@ function getCreateSchemaSql(): string {
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS "projects" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "name" text NOT NULL,
+      "kind" text NOT NULL DEFAULT '',
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_project_user" ON "projects" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_project_updated" ON "projects" ("updated_at");
 
     CREATE TABLE IF NOT EXISTS "scripts" (
       "id" text PRIMARY KEY NOT NULL,

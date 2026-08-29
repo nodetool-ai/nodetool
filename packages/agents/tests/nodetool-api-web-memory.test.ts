@@ -19,6 +19,7 @@ const toolDef = (name: string) => ({
 
 const WEB_TOOLS = [
   "web_search",
+  "image_search",
   "http_request",
   "download_file",
   "browser",
@@ -121,9 +122,10 @@ describe("nodetool.web", () => {
       args: { query: "fox", backend: "serpapi", search_type: "news" }
     });
     expect(calls[4]).toMatchObject({
-      name: "web_search",
-      args: { query: "fox", backend: "dataforseo", search_type: "images" }
+      name: "image_search",
+      args: { query: "fox", backend: "dataforseo" }
     });
+    expect(calls[4].args).not.toHaveProperty("search_type");
   });
 
   it("throws naming the missing tool when the belt cannot serve the method", async () => {
@@ -151,8 +153,8 @@ describe("nodetool.web", () => {
     );
     expect(obs.ok).toBe(true);
     expect(calls[0]).toMatchObject({
-      name: "web_search",
-      args: { query: "red fox", num_results: 4, search_type: "images" }
+      name: "image_search",
+      args: { query: "red fox", num_results: 4 }
     });
     expect(calls[1]).toMatchObject({
       name: "http_request",

@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 70;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 72;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -471,6 +471,15 @@ describe("Built-in migrations", () => {
       await adapter.tableExists("nodetool_workflow_collaborators")
     ).toBe(true);
     expect(await adapter.tableExists("nodetool_workflow_shares")).toBe(true);
+    expect(await adapter.tableExists("projects")).toBe(true);
+
+    // Ledger rows carry the project (and document) they were spent on.
+    expect(
+      await adapter.columnExists("nodetool_predictions", "project_id")
+    ).toBe(true);
+    expect(
+      await adapter.columnExists("nodetool_predictions", "document_id")
+    ).toBe(true);
 
     // The provider_session continuation token column is added by migration.
     expect(

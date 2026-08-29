@@ -54,9 +54,10 @@ export const WEB_SEARCH_SCHEMA: JsonSchema = {
       default: "web",
       description:
         "What to search. `web` returns pages, `news` returns articles with " +
-        "dates and sources, `images` returns image URLs. Not every backend " +
-        "serves every type; the call says so rather than silently " +
-        "returning web results."
+        "dates and sources. `images` is still accepted for backward " +
+        "compatibility, but prefer the dedicated `image_search` function " +
+        "instead. Not every backend serves every type; the call says so " +
+        "rather than silently returning web results."
     },
     num_results: {
       type: "integer",
@@ -79,12 +80,13 @@ export const webSearchSpec: CapabilitySpec = {
   description:
     "Search the web and use the results to inform responses. Returns " +
     "up-to-date information for current events and recent data beyond the " +
-    "model's training cutoff. Set search_type to `news` for dated articles " +
-    "or `images` for image results; the default `web` returns pages with a " +
-    "title, URL, and snippet. Optionally scope results with allowed_domains " +
-    "(only these domains) or blocked_domains (never these domains). Runs on " +
-    "the first configured backend — SerpAPI, DataForSEO, Brave, Apify, then " +
-    "OpenAI or Gemini native search; `backend` pins one.",
+    "model's training cutoff. Set search_type to `news` for dated articles; " +
+    "the default `web` returns pages with a title, URL, and snippet. For " +
+    "image results use `image_search` instead. Optionally scope results " +
+    "with allowed_domains (only these domains) or blocked_domains (never " +
+    "these domains). Runs on the first configured backend — SerpAPI, " +
+    "DataForSEO, Brave, Apify, then OpenAI or Gemini native search; " +
+    "`backend` pins one.",
   inputSchema: WEB_SEARCH_SCHEMA,
   category: "read",
   userMessage: (params) => {
@@ -94,6 +96,62 @@ export const webSearchSpec: CapabilitySpec = {
       "something";
     const msg = `Searching the web for '${query}'`;
     return msg.length > 80 ? "Searching the web" : msg;
+  }
+};
+
+export const IMAGE_SEARCH_TOOL_NAME = "image_search";
+
+export const IMAGE_SEARCH_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    query: {
+      type: "string",
+      description: "The image search query to use.",
+      minLength: 2
+    },
+    allowed_domains: {
+      type: "array",
+      items: { type: "string" },
+      description: "Only include results from these domains."
+    },
+    blocked_domains: {
+      type: "array",
+      items: { type: "string" },
+      description: "Never include results from these domains."
+    },
+    num_results: {
+      type: "integer",
+      description: "How many results to return.",
+      default: 20
+    },
+    backend: {
+      type: "string",
+      enum: [...SEARCH_BACKEND_NAMES],
+      description:
+        "Pin one search backend instead of routing to the first " +
+        "configured one that supports image search."
+    }
+  },
+  required: ["query"]
+};
+
+export const imageSearchSpec: CapabilitySpec = {
+  name: IMAGE_SEARCH_TOOL_NAME,
+  description:
+    "Search the web for images and return each result's title, page link, " +
+    "original image URL, and thumbnail URL. Use this — not `web_search` — " +
+    "whenever the task is to find or reference existing images (reference " +
+    "photos, product shots, screenshots of a real thing). Optionally scope " +
+    "results with allowed_domains (only these domains) or blocked_domains " +
+    "(never these domains). Runs on the first configured backend that " +
+    "supports image search — SerpAPI, DataForSEO, Brave, or Apify; " +
+    "`backend` pins one.",
+  inputSchema: IMAGE_SEARCH_SCHEMA,
+  category: "read",
+  userMessage: (params) => {
+    const query = (params.query as string | undefined) ?? "something";
+    const msg = `Searching the web for images of '${query}'`;
+    return msg.length > 80 ? "Searching the web for images" : msg;
   }
 };
 
@@ -246,6 +304,7 @@ export const httpRequestSpec: CapabilitySpec = {
 /** Every spec this module declares, in declaration order. */
 export const webSpecs: readonly CapabilitySpec[] = [
   webSearchSpec,
+  imageSearchSpec,
   browserSpec,
   takeScreenshotSpec,
   downloadFileSpec,

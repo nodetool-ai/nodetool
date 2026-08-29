@@ -4,12 +4,15 @@
  * This is not a tool. `capabilities/web.ts` picks the first configured backend
  * and calls the function below; the model never sees a `google_grounded_search`
  * name, because choosing a search provider is the host's job, not the model's.
+ *
+ * The call itself lives in `serp-providers/gemini-provider.ts`, which is also
+ * what `SERP_PROVIDER=gemini` builds. This file is the context-aware half:
+ * resolve the key, return `{error}` rather than throwing.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { GeminiSearchProvider } from "./serp-providers/gemini-provider.js";
 import { isFunction, isString } from "../utils/type-guards.js";
-
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 async function getGeminiApiKey(context?: ProcessingContext): Promise<string> {
   // Prefer the context's secretResolver (encrypted DB) over env vars so the
@@ -45,7 +48,7 @@ export async function googleGroundedSearch(
 ): Promise<{
   query?: string;
   results?: string[];
-  sources?: Array<{ title: string; url: string }>;
+  sources?: Array<{ title: string; url: string; snippet: string }>;
   status?: string;
   error?: string;
 }> {
@@ -56,79 +59,22 @@ export async function googleGroundedSearch(
 
   try {
     const apiKey = await getGeminiApiKey(context);
-    const url = `${GEMINI_API_BASE}/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-
-    const body = {
-      contents: [{ role: "user", parts: [{ text: query }] }],
-      tools: [{ googleSearch: {} }],
-      generationConfig: { responseModalities: ["TEXT"] }
-    };
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      return {
-        error: `Gemini API error: ${response.status} ${response.statusText}`
-      };
-    }
-
-    const data = (await response.json()) as Record<string, unknown>;
-    const candidates = data["candidates"] as
-      | Array<Record<string, unknown>>
-      | undefined;
-
-    if (!candidates?.length) {
-      return { error: "No response received from Gemini API" };
-    }
-
-    const candidate = candidates[0];
-    const content = candidate["content"] as Record<string, unknown> | undefined;
-    const parts = content?.["parts"] as
-      | Array<Record<string, unknown>>
-      | undefined;
-
-    const results: string[] = [];
-    if (parts) {
-      for (const part of parts) {
-        if (isString(part["text"])) {
-          results.push(part["text"]);
-        }
-      }
-    }
-
-    const groundingMetadata = candidate["groundingMetadata"] as
-      | Record<string, unknown>
-      | undefined;
-    const sources: Array<{ title: string; url: string }> = [];
-
-    if (groundingMetadata) {
-      const chunks = groundingMetadata["groundingChunks"] as
-        | Array<Record<string, unknown>>
-        | undefined;
-      if (chunks) {
-        for (const chunk of chunks) {
-          const web = chunk["web"] as Record<string, unknown> | undefined;
-          if (web?.["uri"]) {
-            sources.push({
-              title: String(web["title"] ?? "Unknown Source"),
-              url: String(web["uri"])
-            });
-          }
-        }
-      }
-    }
+    const answer = await new GeminiSearchProvider(apiKey).answer(query);
 
     return {
       query,
-      results,
-      sources,
+      results: answer.texts,
+      sources: answer.citations.map((c) => ({
+        title: c.title,
+        url: c.url,
+        snippet: c.snippet
+      })),
       status: "success"
     };
   } catch (e) {
-    return { error: `Google grounded search failed: ${String(e)}` };
+    // The provider and the key resolver already name what failed; re-prefixing
+    // would turn "No response received from Gemini API" into a sentence with
+    // two verbs and no more information.
+    return { error: e instanceof Error ? e.message : String(e) };
   }
 }

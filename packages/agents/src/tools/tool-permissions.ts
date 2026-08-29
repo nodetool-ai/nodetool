@@ -51,6 +51,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   grep: "read",
   // --- read: web & document reads ---
   web_search: "read",
+  image_search: "read",
   // Apify inspection. Reading the store, an actor record, an input schema, or
   // a dataset a run already produced has no side effect and spends nothing —
   // only `run_apify_actor` and `abort_apify_run` act, and those are left

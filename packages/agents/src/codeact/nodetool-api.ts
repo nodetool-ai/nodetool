@@ -72,6 +72,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   web: [
     "web_search",
+    "image_search",
     "http_request",
     "download_file",
     "browser",
@@ -954,13 +955,13 @@ const nodetool = (() => {
             search_type: "news"
           })
         ),
-      /** Image results. One \`web_search\` with search_type: "images". */
+      /**
+       * Image results: title, page link, original image URL, thumbnail URL.
+       * Routes across the same backends as \`search\`/\`news\`, minus the two
+       * that answer with prose instead of results (openai, google/gemini).
+       */
       images: (query, opts) =>
-        __need("web_search")(
-          __merge(__webArgs(opts, { google: "serpapi" }, "query", query), {
-            search_type: "images"
-          })
-        ),
+        __need("image_search")(__webArgs(opts, {}, "query", query)),
       /** One HTTP request; returns the response body as text. */
       fetch: (url, opts) => __need("http_request")(__merge(opts, { url: url })),
       /** Fetch a page and get its readable text (HTML stripped). */
@@ -1479,11 +1480,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "web",
-    doc: `- \`nodetool.web\` — the outside world. \`await search(query, {provider})\`,
-  \`news(query)\` and \`images(query)\` route across the configured search
-  backends host-side; \`provider\` pins one (\`"default"\`, \`"openai"\`,
-  \`"google"\`, \`"dataforseo"\`). \`browse(url)\` returns a page's
-  readable text, \`fetch(url, {method, headers, body})\` is a raw HTTP request,
+    doc: `- \`nodetool.web\` — the outside world. \`await search(query, {provider})\`
+  and \`news(query)\` route across the configured search backends host-side;
+  \`provider\` pins one (\`"default"\`, \`"openai"\`, \`"google"\`,
+  \`"dataforseo"\`). \`images(query, {provider})\` is the dedicated image search
+  — title, page link, original image URL, thumbnail URL — routed the same way
+  minus the two providers that answer with prose instead of results
+  (\`"openai"\`, \`"google"\`). \`browse(url)\` returns a page's readable text,
+  \`fetch(url, {method, headers, body})\` is a raw HTTP request,
   \`download(url, outputFile)\` saves bytes into the workspace, and
   \`screenshot(url, outputFile)\` renders a page to PNG.`
   },

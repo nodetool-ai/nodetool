@@ -8,7 +8,10 @@ import {
   useStoryboards
 } from "../../hooks/storyboard/useStoryboards";
 import { usePanelStore } from "../../stores/PanelStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  creationProjectId
+} from "../../stores/WorkspaceTabsStore";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import { useSidebarDocumentMenu } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
@@ -32,7 +35,7 @@ export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
     try {
       const created = await createStoryboard.mutateAsync({
         name: "Untitled storyboard",
-        projectId: "default"
+        projectId: creationProjectId()
       });
       openTab({
         type: "storyboard",

@@ -1,8 +1,10 @@
 import {
   useWorkspaceTabsStore,
+  creationProjectId,
   nextActiveAfterClose,
   seedTabsFromLegacy,
   tabId,
+  LOOSE_PROJECT_ID,
   type WorkspaceTab
 } from "../WorkspaceTabsStore";
 
@@ -19,7 +21,7 @@ const tab = (
 });
 
 const reset = (tabs: WorkspaceTab[] = [], activeTabId: string | null = null) => {
-  useWorkspaceTabsStore.setState({ tabs, activeTabId });
+  useWorkspaceTabsStore.setState({ tabs, activeTabId, activeProjectId: null });
 };
 
 beforeEach(() => {
@@ -183,5 +185,19 @@ describe("seedTabsFromLegacy", () => {
   it("ignores malformed openWorkflows", () => {
     localStorage.setItem("openWorkflows", "{not json");
     expect(seedTabsFromLegacy()).toEqual({ tabs: [], activeTabId: null });
+  });
+});
+
+describe("creationProjectId", () => {
+  it("names the loose bucket while no project is open", () => {
+    expect(creationProjectId()).toBe(LOOSE_PROJECT_ID);
+  });
+
+  it("follows the project that was opened after the caller was created", () => {
+    const create = () => creationProjectId();
+    useWorkspaceTabsStore.getState().setActiveProjectId("proj-1");
+    expect(create()).toBe("proj-1");
+    useWorkspaceTabsStore.getState().setActiveProjectId(null);
+    expect(create()).toBe(LOOSE_PROJECT_ID);
   });
 });

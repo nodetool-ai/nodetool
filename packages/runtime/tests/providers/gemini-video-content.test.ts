@@ -3,6 +3,7 @@ import {
   GeminiProvider,
   GEMINI_INLINE_VIDEO_MAX_BYTES
 } from "../../src/providers/gemini-provider.js";
+import { AtlasCloudProvider } from "../../src/providers/atlascloud-provider.js";
 
 function jsonResponse(
   body: unknown,
@@ -170,5 +171,22 @@ describe("GeminiProvider video content", () => {
     expect(result.contents[0].parts[0]).toEqual({
       text: "[unsupported content type]"
     });
+  });
+});
+
+describe("which providers declare they read video", () => {
+  it("Gemini says yes; an OpenAI-compatible re-host says no and names itself", async () => {
+    expect(new GeminiProvider({ GEMINI_API_KEY: "k" }).supportsVideoInput).toBe(
+      true
+    );
+
+    const atlas = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    expect(atlas.supportsVideoInput).toBe(false);
+    await expect(
+      atlas.convertMessage({
+        role: "user",
+        content: [{ type: "video", video: { uri: "x.mp4" } }]
+      })
+    ).rejects.toThrow(/video input is not supported by atlascloud/);
   });
 });

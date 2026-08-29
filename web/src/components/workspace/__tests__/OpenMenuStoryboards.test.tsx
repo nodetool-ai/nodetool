@@ -42,6 +42,7 @@ jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
 
 const openTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
+  creationProjectId: () => "default",
   useWorkspaceTabsStore: <T,>(selector: (s: { openTab: jest.Mock }) => T) =>
     selector({ openTab })
 }));

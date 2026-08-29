@@ -34,7 +34,10 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  creationProjectId
+} from "../../stores/WorkspaceTabsStore";
 import { newDocumentId } from "../../lib/newDocumentId";
 
 /** Render a blank white PNG to seed a "New image" canvas asset. */
@@ -237,7 +240,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       runCreate("video", async () => {
         const sequence = await createTimeline.mutateAsync({
           name: "Untitled video",
-          projectId: "default"
+          projectId: creationProjectId()
         });
         openTab({
           type: "timeline",
@@ -254,7 +257,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       runCreate("storyboard", async () => {
         const created = await createStoryboard.mutateAsync({
           name: "Untitled storyboard",
-          projectId: "default"
+          projectId: creationProjectId()
         });
         openTab({
           type: "storyboard",
@@ -271,7 +274,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       runCreate(name, async () => {
         const created = await installExampleStoryboard.mutateAsync({
           slug,
-          projectId: "default"
+          projectId: creationProjectId()
         });
         openTab({
           type: "storyboard",
@@ -289,7 +292,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
         const created = await createApplication.mutateAsync({
           name: "Untitled app",
           description: "",
-          projectId: "default"
+          projectId: creationProjectId()
         });
         openTab({
           type: "application",
@@ -306,7 +309,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       runCreate("script", async () => {
         const created = await createScript.mutateAsync({
           name: "Untitled script",
-          projectId: "default"
+          projectId: creationProjectId()
         });
         openTab({
           type: "script",
@@ -323,7 +326,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       runCreate("JS script", async () => {
         const created = await createJsScript.mutateAsync({
           name: "Untitled JS script",
-          projectId: "default"
+          projectId: creationProjectId()
         });
         openTab({
           type: "jsscript",

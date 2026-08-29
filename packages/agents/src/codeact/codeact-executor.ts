@@ -222,6 +222,7 @@ export function coercionArtifactPaths(
 export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Search family — every discovery entry point stays top level.
   "web_search",
+  "image_search",
   "search_nodes",
   "run_search",
   "asset_search",

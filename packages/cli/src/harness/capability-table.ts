@@ -1093,7 +1093,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "web_search",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "7456924936fe",
+    contract: "e4946512515e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
@@ -1104,6 +1104,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
         cases: ["web-research-brief"],
       },
+    ],
+  },
+  {
+    name: "image_search",
+    module: "web",
+    impl: "packages/agents/src/capabilities/web.ts",
+    contract: "3c50d887acb1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-web.test.ts",
+      "packages/agents/tests/capability-module-exports.test.ts",
     ],
   },
   {

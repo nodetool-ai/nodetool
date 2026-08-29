@@ -192,6 +192,67 @@ export async function mountCapabilityModules(
 }
 
 /**
+ * A guessed import that names neither a real export nor a casing/underscore
+ * variant of one — a synonym the model reached for by habit. `images` is the
+ * "web" module's own case: it is now the real `image_search` export's name,
+ * but a model still guesses `images`, `image`, `search_images`, or the
+ * retired `google_images` (see `RETIRED_TOOL_NAMES` in
+ * `packages/llm-nodes/src/nodes/agent-tool-hydration.ts`) for it.
+ */
+const MODULE_EXPORT_SYNONYMS: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  web: {
+    images: "image_search",
+    image: "image_search",
+    search_images: "image_search",
+    google_images: "image_search",
+    dataforseo_images: "image_search"
+  }
+};
+
+/** "Did you mean …" for a known synonym of a real export in this module. */
+function synonymHintSentence(
+  module: string,
+  missingName: string,
+  available: readonly string[]
+): string {
+  const target = MODULE_EXPORT_SYNONYMS[module]?.[missingName.toLowerCase()];
+  if (target === undefined || !available.includes(target)) return "";
+  return `Did you mean "${target}" for "${missingName}"? `;
+}
+
+/**
+ * `web_search` absorbed news search as a `search_type` argument rather than a
+ * name of its own (`google_news` is retired — see `RETIRED_TOOL_NAMES` in
+ * `packages/llm-nodes/src/nodes/agent-tool-hydration.ts`). Nothing in the
+ * "web" module's export list says so, so a model reaching for a news search
+ * guesses a name like `news_search`, is told only that "web" exports
+ * `web_search, image_search, browser, take_screenshot, http_request,
+ * download_file", and calls plain `web_search` next — which silently returns
+ * page results instead of the dated articles it was asked for. Naming the
+ * parameter here, at the point the guess failed, is cheaper than hoping the
+ * model infers it from a bare export list.
+ */
+const WEB_SEARCH_TYPE_HINTS: Readonly<Record<string, "news">> = {
+  news: "news",
+  news_search: "news",
+  search_news: "news",
+  google_news: "news"
+};
+
+/** A sentence pointing a guessed news-search import at `web_search`. */
+function searchTypeHintSentence(module: string, missingName: string): string {
+  if (module !== "web") return "";
+  const searchType = WEB_SEARCH_TYPE_HINTS[missingName.toLowerCase()];
+  if (searchType === undefined) return "";
+  return (
+    `There is no separate ${searchType} search — call "web_search" with ` +
+    `{search_type: "${searchType}"} instead. `
+  );
+}
+
+/**
  * A capability module exports its wire names verbatim — `generate_image`, not
  * `generateImage` — so the spelling a model reaches for by habit resolves to
  * nothing. Left to the guest that surfaces as QuickJS's "Could not find export
@@ -214,7 +275,12 @@ function unknownImportedExports(
     if (missing.length === 0) continue;
     const names = missing.map((name) => `"${name}"`).join(", ");
     const suggestions = missing
-      .map((name) => nearMatchSentence(name, available))
+      .map(
+        (name) =>
+          synonymHintSentence(module ?? "", name, available) ||
+          nearMatchSentence(name, available) ||
+          searchTypeHintSentence(module ?? "", name)
+      )
       .filter((sentence) => sentence.length > 0)
       .join(" ");
     return (

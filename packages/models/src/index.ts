@@ -34,6 +34,7 @@ export {
   workflowVersions,
   oauthCredentials,
   predictions,
+  projects,
   runEvents,
   teamTasks,
   appSettings,
@@ -218,6 +219,31 @@ export type {
   ReserveInput
 } from "./application-budget.js";
 export { ApplicationDeployment } from "./application-deployment.js";
+export { Project, LOOSE_PROJECT_ID } from "./project.js";
+export type { ProjectResponse } from "./project.js";
+export {
+  listProjectDocuments,
+  scriptStatus,
+  spendCategory,
+  storyboardStatus,
+  summarizeProject,
+  summarizeSpend,
+  timelineStatus
+} from "./project-summary.js";
+export type {
+  CategorySpend,
+  ProjectDocumentRef,
+  ProjectDocumentStatus,
+  ProjectDocumentSummary,
+  ProjectDocumentType,
+  ProjectSpend,
+  ProjectSummary,
+  ScriptStatus,
+  SpendCategory,
+  SpendRow,
+  StoryboardStatus,
+  TimelineStatus
+} from "./project-summary.js";
 export {
   Script,
   ScriptConflictError,

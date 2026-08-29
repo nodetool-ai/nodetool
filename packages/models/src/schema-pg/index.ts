@@ -27,6 +27,7 @@ export {
   applicationBudgets,
   applicationInvocations
 } from "./application-budgets.js";
+export { projects } from "./projects.js";
 export { scripts } from "./scripts.js";
 export { jsScripts } from "./js-scripts.js";
 export { skills } from "./skills.js";

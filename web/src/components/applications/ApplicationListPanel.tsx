@@ -15,7 +15,10 @@ import {
 } from "../../hooks/useApplications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { usePanelStore } from "../../stores/PanelStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  creationProjectId
+} from "../../stores/WorkspaceTabsStore";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import { useSidebarDocumentMenu } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
@@ -90,7 +93,7 @@ export const CreateApplicationButton = memo(function CreateApplicationButton() {
       const created = await createApplication.mutateAsync({
         name: UNTITLED,
         description: "",
-        projectId: "default"
+        projectId: creationProjectId()
       });
       openApplication(created.id, created.name);
     } catch (error) {
@@ -133,7 +136,7 @@ export const CreateApplicationFromWorkflowButton = memo(
           const created = await createApplication.mutateAsync({
             name: workflowName || UNTITLED,
             description: "",
-            projectId: "default",
+            projectId: creationProjectId(),
             fromWorkflowId: workflowId
           });
           openApplication(created.id, created.name);

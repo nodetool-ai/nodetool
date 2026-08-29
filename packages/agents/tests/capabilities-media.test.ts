@@ -48,7 +48,10 @@ function makeContext(
 ): ProcessingContext {
   return {
     userId: "user-1",
-    runProviderPrediction
+    runProviderPrediction,
+    // What the real providers answer: Gemini reads a clip, an
+    // OpenAI-compatible endpoint has nowhere to put one.
+    providerSupportsVideoInput: async (id: string) => id === "gemini"
   } as unknown as ProcessingContext;
 }
 
@@ -320,6 +323,28 @@ describe("understand_video through the adapter", () => {
     expect(String(result["error"])).toBe(
       "understand_video failed: no video support"
     );
+  });
+
+  // The failure this capability actually hit: a model search offered
+  // `google/gemini-2.5-flash` served by AtlasCloud, whose chat API is
+  // OpenAI-compatible, so the call died inside the provider with a message
+  // naming openai.
+  it("refuses a provider that cannot take video, before spending a call", async () => {
+    const predict = vi.fn();
+    const result = (await asTool(understandVideo).process(
+      makeContext(predict),
+      {
+        provider: "atlascloud",
+        model: "google/gemini-2.5-flash",
+        video: "asset://clip-1.mp4"
+      }
+    )) as Record<string, unknown>;
+
+    expect(String(result["error"])).toMatch(
+      /atlascloud does not accept video input/
+    );
+    expect(String(result["error"])).toMatch(/gemini/);
+    expect(predict).not.toHaveBeenCalled();
   });
 });
 

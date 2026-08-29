@@ -5,7 +5,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCreateScript, useScripts } from "../../hooks/script/useScripts";
 import { usePanelStore } from "../../stores/PanelStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  creationProjectId
+} from "../../stores/WorkspaceTabsStore";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import { useSidebarDocumentMenu } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
@@ -29,7 +32,7 @@ export const CreateScriptButton = memo(function CreateScriptButton() {
     try {
       const created = await createScript.mutateAsync({
         name: "Untitled script",
-        projectId: "default"
+        projectId: creationProjectId()
       });
       openTab({
         type: "script",

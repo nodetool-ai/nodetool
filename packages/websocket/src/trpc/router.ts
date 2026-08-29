@@ -18,6 +18,7 @@ import { messagesRouter } from "./routers/messages.js";
 import { modelsRouter } from "./routers/models.js";
 import { nodesRouter } from "./routers/nodes.js";
 import { packsRouter } from "./routers/packs.js";
+import { projectsRouter } from "./routers/projects.js";
 import { scriptsRouter } from "./routers/scripts.js";
 import { settingsRouter } from "./routers/settings.js";
 import { fontsRouter } from "./routers/fonts.js";
@@ -58,6 +59,7 @@ export const appRouter = router({
   models: modelsRouter,
   nodes: nodesRouter,
   packs: packsRouter,
+  projects: projectsRouter,
   scripts: scriptsRouter,
   settings: settingsRouter,
   sketch: sketchRouter,

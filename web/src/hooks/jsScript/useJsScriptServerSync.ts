@@ -45,6 +45,7 @@ import {
   registerJsScriptSaver,
   type JsScriptSaveResult
 } from "./jsScriptSaveRegistry";
+import { creationProjectId } from "../../stores/WorkspaceTabsStore";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -150,7 +151,7 @@ export const useJsScriptServerSync = (
           >[0] = {
             id: scriptId,
             name: local?.name || DEFAULT_NAME,
-            projectId: "default"
+            projectId: creationProjectId()
           };
           if (local) input.document = local.document;
           const created = await trpcClient.jsScripts.create.mutate(input);
