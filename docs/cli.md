@@ -1192,6 +1192,42 @@ nodetool models ollama
 nodetool models by-provider openai --kind image
 ```
 
+#### `nodetool models recommended`
+
+The curated shortlist — what to reach for when you want a model id that is known
+to work, rather than everything a provider will sell you. It reads the shipped
+`RECOMMENDED_MODELS` table in-process, so it needs no server, no API key, and no
+network.
+
+- `--category <category>` — one of `all` (default), `image`,
+  `image-text-to-image`, `image-image-to-image`, `language`,
+  `language-text-generation`, `language-embedding`, `asr`, `tts`,
+  `video-text-to-video`, `video-image-to-video`. An unknown value exits `1`
+  listing the valid ones.
+- `--system <darwin|linux|windows>` — keep only models that run on that
+  platform. A model that declares no platforms is kept for all of them.
+- `--limit <n>` — cap the results. Applied after both filters; a value that is
+  not a positive integer exits `1`.
+- `--check-servers` — fetch the list from a running server instead, which also
+  probes whether the local Ollama and llama.cpp servers can serve each entry.
+  This is the only mode that uses `--api-url` (default `http://localhost:7777`,
+  or `NODETOOL_API_URL`).
+- `--json` — the full model records rather than the five-column table.
+
+```bash
+# The top of the curated list, no network
+nodetool models recommended --limit 3
+
+# What to embed with
+nodetool models recommended --category language-embedding
+
+# What a Mac can actually run, machine-readable
+nodetool models recommended --system darwin --json
+
+# Which of them a local Ollama has pulled
+nodetool models recommended --check-servers
+```
+
 ### `nodetool models` — HuggingFace Hub and cache
 
 Five subcommands search the Hub and manage the local HuggingFace cache. They
@@ -1425,6 +1461,27 @@ nodetool deploy logs my-server --follow --tail 200
 nodetool deploy edit
 ```
 
+`list` and `show` answer the two questions you have before naming a target in
+any of the other verbs, and they are the pair to reach for when you have
+inherited a `deployment.yaml` you did not write.
+
+`list` queries each configured target for its live state and prints one row per
+deployment — `name`, `type`, `status`, `last_deployed`, `host`, `container`,
+`pod_id`, `project`, `region`, `service`. With none configured it prints
+`(no deployments configured)`; `--json` gives the same rows for a script.
+`show <name>` reads the file only, printing that one target's config as YAML —
+no remote call, so it works while the host is down.
+
+```bash
+nodetool deploy list
+nodetool deploy list --json
+nodetool deploy show my-server
+```
+
+Both need the file to exist. Without it they exit non-zero with
+`Deployment configuration not found at <path>. Run 'nodetool deploy init' to
+create it.`
+
 The full server walkthrough is [Deployment](deployment.md) and
 [Self-Hosted Deployment](self-hosted-deployment.md).
 
@@ -1505,6 +1562,19 @@ nodetool worker list
 nodetool worker status <instance-id>
 nodetool worker stop --all
 ```
+
+`token <id>` prints one worker's bearer token and nothing else — no table, no
+label — so it pipes into the variable the bridge reads:
+
+```bash
+export NODETOOL_WORKER_TOKEN=$(nodetool worker token <instance-id>)
+```
+
+`list` withholds tokens on purpose; this is the one command that decrypts one,
+and only for the worker you name. Reach for it when a second shell, a CI step,
+or a `--api-url` client has to talk to a worker `--attach` did not configure. A
+worker that carries no token is an error rather than empty output:
+`Worker instance '<id>' has no token (open worker).`
 
 The full walkthrough, including what `--attach` changes locally, is
 [Worker Deployment](worker-deployment.md).

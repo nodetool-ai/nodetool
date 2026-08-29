@@ -391,6 +391,41 @@ injects selected content into the system prompt under an `# Agent Skills`
 header. Trusted sandbox-pack skills are merged into the same available-skill
 set for the session.
 
+### System Skills
+
+A **system skill** ships with the build instead of living in a row. It is a
+`SKILL.md` — YAML frontmatter naming it, Markdown body — under a directory that
+carries its name, in `packages/system-skills/` in a checkout and staged to
+`_skills/` beside the bundled `server.mjs` in the desktop app and the Docker
+image. `NODETOOL_SYSTEM_SKILLS_DIR` overrides both roots
+([Configuration](configuration.md#environment-variables-index)).
+
+```markdown
+---
+name: launch-commercial
+description: Turn a product page URL into a finished launch commercial — ... Use when someone asks for an ad, a launch spot, a promo or a commercial from a product page or website.
+---
+
+# Product Page → Launch Commercial Agent
+
+You are a single agent. Your job: …
+```
+
+The `description` is what auto-select matches an objective against, so it says
+*when* the skill applies, not what it contains.
+
+`list_skills` and `load_skill` serve both tiers, so a system skill reaches the
+model exactly the way a user skill does. The difference is that it is read-only:
+`create_skill`, `update_skill`, and `delete_skill` refuse a shipped name, naming
+the verb they refused — `"<name>" is a system skill that ships with NodeTool and
+cannot be overwritten. Pick another name; load_skill still reads it.`, and
+likewise `edited`, `renamed over`, and `deleted`. A user row that already held
+the name predates the reservation and wins — reserving names only stops new ones.
+
+Nothing imports these files, so `packages/system-skills` is not a workspace and
+npm links nothing. A file whose frontmatter is missing or malformed, or whose
+`name` disagrees with its directory, is skipped rather than failing the catalog.
+
 ### Skill Resolution
 
 - **Explicit** — pass `skills: ["skill-a"]` in the agent constructor.
