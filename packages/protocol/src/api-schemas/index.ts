@@ -14,6 +14,7 @@ export * as mcpConfig from "./mcp-config.js";
 export * as messages from "./messages.js";
 export * as models from "./models.js";
 export * as nodes from "./nodes.js";
+export * as projects from "./projects.js";
 export * as scripts from "./scripts.js";
 export * as sdkV1 from "./sdk-v1.js";
 export * as sdkV1Operations from "./sdk-v1-operations.js";

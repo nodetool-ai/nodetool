@@ -64,6 +64,11 @@ interface OpenTabInput {
 interface WorkspaceTabsState {
   tabs: WorkspaceTab[];
   activeTabId: string | null;
+  /**
+   * The project new documents are created into. Null means none is open, and
+   * a creation then lands in the loose bucket ({@link LOOSE_PROJECT_ID}).
+   */
+  activeProjectId: string | null;
 
   /**
    * Open a document tab. If a tab for the same `(type, ref)` already
@@ -79,7 +84,11 @@ interface WorkspaceTabsState {
   setTitle: (ref: string, type: WorkspaceTabType, title: string) => void;
   moveTab: (id: string, toIndex: number) => void;
   getActiveTab: () => WorkspaceTab | null;
+  setActiveProjectId: (projectId: string | null) => void;
 }
+
+/** The project id documents carry when no project is open. */
+export const LOOSE_PROJECT_ID = "default";
 
 export const tabId = (type: WorkspaceTabType, ref: string): string =>
   `${type}:${ref}`;
@@ -160,6 +169,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
   persist(
     (set, get) => ({
       ...seedTabsFromLegacy(),
+      activeProjectId: null,
 
       openTab: ({ type, ref, mode, title }) => {
         const id = tabId(type, ref);
@@ -247,15 +257,26 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       getActiveTab: () => {
         const { tabs, activeTabId } = get();
         return tabs.find((t) => t.id === activeTabId) ?? null;
-      }
+      },
+
+      setActiveProjectId: (projectId) => set({ activeProjectId: projectId })
     }),
     {
       name: "workspace-tabs-storage",
       version: 1,
       partialize: (state) => ({
         tabs: state.tabs,
-        activeTabId: state.activeTabId
+        activeTabId: state.activeTabId,
+        activeProjectId: state.activeProjectId
       })
     }
   )
 );
+
+/**
+ * The project a newly created document belongs to. Read outside React — every
+ * creation site is inside a mutation callback, not a render — so a project
+ * opened after the component mounted is still the one that counts.
+ */
+export const creationProjectId = (): string =>
+  useWorkspaceTabsStore.getState().activeProjectId ?? LOOSE_PROJECT_ID;

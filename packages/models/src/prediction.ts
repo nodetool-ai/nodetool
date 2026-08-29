@@ -117,6 +117,8 @@ export class Prediction extends DBModel {
   declare provider: string;
   declare model: string;
   declare workflow_id: string | null;
+  declare project_id: string | null;
+  declare document_id: string | null;
   declare error: string | null;
   declare logs: string | null;
   declare status: string;
@@ -152,6 +154,8 @@ export class Prediction extends DBModel {
     this.model ??= "";
     this.status ??= "pending";
     this.workflow_id ??= null;
+    this.project_id ??= null;
+    this.document_id ??= null;
     this.error ??= null;
     this.logs ??= null;
     this.cost ??= null;
@@ -178,6 +182,32 @@ export class Prediction extends DBModel {
   /** Find a prediction by ID. */
   static async find(predictionId: string): Promise<Prediction | null> {
     return Prediction.get<Prediction>(predictionId);
+  }
+
+  /**
+   * Every ledger row attributed to one project, newest first. Rows written
+   * before the run knew a project carry a null `project_id` and are not here —
+   * the project's total is a lower bound in exactly that case, which is the
+   * same convention an unpriced row already sets.
+   */
+  static async listByProject(
+    userId: string,
+    projectId: string,
+    limit = 1000
+  ): Promise<Prediction[]> {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(predictions)
+      .where(
+        and(
+          eq(predictions.user_id, userId),
+          eq(predictions.project_id, projectId)
+        )
+      )
+      .orderBy(desc(predictions.created_at))
+      .limit(limit);
+    return rows.map((r: Record<string, unknown>) => new Prediction(r));
   }
 
   static async paginate(

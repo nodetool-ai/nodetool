@@ -12,7 +12,10 @@ import { useNavigate } from "react-router-dom";
 import { makeTrack } from "@nodetool-ai/timeline";
 import type { Asset } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
-import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  creationProjectId
+} from "../stores/WorkspaceTabsStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { assetToClip } from "../components/timeline/dnd/assetToClipAdapter";
 import { newDocumentId } from "../lib/newDocumentId";
@@ -39,7 +42,7 @@ export const useEditVideoAsset = (): ((asset: Asset) => Promise<void>) => {
         const sequence = await trpcClient.timeline.create.mutate({
           id: newDocumentId(),
           name: asset.name || "Untitled video",
-          projectId: "default"
+          projectId: creationProjectId()
         });
         const track = makeTrack({ type: "video", index: 0, name: "Video" });
         const clip = assetToClip(asset, track.id, 0);

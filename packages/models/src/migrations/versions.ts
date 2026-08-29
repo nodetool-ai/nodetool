@@ -2997,6 +2997,72 @@ export const migrations: MigrationDef[] = [
         ON nodetool_thread_memories (user_id)
       `);
     }
+  },
+
+  // ── Create projects ──────────────────────────────────────────────────
+  // The project is the unit of the workspace. Every document table already
+  // carries `project_id`; this is the row it points at. `"default"` stays the
+  // loose-documents bucket and gets no row — nothing is migrated into one.
+  {
+    version: "20260829_000000",
+    name: "create_projects",
+    createsTables: ["projects"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS projects (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          kind TEXT NOT NULL DEFAULT '',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_project_user ON projects (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_project_updated ON projects (updated_at)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_project_updated");
+      await db.execute("DROP INDEX IF EXISTS idx_project_user");
+      await db.execute("DROP TABLE IF EXISTS projects");
+    }
+  },
+
+  // ── Attribute ledger rows to a project and a document ────────────────
+  // A project's spend is the sum of the prediction rows that name it. Both
+  // columns are nullable and every existing row keeps a null: a run outside a
+  // project has no project, and saying so beats inventing one.
+  {
+    version: "20260829_000001",
+    name: "add_prediction_project_attribution",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      if (!(await db.columnExists("nodetool_predictions", "project_id"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_predictions ADD COLUMN project_id TEXT"
+        );
+      }
+      if (!(await db.columnExists("nodetool_predictions", "document_id"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_predictions ADD COLUMN document_id TEXT"
+        );
+      }
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_prediction_user_project
+        ON nodetool_predictions (user_id, project_id)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_prediction_user_project");
+      // SQLite before 3.35 cannot drop a column, and the data in these two is
+      // attribution nothing else reads. Leaving them is the safe direction.
+    }
   }
 ];
 
