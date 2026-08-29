@@ -294,7 +294,7 @@ const styles = (theme: Theme) =>
       pointerEvents: "none",
       zIndex: Z_INDEX.overlay,
       background:
-        "linear-gradient(to top, rgb(0 0 0 / 0.72), rgb(0 0 0 / 0))"
+        "linear-gradient(to top, rgba(var(--palette-common-black-channel) / 0.72), rgba(var(--palette-common-black-channel) / 0))"
     },
     ".caption-overlay .caption-text": {
       maxWidth: "70ch",
