@@ -19,6 +19,9 @@
  *   releasedDocument (query) — ApplicationReleaseResponse | null
  *                              (the snapshot plus the graphs it is pinned to)
  *
+ * Public deployment, for an app shared by URL rather than by account:
+ *   deployment/deploy/undeploy — the hidden link the release is served from
+ *
  * Spend governance, for apps published to people other than their author:
  *   budget/setBudget       — the app-scoped ceiling
  *   usage                  — spend in the budget's current window
@@ -42,6 +45,7 @@ import {
 } from "@nodetool-ai/models";
 import {
   applicationBudget,
+  applicationDeployment,
   applicationListItem,
   applicationReleaseResponse,
   applicationResponse,
@@ -69,6 +73,11 @@ import {
   updateApplication,
   updateApplicationInput as updateInput
 } from "../../lib/applications-service.js";
+import {
+  deployApplication,
+  getApplicationDeployment,
+  undeployApplication
+} from "../../lib/app-deployment-service.js";
 
 const okOutput = z.object({ ok: z.literal(true) });
 
@@ -138,6 +147,29 @@ export const applicationsRouter = router({
     .input(idInput)
     .output(applicationReleaseResponse.nullable())
     .query(({ ctx, input }) => releasedApplicationDocument(ctx.userId, input.id)),
+
+  /**
+   * The app's hidden-URL deployment, or null when it has none. Only the owner
+   * ever sees the token; the visitor presents it, and gets back the release.
+   * Production-only, so a local editor asking this gets a refusal rather than
+   * a link that stops working when it matters.
+   */
+  deployment: protectedProcedure
+    .input(idInput)
+    .output(applicationDeployment.nullable())
+    .query(({ ctx, input }) =>
+      getApplicationDeployment(ctx.userId, input.id)
+    ),
+
+  deploy: protectedProcedure
+    .input(idInput)
+    .output(applicationDeployment)
+    .mutation(({ ctx, input }) => deployApplication(ctx.userId, input.id)),
+
+  undeploy: protectedProcedure
+    .input(idInput)
+    .output(okOutput)
+    .mutation(({ ctx, input }) => undeployApplication(ctx.userId, input.id)),
 
   budget: protectedProcedure
     .input(idInput)

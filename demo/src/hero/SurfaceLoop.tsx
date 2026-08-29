@@ -55,12 +55,17 @@ export type SurfaceLoopEntry = {
   toMs: number;
   /**
    * Pixels of surface below the frame, panned into view over the loop (`doc`
-   * only). The storyboard board is a list: six cards are taller than 1080, and
-   * the last still to render is the last card. Rather than hide it, the loop
-   * renders a taller surface and scrolls it, which is what a person watching
-   * the board fill does anyway.
+   * only). Set it when a cast's surface is taller than the frame, so the last
+   * thing to arrive is not hidden below the fold.
    */
   panPx?: number;
+  /**
+   * Scale applied to the surface (`doc` only). The surface is laid out in a
+   * frame `zoom` times smaller and scaled back up, so a surface that does not
+   * fill 1920×1080 on its own — the storyboard grid is two rows of cards —
+   * still fills the loop instead of sitting in a field of background.
+   */
+  zoom?: number;
 };
 
 export const SURFACE_LOOPS: SurfaceLoopEntry[] = [
@@ -72,7 +77,7 @@ export const SURFACE_LOOPS: SurfaceLoopEntry[] = [
     castId: "storyboard-assistant",
     fromMs: 700,
     toMs: 23000,
-    panPx: 250,
+    zoom: 1.5,
   },
   {
     slug: "script",
@@ -187,10 +192,11 @@ export const SurfaceLoop: React.FC<SurfaceLoopEntry> = ({
   fromMs,
   toMs,
   panPx = 0,
+  zoom = 1,
 }) => {
   useInterFont();
   const frame = useCurrentFrame();
-  const { height } = useVideoConfig();
+  const { width, height } = useVideoConfig();
 
   const castMs = interpolate(frame, [0, SURFACE_LOOP_FRAMES], [fromMs, toMs], {
     extrapolateLeft: "clamp",
@@ -218,9 +224,12 @@ export const SurfaceLoop: React.FC<SurfaceLoopEntry> = ({
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            height: height + panPx,
-            transform: `translateY(${panY}px)`,
+            top: 0,
+            left: 0,
+            width: width / zoom,
+            height: (height + panPx) / zoom,
+            transform: `scale(${zoom}) translateY(${panY / zoom}px)`,
+            transformOrigin: "top left",
           }}
         >
           <DocDemoPlayer cast={getDocCast(castId as string)} timeMs={castMs} />

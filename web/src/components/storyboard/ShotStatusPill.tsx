@@ -1,38 +1,24 @@
 /**
  * ShotStatusPill
  *
- * The one status vocabulary the shot grid speaks, rendered as a mono pill in
- * the thumbnail's bottom-right corner. Four tones: a rendered clip (success
- * green), a render in flight (video violet, matching the card's border and
- * the progress bar under the thumbnail), a shot waiting on its next step
- * (neutral), and a failed render (error).
+ * What the shot grid says about a shot, in the app's shared pill vocabulary
+ * (`StatusPill`): a rendered clip and its length, a render in flight (video
+ * violet, matching the card's border and the progress bar under the
+ * thumbnail), a shot waiting on its next step, or a failed render.
  */
 
 import { memo } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { useTheme } from "@mui/material/styles";
 import type { Shot } from "@nodetool-ai/protocol";
 
-import {
-  Box,
-  BORDER_RADIUS,
-  CONTROL,
-  SPACING,
-  TYPOGRAPHY
-} from "../ui_primitives";
+import { StatusPill, type StatusPillTone } from "../ui_primitives";
 import { colorForType } from "../../config/data_types";
-import { hexToRgba } from "../../utils/ColorUtils";
-import { brighten, toHex } from "../../utils/colorMath";
 
 /** Video violet — the app's colour for anything clip-shaped. */
 export const CLIP_COLOR = colorForType("video");
-/** The same violet, lifted off the tinted background it sits on. */
-const CLIP_TEXT = toHex(brighten(CLIP_COLOR, 1.4));
-
-export type ShotPillTone = "done" | "rendering" | "neutral" | "failed";
 
 export interface ShotPill {
-  tone: ShotPillTone;
+  tone: StatusPillTone;
   label: string;
 }
 
@@ -69,43 +55,6 @@ export const shotPill = (
   return { tone: "neutral", label: "planned" };
 };
 
-/** Border and background for a tone, shared with the card's own border. */
-export const toneColors = (
-  tone: ShotPillTone,
-  theme: Theme
-): { color: string; border: string; background: string } => {
-  switch (tone) {
-    case "done": {
-      const green = theme.palette.success.main;
-      return {
-        color: green,
-        border: hexToRgba(green, 0.5),
-        background: hexToRgba(green, 0.12)
-      };
-    }
-    case "rendering":
-      return {
-        color: CLIP_TEXT,
-        border: CLIP_COLOR,
-        background: hexToRgba(CLIP_COLOR, 0.16)
-      };
-    case "failed": {
-      const red = theme.palette.error.main;
-      return {
-        color: red,
-        border: hexToRgba(red, 0.5),
-        background: hexToRgba(red, 0.12)
-      };
-    }
-    default:
-      return {
-        color: theme.palette.text.secondary,
-        border: theme.palette.divider,
-        background: hexToRgba(theme.palette.common.white, 0.06)
-      };
-  }
-};
-
 interface ShotStatusPillProps {
   shot: Shot;
   /** The shot's effective length, shown once it has a clip. */
@@ -118,31 +67,16 @@ const ShotStatusPillInner = ({
   durationSeconds,
   sx
 }: ShotStatusPillProps) => {
-  const theme = useTheme();
   const pill = shotPill(shot, durationSeconds);
-  const colors = toneColors(pill.tone, theme);
-
   return (
-    <Box
+    <StatusPill
+      tone={pill.tone}
+      accent={CLIP_COLOR}
       data-testid="shot-status-pill"
-      data-tone={pill.tone}
-      sx={{
-        display: "inline-flex",
-        alignItems: "center",
-        height: `${CONTROL.height.xs}px`,
-        px: SPACING.sm,
-        borderRadius: BORDER_RADIUS.pill,
-        border: "1px solid",
-        borderColor: colors.border,
-        backgroundColor: colors.background,
-        color: colors.color,
-        whiteSpace: "nowrap",
-        ...TYPOGRAPHY.mono.caption,
-        ...sx
-      }}
+      sx={sx}
     >
       {pill.label}
-    </Box>
+    </StatusPill>
   );
 };
 

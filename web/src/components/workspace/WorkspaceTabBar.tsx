@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, {
+  Fragment,
   useCallback,
   useMemo,
   useRef,
@@ -12,6 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
+  orderTabsForRender,
   useWorkspaceTabsStore,
   type WorkspaceTab,
   type WorkspaceTabType
@@ -26,7 +28,6 @@ import { renameSketchDocument } from "../../stores/sketch/SketchSessionStore";
 import { readSketchDocumentId } from "../../hooks/sketch/ensureSketchDocumentForAsset";
 import { tabCanRename } from "./tabRename";
 import { useUpdateApplication } from "../../hooks/useApplications";
-import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
@@ -34,6 +35,9 @@ import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
 import MobileDocumentSelector from "./MobileDocumentSelector";
 import MobileRailLauncher from "../panels/MobileRailLauncher";
+import ProjectScopeChip from "../projects/ProjectScopeChip";
+import { PROJECT_COLOR } from "../projects/projectIdentity";
+import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
 const SUPPORTS_BOTH_MODES = {
@@ -51,45 +55,12 @@ const SUPPORTS_BOTH_MODES = {
   "workspace-file": true,
   chat: false,
   application: false,
-  page: false
+  page: false,
+  "project-list": false,
+  project: false,
+  "project-new": false
 } satisfies Record<WorkspaceTabType, boolean>;
 
-const TYPE_GLYPH = {
-  workflow: "⬡",
-  image: "▦",
-  sketch: "✎",
-  timeline: "▤",
-  storyboard: "▥",
-  script: "🎙",
-  jsscript: "{ }",
-  skill: "✦",
-  model3d: "◈",
-  audio: "♪",
-  text: "¶",
-  "workspace-file": "🗎",
-  chat: "❝",
-  application: "◧",
-  page: "☰"
-} satisfies Record<WorkspaceTabType, string>;
-
-/** Pin color per tab type, reusing the app's canonical data-type palette. */
-const TYPE_COLOR = {
-  workflow: colorForType("any"),
-  image: colorForType("image"),
-  sketch: colorForType("image"),
-  timeline: colorForType("video"),
-  storyboard: colorForType("video"),
-  script: colorForType("audio"),
-  jsscript: colorForType("str"),
-  skill: colorForType("str"),
-  model3d: colorForType("model_3d"),
-  audio: colorForType("audio"),
-  text: colorForType("text"),
-  "workspace-file": colorForType("file"),
-  chat: colorForType("str"),
-  application: colorForType("any"),
-  page: colorForType("any")
-} satisfies Record<WorkspaceTabType, string>;
 
 const styles = (theme: Theme) =>
   css({
@@ -138,12 +109,46 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.primary,
         backgroundColor: "var(--c_editor_bg_color)"
       },
+      // A tab in the open project's group. The cyan underline is the group's
+      // extent; the chip to its left names it.
+      "&.in-project": {
+        boxShadow: `inset 0 -2px 0 color-mix(in srgb, ${PROJECT_COLOR} 35%, transparent)`
+      },
       "&.drop-target-left": {
         boxShadow: `inset 2px 0 0 ${theme.vars.palette.primary.main}`
       },
       "&.drop-target-right": {
         boxShadow: `inset -2px 0 0 ${theme.vars.palette.primary.main}`
       }
+    },
+
+    "& .project-scope": {
+      WebkitAppRegion: "no-drag",
+      display: "flex",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.md),
+      flex: "0 0 auto",
+      maxWidth: "220px",
+      padding: `0 ${getSpacingPx(SPACING.lg)}`,
+      border: "none",
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: `color-mix(in srgb, ${PROJECT_COLOR} 6%, transparent)`,
+      boxShadow: `inset 0 -2px 0 ${PROJECT_COLOR}`,
+      color: theme.vars.palette.text.primary,
+      cursor: "pointer",
+      fontSize: "var(--fontSizeSmall)",
+      "& .glyph": { color: PROJECT_COLOR },
+      "& .project-scope-name": {
+        fontWeight: 500,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      },
+      "& .project-scope-caret": {
+        fontSize: "var(--fontSizeSmaller)",
+        opacity: 0.6
+      },
+      "&:hover": { backgroundColor: theme.vars.palette.c_overlay_subtle }
     },
 
     "& .tab-input": {
@@ -310,10 +315,28 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) => state.activeProjectId
+  );
+
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,
     [tabs, activeTabId]
   );
+
+  // The open project's tabs render as one run behind the scope chip; every
+  // other tab keeps its place.
+  const renderedTabs = useMemo(
+    () => orderTabsForRender(tabs, activeProjectId),
+    [tabs, activeProjectId]
+  );
+  const firstGroupedTabId = renderedTabs.find(
+    (tab) => tab.projectId === activeProjectId
+  )?.id;
+  const groupName =
+    renderedTabs.find(
+      (tab) => tab.type === "project" && tab.ref === activeProjectId
+    )?.title ?? "Project";
 
   const newTabButtonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -509,6 +532,14 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
               name: trimmed
             });
             break;
+          case "project":
+            await trpcClient.projects.update.mutate({
+              id: tab.ref,
+              name: trimmed
+            });
+            void trpcUtils.projects.list.invalidate();
+            void trpcUtils.projects.summaries.invalidate();
+            break;
           default:
             break;
         }
@@ -523,7 +554,9 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       setTitle,
       updateApplication,
       trpcUtils.skills.get,
-      trpcUtils.skills.list
+      trpcUtils.skills.list,
+      trpcUtils.projects.list,
+      trpcUtils.projects.summaries
     ]
   );
 
@@ -608,30 +641,38 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         />
       ) : (
         <div className="tabs">
-          {tabs.map((tab) => (
-            <WorkspaceTabItem
-              key={tab.id}
-              tab={tab}
-              isActive={tab.id === activeTabId}
-              isEditing={editingTabId === tab.id}
-              canRename={tabCanRename(tab.type)}
-              dropPosition={
-                dropTarget?.id === tab.id ? dropTarget.position : null
-              }
-              typeColor={TYPE_COLOR[tab.type]}
-              typeGlyph={TYPE_GLYPH[tab.type]}
-              onActivate={setActiveTab}
-              onBeginRename={handleBeginRename}
-              onClose={handleClose}
-              onCloseOthers={handleCloseOthers}
-              onCloseAll={handleCloseAll}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onCommitRename={commitRename}
-              onCancelRename={handleCancelRename}
-            />
+          {renderedTabs.map((tab) => (
+            <Fragment key={tab.id}>
+              {tab.id === firstGroupedTabId && activeProjectId && (
+                <ProjectScopeChip
+                  projectId={activeProjectId}
+                  fallbackName={groupName}
+                />
+              )}
+              <WorkspaceTabItem
+                tab={tab}
+                inProject={tab.projectId === activeProjectId}
+                isActive={tab.id === activeTabId}
+                isEditing={editingTabId === tab.id}
+                canRename={tabCanRename(tab.type)}
+                dropPosition={
+                  dropTarget?.id === tab.id ? dropTarget.position : null
+                }
+                typeColor={TYPE_COLOR[tab.type]}
+                typeGlyph={TYPE_GLYPH[tab.type]}
+                onActivate={setActiveTab}
+                onBeginRename={handleBeginRename}
+                onClose={handleClose}
+                onCloseOthers={handleCloseOthers}
+                onCloseAll={handleCloseAll}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onCommitRename={commitRename}
+                onCancelRename={handleCancelRename}
+              />
+            </Fragment>
           ))}
         </div>
       )}

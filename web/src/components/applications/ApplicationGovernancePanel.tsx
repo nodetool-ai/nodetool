@@ -1,9 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
+import { appDeploymentPath } from "@nodetool-ai/protocol";
+
 import type { RouterOutputs } from "../../trpc/client";
 import {
   useApplicationBudget,
+  useApplicationDeployment,
+  useDeployApplication,
+  useUndeployApplication,
+  isProductionOnlyDeploymentError,
   useApplicationInvocations,
   useApplicationUsage,
   useApplicationVersions,
@@ -17,6 +23,7 @@ import {
   Button,
   Caption,
   Chip,
+  CopyButton,
   Divider,
   EmptyState,
   FlexColumn,
@@ -28,6 +35,7 @@ import {
   TextInput,
   SPACING
 } from "../ui_primitives";
+import ReportBugButton from "../support/ReportBugButton";
 
 type Version = RouterOutputs["applications"]["versions"][number];
 type BudgetPeriod = RouterOutputs["applications"]["setBudget"]["period"];
@@ -87,9 +95,14 @@ const VersionRow = memo(function VersionRow({
     [onRelease, version.version]
   );
   return (
-    <FlexRow align="center" justify="space-between" gap={2} fullWidth>
-      <FlexColumn gap={0.5} sx={{ minWidth: 0 }}>
-        <FlexRow align="center" gap={1}>
+    <FlexRow
+      align="center"
+      justify="space-between"
+      gap={SPACING.md}
+      fullWidth
+    >
+      <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
+        <FlexRow align="center" gap={SPACING.xs}>
           <Text weight={600}>{`Version ${version.version}`}</Text>
           {version.released && <Chip label="Released" size="small" />}
         </FlexRow>
@@ -200,7 +213,7 @@ const BudgetSection = memo(function BudgetSection({
         errorMessage={parsedInvocations.ok ? undefined : LIMIT_HINT}
         onChange={(event) => setMaxInvocations(event.target.value)}
       />
-      <FlexRow gap={2} align="center">
+      <FlexRow gap={SPACING.md} align="center">
         <Button
           variant="contained"
           size="small"
@@ -221,6 +234,151 @@ const BudgetSection = memo(function BudgetSection({
             usage.invocations === 1 ? "" : "s"
           }${usage.since ? ` since ${formatDate(usage.since)}` : ""}.`}
         </Caption>
+      )}
+    </FlexColumn>
+  );
+});
+
+interface DeploySectionProps {
+  applicationId: string;
+}
+
+/**
+ * The hidden link the app is served from, for people with no NodeTool account.
+ *
+ * Only offered in production — the server refuses the whole surface elsewhere,
+ * because a local install already answers without credentials and a "no login
+ * needed" link there means nothing. A refused query is therefore the ordinary
+ * case on a dev machine, and the section says so instead of showing an error.
+ */
+const DeploySection = memo(function DeploySection({
+  applicationId
+}: DeploySectionProps) {
+  const { data: deployment, isLoading, isError, error } =
+    useApplicationDeployment(applicationId);
+  const deploy = useDeployApplication();
+  const undeploy = useUndeployApplication();
+
+  const handleDeploy = useCallback(
+    () => deploy.mutate({ id: applicationId }),
+    [applicationId, deploy]
+  );
+  const handleUndeploy = useCallback(
+    () => undeploy.mutate({ id: applicationId }),
+    [applicationId, undeploy]
+  );
+
+  const url = deployment
+    ? `${window.location.origin}${appDeploymentPath(deployment.token)}`
+    : null;
+
+  if (isLoading) return <LoadingSpinner text="Loading link" />;
+
+  return (
+    <FlexColumn gap={SPACING.md} fullWidth>
+      <SectionHeader title="Public link" />
+      {isError && isProductionOnlyDeploymentError(error) ? (
+        <Caption>
+          Public links are available on nodetool.ai. This server does not serve
+          them.
+        </Caption>
+      ) : isError ? (
+        <FlexColumn gap={SPACING.xs}>
+          <AlertBanner severity="error">
+            {`Could not load the public link: ${error?.message ?? "try again later."}`}
+          </AlertBanner>
+          <ReportBugButton
+            label="Report deployment issue"
+            context={{
+              source: "panel-crash",
+              summary: "Public link status failed to load",
+              errorText: error?.message,
+              stackTrace: error instanceof Error ? error.stack : undefined
+            }}
+          />
+        </FlexColumn>
+      ) : (
+        <>
+          <Caption>
+            Anyone with the link can open and run the released version — no
+            account needed. Runs execute on your account and count against the
+            spend budget below.
+          </Caption>
+          {url && (
+            <FlexRow align="center" gap={SPACING.md} fullWidth>
+              <TextInput
+                label="Link"
+                size="small"
+                value={url}
+                slotProps={{ htmlInput: { readOnly: true } }}
+                fullWidth
+              />
+              <CopyButton value={url} tooltip="Copy the link" />
+            </FlexRow>
+          )}
+          {deployment?.blockedReason && (
+            <AlertBanner severity="warning">
+              {`The link is not serving this app. ${deployment.blockedReason}`}
+            </AlertBanner>
+          )}
+          <FlexRow gap={SPACING.md} align="center">
+            {deployment ? (
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={undeploy.isPending}
+                onClick={handleUndeploy}
+              >
+                Withdraw link
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                size="small"
+                disabled={deploy.isPending}
+                onClick={handleDeploy}
+              >
+                Create public link
+              </Button>
+            )}
+          </FlexRow>
+          {deploy.isError && (
+            <FlexColumn gap={SPACING.xs}>
+              <AlertBanner severity="error">
+                {`Could not create the link: ${deploy.error.message}`}
+              </AlertBanner>
+              <ReportBugButton
+                label="Report deployment issue"
+                context={{
+                  source: "panel-crash",
+                  summary: "Public link creation failed",
+                  errorText: deploy.error.message,
+                  stackTrace:
+                    deploy.error instanceof Error ? deploy.error.stack : undefined
+                }}
+              />
+            </FlexColumn>
+          )}
+          {undeploy.isError && (
+            <FlexColumn gap={SPACING.xs}>
+              <AlertBanner severity="error">
+                {`Could not withdraw the link: ${undeploy.error.message}`}
+              </AlertBanner>
+              <ReportBugButton
+                label="Report deployment issue"
+                context={{
+                  source: "panel-crash",
+                  summary: "Public link withdrawal failed",
+                  errorText: undeploy.error.message,
+                  stackTrace:
+                    undeploy.error instanceof Error
+                      ? undeploy.error.stack
+                      : undefined
+                }}
+              />
+            </FlexColumn>
+          )}
+        </>
       )}
     </FlexColumn>
   );
@@ -263,10 +421,10 @@ const InvocationsSection = memo(function InvocationsSection({
               key={record.id}
               align="center"
               justify="space-between"
-              gap={2}
+              gap={SPACING.md}
               fullWidth
             >
-              <FlexColumn gap={0.5} sx={{ minWidth: 0 }}>
+              <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
                 <Text weight={600}>{record.operationId}</Text>
                 <Caption>
                   {`${formatDate(record.createdAt)} · ${record.status}${
@@ -326,8 +484,13 @@ const ApplicationGovernancePanel = ({
 
   return (
     <FlexColumn gap={SPACING.lg} fullWidth>
-      <FlexRow align="center" justify="space-between" gap={2} fullWidth>
-        <FlexColumn gap={0.5}>
+      <FlexRow
+        align="center"
+        justify="space-between"
+        gap={SPACING.md}
+        fullWidth
+      >
+        <FlexColumn gap={SPACING.micro}>
           <SectionHeader title="Release" />
           <Caption>
             {released
@@ -385,6 +548,10 @@ const ApplicationGovernancePanel = ({
           </FlexColumn>
         )}
       </FlexColumn>
+
+      <Divider />
+
+      <DeploySection applicationId={applicationId} />
 
       <Divider />
 

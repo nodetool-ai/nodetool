@@ -97,7 +97,9 @@ import {
   SupabaseAuthProvider,
   LocalAuthProvider,
   DelegatedTokenProvider,
-  isDelegatedToken
+  isDelegatedToken,
+  AppSessionTokenProvider,
+  isAppSessionToken
 } from "@nodetool-ai/auth";
 import {
   fastifyTRPCPlugin,
@@ -157,6 +159,8 @@ import {
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import applicationsRoutes from "./routes/applications.js";
+import publicAppRoutes from "./routes/public-apps.js";
+import { appDeploymentsEnabled } from "./lib/app-deployment-service.js";
 import jsScriptsRoutes from "./routes/js-scripts.js";
 import storyboardsRoutes from "./routes/storyboards.js";
 import sandboxModulesRoutes from "./routes/sandbox-modules.js";
@@ -934,8 +938,22 @@ const delegatedProvider = integrationsEnabled
   ? new DelegatedTokenProvider(delegatedSigningKey)
   : null;
 
+// A deployed mini app's run sessions are signed with their own key, derived
+// from the same master key under a different label. Rotating the master key
+// invalidates every outstanding session; a distinct label keeps a session
+// token from ever verifying as a delegated one, or the reverse.
+let cachedAppSessionKey: Buffer | null = null;
+const appSessionSigningKey = (): Buffer =>
+  (cachedAppSessionKey ??= deriveKey(getMasterKey(), "nodetool-app-session"));
+
+// Public app deployments exist only in production; outside it the routes are
+// still registered and every handler refuses, so the surface is decided by one
+// predicate at request time rather than by boot order.
+const appSessionProvider = new AppSessionTokenProvider(appSessionSigningKey);
+
 app.decorateRequest("userId", null);
 app.decorateRequest("authToken", null);
+app.decorateRequest("appSession", null);
 
 // Global @fastify/rate-limit (registered above) runs before this hook on every
 // request, including public auth exemptions handled by isPublicAuthExemptRoute.
@@ -1047,6 +1065,43 @@ app.addHook("onRequest", async (req, reply) => {
       });
       return;
     }
+  }
+
+  // A deployed mini app's session token (`nda_`) authenticates a visitor who
+  // has the app's hidden URL. It carries the owner's user id *and* the one
+  // application it may act on, and its whole point is that it reaches nothing
+  // else — so the confinement is applied right here, at the door, rather than
+  // trusted to every handler downstream. `/ws` is the only path it opens: the
+  // run transport, and exactly that path — `/ws/download` and `/ws/extension`
+  // are model downloads and the browser-extension bridge, neither of which a
+  // visitor to somebody's app has any business opening. The public app routes
+  // need no token at all (they are auth-exempt above), and every other path —
+  // tRPC, the REST library, assets, settings — is refused, because the
+  // owner's account is not what the visitor was given a link to.
+  //
+  // A failed verification does *not* fall through to the providers below. An
+  // expired or tampered app session must be refused as itself; letting it
+  // reach the session check would turn a confined credential into a probe
+  // against the rest of the API.
+  if (token && isAppSessionToken(token)) {
+    const session = await appSessionProvider.verifyToken(token);
+    if (
+      session.ok &&
+      session.applicationId &&
+      session.userId &&
+      appDeploymentsEnabled() &&
+      pathname === "/ws"
+    ) {
+      req.userId = session.userId;
+      req.authToken = token;
+      req.appSession = {
+        applicationId: session.applicationId,
+        version: session.applicationVersion ?? 0
+      };
+      return;
+    }
+    denyUnauthorized(req, reply, { error: "Unauthorized" });
+    return;
   }
 
   // Delegated tokens (a messaging bridge acting as the linked user) are
@@ -1479,6 +1534,7 @@ initWorkspaceChangeEvents();
 await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(applicationsRoutes, routeOpts);
+await app.register(publicAppRoutes, { appSessionSigningKey });
 await app.register(jsScriptsRoutes, routeOpts);
 await app.register(storyboardsRoutes, routeOpts);
 await app.register(sandboxModulesRoutes);

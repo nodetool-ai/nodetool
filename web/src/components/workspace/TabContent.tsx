@@ -25,6 +25,15 @@ const PageSurface = React.lazy(() => import("./PageSurface"));
 const WorkspaceFileSurface = React.lazy(
   () => import("./WorkspaceFileSurface")
 );
+const ProjectListSurface = React.lazy(
+  () => import("../projects/ProjectListSurface")
+);
+const ProjectOverviewSurface = React.lazy(
+  () => import("../projects/ProjectOverviewSurface")
+);
+const NewProjectSurface = React.lazy(
+  () => import("../projects/NewProjectSurface")
+);
 
 interface TabContentProps {
   tab: WorkspaceTab;
@@ -73,6 +82,12 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       return <ChatSurface refId={tab.ref} active={active} />;
     case "page":
       return isPageTabKey(tab.ref) ? <PageSurface pageKey={tab.ref} /> : null;
+    case "project-list":
+      return <ProjectListSurface />;
+    case "project":
+      return <ProjectOverviewSurface refId={tab.ref} />;
+    case "project-new":
+      return <NewProjectSurface />;
     default: {
       // Exhaustiveness guard — a new WorkspaceTabType must add a case here.
       const exhaustive: never = tab.type;

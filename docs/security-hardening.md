@@ -126,6 +126,7 @@ Production deployments require the strictest security posture:
 - **Unset `NODETOOL_TRUST_LOCAL_NETWORKS`** (or leave it ignored under Supabase mode) — never carry a `0.0.0.0/0` trust rule into production
 - Use **dedicated service accounts** for each deployment; avoid shared credentials
 - Keep `proxy.yaml` free of embedded secrets -- distribute bearer tokens via your secrets manager
+- **Public app links are a production-only surface** (`NODETOOL_ENV=production`). An owner can deploy a published mini app to `/a/<token>`, where anyone with the link runs it without logging in — on the owner's provider keys, against the app's spend budget. Set a budget on every deployed app (**Governance › Spend budget**), and treat the link as the credential it is: withdrawing it is the only way to invalidate it, and outstanding run sessions expire within the hour rather than immediately
 
 ### Infrastructure
 

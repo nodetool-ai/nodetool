@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 71;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 74;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -439,6 +439,63 @@ describe("Built-in migrations", () => {
     const versions = migrations.map((m) => m.version);
     const sorted = [...versions].sort();
     expect(versions).toEqual(sorted);
+  });
+
+  it("repairs application duplicates before adding identity indexes", async () => {
+    const adapter = createInMemoryAdapter();
+    const migration = migrations.find(
+      (entry) => entry.version === "20260829_000004"
+    );
+    if (!migration) throw new Error("Expected application identity migration");
+
+    await adapter.execute(`
+      CREATE TABLE application_deployments (
+        id TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        token TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        revoked_at TEXT
+      )
+    `);
+    await adapter.execute(`
+      CREATE TABLE application_invocations (
+        id TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL,
+        invocation_id TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    `);
+    await adapter.execute(`
+      INSERT INTO application_deployments VALUES
+        ('deployment-old', 'app-1', 'owner-1', 'token-old', '2026-01-01', NULL),
+        ('deployment-new', 'app-1', 'owner-1', 'token-new', '2026-01-02', NULL)
+    `);
+    await adapter.execute(`
+      INSERT INTO application_invocations VALUES
+        ('invocation-old', 'app-1', 'run-1', '2026-01-01'),
+        ('invocation-new', 'app-1', 'run-1', '2026-01-02')
+    `);
+
+    await migration.up(adapter);
+
+    expect(
+      await adapter.fetchall(
+        "SELECT id FROM application_deployments WHERE application_id = ? AND revoked_at IS NULL",
+        ["app-1"]
+      )
+    ).toEqual([{ id: "deployment-new" }]);
+    expect(
+      await adapter.fetchall(
+        "SELECT invocation_id FROM application_invocations WHERE id = ?",
+        ["invocation-old"]
+      )
+    ).toEqual([{ invocation_id: "legacy:invocation-old" }]);
+    await expect(
+      adapter.execute(
+        "INSERT INTO application_invocations VALUES ('invocation-again', 'app-1', 'run-1', '2026-01-03')"
+      )
+    ).rejects.toThrow();
   });
 
   it("should all apply cleanly to a fresh database", async () => {

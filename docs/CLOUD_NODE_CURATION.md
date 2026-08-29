@@ -150,6 +150,7 @@ that egress policy is written down in the ComfyUI row of
 | `lib.svg`   | SVG / vector graphics                                  |
 | `lib.grid`  | Image grid slicing                                     |
 | `lib.audio` | Audio DSP/effects (reverb, delay, EQ, …)               |
+| `lib.pdf`   | Text/table/markdown extraction, OCR, page rasterization |
 
 ### Provider node namespaces
 
@@ -157,7 +158,7 @@ that egress policy is written down in the ComfyUI row of
 
 ## Namespaces dropped (the "nerdy" set)
 
-- **Data/docs:** `nodetool.data` (dataframes), `nodetool.document`, `lib.pdf`,
+- **Data/docs:** `nodetool.data` (dataframes), `nodetool.document`,
   `lib.markdown`, `lib.html`, `lib.charts`
 - **System/automation:** `lib.os`, `nodetool.workspace`,
   `nodetool.triggers`, `lib.browser`, `lib.video.download`

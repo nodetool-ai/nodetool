@@ -33,7 +33,10 @@ const ReportBugButton = ({
   );
 
   return (
-    <Tooltip title="Report this as a bug">
+    // `describeChild` keeps the visible label as the button's accessible name.
+    // Without it MUI turns the tooltip into an `aria-label`, so the name a
+    // screen reader announces no longer contains the text on screen.
+    <Tooltip title="Report this as a bug" describeChild>
       <EditorButton
         className={className}
         variant={variant}

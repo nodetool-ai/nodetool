@@ -7,17 +7,28 @@
  * status, per-document spend, and the project's spend split by category.
  *
  * Procedures:
- *   list      (query)    — ProjectResponse[]
- *   get       (query)    — ProjectDetail (project + documents + spend)
- *   documents (query)    — ProjectDocumentRef[]
- *   create    (mutation) — ProjectResponse
- *   update    (mutation) — ProjectResponse
- *   delete    (mutation) — { ok: true }
+ *   list           (query)    — ProjectResponse[]
+ *   summaries      (query)    — ProjectDetail[] (every project, for the list)
+ *   get            (query)    — ProjectDetail (project + documents + spend)
+ *   documents      (query)    — ProjectDocumentRef[]
+ *   unassigned     (query)    — ProjectDocumentRef[] in the loose bucket
+ *   thread         (mutation) — { threadId } (the project's agent thread)
+ *   create         (mutation) — ProjectResponse
+ *   update         (mutation) — ProjectResponse
+ *   delete         (mutation) — { ok: true }
+ *   assignDocument (mutation) — { ok: true }
  */
 
 import { z } from "zod";
-import { Project, listProjectDocuments, summarizeProject } from "@nodetool-ai/models";
 import {
+  LOOSE_PROJECT_ID,
+  Project,
+  listProjectDocuments,
+  moveDocumentToProject,
+  summarizeProject
+} from "@nodetool-ai/models";
+import {
+  assignDocumentInput,
   createProjectInput,
   patchProjectInput,
   projectDetail,
@@ -49,6 +60,28 @@ export const projectsRouter = router({
       return items.map((item) => item.toResponse());
     }),
 
+  /**
+   * Every project with the rollup its card shows. The projects list needs
+   * status and spend per card, and asking for them one project at a time is
+   * the same work over N round trips.
+   */
+  summaries: protectedProcedure
+    .input(listInput)
+    .output(z.array(projectDetail))
+    .query(async ({ ctx }) => {
+      const projects = await Project.listByUser(ctx.userId);
+      return Promise.all(
+        projects.map(async (project) => {
+          const summary = await summarizeProject(ctx.userId, project.id);
+          return projectDetail.parse({
+            project: project.toResponse(),
+            documents: summary.documents,
+            spend: summary.spend
+          });
+        })
+      );
+    }),
+
   get: protectedProcedure
     .input(idInput)
     .output(projectDetail)
@@ -68,6 +101,31 @@ export const projectsRouter = router({
     .query(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
       return listProjectDocuments(ctx.userId, input.id);
+    }),
+
+  /**
+   * The loose bucket: documents belonging to no project. It has no row of its
+   * own by design, so it is its own procedure rather than an id `documents`
+   * would have to special-case.
+   */
+  unassigned: protectedProcedure
+    .input(listInput)
+    .output(z.array(projectDocumentRef))
+    .query(({ ctx }) => listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID)),
+
+  /**
+   * The project's agent thread, created on first ask. A mutation rather than a
+   * query because the first call writes: the overview needs an id to render a
+   * composer against before anyone has said anything.
+   */
+  thread: protectedProcedure
+    .input(idInput)
+    .output(z.object({ threadId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await loadOwned(ctx.userId, input.id);
+      const threadId = await Project.ensureThread(ctx.userId, input.id);
+      if (!threadId) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      return { threadId };
     }),
 
   create: protectedProcedure
@@ -111,6 +169,28 @@ export const projectsRouter = router({
     .mutation(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
       await Project.deleteOwned(ctx.userId, input.id);
+      return { ok: true as const };
+    }),
+
+  /**
+   * Move one document into a project — or, with the loose bucket's id, back
+   * out of every project. The document's own `updated_at` is left alone, so a
+   * move does not conflict with an editor that has it open.
+   */
+  assignDocument: protectedProcedure
+    .input(assignDocumentInput)
+    .output(okOutput)
+    .mutation(async ({ ctx, input }) => {
+      if (input.projectId !== LOOSE_PROJECT_ID) {
+        await loadOwned(ctx.userId, input.projectId);
+      }
+      const moved = await moveDocumentToProject(
+        ctx.userId,
+        input.type,
+        input.ref,
+        input.projectId
+      );
+      if (!moved) throwApiError(ApiErrorCode.NOT_FOUND, "Document not found");
       return { ok: true as const };
     })
 });

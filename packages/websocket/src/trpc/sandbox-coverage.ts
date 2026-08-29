@@ -113,6 +113,24 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "capabilities/apps.ts."
   },
   "applications.delete": { capability: "delete_app" },
+  "applications.deploy": {
+    withheld:
+      "Deploying serves the app from a URL that needs no login and runs " +
+      "on the owner's keys and budget. It is the strongest publishing " +
+      "decision in the product, and a run that could make it could put " +
+      "someone's account behind a link they never handed out."
+  },
+  "applications.deployment": {
+    withheld:
+      "The deployment token is the link. Reading it is handing out the " +
+      "link, which is the same act as deploying."
+  },
+  "applications.undeploy": {
+    withheld:
+      "Withdrawing a link is the owner's call about who still reaches " +
+      "their app. A run that could revoke one could take an app offline " +
+      "for everyone using it."
+  },
   "applications.get": { capability: "get_app" },
   "applications.invocations": {
     withheld:
@@ -588,6 +606,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "rather than as untrusted text. A run that could grant itself " +
       "trust could escalate a prompt injection into executed code."
   },
+  "projects.assignDocument": {
+    gap:
+      "Same grouping surface as `projects.create`. Moves one document " +
+      "between projects; both the document and the project are the " +
+      "caller's own rows."
+  },
   "projects.create": {
     gap:
       "A project groups documents that already carry its id, and a run " +
@@ -615,6 +639,23 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "projects.list": {
     gap: "Same grouping surface as `projects.create`."
+  },
+  "projects.summaries": {
+    gap:
+      "Same grouping surface as `projects.create`. The whole list of " +
+      "rollups `projects.get` returns one at a time."
+  },
+  "projects.thread": {
+    gap:
+      "Names — creating on first ask — the conversation that builds a " +
+      "project, so its overview can render the thread the user already " +
+      "has. It returns an id, never a message; reading the conversation " +
+      "still goes through the threads and messages surfaces."
+  },
+  "projects.unassigned": {
+    gap:
+      "Lists the documents in no project. Same grouping surface as " +
+      "`projects.documents`, other side of the same column."
   },
   "projects.update": {
     gap: "Same grouping surface as `projects.create`. Renames a project."

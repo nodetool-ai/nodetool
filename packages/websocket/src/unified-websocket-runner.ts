@@ -72,6 +72,9 @@ import {
   ImageDocument,
   Job,
   listApplicationVersions,
+  invocationBelongsToApplication,
+  invocationIdInUse,
+  releasedApplicationRelease,
   releasedApplicationVersion,
   reserveInvocation,
   settleInvocation,
@@ -138,6 +141,7 @@ import {
   NO_MODEL_SELECTED_MESSAGE,
   noMediaModelSelectedMessage
 } from "@nodetool-ai/protocol";
+import { applicationReleaseResponse } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import type {
   Chunk,
   GraphData,
@@ -229,6 +233,13 @@ import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
 import { resolveImageSize } from "./lib/media-size.js";
+import {
+  confineRunRequest,
+  isAppSessionCommandAllowed,
+  isRunRefusal,
+  type AppSessionScope
+} from "./lib/app-session-scope.js";
+import { releaseBlockedReason } from "./lib/app-deployment-service.js";
 import type {
   FrontendRendererRegistry,
   FrontendRendererToolCall,
@@ -2029,6 +2040,11 @@ class ToolBridge {
 export interface UnifiedWebSocketRunnerOptions {
   userId?: string;
   authToken?: string;
+  /**
+   * The app a deployed-app visitor may act on. Absent for every ordinary
+   * session, which is what keeps this a narrowing and never a widening.
+   */
+  appSession?: AppSessionScope | null;
   defaultModel?: string;
   defaultProvider?: string;
   resolveExecutor: (node: {
@@ -2116,11 +2132,21 @@ interface SkillEntry {
   content: string;
 }
 
+/** The shape `crypto.randomUUID()` produces, on either side of the wire. */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export class UnifiedWebSocketRunner {
   websocket: WebSocketConnection | null = null;
   mode: WebSocketMode = "binary";
   userId: string | null;
   authToken: string | null;
+  /**
+   * Set when this connection was opened by a visitor to a deployed app's
+   * hidden URL. `userId` is then the app's owner, so nothing downstream can
+   * tell the two apart on its own — this is what does.
+   */
+  appSession: AppSessionScope | null;
 
   private defaultModel: string;
   private defaultProvider: string;
@@ -2419,6 +2445,7 @@ export class UnifiedWebSocketRunner {
   constructor(options: UnifiedWebSocketRunnerOptions) {
     this.userId = options.userId ?? null;
     this.authToken = options.authToken ?? null;
+    this.appSession = options.appSession ?? null;
     this.defaultModel = options.defaultModel ?? "gpt-oss:20b";
     this.defaultProvider = options.defaultProvider ?? "ollama";
     this.resolveExecutor = options.resolveExecutor;
@@ -3378,13 +3405,33 @@ export class UnifiedWebSocketRunner {
       // Reserving claims the run against the budget in the same transaction
       // that checks it, so concurrent runs of one app cannot each read a total
       // that excludes the others and all be admitted.
-      const decision = await reserveInvocation({
-        applicationId,
-        version,
-        invocationId: jobId,
-        operationId: req.operation_id ?? undefined,
-        estimatedUsd
-      });
+      // The ledger holds one row per (application, invocation), so two runs
+      // racing on one id lose the insert rather than double-spend. The loser
+      // is refused like any other rejected run instead of surfacing a driver
+      // error to the visitor.
+      let decision: Awaited<ReturnType<typeof reserveInvocation>>;
+      try {
+        decision = await reserveInvocation({
+          applicationId,
+          version,
+          invocationId: jobId,
+          operationId: req.operation_id ?? undefined,
+          estimatedUsd,
+          requireFiniteBudget: this.appSession !== null
+        });
+      } catch (error) {
+        log.warn("Application run ledger rejected the reservation", {
+          applicationId,
+          jobId,
+          error: String(error)
+        });
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.INVALID_INPUT,
+          "This app run named a run id that is already in use"
+        );
+      }
       if (!decision.allowed) {
         log.warn("Run refused by application budget", {
           applicationId,
@@ -3435,7 +3482,107 @@ export class UnifiedWebSocketRunner {
     return true;
   }
 
-  async runJob(req: RunJobRequest): Promise<void> {
+  /**
+   * Narrow a run started by a deployed app's visitor to the one run the
+   * session allows, or refuse it.
+   *
+   * The connection authenticates as the app's owner, so `admitApplicationRun`
+   * below would happily approve anything it names — ownership is what that
+   * check tests, and a visitor's session passes it. This is the check that
+   * actually confines them, and it runs first: what comes out is built from
+   * the signed session and the release, not from the request.
+   *
+   * The run executes only the release version the signed session names. A
+   * later publish invalidates the session for execution, so the visitor must
+   * reload and mint a session for the new release rather than run its graphs.
+   */
+  private async confineAppSessionRun(
+    req: RunJobRequest
+  ): Promise<RunJobRequest | null> {
+    const scope = this.appSession;
+    if (!scope) return req;
+    // The client names the run so it can follow its own frames, but the id it
+    // names is also the ledger key a job command is authorized against. An id
+    // that is already a job or already in a ledger would let a visitor file a
+    // row under someone else's run and then command it, so a taken id — and a
+    // shape that is not a generated id at all — is refused rather than
+    // silently replaced with one the client would never recognize.
+    const requested = req.job_id ?? "";
+    const jobId = requested === "" ? randomUUID() : requested;
+    if (requested !== "" && !UUID_PATTERN.test(requested)) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.INVALID_INPUT,
+        "This app run named an invalid run id"
+      );
+      return null;
+    }
+    if (
+      requested !== "" &&
+      ((await Job.get(requested)) !== null || (await invocationIdInUse(requested)))
+    ) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.INVALID_INPUT,
+        "This app run named a run id that is already in use"
+      );
+      return null;
+    }
+    const release = await releasedApplicationRelease(
+      scope.applicationId,
+      this.userId ?? ""
+    );
+    if (!release) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.NOT_FOUND,
+        "This app is not available"
+      );
+      return null;
+    }
+    const parsedRelease = applicationReleaseResponse.safeParse(release);
+    if (!parsedRelease.success) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.NOT_FOUND,
+        "This app is not available"
+      );
+      return null;
+    }
+    if (releaseBlockedReason(parsedRelease.data)) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.NOT_FOUND,
+        "This app is not available"
+      );
+      return null;
+    }
+    if (release.version !== scope.version) {
+      this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.INVALID_INPUT,
+        "This app has been updated. Reload the page before running it."
+      );
+      return null;
+    }
+    const confined = confineRunRequest(req, scope, release);
+    if (isRunRefusal(confined)) {
+      this.refuseRun(req, jobId, ApiErrorCode.INVALID_INPUT, confined.refused);
+      return null;
+    }
+    confined.job_id = jobId;
+    return confined;
+  }
+
+  async runJob(incoming: RunJobRequest): Promise<void> {
+    const req = await this.confineAppSessionRun(incoming);
+    if (!req) return;
     req._accepted_at_ms ??= performance.now();
     if (!(await this.admitApplicationRun(req))) return;
     if (!(await this.admitCreditRun(req))) return;
@@ -8942,6 +9089,52 @@ export class UnifiedWebSocketRunner {
       : undefined;
     log.debug("Command", { command: command.command });
 
+    // A deployed app's visitor reaches this runner as the app's owner, so the
+    // dispatch below would answer them the way it answers the owner. It is an
+    // allowlist rather than a denylist so that a command added later is
+    // refused here until someone decides it belongs — the alternative is a
+    // stranger reading somebody's assets because a switch case grew.
+    if (
+      this.appSession &&
+      !isAppSessionCommandAllowed(command.command as string)
+    ) {
+      log.warn("Command refused for an app session", {
+        command: command.command,
+        applicationId: this.appSession.applicationId
+      });
+      return { error: "This command is not available for a published app" };
+    }
+
+    // Every allowed command except `run_job` and `get_status` addresses a run
+    // that already exists, by id, and
+    // the runner resolves a run by (user, job id) — where the user is the app's
+    // *owner*. Without this, a job id from the owner's editor would replay
+    // that run's frames, or cancel it, over a visitor's connection. The
+    // ledger is what says which runs belong to this app: an app run reserves
+    // its row before the job exists, so a job with no row here was not started
+    // by this app. `run_job` is excluded because it *creates* the row — it
+    // reserves against the app's budget inside `admitApplicationRun`, and
+    // `confineAppSessionRun` above is what confines it.
+    if (this.appSession && jobId && command.command !== "run_job") {
+      const owned = await invocationBelongsToApplication(
+        this.appSession.applicationId,
+        jobId
+      ).catch((err) => {
+        // Fail closed: a ledger read that never completed is not evidence the
+        // run belongs to this app.
+        this.logError("app-session job ownership check failed", err);
+        return false;
+      });
+      if (!owned) {
+        log.warn("Job command refused for an app session", {
+          command: command.command,
+          jobId,
+          applicationId: this.appSession.applicationId
+        });
+        return { error: "That run does not belong to this app" };
+      }
+    }
+
     switch (command.command as UnifiedCommandType) {
       case "clear_models":
         return this.clearModels();
@@ -9475,6 +9668,12 @@ export class UnifiedWebSocketRunner {
 
   private registerObserver(): void {
     if (this.observerRegistered) return;
+    // Both feeds are scoped by `this.userId`, which for a deployed app's
+    // visitor is the *owner* — so subscribing would stream them the ids,
+    // etags and timestamps of every row that user touches, from any tab or
+    // agent, for as long as the page is open. The public page has no cache to
+    // invalidate anyway: it renders one release and runs it.
+    if (this.appSession) return;
     ModelObserver.subscribe(this.onModelChange);
     resourceEvents.on("change", this.onResourceEvent);
     this.observerRegistered = true;

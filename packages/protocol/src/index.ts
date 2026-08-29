@@ -30,6 +30,7 @@ export * from "./script-link.js";
 export * from "./builtin-packs.js";
 export * from "./triggers.js";
 export * from "./cloud-profile.js";
+export * from "./app-deployment.js";
 export * from "./trpc-policy.js";
 export * from "./sandbox-capability.js";
 export * from "./sandbox-host.js";

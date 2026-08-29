@@ -6,7 +6,14 @@
 
 export enum TokenType {
   STATIC = "static",
-  USER = "user"
+  USER = "user",
+  /**
+   * A visitor holding a deployed app's hidden URL. Authenticates as the app
+   * owner for that one app's runs and nothing else, so it is a distinct type
+   * rather than a `USER` with a note attached — a host that does not know
+   * about app sessions cannot mistake one for a full session.
+   */
+  APP_SESSION = "app_session"
 }
 
 export interface AuthResult {
@@ -14,6 +21,14 @@ export interface AuthResult {
   userId?: string;
   tokenType?: TokenType;
   error?: string;
+  /**
+   * The one application an `APP_SESSION` token may act on. Set by no other
+   * provider, so its presence is what confines the session; a host that reads
+   * `userId` without it is holding an unscoped identity by construction.
+   */
+  applicationId?: string;
+  /** The released version the visitor loaded, for run attribution. */
+  applicationVersion?: number;
 }
 
 export abstract class AuthProvider {

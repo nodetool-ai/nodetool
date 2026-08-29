@@ -6,6 +6,8 @@ import mockTheme from "../../../__mocks__/themeMock";
 const publishMutate = jest.fn();
 const releaseMutate = jest.fn();
 const setBudgetMutate = jest.fn();
+const deployMutate = jest.fn();
+const undeployMutate = jest.fn();
 
 const versionOne = {
   id: "ver-1",
@@ -44,6 +46,19 @@ const state = {
     spentUsd: 1.25,
     invocations: 3
   },
+  deployment: {
+    applicationId: "app-1",
+    token: "tok3n",
+    createdAt: "2026-07-11T09:00:00.000Z",
+    revokedAt: null,
+    blockedReason: null
+  } as {
+    applicationId: string;
+    token: string;
+    createdAt: string;
+    revokedAt: string | null;
+    blockedReason: string | null;
+  } | null,
   invocations: [
     {
       id: "inv-1",
@@ -63,6 +78,7 @@ const state = {
 /** Per-test overrides for the query and mutation results the panel reads. */
 interface Failure {
   message: string;
+  data?: { code: string };
 }
 
 const overrides: {
@@ -72,13 +88,19 @@ const overrides: {
   publishError: Failure | null;
   releaseError: Failure | null;
   setBudgetError: Failure | null;
+  deploymentError: Failure | null;
+  deployError: Failure | null;
+  undeployError: Failure | null;
 } = {
   versionsError: null,
   budgetError: null,
   invocationsError: null,
   publishError: null,
   releaseError: null,
-  setBudgetError: null
+  setBudgetError: null,
+  deploymentError: null,
+  deployError: null,
+  undeployError: null
 };
 
 const resetOverrides = () => {
@@ -88,6 +110,30 @@ const resetOverrides = () => {
   overrides.publishError = null;
   overrides.releaseError = null;
   overrides.setBudgetError = null;
+  overrides.deploymentError = null;
+  overrides.deployError = null;
+  overrides.undeployError = null;
+  state.deployment = {
+    applicationId: "app-1",
+    token: "tok3n",
+    createdAt: "2026-07-11T09:00:00.000Z",
+    revokedAt: null,
+    blockedReason: null
+  };
+};
+
+const isProductionOnlyDeploymentErrorMock = (error: unknown): boolean => {
+  if (
+    error === null ||
+    typeof error !== "object" ||
+    !("data" in error) ||
+    error.data === null ||
+    typeof error.data !== "object" ||
+    !("code" in error.data)
+  ) {
+    return false;
+  }
+  return error.data.code === "FORBIDDEN";
 };
 
 jest.mock("../../../hooks/useApplications", () => ({
@@ -128,6 +174,25 @@ jest.mock("../../../hooks/useApplications", () => ({
     isLoading: false,
     isError: overrides.invocationsError !== null,
     error: overrides.invocationsError
+  }),
+  useApplicationDeployment: () => ({
+    data: overrides.deploymentError ? undefined : state.deployment,
+    isLoading: false,
+    isError: overrides.deploymentError !== null,
+    error: overrides.deploymentError
+  }),
+  isProductionOnlyDeploymentError: isProductionOnlyDeploymentErrorMock,
+  useDeployApplication: () => ({
+    mutate: deployMutate,
+    isPending: false,
+    isError: overrides.deployError !== null,
+    error: overrides.deployError
+  }),
+  useUndeployApplication: () => ({
+    mutate: undeployMutate,
+    isPending: false,
+    isError: overrides.undeployError !== null,
+    error: overrides.undeployError
   })
 }));
 
@@ -294,5 +359,110 @@ describe("ApplicationGovernancePanel error paths", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Could not load invocations: Ledger unavailable"
     );
+  });
+});
+
+describe("ApplicationGovernancePanel public link", () => {
+  it("shows the link the app is served from", () => {
+    renderPanel();
+    expect(
+      screen.getByDisplayValue(`${window.location.origin}/a/tok3n`)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /withdraw link/i })
+    ).toBeInTheDocument();
+  });
+
+  it("offers to create one when the app has none", async () => {
+    state.deployment = null;
+    renderPanel();
+
+    expect(screen.queryByDisplayValue(/\/a\//)).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: /create public link/i })
+    );
+    expect(deployMutate).toHaveBeenCalledWith({ id: "app-1" });
+  });
+
+  it("withdraws the link", async () => {
+    renderPanel();
+    await userEvent.click(
+      screen.getByRole("button", { name: /withdraw link/i })
+    );
+    expect(undeployMutate).toHaveBeenCalledWith({ id: "app-1" });
+  });
+
+  it("says when a live link is serving nothing, and why", () => {
+    state.deployment = {
+      applicationId: "app-1",
+      token: "tok3n",
+      createdAt: "2026-07-11T09:00:00.000Z",
+      revokedAt: null,
+      blockedReason: "A public link cannot run a script operation (Tidy up)."
+    };
+    renderPanel();
+    expect(
+      screen.getByText(/cannot run a script operation/i)
+    ).toBeInTheDocument();
+  });
+
+  it("says the server does not serve links for the production-only refusal", () => {
+    // Outside production the procedure is refused, which is the ordinary case
+    // on a dev machine — not a fault to report as one.
+    overrides.deploymentError = {
+      message: "Public links are only available in production",
+      data: { code: "FORBIDDEN" }
+    };
+    renderPanel();
+
+    expect(
+      screen.getByText(/available on nodetool\.ai/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /create public link/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("reports a deployment query failure that is not the production-only refusal", () => {
+    overrides.deploymentError = { message: "Gateway timed out" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not load the public link: Gateway timed out"
+    );
+    expect(
+      screen.getByRole("button", { name: "Report deployment issue" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a failed deployment actionable", () => {
+    state.deployment = null;
+    overrides.deployError = { message: "Release a version before deploying" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not create the link: Release a version before deploying"
+    );
+    expect(
+      screen.getByRole("button", { name: /create public link/i })
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Report deployment issue" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a failed withdrawal actionable", () => {
+    overrides.undeployError = { message: "Service unavailable" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not withdraw the link: Service unavailable"
+    );
+    expect(
+      screen.getByRole("button", { name: /withdraw link/i })
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Report deployment issue" })
+    ).toBeInTheDocument();
   });
 });

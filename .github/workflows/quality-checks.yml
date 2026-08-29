@@ -253,7 +253,9 @@ jobs:
           # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so Dawn can
           # acquire a WebGPU adapter on GPU-less runners — without it the
           # shader-backed base-nodes tests fail with "No WebGPU adapter
-          # available (Node/Dawn)".
+          # available (Node/Dawn)". ffmpeg decodes the clip the runtime's
+          # video-frame fallback samples for providers with no video content
+          # part; without it those tests have nothing to decode.
           - check: test-packages
             # On PRs, `--affected` prunes the Turbo graph to packages changed
             # since the base commit plus their dependents, so unaffected backend
@@ -262,7 +264,7 @@ jobs:
             # the SCM diff and TURBO_SCM_BASE (set on the Run step below).
             command: npm run test:packages${{ github.event_name == 'pull_request' && ' -- --affected' || '' }}
             mobile-deps: "false"
-            extra-apt: "mesa-vulkan-drivers"
+            extra-apt: "mesa-vulkan-drivers ffmpeg"
             is-test: "true"
             fetch-depth: "0"
           - check: test-app

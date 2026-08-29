@@ -104,6 +104,7 @@ const ChatInputSection = ({
             onStop={onStop}
             onNewChat={onNewChat}
             toolbarNode={composerToolbar}
+            placeholder={placeholder}
           />
         ) : (
           <MediaChatComposer

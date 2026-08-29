@@ -322,13 +322,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/a-gradient-card-as-png",
     "title": "A Gradient Card as PNG — NodeTool AI Workflow Template",
-    "description": "Build vector art, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+    "description": "Build vector art in a Code node, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "a-gradient-card-as-png",
     "name": "A Gradient Card as PNG",
-    "summary": "Build vector art, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+    "summary": "Build vector art in a Code node, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
     "tags": [
       "image",
       "example"
@@ -336,13 +336,8 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Image & Design",
     "nodeTypes": [
       {
-        "type": "lib.svg.Gradient",
-        "label": "Gradient",
-        "count": 1
-      },
-      {
-        "type": "nodetool.constant.List",
-        "label": "List",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -351,49 +346,28 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "lib.svg.Rect",
-        "label": "Rect",
-        "count": 1
-      },
-      {
         "type": "lib.svg.SVGToImage",
         "label": "SVG To Image",
         "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 3,
     "thumbnail": "/templates/a-gradient-card-as-png.jpg",
     "graph": {
       "nodes": [
         {
-          "id": "g",
-          "type": "lib.svg.Gradient",
-          "title": "Gradient",
+          "id": "elements",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 0,
           "y": 120,
-          "width": 280
-        },
-        {
-          "id": "r",
-          "type": "lib.svg.Rect",
-          "title": "Rect",
-          "x": 320,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "l",
-          "type": "nodetool.constant.List",
-          "title": "List",
-          "x": 640,
-          "y": 120,
-          "width": 280
+          "width": 380
         },
         {
           "id": "img",
           "type": "lib.svg.SVGToImage",
           "title": "SVG To Image",
-          "x": 960,
+          "x": 640,
           "y": 120,
           "width": 280
         },
@@ -408,21 +382,7 @@ export const templateEntries: TemplateEntry[] = [
       ],
       "edges": [
         {
-          "source": "g",
-          "sourceHandle": "output",
-          "target": "l",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "r",
-          "sourceHandle": "output",
-          "target": "l",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "l",
+          "source": "elements",
           "sourceHandle": "output",
           "target": "img",
           "targetHandle": "elements",
@@ -3366,13 +3326,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/circles-and-lines",
     "title": "Circles and Lines — NodeTool AI Workflow Template",
-    "description": "The remaining SVG primitives in one document — circle, ellipse and line — so the shape vocabulary is visible in one place.",
+    "description": "Three SVG elements — circle, ellipse and line — written as one Code node, so the array order is the paint order.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "circles-and-lines",
     "name": "Circles and Lines",
-    "summary": "The remaining SVG primitives in one document — circle, ellipse and line — so the shape vocabulary is visible in one place.",
+    "summary": "Three SVG elements — circle, ellipse and line — written as one Code node, so the array order is the paint order.",
     "tags": [
       "image",
       "example"
@@ -3380,8 +3340,8 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Image & Design",
     "nodeTypes": [
       {
-        "type": "lib.svg.Circle",
-        "label": "Circle",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -3390,61 +3350,22 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "lib.svg.Ellipse",
-        "label": "Ellipse",
-        "count": 1
-      },
-      {
-        "type": "lib.svg.Line",
-        "label": "Line",
-        "count": 1
-      },
-      {
-        "type": "nodetool.constant.List",
-        "label": "List",
-        "count": 1
-      },
-      {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 1
       }
     ],
-    "nodeCount": 6,
+    "nodeCount": 3,
     "thumbnail": "/templates/circles-and-lines.jpg",
     "graph": {
       "nodes": [
         {
-          "id": "c",
-          "type": "lib.svg.Circle",
-          "title": "Circle",
+          "id": "elements",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 0,
           "y": 120,
-          "width": 280
-        },
-        {
-          "id": "e",
-          "type": "lib.svg.Ellipse",
-          "title": "Ellipse",
-          "x": 320,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "ln",
-          "type": "lib.svg.Line",
-          "title": "Line",
-          "x": 640,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "l",
-          "type": "nodetool.constant.List",
-          "title": "List",
-          "x": 960,
-          "y": 120,
-          "width": 280
+          "width": 380
         },
         {
           "id": "doc",
@@ -3465,28 +3386,7 @@ export const templateEntries: TemplateEntry[] = [
       ],
       "edges": [
         {
-          "source": "c",
-          "sourceHandle": "output",
-          "target": "l",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "e",
-          "sourceHandle": "output",
-          "target": "l",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "ln",
-          "sourceHandle": "output",
-          "target": "l",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "l",
+          "source": "elements",
           "sourceHandle": "output",
           "target": "doc",
           "targetHandle": "elements",
@@ -6315,13 +6215,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/draw-a-badge-in-svg",
     "title": "Draw a Badge in SVG — NodeTool AI Workflow Template",
-    "description": "Compose a badge from primitives rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+    "description": "Compose a badge from SVG elements rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "draw-a-badge-in-svg",
     "name": "Draw a Badge in SVG",
-    "summary": "Compose a badge from primitives rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+    "summary": "Compose a badge from SVG elements rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
     "tags": [
       "image",
       "example"
@@ -6329,64 +6229,38 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Image & Design",
     "nodeTypes": [
       {
-        "type": "lib.svg.Document",
-        "label": "Document",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.constant.List",
-        "label": "List",
+        "type": "lib.svg.Document",
+        "label": "Document",
         "count": 1
       },
       {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 1
-      },
-      {
-        "type": "lib.svg.Rect",
-        "label": "Rect",
-        "count": 1
-      },
-      {
-        "type": "lib.svg.Text",
-        "label": "Text",
-        "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 3,
     "thumbnail": "/templates/draw-a-badge-in-svg.jpg",
     "graph": {
       "nodes": [
         {
-          "id": "r",
-          "type": "lib.svg.Rect",
-          "title": "Rect",
+          "id": "elements",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 0,
           "y": 120,
-          "width": 280
-        },
-        {
-          "id": "t",
-          "type": "lib.svg.Text",
-          "title": "Text",
-          "x": 320,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "l",
-          "type": "nodetool.constant.List",
-          "title": "List",
-          "x": 640,
-          "y": 120,
-          "width": 280
+          "width": 380
         },
         {
           "id": "doc",
           "type": "lib.svg.Document",
           "title": "Document",
-          "x": 960,
+          "x": 640,
           "y": 120,
           "width": 280
         },
@@ -6401,21 +6275,7 @@ export const templateEntries: TemplateEntry[] = [
       ],
       "edges": [
         {
-          "source": "r",
-          "sourceHandle": "output",
-          "target": "l",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "t",
-          "sourceHandle": "output",
-          "target": "l",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "l",
+          "source": "elements",
           "sourceHandle": "output",
           "target": "doc",
           "targetHandle": "elements",

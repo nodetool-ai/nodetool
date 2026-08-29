@@ -334,3 +334,49 @@ export const settleInvocationInput = z.object({
   actualUsd: z.number().min(0).nullable(),
   status: z.enum(["completed", "failed", "cancelled"]).default("completed")
 });
+
+// ── Public deployment ───────────────────────────────────────────────────────
+
+/**
+ * An app's hidden-URL deployment. `token` is the whole secret: it is what the
+ * URL carries and the only thing a visitor presents, so it is returned to the
+ * owner and to nobody else.
+ */
+export const applicationDeployment = z.object({
+  applicationId: z.string(),
+  token: z.string(),
+  createdAt: z.string(),
+  /** Null while the link is live; the moment it was withdrawn otherwise. */
+  revokedAt: z.string().nullable(),
+  /**
+   * Null when the link is serving the app; why it is not, otherwise. A live
+   * deployment can stop serving without anyone touching it — publishing a
+   * version the public runtime cannot execute is enough — and the owner is the
+   * only one who can be told, because a visitor gets the same 404 for every
+   * reason a link can fail.
+   */
+  blockedReason: z.string().nullable()
+});
+export type ApplicationDeploymentSchema = z.infer<typeof applicationDeployment>;
+
+/**
+ * What a deployed app hands an anonymous visitor: the name to put in the tab,
+ * and the release to run. The draft is never served here — an app is published
+ * to strangers, not edited in front of them.
+ */
+export const publicApplication = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  release: applicationReleaseResponse
+});
+export type PublicApplication = z.infer<typeof publicApplication>;
+
+/** A short-lived credential that may run this deployment's release, nothing else. */
+export const publicApplicationSession = z.object({
+  token: z.string(),
+  expiresAt: z.string(),
+  applicationId: z.string(),
+  version: z.number()
+});
+export type PublicApplicationSession = z.infer<typeof publicApplicationSession>;

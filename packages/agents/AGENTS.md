@@ -2146,7 +2146,7 @@ When building a node that wraps an agent (e.g. `llm-nodes` `AgentNode`):
   tools you didn't wire.
 - **Every declared prop must be consumed by `process()` or injected into the
   prompt.** A declared-but-unwired prop (`max_output_chars`, `url`, `output_dir`)
-  does nothing — inject node props via a `promptContext()` hook.
+  does nothing.
 - **`yield` structured results so the kernel routes them to dynamic output
   handles; don't `return` them from a generator** (`yield*` discards the return
   value). Keep structured-output emission consistent across modes (loop vs plan).

@@ -20,7 +20,7 @@ Over 140 nodes, one per Kie.ai model, named `kie.<category>.<Model>`.
 | Video | `kie.video.*` | `kie.video.GrokImagineTextToVideo` |
 | Audio | `kie.audio.*` | `kie.audio.ElevenlabsAudioIsolation` |
 
-Includes Seedream, Grok Imagine, Veo, Runway, and Suno music nodes.
+Includes Seedream, Grok Imagine, Kling, Hailuo, and Suno music nodes.
 
 ## Configuration
 

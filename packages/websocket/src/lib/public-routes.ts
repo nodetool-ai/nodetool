@@ -88,6 +88,32 @@ export function isPublicMcpOauthAsRequest(pathname: string): boolean {
 }
 
 /**
+ * The two routes a deployed mini app is served from: read the app, and mint
+ * the short-lived session its runs go through. Both take the deployment token
+ * from the path, and that token is the credential — an unguessable 24-byte
+ * secret its owner minted and can revoke.
+ *
+ * The prefix is exact and shallow (`/api/apps/`, not `/api/applications/`) so
+ * it can never widen onto the owner-scoped application routes, which read the
+ * caller's own library and stay behind auth. Nothing here reads a caller's
+ * identity: both handlers resolve everything from the token, and both refuse
+ * outside production, where the surface does not exist at all.
+ */
+export function isPublicAppDeploymentRequest(
+  pathname: string,
+  method: string
+): boolean {
+  if (!pathname.startsWith("/api/apps/")) return false;
+  const segments = pathname.slice("/api/apps/".length).split("/");
+  if (segments[0] === "") return false;
+  if (method === "GET") return segments.length === 1;
+  if (method === "POST") {
+    return segments.length === 2 && segments[1] === "session";
+  }
+  return false;
+}
+
+/**
  * Paths that skip session auth in the server's `onRequest` hook. Every entry
  * must carry no per-caller private state, or authenticate on its own (webhook
  * secret, OAuth PKCE state, KIE webhook signature). All of these are still
@@ -115,6 +141,7 @@ export function isPublicAuthExemptRoute(
     // all, so the exemption reaches a 404.
     pathname.startsWith("/api/integrations/") ||
     isPublicWorkflowMetadataRequest(pathname, method) ||
+    isPublicAppDeploymentRequest(pathname, method) ||
     isPublicMcpOauthAsRequest(pathname)
   );
 }
