@@ -81,11 +81,19 @@ afterEach(() => {
 });
 
 describe("ShotTakesGallery", () => {
-  it("renders nothing when the shot has at most one still and one clip", () => {
-    const { container } = renderGallery(
-      makeShot({ keyframe: image(1), clip: video(1) })
-    );
+  it("renders nothing for a shot that has generated nothing", () => {
+    const { container } = renderGallery(makeShot({ status: "planned" }));
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("shows the single still and clip of a one-take shot", () => {
+    renderGallery(makeShot({ keyframe: image(1), clip: video(1) }));
+
+    expect(screen.getByText("Takes: 1 still · 1 clip")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Use still 1" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Take 1")).toBeInTheDocument();
   });
 
   it("shows counts and reveals both galleries via the node-results renderer", async () => {

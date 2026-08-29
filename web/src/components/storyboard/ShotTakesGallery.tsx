@@ -2,12 +2,13 @@
  * ShotTakesGallery
  *
  * The takes browser for one shot: every generated still and every rendered
- * clip, viewable in place. The galleries reuse {@link OutputRenderer} — the
- * same component that renders node results — so an array of stills gets the
- * asset grid (double-click opens the fullscreen viewer) and clips get the
- * standard video players. Still thumbnails and take chips above each gallery
- * pick the selected still/clip — the one the card shows, the clip render
- * animates, and export uses.
+ * clip, viewable in place — from the first one, since a shot with a single
+ * still and a single clip still needs somewhere to show them. The galleries
+ * reuse {@link OutputRenderer} — the same component that renders node results
+ * — so an array of stills gets the asset grid (double-click opens the
+ * fullscreen viewer) and clips get the standard video players. Still
+ * thumbnails and take chips above each gallery pick the selected still/clip —
+ * the one the card shows, the clip render animates, and export uses.
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
@@ -190,14 +191,18 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
     setExpanded((prev) => !prev);
   }, []);
 
-  // Nothing to browse until a shot has more than one version of something.
-  if (stills.length <= 1 && clips.length <= 1) {
+  // Nothing to browse until a shot has rendered something.
+  if (stills.length === 0 && clips.length === 0) {
     return null;
   }
 
   const countLabel = [
-    stills.length > 1 ? `${stills.length} stills` : null,
-    clips.length > 1 ? `${clips.length} clips` : null
+    stills.length > 0
+      ? `${stills.length} still${stills.length === 1 ? "" : "s"}`
+      : null,
+    clips.length > 0
+      ? `${clips.length} clip${clips.length === 1 ? "" : "s"}`
+      : null
   ]
     .filter((p): p is string => p !== null)
     .join(" · ");
@@ -217,8 +222,13 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
         </EditorButton>
       </FlexRow>
 
-      {stills.length > 1 && (
-        <FlexRow gap={SPACING.micro} align="center" wrap className="still-thumbs">
+      {stills.length > 0 && (
+        <FlexRow
+          gap={SPACING.micro}
+          align="center"
+          wrap
+          className="still-thumbs"
+        >
           {stills.map((still, i) => (
             <Box key={versionKey(still, i)} sx={takeWrapSx}>
               <Box
@@ -265,7 +275,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
         </FlexRow>
       )}
 
-      {clips.length > 1 && (
+      {clips.length > 0 && (
         <FlexRow gap={SPACING.micro} align="center" wrap className="clip-chips">
           <Caption color="secondary">Clips</Caption>
           {clips.map((clip, i) => (
