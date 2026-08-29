@@ -1,6 +1,15 @@
 import React from "react";
-import { FlexColumn, FlexRow, Text } from "../../../ui_primitives";
+import {
+  BORDER_RADIUS,
+  FlexColumn,
+  FlexRow,
+  ResponsiveImage,
+  Text
+} from "../../../ui_primitives";
 import type { SearchResultItem } from "./parseSearchResults";
+
+/** Edge of the preview an image search result renders, in px. */
+const THUMBNAIL_SIZE = 56;
 
 interface SearchResultsProps {
   items: SearchResultItem[];
@@ -30,6 +39,17 @@ const SearchResultsBase: React.FC<SearchResultsProps> = ({ items }) => (
         >
           {String(index + 1).padStart(2, "0")}
         </Text>
+        {item.imageUrl && (
+          <ResponsiveImage
+            locator={item.imageUrl}
+            alt={item.title}
+            aspectRatio="1/1"
+            fit="cover"
+            borderRadius={BORDER_RADIUS.sm}
+            className="tool-search-thumbnail"
+            sx={{ width: THUMBNAIL_SIZE, flexShrink: 0 }}
+          />
+        )}
         <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
           <FlexRow gap={1} justify="space-between" align="baseline" sx={{ minWidth: 0 }}>
             {item.url ? (
