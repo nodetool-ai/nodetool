@@ -78,6 +78,8 @@ interface StoryboardReprojection {
 /** Fields the agent can supply when adding a shot. */
 export interface StoryboardAddShotInput {
   action: string;
+  /** Short human title for the shot, e.g. "Lighthouse at dusk". */
+  slug?: string;
   camera?: CameraDirection;
   motion?: string;
   durationSeconds?: number;
@@ -88,9 +90,13 @@ export interface StoryboardAddShotInput {
 /** Fields the agent can patch on an existing shot. */
 export interface StoryboardUpdateShotPatch {
   action?: string;
+  /** Short human title for the shot, e.g. "Lighthouse at dusk". */
+  slug?: string;
   camera?: CameraDirection;
   motion?: string;
   status?: ShotStatus;
+  /** Target clip length in seconds. Pins the shot when it covers script lines. */
+  durationSeconds?: number;
   /**
    * Where the shot's length comes from: `"audio"` derives it from the takes of
    * the script lines the shot covers, `"manual"` pins `durationSeconds`.

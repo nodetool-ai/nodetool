@@ -397,17 +397,18 @@ export function createStoryboardToolBridge(
 
     tool(
       "ui_storyboard_add_shot",
-      "Add a new shot to the specified storyboard. `action` is the concrete visual (required). Optionally set `camera`, `motion`, `durationSeconds`, and an `index` to insert at (appended when omitted). The shot starts in the 'planned' status.",
+      "Add a new shot to the specified storyboard. `action` is the concrete visual (required). `slug` is the shot's short title, e.g. 'Lighthouse at dusk' — give every shot one. Optionally set `camera`, `motion`, `durationSeconds`, and an `index` to insert at (appended when omitted). The shot starts in the 'planned' status.",
       z.object({
         action: z.string(),
+        slug: z.string().optional(),
         camera: cameraParam.optional(),
         motion: z.string().optional(),
         durationSeconds: z.number().optional(),
         index: z.number().optional()
       }),
-      async ({ action, camera, motion, durationSeconds, index }) => {
+      async ({ action, slug, camera, motion, durationSeconds, index }) => {
         const shot = storyboards.normalizeStoryboardShot(
-          { action, camera, motion, durationSeconds },
+          { action, slug, camera, motion, durationSeconds },
           shots.length,
           { generateId: nextShotId }
         );
@@ -423,19 +424,26 @@ export function createStoryboardToolBridge(
 
     tool(
       "ui_storyboard_update_shot",
-      "Edit an existing shot's `action`, `camera`, `motion`, or `status`. Omit a field to leave it unchanged.",
+      "Edit an existing shot's `slug` (its short title), `action`, `camera`, `motion`, `durationSeconds` (which pins the shot to that length), or `status`. Omit a field to leave it unchanged.",
       z.object({
         target: targetParam,
         action: z.string().optional(),
+        slug: z.string().optional(),
         camera: cameraParam.optional(),
         motion: z.string().optional(),
+        durationSeconds: z.number().optional(),
         status: shotStatusEnum.optional()
       }),
-      async ({ target, action, camera, motion, status }) => {
+      async ({ target, action, slug, camera, motion, durationSeconds, status }) => {
         const shot = resolveTarget(target as string);
         if (isString(action)) shot.action = action;
+        if (isString(slug)) shot.slug = slug;
         if (camera !== undefined) shot.camera = camera as CameraDirection;
         if (isString(motion)) shot.motion = motion;
+        if (isNumber(durationSeconds)) {
+          shot.duration_seconds = durationSeconds;
+          shot.duration_source = "manual";
+        }
         if (status !== undefined) shot.status = status as ShotStatus;
         return { ok: true, shot: serialize(shot) };
       }
