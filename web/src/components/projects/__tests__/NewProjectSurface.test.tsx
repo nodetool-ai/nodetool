@@ -94,9 +94,9 @@ jest.mock("../../../hooks/useHasConfiguredProvider", () => ({
   useHasConfiguredProvider: () => hasConfiguredProvider
 }));
 
-const startTrackChat = jest.fn(async () => undefined);
-jest.mock("../../../hooks/useStartTrackChat", () => ({
-  useStartTrackChat: () => startTrackChat
+const openPageTab = jest.fn();
+jest.mock("../../workspace/openPageTab", () => ({
+  openPageTab: (key: string) => openPageTab(key)
 }));
 
 const handleCreateNewWorkflow = jest.fn(async () => undefined);
@@ -189,33 +189,30 @@ describe("NewProjectSurface", () => {
     expect(createWorkflow).toHaveBeenCalled();
   });
 
-  it("shows the checklist and starter tracks until onboarding is done", () => {
+  it("shows the checklist until onboarding is done", () => {
     renderSurface();
     expect(
       screen.getByRole("region", { name: "Getting started checklist" })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Start with Image/ })
-    ).toBeInTheDocument();
   });
 
-  it("hides the onboarding material once dismissed", () => {
+  it("hides the checklist once dismissed", () => {
     useOnboardingStore.setState({ dismissed: true });
     renderSurface();
     expect(
       screen.queryByRole("region", { name: "Getting started checklist" })
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Start with Image/ })
-    ).not.toBeInTheDocument();
   });
 
-  it("opens a starter track chat from its card", async () => {
+  it("opens examples and tutorials as page tabs, onboarding done or not", async () => {
+    useOnboardingStore.setState({ dismissed: true });
     renderSurface();
     await userEvent.click(
-      screen.getByRole("button", { name: /Start with Agent/ })
+      screen.getByRole("button", { name: "Browse examples" })
     );
-    expect(startTrackChat).toHaveBeenCalledWith("agent");
+    expect(openPageTab).toHaveBeenCalledWith("examples");
+    await userEvent.click(screen.getByRole("button", { name: "Tutorials" }));
+    expect(openPageTab).toHaveBeenCalledWith("tutorials");
   });
 
   it("parks a start on provider onboarding and resumes once connected", async () => {
@@ -244,14 +241,4 @@ describe("NewProjectSurface", () => {
     );
   });
 
-  it("routes a key-less starter pick through provider onboarding", async () => {
-    hasConfiguredProvider = false;
-    renderSurface();
-    await userEvent.click(
-      screen.getByRole("button", { name: /Start with Video/ })
-    );
-    expect(startTrackChat).not.toHaveBeenCalled();
-    const state = useProviderOnboardingStore.getState();
-    expect(state.open).toBe(true);
-  });
 });
