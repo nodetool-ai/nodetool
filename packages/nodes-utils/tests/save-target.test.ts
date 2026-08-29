@@ -6,6 +6,7 @@ import {
   folderPathOf,
   resolveSaveFolder,
   resolveSaveTarget,
+  saveFilename,
   uniqueFilePath
 } from "../src/save-target.js";
 
@@ -119,5 +120,46 @@ describe("resolveSaveTarget", () => {
         overwrite: true
       })
     ).toBe(target);
+  });
+});
+
+describe("saveFilename", () => {
+  it("uses the fallback when the name is blank", () => {
+    expect(
+      saveFilename({ filename: "  ", fallback: "image_2026.png" })
+    ).toBe("image_2026.png");
+  });
+
+  it("appends the extension when the name carries none", () => {
+    expect(
+      saveFilename({ filename: "render", fallback: "x.png", extension: ".png" })
+    ).toBe("render.png");
+  });
+
+  it("leaves a name that already has an extension alone", () => {
+    expect(
+      saveFilename({ filename: "render.jpg", fallback: "x.png", extension: ".png" })
+    ).toBe("render.jpg");
+    expect(
+      saveFilename({ filename: "shot.", fallback: "x.png", extension: ".png" })
+    ).toBe("shot..png");
+    expect(
+      saveFilename({ filename: ".hidden", fallback: "x.png", extension: ".png" })
+    ).toBe(".hidden.png");
+  });
+});
+
+describe("an empty filename", () => {
+  it("is refused rather than resolved to the destination folder", async () => {
+    // `path.resolve(folder, "")` is the folder itself: the file used to land
+    // beside the workspace, named after it.
+    await expect(
+      resolveSaveTarget({
+        folder: "",
+        filename: "",
+        saveToWorkspace: true,
+        workspaceDir: path.join(dir, "ws")
+      })
+    ).rejects.toThrow(/empty filename/);
   });
 });

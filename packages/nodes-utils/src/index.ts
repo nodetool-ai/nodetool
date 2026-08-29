@@ -46,11 +46,13 @@ export {
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   folderPathOf,
   resolveSaveFolder,
+  saveFilename,
   uniqueFilePath,
   resolveSaveTarget,
   writeSavedFile
 } from "./save-target.js";
 export type {
+  SaveFilenameOptions,
   SaveFolderOptions,
   SaveTargetOptions,
   SaveWorkspace

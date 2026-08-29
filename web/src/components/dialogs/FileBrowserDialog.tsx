@@ -15,6 +15,7 @@ import {
 import FolderIcon from "@mui/icons-material/Folder";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -123,6 +124,11 @@ const fetchFileList = async (path: string): Promise<FileInfo[]> => {
   return trpcClient.files.list.query({ path });
 };
 
+const createFolder = async (path: string, name: string): Promise<string> => {
+  const entry = await trpcClient.files.createFolder.mutate({ path, name });
+  return entry.path;
+};
+
 const formatBytes = (bytes: number, decimals = 2) => {
   if (!+bytes) {return "0 Bytes";}
   const k = 1024;
@@ -149,6 +155,8 @@ function FileBrowserDialog({
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [newFolderName, setNewFolderName] = useState<string | null>(null);
+  const [newFolderError, setNewFolderError] = useState("");
 
   // Tree State
   const [treeItems, setTreeItems] = useState<ExtendedTreeItem[]>([]);
@@ -501,6 +509,50 @@ function FileBrowserDialog({
     handleNavigate(currentPath);
   }, [currentPath, handleNavigate]);
 
+  const handleStartNewFolder = useCallback(() => {
+    setNewFolderError("");
+    setNewFolderName("");
+  }, []);
+
+  const handleCancelNewFolder = useCallback(() => {
+    setNewFolderName(null);
+    setNewFolderError("");
+  }, []);
+
+  const handleNewFolderChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNewFolderName(e.target.value);
+      setNewFolderError("");
+    },
+    []
+  );
+
+  // Navigating into the new folder is what saves the round trip: in directory
+  // mode that also selects it, so Create then Select picks the folder that did
+  // not exist a moment ago.
+  const handleCreateFolder = useCallback(async () => {
+    const name = (newFolderName ?? "").trim();
+    if (!name) {return;}
+    try {
+      const created = await createFolder(currentPath, name);
+      setNewFolderName(null);
+      setNewFolderError("");
+      handleNavigate(created);
+    } catch (err) {
+      setNewFolderError(
+        err instanceof Error ? err.message : "Could not create the folder"
+      );
+    }
+  }, [newFolderName, currentPath, handleNavigate]);
+
+  const handleNewFolderKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {handleCreateFolder();}
+      if (e.key === "Escape") {handleCancelNewFolder();}
+    },
+    [handleCreateFolder, handleCancelNewFolder]
+  );
+
   const handleFileClick = useCallback((file: FileInfo) => {
     if (file.is_dir) {
       if (selectionMode === "directory") {
@@ -701,6 +753,13 @@ function FileBrowserDialog({
             />
           </div>
 
+          <ToolbarIconButton
+            icon={<CreateNewFolderIcon fontSize="small" />}
+            tooltip="New folder here"
+            onClick={handleStartNewFolder}
+            size="small"
+          />
+
           <RefreshButton
             onClick={handleRefresh}
             buttonSize="small"
@@ -708,6 +767,49 @@ function FileBrowserDialog({
           />
           <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
         </FlexRow>
+
+        {newFolderName !== null && (
+          <FlexColumn
+            className="new-folder-row"
+            gap={0.5}
+            sx={{
+              px: 2,
+              py: 1,
+              borderBottom: `1px solid ${theme.vars.palette.divider}`,
+              backgroundColor: theme.vars.palette.background.default
+            }}
+          >
+            <FlexRow align="center" gap={1}>
+              <TextInput
+                size="small"
+                autoFocus
+                value={newFolderName}
+                placeholder="New folder name"
+                onChange={handleNewFolderChange}
+                onKeyDown={handleNewFolderKeyDown}
+                sx={{ flex: 1 }}
+              />
+              <EditorButton
+                onClick={handleCreateFolder}
+                variant="contained"
+                density="compact"
+                disabled={!newFolderName.trim()}
+              >
+                Create
+              </EditorButton>
+              <EditorButton
+                onClick={handleCancelNewFolder}
+                variant="text"
+                density="compact"
+              >
+                Cancel
+              </EditorButton>
+            </FlexRow>
+            <Caption color={newFolderError ? "error" : "secondary"}>
+              {newFolderError || `Creates a folder in ${currentPath}`}
+            </Caption>
+          </FlexColumn>
+        )}
 
         <FlexRow
           className="file-browser-content"

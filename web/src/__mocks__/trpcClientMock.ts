@@ -198,6 +198,18 @@ export const trpcClient = {
     get: { query: emptyQuery() },
     cancel: { mutate: emptyMutate() }
   },
+  files: {
+    list: { query: jest.fn(async () => []) },
+    createFolder: {
+      mutate: jest.fn(async ({ path, name }: { path: string; name: string }) => ({
+        name,
+        path: `${path}/${name}`,
+        size: 0,
+        is_dir: true,
+        modified_at: "2026-01-01T00:00:00.000Z"
+      }))
+    }
+  },
   worker: {
     profiles: {
       list: { query: jest.fn(async () => []) },

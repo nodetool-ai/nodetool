@@ -263,6 +263,10 @@ export const SANDBOX_API_COVERAGE: Readonly<
     gap:
       "Browser-extension liveness; nothing a headless run acts on."
   },
+  "files.createFolder": {
+    elsewhere:
+      "The sandbox writes inside its workspace, where mkdir is its own."
+  },
   "files.list": {
     elsewhere:
       "The sandbox has its own contained list_directory and glob."

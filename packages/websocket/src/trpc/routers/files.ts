@@ -13,6 +13,8 @@ import {
   resolveLocalPath
 } from "../../lib/local-file-access.js";
 import {
+  createFolderInput,
+  createFolderOutput,
   listFilesInput,
   listFilesOutput
 } from "@nodetool-ai/protocol/api-schemas/files.js";
@@ -36,6 +38,34 @@ async function resolveSandboxed(userPath: string): Promise<string> {
   return result.path;
 }
 
+/** Both procedures are off where the file browser is off. */
+function assertBrowserEnabled(): void {
+  if (process.env["NODETOOL_ENV"] === "production") {
+    throwApiError(
+      ApiErrorCode.FORBIDDEN,
+      "File browser is disabled in production"
+    );
+  }
+}
+
+/**
+ * Refuse anything but a single folder name: the name is a name, not a path,
+ * so a `..` or a separator in it is rejected rather than resolved.
+ */
+function assertFolderName(name: string): string {
+  const trimmed = name.trim();
+  if (
+    !trimmed ||
+    trimmed === "." ||
+    trimmed === ".." ||
+    /[/\\]/.test(trimmed) ||
+    trimmed.includes("\0")
+  ) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Invalid folder name");
+  }
+  return trimmed;
+}
+
 // ── Router ──────────────────────────────────────────────────────────────────
 
 export const filesRouter = router({
@@ -43,12 +73,7 @@ export const filesRouter = router({
     .input(listFilesInput)
     .output(listFilesOutput)
     .query(async ({ input }) => {
-      if (process.env["NODETOOL_ENV"] === "production") {
-        throwApiError(
-          ApiErrorCode.FORBIDDEN,
-          "File browser is disabled in production"
-        );
-      }
+      assertBrowserEnabled();
 
       const resolved = await resolveSandboxed(input.path);
 
@@ -78,5 +103,55 @@ export const filesRouter = router({
       } catch {
         throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
       }
+    }),
+
+  /**
+   * Create one folder inside a directory the caller may browse.
+   *
+   * Here so choosing a workspace folder that does not exist yet does not mean
+   * leaving the app for the OS file manager.
+   */
+  createFolder: protectedProcedure
+    .input(createFolderInput)
+    .output(createFolderOutput)
+    .mutation(async ({ input }) => {
+      assertBrowserEnabled();
+
+      const name = assertFolderName(input.name);
+      // `resolveSandboxed` is what refuses a parent outside the allowed roots
+      // or reached through a symlink that leaves them; the joined path goes
+      // through it again so containment is checked on what is actually created.
+      const parent = await resolveSandboxed(input.path);
+      const target = await resolveSandboxed(path.join(parent, name));
+
+      try {
+        await fs.mkdir(target);
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code === "EEXIST") {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            `"${name}" already exists here`
+          );
+        }
+        if (code === "ENOENT") {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
+        }
+        throwApiError(
+          ApiErrorCode.INTERNAL_ERROR,
+          `Could not create the folder: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
+      }
+
+      const stat = await fs.stat(target);
+      return {
+        name,
+        path: target,
+        size: stat.size,
+        is_dir: true,
+        modified_at: stat.mtime.toISOString()
+      };
     })
 });
