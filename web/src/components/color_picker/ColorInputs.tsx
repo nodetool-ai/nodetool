@@ -70,6 +70,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
   onChange
 }) => {
   const theme = useTheme();
+  const inputStyles = React.useMemo(() => styles(theme), [theme]);
 
   const { state, handlers } = useColorConversion(color, alpha, onChange);
 
@@ -351,7 +352,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
     }
   };
 
-  return <Box css={styles(theme)}>{renderInputs()}</Box>;
+  return <Box css={inputStyles}>{renderInputs()}</Box>;
 });
 
 ColorInputs.displayName = 'ColorInputs';

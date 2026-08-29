@@ -155,6 +155,7 @@ const typeForValue = (value: unknown) => {
 
 const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const theme = useTheme();
+  const placeholderStyles = useMemo(() => styles(theme), [theme]);
   const nodeType = props.type;
   const nodeData = props.data;
   const nodeTitle = humanizeType(nodeType?.split(".").pop() || "");
@@ -311,7 +312,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   );
   return (
     <Box
-      css={styles(theme)}
+      css={placeholderStyles}
       className={className}
       sx={{
         backgroundColor: theme.vars.palette.c_node_bg

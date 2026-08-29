@@ -222,6 +222,7 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
   isOutputNode
 }) => {
   const theme = useTheme();
+  const bodyStyles = useMemo(() => styles(theme), [theme]);
   const isRunning = status === "running";
 
   // Input handles (prompt, etc.) — same set the default node body shows, so
@@ -265,7 +266,7 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
   }, [items.length]);
 
   return (
-    <div css={styles(theme)} className="nodrag" data-bespoke-body="ListGenerator">
+    <div css={bodyStyles} className="nodrag" data-bespoke-body="ListGenerator">
       {inputProperties.length > 0 && (
         <HandleColumn id={id} properties={inputProperties} layout="stacked" />
       )}

@@ -208,6 +208,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   contrastBackgroundColor = "#ffffff"
 }) => {
   const theme = useTheme();
+  const modalStyles = useMemo(() => styles(theme), [theme]);
   const { addRecentColor, preferredColorMode, setPreferredColorMode } =
     useColorPickerStore(
       useShallow((state) => ({
@@ -383,7 +384,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   );
 
   const content = (
-    <div css={styles(theme)}>
+    <div css={modalStyles}>
       <FlexRow
         className="modal-overlay"
         onClick={handleOverlayClick}

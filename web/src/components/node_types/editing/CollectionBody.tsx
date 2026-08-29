@@ -200,6 +200,7 @@ const CollectionBodyInner: React.FC<BespokeBodyProps> = ({
   isOutputNode
 }) => {
   const theme = useTheme();
+  const bodyStyles = useMemo(() => styles(theme), [theme]);
   const isRunning = status === "running";
 
   const storeRef = useNodeStoreRef();
@@ -309,7 +310,7 @@ const CollectionBodyInner: React.FC<BespokeBodyProps> = ({
   });
 
   return (
-    <div css={styles(theme)} className={`nodrag ${dropProps.className ?? ""}`}>
+    <div css={bodyStyles} className={`nodrag ${dropProps.className ?? ""}`}>
       <div className="col-header">
         <CollectionsBookmarkRoundedIcon
           sx={{ fontSize: "var(--fontSizeSmall)" }}
