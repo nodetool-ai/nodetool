@@ -103,8 +103,10 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
 
-The provider row is ten files, each downloading a URL a provider's response
-named:
+The provider row is eleven files, each downloading a URL a provider's response
+named — plus one reading a URL the caller's own message named
+(`video-frame-fallback.ts`, which fetches a video content part so ffmpeg can
+sample stills from it for a model that cannot read video):
 
 - `packages/runtime/src/providers/fal-provider.ts`
 - `packages/runtime/src/providers/replicate-provider.ts`
@@ -116,6 +118,7 @@ named:
 - `packages/runtime/src/providers/evolink-provider.ts`
 - `packages/runtime/src/providers/gemini-provider.ts`
 - `packages/runtime/src/providers/anthropic-provider.ts`
+- `packages/runtime/src/providers/video-frame-fallback.ts`
 
 Screening code itself: `packages/runtime/src/providers/safe-url.ts`,
 `packages/runtime/src/external-media-fetch.ts`,

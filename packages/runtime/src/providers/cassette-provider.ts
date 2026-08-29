@@ -513,6 +513,14 @@ export class CassetteProvider extends BaseProvider {
     return this.inner.hasToolSupport(model);
   }
 
+  /**
+   * The inner provider's answer, so a cassette over Gemini keeps sending whole
+   * clips instead of being downgraded to sampled frames by the base fallback.
+   */
+  override get supportsVideoInput(): boolean {
+    return this.inner.supportsVideoInput;
+  }
+
   // -------------------------------------------------------------------------
   // Matching
   // -------------------------------------------------------------------------

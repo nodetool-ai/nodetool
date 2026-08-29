@@ -923,13 +923,19 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     if (content.type === "video") {
-      // Named for the configured provider, not the wire format: every
+      // Reached only with the fallback switched off: BaseProvider otherwise
+      // samples the clip into frames before conversion whenever
+      // `supportsVideoInput` is false, and a missing ffmpeg fails there with
+      // its own message. Named for the configured provider, not the wire
+      // format: every
       // OpenAI-compatible re-host lands here, and reporting "openai" sent a
       // diagnosis after the wrong provider.
       throw new Error(
         `video input is not supported by ${this.provider} — its chat API is ` +
-          `OpenAI-compatible, which has no video content part. Use a provider ` +
-          `whose chat models read video natively (gemini).`
+          `OpenAI-compatible, which has no video content part. Frame sampling ` +
+          `is off (NODETOOL_VIDEO_FRAME_FALLBACK=0); unset it to read the clip ` +
+          `as stills, or use a provider whose chat models read video natively ` +
+          `(gemini).`
       );
     }
 

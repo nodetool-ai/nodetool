@@ -268,6 +268,33 @@ sandbox: running in-process (<reason>); a CPU-bound guest will block this thread
 NODETOOL_SANDBOX_INPROC=1 nodetool serve
 ```
 
+## Video Input on Vision Models
+
+Most chat APIs are OpenAI-compatible and have no `video` content part. A clip
+sent to one used to be refused outright, even when the model behind the
+endpoint reads images perfectly well. The runtime now samples the clip into
+stills with `ffmpeg` and sends those instead, labelled with their timestamps,
+under a header naming the frame count and the sample rate — so a model that
+needs the audio or the motion between frames can say it is missing rather than
+invent it. A provider that reads video natively (Gemini) still gets the whole
+clip and never goes through this path.
+
+`ffmpeg` and `ffprobe` must be on `PATH`; without them the call fails naming
+the binary. The sample is bounded by four settings:
+
+- `NODETOOL_VIDEO_FRAME_FALLBACK=0` turns the whole thing off and restores the
+  refusal, for a caller that would rather fail than pay for a lossy read.
+- `NODETOOL_VIDEO_FRAME_MAX_FRAMES` — frames per clip. Default `16`.
+- `NODETOOL_VIDEO_FRAME_MAX_FPS` — ceiling on the sample rate. Default `1`.
+  A clip long enough that the frame budget cannot reach this rate is sampled
+  more sparsely so the frames still span the whole thing.
+- `NODETOOL_VIDEO_FRAME_MAX_DIMENSION` — longest edge of each frame, in pixels.
+  Default `768`. Frames are never upscaled.
+
+```bash
+NODETOOL_VIDEO_FRAME_MAX_FRAMES=8 NODETOOL_VIDEO_FRAME_MAX_FPS=0.5 nodetool serve
+```
+
 ## Development-Only Settings
 
 Two settings exist for local development and are off unless set:
@@ -528,6 +555,10 @@ missing binary.
 | `NODETOOL_SUPERVISOR_PROVIDER` / `NODETOOL_SUPERVISOR_MODEL` | Provider and model that supervise a run when nothing nearer names one | no | Only consulted for a run that asked to be supervised; neither turns supervision on. On the server the order is the request, then the connection's configured defaults, then these — they exist for hosts that have no per-connection defaults at all, such as the trigger dispatcher's headless runs. A supervised run that resolves neither logs that and runs unsupervised rather than failing. The CLI reads `NODETOOL_SUPERVISOR_MODEL` alone, as a single `provider/model` string behind `--supervisor-model`, defaulting to `anthropic/claude-sonnet-4-6`. See [CLI › Supervised runs](cli.md#supervised-runs) |
 | `NODETOOL_INSTANCE_ID` | Which server instance this process is, for multi-instance routing | no | Overrides `FLY_MACHINE_ID`, which Fly sets and whose value the proxy's `fly-replay: instance=<id>` header also addresses — so one string both stamps a job row and routes a handshake back to the instance that owns the run. Letters, digits, `_` and `-` only: the value is written into a response header verbatim, so anything else is refused with a one-time warning. Unset or refused means single-machine, and every feature keyed off it is inert. Set it on a non-Fly multi-instance deployment |
 | `NODETOOL_JOB_CANCEL_POLL_MS` | How often an instance re-reads its own running jobs to notice a remote cancel | no | Default `15000`; `0` disables the poll. Anything unparseable or negative keeps the default. It only matters alongside `NODETOOL_INSTANCE_ID` / `FLY_MACHINE_ID` — a cancel arriving at the instance that holds the run is immediate and never waits for this |
+| `NODETOOL_VIDEO_FRAME_FALLBACK` | `0` refuses a video sent to a provider with no video content part instead of sampling frames from it | no | Any other value (or unset) keeps the fallback on. See [Video Input on Vision Models](#video-input-on-vision-models) |
+| `NODETOOL_VIDEO_FRAME_MAX_FRAMES` | Frames sampled from one clip | no | Default `16`. Anything unparseable or non-positive keeps the default |
+| `NODETOOL_VIDEO_FRAME_MAX_FPS` | Ceiling on the frame sample rate | no | Default `1`. A clip too long for the frame budget to reach this rate is sampled more sparsely, so the frames still span it |
+| `NODETOOL_VIDEO_FRAME_MAX_DIMENSION` | Longest edge of a sampled frame, in pixels | no | Default `768`. Frames are never upscaled |
 | `NODETOOL_SHIPPED_PACKS_DIR` | Roots the sandbox packs that ship with NodeTool are read from | no | Comma-, semicolon-, or `PATH`-separator-delimited, same as `NODETOOL_PACK_SEARCH_PATHS`. Candidates that do not exist are dropped, so a bad path yields no packs rather than an error. Unset, the loader looks for `_sandbox/` beside the bundled `server.mjs` (packaged desktop app, Docker image), then walks up to `packages/sandbox-packs` (a checkout). Set it only for a host that stages the packs somewhere else. See [Sandbox package design](sandbox-package-design.md) |
 | `NODETOOL_SANDBOX_INPROC` | Run every QuickJS guest on the calling thread instead of a worker | no | `1` only. A chosen fallback, so it warns about nothing. A CPU-bound guest then blocks the thread — on the server's main thread that freezes the event loop, including the frame that would have cancelled the run. See [JavaScript sandbox threading](#javascript-sandbox-threading) |
 | `NODETOOL_SANDBOX_WORKER` | Require the sandbox worker path | no | `require` only. A run that cannot reach a worker fails with `the sandbox worker path is required (NODETOOL_SANDBOX_WORKER=require) but unavailable: <reason>` rather than falling back in-process. Runs that stream their inputs never reach a worker, so this fails them |
