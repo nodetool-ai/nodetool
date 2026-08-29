@@ -86,10 +86,15 @@ const styles = (theme: Theme) =>
  * turn writes files too, into the workflow's workspace when one is open and
  * the default one otherwise — see {@link useCurrentWorkspace}.
  *
- * On a phone the chip drops its label and keeps the folder icon, so the chip
- * strip still fits the mode, model and permission chips without scrolling.
+ * In a narrow composer the chip drops its label and keeps the folder icon, so
+ * the chip strip still fits the mode, model and permission chips on one line.
  */
-const WorkspaceChip: React.FC = () => {
+interface WorkspaceChipProps {
+  /** Icon only. The composer sets it from its own width. */
+  compact?: boolean;
+}
+
+const WorkspaceChip: React.FC<WorkspaceChipProps> = ({ compact = false }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const anchorRef = useRef<HTMLButtonElement>(null);
@@ -137,7 +142,9 @@ const WorkspaceChip: React.FC = () => {
       <MediaControlChip
         ref={anchorRef}
         icon={<FolderIcon fontSize="small" />}
-        label={isMobile ? undefined : selected?.name || "Workspace"}
+        label={
+          isMobile || compact ? undefined : selected?.name || "Workspace"
+        }
         title={selected?.path ?? "Select a workspace folder"}
         active={open}
         showChevron={false}

@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 /**
  * The overview's left column: the conversation that builds the project.
  *
@@ -6,8 +7,12 @@
  * the overview or from the new-project surface. Sends go straight to that
  * thread, which is what makes the column the project's agent rather than a
  * second chat that happens to be next to it.
+ *
+ * The turns render through `ChatView`, the same surface the full chat uses, so
+ * tool calls, plans and media outputs look here the way they look everywhere.
  */
 
+import { css } from "@emotion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
@@ -16,19 +21,41 @@ import {
   FlexColumn,
   LoadingSpinner,
   SPACING,
-  ScrollArea
+  getSpacingPx
 } from "../ui_primitives";
-import MediaChatComposer from "../chat/composer/MediaChatComposer";
+import ChatView from "../chat/containers/ChatView";
 import useGlobalChatStore, {
   useThreadRuntime
 } from "../../stores/GlobalChatStore";
 import type { Message, MessageContent } from "../../stores/ApiTypes";
-import { resolveUiContext } from "../../lib/chat/uiContext";
 import { trpc } from "../../trpc/client";
-import ProjectAgentThread from "./ProjectAgentThread";
 import { projectSystemPrompt, takeProjectFirstTurn } from "./projectAgent";
 
 const NO_MESSAGES: Message[] = [];
+
+// The column is narrow, so the full chat's page padding and 800px thread
+// column would leave the conversation almost no room.
+const styles = css({
+  "&": {
+    height: "100%",
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column"
+  },
+  "& .chat-view": {
+    padding: `0 ${getSpacingPx(SPACING.sm)} ${getSpacingPx(
+      SPACING.sm
+    )} ${getSpacingPx(SPACING.sm)}`
+  },
+  "& .chat-thread-container": {
+    maxWidth: "100%",
+    paddingBottom: getSpacingPx(SPACING.md)
+  },
+  "& .chat-composer-wrapper, & .chat-input-section": {
+    width: "100%",
+    maxWidth: "100%"
+  }
+});
 
 interface ProjectAgentPanelProps {
   projectId: string;
@@ -63,7 +90,9 @@ const ProjectAgentPanel = ({
   );
   const runtime = useThreadRuntime(threadId);
   const selectedModel = useGlobalChatStore((state) => state.selectedModel);
-  const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
+  const setSelectedModel = useGlobalChatStore(
+    (state) => state.setSelectedModel
+  );
 
   // The shared chat socket is a singleton; other mounted surfaces depend on
   // it, so this never disconnects on unmount.
@@ -79,8 +108,7 @@ const ProjectAgentPanel = ({
       // A project that already names its thread needs no write; only the
       // first visit creates one.
       const id =
-        boundThreadId ??
-        (await ensureThreadAsync({ id: projectId })).threadId;
+        boundThreadId ?? (await ensureThreadAsync({ id: projectId })).threadId;
       if (cancelled) return;
       setThreadId(id);
       // The row exists on the server, so a fetch registers it with the store
@@ -104,26 +132,14 @@ const ProjectAgentPanel = ({
     [projectName, projectId]
   );
 
+  // ChatView builds the outgoing message; this only routes it to the
+  // project's own thread instead of the store's current one.
   const handleSend = useCallback(
-    (content: MessageContent[]) => {
+    async (message: Message) => {
       if (!threadId) return;
-      sendMessage(
-        {
-          type: "message",
-          name: "",
-          role: "user",
-          provider: selectedModel?.provider,
-          model: selectedModel?.id,
-          content,
-          system_prompt: systemPrompt,
-          ui_context: resolveUiContext(undefined, "workspace_chat")
-        },
-        threadId
-      ).catch((error) => {
-        console.error("Failed to send to the project agent:", error);
-      });
+      await sendMessage(message, threadId);
     },
-    [threadId, sendMessage, selectedModel, systemPrompt]
+    [threadId, sendMessage]
   );
 
   // A project started from the new-project surface arrives with its opening
@@ -135,54 +151,83 @@ const ProjectAgentPanel = ({
     if (!threadId || !historyLoaded || firstTurnSent.current) {
       return;
     }
-    const first = takeProjectFirstTurn(projectId);
+    const first: MessageContent[] | null = takeProjectFirstTurn(projectId);
     if (!first) {
       return;
     }
     firstTurnSent.current = true;
-    handleSend(first);
-  }, [threadId, historyLoaded, projectId, handleSend]);
+    handleSend({
+      type: "message",
+      name: "",
+      role: "user",
+      provider: selectedModel?.provider,
+      model: selectedModel?.id,
+      content: first,
+      system_prompt: systemPrompt
+    }).catch((error) => {
+      console.error("Failed to send to the project agent:", error);
+    });
+  }, [
+    threadId,
+    historyLoaded,
+    projectId,
+    handleSend,
+    selectedModel,
+    systemPrompt
+  ]);
+
+  // ChatView's status has no idle/stopping of its own.
+  const chatStatus =
+    runtime.status === "idle" || runtime.status === "stopping"
+      ? "connected"
+      : runtime.status;
 
   const handleStop = useCallback(() => {
     if (threadId) stopGeneration(threadId);
   }, [threadId, stopGeneration]);
 
-  const isStreaming = runtime.status === "streaming";
-  const isLoading = runtime.status === "loading";
-
   return (
-    <FlexColumn fullHeight sx={{ minHeight: 0 }}>
+    <div css={styles}>
       <Caption
         color="muted"
-        sx={{ px: SPACING.xl, pt: SPACING.lg, textTransform: "uppercase" }}
+        sx={{ px: SPACING.lg, pt: SPACING.lg, textTransform: "uppercase" }}
       >
         Project agent
       </Caption>
-      <ScrollArea sx={{ flex: 1, minHeight: 0, px: SPACING.xl }}>
-        {threadId ? (
-          <ProjectAgentThread
-            messages={messages}
-            runningToolMessage={runtime.toolMessage}
-          />
-        ) : (
-          <LoadingSpinner />
-        )}
-      </ScrollArea>
-      <FlexColumn sx={{ p: SPACING.lg }}>
-        <MediaChatComposer
-          isLoading={isLoading}
-          isStreaming={isStreaming}
-          onSendMessage={handleSend}
-          onStop={handleStop}
-          disabled={!threadId}
-          selectedModel={selectedModel}
+      {threadId ? (
+        <ChatView
+          status={chatStatus}
+          messages={messages}
+          progress={runtime.progress.current}
+          total={runtime.progress.total}
+          progressMessage={runtime.statusMessage}
+          model={selectedModel}
           onModelChange={setSelectedModel}
+          sendMessage={handleSend}
+          onStop={handleStop}
           threadId={threadId}
+          systemPrompt={systemPrompt}
+          chatSource="workspace_chat"
+          currentPlanningUpdate={runtime.planningUpdate}
+          currentTaskUpdate={runtime.taskUpdate}
+          currentLogUpdate={runtime.logUpdate}
+          runningToolCallId={runtime.runningToolCallId}
+          runningToolMessage={runtime.toolMessage}
           hideModePicker
-          placeholder="Ask for a change to this project…"
+          composerPlaceholder="Ask for a change to this project…"
+          noMessagesPlaceholder={
+            <FlexColumn sx={{ flex: 1, px: SPACING.lg, pt: SPACING.lg }}>
+              <Caption color="muted">
+                Nothing here yet. Ask for a change and the agent builds it into
+                this project.
+              </Caption>
+            </FlexColumn>
+          }
         />
-      </FlexColumn>
-    </FlexColumn>
+      ) : (
+        <LoadingSpinner />
+      )}
+    </div>
   );
 };
 

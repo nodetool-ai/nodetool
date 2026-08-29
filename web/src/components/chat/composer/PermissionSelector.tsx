@@ -101,10 +101,13 @@ const dotCss = (color: string) =>
  */
 interface PermissionSelectorProps {
   threadId?: string | null;
+  /** Dot only, no label. The composer sets it from its own width. */
+  compact?: boolean;
 }
 
 const PermissionSelector: React.FC<PermissionSelectorProps> = ({
-  threadId
+  threadId,
+  compact = false
 }) => {
   const theme = useTheme();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -131,6 +134,7 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
         ref={buttonRef}
         className="permission-selector-trigger"
         icon={<span css={dotCss(dotColor(theme, activeMode.tone))} />}
+        label={compact ? undefined : activeMode.label}
         title={`Permission: ${activeMode.label} — ${activeMode.description}`}
         active={open}
         showChevron

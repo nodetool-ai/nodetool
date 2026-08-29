@@ -27,6 +27,7 @@ import {
 import { trpc } from "../../trpc/client";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import ProjectAgentPanel from "./ProjectAgentPanel";
 import ProjectDocumentCard from "./ProjectDocumentCard";
 import ProjectSpendBar from "./ProjectSpendBar";
@@ -47,6 +48,8 @@ interface ProjectOverviewSurfaceProps {
 const AGENT_COLUMN_WIDTH = 460;
 
 const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
+  // Documents the agent writes arrive as `resource_change` frames, which
+  // invalidate this query — see `invalidateProjectViews`. Nothing polls.
   const { data, isPending, error } = trpc.projects.get.useQuery(
     { id: refId },
     { staleTime: 15_000 }
@@ -135,19 +138,25 @@ const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
       <FlexRow sx={{ flex: 1, minHeight: 0 }}>
         <Box
           sx={{
-            width: `${AGENT_COLUMN_WIDTH}px`,
             flexShrink: 0,
             minHeight: 0,
-            display: { xs: "none", md: "block" },
-            borderRight: "1px solid",
-            borderColor: "divider"
+            display: { xs: "none", md: "flex" }
           }}
         >
-          <ProjectAgentPanel
-            projectId={project.id}
-            projectName={project.name}
-            threadId={project.threadId}
-          />
+          <ResizableSideDock
+            storageKey="projectAgent"
+            side="left"
+            defaultWidth={AGENT_COLUMN_WIDTH}
+            minWidth={320}
+            maxWidth={760}
+            ariaLabel="Resize the project agent"
+          >
+            <ProjectAgentPanel
+              projectId={project.id}
+              projectName={project.name}
+              threadId={project.threadId}
+            />
+          </ResizableSideDock>
         </Box>
 
         <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
