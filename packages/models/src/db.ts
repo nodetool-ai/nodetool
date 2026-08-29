@@ -640,6 +640,14 @@ const TABLE_COLUMNS = {
     released: "integer",
     created_at: "text"
   },
+  application_deployments: {
+    id: "text",
+    application_id: "text",
+    user_id: "text",
+    token: "text",
+    created_at: "text",
+    revoked_at: "text"
+  },
   application_invocations: {
     id: "text",
     application_id: "text",
@@ -1176,6 +1184,17 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_application_version_app" ON "application_versions" ("application_id");
     CREATE INDEX IF NOT EXISTS "idx_application_version_released" ON "application_versions" ("released");
     CREATE UNIQUE INDEX IF NOT EXISTS "idx_application_version_app_version" ON "application_versions" ("application_id", "version");
+
+    CREATE TABLE IF NOT EXISTS "application_deployments" (
+      "id" text PRIMARY KEY NOT NULL,
+      "application_id" text NOT NULL REFERENCES "applications" ("id") ON DELETE CASCADE,
+      "user_id" text NOT NULL,
+      "token" text NOT NULL,
+      "created_at" text NOT NULL,
+      "revoked_at" text
+    );
+    CREATE INDEX IF NOT EXISTS "idx_application_deployment_app" ON "application_deployments" ("application_id");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_application_deployment_token" ON "application_deployments" ("token");
 
     CREATE TABLE IF NOT EXISTS "application_budgets" (
       "application_id" text PRIMARY KEY NOT NULL REFERENCES "applications" ("id") ON DELETE CASCADE,

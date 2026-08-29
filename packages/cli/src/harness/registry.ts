@@ -751,6 +751,28 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "public-app-deployments",
+    title: "Deployed mini apps (hidden URL, no login)",
+    harnesses: [],
+    paths: [
+      "packages/websocket/src/lib/app-deployment-service.ts",
+      "packages/websocket/src/lib/app-session-scope.ts",
+      "packages/websocket/src/routes/public-apps.ts",
+      "packages/auth/src/providers/app-session-token-provider.ts",
+      "packages/models/src/application-deployment.ts",
+      "web/src/components/applications/PublicAppPage.tsx"
+    ],
+    gap:
+      "Covered by unit tests only, and the two halves they cannot reach are " +
+      "the ones that matter: what a real logged-out browser can load from " +
+      "the link, and what the auth hook actually refuses an `nda_` token " +
+      "outside `/ws`. A harness would boot the server with " +
+      "NODETOOL_ENV=production, deploy a published example app, then (a) " +
+      "walk every non-`/ws` path with the minted session and assert 401, and " +
+      "(b) drive the page with Playwright carrying no account session, the " +
+      "way the debug harness drives the graph canvas."
+  },
+  {
     id: "mobile",
     title: "Mobile app (documents via chat agent ui_* tools)",
     harnesses: [],

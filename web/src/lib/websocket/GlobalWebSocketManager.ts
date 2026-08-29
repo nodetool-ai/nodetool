@@ -10,6 +10,7 @@ import { ConnectionState, WebSocketManager } from "./WebSocketManager";
 import { FrontendToolRegistry } from "../tools/frontendTools";
 import { getFrontendToolRuntimeState } from "../tools/frontendToolRuntimeState";
 import { validateInboundMessage } from "./validateInboundMessage";
+import { getAppSessionToken } from "../appSession";
 import type {
   RendererRegisteredMessage,
   RendererToolCallMessage
@@ -682,16 +683,28 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
   private async buildAuthenticatedUrl(): Promise<string> {
     const params = new URLSearchParams();
-    try {
-      const { supabase } = await import("../supabaseClient");
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        params.set("api_key", session.access_token);
+    // A deployed app's public page has no account session to resolve — it runs
+    // on a token minted from the deployment link, and that token is scoped to
+    // the one app. Re-read here rather than captured at connect time, so a
+    // refreshed session is picked up on the next reconnect.
+    const appSession = getAppSessionToken();
+    if (appSession) {
+      params.set("api_key", appSession);
+    } else {
+      try {
+        const { supabase } = await import("../supabaseClient");
+        const {
+          data: { session }
+        } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          params.set("api_key", session.access_token);
+        }
+      } catch (error) {
+        console.error(
+          "GlobalWebSocketManager: Failed to resolve auth token",
+          error
+        );
       }
-    } catch (error) {
-      console.error("GlobalWebSocketManager: Failed to resolve auth token", error);
     }
 
     // The hint is an optimization; a store that cannot answer costs replayed

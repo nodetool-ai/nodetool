@@ -6,6 +6,8 @@ import mockTheme from "../../../__mocks__/themeMock";
 const publishMutate = jest.fn();
 const releaseMutate = jest.fn();
 const setBudgetMutate = jest.fn();
+const deployMutate = jest.fn();
+const undeployMutate = jest.fn();
 
 const versionOne = {
   id: "ver-1",
@@ -44,6 +46,19 @@ const state = {
     spentUsd: 1.25,
     invocations: 3
   },
+  deployment: {
+    applicationId: "app-1",
+    token: "tok3n",
+    createdAt: "2026-07-11T09:00:00.000Z",
+    revokedAt: null,
+    blockedReason: null
+  } as {
+    applicationId: string;
+    token: string;
+    createdAt: string;
+    revokedAt: string | null;
+    blockedReason: string | null;
+  } | null,
   invocations: [
     {
       id: "inv-1",
@@ -72,13 +87,15 @@ const overrides: {
   publishError: Failure | null;
   releaseError: Failure | null;
   setBudgetError: Failure | null;
+  deploymentError: Failure | null;
 } = {
   versionsError: null,
   budgetError: null,
   invocationsError: null,
   publishError: null,
   releaseError: null,
-  setBudgetError: null
+  setBudgetError: null,
+  deploymentError: null
 };
 
 const resetOverrides = () => {
@@ -88,6 +105,14 @@ const resetOverrides = () => {
   overrides.publishError = null;
   overrides.releaseError = null;
   overrides.setBudgetError = null;
+  overrides.deploymentError = null;
+  state.deployment = {
+    applicationId: "app-1",
+    token: "tok3n",
+    createdAt: "2026-07-11T09:00:00.000Z",
+    revokedAt: null,
+    blockedReason: null
+  };
 };
 
 jest.mock("../../../hooks/useApplications", () => ({
@@ -128,6 +153,24 @@ jest.mock("../../../hooks/useApplications", () => ({
     isLoading: false,
     isError: overrides.invocationsError !== null,
     error: overrides.invocationsError
+  }),
+  useApplicationDeployment: () => ({
+    data: overrides.deploymentError ? undefined : state.deployment,
+    isLoading: false,
+    isError: overrides.deploymentError !== null,
+    error: overrides.deploymentError
+  }),
+  useDeployApplication: () => ({
+    mutate: deployMutate,
+    isPending: false,
+    isError: false,
+    error: null
+  }),
+  useUndeployApplication: () => ({
+    mutate: undeployMutate,
+    isPending: false,
+    isError: false,
+    error: null
   })
 }));
 
@@ -294,5 +337,64 @@ describe("ApplicationGovernancePanel error paths", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Could not load invocations: Ledger unavailable"
     );
+  });
+});
+
+describe("ApplicationGovernancePanel public link", () => {
+  it("shows the link the app is served from", () => {
+    renderPanel();
+    expect(
+      screen.getByDisplayValue(`${window.location.origin}/a/tok3n`)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /withdraw link/i })
+    ).toBeInTheDocument();
+  });
+
+  it("offers to create one when the app has none", async () => {
+    state.deployment = null;
+    renderPanel();
+
+    expect(screen.queryByDisplayValue(/\/a\//)).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: /create public link/i })
+    );
+    expect(deployMutate).toHaveBeenCalledWith({ id: "app-1" });
+  });
+
+  it("withdraws the link", async () => {
+    renderPanel();
+    await userEvent.click(
+      screen.getByRole("button", { name: /withdraw link/i })
+    );
+    expect(undeployMutate).toHaveBeenCalledWith({ id: "app-1" });
+  });
+
+  it("says when a live link is serving nothing, and why", () => {
+    state.deployment = {
+      applicationId: "app-1",
+      token: "tok3n",
+      createdAt: "2026-07-11T09:00:00.000Z",
+      revokedAt: null,
+      blockedReason: "A public link cannot run a script operation (Tidy up)."
+    };
+    renderPanel();
+    expect(
+      screen.getByText(/cannot run a script operation/i)
+    ).toBeInTheDocument();
+  });
+
+  it("says the server does not serve links rather than showing an error", () => {
+    // Outside production the procedure is refused, which is the ordinary case
+    // on a dev machine — not a fault to report as one.
+    overrides.deploymentError = { message: "FORBIDDEN" };
+    renderPanel();
+
+    expect(
+      screen.getByText(/available on nodetool\.ai/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /create public link/i })
+    ).not.toBeInTheDocument();
   });
 });

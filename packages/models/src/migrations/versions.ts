@@ -2997,6 +2997,44 @@ export const migrations: MigrationDef[] = [
         ON nodetool_thread_memories (user_id)
       `);
     }
+  },
+
+  // ── Create application_deployments ───────────────────────────────────
+  // An app served from a hidden URL with no login. One live row per app; the
+  // token is the whole secret, so it is unique across every app on the
+  // server, and revoking sets `revoked_at` rather than deleting the row.
+  {
+    version: "20260829_000000",
+    name: "create_application_deployments",
+    createsTables: ["application_deployments"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_deployments (
+          id TEXT PRIMARY KEY,
+          application_id TEXT NOT NULL REFERENCES applications (id) ON DELETE CASCADE,
+          user_id TEXT NOT NULL,
+          token TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          revoked_at TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_deployment_app
+        ON application_deployments (application_id)
+      `);
+      await db.execute(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_application_deployment_token
+        ON application_deployments (token)
+      `);
+    },
+    async down(db) {
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_application_deployment_token"
+      );
+      await db.execute("DROP INDEX IF EXISTS idx_application_deployment_app");
+      await db.execute("DROP TABLE IF EXISTS application_deployments");
+    }
   }
 ];
 

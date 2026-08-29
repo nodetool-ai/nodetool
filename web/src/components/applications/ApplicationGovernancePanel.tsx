@@ -1,9 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
+import { appDeploymentPath } from "@nodetool-ai/protocol";
+
 import type { RouterOutputs } from "../../trpc/client";
 import {
   useApplicationBudget,
+  useApplicationDeployment,
+  useDeployApplication,
+  useUndeployApplication,
   useApplicationInvocations,
   useApplicationUsage,
   useApplicationVersions,
@@ -17,6 +22,7 @@ import {
   Button,
   Caption,
   Chip,
+  CopyButton,
   Divider,
   EmptyState,
   FlexColumn,
@@ -226,6 +232,110 @@ const BudgetSection = memo(function BudgetSection({
   );
 });
 
+interface DeploySectionProps {
+  applicationId: string;
+}
+
+/**
+ * The hidden link the app is served from, for people with no NodeTool account.
+ *
+ * Only offered in production — the server refuses the whole surface elsewhere,
+ * because a local install already answers without credentials and a "no login
+ * needed" link there means nothing. A refused query is therefore the ordinary
+ * case on a dev machine, and the section says so instead of showing an error.
+ */
+const DeploySection = memo(function DeploySection({
+  applicationId
+}: DeploySectionProps) {
+  const { data: deployment, isLoading, isError } =
+    useApplicationDeployment(applicationId);
+  const deploy = useDeployApplication();
+  const undeploy = useUndeployApplication();
+
+  const handleDeploy = useCallback(
+    () => deploy.mutate({ id: applicationId }),
+    [applicationId, deploy]
+  );
+  const handleUndeploy = useCallback(
+    () => undeploy.mutate({ id: applicationId }),
+    [applicationId, undeploy]
+  );
+
+  const url = deployment
+    ? `${window.location.origin}${appDeploymentPath(deployment.token)}`
+    : null;
+
+  if (isLoading) return <LoadingSpinner text="Loading link" />;
+
+  return (
+    <FlexColumn gap={SPACING.md} fullWidth>
+      <SectionHeader title="Public link" />
+      {isError ? (
+        <Caption>
+          Public links are available on nodetool.ai. This server does not serve
+          them.
+        </Caption>
+      ) : (
+        <>
+          <Caption>
+            Anyone with the link can open and run the released version — no
+            account needed. Runs execute on your account and count against the
+            spend budget below.
+          </Caption>
+          {url && (
+            <FlexRow align="center" gap={2} fullWidth>
+              <TextInput
+                label="Link"
+                size="small"
+                value={url}
+                slotProps={{ htmlInput: { readOnly: true } }}
+                fullWidth
+              />
+              <CopyButton value={url} tooltip="Copy the link" />
+            </FlexRow>
+          )}
+          {deployment?.blockedReason && (
+            <AlertBanner severity="warning">
+              {`The link is not serving this app. ${deployment.blockedReason}`}
+            </AlertBanner>
+          )}
+          <FlexRow gap={2} align="center">
+            {deployment ? (
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={undeploy.isPending}
+                onClick={handleUndeploy}
+              >
+                Withdraw link
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                size="small"
+                disabled={deploy.isPending}
+                onClick={handleDeploy}
+              >
+                Create public link
+              </Button>
+            )}
+          </FlexRow>
+          {deploy.isError && (
+            <AlertBanner severity="error">
+              {`Could not create the link: ${deploy.error.message}`}
+            </AlertBanner>
+          )}
+          {undeploy.isError && (
+            <AlertBanner severity="error">
+              {`Could not withdraw the link: ${undeploy.error.message}`}
+            </AlertBanner>
+          )}
+        </>
+      )}
+    </FlexColumn>
+  );
+});
+
 interface InvocationsSectionProps {
   applicationId: string;
 }
@@ -385,6 +495,10 @@ const ApplicationGovernancePanel = ({
           </FlexColumn>
         )}
       </FlexColumn>
+
+      <Divider />
+
+      <DeploySection applicationId={applicationId} />
 
       <Divider />
 

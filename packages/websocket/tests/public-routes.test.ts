@@ -5,6 +5,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  isPublicAppDeploymentRequest,
   isPublicOAuthRequest,
   isPublicWorkflowMetadataRequest,
   isPublicAuthExemptRoute
@@ -116,5 +117,51 @@ describe("isPublicOAuthRequest", () => {
     ]) {
       expect(isPublicOAuthRequest(path)).toBe(false);
     }
+  });
+});
+
+describe("isPublicAppDeploymentRequest", () => {
+  it("exempts reading a deployed app and minting its run session", () => {
+    expect(isPublicAppDeploymentRequest("/api/apps/tok3n", "GET")).toBe(true);
+    expect(
+      isPublicAppDeploymentRequest("/api/apps/tok3n/session", "POST")
+    ).toBe(true);
+  });
+
+  it("exempts nothing deeper or differently shaped", () => {
+    // A token is one path segment; anything below it is a route that does not
+    // exist, and exempting it would widen the hole ahead of the code.
+    expect(isPublicAppDeploymentRequest("/api/apps/tok3n/runs", "GET")).toBe(
+      false
+    );
+    expect(isPublicAppDeploymentRequest("/api/apps/tok3n/session", "GET")).toBe(
+      false
+    );
+    expect(isPublicAppDeploymentRequest("/api/apps/tok3n", "POST")).toBe(false);
+    expect(isPublicAppDeploymentRequest("/api/apps/tok3n", "DELETE")).toBe(
+      false
+    );
+    expect(isPublicAppDeploymentRequest("/api/apps/", "GET")).toBe(false);
+    expect(isPublicAppDeploymentRequest("/api/apps", "GET")).toBe(false);
+  });
+
+  it("never reaches the owner-scoped application routes", () => {
+    for (const path of [
+      "/api/applications",
+      "/api/applications/app-1",
+      "/api/applications/app-1/released-document",
+      "/api/apps-private/app-1"
+    ]) {
+      expect(isPublicAppDeploymentRequest(path, "GET")).toBe(false);
+      expect(isPublicAuthExemptRoute(path, "GET")).toBe(false);
+      expect(isPublicAuthExemptRoute(path, "POST")).toBe(false);
+    }
+  });
+
+  it("is reachable through the top-level allowlist", () => {
+    expect(isPublicAuthExemptRoute("/api/apps/tok3n", "GET")).toBe(true);
+    expect(isPublicAuthExemptRoute("/api/apps/tok3n/session", "POST")).toBe(
+      true
+    );
   });
 });

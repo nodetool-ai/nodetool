@@ -121,6 +121,38 @@ export const useReleaseApplicationVersion = () => {
   });
 };
 
+/**
+ * The app's hidden-URL deployment, or null when it has none. Only offered in
+ * production, so the query is expected to error elsewhere — callers read
+ * `isError` as "this server does not deploy apps" rather than as a fault.
+ */
+export const useApplicationDeployment = (id: string | null | undefined) =>
+  trpc.applications.deployment.useQuery(
+    { id: id ?? "" },
+    { enabled: !!id, retry: false }
+  );
+
+export const useDeployApplication = () => {
+  const utils = trpc.useUtils();
+  return trpc.applications.deploy.useMutation({
+    onSuccess: (deployment) => {
+      utils.applications.deployment.setData(
+        { id: deployment.applicationId },
+        deployment
+      );
+    }
+  });
+};
+
+export const useUndeployApplication = () => {
+  const utils = trpc.useUtils();
+  return trpc.applications.undeploy.useMutation({
+    onSuccess: (_result, variables) => {
+      utils.applications.deployment.setData({ id: variables.id }, null);
+    }
+  });
+};
+
 export const useApplicationBudget = (id: string | null | undefined) =>
   trpc.applications.budget.useQuery({ id: id ?? "" }, { enabled: !!id });
 

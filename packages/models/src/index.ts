@@ -200,6 +200,7 @@ export {
   applicationUsage,
   checkApplicationBudget,
   getApplicationBudget,
+  invocationBelongsToApplication,
   listInvocations,
   periodStart,
   recordInvocation,
@@ -216,6 +217,7 @@ export type {
   Reservation,
   ReserveInput
 } from "./application-budget.js";
+export { ApplicationDeployment } from "./application-deployment.js";
 export {
   Script,
   ScriptConflictError,

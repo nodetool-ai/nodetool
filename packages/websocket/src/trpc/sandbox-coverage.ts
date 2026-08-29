@@ -113,6 +113,24 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "capabilities/apps.ts."
   },
   "applications.delete": { capability: "delete_app" },
+  "applications.deploy": {
+    withheld:
+      "Deploying serves the app from a URL that needs no login and runs " +
+      "on the owner's keys and budget. It is the strongest publishing " +
+      "decision in the product, and a run that could make it could put " +
+      "someone's account behind a link they never handed out."
+  },
+  "applications.deployment": {
+    withheld:
+      "The deployment token is the link. Reading it is handing out the " +
+      "link, which is the same act as deploying."
+  },
+  "applications.undeploy": {
+    withheld:
+      "Withdrawing a link is the owner's call about who still reaches " +
+      "their app. A run that could revoke one could take an app offline " +
+      "for everyone using it."
+  },
   "applications.get": { capability: "get_app" },
   "applications.invocations": {
     withheld:

@@ -154,6 +154,9 @@ import { openSettingsTab } from "./components/workspace/openPageTab";
 const LegacyAppRedirect = React.lazy(
   () => import("./components/applications/LegacyAppRedirect")
 );
+const PublicAppPage = React.lazy(
+  () => import("./components/applications/PublicAppPage")
+);
 const OAuthConsentPage = React.lazy(
   () => import("./components/oauth/OAuthConsentPage")
 );
@@ -275,6 +278,18 @@ function getRoutes() {
             <LegacyAppRedirect />
           </React.Suspense>
         </ProtectedRoute>
+      )
+    },
+    {
+      // A mini app deployed to a hidden URL. Deliberately outside
+      // `ProtectedRoute`: the whole point is that whoever has the link needs
+      // no account. The page runs on a session minted from the token, which
+      // reaches this one app's runs and nothing else.
+      path: "/a/:token",
+      element: (
+        <React.Suspense fallback={<LoadingSpinner />}>
+          <PublicAppPage />
+        </React.Suspense>
       )
     },
     {
@@ -606,6 +621,13 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
       window.location.pathname.startsWith(p)
     );
 
+  // A deployed app's public page has no account and never will, so the
+  // logged-out branch below would leave it without node metadata — which the
+  // runtime needs to decide what a widget renders and what can run in the
+  // browser. `/api/nodes/metadata` carries no per-user data and is served
+  // without auth, so this route loads it like any signed-in page does.
+  const isPublicAppRoute = window.location.pathname.startsWith("/a/");
+
   useEffect(() => {
     // Register frontend tools after initial render
     registerFrontendTools();
@@ -631,7 +653,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
     // When auth is enforced, wait until the user is logged in before fetching
     // metadata. When logged out, skip metadata so the router can render and
     // redirect to /login.
-    if (isAuthRequired() && authState !== "logged_in") {
+    if (isAuthRequired() && authState !== "logged_in" && !isPublicAppRoute) {
       if (authState === "logged_out" || authState === "error") {
         setStatus("logged_out");
       }
@@ -649,7 +671,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
         );
         setStatus("error");
       });
-  }, [authState, configLoaded]);
+  }, [authState, configLoaded, isPublicAppRoute]);
 
   const shouldRenderRouter =
     isDevTestRoute || status === "success" || status === "logged_out";

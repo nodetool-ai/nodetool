@@ -511,6 +511,33 @@ export async function reserveInvocation(
  * Recent runs of an application, newest first. `userId` scopes the read to the
  * owner the rows were written for; rows predating the column stay visible.
  */
+/**
+ * Whether this run was started by this application.
+ *
+ * Every app run reserves a ledger row keyed on its job id before the job
+ * exists, so the ledger is the record of which runs belong to an app — which
+ * is what a caller holding an app-scoped credential must be checked against
+ * before it is allowed to read a run back.
+ */
+export async function invocationBelongsToApplication(
+  applicationId: string,
+  invocationId: string
+): Promise<boolean> {
+  if (!applicationId || !invocationId) return false;
+  const db = getDb();
+  const rows = await db
+    .select({ id: applicationInvocations.id })
+    .from(applicationInvocations)
+    .where(
+      and(
+        eq(applicationInvocations.application_id, applicationId),
+        eq(applicationInvocations.invocation_id, invocationId)
+      )
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
 export async function listInvocations(
   applicationId: string,
   limit = 50,
