@@ -5,6 +5,8 @@ import type { Shot } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
 let mockShots: Shot[] = [];
+/** The board's selected shot id, driving the inspector's presence. */
+let activeShot: string | null = null;
 jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
   useBoard: () => ({
     title: "My film",
@@ -15,7 +17,8 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     directorModel: { id: "model-1" },
     imageModel: null,
     videoModel: null,
-    shots: mockShots
+    shots: mockShots,
+    activeShotId: activeShot
   }),
   useStoryboardStore: <T,>(
     selector: (s: {
@@ -28,6 +31,7 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
       setVideoModel: jest.Mock;
       undo: jest.Mock;
       redo: jest.Mock;
+      selectShot: jest.Mock;
     }) => T
   ) =>
     selector({
@@ -39,7 +43,8 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
       setImageModel: jest.fn(),
       setVideoModel: jest.fn(),
       undo: jest.fn(),
-      redo: jest.fn()
+      redo: jest.fn(),
+      selectShot: jest.fn()
     }),
   useStoryboardCanUndo: () => false,
   useStoryboardCanRedo: () => false
@@ -63,6 +68,12 @@ jest.mock("../../../hooks/useModelsByProvider", () => ({
   useImageModelsByProvider: () => ({ models: [] })
 }));
 
+// The toolbar's summary line names the board's entities; the library itself
+// resolves through React Query, which these tests do not mount.
+jest.mock("../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: [] })
+}));
+
 const stub = (name: string) => ({
   __esModule: true,
   default: () => <div data-testid={name} />
@@ -71,6 +82,9 @@ jest.mock("../../properties/LanguageModelSelect", () => stub("lang-model"));
 jest.mock("../../properties/ImageModelSelect", () => stub("image-model"));
 jest.mock("../../properties/VideoModelSelect", () => stub("video-model"));
 jest.mock("../ShotCard", () => stub("shot-card"));
+// The inspector reads the real store, the entity library and the linked
+// script; it has its own suite (ShotInspector.test.tsx).
+jest.mock("../ShotInspector", () => stub("shot-inspector"));
 // The real preview mounts the timeline compositor — not viable under jsdom.
 jest.mock("../StoryboardPreview", () => stub("storyboard-preview"));
 jest.mock("../StoryboardEntitiesField", () => stub("entities"));
@@ -129,6 +143,8 @@ describe("StoryboardBoard direct guard", () => {
     const user = userEvent.setup();
     renderBoard(onDirect);
 
+    // With shots on the board the form is folded behind the toolbar.
+    await user.click(screen.getByRole("button", { name: /Board settings/ }));
     // The button relabels once shots exist.
     await user.click(screen.getByRole("button", { name: "Re-direct" }));
 
@@ -208,5 +224,55 @@ describe("StoryboardBoard download", () => {
     await user.click(screen.getByRole("button", { name: "Download ZIP" }));
 
     expect(mockExportStoryboardZip).toHaveBeenCalledWith("board-1", "My film");
+  });
+});
+
+describe("StoryboardBoard toolbar", () => {
+  it("summarises the board and folds the form away once it has shots", async () => {
+    mockShots = [makeShot("s1"), makeShot("s2")];
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    expect(screen.getByText("My film")).toBeInTheDocument();
+    expect(screen.getByText("2 shots")).toBeInTheDocument();
+    // Folded: the screenplay fields are out of the DOM until asked for.
+    expect(screen.queryByTestId("lang-model")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Board settings/ }));
+    expect(await screen.findByTestId("lang-model")).toBeInTheDocument();
+  });
+
+  it("keeps the form open while the board has no shots", () => {
+    mockShots = [];
+    renderBoard(jest.fn());
+
+    expect(screen.getByTestId("lang-model")).toBeInTheDocument();
+    expect(screen.getByText("0 shots")).toBeInTheDocument();
+  });
+
+  it("renders the render actions on the toolbar", () => {
+    mockShots = [makeShot("s1")];
+    renderBoard(jest.fn());
+
+    expect(
+      screen.getByRole("button", { name: "Render stills (1)" })
+    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Render clips" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Assemble timeline" })
+    ).toBeDisabled();
+  });
+});
+
+describe("StoryboardBoard selection", () => {
+  it("opens the inspector for the selected shot", () => {
+    mockShots = [makeShot("s1")];
+    renderBoard(jest.fn());
+    expect(screen.queryByTestId("shot-inspector")).not.toBeInTheDocument();
+
+    activeShot = "s1";
+    renderBoard(jest.fn());
+    expect(screen.getAllByTestId("shot-inspector").length).toBeGreaterThan(0);
+    activeShot = null;
   });
 });
