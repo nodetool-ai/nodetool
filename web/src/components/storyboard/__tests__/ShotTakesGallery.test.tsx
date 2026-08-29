@@ -89,10 +89,11 @@ describe("ShotTakesGallery", () => {
   it("shows the single still and clip of a one-take shot", () => {
     renderGallery(makeShot({ keyframe: image(1), clip: video(1) }));
 
-    expect(screen.getByText("Takes: 1 still · 1 clip")).toBeInTheDocument();
+    expect(screen.getByText("Stills")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Use still 1" })
     ).toBeInTheDocument();
+    expect(screen.getByText("Clips")).toBeInTheDocument();
     expect(screen.getByText("Take 1")).toBeInTheDocument();
   });
 
@@ -105,7 +106,10 @@ describe("ShotTakesGallery", () => {
     });
     renderGallery(shot);
 
-    expect(screen.getByText("Takes: 2 stills · 3 clips")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /^Use still \d$/ })
+    ).toHaveLength(2);
+    expect(screen.getAllByText(/^Take \d$/)).toHaveLength(3);
     expect(screen.queryByTestId("output-renderer")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "View takes" }));

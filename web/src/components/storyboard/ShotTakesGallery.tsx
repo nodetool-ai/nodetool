@@ -45,7 +45,7 @@ interface ShotTakesGalleryProps {
 }
 
 const takeThumbSx = {
-  width: getSpacingPx(20),
+  width: getSpacingPx(28),
   aspectRatio: "16 / 9",
   p: 0,
   overflow: "hidden",
@@ -81,28 +81,36 @@ const takeWrapSx = {
   display: "inline-flex"
 } as const;
 
-const viewButtonSx = {
-  position: "absolute",
-  top: SPACING.micro,
-  right: SPACING.micro,
-  bgcolor: "c_scrim_soft",
+// The take actions belong to the take under the pointer, not to every take in
+// the panel: hovering anywhere in the column used to reveal all of them, and on
+// a thumbnail this size they cover the image they act on.
+const takeActionSx = {
   opacity: 0,
-  ".takes:hover &": { opacity: 1 },
+  ".take:hover &": { opacity: 1 },
   "&:focus-visible": { opacity: 1 },
   // Touch devices cannot hover; keep the affordance reachable.
   "@media (pointer: coarse)": { opacity: 1 }
 } as const;
 
+const viewButtonSx = {
+  ...takeActionSx,
+  position: "absolute",
+  bottom: SPACING.micro,
+  right: SPACING.micro,
+  bgcolor: "c_scrim_soft"
+} as const;
+
 const removeButtonSx = {
+  ...takeActionSx,
   position: "absolute",
   top: SPACING.micro,
-  left: SPACING.micro,
-  bgcolor: "c_scrim_soft",
-  opacity: 0,
-  ".takes:hover &": { opacity: 1 },
-  "&:focus-visible": { opacity: 1 },
-  "@media (pointer: coarse)": { opacity: 1 }
+  right: SPACING.micro,
+  bgcolor: "c_scrim_soft"
 } as const;
+
+// Both take rows lead with the same fixed-width label so the thumbnails and
+// the chips line up under each other.
+const takeRowLabelSx = { width: getSpacingPx(9), flexShrink: 0 } as const;
 
 const versionKey = (ref: ImageRef | VideoRef, index: number): string =>
   ref.asset_id ?? ref.uri ?? String(index);
@@ -196,32 +204,8 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
     return null;
   }
 
-  const countLabel = [
-    stills.length > 0
-      ? `${stills.length} still${stills.length === 1 ? "" : "s"}`
-      : null,
-    clips.length > 0
-      ? `${clips.length} clip${clips.length === 1 ? "" : "s"}`
-      : null
-  ]
-    .filter((p): p is string => p !== null)
-    .join(" · ");
-
   return (
     <FlexColumn gap={SPACING.xs} className="takes">
-      <FlexRow align="center" gap={SPACING.xs}>
-        <Caption color="secondary">{`Takes: ${countLabel}`}</Caption>
-        <EditorButton
-          onClick={handleToggle}
-          sx={{
-            color: "text.secondary",
-            "&:hover": { color: "text.primary", bgcolor: "c_overlay_subtle" }
-          }}
-        >
-          {expanded ? "Hide takes" : "View takes"}
-        </EditorButton>
-      </FlexRow>
-
       {stills.length > 0 && (
         <FlexRow
           gap={SPACING.micro}
@@ -229,8 +213,11 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
           wrap
           className="still-thumbs"
         >
+          <Caption color="secondary" sx={takeRowLabelSx}>
+            Stills
+          </Caption>
           {stills.map((still, i) => (
-            <Box key={versionKey(still, i)} sx={takeWrapSx}>
+            <Box key={versionKey(still, i)} className="take" sx={takeWrapSx}>
               <Box
                 component="button"
                 type="button"
@@ -277,9 +264,16 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
 
       {clips.length > 0 && (
         <FlexRow gap={SPACING.micro} align="center" wrap className="clip-chips">
-          <Caption color="secondary">Clips</Caption>
+          <Caption color="secondary" sx={takeRowLabelSx}>
+            Clips
+          </Caption>
           {clips.map((clip, i) => (
-            <FlexRow key={versionKey(clip, i)} align="center" gap={0}>
+            <FlexRow
+              key={versionKey(clip, i)}
+              className="take"
+              align="center"
+              gap={0}
+            >
               <Chip
                 compact
                 clickable={!readOnly}
@@ -300,6 +294,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   onClick={() => handleRemoveClip(i)}
                   disabled={isGenerating}
                   variant="error"
+                  sx={takeActionSx}
                 />
               )}
               <ToolbarIconButton
@@ -307,11 +302,24 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                 tooltip="View fullscreen"
                 ariaLabel={`View clip take ${i + 1} fullscreen`}
                 onClick={() => setViewerMedia(clip)}
+                sx={takeActionSx}
               />
             </FlexRow>
           ))}
         </FlexRow>
       )}
+
+      <FlexRow align="center">
+        <EditorButton
+          onClick={handleToggle}
+          sx={{
+            color: "text.secondary",
+            "&:hover": { color: "text.primary", bgcolor: "c_overlay_subtle" }
+          }}
+        >
+          {expanded ? "Hide takes" : "View takes"}
+        </EditorButton>
+      </FlexRow>
 
       {expanded && (
         <FlexColumn
