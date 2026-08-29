@@ -196,7 +196,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         )}
         <ShotStatusPill
           shot={shot}
-          durationSeconds={duration.seconds}
           sx={{
             position: "absolute",
             right: SPACING.md,

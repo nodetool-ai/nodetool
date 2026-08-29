@@ -136,7 +136,7 @@ describe("ShotCard status pill", () => {
     expect(pill()).toHaveTextContent("still · clip queued");
   });
 
-  it("reads the clip's length once it is rendered", () => {
+  it("says nothing once the clip is rendered", () => {
     renderCard(
       makeShot({
         status: "rendered",
@@ -144,8 +144,7 @@ describe("ShotCard status pill", () => {
         clip: { type: "video", uri: "http://example.com/clip.mp4" }
       })
     );
-    expect(pill()).toHaveTextContent("clip · 4s");
-    expect(pill()).toHaveAttribute("data-tone", "done");
+    expect(screen.queryByTestId("shot-status-pill")).not.toBeInTheDocument();
   });
 
   it("takes the render tone while a clip is in flight", () => {
