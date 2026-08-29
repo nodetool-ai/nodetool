@@ -309,4 +309,236 @@ describe("deriveWorkflowInterfaceV1", () => {
       expect.objectContaining({ code: "unresolved_output_type", severity: "error" })
     ]));
   });
+
+  it("reports a pin node that carries neither an id nor a name", () => {
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-identity",
+      registry: registry([]),
+      graph: {
+        nodes: [
+          { type: "nodetool.input.StringInput" },
+          { type: "nodetool.output.Output" }
+        ],
+        edges: []
+      }
+    });
+
+    expect(result.inputs).toEqual([]);
+    expect(result.outputs).toEqual([]);
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "invalid_input_identity",
+        severity: "error"
+      }),
+      expect.objectContaining({
+        code: "invalid_output_identity",
+        severity: "error"
+      })
+    ]));
+  });
+
+  it("reports an output edge whose source node is absent from the graph", () => {
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-missing-source",
+      registry: registry([]),
+      graph: {
+        nodes: [
+          { id: "out", type: "nodetool.output.Output", data: { name: "result" } }
+        ],
+        edges: [
+          {
+            source: "gone",
+            sourceHandle: "output",
+            target: "out",
+            targetHandle: "value"
+          }
+        ]
+      }
+    });
+
+    expect(result.outputs).toEqual([
+      expect.objectContaining({
+        name: "result",
+        type: expect.objectContaining({ type: "any" }),
+        stream: false
+      })
+    ]);
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "missing_source_node",
+        node_id: "out",
+        pin_name: "result",
+        severity: "error"
+      }),
+      expect.objectContaining({
+        code: "unresolved_output_type",
+        severity: "error"
+      })
+    ]));
+  });
+
+  it("reports an output edge that names no source handle", () => {
+    const sourceType = "test.Source";
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-missing-handle",
+      registry: registry([metadata(sourceType, "str")]),
+      graph: {
+        nodes: [
+          { id: "src", type: sourceType },
+          { id: "out", type: "nodetool.output.Output", data: { name: "result" } }
+        ],
+        edges: [{ source: "src", target: "out", targetHandle: "value" }]
+      }
+    });
+
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "missing_source_handle",
+        node_id: "out",
+        pin_name: "result",
+        severity: "error"
+      }),
+      expect.objectContaining({
+        code: "unresolved_output_type",
+        severity: "error"
+      })
+    ]));
+  });
+
+  it("reports a source handle the source node does declare metadata for but not the handle", () => {
+    const sourceType = "test.Source";
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-unknown-handle",
+      registry: registry([metadata(sourceType, "str")]),
+      graph: {
+        nodes: [
+          { id: "src", type: sourceType },
+          { id: "out", type: "nodetool.output.Output", data: { name: "result" } }
+        ],
+        edges: [
+          {
+            source: "src",
+            sourceHandle: "nope",
+            target: "out",
+            targetHandle: "value"
+          }
+        ]
+      }
+    });
+
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "missing_output_handle",
+        node_id: "src",
+        pin_name: "nope",
+        severity: "error"
+      })
+    ]));
+  });
+
+  it("reports two edges into one output as an ambiguous source", () => {
+    const sourceType = "test.Source";
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-ambiguous",
+      registry: registry([metadata(sourceType, "str")]),
+      graph: {
+        nodes: [
+          { id: "a", type: sourceType },
+          { id: "b", type: sourceType },
+          { id: "out", type: "nodetool.output.Output", data: { name: "result" } }
+        ],
+        edges: [
+          {
+            source: "a",
+            sourceHandle: "output",
+            target: "out",
+            targetHandle: "value"
+          },
+          {
+            source: "b",
+            sourceHandle: "output",
+            target: "out",
+            targetHandle: "value"
+          }
+        ]
+      }
+    });
+
+    expect(result.outputs).toEqual([
+      expect.objectContaining({
+        name: "result",
+        type: expect.objectContaining({ type: "any" })
+      })
+    ]);
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "ambiguous_output_source",
+        node_id: "out",
+        pin_name: "result",
+        severity: "error"
+      })
+    ]));
+  });
+
+  it("ignores edges into a dedicated media output and never reports its source", () => {
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-dedicated-edge",
+      registry: registry([]),
+      graph: {
+        nodes: [
+          {
+            id: "out",
+            type: "nodetool.output.ImageOutput",
+            data: { name: "picture" }
+          }
+        ],
+        edges: [
+          {
+            source: "gone",
+            sourceHandle: "output",
+            target: "out",
+            targetHandle: "value"
+          }
+        ]
+      }
+    });
+
+    expect(result.outputs).toEqual([
+      expect.objectContaining({
+        name: "picture",
+        type: expect.objectContaining({ type: "image" })
+      })
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("resolves an output source through snake_case edge handles", () => {
+    const sourceType = "test.Source";
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-snake",
+      registry: registry([metadata(sourceType, "str")]),
+      graph: {
+        nodes: [
+          { id: "src", type: sourceType },
+          { id: "out", type: "nodetool.output.Output", data: { name: "result" } }
+        ],
+        edges: [
+          {
+            source: "src",
+            source_handle: "output",
+            target: "out",
+            target_handle: "value"
+          }
+        ]
+      }
+    });
+
+    expect(result.outputs).toEqual([
+      expect.objectContaining({
+        name: "result",
+        type: expect.objectContaining({ type: "str" })
+      })
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
 });
