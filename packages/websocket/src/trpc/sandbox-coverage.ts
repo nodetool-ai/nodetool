@@ -588,6 +588,37 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "rather than as untrusted text. A run that could grant itself " +
       "trust could escalate a prompt injection into executed code."
   },
+  "projects.create": {
+    gap:
+      "A project groups documents that already carry its id, and a run " +
+      "reaches every one of those documents by its own capability. What " +
+      "is missing is the grouping itself — creating one, and reading the " +
+      "status and spend rollup `projects.get` derives. Work, not a " +
+      "boundary: nothing here is a credential, another tenant, or host " +
+      "control."
+  },
+  "projects.delete": {
+    gap:
+      "Same grouping surface as `projects.create`. Deleting a project " +
+      "leaves its documents in place, so this loses a name, not content."
+  },
+  "projects.documents": {
+    gap:
+      "Lists the documents in a project. A run enumerates each kind " +
+      "through its own `list_*` capability today; what it cannot do is " +
+      "ask which of them belong together."
+  },
+  "projects.get": {
+    gap:
+      "Same grouping surface as `projects.create`. Carries the derived " +
+      "status and the spend rollup, both over rows the caller owns."
+  },
+  "projects.list": {
+    gap: "Same grouping surface as `projects.create`."
+  },
+  "projects.update": {
+    gap: "Same grouping surface as `projects.create`. Renames a project."
+  },
   "resources.create": {
     elsewhere:
       "One envelope over assets, timelines, storyboards and image " +
