@@ -24,8 +24,8 @@ import type {
   ModelUnitPricingLike,
   SelectedModel
 } from "@nodetool-ai/node-sdk/cost-estimate";
+import { priceScalarUnit } from "@nodetool-ai/node-sdk/cost-estimate";
 import {
-  formatUsd,
   isParameterPriceable,
   priceGenspendEntry,
   type ModelParamPrice
@@ -125,197 +125,6 @@ function kiePrice(modelId: string): ScalarPrice | null {
   };
 }
 
-/** The trimmed, lower-cased billing unit — rows ship `"1000 characters "`. */
-function unitKey(billingUnit: string): string {
-  return billingUnit.trim().toLowerCase();
-}
-
-/** Units whose figure is one second of output. */
-const PER_SECOND_UNITS = new Set(["second", "seconds"]);
-
-/** Units whose figure is one minute of output. */
-const PER_MINUTE_UNITS = new Set(["minute", "minutes"]);
-
-/** Units whose figure is one megapixel of the image produced. */
-const PER_MEGAPIXEL_UNITS = new Set(["megapixels", "megapixel", "processed megapixels", "processed megapixel"]);
-
-/**
- * Units carrying no fixed amount of anything: a credit has no USD value here,
- * and a bare count names no deliverable. Priced as a per-run figure they would
- * read as a real number, so the caller is told why there is none.
- */
-const UNCONVERTIBLE_UNITS = new Set(["", "unit", "units", "credit", "credits"]);
-
-/**
- * Rates over something the node states nothing about: wall-clock time on FAL's
- * machines, the length of an *input* it has not been given, training steps,
- * tokens. Multiplying them by anything would be an invention, and reporting the
- * rate as a run understates it by however many units the job really takes.
- */
-const UNSTATED_RATE_UNITS = new Set([
-  "compute second",
-  "compute seconds",
-  "input second",
-  "input seconds",
-  "step",
-  "steps",
-  "train unit",
-  "train units",
-  "1m tokens"
-]);
-
-/** `"5 seconds"`, `"30 seconds"`, `"16 frames"` — a block of N somethings. */
-const BLOCK_UNIT = /^(\d+(?:\.\d+)?) (.+)$/;
-
-/**
- * Turn a provider-catalog scalar into a per-run figure for the stated job.
- * A per-second, per-minute or per-megapixel scalar times what the node states;
- * a block unit times the number of blocks the duration needs. Everything else
- * is already a per-run price, and a unit we cannot convert — one with no fixed
- * value (credits) or a rate over something the node never states (compute
- * seconds, training steps) — declines rather than passing off a per-unit number
- * as the cost of a run.
- */
-function priceScalar(
-  scalar: ScalarPrice,
-  params: ModelPriceParams | undefined
-): ModelParamPrice {
-  const { price } = scalar;
-  const unit = unitKey(price.billing_unit);
-  const warnings: string[] = [];
-  const assumptions: string[] = [];
-
-  if (scalar.tierCount !== undefined && scalar.tierCount > 1) {
-    warnings.push(
-      `this model publishes ${scalar.tierCount} priced tiers and the catalog carries only the cheapest — the figure is a lower bound`
-    );
-  }
-
-  const attach = (result: ModelParamPrice): ModelParamPrice => {
-    if (assumptions.length > 0) result.assumptions = assumptions;
-    if (warnings.length > 0) result.warnings = warnings;
-    return result;
-  };
-
-  const decline = (reason: string): ModelParamPrice =>
-    attach({
-      unit_price: 0,
-      billing_unit: price.billing_unit,
-      currency: price.currency,
-      source: price.source,
-      declined: reason
-    });
-
-  if (UNCONVERTIBLE_UNITS.has(unit)) {
-    return decline(
-      `the catalog prices this model per "${
-        price.billing_unit.trim() || "unit"
-      }", which has no fixed value per run`
-    );
-  }
-  if (UNSTATED_RATE_UNITS.has(unit)) {
-    return decline(
-      `the catalog prices this model per "${price.billing_unit.trim()}", which the node states nothing about`
-    );
-  }
-
-  const seconds =
-    params?.seconds !== undefined &&
-    Number.isFinite(params.seconds) &&
-    params.seconds > 0
-      ? params.seconds
-      : null;
-
-  if (PER_SECOND_UNITS.has(unit)) {
-    if (seconds === null) {
-      assumptions.push(
-        "duration not set on the node — priced at 1 s of output"
-      );
-      return attach({
-        ...price,
-        breakdown: `1 s × ${formatUsd(price.unit_price)}/s`,
-        seconds: 1
-      });
-    }
-    return attach({
-      ...price,
-      unit_price: price.unit_price * seconds,
-      breakdown: `${seconds} s × ${formatUsd(price.unit_price)}/s`,
-      seconds
-    });
-  }
-
-  if (PER_MINUTE_UNITS.has(unit)) {
-    if (seconds === null) {
-      assumptions.push(
-        "duration not set on the node — priced at one minute of output"
-      );
-      return attach({
-        ...price,
-        breakdown: `1 min × ${formatUsd(price.unit_price)}/min`,
-        seconds: 60
-      });
-    }
-    return attach({
-      ...price,
-      unit_price: (price.unit_price * seconds) / 60,
-      breakdown: `${seconds} s × ${formatUsd(price.unit_price)}/min`,
-      seconds
-    });
-  }
-
-  if (PER_MEGAPIXEL_UNITS.has(unit)) {
-    const megapixels =
-      params?.megapixels !== undefined &&
-      Number.isFinite(params.megapixels) &&
-      params.megapixels > 0
-        ? params.megapixels
-        : null;
-    if (megapixels === null) {
-      assumptions.push(
-        "output size not set on the node — priced at one megapixel"
-      );
-      return attach({
-        ...price,
-        breakdown: `1 MP × ${formatUsd(price.unit_price)}/MP`
-      });
-    }
-    return attach({
-      ...price,
-      unit_price: price.unit_price * megapixels,
-      breakdown: `${megapixels} MP × ${formatUsd(price.unit_price)}/MP`
-    });
-  }
-
-  const block = BLOCK_UNIT.exec(unit);
-  if (block) {
-    const size = Number(block[1]);
-    const noun = block[2];
-    if (PER_SECOND_UNITS.has(noun) && size > 0) {
-      if (seconds === null) {
-        assumptions.push(
-          `duration not set on the node — priced at one ${size}-second block`
-        );
-        return attach({ ...price, seconds: size });
-      }
-      const blocks = Math.ceil(seconds / size);
-      return attach({
-        ...price,
-        unit_price: price.unit_price * blocks,
-        breakdown: `${blocks} × ${size} s block${
-          blocks === 1 ? "" : "s"
-        } × ${formatUsd(price.unit_price)} (${seconds} s of output)`,
-        seconds
-      });
-    }
-    return decline(
-      `the catalog prices this model per "${price.billing_unit.trim()}", which the node states nothing about`
-    );
-  }
-
-  return attach({ ...price });
-}
-
 /**
  * The unit price for a selected model, as the whole per-run figure with the
  * reasoning attached.
@@ -357,7 +166,11 @@ export function getModelUnitPrice(
   }
 
   const scalar = falPrice(model.id) ?? kiePrice(model.id);
-  if (scalar) return priceScalar(scalar, params);
+  if (scalar) {
+    return priceScalarUnit(scalar.price, params, {
+      tierCount: scalar.tierCount
+    });
+  }
 
   if (entry) {
     // A flat GenSpend entry: one number per generation, nothing to narrow.
