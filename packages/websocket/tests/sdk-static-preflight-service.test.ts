@@ -137,6 +137,102 @@ describe("buildSdkV1StaticPreflight", () => {
     });
   });
 
+  it("prices a billable node by the shared usesAiModel predicate", () => {
+    // A node type the registry knows is billable exactly when `usesAiModel`
+    // says so — a plain data node with metadata is excluded even though its
+    // namespace is not on the plumbing allowlist, and a provider-model node in
+    // such a namespace stays priced.
+    const plain: NodeMetadata = {
+      ...metadata,
+      node_type: "custom.pack.Slugify",
+      properties: [],
+      fal_unit_pricing: undefined
+    };
+    const model: NodeMetadata = {
+      ...metadata,
+      node_type: "custom.pack.Describe",
+      fal_unit_pricing: undefined,
+      properties: [
+        {
+          name: "model",
+          type: { type: "language_model", optional: false, type_args: [] },
+          default: null,
+          title: "Model",
+          description: ""
+        }
+      ]
+    };
+    const registry = {
+      has: vi.fn(() => true),
+      getMetadata: vi.fn((nodeType: string) =>
+        nodeType === plain.node_type ? plain : model
+      ),
+      validateNode: vi.fn(() => [])
+    };
+    const result = buildSdkV1StaticPreflight({
+      request: {
+        workflow_id: "workflow-1",
+        workspace_id: null,
+        workflow_etag: "etag-1",
+        interface_version: 1,
+        level: "static",
+        inputs: { count: 1 }
+      },
+      workflowInterface,
+      graph: {
+        nodes: [
+          { id: "plain-1", type: plain.node_type, data: {} },
+          { id: "model-1", type: model.node_type, data: {} }
+        ],
+        edges: []
+      },
+      registry
+    });
+
+    expect(result.cost?.unknown_cost_nodes).toEqual(["model-1"]);
+  });
+
+  it("prices a node's fan-out when the caller states no quantity", () => {
+    const registry = makeRegistry();
+    const fanned = buildSdkV1StaticPreflight({
+      request: {
+        workflow_id: "workflow-1",
+        workspace_id: null,
+        workflow_etag: "etag-1",
+        interface_version: 1,
+        level: "static",
+        inputs: { count: 1 }
+      },
+      workflowInterface,
+      graph: {
+        nodes: [{ id: "echo-1", type: "test.Echo", data: { num_images: 3 } }],
+        edges: []
+      },
+      registry
+    });
+    expect(fanned.cost?.amount).toBeCloseTo(0.75);
+
+    const explicit = buildSdkV1StaticPreflight({
+      request: {
+        workflow_id: "workflow-1",
+        workspace_id: null,
+        workflow_etag: "etag-1",
+        interface_version: 1,
+        level: "static",
+        inputs: { count: 1 }
+      },
+      workflowInterface,
+      graph: {
+        nodes: [{ id: "echo-1", type: "test.Echo", data: { num_images: 3 } }],
+        edges: []
+      },
+      registry,
+      // A caller's own count wins over the node's property.
+      quantities: { "echo-1": 2 }
+    });
+    expect(explicit.cost?.amount).toBeCloseTo(0.5);
+  });
+
   it("derives node packages only from an explicit identity resolver", () => {
     const registry = makeRegistry();
     const withoutResolver = buildSdkV1StaticPreflight({

@@ -1,6 +1,8 @@
 import {
   estimateWorkflowCost,
   extractPricingParams,
+  nodeExpectedQuantity,
+  usesAiModel,
   validateGraph,
   type CostEstimateInput,
   type GraphValidationInput,
@@ -378,6 +380,13 @@ function deriveStaticRequirements(
 function costSummary(
   options: BuildSdkV1StaticPreflightOptions
 ): SdkV1PreflightSummary["cost"] {
+  // A node type this registry knows is billable exactly when `usesAiModel`
+  // says so — the same predicate the editor's cost panel lists nodes with, so
+  // preflight and panel cannot disagree about what costs money. The namespace
+  // allowlist survives only for a type the registry carries no metadata for:
+  // these built-in namespaces are graph plumbing or deterministic local value
+  // transforms. Keep it deliberately narrow — an unpriced provider-facing node
+  // must remain visible as unknown.
   const nonBillablePrefixes = [
     "nodetool.input.",
     "nodetool.output.",
@@ -386,25 +395,24 @@ function costSummary(
     "nodetool.string.",
     "nodetool.dictionary."
   ];
-  const nodes = (options.graph.nodes ?? [])
-    .map((node) => ({
-      id: String(node.id ?? ""),
-      type: String(node.type ?? ""),
-      data: isRecord(node.data)
-        ? node.data
-        : isRecord(node.properties)
-          ? node.properties
-          : undefined
-    }))
-    // These built-in namespaces are graph plumbing or deterministic local
-    // value transforms. Keep the allowlist deliberately narrow: an unpriced
-    // provider-facing node must remain visible as unknown.
-    .filter(
-      (node) =>
-        !nonBillablePrefixes.some((prefix) => node.type.startsWith(prefix))
-    );
+  const nodes = (options.graph.nodes ?? []).map((node) => ({
+    id: String(node.id ?? ""),
+    type: String(node.type ?? ""),
+    data: isRecord(node.data)
+      ? node.data
+      : isRecord(node.properties)
+        ? node.properties
+        : undefined
+  }));
+  const callerQuantities = options.quantities;
   const estimate = estimateWorkflowCost({
     nodes,
+    isKnownNonBillable: (node) => {
+      const metadata = options.registry.getMetadata(node.type);
+      return metadata
+        ? !usesAiModel(metadata)
+        : nonBillablePrefixes.some((prefix) => node.type.startsWith(prefix));
+    },
     // NodeRegistry.getMetadata is an instance method. Preserve its receiver;
     // passing the method reference directly fails against the production
     // registry even though simple test doubles often happen to work.
@@ -413,7 +421,15 @@ function costSummary(
     // What each node states about its job — a per-second model prices the
     // duration asked for instead of one second.
     getParams: (node) => extractPricingParams(node.data),
-    quantities: options.quantities ? { ...options.quantities } : undefined
+    // A node producing ten images is gated at ten. The caller's own count wins
+    // where it has one; otherwise the node's fan-out property answers, through
+    // the same `nodeExpectedQuantity` the cost panel reads.
+    quantities: Object.fromEntries(
+      nodes.map((node): [string, number] => [
+        node.id,
+        callerQuantities?.[node.id] ?? nodeExpectedQuantity(node.data)
+      ])
+    )
   });
   const known = estimate.items.filter((item) => item.confidence !== "unknown");
   const confidence =
