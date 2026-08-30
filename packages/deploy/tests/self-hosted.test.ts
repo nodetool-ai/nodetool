@@ -140,6 +140,7 @@ import { SSHCommandError } from "../src/ssh.js";
 import { StateManager } from "../src/state.js";
 import { execSync, execFileSync } from "child_process";
 import * as fs from "fs";
+import * as os from "os";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -304,6 +305,76 @@ describe("isLocalhost", () => {
       throw new Error("command failed");
     });
     expect(isLocalhost("some-unknown-host.example.com")).toBe(false);
+  });
+
+  /**
+   * Answer `getent hosts <target>` and `dscacheutil -q host -a name <target>`
+   * per target. A tool or target the case does not name throws, which is how a
+   * machine lacking that binary behaves.
+   */
+  function mockHostLookup(answers: {
+    getent?: Record<string, string>;
+    dscacheutil?: Record<string, string>;
+  }): void {
+    vi.mocked(execFileSync).mockImplementation((file, args) => {
+      const argv = Array.isArray(args) ? args : [];
+      if (file === "getent") {
+        const out = answers.getent?.[String(argv[1])];
+        if (out !== undefined) return out;
+      }
+      if (file === "dscacheutil") {
+        const out = answers.dscacheutil?.[String(argv[4])];
+        if (out !== undefined) return out;
+      }
+      throw new Error(`no answer for ${file}`);
+    });
+  }
+
+  it("returns true when getent gives the host an address the machine also has", () => {
+    mockHostLookup({
+      getent: {
+        "my-box.example.com": "192.168.1.10   my-box.example.com",
+        localhost: "127.0.0.1   localhost",
+        [os.hostname()]: `192.168.1.10   ${os.hostname()}`
+      }
+    });
+    expect(isLocalhost("my-box.example.com")).toBe(true);
+  });
+
+  it("returns false when the host's addresses are not the machine's", () => {
+    mockHostLookup({
+      getent: {
+        "other.example.com": "203.0.113.7   other.example.com",
+        localhost: "127.0.0.1   localhost"
+      }
+    });
+    expect(isLocalhost("other.example.com")).toBe(false);
+  });
+
+  it("reads every address getent prints, one per line", () => {
+    mockHostLookup({
+      getent: {
+        "multi.example.com": "203.0.113.7   multi\n127.0.0.1   multi",
+        localhost: "127.0.0.1   localhost"
+      }
+    });
+    expect(isLocalhost("multi.example.com")).toBe(true);
+  });
+
+  it("falls back to dscacheutil when getent is unavailable", () => {
+    mockHostLookup({
+      dscacheutil: {
+        "mac-box.local": "name: mac-box.local\nip_address: 10.0.0.5",
+        localhost: "ip_address: 127.0.0.1",
+        [os.hostname()]: "ip_address: 10.0.0.5"
+      }
+    });
+    expect(isLocalhost("mac-box.local")).toBe(true);
+  });
+
+  it("returns false without consulting the machine when the host resolves to nothing", () => {
+    mockHostLookup({ getent: { "empty.example.com": "" } });
+    expect(isLocalhost("empty.example.com")).toBe(false);
   });
 });
 
