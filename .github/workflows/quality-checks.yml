@@ -28,6 +28,23 @@ on:
         required: false
         type: boolean
         default: false
+      shared:
+        description: >-
+          Whether this push can reach the root workspace tree — everything but
+          `marketing/`, which is a separate npm project with its own lockfile,
+          built and deployed by marketing-ci.yml. When false, every leg here is
+          skipped for the same reason `docs-only` skips them: none of them
+          reads a line the diff touched. The `quality` gate job still runs and
+          reports, so a required status check is never left Pending.
+
+          `mobile/` is deliberately NOT carved out. It is also a separate npm
+          project, but its typecheck resolves `@nodetool-ai/websocket`'s router
+          types and `@nodetool-ai/protocol` through the root workspace, so it
+          is not separable from this gate without a change to how mobile
+          resolves those packages. See the workflows README.
+        required: false
+        type: boolean
+        default: true
     outputs:
       all-passed:
         description: 'Whether every quality check leg passed.'
@@ -56,9 +73,10 @@ jobs:
   # cannot resolve a base builds the image rather than waving it through.
   changes:
     name: changes
-    # Nothing to decide when the caller already knows the diff is prose: the
-    # only consumer of this job is the `docker` leg, which is skipped too.
-    if: ${{ !inputs.docs-only }}
+    # Nothing to decide when the caller already knows the diff is prose, or
+    # that it never leaves marketing/: the only consumer of this job is the
+    # `docker` leg, which is skipped in both cases too.
+    if: ${{ !inputs.docs-only && inputs.shared }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -91,7 +109,7 @@ jobs:
   # ~minutes-long package build. Each leg surfaces its own status check.
   static:
     name: ${{ matrix.check }}
-    if: ${{ !inputs.docs-only }}
+    if: ${{ !inputs.docs-only && inputs.shared }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -146,7 +164,7 @@ jobs:
     name: build
     # `built` needs this job, so skipping it skips every leg that consumes the
     # dist artifact too.
-    if: ${{ !inputs.docs-only }}
+    if: ${{ !inputs.docs-only && inputs.shared }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -388,7 +406,7 @@ jobs:
   docker:
     name: docker
     needs: changes
-    if: ${{ !inputs.docs-only && needs.changes.outputs.docker == 'true' }}
+    if: ${{ !inputs.docs-only && inputs.shared && needs.changes.outputs.docker == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

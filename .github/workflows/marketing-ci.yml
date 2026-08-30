@@ -16,16 +16,35 @@ name: Marketing CI/CD
 #                            Storage permissions for the account below
 #   CLOUDFLARE_ACCOUNT_ID  — the Cloudflare account that owns the Worker
 
+# The paths below are the site plus the reverse dependency edge. marketing/ is
+# otherwise its own npm project and the root workspace's Quality Gate skips
+# entirely for a marketing-only PR (see the `shared` filter in test.yml), but
+# three of this workflow's steps check generated files against data that lives
+# in packages/:
+#
+#   gen:templates          → packages/base-nodes/nodetool/examples|assets/nodetool-base
+#   seo:provider-catalog   → packages/*-nodes/src/*-manifest.json
+#   seo:check              → packages/base-nodes/nodetool/examples/nodetool-base
+#
+# Without them a PR that edits an example workflow or a provider manifest lands
+# green and leaves the marketing site's committed generated files stale until
+# some unrelated marketing PR trips over it.
 on:
   push:
     branches:
       - main
     paths:
       - "marketing/**"
+      - "packages/base-nodes/nodetool/examples/nodetool-base/**"
+      - "packages/base-nodes/nodetool/assets/nodetool-base/**"
+      - "packages/*-nodes/src/*-manifest.json"
       - ".github/workflows/marketing-ci.yml"
   pull_request:
     paths:
       - "marketing/**"
+      - "packages/base-nodes/nodetool/examples/nodetool-base/**"
+      - "packages/base-nodes/nodetool/assets/nodetool-base/**"
+      - "packages/*-nodes/src/*-manifest.json"
       - ".github/workflows/marketing-ci.yml"
 
 # Least-privilege token: this workflow only reads the repo to build/lint/deploy
