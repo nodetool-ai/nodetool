@@ -38,8 +38,6 @@ export interface CastAsset {
   file: string;
   /** MIME type, used to set the right `Blob`/`<img>`/`<video>` handling. */
   contentType: string;
-  /** Where the asset was downloaded from at record time (provenance only). */
-  originalUri?: string;
   /** Byte length of the pinned file, if known. */
   bytes?: number;
 }

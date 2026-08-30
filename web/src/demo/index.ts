@@ -1,31 +1,21 @@
 /**
  * NodeTool demo harness — public surface.
  *
- * Record a real workflow run into a cast (recorder), store it (cast JSON + a
- * folder of pinned assets), and replay it deterministically in the graph UI
- * (DemoPlayer / DemoEngine) for product-demo videos rendered with Remotion.
+ * A cast is an authored timeline of protocol messages plus the graph they run
+ * against. DemoPlayer / DemoEngine replay one deterministically in the real
+ * graph UI, for product-demo videos rendered with Remotion.
  *
- * End-to-end flow: CastRecorder → downloadCastJson → demo/casts/ →
- * pin-cast-assets → register in demo/src/casts/registry → `remotion render`.
- * See demo/README.md.
+ * End-to-end flow: author a cast module here → register it in
+ * demo/src/casts/registry → `remotion render`. See demo/README.md.
  */
 export * from "./castTypes";
 export { DemoEngine, seedCastMetadata } from "./demoEngine";
 export type { DemoEngineOptions } from "./demoEngine";
 export { DemoPlayer } from "./DemoPlayer";
 export type { DemoPlayerProps } from "./DemoPlayer";
-export { CastRecorder, downloadCastJson } from "./recorder";
-export type {
-  StartRecordingOptions,
-  StopRecordingOptions,
-} from "./recorder";
-export {
-  collectAndRewriteAssets,
-  resolveAssetUrls,
-} from "./assetSubstitution";
+export { resolveAssetUrls } from "./assetSubstitution";
 export { useMediaReadiness } from "./mediaReadiness";
 export type { PendingMediaHandler } from "./mediaReadiness";
-export type { CollectedAssets } from "./assetSubstitution";
 export { sampleCast } from "./sampleCast";
 export { promoTrailerCast } from "./promoTrailerCast";
 export { tutorialCast } from "./tutorialCast";

@@ -2,9 +2,9 @@
  * A small, fully self-contained synthetic cast.
  *
  * It uses fabricated (but well-formed) node metadata and an inline SVG data URI
- * for the generated image, so it renders with no recording, no asset files, and
- * no backend. Handy for previewing the player, for tests, and as a worked
- * example of the cast shape. Real demos come from CastRecorder.
+ * for the generated image, so it renders with no asset files and no backend.
+ * Handy for previewing the player, for tests, and as a worked example of the
+ * cast shape.
  */
 import type {
   NodeMetadata,
