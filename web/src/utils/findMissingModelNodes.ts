@@ -2,7 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { UNSET_PROVIDER } from "@nodetool-ai/protocol";
 import { NodeData } from "../stores/NodeData";
 import { NodeMetadata } from "../stores/ApiTypes";
-import { PROVIDER_MODEL_TYPES } from "./aiModelNodes";
+import { PROVIDER_MODEL_TYPES } from "@nodetool-ai/node-sdk/cost-estimate";
 
 export interface MissingModelNode {
   nodeId: string;

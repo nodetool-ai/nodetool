@@ -35,6 +35,12 @@
  * | `with_audio` | 1 | |
  * | `audio` | 184 | **not read**: on all but a handful it is an audio *input* ref |
  *
+ * A pixel size is read twice over, because it means two different things: with
+ * a duration present the node is producing a clip, so `width`/`height` or a
+ * `1280*720` value names the video rung its short side sits on (720p), and with
+ * no duration it is a still, so the same pair gives the image tier and the
+ * megapixel count image grids are laddered by.
+ *
  * `video_duration` and `num_seconds` from the plan's draft list ship on **no**
  * node and are omitted. `audio` is likewise omitted: 184 occurrences and nearly
  * all of them are `audio: AudioRef` inputs, so reading it as a billing axis
@@ -104,6 +110,31 @@ const PIXEL_TIERS: Array<{ pixels: number; tier: string }> = [
   { pixels: 4096 * 4096, tier: "4K" }
 ];
 
+/**
+ * The video ladder, keyed by the frame's short side — the dimension the rung is
+ * named after, in portrait as in landscape (1080×1920 is 1080p too). A node
+ * that states a pixel pair and a duration is describing a clip, and clips are
+ * billed by rung, not by area: 1280×720 is the 720p rung, and pricing it as a
+ * 1MP image was how a real 720p clip came back unpriced.
+ */
+const VIDEO_SHORT_SIDE_TIERS = [360, 480, 540, 576, 720, 768, 1080, 1440, 2160];
+
+/** The rung a frame sits on, within 10% of its short side — otherwise none. */
+function tierForFrame(width: number, height: number): string | undefined {
+  const shortSide = Math.min(width, height);
+  let best: number | undefined;
+  let bestRatio = Infinity;
+  for (const candidate of VIDEO_SHORT_SIDE_TIERS) {
+    const ratio =
+      shortSide > candidate ? shortSide / candidate : candidate / shortSide;
+    if (ratio < bestRatio) {
+      bestRatio = ratio;
+      best = candidate;
+    }
+  }
+  return best !== undefined && bestRatio <= 1.1 ? `${best}p` : undefined;
+}
+
 /** The tier a pixel count sits closest to, or undefined when it sits far off. */
 function tierForPixels(pixels: number): string | undefined {
   let best = PIXEL_TIERS[0];
@@ -119,26 +150,40 @@ function tierForPixels(pixels: number): string | undefined {
   return bestRatio <= 1.5 ? best.tier : undefined;
 }
 
+/** The width and height in a `1280*720` / `768x512` value, if it is one. */
+function readPixelPair(
+  value: unknown
+): { width: number; height: number } | undefined {
+  if (!isString(value)) return undefined;
+  const pair = /^(\d+) ?[x*×] ?(\d+)$/i.exec(value.trim());
+  if (!pair) return undefined;
+  const width = Number(pair[1]);
+  const height = Number(pair[2]);
+  return width > 0 && height > 0 ? { width, height } : undefined;
+}
+
 /**
  * A stated resolution, passed through as the raw spelling for the calculator to
  * normalize. Names that carry no resolution at all (`auto`, `square_hd`,
  * `high`) return undefined, which prices at the base spec instead of guessing.
+ * A pixel pair maps to the video rung its height names when the node also
+ * states a duration, and to the nearest image tier otherwise.
  */
-function readResolution(value: unknown): string | undefined {
+function readResolution(value: unknown, video: boolean): string | undefined {
   if (isNumber(value)) {
     return Number.isFinite(value) && value > 0 ? String(value) : undefined;
   }
   if (!isString(value)) return undefined;
   const text = value.trim();
   if (!text) return undefined;
-  // `1280*720` / `768x512`: a pixel pair, not a tier name.
-  const pair = /^(\d+)\s*[x*×]\s*(\d+)$/i.exec(text);
+  const pair = readPixelPair(text);
   if (pair) {
-    const pixels = Number(pair[1]) * Number(pair[2]);
-    return pixels > 0 ? tierForPixels(pixels) : undefined;
+    return video
+      ? tierForFrame(pair.width, pair.height)
+      : tierForPixels(pair.width * pair.height);
   }
   // `720p`, `4K`, `1MP`, `1024` — spellings the calculator's tier table knows.
-  if (/^(\d+(\.\d+)?)\s*(p|k|mp)?$/i.test(text)) return text;
+  if (/^(\d+(\.\d+)?) ?(p|k|mp)?$/i.test(text)) return text;
   return undefined;
 }
 
@@ -170,19 +215,40 @@ export function extractPricingParams(
     }
   }
 
+  // A duration means the node is producing a clip, which decides how a pixel
+  // pair is read: by rung for video, by area for a still.
+  const video = params.seconds !== undefined;
+
   for (const name of RESOLUTION_PROPERTIES) {
-    const resolution = readResolution(values[name]);
+    const resolution = readResolution(values[name], video);
     if (resolution !== undefined) {
       params.resolution = resolution;
       break;
     }
   }
-  if (params.resolution === undefined) {
-    const width = readPositiveNumber(values.width);
-    const height = readPositiveNumber(values.height);
-    if (width !== undefined && height !== undefined) {
-      const tier = tierForPixels(width * height);
+
+  // The pixel count the job states, wherever it states it: a `width`/`height`
+  // pair or a `1280*720` value. Both feed the video rung and, for a still, the
+  // megapixel rung an image grid is laddered by.
+  const width = readPositiveNumber(values.width);
+  const height = readPositiveNumber(values.height);
+  const pair =
+    width !== undefined && height !== undefined
+      ? { width, height }
+      : RESOLUTION_PROPERTIES.map((name) => readPixelPair(values[name])).find(
+          (found) => found !== undefined
+        );
+
+  if (pair) {
+    if (params.resolution === undefined) {
+      const tier = video
+        ? tierForFrame(pair.width, pair.height)
+        : tierForPixels(pair.width * pair.height);
       if (tier !== undefined) params.resolution = tier;
+    }
+    if (!video) {
+      params.megapixels =
+        Math.round(((pair.width * pair.height) / 1_000_000) * 100) / 100;
     }
   }
 

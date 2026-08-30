@@ -102,6 +102,28 @@ export interface ModelParamPricingLike extends ModelUnitPricingLike {
   warnings?: string[];
   /** Set instead of a price when the catalog refuses to extrapolate. */
   declined?: string;
+  /** The duration the figure was billed for, when one applied. */
+  seconds?: number;
+  /** The rung the figure was billed at, in the catalog's own spelling. */
+  resolution?: string;
+}
+
+/**
+ * A node estimate carrying the two facts the figure was reached with. They live
+ * here rather than in `NodeCostEstimate` (`@nodetool-ai/protocol`) so callers
+ * that render them — the editor's cost panel — read them off the estimate
+ * instead of parsing them back out of `breakdown` prose.
+ */
+export interface NodeCostEstimateDetail extends NodeCostEstimate {
+  /** Output duration the price was multiplied by, when one applied. */
+  seconds?: number;
+  /** Rung the price was read off ("720p", "1MP"). */
+  resolution?: string;
+}
+
+/** {@link estimateWorkflowCost}'s result, with the detailed items. */
+export interface WorkflowCostEstimateDetail extends WorkflowCostEstimate {
+  items: NodeCostEstimateDetail[];
 }
 
 /**
@@ -110,7 +132,7 @@ export interface ModelParamPricingLike extends ModelUnitPricingLike {
  * list. Local model types (`llama_model`, `hf.*`) are excluded — they aren't
  * priced through a provider catalog.
  */
-const PROVIDER_MODEL_TYPES = new Set([
+export const PROVIDER_MODEL_TYPES: ReadonlySet<string> = new Set([
   "language_model",
   "image_model",
   "embedding_model",
@@ -118,6 +140,65 @@ const PROVIDER_MODEL_TYPES = new Set([
   "asr_model",
   "video_model"
 ]);
+
+/**
+ * The slice of node metadata {@link usesAiModel} reads. Structural on purpose:
+ * the editor's generated `NodeMetadata` and the SDK's own registry metadata are
+ * different types over the same fields, and both satisfy this.
+ */
+export interface AiModelNodeMetadataLike {
+  type?: string;
+  fal_unit_pricing?: unknown;
+  kie_unit_pricing?: unknown;
+  properties?: ReadonlyArray<{ type?: { type?: string } | null } | null> | null;
+}
+
+/**
+ * Whether a node type runs on an AI model — it carries provider unit pricing
+ * (FAL, kie) or exposes a provider-backed model property. The billable-node
+ * predicate: what the cost panel lists and what a pre-run estimate walks.
+ * Plain data and utility nodes answer false.
+ */
+export function usesAiModel(
+  metadata: AiModelNodeMetadataLike | undefined | null
+): boolean {
+  if (!metadata) return false;
+  if (metadata.fal_unit_pricing || metadata.kie_unit_pricing) return true;
+  return (metadata.properties ?? []).some((property) => {
+    const propType = property?.type?.type;
+    return propType ? PROVIDER_MODEL_TYPES.has(propType) : false;
+  });
+}
+
+/**
+ * Property names that multiply a node's output count (fan-out), most specific
+ * first — the first one present with a usable value wins. Counted over the
+ * generator manifests: `num_images` (280 FAL endpoints), `num_outputs` (33
+ * Replicate models), plus `num_samples` and `batch_size` on both. `num_frames`
+ * is deliberately absent: it sets the length of one video, not a batch.
+ */
+const FAN_OUT_PROPERTIES = [
+  "num_images",
+  "num_outputs",
+  "num_samples",
+  "batch_size"
+] as const;
+
+/**
+ * How many outputs a node is expected to produce, from its property values.
+ * Conservative: an absent or unreadable count is one output, so an estimate
+ * never over-counts a fan-out nobody asked for.
+ */
+export function nodeExpectedQuantity(
+  values: Record<string, unknown> | undefined | null
+): number {
+  if (!values) return 1;
+  for (const name of FAN_OUT_PROPERTIES) {
+    const value = values[name];
+    if (isFiniteNumber(value) && value > 0) return Math.floor(value);
+  }
+  return 1;
+}
 
 export interface CostEstimateInput {
   nodes: Array<{ id: string; type: string; data?: Record<string, unknown> }>;
@@ -178,6 +259,8 @@ interface ResolvedPrice {
   breakdown?: string;
   assumptions?: string[];
   warnings?: string[];
+  seconds?: number;
+  resolution?: string;
 }
 
 function isVagueBillingUnit(unit: string): boolean {
@@ -274,7 +357,8 @@ function resolvePrice(
           unitPrice: 0,
           billingUnit: "",
           confidence: "unknown",
-          assumptions: [price.declined]
+          assumptions: [price.declined],
+          warnings: price.warnings
         };
       }
       // A price billed in "units" or "credits" has no fixed currency value —
@@ -292,7 +376,9 @@ function resolvePrice(
           confidence: confidenceFromSource(price.source),
           breakdown: price.breakdown,
           assumptions: price.assumptions,
-          warnings: price.warnings
+          warnings: price.warnings,
+          seconds: price.seconds,
+          resolution: price.resolution
         };
       }
     }
@@ -303,11 +389,11 @@ function resolvePrice(
 
 export function estimateWorkflowCost(
   input: CostEstimateInput
-): WorkflowCostEstimate {
+): WorkflowCostEstimateDetail {
   const currency = input.currency ?? DEFAULT_CURRENCY;
   const quantities = input.quantities ?? {};
 
-  const items: NodeCostEstimate[] = [];
+  const items: NodeCostEstimateDetail[] = [];
   let total = 0;
   let unknownCount = 0;
 
@@ -324,7 +410,7 @@ export function estimateWorkflowCost(
     );
 
     if (!price || price.confidence === "unknown") {
-      type UnknownItemFields = Mutable<NodeCostEstimate>;
+      type UnknownItemFields = Mutable<NodeCostEstimateDetail>;
       const unknownItem: UnknownItemFields = {
         node_id: node.id,
         node_type: node.type,
@@ -337,6 +423,9 @@ export function estimateWorkflowCost(
       if (price?.assumptions) {
         unknownItem.assumptions = price.assumptions;
       }
+      if (price?.warnings) {
+        unknownItem.warnings = price.warnings;
+      }
       items.push(unknownItem);
       unknownCount += 1;
       continue;
@@ -344,7 +433,7 @@ export function estimateWorkflowCost(
 
     const estimatedCost = price.unitPrice * quantity;
     total += estimatedCost;
-    type ItemFields = Mutable<NodeCostEstimate>;
+    type ItemFields = Mutable<NodeCostEstimateDetail>;
     const item: ItemFields = {
       node_id: node.id,
       node_type: node.type,
@@ -364,6 +453,12 @@ export function estimateWorkflowCost(
     }
     if (price.warnings) {
       item.warnings = price.warnings;
+    }
+    if (price.seconds !== undefined) {
+      item.seconds = price.seconds;
+    }
+    if (price.resolution !== undefined) {
+      item.resolution = price.resolution;
     }
     items.push(item);
   }

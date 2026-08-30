@@ -8,17 +8,34 @@ import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
 import { genspendPricingCatalog } from "../src/genspend-catalog.js";
 import { getModelUnitPrice } from "../src/index.js";
-import { priceGenspendEntry } from "../src/genspend-calc.js";
+import { isParameterPriceable, priceGenspendEntry } from "../src/genspend-calc.js";
+
+/**
+ * The first catalog row priced per run — one image, one generation. A row
+ * billed per second or per credit is a rate, not a run, and the lookup now
+ * says so; those are pinned case by case below.
+ */
+const PER_RUN_UNITS = new Set(["images", "image", "generations", "videos"]);
 
 const firstEntry = (
   catalog: { prices?: Record<string, unknown> },
   field: "unit_price" | "usd_price"
 ): { id: string; price: number } => {
   for (const [id, entry] of Object.entries(catalog.prices ?? {})) {
-    const price = (entry as Record<string, unknown>)[field];
-    if (typeof price === "number" && price > 0) return { id, price };
+    const row = entry as Record<string, unknown>;
+    const price = row[field];
+    const unit = typeof row.billing_unit === "string" ? row.billing_unit : "";
+    if (
+      typeof price === "number" &&
+      price > 0 &&
+      PER_RUN_UNITS.has(unit.trim()) &&
+      !genspendPricingCatalog.prices[`fal_ai:${id}`] &&
+      !genspendPricingCatalog.prices[`kie:${id}`]
+    ) {
+      return { id, price };
+    }
   }
-  throw new Error(`no ${field} in catalog`);
+  throw new Error(`no per-run ${field} in catalog`);
 };
 
 describe("getModelUnitPrice", () => {
@@ -55,7 +72,10 @@ describe("getModelUnitPrice", () => {
 
   it("falls back to the GenSpend catalog for a model the provider catalogs miss", () => {
     const entry = Object.entries(genspendPricingCatalog.prices).find(
-      ([key]) => key.startsWith("replicate:") && !kieUnitPricingCatalog.prices?.[key]
+      ([key, price]) =>
+        key.startsWith("replicate:") &&
+        !kieUnitPricingCatalog.prices?.[key] &&
+        !isParameterPriceable(price)
     );
     if (!entry) throw new Error("no Replicate price in the GenSpend catalog");
     const [key, price] = entry;
@@ -115,13 +135,140 @@ describe("getModelUnitPrice", () => {
     expect(getModelUnitPrice(model, params)).toEqual(
       priceGenspendEntry(price, params)
     );
-    expect(getModelUnitPrice(model)?.unit_price).toBe(price.unit_price);
+    // Without params the grid still answers — at the base spec, said out loud.
+    expect(getModelUnitPrice(model)).toEqual(priceGenspendEntry(price, {}));
   });
 
-  it("leaves the FAL tier parameter-unaware for now", () => {
-    const { id } = firstEntry(falUnitPricingCatalog, "unit_price");
-    expect(getModelUnitPrice({ id, provider: "fal_ai" }, { seconds: 10 })).toEqual(
-      getModelUnitPrice({ id, provider: "fal_ai" })
+  it("prices a per-second FAL endpoint for the stated clip, not per second", () => {
+    // fal-ai/pixverse/c1: the FAL catalog's $0.005 is one second at the
+    // cheapest rung; a 4 s 720p clip really bills 4 × $0.05.
+    const price = getModelUnitPrice(
+      { id: "fal-ai/pixverse/c1/text-to-video", provider: "fal_ai" },
+      { resolution: "720p", seconds: 4 }
     );
+    expect(price?.unit_price).toBeCloseTo(0.2, 6);
+    expect(price?.seconds).toBe(4);
+    expect(price?.resolution).toBe("720p");
+    expect(price?.breakdown).toBe("4 s × $0.05/s at 720p");
+    // The scalar the GenSpend grid now beats.
+    expect(
+      falUnitPricingCatalog.prices?.["fal-ai/pixverse/c1/text-to-video"]
+        ?.unit_price
+    ).toBe(0.005);
+  });
+
+  it("prices minimax/h3 off its published ladder", () => {
+    const price = getModelUnitPrice(
+      { id: "minimax/h3/text-to-video", provider: "fal_ai" },
+      { resolution: "720p", seconds: 4 }
+    );
+    expect(price?.unit_price).toBeCloseTo(0.32, 6);
+    expect(price?.seconds).toBe(4);
+  });
+
+  it("multiplies a per-second FAL scalar by the stated duration", () => {
+    // A per-second FAL row the GenSpend catalog does not carry, so the
+    // fallback scalar is what answers — as a whole run, not a rate.
+    const entry = Object.entries(falUnitPricingCatalog.prices ?? {}).find(
+      ([id, row]) =>
+        (row as { billing_unit?: string }).billing_unit === "seconds" &&
+        ((row as { unit_price?: number }).unit_price ?? 0) > 0 &&
+        !genspendPricingCatalog.prices[`fal_ai:${id}`]
+    );
+    if (!entry) throw new Error("no per-second FAL row outside GenSpend");
+    const [id, row] = entry;
+    const rate = (row as { unit_price: number }).unit_price;
+    const model = { id, provider: "fal_ai" };
+    expect(getModelUnitPrice(model, { seconds: 6 })?.unit_price).toBeCloseTo(
+      rate * 6,
+      9
+    );
+    expect(getModelUnitPrice(model, { seconds: 6 })?.seconds).toBe(6);
+    // Unstated duration is one second of output, said out loud.
+    expect(getModelUnitPrice(model)?.unit_price).toBeCloseTo(rate, 9);
+    expect(getModelUnitPrice(model)?.assumptions?.length).toBe(1);
+  });
+
+  it("divides a block-unit scalar into whole blocks, rounded up", () => {
+    const entry = Object.entries(falUnitPricingCatalog.prices ?? {}).find(
+      ([id, row]) =>
+        (row as { billing_unit?: string }).billing_unit === "5 seconds" &&
+        !genspendPricingCatalog.prices[`fal_ai:${id}`]
+    );
+    if (!entry) throw new Error("no 5-second FAL row outside GenSpend");
+    const [id, row] = entry;
+    const perBlock = (row as { unit_price: number }).unit_price;
+    const price = getModelUnitPrice({ id, provider: "fal_ai" }, { seconds: 12 });
+    // 12 s needs three 5-second blocks, not 2.4.
+    expect(price?.unit_price).toBeCloseTo(perBlock * 3, 9);
+    expect(price?.breakdown).toContain("3 × 5 s blocks");
+  });
+
+  it("declines a scalar whose unit has no fixed value per run", () => {
+    const entry = Object.entries(falUnitPricingCatalog.prices ?? {}).find(
+      ([id, row]) =>
+        (row as { billing_unit?: string }).billing_unit === "units" &&
+        !genspendPricingCatalog.prices[`fal_ai:${id}`]
+    );
+    if (!entry) throw new Error("no unit-billed FAL row outside GenSpend");
+    const price = getModelUnitPrice({ id: entry[0], provider: "fal_ai" });
+    expect(price?.declined).toContain("no fixed value per run");
+    expect(price?.unit_price).toBe(0);
+  });
+
+  /** The first FAL row billed in `unit`, outside the GenSpend grid. */
+  const falRowBilledIn = (unit: string): [string, { unit_price: number }] => {
+    const entry = Object.entries(falUnitPricingCatalog.prices ?? {}).find(
+      ([id, row]) =>
+        (row as { billing_unit?: string }).billing_unit?.trim() === unit &&
+        ((row as { unit_price?: number }).unit_price ?? 0) > 0 &&
+        !genspendPricingCatalog.prices[`fal_ai:${id}`]
+    );
+    if (!entry) throw new Error(`no ${unit}-billed FAL row outside GenSpend`);
+    return entry as [string, { unit_price: number }];
+  };
+
+  it("declines a rate over something the node never states", () => {
+    // 222 FAL rows bill "compute seconds" — wall-clock time on FAL's machines.
+    // No node property says how long that will be, so the rate is not a run.
+    const [id] = falRowBilledIn("compute seconds");
+    const price = getModelUnitPrice({ id, provider: "fal_ai" });
+    expect(price?.declined).toContain("compute seconds");
+    expect(price?.unit_price).toBe(0);
+  });
+
+  it("prorates a per-minute scalar over the stated duration", () => {
+    const [id, row] = falRowBilledIn("minutes");
+    const model = { id, provider: "fal_ai" };
+    expect(getModelUnitPrice(model, { seconds: 90 })?.unit_price).toBeCloseTo(
+      row.unit_price * 1.5,
+      9
+    );
+    // Unstated duration is one minute, said out loud.
+    expect(getModelUnitPrice(model)?.unit_price).toBeCloseTo(row.unit_price, 9);
+    expect(getModelUnitPrice(model)?.assumptions?.length).toBe(1);
+  });
+
+  it("multiplies a per-megapixel scalar by the output size", () => {
+    const [id, row] = falRowBilledIn("megapixels");
+    const model = { id, provider: "fal_ai" };
+    expect(
+      getModelUnitPrice(model, { megapixels: 4.19 })?.unit_price
+    ).toBeCloseTo(row.unit_price * 4.19, 9);
+    // Unstated size is one megapixel, said out loud.
+    expect(getModelUnitPrice(model)?.unit_price).toBeCloseTo(row.unit_price, 9);
+    expect(getModelUnitPrice(model)?.assumptions?.length).toBe(1);
+  });
+
+  it("warns that a collapsed kie row is the cheapest of its tiers", () => {
+    const entry = Object.entries(kieUnitPricingCatalog.prices ?? {}).find(
+      ([id, row]) =>
+        ((row as { tier_count?: number }).tier_count ?? 0) > 1 &&
+        typeof (row as { usd_price?: number }).usd_price === "number" &&
+        !genspendPricingCatalog.prices[`kie:${id}`]
+    );
+    if (!entry) throw new Error("no collapsed kie row outside GenSpend");
+    const price = getModelUnitPrice({ id: entry[0], provider: "kie" });
+    expect(price?.warnings?.join(" ")).toContain("lower bound");
   });
 });

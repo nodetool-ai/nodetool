@@ -227,16 +227,24 @@ describe("POST /api/webhooks/:token", () => {
   it("derives an idempotency key from token+body+minute when x-webhook-id is absent", async () => {
     await makeRegistration();
 
-    const send = () =>
-      app.inject({
-        method: "POST",
-        url: `/api/webhooks/${TOKEN}`,
-        headers: { "x-webhook-secret": SECRET },
-        payload: { same: "body" }
-      });
+    // The key buckets by wall-clock minute, so two real-time sends can
+    // straddle a boundary and derive two keys. Pin the clock mid-minute.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-01T12:00:30Z"));
+    try {
+      const send = () =>
+        app.inject({
+          method: "POST",
+          url: `/api/webhooks/${TOKEN}`,
+          headers: { "x-webhook-secret": SECRET },
+          payload: { same: "body" }
+        });
 
-    await send();
-    await send();
+      await send();
+      await send();
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(await TriggerInput.findUnprocessed(10)).toHaveLength(1);
   });

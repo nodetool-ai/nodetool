@@ -65,6 +65,8 @@ import {
   useBoardScriptLines,
   useShotDuration
 } from "../../hooks/storyboard/useShotDuration";
+import { useShotCostEstimate } from "../../hooks/storyboard/useShotCostEstimate";
+import { formatUsd } from "@nodetool-ai/model-pricing";
 import { useEntities } from "../../serverState/useEntities";
 import { getEntityChipSx, getEntityKindDotSx } from "../entities/entityKind";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -306,8 +308,8 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
       : "model default";
   // Cost sits in the same quiet line as the camera controls. A read-only
   // inspector has no controls, so there the camera reads as text beside it.
-  const costLabel =
-    shot.cost_estimate != null ? `~$${shot.cost_estimate.toFixed(2)}` : "";
+  const costEstimate = useShotCostEstimate(boardId, shot);
+  const costLabel = costEstimate ? `~${formatUsd(costEstimate.cost)}` : "";
   const metaLine = [camera.length > 0 ? camera : null, costLabel || null]
     .filter((p): p is string => p !== null)
     .join(" · ");

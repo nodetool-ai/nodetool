@@ -569,6 +569,8 @@ export async function runWorkflow(
         // This path builds its own runner instead of going through
         // `ExecutionSession`, so it has to attach the spend ledger itself.
         // No detach: the listener lives on this context and dies with it.
+        // No `projectId`/`documentId` either — a run request names a workflow
+        // and a user, and nothing on this path carries project attribution.
         attachRunCostLedger(executionContext, {
           userId,
           workflowId,

@@ -270,6 +270,7 @@ function estimatePromptTokens(messages: readonly Message[]): number {
 export abstract class BaseProvider {
   readonly provider: ProviderId;
   private _cost = 0;
+  private _unpricedReason: string | null = null;
   private _emitMessage: ((msg: unknown) => void) | null = null;
 
   /**
@@ -539,28 +540,46 @@ export abstract class BaseProvider {
 
   trackUsage(model: string, usage: UsageInfo): number {
     // Accounting must never break a generation that already ran (and was
-    // already billed by the provider): fall back to zero cost, keep the token
-    // counts.
-    let cost = 0;
+    // already billed by the provider): keep the token counts and record the
+    // call as *unpriced*. A zero here would be written to the ledger as a real
+    // zero, which reads as "this call was free" — the one thing it is not.
+    let cost: number | undefined;
     try {
       cost = CostCalculator.calculate(model, usage, this.provider);
     } catch (error) {
-      log.warn("Cost calculation failed; recording usage with zero cost", {
+      const reason = error instanceof Error ? error.message : String(error);
+      this._unpricedReason = `No unit price for ${this.provider}/${model}: ${reason}`;
+      log.warn("Cost calculation failed; recording usage as unpriced", {
         model,
         provider: this.provider,
-        error: error instanceof Error ? error.message : String(error)
+        error: reason
       });
     }
-    this._cost += cost;
-    setLastUsage({
+    this._cost += cost ?? 0;
+    const tracked: LlmUsage = {
       inputTokens: usage.inputTokens ?? 0,
       outputTokens: usage.outputTokens ?? 0,
       cachedInputTokens: usage.cachedTokens,
-      cacheWriteTokens: usage.cacheWriteTokens,
-      cost
-    });
+      cacheWriteTokens: usage.cacheWriteTokens
+    };
+    // Left unset rather than zero: `setLastUsage` charges the enclosing node
+    // invocation with it, and an invented zero is spend nobody can audit.
+    if (cost !== undefined) {
+      tracked.cost = cost;
+    }
+    setLastUsage(tracked);
     log.debug("Cost tracked", { model, cost, total: this._cost });
-    return cost;
+    return cost ?? 0;
+  }
+
+  /**
+   * Why this provider's cost total is missing spend, when a price lookup
+   * failed. Null when every tracked call was priced. A host writing a ledger
+   * row reads it to record the row as unpriced (`cost: null`) instead of
+   * booking an unpriced call as free.
+   */
+  get unpricedReason(): string | null {
+    return this._unpricedReason;
   }
 
   /** Alias for getTotalCost() — mirrors Python's BaseProvider.cost property. */
@@ -594,6 +613,7 @@ export abstract class BaseProvider {
 
   resetCost(): void {
     this._cost = 0;
+    this._unpricedReason = null;
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
