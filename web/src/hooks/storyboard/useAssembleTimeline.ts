@@ -22,6 +22,7 @@ import {
   creationProjectId
 } from "../../stores/WorkspaceTabsStore";
 import { buildTimelineDocument } from "../../components/storyboard/assembleTimeline";
+import { invalidateTimelineGetQuery } from "../../stores/storyboard/timelineSync";
 import { linkedScriptId } from "../../lib/scriptStoryboardLink";
 import { loadLinkedScript } from "../../lib/linkedAssembly";
 import {
@@ -97,6 +98,7 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
             baseUpdatedAt: sequence.updatedAt,
             document: { ...merged, markers: sequence.markers ?? [] }
           });
+          invalidateTimelineGetQuery(existingId);
           useWorkspaceTabsStore.getState().openTab({
             type: "timeline",
             ref: existingId,
@@ -121,6 +123,7 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
           id: sequence.id,
           document: { tracks: doc.tracks, clips, markers: [] }
         });
+        invalidateTimelineGetQuery(sequence.id);
         useStoryboardStore.getState().setTimelineLink(boardId, sequence.id);
         useWorkspaceTabsStore.getState().openTab({
           type: "timeline",

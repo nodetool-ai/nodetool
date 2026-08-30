@@ -17,6 +17,7 @@ import {
 } from "../../script/ScriptStore";
 import { syncLineClipToTimeline } from "../../script/timelineSync";
 import { trpcClient } from "../../../trpc/client";
+import { queryClient } from "../../../queryClient";
 
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
@@ -151,6 +152,50 @@ describe("syncShotClipToTimeline", () => {
     const result = await syncShotClipToTimeline("board-1", "shot-1", "new-clip");
     expect(result).toBe(false);
     warn.mockRestore();
+  });
+
+  it("invalidates the cached timeline.get query for the sequence after a patch (F5)", async () => {
+    seedBoard("tl-1");
+    getQuery.mockResolvedValue({
+      id: "tl-1",
+      updatedAt: "rev-1",
+      tracks: [track],
+      clips: [shotClip()],
+      markers: []
+    });
+    updateMutate.mockResolvedValue({});
+    const invalidateSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    await syncShotClipToTimeline("board-1", "shot-1", "new-clip");
+
+    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    const predicate = invalidateSpy.mock.calls[0][0]?.predicate as (query: {
+      queryKey: unknown;
+    }) => boolean;
+    expect(
+      predicate({ queryKey: [["timeline", "get"], { input: { id: "tl-1" } }] })
+    ).toBe(true);
+    expect(
+      predicate({ queryKey: [["timeline", "get"], { input: { id: "other" } }] })
+    ).toBe(false);
+    invalidateSpy.mockRestore();
+  });
+
+  it("does not invalidate the timeline.get cache when the sync is a no-op", async () => {
+    seedBoard("tl-1");
+    getQuery.mockResolvedValue({
+      id: "tl-1",
+      updatedAt: "rev-1",
+      tracks: [track],
+      clips: [shotClip({ currentAssetId: "new-clip" })],
+      markers: []
+    });
+    const invalidateSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    await syncShotClipToTimeline("board-1", "shot-1", "new-clip");
+
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    invalidateSpy.mockRestore();
   });
 });
 

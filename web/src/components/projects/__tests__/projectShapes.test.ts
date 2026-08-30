@@ -15,10 +15,23 @@ import type { ProjectDetail } from "../projectStatus";
 const spot = shapeById("spot");
 const empty = shapeById("empty");
 
+const assembledCut = {
+  type: "timeline",
+  ref: "cut-1",
+  name: "Cut",
+  updatedAt: "",
+  status: { kind: "timeline", clips: 3, durationMs: 30000 },
+  spendUsd: 0,
+  unpricedCount: 0,
+  thumbnails: [],
+  preview: null
+};
+
 const summary = (
   kind: string,
   totalUsd: number,
-  unpricedCount = 0
+  unpricedCount = 0,
+  documents: unknown[] = [assembledCut]
 ): ProjectDetail =>
   ({
     project: {
@@ -29,7 +42,7 @@ const summary = (
       createdAt: "",
       updatedAt: ""
     },
-    documents: [],
+    documents,
     spend: { totalUsd, unpricedCount, byCategory: [] }
   }) as ProjectDetail;
 
@@ -96,5 +109,30 @@ describe("estimateFromHistory", () => {
 
   it("has nothing to read for a shape with no kind", () => {
     expect(estimateFromHistory([summary("", 3.1), summary("", 5.8)], "")).toBeNull();
+  });
+
+  it("leaves out an abandoned project — cheap and no cut assembled", () => {
+    const abandoned = summary("spot", 0.05, 0, []);
+    expect(
+      estimateFromHistory([abandoned, summary("spot", 0.06, 0, [])], "spot")
+    ).toBeNull();
+  });
+
+  it("leaves out a priced project under the spend floor even with a cut", () => {
+    const cheapButCut = summary("spot", 0.05);
+    expect(
+      estimateFromHistory([cheapButCut, summary("spot", 0.06)], "spot")
+    ).toBeNull();
+  });
+
+  it("leaves out a project above the floor that never assembled a cut", () => {
+    const noCut = summary("spot", 5, 0, []);
+    expect(estimateFromHistory([noCut, summary("spot", 6, 0, [])], "spot")).toBeNull();
+  });
+
+  it("returns null when nothing in the sample qualifies as completed", () => {
+    const partial = summary("spot", 0.05, 0, []);
+    const alsoPartial = summary("spot", 0.02, 0, []);
+    expect(estimateFromHistory([partial, alsoPartial], "spot")).toBeNull();
   });
 });

@@ -32,13 +32,28 @@ export const stageProjectFirstTurn = (
 };
 
 /**
+ * Read the staged opening turn without consuming it. The panel peeks, sends,
+ * and clears only once the send is confirmed — a turn taken before the send
+ * resolves is lost outright when the send fails, and it is the only copy of
+ * what the user wrote.
+ */
+export const peekProjectFirstTurn = (
+  projectId: string
+): MessageContent[] | null => staged.get(projectId) ?? null;
+
+/** Drop the staged turn once it has been delivered. */
+export const clearProjectFirstTurn = (projectId: string): void => {
+  staged.delete(projectId);
+};
+
+/**
  * Take the staged opening turn, if there is one. Taking clears it: a turn is
  * sent once, and a panel that remounts must not send it again.
  */
 export const takeProjectFirstTurn = (
   projectId: string
 ): MessageContent[] | null => {
-  const content = staged.get(projectId);
+  const content = peekProjectFirstTurn(projectId);
   if (!content) {
     return null;
   }

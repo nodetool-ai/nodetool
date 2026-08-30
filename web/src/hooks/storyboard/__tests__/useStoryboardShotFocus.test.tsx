@@ -65,6 +65,26 @@ describe("useStoryboardShotFocus", () => {
     expect(useDocumentFocusStore.getState().pending).toBeNull();
   });
 
+  it("scrolls the selected shot card into view", () => {
+    const card = document.createElement("div");
+    card.setAttribute("data-shot-id", "shot-2");
+    document.body.appendChild(card);
+    const scrollIntoView = jest.fn();
+    card.scrollIntoView = scrollIntoView;
+
+    useDocumentFocusStore.getState().requestDocumentFocus({
+      type: "storyboard",
+      ref: "board-1",
+      shotId: "shot-2"
+    });
+    loadBoard([shot("shot-1", 0), shot("shot-2", 1)]);
+
+    renderHook(() => useStoryboardShotFocus("board-1"));
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" });
+    document.body.removeChild(card);
+  });
+
   it("leaves a request for another board alone", () => {
     const request = {
       type: "storyboard" as const,

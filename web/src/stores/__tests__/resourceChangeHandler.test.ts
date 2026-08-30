@@ -463,6 +463,24 @@ describe("handleResourceChange", () => {
     expect(predicate({ queryKey: [["workflows", "list"], {}] })).toBe(false);
   });
 
+  it("refetches the project views when a prediction (chat spend) lands", () => {
+    handleResourceChange({
+      type: "resource_change",
+      event: "created",
+      resource_type: "prediction",
+      resource: { id: "pred-1" }
+    } as ResourceChangeUpdate);
+
+    const predicate = (queryClient.invalidateQueries as jest.Mock).mock.calls
+      .map((call) => call[0]?.predicate)
+      .find(isFunction) as (q: { queryKey: readonly unknown[] }) => boolean;
+    expect(predicate).toBeTruthy();
+    expect(
+      predicate({ queryKey: [["projects", "get"], { input: { id: "p1" } }] })
+    ).toBe(true);
+    expect(predicate({ queryKey: [["workflows", "list"], {}] })).toBe(false);
+  });
+
   it("refetches both the js script list and the node menu's palette", () => {
     handleResourceChange({
       type: "resource_change",

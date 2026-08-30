@@ -231,6 +231,20 @@ describe("undo/redo", () => {
     expect(board()?.shots.find((s) => s.id === "s0")?.action).toBe("shot 0");
   });
 
+  it("selectShot is idempotent, and null clears the selection", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    store.selectShot(BOARD, "s1");
+    expect(board()?.activeShotId).toBe("s1");
+
+    // Programmatic re-select (focus jump, agent bridge) must not toggle.
+    store.selectShot(BOARD, "s1");
+    expect(board()?.activeShotId).toBe("s1");
+
+    store.selectShot(BOARD, null);
+    expect(board()?.activeShotId).toBeNull();
+  });
+
   it("removeBoard drops the board's history", () => {
     seedShots();
     expect(

@@ -210,6 +210,14 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     return;
   }
 
+  // Chat-only spend (LLM/pipeline calls) lands as `prediction` rows with no
+  // document row of its own, so it reaches no other branch here — but it
+  // changes what a project's overview and cards show for cost.
+  if (resource_type === "prediction") {
+    invalidateProjectViews();
+    return;
+  }
+
   if (isSyncedDocumentType(resource_type)) {
     const trpcRouter = DOCUMENT_TRPC_ROUTER[resource_type];
     invalidateTrpcProcedure(trpcRouter, "list");

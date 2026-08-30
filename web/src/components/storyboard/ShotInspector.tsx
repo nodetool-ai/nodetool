@@ -438,7 +438,14 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
     const raw = durationDraft.trim();
     setDurationDraft(null);
     if (raw === "") {
-      updateShot(boardId, shot.id, { duration_seconds: undefined });
+      // Clearing the field un-pins the shot too — otherwise it is left with
+      // no duration and a stale `duration_source: "manual"`, which blocks a
+      // linked shot from deriving one from its takes again. Same value the
+      // "unpin" chip (handleToggleDurationSource) writes.
+      updateShot(boardId, shot.id, {
+        duration_seconds: undefined,
+        duration_source: "audio"
+      });
       return;
     }
     const seconds = Number(raw);

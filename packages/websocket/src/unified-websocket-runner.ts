@@ -5527,7 +5527,8 @@ export class UnifiedWebSocketRunner {
     nodeType: string,
     inputs: Record<string, unknown>,
     userId: string,
-    threadId: string | null = null
+    threadId: string | null = null,
+    projectId: string | null = null
   ): Promise<unknown> {
     const jobId = randomUUID();
     const nodeId = "node_0";
@@ -5602,6 +5603,9 @@ export class UnifiedWebSocketRunner {
         jobId,
         context,
         params: {},
+        // A node run from a project's agent thread is that project's spend;
+        // the ledger this session attaches writes it. Null outside a project.
+        projectId: projectId ?? null,
         validateNode: this.validateNode
       });
     } catch (err) {
@@ -5909,11 +5913,17 @@ export class UnifiedWebSocketRunner {
     const googleWorkspace = isGoogleWorkspaceEnabled();
     if (googleWorkspace) registerGoogleWorkspaceTools();
     const chatProviders = await this.configuredProvidersCache.get(userId);
+    // The project this conversation belongs to, when it is a project's own
+    // agent thread. Documents the turn creates land in it rather than in the
+    // loose bucket, without the model having to pass `project_id` every time,
+    // and everything the turn spends is billed to it.
+    const chatProjectId =
+      (await Project.findByThread(userId, threadId))?.id ?? undefined;
     // The single-node runner is a closure only this package can build, so
     // `run_node` reaches a capability run as a host-supplied capability rather
     // than out of the registry.
     const runNodeTool = new RunNodeTool((nodeType, inputs) =>
-      this.runSingleNode(nodeType, inputs, userId, threadId)
+      this.runSingleNode(nodeType, inputs, userId, threadId, chatProjectId)
     );
     // The permission gate the belt is wrapped in below. Built before the belt
     // because the Apify tools carry it into their own run: in discovery mode
@@ -5942,11 +5952,6 @@ export class UnifiedWebSocketRunner {
         this.requestToolApproval(threadId, request),
       clock: codeactClock
     };
-    // The project this conversation belongs to, when it is a project's own
-    // agent thread. Documents the turn creates land in it rather than in the
-    // loose bucket, without the model having to pass `project_id` every time.
-    const chatProjectId =
-      (await Project.findByThread(userId, threadId))?.id ?? undefined;
     const gatedRun = (context: ProcessingContext): CapabilityRun =>
       createCapabilityRun({
         context,
@@ -6138,6 +6143,9 @@ export class UnifiedWebSocketRunner {
     const detachCostLedger = attachRunCostLedger(ctx, {
       userId,
       workflowId: workflowId ?? null,
+      // A generation made from a project's own agent thread is that project's
+      // spend. Null outside a project — never the loose `default` bucket.
+      projectId: chatProjectId ?? null,
       resolveSecret: (key) => ctx.getSecret(key)
     });
     // Any agent planning inside this turn (e.g. via run_node spawning an
@@ -6636,7 +6644,8 @@ export class UnifiedWebSocketRunner {
         provider,
         providerId,
         model,
-        workflowId
+        workflowId,
+        chatProjectId ?? null
       );
 
       // Signal completion — matches Python's done chunk.
@@ -6832,7 +6841,8 @@ export class UnifiedWebSocketRunner {
     provider: BaseProvider,
     providerId: string,
     model: string,
-    workflowId: string | null
+    workflowId: string | null,
+    projectId: string | null
   ): Promise<void> {
     if (!providerId || !model) {
       log.warn("Cannot log provider call: missing provider or model");
@@ -6846,6 +6856,9 @@ export class UnifiedWebSocketRunner {
         model,
         cost,
         workflow_id: workflowId,
+        // Token spend from a project's agent thread is the project's; a turn
+        // outside a project records a null rather than a bucket name.
+        project_id: projectId,
         status: "completed",
         node_id: ""
       });

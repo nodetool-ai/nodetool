@@ -78,6 +78,25 @@ describe("projectStatusLine", () => {
       ])
     ).toBe("2 documents");
   });
+
+  it("marks the line when the document table it was read from was capped", () => {
+    expect(
+      projectStatusLine(
+        [
+          document({
+            status: { kind: "storyboard", shots: 8, stills: 8, clips: 6 }
+          })
+        ],
+        { documentsPartial: true }
+      )
+    ).toBe("8 shots · stills 8/8 · partial");
+    expect(
+      projectStatusLine(
+        [document({ type: "sketch", ref: "k1" })],
+        { documentsPartial: true }
+      )
+    ).toBe("1 document · partial");
+  });
 });
 
 describe("projectProgress", () => {
@@ -117,6 +136,15 @@ describe("formatSpend", () => {
     expect(formatSpend(spend({ totalUsd: 4.12, unpricedCount: 2 }))).toBe(
       "$4.12 · 2 unpriced"
     );
+  });
+
+  it("marks a capped ledger read as a lower bound instead of a final figure", () => {
+    expect(formatSpend(spend({ totalUsd: 4.12, partial: true }))).toBe(
+      "≥$4.12"
+    );
+    expect(
+      formatSpend(spend({ totalUsd: 4.12, unpricedCount: 2, partial: true }))
+    ).toBe("≥$4.12 · 2 unpriced");
   });
 });
 
@@ -205,6 +233,24 @@ describe("projectNextStep", () => {
     const step = projectNextStep([board(8, 8), script(5, 1), cut(30_000)]);
     expect(step?.label).toBe("Re-voice 1 line");
     expect(step?.document.ref).toBe("s1");
+  });
+
+  it("offers to voice a never-voiced script instead of jumping to assemble", () => {
+    const step = projectNextStep([board(8, 8), script(0, 0)]);
+    expect(step?.label).toBe("Voice 6 lines");
+    expect(step?.document.ref).toBe("s1");
+  });
+
+  it("offers to voice a never-voiced script ahead of the cut it feeds", () => {
+    const step = projectNextStep([board(8, 8), script(0, 0), cut(30_000)]);
+    expect(step?.label).toBe("Voice 6 lines");
+    expect(step?.document.ref).toBe("s1");
+  });
+
+  it("says nothing more once every line is voiced", () => {
+    expect(projectNextStep([board(8, 8), script(6, 0)])?.label).toBe(
+      "Assemble timeline"
+    );
   });
 
   it("names the document that performs the step", () => {

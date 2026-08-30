@@ -76,6 +76,7 @@ export const projectsRouter = router({
           return projectDetail.parse({
             project: project.toResponse(),
             documents: summary.documents,
+            documentsPartial: summary.documentsPartial,
             spend: summary.spend
           });
         })
@@ -91,6 +92,7 @@ export const projectsRouter = router({
       return projectDetail.parse({
         project: project.toResponse(),
         documents: summary.documents,
+        documentsPartial: summary.documentsPartial,
         spend: summary.spend
       });
     }),
@@ -132,22 +134,34 @@ export const projectsRouter = router({
     .input(createProjectInput)
     .output(projectResponse)
     .mutation(async ({ ctx, input }) => {
-      if (input.id) {
-        const existing = await Project.findById(input.id);
-        if (existing) {
-          if (existing.user_id !== ctx.userId) {
-            throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
-          }
-          return projectResponse.parse(existing.toResponse());
-        }
-      }
-      const project = await Project.create<Project>({
+      // The insert never rewrites an existing row: the primary key is
+      // install-global, so an upsert here could hand one user's project to
+      // another. A conflict is re-read instead — the caller's own id answers
+      // idempotently with the row that is already there.
+      const project = await Project.insertNew({
         id: input.id,
         user_id: ctx.userId,
         name: input.name,
         kind: input.kind
       });
-      return projectResponse.parse(project.toResponse());
+      if (project) return projectResponse.parse(project.toResponse());
+
+      const existing = input.id ? await Project.findById(input.id) : null;
+      if (!existing) {
+        // The insert conflicted and the row is already gone — nothing can be
+        // read to decide whose it was, so the conflict itself is what is said.
+        throwApiError(
+          ApiErrorCode.ALREADY_EXISTS,
+          "A project with that id already exists"
+        );
+      }
+      // An id belonging to someone else answers exactly as a missing one does.
+      // Saying "already exists" would make create an oracle for ids this user
+      // may not read — the convention every other procedure here holds to.
+      if (existing.user_id !== ctx.userId) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      }
+      return projectResponse.parse(existing.toResponse());
     }),
 
   update: protectedProcedure

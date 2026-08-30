@@ -13,7 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
-  orderTabsForRender,
+  dropTargetIndex,
   useWorkspaceTabsStore,
   type WorkspaceTab,
   type WorkspaceTabType
@@ -324,19 +324,15 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     [tabs, activeTabId]
   );
 
-  // The open project's tabs render as one run behind the scope chip; every
-  // other tab keeps its place.
-  const renderedTabs = useMemo(
-    () => orderTabsForRender(tabs, activeProjectId),
-    [tabs, activeProjectId]
-  );
-  const firstGroupedTabId = renderedTabs.find(
+  // The store keeps its tabs in render order — the open project's tabs are one
+  // contiguous run behind the scope chip — so the bar renders `tabs` as they
+  // come and a tab's index on screen is its index in the store.
+  const firstGroupedTabId = tabs.find(
     (tab) => tab.projectId === activeProjectId
   )?.id;
   const groupName =
-    renderedTabs.find(
-      (tab) => tab.type === "project" && tab.ref === activeProjectId
-    )?.title ?? "Project";
+    tabs.find((tab) => tab.type === "project" && tab.ref === activeProjectId)
+      ?.title ?? "Project";
 
   const newTabButtonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -407,21 +403,20 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         event.clientX < rect.left + rect.width / 2 ? "left" : "right";
 
       const currentTabs = useWorkspaceTabsStore.getState().tabs;
-      const sourceIndex = currentTabs.findIndex((tab) => tab.id === sourceTabId);
-      const targetIndex = currentTabs.findIndex((tab) => tab.id === targetTab.id);
-      if (sourceIndex === -1 || targetIndex === -1) {
+      const toIndex = dropTargetIndex(
+        currentTabs,
+        sourceTabId,
+        targetTab.id,
+        position
+      );
+      if (toIndex === null) {
         setDropTarget(null);
         return;
       }
 
-      let toIndex = position === "right" ? targetIndex + 1 : targetIndex;
-      if (sourceIndex < toIndex) {
-        toIndex -= 1;
-      }
-
       moveTab(sourceTabId, toIndex);
 
-      const sourceTab = currentTabs[sourceIndex];
+      const sourceTab = currentTabs.find((tab) => tab.id === sourceTabId);
       if (sourceTab?.type === "workflow") {
         syncWorkflowOrderFromTabs();
       }
@@ -641,7 +636,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         />
       ) : (
         <div className="tabs">
-          {renderedTabs.map((tab) => (
+          {tabs.map((tab) => (
             <Fragment key={tab.id}>
               {tab.id === firstGroupedTabId && activeProjectId && (
                 <ProjectScopeChip

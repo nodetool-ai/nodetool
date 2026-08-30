@@ -14,6 +14,7 @@ import {
 } from "../../../stores/script/ScriptStore";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { trpcClient } from "../../../trpc/client";
+import { queryClient } from "../../../queryClient";
 
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
@@ -126,6 +127,7 @@ describe("useAssembleTimeline", () => {
     seedBoard("board-1");
     createMutate.mockResolvedValue({ id: "tl-new" });
     updateMutate.mockResolvedValue({});
+    const invalidateSpy = jest.spyOn(queryClient, "invalidateQueries");
 
     const { result } = renderHook(() => useAssembleTimeline());
     let out: Awaited<ReturnType<typeof result.current.assemble>>;
@@ -141,6 +143,19 @@ describe("useAssembleTimeline", () => {
       useStoryboardStore.getState().getBoard("board-1")?.timelineId
     ).toBe("tl-new");
     expect(scriptQuery).not.toHaveBeenCalled();
+
+    // F5: the cached `timeline.get` query for the new sequence must be
+    // invalidated, or the "Appears in" chip keeps rendering nothing.
+    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    const predicate = invalidateSpy.mock.calls[0][0]?.predicate as (query: {
+      queryKey: unknown;
+    }) => boolean;
+    expect(
+      predicate({
+        queryKey: [["timeline", "get"], { input: { id: "tl-new" } }]
+      })
+    ).toBe(true);
+    invalidateSpy.mockRestore();
   });
 
   it("throws when no shot is rendered", async () => {
@@ -238,6 +253,7 @@ describe("useAssembleTimeline", () => {
       markers: []
     });
     updateMutate.mockResolvedValue({});
+    const invalidateSpy = jest.spyOn(queryClient, "invalidateQueries");
 
     const { result } = renderHook(() => useAssembleTimeline());
     let out: Awaited<ReturnType<typeof result.current.assemble>>;
@@ -248,6 +264,17 @@ describe("useAssembleTimeline", () => {
     expect(out!.reassembled).toBe(true);
     expect(out!.sequenceId).toBe("tl-1");
     expect(createMutate).not.toHaveBeenCalled();
+    // F5: re-assembly regenerates clip uuids, so the stale query has to go —
+    // otherwise the "Appears in" chip can point at a clip id that no longer
+    // exists.
+    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    const predicate = invalidateSpy.mock.calls[0][0]?.predicate as (query: {
+      queryKey: unknown;
+    }) => boolean;
+    expect(
+      predicate({ queryKey: [["timeline", "get"], { input: { id: "tl-1" } }] })
+    ).toBe(true);
+    invalidateSpy.mockRestore();
     const doc = updateMutate.mock.calls[0][0].document;
     expect(doc.tracks.map((t: { name: string }) => t.name)).toEqual([
       "Shots",

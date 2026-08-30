@@ -35,12 +35,18 @@ export const formatDuration = (durationMs: number): string => {
 /**
  * The card's one-line status. Documents of the same kind collapse onto the
  * newest of them — a card is a glance, and the overview tab has the rest.
+ *
+ * `documentsPartial` marks a document-table read that hit its cap: the counts
+ * below are read off a truncated list, so the whole line is annotated rather
+ * than any one figure inside it.
  */
 export const projectStatusLine = (
-  documents: readonly ProjectDocument[]
+  documents: readonly ProjectDocument[],
+  options?: { documentsPartial?: boolean }
 ): string => {
+  const partialSuffix = options?.documentsPartial ? " · partial" : "";
   if (documents.length === 0) {
-    return "No documents yet";
+    return `No documents yet${partialSuffix}`;
   }
   const parts: string[] = [];
 
@@ -67,9 +73,9 @@ export const projectStatusLine = (
 
   if (parts.length === 0) {
     const label = documents.length === 1 ? "document" : "documents";
-    return `${documents.length} ${label}`;
+    return `${documents.length} ${label}${partialSuffix}`;
   }
-  return parts.join(" · ");
+  return parts.join(" · ") + partialSuffix;
 };
 
 export interface ProjectProgress {
@@ -184,7 +190,8 @@ export interface ProjectNextStep {
 
 /**
  * What to do next, read off the documents in the order a spot is made: render
- * the stills, render the clips, voice what drifted, then cut.
+ * the stills, render the clips, voice what drifted or was never voiced, then
+ * cut.
  *
  * The action opens the document the step happens in rather than firing the
  * render itself — the render's own controls (model, shot selection, cost) live
@@ -213,6 +220,13 @@ export const projectNextStep = (
     const lines = scriptStatus.stale === 1 ? "line" : "lines";
     return { label: `Re-voice ${scriptStatus.stale} ${lines}`, document: script };
   }
+  if (script && scriptStatus) {
+    const unvoiced = scriptStatus.lines - scriptStatus.voiced - scriptStatus.stale;
+    if (unvoiced > 0) {
+      const lines = unvoiced === 1 ? "line" : "lines";
+      return { label: `Voice ${unvoiced} ${lines}`, document: script };
+    }
+  }
 
   const cut = documents.find((doc) => doc.status?.kind === "timeline");
   if (cut) {
@@ -226,9 +240,14 @@ export const projectNextStep = (
   return null;
 };
 
-/** `$4.12`, and what the ledger could not price rather than a silent zero. */
+/**
+ * `$4.12`, and what the ledger could not price rather than a silent zero. A
+ * `partial` ledger read means rows were capped out of the sum, so the figure
+ * is a lower bound — marked with a leading `≥`, the same convention
+ * {@link ProjectSpendBar} draws.
+ */
 export const formatSpend = (spend: ProjectDetail["spend"]): string => {
-  const amount = `$${spend.totalUsd.toFixed(2)}`;
+  const amount = `${spend.partial ? "≥" : ""}$${spend.totalUsd.toFixed(2)}`;
   return spend.unpricedCount > 0
     ? `${amount} · ${spend.unpricedCount} unpriced`
     : amount;

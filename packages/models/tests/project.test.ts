@@ -23,7 +23,13 @@ import {
   timelineStatus,
   type SpendRow
 } from "../src/project-summary.js";
-import { moveDocumentToProject } from "../src/project-membership.js";
+import {
+  moveDocumentToProject,
+  reassignProjectDocuments
+} from "../src/project-membership.js";
+import { Application } from "../src/application.js";
+import { ImageDocument } from "../src/image-document.js";
+import { JsScript } from "../src/js-script.js";
 import { LOOSE_PROJECT_ID } from "../src/project.js";
 import { Prediction } from "../src/prediction.js";
 import { Thread } from "../src/thread.js";
@@ -51,6 +57,13 @@ const storyboardDoc = (shots: Shot[]): StoryboardDocument => ({
   directorModel: null,
   imageModel: null,
   videoModel: null
+});
+
+/** A document row in project `p1`, for the tables that all carry the column. */
+const doc = (userId: string): Record<string, unknown> => ({
+  user_id: userId,
+  project_id: "p1",
+  name: "Doc"
 });
 
 describe("Project model", () => {
@@ -89,16 +102,87 @@ describe("Project model", () => {
     expect(updated!.updated_at > "2020-01-01T00:00:00.000Z").toBe(true);
   });
 
-  it("deletes the project and leaves its documents where they are", async () => {
+  it("deletes the project and moves its documents back to the loose bucket", async () => {
     const project = await Project.create<Project>({ user_id: "u1", name: "Aurora" });
     const board = await Storyboard.create<Storyboard>({
       user_id: "u1",
       project_id: project.id,
       name: "Board"
     });
+    const script = await Script.create<Script>({
+      user_id: "u1",
+      project_id: project.id,
+      name: "VO"
+    });
+    const cut = await TimelineSequence.create<TimelineSequence>({
+      user_id: "u1",
+      project_id: project.id,
+      name: "Cut"
+    });
+    // Another user's document in the same (impossible but cheap to assert) id
+    // must not be touched by the sweep.
+    const theirs = await Script.create<Script>({
+      user_id: "u2",
+      project_id: project.id,
+      name: "Theirs"
+    });
+
     expect(await Project.deleteOwned("u1", project.id)).toBe(true);
     expect(await Project.findById(project.id)).toBeNull();
-    expect((await Storyboard.findById(board.id))?.project_id).toBe(project.id);
+    for (const [model, id] of [
+      [Storyboard, board.id],
+      [Script, script.id],
+      [TimelineSequence, cut.id]
+    ] as const) {
+      const row = await model.findById(id);
+      expect(row?.project_id).toBe(LOOSE_PROJECT_ID);
+    }
+    // The loose listing is what the UI reads them back from.
+    expect(
+      (await listProjectDocuments("u1", LOOSE_PROJECT_ID)).map((d) => d.name)
+    ).toEqual(expect.arrayContaining(["Board", "VO", "Cut"]));
+    expect((await Script.findById(theirs.id))?.project_id).toBe(project.id);
+  });
+
+  it("insertNew refuses to rewrite an id that already exists", async () => {
+    const mine = await Project.create<Project>({
+      id: "shared-id",
+      user_id: "u1",
+      name: "Mine"
+    });
+    expect(
+      await Project.insertNew({ id: "shared-id", user_id: "u2", name: "Theirs" })
+    ).toBeNull();
+    const row = await Project.findById("shared-id");
+    expect(row?.user_id).toBe("u1");
+    expect(row?.name).toBe("Mine");
+    expect(row?.id).toBe(mine.id);
+  });
+});
+
+describe("reassignProjectDocuments", () => {
+  beforeEach(() => initTestDb());
+
+  it("moves every document kind out of a project, scoped to its owner", async () => {
+    const mine = {
+      storyboard: await Storyboard.create<Storyboard>(doc("u1")),
+      script: await Script.create<Script>(doc("u1")),
+      timeline: await TimelineSequence.create<TimelineSequence>(doc("u1")),
+      sketch: await ImageDocument.create<ImageDocument>(doc("u1")),
+      application: await Application.create<Application>(doc("u1")),
+      jsScript: await JsScript.create<JsScript>(doc("u1"))
+    };
+    const theirs = await Script.create<Script>(doc("u2"));
+
+    expect(await reassignProjectDocuments("u1", "p1", LOOSE_PROJECT_ID)).toBe(6);
+
+    expect((await Storyboard.findById(mine.storyboard.id))?.project_id).toBe(LOOSE_PROJECT_ID);
+    expect((await Script.findById(mine.script.id))?.project_id).toBe(LOOSE_PROJECT_ID);
+    expect((await TimelineSequence.findById(mine.timeline.id))?.project_id).toBe(LOOSE_PROJECT_ID);
+    expect((await ImageDocument.findById(mine.sketch.id))?.project_id).toBe(LOOSE_PROJECT_ID);
+    expect((await Application.findById(mine.application.id))?.project_id).toBe(LOOSE_PROJECT_ID);
+    expect((await JsScript.findById(mine.jsScript.id))?.project_id).toBe(LOOSE_PROJECT_ID);
+    expect((await Script.findById(theirs.id))?.project_id).toBe("p1");
   });
 });
 
@@ -327,6 +411,92 @@ describe("summarizeProject", () => {
       status: { kind: "storyboard", shots: 2, stills: 1, clips: 0 }
     });
     expect(summary.spend.totalUsd).toBeCloseTo(0.75, 6);
+  });
+});
+
+describe("rollup limits", () => {
+  beforeEach(() => initTestDb());
+
+  it("sums ledger rows past the old 1000-row read, and says it is complete", async () => {
+    const rows = Array.from({ length: 1100 }, () =>
+      Prediction.create<Prediction>({
+        user_id: "u1",
+        project_id: "p1",
+        cost: 0.01,
+        node_type: "nodetool.agents.Agent"
+      })
+    );
+    await Promise.all(rows);
+
+    const summary = await summarizeProject("u1", "p1");
+    expect(summary.spend.totalUsd).toBeCloseTo(11, 6);
+    expect(summary.spend.partial).toBe(false);
+    expect(summary.documentsPartial).toBe(false);
+  });
+
+  it("marks a capped read partial rather than reporting it as the whole total", () => {
+    const spend = summarizeSpend([{ cost: 1 }], true);
+    expect(spend.totalUsd).toBe(1);
+    expect(spend.partial).toBe(true);
+  });
+
+  it("sums only up to the ledger cap and says the total is a lower bound", async () => {
+    await Promise.all(
+      Array.from({ length: 21 }, () =>
+        Prediction.create<Prediction>({
+          user_id: "u1",
+          project_id: "p1",
+          cost: 1,
+          node_type: "nodetool.agents.Agent"
+        })
+      )
+    );
+
+    const capped = await summarizeProject("u1", "p1", { ledgerCap: 20 });
+    expect(capped.spend.partial).toBe(true);
+    expect(capped.spend.totalUsd).toBeCloseTo(20, 6);
+
+    // One more row of room and the same ledger reads as complete — the flag
+    // tracks the cap, not the row count.
+    const whole = await summarizeProject("u1", "p1", { ledgerCap: 21 });
+    expect(whole.spend.partial).toBe(false);
+    expect(whole.spend.totalUsd).toBeCloseTo(21, 6);
+  });
+
+  it("marks the document read partial when a table fills its cap", async () => {
+    await Promise.all(
+      Array.from({ length: 4 }, (_, i) =>
+        Storyboard.create<Storyboard>({
+          user_id: "u1",
+          project_id: "p1",
+          name: `Board ${i}`
+        })
+      )
+    );
+
+    const capped = await summarizeProject("u1", "p1", { documentsPerType: 3 });
+    expect(capped.documentsPartial).toBe(true);
+    expect(capped.documents).toHaveLength(3);
+
+    const whole = await summarizeProject("u1", "p1", { documentsPerType: 4 });
+    expect(whole.documentsPartial).toBe(false);
+    expect(whole.documents).toHaveLength(4);
+  });
+
+  it("keeps documents past the old 50-per-table cap", async () => {
+    await Promise.all(
+      Array.from({ length: 60 }, (_, i) =>
+        Storyboard.create<Storyboard>({
+          user_id: "u1",
+          project_id: "p1",
+          name: `Board ${i}`
+        })
+      )
+    );
+    const summary = await summarizeProject("u1", "p1");
+    expect(summary.documents).toHaveLength(60);
+    expect(summary.documentsPartial).toBe(false);
+    expect(await listProjectDocuments("u1", "p1")).toHaveLength(60);
   });
 });
 

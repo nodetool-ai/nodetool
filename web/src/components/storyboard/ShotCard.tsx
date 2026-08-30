@@ -140,6 +140,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       className="shot-card"
       aria-label={shotName}
       aria-pressed={onSelect ? !!selected : undefined}
+      data-shot-id={shot.id}
       data-generating={isGenerating ? "true" : undefined}
       data-selected={selected ? "true" : undefined}
       sx={{
