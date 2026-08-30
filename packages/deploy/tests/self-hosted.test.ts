@@ -307,11 +307,8 @@ describe("isLocalhost", () => {
     expect(isLocalhost("some-unknown-host.example.com")).toBe(false);
   });
 
-  /**
-   * Answer `getent hosts <target>` and `dscacheutil -q host -a name <target>`
-   * per target. A tool or target the case does not name throws, which is how a
-   * machine lacking that binary behaves.
-   */
+  // A tool or target the case does not name throws, which is how a machine
+  // lacking that binary behaves.
   function mockHostLookup(answers: {
     getent?: Record<string, string>;
     dscacheutil?: Record<string, string>;

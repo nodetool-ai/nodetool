@@ -10,7 +10,6 @@
  */
 
 import { execSync, execFileSync } from "child_process";
-import * as dns from "dns";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -114,84 +113,54 @@ function expandUser(p: string): string {
   return p;
 }
 
+const LOCALHOST_NAMES = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0"]);
+
+/** Every address a host resolves to; empty when neither tool answers. */
+function resolveIps(target: string): string[] {
+  try {
+    // getent (Linux) prints "127.0.0.1  localhost" — the IP is the first field.
+    return execFileSync("getent", ["hosts", target], {
+      encoding: "utf-8",
+      timeout: 5000
+    })
+      .trim()
+      .split("\n")
+      .map((line) => line.trim().split(/\s+/)[0])
+      .filter((ip) => ip.length > 0);
+  } catch {
+    // getent is Linux-only; macOS answers through dscacheutil instead.
+  }
+  try {
+    return execFileSync("dscacheutil", ["-q", "host", "-a", "name", target], {
+      encoding: "utf-8",
+      timeout: 5000
+    })
+      .trim()
+      .split("\n")
+      .map((line) => line.match(/^ip_address:\s+(.+)/))
+      .filter((match): match is RegExpMatchArray => match !== null)
+      .map((match) => match[1].trim());
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Check if host resolves to the local machine.
  */
 export function isLocalhost(host: string): boolean {
-  const localhostNames = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0"]);
-  const normalizedHost = host.trim().toLowerCase();
-  if (localhostNames.has(normalizedHost)) {
+  if (LOCALHOST_NAMES.has(host.trim().toLowerCase())) {
     return true;
   }
 
-  function resolveIps(target: string): Set<string> {
-    const ips = new Set<string>();
-    try {
-      // Synchronous DNS lookup via Node.js dns.resolve
-      const addresses = dns.resolve4.length
-        ? (() => {
-            try {
-              // Use execFileSync with getent (Linux) as primary method
-              const result = execFileSync("getent", ["hosts", target], {
-                encoding: "utf-8",
-                timeout: 5000
-              }).trim();
-              const resolved: string[] = [];
-              for (const line of result.split("\n")) {
-                const ip = line.trim().split(/\s+/)[0];
-                if (ip) resolved.push(ip);
-              }
-              return resolved;
-            } catch {
-              // getent not available (macOS) — fall back to dscacheutil or just skip
-              try {
-                const result = execFileSync(
-                  "dscacheutil",
-                  ["-q", "host", "-a", "name", target],
-                  { encoding: "utf-8", timeout: 5000 }
-                ).trim();
-                const resolved: string[] = [];
-                for (const line of result.split("\n")) {
-                  const match = line.match(/^ip_address:\s+(.+)/);
-                  if (match) resolved.push(match[1].trim());
-                }
-                return resolved;
-              } catch {
-                return [];
-              }
-            }
-          })()
-        : [];
-      for (const ip of addresses) ips.add(ip);
-    } catch {
-      // Unable to resolve
-    }
-    return ips;
-  }
+  const hostIps = resolveIps(host);
+  if (hostIps.length === 0) return false;
 
-  let hostIps: Set<string>;
-  try {
-    hostIps = resolveIps(host);
-  } catch {
-    return false;
-  }
-
-  if (hostIps.size === 0) return false;
-
-  const localIps = new Set<string>();
-  for (const target of ["localhost", os.hostname()]) {
-    try {
-      for (const ip of resolveIps(target)) localIps.add(ip);
-    } catch {
-      continue;
-    }
-  }
-
-  for (const ip of hostIps) {
-    if (localIps.has(ip)) return true;
-  }
-
-  return false;
+  const localIps = new Set([
+    ...resolveIps("localhost"),
+    ...resolveIps(os.hostname())
+  ]);
+  return hostIps.some((ip) => localIps.has(ip));
 }
 
 // ---------------------------------------------------------------------------
