@@ -43,8 +43,18 @@ function formatUnits(item: NodeCostEstimateDetail): string {
 
 /** True when the figure leaves out a cost we know exists — "at least $X". */
 const isLowerBound = (item: NodeCostEstimateDetail): boolean =>
+  item.confidence !== "unknown" && (item.warnings?.length ?? 0) > 0;
+
+/**
+ * True when the figure rests on an assumed default (a 1 s duration, a base
+ * resolution rung). The real run can land on either side of it, so it reads
+ * as "about $X" — a lower-bound "≥" would over-promise a per-minute model
+ * priced for a 5-second job.
+ */
+const isApproximate = (item: NodeCostEstimateDetail): boolean =>
   item.confidence !== "unknown" &&
-  ((item.warnings?.length ?? 0) > 0 || (item.assumptions?.length ?? 0) > 0);
+  !isLowerBound(item) &&
+  (item.assumptions?.length ?? 0) > 0;
 
 export interface CostEstimateRow {
   key: string;
@@ -56,6 +66,8 @@ export interface CostEstimateRow {
   units: string;
   costLabel: string;
   isLowerBound: boolean;
+  /** The figure rests on an assumed default — rendered as "~", not "≥". */
+  isApproximate: boolean;
   /** Breakdown + warnings, for a priced row's hover tooltip. */
   tooltip: string | null;
   assumptions: string[];
@@ -70,6 +82,8 @@ export interface CostEstimateSummaryView {
   /** Sum of every priced row, formatted; "—" when nothing could be priced. */
   totalLabel: string;
   isTotalLowerBound: boolean;
+  /** At least one priced row rests on an assumed default. */
+  isTotalApproximate: boolean;
 }
 
 export function useCostEstimateSummary(
@@ -91,6 +105,7 @@ export function useCostEstimateSummary(
         units: formatUnits(item),
         costLabel: unknown ? "—" : formatUsd(item.estimated_cost),
         isLowerBound: isLowerBound(item),
+        isApproximate: isApproximate(item),
         tooltip: item.breakdown
           ? [item.breakdown, ...(item.warnings ?? [])].join(" — ")
           : null,
@@ -106,7 +121,8 @@ export function useCostEstimateSummary(
       hasItems: estimate.items.length > 0,
       unknownCount: estimate.unknown_count,
       totalLabel: pricedCount > 0 ? formatUsd(estimate.total) : "—",
-      isTotalLowerBound: estimate.items.some((item) => isLowerBound(item))
+      isTotalLowerBound: estimate.items.some((item) => isLowerBound(item)),
+      isTotalApproximate: estimate.items.some((item) => isApproximate(item))
     };
   }, [estimate]);
 }

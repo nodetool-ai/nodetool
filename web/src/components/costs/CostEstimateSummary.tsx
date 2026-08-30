@@ -196,7 +196,7 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
               <span className="cost-cell-num">
                 {row.unknown
                   ? "—"
-                  : `${row.isLowerBound ? "≥ " : ""}${row.costLabel}`}
+                  : `${row.isLowerBound ? "≥ " : row.isApproximate ? "~" : ""}${row.costLabel}`}
               </span>
             </div>
           );
@@ -222,7 +222,11 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
       <div className="cost-total">
         <span className="cost-total-key">Total ({summary.currency})</span>
         <span className="cost-total-value">
-          {summary.isTotalLowerBound ? "≥ " : ""}
+          {summary.isTotalLowerBound
+            ? "≥ "
+            : summary.isTotalApproximate
+              ? "~"
+              : ""}
           {summary.totalLabel}
         </span>
       </div>

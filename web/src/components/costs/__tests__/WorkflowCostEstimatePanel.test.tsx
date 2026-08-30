@@ -120,7 +120,7 @@ describe("WorkflowCostEstimatePanel", () => {
     expect(screen.getAllByText(/≥/)).toHaveLength(2);
   });
 
-  it("labels a cost priced off an assumption as a lower bound", () => {
+  it("labels a cost priced off an assumption as approximate, not a lower bound", () => {
     mockHook.mockReturnValue({
       ...estimate,
       items: [
@@ -133,9 +133,11 @@ describe("WorkflowCostEstimatePanel", () => {
     } as never);
     renderPanel();
 
-    // An assumed duration is not the exact cost of the run the node will
-    // actually make, so the row and the total both read "at least".
-    expect(screen.getAllByText(/≥/)).toHaveLength(2);
+    // An assumed default is not a floor — the real run can cost less (a
+    // per-minute model on a 5-second job) — so the row and the total read
+    // "about", never "at least".
+    expect(screen.getAllByText(/~/)).toHaveLength(2);
+    expect(screen.queryByText(/≥/)).toBeNull();
   });
 
   it("shows an honest total instead of $0.00 when every node is unpriced", () => {
