@@ -32,18 +32,32 @@ const ffmpeg = (args) =>
     stdio: ["ignore", "inherit", "inherit"]
   });
 
+/**
+ * Remotion writes the master full-range (`yuvj420p`, `pc`), because that is
+ * what a browser screenshot is. Video has to ship limited-range: a
+ * full-range H.264 track is the one thing Safari and iOS will accept, decode,
+ * and then decline to paint — you get the poster and no error. So remap the
+ * samples rather than only retagging them, which would crush black and clip
+ * white instead.
+ */
+const TO_LIMITED_RANGE = [
+  "-vf", "scale=in_range=full:out_range=tv",
+  "-color_range", "tv"
+];
+
 /** mp4 + webm at the master's own size, no audio — the reel is silent. */
 function encode(master, slug) {
   const base = path.join(PUBLIC, slug);
   ffmpeg([
-    "-i", master,
+    "-i", master, ...TO_LIMITED_RANGE,
     "-c:v", "libx264", "-crf", "29", "-preset", "slow",
     "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart",
     `${base}.mp4`
   ]);
   ffmpeg([
-    "-i", master,
+    "-i", master, ...TO_LIMITED_RANGE,
     "-c:v", "libvpx-vp9", "-crf", "46", "-b:v", "0",
+    "-pix_fmt", "yuv420p",
     "-row-mt", "1", "-deadline", "good", "-cpu-used", "2", "-an",
     `${base}.webm`
   ]);
