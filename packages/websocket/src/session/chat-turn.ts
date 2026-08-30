@@ -1680,7 +1680,10 @@ export class ChatTurnHandler {
     // generated for reuse. This thread's in full, the rest as a count it can
     // search. Deterministic and always-on.
     if (threadId) {
-      const memoryBlock = await this.buildMemoryBlock(userId, threadId);
+      const memoryBlock = await this.buildMemoryBlock(
+        userId,
+        threadId
+      );
       if (memoryBlock) volatileContext.push(memoryBlock);
     }
 

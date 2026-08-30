@@ -418,8 +418,13 @@ export class UnifiedWebSocketRunner implements ClientSession {
    */
   appSession: AppSessionScope | null;
 
-  private defaultModel: string;
-  private defaultProvider: string;
+  /**
+   * Assigned once, in the constructor. `readonly` because JobExecutionManager
+   * snapshots both by value into its `defaults`, and a later reassignment here
+   * would silently leave the manager on the old pair.
+   */
+  private readonly defaultModel: string;
+  private readonly defaultProvider: string;
   readonly resolveExecutor: UnifiedWebSocketRunnerOptions["resolveExecutor"];
   readonly resolveNodeType?: UnifiedWebSocketRunnerOptions["resolveNodeType"];
   readonly resolveProvider?: UnifiedWebSocketRunnerOptions["resolveProvider"];

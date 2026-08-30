@@ -477,8 +477,6 @@ export class JobExecutionManager {
     return null;
   }
 
-  /** Raw socket delivery — no chat-turn interception. */
-
   /**
    * Normalize a raw graph so that the kernel's NodeDescriptor contract is met.
    * The web-UI / Python serialisation stores node properties under `data`;
@@ -691,11 +689,6 @@ export class JobExecutionManager {
     };
   }
 
-  /**
-   * Entry point for the "run_job" command. Starts the run immediately when the
-   * client is under its concurrency cap, otherwise queues it (FIFO) and emits a
-   * `queued` job update. Queued runs start automatically as active jobs finish.
-   */
   /**
    * Best-effort pre-run cost estimate for a graph, in USD. Nodes the estimator
    * cannot price contribute nothing, so the figure is a floor — good enough to
@@ -1107,6 +1100,11 @@ export class JobExecutionManager {
     return confined;
   }
 
+  /**
+   * Entry point for the "run_job" command. Starts the run immediately when the
+   * client is under its concurrency cap, otherwise queues it (FIFO) and emits a
+   * `queued` job update. Queued runs start automatically as active jobs finish.
+   */
   async runJob(incoming: RunJobRequest): Promise<void> {
     const req = await this.confineAppSessionRun(incoming);
     if (!req) return;
