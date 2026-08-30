@@ -73,6 +73,7 @@ import {
 } from "./TrackHeader";
 import { TrackHeader } from "./TrackHeader";
 import { TrackLane } from "./TrackLane";
+import { RubberBandOverlay } from "./RubberBandOverlay";
 import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
@@ -1041,6 +1042,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             <div
               css={lanesContainerStyles}
               style={{ minWidth: totalWidthPx, width: "100%", height: totalTracksHeight }}
+              data-timeline-lanes="true"
             >
               {tracks.map((track) => (
                 <React.Fragment key={track.id}>
@@ -1066,6 +1068,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               {hasScript && scriptBeforeTrackId === null && (
                 <ScriptLane />
               )}
+              {/* Marquee rect — drawn here, above every lane, because a band
+                  started on one lane may cover several. */}
+              <RubberBandOverlay />
             </div>
           </div>
         </FlexRow>
