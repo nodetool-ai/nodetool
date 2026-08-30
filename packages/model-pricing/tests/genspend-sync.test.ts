@@ -24,6 +24,7 @@ import {
 } from "../../../scripts/sync-genspend-pricing.mjs";
 import {
   MIN_PRICED_CASES,
+  NO_CATALOG_ENTRY,
   PARITY_CASES,
   priceCase,
   quoteRequest,
@@ -864,6 +865,64 @@ describe("parity check", () => {
     });
     expect(verdict.ok).toBe(false);
     expect(verdict.failures[0].detail).toContain("1.5");
+  });
+
+  /**
+   * An offering GenSpend stops serving leaves the export, so the sync drops our
+   * row and `/quote` refuses the step. The case then has nothing to assert.
+   * Tolerating that is only safe while it needs both halves, which is what
+   * these three pin.
+   */
+  describe("a delisted offering", () => {
+    const flat = {
+      unit_price: 0.05,
+      billing_unit: "images",
+      unit_class: "per-image",
+      model_slug: "m",
+      match: "provider-id",
+      live: true,
+      source_url: "https://example.test/m"
+    };
+    const one = [{ name: "delistable", key: "p:m", model: "m", provider: "p" }];
+    const compare = (prices: Record<string, unknown>, error: string) =>
+      runComparison({ catalog: { prices }, cases: one, quoteSteps: [{ error }] })
+        .results[0];
+
+    it("is reported as gone rather than as a disagreement", () => {
+      const result = compare({}, 'model is not available at "p"');
+      expect(result.ok).toBe(true);
+      expect(result.delisted).toBe(true);
+      expect(result.priced).toBe(false);
+      expect(priceCase(null, {}).declined).toBe(NO_CATALOG_ENTRY);
+    });
+
+    it("still fails while our catalog prices what the quote refuses", () => {
+      // The direction that matters: shipping a price for a model the provider
+      // no longer serves.
+      const result = compare({ "p:m": flat }, 'model is not available at "p"');
+      expect(result.ok).toBe(false);
+      expect(result.delisted).toBe(false);
+      expect(result.detail).toContain("0.05");
+    });
+
+    it("does not excuse a row lost for any other reason", () => {
+      const result = compare({}, "no priceable offering for that spec");
+      expect(result.ok).toBe(false);
+      expect(result.delisted).toBe(false);
+    });
+
+    it("cannot hollow the run out quietly", () => {
+      // Every case delisted is still a vacuous run, not a green one.
+      const verdict = runComparison({
+        catalog: { prices: {} },
+        quoteSteps: PARITY_CASES.map(() => ({
+          error: 'model is not available at "p"'
+        }))
+      });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.vacuous).toBe(true);
+      expect(verdict.reason).toContain("delisted");
+    });
   });
 
   it("asks the quote endpoint for exactly the cases it checks", () => {

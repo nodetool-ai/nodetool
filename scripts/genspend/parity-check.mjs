@@ -33,8 +33,17 @@
  *   `/quote` declines outright, so there is no figure to compare. They are
  *   excluded from the total on both sides, which is what matters.
  *
+ * A case can also go stale on GenSpend's side: an offering they stop serving is
+ * dropped from the export, so the sync drops our row and `/quote` refuses the
+ * step. Both sides then agree, and the case has nothing left to assert — it is
+ * reported as delisted and does not count toward the priced total. That path
+ * needs both halves (see `isDelisted`), because a quote that declines while we
+ * still carry a price is the finding worth failing on: the shipped catalog is
+ * quoting a model the provider no longer serves.
+ *
  * Exit code 0 only when every case matched AND at least `MIN_PRICED_CASES` were
  * really priced: a run that resolved nothing must fail rather than pass empty.
+ * That count is what stops delistings from hollowing the check out quietly.
  */
 
 import { readFileSync } from "node:fs";
@@ -54,9 +63,22 @@ export const EPSILON = 1e-6;
 
 /**
  * A parity run that priced fewer cases than this proves nothing — a catalog
- * that lost every key would otherwise pass with zero comparisons.
+ * that lost every key would otherwise pass with zero comparisons. It is also
+ * the backstop under `DELISTED_QUOTE_ERROR`: delistings stop being tolerated
+ * once enough of them have hollowed the run out.
  */
 export const MIN_PRICED_CASES = 15;
+
+/** The catalog has no row for the case's key at all. */
+export const NO_CATALOG_ENTRY = "no catalog entry";
+
+/**
+ * `/quote` says the offering is gone at that provider. GenSpend has no
+ * structured field for it, so the prose is the signal; a change to the wording
+ * surfaces as a failed case rather than a silent reclassification, which is the
+ * safe direction.
+ */
+export const DELISTED_QUOTE_ERROR = /not available at/i;
 
 /** GenSpend's video ladder, plus the spellings a provider page uses for it. */
 const RESOLUTION_TIERS = {
@@ -91,7 +113,7 @@ const near = (a, b) => Math.abs(a - b) <= EPSILON + Math.abs(b) * 1e-9;
  * publish, because understating is the direction that hurts.
  */
 export function priceCase(entry, params = {}) {
-  if (!entry) return { declined: "no catalog entry" };
+  if (!entry) return { declined: NO_CATALOG_ENTRY };
   if ((entry.data_flags ?? []).some((f) => f.severity === "quote_wrong")) {
     return { declined: "known quote discrepancy" };
   }
@@ -239,15 +261,20 @@ export function priceCase(entry, params = {}) {
 export const PARITY_CASES = [
   {
     name: "flat per-image price",
-    key: "together:black-forest-labs/FLUX.1-schnell",
-    model: "flux-1-schnell",
-    provider: "together"
-  },
-  {
-    name: "flat per-image price, a second provider",
     key: "fal_ai:fal-ai/flux-1/dev",
     model: "flux-1-dev",
     provider: "fal"
+  },
+  {
+    // Keeps a second provider in the set, on the entry-level path: no
+    // `variants`, so the unit price and class come off the entry itself. It
+    // replaced a Together per-image case GenSpend delisted; `/quote` prices no
+    // Together image offering our catalog carries, so the swap is to video.
+    name: "per-second on an entry with no variant grid, a second provider",
+    key: "together:minimax/hailuo-02",
+    model: "hailuo-02",
+    provider: "together",
+    params: { seconds: 6, resolution: "720p" }
   },
   {
     name: "per-second × duration, no ladder to narrow",
@@ -372,6 +399,23 @@ export const PARITY_CASES = [
   }
 ];
 
+/**
+ * Did GenSpend stop serving this offering since the case was pinned?
+ *
+ * Both halves must say so. `/quote` names the delisting, and our own catalog
+ * has dropped the row — which `buildPriceIndex` does only for an offering the
+ * export no longer marks `available`. A case where the quote declines but we
+ * still carry a price is the opposite finding and stays a failure: it means the
+ * shipped catalog quotes a model the provider no longer serves.
+ */
+function isDelisted(local, step) {
+  return (
+    local.declined === NO_CATALOG_ENTRY &&
+    typeof step?.error === "string" &&
+    DELISTED_QUOTE_ERROR.test(step.error)
+  );
+}
+
 /** One case's verdict, for the report and the exit code. */
 function compareCase(testCase, entry, step) {
   const local = priceCase(entry, testCase.params ?? {});
@@ -381,21 +425,25 @@ function compareCase(testCase, entry, step) {
 
   if (local.declined || remote === null) {
     const agree = Boolean(local.declined) && remote === null;
+    const delisted = !declineExpected && agree && isDelisted(local, step);
     return {
       name: testCase.name,
       key: testCase.key,
       priced: false,
       declined: true,
-      ok: agree && declineExpected,
+      delisted,
+      ok: delisted || (agree && declineExpected),
       local: local.declined ?? local.costUsd,
       remote: step?.error ?? remote,
-      detail: agree
-        ? declineExpected
-          ? "both declined"
-          : "both declined, but the case expected a price"
-        : `local ${local.declined ?? local.costUsd} vs quote ${
-            step?.error ?? remote
-          }`
+      detail: delisted
+        ? `delisted: ${step.error}`
+        : agree
+          ? declineExpected
+            ? "both declined"
+            : "both declined, but the case expected a price"
+          : `local ${local.declined ?? local.costUsd} vs quote ${
+              step?.error ?? remote
+            }`
     };
   }
 
@@ -405,6 +453,7 @@ function compareCase(testCase, entry, step) {
     key: testCase.key,
     priced: true,
     declined: false,
+    delisted: false,
     ok,
     local: local.costUsd,
     remote,
@@ -424,16 +473,22 @@ export function runComparison({ catalog, quoteSteps, cases = PARITY_CASES }) {
     compareCase(testCase, catalog?.prices?.[testCase.key] ?? null, quoteSteps[i])
   );
   const priced = results.filter((r) => r.priced && r.ok).length;
+  const delisted = results.filter((r) => r.delisted);
   const failures = results.filter((r) => !r.ok);
   const vacuous = priced < MIN_PRICED_CASES;
   return {
     results,
     priced,
+    delisted,
     failures,
     vacuous,
     ok: failures.length === 0 && !vacuous,
     reason: vacuous
-      ? `only ${priced} case(s) priced — at least ${MIN_PRICED_CASES} must match a real price, or the check passes on nothing`
+      ? `only ${priced} case(s) priced — at least ${MIN_PRICED_CASES} must match a real price, or the check passes on nothing${
+          delisted.length > 0
+            ? `; ${delisted.length} case(s) are pinned to offerings GenSpend has delisted and need repointing`
+            : ""
+        }`
       : failures.length > 0
         ? `${failures.length} case(s) disagree with GenSpend's calculator`
         : null
@@ -510,17 +565,27 @@ async function main() {
     console.log(JSON.stringify(verdict, null, 2));
   } else {
     for (const result of verdict.results) {
-      console.log(
-        `${result.ok ? "ok  " : "FAIL"} ${result.name.padEnd(52)} ${result.detail}`
-      );
+      const label = result.ok ? (result.delisted ? "gone" : "ok  ") : "FAIL";
+      console.log(`${label} ${result.name.padEnd(52)} ${result.detail}`);
     }
     console.log(
       `\n${verdict.priced}/${PARITY_CASES.length} case(s) priced and matched against ${QUOTE_URL}.`
     );
+    if (verdict.delisted.length > 0) {
+      console.log(
+        `${verdict.delisted.length} case(s) are pinned to offerings GenSpend has since delisted. ` +
+          `Repoint them at a live offering:`
+      );
+      for (const result of verdict.delisted) {
+        console.log(`  - ${result.key}`);
+      }
+    }
   }
 
+  // stdout, not stderr: on stderr this line interleaved into the middle of the
+  // report it summarizes, which is how the CI log read.
   if (!verdict.ok) {
-    console.error(`\nParity check failed: ${verdict.reason}`);
+    console.log(`\nParity check failed: ${verdict.reason}`);
     process.exit(1);
   }
 }
