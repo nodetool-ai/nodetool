@@ -33,8 +33,8 @@ export default function ProjectSection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            A chatbot leaves you a transcript. <br />
-            <span className="text-white">This leaves you a project.</span>
+            Go from conversation to <br />
+            <span className="text-white">complete project.</span>
           </motion.h2>
 
           <motion.p
@@ -44,11 +44,8 @@ export default function ProjectSection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Say what you want made. The agent plans the documents it takes,
-            builds them where you can watch, and files them under one project —
-            a board, a script, a cut, each opening in the editor that made it.
-            The four frames below are one session with the same teaser, from
-            the first sentence to the shelf it ends up on.
+            Stop copy-pasting from chat windows. Describe what you need, and
+            NodeTool generates the full project in seconds.
           </motion.p>
 
           <motion.a
