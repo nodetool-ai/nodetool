@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { OpenAIProvider } from "../../src/providers/openai-provider.js";
 import { AnthropicProvider } from "../../src/providers/anthropic-provider.js";
 import type { Message } from "../../src/providers/types.js";
+import { CostCalculator } from "../../src/providers/cost-calculator.js";
+import { withUsageCapture, consumeLastUsage } from "../../src/tracing-helpers.js";
 
 function makeAsyncIterable(items: unknown[]) {
   return {
@@ -243,5 +245,52 @@ describe("Cost tracking – Anthropic generateMessages (streaming)", () => {
     }
 
     expect(provider.getTotalCost()).toBeGreaterThan(0);
+  });
+});
+
+describe("Unpriced usage – BaseProvider", () => {
+  const provider = (): OpenAIProvider =>
+    new OpenAIProvider({ OPENAI_API_KEY: "k" }, { client: {} as any });
+
+  it("reports no reason while every call prices", () => {
+    const p = provider();
+    p.trackUsage("gpt-4o", { inputTokens: 10, outputTokens: 10 });
+    expect(p.unpricedReason).toBeNull();
+  });
+
+  it("records a call the calculator could not price as unpriced, not free", async () => {
+    // A zero written to the ledger reads as "this call was free". It was not:
+    // the tokens went out and the provider billed for them.
+    const broken = vi
+      .spyOn(CostCalculator, "calculate")
+      .mockImplementation(() => {
+        throw new Error("price table unavailable");
+      });
+    const p = provider();
+    const usage = await withUsageCapture(async () => {
+      p.trackUsage("gpt-4o", { inputTokens: 10, outputTokens: 10 });
+      return consumeLastUsage();
+    });
+    broken.mockRestore();
+
+    expect(p.unpricedReason).toContain("openai/gpt-4o");
+    // Token counts survive; the cost stays unset rather than becoming zero.
+    expect(usage?.inputTokens).toBe(10);
+    expect(usage?.cost).toBeUndefined();
+    expect(p.getTotalCost()).toBe(0);
+  });
+
+  it("clears the reason on resetCost", () => {
+    const broken = vi
+      .spyOn(CostCalculator, "calculate")
+      .mockImplementation(() => {
+        throw new Error("price table unavailable");
+      });
+    const p = provider();
+    p.trackUsage("gpt-4o", { inputTokens: 1, outputTokens: 1 });
+    broken.mockRestore();
+    expect(p.unpricedReason).not.toBeNull();
+    p.resetCost();
+    expect(p.unpricedReason).toBeNull();
   });
 });

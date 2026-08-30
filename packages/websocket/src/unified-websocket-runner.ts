@@ -53,6 +53,8 @@ import {
   attachRunCostLedger,
   ExecutionSession,
   isExecutionPreflightError,
+  isUnitBilledCapability,
+  priceGeneration,
   toRawGraphInput
 } from "@nodetool-ai/execution";
 import { createRunSupervisor } from "./run-supervisor.js";
@@ -95,7 +97,11 @@ import {
 } from "@nodetool-ai/models";
 import { getInstanceId } from "./lib/instance-id.js";
 import { requestRemoteJobCancel } from "./job-control.js";
-import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
+import {
+  estimateWorkflowCost,
+  nodeExpectedQuantity,
+  type WorkflowCostEstimateDetail
+} from "@nodetool-ai/node-sdk/cost-estimate";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
@@ -1878,6 +1884,16 @@ interface ActiveJob {
   runSession?: JobRunSession;
   /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
   providerCostTotal?: number;
+  /**
+   * Ledger-priced generation spend, per node id, for `prediction` messages the
+   * cost ledger prices against the model catalogs (Replicate, Gemini, OpenAI,
+   * MiniMax, ElevenLabs). Kept per node so a node that also reports its own
+   * `provider_cost` — the provider's own number, which wins — is not counted
+   * twice, whichever message arrives first.
+   */
+  predictionCostByNode?: Map<string, number>;
+  /** Node ids that reported a charge of their own on a completed `node_update`. */
+  selfReportedCostNodeIds?: Set<string>;
   /** Mini app this run belongs to, when one started it. Drives budget settlement. */
   applicationId?: string | null;
 }
@@ -3189,24 +3205,9 @@ export class UnifiedWebSocketRunner {
    * refuse one it cannot price.
    */
   private estimateRunCost(req: RunJobRequest): number {
-    const nodes = req.graph?.nodes;
-    if (!nodes || !this.getNodeMetadata) return 0;
     try {
-      const estimate = estimateWorkflowCost({
-        nodes: nodes.map((node) => ({
-          id: String(node.id),
-          type: String(node.type),
-          data: (node.data ?? {}) as Record<string, unknown>
-        })),
-        getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType),
-        // Prices the model picked on a generic node (e.g. a FAL or kie model on
-        // nodetool.image.TextToImage), which node-type metadata alone cannot.
-        // Same lookup the editor's cost preview uses.
-        getModelPrice: getModelUnitPrice,
-        // A per-second model bills the clip it is asked for, so the duration
-        // and resolution the node states have to reach the price lookup.
-        getParams: (node) => extractPricingParams(node.data)
-      });
+      const estimate = this.estimateGraphCost(req);
+      if (!estimate) return 0;
       return Number.isFinite(estimate.total) ? estimate.total : 0;
     } catch (err) {
       this.logError("run cost estimate failed", err);
@@ -3215,26 +3216,51 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * The graph estimate both gates read. One implementation so the budget gate,
+   * the credit gate and the editor's cost panel price a run the same way —
+   * including fan-out: a node asked for ten images is priced at ten, through
+   * the same `nodeExpectedQuantity` the panel uses.
+   */
+  private estimateGraphCost(
+    req: RunJobRequest
+  ): WorkflowCostEstimateDetail | null {
+    const nodes = req.graph?.nodes;
+    if (!nodes || !this.getNodeMetadata) return null;
+    const priced = nodes.map((node) => ({
+      id: String(node.id),
+      type: String(node.type),
+      data: (node.data ?? {}) as Record<string, unknown>
+    }));
+    return estimateWorkflowCost({
+      nodes: priced,
+      getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType),
+      // Prices the model picked on a generic node (e.g. a FAL or kie model on
+      // nodetool.image.TextToImage), which node-type metadata alone cannot.
+      // Same lookup the editor's cost preview uses.
+      getModelPrice: getModelUnitPrice,
+      // A per-second model bills the clip it is asked for, so the duration
+      // and resolution the node states have to reach the price lookup.
+      getParams: (node) => extractPricingParams(node.data),
+      quantities: Object.fromEntries(
+        priced.map((node): [string, number] => [
+          node.id,
+          nodeExpectedQuantity(node.data)
+        ])
+      )
+    });
+  }
+
+  /**
    * The slice of a run that spends through NodeTool's managed provider —
    * the only spend the credit balance meters. BYOK nodes are excluded on
    * purpose: their cost rides the user's own keys.
    */
   private estimateNodetoolSpend(req: RunJobRequest) {
-    const nodes = req.graph?.nodes;
-    if (!nodes || !this.getNodeMetadata) {
-      return { usesNodetool: false, estimatedUsd: 0 };
-    }
     try {
-      const estimate = estimateWorkflowCost({
-        nodes: nodes.map((node) => ({
-          id: String(node.id),
-          type: String(node.type),
-          data: (node.data ?? {}) as Record<string, unknown>
-        })),
-        getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType),
-        getModelPrice: getModelUnitPrice,
-        getParams: (node) => extractPricingParams(node.data)
-      });
+      const estimate = this.estimateGraphCost(req);
+      if (!estimate) {
+        return { usesNodetool: false, estimatedUsd: 0 };
+      }
       const items = estimate.items.filter(
         (item) => item.provider === "nodetool"
       );
@@ -4140,10 +4166,7 @@ export class UnifiedWebSocketRunner {
             job.markCancelled();
           }
         }
-        job.cost =
-          (active.providerCostTotal ?? 0) > 0
-            ? (active.providerCostTotal ?? null)
-            : null;
+        job.cost = this.runMeasuredCost(active);
         await job.save();
       }
     } catch (error) {
@@ -4155,7 +4178,8 @@ export class UnifiedWebSocketRunner {
    * Close the app's ledger row at what the run actually cost. Until this lands
    * the run keeps counting against the budget at its estimate, which is the
    * conservative direction: a crash cannot free spend it may have incurred.
-   * Only two node families report provider cost, so an absent total means
+   * The total is what anything measured: charges a node reported for itself
+   * plus generation the cost ledger priced. An absent total still means
    * "nothing measured this run", not "this run was free" — passing null keeps
    * the estimate standing rather than handing the spend back. Never throws.
    */
@@ -4165,7 +4189,7 @@ export class UnifiedWebSocketRunner {
       await settleInvocation(
         active.applicationId,
         active.jobId,
-        active.providerCostTotal ?? null,
+        this.runMeasuredCost(active),
         active.status === "failed"
           ? "failed"
           : active.status === "cancelled"
@@ -4282,6 +4306,12 @@ export class UnifiedWebSocketRunner {
         if (outbound.type === "notification" && isString(outbound.content)) {
           outbound.content = sanitizeLargeText(outbound.content);
         }
+
+        // Every message, not just node updates: a `prediction` is where
+        // ledger-priced generation spend (Replicate, Gemini, OpenAI, …)
+        // reports itself, and this is the path whose terminal status and app
+        // settlement read the run's measured cost.
+        this._handleNodeProviderCost(active, outbound);
         if (outbound.type === "node_update" && outbound.status === "error") {
           log.error("Node error", {
             jobId: active.jobId,
@@ -4429,8 +4459,6 @@ export class UnifiedWebSocketRunner {
             if (!isDisplaySink && !isStreamingLeaf) continue;
             outputUpdateSeen = true;
           }
-
-          this._handleNodeProviderCost(active, outbound);
 
           const isNodeError =
             outbound.type === "node_update" && outbound.status === "error";
@@ -6138,6 +6166,9 @@ export class UnifiedWebSocketRunner {
     const detachCostLedger = attachRunCostLedger(ctx, {
       userId,
       workflowId: workflowId ?? null,
+      // A project's own thread attributes its spend to that project, so
+      // `nodetool costs` can answer what a project cost.
+      projectId: chatProjectId ?? null,
       resolveSecret: (key) => ctx.getSecret(key)
     });
     // Any agent planning inside this turn (e.g. via run_node spawning an
@@ -6802,6 +6833,10 @@ export class UnifiedWebSocketRunner {
     active: ActiveJob,
     outbound: Record<string, unknown>
   ): void {
+    if (outbound.type === "prediction") {
+      this._handlePredictionCost(active, outbound);
+      return;
+    }
     if (
       outbound.type !== "node_update" ||
       outbound.status !== "completed" ||
@@ -6812,6 +6847,9 @@ export class UnifiedWebSocketRunner {
     const providerCost = outbound.provider_cost as ProviderCost;
     const amount = (providerCost as { amount?: unknown }).amount;
     if (isFiniteNumber(amount)) {
+      (active.selfReportedCostNodeIds ??= new Set()).add(
+        String(outbound.node_id ?? "")
+      );
       active.providerCostTotal = (active.providerCostTotal ?? 0) + amount;
     } else {
       // A non-finite amount (NaN/Infinity from a buggy provider call) can't
@@ -6821,6 +6859,57 @@ export class UnifiedWebSocketRunner {
       // rest of the `node_update` still reports normally.
       delete outbound.provider_cost;
     }
+  }
+
+  /**
+   * Accumulate a completed unit-billed `prediction` into the run total, priced
+   * the way the cost ledger prices it. Replicate, Gemini, OpenAI, MiniMax and
+   * ElevenLabs generation reports no `provider_cost` of its own, so without
+   * this a run on those providers settled as "nothing measured" and stayed
+   * booked at its estimate.
+   */
+  private _handlePredictionCost(
+    active: ActiveJob,
+    outbound: Record<string, unknown>
+  ): void {
+    if (outbound.status !== "completed") return;
+    const capability = isString(outbound.capability) ? outbound.capability : null;
+    if (!isUnitBilledCapability(capability)) return;
+    const provider = isString(outbound.provider) ? outbound.provider : "";
+    const model = isString(outbound.model) ? outbound.model : "";
+    if (!provider || !model) return;
+    const priced = priceGeneration({
+      userId: this.userId ?? "1",
+      provider,
+      model,
+      capability,
+      quantity: 1,
+      params: isRecord(outbound.params) ? outbound.params : {}
+    });
+    if (!priced || !isFiniteNumber(priced.cost)) return;
+    const nodeId = String(outbound.node_id ?? "");
+    const byNode = (active.predictionCostByNode ??= new Map());
+    byNode.set(nodeId, (byNode.get(nodeId) ?? 0) + priced.cost);
+  }
+
+  /**
+   * What this run cost, as far as anything measured it: node-reported provider
+   * charges plus ledger-priced generation on nodes that reported none. Null
+   * when nothing measured — which keeps an app invocation standing at its
+   * estimate rather than handing the spend back.
+   */
+  private runMeasuredCost(active: ActiveJob): number | null {
+    const selfReported = active.selfReportedCostNodeIds;
+    let total = active.providerCostTotal ?? 0;
+    let measured = active.providerCostTotal != null;
+    for (const [nodeId, cost] of active.predictionCostByNode ?? []) {
+      // The provider's own number wins over the catalog's estimate for the
+      // same node — counting both would double-bill a FAL or kie generation.
+      if (selfReported?.has(nodeId)) continue;
+      total += cost;
+      measured = true;
+    }
+    return measured && total > 0 ? total : null;
   }
 
   /**
@@ -6839,12 +6928,19 @@ export class UnifiedWebSocketRunner {
       return;
     }
     try {
+      // A provider that could not price a call reports why. Its running total
+      // is then missing that spend, so a zero is written as null — the row
+      // reads unpriced in `nodetool costs` instead of summing as free, the
+      // same posture the cost ledger takes.
+      const unpricedReason = provider.unpricedReason;
       const cost = provider.cost;
+      const unpriced = cost === 0 && unpricedReason != null;
       await Prediction.create({
         user_id: userId,
         provider: providerId,
         model,
-        cost,
+        cost: unpriced ? null : cost,
+        metadata: unpricedReason ? { unpriced_reason: unpricedReason } : null,
         workflow_id: workflowId,
         status: "completed",
         node_id: ""
@@ -8052,14 +8148,17 @@ export class UnifiedWebSocketRunner {
           outbound.job_id ??= jobId;
           outbound.workflow_id ??= workflowId;
 
+          // Every message, not just node updates: a `prediction` is where
+          // ledger-priced generation spend (Replicate, Gemini, OpenAI, …)
+          // reports itself.
+          this._handleNodeProviderCost(active, outbound);
+
           if (
             outbound.type === "node_update" ||
             outbound.type === "output_update"
           ) {
             const nodeId = String(outbound.node_id ?? "");
             const nodeType = nodeTypes.get(nodeId) ?? "";
-
-            this._handleNodeProviderCost(active, outbound);
 
             // Capture output_update values for the response message
             if (outbound.type === "output_update") {
@@ -8114,10 +8213,7 @@ export class UnifiedWebSocketRunner {
               job.markFailed(active.error ?? "Unknown error");
             else if (active.status === "cancelled") job.markCancelled();
           }
-          job.cost =
-            (active.providerCostTotal ?? 0) > 0
-              ? (active.providerCostTotal ?? null)
-              : null;
+          job.cost = this.runMeasuredCost(active);
           await job.save();
         }
       } catch (error) {
@@ -8469,8 +8565,24 @@ export class UnifiedWebSocketRunner {
     // tracked cost and the unit-price estimate — fal-style delegates bill
     // per unit and track nothing themselves.
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
-    const unit = getModelUnitPrice({ id: req.model, provider: "nodetool" });
-    const estimatedUsd = (unit?.unit_price ?? 0) * variations;
+    // What the request states about the job, in the vocabulary the catalogs
+    // bill in — a per-second video model prices the clip asked for, not one
+    // second of it.
+    const priceParams = extractPricingParams({
+      resolution: req.resolution,
+      duration_seconds: req.durationSeconds,
+      width: req.width,
+      height: req.height
+    });
+    const unit = getModelUnitPrice(
+      { id: req.model, provider: "nodetool" },
+      priceParams
+    );
+    const unitPrice =
+      unit && !unit.declined && isFiniteNumber(unit.unit_price)
+        ? unit.unit_price
+        : 0;
+    const estimatedUsd = unitPrice * variations;
     const decision = await admitSpend(userId, estimatedUsd);
     if (!decision.allowed) {
       throw new Error(decision.reason);
@@ -8490,6 +8602,12 @@ export class UnifiedWebSocketRunner {
             cost,
             currency: "USD",
             billing_unit: unit?.billing_unit ?? null,
+            // The row's own invariant is cost = unit_price × quantity, so the
+            // per-unit figure is derived from what was actually charged. It
+            // differs from the catalog price whenever the delegate tracked
+            // more than the estimate, and recording the catalog price then
+            // would make the row fail to reproduce its own total.
+            unit_price: cost / variations,
             quantity: variations,
             workflow_id: null,
             node_id: "",

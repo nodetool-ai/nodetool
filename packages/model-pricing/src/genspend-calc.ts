@@ -51,6 +51,10 @@ export interface ModelParamPrice extends ModelUnitPricingLike {
   warnings?: string[];
   /** Set instead of a price when we refuse to extrapolate. */
   declined?: string;
+  /** The duration the figure was billed for, when one applied. */
+  seconds?: number;
+  /** The rung the figure was billed at, in the catalog's own spelling. */
+  resolution?: string;
 }
 
 /**
@@ -104,10 +108,75 @@ export function normalizeResolution(value: string | undefined): string | null {
 
 const PER_SECOND_CLASSES = new Set(["per-video-second", "per-audio-second"]);
 
-const money = (usd: number): string =>
-  usd >= 0.01
-    ? `$${usd.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}`
-    : `$${usd}`;
+/**
+ * The megapixel rungs image grids are published at. `1K` is GenSpend's name for
+ * a one-megapixel deliverable, which `normalizeResolution` folds to `1MP`.
+ */
+const MEGAPIXEL_TIERS: Array<{ megapixels: number; tier: string }> = [
+  { megapixels: 0.25, tier: "512×512" },
+  { megapixels: 1, tier: "1MP" },
+  { megapixels: 4, tier: "2K" },
+  { megapixels: 16, tier: "4K" }
+];
+
+/** The rung a megapixel count sits closest to, inside a 1.5× band. */
+function tierForMegapixels(megapixels: number): string | null {
+  if (!Number.isFinite(megapixels) || megapixels <= 0) return null;
+  let best = MEGAPIXEL_TIERS[0];
+  let bestRatio = Infinity;
+  for (const candidate of MEGAPIXEL_TIERS) {
+    const ratio =
+      megapixels > candidate.megapixels
+        ? megapixels / candidate.megapixels
+        : candidate.megapixels / megapixels;
+    if (ratio < bestRatio) {
+      bestRatio = ratio;
+      best = candidate;
+    }
+  }
+  return bestRatio <= 1.5 ? best.tier : null;
+}
+
+const trimZeros = (text: string): string =>
+  text.includes(".") ? text.replace(/0+$/, "").replace(/\.$/, "") : text;
+
+/**
+ * A price as text. Sub-cent figures get as many decimal places as they need:
+ * `String(3e-7)` is `3e-7`, and a breakdown reading "$3e-7/s" is unreadable.
+ */
+export const formatUsd = (usd: number): string => {
+  if (!Number.isFinite(usd)) return "$0";
+  if (usd >= 0.01) return `$${trimZeros(usd.toFixed(3))}`;
+  if (usd <= 0) return "$0";
+  const places = Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
+  return `$${trimZeros(usd.toFixed(places))}`;
+};
+
+const money = formatUsd;
+
+/**
+ * Whether the catalog can price this entry off stated parameters — a published
+ * grid, a per-second class the duration multiplies, or an input surcharge.
+ * A flat per-generation entry with none of those answers the same number the
+ * provider catalogs carry, so nothing is gained by routing it here.
+ */
+export function isParameterPriceable(entry: GenspendPrice): boolean {
+  const rows = entry.variants ?? [];
+  if (
+    rows.some(
+      (row) =>
+        row.resolution !== undefined ||
+        row.duration_seconds !== undefined ||
+        row.with_audio !== undefined ||
+        row.tier !== undefined ||
+        row.video_input !== undefined
+    )
+  ) {
+    return true;
+  }
+  if (PER_SECOND_CLASSES.has(entry.unit_class)) return true;
+  return (entry.surcharges ?? []).length > 0;
+}
 
 /** The shortest duration the model is receipted for, or 1 s when unbounded. */
 function shortestClipSecond(clip: GenspendPrice["clip_seconds"]): number {
@@ -232,7 +301,7 @@ export function priceGenspendEntry(
   const assumptions: string[] = [];
   const warnings: string[] = [];
 
-  const resolution =
+  let resolution =
     params.resolution === undefined || params.resolution === null
       ? null
       : normalizeResolution(params.resolution);
@@ -240,6 +309,20 @@ export function priceGenspendEntry(
     assumptions.push(
       `resolution "${params.resolution}" is not one the catalog prices — priced at the base spec`
     );
+  }
+
+  // An image grid is laddered by megapixels, and a node that states a pixel
+  // size states that count without naming a rung. Only read it when the node
+  // named no resolution and the grid really is laddered.
+  if (resolution === null && params.megapixels !== undefined) {
+    const laddered = (entry.variants ?? []).some((row) => row.resolution);
+    const derived = laddered ? tierForMegapixels(params.megapixels) : null;
+    if (derived) {
+      resolution = derived;
+      assumptions.push(
+        `priced at the ${derived} rung, from the node's ${params.megapixels} MP output size`
+      );
+    }
   }
 
   const askedSeconds = params.seconds ?? 0;
@@ -368,6 +451,13 @@ export function priceGenspendEntry(
     source: "bundle",
     breakdown
   };
+  if (seconds !== null) {
+    price.seconds = seconds;
+  }
+  const rungResolution = row?.resolution ?? (resolution ?? undefined);
+  if (rungResolution !== undefined) {
+    price.resolution = rungResolution;
+  }
   if (assumptions.length > 0) {
     price.assumptions = assumptions;
   }

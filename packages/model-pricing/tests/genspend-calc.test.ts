@@ -6,7 +6,12 @@
  */
 import { describe, expect, it } from "vitest";
 import type { GenspendPrice } from "../src/genspend-catalog.js";
-import { normalizeResolution, priceGenspendEntry } from "../src/genspend-calc.js";
+import {
+  formatUsd,
+  isParameterPriceable,
+  normalizeResolution,
+  priceGenspendEntry
+} from "../src/genspend-calc.js";
 
 /** A laddered per-second video model with a re-rate scoped to 720p. */
 const LADDER: GenspendPrice = {
@@ -74,6 +79,37 @@ const IMAGE_WITH_REFS: GenspendPrice = {
       unit_price_usd: 0.03,
       free_allowance: 0,
       label: "prompt expansion"
+    }
+  ]
+};
+
+/** A per-image model laddered by megapixel rung, in GenSpend's own spelling. */
+const IMAGE_LADDER: GenspendPrice = {
+  unit_price: 0.04,
+  billing_unit: "images",
+  unit_class: "per-image",
+  model_slug: "image-ladder",
+  match: "catalog",
+  live: false,
+  source_url: "https://example.test/image-ladder",
+  variants: [
+    {
+      price_usd: 0.04,
+      unit_class: "per-image",
+      resolution: "1K",
+      is_base: true
+    },
+    {
+      price_usd: 0.09,
+      unit_class: "per-image",
+      resolution: "2K",
+      is_base: false
+    },
+    {
+      price_usd: 0.19,
+      unit_class: "per-image",
+      resolution: "4K",
+      is_base: false
     }
   ]
 };
@@ -280,5 +316,70 @@ describe("priceGenspendEntry", () => {
   it("prices a flat entry with no grid exactly as the scalar did", () => {
     const flat: GenspendPrice = { ...IMAGE_WITH_REFS, surcharges: [] };
     expect(priceGenspendEntry(flat, {}).unit_price).toBe(flat.unit_price);
+  });
+
+  it("reports the duration and rung it priced, not only the prose", () => {
+    const price = priceGenspendEntry(LADDER, { resolution: "1080p", seconds: 5 });
+    expect(price.seconds).toBe(5);
+    expect(price.resolution).toBe("1080p");
+  });
+
+  it("reads a megapixel size onto the image grid's rung", () => {
+    // 1024×1024 is 1.05 MP: the 1K rung, which normalizes to 1MP.
+    const priced = priceGenspendEntry(IMAGE_LADDER, { megapixels: 1.05 });
+    expect(priced.unit_price).toBeCloseTo(0.04, 10);
+    expect(priced.assumptions?.join(" ")).toContain("1MP");
+    // 2048×2048 is 4.19 MP — the 2K rung, a different price.
+    expect(
+      priceGenspendEntry(IMAGE_LADDER, { megapixels: 4.19 }).unit_price
+    ).toBeCloseTo(0.09, 10);
+  });
+
+  it("ignores a megapixel size when the node named a resolution", () => {
+    const priced = priceGenspendEntry(IMAGE_LADDER, {
+      resolution: "4K",
+      megapixels: 1.05
+    });
+    expect(priced.unit_price).toBeCloseTo(0.19, 10);
+  });
+
+  it("leaves a megapixel count far off every rung unpriced by it", () => {
+    // 40 MP is 2.5× the largest rung — naming one would invent a price.
+    const priced = priceGenspendEntry(IMAGE_LADDER, { megapixels: 40 });
+    expect(priced.assumptions?.join(" ")).not.toContain("MP output size");
+    expect(priced.unit_price).toBeCloseTo(0.04, 10);
+  });
+});
+
+describe("formatUsd", () => {
+  it("writes a sub-cent price in decimals, never in exponent form", () => {
+    expect(formatUsd(0.0000003)).toBe("$0.0000003");
+    expect(formatUsd(0.0000003)).not.toContain("e");
+    expect(formatUsd(0.004)).toBe("$0.004");
+  });
+
+  it("keeps the three-decimal form above a cent", () => {
+    expect(formatUsd(0.205)).toBe("$0.205");
+    expect(formatUsd(2)).toBe("$2");
+  });
+});
+
+describe("isParameterPriceable", () => {
+  it("is true for a published grid and for a per-second class", () => {
+    expect(isParameterPriceable(LADDER)).toBe(true);
+    expect(isParameterPriceable(IMAGE_LADDER)).toBe(true);
+    expect(
+      isParameterPriceable({ ...IMAGE_WITH_REFS, surcharges: [], unit_class: "per-video-second" })
+    ).toBe(true);
+  });
+
+  it("is true for an entry carrying an input surcharge", () => {
+    expect(isParameterPriceable(IMAGE_WITH_REFS)).toBe(true);
+  });
+
+  it("is false for a flat per-image entry with nothing to narrow", () => {
+    expect(
+      isParameterPriceable({ ...IMAGE_WITH_REFS, surcharges: [] })
+    ).toBe(false);
   });
 });
