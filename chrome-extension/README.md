@@ -42,15 +42,14 @@ tab this extension attached. `browser_status` reports which, and whether an
 extension currently holds the `/ws/extension` socket.
 
 Implementations: `packages/agents/src/capabilities/browser.ts` (the
-capabilities), `packages/automation-nodes/src/lib/browser-actions.ts` (the
-action layer), `packages/automation-nodes/src/lib/extension-cdp-client.ts`
-(this wire protocol, host side). Full documentation:
+capabilities), `packages/browser/src/actions.ts` (the action loop),
+`packages/browser/src/extension/client.ts` (this wire protocol, host side). Full documentation:
 [docs/chrome-extension.md](../docs/chrome-extension.md).
 
 ## Wire protocol
 
 `src/lib/protocol.ts` is a **mirror** of
-`packages/automation-nodes/src/lib/extension-protocol.ts` — the extension
+`packages/browser/src/extension/protocol.ts` — the extension
 cannot import from `packages/`, so the two files are kept byte-identical apart
 from their header comments. Change one, change the other.
 

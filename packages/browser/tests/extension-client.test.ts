@@ -9,11 +9,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ExtensionCdpClient,
   type ExtensionChannel
-} from "../src/lib/extension-cdp-client.js";
+} from "../src/extension/client.js";
 import type {
   ExtensionFrame,
   ExtensionHostToExtFrame
-} from "../src/lib/extension-protocol.js";
+} from "../src/extension/protocol.js";
 
 /**
  * A fake channel that records outbound frames and lets a test inject inbound

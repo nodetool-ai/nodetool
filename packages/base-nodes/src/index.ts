@@ -447,7 +447,6 @@ import { LIB_IMAGE_COLOR_GRADING_NODES } from "@nodetool-ai/image-nodes/nodes/li
 import { LIB_AUDIO_DSP_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-dsp";
 import { LIB_SQLITE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
 import { LIB_BROWSER_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
-import { registerBrowserActions } from "@nodetool-ai/automation-nodes/lib/browser-actions";
 import { LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 import { LIB_PDF_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
@@ -528,12 +527,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_IMAGE_FILTER_EXTRAS_NODES,
   ...LIB_IMAGE_COLOR_NODES
 ];
-
-// Serve the `browser_*` capabilities — one live Chrome page, headless or the
-// user's own signed-in one behind the extension relay. The actions cannot be
-// imported by the capability module that declares them (agents sits below this
-// package), so a host registers them here.
-registerBrowserActions();
 
 export { LIB_IMAGE_EFFECTS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-effects";
 export { LIB_IMAGE_KEYER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-keyer";

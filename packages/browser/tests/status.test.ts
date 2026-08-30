@@ -9,9 +9,9 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
-import { browserStatus } from "../src/lib/browser-tools-local.js";
-import { setExtensionChannelProvider } from "../src/lib/extension-channel-provider.js";
-import type { ExtensionChannel } from "../src/lib/extension-cdp-client.js";
+import { browserStatus } from "../src/actions.js";
+import { setExtensionChannelProvider } from "../src/extension/channel.js";
+import type { ExtensionChannel } from "../src/extension/client.js";
 
 const ENV_KEYS = ["NODETOOL_BROWSER_TRANSPORT", "NODETOOL_EXTENSION_WS_URL"];
 const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));

@@ -18,7 +18,7 @@
 import type {
   BrowserUploadAssetRaw,
   BrowserUploadAssetOutput
-} from "./browser-schemas.js";
+} from "./schemas.js";
 import { Buffer } from "node:buffer";
 import { promises as fs, rmSync } from "node:fs";
 import os from "node:os";

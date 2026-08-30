@@ -1,9 +1,11 @@
 /**
- * Local browser-action functions backed by Chrome DevTools Protocol.
+ * The browser action loop: one page, driven action by action.
  *
- * Runs inside the host process — the agent shares a single Chrome instance
- * across calls so cookies, navigation history, and indexed elements persist
- * between actions.
+ * The session is a process singleton, so cookies, navigation history and
+ * indexed elements persist between actions — and every caller in the process
+ * shares one page. It is transport-agnostic: the same actions run against a
+ * headless Chrome this process launched or, over the extension relay, the tab
+ * the user is already signed in to.
  *
  * Element indexing on `browser_view`: a JS expression assigns a sequential
  * `data-nt-idx` attribute to interactive elements; subsequent click/input/
@@ -42,14 +44,14 @@ import type {
   BrowserTransport,
   BrowserElement,
   BrowserConsoleMessage
-} from "./browser-schemas.js";
+} from "./schemas.js";
 import { Buffer } from "node:buffer";
 import { createLogger } from "@nodetool-ai/config";
 import type { CdpPage } from "./cdp-page.js";
-import { captureMediaInPage } from "./browser-capture.js";
-import { uploadAssetToInput } from "./browser-upload.js";
+import { captureMediaInPage } from "./capture.js";
+import { uploadAssetToInput } from "./upload.js";
 
-const log = createLogger("nodetool.automation.browser-extension");
+const log = createLogger("nodetool.browser");
 
 const CONSOLE_BUFFER_MAX = 500;
 
@@ -152,7 +154,7 @@ function resolveTransport(): BrowserTransport {
  */
 async function extensionConnected(): Promise<boolean | null> {
   const { getInProcessExtensionChannel } = await import(
-    "./extension-channel-provider.js"
+    "./extension/channel.js"
   );
   const channel = getInProcessExtensionChannel();
   return channel?.connected ?? null;
@@ -200,9 +202,9 @@ async function ensureState(): Promise<BrowserState> {
   const consoleMessages: BrowserConsoleMessage[] = [];
 
   if (transport === "extension") {
-    const { createExtensionPage } = await import("./extension-cdp-page.js");
+    const { createExtensionPage } = await import("./extension/page.js");
     const { getInProcessExtensionChannel } = await import(
-      "./extension-channel-provider.js"
+      "./extension/channel.js"
     );
     // In-server: ride the ExtensionBridge channel. Out-of-server (e.g. CLI):
     // fall back to the WS-URL client (NODETOOL_EXTENSION_WS_URL / default).
@@ -594,7 +596,8 @@ export async function browserUploadAsset(
   return uploadAssetToInput(s.page, input);
 }
 
-export async function _shutdownLocalBrowser(): Promise<void> {
+/** Close the shared session and forget the pinned transport. */
+export async function closeBrowserSession(): Promise<void> {
   transportOverride = null;
   if (state) {
     try {

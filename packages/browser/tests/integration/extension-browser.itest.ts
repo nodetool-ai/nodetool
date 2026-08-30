@@ -20,8 +20,8 @@ import {
   FIXTURE_IMG_INDEX,
   FIXTURE_FILE_INPUT_INDEX
 } from "./harness.js";
-import { captureMediaInPage } from "../../src/lib/browser-capture.js";
-import { uploadAssetToInput } from "../../src/lib/browser-upload.js";
+import { captureMediaInPage } from "../../src/capture.js";
+import { uploadAssetToInput } from "../../src/upload.js";
 
 let h: ExtensionBrowserHarness;
 

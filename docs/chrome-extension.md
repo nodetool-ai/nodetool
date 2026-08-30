@@ -175,7 +175,7 @@ Element indexes are rebuilt on every `browser_view`, so an agent views before it
 
 Permission-wise: reading the page (`browser_status`, `browser_view`, `browser_console_view`) is classified `read`, `browser_restart` and `browser_console_exec` are `execute`, and everything that acts on the page — a click, a keystroke, an upload — is `external`, because it lands on a third-party site inside the user's own logged-in session.
 
-The actions themselves live in `@nodetool-ai/automation-nodes`; the capability module that declares them sits below that package and receives them through a registration seam (`packages/agents/src/capabilities/browser-runner.ts`), which `@nodetool-ai/base-nodes` calls at load. A process that loaded no node packages answers every `browser_*` call with a sentence saying so, rather than hanging.
+The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which knows nothing about agents, nodes or assets — a screenshot comes back from it as base64. The capability module imports it directly and owns the half that needs a `ProcessingContext`: persisting those bytes as an asset, and resolving an asset id back to bytes for an upload. That split is why the `lib.browser.Screenshot` node can share the same action loop without depending on the agent layer.
 
 ---
 
@@ -194,7 +194,7 @@ The actions themselves live in `@nodetool-ai/automation-nodes`; the capability m
 - **Mutually exclusive with DevTools.** You can't have Chrome DevTools open on a tab while the extension is attached to it (both use `chrome.debugger`).
 - **Session-only.** Attaching does not persist across Chrome restarts — reattach after restarting your browser.
 - **One session per server process.** The browser session is a process singleton shared by every agent and workflow on that server, so two concurrent runs drive the same tab. Sequence them, or give each its own server.
-- **Manual build.** The `chrome-extension/` package isn't part of `npm run build:packages` — build it on demand. A diff touching it does run the `live-browser` surface's selfcheck through `nodetool harness gate`, but that covers the capability seam, not the relay: the extension → `chrome.debugger` → page round trip runs only in `npm run test:integration --workspace=packages/automation-nodes`, which needs Chrome and port 7777. Keep the two protocol definitions (`chrome-extension/src/lib/protocol.ts` and `packages/automation-nodes/src/lib/extension-protocol.ts`) in sync by hand if you change the wire format.
+- **Manual build.** The `chrome-extension/` package isn't part of `npm run build:packages` — build it on demand. A diff touching it does run the `live-browser` surface's selfcheck through `nodetool harness gate`, but that covers the capability seam, not the relay: the extension → `chrome.debugger` → page round trip runs only in `npm run test:integration --workspace=packages/browser`, which needs Chrome and port 7777. Keep the two protocol definitions (`chrome-extension/src/lib/protocol.ts` and `packages/browser/src/extension/protocol.ts`) in sync by hand if you change the wire format.
 
 ---
 

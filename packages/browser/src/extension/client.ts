@@ -13,7 +13,7 @@
  * server and rides the `ExtensionBridge`) or a WebSocket URL (when it runs in a
  * separate CLI process and connects to `/ws/extension` directly).
  *
- * See {@link file://./extension-protocol.ts} for the wire-protocol types.
+ * See {@link file://./protocol.ts} for the wire-protocol types.
  */
 
 import type {
@@ -22,11 +22,11 @@ import type {
   CdpResultFrame,
   ExtensionFrame,
   ExtensionHostToExtFrame
-} from "./extension-protocol.js";
-import { parseExtensionFrame } from "./extension-protocol.js";
+} from "./protocol.js";
+import { parseExtensionFrame } from "./protocol.js";
 import { createLogger } from "@nodetool-ai/config";
 
-const log = createLogger("nodetool.automation.extension-cdp");
+const log = createLogger("nodetool.browser.extension");
 
 /** Default `/ws/extension` endpoint used when only a URL transport is needed. */
 const DEFAULT_WS_URL = "ws://localhost:7777/ws/extension";

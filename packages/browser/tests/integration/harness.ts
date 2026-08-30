@@ -19,7 +19,7 @@
  *
  * The ws→{@link ExtensionChannel} adapter here mirrors the production
  * `ExtensionBridge` (in `@nodetool-ai/websocket`), reimplemented locally so the
- * test does not invert the package dependency (websocket → automation-nodes).
+ * test does not invert the package dependency (websocket → browser).
  */
 
 import http from "node:http";
@@ -32,15 +32,15 @@ import { WebSocketServer, type WebSocket as WsSocket } from "ws";
 import {
   createExtensionPage,
   type ExtensionPageHandle
-} from "../../src/lib/extension-cdp-page.js";
-import type { ExtensionChannel } from "../../src/lib/extension-cdp-client.js";
+} from "../../src/extension/page.js";
+import type { ExtensionChannel } from "../../src/extension/client.js";
 import {
   parseExtensionFrame,
   type ExtensionFrame
-} from "../../src/lib/extension-protocol.js";
+} from "../../src/extension/protocol.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-/** Repo root: packages/automation-nodes/tests/integration → ../../../.. */
+/** Repo root: packages/browser/tests/integration → ../../../.. */
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
 const EXTENSION_DIST = path.join(REPO_ROOT, "chrome-extension", "dist");
 

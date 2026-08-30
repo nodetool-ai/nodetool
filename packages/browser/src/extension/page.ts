@@ -8,13 +8,13 @@
  * action loop) is reused verbatim.
  */
 
-import { CdpPage } from "./cdp-page.js";
+import { CdpPage } from "../cdp-page.js";
 import {
   ExtensionCdpClient,
   type ExtensionCdpClientApi,
   type ExtensionChannel,
   type ExtensionCdpClientOptions
-} from "./extension-cdp-client.js";
+} from "./client.js";
 
 /** Default viewport for the extension-driven page. */
 const DEFAULT_VIEWPORT = { width: 1280, height: 900 };

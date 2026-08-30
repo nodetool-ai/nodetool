@@ -37,6 +37,7 @@
     "packages/cli",
     "packages/storage",
     "packages/config",
+    "packages/browser",
     "packages/deploy",
     "packages/compute",
     "packages/kie-codegen",

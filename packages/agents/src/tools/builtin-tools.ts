@@ -184,11 +184,9 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Live browser — one real Chrome page, driven action by action. Either a
   // headless one this process launches or, through the NodeTool Chrome
-  // extension, the tab the user is already signed in to. The action layer
-  // lives in the node packages and registers itself
-  // (`capabilities/browser-runner.ts`); a process that loaded none answers
-  // every one of these with a sentence saying so, which is why they are
-  // listed unconditionally.
+  // extension, the tab the user is already signed in to. The action loop is
+  // `@nodetool-ai/browser`, which this package depends on directly, so every
+  // host assembling this belt can serve them.
   "browser_status",
   "browser_view",
   "browser_navigate",

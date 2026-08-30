@@ -164,7 +164,7 @@ in the data module with its auth scope.
 **Browser-side.** The socket belongs to the viewer's browser, not the server:
 `packages/image-nodes/src/nodes/image-io.ts` (behind `!IS_NODE`),
 `packages/core-nodes/src/nodes/fake-media.ts`,
-`packages/automation-nodes/src/lib/browser-capture.ts` (inside `page.evaluate`).
+`packages/browser/src/capture.ts` (inside `page.evaluate`).
 
 ## Adding a surface
 

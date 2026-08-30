@@ -3,7 +3,7 @@
  *
  * This is the extension-side mirror copy. The CANONICAL source of these type
  * definitions lives at
- * `packages/automation-nodes/src/lib/extension-protocol.ts`. The extension is a
+ * `packages/browser/src/extension/protocol.ts`. The extension is a
  * separate greenfield build that cannot import from `packages/`, so the
  * definitions are duplicated here and must stay byte-identical to the canonical
  * copy; only this header comment differs.
