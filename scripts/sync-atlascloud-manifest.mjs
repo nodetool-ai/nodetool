@@ -38,11 +38,20 @@ const TYPE_MAP = {
 const ASSET_TYPES = new Set(["image", "video", "audio"]);
 
 // Options AtlasCloud declares that we deliberately do not surface:
-//  - enable_base64_output / enable_sync_mode are flagged `disabled` upstream
-//    (API-only transport switches) and would break the poll+download flow.
+//  - enable_base64_output / enable_sync_mode are API-only transport switches
+//    that would break the poll+download flow. Most models flag them `disabled`
+//    upstream, but not all (the FLUX.1 open-weight ones don't), so name them
+//    here rather than relying on that flag.
 //  - return_last_frame makes the job emit a second output the single-output
 //    node can't surface, so the toggle would silently do nothing.
-const SUPPRESSED_FIELDS = new Set(["return_last_frame"]);
+//  - output_dir is a server-side path on Tencent's upscaler — meaningless to a
+//    NodeTool run, which stores the result as an asset.
+const SUPPRESSED_FIELDS = new Set([
+  "return_last_frame",
+  "enable_base64_output",
+  "enable_sync_mode",
+  "output_dir"
+]);
 
 const isAssetField = (field) =>
   ASSET_TYPES.has(field.type) || field.type.startsWith("list[");
