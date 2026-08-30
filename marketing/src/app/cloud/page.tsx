@@ -14,7 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
-import CanvasScreenshot from "../../components/CanvasScreenshot";
+import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import SiteFooter from "../../components/SiteFooter";
 import CloudWaitlist from "../../components/CloudWaitlist";
 
@@ -177,22 +177,28 @@ export default function CloudPage() {
                     Alpha — not generally available
                   </span>
                 </div>
+                {/* Sized a step below the landing hero's 3.25rem cap: this
+                    headline carries an extra clause, and at that cap it wrapped
+                    to five lines in the 5/12 column and pushed the demo out of
+                    line with the copy. text-balance is off for the same reason
+                    — it broke the short first line to equalise against the
+                    much longer second one. */}
                 <h1
                   id="cloud-hero-title"
-                  className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
+                  className="mt-6 text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2rem,3.1vw,2.75rem)]"
                 >
-                  The agent-first studio
+                  You are the director.
                   <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
-                    in your browser.
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300 pb-[0.12em]">
+                    The agent is your crew — in your browser.
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  NodeTool Cloud is the hosted version of the same open-source
-                  studio. Nothing to install, no hardware to set up: sign in,
-                  pitch your idea, and the agent builds the film on a canvas
-                  you can still edit. Bring your own API keys for whichever
-                  providers you want to use.
+                  Describe your idea. The agent writes the script, storyboards
+                  every scene, generates the footage, and cuts the timeline —
+                  all of it in the hosted version of the same open-source
+                  studio. Nothing to install, no hardware to set up, and your
+                  own API keys for whichever providers you want to use.
                 </p>
                 <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm text-amber-100/90 max-w-xl">
                   <strong className="text-amber-200">Heads up:</strong> Cloud is
@@ -247,7 +253,7 @@ export default function CloudPage() {
                   }}
                 />
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-                  <CanvasScreenshot alt="NodeTool Cloud workflow editor" />
+                  <HeroDemoPlayer alt="NodeTool Cloud: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film — all in the browser" />
                 </div>
               </div>
             </div>
