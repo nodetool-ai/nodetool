@@ -86,7 +86,7 @@ const removeFromList = (
  */
 export const resolveExposedInputNames = (
   metadata: NodeMetadata,
-  data: NodeData
+  data: ExposedInputPlacementData
 ): string[] => {
   const hidden = new Set(data.exposedInputsHidden ?? []);
   const labeled = new Set(data.exposedInputsLabeled ?? []);
@@ -118,7 +118,7 @@ export const resolveExposedInputNames = (
 /** Inline-field rows (editors under preview / in generic body). */
 export const resolveInlineFieldNames = (
   metadata: NodeMetadata,
-  data: NodeData
+  data: ExposedInputPlacementData
 ): string[] => {
   const hidden = new Set(data.exposedInputsHidden ?? []);
   const labeled = new Set(data.exposedInputsLabeled ?? []);
@@ -130,9 +130,9 @@ export const resolveInlineFieldNames = (
 };
 
 /** Bottom labeled section (explicit overrides only). */
-export const resolveExposedInputLabeledNames = (data: NodeData): string[] => [
-  ...(data.exposedInputsLabeled ?? [])
-];
+export const resolveExposedInputLabeledNames = (
+  data: Pick<NodeData, "exposedInputsLabeled">
+): string[] => [...(data.exposedInputsLabeled ?? [])];
 
 export const addExposedInput = (
   current: string[] | undefined,

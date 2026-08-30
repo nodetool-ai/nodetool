@@ -907,6 +907,10 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       withBoard(
         state,
         boardId,
+        // Idempotent: a repeat select stays selected. The card's
+        // click-to-deselect toggle lives in the click handler, so
+        // programmatic callers (focus jumps, the agent bridge) can
+        // re-select safely.
         (b) => (b.activeShotId === shotId ? null : { ...b, activeShotId: shotId }),
         // Selection is transient UI state, not an authoring edit.
         false

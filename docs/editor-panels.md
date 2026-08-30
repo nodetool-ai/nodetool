@@ -183,7 +183,7 @@ A stack of toggles along the right canvas edge:
 
 ## App Menu (logo dropdown)
 
-The logo at the top of the left rail opens the app menu: **Dashboard**, **Examples**, **Costs**, **Model Manager**, **Collections**, **Workspaces** (when enabled), **Settings**, **Help**, and **Downloads**.
+The logo at the top of the left rail opens the app menu: **Tutorials**, **Examples**, **Costs**, **Model Manager**, **Assets**, **Collections**, **Workspaces**, **Settings**, **Help**, and **Downloads**. Everything but Help and Downloads opens as a workspace tab.
 
 ---
 

@@ -92,7 +92,10 @@ jest.mock("../../utils/modelUnitPricing", () => ({
         billing_unit: "video",
         currency: "USD",
         source: "bundle",
-        breakdown: `${seconds} s × $0.1/s`
+        breakdown: `${seconds} s × $0.1/s`,
+        seconds,
+        resolution: (params as { resolution?: string } | undefined)
+          ?.resolution
       };
     }
     return null;
@@ -225,6 +228,9 @@ describe("useWorkflowCostEstimate", () => {
     const item = result.current!.items.find((i) => i.node_id === "t2v");
     expect(item?.estimated_cost).toBeCloseTo(0.5, 5);
     expect(item?.breakdown).toBe("5 s × $0.1/s");
+    // Structured fields, not just breakdown prose — what the panel reads.
+    expect(item?.seconds).toBe(5);
+    expect(item?.resolution).toBe("720p");
   });
 
   it("re-prices when a duration property changes", () => {

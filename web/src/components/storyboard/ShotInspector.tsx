@@ -65,6 +65,8 @@ import {
   useBoardScriptLines,
   useShotDuration
 } from "../../hooks/storyboard/useShotDuration";
+import { useShotCostEstimate } from "../../hooks/storyboard/useShotCostEstimate";
+import { formatUsd } from "@nodetool-ai/model-pricing";
 import { useEntities } from "../../serverState/useEntities";
 import { getEntityChipSx, getEntityKindDotSx } from "../entities/entityKind";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -306,8 +308,8 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
       : "model default";
   // Cost sits in the same quiet line as the camera controls. A read-only
   // inspector has no controls, so there the camera reads as text beside it.
-  const costLabel =
-    shot.cost_estimate != null ? `~$${shot.cost_estimate.toFixed(2)}` : "";
+  const costEstimate = useShotCostEstimate(boardId, shot);
+  const costLabel = costEstimate ? `~${formatUsd(costEstimate.cost)}` : "";
   const metaLine = [camera.length > 0 ? camera : null, costLabel || null]
     .filter((p): p is string => p !== null)
     .join(" · ");
@@ -438,7 +440,14 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
     const raw = durationDraft.trim();
     setDurationDraft(null);
     if (raw === "") {
-      updateShot(boardId, shot.id, { duration_seconds: undefined });
+      // Clearing the field un-pins the shot too — otherwise it is left with
+      // no duration and a stale `duration_source: "manual"`, which blocks a
+      // linked shot from deriving one from its takes again. Same value the
+      // "unpin" chip (handleToggleDurationSource) writes.
+      updateShot(boardId, shot.id, {
+        duration_seconds: undefined,
+        duration_source: "audio"
+      });
       return;
     }
     const seconds = Number(raw);

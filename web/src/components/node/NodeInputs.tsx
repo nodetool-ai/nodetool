@@ -362,6 +362,81 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
   );
 };
 
-export const NodeInputs = memo(NodeInputsImpl, isEqual);
+const EMPTY_RECORD: Record<string, unknown> = {};
+
+/** Same keys, and each value the same reference. */
+const sameValues = (
+  prevMap: Record<string, unknown> | undefined,
+  nextMap: Record<string, unknown> | undefined
+): boolean => {
+  if (prevMap === nextMap) {
+    return true;
+  }
+  const prev = prevMap ?? EMPTY_RECORD;
+  const next = nextMap ?? EMPTY_RECORD;
+  const prevKeys = Object.keys(prev);
+  if (prevKeys.length !== Object.keys(next).length) {
+    return false;
+  }
+  for (const key of prevKeys) {
+    if (prev[key] !== next[key]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
+ * `data` carries the whole node blob, so the deep equal this replaces walked
+ * every property value — long prompts, asset refs, dataframes — on each
+ * keystroke. Compare the slices the subtree reads: `workflow_id` and the three
+ * value maps. `PropertyField` and `PropertyInput` read nothing else, and
+ * `NodeInput` narrows further via {@link isFieldRelevantDataEqual}.
+ */
+const arePropsEqual = (
+  prev: NodeInputsProps,
+  next: NodeInputsProps
+): boolean => {
+  if (
+    prev.id !== next.id ||
+    prev.nodeType !== next.nodeType ||
+    prev.layout !== next.layout ||
+    prev.showFields !== next.showFields ||
+    prev.showHandle !== next.showHandle ||
+    prev.editableDynamicInputs !== next.editableDynamicInputs ||
+    prev.showDynamicInputs !== next.showDynamicInputs ||
+    prev.onUpdatePropertyName !== next.onUpdatePropertyName ||
+    prev.onDeleteProperty !== next.onDeleteProperty ||
+    // Comes from the metadata store, so one reference per node type.
+    prev.nodeMetadata !== next.nodeMetadata
+  ) {
+    return false;
+  }
+  if (!isEqual(prev.defaultDynamicInputType, next.defaultDynamicInputType)) {
+    return false;
+  }
+  const prevProperties = prev.properties;
+  const nextProperties = next.properties;
+  if (
+    prevProperties !== nextProperties &&
+    (prevProperties.length !== nextProperties.length ||
+      prevProperties.some((p, i) => p !== nextProperties[i]))
+  ) {
+    return false;
+  }
+  const prevData = prev.data;
+  const nextData = next.data;
+  if (prevData === nextData) {
+    return true;
+  }
+  return (
+    prevData.workflow_id === nextData.workflow_id &&
+    sameValues(prevData.properties, nextData.properties) &&
+    sameValues(prevData.dynamic_properties, nextData.dynamic_properties) &&
+    sameValues(prevData.dynamic_inputs, nextData.dynamic_inputs)
+  );
+};
+
+export const NodeInputs = memo(NodeInputsImpl, arePropsEqual);
 NodeInputs.displayName = "NodeInputs";
 export default NodeInputs;

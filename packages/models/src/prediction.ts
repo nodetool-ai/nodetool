@@ -23,6 +23,19 @@ export interface AggregateResult {
   unpriced_count: number;
 }
 
+/**
+ * The columns a project spend rollup reads off a ledger row — the projection
+ * {@link Prediction.listSpendByProject} selects, and the shape
+ * `project-summary`'s `SpendRow` consumes.
+ */
+export interface ProjectSpendRow {
+  cost: number | null;
+  document_id: string | null;
+  node_type: string | null;
+  billing_unit: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
 export interface ProviderAggregateResult {
   provider: string;
   total_cost: number;
@@ -208,6 +221,39 @@ export class Prediction extends DBModel {
       .orderBy(desc(predictions.created_at))
       .limit(limit);
     return rows.map((r: Record<string, unknown>) => new Prediction(r));
+  }
+
+  /**
+   * The same rows as {@link listByProject}, projected to the five columns a
+   * project rollup reads. A ledger row carries `logs`, `parameters` and
+   * `metadata` as text the driver parses per row, and the rollup reads none of
+   * the first two — at twenty thousand rows per project, times a hundred
+   * projects in `projects.summaries`, that hydration is the whole cost of the
+   * call.
+   */
+  static async listSpendByProject(
+    userId: string,
+    projectId: string,
+    limit = 1000
+  ): Promise<ProjectSpendRow[]> {
+    const db = getDb();
+    return db
+      .select({
+        cost: predictions.cost,
+        document_id: predictions.document_id,
+        node_type: predictions.node_type,
+        billing_unit: predictions.billing_unit,
+        metadata: predictions.metadata
+      })
+      .from(predictions)
+      .where(
+        and(
+          eq(predictions.user_id, userId),
+          eq(predictions.project_id, projectId)
+        )
+      )
+      .orderBy(desc(predictions.created_at))
+      .limit(limit);
   }
 
   static async paginate(

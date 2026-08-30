@@ -57,6 +57,29 @@ describe("fetchFalPricing", () => {
     });
   });
 
+  it("trims whitespace FAL pads the billing unit with", async () => {
+    vi.stubGlobal(
+      "fetch",
+      makeFetchMock((ids) => ({
+        ok: true,
+        status: 200,
+        jsonBody: {
+          prices: ids.map((id) => ({
+            endpoint_id: id,
+            unit_price: 0.02,
+            unit: "1000 characters ",
+            currency: "USD"
+          }))
+        }
+      }))
+    );
+
+    const out = await fetchFalPricing(["fal-ai/minimax/speech-02-turbo"], "key");
+    expect(out["fal-ai/minimax/speech-02-turbo"].billing_unit).toBe(
+      "1000 characters"
+    );
+  });
+
   it("bisects on 404 so one unknown endpoint does not poison the batch", async () => {
     const unknown = new Set(["fal-ai/dead"]);
     vi.stubGlobal(

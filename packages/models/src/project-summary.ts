@@ -159,11 +159,19 @@ export interface ProjectSpend {
   /** Sum of every priced row. A lower bound when `unpricedCount` is non-zero. */
   totalUsd: number;
   unpricedCount: number;
+  /**
+   * True when the ledger read hit {@link LEDGER_CAP}, so rows exist that this
+   * total does not include. Same convention as `unpricedCount`: the number is
+   * a lower bound and says so, rather than reading as the whole spend.
+   */
+  partial: boolean;
   byCategory: CategorySpend[];
 }
 
 export interface ProjectSummary {
   documents: ProjectDocumentSummary[];
+  /** True when a document table hit {@link DOCUMENTS_PER_TYPE}. */
+  documentsPartial: boolean;
   spend: ProjectSpend;
 }
 
@@ -360,8 +368,11 @@ const CATEGORY_ORDER: SpendCategory[] = [
   "pipeline"
 ];
 
-/** Roll a project's ledger rows up into the bar's four segments. */
-export function summarizeSpend(rows: SpendRow[]): ProjectSpend {
+/**
+ * Roll a project's ledger rows up into the bar's four segments. `partial` says
+ * the caller's read was capped, so the totals are a lower bound.
+ */
+export function summarizeSpend(rows: SpendRow[], partial = false): ProjectSpend {
   const usd = new Map<SpendCategory, number>();
   const unpriced = new Map<SpendCategory, number>();
   for (const row of rows) {
@@ -383,6 +394,7 @@ export function summarizeSpend(rows: SpendRow[]): ProjectSpend {
       (sum, entry) => sum + entry.unpricedCount,
       0
     ),
+    partial,
     byCategory
   };
 }
@@ -396,26 +408,69 @@ interface ProjectDocumentRows {
   sketches: ImageDocument[];
   applications: Application[];
   jsScripts: JsScript[];
+  /** True when any table filled its cap, so documents are missing from these. */
+  partial: boolean;
+}
+
+/**
+ * Documents read per table. The per-table default is 50, which silently drops
+ * the 51st document of a kind; 200 is what a project overview can draw, and
+ * hitting it is reported rather than swallowed.
+ *
+ * Exported so a test can drive the overflow branch without writing 201
+ * documents of every kind.
+ */
+export const DOCUMENTS_PER_TYPE = 200;
+
+/**
+ * Ledger rows a project rollup reads. Hitting it makes the total a lower bound.
+ * Exported for the same reason as {@link DOCUMENTS_PER_TYPE}.
+ */
+export const LEDGER_CAP = 20_000;
+
+/** The caps a rollup reads with. Both are injectable so the overflow branches are testable. */
+export interface ProjectSummaryLimits {
+  documentsPerType?: number;
+  ledgerCap?: number;
 }
 
 /**
  * One query per document table — the tables share only the column, so there is
- * no join to make here.
+ * no join to make here. Each is asked for one row more than it keeps, so a
+ * table that ran out of room says so instead of looking complete.
  */
 async function loadProjectDocuments(
   userId: string,
-  projectId: string
+  projectId: string,
+  documentsPerType = DOCUMENTS_PER_TYPE
 ): Promise<ProjectDocumentRows> {
+  const cap = documentsPerType + 1;
   const [storyboards, scripts, timelines, sketches, applications, jsScripts] =
     await Promise.all([
-      Storyboard.listByProject(projectId, userId),
-      Script.listByProject(projectId, userId),
-      TimelineSequence.listByProject(projectId, userId),
-      ImageDocument.listByProject(projectId, userId),
-      Application.listByProject(projectId, userId),
-      JsScript.listByProject(projectId, userId)
+      Storyboard.listByProject(projectId, userId, cap),
+      Script.listByProject(projectId, userId, cap),
+      TimelineSequence.listByProject(projectId, userId, cap),
+      ImageDocument.listByProject(projectId, userId, cap),
+      Application.listByProject(projectId, userId, cap),
+      JsScript.listByProject(projectId, userId, cap)
     ]);
-  return { storyboards, scripts, timelines, sketches, applications, jsScripts };
+  const overflowed =
+    storyboards.length > documentsPerType ||
+    scripts.length > documentsPerType ||
+    timelines.length > documentsPerType ||
+    sketches.length > documentsPerType ||
+    applications.length > documentsPerType ||
+    jsScripts.length > documentsPerType;
+  const keep = <T>(rows: T[]): T[] => rows.slice(0, documentsPerType);
+  return {
+    storyboards: keep(storyboards),
+    scripts: keep(scripts),
+    timelines: keep(timelines),
+    sketches: keep(sketches),
+    applications: keep(applications),
+    jsScripts: keep(jsScripts),
+    partial: overflowed
+  };
 }
 
 const toRef = (
@@ -469,10 +524,22 @@ function spendByDocument(
  */
 export async function summarizeProject(
   userId: string,
-  projectId: string
+  projectId: string,
+  limits: ProjectSummaryLimits = {}
 ): Promise<ProjectSummary> {
-  const rows = await loadProjectDocuments(userId, projectId);
-  const ledger = await Prediction.listByProject(userId, projectId);
+  const { documentsPerType = DOCUMENTS_PER_TYPE, ledgerCap = LEDGER_CAP } =
+    limits;
+  const rows = await loadProjectDocuments(userId, projectId, documentsPerType);
+  // Projected to the columns the rollup reads — a ledger row's `logs` and
+  // `parameters` are never looked at here. One row past the cap, so a capped
+  // read is reported rather than summed as if it were the whole ledger.
+  const ledgerRows = await Prediction.listSpendByProject(
+    userId,
+    projectId,
+    ledgerCap + 1
+  );
+  const ledgerPartial = ledgerRows.length > ledgerCap;
+  const ledger = ledgerPartial ? ledgerRows.slice(0, ledgerCap) : ledgerRows;
   const perDocument = spendByDocument(ledger);
 
   const summarize = (
@@ -531,5 +598,9 @@ export async function summarizeProject(
     ...rows.jsScripts.map((row) => summarize(toRef("jsscript", row), null))
   ]);
 
-  return { documents, spend: summarizeSpend(ledger) };
+  return {
+    documents,
+    documentsPartial: rows.partial,
+    spend: summarizeSpend(ledger, ledgerPartial)
+  };
 }

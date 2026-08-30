@@ -12,5 +12,10 @@
   "openai": {},
   "minimax": {},
   "elevenlabs": {},
-  "xai": {}
+  "xai": {},
+  "topaz": {},
+  "reve": {},
+  "aki": {},
+  "meshy": {},
+  "rodin": {}
 }

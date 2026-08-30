@@ -11,16 +11,16 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { Node } from "@xyflow/react";
-import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
+import {
+  estimateWorkflowCost,
+  nodeExpectedQuantity,
+  usesAiModel,
+  type WorkflowCostEstimateDetail
+} from "@nodetool-ai/node-sdk/cost-estimate";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
-import type { WorkflowCostEstimate } from "@nodetool-ai/protocol";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import useMetadataStore from "../stores/MetadataStore";
 import type { NodeData } from "../stores/NodeData";
-import {
-  nodeExpectedQuantity,
-  nodeMetadataUsesAiModel
-} from "../utils/aiModelNodes";
 import { getModelUnitPrice } from "../utils/modelUnitPricing";
 
 const EMPTY_NODES: Node<NodeData>[] = [];
@@ -43,7 +43,7 @@ function propertyValues(
 
 export function useWorkflowCostEstimate(
   workflowId: string
-): WorkflowCostEstimate | null {
+): WorkflowCostEstimateDetail | null {
   const nodeStore = useWorkflowManager((state) =>
     state.getNodeStore(workflowId)
   );
@@ -65,7 +65,7 @@ export function useWorkflowCostEstimate(
       return null;
     }
     const aiNodes = nodes.filter((node) =>
-      node.type ? nodeMetadataUsesAiModel(getMetadata(node.type)) : false
+      node.type ? usesAiModel(getMetadata(node.type)) : false
     );
     // Each node contributes its configured fan-out (e.g. num_images) so the
     // estimate reflects a real run.

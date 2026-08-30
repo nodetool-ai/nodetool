@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { websocketWorkspaces } from "./websocket-workspaces.mjs";
+import {
+  getWorkspaceDependencies,
+  getWorkspaceDir,
+  websocketWorkspaces,
+} from "./websocket-workspaces.mjs";
 import { buildStampPath } from "./build-typescript-workspace.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -31,18 +35,6 @@ function run(command, args) {
   });
 }
 
-function getWorkspaceDir(workspaceName) {
-  return resolve(rootDir, "packages", workspaceName.replace("@nodetool-ai/", ""));
-}
-
-function getWorkspaceDependencies(workspaceName) {
-  const packageJsonPath = resolve(getWorkspaceDir(workspaceName), "package.json");
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
-  const dependencies = packageJson.dependencies ?? {};
-
-  return Object.keys(dependencies).filter((dependencyName) => websocketWorkspaces.includes(dependencyName));
-}
-
 function getNewestMtimeMs(pathname) {
   if (!existsSync(pathname)) {
     return 0;
@@ -67,6 +59,15 @@ function getNewestMtimeMs(pathname) {
   return newest;
 }
 
+/** A test file, which several workspaces exclude from their build tsconfig. */
+function isTestSource(relativeSourcePath) {
+  const segments = relativeSourcePath.split(/[\\/]/);
+  return (
+    segments.includes("__tests__") ||
+    /\.test\.[cm]?tsx?$/.test(segments[segments.length - 1])
+  );
+}
+
 function emittedPathForSource(relativeSourcePath) {
   if (
     relativeSourcePath.endsWith(".d.ts") ||
@@ -75,6 +76,14 @@ function emittedPathForSource(relativeSourcePath) {
   ) {
     // Ambient/source declarations participate in type checking but TypeScript
     // does not copy them to outDir.
+    return null;
+  }
+  if (isTestSource(relativeSourcePath)) {
+    // `packages/compute` and `packages/sandbox-compiler` exclude their tests
+    // from the build, so nothing is ever emitted for them. Demanding an output
+    // made those workspaces permanently stale — they rebuilt on every
+    // `electron:dev` start. No consumer imports a test file, so a missing one
+    // cannot leave anyone importing a module that is no longer emitted.
     return null;
   }
   if (relativeSourcePath.endsWith(".mts")) {

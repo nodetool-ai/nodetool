@@ -142,7 +142,9 @@ const ProjectSpendBar = ({ spend }: ProjectSpendBarProps) => {
             </Box>
           </FlexRow>
         ))}
-        <Box component="span">${spend.totalUsd.toFixed(2)}</Box>
+        <Box component="span">
+          {spend.partial ? "≥" : ""}${spend.totalUsd.toFixed(2)}
+        </Box>
       </FlexRow>
     </FlexRow>
   );

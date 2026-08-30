@@ -14,6 +14,10 @@ import type { Shot } from "@nodetool-ai/protocol";
 
 import { StatusPill, type StatusPillTone } from "../ui_primitives";
 import { colorForType } from "../../config/data_types";
+import {
+  useStoryboardGenerationStore,
+  type ShotGenerationStatus
+} from "../../stores/storyboard/StoryboardGenerationStore";
 
 /** Video violet — the app's colour for anything clip-shaped. */
 export const CLIP_COLOR = colorForType("video");
@@ -27,8 +31,17 @@ export interface ShotPill {
 export const isShotGenerating = (shot: Shot): boolean =>
   shot.status === "keyframe_generating" || shot.status === "clip_generating";
 
-/** What the pill says about a shot: the step it is on, or nothing once the clip is there. */
-export const shotPill = (shot: Shot): ShotPill | null => {
+/**
+ * What the pill says about a shot: the step it is on, or nothing once the
+ * clip is there. `jobStatus` is the shot's own entry in
+ * {@link useStoryboardGenerationStore} — the same read the card's progress
+ * bar uses — so "clip queued" only shows while a clip render has actually
+ * been requested, not for every stilled shot that has not gotten to one yet.
+ */
+export const shotPill = (
+  shot: Shot,
+  jobStatus?: ShotGenerationStatus
+): ShotPill | null => {
   if (isShotGenerating(shot)) {
     return {
       tone: "rendering",
@@ -43,7 +56,10 @@ export const shotPill = (shot: Shot): ShotPill | null => {
     return null;
   }
   if (shot.keyframe) {
-    return { tone: "neutral", label: "still · clip queued" };
+    const clipQueued = jobStatus === "queued" || jobStatus === "running";
+    return clipQueued
+      ? { tone: "neutral", label: "still · clip queued" }
+      : { tone: "neutral", label: "still" };
   }
   return { tone: "neutral", label: "planned" };
 };
@@ -54,7 +70,10 @@ interface ShotStatusPillProps {
 }
 
 const ShotStatusPillInner = ({ shot, sx }: ShotStatusPillProps) => {
-  const pill = shotPill(shot);
+  const jobStatus = useStoryboardGenerationStore(
+    (state) => state.shotJobs[shot.id]?.status
+  );
+  const pill = shotPill(shot, jobStatus);
   if (!pill) {
     return null;
   }

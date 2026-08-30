@@ -201,6 +201,38 @@ describe("ShotInspector", () => {
     );
   });
 
+  it("drops an uncommitted draft when the caller keys the inspector by shot id", async () => {
+    // Regression for F13: StoryboardBoard renders the inspector with
+    // `key={activeShot.id}`, forcing a fresh mount rather than reusing
+    // `useShotTextField`'s draft state across a shot swap.
+    const shotA = makeShot({ id: "shot-a", action: "Shot A action" });
+    const shotB = makeShot({ id: "shot-b", action: "Shot B action" });
+    const { rerender } = render(
+      <ThemeProvider theme={mockTheme}>
+        <ShotInspector key={shotA.id} boardId="board-1" shot={shotA} />
+      </ThemeProvider>
+    );
+
+    const field = screen.getByLabelText("Shot description");
+    await userEvent.clear(field);
+    await userEvent.type(field, "Uncommitted draft");
+    expect(field).toHaveValue("Uncommitted draft");
+
+    updateShotMock.mockClear();
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ShotInspector key={shotB.id} boardId="board-1" shot={shotB} />
+      </ThemeProvider>
+    );
+
+    // A fresh mount shows shot B's own value, not shot A's leaked draft, and
+    // the swap must not have silently committed the draft onto shot B.
+    expect(screen.getByLabelText("Shot description")).toHaveValue(
+      "Shot B action"
+    );
+    expect(updateShotMock).not.toHaveBeenCalled();
+  });
+
   it("treats the legacy approved status as a ready still", () => {
     renderInspector(
       makeShot({
@@ -513,7 +545,26 @@ describe("ShotInspector clip length", () => {
     await userEvent.tab();
 
     expect(updateShotMock).toHaveBeenLastCalledWith("board-1", "shot-1", {
-      duration_seconds: undefined
+      duration_seconds: undefined,
+      duration_source: "audio"
+    });
+  });
+
+  it("un-pins a linked shot when its length is cleared, so it derives from takes again", async () => {
+    linkedScriptId = "script-1";
+    renderInspector(
+      makeShot({
+        duration_seconds: 6,
+        duration_source: "manual",
+        script_line_ids: ["line-1"]
+      })
+    );
+    await userEvent.clear(lengthField());
+    await userEvent.tab();
+
+    expect(updateShotMock).toHaveBeenLastCalledWith("board-1", "shot-1", {
+      duration_seconds: undefined,
+      duration_source: "audio"
     });
   });
 

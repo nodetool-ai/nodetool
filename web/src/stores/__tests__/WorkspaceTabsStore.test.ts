@@ -1,8 +1,9 @@
 import {
   useWorkspaceTabsStore,
   creationProjectId,
+  dropTargetIndex,
+  gatherProjectTabs,
   nextActiveAfterClose,
-  orderTabsForRender,
   seedTabsFromLegacy,
   tabId,
   LOOSE_PROJECT_ID,
@@ -268,6 +269,29 @@ describe("openProject", () => {
     });
   });
 
+  it("gathers a stray tab of the project that is not in the documents list", () => {
+    reset([
+      { ...tab("storyboard", "stray"), projectId: "p1" },
+      tab("workflow", "a"),
+      tab("storyboard", "b1")
+    ]);
+
+    useWorkspaceTabsStore.getState().openProject({
+      id: "p1",
+      name: "Aurora",
+      documents: [{ type: "storyboard", ref: "b1", title: "Board" }]
+    });
+
+    const state = useWorkspaceTabsStore.getState();
+    const grouped = state.tabs.filter((t) => t.projectId === "p1");
+    const first = state.tabs.findIndex((t) => t.projectId === "p1");
+    // The group is one contiguous run: stray included, nothing interleaved.
+    expect(
+      state.tabs.slice(first, first + grouped.length).map((t) => t.projectId)
+    ).toEqual(grouped.map(() => "p1"));
+    expect(grouped.map((t) => t.id)).toContain("storyboard:stray");
+  });
+
   it("places the group where its first member already sat", () => {
     reset([tab("workflow", "a"), tab("storyboard", "b1"), tab("text", "c")]);
 
@@ -283,6 +307,28 @@ describe("openProject", () => {
       "storyboard:b1",
       "text:c"
     ]);
+  });
+});
+
+describe("rehydration", () => {
+  it("drops a persisted active project none of whose tabs survived", async () => {
+    localStorage.setItem(
+      "workspace-tabs-storage",
+      JSON.stringify({
+        state: {
+          tabs: [tab("workflow", "a")],
+          activeTabId: "workflow:a",
+          activeProjectId: "dead-project"
+        },
+        version: 1
+      })
+    );
+
+    await useWorkspaceTabsStore.persist.rehydrate();
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBeNull();
+    expect(creationProjectId()).toBe(LOOSE_PROJECT_ID);
   });
 });
 
@@ -355,15 +401,15 @@ describe("setActiveTab", () => {
   });
 });
 
-describe("orderTabsForRender", () => {
-  const grouped = (ref: string): WorkspaceTab => ({
-    ...tab("storyboard", ref),
-    projectId: "p1"
-  });
+const grouped = (ref: string): WorkspaceTab => ({
+  ...tab("storyboard", ref),
+  projectId: "p1"
+});
 
+describe("gatherProjectTabs", () => {
   it("leaves the order alone when no project is active", () => {
     const tabs = [grouped("b1"), tab("workflow", "a"), grouped("b2")];
-    expect(orderTabsForRender(tabs, null)).toBe(tabs);
+    expect(gatherProjectTabs(tabs, null)).toBe(tabs);
   });
 
   it("gathers the group where its first member sits", () => {
@@ -373,7 +419,7 @@ describe("orderTabsForRender", () => {
       tab("text", "c"),
       grouped("b2")
     ];
-    expect(orderTabsForRender(tabs, "p1").map((t) => t.ref)).toEqual([
+    expect(gatherProjectTabs(tabs, "p1").map((t) => t.ref)).toEqual([
       "a",
       "b1",
       "b2",
@@ -381,12 +427,109 @@ describe("orderTabsForRender", () => {
     ]);
   });
 
-  it("keeps a group that is already contiguous exactly where it is", () => {
+  it("returns the same array when the group is already contiguous", () => {
     const tabs = [tab("workflow", "a"), grouped("b1"), grouped("b2")];
-    expect(orderTabsForRender(tabs, "p1").map((t) => t.ref)).toEqual([
-      "a",
-      "b1",
-      "b2"
-    ]);
+    expect(gatherProjectTabs(tabs, "p1")).toBe(tabs);
+  });
+});
+
+// The tab bar renders `tabs` as they come and computes drop indices against
+// them, so these exercise the one index space end to end: build the divergence
+// the bar used to render around, then drop and close through it.
+describe("store order is render order", () => {
+  const g1 = grouped("g1");
+  const g2 = grouped("g2");
+  const l1 = tab("workflow", "l1");
+  const l2 = tab("text", "l2");
+
+  /** What the bar does on drop: index against the store, then move. */
+  const drop = (
+    sourceId: string,
+    targetId: string,
+    position: "left" | "right"
+  ) => {
+    const toIndex = dropTargetIndex(
+      useWorkspaceTabsStore.getState().tabs,
+      sourceId,
+      targetId,
+      position
+    );
+    if (toIndex !== null) {
+      useWorkspaceTabsStore.getState().moveTab(sourceId, toIndex);
+    }
+  };
+
+  const refs = () => useWorkspaceTabsStore.getState().tabs.map((t) => t.ref);
+
+  beforeEach(() => {
+    // A group split by two loose tabs — the shape the bar used to render as
+    // [g1, g2, l1, l2] while the store still held this.
+    reset([g1, l1, l2, g2], "storyboard:g2");
+    useWorkspaceTabsStore.getState().setActiveProjectId("p1");
+  });
+
+  it("gathers the group into the store when the project becomes active", () => {
+    expect(refs()).toEqual(["g1", "g2", "l1", "l2"]);
+  });
+
+  it("drops a loose tab where the indicator showed, just after the group", () => {
+    // Indicator on the right edge of g2 — between the group and l1.
+    drop("text:l2", "storyboard:g2", "right");
+    expect(refs()).toEqual(["g1", "g2", "l2", "l1"]);
+  });
+
+  it("keeps the group contiguous when a tab is dropped inside it", () => {
+    // Indicator between g1 and g2. No loose tab can live there, so l1 lands at
+    // the near edge of the group — and never past l2, which is what the old
+    // store-index arithmetic did.
+    drop("workflow:l1", "storyboard:g2", "left");
+    expect(refs()).toEqual(["g1", "g2", "l1", "l2"]);
+  });
+
+  it("reorders inside the group", () => {
+    drop("storyboard:g2", "storyboard:g1", "left");
+    expect(refs()).toEqual(["g2", "g1", "l1", "l2"]);
+  });
+
+  it("focuses the visually adjacent tab when the active tab closes", () => {
+    useWorkspaceTabsStore.getState().closeTab("storyboard:g2");
+    expect(refs()).toEqual(["g1", "l1", "l2"]);
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe("workflow:l1");
+  });
+});
+
+describe("closeProject focus", () => {
+  it("focuses the tab that slid into the group's place", () => {
+    reset(
+      [tab("image", "l0"), grouped("g1"), grouped("g2"), tab("workflow", "l1"), tab("text", "l2")],
+      "storyboard:g1"
+    );
+    useWorkspaceTabsStore.getState().setActiveProjectId("p1");
+
+    useWorkspaceTabsStore.getState().closeProject("p1");
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.tabs.map((t) => t.ref)).toEqual(["l0", "l1", "l2"]);
+    expect(state.activeTabId).toBe("workflow:l1");
+  });
+});
+
+describe("dropTargetIndex", () => {
+  const tabs = [tab("workflow", "a"), tab("image", "b"), tab("text", "c")];
+
+  it("is null for a drop on the dragged tab itself", () => {
+    expect(dropTargetIndex(tabs, "image:b", "image:b", "left")).toBeNull();
+  });
+
+  it("is null when either tab is gone", () => {
+    expect(dropTargetIndex(tabs, "text:gone", "image:b", "left")).toBeNull();
+    expect(dropTargetIndex(tabs, "image:b", "text:gone", "left")).toBeNull();
+  });
+
+  it("accounts for the dragged tab leaving its slot", () => {
+    // a moves to the right of c: removing a first shifts c down to index 1.
+    expect(dropTargetIndex(tabs, "workflow:a", "text:c", "right")).toBe(2);
+    // c moves to the left of a: nothing before it is removed.
+    expect(dropTargetIndex(tabs, "text:c", "workflow:a", "left")).toBe(0);
   });
 });

@@ -220,6 +220,15 @@ export interface ExecutionSessionOptions {
    * for a caller that persists the same spend itself and would double-count.
    */
   recordCosts?: boolean;
+  /**
+   * The project this run belongs to. Threaded onto every ledger row the run
+   * writes, so a project's spend counts what it actually paid for. Left unset
+   * outside a project — a row then carries a null rather than being attributed
+   * to the loose `default` bucket.
+   */
+  projectId?: string | null;
+  /** The project document this run is producing, when the host names one. */
+  documentId?: string | null;
 }
 
 export type {

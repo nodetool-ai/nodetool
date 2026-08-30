@@ -9,7 +9,6 @@ import {
 import useConnectionStore from "../../stores/ConnectionStore";
 import { colorForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
-import isEqual from "../../utils/isEqual";
 
 const CONTROL_EDGE_COLOR = "#f59e0b";
 const DEFAULT_EDGE_COLOR = "#888";
@@ -93,4 +92,19 @@ const ConnectionLine: ConnectionLineComponent = ({
   );
 };
 
-export default memo(ConnectionLine, isEqual);
+/**
+ * ReactFlow re-renders this on every pointermove of a connection drag, handing
+ * it the full `fromNode`/`toNode` internals and a fresh `pointer` object each
+ * time. Compare the seven props the path is drawn from, not that whole graph.
+ */
+export default memo(
+  ConnectionLine,
+  (prev, next) =>
+    prev.fromX === next.fromX &&
+    prev.fromY === next.fromY &&
+    prev.toX === next.toX &&
+    prev.toY === next.toY &&
+    prev.fromPosition === next.fromPosition &&
+    prev.toPosition === next.toPosition &&
+    prev.connectionLineType === next.connectionLineType
+);

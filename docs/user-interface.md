@@ -14,9 +14,9 @@ A tour of the interface. Same views on desktop and in the browser.
 
 | View | What it is | Docs |
 |---|---|---|
-| **Dashboard** `/dashboard` | Home: search, recent workflows, templates, quick chat | [Getting Started](getting-started.md) |
+| **Workspace** `/workspace` | Where the app opens: your tabs, or the new-project surface when you have none | [Getting Started](getting-started.md) |
 | **Projects** — Projects panel | Documents grouped by the job they belong to, with their own agent | [Projects](#projects) |
-| **Workflow Editor** `/workspace` | The node canvas, with panels on every edge | [Workflow Editor](workflow-editor.md) · [Panels](editor-panels.md) |
+| **Workflow Editor** — workspace tab | The node canvas, with panels on every edge | [Workflow Editor](workflow-editor.md) · [Panels](editor-panels.md) |
 | **Chain Editor** `/chain/:workflowId?` | Linear card pipeline instead of a graph | [Chain Editor](chain-editor.md) |
 | **Chat** — Chats panel | Threads open as workspace tabs; the agent edits what you have open | [Chat](global-chat.md) |
 | **Mini-Apps** — Apps panel | A form over one or more workflows | [Mini Apps](mini-apps.md) |
@@ -25,24 +25,16 @@ A tour of the interface. Same views on desktop and in the browser.
 | **Collections** `/collections` | Indexed documents for RAG | [Collections](collections.md) · [Indexing](indexing.md) |
 | **Examples** `/examples` | Ready-to-run workflows by tag | [Templates Gallery](templates-gallery.md) |
 | **Models** `/models` | Find, install, and manage local and cloud models | [Models Manager](models-manager.md) |
-| **Settings** — dialog | API keys, folders, secrets, remote | [Configuration](configuration.md) · [Providers](models-and-providers.md) |
+| **Settings** — workspace tab | API keys, folders, secrets, remote | [Configuration](configuration.md) · [Providers](models-and-providers.md) |
 
-The logo at the top of the left rail opens the app menu, which reaches all of
-these plus **Costs**, **Workspaces**, **Downloads**, and **Help**.
+The logo at the top of the left rail opens the app menu: **Tutorials**,
+**Examples**, **Costs**, **Model Manager**, **Assets**, **Collections**,
+**Workspaces**, **Settings**, **Help**, and **Downloads**. Everything but Help
+and Downloads opens as a workspace tab.
 
-Two extras: [Mobile](mobile-app.md) gives you a touch-optimized Dashboard, Chat,
-and Graph Editor, and the [desktop app](electron-views.md) adds an install
-wizard, a system tray, and frameless mini-app windows.
-
----
-
-## Dashboard
-
-![Dashboard Overview](assets/screenshots/dashboard-overview.png)
-
-Your workflows, templates, and recent chats, plus a getting-started checklist
-that disappears once you finish or dismiss it. Click a card to open it; click
-**New Workflow** to start from nothing.
+Two extras: [Mobile](mobile-app.md) gives you a touch-optimized Chat,
+Mini-Apps, and Graph Editor, and the [desktop app](electron-views.md) adds an
+install wizard, a system tray, and frameless mini-app windows.
 
 ---
 

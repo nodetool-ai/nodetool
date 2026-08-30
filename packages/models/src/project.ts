@@ -11,9 +11,15 @@
  */
 
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import {
+  DBModel,
+  ModelChangeEvent,
+  ModelObserver,
+  createTimeOrderedUuid
+} from "./base-model.js";
 import { getDb } from "./db.js";
 import { projects } from "./schema/projects.js";
+import { reassignProjectDocuments } from "./project-membership.js";
 import { Thread } from "./thread.js";
 
 /** The bucket documents land in when no project is active. */
@@ -108,14 +114,51 @@ export class Project extends DBModel {
   }
 
   /**
-   * Delete a project the caller owns. Its documents are left where they are —
-   * they keep pointing at a project id that no longer resolves, which reads as
-   * loose rather than as data loss. Missing and not-yours answer the same, so
-   * a caller cannot probe ids.
+   * Create a project without ever rewriting a row that already exists.
+   *
+   * `save()` is an upsert, and the primary key is install-global with no
+   * `(user_id, id)` uniqueness — so an id the caller supplies could otherwise
+   * overwrite another user's project. This inserts and answers null on
+   * conflict, leaving the existing row untouched for the caller to report.
+   */
+  static async insertNew(data: Record<string, unknown>): Promise<Project | null> {
+    const project = new Project(data);
+    project.beforeSave();
+    const db = getDb();
+    const rows = await db
+      .insert(projects)
+      .values({
+        id: project.id,
+        user_id: project.user_id,
+        name: project.name,
+        kind: project.kind,
+        thread_id: project.thread_id,
+        created_at: project.created_at,
+        updated_at: project.updated_at
+      })
+      .onConflictDoNothing()
+      .returning();
+    const row = rows[0];
+    if (!row) return null;
+    const created = new Project(row as Record<string, unknown>);
+    // `create()` notifies, and the websocket forwards that as the resource
+    // event an open project list refreshes on.
+    ModelObserver.notify(created, ModelChangeEvent.CREATED);
+    return created;
+  }
+
+  /**
+   * Delete a project the caller owns, moving its documents back into the loose
+   * bucket first. Leaving them pointing at a dead id loses them: the loose
+   * listing filters on {@link LOOSE_PROJECT_ID}, so an orphan appears in no
+   * project and in no unassigned list. Ledger rows keep the dead id — they are
+   * history, not something a user opens. Missing and not-yours answer the same,
+   * so a caller cannot probe ids.
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     const row = await Project.findOwned(userId, id);
     if (!row) return false;
+    await reassignProjectDocuments(userId, id, LOOSE_PROJECT_ID);
     await row.delete();
     return true;
   }

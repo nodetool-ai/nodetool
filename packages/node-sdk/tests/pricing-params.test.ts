@@ -44,7 +44,7 @@ describe("extractPricingParams", () => {
     expect(extractPricingParams({ image_size: "1K" }).resolution).toBe("1K");
   });
 
-  it("maps a pixel pair to the nearest tier", () => {
+  it("maps a pixel pair on a still to the nearest image tier", () => {
     expect(extractPricingParams({ size: "1024x1024" }).resolution).toBe(
       "1024x1024"
     );
@@ -54,6 +54,38 @@ describe("extractPricingParams", () => {
     expect(extractPricingParams({ width: 2048, height: 2048 }).resolution).toBe(
       "2K"
     );
+  });
+
+  it("maps a pixel pair on a clip to the video rung its height names", () => {
+    // With a duration the node is producing video, and 1280×720 is 720p —
+    // priced as a 1MP still it landed on a rung the model never sells.
+    expect(
+      extractPricingParams({ size: "1280*720", duration: 4 }).resolution
+    ).toBe("720p");
+    expect(
+      extractPricingParams({ width: 1920, height: 1080, duration: 6 }).resolution
+    ).toBe("1080p");
+    // Portrait: the rung is named after the short side, as it is in landscape.
+    expect(
+      extractPricingParams({ width: 480, height: 832, duration: 5 }).resolution
+    ).toBe("480p");
+  });
+
+  it("names no video rung for a height that sits between them", () => {
+    expect(
+      extractPricingParams({ width: 900, height: 900, duration: 5 }).resolution
+    ).toBeUndefined();
+  });
+
+  it("reads megapixels off a still's pixel size, and never off a clip", () => {
+    expect(extractPricingParams({ width: 1024, height: 1024 }).megapixels).toBe(
+      1.05
+    );
+    expect(extractPricingParams({ size: "2048x2048" }).megapixels).toBe(4.19);
+    expect(
+      extractPricingParams({ width: 1024, height: 1024, duration: 4 }).megapixels
+    ).toBeUndefined();
+    expect(extractPricingParams({ prompt: "hi" }).megapixels).toBeUndefined();
   });
 
   it("leaves a pixel pair that sits between tiers unset", () => {

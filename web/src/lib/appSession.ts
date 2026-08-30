@@ -22,6 +22,3 @@ export const setAppSessionToken = (token: string | null): void => {
 };
 
 export const getAppSessionToken = (): string | null => sessionToken;
-
-/** Whether this page is a deployed app's public page. */
-export const isAppSessionActive = (): boolean => sessionToken !== null;

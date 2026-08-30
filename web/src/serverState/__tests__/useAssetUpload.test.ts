@@ -16,7 +16,6 @@ import { useAssetUpload } from "../useAssetUpload";
 describe("useAssetUpload", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    const state = useAssetUpload.getState();
     useAssetUpload.setState({
       files: [],
       isUploading: false,

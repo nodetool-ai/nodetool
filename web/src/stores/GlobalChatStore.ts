@@ -189,6 +189,20 @@ interface SecretRequest {
   help_url: string | null;
 }
 
+/**
+ * What became of a send. `ok` means the turn reached the socket; the two
+ * failure reasons are the paths that used to return quietly, leaving the
+ * caller to assume the turn was on its way.
+ *
+ * Both refusals happen before the turn is written to the thread cache, so an
+ * outcome means nothing was recorded. A send that fails *after* that point
+ * rejects instead — a caller holding its own copy of the turn can read the
+ * rejection as "it is in the thread now" and stop holding it.
+ */
+export type ChatSendOutcome =
+  | { ok: true; threadId: string }
+  | { ok: false; reason: "no_model" | "not_connected"; error: string };
+
 export interface GlobalChatState {
   // Connection state + mirror of the CURRENT thread's runtime (see
   // core/chat/threadRuntime.ts). Multi-thread consumers read `threadRuntime`.
@@ -313,6 +327,18 @@ export interface GlobalChatState {
     message: Message | ChatOutgoingMessage,
     threadId?: string
   ) => Promise<void>;
+  /**
+   * The same send, with its outcome reported instead of swallowed.
+   *
+   * `sendMessage` returns without throwing when nothing could be sent — no
+   * model is selected, or the socket refused to connect — so a caller that
+   * consumed something to build the turn (the project agent's staged first
+   * prompt) cannot tell a delivered turn from a dropped one. This reports it.
+   */
+  trySendMessage: (
+    message: Message | ChatOutgoingMessage,
+    threadId?: string
+  ) => Promise<ChatSendOutcome>;
   resetMessages: () => void;
 
   // Thread actions
@@ -936,6 +962,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
         message: Message | ChatOutgoingMessage,
         targetThreadId?: string
       ) => {
+        await get().trySendMessage(message, targetThreadId);
+      },
+
+      trySendMessage: async (
+        message: Message | ChatOutgoingMessage,
+        targetThreadId?: string
+      ): Promise<ChatSendOutcome> => {
         const { currentThreadId, workflowId, selectedModel } = get();
 
         // Agent mode is no longer a UI toggle — every chat session runs the
@@ -973,7 +1006,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             }
             return patch;
           });
-          return;
+          return { ok: false, reason: "no_model", error: reason };
         }
 
         // Ensure WebSocket connection is established before sending
@@ -996,7 +1029,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
             }
             return patch;
           });
-          return;
+          return {
+            ok: false,
+            reason: "not_connected",
+            error: connectionError
+          };
         }
 
         // Ensure we have a thread
@@ -1140,6 +1177,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           set((state) =>
             threadRuntimeUpdate(state, tid, { sendMessageTimeoutId: timeoutId })
           );
+          return { ok: true, threadId: tid };
         } catch (error) {
           // Clear this thread's timeout on error
           const currentTimeoutId = getThreadRuntime(
@@ -1149,6 +1187,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           if (currentTimeoutId !== null) {
             clearTimeout(currentTimeoutId);
           }
+          // Thrown, not returned: the optimistic turn is already in the thread
+          // cache by here, and callers tell the two apart by that (see
+          // ChatSendOutcome).
           console.error("Failed to send message:", error);
           const errorMessage =
             error instanceof Error ? error.message : "Failed to send message";

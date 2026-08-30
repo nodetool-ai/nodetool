@@ -19,9 +19,6 @@
       "node"
     ],
     "paths": {
-      "@nodetool-ai/websocket/trpc": [
-        "../packages/websocket/dist/trpc/router.d.ts"
-      ],
       "@nodetool-ai/app-runtime": [
         "../packages/app-runtime/src/index.ts"
       ],

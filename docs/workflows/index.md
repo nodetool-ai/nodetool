@@ -82,7 +82,7 @@ Generate and visualize data:
 
 **Option 1: One-Click Import (Easiest)**
 1. Open NodeTool
-2. Click **Templates** in the dashboard
+2. Click **Examples** in the app menu (the logo dropdown)
 3. Browse and click any workflow
 4. Start creating immediately!
 

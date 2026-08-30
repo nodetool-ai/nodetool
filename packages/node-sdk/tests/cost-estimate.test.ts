@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   estimateWorkflowCost,
+  nodeExpectedQuantity,
+  usesAiModel,
   type CostEstimateInput,
   type NodeMetadataLike
 } from "../src/cost-estimate.js";
@@ -263,6 +265,8 @@ describe("estimateWorkflowCost with pricing parameters", () => {
       currency: "USD",
       source: "bundle" as const,
       breakdown: `${seconds} s × $0.2/s`,
+      seconds,
+      resolution: params?.resolution,
       ...(params?.seconds === undefined
         ? { assumptions: ["duration not set on the node — priced at 1 s"] }
         : {}),
@@ -356,5 +360,82 @@ describe("estimateWorkflowCost with pricing parameters", () => {
     });
 
     expect(estimate.items[0].unit_price).toBeCloseTo(0.2, 10);
+  });
+
+  it("carries the priced duration and rung onto the item", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [videoNode({ duration: 5 })],
+      getMetadata: getVideoMetadata,
+      getModelPrice: getModelPriceWithParams,
+      getParams: () => ({ seconds: 5, resolution: "720p" })
+    });
+
+    // The panel reads these off the item instead of parsing the breakdown.
+    expect(estimate.items[0].seconds).toBe(5);
+    expect(estimate.items[0].resolution).toBe("720p");
+  });
+
+  it("carries warnings onto an item the catalog declined to price", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [videoNode({})],
+      getMetadata: getVideoMetadata,
+      getModelPrice: () => ({
+        unit_price: 0,
+        billing_unit: "",
+        currency: "USD",
+        source: "bundle" as const,
+        declined: "no fixed value per run",
+        warnings: ["the figure is a lower bound"]
+      })
+    });
+
+    expect(estimate.items[0].confidence).toBe("unknown");
+    expect(estimate.items[0].warnings).toEqual(["the figure is a lower bound"]);
+  });
+});
+
+describe("usesAiModel", () => {
+  it("is true for a node carrying provider unit pricing", () => {
+    expect(usesAiModel(metadataByType[FAL_TYPE])).toBe(true);
+    expect(usesAiModel(metadataByType[KIE_TYPE])).toBe(true);
+  });
+
+  it("is true for a node exposing a provider-backed model property", () => {
+    expect(usesAiModel(metadataByType[GENERIC_TYPE])).toBe(true);
+  });
+
+  it("is false for a plain node and for missing metadata", () => {
+    expect(usesAiModel({ properties: [{ type: { type: "str" } }] })).toBe(false);
+    expect(usesAiModel({ properties: null })).toBe(false);
+    expect(usesAiModel(undefined)).toBe(false);
+  });
+
+  it("is false for a local model property, which no provider catalog prices", () => {
+    expect(
+      usesAiModel({ properties: [{ type: { type: "llama_model" } }] })
+    ).toBe(false);
+  });
+});
+
+describe("nodeExpectedQuantity", () => {
+  it("reads the fan-out properties, most specific first", () => {
+    expect(nodeExpectedQuantity({ num_images: 4 })).toBe(4);
+    expect(nodeExpectedQuantity({ num_outputs: 3 })).toBe(3);
+    expect(nodeExpectedQuantity({ num_samples: 2 })).toBe(2);
+    expect(nodeExpectedQuantity({ batch_size: 8 })).toBe(8);
+    expect(nodeExpectedQuantity({ num_images: 4, num_outputs: 9 })).toBe(4);
+  });
+
+  it("floors a fractional count and never returns less than one", () => {
+    expect(nodeExpectedQuantity({ num_images: 2.7 })).toBe(2);
+    expect(nodeExpectedQuantity({ num_images: 0 })).toBe(1);
+    expect(nodeExpectedQuantity({ num_images: -3 })).toBe(1);
+    expect(nodeExpectedQuantity({ num_images: "4" })).toBe(1);
+    expect(nodeExpectedQuantity({})).toBe(1);
+    expect(nodeExpectedQuantity(undefined)).toBe(1);
+  });
+
+  it("does not read num_frames — that is one video's length, not a batch", () => {
+    expect(nodeExpectedQuantity({ num_frames: 81 })).toBe(1);
   });
 });

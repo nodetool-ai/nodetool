@@ -93,6 +93,79 @@ describe("projects router", () => {
     ).rejects.toThrow(/not found/i);
   });
 
+  it("refuses a reserved, blank or already-taken id", async () => {
+    await expect(
+      caller().projects.create({ id: LOOSE_PROJECT_ID, name: "Loose" })
+    ).rejects.toThrow();
+    await expect(
+      caller().projects.create({ id: "", name: "Blank" })
+    ).rejects.toThrow();
+    await expect(
+      caller().projects.create({ id: "   ", name: "Whitespace" })
+    ).rejects.toThrow();
+    // Nothing was written under the reserved id.
+    expect(await caller().projects.list({})).toEqual([]);
+
+    const theirs = await caller("user-2").projects.create({
+      id: "shared-id",
+      name: "Theirs"
+    });
+    // Another user's id answers as a missing one does: create must not tell a
+    // caller which ids exist outside what they own.
+    await expect(
+      caller().projects.create({ id: "shared-id", name: "Mine now" })
+    ).rejects.toThrow(/not found/i);
+    // The conflict left their row alone — no upsert rewrote its owner.
+    expect(
+      (await caller("user-2").projects.get({ id: theirs.id })).project.name
+    ).toBe("Theirs");
+    expect(await caller().projects.list({})).toEqual([]);
+  });
+
+  it("answers a repeated create of the caller's own id with the same project", async () => {
+    const first = await caller().projects.create({ id: "mine", name: "Aurora" });
+    const again = await caller().projects.create({ id: "mine", name: "Ignored" });
+    // The repeat's name is discarded: a create is not a rename.
+    expect(again).toEqual(first);
+    expect(again.name).toBe("Aurora");
+  });
+
+  it("trims a padded id rather than storing one nothing can address", async () => {
+    const created = await caller().projects.create({
+      id: "  padded  ",
+      name: "Aurora"
+    });
+    expect(created.id).toBe("padded");
+    expect((await caller().projects.get({ id: "padded" })).project.name).toBe(
+      "Aurora"
+    );
+    // And the trimmed form is the same project, not a second one.
+    expect(
+      (await caller().projects.create({ id: "padded", name: "Again" })).id
+    ).toBe("padded");
+    expect(await caller().projects.list({})).toHaveLength(1);
+  });
+
+  it("moves a deleted project's documents back into the loose bucket", async () => {
+    const project = await caller().projects.create({ name: "Aurora" });
+    const board = await Storyboard.create<Storyboard>({
+      user_id: "user-1",
+      project_id: project.id,
+      name: "Board"
+    });
+    const script = await Script.create<Script>({
+      user_id: "user-1",
+      project_id: project.id,
+      name: "VO"
+    });
+
+    await caller().projects.delete({ id: project.id });
+
+    expect(
+      (await caller().projects.unassigned({})).map((d) => d.ref).sort()
+    ).toEqual([board.id, script.id].sort());
+  });
+
   it("returns each document with its status and the project's spend", async () => {
     const project = await caller().projects.create({ name: "Aurora", kind: "spot" });
     const board = await Storyboard.create<Storyboard>({

@@ -15,7 +15,7 @@ const createProject = jest.fn(async () => ({
   createdAt: "",
   updatedAt: ""
 }));
-const openProject = jest.fn(async () => undefined);
+const openProject = jest.fn(async () => true);
 
 jest.mock("../../../hooks/useProjects", () => ({
   useCreateProject: () => ({ mutateAsync: createProject }),
@@ -83,10 +83,57 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
     selector({ closeTab })
 }));
 
+const addNotification = jest.fn();
 jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: <T,>(
     selector: (s: { addNotification: jest.Mock }) => T
-  ) => selector({ addNotification: jest.fn() })
+  ) => selector({ addNotification })
+}));
+
+// The surface reads the chat's model selection to decide whether the project
+// agent could actually send its opening turn, and writes it back when a model
+// is picked from this screen's own menu.
+let selectedModel: { provider: string; id: string; name?: string } = {
+  provider: "anthropic",
+  id: "claude-sonnet-5"
+};
+const setSelectedModel = jest.fn();
+jest.mock("../../../stores/GlobalChatStore", () => ({
+  __esModule: true,
+  default: <T,>(
+    selector: (s: {
+      selectedModel: unknown;
+      setSelectedModel: jest.Mock;
+    }) => T
+  ) => selector({ selectedModel, setSelectedModel })
+}));
+
+// The real dialog fans out a query per provider; this surface only needs the
+// picked model to reach the store.
+jest.mock("../../model_menu/LanguageModelMenuDialog", () => ({
+  __esModule: true,
+  default: ({
+    open,
+    onModelChange
+  }: {
+    open: boolean;
+    onModelChange?: (model: unknown) => void;
+  }) =>
+    open ? (
+      <button
+        type="button"
+        onClick={() =>
+          onModelChange?.({
+            type: "language_model",
+            provider: "anthropic",
+            id: "claude-sonnet-5",
+            name: "Claude Sonnet 5"
+          })
+        }
+      >
+        Pick Claude
+      </button>
+    ) : null
 }));
 
 let hasConfiguredProvider = true;
@@ -118,7 +165,11 @@ const renderSurface = () =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  openProject.mockResolvedValue(true);
   hasConfiguredProvider = true;
+  selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
+  // An earlier test's start may have left a turn staged for this project id.
+  takeProjectFirstTurn("p9");
   useOnboardingStore.setState({ completedSteps: [], dismissed: false });
   useProviderOnboardingStore.setState({ open: false });
 });
@@ -241,4 +292,81 @@ describe("NewProjectSurface", () => {
     );
   });
 
+  // BUG F2: a configured provider does not mean a model was picked. Starting
+  // anyway created the project and staged a prompt no send could deliver.
+  it("refuses to start with no model selected, and stages nothing", async () => {
+    selectedModel = { provider: "empty", id: "gpt-4o" };
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    expect(createProject).not.toHaveBeenCalled();
+    expect(openProject).not.toHaveBeenCalled();
+    expect(takeProjectFirstTurn("p9")).toBeNull();
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "error",
+        content: expect.stringContaining("Pick a language model here")
+      })
+    );
+  });
+
+  // BUG F1: the refusal was a dead end — no picker on this screen, and a
+  // message pointing at a composer that is not on it.
+  it("carries the model picker, and opens it when Start is refused", async () => {
+    selectedModel = { provider: "empty", id: "gpt-4o" };
+    renderSurface();
+    expect(
+      screen.getByRole("button", { name: "Select a model" })
+    ).toBeInTheDocument();
+
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Pick Claude" })
+    );
+    expect(setSelectedModel).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "anthropic", id: "claude-sonnet-5" })
+    );
+  });
+
+  it("names the picked model on the chip", () => {
+    selectedModel = {
+      provider: "anthropic",
+      id: "claude-sonnet-5",
+      name: "Claude Sonnet 5"
+    };
+    renderSurface();
+    expect(
+      screen.getByRole("button", { name: "Model · Claude Sonnet 5" })
+    ).toBeInTheDocument();
+  });
+
+  // BUG F2 (follow-up): closing the compose tab is what makes the staged turn
+  // unreachable, so it must not close when the project group never opened.
+  it("keeps the compose tab and drops the stage when the group cannot open", async () => {
+    openProject.mockResolvedValue(false);
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    await waitFor(() => expect(openProject).toHaveBeenCalled());
+    expect(closeTab).not.toHaveBeenCalled();
+    // No orphan left in the module map for a later project to pick up.
+    expect(takeProjectFirstTurn("p9")).toBeNull();
+    // The prompt is still on the screen, so Start can be pressed again.
+    expect(
+      screen.getByPlaceholderText(/30-second launch spot/)
+    ).toHaveValue("A spot for our desk lamp");
+  });
 });

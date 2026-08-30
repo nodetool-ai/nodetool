@@ -175,6 +175,16 @@ export interface RunWorkflowOptions {
     userId: string
   ) => Promise<Workspace | null>;
   catalogs?: RunModelCatalogs;
+  /**
+   * The project this run belongs to, when the caller knows one. Neither a
+   * workflow row nor a job row carries a project today, so nothing here can
+   * derive it — a caller that has the context (a project's agent thread, a
+   * document's run) passes it, and every other caller leaves the ledger rows
+   * with a null project rather than defaulting them into the loose bucket.
+   */
+  projectId?: string | null;
+  /** The project document this run is producing, when the caller names one. */
+  documentId?: string | null;
 }
 
 /**
@@ -559,9 +569,13 @@ export async function runWorkflow(
         // This path builds its own runner instead of going through
         // `ExecutionSession`, so it has to attach the spend ledger itself.
         // No detach: the listener lives on this context and dies with it.
+        // No `projectId`/`documentId` either — a run request names a workflow
+        // and a user, and nothing on this path carries project attribution.
         attachRunCostLedger(executionContext, {
           userId,
           workflowId,
+          projectId: options.projectId ?? null,
+          documentId: options.documentId ?? null,
           nodeType: nodeTypeLookup(runnableGraph.nodes),
           resolveSecret: (key) => executionContext.getSecret(key)
         });

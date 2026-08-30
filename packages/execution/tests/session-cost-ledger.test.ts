@@ -124,6 +124,46 @@ describe("ExecutionSession cost ledger", () => {
     expect(rows[0].billing_unit).toBe("megapixels");
   });
 
+  it("attributes a run's spend to the project that owns it", async () => {
+    const session = await ExecutionSession.create({
+      graph: {
+        nodes: [{ id: "gen", type: "test.execution.GenerateImage" }],
+        edges: []
+      },
+      registry: registryWith(GenerateImage),
+      bridgeFactory: NO_BRIDGE,
+      workflowId: "wf-3",
+      projectId: "proj-1",
+      documentId: "doc-1"
+    });
+
+    expect((await session.result).status).toBe("completed");
+    await settle();
+
+    const [row] = await ledgerRows();
+    expect(row.project_id).toBe("proj-1");
+    expect(row.document_id).toBe("doc-1");
+  });
+
+  it("leaves the project null for a run with no project", async () => {
+    const session = await ExecutionSession.create({
+      graph: {
+        nodes: [{ id: "gen", type: "test.execution.GenerateImage" }],
+        edges: []
+      },
+      registry: registryWith(GenerateImage),
+      bridgeFactory: NO_BRIDGE,
+      workflowId: "wf-4"
+    });
+
+    expect((await session.result).status).toBe("completed");
+    await settle();
+
+    const [row] = await ledgerRows();
+    expect(row.project_id).toBeNull();
+    expect(row.document_id).toBeNull();
+  });
+
   it("writes nothing when the host records the spend itself", async () => {
     const session = await ExecutionSession.create({
       graph: {

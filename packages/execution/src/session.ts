@@ -65,6 +65,8 @@ export class ExecutionSession {
     captureMessages: boolean;
     messageBufferLimit: number | undefined;
     recordCosts: boolean;
+    projectId: string | null | undefined;
+    documentId: string | null | undefined;
   }) {
     this.jobId = init.jobId;
     this.workflowId = init.workflowId;
@@ -80,10 +82,15 @@ export class ExecutionSession {
     // reads. Attached here, at the one seam all surfaces share, so image and
     // video spend is recorded whether the run came from the CLI, the debug
     // harness, an app, or the websocket server.
+    // No `projectId`/`documentId`: a session is constructed from a graph and a
+    // job id, and no host passes project attribution down to it. The rows carry
+    // a null rather than being attributed to the loose bucket.
     const detachLedger = init.recordCosts
       ? attachRunCostLedger(init.context, {
           userId: init.userId,
           workflowId: init.workflowId,
+          projectId: init.projectId ?? null,
+          documentId: init.documentId ?? null,
           nodeType: nodeTypeLookup(init.graph.nodes),
           resolveSecret: (key) => init.context.getSecret(key)
         })
@@ -317,7 +324,9 @@ export class ExecutionSession {
       runTimeoutMs: options.limits?.runTimeoutMs,
       captureMessages: options.captureMessages === true,
       messageBufferLimit: options.limits?.messageBufferLimit,
-      recordCosts: options.recordCosts !== false
+      recordCosts: options.recordCosts !== false,
+      projectId: options.projectId,
+      documentId: options.documentId
     });
   }
 

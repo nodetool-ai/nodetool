@@ -527,6 +527,28 @@ describe("pre-run cost estimate", () => {
     ).toBe(0);
   });
 
+  it("prices a node's fan-out, not one output", () => {
+    // A node asked for four images is gated at four. The panel already read
+    // `num_images`; the gate priced every fan-out at 1 and admitted a run four
+    // times its estimate.
+    const { id, unitPrice } = firstFalPriced();
+    const model = { id, provider: "fal_ai" };
+    expect(
+      estimate([
+        {
+          id: "n1",
+          type: "nodetool.image.TextToImage",
+          data: { model, num_images: 4 }
+        }
+      ])
+    ).toBeCloseTo(unitPrice * 4);
+    expect(
+      estimate([
+        { id: "n1", type: "nodetool.image.TextToImage", data: { model } }
+      ])
+    ).toBeCloseTo(unitPrice);
+  });
+
   it("counts a node with no model selection as zero", () => {
     expect(estimate([{ id: "n1", type: "nodetool.text.Concat", data: {} }])).toBe(
       0

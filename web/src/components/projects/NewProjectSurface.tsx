@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Entity } from "@nodetool-ai/protocol";
+import { isModelSelected, type Entity } from "@nodetool-ai/protocol";
 
 import {
   BORDER_RADIUS,
@@ -33,6 +33,7 @@ import type { MessageContent } from "../../stores/ApiTypes";
 import { useFileHandling } from "../chat/hooks/useFileHandling";
 import { useEntities } from "../../serverState/useEntities";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import {
   PROJECT_NEW_REF,
   LOOSE_PROJECT_ID,
@@ -58,8 +59,9 @@ import useOnboardingStore, {
   isOnboardingFinished
 } from "../../stores/OnboardingStore";
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
+import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { openPageTab } from "../workspace/openPageTab";
-import { stageProjectFirstTurn } from "./projectAgent";
+import { clearProjectFirstTurn, stageProjectFirstTurn } from "./projectAgent";
 import { PROJECT_COLOR } from "./projectIdentity";
 import {
   DEFAULT_SHAPE_ID,
@@ -87,9 +89,13 @@ const NewProjectSurface = () => {
   const [entityAnchor, setEntityAnchor] = useState<HTMLElement | null>(null);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
   const [starting, setStarting] = useState(false);
+  // The model the project agent will run on, picked here — this surface has no
+  // composer, so its menu is the only place to pick one before Start.
+  const [modelAnchor, setModelAnchor] = useState<HTMLElement | null>(null);
   // A start requested before a provider was configured, resumed once one is.
   const [pendingStart, setPendingStart] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
+  const modelButtonRef = useRef<HTMLButtonElement>(null);
 
   const shape = shapeById(shapeId);
   const { droppedFiles, addFiles, removeFile, getFileContents } =
@@ -103,6 +109,10 @@ const NewProjectSurface = () => {
     (state) => state.addNotification
   );
   const hasConfiguredProvider = useHasConfiguredProvider();
+  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  const setSelectedModel = useGlobalChatStore(
+    (state) => state.setSelectedModel
+  );
   const { handleCreateNewWorkflow } = useWorkflowActions();
   // Starter cards and the checklist retire together once the getting-started
   // steps are done or dismissed; veterans get the plain project surface.
@@ -173,6 +183,20 @@ const NewProjectSurface = () => {
       });
       return;
     }
+    // A configured provider is not a picked model: the chat's model selection
+    // starts on the "empty" sentinel, and a send with it never leaves the
+    // client. Open this surface's own model menu rather than point at a
+    // composer that is not on this screen.
+    if (!isModelSelected(selectedModel)) {
+      setModelAnchor(modelButtonRef.current);
+      addNotification({
+        type: "error",
+        alert: true,
+        content:
+          "No model selected. Pick a language model here before starting the project."
+      });
+      return;
+    }
     setStarting(true);
     try {
       const project = await createProject.mutateAsync({
@@ -191,7 +215,16 @@ const NewProjectSurface = () => {
         ...getFileContents()
       ];
       stageProjectFirstTurn(project.id, content);
-      await openProject(project);
+      // Closing this tab is what makes the staged turn unreachable — the panel
+      // that sends it only mounts inside the project group. If the group did
+      // not open (the fetch failed, or a newer project was requested since),
+      // keep the tab, with the prompt still in its state, and drop the stage
+      // so no orphan sits in the module map.
+      const opened = await openProject(project);
+      if (!opened) {
+        clearProjectFirstTurn(project.id);
+        return;
+      }
       closeTab(tabId("project-new", PROJECT_NEW_REF));
     } catch (error) {
       addNotification({
@@ -213,6 +246,7 @@ const NewProjectSurface = () => {
     openProject,
     prompt,
     selectedEntities,
+    selectedModel,
     shape,
     starting
   ]);
@@ -331,6 +365,16 @@ const NewProjectSurface = () => {
                   : `Entities · ${selectedEntities
                       .map((entity) => entity.name)
                       .join(", ")}`}
+              </EditorButton>
+              <EditorButton
+                ref={modelButtonRef}
+                variant="outlined"
+                density="compact"
+                onClick={(event) => setModelAnchor(event.currentTarget)}
+              >
+                {isModelSelected(selectedModel)
+                  ? `Model · ${selectedModel?.name || selectedModel?.id}`
+                  : "Select a model"}
               </EditorButton>
               <Box sx={{ flex: 1 }} />
               {estimate && (
@@ -533,6 +577,17 @@ const NewProjectSurface = () => {
           )}
         </FlexColumn>
       </Popover>
+
+      <LanguageModelMenuDialog
+        open={modelAnchor !== null}
+        anchorEl={modelAnchor}
+        onClose={() => setModelAnchor(null)}
+        onModelChange={(model) => {
+          setSelectedModel(model);
+          setModelAnchor(null);
+        }}
+        requireToolSupport
+      />
 
       <Popover
         open={submenu !== null}
