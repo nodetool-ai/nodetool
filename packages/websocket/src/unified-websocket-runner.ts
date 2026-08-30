@@ -4306,6 +4306,12 @@ export class UnifiedWebSocketRunner {
         if (outbound.type === "notification" && isString(outbound.content)) {
           outbound.content = sanitizeLargeText(outbound.content);
         }
+
+        // Every message, not just node updates: a `prediction` is where
+        // ledger-priced generation spend (Replicate, Gemini, OpenAI, …)
+        // reports itself, and this is the path whose terminal status and app
+        // settlement read the run's measured cost.
+        this._handleNodeProviderCost(active, outbound);
         if (outbound.type === "node_update" && outbound.status === "error") {
           log.error("Node error", {
             jobId: active.jobId,
@@ -4453,8 +4459,6 @@ export class UnifiedWebSocketRunner {
             if (!isDisplaySink && !isStreamingLeaf) continue;
             outputUpdateSeen = true;
           }
-
-          this._handleNodeProviderCost(active, outbound);
 
           const isNodeError =
             outbound.type === "node_update" && outbound.status === "error";

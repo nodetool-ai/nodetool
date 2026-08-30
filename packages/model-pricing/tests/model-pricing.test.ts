@@ -216,6 +216,50 @@ describe("getModelUnitPrice", () => {
     expect(price?.unit_price).toBe(0);
   });
 
+  /** The first FAL row billed in `unit`, outside the GenSpend grid. */
+  const falRowBilledIn = (unit: string): [string, { unit_price: number }] => {
+    const entry = Object.entries(falUnitPricingCatalog.prices ?? {}).find(
+      ([id, row]) =>
+        (row as { billing_unit?: string }).billing_unit?.trim() === unit &&
+        ((row as { unit_price?: number }).unit_price ?? 0) > 0 &&
+        !genspendPricingCatalog.prices[`fal_ai:${id}`]
+    );
+    if (!entry) throw new Error(`no ${unit}-billed FAL row outside GenSpend`);
+    return entry as [string, { unit_price: number }];
+  };
+
+  it("declines a rate over something the node never states", () => {
+    // 222 FAL rows bill "compute seconds" — wall-clock time on FAL's machines.
+    // No node property says how long that will be, so the rate is not a run.
+    const [id] = falRowBilledIn("compute seconds");
+    const price = getModelUnitPrice({ id, provider: "fal_ai" });
+    expect(price?.declined).toContain("compute seconds");
+    expect(price?.unit_price).toBe(0);
+  });
+
+  it("prorates a per-minute scalar over the stated duration", () => {
+    const [id, row] = falRowBilledIn("minutes");
+    const model = { id, provider: "fal_ai" };
+    expect(getModelUnitPrice(model, { seconds: 90 })?.unit_price).toBeCloseTo(
+      row.unit_price * 1.5,
+      9
+    );
+    // Unstated duration is one minute, said out loud.
+    expect(getModelUnitPrice(model)?.unit_price).toBeCloseTo(row.unit_price, 9);
+    expect(getModelUnitPrice(model)?.assumptions?.length).toBe(1);
+  });
+
+  it("multiplies a per-megapixel scalar by the output size", () => {
+    const [id, row] = falRowBilledIn("megapixels");
+    const model = { id, provider: "fal_ai" };
+    expect(
+      getModelUnitPrice(model, { megapixels: 4.19 })?.unit_price
+    ).toBeCloseTo(row.unit_price * 4.19, 9);
+    // Unstated size is one megapixel, said out loud.
+    expect(getModelUnitPrice(model)?.unit_price).toBeCloseTo(row.unit_price, 9);
+    expect(getModelUnitPrice(model)?.assumptions?.length).toBe(1);
+  });
+
   it("warns that a collapsed kie row is the cheapest of its tiers", () => {
     const entry = Object.entries(kieUnitPricingCatalog.prices ?? {}).find(
       ([id, row]) =>

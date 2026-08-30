@@ -16,13 +16,24 @@ getModelUnitPrice({ id: "fal-ai/flux/schnell", provider: "fal_ai" });
 
 Looked up in order, first hit wins:
 
-1. **FAL** — `@nodetool-ai/fal-nodes/unit-pricing-catalog`, keyed by `endpoint_id`.
-2. **kie** — `@nodetool-ai/kie-nodes/unit-pricing-catalog`, keyed by `model_id`,
+1. **GenSpend, when its entry is parameter-priceable** —
+   `src/generated/genspend-pricing.json`, keyed `<provider_id>:<model_id>`. An
+   entry qualifies when it publishes a grid (a resolution ladder, a duration
+   rung, an audio axis, an input surcharge) or bills per second. Those rows say
+   what a *rung* costs, so they price the run rather than one unit of it.
+2. **FAL** — `@nodetool-ai/fal-nodes/unit-pricing-catalog`, keyed by `endpoint_id`.
+3. **kie** — `@nodetool-ai/kie-nodes/unit-pricing-catalog`, keyed by `model_id`,
    using the USD conversion (a raw credit figure has no fixed USD value).
-3. **GenSpend** — `src/generated/genspend-pricing.json`, keyed
-   `<provider_id>:<model_id>`.
+4. **GenSpend's flat scalar** — one number per generation, nothing to narrow.
 
-FAL and kie come from the providers themselves, so they stay ahead of GenSpend.
+FAL and kie come from the providers themselves, but each carries a single scalar
+per endpoint, and for the 260 FAL rows billed per second that scalar is a rate:
+reported as the price of a run it understated a 4-second clip by 40×. So a
+published GenSpend grid wins, and a FAL/kie scalar is converted here — multiplied
+by the duration or output size the node states, and declined outright for a unit
+with no fixed value per run (credits) or a rate the node states nothing about
+(compute seconds, training steps).
+
 GenSpend covers every other provider it tracks and NodeTool can run — today
 that is Replicate, AtlasCloud, Together, Gemini, OpenAI, MiniMax, and
 ElevenLabs — plus any FAL or kie model their own catalogs predate. xAI is wired

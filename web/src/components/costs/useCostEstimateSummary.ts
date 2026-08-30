@@ -10,8 +10,10 @@
  */
 
 import { useMemo } from "react";
-import type { NodeCostEstimateDetail } from "@nodetool-ai/node-sdk/cost-estimate";
-import type { WorkflowCostEstimateDetail } from "@nodetool-ai/node-sdk/cost-estimate";
+import type {
+  NodeCostEstimateDetail,
+  WorkflowCostEstimateDetail
+} from "@nodetool-ai/node-sdk/cost-estimate";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 
 /** "image" → "images" for a count that is not one. */
