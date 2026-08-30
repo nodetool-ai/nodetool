@@ -30,9 +30,12 @@ const ExposedLabeledInputsImpl: React.FC<ExposedLabeledInputsProps> = ({
   properties,
   className
 }) => {
+  // Only the labeled list decides what renders here. Keying on `data` rebuilt
+  // the set, and the filtered array below, on every property edit.
+  const exposedInputsLabeled = data.exposedInputsLabeled;
   const labeledNames = useMemo(
-    () => new Set(resolveExposedInputLabeledNames(data)),
-    [data]
+    () => new Set(resolveExposedInputLabeledNames({ exposedInputsLabeled })),
+    [exposedInputsLabeled]
   );
 
   const labeledProperties = useMemo(

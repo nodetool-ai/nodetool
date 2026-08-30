@@ -3,6 +3,7 @@ import { FC } from "react";
 import { NodeInputs } from "../NodeInputs";
 import { NodeProvider } from "../../../contexts/NodeContext";
 import type { NodeData } from "../../../stores/NodeData";
+import type { NodeMetadata } from "../../../stores/ApiTypes";
 import { createNodeStore } from "../../../stores/NodeStore";
 
 // Count how many times each property's field renders, keyed by property name.
@@ -65,5 +66,60 @@ describe("NodeInputs field memoization", () => {
     // prop1 re-renders (its value changed); prop2 must be skipped by the memo.
     expect(renderCounts.prop1).toBe(2);
     expect(renderCounts.prop2).toBe(1);
+  });
+
+});
+
+// `Harness` builds a fresh store per render, so a context update re-renders
+// NodeInputs whatever its memo says. These hold one store, which is what lets
+// the memo actually gate — without it these tests pass against any comparator.
+describe("NodeInputs memoization", () => {
+  const store = createNodeStore();
+  const createStore = () => store;
+  // NodeInputs takes `nodeMetadata` but reads nothing off it.
+  const EMPTY_METADATA = {} as NodeMetadata;
+
+  const StableHarness: FC<{ data: NodeData }> = ({ data }) => (
+    <NodeProvider createStore={createStore}>
+      <NodeInputs
+        id="node1"
+        nodeType="test"
+        properties={properties}
+        data={data}
+        nodeMetadata={EMPTY_METADATA}
+      />
+    </NodeProvider>
+  );
+
+  beforeEach(() => {
+    for (const key of Object.keys(renderCounts)) delete renderCounts[key];
+  });
+
+  it("renders a dynamic slot added to an already-rendered node", () => {
+    const { rerender } = render(<StableHarness data={makeData({ prop1: "a" })} />);
+
+    expect(renderCounts.slot1).toBeUndefined();
+
+    rerender(
+      <StableHarness
+        data={{ ...makeData({ prop1: "a" }), dynamic_properties: { slot1: "" } }}
+      />
+    );
+
+    expect(renderCounts.slot1).toBe(1);
+  });
+
+  it("re-renders a dynamic slot when its value changes", () => {
+    const withSlot = (value: string): NodeData => ({
+      ...makeData({ prop1: "a" }),
+      dynamic_properties: { slot1: value }
+    });
+    const { rerender } = render(<StableHarness data={withSlot("one")} />);
+
+    expect(renderCounts.slot1).toBe(1);
+
+    rerender(<StableHarness data={withSlot("two")} />);
+
+    expect(renderCounts.slot1).toBe(2);
   });
 });
