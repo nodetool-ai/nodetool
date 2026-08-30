@@ -113,7 +113,9 @@ import type {
   ProviderCost,
   SupervisorRunOptions
 } from "@nodetool-ai/protocol";
-import { isSdkV1RetryableError } from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
+import {
+  isSdkV1RetryableError
+} from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -193,7 +195,12 @@ import type { ClientSession } from "./session/client-session.js";
 import { ChatTurnHandler } from "./session/chat-turn.js";
 
 const log = createLogger("nodetool.websocket.runner");
-const TERMINAL_JOB_STATUSES = ["completed", "failed", "cancelled", "error"];
+const TERMINAL_JOB_STATUSES = [
+  "completed",
+  "failed",
+  "cancelled",
+  "error"
+];
 
 /**
  * Largest binary (MsgPack) frame accepted from a client before deserialization.
@@ -3546,9 +3553,7 @@ export class UnifiedWebSocketRunner implements ClientSession {
     outbound: Record<string, unknown>
   ): void {
     if (outbound.status !== "completed") return;
-    const capability = isString(outbound.capability)
-      ? outbound.capability
-      : null;
+    const capability = isString(outbound.capability) ? outbound.capability : null;
     if (!isUnitBilledCapability(capability)) return;
     const provider = isString(outbound.provider) ? outbound.provider : "";
     const model = isString(outbound.model) ? outbound.model : "";
@@ -4799,10 +4804,7 @@ export class UnifiedWebSocketRunner implements ClientSession {
           return { error: "permission_mode must be plan, default, or auto" };
         }
         this.chat.setPermissionMode(threadId, mode);
-        return {
-          message: `Permission mode set to ${mode}`,
-          thread_id: threadId
-        };
+        return { message: `Permission mode set to ${mode}`, thread_id: threadId };
       }
       case "chat_message": {
         const threadId = data.thread_id;
