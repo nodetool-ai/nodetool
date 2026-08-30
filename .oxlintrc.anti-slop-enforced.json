@@ -18,6 +18,7 @@
         "packages/atlascloud-nodes/src/**",
         "packages/audio-nodes/src/**",
         "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/cli/src/**",
@@ -25,6 +26,7 @@
         "packages/compute/src/**",
         "packages/config/src/**",
         "packages/core-nodes/src/**",
+        "packages/data-nodes/src/**",
         "packages/deploy/src/**",
         "packages/document-nodes/src/**",
         "packages/dsl/src/**",
@@ -72,6 +74,7 @@
         "packages/auth/src/**",
         "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
+        "packages/browser/src/**",
         "packages/chat/src/**",
         "packages/code-nodes/src/**",
         "packages/compute/src/**",
@@ -143,6 +146,7 @@
         "packages/auth/src/**",
         "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
+        "packages/browser/src/**",
         "packages/chat/src/**",
         "packages/cli/src/**",
         "packages/code-nodes/src/**",
@@ -253,6 +257,7 @@
         "packages/sdk/src/**",
         "packages/security/src/**",
         "packages/storage/src/**",
+        "packages/text-nodes/src/**",
         "packages/transformers-js-provider/src/**",
         "packages/workflow-runner/src/**"
       ],
@@ -265,6 +270,7 @@
         "electron/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/code-nodes/src/**",
@@ -296,6 +302,7 @@
         "packages/sdk/src/**",
         "packages/security/src/**",
         "packages/storage/src/**",
+        "packages/text-nodes/src/**",
         "packages/timeline/src/**",
         "packages/together-nodes/src/**",
         "packages/topaz-nodes/src/**",
@@ -325,6 +332,7 @@
         "packages/sdk/src/**",
         "packages/security/src/**",
         "packages/storage/src/**",
+        "packages/text-nodes/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -347,6 +355,7 @@
         "packages/sdk/src/**",
         "packages/security/src/**",
         "packages/storage/src/**",
+        "packages/text-nodes/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {

@@ -319,8 +319,12 @@ describe("AutomaticSpeechRecognitionNode", () => {
       },
       audio: { type: "audio", uri: "", data: base64Audio }
     });
+    // Every provider's automaticSpeechRecognition returns an ASRResult; a bare
+    // string is a shape nothing can produce.
     const mockContext = {
-      runProviderPrediction: vi.fn().mockResolvedValue("transcribed text")
+      runProviderPrediction: vi.fn().mockResolvedValue({
+        text: "transcribed text"
+      })
     };
     const result = await node.process(mockContext as any);
     expect(result.text).toBe("transcribed text");
@@ -345,7 +349,7 @@ describe("AutomaticSpeechRecognitionNode", () => {
       audio: { type: "audio", uri: "", data: new Uint8Array([1, 2, 3]) }
     });
     const mockContext = {
-      runProviderPrediction: vi.fn().mockResolvedValue("hello world")
+      runProviderPrediction: vi.fn().mockResolvedValue({ text: "hello world" })
     };
     const result = await node.process(mockContext as any);
     expect(result.text).toBe("hello world");

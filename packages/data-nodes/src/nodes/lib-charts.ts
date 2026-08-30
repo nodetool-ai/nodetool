@@ -266,11 +266,13 @@ export class ChartRendererLibNode extends BaseNode {
 
     let buffer: Buffer;
     try {
-      // Chart.js accepts any canvas-like context
-      // SAFETY: Chart.js only draws through the 2D context methods a skia
-      // canvas implements; the DOM `CanvasRenderingContext2D` it names carries
-      // browser-only members (`canvas: HTMLCanvasElement`) skia cannot have.
-      const chart = new Chart(ctx as unknown as CanvasRenderingContext2D, {
+      // SAFETY: Chart.js only draws through the 2D methods a skia canvas
+      // implements. The DOM `CanvasRenderingContext2D` it names also declares
+      // members skia cannot have (`drawFocusIfNeeded`, an `HTMLCanvasElement`
+      // `canvas`) and Chart.js never calls.
+      const chartCtx: CanvasRenderingContext2D = ctx as typeof ctx &
+        CanvasRenderingContext2D;
+      const chart = new Chart(chartCtx, {
         ...chartConfig,
         options: {
           ...chartConfig.options,

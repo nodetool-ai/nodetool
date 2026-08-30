@@ -19,14 +19,41 @@ import {
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
-import {
-  isFunction,
-  isNonEmptyString,
-  isObjectLike,
-  isString
-} from "../type-predicates.js";
+import { isNonEmptyString, isString } from "../type-predicates.js";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
+
+/** The provider bridge a node routes a prediction through. */
+type ProviderPredictionFn = ProcessingContext["runProviderPrediction"];
+
+/**
+ * `ProcessingContext` declares the provider bridge, but a node is also handed
+ * partial stubs (tests, hosts with no provider access), so the method can be
+ * absent at runtime.
+ */
+function hasProviderPrediction(
+  run: ProviderPredictionFn | undefined
+): run is ProviderPredictionFn {
+  return typeof run === "function";
+}
+
+/** The ASR capability's answer — every provider returns an `ASRResult`. */
+function isAsrResult<T>(value: T): value is T & { text: string } {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "text" in value &&
+    typeof value.text === "string"
+  );
+}
+
+/** What an `audio` slot delivers: an `AudioRef`, or `{}` before one is wired. */
+type AudioLike = { data?: unknown; uri?: unknown };
+
+/** The embedding capability's answer — one vector per embedded chunk. */
+function isEmbeddingVectors<T>(value: T): value is T & number[][] {
+  return Array.isArray(value) && value.every((row) => Array.isArray(row));
+}
 
 /**
  * Turn any asset-ref values in a template's variable bag into their
@@ -34,10 +61,14 @@ const NODE_ONLY: readonly Platform[] = ["node"];
  * expands like an inline `@`-mention instead of rendering as `"[object
  * Object]"`. Non-asset values take the string form the renderer would have
  * given them anyway; `null`/`undefined` stay absent so they render as "".
+ *
+ * The bag arrives as the dynamic-input map the node already holds: a wire value
+ * has no type narrower than `unknown`, and a `Record` would promise callers a
+ * value contract that does not exist.
  */
-function tokenizeAssetVars(vars: Record<string, unknown>): TemplateVars {
+function tokenizeAssetVars(vars: ReadonlyMap<string, unknown>): TemplateVars {
   const out: TemplateVars = {};
-  for (const [key, value] of Object.entries(vars)) {
+  for (const [key, value] of vars) {
     out[key] =
       assetRefToPromptToken(value) ?? (value == null ? undefined : String(value));
   }
@@ -58,24 +89,46 @@ function formatFilename(name: string): string {
     .replace(/%S/g, pad(now.getSeconds()));
 }
 
-function folderPath(value: unknown): string {
+/**
+ * What a `folder` slot delivers: a bare path, a `FolderRef` carrying a `uri`,
+ * or a local-folder object carrying a `path`.
+ */
+type FolderLike = string | { path?: unknown; uri?: unknown } | null | undefined;
+
+function folderPath(value: FolderLike): string {
   if (isString(value)) return value;
-  if (!isObjectLike(value)) return "";
-  const record = value as Record<string, unknown>;
-  if (isString(record.path)) return record.path;
-  if (isString(record.uri)) {
-    return record.uri.startsWith("file://")
-      ? record.uri.slice("file://".length)
-      : record.uri;
+  if (value == null) return "";
+  if (isString(value.path)) return value.path;
+  if (isString(value.uri)) {
+    return value.uri.startsWith("file://")
+      ? value.uri.slice("file://".length)
+      : value.uri;
   }
   return "";
 }
 
-function modelConfig(props: Record<string, unknown>) {
-  const model = (props.model ?? {}) as Record<string, unknown>;
+/**
+ * What a `*_model` slot carries: the provider and model ids naming a
+ * provider-backed model, and — on an embedding model — the vector width.
+ */
+type ModelSelection =
+  | {
+      provider?: unknown;
+      id?: unknown;
+      dimensions?: unknown;
+    }
+  | null
+  | undefined;
+
+/** The provider-backed model a node routes a prediction to; "" when unselected. */
+type ModelConfig = { providerId: string; modelId: string };
+
+function modelConfig(model: ModelSelection): ModelConfig {
+  const provider = model?.provider;
+  const id = model?.id;
   return {
-    providerId: isString(model.provider) ? model.provider : "",
-    modelId: isString(model.id) ? model.id : ""
+    providerId: isString(provider) ? provider : "",
+    modelId: isString(id) ? id : ""
   };
 }
 
@@ -162,8 +215,8 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   declare temperature: any;
 
   async process(context?: ProcessingContext): Promise<AutomaticSpeechRecognitionNodeOutputs> {
-    const { providerId, modelId } = modelConfig(this.serialize());
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const { providerId, modelId } = modelConfig(this.model);
+    const audio: AudioLike = this.audio ?? {};
     let bytes: Uint8Array = new Uint8Array();
     if (isString(audio.data)) {
       bytes = base64ToBytes(audio.data);
@@ -184,12 +237,12 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 
     if (
       context &&
-      isFunction(context.runProviderPrediction) &&
+      hasProviderPrediction(context.runProviderPrediction) &&
       providerId &&
       modelId &&
       bytes.length > 0
     ) {
-      const text = (await context.runProviderPrediction({
+      const result = await context.runProviderPrediction({
         provider: providerId,
         capability: "automatic_speech_recognition",
         model: modelId,
@@ -199,8 +252,13 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
           prompt: String(this.prompt ?? "") || undefined,
           temperature: Number(this.temperature ?? 0) || undefined
         }
-      })) as string;
-      return { text, output: text };
+      });
+      if (!isAsrResult(result)) {
+        throw new Error(
+          "AutomaticSpeechRecognition expected a transcript from the provider."
+        );
+      }
+      return { text: result.text, output: result.text };
     }
 
     throw new Error(
@@ -263,8 +321,9 @@ export class EmbeddingTextNode extends BaseNode {
     if (!text) {
       throw new Error("input text must not be empty");
     }
-    const { providerId, modelId } = modelConfig(this.serialize());
-    if (!context || !isFunction(context.runProviderPrediction)) {
+    const model: ModelSelection = this.model;
+    const { providerId, modelId } = modelConfig(model);
+    if (!context || !hasProviderPrediction(context.runProviderPrediction)) {
       throw new Error(
         "Embedding requires a processing context with provider access"
       );
@@ -274,14 +333,16 @@ export class EmbeddingTextNode extends BaseNode {
         "Embedding requires an embedding model with provider and id"
       );
     }
-    const model = (this.model ?? {}) as Record<string, unknown>;
-    const dimensions = Number(model.dimensions ?? 0);
-    const vectors = (await context.runProviderPrediction({
+    const dimensions = Number(model?.dimensions ?? 0);
+    const vectors = await context.runProviderPrediction({
       provider: providerId,
       capability: "generate_embedding",
       model: modelId,
       params: embeddingParams(text, dimensions)
-    })) as number[][];
+    });
+    if (!isEmbeddingVectors(vectors)) {
+      throw new Error("Embedding expected vectors from the provider.");
+    }
     return { output: vectors[0] ?? [] };
   }
 }
@@ -497,8 +558,8 @@ export class LoadTextFolderNode extends BaseNode {
   }> {
     const folder = String(this.folder ?? "");
     const includeSubdirs = Boolean(this.include_subdirectories ?? false);
-    const extensions = Array.isArray(this.extensions)
-      ? (this.extensions as unknown[]).map((v) => String(v).toLowerCase())
+    const extensions: string[] = Array.isArray(this.extensions)
+      ? this.extensions.map((ext) => String(ext).toLowerCase())
       : [".txt"];
 
     if (!folder) {
@@ -542,6 +603,18 @@ export class LoadTextFolderNode extends BaseNode {
   }
 }
 
+/**
+ * Output handles LoadTextAssetsNode emits. `genProcess` yields them in two
+ * waves — one file at a time, then the collected lists — so every handle is
+ * optional.
+ */
+type LoadTextAssetsNodeOutputs = {
+  text?: string;
+  name?: string;
+  texts?: string[];
+  names?: string[];
+};
+
 export class LoadTextAssetsNode extends BaseNode {
   static readonly nodeType = "nodetool.text.LoadTextAssets";
   static readonly title = "Load Text Assets";
@@ -568,8 +641,8 @@ export class LoadTextAssetsNode extends BaseNode {
   })
   declare folder: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const allTexts: unknown[] = [];
+  async process(): Promise<LoadTextAssetsNodeOutputs> {
+    const allTexts: string[] = [];
     const allNames: string[] = [];
     const folder = folderPath(this.folder ?? "");
     if (!folder) {
@@ -589,13 +662,13 @@ export class LoadTextAssetsNode extends BaseNode {
     };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<LoadTextAssetsNodeOutputs> {
     const folder = folderPath(this.folder ?? "");
     if (!folder) {
       throw new Error("folder cannot be empty");
     }
 
-    const allTexts: unknown[] = [];
+    const allTexts: string[] = [];
     const allNames: string[] = [];
     const walker = new LoadTextFolderNode();
     walker.assign({ folder });
@@ -608,13 +681,21 @@ export class LoadTextAssetsNode extends BaseNode {
   }
 }
 
-type FilterStringType =
-  | "contains"
-  | "starts_with"
-  | "ends_with"
-  | "length_greater"
-  | "length_less"
-  | "exact_length";
+/** The filters FilterStringNode implements; its enum prop offers exactly these. */
+const FILTER_STRING_TYPES = [
+  "contains",
+  "starts_with",
+  "ends_with",
+  "length_greater",
+  "length_less",
+  "exact_length"
+] as const;
+
+type FilterStringType = (typeof FILTER_STRING_TYPES)[number];
+
+function isFilterStringType(value: string): value is FilterStringType {
+  return FILTER_STRING_TYPES.some((filter) => filter === value);
+}
 
 /** Output handles FilterStringNode.process() emits. */
 type FilterStringNodeOutputs = {
@@ -634,7 +715,8 @@ export class FilterStringNode extends BaseNode {
     output: { kind: "forward", source: "value" }
   } satisfies Record<string, OutputCorrelation>;
 
-  private _filterType: FilterStringType = "contains";
+  /** null when the prop names no filter this node implements — nothing matches. */
+  private _filterType: FilterStringType | null = "contains";
   private _criteria = "";
   @prop({
     type: "str",
@@ -668,18 +750,18 @@ export class FilterStringNode extends BaseNode {
   })
   declare criteria: any;
 
-  async initialize(): Promise<void> {
-    this._filterType = String(
-      this.filter_type ?? "contains"
-    ) as FilterStringType;
+  private readFilterProps(): void {
+    const filterType = String(this.filter_type ?? "contains");
+    this._filterType = isFilterStringType(filterType) ? filterType : null;
     this._criteria = String(this.criteria ?? "");
   }
 
+  async initialize(): Promise<void> {
+    this.readFilterProps();
+  }
+
   async process(): Promise<FilterStringNodeOutputs> {
-    this._filterType = String(
-      this.filter_type ?? "contains"
-    ) as FilterStringType;
-    this._criteria = String(this.criteria ?? "");
+    this.readFilterProps();
 
     const value = this.value;
     if (!isString(value)) {
@@ -884,6 +966,14 @@ export class CollectTextNode extends BaseNode {
 // rewritten to nodetool.text.Prompt on load — see NODE_TYPE_MIGRATIONS in
 // @nodetool-ai/protocol.
 
+/**
+ * Output handles PromptNode.process() emits: the rendered text on `output`,
+ * plus one handle per dynamic input carrying its raw wire value. The set is
+ * open (`supportsDynamicOutputs`), so the contract is the SDK's own output bag
+ * rather than a fixed list of handles.
+ */
+type PromptNodeOutputs = Awaited<ReturnType<BaseNode["process"]>>;
+
 export class PromptNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Prompt";
   static readonly cacheTtl = "forever";
@@ -909,11 +999,9 @@ export class PromptNode extends BaseNode {
   })
   declare prompt: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<PromptNodeOutputs> {
     const template = String(this.prompt ?? "");
-    const props: Record<string, unknown> = Object.fromEntries(
-      this.dynamicProps
-    );
+    const props = new Map<string, unknown>(this.dynamicProps);
 
     // Resolve `{{ name }}` references against variable channels: wait for the
     // first value published by a Set Variable node anywhere in the graph. Only
@@ -921,11 +1009,11 @@ export class PromptNode extends BaseNode {
     // the node's own dynamic inputs take precedence on conflict.
     if (context) {
       const pending = referencedVariables(template)
-        .filter((name) => !(name in props) && context.hasChannelWriters(name))
+        .filter((name) => !props.has(name) && context.hasChannelWriters(name))
         .map(async (name) => {
           const value = await context.getChannel(name).first();
           if (value !== undefined) {
-            props[name] = value;
+            props.set(name, value);
           }
         });
       await Promise.all(pending);
@@ -937,7 +1025,7 @@ export class PromptNode extends BaseNode {
     // The rendered text is assigned last so a variable named "output" can't
     // shadow it.
     return {
-      ...props,
+      ...Object.fromEntries(props),
       output: renderTemplate(template, tokenizeAssetVars(props))
     };
   }
@@ -972,7 +1060,7 @@ export class TemplateTextNode extends BaseNode {
 
   async process(): Promise<TemplateTextNodeOutputs> {
     let result = String(this.string ?? "");
-    const props = tokenizeAssetVars(Object.fromEntries(this.dynamicProps));
+    const props = tokenizeAssetVars(this.dynamicProps);
 
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");

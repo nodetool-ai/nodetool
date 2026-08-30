@@ -389,15 +389,15 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 18,074 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 18,145 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
 The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-60 trees is 540 pairs, and 273 of them are already at zero — so a rule still
+61 trees is 549 pairs, and 282 of them are already at zero — so a rule still
 over a thousand findings deep across the repo is nonetheless finished in
-fifty-seven packages, and those fifty-seven are ratcheted today rather than
+fifty-eight packages, and those fifty-eight are ratcheted today rather than
 after the last one lands. Seven rules are at zero everywhere and sit in the
 enforced config's top-level `rules`; the rest are enforced per-path, one
 override block per rule listing the trees at zero for it.
@@ -418,7 +418,7 @@ before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
 lints one tree per oxlint invocation and rejects any tree whose scan touched
 zero files: oxlint does not expand `packages/*/src` itself, and a glob that
 reaches it unexpanded lints nothing while reporting nothing — which is
-indistinguishable from a clean tree, and would ratchet all 540 pairs on a
+indistinguishable from a clean tree, and would ratchet all 549 pairs on a
 broken run.
 
 A rule that does not fit NodeTool is deleted from the plugin
@@ -454,28 +454,30 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7544 | 14 / 60 |
-| `no-unsafe-dictionary-type` | 4496 | 14 / 60 |
-| `no-unknown-parameters` | 2128 | 17 / 60 |
-| `no-module-mocking` | 1575 | 57 / 60 |
-| `no-known-value-widening` | 840 | 20 / 60 |
-| `no-runtime-typeof` | 651 | 25 / 60 |
-| `no-implicit-return-type` | 461 | 33 / 60 |
-| `no-unknown-returns` | 268 | 42 / 60 |
-| `no-chained-type-assertions` | 111 | 47 / 60 |
+| `require-safety-comment-for-type-assertion` | 7552 | 16 / 61 |
+| `no-unsafe-dictionary-type` | 4472 | 16 / 61 |
+| `no-unknown-parameters` | 2131 | 19 / 61 |
+| `no-module-mocking` | 1610 | 58 / 61 |
+| `no-known-value-widening` | 856 | 21 / 61 |
+| `no-runtime-typeof` | 671 | 25 / 61 |
+| `no-implicit-return-type` | 472 | 34 / 61 |
+| `no-unknown-returns` | 271 | 44 / 61 |
+| `no-chained-type-assertions` | 110 | 49 / 61 |
+
+18,145 findings over 61 trees; 282 of 549 (rule, tree) pairs are at zero.
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,581 findings but zero in 57 of 60 trees: it is
+`no-module-mocking` is 1,610 findings but zero in 58 of 61 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Fourteen trees are at zero on all nine rules:
+a boundary get named. Sixteen trees are at zero on all nine rules:
 `packages/auth`, `packages/base-nodes`, `packages/chat`, `packages/code-nodes`,
-`packages/config`, `packages/document-nodes`, `packages/kie-codegen`,
-`packages/model-pricing`, `packages/nodes-utils`, `packages/reve-nodes`,
-`packages/sdk`, `packages/security`, `packages/storage`,
-`packages/workflow-runner`.
+`packages/config`, `packages/data-nodes`, `packages/document-nodes`,
+`packages/kie-codegen`, `packages/model-pricing`, `packages/nodes-utils`,
+`packages/reve-nodes`, `packages/sdk`, `packages/security`, `packages/storage`,
+`packages/text-nodes`, `packages/workflow-runner`.
 
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps
