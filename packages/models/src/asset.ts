@@ -79,6 +79,29 @@ export class Asset extends DBModel {
     return asset;
   }
 
+  /** Find multiple assets by id, scoped to the user. */
+  static async findMany(userId: string, assetIds: string[]): Promise<Asset[]> {
+    if (assetIds.length === 0) return [];
+
+    const uniqueIds = Array.from(new Set(assetIds));
+    const db = getDb();
+    const results: Asset[] = [];
+
+    const chunkSize = 900;
+    for (let i = 0; i < uniqueIds.length; i += chunkSize) {
+      const chunk = uniqueIds.slice(i, i + chunkSize);
+      const rows = await db
+        .select()
+        .from(assets)
+        .where(and(eq(assets.user_id, userId), inArray(assets.id, chunk)));
+
+      for (const r of rows) {
+        results.push(new Asset(r));
+      }
+    }
+    return results;
+  }
+
   /**
    * Every asset across all users, oldest first — for offline maintenance
    * (the storage key backfill). Deliberately not user-scoped, so it must
@@ -207,7 +230,7 @@ export class Asset extends DBModel {
       .from(assets)
       .where(and(...conditions))
       .orderBy(desc(assets.created_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
     const items = rows.map((r: Record<string, unknown>) => new Asset(r));
     if (items.length <= limit) return [items, ""];
@@ -264,7 +287,7 @@ export class Asset extends DBModel {
       .from(assets)
       .where(and(...conditions))
       .orderBy(desc(assets.created_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
     const items = rows.map((r: Record<string, unknown>) => new Asset(r));
     let cursor = "";
