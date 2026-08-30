@@ -61,7 +61,10 @@ async function fetchBatchOnce(
       for (const row of json.prices ?? []) {
         out[row.endpoint_id] = {
           unit_price: row.unit_price,
-          billing_unit: row.unit,
+          // FAL's API pads some unit strings with trailing whitespace
+          // ("1000 characters ") and leaves others empty; trim rather than
+          // ship either verbatim.
+          billing_unit: row.unit.trim(),
           currency: row.currency
         };
       }

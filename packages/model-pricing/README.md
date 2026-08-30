@@ -23,9 +23,15 @@ Looked up in order, first hit wins:
    `<provider_id>:<model_id>`.
 
 FAL and kie come from the providers themselves, so they stay ahead of GenSpend.
-GenSpend covers every other provider NodeTool can run and GenSpend tracks —
-Replicate, AtlasCloud, Together, Gemini, OpenAI, MiniMax, ElevenLabs, xAI — plus
-any FAL or kie model their own catalogs predate.
+GenSpend covers every other provider it tracks and NodeTool can run — today
+that is Replicate, AtlasCloud, Together, Gemini, OpenAI, MiniMax, and
+ElevenLabs — plus any FAL or kie model their own catalogs predate. xAI is wired
+into `scripts/genspend/match.mjs`'s `PROVIDER_IDS_BY_GENSPEND_SLUG`, but the
+shipped catalog holds no `xai:` entries: GenSpend's own catalog has nothing to
+match against that slug. Topaz, Reve, Aki, Meshy, and Rodin are enumerated by
+the sync's model inventory (`scripts/genspend/inventory.mjs`) but are not yet
+in `PROVIDER_IDS_BY_GENSPEND_SLUG`, so none of the five has priced entries
+either.
 
 All three are imported as modules, not read off disk, so the estimate works
 identically in the browser bundle and inside the packaged Electron backend (no

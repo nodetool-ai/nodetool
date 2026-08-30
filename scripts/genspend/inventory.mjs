@@ -24,13 +24,19 @@ const PROVIDER_SPECS = [
   { providerId: "openai", className: "OpenAIProvider", keyName: "OPENAI_API_KEY" },
   { providerId: "minimax", className: "MinimaxProvider", keyName: "MINIMAX_API_KEY" },
   { providerId: "elevenlabs", className: "ElevenLabsProvider", keyName: "ELEVENLABS_API_KEY" },
-  { providerId: "xai", className: "XAIProvider", keyName: "XAI_API_KEY" }
+  { providerId: "xai", className: "XAIProvider", keyName: "XAI_API_KEY" },
+  { providerId: "topaz", className: "TopazProvider", keyName: "TOPAZ_API_KEY" },
+  { providerId: "reve", className: "ReveProvider", keyName: "REVE_API_KEY" },
+  { providerId: "aki", className: "AkiProvider", keyName: "AKI_API_KEY" },
+  { providerId: "meshy", className: "MeshyProvider", keyName: "MESHY_API_KEY" },
+  { providerId: "rodin", className: "RodinProvider", keyName: "RODIN_API_KEY" }
 ];
 
 const MODALITY_METHODS = [
   ["image", "getAvailableImageModels"],
   ["video", "getAvailableVideoModels"],
-  ["audio", "getAvailableTTSModels"]
+  ["audio", "getAvailableTTSModels"],
+  ["3d", "getAvailable3DModels"]
 ];
 
 /** Providers reject a missing key at construction; a placeholder is never sent. */
