@@ -5,11 +5,8 @@ import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
 import { createLogger, getByteLimitEnv } from "@nodetool-ai/config";
 import { getAssetAdapter } from "./lib/storage.js";
 import {
-  isFiniteNumber,
   isNonEmptyString,
-  isNumber,
   isObjectLike,
-  isRecord,
   isString
 } from "./lib/wire-values.js";
 import {
@@ -26,25 +23,18 @@ import {
   type NodeTypeResolver,
   type NodeValidator
 } from "@nodetool-ai/kernel";
-import {
-  chatTurnRegistry,
-  type ChatTurnExecutionHooks,
-  type ChatTurnSession
+import type {
+  ChatTurnExecutionHooks,
+  ChatTurnSession
 } from "./chat-turn-registry.js";
-import {
-  jobRunRegistry,
-  type JobRunExecutionHooks,
-  type JobRunSession
-} from "./job-run-registry.js";
+import type { JobRunSession } from "./job-run-registry.js";
 import {
   Asset,
-  invocationBelongsToApplication,
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
   type DBModel
 } from "@nodetool-ai/models";
-import { requestRemoteJobCancel } from "./job-control.js";
 import type {
   MessageContent,
   BaseProvider,
@@ -60,12 +50,10 @@ import type {
   HydratedGraphData,
   NodeDescriptor
 } from "@nodetool-ai/protocol";
-import { isSdkV1RetryableError } from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
-  WebSocketMode,
-  RpcErrorPayload
+  WebSocketMode
 } from "@nodetool-ai/protocol";
 import {
   webSocketCommandEnvelopeSchema,
@@ -79,14 +67,9 @@ import { type SandboxClock } from "@nodetool-ai/agents";
 import { type CapabilityRun } from "@nodetool-ai/agents";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
-import { appRouter } from "./trpc/router.js";
-import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { retrieveAssetBytes } from "./lib/asset-paths.js";
-import {
-  isAppSessionCommandAllowed,
-  type AppSessionScope
-} from "./lib/app-session-scope.js";
+import type { AppSessionScope } from "./lib/app-session-scope.js";
 import type {
   FrontendRendererRegistry,
   FrontendRendererToolCall,
@@ -114,8 +97,7 @@ import {
   entityRefResolver,
   estimateDirectTextSpend,
   resolveEntityReferenceImages,
-  type DirectMediaGenerationRequest,
-  type DirectTextGenerationRequest
+  type DirectMediaGenerationRequest
 } from "./session/inference.js";
 import {
   attachPlanApproval as attachPlanApprovalTo,
@@ -160,6 +142,7 @@ export type {
 };
 import type { ClientSession } from "./session/client-session.js";
 import { ChatTurnHandler } from "./session/chat-turn.js";
+import { CommandRouter } from "./session/commands.js";
 
 const log = createLogger("nodetool.websocket.runner");
 
@@ -244,12 +227,6 @@ export interface WebSocketConnection {
   close(code?: number, reason?: string): Promise<void>;
   clientState?: "connected" | "disconnected";
   applicationState?: "connected" | "disconnected";
-}
-
-/** Highest `job_seq` a resubscribing client claims to already hold. */
-function resumeLastSeq(data: Record<string, unknown>): number {
-  const raw = data["last_seq"];
-  return isFiniteNumber(raw) && raw > 0 ? raw : 0;
 }
 
 export class ToolBridge {
@@ -453,8 +430,6 @@ export class UnifiedWebSocketRunner implements ClientSession {
   readonly validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
   readonly nodeRegistry?: NodeRegistry;
   readonly pythonBridge?: PythonBridge;
-  private getPythonBridgeReady?: () => boolean;
-  private apiOptions?: HttpApiOptions;
   private frontendRendererRegistry?: FrontendRendererRegistry;
   private frontendRendererId: string | null = null;
   private configuredProvidersCache = new ConfiguredProviderCache({
@@ -468,7 +443,6 @@ export class UnifiedWebSocketRunner implements ClientSession {
    * reference to them.
    */
   private readonly jobs: JobExecutionManager;
-  private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
   private statsPrimeTimer: NodeJS.Timeout | null = null;
@@ -489,6 +463,8 @@ export class UnifiedWebSocketRunner implements ClientSession {
   private approvalBridge = new ToolBridge();
   /** This connection's chat turns: state, permissions, and the turn loop. */
   private readonly chat: ChatTurnHandler;
+  /** The client's command surface: one dispatch table over the wire commands. */
+  private readonly commands: CommandRouter;
   private observerRegistered = false;
   /**
    * The detachable session for the chat turn THIS connection is executing.
@@ -534,27 +510,9 @@ export class UnifiedWebSocketRunner implements ClientSession {
     return this.chat.currentRequestSeq;
   }
 
-  /**
-   * Open a chat/inference turn: cancel whatever was running and hand back the
-   * seq + signal the new turn runs under. A superseding message cancels the
-   * previous turn exactly as an explicit Stop does.
-   */
-  private beginChatTurn() {
-    return this.chat.beginTurn();
-  }
-
   /** Abort the in-flight turn, if any. Idempotent. */
   private cancelChatTurn(): void {
     this.chat.cancel();
-  }
-
-  /**
-   * Retire a turn that finished on its own. Clears the controller only when it
-   * is still the current one — a superseding turn has already installed its
-   * own, and clearing that would make a later Stop a no-op.
-   */
-  private endChatTurn(controller: AbortController | null): void {
-    this.chat.endTurn(controller);
   }
 
   /**
@@ -663,8 +621,6 @@ export class UnifiedWebSocketRunner implements ClientSession {
     this.validateNode = options.validateNode;
     this.nodeRegistry = options.nodeRegistry;
     this.pythonBridge = options.pythonBridge;
-    this.getPythonBridgeReady = options.getPythonBridgeReady;
-    this.apiOptions = options.apiOptions;
     this.frontendRendererRegistry = options.frontendRendererRegistry;
     this.getSystemStats = options.getSystemStats ?? createSystemStatsSampler();
     this.systemStatsEnabled =
@@ -728,6 +684,58 @@ export class UnifiedWebSocketRunner implements ClientSession {
         this.resolveEntityReferenceImages(userId, refs),
       resolveSourceImageBytes: (data, mediaGeneration, userId) =>
         this.resolveSourceImageBytes(data, mediaGeneration, userId)
+    });
+    this.commands = new CommandRouter({
+      session: this,
+      // The job region as this connection exposes it: the four commands the
+      // job suites drive through the runner keep going through it, so a spy
+      // on `runner.runJob` still intercepts a `run_job` command.
+      jobs: {
+        runJob: (req) => this.runJob(req),
+        reconnectJob: (jobId, workflowId, lastSeq) =>
+          this.reconnectJob(jobId, workflowId, lastSeq),
+        cancelJob: (jobId, workflowId) => this.cancelJob(jobId, workflowId),
+        getStatus: (jobId) => this.getStatus(jobId),
+        resolveJobControl: (jobId) => this.jobs.resolveJobControl(jobId),
+        stopJob: (jobId) => this.jobs.stopJob(jobId),
+        activeJobIds: () => this.jobs.activeJobIds()
+      },
+      chat: this.chat,
+      inference: this.inference,
+      // What a command does to the connection itself: the socket, the wire
+      // mode, the RPC abort set, the tool bridges, and the chat-turn session
+      // bookkeeping the frame router reads. All host state, reached through
+      // this adapter rather than owned by the router.
+      host: {
+        sendToSocket: (message) => this.sendToSocket(message),
+        setMode: (mode) => {
+          this.mode = mode;
+        },
+        clearModels: () => this.clearModels(),
+        cancelRpcCalls: () => this.cancelRpcCalls(),
+        cancelToolScope: (scope) => {
+          this.toolBridge.cancelScope(scope);
+          this.approvalBridge.cancelScope(scope);
+        },
+        chatTurnHooks: () => this.buildChatTurnHooks(),
+        chatDeliveryTarget: this.chatDeliveryTarget,
+        getChatTurnSession: () => this.chatTurnSession,
+        setChatTurnSession: (session) => {
+          this.chatTurnSession = session;
+        },
+        adoptSession: (threadId, session) => {
+          this.adoptedSessions.set(threadId, session);
+        },
+        forgetAdoptedSession: (threadId) => {
+          this.adoptedSessions.delete(threadId);
+        }
+      },
+      defaults: {
+        provider: this.defaultProvider,
+        model: this.defaultModel
+      },
+      apiOptions: options.apiOptions,
+      getPythonBridgeReady: options.getPythonBridgeReady
     });
   }
 
@@ -870,7 +878,6 @@ export class UnifiedWebSocketRunner implements ClientSession {
       session.detach(this.chatDeliveryTarget);
     }
     this.adoptedSessions.clear();
-    this.currentTask = null;
     await this.jobs.cancelAll();
 
     if (this.websocket) {
@@ -1153,13 +1160,6 @@ export class UnifiedWebSocketRunner implements ClientSession {
     return this.jobs.resolveJobSession(jobId);
   }
 
-  /** Transitional: `handleCommand`'s per-job commands — removed in T7/T8. */
-  private resolveJobControl(
-    jobId: string
-  ): { hooks: JobRunExecutionHooks; workflowId: string | null } | null {
-    return this.jobs.resolveJobControl(jobId);
-  }
-
   /** Transitional: chat's workflow runs register here — removed in T7/T8. */
   private get activeJobs(): Map<string, ActiveJob> {
     return this.jobs.activeJobs;
@@ -1418,31 +1418,14 @@ export class UnifiedWebSocketRunner implements ClientSession {
   }
 
   /**
-   * The direct-generation entry points the RPC commands call. Thin delegations
-   * while `handleCommand` still lives here; they go away with the switch.
+   * The direct-generation entry point the cost-row suite drives directly.
+   * Transitional: the implementation lives on {@link DirectInferenceHandler},
+   * and the RPC commands call it there through {@link CommandRouter}.
    */
-  private runDirectTextGeneration(
-    req: DirectTextGenerationRequest
-  ): Promise<{ text: string; data: Record<string, unknown> | null }> {
-    return this.inference.runDirectTextGeneration(req);
-  }
-
-  private runDirectMediaGeneration(
+  runDirectMediaGeneration(
     req: DirectMediaGenerationRequest
   ): Promise<{ asset_ids: string[] }> {
     return this.inference.runDirectMediaGeneration(req);
-  }
-
-  private runDirectTranscription(req: {
-    provider: string;
-    model: string;
-    assetId: string;
-    language?: string;
-  }): Promise<{
-    text: string;
-    words: Array<{ word: string; startMs: number; endMs: number }>;
-  }> {
-    return this.inference.runDirectTranscription(req);
   }
 
   /**
@@ -1464,613 +1447,25 @@ export class UnifiedWebSocketRunner implements ClientSession {
   }
 
   /**
-   * Build a tRPC caller bound to this connection's `userId`. Used to dispatch
-   * the read-only RPC commands (list_workflows, get_workflow, list_assets,
-   * get_asset, list_nodes, get_node) onto the existing tRPC routers — single
-   * source of truth, no logic duplication.
+   * Transitional: the lifecycle suite drives the RPC frame through the runner.
+   * The implementation is {@link CommandRouter.runRpc}; this adapts the wire
+   * envelope to it and goes when the suite moves onto the router.
    */
-  private getTrpcCaller() {
-    if (!this.nodeRegistry || !this.apiOptions || !this.pythonBridge) {
-      throw new Error(
-        "RPC commands require nodeRegistry, apiOptions, and pythonBridge"
-      );
-    }
-    const factory = createCallerFactory(appRouter);
-    return factory({
-      userId: this.userId,
-      registry: this.nodeRegistry,
-      apiOptions: this.apiOptions,
-      pythonBridge: this.pythonBridge,
-      getPythonBridgeReady: this.getPythonBridgeReady ?? (() => true)
-    });
-  }
-
-  /**
-   * Invoke a tRPC procedure and send back a single `rpc_response` frame
-   * correlating to `command.request_id`. Returns `null` so the receive loop
-   * skips the legacy auto-send (the frame has already been sent here).
-   *
-   * Errors thrown by the procedure are mapped to `rpc_response.error` using
-   * the `apiCode` cause attached by `throwApiError` in the tRPC layer.
-   */
-  private async runRpc<TResult>(
+  runRpc<TResult>(
     command: WebSocketCommandEnvelope,
     fn: () => Promise<TResult>
   ): Promise<Record<string, unknown> | null> {
-    const requestId = command.request_id;
-    if (!isNonEmptyString(requestId)) {
-      return { error: "request_id is required for RPC commands" };
-    }
-    try {
-      const result = await fn();
-      await this.sendMessage({
-        type: "rpc_response",
-        request_id: requestId,
-        command: command.command,
-        result
-      });
-    } catch (err) {
-      const trpc = err as {
-        code?: string;
-        message?: string;
-        cause?: { apiCode?: string };
-      };
-      const code = trpc.cause?.apiCode ?? trpc.code ?? "INTERNAL_ERROR";
-      const internalMessage = trpc.message ?? String(err);
-      const error: RpcErrorPayload = {
-        code,
-        message: internalMessage,
-        retryable: isSdkV1RetryableError(code, internalMessage),
-        apiCode: trpc.cause?.apiCode ?? null,
-        trpcCode: trpc.code
-      };
-      await this.sendMessage({
-        type: "rpc_response",
-        request_id: requestId,
-        command: command.command,
-        error
-      });
-    }
-    return null;
+    return this.commands.runRpc(command.command, command.request_id, fn);
   }
 
   async handleCommand(
     command: WebSocketCommandEnvelope
   ): Promise<Record<string, unknown> | null> {
-    const data = command.data ?? {};
-    const jobId = isString(data.job_id) ? data.job_id : undefined;
-    const workflowId = isString(data.workflow_id)
-      ? data.workflow_id
-      : undefined;
-    log.debug("Command", { command: command.command });
-
-    // A deployed app's visitor reaches this runner as the app's owner, so the
-    // dispatch below would answer them the way it answers the owner. It is an
-    // allowlist rather than a denylist so that a command added later is
-    // refused here until someone decides it belongs — the alternative is a
-    // stranger reading somebody's assets because a switch case grew.
-    if (
-      this.appSession &&
-      !isAppSessionCommandAllowed(command.command as string)
-    ) {
-      log.warn("Command refused for an app session", {
-        command: command.command,
-        applicationId: this.appSession.applicationId
-      });
-      return { error: "This command is not available for a published app" };
-    }
-
-    // Every allowed command except `run_job` and `get_status` addresses a run
-    // that already exists, by id, and
-    // the runner resolves a run by (user, job id) — where the user is the app's
-    // *owner*. Without this, a job id from the owner's editor would replay
-    // that run's frames, or cancel it, over a visitor's connection. The
-    // ledger is what says which runs belong to this app: an app run reserves
-    // its row before the job exists, so a job with no row here was not started
-    // by this app. `run_job` is excluded because it *creates* the row — it
-    // reserves against the app's budget inside `admitApplicationRun`, and
-    // `confineAppSessionRun` above is what confines it.
-    if (this.appSession && jobId && command.command !== "run_job") {
-      const owned = await invocationBelongsToApplication(
-        this.appSession.applicationId,
-        jobId
-      ).catch((err) => {
-        // Fail closed: a ledger read that never completed is not evidence the
-        // run belongs to this app.
-        this.logError("app-session job ownership check failed", err);
-        return false;
-      });
-      if (!owned) {
-        log.warn("Job command refused for an app session", {
-          command: command.command,
-          jobId,
-          applicationId: this.appSession.applicationId
-        });
-        return { error: "That run does not belong to this app" };
-      }
-    }
-
-    switch (command.command as UnifiedCommandType) {
-      case "clear_models":
-        return this.clearModels();
-      case "run_job":
-        // SAFETY: the wire command's `data` is the run request. Every read
-        // is `req.workflow_id ?? …`, so the field the interface declares
-        // required is in practice optional — making it so in `@nodetool-ai/
-        // protocol` is the truthful fix and reaches every client.
-        await this.runJob(data as unknown as RunJobRequest);
-        return { message: "Job started", workflow_id: workflowId ?? null };
-      case "reconnect_job":
-        if (!jobId) return { error: "job_id is required" };
-        // Await so an error can't escape as an unhandled rejection; reconnectJob
-        // only replays state (it does not run the job), so this stays quick.
-        await this.reconnectJob(jobId, workflowId, resumeLastSeq(data)).catch(
-          (err) => {
-            log.warn("reconnect_job failed", { jobId, error: String(err) });
-          }
-        );
-        return {
-          message: `Reconnecting to job ${jobId}`,
-          job_id: jobId,
-          workflow_id: workflowId ?? null
-        };
-      case "stream_input":
-        if (!jobId) return { error: "job_id is required" };
-        {
-          const target = this.resolveJobControl(jobId);
-          log.info("stream_input command", {
-            jobId,
-            hasActive: !!target,
-            inputName: data.input,
-            handle: data.handle,
-            hasValue: data.value !== undefined,
-            activeJobIds: [...this.activeJobs.keys()]
-          });
-          if (!target) return { error: "No active job/context" };
-          const inputName = isString(data.input) ? data.input : "";
-          if (!inputName.trim()) return { error: "Invalid input name" };
-          const value = data.value;
-          const handle = isString(data.handle) ? data.handle : undefined;
-          try {
-            await target.hooks.pushInput(inputName, value, handle);
-            return {
-              message: "Input item streamed",
-              job_id: jobId,
-              workflow_id: workflowId ?? target.workflowId
-            };
-          } catch (err) {
-            log.error("stream_input failed", {
-              error: err instanceof Error ? err.message : String(err)
-            });
-            return {
-              error: err instanceof Error ? err.message : String(err),
-              job_id: jobId,
-              workflow_id: workflowId ?? target.workflowId
-            };
-          }
-        }
-      case "end_input_stream":
-        if (!jobId) return { error: "job_id is required" };
-        {
-          const target = this.resolveJobControl(jobId);
-          if (!target) return { error: "No active job/context" };
-          const inputName = isString(data.input) ? data.input : "";
-          if (!inputName.trim()) return { error: "Invalid input name" };
-          const handle = isString(data.handle) ? data.handle : undefined;
-          try {
-            target.hooks.finishInputStream(inputName, handle);
-            return {
-              message: "Input stream ended",
-              job_id: jobId,
-              workflow_id: workflowId ?? target.workflowId
-            };
-          } catch (err) {
-            return {
-              error: err instanceof Error ? err.message : String(err),
-              job_id: jobId,
-              workflow_id: workflowId ?? target.workflowId
-            };
-          }
-        }
-      case "cancel_job":
-        if (!jobId) return { error: "job_id is required" };
-        return this.cancelJob(jobId, workflowId);
-      case "update_node_properties": {
-        // Live parameter path: push property changes into a running job's
-        // node executors (e.g. synth knobs while a patch plays). Misses are
-        // not errors — the canvas already holds the value for the next run.
-        if (!jobId) return { error: "job_id is required" };
-        const nodeId = data.node_id;
-        const properties = data.properties;
-        if (!isNonEmptyString(nodeId)) {
-          return { error: "node_id is required" };
-        }
-        if (!isObjectLike(properties)) {
-          return { error: "properties must be an object" };
-        }
-        const target = this.resolveJobControl(jobId);
-        const applied =
-          target?.hooks.updateNodeProperties(
-            nodeId,
-            properties as Record<string, unknown>
-          ) ?? false;
-        return { applied };
-      }
-      case "get_status":
-        return this.getStatus(jobId);
-      case "set_mode": {
-        const mode = data.mode;
-        if (mode !== "binary" && mode !== "text") {
-          return { error: "mode must be binary or text" };
-        }
-        this.mode = mode;
-        return { message: `Mode set to ${mode}` };
-      }
-      case "set_permission_mode": {
-        const threadId = data.thread_id;
-        const mode = data.permission_mode;
-        if (!isNonEmptyString(threadId)) {
-          return { error: "thread_id is required for set_permission_mode" };
-        }
-        if (mode !== "plan" && mode !== "default" && mode !== "auto") {
-          return { error: "permission_mode must be plan, default, or auto" };
-        }
-        this.chat.setPermissionMode(threadId, mode);
-        return {
-          message: `Permission mode set to ${mode}`,
-          thread_id: threadId
-        };
-      }
-      case "chat_message": {
-        const threadId = data.thread_id;
-        if (!isNonEmptyString(threadId)) {
-          return { error: "thread_id is required for chat_message command" };
-        }
-        const { seq, signal, controller } = this.beginChatTurn();
-        // A resilient session decouples the turn from this socket: frames are
-        // seq-stamped and buffered so a client that disconnects mid-turn can
-        // replay what it missed. Opening supersedes (aborts) any prior turn
-        // still running for this thread — including one detached from a dead
-        // connection.
-        const session = chatTurnRegistry.open(
-          this.userId ?? "1",
-          threadId,
-          controller,
-          this.buildChatTurnHooks()
-        );
-        session.attach(this.chatDeliveryTarget, session.lastSeq);
-        this.adoptedSessions.delete(threadId);
-        this.chatTurnSession = session;
-        // Error frames must be sent (and buffered) before the session
-        // finishes, so the catch runs inside the chain the finally closes.
-        this.currentTask = this.chat
-          .handleChatMessage(data, seq, signal)
-          .catch(async (err) => {
-            this.logError("chat_message processing failed", err);
-            await this.sendMessage({
-              type: "error",
-              message: err instanceof Error ? err.message : String(err),
-              thread_id: threadId
-            });
-          })
-          .finally(() => {
-            this.endChatTurn(controller);
-            session.finish();
-            if (this.chatTurnSession === session) this.chatTurnSession = null;
-          });
-        return {
-          message: "Chat message processing started",
-          thread_id: threadId
-        };
-      }
-      case "list_chat_turns": {
-        // Discovery for a client that starts with no local state (a page
-        // reload): report every turn of this user still running so the
-        // client can reattach each thread with `resume_chat`.
-        const sessions = chatTurnRegistry.listRunningForUser(
-          this.userId ?? "1"
-        );
-        for (const s of sessions) {
-          await this.sendToSocket({
-            type: "chat_turn_active",
-            thread_id: s.threadId,
-            status: "running",
-            last_seq: s.lastSeq
-          });
-        }
-        return { message: "Chat turns listed", count: sessions.length };
-      }
-      case "resume_chat": {
-        const threadId = isString(data.thread_id) ? data.thread_id : "";
-        if (!threadId) {
-          return { error: "thread_id is required for resume_chat command" };
-        }
-        const lastSeq = isFiniteNumber(data.last_seq) ? data.last_seq : 0;
-        const session = chatTurnRegistry.get(this.userId ?? "1", threadId);
-        if (!session) {
-          // Nothing to replay: no turn ran here, or retention elapsed. The
-          // persisted thread history over REST is the client's fallback.
-          await this.sendToSocket({
-            type: "chat_resumed",
-            thread_id: threadId,
-            status: "unknown",
-            last_seq: 0,
-            replay_count: 0,
-            replay_incomplete: false
-          });
-          return { message: "No chat turn to resume", thread_id: threadId };
-        }
-        // last_seq <= 0 is a fresh client (page reload): it has no frame
-        // state, but the persisted head of the turn is reachable over REST.
-        // Replay only what REST cannot provide — frames after the turn's
-        // last `message` frame — and flag the replay incomplete so the
-        // client reconciles history from REST.
-        const fresh = lastSeq <= 0;
-        const { replay, incomplete } = session.attach(
-          this.chatDeliveryTarget,
-          fresh ? session.freshAttachSeq() : lastSeq
-        );
-        if (session.status === "running" && this.chatTurnSession !== session) {
-          this.adoptedSessions.set(threadId, session);
-        }
-        // Header first, then the missed tail; live frames queue behind them
-        // on the session's ordered delivery chain.
-        await session.deliverReplay(this.chatDeliveryTarget, [
-          {
-            type: "chat_resumed",
-            thread_id: threadId,
-            status: session.status,
-            last_seq: session.lastSeq,
-            replay_count: replay.length,
-            replay_incomplete: fresh || incomplete
-          },
-          ...replay
-        ]);
-        return {
-          message: "Chat resumed",
-          thread_id: threadId,
-          replay_count: replay.length
-        };
-      }
-      case "inference": {
-        const { seq, signal, controller } = this.beginChatTurn();
-        this.currentTask = this.inference
-          .handleInference(data, seq, signal)
-          .finally(() => this.endChatTurn(controller));
-        void this.currentTask.catch(async (err) => {
-          this.logError("inference processing failed", err);
-          await this.sendMessage({
-            type: "error",
-            message: err instanceof Error ? err.message : String(err)
-          });
-        });
-        return { message: "Inference started" };
-      }
-      case "stop": {
-        const threadId = isString(data.thread_id) ? data.thread_id : undefined;
-        // Always increment seq to cancel any in-progress chat or inference
-        this.chat.bumpRequestSeq();
-        // …and abort it for real. The seq bump alone only discards output at
-        // yield boundaries; the signal interrupts blocked awaits and stops
-        // providers that own a subprocess.
-        this.cancelChatTurn();
-        this.cancelRpcCalls();
-        this.currentTask = null;
-        if (jobId) {
-          const active = this.activeJobs.get(jobId);
-          if (active) {
-            active.session.cancel();
-            active.status = "cancelled";
-          } else {
-            // The run may be executing on the connection that started it —
-            // this client reconnected to it. Cancel through its hooks, or,
-            // when nothing local holds it, through its row.
-            const registered = jobRunRegistry.get(this.userId ?? "1", jobId);
-            if (registered && registered.status === "running") {
-              registered.cancel();
-            } else {
-              await requestRemoteJobCancel(this.userId ?? "1", jobId);
-            }
-          }
-        }
-        const stopScope = threadId ?? jobId;
-        if (stopScope) {
-          this.toolBridge.cancelScope(stopScope);
-          this.approvalBridge.cancelScope(stopScope);
-        }
-        // The thread's turn may be executing on a previous connection's
-        // runner (detached or adopted after a reconnect) — abort it there.
-        if (threadId) {
-          const registered = chatTurnRegistry.get(this.userId ?? "1", threadId);
-          if (registered && registered.status === "running") {
-            registered.abort();
-          }
-        }
-        await this.sendMessage({
-          type: "generation_stopped",
-          message: "Generation stopped by user",
-          job_id: jobId ?? null,
-          thread_id: threadId ?? null
-        });
-        return {
-          message: "Stop command processed",
-          job_id: jobId ?? null,
-          thread_id: threadId ?? null
-        };
-      }
-      case "list_workflows": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.workflows.list(
-            data as Parameters<typeof caller.workflows.list>[0]
-          )
-        );
-      }
-      case "get_workflow": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.workflows.get({ id: String(data.id ?? "") })
-        );
-      }
-      case "list_assets": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.assets.list(data as Parameters<typeof caller.assets.list>[0])
-        );
-      }
-      case "get_asset": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.assets.get({ id: String(data.id ?? "") })
-        );
-      }
-      case "list_nodes": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.nodes.list(data as Parameters<typeof caller.nodes.list>[0])
-        );
-      }
-      case "get_node": {
-        const caller = this.getTrpcCaller();
-        return this.runRpc(command, () =>
-          caller.nodes.get({ node_type: String(data.node_type ?? "") })
-        );
-      }
-      case "generate_text": {
-        const provider = String(data.provider ?? this.defaultProvider);
-        const model = String(data.model ?? this.defaultModel);
-        const rawMessages = Array.isArray(data.messages) ? data.messages : [];
-        const messages: Array<{ role: string; content: string }> =
-          rawMessages.length > 0
-            ? rawMessages.map((m) => {
-                const msg = m as Record<string, unknown>;
-                return {
-                  role: isString(msg.role) ? msg.role : "user",
-                  content: isString(msg.content) ? msg.content : ""
-                };
-              })
-            : [];
-        if (messages.length === 0) {
-          const system = isString(data.system) ? data.system.trim() : "";
-          const prompt = isString(data.prompt) ? data.prompt : "";
-          if (system) messages.push({ role: "system", content: system });
-          if (prompt.trim()) messages.push({ role: "user", content: prompt });
-        }
-        const schema = isRecord(data.schema)
-          ? (data.schema as Record<string, unknown>)
-          : undefined;
-        return this.runRpc(command, () =>
-          this.runDirectTextGeneration({
-            provider,
-            model,
-            messages,
-            maxTokens: isNumber(data.max_tokens)
-              ? (data.max_tokens as number)
-              : undefined,
-            schema,
-            schemaName: isString(data.schema_name)
-              ? (data.schema_name as string)
-              : "result",
-            schemaDescription: isString(data.schema_description)
-              ? (data.schema_description as string)
-              : "Answer with the requested structure."
-          })
-        );
-      }
-      case "generate_media": {
-        const rawMode = data.mode;
-        const mode:
-          | "image"
-          | "image_edit"
-          | "inpaint"
-          | "video"
-          | "video_edit"
-          | "audio" =
-          rawMode === "image_edit"
-            ? "image_edit"
-            : rawMode === "inpaint"
-              ? "inpaint"
-              : rawMode === "video"
-                ? "video"
-                : rawMode === "video_edit"
-                  ? "video_edit"
-                  : rawMode === "audio"
-                    ? "audio"
-                    : "image";
-        const provider = String(data.provider ?? this.defaultProvider);
-        const model = String(data.model ?? this.defaultModel);
-        const prompt = String(data.prompt ?? "");
-        const sourceAssetId = isString(data.source_asset_id)
-          ? (data.source_asset_id as string)
-          : undefined;
-        const maskAssetId = isString(data.mask_asset_id)
-          ? (data.mask_asset_id as string)
-          : undefined;
-        const width = isNumber(data.width) ? (data.width as number) : undefined;
-        const height = isNumber(data.height)
-          ? (data.height as number)
-          : undefined;
-        const aspectRatio = isString(data.aspect_ratio)
-          ? (data.aspect_ratio as string)
-          : undefined;
-        const resolution = isString(data.resolution)
-          ? (data.resolution as string)
-          : undefined;
-        const strength = isNumber(data.strength)
-          ? (data.strength as number)
-          : undefined;
-        const numInferenceSteps = isNumber(data.num_inference_steps)
-          ? (data.num_inference_steps as number)
-          : undefined;
-        const durationSeconds = isNumber(data.duration)
-          ? (data.duration as number)
-          : undefined;
-        const variations = isNumber(data.variations)
-          ? (data.variations as number)
-          : undefined;
-        const voice = isString(data.voice) ? (data.voice as string) : undefined;
-        const speed = isNumber(data.speed) ? (data.speed as number) : undefined;
-        const audioFormat = isString(data.audio_format)
-          ? (data.audio_format as string)
-          : undefined;
-        return this.runRpc(command, () =>
-          this.runDirectMediaGeneration({
-            mode,
-            provider,
-            model,
-            prompt,
-            sourceAssetId,
-            maskAssetId,
-            width,
-            height,
-            aspectRatio,
-            resolution,
-            strength,
-            numInferenceSteps,
-            durationSeconds,
-            variations,
-            voice,
-            speed,
-            audioFormat
-          })
-        );
-      }
-      case "transcribe_audio": {
-        const provider = String(data.provider ?? this.defaultProvider);
-        const model = String(data.model ?? this.defaultModel);
-        const assetId = isString(data.asset_id)
-          ? (data.asset_id as string)
-          : "";
-        const language = isString(data.language)
-          ? (data.language as string)
-          : undefined;
-        return this.runRpc(command, () =>
-          this.runDirectTranscription({ provider, model, assetId, language })
-        );
-      }
-      default:
-        return { error: "Unknown command" };
-    }
+    return this.commands.handle(
+      command.command,
+      command.data ?? {},
+      command.request_id
+    );
   }
 
   private startHeartbeat(): void {
