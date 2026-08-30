@@ -1,17 +1,16 @@
 /**
  * Look up a unit price for a model chosen on a generic node's provider-model
- * property (e.g. `model` on `nodetool.image.TextToImage`). The model id matches
- * the endpoint/model key in the codegen pricing catalogs: FAL is keyed by
- * `endpoint_id` (e.g. `fal-ai/flux/schnell`), kie by `model_id`. Returns a
- * bundle-sourced price, or null when the model isn't in either catalog.
+ * property (e.g. `model` on `nodetool.image.TextToImage`), given what the node
+ * states about the job. Three catalogs answer, in this order:
  *
- * Models in neither catalog fall back to the GenSpend catalog
- * (`genspend-catalog.ts`), refreshed nightly from genspend.io. That covers
- * every provider NodeTool can run and GenSpend tracks — Replicate, AtlasCloud,
- * Together, Gemini, OpenAI, MiniMax, ElevenLabs, and any FAL or kie model their
- * own catalogs predate. FAL and kie stay ahead of it because those catalogs
- * come from the provider itself, so a run is gated on the provider's own number
- * wherever one exists.
+ * - The GenSpend catalog (`genspend-catalog.ts`, refreshed nightly from
+ *   genspend.io) whenever it carries a *parameter-priceable* entry for the
+ *   model — a published grid, or a per-second class the duration multiplies.
+ *   That is the only catalog whose rows say what a rung costs, so it prices
+ *   the run rather than one unit of it.
+ * - The FAL (`endpoint_id`) and kie (`model_id`) codegen catalogs otherwise,
+ *   with their one scalar per endpoint converted to a per-run figure here.
+ * - The GenSpend base-spec scalar last, for a flat entry with no grid.
  *
  * Shared on purpose: the web cost preview and the server-side pre-run budget
  * estimate (`estimateRunCost`) both call this, so a run is gated on the same
@@ -25,7 +24,12 @@ import type {
   ModelUnitPricingLike,
   SelectedModel
 } from "@nodetool-ai/node-sdk/cost-estimate";
-import { priceGenspendEntry, type ModelParamPrice } from "./genspend-calc.js";
+import {
+  formatUsd,
+  isParameterPriceable,
+  priceGenspendEntry,
+  type ModelParamPrice
+} from "./genspend-calc.js";
 import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
 import { getGenspendPrice, GENSPEND_CURRENCY } from "./genspend-catalog.js";
@@ -36,6 +40,15 @@ interface CatalogPrice {
   billing_unit?: unknown;
   currency?: unknown;
   usd_price?: unknown;
+  /** kie only: how many published tiers the generator collapsed into one row. */
+  tier_count?: unknown;
+}
+
+/** A provider-catalog scalar plus what the row says about its own fidelity. */
+interface ScalarPrice {
+  price: ModelUnitPricingLike;
+  /** kie: >1 means the figure is the cheapest of several published tiers. */
+  tierCount?: number;
 }
 
 /**
@@ -72,7 +85,7 @@ function falPricingKey(modelId: string): string {
   );
 }
 
-function falPrice(modelId: string): ModelUnitPricingLike | null {
+function falPrice(modelId: string): ScalarPrice | null {
   const prices = falUnitPricingCatalog.prices;
   // SAFETY: the FAL catalog is generated JSON shipped with the package, so its
   // rows have no declared field types here; every field is checked below
@@ -82,14 +95,16 @@ function falPrice(modelId: string): ModelUnitPricingLike | null {
   if (!entry) return null;
   if (!isFiniteNumber(entry.unit_price)) return null;
   return {
-    unit_price: entry.unit_price,
-    billing_unit: isText(entry.billing_unit) ? entry.billing_unit : "",
-    currency: isText(entry.currency) ? entry.currency : "USD",
-    source: "bundle"
+    price: {
+      unit_price: entry.unit_price,
+      billing_unit: isText(entry.billing_unit) ? entry.billing_unit : "",
+      currency: isText(entry.currency) ? entry.currency : "USD",
+      source: "bundle"
+    }
   };
 }
 
-function kiePrice(modelId: string): ModelUnitPricingLike | null {
+function kiePrice(modelId: string): ScalarPrice | null {
   // SAFETY: as in `falPrice` — generated JSON with no declared field types,
   // checked field by field below.
   const entry = kieUnitPricingCatalog.prices?.[modelId] as
@@ -100,41 +115,150 @@ function kiePrice(modelId: string): ModelUnitPricingLike | null {
   // USD value, so skip the model when it's absent.
   if (!isFiniteNumber(entry.usd_price)) return null;
   return {
-    unit_price: entry.usd_price,
-    billing_unit: isText(entry.billing_unit) ? entry.billing_unit : "",
-    currency: "USD",
-    source: "bundle"
+    price: {
+      unit_price: entry.usd_price,
+      billing_unit: isText(entry.billing_unit) ? entry.billing_unit : "",
+      currency: "USD",
+      source: "bundle"
+    },
+    tierCount: isFiniteNumber(entry.tier_count) ? entry.tier_count : undefined
   };
 }
 
-function genspendPrice(
-  model: SelectedModel,
-  params?: ModelPriceParams
-): ModelParamPrice | null {
-  const entry = getGenspendPrice(model.provider, model.id);
-  if (!entry) return null;
-  // With parameters in hand the catalog's grid decides the rung, the duration
-  // multiplication, and the surcharges. Without them the base-spec scalar is
-  // the answer, exactly as before.
-  if (params) return priceGenspendEntry(entry, params);
-  return {
-    unit_price: entry.unit_price,
-    billing_unit: entry.billing_unit,
-    currency: GENSPEND_CURRENCY,
-    source: "bundle"
+/** The trimmed, lower-cased billing unit — rows ship `"1000 characters "`. */
+function unitKey(billingUnit: string): string {
+  return billingUnit.trim().toLowerCase();
+}
+
+/** Units whose figure is one second of output. */
+const PER_SECOND_UNITS = new Set(["second", "seconds"]);
+
+/**
+ * Units carrying no fixed amount of anything: a credit has no USD value here,
+ * and a bare count names no deliverable. Priced as a per-run figure they would
+ * read as a real number, so the caller is told why there is none.
+ */
+const UNCONVERTIBLE_UNITS = new Set(["", "unit", "units", "credit", "credits"]);
+
+/** `"5 seconds"`, `"30 seconds"`, `"16 frames"` — a block of N somethings. */
+const BLOCK_UNIT = /^(\d+(?:\.\d+)?) (.+)$/;
+
+/**
+ * Turn a provider-catalog scalar into a per-run figure for the stated job.
+ * A per-second scalar times the duration; a block unit times the number of
+ * blocks the duration needs. Everything else is already a per-run price, and a
+ * unit we cannot convert declines rather than passing off a per-unit number as
+ * the cost of a run.
+ */
+function priceScalar(
+  scalar: ScalarPrice,
+  params: ModelPriceParams | undefined
+): ModelParamPrice {
+  const { price } = scalar;
+  const unit = unitKey(price.billing_unit);
+  const warnings: string[] = [];
+  const assumptions: string[] = [];
+
+  if (scalar.tierCount !== undefined && scalar.tierCount > 1) {
+    warnings.push(
+      `this model publishes ${scalar.tierCount} priced tiers and the catalog carries only the cheapest — the figure is a lower bound`
+    );
+  }
+
+  const attach = (result: ModelParamPrice): ModelParamPrice => {
+    if (assumptions.length > 0) result.assumptions = assumptions;
+    if (warnings.length > 0) result.warnings = warnings;
+    return result;
   };
+
+  if (UNCONVERTIBLE_UNITS.has(unit)) {
+    return {
+      unit_price: 0,
+      billing_unit: price.billing_unit,
+      currency: price.currency,
+      source: price.source,
+      declined: `the catalog prices this model per "${
+        price.billing_unit.trim() || "unit"
+      }", which has no fixed value per run`
+    };
+  }
+
+  const seconds =
+    params?.seconds !== undefined &&
+    Number.isFinite(params.seconds) &&
+    params.seconds > 0
+      ? params.seconds
+      : null;
+
+  if (PER_SECOND_UNITS.has(unit)) {
+    if (seconds === null) {
+      assumptions.push(
+        "duration not set on the node — priced at 1 s of output"
+      );
+      return attach({
+        ...price,
+        breakdown: `1 s × ${formatUsd(price.unit_price)}/s`,
+        seconds: 1
+      });
+    }
+    return attach({
+      ...price,
+      unit_price: price.unit_price * seconds,
+      breakdown: `${seconds} s × ${formatUsd(price.unit_price)}/s`,
+      seconds
+    });
+  }
+
+  const block = BLOCK_UNIT.exec(unit);
+  if (block) {
+    const size = Number(block[1]);
+    const noun = block[2];
+    if (PER_SECOND_UNITS.has(noun) && size > 0) {
+      if (seconds === null) {
+        assumptions.push(
+          `duration not set on the node — priced at one ${size}-second block`
+        );
+        return attach({ ...price, seconds: size });
+      }
+      const blocks = Math.ceil(seconds / size);
+      return attach({
+        ...price,
+        unit_price: price.unit_price * blocks,
+        breakdown: `${blocks} × ${size} s block${
+          blocks === 1 ? "" : "s"
+        } × ${formatUsd(price.unit_price)} (${seconds} s of output)`,
+        seconds
+      });
+    }
+    return {
+      unit_price: 0,
+      billing_unit: price.billing_unit,
+      currency: price.currency,
+      source: price.source,
+      declined: `the catalog prices this model per "${price.billing_unit.trim()}", which the node states nothing about`
+    };
+  }
+
+  return attach({ ...price });
 }
 
 /**
- * The unit price for a selected model. With `params` — what the node states
- * about the job (duration, resolution, audio) — a GenSpend-priced model is
- * priced off its published grid and `unit_price` comes back as the whole
- * per-run figure, with the reasoning attached. Without `params` the answer is
- * byte-identical to what it has always been.
+ * The unit price for a selected model, as the whole per-run figure with the
+ * reasoning attached.
  *
- * The FAL and kie catalogs stay parameter-unaware for now: they carry the same
- * per-second defect, from a different generator, and are a follow-up. They keep
- * winning the lookup order, because those numbers come from the provider.
+ * A model GenSpend prices off a published grid — a resolution ladder, a
+ * duration rung, an audio axis, an input surcharge, or a per-second class the
+ * duration multiplies — is priced there, ahead of the FAL and kie catalogs.
+ * Those two carry one scalar per endpoint, and for the 500-odd FAL rows billed
+ * per second that scalar is a rate, not a run: reported as a price it
+ * understated a 4-second clip by 40×. A kie row is the cheapest of the tiers
+ * its generator collapsed, so it is a floor by construction.
+ *
+ * The FAL/kie scalar answers when GenSpend has nothing parameter-priceable for
+ * the model, and it is made duration-aware on the way out: a per-second or
+ * per-N-second unit is multiplied by the stated duration, and a unit with no
+ * fixed value per run (credits, a bare count) declines rather than passing a
+ * per-unit number off as the cost of a run.
  */
 export function getModelUnitPrice(
   model: SelectedModel,
@@ -151,10 +275,34 @@ export function getModelUnitPrice(
       params
     );
   }
-  return falPrice(model.id) ?? kiePrice(model.id) ?? genspendPrice(model, params);
+
+  const entry = getGenspendPrice(model.provider, model.id);
+  const grid = entry !== null && isParameterPriceable(entry);
+  if (entry && grid) {
+    return priceGenspendEntry(entry, params ?? {});
+  }
+
+  const scalar = falPrice(model.id) ?? kiePrice(model.id);
+  if (scalar) return priceScalar(scalar, params);
+
+  if (entry) {
+    // A flat GenSpend entry: one number per generation, nothing to narrow.
+    return {
+      unit_price: entry.unit_price,
+      billing_unit: entry.billing_unit,
+      currency: GENSPEND_CURRENCY,
+      source: "bundle"
+    };
+  }
+  return null;
 }
 
-export { priceGenspendEntry, normalizeResolution } from "./genspend-calc.js";
+export {
+  priceGenspendEntry,
+  normalizeResolution,
+  isParameterPriceable,
+  formatUsd
+} from "./genspend-calc.js";
 export type { ModelParamPrice } from "./genspend-calc.js";
 
 export {
