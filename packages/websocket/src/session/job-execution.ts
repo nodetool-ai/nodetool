@@ -335,6 +335,11 @@ export class JobExecutionManager {
     };
   }
 
+  /** Ids of the runs in flight on this connection. Read for diagnostics. */
+  activeJobIds(): string[] {
+    return [...this.activeJobs.keys()];
+  }
+
   /**
    * Job ids of runs still executing on a previous connection's runner that
    * THIS connection reattached to via `reconnect_job`. Client commands for
@@ -2347,6 +2352,27 @@ export class JobExecutionManager {
       job_id: jobId,
       workflow_id: cancelledWorkflowId ?? ""
     };
+  }
+
+  /**
+   * `stop` for one run. The run is cancelled here when this connection owns
+   * it; otherwise it is executing on the connection that started it — this
+   * client only reconnected to it — so it is cancelled through its registered
+   * session, or, when nothing local holds it, through its row.
+   */
+  async stopJob(jobId: string): Promise<void> {
+    const active = this.activeJobs.get(jobId);
+    if (active) {
+      active.session.cancel();
+      active.status = "cancelled";
+      return;
+    }
+    const registered = jobRunRegistry.get(this.session.userId ?? "1", jobId);
+    if (registered && registered.status === "running") {
+      registered.cancel();
+      return;
+    }
+    await requestRemoteJobCancel(this.session.userId ?? "1", jobId);
   }
 
   getStatus(jobId?: string) {
