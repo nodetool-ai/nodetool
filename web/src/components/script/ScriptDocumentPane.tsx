@@ -21,7 +21,9 @@ import {
   UndoRedoButtons,
   EmptyState,
   AlertBanner,
+  Caption,
   LoadingSpinner,
+  Tooltip,
   SPACING,
   BORDER_RADIUS,
   TYPOGRAPHY,
@@ -40,6 +42,11 @@ import {
   type ScriptSpeaker
 } from "../../stores/script/ScriptStore";
 import { voiceAll } from "../../stores/script/scriptVoicing";
+import { formatUsd } from "@nodetool-ai/model-pricing";
+import {
+  useVoiceCostEstimate,
+  type VoiceCostEstimate
+} from "../../hooks/script/useVoiceCostEstimate";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
@@ -419,6 +426,80 @@ const SectionBlockInner = ({
  *  re-renders the section being edited. */
 const SectionBlock = memo(SectionBlockInner);
 
+/**
+ * *Voice all* with what the click costs on it.
+ *
+ * The price sits in the label rather than beside it, so it reads as this
+ * button's price and not as some figure the toolbar happens to carry. A script
+ * whose speech models publish only per-token rates shows the plain label and
+ * says why in the tooltip — a synthesized "$0" would be a lie about a billed
+ * call.
+ */
+const VoiceAllButton = ({
+  estimate,
+  onClick
+}: {
+  estimate: VoiceCostEstimate;
+  onClick: () => void;
+}) => {
+  const { lineCount, characters, cost, pricedLineCount, breakdowns, reasons, notes } =
+    estimate;
+  const priced = pricedLineCount > 0 && cost > 0;
+  const partial = priced && pricedLineCount < lineCount;
+
+  return (
+    <Tooltip
+      placement="bottom"
+      title={
+        <FlexColumn gap={SPACING.micro}>
+          <Text size="small">
+            {lineCount === 0
+              ? "Every line is already voiced."
+              : `${lineCount} line${lineCount === 1 ? "" : "s"} · ${characters} characters${
+                  priced ? ` · about ${formatUsd(cost)}` : ""
+                }${
+                  partial
+                    ? ` (${pricedLineCount} of ${lineCount} lines priced)`
+                    : ""
+                }`}
+          </Text>
+          {breakdowns.map((breakdown) => (
+            <Caption key={breakdown} color="secondary">
+              {breakdown}
+            </Caption>
+          ))}
+          {reasons.map((reason) => (
+            <Caption key={reason} color="secondary">
+              {reason}
+            </Caption>
+          ))}
+          {priced &&
+            notes.map((note) => (
+              <Caption key={note} color="secondary">
+                {note}
+              </Caption>
+            ))}
+          {priced && (
+            <Caption color="secondary">
+              List price from the provider catalog. Voicing is billed by the
+              provider at its own rates.
+            </Caption>
+          )}
+        </FlexColumn>
+      }
+    >
+      <EditorButton
+        size="small"
+        variant="contained"
+        startIcon={<GraphicEqIcon fontSize="small" />}
+        onClick={onClick}
+      >
+        {priced ? `Voice all · ~${formatUsd(cost)}` : "Voice all"}
+      </EditorButton>
+    </Tooltip>
+  );
+};
+
 const ScriptDocumentPane = ({
   scriptId,
   readOnly
@@ -558,6 +639,9 @@ const ScriptDocumentPane = ({
     }
   }, [scriptId]);
 
+  // What the click above is about to spend, over the same lines it will voice.
+  const voiceCost = useVoiceCostEstimate(scriptId);
+
   const onSendToTimeline = useCallback(() => {
     void assemble(scriptId).catch(() => {
       // Errors surface via the hook's `error`; swallow to keep the click quiet.
@@ -638,14 +722,10 @@ const ScriptDocumentPane = ({
               <Text size="smaller">Voicing…</Text>
             </FlexRow>
           ) : (
-            <EditorButton
-              size="small"
-              variant="contained"
-              startIcon={<GraphicEqIcon fontSize="small" />}
+            <VoiceAllButton
+              estimate={voiceCost}
               onClick={() => void onVoiceAll()}
-            >
-              Voice all
-            </EditorButton>
+            />
           ))}
         {playing ? (
           <EditorButton

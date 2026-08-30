@@ -298,10 +298,17 @@ describe("loadManifest IO (via loadImageModels)", () => {
   it("keys the cache by package+path (no cross-package bleed)", () => {
     // A real package yields a non-empty catalog; a different key must not
     // return that cached catalog.
+    //
+    // The manifest is this package's own. `@nodetool-ai/fal-nodes` is the
+    // larger catalog, but it *depends on* runtime, so no dependency edge can
+    // order its build before this test — turbo's `test` dependsOn `^build`
+    // builds a package's dependencies, never its dependents. On a `--affected`
+    // CI run that reached runtime, `fal-manifest.json` was simply not on disk
+    // yet and the catalog came back empty.
     const real = loadImageModels(
-      "@nodetool-ai/fal-nodes",
-      "fal-manifest.json",
-      "fal"
+      "@nodetool-ai/runtime",
+      "providers/aki-manifest.json",
+      "aki"
     );
     expect(real.length).toBeGreaterThan(0);
     expect(loadImageModels(uniq(), "x.json", "p")).toEqual([]);

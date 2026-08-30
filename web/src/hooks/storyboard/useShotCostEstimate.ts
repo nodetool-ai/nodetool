@@ -24,22 +24,12 @@
 import { useMemo } from "react";
 import type { Shot } from "@nodetool-ai/protocol";
 import { shotRenderMode } from "@nodetool-ai/protocol";
-import { getModelUnitPrice } from "../../utils/modelUnitPricing";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useShotDuration } from "./useShotDuration";
 import { CLIP_RESOLUTION, STILL_RESOLUTION } from "./renderSpec";
+import { priceRenderStep, type ShotCostStep } from "./shotCostPricing";
 
-/** One render step the shot pays for. */
-export interface ShotCostStep {
-  /** "Still" or "Clip". */
-  label: string;
-  /** The step's cost in USD, or null when nothing prices it. */
-  cost: number | null;
-  /** How the figure was reached: "4 s × $0.1/s at 1080p". */
-  breakdown?: string;
-  /** Why there is no figure, when there is none. */
-  reason?: string;
-}
+export type { ShotCostStep };
 
 export interface ShotCostEstimate {
   /** The whole-shot cost in USD: every priced step below, summed. */
@@ -52,83 +42,15 @@ export interface ShotCostEstimate {
   notes: string[];
 }
 
-/** A model selection as the pricing catalog takes it. */
-interface BoardModel {
-  id: string;
-  provider: string | null;
-  name?: string;
-}
-
 /**
  * The board's two render models, subscribed one at a time: selecting the whole
  * board would re-run this on every shot edit the board makes.
  */
-const useBoardImageModel = (boardId: string) =>
+export const useBoardImageModel = (boardId: string) =>
   useStoryboardStore((state) => state.boards[boardId]?.imageModel ?? null);
 
-const useBoardVideoModel = (boardId: string) =>
+export const useBoardVideoModel = (boardId: string) =>
   useStoryboardStore((state) => state.boards[boardId]?.videoModel ?? null);
-
-/** A price billed in "units" or "credits" has no fixed currency value. */
-const isVagueBillingUnit = (unit: string | undefined): boolean =>
-  !!unit && /\bunits?\b|\bcredits?\b/i.test(unit.trim());
-
-/** A price that can be shown as money, or null. */
-function usable(
-  price: ReturnType<typeof getModelUnitPrice>
-): NonNullable<ReturnType<typeof getModelUnitPrice>> | null {
-  if (
-    !price ||
-    price.declined ||
-    !Number.isFinite(price.unit_price) ||
-    isVagueBillingUnit(price.billing_unit)
-  ) {
-    return null;
-  }
-  return price;
-}
-
-/**
- * One step's price, or the reason there is none.
- *
- * The rung the render sends is asked for first. A model that publishes no such
- * rung declines it, and the answer then is the model's base spec plus a note —
- * dropping the step would hide the clip's cost on every model whose ladder
- * stops below 1080p.
- */
-function priceStep(
-  label: string,
-  model: BoardModel | null,
-  pickerLabel: string,
-  resolution: string,
-  seconds: number | undefined,
-  notes: string[]
-): ShotCostStep {
-  if (!model?.id) {
-    return {
-      label,
-      cost: null,
-      reason: `No ${pickerLabel} picked for this board.`
-    };
-  }
-  const selected = { id: model.id, provider: model.provider };
-  const atRung = usable(getModelUnitPrice(selected, { resolution, seconds }));
-  const price = atRung ?? usable(getModelUnitPrice(selected, { seconds }));
-  if (!price) {
-    return {
-      label,
-      cost: null,
-      reason: `No published price for ${model.name || model.id}.`
-    };
-  }
-  if (!atRung) {
-    notes.push(
-      `${label.toLowerCase()}: this model publishes no ${resolution} price — shown at its base spec`
-    );
-  }
-  notes.push(...(price.assumptions ?? []), ...(price.warnings ?? []));
-  return { label, cost: price.unit_price, breakdown: price.breakdown };
-}
 
 export function useShotCostEstimate(
   boardId: string,
@@ -144,7 +66,7 @@ export function useShotCostEstimate(
     const notes: string[] = [];
     const steps = [
       rendersStill
-        ? priceStep(
+        ? priceRenderStep(
             "Still",
             imageModel,
             "still model",
@@ -153,7 +75,7 @@ export function useShotCostEstimate(
             notes
           )
         : null,
-      priceStep(
+      priceRenderStep(
         "Clip",
         videoModel,
         "clip model",
