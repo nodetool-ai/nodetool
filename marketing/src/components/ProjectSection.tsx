@@ -1,14 +1,14 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import ChatShowcase from "./ChatShowcase";
-import { MessageSquare } from "lucide-react";
+import ProjectShowcase from "./ProjectShowcase";
+import { FolderKanban } from "lucide-react";
 
-export default function ChatUISection() {
+export default function ProjectSection() {
   return (
     <section
-      id="chat"
-      aria-labelledby="chat-title"
+      id="projects"
+      aria-labelledby="projects-title"
       className="relative py-24 overflow-clip-safe"
     >
       {/* Background Glow */}
@@ -22,21 +22,19 @@ export default function ChatUISection() {
             viewport={{ once: true }}
             className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-lg shadow-emerald-500/10"
           >
-            <MessageSquare className="w-8 h-8 text-emerald-400" />
+            <FolderKanban className="w-8 h-8 text-emerald-400" />
           </motion.div>
 
           <motion.h2
-            id="chat-title"
+            id="projects-title"
             initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            A chatbot gives you a transcript. <br />
-            <span className="text-white">
-              The agent gives you the project.
-            </span>
+            A chatbot leaves you a transcript. <br />
+            <span className="text-white">This leaves you a project.</span>
           </motion.h2>
 
           <motion.p
@@ -46,10 +44,11 @@ export default function ChatUISection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            NodeTool&apos;s agent operates the studio for you. It lays the
-            steps out on your canvas, generates the takes, and leaves every
-            part on the table — so you can swap a model, re-roll a shot, or
-            run the whole thing again.
+            Say what you want made. The agent plans the documents it takes,
+            builds them where you can watch, and files them under one project —
+            a board, a script, a cut, each opening in the editor that made it.
+            The four frames below are one session with the same teaser, from
+            the first sentence to the shelf it ends up on.
           </motion.p>
 
           <motion.a
@@ -71,12 +70,9 @@ export default function ChatUISection() {
           transition={{ duration: 0.3, ease: "easeOut" }}
           className="scroll-fade"
         >
-          <ChatShowcase />
+          <ProjectShowcase />
         </motion.div>
       </div>
     </section>
   );
 }
-
-
-

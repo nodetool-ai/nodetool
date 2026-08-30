@@ -64,6 +64,22 @@ describe("useResolvedMediaUri", () => {
     );
   });
 
+  // A project's sketch thumbnail arrives as `{asset_id}` with no uri, which is
+  // a valid locator — `assetIdOf` reads it — and used to resolve to nothing:
+  // "no uri" was read as "nothing to render" before the lookup was reached.
+  it("resolves a ref that carries only an asset_id", () => {
+    withAsset("https://cdn.example.com/signed/user-1/abc123.png?sig=x");
+    const { result } = renderHook(() =>
+      useResolvedMediaUri({ asset_id: "abc123" })
+    );
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ["asset", "abc123"], enabled: true })
+    );
+    expect(result.current).toBe(
+      "https://cdn.example.com/signed/user-1/abc123.png?sig=x"
+    );
+  });
+
   // The whole point of the hook: never hand a caller a URL that 404s. An
   // unresolved lookup renders nothing rather than `/api/storage/<id>`.
   it("returns undefined while the asset lookup is in flight", () => {

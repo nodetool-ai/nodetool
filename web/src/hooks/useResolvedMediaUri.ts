@@ -75,7 +75,11 @@ export type ResolvedMedia = {
 export function useResolvedMedia(source: MediaLocator): ResolvedMedia {
   const getAsset = useAssetStore((state) => state.get);
   const { uri, assetId } = locatorParts(source);
-  const staticUrl = resolveStaticMediaUri(uri);
+  // A `*Ref` may carry only `asset_id` — the sketch thumbnails a project
+  // summary returns do. With no uri there is nothing to resolve statically,
+  // and `resolveStaticMediaUri` answers "" for that, which would end
+  // resolution before the asset lookup it needs.
+  const staticUrl = uri ? resolveStaticMediaUri(uri) : null;
   // A locator that resolves without the server still needs the asset id path
   // disabled — hooks cannot be called conditionally, so gate the query instead.
   const needsAsset = staticUrl === null && Boolean(assetId);
@@ -120,7 +124,9 @@ export function useResolvedMediaUris(
 ): (ResolvedMediaUrl | undefined)[] {
   const getAsset = useAssetStore((state) => state.get);
   const parts = sources.map(locatorParts);
-  const staticUrls = parts.map(({ uri }) => resolveStaticMediaUri(uri));
+  const staticUrls = parts.map(({ uri }) =>
+    uri ? resolveStaticMediaUri(uri) : null
+  );
 
   const results = useQueries({
     queries: parts.map(({ assetId }, i) => ({

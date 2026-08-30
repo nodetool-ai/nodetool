@@ -15,6 +15,7 @@ A tour of the interface. Same views on desktop and in the browser.
 | View | What it is | Docs |
 |---|---|---|
 | **Dashboard** `/dashboard` | Home: search, recent workflows, templates, quick chat | [Getting Started](getting-started.md) |
+| **Projects** — Projects panel | Documents grouped by the job they belong to, with their own agent | [Projects](#projects) |
 | **Workflow Editor** `/workspace` | The node canvas, with panels on every edge | [Workflow Editor](workflow-editor.md) · [Panels](editor-panels.md) |
 | **Chain Editor** `/chain/:workflowId?` | Linear card pipeline instead of a graph | [Chain Editor](chain-editor.md) |
 | **Chat** — Chats panel | Threads open as workspace tabs; the agent edits what you have open | [Chat](global-chat.md) |
@@ -42,6 +43,35 @@ wizard, a system tray, and frameless mini-app windows.
 Your workflows, templates, and recent chats, plus a getting-started checklist
 that disappears once you finish or dismiss it. Click a card to open it; click
 **New Workflow** to start from nothing.
+
+---
+
+## Projects
+
+A project is a name over the documents that belong to one job — a board, a
+script, a cut, the key art — plus the conversation that built them. Open one
+and its documents come back as a tab group.
+
+![Projects list](assets/screenshots/project-list.png)
+
+The list is every project as a card: what it has rendered, when it last
+changed, and what it has cost at provider rates. Underneath sit the documents
+in no project; drag one onto a card to file it there.
+
+![Start a project](assets/screenshots/project-new.png)
+
+**New project** asks what you want made. Pick a shape — 30s spot, trailer,
+music video, mini app — and the agent plans the documents that shape needs and
+builds them. Reference images and library entities go in with the prompt. The
+estimate is read off what your own past projects of that shape cost, so it
+appears once you have two of them to read.
+
+![Project overview](assets/screenshots/project-overview.png)
+
+The overview is the project's agent on the left and what it has made on the
+right. Every card opens its document as a tab in the group; the button in the
+header opens whichever one the project is waiting on. The bar along the bottom
+splits the spend into stills, clips, voice, and pipeline.
 
 ---
 

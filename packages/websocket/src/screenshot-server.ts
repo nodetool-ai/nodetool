@@ -37,15 +37,17 @@ import {
   getMasterKey
 } from "@nodetool-ai/security";
 import { createTestUiServer } from "./test-ui-server.js";
+import { seedProjects } from "./screenshot-projects.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   createFakeExecutorResolver,
   fakeAllProviders,
   resolveFakeProvider
 } from "./fake-runtime.js";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -1382,6 +1384,19 @@ const STORYBOARD_DOCUMENT = {
   videoModel: null
 };
 
+// ── Asset bytes ───────────────────────────────────────────────────────────────
+// Seeded image rows need bytes behind them, or every card that renders one
+// shows the broken-image glyph. The store is a scratch directory, pointed at
+// through the same env var a real install uses, so the bytes travel the real
+// `/api/storage/<user>/<asset>.<ext>` route rather than a special case in the
+// test server. Set before anything asks for the storage adapter, which caches
+// the config it is first built with.
+
+const ASSET_ROOT =
+  process.env.ASSET_FOLDER ??
+  mkdtempSync(join(tmpdir(), "nodetool-screenshot-assets-"));
+process.env.ASSET_FOLDER = ASSET_ROOT;
+
 // ── Seed database ─────────────────────────────────────────────────────────────
 
 async function seedDatabase(): Promise<void> {
@@ -1541,8 +1556,10 @@ async function seedDatabase(): Promise<void> {
       .run();
   }
 
+  const projectCount = await seedProjects(USER_ID);
+
   console.log(
-    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_APPLICATIONS.length} applications, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 3 timeline sequences, ${demoSecrets.length} secrets`
+    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_APPLICATIONS.length} applications, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 3 timeline sequences, ${projectCount} projects, ${demoSecrets.length} secrets (asset bytes in ${ASSET_ROOT})`
   );
 }
 

@@ -3582,16 +3582,34 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "atlascloud": {
     "id": "atlascloud",
-    "total": 97,
+    "total": 157,
     "counts": {
-      "video": 48,
-      "image": 49
+      "video": 81,
+      "image": 76
     },
     "topTags": [
-      "image",
-      "video"
+      "video",
+      "image"
     ],
     "models": [
+      {
+        "id": "alibaba/wan-2.6/image-edit",
+        "name": "Wan 2.6 — Image Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Wan 2.6 — edits input images from a text instruction.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "alibaba/wan-2.6/text-to-image",
+        "name": "Wan 2.6 — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Wan 2.6 — text to image with a negative prompt and a wide size list.",
+        "tags": [
+          "image"
+        ]
+      },
       {
         "id": "alibaba/wan-2.7-pro/image-edit",
         "name": "Wan 2.7 Pro — Image Edit",
@@ -3624,6 +3642,105 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Wan 2.7 — Text to Image",
         "kind": "image",
         "desc": "AtlasCloud / Alibaba Wan 2.7 — fast text-to-image with strong prompt fidelity for illustration and photorealistic outputs.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "atlascloud/image-upscaler",
+        "name": "Image Upscaler",
+        "kind": "image",
+        "desc": "AtlasCloud Image Upscaler — enlarges an image up to 4x without a prompt.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "atlascloud/photo-cleanup",
+        "name": "Photo Cleanup",
+        "kind": "image",
+        "desc": "AtlasCloud Photo Cleanup — removes compression artifacts and noise from a photo.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "black-forest-labs/flux-2-flex/edit",
+        "name": "FLUX.2 Flex — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Black Forest Labs FLUX.2 Flex — image editing with exposed guidance and step count.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "black-forest-labs/flux-2-flex/text-to-image",
+        "name": "FLUX.2 Flex — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Black Forest Labs FLUX.2 Flex — text to image with exposed guidance and step count.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "black-forest-labs/flux-2-pro/edit",
+        "name": "FLUX.2 Pro — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Black Forest Labs FLUX.2 Pro — edits up to 8 input images from a text instruction.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "black-forest-labs/flux-2-pro/text-to-image",
+        "name": "FLUX.2 Pro — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Black Forest Labs FLUX.2 Pro — text to image with high prompt adherence and legible text.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "black-forest-labs/flux-dev",
+        "name": "FLUX.1 Dev",
+        "kind": "image",
+        "desc": "AtlasCloud / Black Forest Labs FLUX.1 Dev — text to image, or image to image when a source image is connected.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "black-forest-labs/flux-kontext-dev",
+        "name": "FLUX.1 Kontext Dev",
+        "kind": "image",
+        "desc": "AtlasCloud / Black Forest Labs FLUX.1 Kontext Dev — instruction-driven image editing that keeps the rest of the frame.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "black-forest-labs/flux-schnell",
+        "name": "FLUX.1 Schnell",
+        "kind": "image",
+        "desc": "AtlasCloud / Black Forest Labs FLUX.1 Schnell — the fast distilled FLUX.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "bytedance/seedream-v4.5",
+        "name": "Seedream v4.5 — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / ByteDance Seedream v4.5 — text to image up to 4K.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "bytedance/seedream-v4.5/edit",
+        "name": "Seedream v4.5 — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / ByteDance Seedream v4.5 — edits input images from a text instruction.",
         "tags": [
           "image"
         ]
@@ -3737,6 +3854,60 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "hidream-o1-1.5/edit",
+        "name": "Hi Dream O1 1.5 — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / HiDream O1 1.5 — edits reference images from a text instruction.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "hidream-o1-1.5/text-to-image",
+        "name": "Hi Dream O1 1.5 — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / HiDream O1 1.5 — text to image with optional reference images for style or subject.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "ideogram/v4/quality/text-to-image",
+        "name": "Ideogram v4 Quality — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Ideogram v4 Quality — the slower, higher-fidelity Ideogram v4 tier.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "ideogram/v4/turbo/text-to-image",
+        "name": "Ideogram v4 Turbo — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Ideogram v4 Turbo — fast text to image, strong at typography and logos.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "krea-2-turbo/text-to-image",
+        "name": "Krea 2 Turbo — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Krea 2 Turbo — fast text to image tuned against the over-processed look.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "microsoft/mai-image-2.5-flash/edit",
+        "name": "MAI Image 2.5 Flash — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Microsoft MAI-Image-2.5-Flash — fast single-image editing from a text instruction.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
         "id": "microsoft/mai-image-2.5-flash/text-to-image",
         "name": "MAI Image 2.5 Flash — Text to Image",
         "kind": "image",
@@ -3764,190 +3935,19 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
-        "id": "openai/gpt-image-1.5/edit",
-        "name": "GPT Image 1.5 — Edit",
+        "id": "nvidia/cosmos-3-super/text-to-image",
+        "name": "Cosmos 3 Super — Text to Image",
         "kind": "image",
-        "desc": "AtlasCloud / OpenAI GPT Image 1.5 — precise natural-language image editing (add/remove objects, retouch, swap backgrounds, etc.).",
+        "desc": "AtlasCloud / NVIDIA Cosmos 3 Super — text to image with a negative prompt and exposed sampler settings.",
         "tags": [
           "image"
         ]
       },
       {
-        "id": "openai/gpt-image-1.5/text-to-image",
-        "name": "GPT Image 1.5 — Text to Image",
+        "id": "openai/gpt-image-1-mini/edit",
+        "name": "GPT Image 1 Mini — Edit",
         "kind": "image",
-        "desc": "AtlasCloud / OpenAI GPT Image 1.5 — fast, cost-efficient text-to-image powered by GPT-5 guidance.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "openai/gpt-image-2/edit",
-        "name": "GPT Image 2 — Edit",
-        "kind": "image",
-        "desc": "AtlasCloud / OpenAI GPT Image 2 — precise natural-language image editing (add/remove objects, retouch, swap backgrounds, etc.).",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "openai/gpt-image-2/text-to-image",
-        "name": "GPT Image 2 — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / OpenAI GPT Image 2 — fast, cost-efficient text-to-image powered by GPT-5 guidance.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "qwen-image-3.0-pro/edit",
-        "name": "Qwen Image 3.0 Pro — Edit",
-        "kind": "image",
-        "desc": "AtlasCloud / Alibaba Qwen Image 3.0 Pro — edits one image, or composes up to three reference images into a subject-driven edit.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "qwen-image-3.0-pro/text-to-image",
-        "name": "Qwen Image 3.0 Pro — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / Alibaba Qwen Image 3.0 Pro — generates up to four high-fidelity images per call.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "qwen-image-3.0/edit",
-        "name": "Qwen Image 3.0 — Edit",
-        "kind": "image",
-        "desc": "AtlasCloud / Alibaba Qwen Image 3.0 — edits one image, or composes up to three reference images into a subject-driven edit.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "qwen-image-3.0/text-to-image",
-        "name": "Qwen Image 3.0 — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / Alibaba Qwen Image 3.0 — generates up to four images per call.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "qwen/qwen-image-2.0-pro/edit",
-        "name": "Qwen Image 2.0 Pro — Edit",
-        "kind": "image",
-        "desc": "AtlasCloud / Qwen Image 2.0 Pro — professional-grade image editing with advanced instruction understanding, up to 2K.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "qwen/qwen-image-2.0-pro/text-to-image",
-        "name": "Qwen Image 2.0 Pro — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / Qwen Image 2.0 Pro — professional-grade text-to-image with superior quality, up to 2K.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "qwen/qwen-image-2.0/edit",
-        "name": "Qwen Image 2.0 — Edit",
-        "kind": "image",
-        "desc": "AtlasCloud / Qwen Image 2.0 — instruction-driven image editing, up to 2K.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "qwen/qwen-image-2.0/text-to-image",
-        "name": "Qwen Image 2.0 — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / Qwen Image 2.0 — text-to-image with enhanced quality and prompt understanding, up to 2K.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "reve-ai/reve-2.1/edit",
-        "name": "Reve 2.1 — Edit",
-        "kind": "image",
-        "desc": "AtlasCloud / Reve 2.1 — edits one image at 4K from a text instruction.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "reve-ai/reve-2.1/remix",
-        "name": "Reve 2.1 — Remix",
-        "kind": "image",
-        "desc": "AtlasCloud / Reve 2.1 — remixes 1-6 reference images at 4K.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "reve-ai/reve-2.1/text-to-image",
-        "name": "Reve 2.1 — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / Reve 2.1 — generates a 4K image from text, with optional background removal.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "xai/grok-imagine-image-2.0/edit",
-        "name": "Grok Imagine Image 2.0 — Edit",
-        "kind": "image",
-        "desc": "AtlasCloud / xAI Grok Imagine Image 2.0 — edits up to three source images from a text instruction.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "xai/grok-imagine-image-2.0/text-to-image",
-        "name": "Grok Imagine Image 2.0 — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / xAI Grok Imagine Image 2.0 — generates up to four images per call at 1K or 2K.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "xai/grok-imagine-image-quality/edit",
-        "name": "Grok Imagine Image Quality — Edit",
-        "kind": "image",
-        "desc": "AtlasCloud / xAI Grok Imagine (Quality) — edits one or more reference images from natural-language instructions at 1K or 2K.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "xai/grok-imagine-image-quality/text-to-image",
-        "name": "Grok Imagine Image Quality — Text to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / xAI Grok Imagine (Quality) — polished text-to-image at 1K or 2K with 13 aspect ratios.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "youchuan/v8.1/blend",
-        "name": "Youchuan v8.1 — Blend",
-        "kind": "image",
-        "desc": "AtlasCloud / Youchuan v8.1 — fuses 2-5 input images into blended results.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "id": "youchuan/v8.1/image-to-image",
-        "name": "Youchuan v8.1 — Image to Image",
-        "kind": "image",
-        "desc": "AtlasCloud / Youchuan v8.1 — re-imagines an input image with text guidance; returns four images.",
+        "desc": "AtlasCloud / OpenAI GPT Image 1 Mini — the cheaper edit tier for drafts and volume.",
         "tags": [
           "image"
         ]
@@ -3980,6 +3980,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "alibaba/wan-2.6/image-to-video",
+        "name": "Wan 2.6 — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 2.6 — animates a still image, optionally driven by an audio track.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-2.6/text-to-video",
+        "name": "Wan 2.6 — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 2.6 — 5, 10 or 15 second text to video, optionally driven by an audio track.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "id": "alibaba/wan-2.7/image-to-video",
         "name": "Wan 2.7 — Image to Video",
         "kind": "video",
@@ -3989,10 +4007,28 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "alibaba/wan-2.7/reference-to-video",
+        "name": "Wan 2.7 — Reference to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 2.7 — generates video from reference images, videos and an optional audio track.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "id": "alibaba/wan-2.7/text-to-video",
         "name": "Wan 2.7 — Text to Video",
         "kind": "video",
         "desc": "AtlasCloud / Alibaba Wan 2.7 — generates video from text with multi-shot narrative, audio generation, and sound-image synchronization.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-2.7/video-edit",
+        "name": "Wan 2.7 — Video Edit",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 2.7 — edits an existing video from a text instruction, with optional reference images.",
         "tags": [
           "video"
         ]
@@ -4047,6 +4083,15 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Wan 3.0 — Text to Video",
         "kind": "video",
         "desc": "AtlasCloud / Alibaba Wan 3.0 — cinematic video from a text prompt, up to 30s with native audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "atlascloud/video-upscaler",
+        "name": "Video Upscaler",
+        "kind": "video",
+        "desc": "AtlasCloud Video Upscaler — re-renders a clip at 1080p or 2K without a prompt.",
         "tags": [
           "video"
         ]
@@ -4169,6 +4214,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bytedance/seedance-v1.5-pro/image-to-video",
+        "name": "Seedance v1.5 Pro — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / ByteDance Seedance v1.5 Pro — animates a first frame (and optional last frame) with native audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "bytedance/seedance-v1.5-pro/text-to-video",
+        "name": "Seedance v1.5 Pro — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / ByteDance Seedance v1.5 Pro — text to video with native audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "id": "google/gemini-omni-flash/image-to-video",
         "name": "Gemini Omni Flash — Image to Video",
         "kind": "video",
@@ -4232,82 +4295,19 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "google/veo3.1-lite/start-end-frame-to-video",
+        "name": "Veo 3.1 Lite — Start and End Frame to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Veo 3.1 Lite — interpolates between a first and a last frame.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "id": "google/veo3.1-lite/text-to-video",
         "name": "Veo 3.1 Lite — Text to Video",
         "kind": "video",
         "desc": "AtlasCloud / Google Veo 3.1 Lite — cost-efficient text-to-video with synchronized audio at 720p/1080p.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "google/veo3.1/image-to-video",
-        "name": "Veo 3.1 — Image to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / Google Veo 3.1 — animates a first (and optional last) frame into cinematic video with realistic continuity and sound.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "google/veo3.1/text-to-video",
-        "name": "Veo 3.1 — Text to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / Google Veo 3.1 — cinematic text-to-video with dynamic camera motion, lifelike detail, and optional audio.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "kwaivgi/kling-v3.0-pro/image-to-video",
-        "name": "Kling v3.0 Pro — Image to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Pro — premium image-to-video with first/end-frame control and sound.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "kwaivgi/kling-v3.0-pro/text-to-video",
-        "name": "Kling v3.0 Pro — Text to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Pro — premium text-to-video with multi-shot support and sound.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "kwaivgi/kling-v3.0-std/image-to-video",
-        "name": "Kling v3.0 Std — Image to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Standard — high-quality image-to-video generation.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "kwaivgi/kling-v3.0-std/text-to-video",
-        "name": "Kling v3.0 Std — Text to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Standard — high-quality text-to-video generation.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "kwaivgi/kling-v3.0-turbo/image-to-video",
-        "name": "Kling v3.0 Turbo — Image to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Turbo — image-to-video animation built on MVL technology.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "kwaivgi/kling-v3.0-turbo/text-to-video",
-        "name": "Kling v3.0 Turbo — Text to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Turbo — dynamic cinematic text-to-video.",
         "tags": [
           "video"
         ]

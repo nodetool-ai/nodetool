@@ -1125,6 +1125,30 @@ the movie-trailer use-case page, and one hero written to two trees —
 Hunt slide) and `docs/assets/creative-agent/storyboard-surface.png`. Both are
 backend-free, so a re-run reproduces them with no server and no credits spent.
 
+### Marketing project screenshots
+
+The landing page's project section (`marketing/src/components/ProjectSection.tsx`)
+tells one session end to end, and three of its four frames are the project
+views. Those come from the documentation screenshot suite — `npm run screenshots`
+in `web/` drives the real app against the seeded projects in
+`packages/websocket/src/screenshot-projects.ts` and writes
+`docs/assets/screenshots/project-*.png`. `npm run project-shots` (in `web/`)
+then re-encodes those PNGs as WebP into `marketing/public/projects/` and writes
+`marketing/src/data/projectShots.generated.ts` with the size `next/image` needs.
+
+The two halves are split because only the first needs a browser, a backend and
+a seeded database; re-encoding is deterministic and needs none of them. That is
+what `npm run project-shots:check` reads: it re-encodes into memory and fails
+when a committed WebP or a recorded size has drifted from its source PNG, so a
+stale marketing copy cannot ship unnoticed. A shot may declare a `height` to
+crop to its top band (the new-project surface pins its blank-document strip to
+the bottom of the viewport, leaving 270px of empty column in the middle at
+900px) — a crop and nothing else: no compositing, no re-rendering.
+
+The fourth frame is the chat one, and it is the same session on purpose: the
+six keyframes rendered in it are the six stills on the board the project frames
+show.
+
 ### nodetool app build (Mini-App Build Harness)
 
 Turns a prompt — or a hand-written `spec.json` — into a verified

@@ -24,7 +24,7 @@ import SketchEditorSection from "../components/SketchEditorSection";
 import AppBuilderSection from "../components/AppBuilderSection";
 import FeaturesSection from "../components/FeaturesSection";
 import NodeMenuSection from "../components/NodeMenuSection";
-import ChatUISection from "../components/ChatUISection";
+import ProjectSection from "../components/ProjectSection";
 import AssetManagerSection from "../components/AssetManagerSection";
 import CommunitySection from "../components/CommunitySection";
 import ContactSection from "../components/ContactSection";
@@ -233,7 +233,7 @@ export default function Home() {
 
         {/* The core differentiator, right after the problem: the agent leaves
             an executable, editable process behind — not a transcript */}
-        <ChatUISection />
+        <ProjectSection />
 
         {/* Demo video — surface the product immediately after the hero */}
         <section id="demo-video" aria-label="NodeTool Demo" className="rhythm-section relative scroll-mt-24">
