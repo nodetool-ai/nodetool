@@ -2,7 +2,7 @@
  * Registration seam for the in-process extension channel.
  *
  * The action loop (this package) must not depend on `@nodetool-ai/websocket`:
- * the dependency runs the other way (websocket → automation-nodes), so a static
+ * the dependency runs the other way (websocket → browser), so a static
  * import here would create a cycle. Instead the server registers its
  * `ExtensionBridge.getChannel` factory at startup via
  * {@link setExtensionChannelProvider}; the browser-tools singleton resolves it
@@ -13,7 +13,7 @@
  * {@link ExtensionCdpClient}.
  */
 
-import type { ExtensionChannel } from "./extension-cdp-client.js";
+import type { ExtensionChannel } from "./client.js";
 
 /** Factory yielding a fresh in-process channel bound to the live extension. */
 export type ExtensionChannelProvider = () => ExtensionChannel;

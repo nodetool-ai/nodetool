@@ -487,7 +487,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Returns the input untouched off the browser worker; the fetch feeds createImageBitmap."
   },
   {
-    file: "packages/automation-nodes/src/lib/browser-capture.ts",
+    file: "packages/browser/src/capture.ts",
     owner: "in-page capture",
     inputSource: "workflow",
     schemes: ["http", "https"],

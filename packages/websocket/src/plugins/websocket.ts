@@ -13,7 +13,7 @@ import {
   extensionBridge,
   type ExtensionSocket
 } from "../extension-cdp-bridge.js";
-import { setExtensionChannelProvider } from "@nodetool-ai/automation-nodes/lib/extension-channel-provider";
+import { setExtensionChannelProvider } from "@nodetool-ai/browser";
 import { packWebSocketMessage } from "../messagepack.js";
 import type { SdkLiveRunnerRegistry } from "../sdk/sdk-live-runner-registry.js";
 import { runTransformersJsModelDownload } from "../model-download-runtime.js";

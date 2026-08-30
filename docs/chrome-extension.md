@@ -38,9 +38,9 @@ The Chrome Extension solves this by reusing the browser you already use every da
 2. **Sign in** to the target site (e.g. Midjourney) in a normal Chrome tab, as you would manually.
 3. **Start your NodeTool server**: `nodetool serve --port 7777` (the extension talks to it over `ws://localhost:7777/ws/extension` by default).
 4. **Open the extension popup** on the signed-in tab and click **Attach to this tab**. Chrome shows its standard "Nodetool is debugging this browser" banner while attached.
-5. **Build a workflow** using a live-browser node configured to reuse the extension transport (set `NODETOOL_BROWSER_TRANSPORT=extension` on the server, or point it at your extension via `NODETOOL_EXTENSION_WS_URL` — see [Transport Selection](#transport-selection)).
-6. **Run the workflow**. The node's action loop drives your attached tab: it types the prompt, submits the form, waits for the result, and can capture a screenshot or download the generated asset.
-7. **Detach** from the popup (or just close the tab) when you're done — attaching is never automatic and only lasts for the current browser session.
+5. **Ask the agent**, or build a workflow. Either way the `browser_*` tools drive the attached tab — `browser_status` first to confirm the extension is attached, then `browser_restart` with `transport: "extension"` if the server is still on its headless Chrome (or set `NODETOOL_BROWSER_TRANSPORT=extension` before starting it — see [Transport Selection](#transport-selection)).
+6. **Run it**. The action loop drives your attached tab: it types the prompt, submits the form, waits for the result, and captures a screenshot or the generated asset into your library.
+7. **Detach** from the popup (or just close the tab) when you're done — an attachment lasts only for the current browser session.
 
 Because the site sees your real, logged-in browser rather than a bot-like headless process, you avoid the CAPTCHAs, bot-detection blocks, and re-authentication flows that a server-launched browser would hit.
 
@@ -112,12 +112,14 @@ Chrome Extension (service worker)
 
 - **Background service worker** (`src/background/service-worker.ts`) owns the relay. It restarts the relay on `chrome.runtime.onInstalled`/`onStartup` because Manifest V3 service workers get evicted and need to reconnect, and it uses a `chrome.alarms` keepalive (roughly every 24 seconds) to stop the worker idling out while a debugger session is attached.
 - **CDP relay** (`src/lib/cdp-relay.ts`) maintains the WebSocket to your server with exponential backoff (1–30s) if the connection drops, and answers server heartbeat pings (`ping`/`pong`, ~15s).
-- **Explicit attach only**: `chrome.debugger.attach` is only ever called from a user click in the popup — never automatically on page load or on a server request. Attaching is mutually exclusive with having Chrome DevTools open on the same tab.
-- **Wire protocol**: JSON text frames (not the MsgPack used by NodeTool's main `/ws` chat/workflow channel), with frame kinds `cdp` / `cdp_result` / `cdp_event` (command/response/event relay), `attach` / `attached` / `detach` (session lifecycle), `ping` / `pong` (heartbeat), `error` (fatal — e.g. the user closed the tab or DevTools banner), `asset_chunk` (server → extension, for injecting a file upload), and `media_chunk` / `media_end` (extension → server, for `chrome.downloads`-based capture when a site blocks direct clipboard/screenshot access).
+- **Attach is a user gesture, with one exception**: `chrome.debugger.attach` is never called on page load. The popup's **Attach to this tab** button is the intended path, but a host `attach` frame on an unattached relay also attaches the *currently active* tab as a convenience (`handleAttachRequest` in `src/lib/cdp-relay.ts`). Since `/ws/extension` is unauthenticated and single-connection, any process that can reach the port can therefore start driving whatever tab is focused — which is why the bridge is off in production unless `NODETOOL_ENABLE_EXTENSION_BRIDGE=1` is set. Attaching is mutually exclusive with having Chrome DevTools open on the same tab.
+- **Wire protocol**: JSON text frames (not the MsgPack used by NodeTool's main `/ws` chat/workflow channel). Five frame kinds are live: `cdp` / `cdp_result` / `cdp_event` (command/response/event relay), `attach` / `attached` / `detach` (session lifecycle), `ping` / `pong` (heartbeat), and `error` (fatal — e.g. the user closed the tab or DevTools banner). Three more are **declared but not implemented on either side**: `asset_chunk` (server → extension, a file-upload injection) and `media_chunk` / `media_end` (extension → server, a `chrome.downloads` capture). Uploads reach a file input through an in-page `DataTransfer` injection instead, and media is captured with `Network.getResponseBody` or an in-page `fetch`; the three frames are the shape a `chrome.downloads` fallback would take if a site defeats both.
 
 ### Transport Selection
 
-Browser-automation nodes on the server choose between a headless local browser and the extension relay via an environment variable:
+One browser session exists per server process, and it is driven by either transport: a headless Chrome the server launches, or your attached tab. The same action loop, element indexing, and screenshot logic runs against both — only the CDP client differs — so nothing built for headless browsing needs different logic to use the logged-in session.
+
+Set the default before the server starts:
 
 ```bash
 # Use the extension-attached browser instead of a headless one
@@ -127,9 +129,53 @@ NODETOOL_BROWSER_TRANSPORT=extension nodetool serve
 NODETOOL_EXTENSION_WS_URL=ws://localhost:7777/ws/extension nodetool serve
 ```
 
-When the extension transport is selected but no extension is currently attached, the node fails fast with a clear message rather than hanging: *"No browser extension is connected to `/ws/extension` — attach will time out. Install the extension and click 'Attach to this tab'."*
+Or switch a running server from the agent side, which is the same decision made later:
 
-Under the hood, the same action loop, element indexing, and screenshot logic used by the headless browser nodes runs unchanged against the extension transport — only the underlying CDP client differs, so workflows built for headless browsing don't need to change their node logic to benefit from the logged-in session.
+```jsonc
+{"tool": "browser_restart", "arguments": {"transport": "extension"}}
+```
+
+Restarting is the only point the transport can change, because the session is a process singleton: switching tears the current one down first. On the local transport that kills Chrome and relaunches it (cookies and history gone); on the extension transport it only detaches and re-attaches the debugger, leaving your browser alone.
+
+When the extension transport is selected but nothing is attached, the log says so — *"No browser extension is connected to `/ws/extension` — attach will time out. Install the extension and click 'Attach to this tab'."* — and the attach then spends its 30-second timeout. `browser_status` is how an agent finds this out first instead.
+
+---
+
+## As an agent capability
+
+The `browser_*` capabilities are the extension's agent-facing surface. They are registered like any other NodeTool capability, so the same fourteen names reach the chat agent, an `AgentNode` in a workflow, MCP clients, CodeAct, a Code node, and a JS script — and every one of them drives the same page.
+
+| Capability | What it does |
+|---|---|
+| `browser_status` | Which transport is live, whether an extension is attached, where an open session is pointed |
+| `browser_view` | URL, title, viewport, indexed interactive elements, screenshot |
+| `browser_navigate` | Load a URL |
+| `browser_restart` | Restart the session; the one place `transport` changes |
+| `browser_click`, `browser_input_text`, `browser_press_key`, `browser_select_option`, `browser_move_mouse`, `browser_scroll` | Act on the page, addressing elements by their `browser_view` index or by coordinates |
+| `browser_console_exec`, `browser_console_view` | Evaluate an expression in the page; read recent console messages |
+| `browser_capture_media` | Save an image/video/audio the page produced as a NodeTool asset |
+| `browser_upload_asset` | Inject an existing asset into a page file input |
+
+Element indexes are rebuilt on every `browser_view`, so an agent views before it acts on an index.
+
+`browser_status` is the one to call first when a task needs the logged-in session:
+
+```json
+{
+  "transport": "extension",
+  "session_open": false,
+  "extension_connected": false,
+  "url": null,
+  "title": null,
+  "hint": "No Chrome extension is connected to /ws/extension. Ask the user to install the NodeTool extension and click 'Attach to this tab'; until then every browser action will time out attaching."
+}
+```
+
+`extension_connected` is `null`, not `false`, where the process cannot answer — a CLI reaching `/ws/extension` over a URL would have to open a socket to find out, so it reports "unknown" rather than guessing.
+
+Permission-wise: reading the page (`browser_status`, `browser_view`, `browser_console_view`) is classified `read`, `browser_restart` and `browser_console_exec` are `execute`, and everything that acts on the page — a click, a keystroke, an upload — is `external`, because it lands on a third-party site inside the user's own logged-in session.
+
+The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which knows nothing about agents, nodes or assets — a screenshot comes back from it as base64. The capability module imports it directly and owns the half that needs a `ProcessingContext`: persisting those bytes as an asset, and resolving an asset id back to bytes for an upload. That split is why the `lib.browser.Screenshot` node can share the same action loop without depending on the agent layer.
 
 ---
 
@@ -147,7 +193,8 @@ Under the hood, the same action loop, element indexing, and screenshot logic use
 - **Not published to the Chrome Web Store.** Install as an unpacked extension from source.
 - **Mutually exclusive with DevTools.** You can't have Chrome DevTools open on a tab while the extension is attached to it (both use `chrome.debugger`).
 - **Session-only.** Attaching does not persist across Chrome restarts — reattach after restarting your browser.
-- **Manual build, not CI-gated.** The `chrome-extension/` package isn't part of `npm run build:packages` or the repository's CI checks; keep the two protocol definitions (`chrome-extension/src/lib/protocol.ts` and `packages/automation-nodes/src/lib/extension-protocol.ts`) in sync by hand if you change the wire format.
+- **One session per server process.** The browser session is a process singleton shared by every agent and workflow on that server, so two concurrent runs drive the same tab. Sequence them, or give each its own server.
+- **Manual build.** The `chrome-extension/` package isn't part of `npm run build:packages` — build it on demand. A diff touching it does run the `live-browser` surface's selfcheck through `nodetool harness gate`, but that covers the capability seam, not the relay: the extension → `chrome.debugger` → page round trip runs only in `npm run test:integration --workspace=packages/browser`, which needs Chrome and port 7777. Keep the two protocol definitions (`chrome-extension/src/lib/protocol.ts` and `packages/browser/src/extension/protocol.ts`) in sync by hand if you change the wire format.
 
 ---
 

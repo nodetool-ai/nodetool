@@ -23,7 +23,7 @@ const DEFAULT_FLAGS = [
   "--window-size=1280,900"
 ];
 
-interface LaunchOptions {
+export interface LaunchOptions {
   /** Existing CDP endpoint port. If set, a Chrome instance is not launched. */
   port?: number;
   extraFlags?: string[];

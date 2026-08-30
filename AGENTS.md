@@ -205,6 +205,9 @@ packages/           # 57 npm workspace packages (TypeScript backend)
   agents/           # Planning agent system (TaskPlanner → TaskExecutor → CodeActExecutor)
   chat/             # Chat message processing, token counting
   base-nodes/       # Core workflow nodes (text, image, LLM, agents)
+  browser/          # One real Chrome page over CDP: the action loop, media
+                    # capture, upload, and the Chrome-extension relay that
+                    # reaches the user's own signed-in browser
   websocket/        # Fastify HTTP + WebSocket server (main API, port 7777)
   cli/              # nodetool CLI
   vectorstore/      # SQLite-vec for RAG
@@ -1705,6 +1708,36 @@ The math is pure and lives apart from the capability:
 gated loudness, silence, onsets, tempo) and `video-frames.ts` (per-frame
 statistics, histograms, motion, palettes, cuts), both tested on signals whose
 answers are known analytically. `media-decode.ts` is the Mediabunny seam.
+
+### Live browser tools (your own signed-in Chrome)
+
+Fourteen `browser_*` capabilities drive one real Chrome page action by action —
+`browser_view` (URL, title, indexed interactive elements, screenshot),
+`browser_navigate`, `browser_click`, `browser_input_text`, `browser_press_key`,
+`browser_select_option`, `browser_move_mouse`, `browser_scroll`,
+`browser_console_exec`, `browser_console_view`, `browser_capture_media`,
+`browser_upload_asset`, `browser_restart`, `browser_status`. Element indexes
+are rebuilt on every view, so a caller views before it acts on an index.
+
+The page is either a headless Chrome the process launched or, through the
+**Chrome extension** relay on `/ws/extension`, the tab the user is already
+signed in to — cookies, sessions and 2FA in place, which is what makes
+Midjourney, Sora and the rest reachable at all. The action loop is the same
+either way, so only two capabilities mention transports: `browser_status`
+reports the one in force (and whether an extension is actually attached, so an
+agent learns that before spending a 30-second attach timeout), and
+`browser_restart` changes it.
+
+The action loop is its own package, **`@nodetool-ai/browser`** — `CdpPage`,
+the session, media capture, file upload, and the extension transport — and it
+knows nothing about agents, nodes, assets or workflows: inputs are plain
+values, a screenshot comes back as base64. The capability module
+(`packages/agents/src/capabilities/browser.ts`) imports it directly and owns
+the half that needs a `ProcessingContext`, turning those bytes into an asset
+reference and an asset id into bytes. That split is what lets the capabilities
+and the `lib.browser.Screenshot` node share one implementation. One session
+exists per process and every caller shares it. Extension setup, the wire
+protocol and its limits: [docs/chrome-extension.md](docs/chrome-extension.md).
 
 ### Code authoring tools (no workflow, no browser)
 

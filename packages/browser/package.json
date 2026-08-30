@@ -1,7 +1,7 @@
 {
-  "name": "@nodetool-ai/automation-nodes",
+  "name": "@nodetool-ai/browser",
   "version": "0.7.0-rc.38",
-  "description": "NodeTool automation/system nodes \u2014 browser control, OS, workspace FS, triggers",
+  "description": "Driving one real Chrome page over CDP: the action loop, element indexing, media capture, file upload, and the Chrome-extension relay that reaches the user's own signed-in browser",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -10,50 +10,39 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "check": "npm run lint && npm run test",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "npm --prefix ../../chrome-extension run build && npx -y @puppeteer/browsers install chrome@stable --path ../../chrome && vitest run --config vitest.integration.config.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/browser": "*",
     "@nodetool-ai/config": "*",
-    "@nodetool-ai/node-sdk": "*",
-    "@nodetool-ai/nodes-utils": "*",
-    "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*",
-    "@openclaw/fs-safe": "^0.5.6"
+    "chrome-launcher": "^1.2.0",
+    "chrome-remote-interface": "^0.34.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/chrome-remote-interface": "^0.33.0",
     "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
   "exports": {
     ".": {
+      "nodetool-dev": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./nodes/*": {
-      "types": "./dist/nodes/*.d.ts",
-      "import": "./dist/nodes/*.js",
-      "default": "./dist/nodes/*.js"
-    },
-    "./lib/*": {
-      "types": "./dist/lib/*.d.ts",
-      "import": "./dist/lib/*.js",
-      "default": "./dist/lib/*.js"
     }
   },
   "license": "MIT",
-  "files": [
-    "dist",
-    "README.md"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/automation-nodes"
+    "directory": "packages/browser"
   },
   "homepage": "https://nodetool.ai",
   "bugs": {
@@ -62,19 +51,16 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "keywords": [
     "nodetool",
-    "ai",
-    "workflow",
-    "workflow-automation",
-    "typescript",
-    "ai-nodes",
-    "no-code",
-    "visual-programming",
-    "workflow-nodes",
-    "automation",
     "browser-automation",
-    "os",
-    "filesystem"
+    "chrome-devtools-protocol",
+    "cdp",
+    "chrome-extension",
+    "typescript"
   ]
 }

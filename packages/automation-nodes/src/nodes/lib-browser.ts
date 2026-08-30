@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { withPage } from "../lib/cdp-page.js";
+import { withPage } from "@nodetool-ai/browser";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 export class ScreenshotLibNode extends BaseNode {

@@ -28,7 +28,7 @@ import { createLogger } from "@nodetool-ai/config";
 import {
   parseExtensionFrame,
   type ExtensionFrame
-} from "@nodetool-ai/automation-nodes/lib/extension-protocol";
+} from "@nodetool-ai/browser";
 import { isString } from "./lib/wire-values.js";
 
 const log = createLogger("nodetool.websocket.extension-bridge");

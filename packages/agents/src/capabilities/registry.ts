@@ -31,6 +31,7 @@ import { analysisSpecs } from "./analysis.specs.js";
 import { apifySpecs } from "./apify.specs.js";
 import { appsSpecs } from "./apps.specs.js";
 import { assetsSpecs } from "./assets.specs.js";
+import { browserSpecs } from "./browser.specs.js";
 import { codeSpecs } from "./code.specs.js";
 import { collectionsSpecs } from "./collections.specs.js";
 import { costsSpecs } from "./costs.specs.js";
@@ -74,6 +75,7 @@ const MODULES: Readonly<Record<string, Loader>> = {
   nodes: () => import("./nodes.js").then((m) => m.module),
   jobs: () => import("./jobs.js").then((m) => m.module),
   assets: () => import("./assets.js").then((m) => m.module),
+  browser: () => import("./browser.js").then((m) => m.module),
   apps: () => import("./apps.js").then((m) => m.module),
   documents: () => import("./documents.js").then((m) => m.module),
   email: () => import("./email.js").then((m) => m.module),
@@ -118,6 +120,7 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "nodes",
   "jobs",
   "assets",
+  "browser",
   "apps",
   "documents",
   "email",
@@ -167,6 +170,7 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   nodes: nodesSpecs,
   jobs: jobsSpecs,
   assets: assetsSpecs,
+  browser: browserSpecs,
   apps: appsSpecs,
   documents: documentsSpecs,
   email: emailSpecs,

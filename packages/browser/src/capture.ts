@@ -10,8 +10,8 @@
 import type {
   BrowserCaptureMediaInput,
   BrowserCaptureMediaRaw
-} from "./browser-schemas.js";
-import type { CdpPage } from "../lib/cdp-page.js";
+} from "./schemas.js";
+import type { CdpPage } from "./cdp-page.js";
 
 /** Page-side capture payload returned by the injected function. */
 interface InPageCaptureResult {

@@ -80,6 +80,14 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   get_setting: "read",
   list_secrets: "read",
   take_screenshot: "read",
+  // Live browser. Reading the page and the console has no effect on it;
+  // acting on it does, and every acting `browser_*` is left unlisted so the
+  // gate classes it `external` — a click, a keystroke or an upload lands on a
+  // third-party site in the user's own logged-in session. `browser_restart`
+  // and `browser_console_exec` are listed below as `execute`.
+  browser_status: "read",
+  browser_view: "read",
+  browser_console_view: "read",
   extract_pdf_text: "read",
   extract_pdf_tables: "read",
   convert_pdf_to_markdown: "read",
@@ -300,6 +308,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   start_background_job: "execute",
   ffmpeg: "execute",
   ffprobe: "execute",
+  browser_restart: "execute",
+  browser_console_exec: "execute",
 
   // --- external: third-party side effects ---
   browser: "external",
